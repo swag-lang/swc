@@ -24,17 +24,17 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
     }
     defer for &block in blocks do itf.free(block)
 
-    let index   = (cast(u64) blocks[0].address & 15) != 0 ? 0 : 1
+    let index   = (cast(u64, blocks[0].address) & 15) != 0 ? 0 : 1
     let request = &blocks[index]
-    Swag.assert((cast(u64) request.address & 15) == 8)
-    let bytes = cast([*] u8) request.address!
-    for i in 8 do bytes[i] = cast(u8) (i + 17)
+    Swag.assert((cast(u64, request.address) & 15) == 8)
+    let bytes = cast([*] u8, request.address!)
+    for i in 8 do bytes[i] = cast(u8, (i + 17))
     request.oldSize   = 8
     request.alignment = 16
     itf.realloc(request)
     Swag.assert(request.address != null)
-    Swag.assert((cast(u64) request.address & 15) == 0)
-    for i in 8 do Swag.assert((cast([*] u8) request.address)[i] == cast(u8) (i + 17))
+    Swag.assert((cast(u64, request.address) & 15) == 0)
+    for i in 8 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, (i + 17)))
     let aligned = request.address
     for alignment in [16'u32, 8'u32, 0'u32]
     {
@@ -57,18 +57,18 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
         itf.alloc(&request)
         Swag.assert(request.address != null)
         defer itf.free(&request)
-        for i in 129 do (cast([*] u8) request.address)[i] = cast(u8) i
+        for i in 129 do cast([*] u8, request.address)[i] = cast(u8, i)
         request.oldSize = 129
         request.size    = 200
         itf.realloc(&request)
         Swag.assert(request.address != null)
-        for i in 129 do Swag.assert((cast([*] u8) request.address)[i] == cast(u8) i)
+        for i in 129 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
         request.oldSize = 200
         request.size    = 17
         itf.realloc(&request)
         Swag.assert(request.address != null)
-        Swag.assert((cast(u64) request.address & (alignment - 1)) == 0)
-        for i in 17 do Swag.assert((cast([*] u8) request.address)[i] == cast(u8) i)
+        Swag.assert((cast(u64, request.address) & (alignment - 1)) == 0)
+        for i in 17 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
     }
 }
 
@@ -150,7 +150,7 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
     itf.alloc(&request)
     let original = request
     Swag.assert(original.address != null)
-    (cast([*] u8) original.address)[0] = 73
+    cast([*] u8, original.address)[0] = 73
     let before = allocator.stats().sizeCommitted
     for size in [Swag.U64.Max, 200'u64]
     {
@@ -162,7 +162,7 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
         Swag.assert(request.address == null)
         Swag.assert(allocator.stats().countAlloc == 1)
         Swag.assert(allocator.stats().sizeCommitted == before)
-        Swag.assert((cast([*] u8) original.address)[0] == 73)
+        Swag.assert(cast([*] u8, original.address)[0] == 73)
     }
     request = original
     itf.free(&request)

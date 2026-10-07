@@ -20,23 +20,23 @@ func failLiteralCharacter() fail { fail 'A' }
 {
     catch failLiteralInteger() as integerError
     Swag.assert(integerError is s32)
-    Swag.assert(cast #assume(s32) integerError == 7)
+    Swag.assert(assume cast(s32, integerError) == 7)
 
     catch failLiteralNegative() as negativeError
     Swag.assert(negativeError is s32)
-    Swag.assert(cast #assume(s32) negativeError == -9)
+    Swag.assert(assume cast(s32, negativeError) == -9)
 
     catch failLiteralWideInteger() as wideError
     Swag.assert(wideError is s64)
-    Swag.assert(cast #assume(s64) wideError == 4294967296)
+    Swag.assert(assume cast(s64, wideError) == 4294967296)
 
     catch failLiteralFloat() as floatError
     Swag.assert(floatError is f32)
-    Swag.assert(cast #assume(f32) floatError == 1.5'f32)
+    Swag.assert(assume cast(f32, floatError) == 1.5'f32)
 
     catch failLiteralCharacter() as characterError
     Swag.assert(characterError is rune)
-    Swag.assert(cast #assume(rune) characterError == 'A')
+    Swag.assert(assume cast(rune, characterError) == 'A')
 }
 
 #[Swag.NoInline]
@@ -77,5 +77,5 @@ func failLiteralFalse() fail { fail false }
 
     catch failLiteralFalse() as falseError
     Swag.assert(falseError is bool)
-    Swag.assert(not cast #assume(bool) falseError)
+    Swag.assert(not assume cast(bool, falseError))
 }

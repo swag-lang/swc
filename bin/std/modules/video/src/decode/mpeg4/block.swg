@@ -59,7 +59,7 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
                 continue
             }
 
-            let magnitude = cast(s32) quant * (2 * Math.abs(level) + 1) - (odd ? 0 : 1)
+            let magnitude = cast(s32, quant) * (2 * Math.abs(level) + 1) - (odd ? 0 : 1)
             block[][index] = Math.clamp(level < 0 ? -magnitude : magnitude, CoefficientFloor, CoefficientCeil)
         }
 
@@ -81,11 +81,11 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
             let level = block[][index]
             if level
             {
-                let weight = cast(s32) weights[index]
+                let weight = cast(s32, weights[index])
                 if intra do
-                    value = (level * weight * cast(s32) quant * 2) / 16
+                    value = (level * weight * cast(s32, quant) * 2) / 16
                 else do
-                    value = ((2 * level + (level < 0 ? -1 : 1)) * weight * cast(s32) quant) / 16
+                    value = ((2 * level + (level < 0 ? -1 : 1)) * weight * cast(s32, quant)) / 16
             }
         }
 
@@ -114,9 +114,9 @@ func prepareCosines()
         return
     for u in 8'u64
     {
-        let scale = u == 0 ? cast(f32) (1.0'f64 / Math.sqrt(2.0'f64)) : 1.0'f32
+        let scale = u == 0 ? cast(f32, (1.0'f64 / Math.sqrt(2.0'f64))) : 1.0'f32
         for x in 8'u64 do
-            g_Cosines[u, x] = scale * cast(f32) Math.cos(cast(f64) ((2 * x + 1) * u) * Math.ConstF64.Pi / 16.0'f64)
+            g_Cosines[u, x] = scale * cast(f32, Math.cos(cast(f64, ((2 * x + 1) * u)) * Math.ConstF64.Pi / 16.0'f64))
     }
 
     g_CosinesReady = true
@@ -140,7 +140,7 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
             {
                 let value = block[][y * 8 + u]
                 if value do
-                    sum += cast(f32) value * g_Cosines[u, x]
+                    sum += cast(f32, value) * g_Cosines[u, x]
             }
 
             rows[y * 8 + x] = sum * 0.5
@@ -154,7 +154,7 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
             var sum = 0'f32
             for v in 8'u64 do
                 sum += rows[v * 8 + x] * g_Cosines[v, y]
-            output[][y * 8 + x] = cast(s16) Math.clamp(cast(s32) Math.round(sum * 0.5), -512's32, 511's32)
+            output[][y * 8 + x] = cast(s16, Math.clamp(cast(s32, Math.round(sum * 0.5)), -512's32, 511's32))
         }
     }
 }

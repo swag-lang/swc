@@ -13,7 +13,7 @@ impl Decoder
     {
         Swag.assert(blkX < cb.blockNumX)
         Swag.assert(blkY < cb.blockNumY)
-        return cast([*] s16) (cast([*] u8) cb.pdata.storage() + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
+        return cast([*] s16, (cast([*] u8, cb.pdata.storage()) + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX)))
     }
 
     mtd loadNextRow() fail
@@ -40,15 +40,15 @@ impl Decoder
                 var i = 63
                 while i > 0
                 {
-                    if p[Zag[cast(u32) i]] do
+                    if p[Zag[cast(u32, i)]] do
                         break
                     i -= 1
                 }
 
                 while i >= 0
                 {
-                    if p[Zag[cast(u32) i]] do
-                        p[Zag[cast(u32) i]] *= q[cast(u32) i]
+                    if p[Zag[cast(u32, i)]] do
+                        p[Zag[cast(u32, i)]] *= q[cast(u32, i)]
                     i -= 1
                 }
 
@@ -112,10 +112,10 @@ impl Decoder
 
         if i == 0 do
             fail InvalidFormatError{"bad restart marker"}
-        if c != (.nextRestartNum + cast(u32) Marker.M_RST0) do
+        if c != (.nextRestartNum + cast(u32, Marker.M_RST0)) do
             fail InvalidFormatError{"bad restart marker"}
 
-        Memory.clear(&.lastDcVal, cast(u64) .compsInFrame * #sizeof(u32))
+        Memory.clear(&.lastDcVal, cast(u64, .compsInFrame) * #sizeof(u32))
 
         .eobRun         = 0
         .restartsLeft   = .restartInterval
@@ -171,7 +171,7 @@ impl Decoder
                 s += .lastDcVal[componentId]
                 .lastDcVal[componentId] = s
 
-                p[0] = cast(s16) (s * q[0])
+                p[0] = cast(s16, (s * q[0]))
                 let ph = &.h[.compAcTab[componentId]]
 
                 var k = 1
@@ -195,7 +195,7 @@ impl Decoder
                             fail InvalidFormatError{"decode error"}
 
                         s         = extendSign(rbits, s)
-                        p[Zag[k]] = cast(s16) (s * q[k])
+                        p[Zag[k]] = cast(s16, (s * q[k]))
                     }
                     else
                     {
@@ -400,28 +400,28 @@ impl Decoder
         .destBytesPerScanLine     = ((.imageSizeX + 15) & 0xFFF0) * .destBytesPerPixel
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
-        .scanLine0.resize(cast(u64) .destBytesPerScanLine + 8)
+        .scanLine0.resize(cast(u64, .destBytesPerScanLine) + 8)
         let scanLine0 = .scanLine0.storage()
-        Memory.clear(scanLine0, cast(u64) .destBytesPerScanLine)
+        Memory.clear(scanLine0, cast(u64, .destBytesPerScanLine))
 
-        .scanLine1.resize(cast(u64) .destBytesPerScanLine + 8)
+        .scanLine1.resize(cast(u64, .destBytesPerScanLine) + 8)
         let scanLine1 = .scanLine1.storage()
-        Memory.clear(scanLine1, cast(u64) .destBytesPerScanLine)
+        Memory.clear(scanLine1, cast(u64, .destBytesPerScanLine))
 
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
         if .maxBlocksPerRow > MaxBlocksPerRow do
             fail InvalidFormatError{"assertion error"}
 
-        .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
+        .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
         Memory.clear(.quantBuf.storage(), .quantBuf.count)
         for i in .maxBlocksPerRow
         {
-            .blockSeg[i] = cast([*] s16) (cast([*] u8) .quantBuf.storage() + i * 64 * #sizeof(s16))
+            .blockSeg[i] = cast([*] s16, (cast([*] u8, .quantBuf.storage()) + i * 64 * #sizeof(s16)))
         }
 
         // The conversions read whole vectors, so the last sample of a row is followed by enough
         // slack for a sixteen-byte read that starts on it.
-        .sampleBuf.resize(cast(u64) .maxBlocksPerRow * 64 + 64)
+        .sampleBuf.resize(cast(u64, .maxBlocksPerRow) * 64 + 64)
         .pSampleBuf = .sampleBuf.buffer
 
         .totalLinesLeft = .imageSizeY
@@ -438,7 +438,7 @@ impl Decoder
         try .checkHuffTables()
         try .checkQuantTables()
 
-        Memory.clear(.lastDcVal, cast(u64) .compsInFrame * #sizeof(u32))
+        Memory.clear(.lastDcVal, cast(u64, .compsInFrame) * #sizeof(u32))
 
         .eobRun = 0
         if .restartInterval
@@ -462,12 +462,12 @@ impl Decoder
     mtd fixInBuffer()
     {
         if .bitsLeft == 16 do
-            .stuffChar(cast(u8) ((.bitBuf >> 16) & 0xFF))
+            .stuffChar(cast(u8, ((.bitBuf >> 16) & 0xFF)))
         if .bitsLeft >= 8 do
-            .stuffChar(cast(u8) ((.bitBuf >> 24) & 0xFF))
+            .stuffChar(cast(u8, ((.bitBuf >> 24) & 0xFF)))
 
-        .stuffChar(cast(u8) (.bitBuf & 0xFF))
-        .stuffChar(cast(u8) ((.bitBuf >> 8) & 0xFF))
+        .stuffChar(cast(u8, (.bitBuf & 0xFF)))
+        .stuffChar(cast(u8, ((.bitBuf >> 8) & 0xFF)))
         .bitsLeft = 16
 
         .getBits2(16)
@@ -494,7 +494,7 @@ impl Decoder
         {
             for var i = 1; i <= huffNumBuf[l]; i += 1
             {
-                huffSize[p] = cast(u8) l
+                huffSize[p] = cast(u8, l)
                 p += 1
             }
         }
@@ -535,7 +535,7 @@ impl Decoder
             if codeSize <= 8
             {
                 cde <<= (8 - codeSize)
-                let entry = (cast(s32) codeSize << 8) | cast(s32) i
+                let entry = (cast(s32, codeSize) << 8) | cast(s32, i)
                 for var l = 1 << (8 - codeSize); l > 0; l -= 1
                 {
                     hs.lookUp[cde] = entry
@@ -613,7 +613,7 @@ impl Decoder
         {
             .dcHuffSeg[i] = &.h[.compDcTab[.mcuOrg[i]]]
             .acHuffSeg[i] = &.h[.compAcTab[.mcuOrg[i]]]
-            .component[i] = cast(*u32) &.lastDcVal[.mcuOrg[i]]
+            .component[i] = cast(*u32, &.lastDcVal[.mcuOrg[i]])
         }
     }
 

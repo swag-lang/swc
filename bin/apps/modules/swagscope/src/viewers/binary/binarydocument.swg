@@ -139,14 +139,14 @@ impl BinaryDocument
         for index in count
         {
             let value  = .image.bytes[index]
-            let digits = [cast(u8) (value >> 4), value & 0xF]
+            let digits = [cast(u8, (value >> 4)), value & 0xF]
             if index do
                 text.add(' 'u8)
             for nibble in digits do
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(cast(string) text.toSlice())
+        return String.from(cast(string, text.toSlice()))
     }
 
     // Returns the same leading bytes as the letters a reader recognizes them by.
@@ -164,7 +164,7 @@ impl BinaryDocument
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(cast(string) text.toSlice())
+        return String.from(cast(string, text.toSlice()))
     }
 
     // Returns the Shannon entropy of the beginning of the file, in bits per byte.
@@ -184,7 +184,7 @@ impl BinaryDocument
         var result = 0'f32
         for slot in 256 where histogram[slot]
         {
-            let share = cast(f32) histogram[slot] / cast(f32) count
+            let share = cast(f32, histogram[slot]) / cast(f32, count)
             result -= share * Math.log2(share)
         }
 

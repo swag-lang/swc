@@ -50,8 +50,8 @@ func leakArmExpectedDrop(addr: [*] void, self: [*] u8, tag: s32)
     LeakLastDropAddr     = 0
     LeakLastDropSelf     = 0
     LeakLastDropTag      = 0
-    LeakExpectedDropAddr = cast(u64) addr
-    LeakExpectedDropSelf = cast(u64) self
+    LeakExpectedDropAddr = cast(u64, addr)
+    LeakExpectedDropSelf = cast(u64, self)
     LeakExpectedDropTag  = tag
     LeakExpectDrop       = true
 }
@@ -77,25 +77,25 @@ impl LeakTrackedValue
     mtd opSet(tag: s32)
     {
         .tag        = tag
-        .storage[0] = cast(u8) tag
-        .storage[1] = cast(u8) (tag + 1)
-        .self       = cast([*] u8) &.storage[0]
+        .storage[0] = cast(u8, tag)
+        .storage[1] = cast(u8, (tag + 1))
+        .self       = cast([*] u8, &.storage[0])
     }
 
     mtd opPostCopy()
     {
         if .self do
-            .self = cast([*] u8) &.storage[0]
+            .self = cast([*] u8, &.storage[0])
     }
 
     mtd const marker()->s32
     {
-        return .tag + cast(s32) .self![] + cast(s32) .storage[1]
+        return .tag + cast(s32, .self![]) + cast(s32, .storage[1])
     }
 
     mtd opDrop()
     {
-        let dropAddr = cast(u64) me
+        let dropAddr = cast(u64, me)
         LeakDropCount += 1
         if LeakDropCount == 1
         {
@@ -108,15 +108,15 @@ impl LeakTrackedValue
             LeakSecondDropTag  = .tag
         }
         LeakLastDropAddr = dropAddr
-        LeakLastDropSelf = cast(u64) .self
+        LeakLastDropSelf = cast(u64, .self)
         LeakLastDropTag  = .tag
 
         if LeakExpectDrop
         {
             Swag.assert(dropAddr == LeakExpectedDropAddr)
-            Swag.assert(cast(u64) .self == LeakExpectedDropSelf)
+            Swag.assert(cast(u64, .self) == LeakExpectedDropSelf)
             Swag.assert(.tag == LeakExpectedDropTag)
-            Swag.assert(.self![] == cast(u8) .tag)
+            Swag.assert(.self![] == cast(u8, .tag))
         }
     }
 }
@@ -150,17 +150,17 @@ impl LeakTable
     #[Swag.NoInline]
     mtd put(index: s32, key: K, value: V)
     {
-        .entries[index].head  = cast(u32) index + 1
+        .entries[index].head  = cast(u32, index) + 1
         .entries[index].key   = #nodrop key
         .entries[index].value = #nodrop value
-        .entries[index].tail  = cast(u16) index + 10
+        .entries[index].tail  = cast(u16, index) + 10
         .live[index]          = true
     }
 
     #[Swag.NoInline]
     mtd const valueAddr(index: s32)->[*] void
     {
-        return cast([*] void) &.entries[index].value
+        return cast([*] void, &.entries[index].value)
     }
 
     #[Swag.NoInline]
@@ -239,7 +239,7 @@ impl LeakBox
     #[Swag.NoInline]
     mtd const valueAddr(index: s32)->[*] void
     {
-        return cast([*] void) &.table.entries[index].value
+        return cast([*] void, &.table.entries[index].value)
     }
 
     #[Swag.NoInline]
@@ -266,7 +266,7 @@ impl LeakGrid
     #[Swag.NoInline]
     mtd const valueAddr(tableIndex: s32, entryIndex: s32)->[*] void
     {
-        return cast([*] void) &.tables[tableIndex].entries[entryIndex].value
+        return cast([*] void, &.tables[tableIndex].entries[entryIndex].value)
     }
 
     #[Swag.NoInline]
@@ -316,28 +316,28 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         Swag.assert(byInt.entries[1].value.marker() == 67)
         Swag.assert(byWide.entries[0].value.marker() == 94)
 
-        leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8) &byInt.entries[1].value.storage[0], 22)
+        leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8, &byInt.entries[1].value.storage[0]), 22)
         byInt.dropAt(1)
         leakDisarmExpectedDrop()
         Swag.assert(LeakDropCount == 1)
-        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
-        Swag.assert(LeakLastDropSelf == cast(u64) &byInt.entries[1].value.storage[0])
+        Swag.assert(LeakLastDropAddr == cast(u64, byInt.valueAddr(1)))
+        Swag.assert(LeakLastDropSelf == cast(u64, &byInt.entries[1].value.storage[0]))
         Swag.assert(LeakLastDropTag == 22)
 
-        leakArmExpectedDrop(byString.valueAddr(0), cast([*] u8) &byString.entries[0].value.storage[0], 11)
+        leakArmExpectedDrop(byString.valueAddr(0), cast([*] u8, &byString.entries[0].value.storage[0]), 11)
         byString.dropAt(0)
         leakDisarmExpectedDrop()
         Swag.assert(LeakDropCount == 2)
-        Swag.assert(LeakLastDropAddr == cast(u64) byString.valueAddr(0))
-        Swag.assert(LeakLastDropSelf == cast(u64) &byString.entries[0].value.storage[0])
+        Swag.assert(LeakLastDropAddr == cast(u64, byString.valueAddr(0)))
+        Swag.assert(LeakLastDropSelf == cast(u64, &byString.entries[0].value.storage[0]))
         Swag.assert(LeakLastDropTag == 11)
 
-        leakArmExpectedDrop(byWide.valueAddr(1), cast([*] u8) &byWide.entries[1].value.storage[0], 32)
+        leakArmExpectedDrop(byWide.valueAddr(1), cast([*] u8, &byWide.entries[1].value.storage[0]), 32)
         byWide.dropAt(1)
         leakDisarmExpectedDrop()
         Swag.assert(LeakDropCount == 3)
-        Swag.assert(LeakLastDropAddr == cast(u64) byWide.valueAddr(1))
-        Swag.assert(LeakLastDropSelf == cast(u64) &byWide.entries[1].value.storage[0])
+        Swag.assert(LeakLastDropAddr == cast(u64, byWide.valueAddr(1)))
+        Swag.assert(LeakLastDropSelf == cast(u64, &byWide.entries[1].value.storage[0]))
         Swag.assert(LeakLastDropTag == 32)
     }
 }
@@ -363,28 +363,28 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         byInt.put(1, 2, 42)
         byWide.put(1, makeLeakWideKey(10, 11), 52)
 
-        leakArmExpectedDrop(byWide.valueAddr(0), cast([*] u8) &byWide.entries[0].value.storage[0], 51)
+        leakArmExpectedDrop(byWide.valueAddr(0), cast([*] u8, &byWide.entries[0].value.storage[0]), 51)
         byWide.dropViaValuePtr(0)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) byWide.valueAddr(0))
+        Swag.assert(LeakLastDropAddr == cast(u64, byWide.valueAddr(0)))
         Swag.assert(LeakLastDropTag == 51)
 
-        leakArmExpectedDrop(byString.valueAddr(1), cast([*] u8) &byString.entries[1].value.storage[0], 62)
+        leakArmExpectedDrop(byString.valueAddr(1), cast([*] u8, &byString.entries[1].value.storage[0]), 62)
         byString.dropViaEntryPtr(1)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) byString.valueAddr(1))
+        Swag.assert(LeakLastDropAddr == cast(u64, byString.valueAddr(1)))
         Swag.assert(LeakLastDropTag == 62)
 
-        leakArmExpectedDrop(byInt.valueAddr(0), cast([*] u8) &byInt.entries[0].value.storage[0], 41)
+        leakArmExpectedDrop(byInt.valueAddr(0), cast([*] u8, &byInt.entries[0].value.storage[0]), 41)
         byInt.dropViaEntryHelper(0)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(0))
+        Swag.assert(LeakLastDropAddr == cast(u64, byInt.valueAddr(0)))
         Swag.assert(LeakLastDropTag == 41)
 
-        leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8) &byInt.entries[1].value.storage[0], 42)
+        leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8, &byInt.entries[1].value.storage[0]), 42)
         byInt.dropViaValueHelper(1)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakLastDropAddr == cast(u64, byInt.valueAddr(1)))
         Swag.assert(LeakLastDropTag == 42)
     }
 }
@@ -408,16 +408,16 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         Swag.assert(boxedString.table.entries[0].value.marker() == 214)
         Swag.assert(boxedInt.table.entries[1].value.marker() == 247)
 
-        leakArmExpectedDrop(boxedInt.valueAddr(0), cast([*] u8) &boxedInt.table.entries[0].value.storage[0], 81)
+        leakArmExpectedDrop(boxedInt.valueAddr(0), cast([*] u8, &boxedInt.table.entries[0].value.storage[0]), 81)
         boxedInt.dropAt(0)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) boxedInt.valueAddr(0))
+        Swag.assert(LeakLastDropAddr == cast(u64, boxedInt.valueAddr(0)))
         Swag.assert(LeakLastDropTag == 81)
 
-        leakArmExpectedDrop(boxedString.valueAddr(1), cast([*] u8) &boxedString.table.entries[1].value.storage[0], 72)
+        leakArmExpectedDrop(boxedString.valueAddr(1), cast([*] u8, &boxedString.table.entries[1].value.storage[0]), 72)
         boxedString.dropAt(1)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) boxedString.valueAddr(1))
+        Swag.assert(LeakLastDropAddr == cast(u64, boxedString.valueAddr(1)))
         Swag.assert(LeakLastDropTag == 72)
     }
 }
@@ -437,16 +437,16 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         gridString.put(1, 1, "south", 92)
         gridWide.put(1, 1, makeLeakWideKey(14, 15), 102)
 
-        leakArmExpectedDrop(gridWide.valueAddr(1, 1), cast([*] u8) &gridWide.tables[1].entries[1].value.storage[0], 102)
+        leakArmExpectedDrop(gridWide.valueAddr(1, 1), cast([*] u8, &gridWide.tables[1].entries[1].value.storage[0]), 102)
         gridWide.dropAt(1, 1)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) gridWide.valueAddr(1, 1))
+        Swag.assert(LeakLastDropAddr == cast(u64, gridWide.valueAddr(1, 1)))
         Swag.assert(LeakLastDropTag == 102)
 
-        leakArmExpectedDrop(gridString.valueAddr(0, 0), cast([*] u8) &gridString.tables[0].entries[0].value.storage[0], 91)
+        leakArmExpectedDrop(gridString.valueAddr(0, 0), cast([*] u8, &gridString.tables[0].entries[0].value.storage[0]), 91)
         gridString.dropAt(0, 0)
         leakDisarmExpectedDrop()
-        Swag.assert(LeakLastDropAddr == cast(u64) gridString.valueAddr(0, 0))
+        Swag.assert(LeakLastDropAddr == cast(u64, gridString.valueAddr(0, 0)))
         Swag.assert(LeakLastDropTag == 91)
     }
 }
@@ -469,21 +469,21 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
 
         byInt.dropAllLive()
         Swag.assert(LeakDropCount == 2)
-        Swag.assert(LeakFirstDropAddr == cast(u64) byInt.valueAddr(0))
+        Swag.assert(LeakFirstDropAddr == cast(u64, byInt.valueAddr(0)))
         Swag.assert(LeakFirstDropTag == 121)
-        Swag.assert(LeakSecondDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakSecondDropAddr == cast(u64, byInt.valueAddr(1)))
         Swag.assert(LeakSecondDropTag == 122)
-        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakLastDropAddr == cast(u64, byInt.valueAddr(1)))
         Swag.assert(LeakLastDropTag == 122)
 
         leakResetDropProbe()
         byString.dropAllLive()
         Swag.assert(LeakDropCount == 2)
-        Swag.assert(LeakFirstDropAddr == cast(u64) byString.valueAddr(0))
+        Swag.assert(LeakFirstDropAddr == cast(u64, byString.valueAddr(0)))
         Swag.assert(LeakFirstDropTag == 111)
-        Swag.assert(LeakSecondDropAddr == cast(u64) byString.valueAddr(1))
+        Swag.assert(LeakSecondDropAddr == cast(u64, byString.valueAddr(1)))
         Swag.assert(LeakSecondDropTag == 112)
-        Swag.assert(LeakLastDropAddr == cast(u64) byString.valueAddr(1))
+        Swag.assert(LeakLastDropAddr == cast(u64, byString.valueAddr(1)))
         Swag.assert(LeakLastDropTag == 112)
     }
 }

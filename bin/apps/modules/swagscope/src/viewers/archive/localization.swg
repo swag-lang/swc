@@ -33,5 +33,5 @@ func registerArchiveStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'ArchiveStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'ArchiveStrings(cast(string, FrenchStrings))
 }

@@ -14,7 +14,7 @@ impl MetadataSignal
             #ast
             {
                 let signature = #typeof(T)
-                return #stringof("callback(cast #assume(", signature.parameters[0].pointedType.fullname, ") params[0])")
+                return #stringof("callback(assume cast(", signature.parameters[0].pointedType.fullname, ", params[0]))")
             }
         }
     }
@@ -83,11 +83,11 @@ func metadataLazyMethodWorks()
 {
     // This idle generic body is reached only through optional metadata, without a direct call.
     var ready = MetadataLazyReady's32{value: 42}
-    let info  = cast(const *Swag.TypeInfoStruct) #typeof(MetadataLazyReady's32)
+    let info  = cast(const *Swag.TypeInfoStruct, #typeof(MetadataLazyReady's32))
     Swag.assert(info.methods.count == 1)
     let address = info.methods![0].value
     Swag.assert(address != null)
-    let read  = cast(func(*MetadataLazyReady's32)->s32) address
+    let read  = cast(func(*MetadataLazyReady's32)->s32, address)
     let value = read(&ready)
     Swag.assert(value == 42)
 }
@@ -104,11 +104,11 @@ func metadataCallGraphWorks()
     // Complete this body's analysis before requiring its optional metadata address.
     let readyValue = ready.read()
     Swag.assert(readyValue == 42)
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(MetadataReady)
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(MetadataReady))
     Swag.assert(info.methods.count == 1)
     let address = info.methods![0].value
     Swag.assert(address != null)
-    let read = cast(func(*MetadataReady)->s32) address
+    let read = cast(func(*MetadataReady)->s32, address)
     Swag.assert(read(&ready) == 42)
 }
 

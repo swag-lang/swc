@@ -62,7 +62,7 @@ func slowThree(x: u32)->u32
     }
     for i in 0 until 256
     {
-        let c = cast(u8) i
+        let c = cast(u8, i)
         Swag.assert(identChar(c) == slowIdent(c))
     }
 }

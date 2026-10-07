@@ -30,8 +30,8 @@ func reusedInput(a, b: u64)->u64
             let expected = a < b ? 0xFFFFFFFFFFFFFFFF'u64 : 0
             Swag.assert(unsignedMask(a, b) == expected)
             Swag.assert(reusedInput(a, b) == (expected ^ a ^ b))
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
-            let b32 = cast(u32) (b & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
+            let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(unsignedMask32(a32, b32) == (a32 < b32 ? 0xFFFFFFFF : 0))
         }
     }

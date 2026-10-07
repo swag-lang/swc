@@ -718,7 +718,7 @@ private impl EditBox
         let selE = .selectionEndIndex()
         if selB >= selE do
             return 0
-        return cast(s32) Utf8.countRunes(.textStorage[selB until selE])
+        return cast(s32, Utf8.countRunes(.textStorage[selB until selE]))
     }
 
     // Inserts a single Unicode rune in place of the selection, enforcing maximum length and validation.
@@ -788,7 +788,7 @@ private impl EditBox
         if selB == .textStorage.length do
             return false
 
-        .countRunes -= cast(s32) Utf8.countRunes(.textStorage[selB to selE - 1])
+        .countRunes -= cast(s32, Utf8.countRunes(.textStorage[selB to selE - 1]))
         .textStorage.remove(selB, selE - selB)
         discard .checkContent()
 

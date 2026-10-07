@@ -40,7 +40,7 @@ func textViewerPlugin()->Viewer.Plugin
         .resolveName  = &textPluginName
         .attach       = &registerTextStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Text
+        .iconIndex    = cast(s32, ViewerIcons.Text)
         .create       = &createTextViewer
         .probe        = &textPluginProbe
         .textual      = true
@@ -122,7 +122,7 @@ struct TextViewer
 
 private func runTextStatistics(thread: Threading.Thread)
 {
-    let view    = cast(*TextViewer) thread.userParam!
+    let view    = cast(*TextViewer, thread.userParam!)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
 
@@ -158,28 +158,21 @@ private func runTextStatistics(thread: Threading.Thread)
     Atomic.exchange(&view.statisticsState, 1)
 }
 
-func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool => (cast #assume (*TextViewer) wnd).revealOffset(match.offset, text)
-
-func textSearchBounds(wnd: *Wnd, match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
-{
-    discard match
-    let view = cast #assume (*TextViewer) wnd
-    if not view.pendingMatch.isEmpty() do
-        return false
-    return Viewer.richEditMatchBounds(view.editor, result)
-}
-
-func textClearSearch(wnd: *Wnd)
-{
-    let view = cast #assume (*TextViewer) wnd
-    view.pendingMatch.clear()
-    Viewer.clearRichEditMatch(view.editor)
-}
-
-func textIsLoading(wnd: *Wnd)->bool => (cast #assume (*TextViewer) wnd).loadTimer != null
-
 impl TextViewer
 {
+    mtd searchBounds(result: *Math.Rectangle)->bool
+    {
+        if not .pendingMatch.isEmpty() do
+            return false
+        return Viewer.richEditMatchBounds(.editor, result)
+    }
+
+    mtd clearSearch()
+    {
+        .pendingMatch.clear()
+        Viewer.clearRichEditMatch(.editor)
+    }
+
     mtd detailsText()->String
     {
         let encoding = .encodingName()
@@ -324,7 +317,7 @@ impl TextViewer
 
         let loadedHeight = .editor.loadedDocumentHeight()
         if .repositioning or not .residentStart do
-            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
         if loadedHeight <= 0
         {
             if .virtualHeight > 0 do
@@ -332,9 +325,9 @@ impl TextViewer
             return
         }
 
-        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
+        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
         if .repositioning or not .residentStart do
-            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
@@ -519,7 +512,7 @@ impl TextViewer
         if not .statisticsTimer do
             .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
         for candidate, index in TextEncodings where candidate == encoding do
-            .encodingCombo.setSelectedIndex(cast(u32) index, notify: false)
+            .encodingCombo.setSelectedIndex(cast(u32, index), notify: false)
         .reportStatistics()
     }
 
@@ -533,7 +526,7 @@ impl TextViewer
     {
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         let base = .themeMetrics().defaultFixedFontSize
-        let size = cast(u32) Math.max(Math.round(cast(f32) base * cast(f32) .zoomPercent / 100), 1)
+        let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
         .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
         .editor.setFlags(.editor.flags)
         .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
@@ -670,7 +663,7 @@ impl TextViewer
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32) (.bytesRead - .residentStart) / cast(f32) .fileSize : 0)
+        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, (.bytesRead - .residentStart)) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
         let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * TextStreamLookAhead
         let after          = .hasMore() and .bytesRead - .residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
@@ -685,7 +678,7 @@ impl TextViewer
         if .pendingSeek
         {
             let ratio = Math.clamp(newPosition.y / .virtualHeight, 0, 1)
-            .pendingSeekOffset = cast(u64) (ratio * cast(f32) .fileSize)
+            .pendingSeekOffset = cast(u64, (ratio * cast(f32, .fileSize)))
         }
 
         .scheduleMore()
@@ -718,7 +711,7 @@ impl TextViewer
             for name in TextEncodingNames do
                 .addItem(name)
             for candidate, index in TextEncodings where candidate == me.encoding do
-                .setSelectedIndex(cast(u32) index, notify: false)
+                .setSelectedIndex(cast(u32, index), notify: false)
             .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
@@ -874,17 +867,17 @@ func createTextViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = &textRevealMatch
-        .matchBounds = &textSearchBounds
-        .clear       = &textClearSearch
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
+        .matchBounds = func|view|(match, bounds)->bool { discard match; return view.searchBounds(bounds) }
+        .clear       = func|view|() => view.clearSearch()
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = &textIsLoading
-        .retire    = func(wnd)->bool => (cast #assume (*TextViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

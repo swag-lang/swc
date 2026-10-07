@@ -21,7 +21,7 @@ func closeNativeHandle(handle: u64) { g_Released += 1 }
 #[Swag.NoInline]
 func raiseNativeError(code: u32) fail
 {
-    fail NativeError{base: Swag.BaseError{"native"}, code: cast(s32) code}
+    fail NativeError{base: Swag.BaseError{"native"}, code: cast(s32, code)}
 }
 
 // Produces no value, so its expansion records no register. A caller consuming the expansion's

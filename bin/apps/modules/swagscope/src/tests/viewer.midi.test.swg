@@ -26,9 +26,9 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     for key in [0'u8, 36, 100, 127]
     {
         var bytes: Array'u8
-        bytes.add(cast(const [..] u8) "MThd")
+        bytes.add(cast(const [..] u8, "MThd"))
         bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
-        bytes.add(cast(const [..] u8) "MTrk")
+        bytes.add(cast(const [..] u8, "MTrk"))
         bytes.add([0'u8, 0, 0, 13, 0, 0x90, key, 100, 0x83, 0x60, 0x80, key, 0, 0, 0xFF, 0x2F, 0])
         let fileName = Gui.Testing.tempFilePath("scope-midi-pitch-", ".mid")
         defer discard catch File.delete(fileName)
@@ -74,7 +74,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast #assume (*MidiViewer) result.view
+    let viewer = assume cast (*MidiViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     assertViewerInfoButton(viewer.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
@@ -117,7 +117,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     defer host.shutdown()
     var result = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = cast #assume (*MidiViewer) result.view
+    let viewer = assume cast (*MidiViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

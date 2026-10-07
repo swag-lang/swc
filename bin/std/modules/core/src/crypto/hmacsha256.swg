@@ -20,10 +20,10 @@ private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
     for i in 8
     {
         let word = digest[i]
-        result[i * 4 + 0] = cast(u8) ((word >> 24) & 0xFF)
-        result[i * 4 + 1] = cast(u8) ((word >> 16) & 0xFF)
-        result[i * 4 + 2] = cast(u8) ((word >> 8) & 0xFF)
-        result[i * 4 + 3] = cast(u8) (word & 0xFF)
+        result[i * 4 + 0] = cast(u8, ((word >> 24) & 0xFF))
+        result[i * 4 + 1] = cast(u8, ((word >> 16) & 0xFF))
+        result[i * 4 + 2] = cast(u8, ((word >> 8) & 0xFF))
+        result[i * 4 + 3] = cast(u8, (word & 0xFF))
     }
 
     return result

@@ -39,7 +39,7 @@ enum UVMode
 impl Texture
 {
     // Returns the tightly packed texture storage size, in bytes.
-    mtd const byteCount()->u64 => cast(u64) .width * cast(u64) .height * .pixelFormat.bitsPerPixel() / 8
+    mtd const byteCount()->u64 => cast(u64, .width) * cast(u64, .height) * .pixelFormat.bitsPerPixel() / 8
 
     // Reports whether the texture contains a non-invalid renderer handle.
     mtd const isValid()->bool => .handle != InvalidTextureHandle

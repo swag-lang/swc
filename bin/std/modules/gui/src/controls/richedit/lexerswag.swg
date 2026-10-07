@@ -141,6 +141,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("retval", State.Keyword)
         .mapWords.add("try", State.Keyword)
         .mapWords.add("catch", State.Keyword)
+        .mapWords.add("assume", State.Keyword)
         .mapWords.add("expect", State.Keyword)
         .mapWords.add("fail", State.Keyword)
         .mapWords.add("discard", State.Keyword)
@@ -406,8 +407,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#fail", State.Modifier)
         .mapWords.add("#nofail", State.Modifier)
         .mapWords.add("#bit", State.Modifier)
-        .mapWords.add("#try", State.Modifier)
-        .mapWords.add("#assume", State.Modifier)
         .mapWords.add("#unconst", State.Modifier)
         .mapWords.add("#raw", State.Modifier)
     }
@@ -435,21 +434,21 @@ impl IRichEditLexer for RichEditLexerSwag
         using RichEditLexerSwag.Style
         let ground = ed.themeColors().richEdit_Bk
 
-        ed.styles[cast(u64) Comment].colFg      = onGround(0xFF7AA86A, ground)
-        ed.styles[cast(u64) Keyword].colFg      = onGround(0xFF74AAE0, ground)
-        ed.styles[cast(u64) Control].colFg      = onGround(0xFFC48FD0, ground)
-        ed.styles[cast(u64) Intrinsic].colFg    = onGround(0xFFCBB45C, ground)
-        ed.styles[cast(u64) Namespace].colFg    = onGround(0xFF94A3B8, ground)
-        ed.styles[cast(u64) Builtin].colFg      = onGround(0xFFE8A06A, ground)
-        ed.styles[cast(u64) Function].colFg     = onGround(0xFFE8A06A, ground)
-        ed.styles[cast(u64) Preprocessor].colFg = onGround(0xFF9A9AA6, ground)
-        ed.styles[cast(u64) CharEscape].colFg   = onGround(0xFFCBB45C, ground)
-        ed.styles[cast(u64) Type].colFg         = onGround(0xFFE0B464, ground)
-        ed.styles[cast(u64) Class].colFg        = onGround(0xFF56C2B3, ground)
-        ed.styles[cast(u64) String].colFg       = onGround(0xFFE0937C, ground)
-        ed.styles[cast(u64) Character].colFg    = onGround(0xFFE0937C, ground)
-        ed.styles[cast(u64) Numeric].colFg      = onGround(0xFF9EC98F, ground)
-        ed.styles[cast(u64) Error].colFg        = onGround(0xFFFF6666, ground)
+        ed.styles[cast(u64, Comment)].colFg      = onGround(0xFF7AA86A, ground)
+        ed.styles[cast(u64, Keyword)].colFg      = onGround(0xFF74AAE0, ground)
+        ed.styles[cast(u64, Control)].colFg      = onGround(0xFFC48FD0, ground)
+        ed.styles[cast(u64, Intrinsic)].colFg    = onGround(0xFFCBB45C, ground)
+        ed.styles[cast(u64, Namespace)].colFg    = onGround(0xFF94A3B8, ground)
+        ed.styles[cast(u64, Builtin)].colFg      = onGround(0xFFE8A06A, ground)
+        ed.styles[cast(u64, Function)].colFg     = onGround(0xFFE8A06A, ground)
+        ed.styles[cast(u64, Preprocessor)].colFg = onGround(0xFF9A9AA6, ground)
+        ed.styles[cast(u64, CharEscape)].colFg   = onGround(0xFFCBB45C, ground)
+        ed.styles[cast(u64, Type)].colFg         = onGround(0xFFE0B464, ground)
+        ed.styles[cast(u64, Class)].colFg        = onGround(0xFF56C2B3, ground)
+        ed.styles[cast(u64, String)].colFg       = onGround(0xFFE0937C, ground)
+        ed.styles[cast(u64, Character)].colFg    = onGround(0xFFE0937C, ground)
+        ed.styles[cast(u64, Numeric)].colFg      = onGround(0xFF9EC98F, ground)
+        ed.styles[cast(u64, Error)].colFg        = onGround(0xFFFF6666, ground)
     }
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
@@ -487,7 +486,7 @@ impl IRichEditLexer for RichEditLexerSwag
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
         var seek = 0'u64
-        var currentState: State = linePrev ? cast(State) linePrev.lexerEndingState : State.Default
+        var currentState: State = linePrev ? cast(State, linePrev.lexerEndingState) : State.Default
         var currentCptCmt       = linePrev ? linePrev.lexerCptCmt : 0
 
         #[Swag.Mixin]
@@ -513,7 +512,7 @@ impl IRichEditLexer for RichEditLexerSwag
         {
             if seek >= line.chars.count do
                 return
-            line.styles[seek] = cast(RichEditStyleRef) .mapStyles[currentState]
+            line.styles[seek] = cast(RichEditStyleRef, .mapStyles[currentState])
             seek += 1
         }
 
@@ -558,7 +557,7 @@ impl IRichEditLexer for RichEditLexerSwag
                     continue
                 }
 
-                if not Unicode.isLatin1(c) or not Latin1.isHexDigit(cast(u8) c)
+                if not Unicode.isLatin1(c) or not Latin1.isHexDigit(cast(u8, c))
                 {
                     currentState = State.Default
                     .seekNext()
@@ -818,9 +817,9 @@ impl IRichEditLexer for RichEditLexerSwag
         if currentState == State.LineComment do
             currentState = State.Default
 
-        if line.lexerEndingState != cast(s32) currentState
+        if line.lexerEndingState != cast(s32, currentState)
         {
-            line.lexerEndingState = cast(s32) currentState
+            line.lexerEndingState = cast(s32, currentState)
             if lineNext do
                 lineNext.dirtyStyle = true
         }

@@ -57,24 +57,24 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
 
 #test
 {
-    let runtimeValue = unaryMinusStrictS32(cast(UnaryMinusStrictS32) 42)
-    const constantValue = -cast(UnaryMinusStrictS32) 42
+    let runtimeValue = unaryMinusStrictS32(cast(UnaryMinusStrictS32, 42))
+    const constantValue = -cast(UnaryMinusStrictS32, 42)
 
     #assert(#typeof(runtimeValue) == UnaryMinusStrictS32)
     #assert(#typeof(constantValue) == UnaryMinusStrictS32)
 
-    Swag.assert(runtimeValue == cast(UnaryMinusStrictS32) -42)
-    Swag.assert(constantValue == cast(UnaryMinusStrictS32) -42)
+    Swag.assert(runtimeValue == cast(UnaryMinusStrictS32, -42))
+    Swag.assert(constantValue == cast(UnaryMinusStrictS32, -42))
 }
 
 #test
 {
-    let runtimeValue = unaryMinusStrictF32(cast(UnaryMinusStrictF32) 1.5'f32)
-    const constantValue = -cast(UnaryMinusStrictF32) 1.5'f32
+    let runtimeValue = unaryMinusStrictF32(cast(UnaryMinusStrictF32, 1.5'f32))
+    const constantValue = -cast(UnaryMinusStrictF32, 1.5'f32)
 
     #assert(#typeof(runtimeValue) == UnaryMinusStrictF32)
     #assert(#typeof(constantValue) == UnaryMinusStrictF32)
 
-    Swag.assert(runtimeValue == cast(UnaryMinusStrictF32) -1.5'f32)
-    Swag.assert(constantValue == cast(UnaryMinusStrictF32) -1.5'f32)
+    Swag.assert(runtimeValue == cast(UnaryMinusStrictF32, -1.5'f32))
+    Swag.assert(constantValue == cast(UnaryMinusStrictF32, -1.5'f32))
 }

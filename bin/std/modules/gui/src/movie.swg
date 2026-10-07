@@ -67,7 +67,7 @@ private impl Movie
         }
         else
         {
-            var frame = catch .reader.read(cast(u32) index) as error
+            var frame = catch .reader.read(cast(u32, index)) as error
             if error != null
             {
                 .failureReason = Errors.message(error)
@@ -173,8 +173,8 @@ impl Movie
         .clear()
         .source     = .ImageSet
         .reader     = #move reader
-        .frameCount = cast(s32) .reader.info.frames.count
-        .frameIndex = cast(s32) firstIndex
+        .frameCount = cast(s32, .reader.info.frames.count)
+        .frameIndex = cast(s32, firstIndex)
         .frame      = #move firstFrame
         .isPaused   = not .isAnimated()
         .cacheFrame(.frameIndex, .frame)
@@ -201,7 +201,7 @@ impl Movie
     {
         if not .reader.isOpen() do
             return null
-        return &.reader.info.frames[cast(u32) .frameIndex]
+        return &.reader.info.frames[cast(u32, .frameIndex)]
     }
 
     // Returns how long the current frame is displayed, in seconds.
@@ -212,9 +212,9 @@ impl Movie
     {
         if .usesFrameDurations and .reader.isOpen()
         {
-            let duration = .reader.info.frames[cast(u32) .frameIndex].durationSeconds
+            let duration = .reader.info.frames[cast(u32, .frameIndex)].durationSeconds
             if duration > 0 do
-                return cast(f32) duration
+                return cast(f32, duration)
         }
 
         return .frameDurationSeconds
@@ -229,12 +229,12 @@ impl Movie
     {
         if not .isAnimated() or not .cachesFrames do
             return
-        while .cachedFrames.count < cast(u64) .frameCount
+        while .cachedFrames.count < cast(u64, .frameCount)
         {
             if .cachedBytes > .maxCacheBytes or .frame.byteCount > .maxCacheBytes - .cachedBytes do
                 break
-            let index = cast(s32) .cachedFrames.count
-            let frame = try .reader.read(cast(u32) index)
+            let index = cast(s32, .cachedFrames.count)
+            let frame = try .reader.read(cast(u32, index))
             .cacheFrame(index, frame)
         }
     }

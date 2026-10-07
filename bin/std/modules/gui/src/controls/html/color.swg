@@ -204,7 +204,7 @@ private func htmlColorFromHsl(hue, saturation, lightness, alpha: f32)->Color
     turns -= Math.floor(turns)
 
     var result = Color.fromHsl(turns, Math.clamp(saturation / 100, 0, 1), Math.clamp(lightness / 100, 0, 1))
-    result.a = cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255)
+    result.a = cast(u8, Math.round(Math.clamp(alpha, 0, 1) * 255))
     return result
 }
 
@@ -231,10 +231,10 @@ private func htmlLinearToSrgb(value: f32)->u8
 {
     let linear  = Math.clamp(value, 0, 1)
     let encoded = linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1.0 / 2.4) - 0.055
-    return cast(u8) Math.round(Math.clamp(encoded, 0, 1) * 255)
+    return cast(u8, Math.round(Math.clamp(encoded, 0, 1) * 255))
 }
 
-private func htmlColorFromLinearRgb(red, green, blue, alpha: f32)->Color => Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), htmlLinearToSrgb(red), htmlLinearToSrgb(green), htmlLinearToSrgb(blue))
+private func htmlColorFromLinearRgb(red, green, blue, alpha: f32)->Color => Color.fromArgb(cast(u8, Math.round(Math.clamp(alpha, 0, 1) * 255)), htmlLinearToSrgb(red), htmlLinearToSrgb(green), htmlLinearToSrgb(blue))
 
 // Converts OKLab coordinates to sRGB, out-of-gamut components clamping to the gamut edge.
 private func htmlColorFromOklab(lightness, aAxis, bAxis, alpha: f32)->Color
@@ -287,16 +287,16 @@ private func htmlColorFromHwb(hue, whiteness, blackness, alpha: f32)->Color
     var black = Math.clamp(blackness / 100, 0, 1)
     if white + black >= 1
     {
-        let gray = cast(u8) Math.round(white / (white + black) * 255)
-        return Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), gray, gray, gray)
+        let gray = cast(u8, Math.round(white / (white + black) * 255))
+        return Color.fromArgb(cast(u8, Math.round(Math.clamp(alpha, 0, 1) * 255)), gray, gray, gray)
     }
 
     let pure  = htmlColorFromHsl(hue, 100, 50, 1)
     let scale = 1 - white - black
-    let red   = cast(u8) Math.round((cast(f32) pure.r / 255 * scale + white) * 255)
-    let green = cast(u8) Math.round((cast(f32) pure.g / 255 * scale + white) * 255)
-    let blue  = cast(u8) Math.round((cast(f32) pure.b / 255 * scale + white) * 255)
-    return Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), red, green, blue)
+    let red   = cast(u8, Math.round((cast(f32, pure.r) / 255 * scale + white) * 255))
+    let green = cast(u8, Math.round((cast(f32, pure.g) / 255 * scale + white) * 255))
+    let blue  = cast(u8, Math.round((cast(f32, pure.b) / 255 * scale + white) * 255))
+    return Color.fromArgb(cast(u8, Math.round(Math.clamp(alpha, 0, 1) * 255)), red, green, blue)
 }
 
 // Converts the `color()` function's supported spaces. Display-P3 goes through its linear
@@ -308,7 +308,7 @@ private func htmlColorFromColorSpace(space: string, c1, c2, c3, alpha: f32)->{ c
     switch space
     {
     case "srgb":
-        result.color = Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), cast(u8) Math.round(Math.clamp(c1, 0, 1) * 255), cast(u8) Math.round(Math.clamp(c2, 0, 1) * 255), cast(u8) Math.round(Math.clamp(c3, 0, 1) * 255))
+        result.color = Color.fromArgb(cast(u8, Math.round(Math.clamp(alpha, 0, 1) * 255)), cast(u8, Math.round(Math.clamp(c1, 0, 1) * 255)), cast(u8, Math.round(Math.clamp(c2, 0, 1) * 255)), cast(u8, Math.round(Math.clamp(c3, 0, 1) * 255)))
 
     case "srgb-linear":
         result.color = htmlColorFromLinearRgb(c1, c2, c3, alpha)
@@ -338,9 +338,9 @@ private func htmlHexDigit(character: u8)->{ value: u32, matched: bool }
     result.matched = true
     switch
     {
-    case character >= '0' and character <= '9': result.value = cast(u32) (character - '0')
-    case character >= 'a' and character <= 'f': result.value = cast(u32) (character - 'a') + 10
-    case character >= 'A' and character <= 'F': result.value = cast(u32) (character - 'A') + 10
+    case character >= '0' and character <= '9': result.value = cast(u32, (character - '0'))
+    case character >= 'a' and character <= 'f': result.value = cast(u32, (character - 'a')) + 10
+    case character >= 'A' and character <= 'F': result.value = cast(u32, (character - 'A')) + 10
     default: result.matched = false
     }
 
@@ -383,7 +383,7 @@ private func htmlParseHexColor(text: string)->HtmlColorValue
             a = digits[6] * 16 + digits[7]
     }
 
-    result.color   = Color.fromArgb(cast(u8) a, cast(u8) r, cast(u8) g, cast(u8) b)
+    result.color   = Color.fromArgb(cast(u8, a), cast(u8, r), cast(u8, g), cast(u8, b))
     result.matched = true
     return result
 }
@@ -481,18 +481,18 @@ private func htmlParseColorMix(value: string)->HtmlColorValue
     firstWeight  /= total
     secondWeight /= total
 
-    let firstAlpha  = cast(f32) first.color.a / 255
-    let secondAlpha = cast(f32) second.color.a / 255
+    let firstAlpha  = cast(f32, first.color.a) / 255
+    let secondAlpha = cast(f32, second.color.a) / 255
     let alpha       = firstAlpha * firstWeight + secondAlpha * secondWeight
     var red, green, blue: f32
     if alpha > 0
     {
-        red   = (cast(f32) first.color.r * firstAlpha * firstWeight + cast(f32) second.color.r * secondAlpha * secondWeight) / alpha
-        green = (cast(f32) first.color.g * firstAlpha * firstWeight + cast(f32) second.color.g * secondAlpha * secondWeight) / alpha
-        blue  = (cast(f32) first.color.b * firstAlpha * firstWeight + cast(f32) second.color.b * secondAlpha * secondWeight) / alpha
+        red   = (cast(f32, first.color.r) * firstAlpha * firstWeight + cast(f32, second.color.r) * secondAlpha * secondWeight) / alpha
+        green = (cast(f32, first.color.g) * firstAlpha * firstWeight + cast(f32, second.color.g) * secondAlpha * secondWeight) / alpha
+        blue  = (cast(f32, first.color.b) * firstAlpha * firstWeight + cast(f32, second.color.b) * secondAlpha * secondWeight) / alpha
     }
 
-    result.color   = Color.fromArgb(cast(u8) Math.round(alpha * alphaScale * 255), cast(u8) Math.round(red), cast(u8) Math.round(green), cast(u8) Math.round(blue))
+    result.color   = Color.fromArgb(cast(u8, Math.round(alpha * alphaScale * 255)), cast(u8, Math.round(red)), cast(u8, Math.round(green)), cast(u8, Math.round(blue)))
     result.matched = true
     return result
 }
@@ -535,7 +535,7 @@ func htmlParseColor(text: string)->HtmlColorValue
         let g = Math.clamp(htmlColorComponent(rgb.parts[1].toString(), 255), 0, 255)
         let b = Math.clamp(htmlColorComponent(rgb.parts[2].toString(), 255), 0, 255)
         let a = rgb.parts.count >= 4 ? htmlColorAlpha(rgb.parts[3].toString()) : 1.0
-        result.color   = Color.fromArgb(cast(u8) Math.round(a * 255), cast(u8) Math.round(r), cast(u8) Math.round(g), cast(u8) Math.round(b))
+        result.color   = Color.fromArgb(cast(u8, Math.round(a * 255)), cast(u8, Math.round(r)), cast(u8, Math.round(g)), cast(u8, Math.round(b)))
         result.matched = true
         return result
     }

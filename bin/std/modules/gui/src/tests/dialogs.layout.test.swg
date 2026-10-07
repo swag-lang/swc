@@ -61,7 +61,7 @@ using Swag, Core, Pixel
     let contentHeight = dlg.richEdit!.position.height + dlg.label.position.height + dlg.label.margin.w
     let visibleHeight = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize + metrics.wnd_SmallCaptionCY
     let outerHeight   = visibleHeight + 2 * dlg.surface!.shadowMargin()
-    Swag.assert(Math.abs(dlg.richEdit.position.height - cast(f32) options.editorHeight) < 0.5)
+    Swag.assert(Math.abs(dlg.richEdit.position.height - cast(f32, options.editorHeight)) < 0.5)
     Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
     Swag.assert(Math.abs(dlg.surface.minSize.y - dlg.surface.position.height / dlg.surface.dpiScale) < 0.5)
 }
@@ -146,8 +146,8 @@ using Swag, Core, Pixel
 
     // End at the action bar's actual position: subtracting its height from the
     // surface height also includes the bottom window border.
-    let contentBottom = cast(s32) dlg.buttonBar.surfaceRect().y
-    var image         = rendered.cropped(25, 60, cast(s32) surface.position.width - 50, contentBottom - 60)
+    let contentBottom = cast(s32, dlg.buttonBar.surfaceRect().y)
+    var image         = rendered.cropped(25, 60, cast(s32, surface.position.width) - 50, contentBottom - 60)
     Pixel.Testing.assertImageGolden(&image, "aboutdlg.identity.dark")
 }
 
@@ -178,7 +178,7 @@ using Swag, Core, Pixel
     var expected = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
     for btn in wide.buttons do
         expected += btn.position.width
-    expected += cast(f32) (wide.buttons.count - 1) * metrics.dialog_BtnPadding
+    expected += cast(f32, (wide.buttons.count - 1)) * metrics.dialog_BtnPadding
     Swag.assert(expected > MessageDlg.MinMessageWidth)
     Swag.assert(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface.shadowMargin())) < 1)
 

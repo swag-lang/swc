@@ -164,20 +164,20 @@ impl StandardFont
     {
         switch me
         {
-        case .Courier, .CourierBold, .CourierOblique, .CourierBoldOblique: return cast(f32) CourierWidth / 1000.0
+        case .Courier, .CourierBold, .CourierOblique, .CourierBoldOblique: return cast(f32, CourierWidth) / 1000.0
         }
 
         let table = standardWidths(me)
-        var code  = cast(u32) value
+        var code  = cast(u32, value)
         if code < StandardWidthFirst or code > StandardWidthLast
         {
             let base = latinBaseRune(value)
             if not base do
-                return cast(f32) table[cast(u32) '0' - StandardWidthFirst] / 1000.0
-            code = cast(u32) base
+                return cast(f32, table[cast(u32, '0') - StandardWidthFirst]) / 1000.0
+            code = cast(u32, base)
         }
 
-        return cast(f32) table[code - StandardWidthFirst] / 1000.0
+        return cast(f32, table[code - StandardWidthFirst]) / 1000.0
     }
 
     // Returns the advance width of `text` when drawn at `size` PDF points.

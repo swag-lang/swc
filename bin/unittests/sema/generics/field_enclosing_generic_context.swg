@@ -192,8 +192,8 @@ impl MethodBufferContext
         return #typeof(data.item.values) == #type [M] U
     }
 
-    mtd const defaultCount(value: s32 = M)->s32     => value
-    mtd const defaultTyped(value: U = cast(U) M)->U => value
+    mtd const defaultCount(value: s32 = M)->s32      => value
+    mtd const defaultTyped(value: U = cast(U, M))->U => value
 }
 
 func semaTest001()

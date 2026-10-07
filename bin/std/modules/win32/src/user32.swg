@@ -511,8 +511,8 @@ const SW_SHOWDEFAULT     = 10
 const SW_FORCEMINIMIZE   = 11
 const SW_MAX             = 11
 
-func MAKEINTRESOURCEA(val: s32) => cast(LPCSTR) cast(u64) val
-func MAKEINTRESOURCEW(val: s32) => cast(LPCWSTR) cast(u64) val
+func MAKEINTRESOURCEA(val: s32) => cast(LPCSTR, cast(u64, val))
+func MAKEINTRESOURCEW(val: s32) => cast(LPCWSTR, cast(u64, val))
 
 const WHEEL_DELTA = 120
 
@@ -520,8 +520,8 @@ func GET_WHEEL_DELTA_WPARAM(wParam: u64)->s32
 {
     let value = HIWORD(wParam)
     if value <= 0x7FFF do
-        return cast(s32) value
-    return cast(s32) (cast(s64) value - 0x1_0000)
+        return cast(s32, value)
+    return cast(s32, (cast(s64, value) - 0x1_0000))
 }
 
 const IDC_ARROW       = 32512
@@ -868,13 +868,13 @@ const AC_SRC_OVER  = 0'u8
 const AC_SRC_ALPHA = 1'u8
 const ULW_ALPHA    = 2'u32
 
-const HWND_BROADCAST   = cast(HWND) 0xFFFF'u64
+const HWND_BROADCAST   = cast(HWND, 0xFFFF'u64)
 const SMTO_ABORTIFHUNG = 0x0002
 
-const HWND_TOP       = cast(HWND) 0'u64
-const HWND_BOTTOM    = cast(HWND) 1'u64
-const HWND_TOPMOST   = cast(HWND) cast #bit (u64) -1's64
-const HWND_NOTOPMOST = cast(HWND) cast #bit (u64) -2's64
+const HWND_TOP       = cast(HWND, 0'u64)
+const HWND_BOTTOM    = cast(HWND, 1'u64)
+const HWND_TOPMOST   = cast(HWND, cast #bit (u64, -1's64))
+const HWND_NOTOPMOST = cast(HWND, cast #bit (u64, -2's64))
 
 const SWP_NOSIZE         = 0x0001
 const SWP_NOMOVE         = 0x0002
@@ -1134,11 +1134,11 @@ const DI_DEFAULTSIZE = 0x0008
 const DI_NOMIRROR    = 0x0010
 
 alias DPI_AWARENESS_CONTEXT = *void?
-const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -1's64
-const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -2's64
-const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -3's64
-const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -4's64
-const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -5's64
+const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -1's64))
+const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -2's64))
+const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -3's64))
+const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -4's64))
+const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -5's64))
 
 const USER_DEFAULT_SCREEN_DPI = 96'u32
 
@@ -1151,16 +1151,16 @@ func GET_X_LPARAM(lp: LPARAM)->s32
 {
     let value = LOWORD(lp)
     if value <= 0x7FFF do
-        return cast(s32) value
-    return cast(s32) (cast(s64) value - 0x1_0000)
+        return cast(s32, value)
+    return cast(s32, (cast(s64, value) - 0x1_0000))
 }
 
 func GET_Y_LPARAM(lp: LPARAM)->s32
 {
     let value = HIWORD(lp)
     if value <= 0x7FFF do
-        return cast(s32) value
-    return cast(s32) (cast(s64) value - 0x1_0000)
+        return cast(s32, value)
+    return cast(s32, (cast(s64, value) - 0x1_0000))
 }
 
 #[Foreign("user32", callconv: Swag.CallConv.C)]

@@ -55,7 +55,7 @@ struct Maze
 func mazeInit()->Maze
 {
     var m: Maze
-    m.cells = cast([*] u8?) testAlloc(cast(u64) MaxCells)
+    m.cells = cast([*] u8?, testAlloc(cast(u64, MaxCells)))
     let cells = m.cells!
     for index in MaxCells { cells[index] = 0 }
     return m
@@ -92,7 +92,7 @@ func parseMaze(text: string)->Maze
 {
     var m     = mazeInit()
     let cells = m.cells!
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var row: u32
     var col: u32
 
@@ -112,8 +112,8 @@ func parseMaze(text: string)->Maze
         }
 
         cells[row * MaxDim + col] = ch
-        if ch == cast(u8) Start { m.sr = row; m.sc = col }
-        if ch == cast(u8) End { m.er = row; m.ec = col }
+        if ch == cast(u8, Start) { m.sr = row; m.sc = col }
+        if ch == cast(u8, End) { m.er = row; m.ec = col }
         col += 1
     }
 
@@ -157,11 +157,11 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best       = cast([*] u64) (testAlloc(cast(u64) stateCount * #sizeof(u64)))!
+    let best       = cast([*] u64, (testAlloc(cast(u64, stateCount) * #sizeof(u64)))!)
     defer testFree(best)
     for index in stateCount { best[index] = Infinity }
 
-    let queue = cast([*] QEntry) (testAlloc(cast(u64) MaxQueue * #sizeof(QEntry)))!
+    let queue = cast([*] QEntry, (testAlloc(cast(u64, MaxQueue) * #sizeof(QEntry)))!)
     defer testFree(queue)
     var head: u32
     var tail: u32
@@ -180,19 +180,19 @@ func solve(text: string)->u64
             continue
 
         // Try moving forward
-        let nr = cast(s32) cur.r + DR[cur.dir]
-        let nc = cast(s32) cur.c + DC[cur.dir]
-        if nr >= 0 and nc >= 0 and cast(u32) nr < m.h and cast(u32) nc < m.w
+        let nr = cast(s32, cur.r) + DR[cur.dir]
+        let nc = cast(s32, cur.c) + DC[cur.dir]
+        if nr >= 0 and nc >= 0 and cast(u32, nr) < m.h and cast(u32, nc) < m.w
         {
             // Nested inline: isWall uses cellAt, both inline, with char comparison
-            if not isWall(&m, cast(u32) nr, cast(u32) nc)
+            if not isWall(&m, cast(u32, nr), cast(u32, nc))
             {
                 let newCost = cur.cost + MoveCost
-                let si      = stateIdx(cast(u32) nr, cast(u32) nc, cur.dir)
+                let si      = stateIdx(cast(u32, nr), cast(u32, nc), cur.dir)
                 if newCost < best[si]
                 {
                     best[si]    = newCost
-                    queue[tail] = QEntry{r: cast(u32) nr, c: cast(u32) nc, dir: cur.dir, cost: newCost}
+                    queue[tail] = QEntry{r: cast(u32, nr), c: cast(u32, nc), dir: cur.dir, cost: newCost}
                     tail        += 1
                 }
             }

@@ -18,7 +18,7 @@ using Swag, Core
     Swag.assert(textPaint.itf.buffer != textItf.buffer)
     Swag.assert(f.main.mdlFormText.text == "Keep me")
     Swag.assert(textItf.boundRect() == textRectBefore)
-    Swag.assert((cast #assume (*FormText) (textPaint.itf!)).text == "A")
+    Swag.assert(assume cast (*FormText, (textPaint.itf!)).text == "A")
     textPaint.release()
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -31,7 +31,7 @@ using Swag, Core
     Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
     Swag.assert(f.main.mdlFormPolygon.points.count == 3)
     Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    Swag.assert((cast #assume (*FormPolygon) (polyPaint.itf!)).points.count == 6)
+    Swag.assert(assume cast (*FormPolygon, (polyPaint.itf!)).points.count == 6)
     polyPaint.release()
 }
 
@@ -66,17 +66,17 @@ using Swag, Core
         {
             for x in image.width
             {
-                let color = image.pixelColor(cast() x, cast() y)
+                let color = image.pixelColor(cast(x), cast(y))
                 if color.r < 128 or color.g < 128 or color.b < 128 do
                     continue
-                x0 = Math.min(x0, cast(s32) x)
-                y0 = Math.min(y0, cast(s32) y)
-                x1 = Math.max(x1, cast(s32) x)
-                y1 = Math.max(y1, cast(s32) y)
+                x0 = Math.min(x0, cast(s32, x))
+                y0 = Math.min(y0, cast(s32, y))
+                x1 = Math.max(x1, cast(s32, x))
+                y1 = Math.max(y1, cast(s32, y))
             }
         }
 
-        return {cast() x0, cast() y0, cast(f32) (x1 - x0), cast(f32) (y1 - y0)}
+        return {cast(x0), cast(y0), cast(f32, (x1 - x0)), cast(f32, (y1 - y0))}
     }
 
     var f: HeadlessFixture
@@ -210,14 +210,14 @@ using Swag, Core
 
     for it in quick.qsHighlight.forms
     {
-        let base = cast #assume (*BaseForm) it
+        let base = assume cast (*BaseForm, it)
         Swag.assert(base.subKind == .Highlight)
         Swag.assert(base.alpha < 100)
     }
 
     for it in quick.qsPixSel.forms
     {
-        let base = cast #assume (*BaseForm) it
+        let base = assume cast (*BaseForm, it)
         Swag.assert(base.subKind == .PixSel)
         Swag.assert(not base.paintShadow)
     }
@@ -227,7 +227,7 @@ using Swag, Core
     for it in quick.qsImage.forms
     {
         Swag.assert(Swag.kindOf(it) == FormImage)
-        imageKinds.add((cast #assume (*FormImage) it).kind)
+        imageKinds.add(assume cast (*FormImage, it).kind)
     }
 
     Swag.assert(imageKinds.contains(FormImageKind.Image))
@@ -253,12 +253,12 @@ using Swag, Core
         var result: retval
         for c in quick.layout.children
         {
-            let btn = cast #assume (*QuickButton) c
+            let btn = assume cast (*QuickButton, c)
             if btn.isModel or not btn.formItf do
                 continue
             if Swag.kindOf(btn.formItf) != FormImage do
                 continue
-            if (cast #assume (*FormImage) (btn.formItf)).kind == .Blur do
+            if assume cast (*FormImage, (btn.formItf)).kind == .Blur do
                 return btn.toolTip
         }
 

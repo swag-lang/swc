@@ -17,7 +17,7 @@ struct WidePayload
 #[Swag.CallingConvention(.C)]
 func combineCopies(small: SmallPayload, extra: u64, wide: WidePayload, scale: f64)->WidePayload
 {
-    return {wide.a + small.a + extra, wide.b + small.b + cast(u64) (scale * 2), wide.c + small.c}
+    return {wide.a + small.a + extra, wide.b + small.b + cast(u64, (scale * 2)), wide.c + small.c}
 }
 
 #test

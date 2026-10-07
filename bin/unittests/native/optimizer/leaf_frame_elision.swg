@@ -38,7 +38,7 @@ func firstAbove(values: const [*] s64, count: u64, limit: s64)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func sumAfterCall(values: const [*] s64, count: u64, limit: s64)->s64
 {
-    var total = cast(s64) firstAbove(values, count, limit)
+    var total = cast(s64, firstAbove(values, count, limit))
     for i in count do
         total += values[i]
     return total

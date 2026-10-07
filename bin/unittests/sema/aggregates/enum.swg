@@ -11,7 +11,7 @@ alias EnumStrictArrayAlias = [2] s32
 enum AA: u32 { A }
 enum BB { A }
 enum AliasBacked: EnumAliasU32 { A = 7 }
-enum StrictAliasBacked: EnumStrictAliasU16 { A = cast(EnumStrictAliasU16) 9 }
+enum StrictAliasBacked: EnumStrictAliasU16 { A = cast(EnumStrictAliasU16, 9) }
 
 enum A1: s8 { A }
 enum A2: s16 { A }
@@ -59,42 +59,42 @@ enum EE
 #assert(#typeof(A1.A) == A1)
 #assert(#typeof(A9.A) == A9)
 
-#assert(cast(u32) CC.A == 0)
-#assert(cast(u32) CC.B == 1)
-#assert((cast(s32) CC.C) == 5)
-#assert((cast(s32) CC.D) == 6)
-#assert(cast(s32) DD.A == -10)
-#assert(cast(s32) DD.B == -9)
-#assert(cast(rune) A9.A == 'A')
-#assert(cast(bool) A10.A == true)
-#assert(cast(f32) A11.A == 0)
-#assert(cast(f64) A12.A == 0)
-#assert(cast(string) A13.A == "0")
-#assert(cast(u32) AliasInit.B == 7)
-#assert(cast(s32) BB.A == 0)
+#assert(cast(u32, CC.A) == 0)
+#assert(cast(u32, CC.B) == 1)
+#assert(cast(s32, CC.C) == 5)
+#assert(cast(s32, CC.D) == 6)
+#assert(cast(s32, DD.A) == -10)
+#assert(cast(s32, DD.B) == -9)
+#assert(cast(rune, A9.A) == 'A')
+#assert(cast(bool, A10.A) == true)
+#assert(cast(f32, A11.A) == 0)
+#assert(cast(f64, A12.A) == 0)
+#assert(cast(string, A13.A) == "0")
+#assert(cast(u32, AliasInit.B) == 7)
+#assert(cast(s32, BB.A) == 0)
 
-#assert(cast #bit (u32) CC.A == 0)
+#assert(cast #bit (u32, CC.A) == 0)
 
-#assert(cast(s8) A1.A == 0)
-#assert(cast(s16) A2.A == 0)
-#assert(cast(s32) A3.A == 0)
-#assert(cast(s64) A4.A == 0)
-#assert(cast(u8) A5.A == 0)
-#assert(cast(u16) A6.A == 0)
-#assert(cast(u32) A7.A == 0)
-#assert(cast(u64) A8.A == 0)
+#assert(cast(s8, A1.A) == 0)
+#assert(cast(s16, A2.A) == 0)
+#assert(cast(s32, A3.A) == 0)
+#assert(cast(s64, A4.A) == 0)
+#assert(cast(u8, A5.A) == 0)
+#assert(cast(u16, A6.A) == 0)
+#assert(cast(u32, A7.A) == 0)
+#assert(cast(u64, A8.A) == 0)
 
-#assert(cast(u32) BB.A == 0)
-#assert(cast(u32) AliasBacked.A == 7)
-#assert(cast(u16) StrictAliasBacked.A == 9)
-#assert(cast(s32) CC.B == 1)
-#assert(cast(u32) CC.B == 1)
+#assert(cast(u32, BB.A) == 0)
+#assert(cast(u32, AliasBacked.A) == 7)
+#assert(cast(u16, StrictAliasBacked.A) == 9)
+#assert(cast(s32, CC.B) == 1)
+#assert(cast(u32, CC.B) == 1)
 
 #assert(#typeof(CC.A) == CC)
 #assert(#typeof(DD.A) == DD)
 #assert(#typeof(EE.A) == EE)
 
-#assert(cast(f32) CC.A == 0)
+#assert(cast(f32, CC.A) == 0)
 
 enum Mixed1: s32
 {
@@ -164,7 +164,7 @@ enum ArrayBacked: const [2] s32
 
 enum StrictArrayAliasBacked: EnumStrictArrayAlias
 {
-    A = cast(EnumStrictArrayAlias) [3, 4]
+    A = cast(EnumStrictArrayAlias, [3, 4])
 }
 #assert(#typeof(StrictArrayAliasBacked).rawType == const [2] s32)
 
@@ -173,7 +173,7 @@ enum SliceBacked: const [..] s32
     A = [1, 2],
     B = [10, 20, 30]
 }
-const SliceBackedA = cast(const [..] s32) SliceBacked.A
-const SliceBackedB = cast(const [..] s32) SliceBacked.B
+const SliceBackedA = cast(const [..] s32, SliceBacked.A)
+const SliceBackedB = cast(const [..] s32, SliceBacked.B)
 #assert(SliceBackedA.count == 2)
 #assert(SliceBackedB.count == 3)

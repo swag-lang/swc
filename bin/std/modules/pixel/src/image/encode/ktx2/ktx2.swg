@@ -12,17 +12,17 @@ internal struct Encoder {}
 #[Swag.Inline]
 func writeU32(result: *ConcatBuffer, value: u32)
 {
-    result.addNative(cast(u8) (value & 0xFF))
-    result.addNative(cast(u8) ((value >> 8) & 0xFF))
-    result.addNative(cast(u8) ((value >> 16) & 0xFF))
-    result.addNative(cast(u8) ((value >> 24) & 0xFF))
+    result.addNative(cast(u8, (value & 0xFF)))
+    result.addNative(cast(u8, ((value >> 8) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 16) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 24) & 0xFF)))
 }
 
 #[Swag.Inline]
 func writeU64(result: *ConcatBuffer, value: u64)
 {
-    writeU32(result, cast(u32) (value & 0xFFFF_FFFF))
-    writeU32(result, cast(u32) (value >> 32))
+    writeU32(result, cast(u32, (value & 0xFFFF_FFFF)))
+    writeU32(result, cast(u32, (value >> 32)))
 }
 
 func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] u8, floating: *bool)
@@ -120,7 +120,7 @@ func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] 
 
 func writeDfd(result: *ConcatBuffer, image: Image, typeSize: u32, channelIds: *[4] u8, floating: bool)
 {
-    let channels  = cast(u32) image.pixelFormat.channels()
+    let channels  = cast(u32, image.pixelFormat.channels())
     let blockSize = 24'u32 + channels * 16
     writeU32(result, blockSize + 4)
     writeU32(result, 0)                         // Khronos vendor, basic descriptor type.
@@ -138,7 +138,7 @@ func writeDfd(result: *ConcatBuffer, image: Image, typeSize: u32, channelIds: *[
     for channel in channels
     {
         let channelType = channelIds[][channel] | (floating ? 0x80 : 0)
-        writeU32(result, channel * bits | ((bits - 1) << 16) | (cast(u32) channelType << 24))
+        writeU32(result, channel * bits | ((bits - 1) << 16) | (cast(u32, channelType) << 24))
         writeU32(result, 0)     // Sample positions.
         let floatLower = typeSize == 2 ? 0xBC00'u32 : 0xBF800000'u32
         let floatUpper = typeSize == 2 ? 0x3C00'u32 : 0x3F800000'u32
@@ -162,23 +162,23 @@ internal impl IImageEncoder for Encoder
         var channelIds: [4] u8 = [0, 1, 2, 3]
         var floating:   bool
         formatInfo(image.pixelFormat, &vk, &typeSize, &channelIds, &floating)
-        let dfdLength  = 28'u64 + cast(u64) image.pixelFormat.channels() * 16
+        let dfdLength  = 28'u64 + cast(u64, image.pixelFormat.channels()) * 16
         let dfdOffset  = HeaderSize + 24
-        let alignment  = cast(u64) Math.lcm(4, image.bytesPerPixel)
+        let alignment  = cast(u64, Math.lcm(4, image.bytesPerPixel))
         let dataOffset = (dfdOffset + dfdLength + alignment - 1) / alignment * alignment
 
         result.addBytes(Identifier)
         writeU32(result, vk)
         writeU32(result, typeSize)
-        writeU32(result, cast(u32) image.width)
-        writeU32(result, cast(u32) image.height)
+        writeU32(result, cast(u32, image.width))
+        writeU32(result, cast(u32, image.height))
         writeU32(result, 0)
         writeU32(result, 0)
         writeU32(result, 1)
         writeU32(result, 1)
         writeU32(result, 0)
-        writeU32(result, cast(u32) dfdOffset)
-        writeU32(result, cast(u32) dfdLength)
+        writeU32(result, cast(u32, dfdOffset))
+        writeU32(result, cast(u32, dfdLength))
         writeU32(result, 0)
         writeU32(result, 0)
         writeU64(result, 0)
@@ -192,7 +192,7 @@ internal impl IImageEncoder for Encoder
         for y in image.height
         {
             let storageY = image.height - y - 1
-            result.addBytes(Swag.makeSlice(image.pixels.storage() + cast(u64) storageY * image.rowStride, cast(u64) image.rowStride))
+            result.addBytes(Swag.makeSlice(image.pixels.storage() + cast(u64, storageY) * image.rowStride, cast(u64, image.rowStride)))
         }
     }
 }

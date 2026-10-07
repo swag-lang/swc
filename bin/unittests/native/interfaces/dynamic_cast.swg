@@ -47,22 +47,22 @@ func runRuntimeTargetCasts()->bool
     if intType is stringType do
         return false
 
-    let intView = cast #try(intType) &number
+    let intView = (catch cast(any?, cast(intType, &number)))
     if intView == null do
         return false
 
-    let baseView = cast #try(baseType) &derived
+    let baseView = (catch cast(any?, cast(baseType, &derived)))
     if baseView == null do
         return false
 
-    let strictDerivedPtr = cast(DynamicCastStrictDerivedPtr) &derived
-    let strictBaseView   = cast #try(baseType) cast(*Derived) strictDerivedPtr
+    let strictDerivedPtr = cast(DynamicCastStrictDerivedPtr, &derived)
+    let strictBaseView   = (catch cast(any?, cast(baseType, cast(*Derived, strictDerivedPtr))))
     if strictBaseView == null do
         return false
 
-    let intPtr        = cast #try(*s32) intView
-    let basePtr       = cast #try(*Base) baseView
-    let strictBasePtr = cast #try(*Base) strictBaseView
+    let intPtr        = (catch cast(*s32?, intView))
+    let basePtr       = (catch cast(*Base?, baseView))
+    let strictBasePtr = (catch cast(*Base?, strictBaseView))
     if intPtr == null or intPtr != &number or intPtr[] != 45 do
         return false
     let boolType: typeinfo = bool
@@ -81,8 +81,8 @@ func runRuntimeTargetCasts()->bool
     var derived = Derived{}
 
     let derivedPtr = &derived
-    let asMid      = cast #try (*Mid) derivedPtr
-    let asBase     = cast #try (*Base) derivedPtr
+    let asMid      = cast(*Mid?, derivedPtr)
+    let asBase     = cast(*Base?, derivedPtr)
     Swag.assert((derivedPtr is Derived))
     Swag.assert((derivedPtr is Mid))
     Swag.assert((derivedPtr is Base))
@@ -93,12 +93,12 @@ func runRuntimeTargetCasts()->bool
     var base        = Base{value: 77}
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
-    let wrappedBase = cast #try (*Base) wrapperPtr
+    let wrappedBase = (catch cast(*Base?, wrapperPtr))
     Swag.assert((wrapperPtr is Base))
     Swag.assert(wrappedBase == &base)
 
     let itf: INode = derived
-    let itfBase    = cast #try (*Base) itf
+    let itfBase    = (catch cast(*Base?, itf))
     Swag.assert((itf is Derived))
     Swag.assert((itf is Mid))
     Swag.assert((itf is Base))
@@ -108,7 +108,7 @@ func runRuntimeTargetCasts()->bool
     Swag.assert(itfBase.value == 10)
 
     let dyn: any = derived
-    let dynBase  = cast #try (*Base) dyn
+    let dynBase  = (catch cast(*Base?, dyn))
     Swag.assert((dyn is Derived))
     Swag.assert((dyn is Base))
     Swag.assert(not (dyn is PointerWrapper))

@@ -596,9 +596,9 @@ impl IWnd for ListView
 
         // Do not display with bigs coordinates to avoid precision issues
         // So we: the scroll by hand, and draw will small coordinates
-        var y = cast(f64) firstIdx * .list.lineHeight()
+        var y = cast(f64, firstIdx) * .list.lineHeight()
         y      -= .scrollPos.y
-        rect.y = cast(f32) y
+        rect.y = cast(f32, y)
 
         if .list.isVirtual
         {
@@ -728,7 +728,7 @@ private impl ListView
                 if not itemIndex and line.parent do
                     iconMargin = line.parent.iconMargin
                 elif itemIndex do
-                    iconMargin = .list.header.itemAt(cast(u32) itemIndex).reservesIconSpace
+                    iconMargin = .list.header.itemAt(cast(u32, itemIndex)).reservesIconSpace
                 if iconMargin do
                     pos.moveLeft(.list.iconSize + metrics.iconText_Margin)
             }
@@ -756,7 +756,7 @@ private impl ListView
         let height  = .list.lineHeight()
         let width   = .displayWidth()
 
-        var y = cast(f64) .list.dropMarkIndex * height
+        var y = cast(f64, .list.dropMarkIndex) * height
         y -= .scrollPos.y
         if .list.dropMark == .After do
             y += height
@@ -767,13 +767,13 @@ private impl ListView
 
         if .list.dropMark == .On
         {
-            painter.drawRect(0, cast(f32) y, width, height, color, DropMarkThickness)
+            painter.drawRect(0, cast(f32, y), width, height, color, DropMarkThickness)
             return
         }
 
         // The rule is centred on the gap rather than drawn below it, so the same edge reads the
         // same whether it was reached from the row above or the row below.
-        let line = cast(f32) y - DropMarkThickness * 0.5
+        let line = cast(f32, y) - DropMarkThickness * 0.5
         painter.drawLine(0, line, width, line, color, DropMarkThickness)
         painter.fillRect(0, line - DropMarkCapReach, DropMarkThickness, DropMarkCapReach * 2 + DropMarkThickness, color)
         painter.fillRect(width - DropMarkThickness, line - DropMarkCapReach, DropMarkThickness, DropMarkCapReach * 2 + DropMarkThickness, color)
@@ -917,7 +917,7 @@ private impl ListView
         if res.x < 0 or res.y < 0 do
             return Swag.U32.Max
         res.y += .scrollPos.y
-        let idx = cast(u32) (res.y / .list.lineHeight())
+        let idx = cast(u32, (res.y / .list.lineHeight()))
         if idx >= lc do
             return Swag.U32.Max
         if not .list.isVirtual and .list.lines[idx]!.separator do
@@ -989,7 +989,7 @@ impl ListCtrl
         local.y += .listView.scrollPos.y
 
         let height = .lineHeight()
-        let row    = cast(u32) (local.y / height)
+        let row    = cast(u32, (local.y / height))
         if row >= count
         {
             result.index = count - 1
@@ -999,7 +999,7 @@ impl ListCtrl
 
         result.index = row
 
-        let inside = local.y - cast(f32) row * height
+        let inside = local.y - cast(f32, row) * height
         if inside < height * 0.25 do
             result.mark = .Before
         elif inside > height * 0.75 do
@@ -1144,7 +1144,7 @@ impl ListCtrl
             if not (evt is ResizeEvent) do
                 return false
 
-            let list = cast #assume (*ListCtrl) wnd
+            let list = assume cast (*ListCtrl, wnd)
             if list.header == null do
                 return false
             let header = list.header
@@ -1402,7 +1402,7 @@ impl ListCtrl
         var row: Math.Rectangle
         row.width  = .listView.displayWidth()
         row.height = .lineHeight()
-        row.y      = cast(f32) index * .lineHeight() - .listView.scrollPos.y
+        row.y      = cast(f32, index) * .lineHeight() - .listView.scrollPos.y
 
         let reserveCheckMargin = .isVirtual ? line.canCheck : .hasVisibleCheckBoxes()
         for itemIt, itemIndex in line.items where itemIt!.column == column do
@@ -1424,7 +1424,7 @@ impl ListCtrl
     {
         if .isVirtual do
             return .virtualCount
-        return cast(u32) .lines.count
+        return cast(u32, .lines.count)
     }
 
     // Returns whether a visible row exposes a check box; a virtual list never does.
@@ -1461,7 +1461,7 @@ impl ListCtrl
         let line = .toFreeLines.allocate()
         line.index     = .nextLineIndex
         .nextLineIndex += 1
-        .idxLineToIdxList.add(line.index, cast(u32) .lines.count)
+        .idxLineToIdxList.add(line.index, cast(u32, .lines.count))
         .lines.add(line)
         .toFreeLines.add(line)
         return line
@@ -1524,7 +1524,7 @@ impl ListCtrl
     mtd firstVisibleLineIndex()->u32
     {
         let lc  = .lineCount()
-        let idx = cast(u32) (.listView.scrollPos.y / .lineHeight())
+        let idx = cast(u32, (.listView.scrollPos.y / .lineHeight()))
         if idx >= lc do
             return Swag.U32.Max
         return idx
@@ -1540,11 +1540,11 @@ impl ListCtrl
         let viewRect = .listView.paddedClientRect()
         var y        = .listView.scrollPos.y + viewRect.height
         if y <= 0 do
-            return cast(u32) (.listView.scrollPos.y / .lineHeight())
+            return cast(u32, (.listView.scrollPos.y / .lineHeight()))
         y = Math.max(y - Math.ConstF32.Epsilon, 0)
-        let idx = cast(u32) (y / .lineHeight())
+        let idx = cast(u32, (y / .lineHeight()))
         if idx >= lc do
-            return cast(u32) lc - 1
+            return cast(u32, lc) - 1
         return idx
     }
 
@@ -1654,7 +1654,7 @@ impl ListCtrl
     {
         .idxLineToIdxList.clear()
         for l, idx in .lines do
-            .idxLineToIdxList.add(l!.index, cast(u32) idx)
+            .idxLineToIdxList.add(l!.index, cast(u32, idx))
     }
 
     private mtd collectVisibleLines(result: *Array'(*ListLine?), lines: [..] (*ListLine?))
@@ -1775,10 +1775,10 @@ impl ListCtrl
         .collectVisibleLines(&toInsert, line.lines.toSlice())
         if toInsert.count
         {
-            .lines.insertAt(cast(u64) (lineRow + 1), toInsert.toSlice())
+            .lines.insertAt(cast(u64, (lineRow + 1)), toInsert.toSlice())
             .mapIndexes()
             if .focusIndex != Swag.U32.Max and .focusIndex > lineRow do
-                .focusIndex += cast(u32) toInsert.count
+                .focusIndex += cast(u32, toInsert.count)
         }
 
         .computeLayout()
@@ -1816,7 +1816,7 @@ impl ListCtrl
         let idxInsert = res.value
         if removeCount
         {
-            .lines.removeAtOrdered(cast(u64) (idxInsert + 1), cast(u64) removeCount)
+            .lines.removeAtOrdered(cast(u64, (idxInsert + 1)), cast(u64, removeCount))
             .mapIndexes()
         }
 

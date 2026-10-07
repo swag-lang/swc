@@ -15,7 +15,7 @@ func copyStoredText(text: string)->string
     request.size = text.count
     allocator.alloc(&request)
     Swag.memcpy(request.address, text.buffer, text.count)
-    return Swag.makeString(cast([*] u8) request.address!, text.count)
+    return Swag.makeString(cast([*] u8, request.address!), text.count)
 }
 
 func failStoredText(text: string) fail

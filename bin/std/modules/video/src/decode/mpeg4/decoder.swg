@@ -93,17 +93,17 @@ impl Decoder
         var at = nextStartCode(bytes, from)
         while at + 4 <= bytes.count
         {
-            let code = cast(u32) bytes[at + 3]
+            let code = cast(u32, bytes[at + 3])
             let body = at + 4
             if code == CodeVop
             {
                 if not header do
-                    return cast(s64) (body * 8)
+                    return cast(s64, (body * 8))
                 if not .layer.configured do
                     fail InvalidFormatError{"MPEG-4 plane arrived before its layer"}
                 var reader = BitReader.create(bytes[body until bytes.count])
                 try readPlaneHeader(&.layer, &reader, header)
-                return cast(s64) (body * 8 + reader.bitPos)
+                return cast(s64, (body * 8 + reader.bitPos))
             }
 
             if code >= 0x20 and code <= 0x2F
@@ -141,7 +141,7 @@ impl Decoder
             if not .layer.configured do
                 fail InvalidFormatError{"MPEG-4 sample arrived before its video object layer"}
 
-            .sampleAt = (cast(u64) bitAt + 7) / 8
+            .sampleAt = (cast(u64, bitAt) + 7) / 8
             .allocate()
             let time = .readClock(&header)
 
@@ -175,7 +175,7 @@ impl Decoder
                 continue
 
             var reader = BitReader.create(bytes)
-            reader.bitPos = cast(u64) bitAt
+            reader.bitPos = cast(u64, bitAt)
             try .decodePlane(&reader, &header)
             .sampleAt    = (reader.bitPos + 7) / 8
             .pictureTime = time
@@ -208,17 +208,17 @@ impl Decoder
     // that states no decoding order does not order its samples by it at all.
     mtd readClock(header: const *PlaneHeader)->s64
     {
-        let resolution = cast(s64) .layer.timeResolution
+        let resolution = cast(s64, .layer.timeResolution)
         if header.codingType == VopBidirectional
         {
-            let time = (.lastTimeBase + cast(s64) header.moduloTime) * resolution + cast(s64) header.timeIncrement
+            let time = (.lastTimeBase + cast(s64, header.moduloTime)) * resolution + cast(s64, header.timeIncrement)
             .planeSpan = .anchorSpan - (.anchorTime - time)
             return time
         }
 
         .lastTimeBase = .timeBase
-        .timeBase     += cast(s64) header.moduloTime
-        let time = .timeBase * resolution + cast(s64) header.timeIncrement
+        .timeBase     += cast(s64, header.moduloTime)
+        let time = .timeBase * resolution + cast(s64, header.timeIncrement)
         .anchorSpan = time - .anchorTime
         .anchorTime = time
         return time
@@ -249,7 +249,7 @@ impl Decoder
         .anchorNew.prepare(coded, rows, .layer.width, .layer.height)
         .current.prepare(coded, rows, .layer.width, .layer.height)
 
-        let count = cast(u64) .layer.mbWidth * cast(u64) .layer.mbHeight
+        let count = cast(u64, .layer.mbWidth) * cast(u64, .layer.mbHeight)
         .blocks.resize(count * 6)
         .macroblocks.resize(count)
         .coLocated.resize(count)
@@ -274,11 +274,11 @@ impl Decoder
     {
         var result: retval
         result.dc    = DefaultNeighbourDc
-        result.quant = cast(u8) .quant
-        if mbX < 0 or mbY < 0 or mbX >= cast(s32) .layer.mbWidth or mbY >= cast(s32) .layer.mbHeight do
+        result.quant = cast(u8, .quant)
+        if mbX < 0 or mbY < 0 or mbX >= cast(s32, .layer.mbWidth) or mbY >= cast(s32, .layer.mbHeight) do
             return result
 
-        let macroblock = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let macroblock = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         if macroblock < .packetStart do
             return result
         return .blocks[macroblock * 6 + block]
@@ -297,7 +297,7 @@ impl Decoder
         .forward     = Vector{}
         .backward    = Vector{}
 
-        let total = cast(u64) .layer.mbWidth * cast(u64) .layer.mbHeight
+        let total = cast(u64, .layer.mbWidth) * cast(u64, .layer.mbHeight)
         var index = 0'u64
         while index < total
         {
@@ -306,7 +306,7 @@ impl Decoder
                 let after = .findResyncMarker(reader, &active)
                 if after >= 0
                 {
-                    reader.bitPos = cast(u64) after
+                    reader.bitPos = cast(u64, after)
                     try .readPacketHeader(reader, &active, &index)
                     .packetStart = index
                     .forward     = Vector{}
@@ -316,7 +316,7 @@ impl Decoder
                 }
             }
 
-            try .decodeMacroblock(reader, &active, cast(s32) (index % cast(u64) .layer.mbWidth), cast(s32) (index / cast(u64) .layer.mbWidth))
+            try .decodeMacroblock(reader, &active, cast(s32, (index % cast(u64, .layer.mbWidth))), cast(s32, (index / cast(u64, .layer.mbWidth))))
             index += 1
         }
 
@@ -330,7 +330,7 @@ impl Decoder
     {
         if at >= reader.bitEnd do
             return 0
-        return cast(u32) (reader.data![at >> 3] >> (7 - cast(u32) (at & 7))) & 1
+        return cast(u32, (reader.data![at >> 3] >> (7 - cast(u32, (at & 7))))) & 1
     }
 
     // How long the marker that opens a video packet is, clause 6.3.3.
@@ -364,25 +364,25 @@ impl Decoder
             at += 1
         }
 
-        let bits = cast(u64) .resyncMarkerBits(header)
+        let bits = cast(u64, .resyncMarkerBits(header))
         if at + bits > reader.bitEnd do
             return -1
         for index in bits - 1 where .peekBit(reader, at + index) != 0 do
             return -1
         if .peekBit(reader, at + bits - 1) != 1 do
             return -1
-        return cast(s64) (at + bits)
+        return cast(s64, (at + bits))
     }
 
     // Reads the header of one video packet, clause 6.2.5.2.
     mtd readPacketHeader(reader: *BitReader, header: *PlaneHeader, index: *u64) fail
     {
-        let total = cast(u64) .layer.mbWidth * cast(u64) .layer.mbHeight
+        let total = cast(u64, .layer.mbWidth) * cast(u64, .layer.mbHeight)
         var width = 1'u32
         while (1'u64 << width) < total and width < 14 do
             width += 1
 
-        let number = cast(u64) reader.read(width)
+        let number = cast(u64, reader.read(width))
         if number >= total do
             fail InvalidFormatError{"MPEG-4 video packet starts past the end of its plane"}
         index[] = number
@@ -418,7 +418,7 @@ impl Decoder
     // Decodes one macroblock, clause 6.3.7.
     mtd decodeMacroblock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32) fail
     {
-        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let state   = &.macroblocks[mbIndex]
         state[] = MacroblockState{}
 
@@ -450,8 +450,8 @@ impl Decoder
             let entry = reader.decode(tree)
             if entry < 0 do
                 fail InvalidFormatError{"MPEG-4 macroblock states no coded block pattern"}
-            mbType = cast(u32) types[cast(u64) entry]
-            cbpc   = cast(u32) chroma[cast(u64) entry]
+            mbType = cast(u32, types[cast(u64, entry)])
+            cbpc   = cast(u32, chroma[cast(u64, entry)])
             if mbType != TypeStuffing do
                 break
         }
@@ -467,12 +467,12 @@ impl Decoder
         let cbpyEntry = reader.decode(CbpyTree)
         if cbpyEntry < 0 do
             fail InvalidFormatError{"MPEG-4 macroblock states no luminance block pattern"}
-        let cbpy = cast(u32) (intra ? CbpyIntra[cast(u64) cbpyEntry] : CbpyInter[cast(u64) cbpyEntry])
+        let cbpy = cast(u32, (intra ? CbpyIntra[cast(u64, cbpyEntry)] : CbpyInter[cast(u64, cbpyEntry)]))
 
         if mbType == TypeInterQ or mbType == TypeIntraQ
         {
-            let delta = cast(s32) DquantDelta[cast(u64) reader.read(2)]
-            .quant = cast(u32) Math.clamp(cast(s32) .quant + delta, 1's32, 31's32)
+            let delta = cast(s32, DquantDelta[cast(u64, reader.read(2))])
+            .quant = cast(u32, Math.clamp(cast(s32, .quant) + delta, 1's32, 31's32))
         }
 
         state.intra = intra
@@ -518,7 +518,7 @@ impl Decoder
     // and takes the motion of the plane that follows it, scaled to where it sits between them.
     mtd decodeBidirectionalMacroblock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32) fail
     {
-        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let state   = &.macroblocks[mbIndex]
         state[] = MacroblockState{}
         .clearBlockState(mbIndex)
@@ -574,7 +574,7 @@ impl Decoder
             if kind != TypeDirect and pattern and reader.read(1) != 0
             {
                 let step = reader.read(1) != 0 ? 2's32 : -2's32
-                .quant = cast(u32) Math.clamp(cast(s32) .quant + step, 1's32, 31's32)
+                .quant = cast(u32, Math.clamp(cast(s32, .quant) + step, 1's32, 31's32))
             }
 
             if kind == TypeDirect
@@ -644,7 +644,7 @@ impl Decoder
     // Predicts one macroblock the way the plane that follows it moved, clause 7.6.7.
     mtd predictDirect(mbX, mbY: s32, delta: Vector, rounding: u32)
     {
-        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let source  = &.coLocated[mbIndex]
         let trd     = .anchorSpan
         let trb     = .planeSpan
@@ -658,10 +658,10 @@ impl Decoder
             var mv: Vector
             if not source.intra do
                 mv = source.vectors[block]
-            forward[block].x  = cast(s32) ((trb * cast(s64) mv.x) / trd) + delta.x
-            forward[block].y  = cast(s32) ((trb * cast(s64) mv.y) / trd) + delta.y
-            backward[block].x = not delta.x ? cast(s32) (((trb - trd) * cast(s64) mv.x) / trd) : forward[block].x - mv.x
-            backward[block].y = not delta.y ? cast(s32) (((trb - trd) * cast(s64) mv.y) / trd) : forward[block].y - mv.y
+            forward[block].x  = cast(s32, ((trb * cast(s64, mv.x)) / trd)) + delta.x
+            forward[block].y  = cast(s32, ((trb * cast(s64, mv.y)) / trd)) + delta.y
+            backward[block].x = not delta.x ? cast(s32, (((trb - trd) * cast(s64, mv.x)) / trd)) : forward[block].x - mv.x
+            backward[block].y = not delta.y ? cast(s32, (((trb - trd) * cast(s64, mv.y)) / trd)) : forward[block].y - mv.y
         }
 
         .predictFrom(&.anchorOld, mbX, mbY, forward, rounding, false)
@@ -678,9 +678,9 @@ impl Decoder
 
         for block in 4'u64
         {
-            let bx     = x + cast(s32) (block & 1) * 8
-            let by     = y + cast(s32) (block >> 1) * 8
-            let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
+            let bx     = x + cast(s32, (block & 1)) * 8
+            let by     = y + cast(s32, (block >> 1)) * 8
+            let target = .current.lumaOrigin() + cast(u64, cast(s64, (cast(s64, by) * cast(s64, .current.strideLuma) + cast(s64, bx))))
             if average
             {
                 compensate(&.blend[0], 8, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
@@ -695,7 +695,7 @@ impl Decoder
         let chroma = chromaVector(vectors)
         let cx     = mbX * 8
         let cy     = mbY * 8
-        let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
+        let target = .current.chromaOrigin() + cast(u64, cast(s64, (cast(s64, cy) * cast(s64, .current.strideChroma) + cast(s64, cx))))
         for plane in 2'u32
         {
             let from = plane == 0 ? anchor.chromaB.storage() : anchor.chromaR.storage()
@@ -720,7 +720,7 @@ impl Decoder
             let state = &.blocks[mbIndex * 6 + block]
             state[]     = BlockState{}
             state.dc    = DefaultNeighbourDc
-            state.quant = cast(u8) .quant
+            state.quant = cast(u8, .quant)
         }
     }
 
@@ -807,17 +807,17 @@ impl Decoder
             // picture, or in a macroblock that carries no vector, is not.
             if nx == mbX and ny == mbY
             {
-                let state = &.macroblocks[cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX]
+                let state = &.macroblocks[cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)]
                 candidates[slot] = state.vectors[fourVectors ? which : 0]
                 valid[slot]      = true
                 continue
             }
 
             valid[slot] = false
-            if nx < 0 or ny < 0 or nx >= cast(s32) .layer.mbWidth or ny >= cast(s32) .layer.mbHeight do
+            if nx < 0 or ny < 0 or nx >= cast(s32, .layer.mbWidth) or ny >= cast(s32, .layer.mbHeight) do
                 continue
 
-            let neighbourIndex = cast(u64) ny * cast(u64) .layer.mbWidth + cast(u64) nx
+            let neighbourIndex = cast(u64, ny) * cast(u64, .layer.mbWidth) + cast(u64, nx)
             if neighbourIndex < .packetStart do
                 continue
 
@@ -861,9 +861,9 @@ impl Decoder
 
         for block in 4'u64
         {
-            let bx     = x + cast(s32) (block & 1) * 8
-            let by     = y + cast(s32) (block >> 1) * 8
-            let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
+            let bx     = x + cast(s32, (block & 1)) * 8
+            let by     = y + cast(s32, (block >> 1)) * 8
+            let target = .current.lumaOrigin() + cast(u64, cast(s64, (cast(s64, by) * cast(s64, .current.strideLuma) + cast(s64, bx))))
             compensate(.current.luma.storage() + target, .current.strideLuma, .anchorNew.luma.storage(), lumaAt, .anchorNew.strideLuma, bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
         }
 
@@ -871,7 +871,7 @@ impl Decoder
         let chroma = chromaVector(vectors)
         let cx     = mbX * 8
         let cy     = mbY * 8
-        let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
+        let target = .current.chromaOrigin() + cast(u64, cast(s64, (cast(s64, cy) * cast(s64, .current.strideChroma) + cast(s64, cx))))
         compensate(.current.chromaB.storage() + target, .current.strideChroma, .anchorNew.chromaB.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
         compensate(.current.chromaR.storage() + target, .current.strideChroma, .anchorNew.chromaR.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
     }
@@ -879,7 +879,7 @@ impl Decoder
     // Decodes one block and writes its samples, clause 6.3.7.3.
     mtd decodeBlock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32, block: u64, intra, acPred, coded: bool) fail
     {
-        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let isLuma  = block < 4
         var levels: [64] s32
         for index in 64'u64 do
@@ -934,10 +934,10 @@ impl Decoder
                 let entry = reader.decode(tree)
                 if entry < 0 do
                     fail InvalidFormatError{"MPEG-4 intra block states no direct-current width"}
-                let size = cast(u32) sizes[cast(u64) entry]
+                let size = cast(u32, sizes[cast(u64, entry)])
                 if size
                 {
-                    var value = cast(s32) reader.read(size)
+                    var value = cast(s32, reader.read(size))
                     if (value & (1's32 << (size - 1))) == 0 do
                         value -= (1's32 << size) - 1
                     if size > 8 do
@@ -957,10 +957,10 @@ impl Decoder
                 var event: Coefficient
                 if not readCoefficient(reader, not intra, &event) do
                     fail InvalidFormatError{"MPEG-4 block states an unknown coefficient"}
-                at += cast(u64) event.run
+                at += cast(u64, event.run)
                 if at >= 64 do
                     fail InvalidFormatError{"MPEG-4 block codes more coefficients than a block holds"}
-                levels[cast(u64) scan[at]] = event.level
+                levels[cast(u64, scan[at])] = event.level
                 at += 1
                 if event.last do
                     break
@@ -972,18 +972,18 @@ impl Decoder
             // The direct current is predicted from a neighbour scaled to this block's step, and
             // the first row or column may be predicted too, clause 7.4.3.
             let predictor = fromAbove ? above.dc : left.dc
-            levels[0] += divideRound(predictor, cast(s32) scaler)
+            levels[0] += divideRound(predictor, cast(s32, scaler))
             if acPred
             {
                 if fromAbove
                 {
                     for index in 7'u64 do
-                        levels[index + 1] += divideRound(cast(s32) above.row[index] * cast(s32) above.quant, cast(s32) .quant)
+                        levels[index + 1] += divideRound(cast(s32, above.row[index]) * cast(s32, above.quant), cast(s32, .quant))
                 }
                 else
                 {
                     for index in 7'u64 do
-                        levels[(index + 1) * 8] += divideRound(cast(s32) left.col[index] * cast(s32) left.quant, cast(s32) .quant)
+                        levels[(index + 1) * 8] += divideRound(cast(s32, left.col[index]) * cast(s32, left.quant), cast(s32, .quant))
                 }
             }
 
@@ -994,14 +994,14 @@ impl Decoder
         // What this block leaves for the ones that predict from it.
         let state = &.blocks[mbIndex * 6 + block]
         state.intra = intra
-        state.quant = cast(u8) .quant
+        state.quant = cast(u8, .quant)
         if intra
         {
-            state.dc = levels[0] * cast(s32) scaler
+            state.dc = levels[0] * cast(s32, scaler)
             for index in 7'u64
             {
-                state.row[index] = cast(s16) levels[index + 1]
-                state.col[index] = cast(s16) levels[(index + 1) * 8]
+                state.row[index] = cast(s16, levels[index + 1])
+                state.col[index] = cast(s16, levels[(index + 1) * 8])
             }
         }
         else
@@ -1018,7 +1018,7 @@ impl Decoder
             return
 
         if intra do
-            levels[0] *= cast(s32) scaler
+            levels[0] *= cast(s32, scaler)
         dequantise(&levels, &.layer, .quant, intra)
 
         var samples: [64] s16
@@ -1032,8 +1032,8 @@ impl Decoder
         var plane  = .current.luma.storage()
         var stride = .current.strideLuma
         var at     = .current.lumaOrigin()
-        var x      = mbX * 16 + cast(s32) (block & 1) * 8
-        var y      = mbY * 16 + cast(s32) (block >> 1) * 8
+        var x      = mbX * 16 + cast(s32, (block & 1)) * 8
+        var y      = mbY * 16 + cast(s32, (block >> 1)) * 8
 
         if block >= 4
         {
@@ -1044,7 +1044,7 @@ impl Decoder
             y      = mbY * 8
         }
 
-        let origin = at + cast(u64) cast(s64) (cast(s64) y * cast(s64) stride + cast(s64) x)
+        let origin = at + cast(u64, cast(s64, (cast(s64, y) * cast(s64, stride) + cast(s64, x))))
         for row in 8'u64
         {
             let line = origin + row * stride
@@ -1053,9 +1053,9 @@ impl Decoder
                 // Part 2 transforms the sample values themselves, with no level shift: what
                 // comes out of an intra block is the sample, and the default neighbour of an
                 // unpredicted block is mid grey by construction.
-                let value = cast(s32) samples[][row * 8 + column]
-                let final = intra ? value : cast(s32) plane[line + column] + value
-                plane[line + column] = cast(u8) Math.clamp(final, 0's32, 255's32)
+                let value = cast(s32, samples[][row * 8 + column])
+                let final = intra ? value : cast(s32, plane[line + column]) + value
+                plane[line + column] = cast(u8, Math.clamp(final, 0's32, 255's32))
             }
         }
     }

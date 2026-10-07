@@ -13,10 +13,10 @@ internal struct Encoder {}
 #[Swag.Inline]
 func writeU32BigEndian(result: *ConcatBuffer, value: u32)
 {
-    result.addNative(cast(u8) (value >> 24))
-    result.addNative(cast(u8) (value >> 16))
-    result.addNative(cast(u8) (value >> 8))
-    result.addNative(cast(u8) value)
+    result.addNative(cast(u8, (value >> 24)))
+    result.addNative(cast(u8, (value >> 16)))
+    result.addNative(cast(u8, (value >> 8)))
+    result.addNative(cast(u8, value))
 }
 
 #[Swag.Inline]
@@ -48,12 +48,12 @@ func writePixelChunk(result: *ConcatBuffer, pixel, previous: Pixel, index: *[64]
     index[][indexPosition] = pixel
     if pixel.a == previous.a
     {
-        let dr = cast(s32) pixel.r - previous.r
-        let dg = cast(s32) pixel.g - previous.g
-        let db = cast(s32) pixel.b - previous.b
+        let dr = cast(s32, pixel.r) - previous.r
+        let dg = cast(s32, pixel.g) - previous.g
+        let db = cast(s32, pixel.b) - previous.b
         if dr >= -2 and dr <= 1 and dg >= -2 and dg <= 1 and db >= -2 and db <= 1
         {
-            result.addNative(cast(u8) (0x40 | ((dr + 2) << 4) | ((dg + 2) << 2) | (db + 2)))
+            result.addNative(cast(u8, (0x40 | ((dr + 2) << 4) | ((dg + 2) << 2) | (db + 2))))
             return
         }
 
@@ -61,8 +61,8 @@ func writePixelChunk(result: *ConcatBuffer, pixel, previous: Pixel, index: *[64]
         let dbdg = db - dg
         if dg >= -32 and dg <= 31 and drdg >= -8 and drdg <= 7 and dbdg >= -8 and dbdg <= 7
         {
-            result.addNative(cast(u8) (0x80 | (dg + 32)))
-            result.addNative(cast(u8) ((drdg + 8) << 4 | (dbdg + 8)))
+            result.addNative(cast(u8, (0x80 | (dg + 32))))
+            result.addNative(cast(u8, ((drdg + 8) << 4 | (dbdg + 8))))
             return
         }
 
@@ -93,28 +93,28 @@ internal impl IImageEncoder for Encoder
             fail UnsupportedFormatError{"QOI encoding requires an 8-bit RGB or RGBA image"}
 
         result.addBytes(Magic)
-        writeU32BigEndian(result, cast(u32) image.width)
-        writeU32BigEndian(result, cast(u32) image.height)
+        writeU32BigEndian(result, cast(u32, image.width))
+        writeU32BigEndian(result, cast(u32, image.height))
         result.addNative(image.pixelFormat.hasAlpha() ? 4'u8 : 3'u8)
         result.addNative(0'u8)
 
         var index: [64] Pixel
         var previous   = Pixel{0, 0, 0, 255}
         var run:   u8
-        let pixelCount = cast(u64) image.width * cast(u64) image.height
+        let pixelCount = cast(u64, image.width) * cast(u64, image.height)
         for sourceIndex in pixelCount
         {
-            let sourceY  = cast(s32) (sourceIndex / cast(u64) image.width)
-            let sourceX  = cast(s32) (sourceIndex % cast(u64) image.width)
+            let sourceY  = cast(s32, (sourceIndex / cast(u64, image.width)))
+            let sourceX  = cast(s32, (sourceIndex % cast(u64, image.width)))
             let storageY = image.height - sourceY - 1
-            let source   = image.pixels.storage() + cast(u64) storageY * image.rowStride + cast(u64) sourceX * image.bytesPerPixel
+            let source   = image.pixels.storage() + cast(u64, storageY) * image.rowStride + cast(u64, sourceX) * image.bytesPerPixel
             let pixel    = readPixel(image, source)
             if pixelsEqual(pixel, previous)
             {
                 run += 1
                 if run == 62 or sourceIndex + 1 == pixelCount
                 {
-                    result.addNative(cast(u8) (0xC0 | (run - 1)))
+                    result.addNative(cast(u8, (0xC0 | (run - 1))))
                     run = 0
                 }
 
@@ -123,7 +123,7 @@ internal impl IImageEncoder for Encoder
 
             if run
             {
-                result.addNative(cast(u8) (0xC0 | (run - 1)))
+                result.addNative(cast(u8, (0xC0 | (run - 1))))
                 run = 0
             }
 

@@ -7,7 +7,7 @@
 func cold(values: [*] u64, index: u64)->f64
 {
     values[index % 12] ^= 0x123456789ABCDEF0
-    let x = cast(f64) (values[index % 12] & 127)
+    let x = cast(f64, (values[index % 12] & 127))
     return (x * x + 3.0 * x) + 7.0
 }
 
@@ -31,7 +31,7 @@ func scan(source: [*] u64, rounds, mask: u64)->u64
     {
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
         if i & mask == 0 do
-            sum ^= cast(u64) cold(source, i)
+            sum ^= cast(u64, cold(source, i))
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -57,7 +57,7 @@ func reference(source: [*] u64, rounds, mask: u64)->u64
     {
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
         if i & mask == 0 do
-            sum ^= cast(u64) cold(source, i)
+            sum ^= cast(u64, cold(source, i))
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -97,7 +97,7 @@ func scanMutable(source: [*] u64, rounds, mask, stop: u64)->u64
         v11 += (v0 ^ i) + 12
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
         if i & mask == 0 do
-            sum ^= cast(u64) cold(source, i)
+            sum ^= cast(u64, cold(source, i))
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -137,7 +137,7 @@ func mutableReference(source: [*] u64, rounds, mask, stop: u64)->u64
         v11 += (v0 ^ i) + 12
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
         if i & mask == 0 do
-            sum ^= cast(u64) cold(source, i)
+            sum ^= cast(u64, cold(source, i))
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10

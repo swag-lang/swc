@@ -1161,6 +1161,15 @@ namespace
             }
         }
 
+        if (bindingFunction && params.size() != bindingFunction->parameters().size() - bindingParamOffset)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_lambda_parameter_count, node.codeRef());
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(params.size()));
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(bindingFunction->parameters().size() - bindingParamOffset));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
         for (size_t paramIndex = 0; paramIndex < params.size(); paramIndex++)
         {
             const AstNodeRef      paramRef  = params[paramIndex];

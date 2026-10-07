@@ -141,7 +141,7 @@ impl IWnd for MotionField
         for step in .trailUsed
         {
             let index = (.trailNext + TrailLength - .trailUsed + step) % TrailLength
-            let ratio = cast(f32) (step + 1) / cast(f32) .trailUsed
+            let ratio = cast(f32, (step + 1)) / cast(f32, .trailUsed)
             let point = .trail[index]
             painter.fillCircle(point.x, point.y, 1.5 + 4 * ratio, colors.hilight.withAlphaF32(0.05 + 0.22 * ratio))
         }

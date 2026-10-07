@@ -127,15 +127,15 @@ Swag checks casts for potential information loss between integer types.
 {
     let x1 = 255'u8
 
-    // var y0 = cast(s8) x1  // Would panic: 255 not representable as s8
+    // var y0 = cast(s8, x1)  // Would panic: 255 not representable as s8
 
-    let y1 = cast #wrap (s8) x1
+    let y1 = cast #wrap (s8, x1)
     Swag.assert(y1 == -1)
 
     let x2 = -1's8
 
-    // var y2 = cast(u8) x2  // Would panic: negative to unsigned
-    let y2 = cast #wrap (u8) x2
+    // var y2 = cast(u8, x2)  // Would panic: negative to unsigned
+    let y2 = cast #wrap (u8, x2)
     Swag.assert(y2 == 255)
 }
 
@@ -155,21 +155,24 @@ Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.
 }
 
 /**
-# Dynamic Cast Type Safety
+# Assumption Safety
 Example:
 
 ```swag
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 ```
 
-Swag panics if a cast from 'any' to another type is invalid.
+The '.Assume' flag checks invariants asserted by 'assume': successful completion
+of a fallible operation, cast compatibility, and presence of a non-null cast
+result. Disabling '.DynCast' or '.Null' does not disable an explicit assumption.
+'expect' remains checked regardless of safety flags.
 */
 #test
 {
     let x: any = "1"
-    let y      = cast #assume(string) x
+    let y      = assume cast(string, x)
 
-    // var z = cast(s32) x  // Would panic: underlying type mismatch
+    // var z = assume cast(s32, x)  // Would panic: underlying type mismatch
     // Swag.assert(z == 0)
 }
 

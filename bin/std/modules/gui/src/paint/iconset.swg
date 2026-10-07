@@ -43,18 +43,18 @@ impl IconAtlas
     {
         Sync.scopedLock(&.lock)
 
-        let key   = cast(s64) cell
+        let key   = cast(s64, cell)
         let found = .rasters.tryFind(key)
         if found do
             return &found.value
 
-        let cols = cast(s32) Math.round(.drawing.width / 24)
-        let rows = cast(s32) Math.round(.drawing.height / 24)
+        let cols = cast(s32, Math.round(.drawing.width / 24))
+        let rows = cast(s32, Math.round(.drawing.height / 24))
 
         // Strong supersampling for exact edge coverage, with the internal buffer
         // bounded so a dense display keeps the one-time cost in check.
         var ss = 4'u8
-        while ss > 1 and cols * cell * cast(s32) ss > 8192 do
+        while ss > 1 and cols * cell * cast(s32, ss) > 8192 do
             ss /= 2
 
         return &.rasters.add(key, .drawing.rasterize(renderer, cols * cell, rows * cell, ss)).value
@@ -135,7 +135,7 @@ impl IconSet
             .scale = wanted
         }
 
-        let key   = cast(s32) Math.max(Math.round(size), 1.0)
+        let key   = cast(s32, Math.max(Math.round(size), 1.0))
         let found = .lists.tryFind(key)
         if found do
             return found.value
@@ -148,7 +148,7 @@ impl IconSet
 
     private mtd updateList(list: *ImageList, size: s32, scale: f32)
     {
-        let cell    = size * cast(s32) scale
+        let cell    = size * cast(s32, scale)
         let image   = .atlas!.image(.renderer, cell)
         let texture = .renderer.addImage(image[])
         list.release(.renderer)

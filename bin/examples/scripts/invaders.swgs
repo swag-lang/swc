@@ -204,7 +204,7 @@ func addAliens()
 
     // The formation is centred on the window rather than started at a fixed left margin: measured
     // from one edge it sits off centre as soon as the window is not the width it was tuned at.
-    let span = ((Cols - 1) * DIST) + cast(f32) g_RedImg.width
+    let span = ((Cols - 1) * DIST) + cast(f32, g_RedImg.width)
     let left = Math.max((g_Rect.width - span) * 0.5, 0)
 
     for xc in Cols
@@ -325,7 +325,7 @@ func loadBindTextures()
     {
         let text    = try File.readAllText(Path.combine(g_DataPath, name))
         let drawing = try Svg.Drawing.parse(text.toString())
-        let image   = drawing.rasterize(cast(s32) drawing.width, cast(s32) drawing.height)
+        let image   = drawing.rasterize(cast(s32, drawing.width), cast(s32, drawing.height))
         return g_Wnd.app().renderer.addImage(image)
     }
 

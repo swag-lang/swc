@@ -26,7 +26,7 @@ func writeStreamedFile(size: u64)->String
     var payload: Array'u8
     payload.resize(size)
     for index in size do
-        payload[index] = cast(u8) (index & 0xFF)
+        payload[index] = cast(u8, (index & 0xFF))
     discard expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
 }
@@ -39,15 +39,15 @@ func writePreviewFile()->String
 
     var payload: Array'u8
     let header = "Swag Scope hex preview"
-    payload.add(cast(const [..] u8) header)
+    payload.add(cast(const [..] u8, header))
     for 42 do
         payload.add(0)
     for index in 64 do
-        payload.add(cast(u8) (0xC0 + index % 0x40))
+        payload.add(cast(u8, (0xC0 + index % 0x40)))
     let text = "name=value; the text column stays readable"
-    payload.add(cast(const [..] u8) text)
+    payload.add(cast(const [..] u8, text))
     for index in 128 do
-        payload.add(index % 3 == 0 ? 0'u8 : cast(u8) ((index * 7) & 0xFF))
+        payload.add(index % 3 == 0 ? 0'u8 : cast(u8, ((index * 7) & 0xFF)))
 
     discard expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
@@ -58,7 +58,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     registerHexStrings(&host.app)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
     var viewerSession = openTestViewer(hexViewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
-    let view          = cast #assume (*HexViewer) viewerSession.view!
+    let view          = assume cast (*HexViewer, viewerSession.view)
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel!)
     view.dockStyle = .Center
@@ -87,7 +87,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
+        if not instance.view or not instance.isLoading or not instance.isLoading() do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -100,11 +100,11 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*HexVi
 {
     var hexIndex = Swag.U32.Max
     for choice, index in window.choices where choice.key == "hex" do
-        hexIndex = cast(u32) index
+        hexIndex = cast(u32, index)
     Swag.assert(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(host, window)
-    return cast #assume (*HexViewer) window.currentView!
+    return assume cast (*HexViewer, window.currentView)
 }
 
 func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
@@ -129,7 +129,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var result = openTestViewer(hexViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = cast #assume (*HexViewer) result.view
+    let view = assume cast (*HexViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -271,7 +271,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     operation.task.wait()
     let result = operation.finish()
     Swag.assert(result.failureReason.isEmpty() and not result.cancelled and result.scanned == payload.count)
-    Swag.assert(result.histogram[0xFF] == 1 and result.histogram[cast(u8) 'H'] == 1)
+    Swag.assert(result.histogram[0xFF] == 1 and result.histogram[cast(u8, 'H')] == 1)
     Swag.assert(result.zeroCount > 200 and result.printableCount == ascii.count + little.count + big.count)
     Swag.assert(result.entropy > 0 and result.entropy < 8)
 
@@ -414,7 +414,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     // stale whole-file range that originally populated the panel.
     let selectedStart  = view.grid.selectionStart()
     let selectedLength = view.grid.selectionLength()
-    view.analysisView.analyzeButton.sigPressed.call(cast(*Button) view.analysisView.analyzeButton)
+    view.analysisView.analyzeButton.sigPressed.call(cast(*Button, view.analysisView.analyzeButton))
     completeHexViewerAnalysis(&host, view)
     Swag.assert(view.analysisView.selection and view.analysisView.result.range.offset == selectedStart)
     Swag.assert(view.analysisView.result.range.length == selectedLength)
@@ -473,7 +473,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     let last = StreamedFileSize - 1
     Swag.assert(doc.ensure(last - 31, 32))
-    Swag.assert(doc.byteAt(last) == cast(u8) (last & 0xFF))
+    Swag.assert(doc.byteAt(last) == cast(u8, (last & 0xFF)))
     Swag.assert(doc.window.count <= HexWindowSize)
     Swag.assert(doc.windowStart > 0)
     Swag.assert(not doc.isResident(0))
@@ -512,7 +512,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(view.grid.topRow == view.grid.maxTopRow())
     discard host.render(view)
     Swag.assert(view.grid.doc.window.count <= HexWindowSize)
-    Swag.assert(view.grid.doc.byteAt(view.grid.caret) == cast(u8) ((StreamedFileSize - 1) & 0xFF))
+    Swag.assert(view.grid.doc.byteAt(view.grid.caret) == cast(u8, ((StreamedFileSize - 1) & 0xFF)))
 
     host.keyPress(.Home, .Control)
     Swag.assert(view.grid.caret == 0 and view.grid.topRow == 0)

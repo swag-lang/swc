@@ -73,7 +73,7 @@ func captureIcons()->*Gui.IconAtlas
 {
     if not g_CaptureIconsParsed
     {
-        expect g_CaptureIcons.setup(cast(string) IconsSvg)
+        expect g_CaptureIcons.setup(cast(string, IconsSvg))
         g_CaptureIconsParsed = true
     }
 
@@ -348,7 +348,7 @@ impl MainWnd
     // forever. User-picked colors are left untouched.
     mtd migrateStoredOptions()
     {
-        if cast(u32) .editorOptions.theme > cast(u32) AppearanceTheme.Dark do
+        if cast(u32, .editorOptions.theme) > cast(u32, AppearanceTheme.Dark) do
             .editorOptions.theme = .SwagDark
         if .editorOptions.editBackColor == 0xFF2E2E2E'u32 do
             .editorOptions.editBackColor = 0
@@ -454,7 +454,7 @@ impl MainWnd
         {
             if md.isTag(CaptureFileMetadataTag)
             {
-                catch { Memory.delete(try .recentWnd.addRecent(cast(string) md.toSlice(), true, true)) }
+                catch { Memory.delete(try .recentWnd.addRecent(cast(string, md.toSlice()), true, true)) }
                 done = true
                 break
             }
@@ -525,7 +525,7 @@ impl MainWnd
 
             for it in capture.forms
             {
-                let p = cast #assume (*BaseForm) it
+                let p = assume cast (*BaseForm, it)
                 p.freeze = true
             }
         }
@@ -569,7 +569,7 @@ impl MainWnd
     // theme family, so a value never changes the width of the control that holds it.
     mtd updateZoomDisplay()
     {
-        let z   = cast(s32) (.editWnd.editView.zoom * 100)
+        let z   = cast(s32, (.editWnd.editView.zoom * 100))
         var txt = Format.toString("%", z)
         txt += "%"
         .zoomBtn.name = txt
@@ -954,7 +954,7 @@ impl MainWnd
                     .addItem(ActionZoom.ZoomFit)
                 }
 
-                discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
+                discard menu.doModal(assume cast (*IconButton, btn), autoDestroy: true)
             }
         }
 
@@ -1008,7 +1008,7 @@ impl MainWnd
 
         for c in .toolRail.children
         {
-            let btn = cast #try (*IconButton) c
+            let btn = (catch cast(*IconButton?, c))
             if not btn do
                 continue
             if showLabels
@@ -1040,7 +1040,7 @@ impl MainWnd
     mtd icon(idx: CaptureIcons, size = 0.0)->Icon
     {
         let resolvedSize = size ? size : themeActionIconSize(.themeMetrics())
-        return .icons.icon(cast(s32) idx, resolvedSize, .theme().res.atlasScale)
+        return .icons.icon(cast(s32, idx), resolvedSize, .theme().res.atlasScale)
     }
 
     func create(parent: *Wnd)->*MainWnd

@@ -109,7 +109,7 @@ func reference(values: [*] u64, rounds, stop: u32)->u64
     {
         var values: [14] u64
         for i in 14 do
-            values[i] = seed ^ (cast(u64) i * 0x123456789ABCDEF'u64)
+            values[i] = seed ^ (cast(u64, i) * 0x123456789ABCDEF'u64)
         for rounds in 12'u32
         {
             for stop in 14'u32 do

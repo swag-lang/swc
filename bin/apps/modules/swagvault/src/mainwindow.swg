@@ -573,7 +573,7 @@ impl MainWindow
         result.appearanceButton = AppearanceButton.create(surface, "vault.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
-            window.themeIndex = cast(u32) button.appearanceTheme
+            window.themeIndex = cast(u32, button.appearanceTheme)
             catch g_App.saveState()
         }
 
@@ -1093,8 +1093,8 @@ impl MainWindow
     // Applies the persisted standard application palette.
     mtd applyTheme()
     {
-        .themeIndex = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
-        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme) .themeIndex)
+        .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
+        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 
     // Reports the outcome of the latest step on the single status line.
@@ -1381,7 +1381,7 @@ impl MainWindow
     {
         for &destination, index in .mountDestinations where destination.id == mountPoint
         {
-            .drive.setSelectedIndex(cast(u32) index, notify: false)
+            .drive.setSelectedIndex(cast(u32, index), notify: false)
             return true
         }
 
@@ -1491,24 +1491,24 @@ impl MainWindow
         .tabs.setItemName(3, texts.ui_OptionsTab)
 
         .createCard.setTexts(texts.ui_CreateCardTitle, texts.ui_CreateCardHelp)
-        .createCard.form.setRowLabel(cast(u64) CreateRow.Path, texts.ui_ContainerFile)
-        .createCard.form.setRowLabel(cast(u64) CreateRow.Capacity, texts.ui_FixedCapacity)
-        .createCard.form.setRowLabel(cast(u64) CreateRow.Password, texts.ui_Password)
-        .createCard.form.setRowLabel(cast(u64) CreateRow.Confirm, texts.ui_ConfirmPassword)
-        .createCard.form.setRowLabel(cast(u64) CreateRow.KeyFiles, texts.ui_KeyFiles)
-        .createCard.form.setRowHelp(cast(u64) CreateRow.KeyFiles, texts.ui_KeyFilesHelp)
+        .createCard.form.setRowLabel(cast(u64, CreateRow.Path), texts.ui_ContainerFile)
+        .createCard.form.setRowLabel(cast(u64, CreateRow.Capacity), texts.ui_FixedCapacity)
+        .createCard.form.setRowLabel(cast(u64, CreateRow.Password), texts.ui_Password)
+        .createCard.form.setRowLabel(cast(u64, CreateRow.Confirm), texts.ui_ConfirmPassword)
+        .createCard.form.setRowLabel(cast(u64, CreateRow.KeyFiles), texts.ui_KeyFiles)
+        .createCard.form.setRowHelp(cast(u64, CreateRow.KeyFiles), texts.ui_KeyFilesHelp)
         .createPassword.setPlaceholder(texts.ui_OptionalPassword)
         .confirmPassword.setPlaceholder(texts.ui_EnterAgain)
         .createKeyFiles.retranslate()
         .browseCreate.setText(texts.ui_Browse)
 
         .mountCard.setTexts(texts.ui_MountCardTitle, texts.ui_MountCardHelp)
-        .mountCard.form.setRowLabel(cast(u64) MountRow.Path, texts.ui_ContainerFile)
-        .mountCard.form.setRowLabel(cast(u64) MountRow.Password, texts.ui_Password)
-        .mountCard.form.setRowLabel(cast(u64) MountRow.KeyFiles, texts.ui_KeyFiles)
-        .mountCard.form.setRowHelp(cast(u64) MountRow.KeyFiles, texts.ui_KeyFilesHelp)
-        .mountCard.form.setRowLabel(cast(u64) MountRow.Drive, texts.ui_DriveLetter)
-        .mountCard.form.setRowHelp(cast(u64) MountRow.Drive, texts.ui_DriveHelp)
+        .mountCard.form.setRowLabel(cast(u64, MountRow.Path), texts.ui_ContainerFile)
+        .mountCard.form.setRowLabel(cast(u64, MountRow.Password), texts.ui_Password)
+        .mountCard.form.setRowLabel(cast(u64, MountRow.KeyFiles), texts.ui_KeyFiles)
+        .mountCard.form.setRowHelp(cast(u64, MountRow.KeyFiles), texts.ui_KeyFilesHelp)
+        .mountCard.form.setRowLabel(cast(u64, MountRow.Drive), texts.ui_DriveLetter)
+        .mountCard.form.setRowHelp(cast(u64, MountRow.Drive), texts.ui_DriveHelp)
         .readOnly.setText(texts.ui_ReadOnly)
         .protectHidden.setText(texts.ui_ProtectHidden)
         .hiddenButton.setText(texts.ui_CreateHidden)
@@ -1521,11 +1521,11 @@ impl MainWindow
         .keyFilesButton.setText(texts.ui_ChangeKeyFiles)
 
         .optionsCard.setTexts(texts.ui_OptionsCardTitle, texts.ui_OptionsCardHelp)
-        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Privacy, texts.ui_PrivacyModeHelp)
-        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.SessionLock, texts.ui_UnmountOnLockHelp)
-        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Suspend, texts.ui_UnmountOnSuspendHelp)
-        .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Idle, texts.ui_UnmountOnIdleHelp)
-        .optionsCard.form.setRowLabel(cast(u64) OptionsRow.IdleTimeout, texts.ui_IdleTimeout)
+        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.Privacy), texts.ui_PrivacyModeHelp)
+        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.SessionLock), texts.ui_UnmountOnLockHelp)
+        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.Suspend), texts.ui_UnmountOnSuspendHelp)
+        .optionsCard.form.setRowHelp(cast(u64, OptionsRow.Idle), texts.ui_UnmountOnIdleHelp)
+        .optionsCard.form.setRowLabel(cast(u64, OptionsRow.IdleTimeout), texts.ui_IdleTimeout)
         .privacyModeControl.setText(texts.ui_PrivacyMode)
         .unmountOnLock.setText(texts.ui_UnmountOnLock)
         .unmountOnSuspend.setText(texts.ui_UnmountOnSuspend)
@@ -2139,7 +2139,7 @@ impl MainWindow
             return
         if .operation.progress.isCanceled() do
             return
-        .statusProgress = cast(s32) (.operation.progress.ratio() * 100)
+        .statusProgress = cast(s32, (.operation.progress.ratio() * 100))
         .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : (.operation.camouflageOnly ? StatusMessage.Camouflaging : StatusMessage.Resizing))
     }
 
@@ -2371,7 +2371,7 @@ impl MainWindow
             return
         for &one, index in .mountedDrives.drives
         {
-            let checked = .mountedDrives.list.isLineChecked(cast(u32) index)
+            let checked = .mountedDrives.list.isLineChecked(cast(u32, index))
             if checked == one.atStartup do
                 continue
             one.atStartup = checked
@@ -2561,7 +2561,7 @@ impl IWnd for MainWindow
         }
         elif evt.timer == .securityTimer
         {
-            if .autoUnmount.onIdle and autoUnmountIdleMilliseconds() >= cast(u64) .autoUnmount.idleMinutes * 60 * 1000 do
+            if .autoUnmount.onIdle and autoUnmountIdleMilliseconds() >= cast(u64, .autoUnmount.idleMinutes) * 60 * 1000 do
                 .handleAutoUnmount(.Idle)
         }
 
@@ -2630,7 +2630,7 @@ impl IWnd for MainWindow
                 .restoreMountSettings()
             .applyPrivacyControl()
             .applyAutoUnmountControls()
-            .showTab(Math.min(selectedTab, cast(u32) .tabs.items.count - 1))
+            .showTab(Math.min(selectedTab, cast(u32, .tabs.items.count) - 1))
         }
     }
 

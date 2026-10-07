@@ -16,17 +16,17 @@ impl SelfBuf
     mtd opPostMove()
     {
         if buffer do
-            buffer = cast([*] u8) &storage[0]
+            buffer = cast([*] u8, &storage[0])
     }
 
     mtd opPostCopy()
     {
         if buffer do
-            buffer = cast([*] u8) &storage[0]
+            buffer = cast([*] u8, &storage[0])
     }
 
     #[Swag.NoInline]
-    mtd const valid()->bool => buffer == cast([*] u8) &storage[0]
+    mtd const valid()->bool => buffer == cast([*] u8, &storage[0])
 }
 
 #[Swag.NoInline]
@@ -34,7 +34,7 @@ func makeSelfBuf(a, b: u8, count: u32)->SelfBuf
 {
     var result: retval
     result.storage = [a, b, 0, 0]
-    result.buffer  = cast([*] u8) &result.storage[0]
+    result.buffer  = cast([*] u8, &result.storage[0])
     result.count   = count
     return result
 }

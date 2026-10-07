@@ -235,18 +235,18 @@ impl ColorPickerCtrl
                     v.pickAlpha.setHsl(cb.hue, v.pickAlpha.saturation, cb.lightness, false)
 
                 case .GreenBlue:
-                    v.selectedColor.g = cast(u8) (cb.green * 255)
-                    v.selectedColor.b = cast(u8) (cb.blue * 255)
+                    v.selectedColor.g = cast(u8, (cb.green * 255))
+                    v.selectedColor.b = cast(u8, (cb.blue * 255))
                     v.updatePickers()
 
                 case .RedBlue:
-                    v.selectedColor.r = cast(u8) (cb.red * 255)
-                    v.selectedColor.b = cast(u8) (cb.blue * 255)
+                    v.selectedColor.r = cast(u8, (cb.red * 255))
+                    v.selectedColor.b = cast(u8, (cb.blue * 255))
                     v.updatePickers()
 
                 case .RedGreen:
-                    v.selectedColor.r = cast(u8) (cb.red * 255)
-                    v.selectedColor.g = cast(u8) (cb.green * 255)
+                    v.selectedColor.r = cast(u8, (cb.red * 255))
+                    v.selectedColor.g = cast(u8, (cb.green * 255))
                     v.updatePickers()
                 }
 
@@ -276,15 +276,15 @@ impl ColorPickerCtrl
                     v.pickAlpha.setHsl(v.pickAlpha.hue, cb.saturation, v.pickAlpha.lightness, false)
 
                 case .GreenBlue:
-                    v.selectedColor.r = cast(u8) (cb.red * 255)
+                    v.selectedColor.r = cast(u8, (cb.red * 255))
                     v.updatePickers()
 
                 case .RedBlue:
-                    v.selectedColor.g = cast(u8) (cb.green * 255)
+                    v.selectedColor.g = cast(u8, (cb.green * 255))
                     v.updatePickers()
 
                 case .RedGreen:
-                    v.selectedColor.b = cast(u8) (cb.blue * 255)
+                    v.selectedColor.b = cast(u8, (cb.blue * 255))
                     v.updatePickers()
                 }
 
@@ -294,7 +294,7 @@ impl ColorPickerCtrl
             .pickAlpha.setMode(.AlphaHorizontal)
             .pickAlpha.sigColorChanged += func|v|(cb)
             {
-                v.selectedColor.a = cast(u8) (cb.alpha * 255)
+                v.selectedColor.a = cast(u8, (cb.alpha * 255))
                 v.updateEdits(true)
             }
 
@@ -303,7 +303,7 @@ impl ColorPickerCtrl
             .editR.sigCommitted += func|v|(ed)
             {
                 let res = catch StrConv.parseU32(ed.text())
-                v.selectedColor.r = cast() Math.clamp(res.value, 0, 255)
+                v.selectedColor.r = cast(Math.clamp(res.value, 0, 255))
                 v.updateAll()
                 v.sigColorChanged.call(v)
             }
@@ -313,7 +313,7 @@ impl ColorPickerCtrl
             .editG.sigCommitted += func|v|(ed)
             {
                 let res = catch StrConv.parseU32(ed.text())
-                v.selectedColor.g = cast() Math.clamp(res.value, 0, 255)
+                v.selectedColor.g = cast(Math.clamp(res.value, 0, 255))
                 v.updateAll()
                 v.sigColorChanged.call(v)
             }
@@ -323,7 +323,7 @@ impl ColorPickerCtrl
             .editB.sigCommitted += func|v|(ed)
             {
                 let res = catch StrConv.parseU32(ed.text())
-                v.selectedColor.b = cast() Math.clamp(res.value, 0, 255)
+                v.selectedColor.b = cast(Math.clamp(res.value, 0, 255))
                 v.updateAll()
                 v.sigColorChanged.call(v)
             }
@@ -333,7 +333,7 @@ impl ColorPickerCtrl
             .editA.sigCommitted += func|v|(ed)
             {
                 let res = catch StrConv.parseU32(ed.text())
-                v.selectedColor.a = cast() Math.clamp(res.value, 0, 255)
+                v.selectedColor.a = cast(Math.clamp(res.value, 0, 255))
                 v.pickAlpha.setColor(v.selectedColor, false)
                 v.updateEdits(true)
             }
@@ -345,7 +345,7 @@ impl ColorPickerCtrl
                 var res = catch StrConv.parseX64(ed.text())
                 if not v.flags.has(.AllowAlpha) do
                     res.value |= 0xFF000000
-                v.selectedColor.argb = cast(u32) res.value
+                v.selectedColor.argb = cast(u32, res.value)
                 v.updateAll()
                 v.sigColorChanged.call(v)
             }

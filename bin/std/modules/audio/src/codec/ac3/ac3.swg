@@ -154,7 +154,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
     if reader.read(1)
     {
         let additional = reader.read(6) + 1
-        reader.skip(cast(u64) additional * 8)
+        reader.skip(cast(u64, additional) * 8)
     }
 
     if reader.overrun do
@@ -165,7 +165,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
 private func decodeExponents(reader: *BitReader, strategy, groups, absolute, skip: u32, destination: [*] s32) fail
 {
     let groupSize = ExponentGroupSize[strategy]
-    var previous  = cast(s32) absolute
+    var previous  = cast(s32, absolute)
     var written   = 0'u32
     if skip
     {
@@ -182,7 +182,7 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
         const Divisors: [3] u32 = [25, 5, 1]
         for part in 3
         {
-            previous += cast(s32) ((code / Divisors[part]) % 5) - 2
+            previous += cast(s32, ((code / Divisors[part]) % 5)) - 2
             if previous < 0 or previous > 24 do
                 fail InvalidFormatError{"AC-3 exponent is outside its valid range"}
             for repeated in groupSize
@@ -224,7 +224,7 @@ private impl Ac3Codec
     {
         .ditherState *= #wrap 1_664_525
         .ditherState += #wrap 1_013_904_223
-        return (cast(f64) (.ditherState >> 8) / 16_777_216.0 - 0.5) * 1.4142135623730951
+        return (cast(f64, (.ditherState >> 8)) / 16_777_216.0 - 0.5) * 1.4142135623730951
     }
 
     mtd readCoupling(reader: *BitReader, bsi: const *Ac3Bsi) fail
@@ -285,8 +285,8 @@ private impl Ac3Codec
                 {
                     let exponent = block.couplingCoordExp[channel, coordBand]
                     let mantissa = block.couplingCoordMant[channel, coordBand]
-                    coordinate = exponent == 15 ? cast(f64) mantissa / 16.0 : cast(f64) (mantissa + 16) / 32.0
-                    coordinate /= Math.pow(2.0, cast(f64) (exponent + 3 * block.couplingMaster[channel]))
+                    coordinate = exponent == 15 ? cast(f64, mantissa) / 16.0 : cast(f64, (mantissa + 16)) / 32.0
+                    coordinate /= Math.pow(2.0, cast(f64, (exponent + 3 * block.couplingMaster[channel])))
                     if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordBand] do
                         coordinate = -coordinate
                     coordBand += 1
@@ -318,12 +318,12 @@ private impl Ac3Codec
 
         if block.coupling
         {
-            block.couplingStart       = cast(s32) block.couplingBegin * 12 + 37
-            block.couplingEndMantissa = cast(s32) (block.couplingEnd + 3) * 12 + 37
+            block.couplingStart       = cast(s32, block.couplingBegin) * 12 + 37
+            block.couplingEndMantissa = cast(s32, (block.couplingEnd + 3)) * 12 + 37
             if block.couplingExpStrategy
             {
-                let divisor  = cast(s32) (3 * ExponentGroupSize[block.couplingExpStrategy])
-                let groups   = cast(u32) ((block.couplingEndMantissa - block.couplingStart) / divisor)
+                let divisor  = cast(s32, (3 * ExponentGroupSize[block.couplingExpStrategy]))
+                let groups   = cast(u32, ((block.couplingEndMantissa - block.couplingStart) / divisor))
                 let absolute = reader.read(4) << 1
                 try decodeExponents(reader, block.couplingExpStrategy, groups, absolute, 0, &block.couplingExponents)
             }
@@ -331,9 +331,9 @@ private impl Ac3Codec
 
         for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0
         {
-            block.channelEnd[channel] = block.channelCoupled[channel] ? 37 + cast(s32) (12 * block.couplingBegin) : 37 + 3 * cast(s32) (block.channelBandwidth[channel] + 12)
-            let groupSize = cast(s32) ExponentGroupSize[block.channelExpStrategy[channel]]
-            let groups    = cast(u32) ((block.channelEnd[channel] - 1 + 3 * groupSize - 1) / (3 * groupSize))
+            block.channelEnd[channel] = block.channelCoupled[channel] ? 37 + cast(s32, (12 * block.couplingBegin)) : 37 + 3 * cast(s32, (block.channelBandwidth[channel] + 12))
+            let groupSize = cast(s32, ExponentGroupSize[block.channelExpStrategy[channel]])
+            let groups    = cast(u32, ((block.channelEnd[channel] - 1 + 3 * groupSize - 1) / (3 * groupSize)))
             let absolute  = reader.read(4)
             try decodeExponents(reader, block.channelExpStrategy[channel], groups, absolute, 1, &block.channelExponents[channel, 0])
             discard reader.read(2)
@@ -420,13 +420,13 @@ private impl Ac3Codec
         for channel in bsi.nfchans
         {
             let delta = &block.channelDelta[channel]
-            bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32) block.coarseSnr - 15) * 16 + cast(s32) block.channelFineSnr[channel]) * 4, 0, 0, delta, &block.channelBap[channel, 0])
+            bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0])
         }
 
         if block.coupling do
-            bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32) block.coarseSnr - 15) * 16 + cast(s32) block.couplingFineSnr) * 4, cast(s32) (block.couplingFastLeak << 8) + 768, cast(s32) (block.couplingSlowLeak << 8) + 768, &block.couplingDelta, &block.couplingBap)
+            bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
         if bsi.lfeon do
-            bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32) block.coarseSnr - 15) * 16 + cast(s32) block.lfeFineSnr) * 4, 0, 0, null, &block.lfeBap)
+            bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
     }
 
     mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi)
@@ -438,17 +438,17 @@ private impl Ac3Codec
         for channel in bsi.nfchans
         {
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in cast(u64) block.channelEnd[channel]
+            for bin in cast(u64, block.channelEnd[channel])
             {
                 let exponent = block.channelExponents[channel, bin]
                 let value    = block.channelBap[channel, bin] or not block.dither[channel] ? mantissas.get(block.channelBap[channel, bin]) : .ditherValue()
-                .coefficients[channel, bin] = value * Math.pow(2.0, -cast(f64) exponent)
+                .coefficients[channel, bin] = value * Math.pow(2.0, -cast(f64, exponent))
             }
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
                 for bin in block.couplingSubbands * 12 do
-                    couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * Math.pow(2.0, -cast(f64) block.couplingExponents[bin])
+                    couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * Math.pow(2.0, -cast(f64, block.couplingExponents[bin]))
                 couplingRead = true
             }
         }
@@ -458,7 +458,7 @@ private impl Ac3Codec
             let channel = bsi.nfchans
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in 7 do
-                .coefficients[channel, bin] = mantissas.get(block.lfeBap[bin]) * Math.pow(2.0, -cast(f64) block.lfeExponents[bin])
+                .coefficients[channel, bin] = mantissas.get(block.lfeBap[bin]) * Math.pow(2.0, -cast(f64, block.lfeExponents[bin]))
         }
 
         if block.coupling
@@ -472,7 +472,7 @@ private impl Ac3Codec
                         let source = subband * 12 + bin
                         var value  = couplingMantissas[source]
                         if not value and block.dither[channel] do
-                            value = .ditherValue() * Math.pow(2.0, -cast(f64) block.couplingExponents[source])
+                            value = .ditherValue() * Math.pow(2.0, -cast(f64, block.couplingExponents[source]))
                         let destination = (subband + block.couplingBegin) * 12 + bin + 37
                         .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
                     }
@@ -485,7 +485,7 @@ private impl Ac3Codec
             let begin = REMATRIX_BANDS[band]
             var end   = REMATRIX_BANDS[band + 1]
             if block.coupling do
-                end = Math.min(end, 36 + cast(s32) block.couplingBegin * 12)
+                end = Math.min(end, 36 + cast(s32, block.couplingBegin) * 12)
             var bin = begin
             while bin < end
             {
@@ -523,7 +523,7 @@ private impl Ac3Codec
         if reader.read(1)
         {
             let skipBytes = reader.read(9)
-            reader.skip(cast(u64) skipBytes * 8)
+            reader.skip(cast(u64, skipBytes) * 8)
         }
 
         .readMantissas(reader, bsi)
@@ -559,7 +559,7 @@ private impl Ac3Codec
                 {
                     let source = .sourceChannel(channel, &bsi)
                     let scaled = Math.clamp(.pcm[source, frame] * 32767.0, -32768.0, 32767.0)
-                    destination[(blockIndex * SamplesPerBlock + frame) * .channels + channel] = cast(s16) scaled
+                    destination[(blockIndex * SamplesPerBlock + frame) * .channels + channel] = cast(s16, scaled)
                 }
             }
         }
@@ -584,10 +584,10 @@ impl IPacketCodec for Ac3Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let required = cast(u64) BlocksPerAc3Frame * SamplesPerBlock * .channels * #sizeof(s16)
+        let required = cast(u64, BlocksPerAc3Frame) * SamplesPerBlock * .channels * #sizeof(s16)
         if destinationSize < required do
             fail BadParameterError{"AC-3 destination buffer is too small"}
-        try .decodeFrame(packet, cast([*] s16) destination)
+        try .decodeFrame(packet, cast([*] s16, destination))
         return required
     }
 }
@@ -615,25 +615,25 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"AC-3 packet has no sync word"}
 
-    let fscod    = cast(u32) (packet[4] >> 6) & 3
-    let sizeCode = cast(u32) packet[4] & 0x3F
+    let fscod    = cast(u32, (packet[4] >> 6)) & 3
+    let sizeCode = cast(u32, packet[4]) & 0x3F
     if fscod >= 3 or sizeCode >= 38 do
         fail InvalidFormatError{"AC-3 frame states a reserved sampling frequency or size"}
 
     var result: retval
-    result.sampleRate = Rates[cast(u64) fscod]
+    result.sampleRate = Rates[cast(u64, fscod)]
     result.frames     = 1536
 
-    let bitRate = cast(u64) BitRates[cast(u64) sizeCode >> 1]
+    let bitRate = cast(u64, BitRates[cast(u64, sizeCode) >> 1])
     if not fscod do
         result.frameBytes = 4 * bitRate
     elif fscod == 1 do
-        result.frameBytes = 2 * ((320 * bitRate) / 147 + cast(u64) (sizeCode & 1))
+        result.frameBytes = 2 * ((320 * bitRate) / 147 + cast(u64, (sizeCode & 1)))
     else do
         result.frameBytes = 6 * bitRate
 
     // The channel mode and the low frequency effects flag follow the bit stream identification.
-    let acmod = cast(u32) (packet[6] >> 5) & 7
+    let acmod = cast(u32, (packet[6] >> 5)) & 7
     var skip  = 3'u32
     if (acmod & 1) != 0 and acmod != 1 do
         skip += 2
@@ -641,8 +641,8 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
         skip += 2
     if acmod == 2 do
         skip += 2
-    let lfe = (cast(u32) packet[6] >> (7 - skip)) & 1
-    result.channels = AcmodChannels[cast(u64) acmod] + lfe
+    let lfe = (cast(u32, packet[6]) >> (7 - skip)) & 1
+    result.channels = AcmodChannels[cast(u64, acmod)] + lfe
     return result
 }
 

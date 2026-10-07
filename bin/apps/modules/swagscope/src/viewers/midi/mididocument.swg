@@ -128,11 +128,11 @@ private struct MidiVlq
 
 private func midiHas(bytes: const [..] u8, offset, count: u64)->bool => offset <= bytes.count and count <= bytes.count - offset
 
-private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool => midiHas(bytes, offset, value.count) and Slice.equals(bytes[offset until offset + value.count], cast(const [..] u8) value)
+private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool => midiHas(bytes, offset, value.count) and Slice.equals(bytes[offset until offset + value.count], cast(const [..] u8, value))
 
-private func midiU16(bytes: const [..] u8, offset: u64)->u16 => (cast(u16) bytes[offset] << 8) | cast(u16) bytes[offset + 1]
+private func midiU16(bytes: const [..] u8, offset: u64)->u16 => (cast(u16, bytes[offset]) << 8) | cast(u16, bytes[offset + 1])
 
-private func midiU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32) bytes[offset] << 24) | (cast(u32) bytes[offset + 1] << 16) | (cast(u32) bytes[offset + 2] << 8) | cast(u32) bytes[offset + 3]
+private func midiU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32, bytes[offset]) << 24) | (cast(u32, bytes[offset + 1]) << 16) | (cast(u32, bytes[offset + 2]) << 8) | cast(u32, bytes[offset + 3])
 
 private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
 {
@@ -144,7 +144,7 @@ private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
             return result
         let value = bytes[result.next]
         result.next  += 1
-        result.value = (result.value << 7) | cast(u64) (value & 0x7F)
+        result.value = (result.value << 7) | cast(u64, (value & 0x7F))
         if not (value & 0x80)
         {
             result.valid = true
@@ -168,10 +168,10 @@ private func midiText(bytes: const [..] u8, at, length: u64)->String
     }
 
     if Utf8.isValid(text.toSlice()) do
-        return String.from(cast(string) text.toSlice())
+        return String.from(cast(string, text.toSlice()))
     for &value in text where value[] >= 128 do
         value[] = '.'u8
-    return String.from(cast(string) text.toSlice())
+    return String.from(cast(string, text.toSlice()))
 }
 
 // Ends the note an `active` slot holds, as a one-based index into the notes, and frees the slot.
@@ -234,7 +234,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
             {
                 let channel = status & 0x0F
                 let key     = data1
-                let index   = cast(u64) channel * 128 + key
+                let index   = cast(u64, channel) * 128 + key
                 if kind == 0x8 or data2 == 0
                 {
                     closeMidiNote(document, &active[index], tick)
@@ -269,7 +269,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 track.name = midiText(bytes, body, length.value)
 
             case 0x51 where length.value == 3:
-                let micros = (cast(u32) bytes[body] << 16) | (cast(u32) bytes[body + 1] << 8) | cast(u32) bytes[body + 2]
+                let micros = (cast(u32, bytes[body]) << 16) | (cast(u32, bytes[body + 1]) << 8) | cast(u32, bytes[body + 2])
                 if micros do
                     document.tempos.add({tick, micros})
 
@@ -277,7 +277,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 document.timeSignatures.add({tick, bytes[body], 1'u32 << bytes[body + 1]})
 
             case 0x59 where length.value == 2:
-                let encoded = cast(s32) bytes[body]
+                let encoded = cast(s32, bytes[body])
                 document.keySignatures.add({tick, encoded >= 128 ? encoded - 256 : encoded, bytes[body + 1] != 0})
             }
 
@@ -316,15 +316,15 @@ private func computeMidiDuration(document: *MidiDocument)
 
     if document.division & 0x8000
     {
-        let encoded = cast(u8) (document.division >> 8)
-        let frames  = encoded == 0xE3 ? 29.97 : cast(f64) (256'u32 - encoded)
-        let ticks   = cast(f64) (document.division & 0xFF)
+        let encoded = cast(u8, (document.division >> 8))
+        let frames  = encoded == 0xE3 ? 29.97 : cast(f64, (256'u32 - encoded))
+        let ticks   = cast(f64, (document.division & 0xFF))
         if frames > 0 and ticks > 0 do
-            document.durationSeconds = cast(f64) document.durationTicks / (frames * ticks)
+            document.durationSeconds = cast(f64, document.durationTicks) / (frames * ticks)
         return
     }
 
-    let quarter = cast(u64) document.division
+    let quarter = cast(u64, document.division)
     if not quarter do
         return
     document.tempos.sort(func(a, b) => a.tick <=> b.tick)
@@ -332,12 +332,12 @@ private func computeMidiDuration(document: *MidiDocument)
     var micros = 500_000'u64
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
-        document.durationSeconds += cast(f64) (tempo.tick - previous) * cast(f64) micros / (cast(f64) quarter * 1_000_000)
+        document.durationSeconds += cast(f64, (tempo.tick - previous)) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
         previous = tempo.tick
         micros   = tempo.microsPerQuarter
     }
 
-    document.durationSeconds += cast(f64) (document.durationTicks - previous) * cast(f64) micros / (cast(f64) quarter * 1_000_000)
+    document.durationSeconds += cast(f64, (document.durationTicks - previous)) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
 }
 
 // Loads and parses a Standard MIDI File.
@@ -354,7 +354,7 @@ func loadMidiDocument(fileName: string)->MidiDocument fail
     if not midiHas(bytes, 0, 14) or not midiMatches(bytes, 0, "MThd") do
         fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
 
-    let headerLength = cast(u64) midiU32(bytes, 4)
+    let headerLength = cast(u64, midiU32(bytes, 4))
     if headerLength < 6 or not midiHas(bytes, 8, headerLength) do
         fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
 
@@ -373,7 +373,7 @@ func loadMidiDocument(fileName: string)->MidiDocument fail
     {
         if not midiHas(bytes, scan, 8) or not midiMatches(bytes, scan, "MTrk") do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Track)}
-        let length = cast(u64) midiU32(bytes, scan + 4)
+        let length = cast(u64, midiU32(bytes, scan + 4))
         let body   = scan + 8
         if length > bytes.count - body do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Track)}

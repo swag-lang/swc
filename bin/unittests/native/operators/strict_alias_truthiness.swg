@@ -6,7 +6,7 @@ alias Handle = const *void?
 func runtimeHandleTruthy()->bool
 {
     var value: s32 = 1
-    let handle     = cast(Handle) &value
+    let handle     = cast(Handle, &value)
     if not handle do
         return false
 
@@ -17,7 +17,7 @@ func runtimeHandleTruthy()->bool
 
 func runtimeHandleNull()->bool
 {
-    let handle = cast(Handle) null
+    let handle = cast(Handle, null)
     let asAnd  = handle and true
     let asOr   = handle or false
     return not handle and handle == null and not (handle != null) and not asAnd and not asOr
@@ -27,8 +27,8 @@ func runtimeHandleOrelseNonNull()->bool
 {
     var first:  s32 = 1
     var second: s32 = 2
-    let primary     = cast(Handle) &first
-    let fallback    = cast(Handle) &second
+    let primary     = cast(Handle, &first)
+    let fallback    = cast(Handle, &second)
     let resolved    = primary orelse fallback
     #assert(#typeof(resolved) == Handle)
     return resolved == primary and resolved != fallback
@@ -37,8 +37,8 @@ func runtimeHandleOrelseNonNull()->bool
 func runtimeHandleOrelseFallback()->bool
 {
     var value: s32 = 3
-    let fallback   = cast(Handle) &value
-    let resolved   = cast(Handle) null orelse fallback
+    let fallback   = cast(Handle, &value)
+    let resolved   = cast(Handle, null) orelse fallback
     #assert(#typeof(resolved) == Handle)
     return resolved == fallback and resolved != null
 }

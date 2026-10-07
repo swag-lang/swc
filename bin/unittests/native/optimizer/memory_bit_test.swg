@@ -24,7 +24,7 @@ func high(p: *u64, a, b: u64)->u64 => (p[] & 0x8000000000000000) != 0 ? a : b
     for value in values
     {
         var cell  = value
-        var small = cast(u32) (value & 0xFFFFFFFF)
+        var small = cast(u32, (value & 0xFFFFFFFF))
         displaced[31] = value
         Swag.assert(low(&cell, 17, 29) == ((value & 1) != 0 ? 17 : 29))
         Swag.assert(mask(&cell, 17, 29) == ((value & 0x65) == 0 ? 17 : 29))

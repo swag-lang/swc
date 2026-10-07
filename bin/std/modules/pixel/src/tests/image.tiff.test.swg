@@ -8,13 +8,13 @@ func tw16(cb: *ConcatBuffer, le: bool, v: u16)
 {
     if le
     {
-        cb.addNative(cast(u8) (v & 0xFF))
-        cb.addNative(cast(u8) (v >> 8))
+        cb.addNative(cast(u8, (v & 0xFF)))
+        cb.addNative(cast(u8, (v >> 8)))
     }
     else
     {
-        cb.addNative(cast(u8) (v >> 8))
-        cb.addNative(cast(u8) (v & 0xFF))
+        cb.addNative(cast(u8, (v >> 8)))
+        cb.addNative(cast(u8, (v & 0xFF)))
     }
 }
 
@@ -22,17 +22,17 @@ func tw32(cb: *ConcatBuffer, le: bool, v: u32)
 {
     if le
     {
-        cb.addNative(cast(u8) (v & 0xFF))
-        cb.addNative(cast(u8) ((v >> 8) & 0xFF))
-        cb.addNative(cast(u8) ((v >> 16) & 0xFF))
-        cb.addNative(cast(u8) ((v >> 24) & 0xFF))
+        cb.addNative(cast(u8, (v & 0xFF)))
+        cb.addNative(cast(u8, ((v >> 8) & 0xFF)))
+        cb.addNative(cast(u8, ((v >> 16) & 0xFF)))
+        cb.addNative(cast(u8, ((v >> 24) & 0xFF)))
     }
     else
     {
-        cb.addNative(cast(u8) ((v >> 24) & 0xFF))
-        cb.addNative(cast(u8) ((v >> 16) & 0xFF))
-        cb.addNative(cast(u8) ((v >> 8) & 0xFF))
-        cb.addNative(cast(u8) (v & 0xFF))
+        cb.addNative(cast(u8, ((v >> 24) & 0xFF)))
+        cb.addNative(cast(u8, ((v >> 16) & 0xFF)))
+        cb.addNative(cast(u8, ((v >> 8) & 0xFF)))
+        cb.addNative(cast(u8, (v & 0xFF)))
     }
 }
 
@@ -80,7 +80,7 @@ impl TestTiffLzwWriter
         while .pendingBits >= 8
         {
             .pendingBits -= 8
-            .bytes.add(cast(u8) (.pending >> .pendingBits))
+            .bytes.add(cast(u8, (.pending >> .pendingBits)))
             .pending &= (1'u64 << .pendingBits) - 1
         }
     }
@@ -88,7 +88,7 @@ impl TestTiffLzwWriter
     mtd finish()
     {
         if .pendingBits do
-            .bytes.add(cast(u8) (.pending << (8 - .pendingBits)))
+            .bytes.add(cast(u8, (.pending << (8 - .pendingBits))))
     }
 }
 
@@ -129,8 +129,8 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     let bytesPerSample = bps / 8
     let rowBytes       = width * spp * bytesPerSample
-    let pixCount       = cast(u32) pixelData.count
-    let palCount       = cast(u32) palette.count
+    let pixCount       = cast(u32, pixelData.count)
+    let palCount       = cast(u32, palette.count)
     let hasPalette     = palCount > 0
 
     // Strip lengths
@@ -150,7 +150,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
         stripLens.add(pixCount)
     }
 
-    let numStrips = cast(u32) stripLens.count
+    let numStrips = cast(u32, stripLens.count)
 
     var numEntries = 9'u32
     if hasPalette do
@@ -196,27 +196,27 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     tw32(&cb, le, 8)
 
     // IFD
-    tw16(&cb, le, cast(u16) numEntries)
+    tw16(&cb, le, cast(u16, numEntries))
     entLong(&cb, le, 256, width)
     entLong(&cb, le, 257, height)
     if bpsExternal do
         entOffset(&cb, le, 258, 3, spp, bpsOffset)
     else do
-        entShort(&cb, le, 258, cast(u16) bps)
-    entShort(&cb, le, 259, cast(u16) compression)
-    entShort(&cb, le, 262, cast(u16) photo)
+        entShort(&cb, le, 258, cast(u16, bps))
+    entShort(&cb, le, 259, cast(u16, compression))
+    entShort(&cb, le, 262, cast(u16, photo))
     if stripArraysExternal do
         entOffset(&cb, le, 273, 4, numStrips, stripOffArrayOffset)
     else do
         entLong(&cb, le, 273, stripOffs[0])
-    entShort(&cb, le, 277, cast(u16) spp)
+    entShort(&cb, le, 277, cast(u16, spp))
     entLong(&cb, le, 278, rowsPerStrip)
     if stripArraysExternal do
         entOffset(&cb, le, 279, 4, numStrips, stripCntArrayOffset)
     else do
         entLong(&cb, le, 279, stripLens[0])
     if predictor != 1 do
-        entShort(&cb, le, 317, cast(u16) predictor)
+        entShort(&cb, le, 317, cast(u16, predictor))
     if hasPalette do
         entOffset(&cb, le, 320, 3, palCount, colorMapOffset)
     if extraSamples do
@@ -235,7 +235,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if bpsExternal
     {
         for spp do
-            tw16(&cb, le, cast(u16) bps)
+            tw16(&cb, le, cast(u16, bps))
     }
 
     if hasPalette
@@ -567,7 +567,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var raw: Array'u8
     for index in 4096 do
-        raw.add(cast(u8) ((index * 73 + 19) & 0xFF))
+        raw.add(cast(u8, ((index * 73 + 19) & 0xFF)))
     let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
     let buf    = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
@@ -577,8 +577,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     {
         for x in 64
         {
-            let expected = raw[cast(u64) (63 - y) * 64 + x]
-            let offset   = cast(u64) (y * 64 + x) * 3
+            let expected = raw[cast(u64, (63 - y)) * 64 + x]
+            let offset   = cast(u64, (y * 64 + x)) * 3
             Swag.assert(pixels[offset] == expected)
             Swag.assert(pixels[offset + 1] == expected)
             Swag.assert(pixels[offset + 2] == expected)
@@ -719,11 +719,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     {
         for x in src.width
         {
-            let offset = cast(u64) (y * src.width + x) * 4
-            srcBuf[offset]     = cast(u8) (10 + y)
-            srcBuf[offset + 1] = cast(u8) (10 + y)
-            srcBuf[offset + 2] = cast(u8) (10 + y)
-            srcBuf[offset + 3] = cast(u8) (10 + y)
+            let offset = cast(u64, (y * src.width + x)) * 4
+            srcBuf[offset]     = cast(u8, (10 + y))
+            srcBuf[offset + 1] = cast(u8, (10 + y))
+            srcBuf[offset + 2] = cast(u8, (10 + y))
+            srcBuf[offset + 3] = cast(u8, (10 + y))
         }
     }
 
@@ -748,7 +748,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let srcBuf = src.pixels.storage()
     for x in src.width
     {
-        let offset = cast(u64) x * 3
+        let offset = cast(u64, x) * 3
         srcBuf[offset]     = 3'u8
         srcBuf[offset + 1] = 2'u8
         srcBuf[offset + 2] = 1'u8
@@ -777,7 +777,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     {
         state     *= #wrap 1664525
         state     += #wrap 1013904223
-        srcBuf[i] = cast(u8) (state >> 24)
+        srcBuf[i] = cast(u8, (state >> 24))
     }
 
     var options: Tiff.EncodeOptions

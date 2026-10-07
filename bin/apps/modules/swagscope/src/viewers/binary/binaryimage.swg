@@ -17,12 +17,12 @@ const BinaryLoadLimit = 64 * 1024 * 1024'u64
 #[Swag.NoCopy]
 struct BinaryImage
 {
-    fileSize:      u64                                        // Size the file system reports.
-    region:        File.MappedRegion                          // Read-only mapping that owns `bytes`.
-    bytes:         const [..] u8 = cast(const [..] u8) ""     // Mapped prefix, at most `BinaryLoadLimit` bytes.
-    bigEndian:     bool                                       // Byte order every multi-byte read uses; a parser sets it once.
-    truncated:     bool                                       // Whether a read asked for bytes the prefix does not hold.
-    failureReason: String                                     // File-system explanation when loading stops before any byte is available.
+    fileSize:      u64                                         // Size the file system reports.
+    region:        File.MappedRegion                           // Read-only mapping that owns `bytes`.
+    bytes:         const [..] u8 = cast(const [..] u8, "")     // Mapped prefix, at most `BinaryLoadLimit` bytes.
+    bigEndian:     bool                                        // Byte order every multi-byte read uses; a parser sets it once.
+    truncated:     bool                                        // Whether a read asked for bytes the prefix does not hold.
+    failureReason: String                                      // File-system explanation when loading stops before any byte is available.
 }
 
 impl BinaryImage
@@ -32,7 +32,7 @@ impl BinaryImage
     // On failure, [[BinaryImage.failureReason]] says why.
     mtd load(fileName: string)->bool
     {
-        .bytes = cast(const [..] u8) ""
+        .bytes = cast(const [..] u8, "")
         .region.close()
         .fileSize  = 0
         .truncated = false
@@ -95,15 +95,15 @@ impl BinaryImage
         for index in size
         {
             let position = .bigEndian ? index : size - 1 - index
-            result = (result << 8) | cast(u64) .bytes[offset + position]
+            result = (result << 8) | cast(u64, .bytes[offset + position])
         }
 
         return result
     }
 
-    mtd u8At(offset: u64)->u8   => cast(u8) .scalarAt(offset, 1)
-    mtd u16At(offset: u64)->u16 => cast(u16) .scalarAt(offset, 2)
-    mtd u32At(offset: u64)->u32 => cast(u32) .scalarAt(offset, 4)
+    mtd u8At(offset: u64)->u8   => cast(u8, .scalarAt(offset, 1))
+    mtd u16At(offset: u64)->u16 => cast(u16, .scalarAt(offset, 2))
+    mtd u32At(offset: u64)->u32 => cast(u32, .scalarAt(offset, 4))
     mtd u64At(offset: u64)->u64 => .scalarAt(offset, 8)
 
     // Returns the NUL-terminated text at `offset`, bounded by `maxLength` bytes.
@@ -156,18 +156,18 @@ impl BinaryImage
                 break
             index += 1
 
-            var value = cast(rune) unit
+            var value = cast(rune, unit)
             if unit >= 0xD800 and unit < 0xDC00 and index < maxUnits
             {
                 let low = .u16At(offset + index * 2)
                 if low >= 0xDC00 and low < 0xE000
                 {
-                    value = cast(rune) (0x10000 + ((cast(u32) unit - 0xD800) << 10) + (cast(u32) low - 0xDC00))
+                    value = cast(rune, (0x10000 + ((cast(u32, unit) - 0xD800) << 10) + (cast(u32, low) - 0xDC00)))
                     index += 1
                 }
             }
 
-            result.append(value < 32 ? cast(rune) '.' : value)
+            result.append(value < 32 ? cast(rune, '.') : value)
         }
 
         return result
@@ -199,12 +199,12 @@ impl BinaryImage
             if index == 4 or index == 6 or index == 8 or index == 10 do
                 text.add('-'u8)
             let value  = .bytes[offset + (mixedEndian ? MixedOrder[index] : index)]
-            let digits = [cast(u8) (value >> 4), value & 0xF]
+            let digits = [cast(u8, (value >> 4)), value & 0xF]
             for nibble in digits do
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(cast(string) text.toSlice())
+        return String.from(cast(string, text.toSlice()))
     }
 
     // Returns `length` bytes at `offset` with every unprintable byte shown as a dot.
@@ -221,6 +221,6 @@ impl BinaryImage
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(cast(string) text.toSlice())
+        return String.from(cast(string, text.toSlice()))
     }
 }

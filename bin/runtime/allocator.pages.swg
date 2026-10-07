@@ -12,7 +12,7 @@ const AllocatorPageShift       = 16'u64
 const AllocatorPageSize        = 1'u64 << AllocatorPageShift
 const AllocatorSegmentShift    = 22'u64
 const AllocatorSegmentSize     = 1'u64 << AllocatorSegmentShift
-const AllocatorUnitsPerSegment = cast(u32) (AllocatorSegmentSize >> AllocatorPageShift)
+const AllocatorUnitsPerSegment = cast(u32, (AllocatorSegmentSize >> AllocatorPageShift))
 
 // Small classes get one 64 KiB unit per page, medium classes get eight.
 //
@@ -136,7 +136,7 @@ struct AllocatorSegment
 //
 // The header claims the front of the segment; the first page starts right after it and simply holds fewer
 // blocks than its peers, so no address space is lost to the table.
-const AllocatorSegmentHeaderBytes = (cast(u64) #sizeof(AllocatorSegment) + AllocatorCommitGranularity - 1) & ~(AllocatorCommitGranularity - 1)
+const AllocatorSegmentHeaderBytes = (cast(u64, #sizeof(AllocatorSegment)) + AllocatorCommitGranularity - 1) & ~(AllocatorCommitGranularity - 1)
 
 struct AllocatorArena
 {
@@ -201,7 +201,7 @@ func allocatorOsCommit(address: u64, size: u64)->bool
     if size == 0 do
         return true
 
-    if not __hostPageCommit(cast(*void) address, size) do
+    if not __hostPageCommit(cast(*void, address), size) do
         return false
 
     atomicAddU64(&g_AllocatorCommittedBytes, size)
@@ -214,7 +214,7 @@ func allocatorOsDecommit(address: u64, size: u64)
     if size == 0 do
         return
 
-    __hostPageDecommit(cast(*void) address, size)
+    __hostPageDecommit(cast(*void, address), size)
 
     atomicSubU64(&g_AllocatorCommittedBytes, size)
     atomicAddU64(&g_AllocatorOsDecommitCount, 1)
@@ -256,30 +256,30 @@ impl AllocatorPage
     // The block area of page 'index', which starts after the segment header for the first page.
     mtd setup(segment: *AllocatorSegment, index: u32, classIndex: u32, blockSize: u32)
     {
-        let segmentBase = cast(u64) segment
+        let segmentBase = cast(u64, segment)
         let unitIndex   = index << segment.unitShift
-        var start       = segmentBase + cast(u64) unitIndex * AllocatorPageSize
-        let limit       = start + (cast(u64) 1 << segment.unitShift) * AllocatorPageSize
+        var start       = segmentBase + cast(u64, unitIndex) * AllocatorPageSize
+        let limit       = start + (cast(u64, 1) << segment.unitShift) * AllocatorPageSize
 
         if start < segmentBase + AllocatorSegmentHeaderBytes do
             start = segmentBase + AllocatorSegmentHeaderBytes
 
-        let blocks = (limit - start) / cast(u64) blockSize
+        let blocks = (limit - start) / cast(u64, blockSize)
 
         .freeList   = 0
         .remoteFree = 0
-        .key        = allocatorNextKey(cast(u64) me)
+        .key        = allocatorNextKey(cast(u64, me))
         .remoteKey  = .key
         .areaStart  = start
-        .areaEnd    = start + blocks * cast(u64) blockSize
+        .areaEnd    = start + blocks * cast(u64, blockSize)
         .carved     = start
         .ownerHeap  = null
         .nextPage   = null
         .prevPage   = null
         .used       = 0
         .remoteLock = 0
-        .classIndex = cast(u8) classIndex
-        .unitIndex  = cast(u8) unitIndex
+        .classIndex = cast(u8, classIndex)
+        .unitIndex  = cast(u8, unitIndex)
         .state      = .Owned
         .inFull     = 0
 
@@ -293,9 +293,9 @@ impl AllocatorPage
     #[Swag.Safety(.Overflow, false)]
     mtd setupBlockDivision(blockSize: u32)
     {
-        let odd = blockSize >> cast(u32) Swag.bitCountTz(blockSize)
+        let odd = blockSize >> cast(u32, Swag.bitCountTz(blockSize))
         .blockSize  = blockSize
-        .blockShift = cast(u8) Swag.bitCountTz(blockSize)
+        .blockShift = cast(u8, Swag.bitCountTz(blockSize))
         .blockLimit = 0xFFFF_FFFF'u32 / blockSize
 
         var inverse = odd
@@ -316,7 +316,7 @@ impl AllocatorPage
         if offset >= .areaEnd - .areaStart do
             return false
 
-        return Swag.ror(cast(u32) offset * .blockInv, cast(u8) .blockShift) <= .blockLimit
+        return Swag.ror(cast(u32, offset) * .blockInv, cast(u8, .blockShift)) <= .blockLimit
     }
 
     #[Swag.Inline]
@@ -382,7 +382,7 @@ impl AllocatorPage
         while list != 0
         {
             let next = .nextFree(list)
-            (cast(*u64) list)[] = .encode(.freeList)
+            cast(*u64, list)[] = .encode(.freeList)
             .freeList = list
             list      = next
             taken     += 1
@@ -403,7 +403,7 @@ impl AllocatorPage
         var head = atomicGet(&.remoteFree)
         while true
         {
-            (cast(*u64) address)[] = head ^ .remoteKey
+            cast(*u64, address)[] = head ^ .remoteKey
             let seen = Swag.atomcmpxchg(&.remoteFree, head, address)
             if seen == head
             {
@@ -436,7 +436,7 @@ impl AllocatorPage
             // of the lists.
             #static if #safety(Swag.SafetyWhat.Memory)
             {
-                (cast(*u64) block)[] = 0
+                cast(*u64, block)[] = 0
             }
 
             return block
@@ -445,7 +445,7 @@ impl AllocatorPage
         if .carved < .areaEnd
         {
             let block = .carved
-            .carved += cast(u64) .blockSize
+            .carved += cast(u64, .blockSize)
             .used   += 1
             return block
         }
@@ -502,7 +502,7 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd nextFree(block: u64)->u64
     {
-        let next = .decode((cast(const *u64) block)[])
+        let next = .decode(cast(const *u64, block)[])
         #static if #safety(Swag.SafetyWhat.Memory)
         {
             if next != 0 and not .isBlockAddress(next) do
@@ -522,7 +522,7 @@ impl AllocatorPage
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd looksFree(address: u64)->bool
     {
-        let next = .decode((cast(const *u64) address)[])
+        let next = .decode(cast(const *u64, address)[])
         if next == 0 do
             return true
         return next - .areaStart < .areaEnd - .areaStart
@@ -539,7 +539,7 @@ impl AllocatorPage
         #static if #safety(Swag.SafetyWhat.Memory)
         {
             if .blockSize >= 16 do
-                (cast(*u64) (address + 8))[] = ~.key
+                cast(*u64, (address + 8))[] = ~.key
         }
     }
 
@@ -548,7 +548,7 @@ impl AllocatorPage
     {
         #static if #safety(Swag.SafetyWhat.Memory)
         {
-            if .blockSize >= 16 and (cast(const *u64) (block + 8))[] != ~.key do
+            if .blockSize >= 16 and cast(const *u64, (block + 8))[] != ~.key do
                 allocatorFreedBlockWritten()
         }
     }
@@ -557,7 +557,7 @@ impl AllocatorPage
     mtd releaseBlock(address: u64)
     {
         .markFree(address)
-        (cast(*u64) address)[] = .encode(.freeList)
+        cast(*u64, address)[] = .encode(.freeList)
         .freeList = address
         Swag.assert(.used > 0)
         .used -= 1
@@ -566,7 +566,7 @@ impl AllocatorPage
 
 impl AllocatorSegment
 {
-    mtd segmentBase()->u64 => cast(u64) me
+    mtd segmentBase()->u64 => cast(u64, me)
 
     // The committed extent of one page.
     //
@@ -575,14 +575,14 @@ impl AllocatorSegment
     mtd pageCommitStart(index: u32)->u64
     {
         let base  = .segmentBase()
-        let start = base + cast(u64) (index << .unitShift) * AllocatorPageSize
+        let start = base + cast(u64, (index << .unitShift)) * AllocatorPageSize
         return Swag.max(start, base + AllocatorSegmentHeaderBytes)
     }
 
     mtd pageCommitEnd(index: u32)->u64
     {
         let unitIndex = (index + 1) << .unitShift
-        return .segmentBase() + cast(u64) unitIndex * AllocatorPageSize
+        return .segmentBase() + cast(u64, unitIndex) * AllocatorPageSize
     }
 
     // Claims a free page for a size class.
@@ -598,7 +598,7 @@ impl AllocatorSegment
             if free == 0 do
                 return null
 
-            let index = cast(u32) Swag.bitCountTz(free)
+            let index = cast(u32, Swag.bitCountTz(free))
             let bit   = 1'u64 << index
             let seen  = Swag.atomcmpxchg(&.pageMask, mask, mask | bit)
             if seen != mask
@@ -660,7 +660,7 @@ impl AllocatorSegment
         var idle = atomicGet(&.idleMask)
         while idle
         {
-            let index = cast(u32) Swag.bitCountTz(idle)
+            let index = cast(u32, Swag.bitCountTz(idle))
             let bit   = 1'u64 << index
             idle &= ~bit
 
@@ -759,7 +759,7 @@ private func allocatorAddArena()->bool
 
     let arena = &g_AllocatorArenas[g_AllocatorArenaCount]
     arena.reserveBase = reserved
-    arena.base        = (cast(u64) reserved + AllocatorSegmentSize - 1) & ~(AllocatorSegmentSize - 1)
+    arena.base        = (cast(u64, reserved) + AllocatorSegmentSize - 1) & ~(AllocatorSegmentSize - 1)
     arena.used        = arena.base
     arena.end         = arena.base + AllocatorArenaSize
 
@@ -800,8 +800,8 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     if not allocatorOsCommit(base, AllocatorSegmentHeaderBytes) do
         return null
 
-    let segment = cast(*AllocatorSegment) base
-    Swag.memset(cast(*void) base, 0, AllocatorSegmentHeaderBytes)
+    let segment = cast(*AllocatorSegment, base)
+    Swag.memset(cast(*void, base), 0, AllocatorSegmentHeaderBytes)
     segment.unitShift  = unitShift
     segment.pageCount  = AllocatorUnitsPerSegment >> unitShift
     segment.usableMask = segment.pageCount >= 64 ? ~0'u64 : (1'u64 << segment.pageCount) - 1
@@ -898,13 +898,13 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
 #[Swag.Inline]
 func allocatorPageInSegment(address: u64)->*AllocatorPage?
 {
-    let segment = cast(*AllocatorSegment) (address & ~(AllocatorSegmentSize - 1))
+    let segment = cast(*AllocatorSegment, (address & ~(AllocatorSegmentSize - 1)))
     if segment.magic != AllocatorSegmentMagic do
         return null
 
-    let unit = cast(u32) ((address - cast(u64) segment) >> AllocatorPageShift)
+    let unit = cast(u32, ((address - cast(u64, segment)) >> AllocatorPageShift))
     return &segment.pages[unit >> segment.unitShift]
 }
 
 #[Swag.Inline]
-func allocatorSegmentOf(page: *AllocatorPage)->*AllocatorSegment => cast(*AllocatorSegment) (cast(u64) page & ~(AllocatorSegmentSize - 1))
+func allocatorSegmentOf(page: *AllocatorPage)->*AllocatorSegment => cast(*AllocatorSegment, (cast(u64, page) & ~(AllocatorSegmentSize - 1)))

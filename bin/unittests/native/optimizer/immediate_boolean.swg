@@ -32,7 +32,7 @@ func reused(a: u64)->u64
         Swag.assert(lessTen(a) == (a < 10 ? 1 : 0))
         Swag.assert(bitThree(a) == bit)
         Swag.assert(reused(a) == ((a & 8) ^ bit ^ a))
-        let narrow = cast(u16) (a & 65535)
+        let narrow = cast(u16, (a & 65535))
         Swag.assert(small(narrow) == (narrow < 10 ? 1 : 0))
     }
     Swag.assert(negative(-0x7FFFFFFFFFFFFFFF - 1) == 1)

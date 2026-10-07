@@ -55,8 +55,8 @@ func below(a, b: u64)->bool => a < b
                 Swag.assert(largeOffset(a, b) == 0x12345678)
                 Swag.assert(negativeOffset(a, b) == -4)
             }
-            let a32   = cast(u32) (a & 0xFFFFFFFF)
-            let b32   = cast(u32) (b & 0xFFFFFFFF)
+            let a32   = cast(u32, (a & 0xFFFFFFFF))
+            let b32   = cast(u32, (b & 0xFFFFFFFF))
             var bit32 = 0'u32
             if below(a32, b32)
             {
@@ -68,7 +68,7 @@ func below(a, b: u64)->bool => a < b
             {
                 Swag.assert(sum(a, b, c) == c + bit)
                 Swag.assert(shared(a, b, c) == ((c + bit) ^ bit))
-                let c32 = cast(u32) (c & 0xFFFFFFFF)
+                let c32 = cast(u32, (c & 0xFFFFFFFF))
                 Swag.assert(sum32(a32, b32, c32) == c32 + bit32)
                 if c + bit == 0 do Swag.assert(checked(a, b, c) == 7)
                 else do Swag.assert(checked(a, b, c) == 11)

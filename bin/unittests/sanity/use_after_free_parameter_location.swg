@@ -37,5 +37,5 @@ func destroyThenTouch(node: *Node)
 
 #test
 {
-    destroyThenTouch(cast(*Node) heapAlloc(8))
+    destroyThenTouch(cast(*Node, heapAlloc(8)))
 }

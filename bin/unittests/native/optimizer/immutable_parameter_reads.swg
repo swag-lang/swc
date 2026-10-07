@@ -100,7 +100,7 @@ func countAround(text: string)->u64
     var total = text.count
     for i in text.count
     {
-        touch(cast(u64) text[i])
+        touch(cast(u64, text[i]))
         total += text.count
     }
 
@@ -113,7 +113,7 @@ func countAround(text: string)->u64
 func byteAt(text: string, index: u64)->u64
 {
     GCalls += 1
-    return cast(u64) text[index]
+    return cast(u64, text[index])
 }
 
 #[Swag.NoInline]

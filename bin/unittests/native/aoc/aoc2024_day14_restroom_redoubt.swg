@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 14: robots on a toroidal grid move with constant
 // velocity. Part 1: multiply quadrant populations after 100 steps.
 // Part 2: find the first step where robots cluster tightly (Christmas tree).
-// Exercises: with blocks, cast() auto-inference, compound assignment (*=,
+// Exercises: with blocks, cast(value) auto-inference, compound assignment (*=,
 // <<=), .count on fixed arrays, const arithmetic, #[Swag.Mixin].
 
 const SampleInput =
@@ -74,7 +74,7 @@ func parseS32(bytes: const [..] u8, pos: *u32)->s32
         let ch = bytes[pos[]]
         if ch < '0' or ch > '9' do
             break
-        val   = val * 10 + cast(s32) (ch - '0')
+        val   = val * 10 + cast(s32, (ch - '0'))
         pos[] += 1
     }
 
@@ -99,7 +99,7 @@ func parseFleet(text: string, w, h: s32)->Fleet
     var fleet: Fleet
     fleet.w = w
     fleet.h = h
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
 
     var pos: u32
     for
@@ -167,15 +167,15 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
 
     for i in fleet.count
     {
-        let bot = advanceRobot(fleet.bots[i], cast(s32) steps, fleet.w, fleet.h)
+        let bot = advanceRobot(fleet.bots[i], cast(s32, steps), fleet.w, fleet.h)
 
         // Skip robots exactly on the midlines
         if bot.px == midX or bot.py == midY do
             continue
 
-        // Determine quadrant with cast() auto-inference
-        let right:  bool = cast() (bot.px > midX)
-        let bottom: bool = cast() (bot.py > midY)
+        // Determine quadrant with cast(value) auto-inference
+        let right:  bool = cast((bot.px > midX))
+        let bottom: bool = cast((bot.py > midY))
 
         if not right and not bottom do quads[QuadTL] += 1
         if right and not bottom do quads[QuadTR] += 1
@@ -187,7 +187,7 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
     var result: u64 = 1
     for q in NumQuads
     {
-        result *= cast(u64) quads[q]
+        result *= cast(u64, quads[q])
     }
     return result
 }
@@ -207,12 +207,12 @@ func computeVarianceX(fleet: *Fleet, step: s32)
     for i in fleet.count
     {
         let bot = advanceRobot(fleet.bots[i], step, fleet.w, fleet.h)
-        sumX  += cast(s64) bot.px
-        sumX2 += cast(s64) bot.px * cast(s64) bot.px
+        sumX  += cast(s64, bot.px)
+        sumX2 += cast(s64, bot.px) * cast(s64, bot.px)
     }
-    let n    = cast(s64) fleet.count
+    let n    = cast(s64, fleet.count)
     let mean = sumX / n
-    axisVariance = cast(u64) (sumX2 / n - mean * mean)
+    axisVariance = cast(u64, (sumX2 / n - mean * mean))
 }
 
 // Find the step (up to maxSteps) with minimum X-axis variance —
@@ -225,11 +225,11 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
     for s in maxSteps
     {
         var axisVariance: u64
-        computeVarianceX(fleet, cast(s32) s)
+        computeVarianceX(fleet, cast(s32, s))
         if axisVariance < bestVar
         {
             bestVar  = axisVariance
-            bestStep = cast(u32) s
+            bestStep = cast(u32, s)
         }
     }
 
@@ -306,13 +306,13 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
     Swag.assert(sf == 12'u64)
 }
 
-// cast() auto-inference
+// cast(value) auto-inference
 #test
 {
     let v: s32  = 42
-    let b: bool = cast() (v > 0)
+    let b: bool = cast((v > 0))
     Swag.assert(b)
-    let f: f32 = cast() v
+    let f: f32 = cast(v)
     Swag.assert(f > 41.0 and f < 43.0)
 }
 

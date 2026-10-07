@@ -15,7 +15,7 @@ func writeUInt(buf: [*] u8, pos, v: u64)->u64
 
     while x > 0
     {
-        tmp[n] = cast(u8) (48 + (x % 10))
+        tmp[n] = cast(u8, (48 + (x % 10)))
         n      += 1
         x      /= 10
     }
@@ -34,15 +34,15 @@ func writeUInt(buf: [*] u8, pos, v: u64)->u64
 
 func writeUInt2(buf: [*] u8, pos, v: u64)->u64
 {
-    buf[pos]     = cast(u8) (48 + (v / 10))
-    buf[pos + 1] = cast(u8) (48 + (v % 10))
+    buf[pos]     = cast(u8, (48 + (v / 10)))
+    buf[pos + 1] = cast(u8, (48 + (v % 10)))
     return pos + 2
 }
 
 #run
 {
     // ---- data generation (not timed) ----
-    let text = cast([*] u8) (benchAlloc(ROWS * 48))!
+    let text = cast([*] u8, (benchAlloc(ROWS * 48))!)
     var n    = 0'u64
 
     for j in ROWS
@@ -95,10 +95,10 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     var agg: ByteMap
     mapInit(&agg, 64, text)
 
-    var slotCount = cast([*] u64) (benchAlloc(64 * #sizeof(u64)))!
-    var slotQty   = cast([*] u64) (benchAlloc(64 * #sizeof(u64)))!
-    var slotRev   = cast([*] f64) (benchAlloc(64 * #sizeof(f64)))!
-    var slotMax   = cast([*] f64) (benchAlloc(64 * #sizeof(f64)))!
+    var slotCount = cast([*] u64, (benchAlloc(64 * #sizeof(u64)))!)
+    var slotQty   = cast([*] u64, (benchAlloc(64 * #sizeof(u64)))!)
+    var slotRev   = cast([*] f64, (benchAlloc(64 * #sizeof(f64)))!)
+    var slotMax   = cast([*] f64, (benchAlloc(64 * #sizeof(f64)))!)
 
     var pos  = 0'u64
     var rows = 0'u64
@@ -131,7 +131,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         var qty = 0'u64
         while p < eol and text[p] != ','
         {
-            qty = qty * 10 + cast(u64) (text[p] - 48)
+            qty = qty * 10 + cast(u64, (text[p] - 48))
             p   += 1
         }
 
@@ -141,7 +141,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         var ip = 0'u64
         while p < eol and text[p] != '.'
         {
-            ip = ip * 10 + cast(u64) (text[p] - 48)
+            ip = ip * 10 + cast(u64, (text[p] - 48))
             p  += 1
         }
 
@@ -149,11 +149,11 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         var fr = 0'u64
         while p < eol
         {
-            fr = fr * 10 + cast(u64) (text[p] - 48)
+            fr = fr * 10 + cast(u64, (text[p] - 48))
             p  += 1
         }
 
-        let price = cast(f64) ip + cast(f64) fr / 100.0'f64
+        let price = cast(f64, ip) + cast(f64, fr) / 100.0'f64
 
         let idx = mapProbe(&agg, rs, rlen)
         if agg.used[idx] == 0
@@ -162,7 +162,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
             mapClaim(&agg, idx, rs, rlen, slot)
             slotCount[slot] = 1
             slotQty[slot]   = qty
-            slotRev[slot]   = cast(f64) qty * price
+            slotRev[slot]   = cast(f64, qty) * price
             slotMax[slot]   = price
         }
         else
@@ -170,7 +170,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
             let slot = agg.val[idx]
             slotCount[slot] += 1
             slotQty[slot]   += qty
-            slotRev[slot]   += cast(f64) qty * price
+            slotRev[slot]   += cast(f64, qty) * price
             if price > slotMax[slot] do
                 slotMax[slot] = price
         }
@@ -220,8 +220,8 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     for k in nk
     {
         let slot = agg.val[keyIdx[order[k]]]
-        check += (k + 1) * (cast(u64) (slotRev[slot] * 100.0'f64 + 0.5'f64) % 1000003)
-        check += slotCount[slot] + slotQty[slot] + cast(u64) (slotMax[slot] * 100.0'f64 + 0.5'f64)
+        check += (k + 1) * (cast(u64, (slotRev[slot] * 100.0'f64 + 0.5'f64)) % 1000003)
+        check += slotCount[slot] + slotQty[slot] + cast(u64, (slotMax[slot] * 100.0'f64 + 0.5'f64))
     }
 
     let t1 = now()

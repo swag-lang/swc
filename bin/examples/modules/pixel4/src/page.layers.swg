@@ -2,8 +2,8 @@ using Core, Pixel
 
 func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string, accent: Color)
 {
-    let w = cast(f32) width
-    let h = cast(f32) height
+    let w = cast(f32, width)
+    let h = cast(f32, height)
 
     painter.fillRoundRect(16, 18, w - 32, h - 36, 24, 24, Color.fromArgb(232, Argb.White))
     painter.fillCircle(78, 78, 48, Color.fromArgb(190, Argb.DeepSkyBlue))
@@ -43,7 +43,7 @@ func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitl
     var layer: Layer
     layer.begin(painter, {width: layerWidth, height: layerHeight, renderScale: renderScale})
     painter.pushTransform()
-    painter.scaleTransform(cast(f32) renderScale)
+    painter.scaleTransform(cast(f32, renderScale))
     drawLayerArtwork(painter, layerWidth, layerHeight, title, accent)
     painter.popTransform()
     layer.end()

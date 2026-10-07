@@ -67,7 +67,7 @@ impl LocalWrap
     {
         func(var U) make(value: U)->LocalWrap
         {
-            return {value: cast(T) value}
+            return {value: cast(T, value)}
         }
 
         return make(.value)

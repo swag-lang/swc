@@ -30,7 +30,7 @@ impl InlineForeachMoveTracked
     mtd opDrop()
     {
         InlineForeachMoveDropCount += 1
-        InlineForeachMoveDropTrace = InlineForeachMoveDropTrace * 100 + cast(s64) .value
+        InlineForeachMoveDropTrace = InlineForeachMoveDropTrace * 100 + cast(s64, .value)
     }
 
     mtd opPostMove()
@@ -53,7 +53,7 @@ impl InlineForeachMoveValues
         #static if ptr do
             #inject(stmt, item = &me.item, index = 0)
         else do
-            #inject(stmt, item = cast(*InlineForeachMoveTracked) &me.item, index = 0)
+            #inject(stmt, item = cast(*InlineForeachMoveTracked, &me.item), index = 0)
     }
 }
 

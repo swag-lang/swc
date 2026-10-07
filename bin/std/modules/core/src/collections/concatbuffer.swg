@@ -153,7 +153,7 @@ impl ConcatBuffer
             let data       = lastBucket.data!
 
             // Enough room in the last bucket
-            let seek = cast(u64) (currentSP - data)
+            let seek = cast(u64, (currentSP - data))
             if numBytes <= lastBucket.size - seek do
                 return
 
@@ -275,11 +275,11 @@ impl ConcatBuffer
                currentSP > data + curBucket.count - #sizeof(T)
             {
                 var v = val
-                .addBytes(Swag.makeSlice(cast([*] u8) &v, #sizeof(T)), false)
+                .addBytes(Swag.makeSlice(cast([*] u8, &v), #sizeof(T)), false)
                 return
             }
 
-            (cast(*T) currentSP)[] = val
+            cast(*T, currentSP)[] = val
             .currentSP += #sizeof(T)
             .setIsAtEnd()
         }
@@ -288,9 +288,9 @@ impl ConcatBuffer
             .grow(#sizeof(T))
             let curBucket = .curBucket!
             let currentSP = .currentSP!
-            (cast(*T) currentSP)[] = val
-            .currentSP             += #sizeof(T)
-            curBucket.count        += #sizeof(T)
+            cast(*T, currentSP)[] = val
+            .currentSP            += #sizeof(T)
+            curBucket.count       += #sizeof(T)
         }
     }
 
@@ -298,7 +298,7 @@ impl ConcatBuffer
     #[Swag.Inline]
     mtd(T) addStruct(val: T)
     {
-        .addBytes(Swag.makeSlice(cast(const [*] u8) &val, #sizeof(T)))
+        .addBytes(Swag.makeSlice(cast(const [*] u8, &val), #sizeof(T)))
     }
 
     // Writes `bytes` at the cursor, overwriting existing bytes and extending the buffer as needed.
@@ -342,7 +342,7 @@ impl ConcatBuffer
         while num
         {
             let bucket    = .curBucket!
-            let offset    = cast(u64) (.currentSP - bucket.data)
+            let offset    = cast(u64, (.currentSP - bucket.data))
             let available = (.isAtEnd ? bucket.size : bucket.count) - offset
             let chunk     = Math.min(num, available)
             Memory.copy(.currentSP, slicePtr, chunk)
@@ -367,7 +367,7 @@ impl ConcatBuffer
     }
 
     // Returns the absolute byte offset represented by `position`.
-    func offsetOf(position: ConcatBufferPosition)->u64 => position.bucket ? position.bucket.countBefore + cast(u64) (position.pointer - position.bucket.data) : 0
+    func offsetOf(position: ConcatBufferPosition)->u64 => position.bucket ? position.bucket.countBefore + cast(u64, (position.pointer - position.bucket.data)) : 0
 
     // Returns the current write position, including after restoring an earlier position.
     mtd const position()->ConcatBufferPosition
@@ -399,7 +399,7 @@ impl ConcatBuffer
         }
 
         let bucket = .curBucket!
-        let offset = cast(u64) (.currentSP - bucket.data)
+        let offset = cast(u64, (.currentSP - bucket.data))
         if count <= bucket.count - offset or (.curBucket == .lastBucket and count <= bucket.size - offset)
         {
             let result = .currentSP!
@@ -431,7 +431,7 @@ impl ConcatBuffer
         while not .isAtEnd
         {
             let curBucket = .curBucket!
-            let seek      = cast(u64) (.currentSP - curBucket.data)
+            let seek      = cast(u64, (.currentSP - curBucket.data))
             let available = curBucket.count - seek
             if total <= available
             {
@@ -497,7 +497,7 @@ impl ConcatBuffer
             let bucket = position.bucket
             .curBucket, .lastBucket = bucket
             .currentSP   = position.pointer
-            bucket.count = cast(u64) (position.pointer - bucket.data)
+            bucket.count = cast(u64, (position.pointer - bucket.data))
             .isAtEnd     = true
         }
     }
@@ -521,7 +521,7 @@ impl ConcatBuffer
         if not .firstBucket or .lastBucket != .firstBucket do
             return null
         let firstBucket = .firstBucket
-        return Swag.makeSlice(cast(const [*] u8?) firstBucket.data, firstBucket.count)
+        return Swag.makeSlice(cast(const [*] u8?, firstBucket.data), firstBucket.count)
     }
 
     // Initializes the buffer by taking ownership of the storage of `data` as its first bucket.
@@ -654,7 +654,7 @@ impl ConcatBuffer
     {
         let total = .count()
         Swag.assert(capacity >= total)
-        let newDatas = cast([*] u8) Memory.alloc(capacity, .allocator)
+        let newDatas = cast([*] u8, Memory.alloc(capacity, .allocator))
 
         var curPtr = newDatas
         for b in me

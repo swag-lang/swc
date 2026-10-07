@@ -6,7 +6,7 @@
 func firstRune(values: ...)->rune
 {
     Swag.assert(Swag.kindOf(values[0]) == rune)
-    return cast #assume (rune) values[0]
+    return assume cast (rune, values[0])
 }
 
 func kindName(values: ...)->string? => Swag.kindOf(values[0]).name

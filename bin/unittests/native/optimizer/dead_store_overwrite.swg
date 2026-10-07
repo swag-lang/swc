@@ -82,7 +82,7 @@ func accumulateAround(r, other: *Reals, step: f64)->f64
 func narrowOverWide(p: *Pair, low: u32)->s64
 {
     p.a = 0x1122334455667788
-    let half = cast(*u32) &p.a
+    let half = cast(*u32, &p.a)
     half[] = low
     return p.a
 }

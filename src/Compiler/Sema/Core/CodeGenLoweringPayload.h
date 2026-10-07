@@ -32,6 +32,7 @@ struct CodeGenLoweringPayload
     bool ufcsReceiverAddress = false;
     bool dynamicCast         = false;
     bool assumedDynamicCast  = false;
+    bool fallibleDynamicCast = false;
     bool runtimeTypeCast     = false;
     bool runtimeValueCast    = false;
     bool moveValue           = false;
@@ -55,6 +56,11 @@ struct CodeGenLoweringPayload
     bool hasRuntimeArrayFill() const
     {
         return runtimeArrayFillTypeRef.isValid() && runtimeArrayFillCstRef.isValid();
+    }
+
+    bool hasDynamicCastCheck() const
+    {
+        return fallibleDynamicCast || hasRuntimeSafety(Runtime::SafetyWhat::Assume) || hasRuntimeSafety(Runtime::SafetyWhat::DynCast);
     }
 
     bool hasFallibleWrapper() const

@@ -9,20 +9,20 @@ internal impl NativeRenderOgl
     // When `mainRC` is provided, it is borrowed instead of creating a new context.
     mtd createWindowContext(hWnd: const *void?, width, height: s32, mainRC: const *void? = null)->OglContext fail
     {
-        let nativeWindow = cast(HWND) hWnd
-        var result       = try .createContextForDeviceContext(cast(const *void?) GetDC(nativeWindow), width, height, mainRC)
+        let nativeWindow = cast(HWND, hWnd)
+        var result       = try .createContextForDeviceContext(cast(const *void?, GetDC(nativeWindow)), width, height, mainRC)
         result.hWnd   = hWnd
         result.ownsDC = true
         return result
     }
 
     // Creates a rendering context for an environment window.
-    mtd createContext(window: *Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail => try .createWindowContext(window.nativeRenderHandle(), width, height, cast(const *void?) mainRC)
+    mtd createContext(window: *Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail => try .createWindowContext(window.nativeRenderHandle(), width, height, cast(const *void?, mainRC))
 
     // Creates a rendering context for an existing device context.
     //
     // The device context remains caller-owned. A supplied `mainRC` is borrowed.
-    mtd createDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->OglContext fail => try .createContextForDeviceContext(cast(const *void?) hdc, width, height, cast(const *void?) mainRC)
+    mtd createDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->OglContext fail => try .createContextForDeviceContext(cast(const *void?, hdc), width, height, cast(const *void?, mainRC))
 
     // Establishes the pixel format and the rendering context of a device context.
     //
@@ -49,11 +49,11 @@ internal impl NativeRenderOgl
         pfd.cStencilBits = 8
         pfd.cColorBits   = 24
         pfd.cAlphaBits   = 8
-        let nativeDC = cast(HDC) hdc
+        let nativeDC = cast(HDC, hdc)
         let pf       = try ChoosePixelFormat(nativeDC, &pfd)
         try SetPixelFormat(nativeDC, pf, &pfd)
 
-        result.hRC    = mainRC orelse cast(const *void?) try Ogl.wglCreateContext(nativeDC)
+        result.hRC    = mainRC orelse cast(const *void?, try Ogl.wglCreateContext(nativeDC))
         result.ownsRC = mainRC == null
 
         return result
@@ -64,27 +64,27 @@ internal impl NativeRenderOgl
     {
         catch wglMakeCurrent(null, null)
         if rc.ownsRC do
-            catch wglDeleteContext(cast(HGLRC) rc.hRC)
+            catch wglDeleteContext(cast(HGLRC, rc.hRC))
         if rc.ownsDC do
-            ReleaseDC(cast(HWND) rc.hWnd, cast(HDC) rc.hDC)
+            ReleaseDC(cast(HWND, rc.hWnd), cast(HDC, rc.hDC))
     }
 
     // Deletes a renderer-owned shared OpenGL context after its last drawable is gone.
     mtd deleteContextHandle(hRC: const *void?)
     {
-        catch wglDeleteContext(cast(HGLRC) hRC)
+        catch wglDeleteContext(cast(HGLRC, hRC))
     }
 
     // Makes `rc` current on the calling thread.
     mtd setCurrentContext(rc: OglContext)
     {
-        expect wglMakeCurrent(cast(HDC) rc.hDC, cast(HGLRC) rc.hRC)
+        expect wglMakeCurrent(cast(HDC, rc.hDC), cast(HGLRC, rc.hRC))
     }
 
     // Presents the current back buffer for `rc`.
     mtd swapBuffers(rc: OglContext)
     {
-        expect SwapBuffers(cast(HDC) rc.hDC)
+        expect SwapBuffers(cast(HDC, rc.hDC))
     }
 
     // States the presentation cadence of the context that has just become current.

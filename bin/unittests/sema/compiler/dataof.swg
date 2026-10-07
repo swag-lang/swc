@@ -38,7 +38,7 @@ func semaTest001()
     #assert(#typeof(d) == const [*] u8)
 
     var ebuf: [2] u8  = ['x'u8, 0]
-    var e:    cstring = cast(cstring) &ebuf[0]
+    var e:    cstring = cast(cstring, &ebuf[0])
     var f = e.buffer
     #assert(#typeof(f) == const [*] u8)
 
@@ -94,7 +94,7 @@ func semaTest006()
 
 func semaTest007()
 {
-    const s: const [..] u8 = cast(const [..] u8) "abc"
+    const s: const [..] u8 = cast(const [..] u8, "abc")
     const p = s.buffer
     #assert(p != null)
     #assert(p[] == 'a'u8)

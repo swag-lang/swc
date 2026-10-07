@@ -40,10 +40,10 @@ impl ZLib
         try .encoder.compress(&result, buffer)
 
         let checksum = .encoder.adler.value()
-        result.add(cast(u8) ((checksum >> 24) & 0xFF))
-        result.add(cast(u8) ((checksum >> 16) & 0xFF))
-        result.add(cast(u8) ((checksum >> 8) & 0xFF))
-        result.add(cast(u8) (checksum & 0xFF))
+        result.add(cast(u8, ((checksum >> 24) & 0xFF)))
+        result.add(cast(u8, ((checksum >> 16) & 0xFF)))
+        result.add(cast(u8, ((checksum >> 8) & 0xFF)))
+        result.add(cast(u8, (checksum & 0xFF)))
 
         return result
     }

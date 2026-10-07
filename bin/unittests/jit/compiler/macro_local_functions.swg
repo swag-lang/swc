@@ -96,7 +96,7 @@ func localForMacroInject(count: s32, contextData: *void? = null, stmt: #code(dat
     var runs = 0
     localForMacroInject(3, &runs)
     {
-        discard Swag.atomadd(cast(*s32) data!, 1)
+        discard Swag.atomadd(cast(*s32, data!), 1)
     }
     Swag.assert(runs == 3)
 }
@@ -132,7 +132,7 @@ func outerMacroDoubleInject(ctxData: *void? = null, stmt: #code(data: *void?))
     var c = 0
     outerMacroDoubleInject(&c)
     {
-        discard Swag.atomadd(cast(*s32) data!, 1)
+        discard Swag.atomadd(cast(*s32, data!), 1)
     }
     Swag.assert(c == 3)
 }

@@ -12,7 +12,7 @@ using Core, Core.Errors, Pixel
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
 
-    var expectedSync = cast(u64) decoder.video.avc.sampleAtRank[57]
+    var expectedSync = cast(u64, decoder.video.avc.sampleAtRank[57])
     while expectedSync > 0 and decoder.video.avc.syncFlags[expectedSync] == 0 do
         expectedSync -= 1
     decoder.video.avc.seekTo(57)
@@ -168,7 +168,7 @@ using Core, Core.Errors, Pixel
         for y in 64'u64
         {
             for x in 96'u64 do
-                Swag.assert(frame.luma[y * cast(u64) frame.strideLuma + x] == bytes[rank * frameSize + y * 96 + x])
+                Swag.assert(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
         }
     }
 
@@ -176,6 +176,6 @@ using Core, Core.Errors, Pixel
     for y in 64'u64
     {
         for x in 96'u64 do
-            Swag.assert(early.luma[y * cast(u64) early.strideLuma + x] == frame.luma[y * cast(u64) frame.strideLuma + x])
+            Swag.assert(early.luma[y * cast(u64, early.strideLuma) + x] == frame.luma[y * cast(u64, frame.strideLuma) + x])
     }
 }

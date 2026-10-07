@@ -24,11 +24,11 @@ impl ArrayDropTracked
         if .value == 0 do
             return
 
-        let bit = 1'u32 << cast(u32) .value
+        let bit = 1'u32 << cast(u32, .value)
         if not (ArrayDropMask & bit)
         {
             ArrayDropCount += 1
-            ArrayDropTrace = ArrayDropTrace * 100 + cast(s64) .value
+            ArrayDropTrace = ArrayDropTrace * 100 + cast(s64, .value)
             ArrayDropMask  |= bit
         }
 
@@ -61,7 +61,7 @@ func visitStructArray(values: *Array'ArrayVisitProbe)->s32
         if index == 0 do
             continue
 
-        return value.value + cast(s32) index
+        return value.value + cast(s32, index)
     }
 
     return 0
@@ -72,7 +72,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     var score = 0
     for value, index in values.reversed()
     {
-        score += value.value + cast(s32) index
+        score += value.value + cast(s32, index)
         if value.value == 12 do
             return score
     }
@@ -142,7 +142,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let seed:   [4] s32 = [4, 1, 3, 2]
     values.add(seed)
 
-    let asSlice = cast([..] s32) values
+    let asSlice = cast([..] s32, values)
     Swag.assert(asSlice.count == 4)
     Swag.assert(asSlice[0] == 4)
     Swag.assert(asSlice[3] == 2)
@@ -159,14 +159,14 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     var weightedSum: s32 = 0
     for value, ordinal in values
     {
-        weightedSum += value * cast(s32) (ordinal + 1)
+        weightedSum += value * cast(s32, (ordinal + 1))
     }
 
     Swag.assert(weightedSum == 48)
 
     for &value, ordinal in values
     {
-        value[] -= cast(s32) ordinal
+        value[] -= cast(s32, ordinal)
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]
@@ -266,7 +266,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     Swag.assert(values.count == 4)
-    let raw = cast(const [*] s32) values.storage()
+    let raw = cast(const [*] s32, values.storage())
     Swag.assert(raw[0] == 5)
     Swag.assert(raw[3] == 3)
 
@@ -575,13 +575,13 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     var source: Array'u16
     defer source.free()
     for i in 21 do
-        source.add(cast(u16) (i + 1))
+        source.add(cast(u16, (i + 1)))
 
     var copy = source
     defer copy.free()
     Swag.assert(copy.count == 21)
     for i in 21 do
-        Swag.assert(copy[i] == cast(u16) (i + 1))
+        Swag.assert(copy[i] == cast(u16, (i + 1)))
 }
 
 var ArrayEmplaceDrops: s32

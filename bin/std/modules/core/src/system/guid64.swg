@@ -52,17 +52,17 @@ impl Guid64
 
         let dateTicks = Time.dateToTicks(now.year, now.month, now.day) +
                         Time.timeToTicks(now.hour, now.minute, now.second, now.millisecond)
-        let timestamp   = cast(u32) ((dateTicks - Time.DaysTo1970 * Time.TicksPerDay) / Time.TicksPerSecond)
+        let timestamp   = cast(u32, ((dateTicks - Time.DaysTo1970 * Time.TicksPerDay) / Time.TicksPerSecond))
         let millisecond = now.millisecond
 
         g_Counter = (g_Counter + 1) & 0xFFF
-        let random4 = cast(u8) (g_Rng.nextU64() & 0xF)
+        let random4 = cast(u8, (g_Rng.nextU64() & 0xF))
 
         result.value = 0
-        result.value |= cast(u64) timestamp << 32
-        result.value |= cast(u64) millisecond << 16
-        result.value |= cast(u64) g_Counter << 4
-        result.value |= cast(u64) random4
+        result.value |= cast(u64, timestamp) << 32
+        result.value |= cast(u64, millisecond) << 16
+        result.value |= cast(u64, g_Counter) << 4
+        result.value |= cast(u64, random4)
 
         return result
     }
@@ -85,8 +85,8 @@ impl Guid64
         var result: retval
         let nowMs = Time.monotonicMilliseconds()
         let nowUs = Time.monotonicMicroseconds()
-        let pid   = cast(u64) Env.Process.currentProcessId()
-        let tid   = cast(u64) Env.Process.currentThreadId()
+        let pid   = cast(u64, Env.Process.currentProcessId())
+        let tid   = cast(u64, Env.Process.currentThreadId())
 
         result.value = g_Rng.nextU64()
         result.value ^= nowMs
@@ -160,11 +160,11 @@ impl Guid64
             var digit: u64
 
             if c >= '0' and c <= '9' do
-                digit = cast(u64) (c - '0')
+                digit = cast(u64, (c - '0'))
             elif c >= 'A' and c <= 'F' do
-                digit = cast(u64) (c - 'A' + 10)
+                digit = cast(u64, (c - 'A' + 10))
             elif c >= 'a' and c <= 'f' do
-                digit = cast(u64) (c - 'a' + 10)
+                digit = cast(u64, (c - 'a' + 10))
             else do
                 return false
 
@@ -188,5 +188,5 @@ impl StrConv.IConvert for Guid64
 // Hashes the 8 bytes of a [[Core.Guid64]] with CRC-32, so it can key a hash table or a set.
 impl Hash.IHash32 for Guid64
 {
-    mtd const impl compute()->u32 => Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8) &.value, #sizeof(u64)))
+    mtd const impl compute()->u32 => Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8, &.value), #sizeof(u64)))
 }

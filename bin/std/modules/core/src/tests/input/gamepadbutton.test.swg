@@ -5,7 +5,7 @@ using Swag
 
 func assertGamepadButton(button: Input.GamepadButton, index: u32)
 {
-    Swag.assert(cast(u32) button == index)
+    Swag.assert(cast(u32, button) == index)
 }
 
 #test

@@ -53,7 +53,7 @@ public impl Md5
         Swag.assert(data.count <= Swag.U32.Max)
 
         let input    = data.buffer
-        let inputLen = cast(u32) data.count
+        let inputLen = cast(u32, data.count)
 
         var index = (.count[0] >> 3) & 0x3F
         .count[0] += inputLen << 3
@@ -65,7 +65,7 @@ public impl Md5
         let partLen = 64 - index
         if inputLen >= partLen
         {
-            Memory.copy(&.buffer[index], input, cast(u64) partLen)
+            Memory.copy(&.buffer[index], input, cast(u64, partLen))
             transform(.state, &.buffer[0])
             i = partLen
             while i + 63 < inputLen
@@ -77,7 +77,7 @@ public impl Md5
             index = 0
         }
 
-        Memory.copy(&.buffer[index], input + i, cast(u64) inputLen - i)
+        Memory.copy(&.buffer[index], input + i, cast(u64, inputLen) - i)
     }
 
     // Computes the MD5 digest of `buffer` in one operation.
@@ -95,15 +95,15 @@ public impl Md5
 
             block[bufferLen] = 0x80
 
-            let bitCount = cast(u64) bufferLen << 3
-            block[56] = cast(u8) bitCount
-            block[57] = cast(u8) (bitCount >> 8)
-            block[58] = cast(u8) (bitCount >> 16)
-            block[59] = cast(u8) (bitCount >> 24)
-            block[60] = cast(u8) (bitCount >> 32)
-            block[61] = cast(u8) (bitCount >> 40)
-            block[62] = cast(u8) (bitCount >> 48)
-            block[63] = cast(u8) (bitCount >> 56)
+            let bitCount = cast(u64, bufferLen) << 3
+            block[56] = cast(u8, bitCount)
+            block[57] = cast(u8, (bitCount >> 8))
+            block[58] = cast(u8, (bitCount >> 16))
+            block[59] = cast(u8, (bitCount >> 24))
+            block[60] = cast(u8, (bitCount >> 32))
+            block[61] = cast(u8, (bitCount >> 40))
+            block[62] = cast(u8, (bitCount >> 48))
+            block[63] = cast(u8, (bitCount >> 56))
 
             transform(state, &block[0])
 
@@ -279,10 +279,10 @@ impl Md5
         var i, j = 0
         while j < len
         {
-            output[j]     = cast(u8) (input[i] & 0xFF)
-            output[j + 1] = cast(u8) ((input[i] >> 8) & 0xFF)
-            output[j + 2] = cast(u8) ((input[i] >> 16) & 0xFF)
-            output[j + 3] = cast(u8) ((input[i] >> 24) & 0xFF)
+            output[j]     = cast(u8, (input[i] & 0xFF))
+            output[j + 1] = cast(u8, ((input[i] >> 8) & 0xFF))
+            output[j + 2] = cast(u8, ((input[i] >> 16) & 0xFF))
+            output[j + 3] = cast(u8, ((input[i] >> 24) & 0xFF))
             i             += 1
             j             += 4
         }
@@ -293,10 +293,10 @@ impl Md5
         var i, j = 0
         while j < len
         {
-            output[i] = cast(u32) input[j] |
-                        (cast(u32) input[j + 1] << 8) |
-                        (cast(u32) input[j + 2] << 16) |
-                        (cast(u32) input[j + 3] << 24)
+            output[i] = cast(u32, input[j]) |
+                        (cast(u32, input[j + 1]) << 8) |
+                        (cast(u32, input[j + 2]) << 16) |
+                        (cast(u32, input[j + 3]) << 24)
             i += 1
             j += 4
         }

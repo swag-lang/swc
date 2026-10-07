@@ -27,7 +27,7 @@
 {
     func unaryBangPointer(a: *void?)->bool { return not a }
     const V0 = #run unaryBangPointer(null)
-    const V1 = #run unaryBangPointer(cast(*void) 0x1000'u64)
+    const V1 = #run unaryBangPointer(cast(*void, 0x1000'u64))
     #assert(V0)
     #assert(not V1)
 }
@@ -49,8 +49,8 @@
 {
     var buf: [512] u8
     var p:   const [*] u8? = &buf[0]
-    p = p! + (256 - (cast(u64) p & 0xFF))     // force the address low byte to 0
-    Swag.assert((cast(u64) p & 0xFF) == 0)
+    p = p! + (256 - (cast(u64, p) & 0xFF))     // force the address low byte to 0
+    Swag.assert((cast(u64, p) & 0xFF) == 0)
 
     // through .buffer (the original Swag.print swallowed-strings repro)
     let s: string? = Swag.makeString(p, 1)
@@ -68,7 +68,7 @@
     Swag.assert(ok)
 
     // integer with a zero low byte (256) under unary bang, from a runtime source
-    let x = cast(s64) ((cast(u64) p & 0xFF) + 256)
+    let x = cast(s64, ((cast(u64, p) & 0xFF) + 256))
     if not x do
         Swag.assert(false)
     if not (-x) do

@@ -70,7 +70,7 @@ func loopLocalIsFreshEveryTurn()->s32
     for turn in 3
     {
         var accumulated: s32
-        accumulated += cast(s32) turn
+        accumulated += cast(s32, turn)
         total       += accumulated
     }
 

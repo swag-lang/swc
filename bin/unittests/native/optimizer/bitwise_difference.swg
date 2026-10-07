@@ -37,8 +37,8 @@ func intersectionValue(a, b: u64)->u64 => a & b
             Swag.assert(shared(a, b) == unionValue(a, b))
             Swag.assert(compared(a, b) == (a == b))
             Swag.assert(other(a, b, ~b) == unionValue(a, b) - intersectionValue(a, ~b))
-            let lowA = cast(u32) (a & 0xFFFFFFFF)
-            let lowB = cast(u32) (b & 0xFFFFFFFF)
+            let lowA = cast(u32, (a & 0xFFFFFFFF))
+            let lowB = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(difference32(lowA, lowB) == (lowA ^ lowB))
         }
     }

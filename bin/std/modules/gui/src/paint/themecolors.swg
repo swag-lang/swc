@@ -989,7 +989,7 @@ impl ThemeColors
         .popupList_CheckMark    = signature.mark
         .popupList_HotCheckMark = signature.mark
 
-        .frameWnd_SmallShadow    = p.shadow.withAlpha(cast(u8) (cast(f32) p.shadow.a * 0.6))
+        .frameWnd_SmallShadow    = p.shadow.withAlpha(cast(u8, (cast(f32, p.shadow.a) * 0.6)))
         .frameWnd_Border         = p.line
         .frameWnd_PopupBorder    = p.faintText
         .frameWnd_FocusBorder    = signature.mark

@@ -76,8 +76,8 @@ func day5B1()
     for x in "abcdefghijklmnopqrstuvwxyz"
     {
         var line = read
-        line.replace(cast(rune) x, "")
-        line.replace(cast(rune) Latin1.toUpper(x), "")
+        line.replace(cast(rune, x), "")
+        line.replace(cast(rune, Latin1.toUpper(x)), "")
 
         var result: String
         for c, i in line

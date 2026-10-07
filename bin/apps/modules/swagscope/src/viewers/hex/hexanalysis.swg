@@ -87,7 +87,7 @@ private impl HexStringScanner
             if result.strings.count < HexAnalysisStringLimit
             {
                 var entry = HexAnalysisString{offset: .start, length: .length, kind: kind}
-                entry.text = String.from(cast(string) .preview.toSlice())
+                entry.text = String.from(cast(string, .preview.toSlice()))
                 if .units > .preview.count do
                     entry.text += "..."
                 result.strings.add(#move entry)
@@ -152,7 +152,7 @@ private impl HexAnalysisResult
             return
         for count in .histogram where count
         {
-            let share = cast(f64) count / cast(f64) .scanned
+            let share = cast(f64, count) / cast(f64, .scanned)
             .entropy -= share * Math.log2(share)
         }
     }
@@ -229,7 +229,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
             if hasPrevious
             {
                 let pairOffset = offset - 1
-                let parity     = cast(u64) (pairOffset & 1)
+                let parity     = cast(u64, (pairOffset & 1))
                 result.scanPair(&little[parity], &big[parity], previous, value, pairOffset)
             }
 

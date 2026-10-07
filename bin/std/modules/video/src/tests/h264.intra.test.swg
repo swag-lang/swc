@@ -58,7 +58,7 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
             count += 4
         }
 
-        let value = count == 8 ? cast(u8) ((sum + 4) >> 3) : (count == 4 ? cast(u8) ((sum + 2) >> 2) : 128)
+        let value = count == 8 ? cast(u8, ((sum + 4) >> 3)) : (count == 4 ? cast(u8, ((sum + 2) >> 2)) : 128)
         for row in 4'u64
         {
             for column in 4'u64 do
@@ -71,8 +71,8 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
             for column in 4'u64
             {
                 let diag  = row + column
-                let value = diag == 6 ? (cast(s32) top[6] + 3 * cast(s32) top[7] + 2) >> 2 : (cast(s32) top[diag] + 2 * cast(s32) top[1 + diag] + cast(s32) top[2 + diag] + 2) >> 2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                let value = diag == 6 ? (cast(s32, top[6]) + 3 * cast(s32, top[7]) + 2) >> 2 : (cast(s32, top[diag]) + 2 * cast(s32, top[1 + diag]) + cast(s32, top[2 + diag]) + 2) >> 2
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -82,8 +82,8 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
             for column in 4'u64
             {
                 let k     = column + (row >> 1)
-                let value = row & 1 == 0 ? (cast(s32) top[k] + cast(s32) top[1 + k] + 1) >> 1 : (cast(s32) top[k] + 2 * cast(s32) top[1 + k] + cast(s32) top[2 + k] + 2) >> 2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                let value = row & 1 == 0 ? (cast(s32, top[k]) + cast(s32, top[1 + k]) + 1) >> 1 : (cast(s32, top[k]) + 2 * cast(s32, top[1 + k]) + cast(s32, top[2 + k]) + 2) >> 2
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -97,12 +97,12 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
                 if z > 5 do
                     value = left[3]
                 elif z == 5 do
-                    value = (cast(s32) left[2] + 3 * cast(s32) left[3] + 2) >> 2
+                    value = (cast(s32, left[2]) + 3 * cast(s32, left[3]) + 2) >> 2
                 elif z & 1 == 0 do
-                    value = (cast(s32) left[row + (column >> 1)] + cast(s32) left[1 + row + (column >> 1)] + 1) >> 1
+                    value = (cast(s32, left[row + (column >> 1)]) + cast(s32, left[1 + row + (column >> 1)]) + 1) >> 1
                 else do
-                    value = (cast(s32) left[row + (column >> 1)] + 2 * cast(s32) left[1 + row + (column >> 1)] + cast(s32) left[2 + row + (column >> 1)] + 2) >> 2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                    value = (cast(s32, left[row + (column >> 1)]) + 2 * cast(s32, left[1 + row + (column >> 1)]) + cast(s32, left[2 + row + (column >> 1)]) + 2) >> 2
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -135,14 +135,14 @@ func referenceIntra16x16(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         if hasLeft
         {
             for row in 16'u64 do
-                sum += cast(s32) (dst - 1)[row * IntraTestStride]
+                sum += cast(s32, (dst - 1)[row * IntraTestStride])
             count += 16
         }
 
         if hasTop
         {
             for column in 16'u64 do
-                sum += cast(s32) (dst - IntraTestStride)[column]
+                sum += cast(s32, (dst - IntraTestStride)[column])
             count += 16
         }
 
@@ -150,25 +150,25 @@ func referenceIntra16x16(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         for row in 16'u64
         {
             for column in 16'u64 do
-                dst[row * IntraTestStride + column] = cast(u8) value
+                dst[row * IntraTestStride + column] = cast(u8, value)
         }
 
     case H264.Intra16Plane:
-        var h = cast(s32) (dst - IntraTestStride)[8] - cast(s32) (dst - IntraTestStride)[6]
-        var v = cast(s32) (dst - 1)[8 * IntraTestStride] - cast(s32) (dst - 1)[6 * IntraTestStride]
+        var h = cast(s32, (dst - IntraTestStride)[8]) - cast(s32, (dst - IntraTestStride)[6])
+        var v = cast(s32, (dst - 1)[8 * IntraTestStride]) - cast(s32, (dst - 1)[6 * IntraTestStride])
         for k in 2 to 8
         {
-            let topRight = cast(s32) (dst - IntraTestStride)[cast(u64) (7 + k)]
-            let topLeft  = k == 8 ? cast(s32) (dst - IntraTestStride - 1)[0] : cast(s32) (dst - IntraTestStride)[cast(u64) (7 - k)]
+            let topRight = cast(s32, (dst - IntraTestStride)[cast(u64, (7 + k))])
+            let topLeft  = k == 8 ? cast(s32, (dst - IntraTestStride - 1)[0]) : cast(s32, (dst - IntraTestStride)[cast(u64, (7 - k))])
             h += k * (topRight - topLeft)
-            let leftDown = cast(s32) (dst - 1)[cast(u64) (7 + k) * IntraTestStride]
-            let leftUp   = k == 8 ? cast(s32) (dst - IntraTestStride - 1)[0] : cast(s32) (dst - 1)[cast(u64) (7 - k) * IntraTestStride]
+            let leftDown = cast(s32, (dst - 1)[cast(u64, (7 + k)) * IntraTestStride])
+            let leftUp   = k == 8 ? cast(s32, (dst - IntraTestStride - 1)[0]) : cast(s32, (dst - 1)[cast(u64, (7 - k)) * IntraTestStride])
             v += k * (leftDown - leftUp)
         }
 
         h = (5 * h + 32) >> 6
         v = (5 * v + 32) >> 6
-        var a = 16 * (cast(s32) (dst - 1)[15 * IntraTestStride] + cast(s32) (dst - IntraTestStride)[15] + 1) - 7 * (v + h)
+        var a = 16 * (cast(s32, (dst - 1)[15 * IntraTestStride]) + cast(s32, (dst - IntraTestStride)[15]) + 1) - 7 * (v + h)
         for row in 16'u64
         {
             var b = a
@@ -197,14 +197,14 @@ func referenceIntraChroma(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         {
             if hasTop
             {
-                sumTopLeft  += cast(s32) (dst - IntraTestStride)[index]
-                sumTopRight += cast(s32) (dst - IntraTestStride)[4 + index]
+                sumTopLeft  += cast(s32, (dst - IntraTestStride)[index])
+                sumTopRight += cast(s32, (dst - IntraTestStride)[4 + index])
             }
 
             if hasLeft
             {
-                sumTopLeft    += cast(s32) (dst - 1)[index * IntraTestStride]
-                sumBottomLeft += cast(s32) (dst - 1)[(4 + index) * IntraTestStride]
+                sumTopLeft    += cast(s32, (dst - 1)[index * IntraTestStride])
+                sumBottomLeft += cast(s32, (dst - 1)[(4 + index) * IntraTestStride])
             }
         }
 
@@ -249,7 +249,7 @@ func referenceIntraChroma(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
                     value = dc1
                 elif column < 4 do
                     value = dc2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -268,21 +268,21 @@ func referenceIntraChroma(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         }
 
     case H264.IntraChromaPlane:
-        var h = cast(s32) (dst - IntraTestStride)[4] - cast(s32) (dst - IntraTestStride)[2]
-        var v = cast(s32) (dst - 1)[4 * IntraTestStride] - cast(s32) (dst - 1)[2 * IntraTestStride]
+        var h = cast(s32, (dst - IntraTestStride)[4]) - cast(s32, (dst - IntraTestStride)[2])
+        var v = cast(s32, (dst - 1)[4 * IntraTestStride]) - cast(s32, (dst - 1)[2 * IntraTestStride])
         for k in 2 to 4
         {
-            let topRight = cast(s32) (dst - IntraTestStride)[cast(u64) (3 + k)]
-            let topLeft  = k == 4 ? cast(s32) (dst - IntraTestStride - 1)[0] : cast(s32) (dst - IntraTestStride)[cast(u64) (3 - k)]
+            let topRight = cast(s32, (dst - IntraTestStride)[cast(u64, (3 + k))])
+            let topLeft  = k == 4 ? cast(s32, (dst - IntraTestStride - 1)[0]) : cast(s32, (dst - IntraTestStride)[cast(u64, (3 - k))])
             h += k * (topRight - topLeft)
-            let leftDown = cast(s32) (dst - 1)[cast(u64) (3 + k) * IntraTestStride]
-            let leftUp   = k == 4 ? cast(s32) (dst - IntraTestStride - 1)[0] : cast(s32) (dst - 1)[cast(u64) (3 - k) * IntraTestStride]
+            let leftDown = cast(s32, (dst - 1)[cast(u64, (3 + k)) * IntraTestStride])
+            let leftUp   = k == 4 ? cast(s32, (dst - IntraTestStride - 1)[0]) : cast(s32, (dst - 1)[cast(u64, (3 - k)) * IntraTestStride])
             v += k * (leftDown - leftUp)
         }
 
         h = (17 * h + 16) >> 5
         v = (17 * v + 16) >> 5
-        var a = 16 * (cast(s32) (dst - 1)[7 * IntraTestStride] + cast(s32) (dst - IntraTestStride)[7] + 1) - 3 * (v + h)
+        var a = 16 * (cast(s32, (dst - 1)[7 * IntraTestStride]) + cast(s32, (dst - IntraTestStride)[7]) + 1) - 3 * (v + h)
         for row in 8'u64
         {
             var b = a
@@ -303,15 +303,15 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
 {
     var rawTop:  [16] s32
     var rawLeft: [8] s32
-    let rawCorner = hasTopLeft ? cast(s32) (dst - IntraTestStride - 1)[0] : 128
+    let rawCorner = hasTopLeft ? cast(s32, (dst - IntraTestStride - 1)[0]) : 128
     for row in 8'u64 do
-        rawLeft[row] = hasLeft ? cast(s32) (dst - 1)[row * IntraTestStride] : 128
+        rawLeft[row] = hasLeft ? cast(s32, (dst - 1)[row * IntraTestStride]) : 128
     for column in 8'u64 do
-        rawTop[column] = hasTop ? cast(s32) (dst - IntraTestStride)[column] : 128
+        rawTop[column] = hasTop ? cast(s32, (dst - IntraTestStride)[column]) : 128
     for column in 8'u64 until 16
     {
         if hasTopRight do
-            rawTop[column] = cast(s32) (dst - IntraTestStride)[column]
+            rawTop[column] = cast(s32, (dst - IntraTestStride)[column])
         elif hasTop do
             rawTop[column] = rawTop[7]
         else do
@@ -320,15 +320,15 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
 
     var top:  [16] u8
     var left: [8] u8
-    let corner = cast(u8) ((rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2)
-    top[0] = cast(u8) (((hasTopLeft ? rawCorner : rawTop[0]) + 2 * rawTop[0] + rawTop[1] + 2) >> 2)
+    let corner = cast(u8, ((rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2))
+    top[0] = cast(u8, (((hasTopLeft ? rawCorner : rawTop[0]) + 2 * rawTop[0] + rawTop[1] + 2) >> 2))
     for column in 1'u64 until 15 do
-        top[column] = cast(u8) ((rawTop[column - 1] + 2 * rawTop[column] + rawTop[column + 1] + 2) >> 2)
-    top[15] = cast(u8) ((rawTop[14] + 3 * rawTop[15] + 2) >> 2)
-    left[0] = cast(u8) (((hasTopLeft ? rawCorner : rawLeft[0]) + 2 * rawLeft[0] + rawLeft[1] + 2) >> 2)
+        top[column] = cast(u8, ((rawTop[column - 1] + 2 * rawTop[column] + rawTop[column + 1] + 2) >> 2))
+    top[15] = cast(u8, ((rawTop[14] + 3 * rawTop[15] + 2) >> 2))
+    left[0] = cast(u8, (((hasTopLeft ? rawCorner : rawLeft[0]) + 2 * rawLeft[0] + rawLeft[1] + 2) >> 2))
     for row in 1'u64 until 7 do
-        left[row] = cast(u8) ((rawLeft[row - 1] + 2 * rawLeft[row] + rawLeft[row + 1] + 2) >> 2)
-    left[7] = cast(u8) ((rawLeft[6] + 3 * rawLeft[7] + 2) >> 2)
+        left[row] = cast(u8, ((rawLeft[row - 1] + 2 * rawLeft[row] + rawLeft[row + 1] + 2) >> 2))
+    left[7] = cast(u8, ((rawLeft[6] + 3 * rawLeft[7] + 2) >> 2))
 
     switch mode
     {
@@ -363,7 +363,7 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
             count += 8
         }
 
-        let value = count == 16 ? cast(u8) ((sum + 8) >> 4) : (count == 8 ? cast(u8) ((sum + 4) >> 3) : 128)
+        let value = count == 16 ? cast(u8, ((sum + 8) >> 4)) : (count == 8 ? cast(u8, ((sum + 4) >> 3)) : 128)
         for row in 8'u64
         {
             for column in 8'u64 do
@@ -376,8 +376,8 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
             for column in 8'u64
             {
                 let diag  = row + column
-                let value = diag == 14 ? (cast(s32) top[14] + 3 * cast(s32) top[15] + 2) >> 2 : (cast(s32) top[diag] + 2 * cast(s32) top[1 + diag] + cast(s32) top[2 + diag] + 2) >> 2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                let value = diag == 14 ? (cast(s32, top[14]) + 3 * cast(s32, top[15]) + 2) >> 2 : (cast(s32, top[diag]) + 2 * cast(s32, top[1 + diag]) + cast(s32, top[2 + diag]) + 2) >> 2
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -390,25 +390,25 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
                 var value: s32
                 if diag >= 1
                 {
-                    let first  = diag == 1 ? corner : top[cast(u64) diag - 2]
-                    let second = top[cast(u64) diag - 1]
-                    let third  = top[cast(u64) diag]
-                    value = (cast(s32) first + 2 * cast(s32) second + cast(s32) third + 2) >> 2
+                    let first  = diag == 1 ? corner : top[cast(u64, diag) - 2]
+                    let second = top[cast(u64, diag) - 1]
+                    let third  = top[cast(u64, diag)]
+                    value = (cast(s32, first) + 2 * cast(s32, second) + cast(s32, third) + 2) >> 2
                 }
                 elif diag == 0
                 {
-                    value = (cast(s32) left[0] + 2 * cast(s32) corner + cast(s32) top[0] + 2) >> 2
+                    value = (cast(s32, left[0]) + 2 * cast(s32, corner) + cast(s32, top[0]) + 2) >> 2
                 }
                 else
                 {
-                    let distance = cast(u64) -diag
+                    let distance = cast(u64, -diag)
                     let first    = left[distance]
                     let second   = left[distance - 1]
                     let third    = distance == 1 ? corner : left[distance - 2]
-                    value = (cast(s32) first + 2 * cast(s32) second + cast(s32) third + 2) >> 2
+                    value = (cast(s32, first) + 2 * cast(s32, second) + cast(s32, third) + 2) >> 2
                 }
 
-                dst[cast(u64) row * IntraTestStride + cast(u64) column] = cast(u8) value
+                dst[cast(u64, row) * IntraTestStride + cast(u64, column)] = cast(u8, value)
             }
         }
 
@@ -432,21 +432,21 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
                 var value: s32
                 if z >= 0 and z & 1 == 0
                 {
-                    let k = cast(u64) (column - (row >> 1))
+                    let k = cast(u64, (column - (row >> 1)))
                     value = (topRef[k + 1] + topRef[k + 2] + 1) >> 1
                 }
                 elif z >= -1
                 {
-                    let k = cast(u64) (column - (row >> 1))
+                    let k = cast(u64, (column - (row >> 1)))
                     value = (topRef[k] + 2 * topRef[k + 1] + topRef[k + 2] + 2) >> 2
                 }
                 else
                 {
-                    let e = cast(u64) (row - 2 * column)
+                    let e = cast(u64, (row - 2 * column))
                     value = (leftRef[e + 1] + 2 * leftRef[e] + leftRef[e - 1] + 2) >> 2
                 }
 
-                dst[cast(u64) row * IntraTestStride + cast(u64) column] = cast(u8) value
+                dst[cast(u64, row) * IntraTestStride + cast(u64, column)] = cast(u8, value)
             }
         }
 
@@ -470,21 +470,21 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
                 var value: s32
                 if z >= 0 and z & 1 == 0
                 {
-                    let k = cast(u64) (row - (column >> 1))
+                    let k = cast(u64, (row - (column >> 1)))
                     value = (leftRef[k + 1] + leftRef[k + 2] + 1) >> 1
                 }
                 elif z >= -1
                 {
-                    let k = cast(u64) (row - (column >> 1))
+                    let k = cast(u64, (row - (column >> 1)))
                     value = (leftRef[k] + 2 * leftRef[k + 1] + leftRef[k + 2] + 2) >> 2
                 }
                 else
                 {
-                    let e = cast(u64) (column - 2 * row)
+                    let e = cast(u64, (column - 2 * row))
                     value = (topRef[e + 1] + 2 * topRef[e] + topRef[e - 1] + 2) >> 2
                 }
 
-                dst[cast(u64) row * IntraTestStride + cast(u64) column] = cast(u8) value
+                dst[cast(u64, row) * IntraTestStride + cast(u64, column)] = cast(u8, value)
             }
         }
 
@@ -494,8 +494,8 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
             for column in 8'u64
             {
                 let k     = column + (row >> 1)
-                let value = row & 1 == 0 ? (cast(s32) top[k] + cast(s32) top[1 + k] + 1) >> 1 : (cast(s32) top[k] + 2 * cast(s32) top[1 + k] + cast(s32) top[2 + k] + 2) >> 2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                let value = row & 1 == 0 ? (cast(s32, top[k]) + cast(s32, top[1 + k]) + 1) >> 1 : (cast(s32, top[k]) + 2 * cast(s32, top[1 + k]) + cast(s32, top[2 + k]) + 2) >> 2
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -509,12 +509,12 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
                 if z > 13 do
                     value = left[7]
                 elif z == 13 do
-                    value = (cast(s32) left[6] + 3 * cast(s32) left[7] + 2) >> 2
+                    value = (cast(s32, left[6]) + 3 * cast(s32, left[7]) + 2) >> 2
                 elif z & 1 == 0 do
-                    value = (cast(s32) left[row + (column >> 1)] + cast(s32) left[1 + row + (column >> 1)] + 1) >> 1
+                    value = (cast(s32, left[row + (column >> 1)]) + cast(s32, left[1 + row + (column >> 1)]) + 1) >> 1
                 else do
-                    value = (cast(s32) left[row + (column >> 1)] + 2 * cast(s32) left[1 + row + (column >> 1)] + cast(s32) left[2 + row + (column >> 1)] + 2) >> 2
-                dst[row * IntraTestStride + column] = cast(u8) value
+                    value = (cast(s32, left[row + (column >> 1)]) + 2 * cast(s32, left[1 + row + (column >> 1)]) + cast(s32, left[2 + row + (column >> 1)]) + 2) >> 2
+                dst[row * IntraTestStride + column] = cast(u8, value)
             }
         }
 
@@ -527,7 +527,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
 {
     for index in 1024
     {
-        let value = cast(u8) ((index * 37 + 11) & 255)
+        let value = cast(u8, ((index * 37 + 11) & 255))
         expected[index] = value
         actual[index]   = value
     }

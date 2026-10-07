@@ -10,7 +10,7 @@ func inspectPlacementFrame(surface: *Surface)
         return
     let renderer = glGetString(GL_RENDERER)
     if renderer do
-        Console.println("Renderer: ", cast(string) (cast(const cstring) renderer))
+        Console.println("Renderer: ", cast(string, cast(const cstring, renderer)))
     var watch: Time.Stopwatch
     watch.restart()
     glFinish()
@@ -21,7 +21,7 @@ func inspectPlacementFrame(surface: *Surface)
     Console.println("Viewport: ", viewport[2], " x ", viewport[3], "; client: ", rc.width, " x ", rc.height)
     var front: u32
     glReadBuffer(GL_FRONT)
-    glReadPixels(rc.width - 40, rc.height / 2, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) &front)
+    glReadPixels(rc.width - 40, rc.height / 2, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, &front))
     glReadBuffer(GL_BACK)
     var frame = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, rc.width, rc.height)
     Console.println("Right-edge pixels, front / target: ", front, " / ", frame.pixelColor(rc.width - 40, rc.height / 2).argb)
@@ -64,13 +64,13 @@ func observeViewerPlacement(app: *Application)
     while watch.elapsedMicroseconds() < 10_000_000
     {
         app.runFrame()
-        if window.currentView is Markdown.View and not (cast #assume(*Markdown.View) window.currentView!).isLoading() do
+        if window.currentView is Markdown.View and not assume cast(*Markdown.View, window.currentView).isLoading() do
             break
         Threading.Thread.sleep(1'ms)
     }
 
     Swag.assert(window.currentView is Markdown.View)
-    Swag.assert(not (cast #assume(*Markdown.View) window.currentView!).isLoading())
+    Swag.assert(not assume cast(*Markdown.View, window.currentView).isLoading())
     let normal = surface.position
     Swag.assert(not surface.isMaximized)
     observeViewerPlacement(&app)

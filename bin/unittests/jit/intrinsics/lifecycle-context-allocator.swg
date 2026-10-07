@@ -71,7 +71,7 @@ func encodeByteTrace(buffer: [*] u8?, count: u64)->u64
     if buffer != null
     {
         for i in count do
-            result = result * 100 + cast(u64) buffer[i]
+            result = result * 100 + cast(u64, buffer[i])
     }
     return result * 100 + count
 }
@@ -82,7 +82,7 @@ func encodeTrackedTrace(buffer: [*] DropTracked?, count: u64)->u64
     if buffer != null
     {
         for i in count do
-            result = result * 100 + cast(u64) buffer[i].value
+            result = result * 100 + cast(u64, buffer[i].value)
     }
     return result * 100 + count
 }
@@ -114,7 +114,7 @@ impl DropTracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(u64) .value
+        DropTrace = DropTrace * 100 + cast(u64, .value)
     }
 }
 
@@ -143,7 +143,7 @@ impl DirectByteBuffer
         req.oldSize = .capacity
         let talloc = .allocator!
         talloc.realloc(&req)
-        .buffer   = cast([*] u8?) req.address
+        .buffer   = cast([*] u8?, req.address)
         .capacity = newCapacity
     }
 
@@ -200,7 +200,7 @@ impl HelperByteBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast([*] u8?) helperRealloc(.buffer, newCapacity, .capacity, .allocator)
+        .buffer   = cast([*] u8?, helperRealloc(.buffer, newCapacity, .capacity, .allocator))
         .capacity = newCapacity
     }
 
@@ -252,7 +252,7 @@ impl MemoryTrackedBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast([*] DropTracked?) memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator)
+        .buffer   = cast([*] DropTracked?, memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator))
         .capacity = newCapacity
     }
 
@@ -331,7 +331,7 @@ func memoryAllocatorRunDropInfo()->DropRunInfo
     values.resize(4, 9)
     let buf = values.buffer!
     for i in 4 do
-        buf[i].value = cast(s32) (i + 1)
+        buf[i].value = cast(s32, (i + 1))
 
     values.resize(2, 8)
     values.resize(5, 8)

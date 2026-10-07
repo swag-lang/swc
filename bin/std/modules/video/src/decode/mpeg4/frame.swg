@@ -36,10 +36,10 @@ impl Frame
     // Sizes the planes for one layer geometry, keeping what is already the right size.
     mtd prepare(codedWidth, codedHeight, visibleWidth, visibleHeight: u32)
     {
-        let strideLuma   = cast(u64) (codedWidth + 2 * FramePadding)
-        let strideChroma = cast(u64) (codedWidth / 2 + 2 * FramePadding)
-        let rowsLuma     = cast(u64) (codedHeight + 2 * FramePadding)
-        let rowsChroma   = cast(u64) (codedHeight / 2 + 2 * FramePadding)
+        let strideLuma   = cast(u64, (codedWidth + 2 * FramePadding))
+        let strideChroma = cast(u64, (codedWidth / 2 + 2 * FramePadding))
+        let rowsLuma     = cast(u64, (codedHeight + 2 * FramePadding))
+        let rowsChroma   = cast(u64, (codedHeight / 2 + 2 * FramePadding))
 
         if .strideLuma != strideLuma or .luma.count != strideLuma * rowsLuma
         {
@@ -60,8 +60,8 @@ impl Frame
     }
 
     // The first sample of the picture inside its padded plane.
-    mtd const lumaOrigin()->u64   => cast(u64) FramePadding * .strideLuma + cast(u64) FramePadding
-    mtd const chromaOrigin()->u64 => cast(u64) FramePadding * .strideChroma + cast(u64) FramePadding
+    mtd const lumaOrigin()->u64   => cast(u64, FramePadding) * .strideLuma + cast(u64, FramePadding)
+    mtd const chromaOrigin()->u64 => cast(u64, FramePadding) * .strideChroma + cast(u64, FramePadding)
 
     // Replicates the border of every plane into the padding.
     //
@@ -76,22 +76,22 @@ impl Frame
 
     private mtd extendPlane(plane: [*] u8, stride: u64, width, height: u32)
     {
-        let pad    = cast(u64) FramePadding
+        let pad    = cast(u64, FramePadding)
         let origin = pad * stride + pad
 
         // Left and right of every row.
-        for y in cast(u64) height
+        for y in cast(u64, height)
         {
             let row   = origin + y * stride
             let first = plane[row]
-            let last  = plane[row + cast(u64) width - 1]
+            let last  = plane[row + cast(u64, width) - 1]
             Memory.set(plane + row - pad, first, pad)
-            Memory.set(plane + row + cast(u64) width, last, pad)
+            Memory.set(plane + row + cast(u64, width), last, pad)
         }
 
         // Whole rows above and below, which now include the corners.
         let top    = origin - pad
-        let bottom = origin + (cast(u64) height - 1) * stride - pad
+        let bottom = origin + (cast(u64, height) - 1) * stride - pad
         for y in pad
         {
             Memory.copy(plane + top - (y + 1) * stride, plane + top, stride)
@@ -102,23 +102,23 @@ impl Frame
     // Hands the visible picture over as three tightly packed planes.
     mtd const writePlanar(target: *PlanarFrame)
     {
-        let width        = cast(s32) .displayWidth
-        let height       = cast(s32) .displayHeight
-        let chromaWidth  = cast(u64) ((width + 1) / 2)
-        let chromaHeight = cast(u64) ((height + 1) / 2)
+        let width        = cast(s32, .displayWidth)
+        let height       = cast(s32, .displayHeight)
+        let chromaWidth  = cast(u64, ((width + 1) / 2))
+        let chromaHeight = cast(u64, ((height + 1) / 2))
 
         target.width        = width
         target.height       = height
-        target.strideLuma   = cast(u32) width
-        target.strideChroma = cast(u32) chromaWidth
+        target.strideLuma   = cast(u32, width)
+        target.strideChroma = cast(u32, chromaWidth)
         target.studioRange  = true
-        target.luma.resize(cast(u64) width * cast(u64) height)
+        target.luma.resize(cast(u64, width) * cast(u64, height))
         target.chromaB.resize(chromaWidth * chromaHeight)
         target.chromaR.resize(chromaWidth * chromaHeight)
 
         let lumaAt = .lumaOrigin()
-        for y in cast(u64) height do
-            Memory.copy(target.luma.storage() + y * cast(u64) width, .luma.storage() + lumaAt + y * .strideLuma, cast(u64) width)
+        for y in cast(u64, height) do
+            Memory.copy(target.luma.storage() + y * cast(u64, width), .luma.storage() + lumaAt + y * .strideLuma, cast(u64, width))
 
         let chromaAt = .chromaOrigin()
         for y in chromaHeight

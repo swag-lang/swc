@@ -888,8 +888,8 @@ impl Wnd
         {
             var layer: Layer
             layer.begin(painter, {
-                width: cast(s32) Math.ceil(.position.width),
-                height: cast(s32) Math.ceil(.position.height)})
+                width: cast(s32, Math.ceil(.position.width)),
+                height: cast(s32, Math.ceil(.position.height))})
 
             // `paintContent` is authored in parent coordinates. Move that parent origin so the
             // target's logical rectangle records at the layer origin.
@@ -2264,17 +2264,17 @@ impl Wnd
             return
 
         let order = FocusOrder.around(me)
-        let count = cast(s64) order.stops.count
+        let count = cast(s64, order.stops.count)
 
         // Resume after the last stop this subtree owns, so a whole form going down hands the
         // keyboard to what follows the form rather than to the top of the surface.
         var from = order.indexOf(me)
         for stop, index in order.stops where stop == me or .isAncestorOf(stop) do
-            from = cast(s64) index
+            from = cast(s64, index)
 
         for var step = 1's64; step < count; step += 1
         {
-            let candidate = order.stops[cast(u64) ((from + step) % count)]
+            let candidate = order.stops[cast(u64, ((from + step) % count))]
             if candidate == me or .isAncestorOf(candidate) do
                 continue
             candidate.setFocus()
@@ -2374,7 +2374,7 @@ impl Wnd
     mtd postEvent(evt: IEvent)
     {
         let srfn = .surface!
-        let ptr  = cast #assume (*Event) evt
+        let ptr  = assume cast (*Event, evt)
         ptr.target = me
         srfn.app.postEvent(evt)
     }
@@ -2390,7 +2390,7 @@ impl Wnd
     mtd sendEvent(evt: IEvent)
     {
         let srfn = .surface!
-        let ptr  = cast #assume (*Event) evt
+        let ptr  = assume cast (*Event, evt)
         ptr.target = me
         srfn.app.sendEvent(evt)
     }

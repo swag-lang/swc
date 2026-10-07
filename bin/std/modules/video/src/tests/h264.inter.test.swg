@@ -20,19 +20,19 @@ impl InterReference
         let planeHeight = .frame.mbHeight * 16
         let clampedX    = Math.clamp(x, -H264.FramePadding, planeWidth + H264.FramePadding - 1)
         let clampedY    = Math.clamp(y, -H264.FramePadding, planeHeight + H264.FramePadding - 1)
-        return cast(s32) .frame.pixLuma(clampedX, clampedY)[0]
+        return cast(s32, .frame.pixLuma(clampedX, clampedY)[0])
     }
 
     mtd horizontalSum(x, y: s32)->s32 => .sample(x - 2, y) - 5 * .sample(x - 1, y) + 20 * .sample(x, y) + 20 * .sample(x + 1, y) - 5 * .sample(x + 2, y) + .sample(x + 3, y)
     mtd verticalSum(x, y: s32)->s32   => .sample(x, y - 2) - 5 * .sample(x, y - 1) + 20 * .sample(x, y) + 20 * .sample(x, y + 1) - 5 * .sample(x, y + 2) + .sample(x, y + 3)
 
-    mtd halfH(x, y: s32)->s32 => cast(s32) H264.clampPixel((.horizontalSum(x, y) + 16) >> 5)
-    mtd halfV(x, y: s32)->s32 => cast(s32) H264.clampPixel((.verticalSum(x, y) + 16) >> 5)
+    mtd halfH(x, y: s32)->s32 => cast(s32, H264.clampPixel((.horizontalSum(x, y) + 16) >> 5))
+    mtd halfV(x, y: s32)->s32 => cast(s32, H264.clampPixel((.verticalSum(x, y) + 16) >> 5))
 
     mtd halfC(x, y: s32)->s32
     {
         let sum = .horizontalSum(x, y - 2) - 5 * .horizontalSum(x, y - 1) + 20 * .horizontalSum(x, y) + 20 * .horizontalSum(x, y + 1) - 5 * .horizontalSum(x, y + 2) + .horizontalSum(x, y + 3)
-        return cast(s32) H264.clampPixel((sum + 512) >> 10)
+        return cast(s32, H264.clampPixel((sum + 512) >> 10))
     }
 
     // The predicted sample at full position `x`, `y` and quarter phase `fracX`, `fracY`.
@@ -65,7 +65,7 @@ impl InterReference
         default: value = (m + s + 1) >> 1
         }
 
-        return cast(u8) value
+        return cast(u8, value)
     }
 }
 
@@ -80,7 +80,7 @@ impl InterReference
     for index in frame.luma.count
     {
         seed = seed * #wrap 1664525 + #wrap 1013904223
-        let noise = cast(u8) (seed >> 24)
+        let noise = cast(u8, (seed >> 24))
         frame.luma[index] = (index / 7) % 3 == 0 ? (((seed >> 20) & 1) == 0 ? 0 : 255) : noise
     }
 
@@ -106,7 +106,7 @@ impl InterReference
                 {
                     for column in 16's32
                     {
-                        let got = predicted[cast(u64) (row * 16 + column)]
+                        let got = predicted[cast(u64, (row * 16 + column))]
                         if column >= width do
                             Swag.assert(got == 0x5A)
                         else do
@@ -131,7 +131,7 @@ impl ChromaReference
     {
         let clampedX = Math.clamp(x, -H264.FramePadding, .frame.mbWidth * 8 + H264.FramePadding - 1)
         let clampedY = Math.clamp(y, -H264.FramePadding, .frame.mbHeight * 8 + H264.FramePadding - 1)
-        return cast(s32) .frame.pixChroma(.plane, clampedX, clampedY)[0]
+        return cast(s32, .frame.pixChroma(.plane, clampedX, clampedY)[0])
     }
 }
 
@@ -146,9 +146,9 @@ impl ChromaReference
     for index in frame.cb.count
     {
         seed            = seed * #wrap 1664525 + #wrap 1013904223
-        frame.cb[index] = cast(u8) (seed >> 24)
+        frame.cb[index] = cast(u8, (seed >> 24))
         seed            = seed * #wrap 1664525 + #wrap 1013904223
-        frame.cr[index] = (index / 5) % 2 == 0 ? (((seed >> 21) & 1) == 0 ? 0 : 255) : cast(u8) (seed >> 24)
+        frame.cr[index] = (index / 5) % 2 == 0 ? (((seed >> 21) & 1) == 0 ? 0 : 255) : cast(u8, (seed >> 24))
     }
 
     const Shapes  = [8's32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
@@ -175,7 +175,7 @@ impl ChromaReference
                     {
                         for column in 16's32
                         {
-                            let got = predicted[cast(u64) (row * 16 + column)]
+                            let got = predicted[cast(u64, (row * 16 + column))]
                             if column >= width
                             {
                                 Swag.assert(got == 0x5A)
@@ -186,7 +186,7 @@ impl ChromaReference
                             let py    = y + row
                             let value = (8 - fracX) * (8 - fracY) * reference.sample(px, py) + fracX * (8 - fracY) * reference.sample(px + 1, py) +
                                         (8 - fracX) * fracY * reference.sample(px, py + 1) + fracX * fracY * reference.sample(px + 1, py + 1)
-                            Swag.assert(got == cast(u8) ((value + 32) >> 6))
+                            Swag.assert(got == cast(u8, ((value + 32) >> 6)))
                         }
                     }
                 }
@@ -206,9 +206,9 @@ impl ChromaReference
     for index in frame.cb.count
     {
         seed            = seed * #wrap 1664525 + #wrap 1013904223
-        frame.cb[index] = cast(u8) (seed >> 24)
+        frame.cb[index] = cast(u8, (seed >> 24))
         seed            = seed * #wrap 1664525 + #wrap 1013904223
-        frame.cr[index] = cast #wrap(u8) (seed >> 16)
+        frame.cr[index] = cast #wrap(u8, (seed >> 16))
     }
 
     const Shapes  = [8's32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]

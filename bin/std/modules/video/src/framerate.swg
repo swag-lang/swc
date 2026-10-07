@@ -39,7 +39,7 @@ impl FrameRate
     {
         if not .denominatorValue do
             return 0
-        return cast(f64) .numeratorValue / cast(f64) .denominatorValue
+        return cast(f64, .numeratorValue) / cast(f64, .denominatorValue)
     }
 
     // Returns whether both parts are positive.

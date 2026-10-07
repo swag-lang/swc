@@ -129,7 +129,7 @@ using Swag, Core
 
     var faceData: FaceImpl
     faceData.fontData.add(cmap.toSlice())
-    faceData.tables.add({tag: TAG_CMAP, length: cast(u32) cmap.count})
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
 
     discard expect parseCMap(&faceData, false)
     Swag.assert(faceData.cmapFormat == 4)

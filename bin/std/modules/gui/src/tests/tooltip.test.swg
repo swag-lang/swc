@@ -48,7 +48,7 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 func showTip(owner: *Wnd, text: string)->*Label
 {
     ToolTip.show(owner, {40, 40}, text, 0's)
-    return cast #assume (*Label) owner.app().toolTip.current!.view
+    return assume cast (*Label, owner.app().toolTip.current!.view)
 }
 
 // Returns an annotation far taller than any tip may grow.

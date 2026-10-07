@@ -26,7 +26,7 @@ impl RuntimeSetTarget
     #[Swag.NoInline]
     mtd opSet(value: f32)
     {
-        .value = cast(s32) value * 2
+        .value = cast(s32, value) * 2
         .tag   = 20
         .calls += 1
     }
@@ -77,16 +77,16 @@ impl RuntimeParamSetTarget
     #[Swag.Implicit, Swag.NoInline]
     mtd opSet(value: u16)
     {
-        .value = cast(s32) value
+        .value = cast(s32, value)
         .tag   = 20
     }
 
     #[Swag.NoInline]
     mtd opSet(value: u64)
     {
-        .value    = cast(s32) value
+        .value    = cast(s32, value)
         .tag      = 30
-        .sentinel = cast(s32) value
+        .sentinel = cast(s32, value)
     }
 }
 
@@ -102,7 +102,7 @@ impl RuntimeEnumSetTarget
     #[Swag.Implicit, Swag.NoInline]
     mtd opSet(value: RuntimeEnumSetSource)
     {
-        .raw = cast(u32) value
+        .raw = cast(u32, value)
         .tag = 20
     }
 }
@@ -128,7 +128,7 @@ impl RuntimePaletteColor
     #[Swag.ConstExpr, Swag.Implicit]
     mtd opSet(value: RuntimePaletteSource)
     {
-        .raw = cast(u32) value
+        .raw = cast(u32, value)
     }
 }
 
@@ -373,7 +373,7 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
         Swag.assert(value.sentinel == 777)
     }
 
-    takesExplicit(cast(RuntimeParamSetTarget) 5's32)
+    takesExplicit(cast(RuntimeParamSetTarget, 5's32))
     takesImplicit(7'u16)
 }
 
@@ -430,7 +430,7 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     }
 
     takesImplicit(500'ms)
-    takesExplicit(cast(RuntimeLiteralSetTarget) 1'h)
+    takesExplicit(cast(RuntimeLiteralSetTarget, 1'h))
 }
 
 #test
@@ -449,10 +449,10 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
 
 #test
 {
-    let intDelay = cast(RuntimeLiteralOverloadTarget) 250'ms
+    let intDelay = cast(RuntimeLiteralOverloadTarget, 250'ms)
     assertRuntimeLiteralOverloadSet(intDelay, 0.25, 10)
 
-    let floatDelay = cast(RuntimeLiteralOverloadTarget) 0.5'h
+    let floatDelay = cast(RuntimeLiteralOverloadTarget, 0.5'h)
     assertRuntimeLiteralOverloadSet(floatDelay, 1800.0, 20)
 }
 

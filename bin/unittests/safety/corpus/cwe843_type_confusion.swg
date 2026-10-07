@@ -11,8 +11,8 @@ using Corpus
 // small object into a large one and an integer into a pointer.
 //
 // Swag: 'any', interfaces and dynamic structs carry their concrete type. A mismatched
-// '#assume' conversion panics under '.DynCast'; '#try' returns null. An ordinary downcast
-// is rejected, including casts between related structs. Deliberate reinterpretation
+// 'assume cast' conversion panics under '.Assume'; 'catch cast' can return null.
+// A checked downcast needs explicit error handling. Deliberate reinterpretation
 // through '*void', and reading a union member that was not written, remain unchecked.
 // -----------------------------------------------------------------------------
 
@@ -37,10 +37,10 @@ union Bits
 
 // The dynamic form: 'any' carries its type and the extraction is checked. The value arrives
 // as a parameter so the concrete type is only known through the box.
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func extractWrongTypeFromAny(boxed: any)->s32
 {
-    return cast #assume(s32) boxed     // swc-expected-error {{safety_err_runtime}}
+    return assume cast(s32, boxed)     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test
@@ -52,14 +52,14 @@ func extractWrongTypeFromAny(boxed: any)->s32
 func readSmallAsLarge()->s64
 {
     var small: Small
-    let wide = cast(*Large) &small     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+    let wide = cast(*Large, &small)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
     return wide.d
 }
 
 // The rule is about the type relationship, not just the destination's size.
 func readLargeAsSmall(large: *Large)->*Small
 {
-    return cast(*Small) large     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+    return cast(*Small, large)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
 }
 
 // GAP compiler.safety.006 - '*void' explicitly bypasses that relationship. Observe the
@@ -67,8 +67,8 @@ func readLargeAsSmall(large: *Large)->*Small
 func reinterpretSmallAddress()->bool
 {
     var small: Small
-    let wide = cast(*Large) cast(*void) &small
-    return cast(*void) wide == cast(*void) &small
+    let wide = cast(*Large, cast(*void, &small))
+    return cast(*void, wide) == cast(*void, &small)
 }
 
 #test
@@ -100,16 +100,16 @@ func relatedPointerRoundTrip()->s32
 {
     var derived: Derived
     derived.extra = 17
-    let base      = cast(*Small) &derived
-    let recovered = cast #assume(*Derived) base
+    let base      = cast(*Small, &derived)
+    let recovered = assume cast(*Derived, base)
     return recovered.extra
 }
 
 // The matching extraction is what the guard lets through.
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func extractRightTypeFromAny(boxed: any)->s32
 {
-    return cast #assume(s32) boxed
+    return assume cast(s32, boxed)
 }
 
 // The nullable result supports a type test without asserting success.

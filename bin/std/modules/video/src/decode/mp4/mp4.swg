@@ -168,7 +168,7 @@ private func readDescriptor(source: *ByteSource, parentEnd: u64)->Descriptor fai
         if source.position() >= parentEnd do
             fail InvalidFormatError{"MP4 descriptor length runs past its parent descriptor"}
         let value = try source.readByte()
-        size = (size << 7) | cast(u64) (value & 0x7F)
+        size = (size << 7) | cast(u64, (value & 0x7F))
         if not (value & 0x80)
         {
             complete = true
@@ -192,7 +192,7 @@ func readBox(source: *ByteSource, parentEnd: u64)->Box fail
 
     let compactSize = try source.readBigEndian'u32()
     let kind        = try source.readBigEndian'u32()
-    var size        = cast(u64) compactSize
+    var size        = cast(u64, compactSize)
     if compactSize == 1
     {
         if 8 > parentEnd - source.position() do
@@ -221,8 +221,8 @@ private func describeId(id: u32)->String
     var result: retval
     for shift in 4
     {
-        let value = cast(u8) ((id >> cast(u32) ((3 - shift) * 8)) & 0xFF)
-        result.append(value >= 0x20 and value < 0x7F ? cast(rune) value : '?'rune)
+        let value = cast(u8, ((id >> cast(u32, ((3 - shift) * 8))) & 0xFF))
+        result.append(value >= 0x20 and value < 0x7F ? cast(rune, value) : '?'rune)
     }
 
     return result
@@ -414,8 +414,8 @@ impl Track
             fail InvalidFormatError{"MP4 visual sample entry is truncated"}
         .codec = entry.kind
         try source.seek(entry.data + 24)
-        .width          = cast(s32) (try source.readBigEndian'u16())
-        .height         = cast(s32) (try source.readBigEndian'u16())
+        .width          = cast(s32, (try source.readBigEndian'u16()))
+        .height         = cast(s32, (try source.readBigEndian'u16()))
         .hasDescription = true
         if .width <= 0 or .height <= 0 do
             fail InvalidFormatError{"MP4 video track needs positive frame dimensions"}
@@ -541,7 +541,7 @@ impl Track
             fail InvalidFormatError{"MP4 sync-sample box is truncated"}
         discard try readFullBox(source)
         let count = try source.readBigEndian'u32()
-        if cast(u64) count * 4 > end - source.position() do
+        if cast(u64, count) * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sync-sample table is truncated"}
         .syncSamples.reserve(count)
         for count
@@ -560,7 +560,7 @@ impl Track
             fail InvalidFormatError{"MP4 composition-offset box is truncated"}
         let version = try readFullBox(source)
         let count   = try source.readBigEndian'u32()
-        if cast(u64) count * 8 > end - source.position() do
+        if cast(u64, count) * 8 > end - source.position() do
             fail InvalidFormatError{"MP4 composition-offset table is truncated"}
         if version > 1 do
             fail UnsupportedFormatError{"video decoder does not support this MP4 composition-offset version"}
@@ -569,7 +569,7 @@ impl Track
         {
             let sampleCount = try source.readBigEndian'u32()
             let rawOffset   = try source.readBigEndian'u32()
-            let offset      = version == 0 ? cast(s32) Math.min(rawOffset, cast(u32) Swag.S32.Max) : cast(s32) rawOffset
+            let offset      = version == 0 ? cast(s32, Math.min(rawOffset, cast(u32, Swag.S32.Max))) : cast(s32, rawOffset)
             .ctsEntries.add({sampleCount, offset})
         }
     }
@@ -639,7 +639,7 @@ impl Track
             fail InvalidFormatError{"MP4 time-to-sample box is truncated"}
         discard try readFullBox(source)
         let count = try source.readBigEndian'u32()
-        if cast(u64) count * 8 > end - source.position() do
+        if cast(u64, count) * 8 > end - source.position() do
             fail InvalidFormatError{"MP4 time-to-sample table is truncated"}
         .times.reserve(count)
         for count do
@@ -652,7 +652,7 @@ impl Track
             fail InvalidFormatError{"MP4 sample-to-chunk box is truncated"}
         discard try readFullBox(source)
         let count = try source.readBigEndian'u32()
-        if cast(u64) count * 12 > end - source.position() do
+        if cast(u64, count) * 12 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-to-chunk table is truncated"}
         .chunks.reserve(count)
         var previous = 0'u32
@@ -673,7 +673,7 @@ impl Track
         discard try readFullBox(source)
         let fixedSize = try source.readBigEndian'u32()
         let count     = try source.readBigEndian'u32()
-        if not fixedSize and cast(u64) count * 4 > end - source.position() do
+        if not fixedSize and cast(u64, count) * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size table is truncated"}
         .sizes.resize(count)
         for &size in .sizes do
@@ -687,11 +687,11 @@ impl Track
         discard try readFullBox(source)
         let count     = try source.readBigEndian'u32()
         let entrySize = wide ? 8'u64 : 4'u64
-        if cast(u64) count * entrySize > end - source.position() do
+        if cast(u64, count) * entrySize > end - source.position() do
             fail InvalidFormatError{"MP4 chunk-offset table is truncated"}
         .offsets.reserve(count)
         for count do
-            .offsets.add(wide ? try source.readBigEndian'u64() : cast(u64) (try source.readBigEndian'u32()))
+            .offsets.add(wide ? try source.readBigEndian'u64() : cast(u64, (try source.readBigEndian'u32())))
     }
 
     // Returns the exact frame rate of a constant-duration track, and the exact average rate
@@ -712,7 +712,7 @@ impl Track
             if entry.sampleDelta != delta do
                 constant = false
             samples += entry.sampleCount
-            ticks   += cast(u64) entry.sampleCount * cast(u64) entry.sampleDelta
+            ticks   += cast(u64, entry.sampleCount) * cast(u64, entry.sampleDelta)
         }
 
         if samples != .sizes.count do
@@ -728,7 +728,7 @@ impl Track
             fail InvalidFormatError{"MP4 video samples have a zero duration"}
 
         // The average `timescale * samples / ticks`, reduced so it fits the rate's parts.
-        var numerator   = cast(u64) .timescale * samples
+        var numerator   = cast(u64, .timescale) * samples
         var denominator = ticks
         var a           = numerator
         var b           = denominator
@@ -742,8 +742,8 @@ impl Track
         numerator   /= a
         denominator /= a
         if numerator <= Swag.U32.Max and denominator <= Swag.U32.Max do
-            return try FrameRate.create(cast(u32) numerator, cast(u32) denominator)
-        return try FrameRate.create(.timescale, cast(u32) Math.max(ticks / samples, 1))
+            return try FrameRate.create(cast(u32, numerator), cast(u32, denominator))
+        return try FrameRate.create(.timescale, cast(u32, Math.max(ticks / samples, 1)))
     }
 
     // Expands the composition offsets into the display time of every sample.
@@ -761,14 +761,14 @@ impl Track
                 if result.count >= .sizes.count do
                     break
                 result.add(time)
-                time += cast(s64) entry.sampleDelta
+                time += cast(s64, entry.sampleDelta)
             }
         }
 
         while result.count < .sizes.count
         {
             result.add(time)
-            time += cast(s64) (.times.count ? .times.back().sampleDelta : 1)
+            time += cast(s64, (.times.count ? .times.back().sampleDelta : 1))
         }
 
         var index = 0'u64
@@ -778,7 +778,7 @@ impl Track
             {
                 if index >= result.count do
                     break
-                result[index] += cast(s64) entry.offset
+                result[index] += cast(s64, entry.offset)
                 index         += 1
             }
         }
@@ -802,8 +802,8 @@ impl Track
         var sampleIndex = 0'u64
         for chunkIndex in .offsets.count
         {
-            let chunkNumber = cast(u64) chunkIndex + 1
-            while tableIndex + 1 < .chunks.count and cast(u64) .chunks[tableIndex + 1].firstChunk <= chunkNumber do
+            let chunkNumber = cast(u64, chunkIndex) + 1
+            while tableIndex + 1 < .chunks.count and cast(u64, .chunks[tableIndex + 1].firstChunk) <= chunkNumber do
                 tableIndex += 1
             let mapping = .chunks[tableIndex]
             if not mapping.samplesPerChunk or mapping.descriptionIndex != 1 do
@@ -814,7 +814,7 @@ impl Track
             {
                 if sampleIndex >= .sizes.count do
                     fail InvalidFormatError{"MP4 chunk table describes more samples than the sample-size table"}
-                let size = cast(u64) .sizes[sampleIndex]
+                let size = cast(u64, .sizes[sampleIndex])
                 if not size do
                     fail InvalidFormatError{"MP4 video sample has no payload"}
                 if offset > sourceSize or size > sourceSize - offset do
@@ -852,7 +852,7 @@ impl Track
 
         for frame in frames
         {
-            result.packets.add({frame.offset, cast(u32) frame.size, AacFrameSamples})
+            result.packets.add({frame.offset, cast(u32, frame.size), AacFrameSamples})
             result.frameCount += AacFrameSamples
         }
 
@@ -906,9 +906,9 @@ impl IDecoder for Decoder
             for index in times.count
             {
                 var position = order.count
-                while position > 0 and times[cast(u64) order[position - 1]] > times[index] do
+                while position > 0 and times[cast(u64, order[position - 1])] > times[index] do
                     position -= 1
-                order.insertAt(position, cast(u32) index)
+                order.insertAt(position, cast(u32, index))
             }
 
             for sample in order do
@@ -948,8 +948,8 @@ impl IDecoder for Decoder
             syncFlags.resize(frames.count)
             if layout.track.syncSamples.count
             {
-                for sample in layout.track.syncSamples where cast(u64) sample < syncFlags.count do
-                    syncFlags[cast(u64) sample] = 1
+                for sample in layout.track.syncSamples where cast(u64, sample) < syncFlags.count do
+                    syncFlags[cast(u64, sample)] = 1
             }
             else
             {
@@ -1047,7 +1047,7 @@ impl IPlanarDecoder for Decoder
 
 impl IAudioDecoder for Decoder
 {
-    mtd impl audioTrackCount()->u32 => cast(u32) .soundTracks.count
+    mtd impl audioTrackCount()->u32 => cast(u32, .soundTracks.count)
 
     mtd impl audioTrack(index: u32)->const *SoundFile?
     {
@@ -1063,7 +1063,7 @@ impl ITimedDecoder for Decoder
     {
         if index >= .presentationTimes.count or not .presentationTimescale do
             return 0
-        return cast(f64) .presentationTimes[index] / cast(f64) .presentationTimescale
+        return cast(f64, .presentationTimes[index]) / cast(f64, .presentationTimescale)
     }
 
     mtd impl frameAtTime(seconds: f64)->u64
@@ -1072,10 +1072,10 @@ impl ITimedDecoder for Decoder
             return 0
         if seconds < 0 do
             return 0
-        if seconds >= cast(f64) .info.frameCount * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator() do
+        if seconds >= cast(f64, .info.frameCount) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator()) do
             return .info.frameCount
 
-        let ticks = cast(s64) (seconds * cast(f64) .presentationTimescale)
+        let ticks = cast(s64, (seconds * cast(f64, .presentationTimescale)))
         var low   = 0'u64
         var high  = .presentationTimes.count
         while low < high

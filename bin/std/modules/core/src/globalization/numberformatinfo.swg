@@ -22,7 +22,7 @@ public impl NumberFormatInfo
     {
         if not .groupSizeCount do
             return 0
-        let safeCount = Math.min(cast(u64) .groupSizeCount, (.groupSizes).count)
+        let safeCount = Math.min(cast(u64, .groupSizeCount), (.groupSizes).count)
         let safeIndex = Math.min(index, safeCount - 1)
         return .groupSizes[safeIndex]
     }
@@ -55,7 +55,7 @@ public impl NumberFormatInfo
         var current = value
         while true
         {
-            digits[count] = cast(u8) ('0'u8 + current % 10)
+            digits[count] = cast(u8, ('0'u8 + current % 10))
             count         += 1
             current       /= 10
             if not current do
@@ -86,12 +86,12 @@ public impl NumberFormatInfo
         if value < 0
         {
             result.append(.negativeSign)
-            let magnitude = cast(u64) (-(value + 1)) + 1
+            let magnitude = cast(u64, (-(value + 1))) + 1
             .appendUnsigned(&result, magnitude, grouped)
         }
         else
         {
-            .appendUnsigned(&result, cast(u64) value, grouped)
+            .appendUnsigned(&result, cast(u64, value), grouped)
         }
 
         return result
@@ -121,8 +121,8 @@ public impl NumberFormatInfo
 
         let negative = value < 0
         let absolute = Math.abs(value)
-        Swag.assert(absolute <= cast(f64) Swag.U64.Max / cast(f64) scale, "numeric value is too large at the requested precision")
-        let scaled   = cast(u64) Math.round(absolute * cast(f64) scale)
+        Swag.assert(absolute <= cast(f64, Swag.U64.Max) / cast(f64, scale), "numeric value is too large at the requested precision")
+        let scaled   = cast(u64, Math.round(absolute * cast(f64, scale)))
         let whole    = decimals ? scaled / scale : scaled
         let fraction = decimals ? scaled % scale : 0
 
@@ -137,7 +137,7 @@ public impl NumberFormatInfo
             var divisor = scale / 10
             for decimals
             {
-                result.append(cast(u8) ('0'u8 + (fraction / divisor) % 10))
+                result.append(cast(u8, ('0'u8 + (fraction / divisor) % 10)))
                 divisor /= 10
             }
         }

@@ -8,7 +8,7 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
-    func attributeString(value: any?)->string => cast #assume (string) value!
+    func attributeString(value: any?)->string => assume cast (string, value!)
 
     // The string an attribute declares, as the reader sees it: an attribute value is a
     // compile-time constant, so the installed resolver is what can turn it into a
@@ -100,7 +100,7 @@ internal impl Properties
 
             if not dispName.isEmpty()
             {
-                var labelWidth = cast(f32) .gridColumnSize
+                var labelWidth = cast(f32, .gridColumnSize)
                 if not .isGridLike() do
                     labelWidth = .listContentWidth()
                 with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
@@ -183,7 +183,7 @@ internal impl Properties
         {
         case Reflection.isStaticArray(value.pointedType):
             let item           = .addItem(value, data, parentItem)
-            let typeArr        = cast #assume(const *Swag.TypeInfoArray) value.pointedType!
+            let typeArr        = assume cast(const *Swag.TypeInfoArray, value.pointedType)
             let numItemsBefore = .items.count
 
             var newData = data
@@ -196,10 +196,10 @@ internal impl Properties
                 newData += typeArr.pointedType.sizeof
             }
 
-            item.numChilds += cast(u32) (.items.count - numItemsBefore)
+            item.numChilds += cast(u32, (.items.count - numItemsBefore))
 
         case Reflection.isEnum(value.pointedType):
-            let typeEnum = cast #assume(const *Swag.TypeInfoEnum) value.pointedType!
+            let typeEnum = assume cast(const *Swag.TypeInfoEnum, value.pointedType)
             .constructEnum(value, typeEnum, data, parentItem)
 
         case value.pointedType == Core.String:
@@ -212,14 +212,14 @@ internal impl Properties
             .constructBool(value, data, parentItem)
 
         case Reflection.isInteger(value.pointedType) or Reflection.isFloat(value.pointedType):
-            let typeNative = cast #assume(const *Swag.TypeInfoNative) value.pointedType!
+            let typeNative = assume cast(const *Swag.TypeInfoNative, value.pointedType)
             .constructNative(value, typeNative, data, parentItem)
 
         case value.pointedType == Array:
             .constructArray(value, data, parentItem)
 
         case Reflection.isStruct(value.pointedType):
-            let typeSubStruct = cast #assume(const *Swag.TypeInfoStruct) value.pointedType!
+            let typeSubStruct = assume cast(const *Swag.TypeInfoStruct, value.pointedType)
             if typeSubStruct.fromGeneric == Array
             {
                 .constructArray(value, data, parentItem)
@@ -242,7 +242,7 @@ internal impl Properties
             let item = .addItem(value, data, parentItem)
             let numItemsBefore = .items.count
             .addStructInternal(typeSubStruct, data, item)
-            item.numChilds = cast(u32) (.items.count - numItemsBefore)
+            item.numChilds = cast(u32, (.items.count - numItemsBefore))
         }
     }
 
@@ -361,7 +361,7 @@ internal impl Properties
             .addDecorators(value, newParent)
             .addValue(value, addr + value.offset, newParent)
 
-            let added = cast(u32) (.items.count - numItemsBefore)
+            let added = cast(u32, (.items.count - numItemsBefore))
             for &c in categPath
             {
                 c.item!.numChilds += added
@@ -425,7 +425,7 @@ internal impl Properties
             return
 
         if let space = Reflection.attributeValue(value, .Gap, "size") do
-            .addSpacerRow(parentItem, cast #assume (s32) space)
+            .addSpacerRow(parentItem, assume cast (s32, space))
         if let header = Reflection.attributeValue(value, .Heading, "text") do
             .addHeaderRow(attributeText(header), parentItem)
         if let help = Reflection.attributeValue(value, .HelpBox, "text") do
@@ -435,7 +435,7 @@ internal impl Properties
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
     mtd addSpacerRow(parentItem: *PropertiesItem?, size: s32)->*PropertiesItem
     {
-        with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .None)
+        with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32, size), .None)
         {
             .level = parentItem!.level
             .flags.add(.Spacer | .NoSeparator | .NoFocus)

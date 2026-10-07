@@ -4,7 +4,7 @@ using Swag, Core
 
 func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
-    let idx = cast(u64) (yFromBottom * img.width + x) * img.bytesPerPixel
+    let idx = cast(u64, (yFromBottom * img.width + x)) * img.bytesPerPixel
     Swag.assert(img.pixels.storage()[idx] == r)
     Swag.assert(img.pixels.storage()[idx + 1] == g)
     Swag.assert(img.pixels.storage()[idx + 2] == b)
@@ -14,8 +14,8 @@ func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 
 func quantizedGifChannel(value: u8, maxLevel: u32)->u8
 {
-    let level = cast(u32) value * maxLevel / 255
-    return cast(u8) ((level * 255 + maxLevel / 2) / maxLevel)
+    let level = cast(u32, value) * maxLevel / 255
+    return cast(u8, ((level * 255 + maxLevel / 2) / maxLevel))
 }
 
 func assertQuantizedGif24(pixelFormat: PixelFormat) fail
@@ -26,9 +26,9 @@ func assertQuantizedGif24(pixelFormat: PixelFormat) fail
     let blueFirst = pixelFormat == .BGR8
     for i in Width
     {
-        let r = cast(u8) (i & 0xFF)
-        let g = cast(u8) ((i * 37 + 11) & 0xFF)
-        let b = cast(u8) ((i * 73 + 19) & 0xFF)
+        let r = cast(u8, (i & 0xFF))
+        let g = cast(u8, ((i * 37 + 11) & 0xFF))
+        let b = cast(u8, ((i * 73 + 19) & 0xFF))
         pix[0] = blueFirst ? b : r
         pix[1] = g
         pix[2] = blueFirst ? r : b
@@ -41,9 +41,9 @@ func assertQuantizedGif24(pixelFormat: PixelFormat) fail
     Swag.assert(decoded.pixelFormat == .RGB8)
     for i in Width
     {
-        let r = cast(u8) (i & 0xFF)
-        let g = cast(u8) ((i * 37 + 11) & 0xFF)
-        let b = cast(u8) ((i * 73 + 19) & 0xFF)
+        let r = cast(u8, (i & 0xFF))
+        let g = cast(u8, ((i * 37 + 11) & 0xFF))
+        let b = cast(u8, ((i * 73 + 19) & 0xFF))
         assertGifPixelAt(decoded, i, 0, quantizedGifChannel(r, 3), quantizedGifChannel(g, 7), quantizedGifChannel(b, 3), 255)
     }
 }
@@ -56,10 +56,10 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
     let blueFirst = pixelFormat == .BGRA8
     for i in Width
     {
-        let r = cast(u8) (i & 0xFF)
-        let g = cast(u8) ((i * 37 + 11) & 0xFF)
-        let b = cast(u8) ((i * 73 + 19) & 0xFF)
-        let a = withTransparency ? cast(u8) ((i * 53 + 7) & 0xFF) : 255'u8
+        let r = cast(u8, (i & 0xFF))
+        let g = cast(u8, ((i * 37 + 11) & 0xFF))
+        let b = cast(u8, ((i * 73 + 19) & 0xFF))
+        let a = withTransparency ? cast(u8, ((i * 53 + 7) & 0xFF)) : 255'u8
         pix[0] = blueFirst ? b : r
         pix[1] = g
         pix[2] = blueFirst ? r : b
@@ -73,10 +73,10 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
     Swag.assert(decoded.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
     for i in Width
     {
-        let r = cast(u8) (i & 0xFF)
-        let g = cast(u8) ((i * 37 + 11) & 0xFF)
-        let b = cast(u8) ((i * 73 + 19) & 0xFF)
-        let a = withTransparency ? cast(u8) ((i * 53 + 7) & 0xFF) : 255'u8
+        let r = cast(u8, (i & 0xFF))
+        let g = cast(u8, ((i * 37 + 11) & 0xFF))
+        let b = cast(u8, ((i * 73 + 19) & 0xFF))
+        let a = withTransparency ? cast(u8, ((i * 53 + 7) & 0xFF)) : 255'u8
         if withTransparency and a < 128
         {
             assertGifPixelAt(decoded, i, 0, 0, 0, 0, 0)
@@ -95,10 +95,10 @@ func assertGifHeader(bytes: const [..] u8, width, height: u16)
     Swag.assert(bytes.count > 20)
     Swag.assert(bytes[0] == 'G' and bytes[1] == 'I' and bytes[2] == 'F')
     Swag.assert(bytes[3] == '8' and bytes[4] == '9' and bytes[5] == 'a')
-    Swag.assert(bytes[6] == cast(u8) (width & 0xFF))
-    Swag.assert(bytes[7] == cast(u8) (width >> 8))
-    Swag.assert(bytes[8] == cast(u8) (height & 0xFF))
-    Swag.assert(bytes[9] == cast(u8) (height >> 8))
+    Swag.assert(bytes[6] == cast(u8, (width & 0xFF)))
+    Swag.assert(bytes[7] == cast(u8, (width >> 8)))
+    Swag.assert(bytes[8] == cast(u8, (height & 0xFF)))
+    Swag.assert(bytes[9] == cast(u8, (height >> 8)))
     Swag.assert(bytes[bytes.count - 1] == 0x3B'u8)
 }
 
@@ -106,13 +106,13 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
     let cb    = expect src.encode("memory.gif")
     let bytes = nnBytes(cb.toSlice())
-    assertGifHeader(bytes, cast(u16) src.width, cast(u16) src.height)
+    assertGifHeader(bytes, cast(u16, src.width), cast(u16, src.height))
 
     let img = expect Image.decode("encoded.gif", bytes, {})
     Swag.assert(img.width == src.width)
     Swag.assert(img.height == src.height)
     Swag.assert(img.pixelFormat == expectedPf)
-    Swag.assert(img.pixels.count == cast(u64) src.width * src.height * img.bytesPerPixel)
+    Swag.assert(img.pixels.count == cast(u64, src.width) * src.height * img.bytesPerPixel)
 }
 
 // Decoder and encoder registries recognise GIF files.
@@ -272,9 +272,9 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     {
         let x = i % src.width
         let y = i / src.width
-        pix[0] = cast(u8) (x * 15)
-        pix[1] = cast(u8) (y * 15)
-        pix[2] = cast(u8) ((x * 13 + y * 7) & 0xFF)
+        pix[0] = cast(u8, (x * 15))
+        pix[1] = cast(u8, (y * 15))
+        pix[2] = cast(u8, ((x * 13 + y * 7) & 0xFF))
         pix    += 3
     }
 

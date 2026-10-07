@@ -97,7 +97,7 @@ impl HtmlImageCache
         if found do
             return .entries[found.value].loaded ? &.entries[found.value] : null
 
-        let slot = cast(u32) .entries.count
+        let slot = cast(u32, .entries.count)
         var entry: HtmlImageEntry
         entry.source = source
         .entries.add(#move entry)
@@ -109,7 +109,7 @@ impl HtmlImageCache
             if decodeError != null do
                 return null
             .entries[slot].image       = embedded
-            .entries[slot].naturalSize = {cast(f32) embedded.width, cast(f32) embedded.height}
+            .entries[slot].naturalSize = {cast(f32, embedded.width), cast(f32, embedded.height)}
             .entries[slot].loaded      = true
             return &.entries[slot]
         }
@@ -138,7 +138,7 @@ impl HtmlImageCache
             return null
 
         .entries[slot].image       = image
-        .entries[slot].naturalSize = {cast(f32) image.width, cast(f32) image.height}
+        .entries[slot].naturalSize = {cast(f32, image.width), cast(f32, image.height)}
         .entries[slot].loaded      = true
         return &.entries[slot]
     }
@@ -165,10 +165,10 @@ impl HtmlImageCache
             // Keep the source aspect ratio: CSS may stretch the uploaded texture independently.
             let size           = entry.naturalSize
             let requestedScale = Math.max(Math.max(pixelWidth, entry.rasterSize.x) / size.x, Math.max(pixelHeight, entry.rasterSize.y) / size.y)
-            let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y), Math.sqrt(cast(f32) HtmlSvgRasterPixels / size.x / size.y))
+            let scale          = Math.min(requestedScale, HtmlSvgRasterLimit / Math.max(size.x, size.y), Math.sqrt(cast(f32, HtmlSvgRasterPixels) / size.x / size.y))
             let capped         = scale < requestedScale
-            let width          = cast(s32) Math.max(capped ? Math.floor(size.x * scale) : Math.ceil(size.x * scale), 1)
-            let height         = cast(s32) Math.max(capped ? Math.floor(size.y * scale) : Math.ceil(size.y * scale), 1)
+            let width          = cast(s32, Math.max(capped ? Math.floor(size.x * scale) : Math.ceil(size.x * scale), 1))
+            let height         = cast(s32, Math.max(capped ? Math.floor(size.y * scale) : Math.ceil(size.y * scale), 1))
             if entry.image.width < width or entry.image.height < height
             {
                 if entry.uploaded

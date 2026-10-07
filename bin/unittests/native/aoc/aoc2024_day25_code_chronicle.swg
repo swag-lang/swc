@@ -69,7 +69,7 @@ impl Heights
     {
         for i in NumCols
         {
-            if cast(u32) me.col[i] + cast(u32) other.col[i] > MaxHeight
+            if cast(u32, me.col[i]) + cast(u32, other.col[i]) > MaxHeight
             {
                 return false
             }
@@ -104,8 +104,8 @@ struct ParseResult
 func parseInit()->ParseResult
 {
     var r: ParseResult
-    r.locks = cast([*] Heights?) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
-    r.keys  = cast([*] Heights?) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
+    r.locks = cast([*] Heights?, testAlloc(cast(u64, MaxSchematics) * #sizeof(Heights)))
+    r.keys  = cast([*] Heights?, testAlloc(cast(u64, MaxSchematics) * #sizeof(Heights)))
     return r
 }
 
@@ -197,7 +197,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
 func parse(text: string)->ParseResult
 {
     var result = parseInit()
-    let bytes  = cast(const [..] u8) text
+    let bytes  = cast(const [..] u8, text)
     var pos: u32
 
     for
@@ -578,9 +578,9 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     lock.col[0] = 4
     var key: Heights
     key.col[0] = 2
-    // cast(u32) 4 + cast(u32) 2 = 6 > 5 → overlap
+    // cast(u32, 4) + cast(u32, 2) = 6 > 5 → overlap
     Swag.assert(not lock.fits(key))
     key.col[0] = 1
-    // cast(u32) 4 + cast(u32) 1 = 5 ≤ 5 → fits
+    // cast(u32, 4) + cast(u32, 1) = 5 ≤ 5 → fits
     Swag.assert(lock.fits(key))
 }

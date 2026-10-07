@@ -62,7 +62,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
         while cursor[] and (quoted ? cursor[] != '"' : cursor[] != ' ') do
             cursor += 1
 
-        let token = cast(string) Swag.makeSlice(start, cast(u64) (cursor - start))
+        let token = cast(string, Swag.makeSlice(start, cast(u64, (cursor - start))))
         if cursor[] do
             cursor += 1
 
@@ -104,7 +104,7 @@ internal func absolutePath(path: string)->String
     let winPath = Utf16.toZeroTerminated(path)
 
     var arr16: Array'u16
-    arr16.reserve(cast(u64) MaxLength + 1)
+    arr16.reserve(cast(u64, MaxLength) + 1)
 
     // Only the returned length decides: the call does not clear the thread's last error, so a
     // stale one would send an otherwise successful resolution down the fallback path.

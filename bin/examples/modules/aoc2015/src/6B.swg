@@ -31,10 +31,10 @@ func day6B()
 
     for instruction in day6Instructions
     {
-        let x0         = cast(u64) instruction.x0
-        let y0         = cast(u64) instruction.y0
-        let y1         = cast(u64) instruction.y1
-        let writeCount = cast(u64) instruction.x1 - x0 + 1
+        let x0         = cast(u64, instruction.x0)
+        let y0         = cast(u64, instruction.y0)
+        let y1         = cast(u64, instruction.y1)
+        let writeCount = cast(u64, instruction.x1) - x0 + 1
 
         switch instruction.action
         {

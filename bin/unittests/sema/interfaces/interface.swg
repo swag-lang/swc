@@ -30,7 +30,7 @@ impl I0 for S0
 func semaTest001()
 {
     var source: S0
-    var a = cast(I0) source
+    var a = cast(I0, source)
     a.toto()
 }
 
@@ -59,13 +59,13 @@ func semaTest002()
 func semaTest003()
 {
     var a: A
-    var i = cast(I) a
+    var i = cast(I, a)
     Swag.assert(i.A() == 0)
 }
 
 func semaTest004()
 {
     var t: T
-    var i = cast(I1) t
+    var i = cast(I1, t)
     i.toto()
 }

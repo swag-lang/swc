@@ -150,18 +150,18 @@ private func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
 {
     Sync.scopedLock(&cache.lock)
 
-    let key   = cast(s32) scale
+    let key   = cast(s32, scale)
     let found = cache.widgetsRasters.tryFind(key)
     if found do
         return &found.value
 
-    let w = cast(s32) Math.round(cache.widgets.width * scale)
-    let h = cast(s32) Math.round(cache.widgets.height * scale)
+    let w = cast(s32, Math.round(cache.widgets.width * scale))
+    let h = cast(s32, Math.round(cache.widgets.height * scale))
 
     // Rasterize with strong supersampling so tile edges carry exact coverage; cap
     // the internal buffer so a dense display keeps the one-time cost bounded.
     var ss = 4'u8
-    while ss > 1 and w * cast(s32) ss > 4096 do
+    while ss > 1 and w * cast(s32, ss) > 4096 do
         ss /= 2
 
     return &cache.widgetsRasters.add(key, cache.widgets.rasterize(w, h, ss)).value
@@ -320,7 +320,7 @@ impl Theme
     mtd loadSheet(resources: const *Resources.Bundle, name: string) fail
     {
         let bytes = try resources.load(name)
-        try .applySheet(cast(string) bytes.toSlice())
+        try .applySheet(cast(string, bytes.toSlice()))
     }
 
     // Applies the neutral dark palette and the geometry the theme atlas was authored with.

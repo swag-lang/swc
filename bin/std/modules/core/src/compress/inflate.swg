@@ -88,7 +88,7 @@ internal
 
             for i in 1 to 16
             {
-                if cast(u32) sizes[i] > (1'u32 << i) do
+                if cast(u32, sizes[i]) > (1'u32 << i) do
                     fail InvalidFormatError{"bad huffman sizes"}
             }
 
@@ -96,13 +96,13 @@ internal
             var cde = 0'u32
             for i in 1 to 15
             {
-                nextCode[i]     = cast(u16) cde
-                .firstCode[i]   = cast(u16) cde
+                nextCode[i]     = cast(u16, cde)
+                .firstCode[i]   = cast(u16, cde)
                 .firstSymbol[i] = k
                 cde             += sizes[i]
-                if sizes[i] != 0 and (cast(u32) cde - 1) >= (1'u32 << i) do
+                if sizes[i] != 0 and (cast(u32, cde) - 1) >= (1'u32 << i) do
                     fail InvalidFormatError{"huffman bad code lengths"}
-                .maxCode[i] = cast(s64) cde << (16 - i)
+                .maxCode[i] = cast(s64, cde) << (16 - i)
                 cde         <<= 1
                 k           += sizes[i]
             }
@@ -114,9 +114,9 @@ internal
                     continue
 
                 let c     = nextCode[v] - .firstCode[v] + .firstSymbol[v]
-                let fastv = (cast(u16) v << 9) | cast(u16) ci
+                let fastv = (cast(u16, v) << 9) | cast(u16, ci)
                 .size[c]  = v
-                .value[c] = cast(u16) ci
+                .value[c] = cast(u16, ci)
                 if v <= FastBits
                 {
                     var j = reverse16(nextCode[v], v)
@@ -174,12 +174,12 @@ impl Inflate
         let b = ht.fast[.stream.codeBuffer & FastMask]
         if b
         {
-            let s = cast(u8) (b >> FastBits)
+            let s = cast(u8, (b >> FastBits))
             .stream.consumeBits(s)
             return b & 511
         }
 
-        let cde = cast(u16) .stream.peekBits(16)
+        let cde = cast(u16, .stream.peekBits(16))
         let k   = reverse16(cde, 16)
 
         var s = HuffmanFastBits + 1
@@ -194,7 +194,7 @@ impl Inflate
         if ht.size[b1] != s do
             fail InvalidFormatError{"bad huffman code"}
 
-        .stream.consumeBits(cast(u8) s)
+        .stream.consumeBits(cast(u8, s))
         return ht.value[b1]
     }
 
@@ -211,7 +211,7 @@ impl Inflate
         let startBufCount = dest.count
 
         var cb  = .stream.codeBuffer
-        var nb  = cast(u32) .stream.numBits
+        var nb  = cast(u32, .stream.numBits)
         var cur = .stream.curByte
 
         let src  = (.stream.stream).buffer
@@ -242,8 +242,8 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= (cast(const *u64) (src! + cur))[] << #wrap nb
-                cur += cast(u64) ((63 - nb) >> 3)
+                cb  |= cast(const *u64, (src! + cur))[] << #wrap nb
+                cur += cast(u64, ((63 - nb) >> 3))
                 nb  |= 56
             }
             elif nb > 64
@@ -259,13 +259,13 @@ impl Inflate
                 if nb != 64 do
                     cb &= (1'u64 << nb) - 1
                 .stream.codeBuffer = cb
-                .stream.numBits    = cast(u8) nb
+                .stream.numBits    = cast(u8, nb)
                 .stream.curByte    = cur
                 .stream.refill(56)
                 if .stream.numBits == 255 do
                     fail InvalidFormatError{"malformed"}
                 cb  = .stream.codeBuffer
-                nb  = cast(u32) .stream.numBits
+                nb  = cast(u32, .stream.numBits)
                 cur = .stream.curByte
             }
 
@@ -273,14 +273,14 @@ impl Inflate
             let b = repeatHt.fast[cb & FastMask]
             if b
             {
-                let s = cast(u32) (b >> FastBits)
+                let s = cast(u32, (b >> FastBits))
                 cb    >>= s
                 nb    -= #wrap s
                 value = b & 511
             }
             else
             {
-                let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
+                let k = reverse16(cast(u16, (cb & 0xFFFF)), 16)
                 var s = HuffmanFastBits + 1
                 while k >= repeatHt.maxCode[s] do
                     s += 1
@@ -292,7 +292,7 @@ impl Inflate
                 if repeatHt.size[b1] != s do
                     fail InvalidFormatError{"bad huffman code"}
                 cb    >>= s
-                nb    -= #wrap cast(u32) s
+                nb    -= #wrap cast(u32, s)
                 value = repeatHt.value[b1]
             }
 
@@ -309,7 +309,7 @@ impl Inflate
                 }
 
                 let obuf = buf!
-                obuf[count] = cast(u8) value
+                obuf[count] = cast(u8, value)
                 count       += 1
                 continue
             }
@@ -321,7 +321,7 @@ impl Inflate
                 if nb != 64 do
                     cb &= (1'u64 << nb) - 1
                 .stream.codeBuffer = cb
-                .stream.numBits    = cast(u8) nb
+                .stream.numBits    = cast(u8, nb)
                 .stream.curByte    = cur
                 dest.count         = count
 
@@ -331,8 +331,8 @@ impl Inflate
             }
 
             value -= 257
-            var length = cast(u64) LengthBase[value]
-            let lextra = cast(u32) LengthExtra[value]
+            var length = cast(u64, LengthBase[value])
+            let lextra = cast(u32, LengthExtra[value])
             if lextra
             {
                 length += cb & ((1'u64 << lextra) - 1)
@@ -344,14 +344,14 @@ impl Inflate
             let d = repeatZ.fast[cb & FastMask]
             if d
             {
-                let s = cast(u32) (d >> FastBits)
+                let s = cast(u32, (d >> FastBits))
                 cb     >>= s
                 nb     -= #wrap s
                 dvalue = d & 511
             }
             else
             {
-                let k = reverse16(cast(u16) (cb & 0xFFFF), 16)
+                let k = reverse16(cast(u16, (cb & 0xFFFF)), 16)
                 var s = HuffmanFastBits + 1
                 while k >= repeatZ.maxCode[s] do
                     s += 1
@@ -363,12 +363,12 @@ impl Inflate
                 if repeatZ.size[b1] != s do
                     fail InvalidFormatError{"bad huffman code"}
                 cb     >>= s
-                nb     -= #wrap cast(u32) s
+                nb     -= #wrap cast(u32, s)
                 dvalue = repeatZ.value[b1]
             }
 
-            var distance = cast(u64) DistBase[dvalue]
-            let dextra   = cast(u32) DistExtra[dvalue]
+            var distance = cast(u64, DistBase[dvalue])
+            let dextra   = cast(u32, DistExtra[dvalue])
             if dextra
             {
                 distance += cb & ((1'u64 << dextra) - 1)
@@ -420,7 +420,7 @@ impl Inflate
                 var dst = count
                 while dst < end
                 {
-                    (cast(*u64) (obuf + dst))[] = (cast(const *u64) (obuf + from))[]
+                    cast(*u64, (obuf + dst))[] = cast(const *u64, (obuf + from))[]
                     dst  += 8
                     from += 8
                 }
@@ -475,8 +475,8 @@ impl Inflate
             {
             case 0:
                 .stream.discardToNextByte()
-                let uncompressedLen = cast(u16) .stream.readBits(16)
-                let lengthCheck     = cast(u16) .stream.readBits(16)
+                let uncompressedLen = cast(u16, .stream.readBits(16))
+                let lengthCheck     = cast(u16, .stream.readBits(16))
                 if ~uncompressedLen != lengthCheck do
                     fail InvalidFormatError{"invalid buffer, length mismatch"}
 
@@ -507,7 +507,7 @@ impl Inflate
                 let hclen = .stream.readBitsUnchecked(4) + 4
                 for i in hclen
                 {
-                    let s = cast(u8) .stream.readBits(3)
+                    let s = cast(u8, .stream.readBits(3))
                     codeLengthSizes[LengthDezigzag[i]] = s
                 }
 
@@ -522,7 +522,7 @@ impl Inflate
 
                     if c < 16
                     {
-                        lenCodes[n] = cast(u8) c
+                        lenCodes[n] = cast(u8, c)
                         n += 1
                     }
                     else
@@ -532,16 +532,16 @@ impl Inflate
                         switch c
                         {
                         case 16:
-                            c = cast(u16) (.stream.readBitsUnchecked(2) + 3)
+                            c = cast(u16, (.stream.readBitsUnchecked(2) + 3))
                             if n == 0 do
                                 fail InvalidFormatError{"bad code lengths"}
                             fill = lenCodes[n - 1]
 
                         case 17:
-                            c = cast(u16) (.stream.readBitsUnchecked(3) + 3)
+                            c = cast(u16, (.stream.readBitsUnchecked(3) + 3))
 
                         case 18:
-                            c = cast(u16) (.stream.readBitsUnchecked(7) + 11)
+                            c = cast(u16, (.stream.readBitsUnchecked(7) + 11))
 
                         default:
                             fail InvalidFormatError{"bad code lengths"}

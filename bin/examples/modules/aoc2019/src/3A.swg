@@ -148,7 +148,7 @@ func day3A1()
             if intersects and not point.isZero()
             {
                 let d = Math.abs(point.x) + Math.abs(point.y)
-                best = Math.min(best, cast(s32) d)
+                best = Math.min(best, cast(s32, d))
             }
         }
     }

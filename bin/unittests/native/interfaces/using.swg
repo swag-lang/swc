@@ -27,13 +27,13 @@ struct Bad
 #test
 {
     var s: S
-    var i0 = cast(I) s
+    var i0 = cast(I, s)
     Swag.assert(i0.foo() == 1)
 }
 
 #test
 {
     var w: W
-    var i1 = cast(I) w
+    var i1 = cast(I, w)
     Swag.assert(i1.foo() == 1)
 }

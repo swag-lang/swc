@@ -46,7 +46,7 @@ impl ConstDataOfSpecBuffer
     {
         const value: ConstDataOfSpecBuffer = {data: [3'u8, 5'u8]}
         let p = value.buffer
-        return cast(u32) p[0] + cast(u32) p[1]
+        return cast(u32, p[0]) + cast(u32, p[1])
     }
 
     const V0 = #run readConstThroughSpecOp()

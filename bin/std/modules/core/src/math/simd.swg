@@ -55,34 +55,34 @@ namespace Simd
         //
         // The lane type of the pointer selects the vector shape, so a byte pointer
         // reads a [[Simd.U8x16]], a `s16` pointer a [[Simd.S16x8]], and so on.
-        func load(source: const [*] u8)->U8x16  => (cast(const [*] U8x16) source)[0]
-        func load(source: const [*] s8)->S8x16  => (cast(const [*] S8x16) source)[0]
-        func load(source: const [*] u16)->U16x8 => (cast(const [*] U16x8) source)[0]
-        func load(source: const [*] s16)->S16x8 => (cast(const [*] S16x8) source)[0]
-        func load(source: const [*] u32)->U32x4 => (cast(const [*] U32x4) source)[0]
-        func load(source: const [*] s32)->S32x4 => (cast(const [*] S32x4) source)[0]
-        func load(source: const [*] u64)->U64x2 => (cast(const [*] U64x2) source)[0]
-        func load(source: const [*] s64)->S64x2 => (cast(const [*] S64x2) source)[0]
-        func load(source: const [*] f32)->F32x4 => (cast(const [*] F32x4) source)[0]
-        func load(source: const [*] f64)->F64x2 => (cast(const [*] F64x2) source)[0]
+        func load(source: const [*] u8)->U8x16  => cast(const [*] U8x16, source)[0]
+        func load(source: const [*] s8)->S8x16  => cast(const [*] S8x16, source)[0]
+        func load(source: const [*] u16)->U16x8 => cast(const [*] U16x8, source)[0]
+        func load(source: const [*] s16)->S16x8 => cast(const [*] S16x8, source)[0]
+        func load(source: const [*] u32)->U32x4 => cast(const [*] U32x4, source)[0]
+        func load(source: const [*] s32)->S32x4 => cast(const [*] S32x4, source)[0]
+        func load(source: const [*] u64)->U64x2 => cast(const [*] U64x2, source)[0]
+        func load(source: const [*] s64)->S64x2 => cast(const [*] S64x2, source)[0]
+        func load(source: const [*] f32)->F32x4 => cast(const [*] F32x4, source)[0]
+        func load(source: const [*] f64)->F64x2 => cast(const [*] F64x2, source)[0]
 
         // Writes one vector to memory; the pointer needs no particular alignment.
-        func store(destination: [*] u8, value: U8x16) { (cast([*] U8x16) destination)[0] = value; }
-        func store(destination: [*] s8, value: S8x16) { (cast([*] S8x16) destination)[0] = value; }
-        func store(destination: [*] u16, value: U16x8) { (cast([*] U16x8) destination)[0] = value; }
-        func store(destination: [*] s16, value: S16x8) { (cast([*] S16x8) destination)[0] = value; }
-        func store(destination: [*] u32, value: U32x4) { (cast([*] U32x4) destination)[0] = value; }
-        func store(destination: [*] s32, value: S32x4) { (cast([*] S32x4) destination)[0] = value; }
-        func store(destination: [*] u64, value: U64x2) { (cast([*] U64x2) destination)[0] = value; }
-        func store(destination: [*] s64, value: S64x2) { (cast([*] S64x2) destination)[0] = value; }
-        func store(destination: [*] f32, value: F32x4) { (cast([*] F32x4) destination)[0] = value; }
-        func store(destination: [*] f64, value: F64x2) { (cast([*] F64x2) destination)[0] = value; }
+        func store(destination: [*] u8, value: U8x16) { cast([*] U8x16, destination)[0] = value; }
+        func store(destination: [*] s8, value: S8x16) { cast([*] S8x16, destination)[0] = value; }
+        func store(destination: [*] u16, value: U16x8) { cast([*] U16x8, destination)[0] = value; }
+        func store(destination: [*] s16, value: S16x8) { cast([*] S16x8, destination)[0] = value; }
+        func store(destination: [*] u32, value: U32x4) { cast([*] U32x4, destination)[0] = value; }
+        func store(destination: [*] s32, value: S32x4) { cast([*] S32x4, destination)[0] = value; }
+        func store(destination: [*] u64, value: U64x2) { cast([*] U64x2, destination)[0] = value; }
+        func store(destination: [*] s64, value: S64x2) { cast([*] S64x2, destination)[0] = value; }
+        func store(destination: [*] f32, value: F32x4) { cast([*] F32x4, destination)[0] = value; }
+        func store(destination: [*] f64, value: F64x2) { cast([*] F64x2, destination)[0] = value; }
 
         // Writes the low eight bytes of a byte vector to memory, as one 64-bit move.
-        func storeLow8(destination: [*] u8, value: U8x16) { (cast([*] u64) destination)[0] = (cast #bit(U64x2) value)[0]; }
+        func storeLow8(destination: [*] u8, value: U8x16) { cast([*] u64, destination)[0] = cast #bit(U64x2, value)[0]; }
 
         // Writes the low four bytes of a byte vector to memory, as one 32-bit move.
-        func storeLow4(destination: [*] u8, value: U8x16) { (cast([*] u32) destination)[0] = (cast #bit(U32x4) value)[0]; }
+        func storeLow4(destination: [*] u8, value: U8x16) { cast([*] u32, destination)[0] = cast #bit(U32x4, value)[0]; }
 
         // Adds per lane with saturation: results clamp to the lane range instead of wrapping.
         func addSaturating(x, y: U8x16)->U8x16 => Swag.vecsatadd(x, y)
@@ -120,20 +120,20 @@ namespace Simd
         //
         // Nothing is lost: the low and high halves of each product interleave back
         // into the double-width lane they belong to.
-        func mulWidenLow(x, y: U8x16)->U16x8 => cast #bit (U16x8) Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y))
-        func mulWidenLow(x, y: S8x16)->S16x8 => cast #bit (S16x8) Swag.vecinterleavelo(cast #bit (U8x16) (x * y), cast #bit (U8x16) Swag.vecmulhi(x, y))
-        func mulWidenLow(x, y: U16x8)->U32x4 => cast #bit (U32x4) Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y))
-        func mulWidenLow(x, y: S16x8)->S32x4 => cast #bit (S32x4) Swag.vecinterleavelo(cast #bit (U16x8) (x * y), cast #bit (U16x8) Swag.vecmulhi(x, y))
-        func mulWidenLow(x, y: U32x4)->U64x2 => cast #bit (U64x2) Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y))
-        func mulWidenLow(x, y: S32x4)->S64x2 => cast #bit (S64x2) Swag.vecinterleavelo(cast #bit (U32x4) (x * y), cast #bit (U32x4) Swag.vecmulhi(x, y))
+        func mulWidenLow(x, y: U8x16)->U16x8 => cast #bit (U16x8, Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y)))
+        func mulWidenLow(x, y: S8x16)->S16x8 => cast #bit (S16x8, Swag.vecinterleavelo(cast #bit (U8x16, (x * y)), cast #bit (U8x16, Swag.vecmulhi(x, y))))
+        func mulWidenLow(x, y: U16x8)->U32x4 => cast #bit (U32x4, Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y)))
+        func mulWidenLow(x, y: S16x8)->S32x4 => cast #bit (S32x4, Swag.vecinterleavelo(cast #bit (U16x8, (x * y)), cast #bit (U16x8, Swag.vecmulhi(x, y))))
+        func mulWidenLow(x, y: U32x4)->U64x2 => cast #bit (U64x2, Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y)))
+        func mulWidenLow(x, y: S32x4)->S64x2 => cast #bit (S64x2, Swag.vecinterleavelo(cast #bit (U32x4, (x * y)), cast #bit (U32x4, Swag.vecmulhi(x, y))))
 
         // Returns the exact products of the high half of the lanes, in lanes twice as wide.
-        func mulWidenHigh(x, y: U8x16)->U16x8 => cast #bit (U16x8) Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y))
-        func mulWidenHigh(x, y: S8x16)->S16x8 => cast #bit (S16x8) Swag.vecinterleavehi(cast #bit (U8x16) (x * y), cast #bit (U8x16) Swag.vecmulhi(x, y))
-        func mulWidenHigh(x, y: U16x8)->U32x4 => cast #bit (U32x4) Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y))
-        func mulWidenHigh(x, y: S16x8)->S32x4 => cast #bit (S32x4) Swag.vecinterleavehi(cast #bit (U16x8) (x * y), cast #bit (U16x8) Swag.vecmulhi(x, y))
-        func mulWidenHigh(x, y: U32x4)->U64x2 => cast #bit (U64x2) Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y))
-        func mulWidenHigh(x, y: S32x4)->S64x2 => cast #bit (S64x2) Swag.vecinterleavehi(cast #bit (U32x4) (x * y), cast #bit (U32x4) Swag.vecmulhi(x, y))
+        func mulWidenHigh(x, y: U8x16)->U16x8 => cast #bit (U16x8, Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y)))
+        func mulWidenHigh(x, y: S8x16)->S16x8 => cast #bit (S16x8, Swag.vecinterleavehi(cast #bit (U8x16, (x * y)), cast #bit (U8x16, Swag.vecmulhi(x, y))))
+        func mulWidenHigh(x, y: U16x8)->U32x4 => cast #bit (U32x4, Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y)))
+        func mulWidenHigh(x, y: S16x8)->S32x4 => cast #bit (S32x4, Swag.vecinterleavehi(cast #bit (U16x8, (x * y)), cast #bit (U16x8, Swag.vecmulhi(x, y))))
+        func mulWidenHigh(x, y: U32x4)->U64x2 => cast #bit (U64x2, Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y)))
+        func mulWidenHigh(x, y: S32x4)->S64x2 => cast #bit (S64x2, Swag.vecinterleavehi(cast #bit (U32x4, (x * y)), cast #bit (U32x4, Swag.vecmulhi(x, y))))
 
         // Adds every lane into one scalar, with wrapping arithmetic for integers.
         //
@@ -210,15 +210,15 @@ namespace Simd
         func absoluteDifferences(x, y: S8x16)->U64x2 => Swag.vecsad(x, y)
 
         // Sums the absolute differences of all sixteen bytes.
-        func sumAbsoluteDifferences(x, y: U8x16)->u32 => cast(u32) Swag.vecreduceadd(Swag.vecsad(x, y))
-        func sumAbsoluteDifferences(x, y: S8x16)->u32 => cast(u32) Swag.vecreduceadd(Swag.vecsad(x, y))
+        func sumAbsoluteDifferences(x, y: U8x16)->u32 => cast(u32, Swag.vecreduceadd(Swag.vecsad(x, y)))
+        func sumAbsoluteDifferences(x, y: S8x16)->u32 => cast(u32, Swag.vecreduceadd(Swag.vecsad(x, y)))
 
         // Multiplies unsigned and signed bytes pairwise and adds each pair of adjacent
         // products into a 16-bit lane, saturating the sum.
         func mulAddPairs(x: U8x16, y: S8x16)->S16x8 => Swag.vecmaddubs(x, y)
 
         // Sums every lane into a wider accumulator, which no lane width can overflow.
-        func sumWide(value: U8x16)->u32 => cast(u32) Swag.vecreduceadd(Swag.vecsad(value, Swag.vecsplat(0'u8)))
+        func sumWide(value: U8x16)->u32 => cast(u32, Swag.vecreduceadd(Swag.vecsad(value, Swag.vecsplat(0'u8))))
         func sumWide(value: S8x16)->s32 => sumWide(Swag.vecwidenlo(value) + Swag.vecwidenhi(value))
         func sumWide(value: S16x8)->s32 => Swag.vecreduceadd(Swag.vecmadd(value, Swag.vecsplat(1's16)))
         func sumWide(value: U16x8)->u32 => Swag.vecreduceadd(Swag.vecwidenlo(value) + Swag.vecwidenhi(value))
@@ -337,14 +337,14 @@ namespace Simd
         func align(low, high: F32x4, count: u8)->F32x4 => Swag.vecalign(low, high, count)
 
         // Collects the even lanes of `x` then those of `y`, undoing one interleave.
-        func deinterleaveEven(x, y: U8x16)->U8x16 => Swag.vecshuffle2(x, y, cast(U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30])
-        func deinterleaveEven(x, y: U16x8)->U16x8 => Swag.vecshuffle2(x, y, cast(U16x8) [0'u16, 2, 4, 6, 8, 10, 12, 14])
-        func deinterleaveEven(x, y: U32x4)->U32x4 => Swag.vecshuffle2(x, y, cast(U32x4) [0'u32, 2, 4, 6])
+        func deinterleaveEven(x, y: U8x16)->U8x16 => Swag.vecshuffle2(x, y, cast(U8x16, [0'u8, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]))
+        func deinterleaveEven(x, y: U16x8)->U16x8 => Swag.vecshuffle2(x, y, cast(U16x8, [0'u16, 2, 4, 6, 8, 10, 12, 14]))
+        func deinterleaveEven(x, y: U32x4)->U32x4 => Swag.vecshuffle2(x, y, cast(U32x4, [0'u32, 2, 4, 6]))
 
         // Collects the odd lanes of `x` then those of `y`.
-        func deinterleaveOdd(x, y: U8x16)->U8x16 => Swag.vecshuffle2(x, y, cast(U8x16) [1'u8, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31])
-        func deinterleaveOdd(x, y: U16x8)->U16x8 => Swag.vecshuffle2(x, y, cast(U16x8) [1'u16, 3, 5, 7, 9, 11, 13, 15])
-        func deinterleaveOdd(x, y: U32x4)->U32x4 => Swag.vecshuffle2(x, y, cast(U32x4) [1'u32, 3, 5, 7])
+        func deinterleaveOdd(x, y: U8x16)->U8x16 => Swag.vecshuffle2(x, y, cast(U8x16, [1'u8, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31]))
+        func deinterleaveOdd(x, y: U16x8)->U16x8 => Swag.vecshuffle2(x, y, cast(U16x8, [1'u16, 3, 5, 7, 9, 11, 13, 15]))
+        func deinterleaveOdd(x, y: U32x4)->U32x4 => Swag.vecshuffle2(x, y, cast(U32x4, [1'u32, 3, 5, 7]))
 
         // Blends two vectors through a mask: lanes of `ifTrue` where the mask lane is
         // all-ones, lanes of `ifFalse` where it is all-zeros.
@@ -413,15 +413,15 @@ namespace Simd
         let high1 = Swag.vecinterleavehi(rows[][2], rows[][3])
 
         // Then the same in 64-bit halves, which finishes the transposition.
-        let pair0 = cast #bit (U64x2) low0
-        let pair1 = cast #bit (U64x2) low1
-        let pair2 = cast #bit (U64x2) high0
-        let pair3 = cast #bit (U64x2) high1
+        let pair0 = cast #bit (U64x2, low0)
+        let pair1 = cast #bit (U64x2, low1)
+        let pair2 = cast #bit (U64x2, high0)
+        let pair3 = cast #bit (U64x2, high1)
 
-        rows[][0] = cast #bit (U32x4) Swag.vecinterleavelo(pair0, pair1)
-        rows[][1] = cast #bit (U32x4) Swag.vecinterleavehi(pair0, pair1)
-        rows[][2] = cast #bit (U32x4) Swag.vecinterleavelo(pair2, pair3)
-        rows[][3] = cast #bit (U32x4) Swag.vecinterleavehi(pair2, pair3)
+        rows[][0] = cast #bit (U32x4, Swag.vecinterleavelo(pair0, pair1))
+        rows[][1] = cast #bit (U32x4, Swag.vecinterleavehi(pair0, pair1))
+        rows[][2] = cast #bit (U32x4, Swag.vecinterleavelo(pair2, pair3))
+        rows[][3] = cast #bit (U32x4, Swag.vecinterleavehi(pair2, pair3))
     }
 
     // Transposes eight rows of eight 16-bit lanes in place, through three
@@ -445,24 +445,24 @@ namespace Simd
         let word7 = Swag.vecinterleavehi(rows[][6], rows[][7])
 
         // Then in 32-bit groups, which brings the lanes together four by four.
-        let quad0 = Swag.vecinterleavelo(cast #bit (U32x4) word0, cast #bit (U32x4) word1)
-        let quad1 = Swag.vecinterleavehi(cast #bit (U32x4) word0, cast #bit (U32x4) word1)
-        let quad2 = Swag.vecinterleavelo(cast #bit (U32x4) word2, cast #bit (U32x4) word3)
-        let quad3 = Swag.vecinterleavehi(cast #bit (U32x4) word2, cast #bit (U32x4) word3)
-        let quad4 = Swag.vecinterleavelo(cast #bit (U32x4) word4, cast #bit (U32x4) word5)
-        let quad5 = Swag.vecinterleavehi(cast #bit (U32x4) word4, cast #bit (U32x4) word5)
-        let quad6 = Swag.vecinterleavelo(cast #bit (U32x4) word6, cast #bit (U32x4) word7)
-        let quad7 = Swag.vecinterleavehi(cast #bit (U32x4) word6, cast #bit (U32x4) word7)
+        let quad0 = Swag.vecinterleavelo(cast #bit (U32x4, word0), cast #bit (U32x4, word1))
+        let quad1 = Swag.vecinterleavehi(cast #bit (U32x4, word0), cast #bit (U32x4, word1))
+        let quad2 = Swag.vecinterleavelo(cast #bit (U32x4, word2), cast #bit (U32x4, word3))
+        let quad3 = Swag.vecinterleavehi(cast #bit (U32x4, word2), cast #bit (U32x4, word3))
+        let quad4 = Swag.vecinterleavelo(cast #bit (U32x4, word4), cast #bit (U32x4, word5))
+        let quad5 = Swag.vecinterleavehi(cast #bit (U32x4, word4), cast #bit (U32x4, word5))
+        let quad6 = Swag.vecinterleavelo(cast #bit (U32x4, word6), cast #bit (U32x4, word7))
+        let quad7 = Swag.vecinterleavehi(cast #bit (U32x4, word6), cast #bit (U32x4, word7))
 
         // And a last round in 64-bit halves.
-        rows[][0] = cast #bit (U16x8) Swag.vecinterleavelo(cast #bit (U64x2) quad0, cast #bit (U64x2) quad2)
-        rows[][1] = cast #bit (U16x8) Swag.vecinterleavehi(cast #bit (U64x2) quad0, cast #bit (U64x2) quad2)
-        rows[][2] = cast #bit (U16x8) Swag.vecinterleavelo(cast #bit (U64x2) quad1, cast #bit (U64x2) quad3)
-        rows[][3] = cast #bit (U16x8) Swag.vecinterleavehi(cast #bit (U64x2) quad1, cast #bit (U64x2) quad3)
-        rows[][4] = cast #bit (U16x8) Swag.vecinterleavelo(cast #bit (U64x2) quad4, cast #bit (U64x2) quad6)
-        rows[][5] = cast #bit (U16x8) Swag.vecinterleavehi(cast #bit (U64x2) quad4, cast #bit (U64x2) quad6)
-        rows[][6] = cast #bit (U16x8) Swag.vecinterleavelo(cast #bit (U64x2) quad5, cast #bit (U64x2) quad7)
-        rows[][7] = cast #bit (U16x8) Swag.vecinterleavehi(cast #bit (U64x2) quad5, cast #bit (U64x2) quad7)
+        rows[][0] = cast #bit (U16x8, Swag.vecinterleavelo(cast #bit (U64x2, quad0), cast #bit (U64x2, quad2)))
+        rows[][1] = cast #bit (U16x8, Swag.vecinterleavehi(cast #bit (U64x2, quad0), cast #bit (U64x2, quad2)))
+        rows[][2] = cast #bit (U16x8, Swag.vecinterleavelo(cast #bit (U64x2, quad1), cast #bit (U64x2, quad3)))
+        rows[][3] = cast #bit (U16x8, Swag.vecinterleavehi(cast #bit (U64x2, quad1), cast #bit (U64x2, quad3)))
+        rows[][4] = cast #bit (U16x8, Swag.vecinterleavelo(cast #bit (U64x2, quad4), cast #bit (U64x2, quad6)))
+        rows[][5] = cast #bit (U16x8, Swag.vecinterleavehi(cast #bit (U64x2, quad4), cast #bit (U64x2, quad6)))
+        rows[][6] = cast #bit (U16x8, Swag.vecinterleavelo(cast #bit (U64x2, quad5), cast #bit (U64x2, quad7)))
+        rows[][7] = cast #bit (U16x8, Swag.vecinterleavehi(cast #bit (U64x2, quad5), cast #bit (U64x2, quad7)))
     }
 }
 
@@ -550,14 +550,14 @@ namespace Simd
     {
         const Magnitude = Swag.vecsplat(0x7FFF_FFFF'u32)
         const Sign      = Swag.vecsplat(0x8000_0000'u32)
-        return cast #bit (Simd.F32x4) ((cast #bit (Simd.U32x4) x & Magnitude) | (cast #bit (Simd.U32x4) y & Sign))
+        return cast #bit (Simd.F32x4, ((cast #bit (Simd.U32x4, x) & Magnitude) | (cast #bit (Simd.U32x4, y) & Sign)))
     }
 
     func copysign(x, y: Simd.F64x2)->Simd.F64x2
     {
         const Magnitude = Swag.vecsplat(0x7FFF_FFFF_FFFF_FFFF'u64)
         const Sign      = Swag.vecsplat(0x8000_0000_0000_0000'u64)
-        return cast #bit (Simd.F64x2) ((cast #bit (Simd.U64x2) x & Magnitude) | (cast #bit (Simd.U64x2) y & Sign))
+        return cast #bit (Simd.F64x2, ((cast #bit (Simd.U64x2, x) & Magnitude) | (cast #bit (Simd.U64x2, y) & Sign)))
     }
 
     // Returns the sign of every lane.

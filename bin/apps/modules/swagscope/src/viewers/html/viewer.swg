@@ -17,7 +17,7 @@ func htmlViewerPlugin()->Viewer.Plugin
         .staticName   = "HTML"
         .attach       = &registerHtmlStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Html
+        .iconIndex    = cast(s32, ViewerIcons.Html)
         .create       = &createHtmlViewer
         .probe        = &htmlPluginProbe
         .textual      = true
@@ -57,8 +57,8 @@ private impl HtmlViewer
     {
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         var style = HtmlStyle.theme()
-        style.bodyFontSize = cast(u32) Math.max(Math.round(16.0 * cast(f32) .zoomPercent / 100), 1)
-        style.codeFontSize = cast(u32) Math.max(Math.round(14.0 * cast(f32) .zoomPercent / 100), 1)
+        style.bodyFontSize = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
+        style.codeFontSize = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
         .view.setDocumentStyle(style)
         .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
     }
@@ -167,26 +167,23 @@ func createHtmlViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|result|(match, text)->bool
         {
-            return (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text)
+            return result.view.revealFileOffset(match.offset, text)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|result|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*HtmlViewer) wnd).view.searchMatchRect(bounds)
+            return result.view.searchMatchRect(bounds)
         }
 
-        .clear = func(wnd)
-        {
-            (cast #assume (*HtmlViewer) wnd).view.clearSearch()
-        }
+        .clear = func|result|() => result.view.clearSearch()
     }
 
     host.setSearch(search)
 
-    host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*HtmlViewer) wnd).view.isLoading()})
+    host.setLifecycle({isLoading: func|result|()->bool => result.view.isLoading()})
     result.view.sigLinkActivated += func(html, url)
     {
         discard html

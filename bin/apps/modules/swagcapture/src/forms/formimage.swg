@@ -63,11 +63,11 @@ impl FormImage
 
         .image.visitPixels(mask)
         {
-            var maskImg = cast(*Image) userData
+            var maskImg = cast(*Image, userData)
             var pix1    = maskImg.pixels.storage() + x * 4
             pix1 += maskImg.width * y * 4
             if not pix1[0] do
-                (cast(*u32) pix)[] = 0
+                cast(*u32, pix)[] = 0
         }
 
         renderer.removeTexture(&.texture)
@@ -78,8 +78,8 @@ impl FormImage
     {
         let renderer = g_App.renderer
         let capture  = .capture!
-        let x1       = cast(s32) (.x - capture.backImagePos.x)
-        let y1       = cast(s32) (.y - capture.backImagePos.y)
+        let x1       = cast(s32, (.x - capture.backImagePos.x))
+        let y1       = cast(s32, (.y - capture.backImagePos.y))
 
         if .w > 1 and .h > 1 and .isReadyToCapture
         {
@@ -103,7 +103,7 @@ impl IForm for FormImage
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast #try (*FormImage) ptr
+        let other = (catch cast(*FormImage?, ptr))
         if not other do
             return false
 
@@ -117,8 +117,8 @@ impl IForm for FormImage
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast #assume (*FormImage) dst
-        let srcf = cast #assume (*FormImage) src
+        let dstf = assume cast (*FormImage, dst)
+        let srcf = assume cast (*FormImage, src)
         dstf.kind     = srcf.kind
         dstf.strength = srcf.strength
         if srcf.image.isValid() do
@@ -127,10 +127,10 @@ impl IForm for FormImage
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        let xa = cast(s32) (movingStart.x / zoom)
-        let ya = cast(s32) (movingStart.y / zoom)
-        let xb = cast(s32) (localPos.x / zoom)
-        let yb = cast(s32) (localPos.y / zoom)
+        let xa = cast(s32, (movingStart.x / zoom))
+        let ya = cast(s32, (movingStart.y / zoom))
+        let xb = cast(s32, (localPos.x / zoom))
+        let yb = cast(s32, (localPos.y / zoom))
         .setBaseForm(xa, ya, xb - xa, yb - ya)
         if evt.kind == .Released and evt.button == .Left
         {
@@ -160,10 +160,10 @@ impl IForm for FormImage
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * scale)
-        .y = cast(s32) (.y * scale)
-        .w = cast(s32) (.w * scale)
-        .h = cast(s32) (.h * scale)
+        .x = cast(s32, (.x * scale))
+        .y = cast(s32, (.y * scale))
+        .w = cast(s32, (.w * scale))
+        .h = cast(s32, (.h * scale))
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
@@ -288,8 +288,8 @@ impl IForm for FormImage
         {
             let renderer = g_App.renderer
             let capture  = .capture!
-            let x1       = cast(s32) (.x - capture.backImagePos.x)
-            let y1       = cast(s32) (.y - capture.backImagePos.y)
+            let x1       = cast(s32, (.x - capture.backImagePos.x))
+            let y1       = cast(s32, (.y - capture.backImagePos.y))
 
             switch .kind
             {
@@ -336,9 +336,9 @@ impl IForm for FormImage
                         .hc          = .h
                         renderer.removeTexture(&.texture)
                         var img = capture.backImg.cropped(x1, y1, .w, .h)
-                        let st  = Math.map(cast(f32) .strength, 0, 100, 1, 16)
-                        let nw  = Math.max(cast(s32) (img.width / st), 4)
-                        let nh  = Math.max(cast(s32) (img.height / st), 4)
+                        let st  = Math.map(cast(f32, .strength), 0, 100, 1, 16)
+                        let nw  = Math.max(cast(s32, (img.width / st)), 4)
+                        let nh  = Math.max(cast(s32, (img.height / st)), 4)
                         img.resize(nw, nh, .Quadratic)
                         img.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
                         .texture = g_App.renderer.addImage(img)
@@ -368,8 +368,8 @@ impl IForm for FormImage
                         .hc          = .h
                         renderer.removeTexture(&.texture)
                         const ZoomFactor = 2.5
-                        let stw = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .w / ZoomFactor)
-                        let sth = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .h / ZoomFactor)
+                        let stw = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .w / ZoomFactor))
+                        let sth = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .h / ZoomFactor))
                         var img = capture.backImg.cropped(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
                         img.resize(.w, .h, .Nearest)
                         .texture = g_App.renderer.addImage(img)

@@ -18,13 +18,13 @@ namespace WinFsp
     }
 
     func mountContext(fileSystem: *FspFileSystem)->*NativeMountContext
-        => cast(*NativeMountContext) fileSystem.userContext!
+        => cast(*NativeMountContext, fileSystem.userContext!)
 
     func mountedVolume(fileSystem: *FspFileSystem)->*Volume
         => mountContext(fileSystem).volume
 
-    func idFromContext(context: *void?)->u64 => cast(u64) context
-    func contextFromId(nodeId: u64)->*void?  => cast(*void?) nodeId
+    func idFromContext(context: *void?)->u64 => cast(u64, context)
+    func contextFromId(nodeId: u64)->*void?  => cast(*void?, nodeId)
 
     func stringFromWide(value: [*] u16?)->String
     {
@@ -55,7 +55,7 @@ namespace WinFsp
             return StatusSuccess
         }
 
-        let required = cast(u64) GetSecurityDescriptorLength(context.defaultSecurity)
+        let required = cast(u64, GetSecurityDescriptorLength(context.defaultSecurity))
         securitySize[] = required
         if security and available < required do
             return StatusBufferOverflow
@@ -68,15 +68,15 @@ namespace WinFsp
     func fspGetVolumeInfo(fileSystem: *FspFileSystem, info: *FspVolumeInfo)->s32
     {
         var label: [128] u8
-        let status = callbackGetVolumeInfo(mountedVolume(fileSystem), &info.totalSize, &info.freeSize, label.buffer, cast(u32) label.count)
+        let status = callbackGetVolumeInfo(mountedVolume(fileSystem), &info.totalSize, &info.freeSize, label.buffer, cast(u32, label.count))
         if status != StatusSuccess do
             return status
 
         let label16 = Utf16.fromUtf8(cString(label.buffer))
-        let count   = Math.min(label16.count, cast(u64) info.volumeLabel.count)
+        let count   = Math.min(label16.count, cast(u64, info.volumeLabel.count))
         if count do
             Swag.memcpy(info.volumeLabel.buffer, label16.buffer, count * #sizeof(u16))
-        info.volumeLabelLength = cast(u16) (count * #sizeof(u16))
+        info.volumeLabelLength = cast(u16, (count * #sizeof(u16)))
         return StatusSuccess
     }
 
@@ -108,7 +108,7 @@ namespace WinFsp
         discard grantedAccess
         let value        = stringFromWide(path)
         let mounted      = mountedVolume(fileSystem)
-        let directory    = cast(u8) ((createOptions & 1) != 0 ? 1 : 0)
+        let directory    = cast(u8, ((createOptions & 1) != 0 ? 1 : 0))
         let securitySize = security ? GetSecurityDescriptorLength(security) : 0
         var nodeId: u64
         let status       = callbackCreate(mounted, value.buffer, directory, attributes, allocationSize, security, securitySize, &nodeId, info)
@@ -206,7 +206,7 @@ namespace WinFsp
             stored.add(node.security.toSlice())
         }
 
-        let input  = stored.count ? cast(const *void?) stored.buffer : context.defaultSecurity
+        let input  = stored.count ? cast(const *void?, stored.buffer) : context.defaultSecurity
         var updated: *void?
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)
         if status != StatusSuccess do
@@ -220,7 +220,7 @@ namespace WinFsp
 
     func emitFspDir(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
     {
-        let context = cast(*FspEmitContext) emitContext!
+        let context = cast(*FspEmitContext, emitContext!)
         let name16  = Utf16.toZeroTerminated(cString(name))
         let bytes   = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
         if bytes > Swag.U16.Max do
@@ -229,8 +229,8 @@ namespace WinFsp
         var storage: Array'u8
         storage.resize(bytes)
         Swag.memset(storage.buffer, 0, bytes)
-        let dirInfo = cast(*FspDirInfo) storage.storage()
-        dirInfo.size     = cast(u16) bytes
+        let dirInfo = cast(*FspDirInfo, storage.storage())
+        dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info[]
         if name16.count > 1 do
             Swag.memcpy(&dirInfo.fileName[0], name16.buffer, (name16.count - 1) * #sizeof(u16))
@@ -263,7 +263,7 @@ namespace WinFsp
         let bytes  = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
         if bytes > Swag.U16.Max do
             return StatusInvalidParameter
-        dirInfo.size     = cast(u16) bytes
+        dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info
         if name16.count > 1 do
             Swag.memcpy(&dirInfo.fileName[0], name16.buffer, (name16.count - 1) * #sizeof(u16))

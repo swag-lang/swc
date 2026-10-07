@@ -203,7 +203,7 @@ func shiftRightS32(value: s32, count: s8)->s32
 
     Swag.assert(a == 'A'rune)
     Swag.assert(b == 'a'rune)
-    Swag.assert(c == cast(rune) 130'u32)
+    Swag.assert(c == cast(rune, 130'u32))
     Swag.assert(d == 'A'rune)
 }
 
@@ -290,22 +290,22 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 
 #test
 {
-    let a  = cast(BinaryStrictS32) 40
-    let b  = cast(BinaryStrictS32) 2
-    let u0 = cast(BinaryStrictU32) 0x3F'u32
-    let u1 = cast(BinaryStrictU32) 0x2A'u32
+    let a  = cast(BinaryStrictS32, 40)
+    let b  = cast(BinaryStrictS32, 2)
+    let u0 = cast(BinaryStrictU32, 0x3F'u32)
+    let u1 = cast(BinaryStrictU32, 0x2A'u32)
 
     let add  = binaryStrictAdd(a, b)
-    let sub  = binaryStrictSub(cast(BinaryStrictS32) 84, cast(BinaryStrictS32) 42)
-    let mul  = binaryStrictMul(cast(BinaryStrictS32) 6, cast(BinaryStrictS32) 7)
-    let div  = binaryStrictDiv(cast(BinaryStrictS32) 84, b)
-    let mod  = binaryStrictMod(cast(BinaryStrictS32) 212, cast(BinaryStrictS32) 85)
-    let fadd = binaryStrictFloatAdd(cast(BinaryStrictF32) 1.5, cast(BinaryStrictF32) 2.5)
+    let sub  = binaryStrictSub(cast(BinaryStrictS32, 84), cast(BinaryStrictS32, 42))
+    let mul  = binaryStrictMul(cast(BinaryStrictS32, 6), cast(BinaryStrictS32, 7))
+    let div  = binaryStrictDiv(cast(BinaryStrictS32, 84), b)
+    let mod  = binaryStrictMod(cast(BinaryStrictS32, 212), cast(BinaryStrictS32, 85))
+    let fadd = binaryStrictFloatAdd(cast(BinaryStrictF32, 1.5), cast(BinaryStrictF32, 2.5))
     let band = binaryStrictBitAnd(u0, u1)
-    let bor  = binaryStrictBitOr(cast(BinaryStrictU32) 0x20'u32, cast(BinaryStrictU32) 0x0A'u32)
-    let bxor = binaryStrictBitXor(cast(BinaryStrictU32) 0x7F'u32, cast(BinaryStrictU32) 0x55'u32)
-    let shl  = binaryStrictShiftLeft(cast(BinaryStrictU32) 21'u32, cast(BinaryStrictS32) 1)
-    let shr  = binaryStrictShiftRight(cast(BinaryStrictU32) 84'u32, cast(BinaryStrictS32) 1)
+    let bor  = binaryStrictBitOr(cast(BinaryStrictU32, 0x20'u32), cast(BinaryStrictU32, 0x0A'u32))
+    let bxor = binaryStrictBitXor(cast(BinaryStrictU32, 0x7F'u32), cast(BinaryStrictU32, 0x55'u32))
+    let shl  = binaryStrictShiftLeft(cast(BinaryStrictU32, 21'u32), cast(BinaryStrictS32, 1))
+    let shr  = binaryStrictShiftRight(cast(BinaryStrictU32, 84'u32), cast(BinaryStrictS32, 1))
 
     #assert(#typeof(add) == BinaryStrictS32)
     #assert(#typeof(sub) == BinaryStrictS32)
@@ -319,54 +319,54 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     #assert(#typeof(shl) == BinaryStrictU32)
     #assert(#typeof(shr) == BinaryStrictU32)
 
-    Swag.assert(add == cast(BinaryStrictS32) 42)
-    Swag.assert(sub == cast(BinaryStrictS32) 42)
-    Swag.assert(mul == cast(BinaryStrictS32) 42)
-    Swag.assert(div == cast(BinaryStrictS32) 42)
-    Swag.assert(mod == cast(BinaryStrictS32) 42)
-    Swag.assert(fadd == cast(BinaryStrictF32) 4.0)
-    Swag.assert(band == cast(BinaryStrictU32) 42'u32)
-    Swag.assert(bor == cast(BinaryStrictU32) 42'u32)
-    Swag.assert(bxor == cast(BinaryStrictU32) 42'u32)
-    Swag.assert(shl == cast(BinaryStrictU32) 42'u32)
-    Swag.assert(shr == cast(BinaryStrictU32) 42'u32)
+    Swag.assert(add == cast(BinaryStrictS32, 42))
+    Swag.assert(sub == cast(BinaryStrictS32, 42))
+    Swag.assert(mul == cast(BinaryStrictS32, 42))
+    Swag.assert(div == cast(BinaryStrictS32, 42))
+    Swag.assert(mod == cast(BinaryStrictS32, 42))
+    Swag.assert(fadd == cast(BinaryStrictF32, 4.0))
+    Swag.assert(band == cast(BinaryStrictU32, 42'u32))
+    Swag.assert(bor == cast(BinaryStrictU32, 42'u32))
+    Swag.assert(bxor == cast(BinaryStrictU32, 42'u32))
+    Swag.assert(shl == cast(BinaryStrictU32, 42'u32))
+    Swag.assert(shr == cast(BinaryStrictU32, 42'u32))
 }
 
 #test
 {
-    const add  = cast(BinaryStrictS32) 40 + cast(BinaryStrictS32) 2
-    const fadd = cast(BinaryStrictF32) 1.5 + cast(BinaryStrictF32) 2.5
-    const band = cast(BinaryStrictU32) 0x3F'u32 & cast(BinaryStrictU32) 0x2A'u32
-    const shl  = cast(BinaryStrictU32) 21'u32 << cast(BinaryStrictS32) 1
+    const add  = cast(BinaryStrictS32, 40) + cast(BinaryStrictS32, 2)
+    const fadd = cast(BinaryStrictF32, 1.5) + cast(BinaryStrictF32, 2.5)
+    const band = cast(BinaryStrictU32, 0x3F'u32) & cast(BinaryStrictU32, 0x2A'u32)
+    const shl  = cast(BinaryStrictU32, 21'u32) << cast(BinaryStrictS32, 1)
 
     #assert(#typeof(add) == BinaryStrictS32)
     #assert(#typeof(fadd) == BinaryStrictF32)
     #assert(#typeof(band) == BinaryStrictU32)
     #assert(#typeof(shl) == BinaryStrictU32)
 
-    Swag.assert(add == cast(BinaryStrictS32) 42)
-    Swag.assert(fadd == cast(BinaryStrictF32) 4.0)
-    Swag.assert(band == cast(BinaryStrictU32) 42'u32)
-    Swag.assert(shl == cast(BinaryStrictU32) 42'u32)
+    Swag.assert(add == cast(BinaryStrictS32, 42))
+    Swag.assert(fadd == cast(BinaryStrictF32, 4.0))
+    Swag.assert(band == cast(BinaryStrictU32, 42'u32))
+    Swag.assert(shl == cast(BinaryStrictU32, 42'u32))
 }
 
 #test
 {
-    let wrapped = binaryStrictWrapAdd(cast(BinaryStrictS32) 0x7FFF_FFFF, cast(BinaryStrictS32) 1)
-    let r       = cast(BinaryStrictRune) 'A'rune
-    let next    = r + #wrap cast(BinaryStrictRune) 1
+    let wrapped = binaryStrictWrapAdd(cast(BinaryStrictS32, 0x7FFF_FFFF), cast(BinaryStrictS32, 1))
+    let r       = cast(BinaryStrictRune, 'A'rune)
+    let next    = r + #wrap cast(BinaryStrictRune, 1)
 
     #assert(#typeof(wrapped) == BinaryStrictS32)
     #assert(#typeof(next) == BinaryStrictRune)
-    Swag.assert(wrapped == cast(BinaryStrictS32) -2147483648)
-    Swag.assert(next == cast(BinaryStrictRune) 'B'rune)
+    Swag.assert(wrapped == cast(BinaryStrictS32, -2147483648))
+    Swag.assert(next == cast(BinaryStrictRune, 'B'rune))
 }
 
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    let base = cast(BinaryStrictS32Ptr) &data[0]
-    let one  = cast(BinaryStrictS32) 1
+    let base = cast(BinaryStrictS32Ptr, &data[0])
+    let one  = cast(BinaryStrictS32, 1)
     let next = binaryStrictPointerOffset(base, one)
 
     #assert(#typeof(next) == BinaryStrictS32Ptr)

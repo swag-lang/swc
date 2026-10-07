@@ -312,7 +312,6 @@ struct FormatOptions
     std::optional<bool>     spaceAroundRangeOperator;                                   // `0..10` vs `0 .. 10`
     std::optional<bool>     spaceAfterComma;                                            // `a, b`
     std::optional<bool>     spaceBeforeComma;                                           // `a ,b`
-    std::optional<bool>     spaceAfterCast;                                             // `cast(int) x`
     std::optional<bool>     spaceAfterKeyword;                                          // `if (x)` vs `if(x)`
     std::optional<bool>     spaceAfterUnaryOperator;                                    // `- x` vs `-x`
     std::optional<bool>     spaceInsideParentheses;                                     // `( a, b )`

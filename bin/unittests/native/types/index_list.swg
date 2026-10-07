@@ -45,8 +45,8 @@ func sumValues(values: [..] s32)->s32
     Swag.assert(cube[1][0][2] == 19)
     Swag.assert(cube[1, 1, 0] == cube[1][1][0])
     Swag.assert(cube[1, 1, 2] == 77)
-    Swag.assert(sumValues(cast([..] s32) cube[0, 1]) == 60)
-    Swag.assert(sumValues(cast([..] s32) cube[1][0]) == 34)
+    Swag.assert(sumValues(cast([..] s32, cube[0, 1])) == 60)
+    Swag.assert(sumValues(cast([..] s32, cube[1][0])) == 34)
 }
 
 #test
@@ -60,5 +60,5 @@ func sumValues(values: [..] s32)->s32
 
     Swag.assert(grid[2, 0] == 6)
     Swag.assert(grid[2, 1] == 4)
-    Swag.assert(sumValues(cast([..] s32) grid[2]) == 10)
+    Swag.assert(sumValues(cast([..] s32, grid[2])) == 10)
 }

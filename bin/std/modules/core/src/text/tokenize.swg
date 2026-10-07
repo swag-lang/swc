@@ -54,7 +54,7 @@ func splitLines(src: string)->Array'(string)
             cpt += 1
         }
 
-        result.add(Swag.makeString(dataof, cast(u64) (end - dataof)))
+        result.add(Swag.makeString(dataof, cast(u64, (end - dataof))))
         if cpt < countof - 1 and end[] == '\r' and end[1] == '\n' do
             end, cpt += 1
         end, cpt += 1
@@ -225,12 +225,12 @@ func sliceToDelimiter(source: string, delimiter: u8, startByteIndex = 0'u64, inc
         {
             if includeDelimiter do
                 scan += 1
-            return Swag.makeString(dataof, cast(u64) (scan - dataof))
+            return Swag.makeString(dataof, cast(u64, (scan - dataof)))
         }
 
         scan   += 1
         length -= 1
     }
 
-    return Swag.makeString(dataof, cast(u64) (scan - dataof))
+    return Swag.makeString(dataof, cast(u64, (scan - dataof)))
 }

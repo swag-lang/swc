@@ -49,11 +49,11 @@ func raiseCryptoBatchTestError(marker: u32) fail
     Swag.assert(empty == null)
 }
 
-func testPassword()->const [..] u8 => cast(const [..] u8) "correct horse battery staple"
+func testPassword()->const [..] u8 => cast(const [..] u8, "correct horse battery staple")
 
-func wrongPassword()->const [..] u8 => cast(const [..] u8) "wrong password"
+func wrongPassword()->const [..] u8 => cast(const [..] u8, "wrong password")
 
-func emptyBytes()->const [..] u8 => cast(const [..] u8) ""
+func emptyBytes()->const [..] u8 => cast(const [..] u8, "")
 
 func testContainerPath(tag: string)->String
 {
@@ -73,10 +73,10 @@ func testDigestBytes(digest: Hash.Sha256.Digest)->[32] u8
     for i in 8
     {
         let word = digest[i]
-        result[i * 4 + 0] = cast(u8) ((word >> 24) & 0xFF)
-        result[i * 4 + 1] = cast(u8) ((word >> 16) & 0xFF)
-        result[i * 4 + 2] = cast(u8) ((word >> 8) & 0xFF)
-        result[i * 4 + 3] = cast(u8) (word & 0xFF)
+        result[i * 4 + 0] = cast(u8, ((word >> 24) & 0xFF))
+        result[i * 4 + 1] = cast(u8, ((word >> 16) & 0xFF))
+        result[i * 4 + 2] = cast(u8, ((word >> 8) & 0xFF))
+        result[i * 4 + 3] = cast(u8, (word & 0xFF))
     }
 
     return result
@@ -127,9 +127,9 @@ func flipHeaderByte(path: string, slot: u64)
     flipByteAt(path, HeaderAreaOffset + slot * HeaderSlotSize + HeaderRecordPrefixSize)
 }
 
-func secondPassword()->const [..] u8 => cast(const [..] u8) "a second way in entirely"
+func secondPassword()->const [..] u8 => cast(const [..] u8, "a second way in entirely")
 
-func thirdPassword()->const [..] u8 => cast(const [..] u8) "yet another passphrase!!"
+func thirdPassword()->const [..] u8 => cast(const [..] u8, "yet another passphrase!!")
 
 // A container large enough to hold more metadata than one header slot can.
 func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
@@ -147,7 +147,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var source: Array'u8
     source.resize(DataBlockCount * BlockSize)
     for byte, i in source do
-        source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+        source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
 
     let bytesWritten = expect volume.writeNode(fileId, 0, source.toSlice(), false, false)
     Swag.assert(bytesWritten == source.count)
@@ -255,7 +255,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var source: [7000] u8
     for value, i in source do
-        source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+        source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
     let bytesWritten = expect volume.writeNode(fileId, 0, source, false, false)
     Swag.assert(bytesWritten == #sizeof(source))
     expect volume.commit()
@@ -487,7 +487,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var volume = expect Volume.create(path, testPassword(), MinimumSize)
     discard expect volume.createNode("\\latest", true, FileAttributeDirectory, emptyBytes())
     volume.close()
-    let activeSlot = cast(u64) volume.activeSlot
+    let activeSlot = cast(u64, volume.activeSlot)
 
     // The damaged slot falls back to the other checkpoint, and the journal
     // records written after that checkpoint bring the volume back up to date.
@@ -648,7 +648,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     volume.sequence     = Swag.U64.Max
     volume.checkpointAt = Swag.U64.Max
     var plain = expect volume.serializeHeader()
-    expect volume.writeFramedRecord(HeaderAreaOffset + cast(u64) volume.activeSlot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, volume.activeSlot, plain.toSlice())
+    expect volume.writeFramedRecord(HeaderAreaOffset + cast(u64, volume.activeSlot) * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, volume.activeSlot, plain.toSlice())
     volume.dirty = false
     volume.close()
 
@@ -821,7 +821,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var stopped = catch Volume.create(path, testPassword(), MinimumSize, &progress) as cancelError
     stopped.close()
     Swag.assert(cancelError != null)
-    Swag.assert((cast #assume(Swagvault.Error) cancelError).kind == .Canceled)
+    Swag.assert(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
     Swag.assert(not File.exists(path))
 
     // Arming the tracker for the next operation clears the cancellation the stopped one left.
@@ -986,7 +986,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let previousPhysical = stopped.physicalSize
     discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
     Swag.assert(cancelError != null)
-    Swag.assert((cast #assume(Swagvault.Error) cancelError).kind == .Canceled)
+    Swag.assert(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
     Swag.assert(stopped.containerSize == MinimumSize)
     stopped.close()
 
@@ -1015,7 +1015,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let fileId = expect volume.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
     var payload: [2 * BlockSize] u8
     for &value, index in payload do
-        value[] = cast(u8) (index % 251)
+        value[] = cast(u8, (index % 251))
     let bytesWritten2 = expect volume.writeNode(fileId, 0, payload, false, false)
     Swag.assert(bytesWritten2 == #sizeof(payload))
     expect volume.deleteNode(fillerId)
@@ -1074,7 +1074,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     progress.cancel()
     let previousPhysical = volume.physicalSize
     discard catch volume.resize(MinimumSize, &progress) as cancelError
-    Swag.assert(cancelError != null and (cast #assume(Swagvault.Error) cancelError).kind == .Canceled)
+    Swag.assert(cancelError != null and assume cast(Swagvault.Error, cancelError).kind == .Canceled)
     Swag.assert(volume.containerSize == InitialSize)
     volume.close()
     Swag.assert(expect File.info(path).size == previousPhysical)

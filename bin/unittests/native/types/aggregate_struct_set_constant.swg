@@ -41,7 +41,7 @@ struct Counted
 impl Counted
 {
     #[Swag.Implicit]
-    mtd opSet(value: s32) { .value = cast(u64) value }
+    mtd opSet(value: s32) { .value = cast(u64, value) }
 }
 
 struct Row
@@ -73,7 +73,7 @@ func nullableLength(value: string?)->u64 => value.count
 {
     // The same constant is correct in every position that already worked.
     Swag.assert(nullableLength(KEY) == 4)
-    Swag.assert((cast(NullableName) KEY).length == 4)
+    Swag.assert(cast(NullableName, KEY).length == 4)
 
     var row: Row
     row.id   = 1

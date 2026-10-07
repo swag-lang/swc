@@ -27,9 +27,9 @@ const PackedFormats: [18] PixelFormat = [
 // Every packed format publishes exact storage geometry and alpha/sample traits.
 #test
 {
-    Swag.assert(cast(u8) PixelFormat.BGR8 == 0 and cast(u8) PixelFormat.BGRA8 == 1)
-    Swag.assert(cast(u8) PixelFormat.RGB8 == 2 and cast(u8) PixelFormat.RGBA8 == 3)
-    Swag.assert(cast(u8) PixelFormat.Yuv420 == 4)
+    Swag.assert(cast(u8, PixelFormat.BGR8) == 0 and cast(u8, PixelFormat.BGRA8) == 1)
+    Swag.assert(cast(u8, PixelFormat.RGB8) == 2 and cast(u8, PixelFormat.RGBA8) == 3)
+    Swag.assert(cast(u8, PixelFormat.Yuv420) == 4)
 
     const Bits:     [18] u8   = [8, 16, 16, 32, 16, 32, 32, 64, 24, 32, 24, 32, 48, 64, 48, 64, 96, 128]
     const Channels: [18] u8   = [1, 2, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
@@ -84,12 +84,12 @@ const PackedFormats: [18] PixelFormat = [
     for value in [0.0'f32, -0.0'f32, 1.0'f32, -2.0'f32, 0.00006103515625'f32, 0.000000059604645'f32, 65504.0'f32]
     {
         let restored = halfToFloat(floatToHalf(value))
-        Swag.assert(cast #bit (u32) restored == cast #bit (u32) value)
+        Swag.assert(cast #bit (u32, restored) == cast #bit (u32, value))
     }
 
-    let positiveInfinity = cast #bit (f32) 0x7F800000'u32
-    let nan = cast #bit (f32) 0x7FC01234'u32
-    Swag.assert(cast #bit (u32) halfToFloat(floatToHalf(positiveInfinity)) == 0x7F800000)
+    let positiveInfinity = cast #bit (f32, 0x7F800000'u32)
+    let nan = cast #bit (f32, 0x7FC01234'u32)
+    Swag.assert(cast #bit (u32, halfToFloat(floatToHalf(positiveInfinity))) == 0x7F800000)
     Swag.assert(halfToFloat(floatToHalf(nan)) != halfToFloat(floatToHalf(nan)))
 }
 
@@ -101,20 +101,20 @@ const PackedFormats: [18] PixelFormat = [
     let premultiplied = straight.convertedAlphaTo(.Premultiplied)
     Swag.assert(straight.alphaMode == .Straight)
     Swag.assert(premultiplied.alphaMode == .Premultiplied)
-    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.storage()[0] - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.storage()[1] - 50) <= 1)
-    Swag.assert(Math.abs(cast(s32) premultiplied.pixels.storage()[2] - 25) <= 1)
+    Swag.assert(Math.abs(cast(s32, premultiplied.pixels.storage()[0]) - 100) <= 1)
+    Swag.assert(Math.abs(cast(s32, premultiplied.pixels.storage()[1]) - 50) <= 1)
+    Swag.assert(Math.abs(cast(s32, premultiplied.pixels.storage()[2]) - 25) <= 1)
     let logical = premultiplied.pixelColor(0, 0)
-    Swag.assert(Math.abs(cast(s32) logical.r - 200) <= 1)
-    Swag.assert(Math.abs(cast(s32) logical.g - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32) logical.b - 50) <= 1)
+    Swag.assert(Math.abs(cast(s32, logical.r) - 200) <= 1)
+    Swag.assert(Math.abs(cast(s32, logical.g) - 100) <= 1)
+    Swag.assert(Math.abs(cast(s32, logical.b) - 50) <= 1)
     Swag.assert(logical.a == 128)
 
     let restored = premultiplied.convertedAlphaTo(.Straight)
     Swag.assert(restored.alphaMode == .Straight)
-    Swag.assert(Math.abs(cast(s32) restored.pixels.storage()[0] - 200) <= 1)
-    Swag.assert(Math.abs(cast(s32) restored.pixels.storage()[1] - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32) restored.pixels.storage()[2] - 50) <= 1)
+    Swag.assert(Math.abs(cast(s32, restored.pixels.storage()[0]) - 200) <= 1)
+    Swag.assert(Math.abs(cast(s32, restored.pixels.storage()[1]) - 100) <= 1)
+    Swag.assert(Math.abs(cast(s32, restored.pixels.storage()[2]) - 50) <= 1)
     Swag.assert(restored.pixels.storage()[3] == 128)
 }
 
@@ -173,7 +173,7 @@ const PackedFormats: [18] PixelFormat = [
     {
         var source = Image.create(4, 4, format)
         for i in source.byteCount do
-            source.pixels.storage()[i] = cast(u8) ((i * 29 + 7) & 0xFF)
+            source.pixels.storage()[i] = cast(u8, ((i * 29 + 7) & 0xFF))
 
         let mirrored = source.mirrored().mirrored()
         let flipped  = source.flipped().flipped()

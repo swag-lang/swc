@@ -43,7 +43,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     let h = image.height
 
     // Sample helpers over the source, BGRA8 or RGBA8.
-    let bpp     = cast(s32) image.bytesPerPixel
+    let bpp     = cast(s32, image.bytesPerPixel)
     let rOffset = image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB8 ? 0 : 2
     let bOffset = 2 - rOffset
 
@@ -53,7 +53,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
         if x < 0 or y < 0 or x >= image.width or y >= image.height do
             return result
 
-        let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * cast(u64) bpp
+        let idx = (cast(u64, y) * cast(u64, image.width) + cast(u64, x)) * cast(u64, bpp)
         let ptr = image.pixels.storage() + idx
         let a   = bpp == 4 ? ptr[3] : 255'u8
         result.color = Color.fromArgb(255, ptr[rOffset], ptr[1], ptr[bOffset])
@@ -109,7 +109,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 
         var color = Color.fromArgb(entry.key | 0xFF000000)
         if alphaCount do
-            color.a = cast(u8) (alphaSum / alphaCount)
+            color.a = cast(u8, (alphaSum / alphaCount))
         result.addPath(paths, color, .NonZero)
     }
 
@@ -124,18 +124,18 @@ private func coverage(image: const *Image, bpp, rOffset, bOffset: s32, key: u32,
     if x < 0 or y < 0 or x >= image.width or y >= image.height do
         return 0
 
-    let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * cast(u64) bpp
+    let idx = (cast(u64, y) * cast(u64, image.width) + cast(u64, x)) * cast(u64, bpp)
     let ptr = image.pixels.storage() + idx
     let a   = bpp == 4 ? ptr[3] : 255'u8
     if a == 0 do
         return 0
 
-    let pixKey = (cast(u32) ptr[rOffset] << 16) | (cast(u32) ptr[1] << 8) | cast(u32) ptr[bOffset]
+    let pixKey = (cast(u32, ptr[rOffset]) << 16) | (cast(u32, ptr[1]) << 8) | cast(u32, ptr[bOffset])
     if a > threshold and pixKey != key do
         return 0
 
     // Matching or antialiased-boundary pixel: its alpha is the class coverage.
-    return cast(f32) a / 255.0
+    return cast(f32, a) / 255.0
 }
 
 // Traces every contour of one color class with marching squares.
@@ -155,19 +155,19 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
     let gw = w + 2
     let gh = h + 2
     var grid: Array'f32
-    grid.resize(cast(u64) gw * cast(u64) gh)
+    grid.resize(cast(u64, gw) * cast(u64, gh))
     for y in gh
     {
         for x in gw do
-            grid[cast(u64) y * cast(u64) gw + cast(u64) x] = coverage(image, bpp, rOffset, bOffset, key, options.threshold, x - 1, y - 1)
+            grid[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = coverage(image, bpp, rOffset, bOffset, key, options.threshold, x - 1, y - 1)
     }
 
-    func at(grid: *Array'f32, gw: s32, x, y: s32)->f32 => grid[][cast(u64) y * cast(u64) gw + cast(u64) x]
+    func at(grid: *Array'f32, gw: s32, x, y: s32)->f32 => grid[][cast(u64, y) * cast(u64, gw) + cast(u64, x)]
 
     // One flag per cell edge crossing, so each contour is walked exactly once.
     // Index: cell (x, y) with 2 horizontal-crossing slots (top edge) per cell.
     var visited: Array'bool
-    visited.resize(cast(u64) gw * cast(u64) gh)
+    visited.resize(cast(u64, gw) * cast(u64, gh))
 
     // Walk the segment grid: standard marching squares with linear interpolation.
     // For each cell whose top edge crosses the contour and was not consumed yet,
@@ -180,11 +180,11 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
             let b = at(&grid, gw, cx + 1, cy)
             if (a >= thr) == (b >= thr) do
                 continue
-            if visited[cast(u64) cy * cast(u64) gw + cast(u64) cx] do
+            if visited[cast(u64, cy) * cast(u64, gw) + cast(u64, cx)] do
                 continue
 
             // Trace one closed contour starting at this top-edge crossing.
-            visited[cast(u64) cy * cast(u64) gw + cast(u64) cx] = true
+            visited[cast(u64, cy) * cast(u64, gw) + cast(u64, cx)] = true
             var path: *LinePath?
 
             var x      = cx
@@ -192,7 +192,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
             var entry  = 0     // 0 top, 1 right, 2 bottom, 3 left: edge we entered through.
             let startX = cx
             let startY = cy
-            var guard  = cast(u64) gw * cast(u64) gh * 4
+            var guard  = cast(u64, gw) * cast(u64, gh) * 4
 
             while guard
             {
@@ -326,9 +326,9 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
 
                 // Mark consumed top-edge crossings so no contour is traced twice.
                 if exitEdge == 0 do
-                    visited[cast(u64) y * cast(u64) gw + cast(u64) x] = true
+                    visited[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = true
                 elif exitEdge == 2 do
-                    visited[cast(u64) (y + 1) * cast(u64) gw + cast(u64) x] = true
+                    visited[cast(u64, (y + 1)) * cast(u64, gw) + cast(u64, x)] = true
 
                 // Step into the neighbouring cell.
                 switch exitEdge

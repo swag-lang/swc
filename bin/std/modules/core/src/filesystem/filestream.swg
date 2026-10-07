@@ -72,10 +72,10 @@ impl FileStream
         }
 
         var total = 0'u64
-        let bytes = cast([*] u8) buffer!
+        let bytes = cast([*] u8, buffer!)
         while total < length
         {
-            let chunk = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
+            let chunk = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))
             let read  = try .readNative(bytes + total, chunk)
             total += read
             if read < chunk do
@@ -97,10 +97,10 @@ impl FileStream
             return 0
 
         var total = 0'u64
-        let bytes = cast(const [*] u8) buffer!
+        let bytes = cast(const [*] u8, buffer!)
         while total < length
         {
-            let chunk   = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
+            let chunk   = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))
             let written = try .writeNative(bytes + total, chunk)
             total += written
             if not written do
@@ -280,7 +280,7 @@ impl FileStream
         // segment. Leaving it there costs two bytes and keeps every segment self-contained.
         if unit == 2 and bytes.count >= 2
         {
-            let last = cast(u32) bytes[bytes.count - 2] | (cast(u32) bytes[bytes.count - 1] << 8)
+            let last = cast(u32, bytes[bytes.count - 2]) | (cast(u32, bytes[bytes.count - 1]) << 8)
             let high = encoding == .Utf16Le ? last : ((last & 0xFF) << 8) | (last >> 8)
             if high >= Utf16.Surr1 and high < Utf16.Surr2 and bytes.count > 2 do
                 bytes.resize(bytes.count - 2)

@@ -1,10 +1,10 @@
 #global private
 
-#[Swag.Safety(.DynCast, true), Swag.NoInline]
+#[Swag.Safety(.Assume, true), Swag.NoInline]
 func assumeRuntimeValue(target: typeinfo, source: any)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    let view = cast #assume(target) source
+    let view = assume cast(target, source)
 }
 
 #test
@@ -12,11 +12,11 @@ func assumeRuntimeValue(target: typeinfo, source: any)
     assumeRuntimeValue(s64, 42's32)
 }
 
-#[Swag.Safety(.DynCast, true), Swag.NoInline]
+#[Swag.Safety(.Assume, true), Swag.NoInline]
 func assumeRuntimeType(target, source: typeinfo)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    let type = cast #assume(target) source
+    let type = assume cast(target, source)
 }
 
 #test
@@ -24,11 +24,11 @@ func assumeRuntimeType(target, source: typeinfo)
     assumeRuntimeType(s64, s32)
 }
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func assumeWrongConstantDescriptor()
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    let type = cast #assume(const *Swag.TypeInfoStruct) s32
+    let type = assume cast(const *Swag.TypeInfoStruct, s32)
 }
 
 #test

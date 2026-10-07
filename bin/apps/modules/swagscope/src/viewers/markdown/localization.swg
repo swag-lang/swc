@@ -43,5 +43,5 @@ func registerMarkdownStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'MarkdownStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'MarkdownStrings(cast(string, FrenchStrings))
 }

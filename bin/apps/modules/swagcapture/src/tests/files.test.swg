@@ -29,7 +29,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     {
         if md.isTag(CaptureFileMetadataTag)
         {
-            if testSamePath(cast(string) md.toSlice(), captureFile) do
+            if testSamePath(cast(string, md.toSlice()), captureFile) do
                 return true
         }
     }

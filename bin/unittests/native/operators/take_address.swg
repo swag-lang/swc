@@ -41,7 +41,7 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    var x: StrictAddressArray = cast(StrictAddressArray) [1, 2, 3]
+    var x: StrictAddressArray = cast(StrictAddressArray, [1, 2, 3])
     var px = &x
     #assert(#typeof(px) == [*]StrictAddressArray)
     Swag.assert(px == &x)
@@ -214,7 +214,7 @@ alias StrictAddressArray = [3] s32
     const a: [3] s32 = [10, 20, 30]
     let p = &a[0]
     #assert(#typeof(p) == const *s32)
-    let bp = cast(const [*] s32) p
+    let bp = cast(const [*] s32, p)
     Swag.assert(p[] == 10)
     Swag.assert(bp[2] == 30)
 }
@@ -229,10 +229,10 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    const a: StrictAddressArray = cast(StrictAddressArray) [10, 20, 30]
+    const a: StrictAddressArray = cast(StrictAddressArray, [10, 20, 30])
     let p = &a[0]
     #assert(#typeof(p) == const *s32)
-    let bp = cast(const [*] s32) p
+    let bp = cast(const [*] s32, p)
     Swag.assert(p[] == 10)
     Swag.assert(bp[2] == 30)
 }
@@ -240,8 +240,8 @@ alias StrictAddressArray = [3] s32
 #test
 {
     #assert(#typeof(&nativeFunctionAddressAsPointer) == #type func()->s32)
-    #assert(#typeof(cast(u64) nativeFunctionAddressAsPointer()) == u64)
-    let p = cast(const *void) &nativeFunctionAddressAsPointer
+    #assert(#typeof(cast(u64, nativeFunctionAddressAsPointer())) == u64)
+    let p = cast(const *void, &nativeFunctionAddressAsPointer)
     #assert(#typeof(p) == const *void)
     Swag.assert(p != null)
 

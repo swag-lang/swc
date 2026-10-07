@@ -8,7 +8,7 @@
 func abs32(x: s32)->s32 => x < 0 ? -x : x
 
 #[Swag.Optimize(true), Swag.NoInline]
-func pickLow(a, b: s64, flag: bool)->s32 => cast #wrap (s32) (flag ? a : b)
+func pickLow(a, b: s64, flag: bool)->s32 => cast #wrap (s32, (flag ? a : b))
 
 #[Swag.Optimize(true), Swag.NoInline]
 func pickWide(a, b: s64, flag: bool)->s64 => flag ? a : b
@@ -35,7 +35,7 @@ func manhattan(ax, ay, bx, by: s32)->s32
     Swag.assert(pickWide(0x1_0000_0005, -3, false) == -3)
     for v in 0 until 256
     {
-        let c        = cast(u8) v
+        let c        = cast(u8, v)
         let expected = c >= 'a' and c <= 'z' ? c - 32 : c
         Swag.assert(upper(c) == expected)
     }

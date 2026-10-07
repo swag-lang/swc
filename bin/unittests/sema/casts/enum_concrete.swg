@@ -21,38 +21,38 @@ enum Flags16: u16
     High  = 0x8000
 }
 
-#assert(cast(s32) SignedCode.Neg == -5)
-#assert(cast(s64) SignedCode.Pos == 9)
-#assert(cast(f32) SignedCode.Pos == 9)
+#assert(cast(s32, SignedCode.Neg) == -5)
+#assert(cast(s64, SignedCode.Pos) == 9)
+#assert(cast(f32, SignedCode.Pos) == 9)
 
-#assert(cast(u8) UnsignedCode.B == 255)
-#assert(cast(u32) UnsignedCode.A == 7)
-#assert(cast(f64) UnsignedCode.B == 255)
+#assert(cast(u8, UnsignedCode.B) == 255)
+#assert(cast(u32, UnsignedCode.A) == 7)
+#assert(cast(f64, UnsignedCode.B) == 255)
 
 const FLAGS_ALL = Flags16.Read | Flags16.Write | Flags16.Exec
-#assert(cast(u16) FLAGS_ALL == 7)
-#assert(cast(u32) FLAGS_ALL == 7)
-#assert(cast(s32) FLAGS_ALL == 7)
-#assert(cast(bool) FLAGS_ALL == true)
-#assert(cast(bool) (Flags16.Read & Flags16.Exec) == false)
+#assert(cast(u16, FLAGS_ALL) == 7)
+#assert(cast(u32, FLAGS_ALL) == 7)
+#assert(cast(s32, FLAGS_ALL) == 7)
+#assert(cast(bool, FLAGS_ALL) == true)
+#assert(cast(bool, (Flags16.Read & Flags16.Exec)) == false)
 
 func semaTest001()
 {
     let value = SignedCode.Neg
-    Swag.assert(cast(s32) value == -5)
-    Swag.assert(cast(f64) value == -5)
+    Swag.assert(cast(s32, value) == -5)
+    Swag.assert(cast(f64, value) == -5)
 }
 
 func semaTest002()
 {
     let value = UnsignedCode.B
-    Swag.assert(cast(u16) value == 255)
-    Swag.assert(cast(f32) value == 255)
+    Swag.assert(cast(u16, value) == 255)
+    Swag.assert(cast(f32, value) == 255)
 }
 
 func semaTest003()
 {
     let v = Flags16.Read | Flags16.Write
-    Swag.assert(cast(u16) v == 3)
-    Swag.assert(cast(bool) v)
+    Swag.assert(cast(u16, v) == 3)
+    Swag.assert(cast(bool, v))
 }

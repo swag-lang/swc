@@ -4,7 +4,7 @@
 using Swag, Core, Gui
 
 // Builds the real main window inside the same measured frame as the shipped surface.
-func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWindow.WindowWidth, height = cast(f32) MainWindow.WindowHeight, scale = 1.0'f32)->*MainWindow
+func testSetupMainWindow(host: *Testing.HeadlessHost, width = cast(f32, MainWindow.WindowWidth), height = cast(f32, MainWindow.WindowHeight), scale = 1.0'f32)->*MainWindow
 {
     host.setup(width, height, scale)
     host.bindApplication(&g_App)

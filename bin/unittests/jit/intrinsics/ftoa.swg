@@ -40,8 +40,8 @@ func itoaCopyForFtoa(result: [*] u8, value: s64)->[*] u8
 
 func ftoaCopy(result: [*] u8, value: f64)
 {
-    var ipart = cast(s64) value
-    var fpart = value - cast(f64) ipart
+    var ipart = cast(s64, value)
+    var fpart = value - cast(f64, ipart)
 
     var n = result
     if ipart == 0
@@ -84,7 +84,7 @@ func ftoaCopy(result: [*] u8, value: f64)
         leadingZeros -= 1
     }
 
-    ipart = cast(s64) fpart
+    ipart = cast(s64, fpart)
     if fpart - ipart > 0.5 do
         ipart += 1
     discard itoaCopyForFtoa(n, ipart)

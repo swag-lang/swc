@@ -11,7 +11,7 @@ struct BoxedTypeInfoPair
     func boxStructTypeInfoInAny()->bool
     {
         let box: any = #typeof(BoxedTypeInfoPair)
-        let unboxed  = cast #assume(typeinfo) box
+        let unboxed  = assume cast(typeinfo, box)
         return unboxed == #type BoxedTypeInfoPair and
                unboxed.kind == TypeInfoKind.Struct and
                unboxed.name == "BoxedTypeInfoPair"

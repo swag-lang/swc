@@ -34,7 +34,7 @@ impl DecodeOptions
     {
         if width <= 0 or height <= 0 do
             fail InvalidFormatError{"image dimensions must be positive"}
-        let pixels = cast(u64) width * cast(u64) height
+        let pixels = cast(u64, width) * cast(u64, height)
         if .maxPixels and pixels > .maxPixels do
             fail UnsupportedFormatError{"image exceeds the decoded pixel limit"}
         let bytesPerPixel = format.bitsPerPixel() / 8
@@ -97,7 +97,7 @@ impl Image
         {
             if decoderType.opDrop do
                 decoderType.opDrop(ptrDecoder)
-            Memory.free(ptrDecoder, cast(u64) decoderType.sizeof)
+            Memory.free(ptrDecoder, cast(u64, decoderType.sizeof))
         }
 
         // Decode

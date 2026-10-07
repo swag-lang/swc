@@ -124,7 +124,7 @@ func day10A()
     {
         for c, col in l.bytes()
         {
-            let one = mp(cast(s64) col, cast(s64) line)
+            let one = mp(cast(s64, col), cast(s64, line))
             switch c
             {
             case '-':

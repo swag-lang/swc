@@ -38,7 +38,7 @@ func divides64(x, d: u64)->bool => x % d == 0
 
 func check(v: u64)
 {
-    let x32 = cast #wrap (u32) v
+    let x32 = cast #wrap (u32, v)
     Swag.assert(by3(x32) == divides32(x32, 3))
     Swag.assert(by10(x32) == divides32(x32, 10))
     Swag.assert(notBy100(x32) == not divides32(x32, 100))
@@ -51,7 +51,7 @@ func check(v: u64)
 #test
 {
     for v in 0 until 1300 do
-        check(cast(u64) v)
+        check(cast(u64, v))
     for v in [0xFFFFFFFF'u64, 0xFFFFFFFE, 0xFFFFFFFD, 0xFFFFFF9C, 0x80000000, 4294967200, 4294967000, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFF9, 7000000000000000000, 18446744073709000000] do
         check(v)
 

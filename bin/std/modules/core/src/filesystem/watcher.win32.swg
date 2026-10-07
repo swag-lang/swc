@@ -15,7 +15,7 @@ private struct WatcherNative
     cancelled:     Swag.AtomicValue'u32
 }
 
-private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative) value!
+private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative, value!)
 
 private func watchFilterNative(filter: WatchFilter)->DWORD
 {
@@ -54,7 +54,7 @@ internal impl Watcher
     mtd openNative() fail
     {
         let raw   = Memory.alloc(#sizeof(WatcherNative))
-        let state = cast(*WatcherNative) raw
+        let state = cast(*WatcherNative, raw)
         Swag.init(state, 1)
         defer if not .native
         {
@@ -96,7 +96,7 @@ internal impl Watcher
         CloseHandle(state.event)
         CloseHandle(state.directory)
         Swag.drop(state, 1)
-        Memory.free(cast([*] void) state, #sizeof(WatcherNative))
+        Memory.free(cast([*] void, state), #sizeof(WatcherNative))
         .native = null
     }
 
@@ -119,7 +119,7 @@ internal impl Watcher
         state.overlapped.data.Pointer = null
         state.overlapped.hEvent       = state.event
         catch ResetEvent(state.event)
-        discard try ReadDirectoryChangesW(state.directory, state.buffer.buffer, cast(DWORD) state.buffer.count, .options.recurse ? TRUE : FALSE, watchFilterNative(.options.filter), null, &state.overlapped, null)
+        discard try ReadDirectoryChangesW(state.directory, state.buffer.buffer, cast(DWORD, state.buffer.count), .options.recurse ? TRUE : FALSE, watchFilterNative(.options.filter), null, &state.overlapped, null)
         state.pending = true
 
         // Cancellation can race the interval between the caller's state check and submission.
@@ -136,9 +136,9 @@ internal impl Watcher
         var offset = 0'u32
         for
         {
-            let info     = cast(const *FILE_NOTIFY_INFORMATION) (state.buffer.storage() + offset)
-            let nameData = cast(const [*] u16) &info.FileName[0]
-            var name     = Utf8.fromUtf16(Swag.makeSlice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
+            let info     = cast(const *FILE_NOTIFY_INFORMATION, (state.buffer.storage() + offset))
+            let nameData = cast(const [*] u16, &info.FileName[0])
+            var name     = Utf8.fromUtf16(Swag.makeSlice(nameData, cast(u64, info.FileNameLength) / #sizeof(u16)))
             let relative = name.toString()
 
             if info.Action != FILE_ACTION_RENAMED_NEW_NAME and info.Action != FILE_ACTION_RENAMED_OLD_NAME and not state.pendingRename.isEmpty()
@@ -212,7 +212,7 @@ internal impl Watcher
         state.pending = false
         if err != null
         {
-            let systemError = cast #assume (const *Swag.SystemError) err
+            let systemError = assume cast (const *Swag.SystemError, err)
             if systemError.errorID == ERROR_OPERATION_ABORTED and state.cancelled.load()
             {
                 var cancelled: retval

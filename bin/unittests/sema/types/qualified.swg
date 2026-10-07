@@ -66,14 +66,14 @@ func semaTest001()
     var storage:           s32   = 7
     let ptr:               *s32  = &storage
     var nullablePtr:       *s32? = ptr
-    var nullableStrictPtr: QualifiedStrictPtr? = cast(QualifiedStrictPtr) ptr
+    var nullableStrictPtr: QualifiedStrictPtr? = cast(QualifiedStrictPtr, ptr)
     let widenedPtr:        *s32? = widenNullablePointer(ptr)
     acceptNullablePointer(ptr)
     acceptNullablePointer(widenedPtr)
 
     let text:               string  = "abc"
     let nullableText:       string? = text
-    var nullableStrictText: QualifiedStrictString? = cast(QualifiedStrictString) text
+    var nullableStrictText: QualifiedStrictString? = cast(QualifiedStrictString, text)
     let widenedText:        string? = widenNullableString(text)
     acceptNullableString(text)
     acceptNullableString(widenedText)
@@ -81,7 +81,7 @@ func semaTest001()
     let values:              [3] s32   = [1, 2, 3]
     let slice:               [..] s32  = values
     let nullableSlice:       [..] s32? = slice
-    var nullableStrictSlice: QualifiedStrictSlice? = cast(QualifiedStrictSlice) slice
+    var nullableStrictSlice: QualifiedStrictSlice? = cast(QualifiedStrictSlice, slice)
     let widenedSlice:        [..] s32? = widenNullableSlice(slice)
     acceptNullableSlice(slice)
     acceptNullableSlice(widenedSlice)
@@ -98,16 +98,16 @@ func semaTest001()
     #assert(#typeof(constAny) == const any)
 
     var cstrData:           [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
-    let cstr:               cstring  = cast(cstring) &cstrData[0]
+    let cstr:               cstring  = cast(cstring, &cstrData[0])
     var nullableCstr:       cstring? = cstr
-    var nullableStrictCstr: QualifiedStrictCString? = cast(QualifiedStrictCString) cstr
+    var nullableStrictCstr: QualifiedStrictCString? = cast(QualifiedStrictCString, cstr)
     let widenedCstr:        cstring? = widenNullableCString(cstr)
     acceptNullableCString(cstr)
     acceptNullableCString(widenedCstr)
 
     let info:               typeinfo  = s32
     let nullableInfo:       typeinfo? = info
-    var nullableStrictInfo: QualifiedStrictTypeInfo? = cast(QualifiedStrictTypeInfo) info
+    var nullableStrictInfo: QualifiedStrictTypeInfo? = cast(QualifiedStrictTypeInfo, info)
     let widenedInfo:        typeinfo? = widenNullableTypeInfo(info)
     acceptNullableTypeInfo(info)
     acceptNullableTypeInfo(widenedInfo)

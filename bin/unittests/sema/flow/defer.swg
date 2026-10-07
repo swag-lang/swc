@@ -176,7 +176,7 @@ func semaTest005()
         while i < 4
         {
             i += 1
-            defer appendDeferTrace(cast(s64) i)
+            defer appendDeferTrace(cast(s64, i))
 
             if i == 2 do
                 continue
@@ -210,7 +210,7 @@ func semaTest006()
         while i < 4
         {
             i += 1
-            defer appendDeferTrace(cast(s64) i)
+            defer appendDeferTrace(cast(s64, i))
 
             if i == 2
             {
@@ -280,7 +280,7 @@ func semaTest009()
         resetDeferTrace()
         for var i = 0; i < 4; i += 1
         {
-            defer appendDeferTrace(cast(s64) i + 1)
+            defer appendDeferTrace(cast(s64, i) + 1)
 
             if i == 1 do
                 continue
@@ -304,7 +304,7 @@ func semaTest010()
         resetDeferTrace()
         for i in 1 to 4
         {
-            defer appendDeferTrace(cast(s64) i)
+            defer appendDeferTrace(cast(s64, i))
 
             if i == 2 do
                 continue
@@ -330,7 +330,7 @@ func semaTest011()
 
         for v in arr
         {
-            defer appendDeferTrace(cast(s64) v)
+            defer appendDeferTrace(cast(s64, v))
 
             if v == 2 do
                 continue
@@ -438,7 +438,7 @@ func semaTest014()
         {
             var x: DeferDropTracker
             consumeDropTracker(x)
-            result.count = cast(s32) DropCount
+            result.count = cast(s32, DropCount)
         }
 
         result.drops = DropCount
@@ -465,7 +465,7 @@ func semaTest015()
         {
             var x: DeferDropHolder
             consumeDropHolder(x)
-            result.count = cast(s32) DropCount
+            result.count = cast(s32, DropCount)
         }
 
         result.drops = DropCount

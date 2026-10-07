@@ -14,7 +14,7 @@ func pdfViewerPlugin()->Viewer.Plugin
         .staticName   = "PDF"
         .attach       = &registerPdfStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Pdf
+        .iconIndex    = cast(s32, ViewerIcons.Pdf)
         .create       = &createPdfViewer
         .probe        = &pdfPluginProbe
         .smokeFixture = "viewer.pdf"
@@ -216,7 +216,7 @@ private impl PdfViewer
 
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.pdfView.effectiveZoom() * 100), "%"))
+        .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
     }
 
     mtd goToTypedPage(text: string)->bool
@@ -420,19 +420,19 @@ func createPdfViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func(wnd, text, options, progress, matches)->bool => (cast #assume (*PdfViewer) wnd).collectMatches(text, options, progress, matches)
-        .revealMatch    = func(wnd, match, text)->bool => (cast #assume (*PdfViewer) wnd).revealMatch(match, text)
-        .matchBounds    = func(wnd, match, bounds)->bool => (cast #assume (*PdfViewer) wnd).searchBounds(match, bounds)
-        .clear          = func(wnd) { (cast #assume (*PdfViewer) wnd).pdfView.clearSelection() }
+        .collectMatches = func|view|(text, options, progress, matches)->bool => view.collectMatches(text, options, progress, matches)
+        .revealMatch    = func|view|(match, text)->bool => view.revealMatch(match, text)
+        .matchBounds    = func|view|(match, bounds)->bool => view.searchBounds(match, bounds)
+        .clear          = func|view|() { view.pdfView.clearSelection() }
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null
-        .retire    = func(wnd)->bool => (cast #assume (*PdfViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

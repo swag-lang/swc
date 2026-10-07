@@ -45,14 +45,14 @@ namespace Integration
         var interfaceId = Win32.GUID{0x947AAB5F, 0x0A5C, 0x4C13, [0xB4, 0xD6, 0x4B, 0xF7, 0x83, 0x6F, 0xC9, 0xF8]}
         var raw: Win32.LPVOID
         try verify(Win32.CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw) >= 0, "Windows must create the Shell file operation")
-        let operation = cast(*IFileOperation) raw!
-        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown) raw!)
+        let operation = cast(*IFileOperation, raw!)
+        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown, raw!))
 
         var idLists: Array'PIDLIST_ABSOLUTE
         defer
         {
             for idList in idLists do
-                Win32.CoTaskMemFree(cast(LPVOID) idList)
+                Win32.CoTaskMemFree(cast(LPVOID, idList))
         }
 
         for path in paths
@@ -63,27 +63,27 @@ namespace Integration
             let path16 = Utf16.toZeroTerminated(shellPath)
             var idList: PIDLIST_ABSOLUTE
             let status = SHParseDisplayName(path16.storage(), null, &idList, 0, null)
-            try verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32) status))
+            try verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32, status)))
             idLists.add(idList)
         }
 
         var items: *IShellItemArray?
-        try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, cast(const [*] PCIDLIST_ABSOLUTE) idLists.storage(), &items) >= 0, "the Shell must collect the batch rename sources")
-        defer discard (items!.lpVtbl.Release)(cast(*IUnknown) cast(*void) items)
+        try verify(SHCreateShellItemArrayFromIDLists(cast(u32, idLists.count), cast(const [*] PCIDLIST_ABSOLUTE, idLists.storage()), &items) >= 0, "the Shell must collect the batch rename sources")
+        defer discard (items!.lpVtbl.Release)(cast(*IUnknown, cast(*void, items)))
 
         // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
         const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
         try verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
         let name16 = Utf16.toZeroTerminated(name)
-        try verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown) cast(*void) items!, name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
+        try verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown, cast(*void, items!)), name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
         try verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
         var aborted: s32
         try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
     }
 
-    func password()->const [..] u8 => cast(const [..] u8) PasswordText
+    func password()->const [..] u8 => cast(const [..] u8, PasswordText)
 
-    func wrongPassword()->const [..] u8 => cast(const [..] u8) WrongPasswordText
+    func wrongPassword()->const [..] u8 => cast(const [..] u8, WrongPasswordText)
 
     func verify(condition: bool, message: string) fail
     {
@@ -114,9 +114,9 @@ namespace Integration
         let available = WinFsp.availableDriveLetters()
         for offset in 23
         {
-            let index = 25'u32 - cast(u32) offset
-            if containsDriveLetter(available.toSlice(), cast(rune) ('A' + index)) do
-                return Format.toString("%:", cast(rune) ('A' + index))
+            let index = 25'u32 - cast(u32, offset)
+            if containsDriveLetter(available.toSlice(), cast(rune, ('A' + index))) do
+                return Format.toString("%:", cast(rune, ('A' + index)))
         }
 
         try failWith("No unused drive letter is available for the integration sandbox.")
@@ -156,7 +156,7 @@ namespace Integration
         defer CloseHandle(handle)
 
         var buffer: [32768] u16
-        let count = GetFinalPathNameByHandleW(handle, buffer.buffer, cast(u32) buffer.count, 0)
+        let count = GetFinalPathNameByHandleW(handle, buffer.buffer, cast(u32, buffer.count), 0)
         try verify(count != 0 and count < buffer.count, Format.toString("Windows cannot resolve [[%]] from its handle (error %)", path, GetLastError()))
         let resolved   = Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
         let resolved16 = Utf16.toZeroTerminated(resolved)
@@ -424,7 +424,7 @@ namespace Integration
             let name = Path.combine(bulk, Format.toString("item-%.bin", index))
             var bytes: [113] u8
             for byteIndex in #sizeof(bytes) do
-                bytes[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
+                bytes[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
             discard try File.writeAllBytes(name, bytes)
         }
 
@@ -457,7 +457,7 @@ namespace Integration
             try verify(not File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
             var expected: [113] u8
             for byteIndex in expected.count do
-                expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
+                expected[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
             try verify(Slice.equals(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
         }
 
@@ -472,7 +472,7 @@ namespace Integration
             try verify(not File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
             var expected: [113] u8
             for byteIndex in expected.count do
-                expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
+                expected[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
             try verify(Slice.equals(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
         }
 
@@ -569,7 +569,7 @@ namespace Integration
         defer discard FreeLibrary(module)
         let address = GetProcAddress(module, ("FspSxsIdent").buffer)
         try verify(address != null, "WinFsp must expose its active SxS identity")
-        let readIdentity = cast(FspSxsIdentFn) address!
+        let readIdentity = cast(FspSxsIdentFn, address!)
         let identity     = readIdentity()
         var count        = 0'u64
         while count < 32 and identity[count] do

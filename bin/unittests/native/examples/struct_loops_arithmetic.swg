@@ -72,7 +72,7 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
         let totalBatches   = ceilDiv(traysNeeded, trayCapacity)
         var traysRemaining = traysNeeded
 
-        for cast(u32) totalBatches
+        for cast(u32, totalBatches)
         {
             let traysThisBatch = minS32(traysRemaining, trayCapacity)
             traysRemaining -= traysThisBatch

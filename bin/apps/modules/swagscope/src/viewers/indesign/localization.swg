@@ -44,5 +44,5 @@ func registerIndesignStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'IndesignStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'IndesignStrings(cast(string, FrenchStrings))
 }

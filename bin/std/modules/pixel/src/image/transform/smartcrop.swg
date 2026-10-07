@@ -96,8 +96,8 @@ impl Image
                 let x0 = Math.max(0, x - radius)
                 let x1 = Math.min(w - 1, x + radius)
                 let S  = sumRect(&ii, w, h, x0, y0, x1 + 1, y1 + 1)
-                let n  = cast(f32) ((x1 - x0 + 1) * (y1 - y0 + 1))
-                dst[y * w + x] = cast(f32) (S / n)
+                let n  = cast(f32, ((x1 - x0 + 1) * (y1 - y0 + 1)))
+                dst[y * w + x] = cast(f32, (S / n))
             }
         }
 
@@ -116,14 +116,14 @@ impl Image
 
         for x in 0 to (w - 1)
         {
-            let fx = cast(f32) x / cast(f32) w
+            let fx = cast(f32, x) / cast(f32, w)
             let dx = Math.min(Math.abs(fx - t1), Math.abs(fx - t2))
             tx[x] = Math.exp(-(dx * dx) / (2.0 * sig2))
         }
 
         for y in 0 to (h - 1)
         {
-            let fy = cast(f32) y / cast(f32) h
+            let fy = cast(f32, y) / cast(f32, h)
             let dy = Math.min(Math.abs(fy - t1), Math.abs(fy - t2))
             ty[y] = Math.exp(-(dy * dy) / (2.0 * sig2))
         }
@@ -161,7 +161,7 @@ impl Image
 
                 let gx = -Lm1m1 + Lp1m1 - 2.0 * Lm10 + 2.0 * Lp10 - Lm1p1 + Lp1p1
                 let gy = -Lm1m1 - 2.0 * L0m1 - Lp1m1 + Lm1p1 + 2.0 * L0p1 + Lp1p1
-                outEdge[i] = cast(f32) Math.sqrt(gx * gx + gy * gy)
+                outEdge[i] = cast(f32, Math.sqrt(gx * gx + gy * gy))
             }
         }
     }
@@ -170,11 +170,11 @@ impl Image
     mtd const extractLumSat(lum: *Array'f32, sat: *Array'f32)
     {
         var f   = {lum: lum, sat: sat}
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (*Image, me)
         mec.visitPixels(&f)
         {
             let p      = image.pixelColor(x, y)
-            let params = cast(*#decltype(f)) userData!
+            let params = cast(*#decltype(f), userData!)
 
             // linear luminance
             let lumBuf = params.lum.storage()
@@ -230,7 +230,7 @@ impl Image
         }
         else
         {
-            let step = cast(s32) Math.floor(cast(f32) N / M)
+            let step = cast(s32, Math.floor(cast(f32, N) / M))
             var w    = 0's32
             for var i = 0; i < N; i += step
             {
@@ -245,8 +245,8 @@ impl Image
 
         tmp.sort()
 
-        let il = Math.max(0, Math.min(M - 1, cast(s32) Math.floor(pLow * cast(f32) (M - 1))))
-        let ih = Math.max(0, Math.min(M - 1, cast(s32) Math.floor(pHigh * cast(f32) (M - 1))))
+        let il = Math.max(0, Math.min(M - 1, cast(s32, Math.floor(pLow * cast(f32, (M - 1))))))
+        let ih = Math.max(0, Math.min(M - 1, cast(s32, Math.floor(pHigh * cast(f32, (M - 1))))))
         let lo = tmp[il]
         let hi = tmp[ih]
         if hi <= lo do
@@ -257,7 +257,7 @@ impl Image
     // Core saliency builder that reuses extracted lum/sat and Sobel edges
     mtd const buildSaliencyAndEdges(w, h: s32, weights: SaliencyWeights)->{ S: Array'f32, Eedge: Array'f32 }
     {
-        let N = cast(s32) (w * h)
+        let N = cast(s32, (w * h))
 
         var lum, sat: Array'f32
         lum.resize(N)
@@ -274,7 +274,7 @@ impl Image
             var rowSumSq = 0.0
             for x in 1 to w
             {
-                let Ld = cast(f32) lum[(y - 1) * w + (x - 1)]
+                let Ld = cast(f32, lum[(y - 1) * w + (x - 1)])
                 rowSum   += Ld
                 rowSumSq += Ld * Ld
                 let idxI = (y * (w + 1) + x)
@@ -309,13 +309,13 @@ impl Image
                 let C = (y1 + 1) * (w + 1) + x0
                 let D = (y1 + 1) * (w + 1) + (x1 + 1)
 
-                let n     = cast(f32) ((x1 - x0 + 1) * (y1 - y0 + 1))
+                let n     = cast(f32, ((x1 - x0 + 1) * (y1 - y0 + 1)))
                 let sum   = ii[D] - ii[B] - ii[C] + ii[A]
                 let sumSq = iiSq[D] - iiSq[B] - iiSq[C] + iiSq[A]
 
                 let mean = sum / n
                 let ovar = Math.max(0.0, (sumSq / n) - mean * mean)
-                contrast[i] = cast(f32) Math.sqrt(ovar)
+                contrast[i] = cast(f32, Math.sqrt(ovar))
 
                 if x + 1 < w do
                     contrast[i + 1] = contrast[i]
@@ -432,7 +432,7 @@ impl Image
     {
         let x1   = x0 + cw
         let y1   = y0 + ch
-        let area = cast(f32) (cw * ch)
+        let area = cast(f32, (cw * ch))
 
         let sumS = sumRect(ctx.iiS, ctx.w, ctx.h, x0, y0, x1, y1)
         let sumT = sumRect(ctx.iiT, ctx.w, ctx.h, x0, y0, x1, y1)
@@ -462,12 +462,12 @@ impl Image
         if imgAspect > aspect
         {
             h0 = Math.min(h, Math.max(4, h0))
-            w0 = Math.min(w, Math.max(4, Math.roundS32(cast(f32) h0 * aspect)))
+            w0 = Math.min(w, Math.max(4, Math.roundS32(cast(f32, h0) * aspect)))
         }
         else
         {
             w0 = Math.min(w, Math.max(4, w0))
-            h0 = Math.min(h, Math.max(4, Math.roundS32(cast(f32) w0 / aspect)))
+            h0 = Math.min(h, Math.max(4, Math.roundS32(cast(f32, w0) / aspect)))
         }
 
         return {w0, h0}
@@ -567,18 +567,18 @@ impl Image
         if imgAspect > aspect
         {
             cropH = h
-            cropW = cast(s32) Math.floor(aspect * cast(f32) cropH + 0.5)
+            cropW = cast(s32, Math.floor(aspect * cast(f32, cropH) + 0.5))
         }
         else
         {
             cropW = w
-            cropH = cast(s32) Math.floor(cast(f32) cropW / aspect + 0.5)
+            cropH = cast(s32, Math.floor(cast(f32, cropW) / aspect + 0.5))
         }
 
         // Features (no shrink prior, still want edges if edgePenalty>0)
         var pack = .buildFeaturePack(w, h, opts, (opts.edgePenalty > 0.01))
 
-        let imgArea = cast(f32) (w * h)
+        let imgArea = cast(f32, (w * h))
         var ctx     = prepareScoreCtx(w, h, &pack, imgArea, opts, 0.0)     // single-scale ignores shrink prior
 
         var bestX, bestY   = 0
@@ -587,7 +587,7 @@ impl Image
 
         let maxX   = w - cropW
         let maxY   = h - cropH
-        let stride = Math.max(1, Math.roundS32(opts.strideFrac * cast(f32) Math.min(cropW, cropH)))
+        let stride = Math.max(1, Math.roundS32(opts.strideFrac * cast(f32, Math.min(cropW, cropH))))
 
         for var y0 = 0; y0 <= maxY; y0 += stride
         {
@@ -636,8 +636,8 @@ impl Image
         // Full feature pack (with edges if enabled)
         var pack = .buildFeaturePack(w, h, opts, true)
 
-        let imgArea = cast(f32) (w * h)
-        var ctx     = prepareScoreCtx(w, h, &pack, imgArea, opts, cast(f32) opts.shrinkPrior)
+        let imgArea = cast(f32, (w * h))
+        var ctx     = prepareScoreCtx(w, h, &pack, imgArea, opts, cast(f32, opts.shrinkPrior))
 
         let minArea = opts.minCoverage * imgArea
         let steps   = opts.maxSearchSteps
@@ -648,7 +648,7 @@ impl Image
 
         for step in 0 to (steps - 1)
         {
-            let t          = step / cast(f32) (steps - 1)
+            let t          = step / cast(f32, (steps - 1))
             let frac       = 1.0 - Math.pow(t, 1.3) * (1.0 - opts.minCoverage)
             let targetArea = Math.max(frac * imgArea, minArea)
 
@@ -744,7 +744,7 @@ impl Image
         let w         = .width
         let h         = .height
         let aspect    = targetWidth / targetHeight
-        let imgAspect = cast(f32) w / h
+        let imgAspect = cast(f32, w) / h
 
         if opts.minCoverage >= 0.95 do
             return .calculateSingleScale(aspect, imgAspect, w, h, opts)
@@ -767,8 +767,8 @@ impl Image
         }
 
         var ii   = buildIntegral(pack.sblur, w, h)
-        let area = cast(f32) (rect.width * rect.height)
-        let sumS = sumRect(&ii, w, h, cast() rect.x, cast() rect.y, cast() rect.right(), cast() rect.bottom())
+        let area = cast(f32, (rect.width * rect.height))
+        let sumS = sumRect(&ii, w, h, cast(rect.x), cast(rect.y), cast(rect.right()), cast(rect.bottom()))
         return sumS / area
     }
 
@@ -776,8 +776,8 @@ impl Image
     {
         let w    = .width, h = .height
         var pack = .buildFeaturePack(w, h, opts, true)
-        var ctx  = prepareScoreCtx(w, h, &pack, cast(f32) (w * h), opts, cast(f32) opts.shrinkPrior)
-        let r    = scoreWindow(&ctx, cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
+        var ctx  = prepareScoreCtx(w, h, &pack, cast(f32, (w * h)), opts, cast(f32, opts.shrinkPrior))
+        let r    = scoreWindow(&ctx, cast(rect.x), cast(rect.y), cast(rect.width), cast(rect.height))
         return r.score
     }
 }
@@ -852,7 +852,7 @@ public impl Image
             let maxSide = Math.max(w0, h0)
             if maxSide > opts.maxSize
             {
-                let scale = cast(f32) opts.maxSize / maxSide
+                let scale = cast(f32, opts.maxSize) / maxSide
                 let w2    = Math.max(1, Math.roundS32(scale * w0))
                 let h2    = Math.max(1, Math.roundS32(scale * h0))
 
@@ -896,7 +896,7 @@ public impl Image
             let maxSide = Math.max(w0, h0)
             if maxSide > opts.maxSize
             {
-                let scale = cast(f32) opts.maxSize / maxSide
+                let scale = cast(f32, opts.maxSize) / maxSide
                 let w2    = Math.max(1, Math.roundS32(scale * w0))
                 let h2    = Math.max(1, Math.roundS32(scale * h0))
 

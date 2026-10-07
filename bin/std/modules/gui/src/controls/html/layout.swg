@@ -114,7 +114,7 @@ impl HtmlLayout
             return .fontCache[styleIndex]!
 
         let style = &.styles[styleIndex]
-        let size  = cast(u32) Math.clamp(Math.round(style.fontSize), 6, 300)
+        let size  = cast(u32, Math.clamp(Math.round(style.fontSize), 6, 300))
         let bold  = style.fontWeight >= 600
         var face  = FontFamilyStyle.Regular
         if bold and style.italic do
@@ -153,7 +153,7 @@ impl HtmlLayout
         let font    = .font(styleIndex)
         var spacing = .styles[styleIndex].letterSpacing
         var scale   = .deviceScale
-        let salt    = cast(u64) font ^ (cast(u64) (cast(const *u32) &spacing)[] << 32) ^ cast(u64) (cast(const *u32) &scale)[]
+        let salt    = cast(u64, font) ^ (cast(u64, cast(const *u32, &spacing)[]) << 32) ^ cast(u64, cast(const *u32, &scale)[])
         let key     = Hash.murmur3(Hash.hash64(text), salt)
         let found   = .widthCache.tryFind(key)
         if found do
@@ -193,7 +193,7 @@ impl HtmlLayout
         box.style = styleIndex
         box.kind  = kind
 
-        let index = cast(u32) .boxes.count
+        let index = cast(u32, .boxes.count)
         .boxes.add(#move box)
         if node != HtmlNoNode do
             .nodeBox.add(node, index)
@@ -203,7 +203,7 @@ impl HtmlLayout
     // Adds a style that no element owns, for an anonymous or generated box.
     private mtd addStyle(style: HtmlComputedStyle)->u32
     {
-        let index = cast(u32) .styles.count
+        let index = cast(u32, .styles.count)
         .styles.add(style)
         return index
     }
@@ -243,7 +243,7 @@ impl HtmlLayout
         // Generated styles join the element ones so a box only ever indexes a single table.
         for value in resolver.pseudos
         {
-            .pseudoStyles.add(HtmlStyleResolver.pseudoKey(value.element, value.which), cast(u32) .styles.count)
+            .pseudoStyles.add(HtmlStyleResolver.pseudoKey(value.element, value.which), cast(u32, .styles.count))
             .styles.add(value.style)
         }
 
@@ -602,8 +602,8 @@ impl HtmlLayout
             var value = ordinal
             while value
             {
-                let digit = cast(u8) ((value - 1) % 26)
-                result = Format.toString("%%", cast(rune) ((kind == .LowerAlpha ? 'a'u8 : 'A'u8) + digit), result)
+                let digit = cast(u8, ((value - 1) % 26))
+                result = Format.toString("%%", cast(rune, ((kind == .LowerAlpha ? 'a'u8 : 'A'u8) + digit)), result)
                 value  = (value - 1) / 26
             }
 
@@ -682,8 +682,8 @@ private impl HtmlLayout
     mtd storeText(text: string, kind = HtmlTextTransform.None)->HtmlRange
     {
         var result: retval
-        result.start = cast(u32) .textPool.length
-        result.count = cast(u32) text.count
+        result.start = cast(u32, .textPool.length)
+        result.count = cast(u32, text.count)
         .textPool    += text
 
         let buffer = .textPool.storage()
@@ -803,7 +803,7 @@ private impl HtmlLayout
                 item.textCount   = stored.count
                 item.sourceStart = index
                 item.sourceEnd   = end
-                item.width       = .measure(styleIndex, .inlineText(&item)) + style.wordSpacing * cast(f32) spaces
+                item.width       = .measure(styleIndex, .inlineText(&item)) + style.wordSpacing * cast(f32, spaces)
                 item.ascent      = font.ascent
                 item.descent     = -font.descent
                 pending.add(#move item)
@@ -1078,7 +1078,7 @@ impl HtmlLayout
 
             if count > 1
             {
-                let gap = .resolveLength(style.columnGap, .boxes[box].style, .viewport.x) * cast(f32) (count - 1)
+                let gap = .resolveLength(style.columnGap, .boxes[box].style, .viewport.x) * cast(f32, (count - 1))
                 result.max += gap
                 if style.flexWrap == .NoWrap do
                     result.min = minimum + gap
@@ -1232,7 +1232,7 @@ impl HtmlLayout
         {
             .boxes[boxIndex].hasIntrinsic    = false
             .boxes[boxIndex].outOfFlowQueued = false
-            .mergeContinuations(cast(u32) boxIndex)
+            .mergeContinuations(cast(u32, boxIndex))
         }
 
         var containing: HtmlContainingBlock
@@ -1773,8 +1773,8 @@ private impl HtmlLayout
             empty.top    = top
             empty.height = strutHeight
             empty.left   = left
-            empty.first  = cast(u32) first
-            empty.last   = cast(u32) last
+            empty.first  = cast(u32, first)
+            empty.last   = cast(u32, last)
             .boxes[box].lines.add(#move empty)
             return strutHeight
         }
@@ -1820,7 +1820,7 @@ private impl HtmlLayout
             for index in first until end where .boxes[box].items[index].visible and .boxes[box].items[index].kind == .Space do
                 spaces += 1
             if spaces do
-                spaceExtra = extra / cast(f32) spaces
+                spaceExtra = extra / cast(f32, spaces)
         }
 
         var slide = 0.0'f32
@@ -1861,8 +1861,8 @@ private impl HtmlLayout
         line.baseline = baseline
         line.left     = left
         line.width    = lineWidth + shift
-        line.first    = cast(u32) first
-        line.last     = cast(u32) end
+        line.first    = cast(u32, first)
+        line.last     = cast(u32, end)
         .boxes[box].lines.add(#move line)
         return height
     }
@@ -2239,7 +2239,7 @@ private impl HtmlLayout
         var used = 0.0'f32
         for index in itemCount do
             used += sizes[index]
-        used += gap * cast(f32) (itemCount > 0 ? itemCount - 1 : 0)
+        used += gap * cast(f32, (itemCount > 0 ? itemCount - 1 : 0))
 
         var extra = Math.max(contentWidth - used, 0)
 
@@ -2258,7 +2258,7 @@ private impl HtmlLayout
         var autoShare = 0.0'f32
         if autoMargins and extra > 0
         {
-            autoShare = extra / cast(f32) autoMargins
+            autoShare = extra / cast(f32, autoMargins)
             extra     = 0
         }
 
@@ -2274,15 +2274,15 @@ private impl HtmlLayout
 
         case .SpaceBetween:
             if itemCount > 1 do
-                between = gap + extra / cast(f32) (itemCount - 1)
+                between = gap + extra / cast(f32, (itemCount - 1))
 
         case .SpaceAround:
-            let slot = extra / cast(f32) itemCount
+            let slot = extra / cast(f32, itemCount)
             pen     += slot * 0.5
             between = gap + slot
 
         case .SpaceEvenly:
-            let slot = extra / cast(f32) (itemCount + 1)
+            let slot = extra / cast(f32, (itemCount + 1))
             pen     += slot
             between = gap + slot
         }
@@ -2397,7 +2397,7 @@ private impl HtmlLayout
             fractions.add(0)
         }
 
-        let gaps = columnGap * cast(f32) (not widths.isEmpty() ? widths.count - 1 : 0)
+        let gaps = columnGap * cast(f32, (not widths.isEmpty() ? widths.count - 1 : 0))
         let free = Math.max(contentWidth - fixed - gaps, 0)
         if flex > 0
         {
@@ -2474,7 +2474,7 @@ private impl HtmlLayout
             // for, which is what keeps a wide column wide.
             let surplus = Math.max(contentWidth - wanted, 0)
             for index in columns do
-                widths[index] = maximums[index] + (wanted > 0 ? surplus * maximums[index] / wanted : surplus / cast(f32) columns)
+                widths[index] = maximums[index] + (wanted > 0 ? surplus * maximums[index] / wanted : surplus / cast(f32, columns))
         }
         else
         {

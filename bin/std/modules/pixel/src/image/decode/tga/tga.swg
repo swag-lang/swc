@@ -121,7 +121,7 @@ func pixelFormat(header: Header, palette: Palette)->PixelFormat fail
     fail UnsupportedFormatError{"unsupported bit depth"}
 }
 
-func expand5(value: u32)->u8 => cast(u8) ((value * 255 + 15) / 31)
+func expand5(value: u32)->u8 => cast(u8, ((value * 255 + 15) / 31))
 
 func writeBgrPixel(dst: [*] u8, b, g, r: u8)
 {
@@ -140,7 +140,7 @@ func writeBgraPixel(dst: [*] u8, b, g, r, a: u8)
 
 func writeTga16Pixel(dst: [*] u8, value: u16, writeAlpha, alphaFromBit: bool)
 {
-    let pixel = cast(u32) value
+    let pixel = cast(u32, value)
     let b     = expand5(pixel & 0x1F)
     let g     = expand5((pixel >> 5) & 0x1F)
     let r     = expand5((pixel >> 10) & 0x1F)
@@ -172,31 +172,31 @@ func decodeTga16RowReversed(source: const [*] u8, destination: [*] u8, pixelCoun
 
 func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
 {
-    let srcX = cast(s32) (pixelIndex % header.width)
-    let srcY = cast(s32) (pixelIndex / header.width)
+    let srcX = cast(s32, (pixelIndex % header.width))
+    let srcY = cast(s32, (pixelIndex / header.width))
     let dstX = header.descriptorByte & DESC_ORIGIN_RIGHT ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - srcY - 1 : srcY
-    return cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride + cast(u64) dstX * result.bytesPerPixel
+    return cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride + cast(u64, dstX) * result.bytesPerPixel
 }
 
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
 {
     if bpp == 16 do
-        return (cast(const *u16) src)[]
+        return cast(const *u16, src)[]
     return src[0]
 }
 
 func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
 {
-    if index < palette.first or index >= cast(u32) palette.first + palette.count do
+    if index < palette.first or index >= cast(u32, palette.first) + palette.count do
         fail InvalidFormatError{"invalid palette index"}
 
-    let paletteData = cast(const [*] u8) palette.data!
-    let entry       = paletteData + cast(u64) (index - palette.first) * palette.bytesPerPixel
+    let paletteData = cast(const [*] u8, palette.data!)
+    let entry       = paletteData + cast(u64, (index - palette.first)) * palette.bytesPerPixel
     switch palette.bitsPerPixel
     {
-    case 15: writeTga16Pixel(dst, (cast(const *u16) entry)[], false, false)
-    case 16: writeTga16Pixel(dst, (cast(const *u16) entry)[], true, true)
+    case 15: writeTga16Pixel(dst, cast(const *u16, entry)[], false, false)
+    case 16: writeTga16Pixel(dst, cast(const *u16, entry)[], true, true)
     case 24: writeBgrPixel(dst, entry[0], entry[1], entry[2])
     case 32: writeBgraPixel(dst, entry[0], entry[1], entry[2], entry[3])
     }
@@ -224,8 +224,8 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 
     switch header.bitsPerPixel
     {
-    case 15: writeTga16Pixel(dst, (cast(const *u16) src)[], false, false)
-    case 16: writeTga16Pixel(dst, (cast(const *u16) src)[], true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
+    case 15: writeTga16Pixel(dst, cast(const *u16, src)[], false, false)
+    case 16: writeTga16Pixel(dst, cast(const *u16, src)[], true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
     case 24: writeBgrPixel(dst, src[0], src[1], src[2])
     case 32: writeBgraPixel(dst, src[0], src[1], src[2], src[3])
     }
@@ -241,7 +241,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         for y in result.height
         {
             let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-            let dst  = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
+            let dst  = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
             if header.bitsPerPixel == 15
             {
                 if rightOrigin do
@@ -258,7 +258,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
                     decodeTga16Row(p, dst, result.width, alphaFromBit)
             }
 
-            p += cast(u64) result.width * 2
+            p += cast(u64, result.width) * 2
         }
 
         return
@@ -267,11 +267,11 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
     if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 24 or header.bitsPerPixel == 32)
     {
         let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
-        let rowBytes    = cast(u64) result.width * pixelBytes
+        let rowBytes    = cast(u64, result.width) * pixelBytes
         for y in result.height
         {
             let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-            let dst  = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
+            let dst  = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
             if rightOrigin
             {
                 if header.bitsPerPixel == 24 do
@@ -311,7 +311,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
             let packet = p[0]
             p += 1
 
-            let count = cast(u64) ((packet & 0x7F) + 1)
+            let count = cast(u64, ((packet & 0x7F) + 1))
             if index + count > pixelCount do
                 fail InvalidFormatError{"invalid source buffer"}
 
@@ -321,7 +321,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
             var source    = p
             while remaining
             {
-                let rowRemaining = cast(u64) header.width - index % header.width
+                let rowRemaining = cast(u64, header.width) - index % header.width
                 let segmentCount = Math.min(remaining, rowRemaining)
                 let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
                 let dst          = dstPixel(result, header, dstIndex)
@@ -365,7 +365,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
         let packet = p[0]
         p += 1
 
-        let count = cast(u64) ((packet & 0x7F) + 1)
+        let count = cast(u64, ((packet & 0x7F) + 1))
         if index + count > pixelCount do
             fail InvalidFormatError{"invalid source buffer"}
 
@@ -406,7 +406,7 @@ internal impl IImageDecoder for Decoder
         if countof < #sizeof(Header) do
             fail InvalidFormatError{"invalid source buffer"}
 
-        let header = (cast(const *Header) dataof)[]
+        let header = cast(const *Header, dataof)[]
         dataof += #sizeof(Header)
 
         if header.width == 0 or header.height == 0 do
@@ -426,8 +426,8 @@ internal impl IImageDecoder for Decoder
             palette.bitsPerPixel  = header.colorMapBpp
             palette.bytesPerPixel = try palettePixelBytes(header.colorMapBpp)
             palette.data          = dataof
-            try checkBuffer(dataof, last, cast(u64) palette.count * palette.bytesPerPixel)
-            dataof += cast(u64) palette.count * palette.bytesPerPixel
+            try checkBuffer(dataof, last, cast(u64, palette.count) * palette.bytesPerPixel)
+            dataof += cast(u64, palette.count) * palette.bytesPerPixel
         }
 
         if isMappedType(header.imageTypeCode) and not palette.count do
@@ -440,7 +440,7 @@ internal impl IImageDecoder for Decoder
             return result
 
         result.allocPixels()
-        let pixelCount = cast(u64) result.width * result.height
+        let pixelCount = cast(u64, result.width) * result.height
         if isRleType(header.imageTypeCode) do
             try decodeRle(&result, header, palette, dataof, last, pixelBytes, pixelCount)
         else do

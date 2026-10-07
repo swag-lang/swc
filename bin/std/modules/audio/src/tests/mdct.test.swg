@@ -12,8 +12,8 @@ private func mdctDirect(spectrum: const [..] f32, output: [*] f64)
         var sum = 0.0'f64
         for bin in half
         {
-            let angle = 2.0 * Math.ConstF64.Pi / cast(f64) n * (cast(f64) index + 0.5 + cast(f64) n / 4.0) * (cast(f64) bin + 0.5)
-            sum += cast(f64) spectrum[bin] * Math.cos(angle)
+            let angle = 2.0 * Math.ConstF64.Pi / cast(f64, n) * (cast(f64, index) + 0.5 + cast(f64, n) / 4.0) * (cast(f64, bin) + 0.5)
+            sum += cast(f64, spectrum[bin]) * Math.cos(angle)
         }
 
         output[index] = sum
@@ -28,7 +28,7 @@ private func mdctAssertMatchesDefinition(n: u32)
     var spectrum: Array'f32
     spectrum.resize(n / 2)
     for index in n / 2 do
-        spectrum[index] = cast(f32) (cast(f64) random.nextU32() / 4294967296.0 * 2.0 - 1.0)
+        spectrum[index] = cast(f32, (cast(f64, random.nextU32()) / 4294967296.0 * 2.0 - 1.0))
 
     var direct: Array'f64
     direct.resize(n)
@@ -43,7 +43,7 @@ private func mdctAssertMatchesDefinition(n: u32)
     var scale = 0.0'f64
     for index in n
     {
-        worst = Math.max(worst, Math.abs(cast(f64) fast[index] - direct[index]))
+        worst = Math.max(worst, Math.abs(cast(f64, fast[index]) - direct[index]))
         scale = Math.max(scale, Math.abs(direct[index]))
     }
 

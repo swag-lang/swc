@@ -560,7 +560,7 @@ impl Painter
     {
         if .texture0Dirty or .lastTexture0Handle or .lastTexture0Type != .SolidColor
         {
-            .lastTexture0Handle = cast(TextureHandle) 0
+            .lastTexture0Handle = cast(TextureHandle, 0)
             .lastTexture0Type   = .SolidColor
             .texture0Dirty      = false
             discard .newCommand(.ResetTexture0, true)
@@ -744,7 +744,7 @@ impl Painter
         }
 
         let cmd = .newCommand(.DrawTriangles)
-        cmd.drawTriangles.start = cast(u32) .vertexBuffer.count
+        cmd.drawTriangles.start = cast(u32, .vertexBuffer.count)
         cmd.drawTriangles.count = 0
 
         // An empty batch starts inverted, so the first point it takes in becomes both bounds.

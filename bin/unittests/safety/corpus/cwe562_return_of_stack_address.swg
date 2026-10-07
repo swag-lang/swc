@@ -38,7 +38,7 @@ func returnAddressThroughCopy()->*s32
 func returnSliceOfLocal()->const [..] u8
 {
     var buffer: [4] u8
-    return cast(const [..] u8) buffer     // swc-expected-error {{sanity_err_borrow_escape}}
+    return cast(const [..] u8, buffer)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // The view leaves through a caller-visible pointer instead of the return value.
@@ -71,7 +71,7 @@ impl IValue for Holder { mtd read()->s32 => .value }
 func returnInterfaceOverLocal()->IValue
 {
     var holder = Holder{value: 42}
-    return cast(IValue) &holder     // swc-expected-error {{sanity_err_borrow_escape}}
+    return cast(IValue, &holder)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // The borrow leaves through a chain of opaque calls: the summary of each one is inferred and
@@ -131,14 +131,14 @@ impl ViewBag
     mtd opDrop()
     {
         if .slots != null do
-            heapFree(cast(*void) .slots, 4 * 8)
+            heapFree(cast(*void, .slots), 4 * 8)
         .slots = null
     }
 
     mtd add(pointer: *s32)
     {
         if .slots == null do
-            .slots = cast([*] (*s32?)) heapAlloc(4 * 8)
+            .slots = cast([*] (*s32?), heapAlloc(4 * 8))
         .slots[.count] = pointer
         .count         += 1
     }
@@ -149,7 +149,7 @@ func fillBagFromInnerScope()
     var bag: ViewBag
     for turn in 2
     {
-        var value = cast(s32) turn
+        var value = cast(s32, turn)
         bag.add(&value)     // swc-expected-error {{sanity_err_borrow_escape}}
     }
 }
@@ -172,7 +172,7 @@ func returnAddressOfGlobal()->*s32
 
 func returnSliceOfGlobal()->const [..] u8
 {
-    return cast(const [..] u8) globalBuffer
+    return cast(const [..] u8, globalBuffer)
 }
 
 // A pointer received as a parameter is caller-owned, and passing it on is fine.

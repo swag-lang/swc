@@ -181,12 +181,12 @@ private impl TagBin
     // Returns the shape id of a plan, registering the shape on first use.
     mtd shapeIdFor(plan: const *Plan)->u32
     {
-        let key = cast(u64) plan
+        let key = cast(u64, plan)
         let e   = .shapeIds.tryFind(key)
         if e do
             return e.value
 
-        let id = cast(u32) .shapePlans.count
+        let id = cast(u32, .shapePlans.count)
         .shapePlans.add(plan)
         .shapeIds.add(key, id)
         return id
@@ -251,11 +251,11 @@ impl TagBin
         var v = value
         while v >= 0x80
         {
-            output.addNative(cast(u8) ((v & 0x7F) | 0x80))
+            output.addNative(cast(u8, ((v & 0x7F) | 0x80)))
             v >>= 7
         }
 
-        output.addNative(cast(u8) v)
+        output.addNative(cast(u8, v))
     }
 
     // Writes an unsigned value as LEB128, the framing encoding of a version 1 stream.
@@ -369,13 +369,13 @@ impl TagBin
             if err != null or compressBuffer.count >= bodyBytes.count
             {
                 // Equal sizes tell the reader the body is stored uncompressed.
-                header.addNative(cast(u64) bodyBytes.count)
-                header.addNative(cast(u64) bodyBytes.count)
+                header.addNative(cast(u64, bodyBytes.count))
+                header.addNative(cast(u64, bodyBytes.count))
                 header.addBytes(bodyBytes)
             }
             else
             {
-                header.addNative(cast(u64) bodyBytes.count)
+                header.addNative(cast(u64, bodyBytes.count))
                 header.addNative(compressBuffer.count)
                 header.addBytes(compressBuffer.toSlice())
             }
@@ -456,7 +456,7 @@ impl TagBin
             return false
         }
 
-        let plan = try planFor(cast #assume(const *Swag.TypeInfoStruct) structType)
+        let plan = try planFor(assume cast(const *Swag.TypeInfoStruct, structType))
         if plan.podFinal
         {
             output.addNative(TagBinSignature.Raw)
@@ -506,9 +506,9 @@ impl TagBin
             sec.fieldIndex += 1
 
             let off = ConcatBuffer.offsetOf(output.position()) - sec.payloadStart
-            if off > cast(u64) Swag.U32.Max do
+            if off > cast(u64, Swag.U32.Max) do
                 fail SerializationError{"section payload exceeds the 4 GiB shaped section limit", field: val}
-            sec.offsets.add(cast(u32) off)
+            sec.offsets.add(cast(u32, off))
 
             compressed = pf.compressed
         }
@@ -628,7 +628,7 @@ impl TagBin
                 .writeVarint(countElem * sizeof)
                 if not data do
                     return true
-                let bufArr = cast(const *Array'u8) data
+                let bufArr = cast(const *Array'u8, data)
                 output.addBytes(Swag.makeSlice(bufArr.buffer, countElem * sizeof))
                 return true
             }
@@ -647,7 +647,7 @@ impl TagBin
                 .writeVarint(countElem * sizeof)
                 if not data do
                     return true
-                output.addBytes(Swag.makeSlice(cast(const [*] u8) data, countElem * sizeof))
+                output.addBytes(Swag.makeSlice(cast(const [*] u8, data), countElem * sizeof))
                 return true
             }
             else

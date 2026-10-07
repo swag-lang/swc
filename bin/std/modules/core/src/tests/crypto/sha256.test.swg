@@ -40,7 +40,7 @@ func fillSha256Pattern(buffer: [..] u8)
     var i = 0'u64
     while i < buffer.count
     {
-        buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+        buffer[i] = cast(u8, ((i * 37 + 11) & 0xFF))
         i         += 1
     }
 }

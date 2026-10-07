@@ -33,5 +33,5 @@ func registerTableStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'TableStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'TableStrings(cast(string, FrenchStrings))
 }

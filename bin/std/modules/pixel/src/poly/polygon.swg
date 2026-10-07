@@ -38,7 +38,7 @@ impl Polygon
         for i in count
         {
             let pt = .points[i]
-            path.add(Clipper.IntPoint{cast(s64) (pt.x * ClipperScaleCoords), cast(s64) (pt.y * ClipperScaleCoords)})
+            path.add(Clipper.IntPoint{cast(s64, (pt.x * ClipperScaleCoords)), cast(s64, (pt.y * ClipperScaleCoords))})
         }
     }
 
@@ -217,10 +217,10 @@ impl Polygon
             defer i += 1
             var v      = .points[(i + 1) % .points.count] - .points[i]
             let d      = v.length()
-            var divide = cast(s32) (d / maxDistance)
+            var divide = cast(s32, (d / maxDistance))
             if divide > 0
             {
-                v /= cast(f32) (divide + 1)
+                v /= cast(f32, (divide + 1))
                 while divide > 0
                 {
                     let np = .points[i] + v
@@ -355,13 +355,13 @@ impl Polygon
         // instead of the O(n^2) brute-force all-pairs test. That test dominated the
         // entire vector pipeline (it runs in every non-convex path flatten).
         // `minBounds` and `maxBounds` are already filled by the `recompute` loop.
-        var res = cast(s32) Math.sqrt(cast(f32) count)
+        var res = cast(s32, Math.sqrt(cast(f32, count)))
         res = Math.clamp(res, 1, 1024)
 
         let w     = .maxBounds.x - .minBounds.x
         let h     = .maxBounds.y - .minBounds.y
-        let invCw = w > Math.ConstF32.Epsilon ? cast(f32) res / w : 0'f32
-        let invCh = h > Math.ConstF32.Epsilon ? cast(f32) res / h : 0'f32
+        let invCw = w > Math.ConstF32.Epsilon ? cast(f32, res) / w : 0'f32
+        let invCh = h > Math.ConstF32.Epsilon ? cast(f32, res) / h : 0'f32
 
         // The cells are chained through two flat arrays rather than owning a list each: a grid
         // sized to the contour would otherwise allocate once per cell and once more per cell that
@@ -372,7 +372,7 @@ impl Polygon
         var cellHead: Array'u32
         var slotEdge: Array'u32
         var slotNext: Array'u32
-        cellHead.resize(cast(u64) res * cast(u64) res)
+        cellHead.resize(cast(u64, res) * cast(u64, res))
         slotEdge.reserve(count)
         slotNext.reserve(count)
 
@@ -384,20 +384,20 @@ impl Polygon
             if a0.isEqualEpsilon(a1) do
                 continue
 
-            let cx0 = Math.clamp(cast(s32) ((Math.min(a0.x, a1.x) - .minBounds.x) * invCw), 0, res - 1)
-            let cx1 = Math.clamp(cast(s32) ((Math.max(a0.x, a1.x) - .minBounds.x) * invCw), 0, res - 1)
-            let cy0 = Math.clamp(cast(s32) ((Math.min(a0.y, a1.y) - .minBounds.y) * invCh), 0, res - 1)
-            let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .minBounds.y) * invCh), 0, res - 1)
+            let cx0 = Math.clamp(cast(s32, ((Math.min(a0.x, a1.x) - .minBounds.x) * invCw)), 0, res - 1)
+            let cx1 = Math.clamp(cast(s32, ((Math.max(a0.x, a1.x) - .minBounds.x) * invCw)), 0, res - 1)
+            let cy0 = Math.clamp(cast(s32, ((Math.min(a0.y, a1.y) - .minBounds.y) * invCh)), 0, res - 1)
+            let cy1 = Math.clamp(cast(s32, ((Math.max(a0.y, a1.y) - .minBounds.y) * invCh)), 0, res - 1)
 
             // Test against edges already registered in ? any cell this edge overlaps.
             for cy in cy0 to cy1
             {
                 for cx in cx0 to cx1
                 {
-                    var link = cellHead[cast(u64) (cy * res + cx)]
+                    var link = cellHead[cast(u64, (cy * res + cx))]
                     while link
                     {
-                        let j = cast(u64) slotEdge[link - 1]
+                        let j = cast(u64, slotEdge[link - 1])
                         link = slotNext[link - 1]
                         let nextJ = (j + 1) % count
                         if nextI == j or nextJ == i do
@@ -418,10 +418,10 @@ impl Polygon
             {
                 for cx in cx0 to cx1
                 {
-                    let cell = cast(u64) (cy * res + cx)
-                    slotEdge.add(cast(u32) i)
+                    let cell = cast(u64, (cy * res + cx))
+                    slotEdge.add(cast(u32, i))
                     slotNext.add(cellHead[cell])
-                    cellHead[cell] = cast(u32) slotEdge.count
+                    cellHead[cell] = cast(u32, slotEdge.count)
                 }
             }
         }
@@ -458,7 +458,7 @@ impl Polygon
 
         for pt in res
         {
-            let vec = Math.Vector2{cast(f32) (pt.x / ClipperScaleCoords), cast(f32) (pt.y / ClipperScaleCoords)}
+            let vec = Math.Vector2{cast(f32, (pt.x / ClipperScaleCoords)), cast(f32, (pt.y / ClipperScaleCoords))}
             .add(vec)
         }
 
@@ -512,7 +512,7 @@ impl Polygon
         .addOffsetInputs(&off, joinType)
 
         // Compute
-        off.execute(res, cast(f64) (value * ClipperScaleCoords))
+        off.execute(res, cast(f64, (value * ClipperScaleCoords)))
     }
 
     // Replaces the contour with its exact offset by `value`, joining corners with `joinStyle`.
@@ -653,7 +653,7 @@ impl Polygon
         // two points at a time and folded once at the end. The perimeter and the signed area do
         // depend on that order — the sign of the area decides the winding direction — so they
         // stay in the sequential walk, added exactly as they were.
-        let coords    = cast(const [*] f32) points
+        let coords    = cast(const [*] f32, points)
         var packedMin = Simd.load(coords)
         var packedMax = packedMin
         var pair      = 0'u64

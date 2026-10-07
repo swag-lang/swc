@@ -115,12 +115,12 @@ func message(err: any?)->string
     {
         if type == Swag.BaseError
         {
-            let base = cast(const *Swag.BaseError) err.buffer
+            let base = cast(const *Swag.BaseError, err.buffer)
             let text = base.message orelse ""
             return text.count ? text : name
         }
 
-        let structType = cast #assume(const *Swag.TypeInfoStruct) type
+        let structType = assume cast(const *Swag.TypeInfoStruct, type)
         let fields     = structType.fields
         if fields.count == 0 or fields![0].offset != 0 do
             break
@@ -165,7 +165,7 @@ func mkString(str: string?)->string?
     var request: Swag.AllocatorRequest
     request.size = count
     allocator.alloc(&request)
-    let ptr = cast([*] u8?) request.address
+    let ptr = cast([*] u8?, request.address)
     if not ptr do
         return null
     Swag.memcpy(ptr, str.buffer, count)

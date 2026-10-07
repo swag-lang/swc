@@ -50,7 +50,7 @@
 {
     var buf: [6] u8 = ['s'u8, 'w'u8, 'a'u8, 'g'u8, '4'u8, '2'u8]
     let str         = Swag.makeString(&buf[0], 6)
-    let bytes       = cast(const [..] u8) str
+    let bytes       = cast(const [..] u8, str)
 
     #assert(#typeof(bytes) == const [..] u8)
     Swag.assert(bytes.count == 6)

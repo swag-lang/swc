@@ -395,7 +395,7 @@ readable without parentheses.
 /**
 # Reinterpreting the Pointed Storage
 
-Cast the pointer, then dereference it: `(cast(*T) expr)[]` reads or writes the
+Cast the pointer, then dereference it: `(cast(*T, expr))[]` reads or writes the
 same storage through a pointer to `T`. This changes the view of the bytes;
 it does not perform a numeric conversion. Use `const *T` for a read-only view.
 The caller is responsible for providing storage large enough for the requested type.
@@ -404,33 +404,33 @@ The caller is responsible for providing storage large enough for the requested t
 {
     var f = 1.0'f32
     let p = &f
-    Swag.assert((cast(const *u32) p)[] == 0x3F80_0000)     // The float's bit pattern, not a conversion
+    Swag.assert(cast(const *u32, p)[] == 0x3F80_0000)     // The float's bit pattern, not a conversion
 
     var value = 0's32
     let vp    = &value
-    (cast(*u32) vp)[] = 0xFFFF_FFFF     // Writes through the reinterpreted place
+    cast(*u32, vp)[] = 0xFFFF_FFFF     // Writes through the reinterpreted place
     Swag.assert(value == -1)
 }
 
 /**
 `*T` points to **one** value. To walk a buffer with another element type, cast to
-a block pointer: `(cast([*] T) p)[i]`. When the element count is known, a pointer to
-an array provides a fixed shape: `(cast(*[4] u32) p)[][1]` names its second word.
+a block pointer: `(cast([*] T, p))[i]`. When the element count is known, a pointer to
+an array provides a fixed shape: `(cast(*[4] u32, p))[][1]` names its second word.
 */
 #test
 {
     var bytes: [16] u8
     for i in 16 do
-        bytes[i] = cast(u8) i
+        bytes[i] = cast(u8, i)
 
     // Walk the same storage as four words.
-    let words = cast([*] u32) bytes.buffer
+    let words = cast([*] u32, bytes.buffer)
     Swag.assert(words[0] == 0x0302_0100)
     Swag.assert(words[1] == 0x0706_0504)
 
     // Or name a fixed array shape.
     let p = bytes.buffer
-    Swag.assert((cast(const *[4] u32) p)[][1] == 0x0706_0504)
+    Swag.assert(cast(const *[4] u32, p)[][1] == 0x0706_0504)
 }
 
 /**
@@ -488,7 +488,7 @@ single element. Cast it to a multi-value pointer when pointer arithmetic is inte
 #test
 {
     var arr: [4] s32
-    var ptr = cast([*] s32) &arr[1]
+    var ptr = cast([*] s32, &arr[1])
 
     // The pointer is treated as a multi-value pointer
     ptr = ptr - 1
@@ -507,7 +507,7 @@ This is particularly useful when traversing arrays or buffers via pointers.
 #test
 {
     var arr = [1, 2, 3, 4]
-    let ptr = cast([*] s32) &arr[0]
+    let ptr = cast([*] s32, &arr[0])
     Swag.assert(#typeof(ptr) == [*] s32)
     let value1 = ptr[0]
     Swag.assert(value1 == 1)

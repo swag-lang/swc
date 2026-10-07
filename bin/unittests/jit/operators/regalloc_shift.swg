@@ -62,13 +62,13 @@
 {
     func shiftMixWidths(cnt: u32)->u64
     {
-        var a:  u32 = 0x80'u32                      // 128
-        var b:  u32 = 0x200'u32                     // 512
-        var c:  u64 = 0x800'u64                     // 2048
-        var ra: u32 = a >> cnt                      // 128  >> 2 = 32;   cnt → CL
-        var rb: u32 = b >> cnt                      // 512  >> 2 = 128;  cnt → CL
-        var rc: u64 = c >> cnt                      // 2048 >> 2 = 512;  cnt → CL (64-bit)
-        return cast(u64) ra + cast(u64) rb + rc     // 32 + 128 + 512 = 672
+        var a:  u32 = 0x80'u32                        // 128
+        var b:  u32 = 0x200'u32                       // 512
+        var c:  u64 = 0x800'u64                       // 2048
+        var ra: u32 = a >> cnt                        // 128  >> 2 = 32;   cnt → CL
+        var rb: u32 = b >> cnt                        // 512  >> 2 = 128;  cnt → CL
+        var rc: u64 = c >> cnt                        // 2048 >> 2 = 512;  cnt → CL (64-bit)
+        return cast(u64, ra) + cast(u64, rb) + rc     // 32 + 128 + 512 = 672
     }
 
     const V = #run shiftMixWidths(2'u32)

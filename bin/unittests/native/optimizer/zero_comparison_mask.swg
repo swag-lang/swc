@@ -34,7 +34,7 @@ func isZero(a: u64)->bool => a == 0
         }
         Swag.assert(shared(a) == (~mask ^ a))
         Swag.assert(equalShared(a) == (mask ^ a))
-        let narrow = cast(u32) (a & 0xFFFFFFFF)
+        let narrow = cast(u32, (a & 0xFFFFFFFF))
         if isZero(narrow)
         {
             Swag.assert(zero32(narrow) == 0xFFFFFFFF)

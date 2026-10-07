@@ -71,8 +71,8 @@ impl PlanarFrame
             luma: .luma.storage(),
             chromaB: .chromaB.storage(),
             chromaR: .chromaR.storage(),
-            lumaStride: cast(u64) .strideLuma,
-            chromaStride: cast(u64) .strideChroma,
+            lumaStride: cast(u64, .strideLuma),
+            chromaStride: cast(u64, .strideChroma),
             width: .width,
             height: .height,
             chromaShift: .chromaShift,
@@ -86,15 +86,15 @@ impl PlanarFrame
     mtd resize(width, height: s32, chromaShift = 1's32)
     {
         let round       = (1's32 << chromaShift) - 1
-        let chromaWidth = cast(u32) ((width + round) >> chromaShift)
-        let chromaRows  = cast(u64) ((height + round) >> chromaShift)
-        let lumaSize    = cast(u64) width * cast(u64) height
-        let chromaSize  = cast(u64) chromaWidth * chromaRows
+        let chromaWidth = cast(u32, ((width + round) >> chromaShift))
+        let chromaRows  = cast(u64, ((height + round) >> chromaShift))
+        let lumaSize    = cast(u64, width) * cast(u64, height)
+        let chromaSize  = cast(u64, chromaWidth) * chromaRows
 
         .width        = width
         .height       = height
         .chromaShift  = chromaShift
-        .strideLuma   = cast(u32) width
+        .strideLuma   = cast(u32, width)
         .strideChroma = chromaWidth
         if .luma.count != lumaSize do
             .luma.resize(lumaSize)

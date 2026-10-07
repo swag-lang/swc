@@ -29,7 +29,7 @@ func writeBgraPixel(dst: [*] u8, b, g, r, a: u8)
 func writePalettePixel(dst: [*] u8, palette: const [*] u8, paletteEntrySize: u32, index, paletteCount: u32)
 {
     let safeIndex = index < paletteCount ? index : (paletteCount ? paletteCount - 1 : 0)
-    let entry     = palette + cast(u64) safeIndex * paletteEntrySize
+    let entry     = palette + cast(u64, safeIndex) * paletteEntrySize
     writeBgrPixel(dst, entry[0], entry[1], entry[2])
 }
 
@@ -49,11 +49,11 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
     switch bitCount
     {
     case 1:
-        return cast(u32) ((src[x / 8] >> cast(u32) (7 - (x & 7))) & 1)
+        return cast(u32, ((src[x / 8] >> cast(u32, (7 - (x & 7)))) & 1))
 
     case 4:
         let b = src[x / 2]
-        return cast(u32) ((x & 1) ? (b & 0x0F) : (b >> 4))
+        return cast(u32, ((x & 1) ? (b & 0x0F) : (b >> 4)))
 
     default:
         return src[x]
@@ -63,13 +63,13 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
 func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32, bitCount: u16, topDown: bool) fail
 {
     let stride = rowStride(result.width, bitCount)
-    try checkBuffer(src, last, stride * cast(u64) result.height)
+    try checkBuffer(src, last, stride * cast(u64, result.height))
 
     for y in result.height
     {
         let dstY   = topDown ? result.height - y - 1 : y
-        let srcRow = src + stride * cast(u64) y
-        var dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
+        let srcRow = src + stride * cast(u64, y)
+        var dst    = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
         for x in result.width
         {
             writePalettePixel(dst, palette, paletteEntrySize, packedIndex(srcRow, bitCount, x), paletteCount)
@@ -81,13 +81,13 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
 func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount: u16, topDown: bool) fail
 {
     let stride   = rowStride(result.width, bitCount)
-    let rowBytes = cast(u64) result.width * result.bytesPerPixel
-    try checkBuffer(src, last, stride * cast(u64) result.height)
+    let rowBytes = cast(u64, result.width) * result.bytesPerPixel
+    try checkBuffer(src, last, stride * cast(u64, result.height))
 
     for y in result.height
     {
         let dstY = topDown ? result.height - y - 1 : y
-        Memory.copy(cast([*] u8) result.pixels.storage() + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
+        Memory.copy(cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * rowBytes, src + stride * cast(u64, y), rowBytes)
     }
 }
 
@@ -110,7 +110,7 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
     let bExpected = masks.b.bits and masks.b.bits <= 8 ? ((1'u32 << masks.b.bits) - 1) << masks.b.shift : 0
     if rExpected and gExpected and bExpected and masks.r.value == rExpected and masks.g.value == gExpected and masks.b.value == bExpected and masks.r.shift + masks.r.bits <= 16 and masks.g.shift + masks.g.bits <= 16 and masks.b.shift + masks.b.bits <= 16
     {
-        PackedPixel.decodeBgrMasked16Row(source, destination, pixelCount, cast(u16) masks.b.value, masks.b.shift, masks.b.bits, cast(u16) masks.g.value, masks.g.shift, masks.g.bits, cast(u16) masks.r.value, masks.r.shift, masks.r.bits)
+        PackedPixel.decodeBgrMasked16Row(source, destination, pixelCount, cast(u16, masks.b.value), masks.b.shift, masks.b.bits, cast(u16, masks.g.value), masks.g.shift, masks.g.bits, cast(u16, masks.r.value), masks.r.shift, masks.r.bits)
         return
     }
 
@@ -118,7 +118,7 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
     var dst = destination
     for pixelCount
     {
-        writeMaskedPixel(dst, (cast(const *u16) src)[], masks, false)
+        writeMaskedPixel(dst, cast(const *u16, src)[], masks, false)
         src += 2
         dst += 3
     }
@@ -127,13 +127,13 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
 func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bool) fail
 {
     let stride = rowStride(result.width, 16)
-    try checkBuffer(src, last, stride * cast(u64) result.height)
+    try checkBuffer(src, last, stride * cast(u64, result.height))
 
     for y in result.height
     {
         let dstY   = topDown ? result.height - y - 1 : y
-        let srcPix = src + stride * cast(u64) y
-        let dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
+        let srcPix = src + stride * cast(u64, y)
+        let dst    = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
         decode16Row(srcPix, dst, result.width, masks)
     }
 }

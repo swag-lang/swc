@@ -285,7 +285,7 @@ concrete types. Write `case T` to test compatibility, or `case T as name` to bor
 the matching object. An interface type can also be the target of a case.
 
 The subject is evaluated once. Matching uses the same compatibility and pointer
-adjustments as `cast #try`. A null source does not match a type. The first matching
+adjustments as a checked cast. A null source does not match a type. The first matching
 case whose `where` guard succeeds is selected. Pointer subjects also retain ordinary
 pointer cases, including `case null`; these can appear alongside type cases.
 
@@ -312,8 +312,8 @@ asserts that some case matches, with a panic on a miss when `.Switch` safety is 
 
 An expressionless switch also accepts `case let name = expression`. It evaluates
 the expression once and enters the case if its result is present. This general
-binding remains useful for nullable results from ordinary expressions. A direct
-`cast #try` initializer is rejected; use a typed switch for dynamic dispatch.
+binding remains useful for nullable results from ordinary expressions. Prefer a
+typed switch when dispatching by the dynamic type.
 */
 #test
 {

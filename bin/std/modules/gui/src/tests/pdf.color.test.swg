@@ -6,7 +6,7 @@ using Core, Pixel, Pdf
 private func filledColors(resources: string, content: string, extra: const [..] u8)->Array'Color
 {
     var result: retval
-    let document = expect Document.decode(singlePagePdf(resources, cast(const [..] u8) content, extra).toSlice())
+    let document = expect Document.decode(singlePagePdf(resources, cast(const [..] u8, content), extra).toSlice())
     for item in document.pages[0].items where item.kind == .Path do
         result.add(item.itemFillColor())
     return result
@@ -77,7 +77,7 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 // A stroke whose own space is sound survives the loss of the fill beside it.
 #test
 {
-    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) "/Pattern cs 1 0 0 RG 0 0 5 5 re B", "").toSlice())
+    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8, "/Pattern cs 1 0 0 RG 0 0 5 5 re B"), "").toSlice())
     let item     = onlyItem(document.pages[0], .Path)
     Swag.assert(not item.hasFill)
     Swag.assert(item.pathStrokeWidth() == 1)
@@ -99,7 +99,7 @@ private func filledColors(resources: string, content: string, extra: const [..] 
     addObject(&extra, 5, "<< /Type /ExtGState /LW 7 >>")
 
     let content  = "/GS0 gs 0 0 5 5 re S"
-    let document = expect Document.decode(singlePagePdf("/ExtGState << /GS0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/ExtGState << /GS0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let item     = onlyItem(document.pages[0], .Path)
     Swag.assert(item.pathStrokeWidth() == 7)
 }

@@ -44,7 +44,7 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
     var bytes: [80] u8
     for index in bytes.count do
-        bytes[index] = ((index * 13 + 5) % 11) ? cast(u8) (index + 1) : 0
+        bytes[index] = ((index * 13 + 5) % 11) ? cast(u8, (index + 1)) : 0
 
     for idx in 80
     {
@@ -60,8 +60,8 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 // UTF-16 names its byte order, and a byte sequence that is none of those is a single-byte page.
 #test
 {
-    Swag.assert(Text.detectEncoding(cast(const [..] u8) "plain ascii line\n") == .Utf8)
-    Swag.assert(Text.detectEncoding(cast(const [..] u8) "café naïve\n") == .Utf8)
+    Swag.assert(Text.detectEncoding(cast(const [..] u8, "plain ascii line\n")) == .Utf8)
+    Swag.assert(Text.detectEncoding(cast(const [..] u8, "café naïve\n")) == .Utf8)
 
     let le: [12] u8 = ['H', 0, 'e', 0, 'l', 0, 'l', 0, 'o', 0, '!', 0]
     let be: [12] u8 = [0, 'H', 0, 'e', 0, 'l', 0, 'l', 0, 'o', 0, '!']
@@ -76,7 +76,7 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 // A probe is a prefix, so a multi-byte sequence cut by its end must not demote a UTF-8 file.
 #test
 {
-    let full = cast(const [..] u8) "aaaaé"
+    let full = cast(const [..] u8, "aaaaé")
     Swag.assert(Text.detectEncoding(full[0 until full.count - 1]) == .Utf8)
 }
 
@@ -113,12 +113,12 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     var be16:  [48] u8
     for index in utf16.count
     {
-        let value = cast(u16) (0x80 + index * 53 % 0x780)
+        let value = cast(u16, (0x80 + index * 53 % 0x780))
         utf16[index]        = value
-        le16[2 * index]     = cast(u8) (value & 0xFF)
-        le16[2 * index + 1] = cast(u8) (value >> 8)
-        be16[2 * index]     = cast(u8) (value >> 8)
-        be16[2 * index + 1] = cast(u8) (value & 0xFF)
+        le16[2 * index]     = cast(u8, (value & 0xFF))
+        le16[2 * index + 1] = cast(u8, (value >> 8))
+        be16[2 * index]     = cast(u8, (value >> 8))
+        be16[2 * index + 1] = cast(u8, (value & 0xFF))
     }
 
     for count in utf16.count + 1
@@ -133,15 +133,15 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     var be32:  [4 * utf32.count] u8
     for value, index in utf32
     {
-        let bits = cast(u32) value
-        le32[4 * index]     = cast(u8) (bits & 0xFF)
-        le32[4 * index + 1] = cast(u8) ((bits >> 8) & 0xFF)
-        le32[4 * index + 2] = cast(u8) ((bits >> 16) & 0xFF)
-        le32[4 * index + 3] = cast(u8) (bits >> 24)
-        be32[4 * index]     = cast(u8) (bits >> 24)
-        be32[4 * index + 1] = cast(u8) ((bits >> 16) & 0xFF)
-        be32[4 * index + 2] = cast(u8) ((bits >> 8) & 0xFF)
-        be32[4 * index + 3] = cast(u8) (bits & 0xFF)
+        let bits = cast(u32, value)
+        le32[4 * index]     = cast(u8, (bits & 0xFF))
+        le32[4 * index + 1] = cast(u8, ((bits >> 8) & 0xFF))
+        le32[4 * index + 2] = cast(u8, ((bits >> 16) & 0xFF))
+        le32[4 * index + 3] = cast(u8, (bits >> 24))
+        be32[4 * index]     = cast(u8, (bits >> 24))
+        be32[4 * index + 1] = cast(u8, ((bits >> 16) & 0xFF))
+        be32[4 * index + 2] = cast(u8, ((bits >> 8) & 0xFF))
+        be32[4 * index + 3] = cast(u8, (bits & 0xFF))
     }
 
     for count in utf32.count + 1
@@ -167,7 +167,7 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 // decoder: a null character or a crowd of controls is what says binary.
 #test
 {
-    Swag.assert(Text.looksLikeText(cast(const [..] u8) "a line\tand\r\nanother\n", .Utf8))
+    Swag.assert(Text.looksLikeText(cast(const [..] u8, "a line\tand\r\nanother\n"), .Utf8))
 
     let withNul: [4] u8 = ['a', 0, 'b', 'c']
     Swag.assert(not Text.looksLikeText(withNul, .Windows1252))
@@ -194,7 +194,7 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     {
         for c in "Hello!"
         {
-            bytes.add(cast(u8) c)
+            bytes.add(cast(u8, c))
             bytes.add(0)
         }
     }

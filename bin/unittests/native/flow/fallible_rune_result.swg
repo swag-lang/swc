@@ -27,5 +27,5 @@ func readRune(ok: bool)->rune fail
 {
     let value = catch readRune(false) as err
     Swag.assert(err != null)
-    Swag.assert(cast(u32) value == 0)
+    Swag.assert(cast(u32, value) == 0)
 }

@@ -11,7 +11,7 @@ func createWorkspacePage(parent: *Wnd)
     let split = SplitterCtrl.create(panel, {18, 88, rect.width - 36, rect.height - 106}, vertical: false)
     split.setFrameFlags(.None, .Borders | .FocusBorder)
 
-    let code = createCodeEditor(split, {}, cast(string) SourcePageWorkspace, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
+    let code = createCodeEditor(split, {}, cast(string, SourcePageWorkspace), .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     code.setFrameFlags(.None, .Borders | .FocusBorder)
     code.marginLeft  = 18
     code.marginRight = 22
@@ -28,7 +28,7 @@ func createWorkspacePage(parent: *Wnd)
     let noteItem = side.addPane(notes, 230)
     noteItem.preserveSize = true
 
-    let preview = createCodeEditor(side, {}, cast(string) SourcePageLexer, .ShowFocusSel | .ReadOnly | .DrawBlanks | .TabToSpaces)
+    let preview = createCodeEditor(side, {}, cast(string, SourcePageLexer), .ShowFocusSel | .ReadOnly | .DrawBlanks | .TabToSpaces)
     preview.setFrameFlags(.None, .Borders | .FocusBorder)
     preview.marginLeft  = 16
     preview.marginRight = 20

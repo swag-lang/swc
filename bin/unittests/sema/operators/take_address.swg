@@ -124,8 +124,8 @@ func semaTest011()
 func semaTest012()
 {
     #assert(#typeof(&functionAddressAsPointer) == #type func()->s32)
-    #assert(#typeof(cast(u64) functionAddressAsPointer()) == u64)
-    let p = cast(const *void) &functionAddressAsPointer
+    #assert(#typeof(cast(u64, functionAddressAsPointer())) == u64)
+    let p = cast(const *void, &functionAddressAsPointer)
     #assert(#typeof(p) == const *void)
 
     var value: s32

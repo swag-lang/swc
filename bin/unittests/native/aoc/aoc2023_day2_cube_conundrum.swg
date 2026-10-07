@@ -53,7 +53,7 @@ func s()->[2] u32
         }
 
         if x <= 12 and y <= 13 and z <= 14 do
-            r[0] += cast(u32) g + 1
+            r[0] += cast(u32, g) + 1
         r[1] += x * y * z
     }
 

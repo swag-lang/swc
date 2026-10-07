@@ -139,7 +139,7 @@ func currentErrCode(err: any?)->s32
     if err == null do
         return 0
 
-    return (cast #assume (ErrValue) err).code
+    return assume cast (ErrValue, err).code
 }
 
 #[Swag.Inline]
@@ -291,7 +291,7 @@ func nestedTryHandled()->s32
     if err == null do
         return -1
 
-    return (cast #assume (ErrValue) err).code
+    return assume cast (ErrValue, err).code
 }
 
 #[Swag.Inline]
@@ -334,7 +334,7 @@ func inlineCatchFailureInfo()->CatchInfo
     result.hasErr = err != null
     if err != null
     {
-        let ev = cast #assume (ErrValue) err
+        let ev = assume cast (ErrValue, err)
         result.code = ev.code
     }
 
@@ -348,7 +348,7 @@ func catchFailureInfo()->CatchInfo
     result.hasErr = err2 != null
     if err2 != null
     {
-        let ev = cast #assume (ErrValue) err2
+        let ev = assume cast (ErrValue, err2)
         result.code = ev.code
     }
 
@@ -362,7 +362,7 @@ func catchAggregateFailureInfo()->AggregateInfo
     result.hasErr = err3 != null
     if err3 != null
     {
-        let ev = cast #assume (ErrValue) err3
+        let ev = assume cast (ErrValue, err3)
         result.code      = ev.code
         result.messageOk = ev.message == "aggregate failure"
     }
@@ -377,7 +377,7 @@ func catchTryFailureInfo()->CatchInfo
     result.hasErr = err4 != null
     if err4 != null
     {
-        let ev = cast #assume (ErrValue) err4
+        let ev = assume cast (ErrValue, err4)
         result.code = ev.code
     }
 
@@ -387,7 +387,7 @@ func catchTryFailureInfo()->CatchInfo
 func catchStrictEnumFailureInfo()->bool
 {
     let value = catch alwaysFailStrictEnum(87) as err5
-    return value == cast(FailStrictEnumAlias) FailStrictEnum.Zero and err5 != null and currentErrCode(err5) == 87
+    return value == cast(FailStrictEnumAlias, FailStrictEnum.Zero) and err5 != null and currentErrCode(err5) == 87
 }
 
 func dismissAggregateSuccess()->AggregateResult
@@ -430,8 +430,8 @@ func repeatedCatchFailureSum()->s32
     var result: s32 = 0
     for index in 40
     {
-        catch alwaysFailVoid(cast(s32) index + 1) as err6
-        let err = cast #assume (ErrValue) err6
+        catch alwaysFailVoid(cast(s32, index) + 1) as err6
+        let err = assume cast (ErrValue, err6)
         result += err.code
     }
 
@@ -563,9 +563,9 @@ func errIsAsFailureInfo()->ErrCastInfo
     var result: ErrCastInfo
     catch alwaysFailTypedVoid(86) as err7
 
-    let exactErr = cast #try (*ErrValue) err7
-    let baseErr  = cast #try (*Swag.BaseError) err7
-    let otherErr = cast #try (*OtherErrValue) err7
+    let exactErr = (catch cast(*ErrValue?, err7))
+    let baseErr  = (catch cast(*Swag.BaseError?, err7))
+    let otherErr = (catch cast(*OtherErrValue?, err7))
 
     result.exactType     = (err7 is ErrValue)
     result.baseType      = (err7 is Swag.BaseError)
@@ -609,7 +609,7 @@ func notNullSliceSuccess()->s32
     let maybe:  [..] s32? = values
     let slice = maybe!
     #assert(#typeof(slice) == [..] s32)
-    return slice[1] + cast(s32) slice.count
+    return slice[1] + cast(s32, slice.count)
 }
 
 #test
@@ -717,7 +717,7 @@ func notNullSliceSuccess()->s32
 {
     catch propagateExplicitVoidFailure() as err10
     Swag.assert(err10 != null)
-    let err = cast #assume (ErrValue) err10
+    let err = assume cast (ErrValue, err10)
     Swag.assert(err.code == 19)
 }
 
@@ -725,7 +725,7 @@ func notNullSliceSuccess()->s32
 {
     catch propagateTryBlockVoidFailure() as err11
     Swag.assert(err11 != null)
-    let err = cast #assume (ErrValue) err11
+    let err = assume cast (ErrValue, err11)
     Swag.assert(err.code == 21)
 }
 

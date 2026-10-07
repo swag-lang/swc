@@ -23,8 +23,8 @@ public impl Image
     mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Nearest)
     {
         Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
-        let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
-        let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
+        let nw = newWidth != 0 ? newWidth : cast(s32, (newHeight * (.width / cast(f32, .height))))
+        let nh = newHeight != 0 ? newHeight : cast(s32, (newWidth * (.height / cast(f32, .width))))
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height do
             return
@@ -37,8 +37,8 @@ public impl Image
     mtd const resized(newWidth, newHeight: s32, mode = ResizeMode.Nearest)->Image
     {
         Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
-        let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
-        let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
+        let nw = newWidth != 0 ? newWidth : cast(s32, (newHeight * (.width / cast(f32, .height))))
+        let nh = newHeight != 0 ? newHeight : cast(s32, (newWidth * (.height / cast(f32, .width))))
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height
         {
@@ -73,9 +73,9 @@ namespace ResizeTools
         var res: retval
         res.windowSize = windowSize
         res.lineLength = lineLength
-        res.row.resize(cast(u64) lineLength)
+        res.row.resize(cast(u64, lineLength))
         for i in lineLength do
-            res.row[i].weights.resize(cast(u64) windowSize)
+            res.row[i].weights.resize(cast(u64, windowSize))
         return res
     }
 
@@ -183,7 +183,7 @@ namespace ResizeTools
             cscale = 1.0
         }
 
-        let windowSize = 2 * (cast(s64) Math.ceil(width) + 1)
+        let windowSize = 2 * (cast(s64, Math.ceil(width)) + 1)
 
         var res: retval
         res = allocContributions(lineSize, windowSize)
@@ -192,8 +192,8 @@ namespace ResizeTools
         {
             let center = u / scale
 
-            var left  = cast(u64) Math.max(cast(s64) Math.floor(center - width), 0)
-            var right = cast(u64) Math.min(cast(s64) Math.ceil(center + width), srcSize - 1)
+            var left  = cast(u64, Math.max(cast(s64, Math.floor(center - width)), 0))
+            var right = cast(u64, Math.min(cast(s64, Math.ceil(center + width)), srcSize - 1))
 
             // Cut edge points to fit in filter window in case of spill-off
             if right - left + 1 > windowSize
@@ -283,11 +283,11 @@ namespace ResizeTools
                     ptr += bpp8
                 }
 
-                dstRow[0] = cast(u8) Math.round(db)
-                dstRow[1] = cast(u8) Math.round(dg)
-                dstRow[2] = cast(u8) Math.round(dr)
+                dstRow[0] = cast(u8, Math.round(db))
+                dstRow[1] = cast(u8, Math.round(dg))
+                dstRow[2] = cast(u8, Math.round(dr))
                 #static if BPP == 32 do
-                    dstRow[3] = cast(u8) Math.round(da)
+                    dstRow[3] = cast(u8, Math.round(da))
                 dstRow += bpp8
             }
         }
@@ -333,15 +333,15 @@ namespace ResizeTools
                     #static if BPP == 32 do
                         da += f * ptr[3]
                     pw  += 1
-                    ptr += cast(u64) w8Src
+                    ptr += cast(u64, w8Src)
                 }
 
-                dstCol[0] = cast(u8) Math.round(db)
-                dstCol[1] = cast(u8) Math.round(dg)
-                dstCol[2] = cast(u8) Math.round(dr)
+                dstCol[0] = cast(u8, Math.round(db))
+                dstCol[1] = cast(u8, Math.round(dg))
+                dstCol[2] = cast(u8, Math.round(dr))
                 #static if BPP == 32 do
-                    dstCol[3] = cast(u8) Math.round(da)
-                dstCol += cast(u64) w8Dst
+                    dstCol[3] = cast(u8, Math.round(da))
+                dstCol += cast(u64, w8Dst)
             }
         }
 
@@ -356,8 +356,8 @@ namespace ResizeTools
     #[Swag.Safety(.All, false)]
     func scaleRowGeneric(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: const *LineContrib)
     {
-        let srcRow = imgSrc.pixels.storage() + cast(u64) row * imgSrc.rowStride
-        let dstRow = imgDst.pixels.storage() + cast(u64) row * imgDst.rowStride
+        let srcRow = imgSrc.pixels.storage() + cast(u64, row) * imgSrc.rowStride
+        let dstRow = imgDst.pixels.storage() + cast(u64, row) * imgDst.rowStride
         for x in imgDst.width
         {
             let contribution = contrib.row[x]
@@ -365,8 +365,8 @@ namespace ResizeTools
             var weight       = contribution.weights.storage()
             for var sourceX = contribution.left; sourceX <= contribution.right; sourceX += 1
             {
-                let value  = readPixelValue(srcRow + cast(u64) sourceX * imgSrc.bytesPerPixel, imgSrc.pixelFormat)
-                let factor = cast(f32) weight[]
+                let value  = readPixelValue(srcRow + cast(u64, sourceX) * imgSrc.bytesPerPixel, imgSrc.pixelFormat)
+                let factor = cast(f32, weight[])
                 sum.r  += value.r * factor
                 sum.g  += value.g * factor
                 sum.b  += value.b * factor
@@ -374,15 +374,15 @@ namespace ResizeTools
                 weight += 1
             }
 
-            writePixelValue(dstRow + cast(u64) x * imgDst.bytesPerPixel, imgDst.pixelFormat, sum)
+            writePixelValue(dstRow + cast(u64, x) * imgDst.bytesPerPixel, imgDst.pixelFormat, sum)
         }
     }
 
     #[Swag.Safety(.All, false)]
     func scaleColGeneric(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: const *LineContrib)
     {
-        let srcCol = imgSrc.pixels.storage() + cast(u64) col * imgSrc.bytesPerPixel
-        let dstCol = imgDst.pixels.storage() + cast(u64) col * imgDst.bytesPerPixel
+        let srcCol = imgSrc.pixels.storage() + cast(u64, col) * imgSrc.bytesPerPixel
+        let dstCol = imgDst.pixels.storage() + cast(u64, col) * imgDst.bytesPerPixel
         for y in imgDst.height
         {
             let contribution = contrib.row[y]
@@ -390,8 +390,8 @@ namespace ResizeTools
             var weight       = contribution.weights.storage()
             for var sourceY = contribution.left; sourceY <= contribution.right; sourceY += 1
             {
-                let value  = readPixelValue(srcCol + cast(u64) sourceY * imgSrc.rowStride, imgSrc.pixelFormat)
-                let factor = cast(f32) weight[]
+                let value  = readPixelValue(srcCol + cast(u64, sourceY) * imgSrc.rowStride, imgSrc.pixelFormat)
+                let factor = cast(f32, weight[])
                 sum.r  += value.r * factor
                 sum.g  += value.g * factor
                 sum.b  += value.b * factor
@@ -399,15 +399,15 @@ namespace ResizeTools
                 weight += 1
             }
 
-            writePixelValue(dstCol + cast(u64) y * imgDst.rowStride, imgDst.pixelFormat, sum)
+            writePixelValue(dstCol + cast(u64, y) * imgDst.rowStride, imgDst.pixelFormat, sum)
         }
     }
 
     func scaleCol(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
     {
-        let sh      = cast(s64) imgSrc.height
-        let dh      = cast(s64) imgDst.height
-        let contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
+        let sh      = cast(s64, imgSrc.height)
+        let dh      = cast(s64, imgDst.height)
+        let contrib = calcContributions(dh, sh, cast(f64, dh) / sh, rmode)
         let format  = imgSrc.pixelFormat
         let legacy  = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
 
@@ -416,17 +416,17 @@ namespace ResizeTools
         parallel for |imgDst, imgSrc, weights, legacy| index in imgDst.width
         {
             if legacy do
-                scaleCol(imgDst, imgSrc, cast(s64) index, weights)
+                scaleCol(imgDst, imgSrc, cast(s64, index), weights)
             else do
-                scaleColGeneric(imgDst, imgSrc, cast(s64) index, weights)
+                scaleColGeneric(imgDst, imgSrc, cast(s64, index), weights)
         }
     }
 
     func scaleRow(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
     {
-        let sw      = cast(s64) imgSrc.width
-        let dw      = cast(s64) imgDst.width
-        let contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
+        let sw      = cast(s64, imgSrc.width)
+        let dw      = cast(s64, imgDst.width)
+        let contrib = calcContributions(dw, sw, cast(f64, dw) / sw, rmode)
         let format  = imgSrc.pixelFormat
         let legacy  = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
 
@@ -435,9 +435,9 @@ namespace ResizeTools
         parallel for |imgDst, imgSrc, weights, legacy| index in imgDst.height
         {
             if legacy do
-                scaleRow(imgDst, imgSrc, cast(s64) index, weights)
+                scaleRow(imgDst, imgSrc, cast(s64, index), weights)
             else do
-                scaleRowGeneric(imgDst, imgSrc, cast(s64) index, weights)
+                scaleRowGeneric(imgDst, imgSrc, cast(s64, index), weights)
         }
     }
 
@@ -450,8 +450,8 @@ namespace ResizeTools
 
     func doResizeRaw(dstImage: *Image, srcImage: const *Image)
     {
-        let xscale = srcImage.width / cast(f32) dstImage.width
-        let yscale = srcImage.height / cast(f32) dstImage.height
+        let xscale = srcImage.width / cast(f32, dstImage.width)
+        let yscale = srcImage.height / cast(f32, dstImage.height)
         var f      = {xscale: xscale, yscale: yscale, srcImage: srcImage}
 
         #[Swag.Mixin]
@@ -459,11 +459,11 @@ namespace ResizeTools
         {
             dstImage.visitPixels(&f)
             {
-                let params = cast(*#decltype(f)) userData!
-                let fx     = cast(u32) (x * params.xscale)
-                let fy     = cast(u32) (y * params.yscale)
+                let params = cast(*#decltype(f), userData!)
+                let fx     = cast(u32, (x * params.xscale))
+                let fy     = cast(u32, (y * params.yscale))
                 let pixSrc = params.srcImage.pixels.buffer + (fx * image.bytesPerPixel) + (fy * params.srcImage.width * image.bytesPerPixel)
-                Image.copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
+                Image.copyPixelDirect'BPP(cast([*] u8, pix), cast([*] u8, pixSrc!))
             }
         }
 
@@ -478,10 +478,10 @@ namespace ResizeTools
         default:
             dstImage.visitPixels(&f)
             {
-                let params = cast(*#decltype(f)) userData!
-                let fx     = cast(u32) (x * params.xscale)
-                let fy     = cast(u32) (y * params.yscale)
-                let pixSrc = params.srcImage.pixels.storage() + cast(u64) fx * image.bytesPerPixel + cast(u64) fy * params.srcImage.rowStride
+                let params = cast(*#decltype(f), userData!)
+                let fx     = cast(u32, (x * params.xscale))
+                let fy     = cast(u32, (y * params.yscale))
+                let pixSrc = params.srcImage.pixels.storage() + cast(u64, fx) * image.bytesPerPixel + cast(u64, fy) * params.srcImage.rowStride
                 Memory.copy(pix, pixSrc, image.bytesPerPixel)
             }
         }

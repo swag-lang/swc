@@ -87,7 +87,7 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func cstringBoundCheck()->u8
     {
-        var text: const cstring = cast(const cstring) ("ab").buffer
+        var text: const cstring = cast(const cstring, ("ab").buffer)
         return text[2]     // swc-expected-error {{safety_err_runtime}}
     }
 

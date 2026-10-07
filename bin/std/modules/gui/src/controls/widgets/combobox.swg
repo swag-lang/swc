@@ -239,7 +239,7 @@ impl IWnd for ComboBox
         // touching the arrow.
         var width = 2 * metrics.comboBox_Padding + text + metrics.comboBox_RightMargin
         if .maxIconSize do
-            width += cast(f32) .maxIconSize + metrics.comboBox_IconTextMargin
+            width += cast(f32, .maxIconSize) + metrics.comboBox_IconTextMargin
         return {Math.max(width, metrics.comboBox_Width), metrics.comboBox_Height}
     }
 
@@ -324,20 +324,20 @@ private impl ComboBox
 
         var idx: s32
         if .selectedIndex >= .items.count do
-            idx = dir > 0 ? -1 : cast(s32) .items.count
+            idx = dir > 0 ? -1 : cast(s32, .items.count)
         else do
-            idx = cast(s32) .selectedIndex
+            idx = cast(s32, .selectedIndex)
 
         for
         {
             idx += dir
-            if idx < 0 or idx >= cast(s32) .items.count do
+            if idx < 0 or idx >= cast(s32, .items.count) do
                 return
             if not .items[idx]!.isSeparator do
                 break
         }
 
-        .setSelectedIndex(cast(u32) idx)
+        .setSelectedIndex(cast(u32, idx))
     }
 
     // Select the first (forward) or last (backward) non-separator item.
@@ -349,18 +349,18 @@ private impl ComboBox
             {
                 if not item!.isSeparator
                 {
-                    .setSelectedIndex(cast(u32) idx)
+                    .setSelectedIndex(cast(u32, idx))
                     return
                 }
             }
         }
         else
         {
-            for var i = cast(s32) .items.count - 1; i >= 0; i -= 1
+            for var i = cast(s32, .items.count) - 1; i >= 0; i -= 1
             {
                 if not .items[i]!.isSeparator
                 {
-                    .setSelectedIndex(cast(u32) i)
+                    .setSelectedIndex(cast(u32, i))
                     return
                 }
             }
@@ -369,7 +369,7 @@ private impl ComboBox
 
     mtd showPopup()
     {
-        let popup = PopupListCtrl.create(cast(*Wnd) me)
+        let popup = PopupListCtrl.create(cast(*Wnd, me))
         .popup = popup
         popup.minimumWidth  = .minimumPopupWidth
         popup.maximumHeight = .maximumPopupHeight
@@ -482,7 +482,7 @@ impl ComboBox
         }
 
         if item.icon.isValid() do
-            .maxIconSize = Math.max(.maxIconSize, cast(s32) item.icon.sizeX)
+            .maxIconSize = Math.max(.maxIconSize, cast(s32, item.icon.sizeX))
         .items.add(item)
         .hidePopup()
         .invalidate()
@@ -588,7 +588,7 @@ private impl ComboBox
         {
             let current = item!
             if current.icon.isValid() do
-                .maxIconSize = Math.max(.maxIconSize, cast(s32) current.icon.sizeX)
+                .maxIconSize = Math.max(.maxIconSize, cast(s32, current.icon.sizeX))
         }
     }
 }

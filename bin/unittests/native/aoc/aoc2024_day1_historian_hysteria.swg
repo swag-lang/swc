@@ -73,7 +73,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     var result: u32
     while index[] < bytes.count and isDigit(bytes[index[]])
     {
-        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -115,7 +115,7 @@ func buildFrequencies(leftFreq, rightFreq: [..] u32, lists: LocationLists)
 
     for idx in lists.count
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         leftFreq[lists.left[index]]   += 1
         rightFreq[lists.right[index]] += 1
     }
@@ -127,8 +127,8 @@ func computeSimilarityFromFrequencies(leftFreq, rightFreq: const [..] u32)->u64
 
     for index in leftFreq.count
     {
-        let value = cast(u32) index
-        result += cast(u64) value * cast(u64) leftFreq[value] * cast(u64) rightFreq[value]
+        let value = cast(u32, index)
+        result += cast(u64, value) * cast(u64, leftFreq[value]) * cast(u64, rightFreq[value])
     }
 
     return result
@@ -136,7 +136,7 @@ func computeSimilarityFromFrequencies(leftFreq, rightFreq: const [..] u32)->u64
 
 func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u32)->u64
 {
-    let limit = cast(u32) leftFreq.count
+    let limit = cast(u32, leftFreq.count)
 
     var leftValue:  u32
     var rightValue: u32
@@ -156,7 +156,7 @@ func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u3
 
         Swag.assert(leftValue < limit)
         Swag.assert(rightValue < limit)
-        result += cast(u64) distanceBetween(leftValue, rightValue)
+        result += cast(u64, distanceBetween(leftValue, rightValue))
         leftFreq[leftValue]   -= 1
         rightFreq[rightValue] -= 1
     }
@@ -184,14 +184,14 @@ func copyValues(outValues: [..] u32, sourceValues: const [..] u32)
 
     for idx in sourceValues.count
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         outValues[index] = sourceValues[index]
     }
 }
 
 func sortValues(values: [..] u32)
 {
-    let count = cast(u32) values.count
+    let count = cast(u32, values.count)
 
     var index = 1'u32
     while index < count
@@ -213,7 +213,7 @@ func sortValues(values: [..] u32)
 func lowerBound(sortedValues: const [..] u32, value: u32)->u32
 {
     var first: u32
-    var last = cast(u32) sortedValues.count
+    var last = cast(u32, sortedValues.count)
 
     while first < last
     {
@@ -230,7 +230,7 @@ func lowerBound(sortedValues: const [..] u32, value: u32)->u32
 func upperBound(sortedValues: const [..] u32, value: u32)->u32
 {
     var first: u32
-    var last = cast(u32) sortedValues.count
+    var last = cast(u32, sortedValues.count)
 
     while first < last
     {
@@ -247,7 +247,7 @@ func upperBound(sortedValues: const [..] u32, value: u32)->u32
 func countSortedOccurrences(sortedValues: const [..] u32, value: u32)->u32
 {
     let first = lowerBound(sortedValues, value)
-    let count = cast(u32) sortedValues.count
+    let count = cast(u32, sortedValues.count)
 
     if first == count or sortedValues[first] != value do
         return 0
@@ -268,8 +268,8 @@ func computeDistanceBySorting(lists: LocationLists)->u64
     var result: u64
     for idx in lists.count
     {
-        let index = cast(u32) idx
-        result += cast(u64) distanceBetween(leftSorted[index], rightSorted[index])
+        let index = cast(u32, idx)
+        result += cast(u64, distanceBetween(leftSorted[index], rightSorted[index]))
     }
 
     return result
@@ -286,10 +286,10 @@ func computeSimilarityBySorting(lists: LocationLists)->u64
 
     for idx in lists.count
     {
-        let index     = cast(u32) idx
+        let index     = cast(u32, idx)
         let value     = lists.left[index]
         let frequency = countSortedOccurrences(sortedSlice, value)
-        result += cast(u64) value * cast(u64) frequency
+        result += cast(u64, value) * cast(u64, frequency)
     }
 
     return result
@@ -327,20 +327,20 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->HistorianReport
     var result:           HistorianReport
 
     result.pairCount       = lists.count
-    result.totalDistance   = runMetric(cast(IHistorianMetric) distanceMetric, bytes)
-    result.similarityScore = runMetric(cast(IHistorianMetric) similarityMetric, bytes)
+    result.totalDistance   = runMetric(cast(IHistorianMetric, distanceMetric), bytes)
+    result.similarityScore = runMetric(cast(IHistorianMetric, similarityMetric), bytes)
     return result
 }
 
-const SampleLanguageReport:   HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
-const DenseLanguageReport:    HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) DenseInput)
-const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
+const SampleLanguageReport:   HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8, SampleInput))
+const DenseLanguageReport:    HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8, DenseInput))
+const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8, CoverageInput))
 
 #test
 {
-    let sampleLists    = parseLocationLists(cast(const [..] u8) SampleInput)
+    let sampleLists    = parseLocationLists(cast(const [..] u8, SampleInput))
     let sampleClean    = solveClean(sampleLists)
-    let sampleFeatures = solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
+    let sampleFeatures = solveWithLanguageFeatures(cast(const [..] u8, SampleInput))
 
     Swag.assert(sampleClean.pairCount == 6'u32)
     Swag.assert(sampleClean.totalDistance == 11'u64)
@@ -357,7 +357,7 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
 
 #test
 {
-    let denseLists = parseLocationLists(cast(const [..] u8) DenseInput)
+    let denseLists = parseLocationLists(cast(const [..] u8, DenseInput))
     let denseClean = solveClean(denseLists)
 
     Swag.assert(DenseLanguageReport.pairCount == 4'u32)
@@ -370,7 +370,7 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
 
 #test
 {
-    let coverageLists = parseLocationLists(cast(const [..] u8) CoverageInput)
+    let coverageLists = parseLocationLists(cast(const [..] u8, CoverageInput))
     let coverageClean = solveClean(coverageLists)
 
     Swag.assert(CoverageLanguageReport.pairCount == 8'u32)

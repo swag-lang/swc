@@ -97,7 +97,7 @@ impl State
         let current = .current
         if not current or current.view == null do
             return false
-        let label = cast #assume (*Label) current.view
+        let label = assume cast (*Label, current.view)
         return label.name.hasUrl
     }
 
@@ -167,8 +167,8 @@ impl State
             pending.owner      = owner
             pending.surfacePos = surfacePos
             pending.str        = str
-            pending.startDelay = cast(f32) delay.seconds
-            pending.delay      = cast(f32) delay.seconds
+            pending.startDelay = cast(f32, delay.seconds)
+            pending.delay      = cast(f32, delay.seconds)
             return
         }
 
@@ -265,7 +265,7 @@ private func fitToText(label: *Label, pos, room: Math.Point, inset: Math.Vector4
     if need.y > roomY
     {
         let lineHeight = Math.max(label.font().regular!.height, 1)
-        label.setMaxLines(cast(u32) Math.max(Math.floor(roomY / lineHeight), 1))
+        label.setMaxLines(cast(u32, Math.max(Math.floor(roomY / lineHeight), 1)))
         need = label.measure({roomX, 0}).preferred
     }
 

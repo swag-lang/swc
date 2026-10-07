@@ -20,7 +20,7 @@ func sum8d(a, b, c, d, e, f, g, h: f64)->f64
 #[Swag.NoInline]
 func mixed(a: f64, i: s32, b: f64, j: s32, c: f64, d: f64, e: f64, k: s32)->f64
 {
-    return a + b * 10.0 + c * 100.0 + d * 1000.0 + e * 10000.0 + cast(f64) (i + j * 10 + k * 100)
+    return a + b * 10.0 + c * 100.0 + d * 1000.0 + e * 10000.0 + cast(f64, (i + j * 10 + k * 100))
 }
 
 #[Swag.NoInline]

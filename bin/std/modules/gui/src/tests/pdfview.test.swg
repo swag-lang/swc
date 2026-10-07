@@ -207,7 +207,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // Both pages are drawn in the same frame, so the ground shows twice the paper one page has.
     let frame    = host.render()
     let evidence = countPageEvidence(&frame)
-    let expected = cast(u64) (view.pageRect(0).width * view.pageRect(0).height)
+    let expected = cast(u64, (view.pageRect(0).width * view.pageRect(0).height))
     Swag.assert(evidence.paper > expected + expected / 2)
 
     // One page at a time is the other reading of the same document, and it keeps the page.

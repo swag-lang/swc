@@ -51,24 +51,24 @@ func unaryTildeRune(a: rune)->rune
 
 #test
 {
-    let runtimeValue = unaryTildeStrictU32(cast(UnaryTildeStrictU32) 0xFFFF_FFD5'u32)
-    const constantValue = ~cast(UnaryTildeStrictU32) 0xFFFF_FFD5'u32
+    let runtimeValue = unaryTildeStrictU32(cast(UnaryTildeStrictU32, 0xFFFF_FFD5'u32))
+    const constantValue = ~cast(UnaryTildeStrictU32, 0xFFFF_FFD5'u32)
 
     #assert(#typeof(runtimeValue) == UnaryTildeStrictU32)
     #assert(#typeof(constantValue) == UnaryTildeStrictU32)
 
-    Swag.assert(runtimeValue == cast(UnaryTildeStrictU32) 42'u32)
-    Swag.assert(constantValue == cast(UnaryTildeStrictU32) 42'u32)
+    Swag.assert(runtimeValue == cast(UnaryTildeStrictU32, 42'u32))
+    Swag.assert(constantValue == cast(UnaryTildeStrictU32, 42'u32))
 }
 
 #test
 {
-    let runtimeValue = unaryTildeRune(cast(rune) 0xFFFF_FFD5'u32)
-    const constantValue = ~cast(rune) 0xFFFF_FFD5'u32
+    let runtimeValue = unaryTildeRune(cast(rune, 0xFFFF_FFD5'u32))
+    const constantValue = ~cast(rune, 0xFFFF_FFD5'u32)
 
     #assert(#typeof(runtimeValue) == rune)
     #assert(#typeof(constantValue) == rune)
 
-    Swag.assert(runtimeValue == cast(rune) 42'u32)
-    Swag.assert(constantValue == cast(rune) 42'u32)
+    Swag.assert(runtimeValue == cast(rune, 42'u32))
+    Swag.assert(constantValue == cast(rune, 42'u32))
 }

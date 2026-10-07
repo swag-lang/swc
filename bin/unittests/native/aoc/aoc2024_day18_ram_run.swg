@@ -92,7 +92,7 @@ struct ByteList
 func parseBytes(text: string)->ByteList
 {
     var result: ByteList
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos:    u32
 
     for
@@ -116,7 +116,7 @@ func parseBytes(text: string)->ByteList
             if pos >= bytes.count do break
             let ch = bytes[pos]
             if ch < '0' or ch > '9' do break
-            col = col * 10 + cast(u32) (ch - '0')
+            col = col * 10 + cast(u32, (ch - '0'))
             pos += 1
         }
 
@@ -130,7 +130,7 @@ func parseBytes(text: string)->ByteList
             if pos >= bytes.count do break
             let ch = bytes[pos]
             if ch < '0' or ch > '9' do break
-            row = row * 10 + cast(u32) (ch - '0')
+            row = row * 10 + cast(u32, (ch - '0'))
             pos += 1
         }
 
@@ -184,7 +184,7 @@ func bfs(g: *Grid)->s32
     }
     dist[0][0] = 0
 
-    let queue = cast([*] u32) (testAlloc(cast(u64) MaxQ * 2 * #sizeof(u32)))!
+    let queue = cast([*] u32, (testAlloc(cast(u64, MaxQ) * 2 * #sizeof(u32)))!)
     defer testFree(queue)
     var head: u32
     var tail: u32
@@ -205,12 +205,12 @@ func bfs(g: *Grid)->s32
 
         for d in 4
         {
-            let nr = cast(s32) cr + DR[d]
-            let nc = cast(s32) cc + DC[d]
-            if nr < 0 or nc < 0 or cast(u32) nr >= g.h or cast(u32) nc >= g.w do
+            let nr = cast(s32, cr) + DR[d]
+            let nc = cast(s32, cc) + DC[d]
+            if nr < 0 or nc < 0 or cast(u32, nr) >= g.h or cast(u32, nc) >= g.w do
                 continue
-            let ur = cast(u32) nr
-            let uc = cast(u32) nc
+            let ur = cast(u32, nr)
+            let uc = cast(u32, nc)
             if not g.passable(ur, uc) or dist[ur][uc] >= 0 do
                 continue
             dist[ur][uc]    = dist[cr][cc] + 1
@@ -310,7 +310,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
         for
         {
             if v == 0 do break
-            tmp[tmpLen] = cast(u8) (v % 10) + '0'
+            tmp[tmpLen] = cast(u8, (v % 10)) + '0'
             tmpLen      += 1
             v           /= 10
         }
@@ -338,7 +338,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
         for
         {
             if v == 0 do break
-            tmp[tmpLen] = cast(u8) (v % 10) + '0'
+            tmp[tmpLen] = cast(u8, (v % 10)) + '0'
             tmpLen      += 1
             v           /= 10
         }
@@ -435,7 +435,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     Swag.assert(buf[2] == '1')
 
     // cstring: construct from buffer
-    let cs = Swag.makeSlice(&buf[0], cast(u64) len)
+    let cs = Swag.makeSlice(&buf[0], cast(u64, len))
     Swag.assert(cs.count == 3)
 }
 

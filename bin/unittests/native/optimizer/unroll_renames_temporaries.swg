@@ -13,14 +13,14 @@ func scaleRows(dst: [*] u8, src: const [*] u8, stride: u64)->u32
     for row in 4'u64
     {
         let value = src[row * stride]
-        let twice = cast(u8) (value * 2)
+        let twice = cast(u8, (value * 2))
         dst[row * stride]     = twice
         dst[row * stride + 1] = twice
-        sum                   += cast(u32) twice
+        sum                   += cast(u32, twice)
         last                  = twice
     }
 
-    return sum + cast(u32) last
+    return sum + cast(u32, last)
 }
 
 #[Swag.Optimize(true)]
@@ -53,7 +53,7 @@ func chain(values: const [*] s32)->s32
     var src: [4 * 16] u8
     var dst: [4 * 16] u8
     for i in 4 do
-        src[i * 16] = cast(u8) (i + 1)
+        src[i * 16] = cast(u8, (i + 1))
 
     let total = scaleRows(&dst[0], &src[0], 16)
     Swag.assert(dst[0] == 2 and dst[1] == 2 and dst[16] == 4 and dst[17] == 4 and dst[48] == 8)

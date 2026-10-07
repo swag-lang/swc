@@ -25,7 +25,7 @@ func sumSquares(a: const [*] s32, n: u64)->s64
     var sum = 0's64
     for i in n
     {
-        let v = cast(s64) (a[i] - 1)
+        let v = cast(s64, (a[i] - 1))
         sum += v * v
     }
     return sum
@@ -69,7 +69,7 @@ func mul64(a, b: u64)->u64 => a * #wrap b
         Swag.assert(squareAndKeep(i, &kept) == mul32(i + 3, i + 3) + i + 3)
         Swag.assert(kept == i + 3)
         Swag.assert(powerFour(i) == mul32(mul32(i, i), mul32(i, i)))
-        Swag.assert(doubled(cast #wrap (u32) i) == (cast #wrap (u32) i | 1) * #wrap 2)
+        Swag.assert(doubled(cast #wrap (u32, i)) == (cast #wrap (u32, i) | 1) * #wrap 2)
     }
 
     var values: [5] s32 = [1, -2, 30000, -30000, 7]

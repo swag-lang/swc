@@ -108,7 +108,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         safeSpread = 1
     safeSpread = Math.min(safeSpread, 64)
 
-    let padding = cast(s32) safeSpread
+    let padding = cast(s32, safeSpread)
     let bounds  = computeOutlineBounds(&safeSlot.outline)
     let left    = Math.floorS32(bounds.minX / 64.0) - padding
     let right   = Math.ceilS32(bounds.maxX / 64.0) + padding
@@ -123,26 +123,26 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     if not edges.count do
         return
 
-    faceData.bitmapPixels.resize(cast(u64) width * rows)
+    faceData.bitmapPixels.resize(cast(u64, width) * rows)
     let bitmapBuffer = faceData.bitmapPixels.storage()
     var dst          = bitmapBuffer
-    let scale        = 127.0 / cast(f64) safeSpread
+    let scale        = 127.0 / cast(f64, safeSpread)
 
     for py in rows
     {
-        let sampleY = top - (cast(f64) py + 0.5)
+        let sampleY = top - (cast(f64, py) + 0.5)
         var px      = 0
         while px + 2 <= width
         {
-            let sampleX   = left + cast(f64) px + 0.5
-            let samples   = cast(Math.Simd.F64x2) [sampleX, sampleX + 1.0]
+            let sampleX   = left + cast(f64, px) + 0.5
+            let samples   = cast(Math.Simd.F64x2, [sampleX, sampleX + 1.0])
             let distances = closestEdgeDistances(edges.toSlice(), samples, sampleY)
             let inside    = insideMask(edges.toSlice(), samples, sampleY)
             for lane in 2
             {
                 let signedDistance = inside & (1'u32 << lane) ? distances[lane] : -distances[lane]
                 let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
-                dst[] = cast(u8) Math.round(value)
+                dst[] = cast(u8, Math.round(value))
                 dst   += 1
             }
 
@@ -151,14 +151,14 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
 
         while px < width
         {
-            let sampleX        = left + cast(f64) px + 0.5
+            let sampleX        = left + cast(f64, px) + 0.5
             let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
             let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
             let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
-            dst[]   = cast(u8) Math.round(value)
+            dst[]   = cast(u8, Math.round(value))
             dst, px += 1
         }
     }
 
-    safeSlot.setBitmap(rows, width, cast(s32) width, bitmapBuffer, .Gray, left, top)
+    safeSlot.setBitmap(rows, width, cast(s32, width), bitmapBuffer, .Gray, left, top)
 }

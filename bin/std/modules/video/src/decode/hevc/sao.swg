@@ -17,7 +17,7 @@ private func signOf(value: s32)->s32 => value > 0 ? 1 : (value < 0 ? -1 : 0)
 // A comparison answers with a lane of ones, which is minus one read as a number, so the two
 // comparisons carry the whole answer and the subtraction the clause writes never runs.
 #[Swag.Inline]
-private func signOfDifference(centre, other: Simd.S16x8)->Simd.S16x8 => cast #bit(Simd.S16x8) (other > centre) - cast #bit(Simd.S16x8) (centre > other)
+private func signOfDifference(centre, other: Simd.S16x8)->Simd.S16x8 => cast #bit(Simd.S16x8, (other > centre)) - cast #bit(Simd.S16x8, (centre > other))
 
 // Table 8-13: the two neighbours each edge offset class compares a sample against.
 const SaoEdgeHPos: [4, 2] s8 = [[-1, 1], [0, 0], [-1, 1], [1, -1]]
@@ -42,7 +42,7 @@ impl Decoder
     {
         let sps    = .activeSps!
         let header = &.header
-        let index  = cast(u64) ry * cast(u64) sps.widthInCtbs + cast(u64) rx
+        let index  = cast(u64, ry) * cast(u64, sps.widthInCtbs) + cast(u64, rx)
 
         var merged = false
         if rx > 0
@@ -63,7 +63,7 @@ impl Decoder
             let upInTile  = .tileId[.ctbAddrTs] == .tileId[.ctbRsToTs[.ctbAddrRs - sps.widthInCtbs]]
             if upInSlice and upInTile and .cabac.decision(CtxSaoMergeFlag) != 0
             {
-                .sao[index] = .sao[index - cast(u64) sps.widthInCtbs]
+                .sao[index] = .sao[index - cast(u64, sps.widthInCtbs)]
                 .saoUsed    = .saoUsed or .sao[index].typeIdx[0] != 0 or .sao[index].typeIdx[1] != 0
                 merged      = true
             }
@@ -89,10 +89,10 @@ impl Decoder
             }
             else
             {
-                kind = cast(u32) parameters.typeIdx[1]
+                kind = cast(u32, parameters.typeIdx[1])
             }
 
-            parameters.typeIdx[component] = cast(u8) kind
+            parameters.typeIdx[component] = cast(u8, kind)
             if not kind do
                 continue
 
@@ -109,24 +109,24 @@ impl Decoder
             {
                 for entry in 4'u32
                 {
-                    var value = cast(s16) magnitude[entry]
+                    var value = cast(s16, magnitude[entry])
                     if magnitude[entry] != 0 and .cabac.bypass() != 0 do
                         value = -value
                     parameters.offsets[component, entry + 1] = value
                 }
 
-                parameters.bandPosition[component] = cast(u8) .cabac.bypassBits(5)
+                parameters.bandPosition[component] = cast(u8, .cabac.bypassBits(5))
             }
             else
             {
                 // An edge offset states magnitudes only: the first two raise a sample and the
                 // last two lower it, clause 7.4.9.3.
-                parameters.offsets[component, 1] = cast(s16) magnitude[0]
-                parameters.offsets[component, 2] = cast(s16) magnitude[1]
-                parameters.offsets[component, 3] = -cast(s16) magnitude[2]
-                parameters.offsets[component, 4] = -cast(s16) magnitude[3]
+                parameters.offsets[component, 1] = cast(s16, magnitude[0])
+                parameters.offsets[component, 2] = cast(s16, magnitude[1])
+                parameters.offsets[component, 3] = -cast(s16, magnitude[2])
+                parameters.offsets[component, 4] = -cast(s16, magnitude[3])
                 if component < 2 do
-                    parameters.eoClass[component] = cast(u8) .cabac.bypassBits(2)
+                    parameters.eoClass[component] = cast(u8, .cabac.bypassBits(2))
                 else do
                     parameters.eoClass[2] = parameters.eoClass[1]
             }
@@ -160,9 +160,9 @@ impl Decoder
         {
             for rx in sps.widthInCtbs
             {
-                let parameters = &.sao[cast(u64) ry * cast(u64) sps.widthInCtbs + cast(u64) rx]
+                let parameters = &.sao[cast(u64, ry) * cast(u64, sps.widthInCtbs) + cast(u64, rx)]
                 for component in 3'u32 do
-                    .applySaoBlock(parameters, component, cast(s32) rx, cast(s32) ry)
+                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, ry))
             }
         }
     }
@@ -174,11 +174,11 @@ impl Decoder
         let frame    = .current!
         let scale    = component == 0 ? 1's32 : 2's32
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
-        let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 
-        let ctbSize     = cast(s32) sps.ctbSize / scale
-        let planeWidth  = cast(s32) (component == 0 ? sps.width : sps.width / sps.subWidthC)
-        let planeHeight = cast(s32) (component == 0 ? sps.height : sps.height / sps.subHeightC)
+        let ctbSize     = cast(s32, sps.ctbSize) / scale
+        let planeWidth  = cast(s32, (component == 0 ? sps.width : sps.width / sps.subWidthC))
+        let planeHeight = cast(s32, (component == 0 ? sps.height : sps.height / sps.subHeightC))
         let x0          = rx * ctbSize
         let y0          = ry * ctbSize
         let width       = Math.min(ctbSize, planeWidth - x0)
@@ -202,15 +202,15 @@ impl Decoder
             stride      = frame.strideChroma
         }
 
-        let origin = cast(u64) FramePadding * stride + cast(u64) FramePadding
+        let origin = cast(u64, FramePadding) * stride + cast(u64, FramePadding)
         let kind   = parameters.typeIdx[component]
 
         if not kind
         {
             for row in height
             {
-                let line = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
-                Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+                let line = origin + cast(u64, (y0 + row)) * stride + cast(u64, x0)
+                Memory.copy(&destination[line], &source[line], cast(u64, width) * #sizeof(u16))
             }
 
             return
@@ -228,8 +228,8 @@ impl Decoder
             let twos      = Simd.splat(2's16)
             let threes    = Simd.splat(3's16)
             let masks     = Simd.splat(31's16)
-            let maxima    = Simd.splat(cast(s16) maximum)
-            let positions = Simd.splat(cast(s16) parameters.bandPosition[component])
+            let maxima    = Simd.splat(cast(s16, maximum))
+            let positions = Simd.splat(cast(s16, parameters.bandPosition[component]))
             let offset1   = Simd.splat(parameters.offsets[component, 1])
             let offset2   = Simd.splat(parameters.offsets[component, 2])
             let offset3   = Simd.splat(parameters.offsets[component, 3])
@@ -237,29 +237,29 @@ impl Decoder
 
             for row in height
             {
-                let line   = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
+                let line   = origin + cast(u64, (y0 + row)) * stride + cast(u64, x0)
                 var column = 0's32
 
                 while column + 8 <= width
                 {
-                    let samples = Simd.load(&source[line + cast(u64) column])
-                    let bands   = (cast #bit(Simd.S16x8) (samples >> shift) - positions) & masks
+                    let samples = Simd.load(&source[line + cast(u64, column)])
+                    let bands   = (cast #bit(Simd.S16x8, (samples >> shift)) - positions) & masks
                     var offset  = Simd.select(bands == zeros, offset1, zeros)
                     offset = Simd.select(bands == ones, offset2, offset)
                     offset = Simd.select(bands == twos, offset3, offset)
                     offset = Simd.select(bands == threes, offset4, offset)
 
-                    let values = cast #bit(Simd.S16x8) samples + offset
-                    Simd.store(&destination[line + cast(u64) column], cast #bit(Simd.U16x8) Math.max(Math.min(values, maxima), zeros))
+                    let values = cast #bit(Simd.S16x8, samples) + offset
+                    Simd.store(&destination[line + cast(u64, column)], cast #bit(Simd.U16x8, Math.max(Math.min(values, maxima), zeros)))
                     column += 8
                 }
 
                 while column < width
                 {
-                    let value  = cast(s32) source[line + cast(u64) column]
-                    let band   = (cast(s32) (cast(u32) value >> shift) - cast(s32) parameters.bandPosition[component]) & 31
-                    let offset = band < 4 ? cast(s32) parameters.offsets[component, cast(u32) band + 1] : 0
-                    destination[line + cast(u64) column] = cast(u16) Math.clamp(value + offset, 0, maximum)
+                    let value  = cast(s32, source[line + cast(u64, column)])
+                    let band   = (cast(s32, (cast(u32, value) >> shift)) - cast(s32, parameters.bandPosition[component])) & 31
+                    let offset = band < 4 ? cast(s32, parameters.offsets[component, cast(u32, band) + 1]) : 0
+                    destination[line + cast(u64, column)] = cast(u16, Math.clamp(value + offset, 0, maximum))
                     column += 1
                 }
             }
@@ -268,11 +268,11 @@ impl Decoder
         }
 
         // Edge offset: a sample is shifted by how it compares with two neighbours.
-        let eoClass = cast(u32) parameters.eoClass[component]
-        let h0      = cast(s32) SaoEdgeHPos[eoClass, 0]
-        let h1      = cast(s32) SaoEdgeHPos[eoClass, 1]
-        let v0      = cast(s32) SaoEdgeVPos[eoClass, 0]
-        let v1      = cast(s32) SaoEdgeVPos[eoClass, 1]
+        let eoClass = cast(u32, parameters.eoClass[component])
+        let h0      = cast(s32, SaoEdgeHPos[eoClass, 0])
+        let h1      = cast(s32, SaoEdgeHPos[eoClass, 1])
+        let v0      = cast(s32, SaoEdgeVPos[eoClass, 0])
+        let v1      = cast(s32, SaoEdgeVPos[eoClass, 1])
 
         // A sample whose comparison would leave the picture keeps the value deblocking gave it,
         // and the samples that do are a border of the picture rather than a property of the
@@ -289,8 +289,8 @@ impl Decoder
         {
             for row in height
             {
-                let line = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
-                Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+                let line = origin + cast(u64, (y0 + row)) * stride + cast(u64, x0)
+                Memory.copy(&destination[line], &source[line], cast(u64, width) * #sizeof(u16))
             }
 
             return
@@ -298,23 +298,23 @@ impl Decoder
 
         for y in y0 until yBegin
         {
-            let line = origin + cast(u64) y * stride + cast(u64) x0
-            Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+            let line = origin + cast(u64, y) * stride + cast(u64, x0)
+            Memory.copy(&destination[line], &source[line], cast(u64, width) * #sizeof(u16))
         }
 
         for y in yBegin until yEnd
         {
-            let line = origin + cast(u64) y * stride
+            let line = origin + cast(u64, y) * stride
             if xBegin > x0 do
-                Memory.copy(&destination[line + cast(u64) x0], &source[line + cast(u64) x0], cast(u64) (xBegin - x0) * #sizeof(u16))
+                Memory.copy(&destination[line + cast(u64, x0)], &source[line + cast(u64, x0)], cast(u64, (xBegin - x0)) * #sizeof(u16))
             if xEnd < x0 + width do
-                Memory.copy(&destination[line + cast(u64) xEnd], &source[line + cast(u64) xEnd], cast(u64) (x0 + width - xEnd) * #sizeof(u16))
+                Memory.copy(&destination[line + cast(u64, xEnd)], &source[line + cast(u64, xEnd)], cast(u64, (x0 + width - xEnd)) * #sizeof(u16))
         }
 
         for y in yEnd until y0 + height
         {
-            let line = origin + cast(u64) y * stride + cast(u64) x0
-            Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+            let line = origin + cast(u64, y) * stride + cast(u64, x0)
+            Memory.copy(&destination[line], &source[line], cast(u64, width) * #sizeof(u16))
         }
 
         // The categories the standard derives from two comparisons index the offsets directly,
@@ -325,7 +325,7 @@ impl Decoder
         let twos    = Simd.splat(2's16)
         let threes  = Simd.splat(3's16)
         let fours   = Simd.splat(4's16)
-        let maxima  = Simd.splat(cast(s16) maximum)
+        let maxima  = Simd.splat(cast(s16, maximum))
         let offset1 = Simd.splat(parameters.offsets[component, 1])
         let offset2 = Simd.splat(parameters.offsets[component, 2])
         let offset3 = Simd.splat(parameters.offsets[component, 3])
@@ -333,16 +333,16 @@ impl Decoder
 
         for y in yBegin until yEnd
         {
-            let centreLine = origin + cast(u64) y * stride
-            let firstLine  = origin + cast(u64) (y + v0) * stride
-            let secondLine = origin + cast(u64) (y + v1) * stride
+            let centreLine = origin + cast(u64, y) * stride
+            let firstLine  = origin + cast(u64, (y + v0)) * stride
+            let secondLine = origin + cast(u64, (y + v1)) * stride
             var x          = xBegin
 
             while x + 8 <= xEnd
             {
-                let centre = cast #bit(Simd.S16x8) Simd.load(&source[centreLine + cast(u64) x])
-                let first  = cast #bit(Simd.S16x8) Simd.load(&source[firstLine + cast(u64) (x + h0)])
-                let second = cast #bit(Simd.S16x8) Simd.load(&source[secondLine + cast(u64) (x + h1)])
+                let centre = cast #bit(Simd.S16x8, Simd.load(&source[centreLine + cast(u64, x)]))
+                let first  = cast #bit(Simd.S16x8, Simd.load(&source[firstLine + cast(u64, (x + h0))]))
+                let second = cast #bit(Simd.S16x8, Simd.load(&source[secondLine + cast(u64, (x + h1))]))
 
                 let category = twos + signOfDifference(centre, first) + signOfDifference(centre, second)
                 var shift    = Simd.select(category == zeros, offset1, zeros)
@@ -350,22 +350,22 @@ impl Decoder
                 shift = Simd.select(category == threes, offset3, shift)
                 shift = Simd.select(category == fours, offset4, shift)
 
-                Simd.store(&destination[centreLine + cast(u64) x], cast #bit(Simd.U16x8) Math.max(Math.min(centre + shift, maxima), zeros))
+                Simd.store(&destination[centreLine + cast(u64, x)], cast #bit(Simd.U16x8, Math.max(Math.min(centre + shift, maxima), zeros)))
                 x += 8
             }
 
             while x < xEnd
             {
-                let centre = cast(s32) source[centreLine + cast(u64) x]
-                let first  = cast(s32) source[firstLine + cast(u64) (x + h0)]
-                let second = cast(s32) source[secondLine + cast(u64) (x + h1)]
+                let centre = cast(s32, source[centreLine + cast(u64, x)])
+                let first  = cast(s32, source[firstLine + cast(u64, (x + h0))])
+                let second = cast(s32, source[secondLine + cast(u64, (x + h1))])
 
                 var edge = 2 + signOf(centre - first) + signOf(centre - second)
                 if edge <= 2 do
                     edge = edge == 2 ? 0 : edge + 1
 
-                let offset = parameters.offsets[component, cast(u32) edge]
-                destination[centreLine + cast(u64) x] = cast(u16) Math.clamp(centre + cast(s32) offset, 0, maximum)
+                let offset = parameters.offsets[component, cast(u32, edge)]
+                destination[centreLine + cast(u64, x)] = cast(u16, Math.clamp(centre + cast(s32, offset), 0, maximum))
                 x += 1
             }
         }

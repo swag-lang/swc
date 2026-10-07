@@ -3,9 +3,9 @@
 func semaTest001()
 {
     var x:   s32
-    var ptr: [*] s32 = cast([*] s32) &x
+    var ptr: [*] s32 = cast([*] s32, &x)
     ptr += 1
-    var ptr1: const [*] s32 = cast(const [*] s32) &x
+    var ptr1: const [*] s32 = cast(const [*] s32, &x)
     ptr1 += 1
 }
 
@@ -53,7 +53,7 @@ func semaTest007()
 func semaTest009()
 {
     var x: s32
-    var p: [*] s32 = cast([*] s32) &x
+    var p: [*] s32 = cast([*] s32, &x)
     var i: s32
     p += i
     p = p + i

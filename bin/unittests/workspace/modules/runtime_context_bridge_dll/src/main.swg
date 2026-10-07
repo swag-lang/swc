@@ -160,33 +160,33 @@ public impl CtxSelfBufferSet
     mtd opPostMove()
     {
         if buffer do
-            buffer = cast([*] u8) &storage[0]
+            buffer = cast([*] u8, &storage[0])
     }
 
     mtd opPostCopy()
     {
         if buffer do
-            buffer = cast([*] u8) &storage[0]
+            buffer = cast([*] u8, &storage[0])
     }
 
     #[Swag.NoInline]
     mtd const toSlice()->const [..] u8
     {
-        Swag.assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8, &storage[0]))
         return Swag.makeSlice(buffer, count)
     }
 
     #[Swag.NoInline]
     mtd const contains(value: u8)->bool
     {
-        Swag.assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8, &storage[0]))
         return ctxSharedContains(.toSlice(), count, value)
     }
 
     #[Swag.NoInline]
     mtd const containsViaGeneric(value: u8)->bool
     {
-        Swag.assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8, &storage[0]))
         return ctxSharedContainsGeneric(.toSlice(), count, value)
     }
 }
@@ -196,7 +196,7 @@ public func ctxSharedMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->
 {
     var result: retval
     result.storage = [a, b, c, d]
-    result.buffer  = cast([*] u8) &result.storage[0]
+    result.buffer  = cast([*] u8, &result.storage[0])
     result.count   = count
     return result
 }
@@ -290,7 +290,7 @@ public func ctxSharedPassPayload(value: CtxAbiPayload)->CtxAbiPayload
 
 public func ctxSharedPassOffsets(value: CtxAbiOffsets)->u64
 {
-    return cast(u64) value.a + cast(u64) value.b + cast(u64) value.c + value.d
+    return cast(u64, value.a) + cast(u64, value.b) + cast(u64, value.c) + value.d
 }
 
 public func ctxSharedPassPointer(value: *void?)->*void?
@@ -300,7 +300,7 @@ public func ctxSharedPassPointer(value: *void?)->*void?
 
 public func ctxSharedPassMixed(a: s32, b: string, c: CtxAbiPair, d: [2] s32, e: *void?)->s32
 {
-    return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
+    return a + cast(s32, b[0]) + c.a + d[1] + cast(s32, (e != null))
 }
 
 public func ctxSharedPassConstRef(value: CtxAbiPair)->s32
@@ -310,17 +310,17 @@ public func ctxSharedPassConstRef(value: CtxAbiPair)->s32
 
 public func ctxSharedPassScalars(a0: s8, a1: s16, a2: s32, a3: s64, a4: u8, a5: u16, a6: u32, a7: u64, a8: f32, a9: f64, a10: bool, a11: rune)->s32
 {
-    return cast(s32) a0 + cast(s32) a1 + a2 + cast(s32) a3 + cast(s32) a4 + cast(s32) a5 + cast(s32) a6 + cast(s32) a7 + cast(s32) a8 + cast(s32) a9 + cast(s32) a10 + cast(s32) a11
+    return cast(s32, a0) + cast(s32, a1) + a2 + cast(s32, a3) + cast(s32, a4) + cast(s32, a5) + cast(s32, a6) + cast(s32, a7) + cast(s32, a8) + cast(s32, a9) + cast(s32, a10) + cast(s32, a11)
 }
 
 public func ctxSharedPassBoolRunePositions(a: bool, b: s32, c: rune, d: s32, e: bool, f: rune)->s32
 {
-    return cast(s32) a + b + cast(s32) c + d + cast(s32) e + cast(s32) f
+    return cast(s32, a) + b + cast(s32, c) + d + cast(s32, e) + cast(s32, f)
 }
 
 public func ctxSharedPassAliasEnum(a: s32, b: CtxAbiAlias, c: CtxAbiEnum, d: s32)->s32
 {
-    return a + b + cast(s32) cast(u16) c + d
+    return a + b + cast(s32, cast(u16, c)) + d
 }
 
 public func ctxSharedPassSlice(values: const [..] s32, idx: s32)->s32
@@ -330,12 +330,12 @@ public func ctxSharedPassSlice(values: const [..] s32, idx: s32)->s32
 
 public func ctxSharedPassAggregatePositions(a: *void?, b: [2] s32, c: string, d: CtxAbiPair, e: CtxAbiPayload)->u64
 {
-    return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
+    return cast(u64, b[1]) + cast(u64, d.a) + e.a3 + cast(u64, c[0]) + cast(u64, (a != null))
 }
 
 public func ctxSharedPassNested(value: CtxAbiNested, extra: s32)->u64
 {
-    return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
+    return cast(u64, value.p.a) + cast(u64, value.p.b) + value.q.a0 + value.q.a3 + cast(u64, extra)
 }
 
 public func ctxSharedPassKindof(value: CtxAbiPair, payload: CtxAbiPayload, text: string, p: *void?, values: [2] s32, e: CtxAbiEnum)->bool
@@ -389,10 +389,10 @@ public func ctxSharedMakeNested(seed: s32)->CtxAbiNested
     var result: retval
     result.p.a  = seed
     result.p.b  = seed + 1
-    result.q.a0 = cast(u64) seed + 10
-    result.q.a1 = cast(u64) seed + 20
-    result.q.a2 = cast(u64) seed + 30
-    result.q.a3 = cast(u64) seed + 40
+    result.q.a0 = cast(u64, seed) + 10
+    result.q.a1 = cast(u64, seed) + 20
+    result.q.a2 = cast(u64, seed) + 30
+    result.q.a3 = cast(u64, seed) + 40
     return result
 }
 
@@ -436,7 +436,7 @@ public func ctxSharedMakeFloatPairViaLocal(a: s32, b: s32)->CtxAbiFloatPair
 {
     var tmp: CtxAbiPair
     ctxSharedFillPair(&tmp, a, b)
-    return {x: cast(f32) tmp.a, y: cast(f32) tmp.b}
+    return {x: cast(f32, tmp.a), y: cast(f32, tmp.b)}
 }
 
 public func ctxSharedPassFloatPair(value: CtxAbiFloatPair)->CtxAbiFloatPair
@@ -504,7 +504,7 @@ public impl CtxAbiCalculator
 
     mtd const add(value: f32)->f32
     {
-        return cast(f32) .base + value
+        return cast(f32, .base) + value
     }
 
     mtd const sub(value: s32)->s32
@@ -519,6 +519,6 @@ public impl CtxAbiCalculator
 
     mtd const makePayload(seed: u64)->CtxAbiPayload
     {
-        return ctxSharedMakePayload(seed + cast(u64) .base)
+        return ctxSharedMakePayload(seed + cast(u64, .base))
     }
 }

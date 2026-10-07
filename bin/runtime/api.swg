@@ -342,7 +342,7 @@ namespace Swag
         BoundCheck  = 0x0001     // Out-of-bounds index or slice
         Overflow    = 0x0002     // Arithmetic overflow, and conversions that lose bits or precision
         Math        = 0x0004     // Math functions called outside their domain, such as a negative 'Swag.sqrt'
-        DynCast     = 0x0008     // Type invariant asserted by 'cast #assume'
+        DynCast     = 0x0008     // Implicit extraction from erased types
         Switch      = 0x0010     // Unexpected value reaching a switch
         Bool        = 0x0020     // 'bool' holding neither 'true' nor 'false'
         NaN         = 0x0040     // 'NaN' used in float arithmetic
@@ -352,6 +352,7 @@ namespace Swag
         Expect      = 0x0400     // Check presence for the postfix '!' assertion; 'expect' always panics on error
         Lifecycle   = 0x0800     // Use of moved-from values, and poisoning of abandoned or dropped storage
         Assert      = 0x1000     // Assertions; enabled by default in devmode and by the test command, including release
+        Assume      = 0x2000     // Invariants asserted by 'assume', including casts and fallible operations
         None        = 0x0000     // No check
         All         = 0xFFFF     // Every check
     }
@@ -400,26 +401,26 @@ namespace Swag
 
     namespace S8
     {
-        const Min = cast #bit (s8) 0x80
-        const Max = cast #bit (s8) 0x7F
+        const Min = cast #bit (s8, 0x80)
+        const Max = cast #bit (s8, 0x7F)
     }
 
     namespace S16
     {
-        const Min = cast #bit (s16) 0x8000
-        const Max = cast #bit (s16) 0x7FFF
+        const Min = cast #bit (s16, 0x8000)
+        const Max = cast #bit (s16, 0x7FFF)
     }
 
     namespace S32
     {
-        const Min = cast #bit (s32) 0x80000000
-        const Max = cast #bit (s32) 0x7FFFFFFF
+        const Min = cast #bit (s32, 0x80000000)
+        const Max = cast #bit (s32, 0x7FFFFFFF)
     }
 
     namespace S64
     {
-        const Min = cast #bit (s64) 0x80000000_00000000
-        const Max = cast #bit (s64) 0x7FFFFFFF_FFFFFFFF
+        const Min = cast #bit (s64, 0x80000000_00000000)
+        const Max = cast #bit (s64, 0x7FFFFFFF_FFFFFFFF)
     }
 
     namespace U8
@@ -450,9 +451,9 @@ namespace Swag
     {
         const Min      = 1.17549435082228750797e-38'f32
         const Max      = 3.40282346638528859812e+38'f32
-        const NaN      = cast #bit (f32) 0x7F800001
-        const Inf      = cast #bit (f32) 0x7F800000
-        const NegInf   = cast #bit (f32) 0xFF800000
+        const NaN      = cast #bit (f32, 0x7F800001)
+        const Inf      = cast #bit (f32, 0x7F800000)
+        const NegInf   = cast #bit (f32, 0xFF800000)
         const MantBits = 23
         const ExpBits  = 8
         const Bias     = -127
@@ -462,9 +463,9 @@ namespace Swag
     {
         const Min      = 2.2250738585072014e-308'f64
         const Max      = 1.79769313486231570815e+308'f64
-        const NaN      = cast #bit (f64) 0x7FF8000000000001
-        const Inf      = cast #bit (f64) 0x7FF0000000000000
-        const NegInf   = cast #bit (f64) 0xFFF0000000000000
+        const NaN      = cast #bit (f64, 0x7FF8000000000001)
+        const Inf      = cast #bit (f64, 0x7FF0000000000000)
+        const NegInf   = cast #bit (f64, 0xFFF0000000000000)
         const MantBits = 52
         const ExpBits  = 11
         const Bias     = -1023
@@ -838,7 +839,7 @@ namespace Swag
 
     // Describes a type at runtime; the base of every concrete type descriptor.
     //
-    // The concrete descriptor can be borrowed with 'cast #try', or extracted with 'cast #assume'
+    // The concrete descriptor can be borrowed with 'try cast', or extracted with 'assume cast'
     // when its type is known. Changing 'kind' does not change its dynamic identity.
     #[Swag.DynCast]
     struct TypeInfo
@@ -1232,14 +1233,14 @@ namespace Swag
     #[EnumFlags]
     enum CompilerMsgMask: u64
     {
-        PassAfterSemantic = 1 << cast(u32) CompilerMsgKind.PassAfterSemantic
-        PassBeforeRun     = 1 << cast(u32) CompilerMsgKind.PassBeforeRunByteCode
-        PassBeforeOutput  = 1 << cast(u32) CompilerMsgKind.PassBeforeOutput
-        PassAllDone       = 1 << cast(u32) CompilerMsgKind.PassAllDone
-        SemFunctions      = 1 << cast(u32) CompilerMsgKind.SemFunctions
-        SemTypes          = 1 << cast(u32) CompilerMsgKind.SemTypes
-        SemGlobals        = 1 << cast(u32) CompilerMsgKind.SemGlobals
-        AttributeGen      = 1 << cast(u32) CompilerMsgKind.AttributeGen
+        PassAfterSemantic = 1 << cast(u32, CompilerMsgKind.PassAfterSemantic)
+        PassBeforeRun     = 1 << cast(u32, CompilerMsgKind.PassBeforeRunByteCode)
+        PassBeforeOutput  = 1 << cast(u32, CompilerMsgKind.PassBeforeOutput)
+        PassAllDone       = 1 << cast(u32, CompilerMsgKind.PassAllDone)
+        SemFunctions      = 1 << cast(u32, CompilerMsgKind.SemFunctions)
+        SemTypes          = 1 << cast(u32, CompilerMsgKind.SemTypes)
+        SemGlobals        = 1 << cast(u32, CompilerMsgKind.SemGlobals)
+        AttributeGen      = 1 << cast(u32, CompilerMsgKind.AttributeGen)
         All               = 0xFFFFFFFF_FFFFFFFF
     }
 

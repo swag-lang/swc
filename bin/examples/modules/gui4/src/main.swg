@@ -287,7 +287,7 @@ func rebuildInspector()
 
     var bases: Array'(*u8)
     for i in g_CardCount do
-        bases.add(cast(*u8) &g_Cards[i])
+        bases.add(cast(*u8, &g_Cards[i]))
     props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
     if not g_Filter.isEmpty() do
@@ -353,8 +353,8 @@ func createInspectorPage(parent: *Wnd)
         .addItem("1 card")
         .addItem("2 cards")
         .addItem("3 cards")
-        .setSelectedIndex(cast(u32) (g_CardCount - 1))
-        .sigChanged += func(_cb, idx) { setCardCount(cast(s32) idx + 1); }
+        .setSelectedIndex(cast(u32, (g_CardCount - 1)))
+        .sigChanged += func(_cb, idx) { setCardCount(cast(s32, idx) + 1); }
     }
 
     rebuildInspector()
@@ -386,11 +386,11 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
 {
     painter.setParams(.Antialiased)
 
-    let a    = cast(u8) (Math.clamp(card.opacity, 0.0, 1.0) * 255)
+    let a    = cast(u8, (Math.clamp(card.opacity, 0.0, 1.0) * 255))
     let w    = Math.min(320.0 * card.scale, slot.width - 40)
     let h    = Math.min(120.0 * card.scale, slot.height - 22)
-    let cx   = slot.horzCenter() + cast(f32) card.offset.x
-    let cy   = slot.vertCenter() + cast(f32) card.offset.y
+    let cx   = slot.horzCenter() + cast(f32, card.offset.x)
+    let cy   = slot.vertCenter() + cast(f32, card.offset.y)
     let body = Math.Rectangle{cx - w * 0.5, cy - h * 0.5, w, h}
     let rad  = cardRadius(card, h)
 
@@ -399,7 +399,7 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
         let off = card.shadowKind == .Soft ? 14.0'f32 : 7.0'f32
         let sa  = card.shadowKind == .Soft ? 45.0'f32 : 90.0'f32
         let sh  = Math.Rectangle{body.x + off, body.y + off, body.width, body.height}
-        painter.fillRoundRect(sh, rad, rad, Color.fromArgb(cast(u8) (sa * card.opacity), Argb.Black))
+        painter.fillRoundRect(sh, rad, rad, Color.fromArgb(cast(u8, (sa * card.opacity)), Argb.Black))
     }
 
     painter.fillRoundRect(body, rad, rad, card.fill.withAlpha(a))
@@ -410,7 +410,7 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
     {
         var hi = body
         hi.height *= 0.5
-        painter.fillRoundRect(hi, rad, rad, Color.fromArgb(cast(u8) (gloss * 90 * card.opacity), Argb.White))
+        painter.fillRoundRect(hi, rad, rad, Color.fromArgb(cast(u8, (gloss * 90 * card.opacity)), Argb.White))
     }
 
     if card.badges & CardBadge.Ring do
@@ -420,7 +420,7 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
     if card.badges & CardBadge.Tag
     {
         let tag = Math.Rectangle{body.right() - 62, body.y + 14, 48, 22}
-        painter.fillRoundRect(tag, 11, 11, Color.fromArgb(cast(u8) (200.0 * card.opacity), Argb.Black))
+        painter.fillRoundRect(tag, 11, 11, Color.fromArgb(cast(u8, (200.0 * card.opacity)), Argb.Black))
     }
 
     if selected
@@ -446,12 +446,12 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         const TopReserve = 72.0
         const Gap        = 16.0
         let avail = Math.max(rect.height - TopReserve - Gap, 1.0)
-        let slotH = (avail - cast(f32) (NumCards - 1) * Gap) / cast(f32) NumCards
+        let slotH = (avail - cast(f32, (NumCards - 1)) * Gap) / cast(f32, NumCards)
         var y     = rect.y + TopReserve
         for i in NumCards
         {
             let slot = Math.Rectangle{rect.x + Gap, y, rect.width - 2 * Gap, slotH}
-            drawCard(painter, slot, &g_Cards[i], cast(s32) i < g_CardCount)
+            drawCard(painter, slot, &g_Cards[i], cast(s32, i) < g_CardCount)
             y += slotH + Gap
         }
     }
@@ -475,7 +475,7 @@ impl IPropertyEditor for RatingEditor
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
         let item   = list.addItem(value, data, parent)
-        let rating = cast(*Rating?) data
+        let rating = cast(*Rating?, data)
         let prop   = list
 
         let line = Wnd.create'Wnd(item.line, {0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
@@ -487,7 +487,7 @@ impl IPropertyEditor for RatingEditor
 
         for i in RatingMax
         {
-            let idx      = cast(s32) i
+            let idx      = cast(s32, i)
             with let btn = IconButton.create(line, {}, {0, 0, RatingPipSize, item.line.position.height})
             {
                 .dockStyle = .Left
@@ -655,8 +655,8 @@ func updateTestMode()
     if g_TestFrame % 24 == 0 and displayCombo and countCombo
     {
         g_TestStep += 1
-        displayCombo.setSelectedIndex(cast(u32) (g_TestStep % 4))
-        countCombo.setSelectedIndex(cast(u32) ((g_TestStep / 4) % 3))
+        displayCombo.setSelectedIndex(cast(u32, (g_TestStep % 4)))
+        countCombo.setSelectedIndex(cast(u32, ((g_TestStep / 4) % 3)))
     }
 
     if g_TestFrame >= 200 do

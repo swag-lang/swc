@@ -13,7 +13,7 @@ func exactArrayParamFill(digest: ExactArrayParamDigest, seed: u8)
 {
     #assert(#typeof(digest) == ExactArrayParamDigest)
     for i in digest.count do
-        digest[i] = seed + cast(u8) i
+        digest[i] = seed + cast(u8, i)
 }
 
 func exactGridParamRead(grid: [2, 3] s16)->s16

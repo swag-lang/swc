@@ -10,22 +10,22 @@ namespace WinFsp
     const CleanupSetChangeTime     = 0x80'u32
 
     const StatusSuccess             = 0's32
-    const StatusBufferOverflow      = cast #bit (s32) 0x80000005'u32
-    const StatusInvalidParameter    = cast #bit (s32) 0xC000000D'u32
-    const StatusAccessDenied        = cast #bit (s32) 0xC0000022'u32
-    const StatusObjectNameNotFound  = cast #bit (s32) 0xC0000034'u32
-    const StatusObjectNameCollision = cast #bit (s32) 0xC0000035'u32
-    const StatusDiskFull            = cast #bit (s32) 0xC000007F'u32
-    const StatusFileIsDirectory     = cast #bit (s32) 0xC00000BA'u32
-    const StatusMediaWriteProtected = cast #bit (s32) 0xC00000A2'u32
-    const StatusDirectoryNotEmpty   = cast #bit (s32) 0xC0000101'u32
-    const StatusNotADirectory       = cast #bit (s32) 0xC0000103'u32
-    const StatusIoDeviceError       = cast #bit (s32) 0xC0000185'u32
+    const StatusBufferOverflow      = cast #bit (s32, 0x80000005'u32)
+    const StatusInvalidParameter    = cast #bit (s32, 0xC000000D'u32)
+    const StatusAccessDenied        = cast #bit (s32, 0xC0000022'u32)
+    const StatusObjectNameNotFound  = cast #bit (s32, 0xC0000034'u32)
+    const StatusObjectNameCollision = cast #bit (s32, 0xC0000035'u32)
+    const StatusDiskFull            = cast #bit (s32, 0xC000007F'u32)
+    const StatusFileIsDirectory     = cast #bit (s32, 0xC00000BA'u32)
+    const StatusMediaWriteProtected = cast #bit (s32, 0xC00000A2'u32)
+    const StatusDirectoryNotEmpty   = cast #bit (s32, 0xC0000101'u32)
+    const StatusNotADirectory       = cast #bit (s32, 0xC0000103'u32)
+    const StatusIoDeviceError       = cast #bit (s32, 0xC0000185'u32)
 
     // HRESULT and NTSTATUS values use the high bit to mark failure. Formatting
     // that signed ABI value as hexadecimal must preserve its bits rather than
     // perform a checked numeric conversion to an unsigned integer.
-    func statusBits(status: s32)->u32 => cast #bit (u32) status
+    func statusBits(status: s32)->u32 => cast #bit (u32, status)
 
     func statusFromError(err: any?, fallback = StatusIoDeviceError)->s32
     {

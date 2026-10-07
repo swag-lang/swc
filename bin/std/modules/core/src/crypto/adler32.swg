@@ -7,15 +7,15 @@
 private func updateAdlerBlock16(input: const [*] u8, s1, s2: *u32)
 {
     let bytes       = Math.Simd.load(input)
-    let low         = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(bytes)
-    let high        = cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(bytes)
+    let low         = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(bytes))
+    let high        = cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(bytes))
     let ones        = Math.Simd.splat(1's16)
-    let weightsLow  = cast(Math.Simd.S16x8) [16's16, 15, 14, 13, 12, 11, 10, 9]
-    let weightsHigh = cast(Math.Simd.S16x8) [8's16, 7, 6, 5, 4, 3, 2, 1]
+    let weightsLow  = cast(Math.Simd.S16x8, [16's16, 15, 14, 13, 12, 11, 10, 9])
+    let weightsHigh = cast(Math.Simd.S16x8, [8's16, 7, 6, 5, 4, 3, 2, 1])
     let sums        = Math.Simd.mulAddPairs(low, ones) + Math.Simd.mulAddPairs(high, ones)
     let weighted    = Math.Simd.mulAddPairs(low, weightsLow) + Math.Simd.mulAddPairs(high, weightsHigh)
-    let sum         = cast(u32) Math.Simd.sum(sums)
-    let weightedSum = cast(u32) Math.Simd.sum(weighted)
+    let sum         = cast(u32, Math.Simd.sum(sums))
+    let weightedSum = cast(u32, Math.Simd.sum(weighted))
     s2[] += 16 * s1[] + weightedSum
     s1[] += sum
 }

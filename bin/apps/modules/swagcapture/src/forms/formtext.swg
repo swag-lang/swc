@@ -73,7 +73,7 @@ impl IForm for FormText
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast #try (*FormText) ptr
+        let other = (catch cast(*FormText?, ptr))
         if not other do
             return false
         return .isSameBase(ptr) and
@@ -87,8 +87,8 @@ impl IForm for FormText
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast #assume (*FormText) dst
-        let srcf = cast #assume (*FormText) src
+        let dstf = assume cast (*FormText, dst)
+        let srcf = assume cast (*FormText, src)
         dstf.fontSize  = srcf.fontSize
         dstf.boldSize  = srcf.boldSize
         dstf.joinStyle = srcf.joinStyle
@@ -103,10 +103,10 @@ impl IForm for FormText
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        let xa = cast(s32) (movingStart.x / zoom)
-        let ya = cast(s32) (movingStart.y / zoom)
-        let xb = cast(s32) (localPos.x / zoom)
-        let yb = cast(s32) (localPos.y / zoom)
+        let xa = cast(s32, (movingStart.x / zoom))
+        let ya = cast(s32, (movingStart.y / zoom))
+        let xb = cast(s32, (localPos.x / zoom))
+        let yb = cast(s32, (localPos.y / zoom))
         .setBaseForm(xa, ya, xb - xa, yb - ya)
         if evt.kind == .Released and evt.button == .Left do
             return false
@@ -120,10 +120,10 @@ impl IForm for FormText
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * scale)
-        .y = cast(s32) (.y * scale)
-        .w = cast(s32) (.w * scale)
-        .h = cast(s32) (.h * scale)
+        .x = cast(s32, (.x * scale))
+        .y = cast(s32, (.y * scale))
+        .w = cast(s32, (.w * scale))
+        .h = cast(s32, (.h * scale))
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
@@ -250,14 +250,14 @@ impl IForm for FormText
             for t, idx in tokens
             {
                 let pathl = &.paths[idx]
-                pathl[] = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
+                pathl[] = expect face!.buildStringOutline(t, cast(fSize), cast(sSize))
                 pathl.flatten(.High)
                 pathl.clean()
 
                 let borderPath = &.borderPaths[idx]
                 if not Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
-                    borderPath[] = expect face.buildStringOutline(t, cast() fSize, cast() sSize)
+                    borderPath[] = expect face.buildStringOutline(t, cast(fSize), cast(sSize))
                     borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)
@@ -292,7 +292,7 @@ impl IForm for FormText
         }
 
         if count > 1 do
-            totalYZ += cast(f32) (count - 1) * (.lineSpacing * zscale)
+            totalYZ += cast(f32, (count - 1)) * (.lineSpacing * zscale)
 
         let aV = cxt.quickMode ? FormTextAlign.Center : .alignVert
         let aH = cxt.quickMode ? FormTextAlign.Center : .alignHorz

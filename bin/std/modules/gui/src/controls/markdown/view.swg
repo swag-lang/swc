@@ -361,17 +361,17 @@ private impl View
         if consumed and (renderedEnd < .fileSize or .residentStart)
         {
             let residentHeight = Math.max(loadedHeight - .virtualOrigin, 1)
-            .virtualHeight  = Math.max(residentHeight * cast(f32) .fileSize / cast(f32) consumed, .virtualHeight)
+            .virtualHeight  = Math.max(residentHeight * cast(f32, .fileSize) / cast(f32, consumed), .virtualHeight)
             estimatedHeight = Math.max(.virtualHeight, loadedHeight)
         }
 
         if .hasPendingTarget and .pendingTargetOffset != Swag.U64.Max and .fileSize
         {
-            .pendingTarget = .virtualHeight * cast(f32) .pendingTargetOffset / cast(f32) .fileSize
+            .pendingTarget = .virtualHeight * cast(f32, .pendingTargetOffset) / cast(f32, .fileSize)
 
             // An estimated seek must move its source origin with the same estimate. Otherwise
             // the target can grow beyond all the blocks that were prepared to cover it.
-            let origin = .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize
+            let origin = .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize)
             let shift  = origin - .virtualOrigin
             if shift != 0
             {
@@ -402,7 +402,7 @@ private impl View
         // makes it lay out once at zero height and again at its final size.
         block.wnd.setPosition({x, y[], width, block.wnd.position.height})
         if block.kind == .Math do
-            block.wnd.resize(width, (cast #assume (*MathView) block.wnd).preferredHeight())
+            block.wnd.resize(width, assume cast (*MathView, block.wnd).preferredHeight())
         elif block.kind == .Table do
             block.wnd.resize(width, block.table!.preferredHeight(width))
         elif block.kind == .Html do
@@ -572,7 +572,7 @@ private impl View
 
             if .waitingScrollTarget.y > .contentHeight and .virtualHeight > 0
             {
-                .pendingSeekOffset = cast(u64) (Math.clamp(.waitingScrollTarget.y / .virtualHeight, 0, 1) * cast(f32) .fileSize)
+                .pendingSeekOffset = cast(u64, (Math.clamp(.waitingScrollTarget.y / .virtualHeight, 0, 1) * cast(f32, .fileSize)))
                 .pendingSeekPreservesPosition = false
                 .waitingScroll     = false
             }
@@ -701,7 +701,7 @@ private impl View
             parser.feed(block.text.toString())
             parser.finish()
             for node, index in document.nodes where node.tag == .Img do
-                .pendingImageSources.add(String.from(document.attribute(cast(u32) index, "src")))
+                .pendingImageSources.add(String.from(document.attribute(cast(u32, index), "src")))
         }
         elif block.kind != .Table and block.kind != .Math
         {
@@ -1105,7 +1105,7 @@ internal impl View
 {
     mtd documentFont(kind: BlockKind, size: u32, style = FontFamilyStyle.Regular)->*Font
     {
-        let slot = cast(u32) style
+        let slot = cast(u32, style)
         if kind == .Code or kind == .Table or kind == .Metadata
         {
             if let face = .documentStyle.codeTypeFaces[slot] do
@@ -1197,7 +1197,7 @@ impl View
                 let ratio = Math.clamp(newPosition.y / view.scroll.scrollableClientRect().height, 0, 1)
                 if not view.pendingSeek and view.retainedBlocks.isEmpty() do
                     view.seekPreviousPosition = oldPosition
-                view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
+                view.pendingSeekOffset = cast(u64, (ratio * cast(f32, view.fileSize)))
                 view.pendingSeek       = true
                 view.pendingSeekPreservesPosition = (continuous or not outside) and (approachingResidentStart or approachingResidentEnd)
                 if view.pendingSeekPreservesPosition
@@ -1668,7 +1668,7 @@ impl View
         // Outline offsets already identify a complete block and a UTF-8 boundary. Reading from
         // that boundary makes the work depend on the viewport, not on the preceding section.
         let start         = exactHeading ? requested : requested > RevealContextSize ? requested - RevealContextSize : 0
-        let viewportBytes = cast(u64) Math.ceil(.scroll.paddedClientRect().height * cast(f32) .fileSize / Math.max(.virtualHeight, 1))
+        let viewportBytes = cast(u64, Math.ceil(.scroll.paddedClientRect().height * cast(f32, .fileSize) / Math.max(.virtualHeight, 1)))
         let revealTail    = viewportFirst and .fileSize - requested <= viewportBytes * 2
         if revealTail do
             .jumpToEnd = true
@@ -1733,9 +1733,9 @@ impl View
 
             .sourceDone           = .bytesRead >= .fileSize
             .virtualHeight        = Math.max(previousHeight, .scroll.paddedClientRect().height)
-            .virtualOrigin        = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            .virtualOrigin        = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
             .contentHeight        = .virtualOrigin + .documentStyle.topInset
-            .pendingTarget        = .fileSize ? .virtualHeight * cast(f32) requested / cast(f32) .fileSize : 0
+            .pendingTarget        = .fileSize ? .virtualHeight * cast(f32, requested) / cast(f32, .fileSize) : 0
             .hasPendingTarget     = not .jumpToEnd
             .pendingTargetOffset  = .hasPendingTarget and not preservePosition and not exactHeading ? requested : Swag.U64.Max
             .pendingHeadingOffset = exactHeading ? requested : Swag.U64.Max

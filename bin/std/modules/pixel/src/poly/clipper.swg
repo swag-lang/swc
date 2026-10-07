@@ -164,7 +164,7 @@ impl PolyNode
 {
     mtd addChild(child: *PolyNode)
     {
-        let cnt = cast(u32) .childs.count
+        let cnt = cast(u32, .childs.count)
         .childs.add(child)
         child.parent = me
         child.index  = cnt
@@ -335,7 +335,7 @@ impl Transform
 
     mtd addPath(pg: *ClipperPath, polyType: PolyType)
     {
-        var highI = cast(s64) pg.count - 1
+        var highI = cast(s64, pg.count) - 1
         if highI < 2 do
             return
         let pgBuf = pg.storage()
@@ -346,9 +346,9 @@ impl Transform
         if highI < 2 do
             return
 
-        var edges  = Memory.new'Edge(cast(u64) highI + 1)
+        var edges  = Memory.new'Edge(cast(u64, highI) + 1)
         var isFlat = true
-        .edgeList.add({edges, cast(u64) highI + 1})
+        .edgeList.add({edges, cast(u64, highI) + 1})
 
         // 1. Basic (first) edge initialization ...
         edges[1].curr = pgBuf[1]
@@ -508,7 +508,7 @@ impl Transform
         if dy == 0 do
             e.dx = HorizontalVal
         else do
-            e.dx = cast(f64) (e.top.x - e.bot.x) / dy
+            e.dx = cast(f64, (e.top.x - e.bot.x)) / dy
     }
 
     func removeEdge(e: *Edge)->*Edge
@@ -1718,7 +1718,7 @@ impl Transform
                     }
                     else
                     {
-                        let d = cast(f64) (op.pt.x - pt.x) * (opNext.pt.y - pt.y) - cast(f64) (opNext.pt.x - pt.x) * (op.pt.y - pt.y)
+                        let d = cast(f64, (op.pt.x - pt.x)) * (opNext.pt.y - pt.y) - cast(f64, (opNext.pt.x - pt.x)) * (op.pt.y - pt.y)
                         if d == 0 do
                             return -1
                         if (d > 0) == (opNext.pt.y > op.pt.y) do
@@ -1729,7 +1729,7 @@ impl Transform
                 {
                     if opNext.pt.x > pt.x
                     {
-                        let d = cast(f64) (op.pt.x - pt.x) * (opNext.pt.y - pt.y) - cast(f64) (opNext.pt.x - pt.x) * (op.pt.y - pt.y)
+                        let d = cast(f64, (op.pt.x - pt.x)) * (opNext.pt.y - pt.y) - cast(f64, (opNext.pt.x - pt.x)) * (op.pt.y - pt.y)
                         if d == 0 do
                             return -1
                         if (d > 0) == (opNext.pt.y > op.pt.y) do
@@ -2319,7 +2319,7 @@ impl Transform
     }
 
     #[Swag.Inline]
-    func cround(val: f64)->CInt => cast(CInt) Math.round(val)
+    func cround(val: f64)->CInt => cast(CInt, Math.round(val))
 
     func topX(edge: *Edge, currentY: CInt)->CInt => currentY == edge.top.y ? edge.top.x : edge.bot.x + cround(edge.dx * (currentY - edge.bot.y))
 
@@ -2579,7 +2579,7 @@ impl Transform
     {
         let result = .newOutRec()
         .polyOuts.add(result)
-        result.idx = cast(s32) (.polyOuts.count - 1)
+        result.idx = cast(s32, (.polyOuts.count - 1))
         return nnOutRec(result)
     }
 
@@ -2747,7 +2747,7 @@ impl Transform
         return false
     }
 
-    func getDx(pt1, pt2: IntPoint)->f64 => (pt1.y == pt2.y) ? cast(f64) HorizontalVal : cast(f64) (pt2.x - pt1.x) / (pt2.y - pt1.y)
+    func getDx(pt1, pt2: IntPoint)->f64 => (pt1.y == pt2.y) ? cast(f64, HorizontalVal) : cast(f64, (pt2.x - pt1.x)) / (pt2.y - pt1.y)
 
     func area(op1: *OutPt)->f64
     {
@@ -2759,7 +2759,7 @@ impl Transform
         {
             let opc    = nnOutPt(op)
             let opPrev = nnOutPt(opc.prev)
-            a  += cast(f64) (opPrev.pt.x + opc.pt.x) * cast(f64) (opPrev.pt.y - opc.pt.y)
+            a  += cast(f64, (opPrev.pt.x + opc.pt.x)) * cast(f64, (opPrev.pt.y - opc.pt.y))
             op = nnOutPt(opc.next)
             if op == startOp do
                 break
@@ -3287,7 +3287,7 @@ impl Transform
                 continue
 
             var pg: ClipperPath
-            pg.reserve(cast(u64) cnt)
+            pg.reserve(cast(u64, cnt))
             for cnt
             {
                 pg.add(p.pt)

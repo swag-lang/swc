@@ -94,9 +94,9 @@ struct Memo
 func memoInit()->Memo
 {
     var m: Memo
-    m.keys  = cast([*] u64?) testAlloc(cast(u64) MapCap * #sizeof(u64))
-    m.vals  = cast([*] u64?) testAlloc(cast(u64) MapCap * #sizeof(u64))
-    m.alive = cast([*] bool?) testAlloc(cast(u64) MapCap * #sizeof(bool))
+    m.keys  = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
+    m.vals  = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
+    m.alive = cast([*] bool?, testAlloc(cast(u64, MapCap) * #sizeof(bool)))
     let alive = m.alive!
     for index in MapCap { alive[index] = false }
     return m
@@ -114,7 +114,7 @@ func memoProbe(m: *Memo, key: u64)->u32
     var h = key ^ (key >> 16)
     h *= 0x45D9F3B
     h ^= h >> 16
-    var idx   = cast(u32) (h % cast(u64) MapCap)
+    var idx   = cast(u32, (h % cast(u64, MapCap)))
     let alive = m.alive!
     let keys  = m.keys!
     for MapCap
@@ -161,7 +161,7 @@ func memoPut(m: *Memo, key: u64, val: u64)
 #[Swag.Inline]
 func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool)->u64
 {
-    return cast(u64) fromIdx | (cast(u64) dstIdx << 8) | (cast(u64) depth << 16) | (cast(u64) (isNum ? 1'u32 : 0'u32) << 24)
+    return cast(u64, fromIdx) | (cast(u64, dstIdx) << 8) | (cast(u64, depth) << 16) | (cast(u64, (isNum ? 1'u32 : 0'u32)) << 24)
 }
 
 // Recursive cost: minimal human presses to go from key `from` to key `to`
@@ -200,7 +200,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     // At depth 0, the human directly presses: just manhattan + 1 (for 'A')
     if depth == 0
     {
-        let cost = cast(u64) (Swag.abs(dr) + Swag.abs(dc)) + 1
+        let cost = cast(u64, (Swag.abs(dr) + Swag.abs(dc))) + 1
         memoPut(memo, key, cost)
         return cost
     }
@@ -219,7 +219,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         var cur:  u32 = 1     // start at 'A' on directional pad
 
         // Horizontal moves
-        var hSteps = cast(u32) Swag.abs(dc)
+        var hSteps = cast(u32, Swag.abs(dc))
         if dc != 0
         {
             let hKey = dirKeyIdx(0, dc)
@@ -231,7 +231,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         }
 
         // Vertical moves
-        var vSteps = cast(u32) Swag.abs(dr)
+        var vSteps = cast(u32, Swag.abs(dr))
         if dr != 0
         {
             let vKey = dirKeyIdx(dr, 0)
@@ -255,7 +255,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         var cur:  u32 = 1     // start at 'A'
 
         // Vertical moves
-        var vSteps = cast(u32) Swag.abs(dr)
+        var vSteps = cast(u32, Swag.abs(dr))
         if dr != 0
         {
             let vKey = dirKeyIdx(dr, 0)
@@ -267,7 +267,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         }
 
         // Horizontal moves
-        var hSteps = cast(u32) Swag.abs(dc)
+        var hSteps = cast(u32, Swag.abs(dc))
         if dc != 0
         {
             let hKey = dirKeyIdx(0, dc)
@@ -295,7 +295,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
 func charToNumIdx(ch: u8)->u32
 {
     if ch >= '0' and ch <= '9' do
-        return cast(u32) (ch - '0')
+        return cast(u32, (ch - '0'))
     return 10     // 'A'
 }
 
@@ -308,7 +308,7 @@ func codeNumericValue(code: const [..] u8, codeLen: u32)->u64
         let ch = code[i]
         if ch >= '0' and ch <= '9'
         {
-            val = val * 10 + cast(u64) (ch - '0')
+            val = val * 10 + cast(u64, (ch - '0'))
         }
     }
     return val
@@ -341,7 +341,7 @@ func solve(text: string)->SolveResult
     defer memoFree(&memo)
 
     var result: SolveResult
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos:    u32
 
     for
@@ -369,7 +369,7 @@ func solve(text: string)->SolveResult
         let codeLen = pos - codeStart
         if codeLen == 0 do continue
 
-        let codeSlice = Swag.makeSlice(&bytes[codeStart], cast(u64) codeLen)
+        let codeSlice = Swag.makeSlice(&bytes[codeStart], cast(u64, codeLen))
         let numVal    = codeNumericValue(codeSlice, codeLen)
 
         let cost1 = solveCode(codeSlice, codeLen, 2, &memo)

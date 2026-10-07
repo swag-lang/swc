@@ -2,26 +2,26 @@
 
 using Core
 
-private const ReverseBgr24  = cast(Math.Simd.U8x16) [13'u8, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 128, 128, 128, 128]
-private const ReverseBgra32 = cast(Math.Simd.U8x16) [12'u8, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3]
-private const RepeatBgr24   = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 128, 128, 128, 128]
-private const SwapRedBlue24 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128]
-private const SwapRedBlue32 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15]
+private const ReverseBgr24  = cast(Math.Simd.U8x16, [13'u8, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 128, 128, 128, 128])
+private const ReverseBgra32 = cast(Math.Simd.U8x16, [12'u8, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3])
+private const RepeatBgr24   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 128, 128, 128, 128])
+private const SwapRedBlue24 = cast(Math.Simd.U8x16, [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
+private const SwapRedBlue32 = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
 
 func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
 {
-    let pattern = Math.Simd.splat((cast(const *u32) pixel)[])
+    let pattern = Math.Simd.splat(cast(const *u32, pixel)[])
     var x       = 0'u64
     while pixelCount - x >= 4
     {
-        if not Math.Simd.allTrue(Math.Simd.load(cast(const [*] u32) source + x) == pattern) do
+        if not Math.Simd.allTrue(Math.Simd.load(cast(const [*] u32, source) + x) == pattern) do
             break
         x += 4
     }
 
     while x < pixelCount
     {
-        if (cast(const [*] u32) source)[x] != (cast(const *u32) pixel)[] do
+        if cast(const [*] u32, source)[x] != cast(const *u32, pixel)[] do
             break
         x += 1
     }
@@ -72,8 +72,8 @@ func swapRedBlue32Row(source: const [*] u8, destination: [*] u8, pixelCount: u64
 
 func fillBgr24Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    let packed  = cast(u32) pixel[0] | (cast(u32) pixel[1] << 8) | (cast(u32) pixel[2] << 16)
-    let pattern = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.splat(packed), RepeatBgr24)
+    let packed  = cast(u32, pixel[0]) | (cast(u32, pixel[1]) << 8) | (cast(u32, pixel[2]) << 16)
+    let pattern = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, Math.Simd.splat(packed)), RepeatBgr24)
     var x       = 0'u64
     while pixelCount - x >= 4
     {
@@ -93,17 +93,17 @@ func fillBgr24Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 
 func fillBgra32Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    let pattern = Math.Simd.splat((cast(const *u32) pixel)[])
+    let pattern = Math.Simd.splat(cast(const *u32, pixel)[])
     var x       = 0'u64
     while pixelCount - x >= 4
     {
-        Math.Simd.store(cast([*] u32) destination + x, pattern)
+        Math.Simd.store(cast([*] u32, destination) + x, pattern)
         x += 4
     }
 
     while x < pixelCount
     {
-        (cast([*] u32) destination)[x] = (cast(const *u32) pixel)[]
+        cast([*] u32, destination)[x] = cast(const *u32, pixel)[]
         x += 1
     }
 }
@@ -142,7 +142,7 @@ func reverseBgra32Row(source: const [*] u8, destination: [*] u8, pixelCount: u64
 
     while x < pixelCount
     {
-        (cast([*] u32) destination)[x] = (cast(const [*] u32) source)[pixelCount - x - 1]
+        cast([*] u32, destination)[x] = cast(const [*] u32, source)[pixelCount - x - 1]
         x += 1
     }
 }

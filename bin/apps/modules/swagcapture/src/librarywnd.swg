@@ -199,7 +199,7 @@ impl LibraryWnd
         {
             if it.filtered do
                 continue
-            if .view.selModel.isSelected(cast() i) do
+            if .view.selModel.isSelected(cast(i)) do
                 res.add(it.fi.fullName)
         }
 
@@ -242,7 +242,7 @@ impl LibraryWnd
     {
         if .view.items.isEmpty() do
             return
-        .view.setFocusItem(cast(u32) .view.items.count - 1)
+        .view.setFocusItem(cast(u32, .view.items.count) - 1)
         .view.scrollToFocus()
     }
 
@@ -349,8 +349,8 @@ impl LibraryWnd
             return
 
         let root = .listCtrl.createLine(name, .theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
-        root.userData0 = cast() Swag.U64.Max
-        root.userData3 = cast() cast(u64) kind
+        root.userData0 = cast(Swag.U64.Max)
+        root.userData3 = cast(cast(u64, kind))
         let rootCount = root.setItem(1, Format.toString("% ", values.count))
         rootCount.horzAlign = .Right
 
@@ -364,8 +364,8 @@ impl LibraryWnd
             }
 
             let line = .listCtrl.createLine(value.name, icon, parentLine: root)
-            line.userData0 = cast() i
-            line.userData3 = cast() cast(u64) kind
+            line.userData0 = cast(i)
+            line.userData3 = cast(cast(u64, kind))
             let count = line.setItem(1, Format.toString("% ", value.count))
             count.horzAlign = .Right
         }
@@ -400,8 +400,8 @@ impl LibraryWnd
 
         for i in .listCtrl.lineCount()
         {
-            let line = .listCtrl.lineAt(cast(u32) i)!
-            let kind = cast(LibrarySidebarFilter) cast(u64) line.userData3
+            let line = .listCtrl.lineAt(cast(u32, i))!
+            let kind = cast(LibrarySidebarFilter, cast(u64, line.userData3))
             if kind != wantedKind do
                 continue
 
@@ -409,20 +409,20 @@ impl LibraryWnd
             switch kind
             {
             case .Date:
-                matches = cast(u64) line.userData0 == .view.filterYear and cast(u64) line.userData1 == .view.filterMonth and cast(u64) line.userData2 == .view.filterDay
+                matches = cast(u64, line.userData0) == .view.filterYear and cast(u64, line.userData1) == .view.filterMonth and cast(u64, line.userData2) == .view.filterDay
 
             case .Application:
-                let idx = cast(u64) line.userData0
+                let idx = cast(u64, line.userData0)
                 matches = idx < .sidebarApplications.count and Utf8.compare(.sidebarApplications[idx].name.toSlice(), .applicationFilter, .Latin1NoCase) == 0
 
             case .Tag:
-                let idx = cast(u64) line.userData0
+                let idx = cast(u64, line.userData0)
                 matches = idx < .sidebarTags.count and Utf8.compare(.sidebarTags[idx].name.toSlice(), .tagFilter, .Latin1NoCase) == 0
             }
 
             if matches
             {
-                .listCtrl.selectLine(cast(u32) i)
+                .listCtrl.selectLine(cast(u32, i))
                 return
             }
         }
@@ -489,7 +489,7 @@ impl LibraryWnd
             {
                 fillLastYear()
                 lastLine           = .listCtrl.createLine(Format.toString("%", fi.lastWriteTime.year), icon1)
-                lastLine.userData0 = cast() cast(u64) fi.lastWriteTime.year
+                lastLine.userData0 = cast(cast(u64, fi.lastWriteTime.year))
                 lastLineYear       = lastLine
             }
 
@@ -497,8 +497,8 @@ impl LibraryWnd
             {
                 fillLastMonth()
                 lastLine           = .listCtrl.createLine(Format.toString("%", DateTime.monthName(fi.lastWriteTime.month)), icon1, lastLineYear)
-                lastLine.userData0 = cast() cast(u64) fi.lastWriteTime.year
-                lastLine.userData1 = cast() cast(u64) fi.lastWriteTime.month
+                lastLine.userData0 = cast(cast(u64, fi.lastWriteTime.year))
+                lastLine.userData1 = cast(cast(u64, fi.lastWriteTime.month))
                 lastLineMonth      = lastLine
             }
 
@@ -506,9 +506,9 @@ impl LibraryWnd
             {
                 fillLastDay()
                 lastLine           = .listCtrl.createLine(Format.toString("%, %", DateTime.dayOfWeekName(fi.lastWriteTime.dayOfWeek()), fi.lastWriteTime.day), icon1, lastLineMonth)
-                lastLine.userData0 = cast() cast(u64) fi.lastWriteTime.year
-                lastLine.userData1 = cast() cast(u64) fi.lastWriteTime.month
-                lastLine.userData2 = cast() cast(u64) fi.lastWriteTime.day
+                lastLine.userData0 = cast(cast(u64, fi.lastWriteTime.year))
+                lastLine.userData1 = cast(cast(u64, fi.lastWriteTime.month))
+                lastLine.userData2 = cast(cast(u64, fi.lastWriteTime.day))
                 lastLineDay        = lastLine
             }
 
@@ -562,7 +562,7 @@ impl LibraryWnd
                 {
                     if item.fi.fullName == file
                     {
-                        libWnd.view.selModel.unselect(cast() i)
+                        libWnd.view.selModel.unselect(cast(i))
                         libWnd.view.items.removeAtOrdered(i)
                         break
                     }
@@ -628,21 +628,21 @@ impl LibraryWnd
         .applicationFilter.clear()
         .tagFilter.clear()
 
-        let kind = cast(LibrarySidebarFilter) cast(u64) line.userData3
+        let kind = cast(LibrarySidebarFilter, cast(u64, line.userData3))
         switch kind
         {
         case .Date:
-            .view.filterYear  = cast(u64) line.userData0
-            .view.filterMonth = cast(u64) line.userData1
-            .view.filterDay   = cast(u64) line.userData2
+            .view.filterYear  = cast(u64, line.userData0)
+            .view.filterMonth = cast(u64, line.userData1)
+            .view.filterDay   = cast(u64, line.userData2)
 
         case .Application:
-            let idx = cast(u64) line.userData0
+            let idx = cast(u64, line.userData0)
             if idx < .sidebarApplications.count do
                 .applicationFilter = .sidebarApplications[idx].name
 
         case .Tag:
-            let idx = cast(u64) line.userData0
+            let idx = cast(u64, line.userData0)
             if idx < .sidebarTags.count do
                 .tagFilter = .sidebarTags[idx].name
         }
@@ -814,7 +814,7 @@ impl LibraryWnd
     mtd selectedCaptureFiles()->Array'String
     {
         var result: retval
-        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast() i) do
+        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast(i)) do
             result.add(item.fi.fullName)
         return result
     }
@@ -916,7 +916,7 @@ impl LibraryWnd
         var favorite = false
         for item, i in .view.items
         {
-            if item.capture and .view.selModel.isSelected(cast() i) and not item.capture.favorite do
+            if item.capture and .view.selModel.isSelected(cast(i)) and not item.capture.favorite do
                 favorite = true
         }
 
@@ -1241,7 +1241,7 @@ impl LibraryWnd
                 .addItem(ActionLibView.LinkMarkers)
             }
 
-            discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
+            discard menu.doModal(assume cast (*IconButton, btn), autoDestroy: true)
         }
 
         .sortBtn = .createMenuButton(.theme().icon(.Sort, iconSize), appStrings().ui_BarSort)
@@ -1262,17 +1262,17 @@ impl LibraryWnd
                 .addItem(ActionLibSort.Invert)
             }
 
-            discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
+            discard menu.doModal(assume cast (*IconButton, btn), autoDestroy: true)
         }
 
         .filterBtn = .createMenuButton(.theme().icon(.Filter, iconSize), appStrings().ui_BarFilter)
-        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterMenu(cast #assume (*IconButton) btn) }
+        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterMenu(assume cast (*IconButton, btn)) }
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.
         .folderBtn            = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
         .folderBtn.toolTip    = appStrings().tip_LibraryFolders
-        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(cast #assume (*IconButton) btn) }
+        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(assume cast (*IconButton, btn)) }
 
         // Loading state stays with the commands it updates, before the flexible gap, so it
         // appears without moving the search field away from the right edge.

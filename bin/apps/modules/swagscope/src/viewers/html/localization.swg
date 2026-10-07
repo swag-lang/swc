@@ -32,5 +32,5 @@ func registerHtmlStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'HtmlStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'HtmlStrings(cast(string, FrenchStrings))
 }

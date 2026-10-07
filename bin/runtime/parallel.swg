@@ -47,8 +47,8 @@ private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)
     }
 
     let duration = elapsed == 0 ? 1'u64 : elapsed
-    let estimate = cast(f64) count * cast(f64) budget / cast(f64) duration
-    let grain    = estimate >= cast(f64) 0xFFFF_FFFF_FFFF_FFFF'u64 ? 0xFFFF_FFFF_FFFF_FFFF'u64 : cast(u64) estimate
+    let estimate = cast(f64, count) * cast(f64, budget) / cast(f64, duration)
+    let grain    = estimate >= cast(f64, 0xFFFF_FFFF_FFFF_FFFF'u64) ? 0xFFFF_FFFF_FFFF_FFFF'u64 : cast(u64, estimate)
     let result   = grain == 0 ? 1'u64 : grain
     if profile do
         profile.grain.store(result)
@@ -94,7 +94,7 @@ struct ParallelChunk
 #[Swag.NoDoc]
 internal func __parallelRange(begin, end: u64, body: func||(u64, u64))
 {
-    let entry = cast(u64) (cast(const *ClosureValue) &body).invoke
+    let entry = cast(u64, cast(const *ClosureValue, &body).invoke)
     parallelRange(begin, end, body, entry)
 }
 
@@ -132,7 +132,7 @@ impl ParallelFailure
 internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fail) fail
 {
     var failure: ParallelFailure
-    let entry     = cast(u64) (cast(const *ClosureValue) &body).invoke
+    let entry     = cast(u64, cast(const *ClosureValue, &body).invoke)
     let partition = func|&body, &failure|(first, last: u64)
     {
         catch body(first, last) as error
@@ -185,7 +185,7 @@ private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
     }
 
     let workers = workerCount()
-    var chunks  = cast(u64) workers
+    var chunks  = cast(u64, workers)
     if chunks > count do
         chunks = count
     if chunks > count / grain do
@@ -247,7 +247,7 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
 
 private func parallelChunkEntry(node: *WorkNode)
 {
-    discard runParallelChunk(cast #assume (*ParallelChunk) node)
+    discard runParallelChunk(assume cast (*ParallelChunk, node))
 }
 
 private func runParallelChunk(chunk: *ParallelChunk)->u64

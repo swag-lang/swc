@@ -117,14 +117,14 @@ func encodingRune(encoding: BaseEncoding, code: u8)->rune
 
     case .MacRoman:
         if code < 0x80 do
-            return cast(rune) code
-        return cast(rune) MacRomanEncodingHigh[code - 0x80]
+            return cast(rune, code)
+        return cast(rune, MacRomanEncodingHigh[code - 0x80])
 
     case .Standard:
         for entry in StandardEncodingHigh where entry.code == code do
-            return cast(rune) entry.value
+            return cast(rune, entry.value)
         if code >= 0x20 and code < 0x7F do
-            return cast(rune) code
+            return cast(rune, code)
         return 0
     }
 }
@@ -136,7 +136,7 @@ func encodingRune(encoding: BaseEncoding, code: u8)->rune
 func glyphNameRune(name: string)->rune
 {
     for entry in GlyphNames where entry.name == name do
-        return cast(rune) entry.value
+        return cast(rune, entry.value)
 
     if name.count == 7 and name[0 to 2] == "uni" do
         return parseGlyphHex(name[3 until])
@@ -152,7 +152,7 @@ func glyphNameRune(name: string)->rune
 // embedded PostScript program keys its outlines by.
 func runeGlyphName(value: rune)->string
 {
-    for entry in GlyphNames where entry.value == cast(u32) value do
+    for entry in GlyphNames where entry.value == cast(u32, value) do
         return entry.name
     return ""
 }
@@ -160,12 +160,12 @@ func runeGlyphName(value: rune)->string
 private func parseGlyphHex(digits: string)->rune
 {
     var result = 0'u32
-    for c in cast(const [..] u8) digits
+    for c in cast(const [..] u8, digits)
     {
         if not isHex(c) do
             return 0
         result = result * 16 + hexValue(c)
     }
 
-    return cast(rune) result
+    return cast(rune, result)
 }

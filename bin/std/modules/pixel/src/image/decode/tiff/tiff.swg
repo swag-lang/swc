@@ -54,15 +54,15 @@ func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 func rd16(p: const [*] u8, le: bool)->u32
 {
     if le do
-        return cast(u32) p[0] | (cast(u32) p[1] << 8)
-    return (cast(u32) p[0] << 8) | cast(u32) p[1]
+        return cast(u32, p[0]) | (cast(u32, p[1]) << 8)
+    return (cast(u32, p[0]) << 8) | cast(u32, p[1])
 }
 
 func rd32(p: const [*] u8, le: bool)->u32
 {
     if le do
-        return cast(u32) p[0] | (cast(u32) p[1] << 8) | (cast(u32) p[2] << 16) | (cast(u32) p[3] << 24)
-    return (cast(u32) p[0] << 24) | (cast(u32) p[1] << 16) | (cast(u32) p[2] << 8) | cast(u32) p[3]
+        return cast(u32, p[0]) | (cast(u32, p[1]) << 8) | (cast(u32, p[2]) << 16) | (cast(u32, p[3]) << 24)
+    return (cast(u32, p[0]) << 24) | (cast(u32, p[1]) << 16) | (cast(u32, p[2]) << 8) | cast(u32, p[3])
 }
 
 func typeSize(type: u32)->u32
@@ -113,7 +113,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
     if not ts do
         fail UnsupportedFormatError{"unsupported field type"}
 
-    let totalBytes      = cast(u64) e.count * ts
+    let totalBytes      = cast(u64, e.count) * ts
     var p: const [*] u8 = e.fieldAt
     if totalBytes > 4
     {
@@ -123,10 +123,10 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
 
     for i in e.count
     {
-        let q = p + cast(u64) i * ts
+        let q = p + cast(u64, i) * ts
         switch e.type
         {
-        case TYPE_BYTE:  result.add(cast(u32) q[0])
+        case TYPE_BYTE:  result.add(cast(u32, q[0]))
         case TYPE_SHORT: result.add(rd16(q, le))
         case TYPE_LONG:  result.add(rd32(q, le))
         }
@@ -140,7 +140,7 @@ func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValu
     let e = ifd.find(tag)
     if not e do
         return defValue
-    let values = try readValues(base, last, le, cast(*Entry) (e))
+    let values = try readValues(base, last, le, cast(*Entry, (e)))
     if not values.count do
         return defValue
     return values[0]
@@ -155,12 +155,12 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
     {
         if p >= last do
             fail InvalidFormatError{"invalid source buffer"}
-        let header = cast(s32) cast #bit (s8) p[0]
+        let header = cast(s32, cast #bit (s8, p[0]))
         p += 1
 
         if header >= 0
         {
-            let count = cast(u64) (header + 1)
+            let count = cast(u64, (header + 1))
             if out + count > expected do
                 fail InvalidFormatError{"invalid source buffer"}
             try checkBuffer(p, last, count)
@@ -170,7 +170,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
         }
         elif header != -128
         {
-            let count = cast(u64) (1 - header)
+            let count = cast(u64, (1 - header))
             if out + count > expected do
                 fail InvalidFormatError{"invalid source buffer"}
             try checkBuffer(p, last, 1)
@@ -207,16 +207,16 @@ impl Decoder
             fail InvalidFormatError{"not a tiff"}
 
         let ifdOffset = directory ? directory : rd32(base + 4, le)
-        if cast(u64) ifdOffset + 2 > countof do
+        if cast(u64, ifdOffset) + 2 > countof do
             fail InvalidFormatError{"invalid source buffer"}
 
         // Parse the first IFD
         var ifd: Ifd
         let numEntries = rd16(base + ifdOffset, le)
-        try checkBuffer(base + ifdOffset, last, 2'u64 + cast(u64) numEntries * 12)
+        try checkBuffer(base + ifdOffset, last, 2'u64 + cast(u64, numEntries) * 12)
         for i in numEntries
         {
-            let ep = base + ifdOffset + 2 + cast(u64) i * 12
+            let ep = base + ifdOffset + 2 + cast(u64, i) * 12
             var e: Entry
             e.tag     = rd16(ep, le)
             e.type    = rd16(ep + 2, le)
@@ -255,7 +255,7 @@ impl Decoder
         let bpsEntry = ifd.find(TAG_BITS_PER_SAMPLE)
         if bpsEntry
         {
-            let bps = try readValues(base, last, le, cast(*Entry) (bpsEntry))
+            let bps = try readValues(base, last, le, cast(*Entry, (bpsEntry)))
             for b in bps
             {
                 if b != 8 do
@@ -284,7 +284,7 @@ impl Decoder
         }
 
         var result: retval
-        result.init(cast(s32) width, cast(s32) height, pf)
+        result.init(cast(s32, width), cast(s32, height), pf)
         try options.checkImage(result.width, result.height, pf)
 
         if not options.decodePixels do
@@ -297,13 +297,13 @@ impl Decoder
             let cmEntry = ifd.find(TAG_COLOR_MAP)
             if not cmEntry do
                 fail InvalidFormatError{"missing color map"}
-            let cm      = try readValues(base, last, le, cast(*Entry) (cmEntry))
+            let cm      = try readValues(base, last, le, cast(*Entry, (cmEntry)))
             let entries = cm.count / 3
             for i in entries
             {
-                let r = cast(u32) (cm[i] >> 8)
-                let g = cast(u32) (cm[entries + i] >> 8)
-                let b = cast(u32) (cm[2 * entries + i] >> 8)
+                let r = cast(u32, (cm[i] >> 8))
+                let g = cast(u32, (cm[entries + i] >> 8))
+                let b = cast(u32, (cm[2 * entries + i] >> 8))
                 palette.add((r << 16) | (g << 8) | b)
             }
         }
@@ -313,17 +313,17 @@ impl Decoder
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
         if not stripOffEntry or not stripCntEntry do
             fail InvalidFormatError{"missing strip data"}
-        let stripOffsets = try readValues(base, last, le, cast(*Entry) (stripOffEntry))
-        let stripCounts  = try readValues(base, last, le, cast(*Entry) (stripCntEntry))
+        let stripOffsets = try readValues(base, last, le, cast(*Entry, (stripOffEntry)))
+        let stripCounts  = try readValues(base, last, le, cast(*Entry, (stripCntEntry)))
         if stripOffsets.count != stripCounts.count or not stripOffsets.count do
             fail InvalidFormatError{"invalid strip data"}
 
-        let rowBytes  = cast(u64) width * samples
+        let rowBytes  = cast(u64, width) * samples
         let totalRows = height
 
         // Decode all strips into a top-down byte buffer
         var decoded: Array'u8
-        decoded.resize(rowBytes * cast(u64) totalRows)
+        decoded.resize(rowBytes * cast(u64, totalRows))
 
         var rowStart: u32
         for s in stripOffsets.count
@@ -335,13 +335,13 @@ impl Decoder
             if rowStart + rowsInStrip > totalRows do
                 rowsInStrip = totalRows - rowStart
 
-            let stripBytes = rowBytes * cast(u64) rowsInStrip
+            let stripBytes = rowBytes * cast(u64, rowsInStrip)
             let srcOff     = stripOffsets[s]
-            let srcCount   = cast(u64) stripCounts[s]
+            let srcCount   = cast(u64, stripCounts[s])
             let srcPtr     = base + srcOff
             try checkBuffer(srcPtr, last, srcCount)
 
-            let dstPtr = decoded.storage() + cast(u64) rowStart * rowBytes
+            let dstPtr = decoded.storage() + cast(u64, rowStart) * rowBytes
 
             if compression == COMPRESSION_LZW
             {
@@ -368,10 +368,10 @@ impl Decoder
         {
             for y in totalRows
             {
-                let row = decoded.storage() + cast(u64) y * rowBytes
+                let row = decoded.storage() + cast(u64, y) * rowBytes
                 for i in rowBytes - samples
                 {
-                    let offset = cast(u64) samples + i
+                    let offset = cast(u64, samples) + i
                     row[offset] += #wrap row[offset - samples]
                 }
             }
@@ -380,25 +380,25 @@ impl Decoder
         result.allocPixels()
 
         // Convert top-down 'decoded' into the bottom-up result buffer
-        for y in cast(s32) height
+        for y in cast(s32, height)
         {
-            let srcRow = decoded.storage() + cast(u64) y * rowBytes
+            let srcRow = decoded.storage() + cast(u64, y) * rowBytes
             let dstY   = result.height - y - 1
-            var dst    = cast([*] u8) result.pixels.storage() + cast(u64) dstY * result.rowStride
+            var dst    = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
 
-            for x in cast(s32) width
+            for x in cast(s32, width)
             {
                 if samples == 1
                 {
                     if photometric == PHOTO_PALETTE
                     {
-                        let index = cast(u32) srcRow[x]
+                        let index = cast(u32, srcRow[x])
                         if index >= palette.count do
                             fail InvalidFormatError{"invalid palette index"}
                         let argb = palette[index]
-                        dst[0] = cast(u8) ((argb >> 16) & 0xFF)
-                        dst[1] = cast(u8) ((argb >> 8) & 0xFF)
-                        dst[2] = cast(u8) (argb & 0xFF)
+                        dst[0] = cast(u8, ((argb >> 16) & 0xFF))
+                        dst[1] = cast(u8, ((argb >> 8) & 0xFF))
+                        dst[2] = cast(u8, (argb & 0xFF))
                     }
                     else
                     {
@@ -414,7 +414,7 @@ impl Decoder
                 }
                 elif samples == 3
                 {
-                    let pix = srcRow + cast(u64) x * 3
+                    let pix = srcRow + cast(u64, x) * 3
                     dst[0] = pix[0]
                     dst[1] = pix[1]
                     dst[2] = pix[2]
@@ -422,7 +422,7 @@ impl Decoder
                 }
                 else
                 {
-                    let pix = srcRow + cast(u64) x * 4
+                    let pix = srcRow + cast(u64, x) * 4
                     dst[0] = pix[0]
                     dst[1] = pix[1]
                     dst[2] = pix[2]
@@ -459,10 +459,10 @@ impl IImageSetDecoder for Decoder
             try options.checkFrameCount(.directories.count + 1)
             for prior in .directories where prior == offset do
                 fail InvalidFormatError{"TIFF directory chain contains a cycle"}
-            if cast(u64) offset + 2 > buffer.count do
+            if cast(u64, offset) + 2 > buffer.count do
                 fail InvalidFormatError{"TIFF directory offset is outside the input"}
             let count = rd16(buffer.buffer + offset, le)
-            let next  = cast(u64) offset + 2 + cast(u64) count * 12
+            let next  = cast(u64, offset) + 2 + cast(u64, count) * 12
             if next + 4 > buffer.count do
                 fail InvalidFormatError{"TIFF directory chain is truncated"}
             let probe = try .decodePage(buffer, probeOptions, offset)

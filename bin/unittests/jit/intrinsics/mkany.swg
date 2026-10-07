@@ -18,7 +18,7 @@ enum MkanyKind: u16
     {
         var x: s32 = 42
         let a: any = Swag.makeAny(&x, s32)
-        let p      = cast(*s32) a.buffer
+        let p      = cast(*s32, a.buffer)
         return p[]
     }
 
@@ -35,7 +35,7 @@ enum MkanyKind: u16
         var a: any = Swag.makeAny(&x, s32)
         var b: any = Swag.makeAny(&y, s32)
         b = a
-        let p = cast(*s32) b.buffer
+        let p = cast(*s32, b.buffer)
         return p[]
     }
 
@@ -62,7 +62,7 @@ enum MkanyKind: u16
     {
         var p: MkanyPair = {a: 11, b: 31}
         let a: any       = Swag.makeAny(&p, MkanyPair)
-        let data         = cast(*MkanyPair) a.buffer
+        let data         = cast(*MkanyPair, a.buffer)
         let value        = data[]
         return value.a + value.b
     }
@@ -76,14 +76,14 @@ enum MkanyKind: u16
     func mkanyRoundtripArray()->s32
     {
         var arr: [6] s32 = [1, 2, 3, 4, 5, 6]
-        let ptr          = cast(*[6] s32) &arr
+        let ptr          = cast(*[6] s32, &arr)
         let a:   any     = Swag.makeAny(ptr, [6] s32)
-        let p            = cast(*[6] s32) a.buffer
+        let p            = cast(*[6] s32, a.buffer)
         let value        = p[]
         var acc: s32     = 0
         for v, i in value
         {
-            acc += v * cast(s32) (i + 1)
+            acc += v * cast(s32, (i + 1))
         }
 
         return acc
@@ -98,9 +98,9 @@ enum MkanyKind: u16
     func mkanyBlockVoidPointer()->s32
     {
         var x: s32 = 55
-        let ptr    = cast([*] void) &x
+        let ptr    = cast([*] void, &x)
         let a: any = Swag.makeAny(ptr, s32)
-        let p      = cast(*s32) a.buffer
+        let p      = cast(*s32, a.buffer)
         return p[]
     }
 
@@ -116,7 +116,7 @@ enum MkanyKind: u16
         let a: any       = Swag.makeAny(&k, MkanyKind)
         if Swag.kindOf(a) != MkanyKind do
             return false
-        let p = cast(*MkanyKind) a.buffer
+        let p = cast(*MkanyKind, a.buffer)
         return p[] == MkanyKind.B
     }
 
@@ -145,11 +145,11 @@ enum MkanyKind: u16
         c = Swag.makeAny(&s1, s64)
         d = Swag.makeAny(&s0, s64)
 
-        let p0 = cast(*s64) a.buffer
-        let p1 = cast(*s64) b.buffer
-        let p2 = cast(*s64) c.buffer
-        let p3 = cast(*s64) d.buffer
-        return cast(u64) (p0[] + p1[] + p2[] + p3[])
+        let p0 = cast(*s64, a.buffer)
+        let p1 = cast(*s64, b.buffer)
+        let p2 = cast(*s64, c.buffer)
+        let p3 = cast(*s64, d.buffer)
+        return cast(u64, (p0[] + p1[] + p2[] + p3[]))
     }
 
     const V = #run mkanyRewriteStress()
@@ -161,7 +161,7 @@ enum MkanyKind: u16
     func mkanyCastStringFromAny(value: any)->string
     {
         let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
-        return cast #assume(string) reboxed
+        return assume cast(string, reboxed)
     }
 
     const V = #run mkanyCastStringFromAny("gamma")
@@ -178,7 +178,7 @@ enum MkanyKind: u16
     func mkanyCastStringToBytesFromAny(value: any)->u64
     {
         let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
-        return mkanyStringBytesLen(cast #assume(string) reboxed)
+        return mkanyStringBytesLen(assume cast(string, reboxed))
     }
 
     const V = #run mkanyCastStringToBytesFromAny("delta")
@@ -193,9 +193,9 @@ enum MkanyKind: u16
         var r:  rune = 'A'
         let ab: any  = Swag.makeAny(&b, bool)
         let ar: any  = Swag.makeAny(&r, rune)
-        let pb       = cast(*bool) ab.buffer
-        let pr       = cast(*rune) ar.buffer
-        return cast(s32) pb[] + cast(s32) pr[]
+        let pb       = cast(*bool, ab.buffer)
+        let pr       = cast(*rune, ar.buffer)
+        return cast(s32, pb[]) + cast(s32, pr[])
     }
 
     const V = #run mkanyBoolRuneMix()
@@ -209,7 +209,7 @@ enum MkanyKind: u16
         var values     = [1, 2.5]
         let info       = #typeof(values)
         let boxed: any = Swag.makeAny(&values, info)
-        let data       = cast(*[2] f32) boxed.buffer
+        let data       = cast(*[2] f32, boxed.buffer)
         let array      = data[]
         return array[0] + array[1]
     }

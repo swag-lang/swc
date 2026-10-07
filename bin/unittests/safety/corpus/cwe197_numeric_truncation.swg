@@ -21,7 +21,7 @@ using Corpus
 #[Swag.Safety(.Overflow, true)]
 func truncateToS8(value: s32)->s8
 {
-    return cast(s8) value     // swc-expected-error {{safety_err_runtime}}
+    return cast(s8, value)     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test
@@ -33,7 +33,7 @@ func truncateToS8(value: s32)->s8
 #[Swag.Safety(.Overflow, true)]
 func negativeToUnsigned(value: s8)->u8
 {
-    return cast(u8) value     // swc-expected-error {{safety_err_runtime}}
+    return cast(u8, value)     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test
@@ -48,7 +48,7 @@ func validatedSignedUsedAsUnsigned(length: s32)->u32
 {
     if length > 1024 do
         return 0
-    return cast(u32) length     // swc-expected-error {{safety_err_runtime}}
+    return cast(u32, length)     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test
@@ -61,7 +61,7 @@ func validatedSignedUsedAsUnsigned(length: s32)->u32
 // '#wrap' asks for the truncating result explicitly.
 func truncatesOnRequest(value: s32)->s8
 {
-    return cast #wrap (s8) value
+    return cast #wrap (s8, value)
 }
 
 // Widening loses nothing and needs no cast at all.
@@ -74,7 +74,7 @@ func widensImplicitly(value: s8)->s32
 #[Swag.Safety(.Overflow, true)]
 func fitsInTarget(value: s32)->s8
 {
-    return cast(s8) value
+    return cast(s8, value)
 }
 
 #test

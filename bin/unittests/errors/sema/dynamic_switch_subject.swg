@@ -7,7 +7,7 @@
     switch value
     {
     // swc-expected-error@(+1) {{sema_err_switch_binding_has_expr}}
-    case let number = cast #try (*s32) boxed:
+    case let number = catch cast(*s32?, boxed):
         break
     }
 }

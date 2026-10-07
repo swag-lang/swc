@@ -143,7 +143,7 @@ func notNullWriteThroughRef(box: *NotNullBox, newValue: s32)
 // A cast whose source is asserted first: the assertion binds tighter than the cast.
 func notNullCastOperand(raw: *void?)->s32
 {
-    let typed = cast(*NotNullNode) raw!
+    let typed = cast(*NotNullNode, raw!)
     return typed.value
 }
 
@@ -176,7 +176,7 @@ func notNullAssign(newValue: s32)
     Swag.assert(notNullString() == "hello")
     Swag.assert(notNullNested() == 7)
     Swag.assert(notNullTwoLinks() == 9)
-    Swag.assert(notNullInterface(cast(INotNullAccess) g_notNullNode) == 42)
+    Swag.assert(notNullInterface(cast(INotNullAccess, g_notNullNode)) == 42)
     Swag.assert(notNullRedundant(&g_notNullNode) == 42)
     Swag.assert(notNullRedundant(null) == -1)
     Swag.assert(notNullMixedWithOptional(&g_notNullNode) == 9)

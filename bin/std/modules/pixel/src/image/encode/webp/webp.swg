@@ -27,12 +27,12 @@ impl EncodeBitWriter
     {
         Swag.assert(count <= 32)
         let mask = count == 32 ? 0xFFFFFFFF'u64 : ((1'u64 << count) - 1)
-        .bits     |= (cast(u64) value & mask) << .bitCount
+        .bits     |= (cast(u64, value) & mask) << .bitCount
         .bitCount += count
 
         while .bitCount >= 8
         {
-            .bytes.add(cast(u8) (.bits & 0xFF))
+            .bytes.add(cast(u8, (.bits & 0xFF)))
             .bits     >>= 8
             .bitCount -= 8
         }
@@ -51,7 +51,7 @@ impl EncodeBitWriter
     mtd finish()
     {
         if .bitCount do
-            .bytes.add(cast(u8) (.bits & 0xFF))
+            .bytes.add(cast(u8, (.bits & 0xFF)))
         .bits     = 0
         .bitCount = 0
     }
@@ -101,24 +101,24 @@ impl Encoder
 {
     func writeU32(result: *ConcatBuffer, value: u32)
     {
-        result.addNative(cast(u8) (value & 0xFF))
-        result.addNative(cast(u8) ((value >> 8) & 0xFF))
-        result.addNative(cast(u8) ((value >> 16) & 0xFF))
-        result.addNative(cast(u8) (value >> 24))
+        result.addNative(cast(u8, (value & 0xFF)))
+        result.addNative(cast(u8, ((value >> 8) & 0xFF)))
+        result.addNative(cast(u8, ((value >> 16) & 0xFF)))
+        result.addNative(cast(u8, (value >> 24)))
     }
 
     func collectPixels(image: Image, pixels: *Array'u32, channels: *EncodeChannels)->bool
     {
-        let pixelCount = cast(u64) image.width * image.height
+        let pixelCount = cast(u64, image.width) * image.height
         pixels.resize(pixelCount)
-        let destination = cast([*] u32) pixels.storage()
-        let source      = cast(const [*] u8) image.pixels.storage()
+        let destination = cast([*] u32, pixels.storage())
+        let source      = cast(const [*] u8, image.pixels.storage())
         var hasAlpha    = false
         var output: u64
 
         for y in image.height
         {
-            var pixel = source + cast(u64) (image.height - y - 1) * image.rowStride
+            var pixel = source + cast(u64, (image.height - y - 1)) * image.rowStride
             for image.width
             {
                 var red, green, blue, alpha: u8
@@ -149,8 +149,8 @@ impl Encoder
                     alpha = pixel[3]
                 }
 
-                destination[output] = cast(u32) red | (cast(u32) green << 8) |
-                                      (cast(u32) blue << 16) | (cast(u32) alpha << 24)
+                destination[output] = cast(u32, red) | (cast(u32, green) << 8) |
+                                      (cast(u32, blue) << 16) | (cast(u32, alpha) << 24)
                 channels.red.add(red)
                 channels.blue.add(blue)
                 channels.alpha.add(alpha)
@@ -255,12 +255,12 @@ impl Encoder
             var extraBits: u32
             if symbol < 4
             {
-                base = cast(u32) symbol + 1
+                base = cast(u32, symbol) + 1
             }
             else
             {
-                extraBits = (cast(u32) symbol - 2) >> 1
-                base      = (2 + (cast(u32) symbol & 1)) << extraBits
+                extraBits = (cast(u32, symbol) - 2) >> 1
+                base      = (2 + (cast(u32, symbol) & 1)) << extraBits
                 base      += 1
             }
 
@@ -268,7 +268,7 @@ impl Encoder
             if length < base or length > last do
                 continue
 
-            writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + cast(u32) symbol)
+            writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + cast(u32, symbol))
             if extraBits do
                 writer.writeBits(length - base, extraBits)
             return
@@ -279,7 +279,7 @@ impl Encoder
 
     func writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
     {
-        let data = cast(const [*] u32) pixels.storage()
+        let data = cast(const [*] u32, pixels.storage())
         var index: u64
         while index < pixels.count
         {
@@ -294,10 +294,10 @@ impl Encoder
             }
 
             let pixel = data[index]
-            let red   = cast(u8) (pixel & 0xFF)
-            let green = cast(u8) ((pixel >> 8) & 0xFF)
-            let blue  = cast(u8) ((pixel >> 16) & 0xFF)
-            let alpha = cast(u8) (pixel >> 24)
+            let red   = cast(u8, (pixel & 0xFF))
+            let green = cast(u8, ((pixel >> 8) & 0xFF))
+            let blue  = cast(u8, ((pixel >> 16) & 0xFF))
+            let alpha = cast(u8, (pixel >> 24))
             writeGreenSymbol(writer, green)
             writeByteSymbol(writer, channels.red, red)
             writeByteSymbol(writer, channels.blue, blue)
@@ -314,8 +314,8 @@ impl Encoder
 
         var writer: EncodeBitWriter
         writer.writeBits(0x2F, 8)
-        writer.writeBits(cast(u32) image.width - 1, 14)
-        writer.writeBits(cast(u32) image.height - 1, 14)
+        writer.writeBits(cast(u32, image.width) - 1, 14)
+        writer.writeBits(cast(u32, image.height) - 1, 14)
         writer.writeBits(hasAlpha ? 1 : 0, 1)
         writer.writeBits(0, 3)
 
@@ -344,7 +344,7 @@ internal impl IImageEncoder for Encoder
         if image.width > WEBP_ENCODE_MAX_DIMENSION or image.height > WEBP_ENCODE_MAX_DIMENSION do
             fail UnsupportedFormatError{"WebP lossless dimensions cannot exceed 16384 pixels"}
 
-        let expectedBytes = cast(u64) image.width * image.height * image.bytesPerPixel
+        let expectedBytes = cast(u64, image.width) * image.height * image.bytesPerPixel
         if image.pixels.count < expectedBytes do
             fail InvalidFormatError{"WebP image pixel buffer ends before its declared dimensions"}
 
@@ -354,10 +354,10 @@ internal impl IImageEncoder for Encoder
             fail UnsupportedFormatError{"WebP encoded data does not fit in a RIFF chunk"}
 
         result.addBytes("RIFF")
-        Encoder.writeU32(result, cast(u32) (4 + 8 + paddedSize))
+        Encoder.writeU32(result, cast(u32, (4 + 8 + paddedSize)))
         result.addBytes("WEBP")
         result.addBytes("VP8L")
-        Encoder.writeU32(result, cast(u32) payload.count)
+        Encoder.writeU32(result, cast(u32, payload.count))
         result.addBytes(payload.toSlice())
         if payload.count & 1 do
             result.addNative(0'u8)

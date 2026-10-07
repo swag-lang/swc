@@ -238,9 +238,9 @@ impl Deque
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, item = cast(*T) itemPtr, index = itemIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*T, itemPtr), index = itemIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const *T) itemPtr, index = itemIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const *T, itemPtr), index = itemIndex, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, item = itemPtr[0], index = itemIndex, break = break to Up, continue = break to Down)
             }

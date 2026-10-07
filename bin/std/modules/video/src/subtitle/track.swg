@@ -350,11 +350,11 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
             {
                 let name = Latin1.trim(field)
                 if Latin1.compare(name, "Start", ignoreCase: true) == 0 do
-                    startField = cast(u32) index
+                    startField = cast(u32, index)
                 elif Latin1.compare(name, "End", ignoreCase: true) == 0 do
-                    endField = cast(u32) index
+                    endField = cast(u32, index)
                 elif Latin1.compare(name, "Text", ignoreCase: true) == 0 do
-                    textField = cast(u32) index
+                    textField = cast(u32, index)
             }
 
             continue
@@ -438,7 +438,7 @@ private func decodeMicroDvd(track: *Track, source: string) fail
         var clean: String
         stripSubtitleMarkup(&clean, text.toString())
         if clean.length do
-            track.addCue(cast(f64) first / framesPerSecond, cast(f64) last / framesPerSecond, clean.toString())
+            track.addCue(cast(f64, first) / framesPerSecond, cast(f64, last) / framesPerSecond, clean.toString())
     }
 }
 
@@ -512,7 +512,7 @@ impl Track
     {
         if index >= .cues.count do
             return null
-        return cast(const [*] u8) .textStorage.storage() + .cues[index].textOffset
+        return cast(const [*] u8, .textStorage.storage()) + .cues[index].textOffset
     }
 
     // Returns the UTF-8 byte count for one cue, or zero outside the track.

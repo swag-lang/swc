@@ -185,7 +185,7 @@ impl ByteSource
     mtd(T) readNative()->T fail
     {
         var result: T
-        try .readExact(Swag.makeSlice(cast([*] u8) &result, #sizeof(T)))
+        try .readExact(Swag.makeSlice(cast([*] u8, &result), #sizeof(T)))
         return result
     }
 
@@ -210,7 +210,7 @@ impl ByteSource
             {
                 if not bytes.isEmpty() and bytes.back() == '\r' do
                     discard bytes.popBack()
-                return String.from(cast(string) bytes.toSlice())
+                return String.from(cast(string, bytes.toSlice()))
             }
 
             bytes.add(value)

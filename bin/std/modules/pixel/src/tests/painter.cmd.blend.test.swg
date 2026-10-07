@@ -10,7 +10,7 @@ using Swag, Core
 private func makeTestTexture(handle: u64, w, h: s32)->Texture
 {
     var result: retval
-    result.attach(cast(TextureHandle) handle, .BGRA8, w, h)
+    result.attach(cast(TextureHandle, handle), .BGRA8, w, h)
     return result
 }
 
@@ -163,11 +163,11 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
     painter.begin()
     painter.setShader(&first)
-    painter.setShaderParam(cast(ShaderParamHandle) 17, 0.5'f32)
-    painter.setShaderParam(cast(ShaderParamHandle) 42, 3's32)
+    painter.setShaderParam(cast(ShaderParamHandle, 17), 0.5'f32)
+    painter.setShaderParam(cast(ShaderParamHandle, 42), 3's32)
     painter.fillRect(0, 0, 10, 10, Color.fromArgb(Argb.Red))
     painter.setShader(&second)
-    painter.setShaderParam(cast(ShaderParamHandle) 17, 1.5'f32)
+    painter.setShaderParam(cast(ShaderParamHandle, 17), 1.5'f32)
     painter.fillRect(0, 0, 10, 10, Color.fromArgb(Argb.Red))
     painter.setShader()
     painter.end()
@@ -182,8 +182,8 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     var inner:   RenderTarget
     var painter: Painter
 
-    outer.attach(cast(RenderTargetHandle) 1, cast(TextureHandle) 21, .BGRA8, 128, 128)
-    inner.attach(cast(RenderTargetHandle) 2, cast(TextureHandle) 22, .BGRA8, 64, 64)
+    outer.attach(cast(RenderTargetHandle, 1), cast(TextureHandle, 21), .BGRA8, 128, 128)
+    inner.attach(cast(RenderTargetHandle, 2), cast(TextureHandle, 22), .BGRA8, 64, 64)
 
     painter.begin()
     painter.bindRenderTarget(&outer)

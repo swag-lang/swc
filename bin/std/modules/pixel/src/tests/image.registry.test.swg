@@ -111,7 +111,7 @@ internal impl Image
         if decoding
         {
             let bytes  = failing ? "x" : "input"
-            let result = catch Image.decode("image.registrytest", cast(const [..] u8) bytes) as err
+            let result = catch Image.decode("image.registrytest", cast(const [..] u8, bytes)) as err
             Swag.assert((err != null) == failing)
             if not failing do
                 Swag.assert(result.width == 1 and result.height == 1)
@@ -120,7 +120,7 @@ internal impl Image
         else
         {
             let image         = Image.create(1, 1, .RGBA8)
-            let options: any? = failing ? cast(any?) true : null
+            let options: any? = failing ? cast(any?, true) : null
             let result        = catch image.encode("image.registrytest", options) as err
             Swag.assert((err != null) == failing)
             if not failing do

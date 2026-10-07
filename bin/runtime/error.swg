@@ -216,7 +216,7 @@ private func __releaseErrArena(arena: *ErrorMessageArena)
 // cannot invalidate a message still reachable through a transported error.
 private func __detachErrMessages(storage: *ScratchAllocator)
 {
-    let arena = cast(*ErrorMessageArena) storage.releaseOwner!
+    let arena = cast(*ErrorMessageArena, storage.releaseOwner!)
     Swag.memcpy(&arena.storage, storage, #sizeof(ScratchAllocator))
     arena.storage.releaseOwner = null
     arena.storage.releaseHook  = null
@@ -232,12 +232,12 @@ private func __detachErrMessages(storage: *ScratchAllocator)
 private func __errMessages(storage: *ScratchAllocator)->*ErrorMessageArena?
 {
     if storage.releaseOwner do
-        return cast(*ErrorMessageArena) storage.releaseOwner
+        return cast(*ErrorMessageArena, storage.releaseOwner)
     if not storage.block and not storage.firstLeak do
         return null
 
     let allocator = storage.allocator!
-    let arena     = cast(*ErrorMessageArena) __allocateErrMemory(allocator, #sizeof(ErrorMessageArena))
+    let arena     = cast(*ErrorMessageArena, __allocateErrMemory(allocator, #sizeof(ErrorMessageArena)))
     arena[] = ErrorMessageArena{allocator: allocator}
     arena.references.store(1)
     storage.releaseOwner = arena
@@ -303,7 +303,7 @@ private func __prependErrArena(messages: *ErrorMessageLink?, arena: *ErrorMessag
         known = known.next
     }
 
-    let link = cast(*ErrorMessageLink) __allocateErrMemory(allocator, #sizeof(ErrorMessageLink))
+    let link = cast(*ErrorMessageLink, __allocateErrMemory(allocator, #sizeof(ErrorMessageLink)))
     link[] = ErrorMessageLink{allocator: allocator, arena: arena, next: messages}
     link.references.store(1)
     arena.references.add(1)
@@ -362,7 +362,7 @@ func __releaseErrRecord(record: *ErrorRecord?)
         return
     let allocator = record.allocator
     let value     = record.value
-    let size      = cast(u64) Swag.kindOf(value).sizeof
+    let size      = cast(u64, Swag.kindOf(value).sizeof)
     __dropErr(value)
     __freeErrMemory(allocator, value.buffer!, size)
     __releaseErrMessages(record.messages)
@@ -393,9 +393,9 @@ private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*
 {
     let context = Swag.getContext()
     if not context.errorAllocator.capacity do
-        context.errorAllocator.setCapacity(cast() __buildCfg.errorAllocatorCapacity, __runtimeAllocator())
+        context.errorAllocator.setCapacity(cast(__buildCfg.errorAllocatorCapacity), __runtimeAllocator())
     let allocator = context.errorAllocator.allocator!
-    let record    = cast(*ErrorRecord) __allocateErrMemory(allocator, #sizeof(ErrorRecord))
+    let record    = cast(*ErrorRecord, __allocateErrMemory(allocator, #sizeof(ErrorRecord)))
     record[] = ErrorRecord{allocator: allocator}
     record.references.store(1)
     if source and source.messages
@@ -405,8 +405,8 @@ private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*
         messages.references.add(1)
     }
 
-    let ptr = __allocateErrMemory(allocator, cast(u64) type.sizeof)
-    Swag.memcpy(ptr, data, cast(u64) type.sizeof)
+    let ptr = __allocateErrMemory(allocator, cast(u64, type.sizeof))
+    Swag.memcpy(ptr, data, cast(u64, type.sizeof))
     if type is Swag.TypeInfoStruct as info
     {
         if info.opPostCopy do
@@ -462,7 +462,7 @@ func __setErrRaw(data: *void, type: typeinfo)
 {
     if type is Swag.TypeInfoNative as native where native.nativeKind == .Any
     {
-        __setErr((cast(const *any) data)[])
+        __setErr(cast(const *any, data)[])
         return
     }
 
@@ -502,7 +502,7 @@ func __pushErr()
     Swag.init(&cxt.errorAllocator, 1)
     cxt.errorAllocator.allocator              = frame.pushErrorAllocator.allocator
     cxt.errorAllocator.capacity               = frame.pushErrorAllocator.capacity
-    cxt.errors[cxt.errorIndex].pushTraceIndex = cast(u32) cxt.traceIndex
+    cxt.errors[cxt.errorIndex].pushTraceIndex = cast(u32, cxt.traceIndex)
     cxt.errors[cxt.errorIndex].pushHasError   = cxt.hasError
 
     // The handler's ErrorCapture owns this view while nested cleanup runs.
@@ -647,6 +647,11 @@ func __abandonErrCaptures(context: *Context)
     __releaseErrContext(context)
 }
 
+func __failedCast() fail
+{
+    fail Swag.BaseError{"source value cannot be converted to the requested type"}
+}
+
 func __failedExpect(loc: SourceCodeLocation)
 {
     let cxt  = Swag.getContext()
@@ -677,7 +682,7 @@ func __failedExpect(loc: SourceCodeLocation)
            (type == Swag.BaseError)
         {
             let data = (cxt.errors[cxt.errorIndex].value).buffer
-            let val  = cast(const *Swag.BaseError) data!
+            let val  = cast(const *Swag.BaseError, data!)
             maxLen = Swag.min(val.message.count, 128)
             if maxLen
             {
@@ -753,14 +758,14 @@ func __printPanicReport(message: string?, loc: SourceCodeLocation)
     if cxt.traceIndex
     {
         Swag.print("error trace\n")
-        for var i = cast(s32) cxt.traceIndex - 1; i >= 0; i -= 1
+        for var i = cast(s32, cxt.traceIndex) - 1; i >= 0; i -= 1
         {
             Swag.print("  originates at ")
             Swag.print(cxt.traces[i].fileName)
             Swag.print(":")
-            Swag.print(cast(s64) cxt.traces[i].lineStart)
+            Swag.print(cast(s64, cxt.traces[i].lineStart))
             Swag.print(":")
-            Swag.print(cast(s64) cxt.traces[i].colStart)
+            Swag.print(cast(s64, cxt.traces[i].colStart))
             Swag.print("\n")
         }
 
@@ -770,7 +775,7 @@ func __printPanicReport(message: string?, loc: SourceCodeLocation)
     // The panic entry captures before calling a user hook. Capturing from the hook itself stops at
     // the panic frame on Windows and loses the application caller, which made devmode reports no
     // more useful than release reports. A direct internal call still has a local fallback.
-    var fallback: [64] (*void?) = cast(*void?) null
+    var fallback: [64] (*void?) = cast(*void?, null)
     var trace = Swag.makeSlice(&cxt.panicStack[0], cxt.panicStackCount)
     if not cxt.panicStackCount
     {
@@ -835,21 +840,21 @@ func safetyPanic(message: string, loc: SourceCodeLocation)
 func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation
-    loc.fileName = Swag.makeString(file, (cast(const cstring) file).count)
+    loc.fileName = Swag.makeString(file, cast(const cstring, file).count)
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd   = col
 
-    let msg = message ? Swag.makeString(message, (cast(const cstring) message).count) : "panic"
+    let msg = message ? Swag.makeString(message, cast(const cstring, message).count) : "panic"
     Swag.panic(msg, loc)
 }
 
 func __compilerError(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation
-    loc.fileName = Swag.makeString(file, (cast(const cstring) file).count)
+    loc.fileName = Swag.makeString(file, cast(const cstring, file).count)
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd   = col
 
-    let msg = message ? Swag.makeString(message, (cast(const cstring) message).count) : "compiler error"
+    let msg = message ? Swag.makeString(message, cast(const cstring, message).count) : "compiler error"
     Swag.compilerError(msg, loc)
 }

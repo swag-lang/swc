@@ -175,24 +175,24 @@ func rorStrictU32(value: RotateStrictU32, count: RotateStrictU8)->RotateStrictU3
 // Strict aliases
 #test
 {
-    const a = Swag.rol(cast(RotateStrictU32) 0x12345678'u32, cast(RotateStrictU8) 8)
-    const b = Swag.ror(cast(RotateStrictU32) 0x12345678'u32, cast(RotateStrictU8) 8)
+    const a = Swag.rol(cast(RotateStrictU32, 0x12345678'u32), cast(RotateStrictU8, 8))
+    const b = Swag.ror(cast(RotateStrictU32, 0x12345678'u32), cast(RotateStrictU8, 8))
 
     #assert(#typeof(a) == RotateStrictU32)
     #assert(#typeof(b) == RotateStrictU32)
 
-    Swag.assert(a == cast(RotateStrictU32) 0x34567812'u32)
-    Swag.assert(b == cast(RotateStrictU32) 0x78123456'u32)
+    Swag.assert(a == cast(RotateStrictU32, 0x34567812'u32))
+    Swag.assert(b == cast(RotateStrictU32, 0x78123456'u32))
 }
 
 #test
 {
-    let a = rolStrictU32(cast(RotateStrictU32) 0x80000001'u32, cast(RotateStrictU8) 1)
-    let b = rorStrictU32(cast(RotateStrictU32) 0x80000001'u32, cast(RotateStrictU8) 1)
+    let a = rolStrictU32(cast(RotateStrictU32, 0x80000001'u32), cast(RotateStrictU8, 1))
+    let b = rorStrictU32(cast(RotateStrictU32, 0x80000001'u32), cast(RotateStrictU8, 1))
 
     #assert(#typeof(a) == RotateStrictU32)
     #assert(#typeof(b) == RotateStrictU32)
 
-    Swag.assert(a == cast(RotateStrictU32) 0x00000003'u32)
-    Swag.assert(b == cast(RotateStrictU32) 0xC0000000'u32)
+    Swag.assert(a == cast(RotateStrictU32, 0x00000003'u32))
+    Swag.assert(b == cast(RotateStrictU32, 0xC0000000'u32))
 }

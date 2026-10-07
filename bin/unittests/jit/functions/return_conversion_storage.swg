@@ -13,10 +13,10 @@ impl Text
     mtd opSet(value: string)
     {
         .length = value.count
-        Swag.memcpy(cast([*] u8) &.bytes[0], value.buffer, value.count)
+        Swag.memcpy(cast([*] u8, &.bytes[0]), value.buffer, value.count)
     }
 
-    mtd const view()->string => Swag.makeString(cast(const [*] u8) &.bytes[0], .length)
+    mtd const view()->string => Swag.makeString(cast(const [*] u8, &.bytes[0]), .length)
 }
 
 #[Swag.NoInline]

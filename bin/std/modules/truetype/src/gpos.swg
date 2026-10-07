@@ -13,7 +13,7 @@ func valueRecordSize(valueFormat: u16)->u64
     while bits
     {
         size += 2
-        bits &= cast(u16) (bits - 1)
+        bits &= cast(u16, (bits - 1))
     }
 
     return size
@@ -43,14 +43,14 @@ func coverageIndex(table: const [..] u8, offset: u64, glyph: u16)->s32
     let count  = peekU16(table, offset + 2)
 
     var left  = 0'u32
-    var right = cast(u32) count
+    var right = cast(u32, count)
 
     if format == 1
     {
         while left < right
         {
             let mid   = left + (right - left) / 2
-            let value = peekU16(table, offset + 4 + cast(u64) mid * 2)
+            let value = peekU16(table, offset + 4 + cast(u64, mid) * 2)
             if glyph < value
             {
                 right = mid
@@ -63,7 +63,7 @@ func coverageIndex(table: const [..] u8, offset: u64, glyph: u16)->s32
                 continue
             }
 
-            return cast(s32) mid
+            return cast(s32, mid)
         }
 
         return -1
@@ -76,7 +76,7 @@ func coverageIndex(table: const [..] u8, offset: u64, glyph: u16)->s32
     while left < right
     {
         let mid        = left + (right - left) / 2
-        let base       = offset + 4 + cast(u64) mid * 6
+        let base       = offset + 4 + cast(u64, mid) * 6
         let startGlyph = peekU16(table, base + 0)
         let endGlyph   = peekU16(table, base + 2)
         if glyph < startGlyph
@@ -91,7 +91,7 @@ func coverageIndex(table: const [..] u8, offset: u64, glyph: u16)->s32
             continue
         }
 
-        return cast(s32) peekU16(table, base + 4) + cast(s32) (glyph - startGlyph)
+        return cast(s32, peekU16(table, base + 4)) + cast(s32, (glyph - startGlyph))
     }
 
     return -1
@@ -106,9 +106,9 @@ func glyphClass(table: const [..] u8, offset: u64, glyph: u16)->u16
     {
         let startGlyph = peekU16(table, offset + 2)
         let count      = peekU16(table, offset + 4)
-        if glyph < startGlyph or cast(u32) glyph - startGlyph >= count do
+        if glyph < startGlyph or cast(u32, glyph) - startGlyph >= count do
             return 0
-        return peekU16(table, offset + 6 + cast(u64) (glyph - startGlyph) * 2)
+        return peekU16(table, offset + 6 + cast(u64, (glyph - startGlyph)) * 2)
     }
 
     if format != 2 do
@@ -116,12 +116,12 @@ func glyphClass(table: const [..] u8, offset: u64, glyph: u16)->u16
 
     let rangeCount = peekU16(table, offset + 2)
     var left       = 0'u32
-    var right      = cast(u32) rangeCount
+    var right      = cast(u32, rangeCount)
 
     while left < right
     {
         let mid        = left + (right - left) / 2
-        let base       = offset + 4 + cast(u64) mid * 6
+        let base       = offset + 4 + cast(u64, mid) * 6
         let startGlyph = peekU16(table, base + 0)
         let endGlyph   = peekU16(table, base + 2)
         if glyph < startGlyph
@@ -153,15 +153,15 @@ func collectKernLookups(table: const [..] u8, featureListOffset: u64)->Array'u16
     let featureCount = peekU16(table, featureListOffset)
     for index in featureCount
     {
-        let record = featureListOffset + 2 + cast(u64) index * 6
+        let record = featureListOffset + 2 + cast(u64, index) * 6
         if peekU32(table, record) != TAG_KERN do
             continue
 
-        let feature     = featureListOffset + cast(u64) peekU16(table, record + 4)
+        let feature     = featureListOffset + cast(u64, peekU16(table, record + 4))
         let lookupCount = peekU16(table, feature + 2)
         for idx in lookupCount
         {
-            let lookupIndex = peekU16(table, feature + 4 + cast(u64) idx * 2)
+            let lookupIndex = peekU16(table, feature + 4 + cast(u64, idx) * 2)
             if not result.contains(lookupIndex) do
                 result.add(lookupIndex)
         }
@@ -186,8 +186,8 @@ func parseGpos(faceData: *FaceImpl) fail
     if table.count < 10 do
         return
 
-    let featureListOffset = cast(u64) peekU16(table, 6)
-    let lookupListOffset  = cast(u64) peekU16(table, 8)
+    let featureListOffset = cast(u64, peekU16(table, 6))
+    let lookupListOffset  = cast(u64, peekU16(table, 8))
     let lookupCount       = peekU16(table, lookupListOffset)
     let kernLookups       = try collectKernLookups(table, featureListOffset)
 
@@ -196,13 +196,13 @@ func parseGpos(faceData: *FaceImpl) fail
         if it >= lookupCount do
             continue
 
-        let lookup        = lookupListOffset + cast(u64) peekU16(table, lookupListOffset + 2 + cast(u64) it * 2)
+        let lookup        = lookupListOffset + cast(u64, peekU16(table, lookupListOffset + 2 + cast(u64, it) * 2))
         let lookupType    = peekU16(table, lookup)
         let subTableCount = peekU16(table, lookup + 4)
 
         for index in subTableCount
         {
-            var subTable = lookup + cast(u64) peekU16(table, lookup + 6 + cast(u64) index * 2)
+            var subTable = lookup + cast(u64, peekU16(table, lookup + 6 + cast(u64, index) * 2))
             var kind     = lookupType
 
             // An extension subtable names the real type and a 32-bit offset to it,
@@ -210,11 +210,11 @@ func parseGpos(faceData: *FaceImpl) fail
             if kind == GPOS_LOOKUP_EXTENSION
             {
                 kind     = peekU16(table, subTable + 2)
-                subTable += cast(u64) peekU32(table, subTable + 4)
+                subTable += cast(u64, peekU32(table, subTable + 4))
             }
 
             if kind == GPOS_LOOKUP_PAIR do
-                faceData.gposPairSubtables.add(cast(u32) subTable)
+                faceData.gposPairSubtables.add(cast(u32, subTable))
         }
     }
 
@@ -227,12 +227,12 @@ func lookupPairSet(table: const [..] u8, pairSet: u64, rightGlyph: u16, recordSi
 {
     let pairCount = peekU16(table, pairSet)
     var left      = 0'u32
-    var right     = cast(u32) pairCount
+    var right     = cast(u32, pairCount)
 
     while left < right
     {
         let mid    = left + (right - left) / 2
-        let record = pairSet + 2 + cast(u64) mid * recordSize
+        let record = pairSet + 2 + cast(u64, mid) * recordSize
         let second = peekU16(table, record)
         if rightGlyph < second
         {
@@ -265,9 +265,9 @@ func lookupGposKerning(faceData: const *FaceImpl, leftGlyph, rightGlyph: u16)->s
 
     for it in faceData.gposPairSubtables
     {
-        let subTable = cast(u64) it
+        let subTable = cast(u64, it)
         let format   = peekU16(table, subTable + 0)
-        let coverage = coverageIndex(table, subTable + cast(u64) peekU16(table, subTable + 2), leftGlyph)
+        let coverage = coverageIndex(table, subTable + cast(u64, peekU16(table, subTable + 2)), leftGlyph)
         if coverage < 0 do
             continue
 
@@ -282,27 +282,27 @@ func lookupGposKerning(faceData: const *FaceImpl, leftGlyph, rightGlyph: u16)->s
         {
             // One explicit pair set per covered first glyph, indexed by coverage. A
             // coverage table longer than that array would otherwise read past its end.
-            if cast(u32) coverage >= peekU16(table, subTable + 8) do
+            if cast(u32, coverage) >= peekU16(table, subTable + 8) do
                 continue
 
-            let pairSet    = subTable + cast(u64) peekU16(table, subTable + 10 + cast(u64) coverage * 2)
+            let pairSet    = subTable + cast(u64, peekU16(table, subTable + 10 + cast(u64, coverage) * 2))
             let recordSize = 2 + valueRecordSize(valueFormat1) + valueRecordSize(valueFormat2)
-            value = lookupPairSet(table, pairSet, rightGlyph, recordSize, cast(u64) advanceOff)
+            value = lookupPairSet(table, pairSet, rightGlyph, recordSize, cast(u64, advanceOff))
         }
         elif format == 2
         {
             // A class matrix: each side of the pair reduces to one class, and the
             // two classes index a dense row-major array of value records.
-            let class1      = glyphClass(table, subTable + cast(u64) peekU16(table, subTable + 8), leftGlyph)
-            let class2      = glyphClass(table, subTable + cast(u64) peekU16(table, subTable + 10), rightGlyph)
+            let class1      = glyphClass(table, subTable + cast(u64, peekU16(table, subTable + 8)), leftGlyph)
+            let class2      = glyphClass(table, subTable + cast(u64, peekU16(table, subTable + 10)), rightGlyph)
             let class1Count = peekU16(table, subTable + 12)
             let class2Count = peekU16(table, subTable + 14)
             if class1 >= class1Count or class2 >= class2Count do
                 continue
 
             let recordSize = valueRecordSize(valueFormat1) + valueRecordSize(valueFormat2)
-            let record     = subTable + 16 + (cast(u64) class1 * class2Count + class2) * recordSize
-            value = peekS16(table, record + cast(u64) advanceOff)
+            let record     = subTable + 16 + (cast(u64, class1) * class2Count + class2) * recordSize
+            value = peekS16(table, record + cast(u64, advanceOff))
         }
 
         if value != 0 do

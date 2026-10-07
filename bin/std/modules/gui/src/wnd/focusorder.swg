@@ -86,16 +86,16 @@ impl FocusOrder
     // at the last one going backward, so a surface whose focus was cleared still answers Tab.
     mtd const next(from: *Wnd?, forward = true)->*Wnd?
     {
-        let count = cast(s64) .stops.count
+        let count = cast(s64, .stops.count)
         if not count do
             return null
 
         let index = .indexOf(from)
         if index < 0 do
-            return forward ? .stops[0] : .stops[cast(u64) (count - 1)]
+            return forward ? .stops[0] : .stops[cast(u64, (count - 1))]
 
         let step = forward ? 1's64 : count - 1
-        return .stops[cast(u64) ((index + step) % count)]
+        return .stops[cast(u64, ((index + step) % count))]
     }
 
     // Returns the stop before or after `from` inside its own group, wrapping around that group.
@@ -115,22 +115,22 @@ impl FocusOrder
         if index < 0 do
             return .next(from, forward)
 
-        let parent  = .stops[cast(u64) index].parent
+        let parent  = .stops[cast(u64, index)].parent
         var group: Array'(*Wnd)
         var current = 0's64
         for stop in .stops where stop.parent == parent
         {
-            if stop == .stops[cast(u64) index] do
-                current = cast(s64) group.count
+            if stop == .stops[cast(u64, index)] do
+                current = cast(s64, group.count)
             group.add(stop)
         }
 
-        let count = cast(s64) group.count
+        let count = cast(s64, group.count)
         if count < 2 do
             return .next(from, forward)
 
         let step = forward ? 1's64 : count - 1
-        return group[cast(u64) ((current + step) % count)]
+        return group[cast(u64, ((current + step) % count))]
     }
 
     // Returns the first stop, or `null` when the tree holds none.
@@ -146,7 +146,7 @@ private impl FocusOrder
     mtd const rank(wnd: *Wnd?)->s64
     {
         for stop, index in .stops where stop == wnd do
-            return cast(s64) index
+            return cast(s64, index)
         return -1
     }
 
@@ -252,7 +252,7 @@ private impl FocusOrder
     // checked, and the arrow keys move the selection inside it.
     func groupRepresentative(wnd: *Wnd)->*Wnd?
     {
-        let radio = cast #try (*RadioButton) wnd
+        let radio = (catch cast(*RadioButton?, wnd))
         if radio == null do
             return null
         if radio.groupId.count == 0 or not radio.parent do
@@ -261,7 +261,7 @@ private impl FocusOrder
         var first: *Wnd?
         for sibling in radio.parent.children
         {
-            let other = cast #try (*RadioButton) sibling
+            let other = (catch cast(*RadioButton?, sibling))
             if other == null do
                 continue
             if other.groupId != radio.groupId do

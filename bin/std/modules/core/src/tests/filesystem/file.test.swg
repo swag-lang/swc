@@ -16,7 +16,7 @@ using Swag
     discard expect File.writeAllText(fileName, "other replacement\n")
     let next = expect stream.readUtf8Chunk(11)
     Swag.assert(next == "replacement")
-    expect stream.seek(.End, cast #bit (u64) -1's64)
+    expect stream.seek(.End, cast #bit (u64, -1's64))
     let ending = expect stream.readUtf8Chunk(4)
     Swag.assert(ending == "\n")
 

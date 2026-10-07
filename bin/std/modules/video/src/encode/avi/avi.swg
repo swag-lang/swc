@@ -44,7 +44,7 @@ private struct IndexEntry
 private func(T) patchValue(sink: *ByteSink, offset: u64, value: T) fail
 {
     var stored = value
-    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
+    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8, &stored), #sizeof(T)))
 }
 
 // Writes AVI files one frame at a time, compressing each of them as a JPEG image.
@@ -84,7 +84,7 @@ impl IEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .options = (cast(const *EncodeOptions) options.buffer!)[]
+            .options = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         try sink.writeNative(RiffId)
@@ -92,25 +92,25 @@ impl IEncoder for Encoder
         try sink.writeNative(AviId)
 
         try sink.writeNative(ListId)
-        try sink.writeNative(cast(u32) HeaderListSize)
+        try sink.writeNative(cast(u32, HeaderListSize))
         try sink.writeNative(HeaderListId)
 
         try sink.writeNative(MainHeaderId)
-        try sink.writeNative(cast(u32) #sizeof(MainHeader))
+        try sink.writeNative(cast(u32, #sizeof(MainHeader)))
         .mainHeader = sink.position()
         try sink.writeNative(.createMainHeader())
 
         try sink.writeNative(ListId)
-        try sink.writeNative(cast(u32) StreamListSize)
+        try sink.writeNative(cast(u32, StreamListSize))
         try sink.writeNative(StreamListId)
 
         try sink.writeNative(StreamHeaderId)
-        try sink.writeNative(cast(u32) #sizeof(StreamHeader))
+        try sink.writeNative(cast(u32, #sizeof(StreamHeader)))
         .streamHeader = sink.position()
         try sink.writeNative(.createStreamHeader())
 
         try sink.writeNative(StreamFormatId)
-        try sink.writeNative(cast(u32) #sizeof(Bmp.Header))
+        try sink.writeNative(cast(u32, #sizeof(Bmp.Header)))
         try sink.writeNative(.createFormatHeader())
 
         try sink.writeNative(ListId)
@@ -132,9 +132,9 @@ impl IEncoder for Encoder
         let size    = payload.count
         try .reserve(sink, size)
 
-        .index.add({cast(u32) (sink.position() - .frameList), cast(u32) size})
+        .index.add({cast(u32, (sink.position() - .frameList)), cast(u32, size)})
         try sink.writeNative(FrameChunkId)
-        try sink.writeNative(cast(u32) size)
+        try sink.writeNative(cast(u32, size))
         try sink.write(payload)
 
         // RIFF pads an odd payload so the next chunk starts on an even offset.
@@ -147,7 +147,7 @@ impl IEncoder for Encoder
     {
         let frameEnd = sink.position()
         try sink.writeNative(IndexId)
-        try sink.writeNative(cast(u32) (.index.count * IndexEntrySize))
+        try sink.writeNative(cast(u32, (.index.count * IndexEntrySize)))
         for entry in .index
         {
             try sink.writeNative(FrameChunkId)
@@ -180,11 +180,11 @@ private impl Encoder
     mtd const createMainHeader()->MainHeader
     {
         var result: retval
-        result.microSecPerFrame = cast(u32) (1_000_000'u64 * cast(u64) .info.frameRate.denominator() / cast(u64) .info.frameRate.numerator())
+        result.microSecPerFrame = cast(u32, (1_000_000'u64 * cast(u64, .info.frameRate.denominator()) / cast(u64, .info.frameRate.numerator())))
         result.flags   = MainHasIndex
         result.streams = 1
-        result.width   = cast(u32) .info.width
-        result.height  = cast(u32) .info.height
+        result.width   = cast(u32, .info.width)
+        result.height  = cast(u32, .info.height)
         return result
     }
 
@@ -197,8 +197,8 @@ private impl Encoder
         result.scale       = .info.frameRate.denominator()
         result.rate        = .info.frameRate.numerator()
         result.quality     = UnknownQuality
-        result.frameRight  = cast(s16) .info.width
-        result.frameBottom = cast(s16) .info.height
+        result.frameRight  = cast(s16, .info.width)
+        result.frameBottom = cast(s16, .info.height)
         return result
     }
 
@@ -206,42 +206,42 @@ private impl Encoder
     mtd const createFormatHeader()->Bmp.Header
     {
         var result: retval
-        result.biSize        = cast(u32) #sizeof(Bmp.Header)
+        result.biSize        = cast(u32, #sizeof(Bmp.Header))
         result.biWidth       = .info.width
         result.biHeight      = .info.height
         result.biPlanes      = 1
         result.biBitCount    = 24
         result.biCompression = MotionJpegIds[0]
-        result.biSizeImage   = cast(u32) (cast(u64) .info.width * cast(u64) .info.height * 3)
+        result.biSizeImage   = cast(u32, (cast(u64, .info.width) * cast(u64, .info.height) * 3))
         return result
     }
 
     // Rewrites the header fields only the finished stream knows.
     mtd const patchTotals(sink: *ByteSink, frameEnd: u64) fail
     {
-        let frames = cast(u32) .index.count
+        let frames = cast(u32, .index.count)
 
         var main = .createMainHeader()
         main.totalFrames         = frames
-        main.suggestedBufferSize = cast(u32) .largestFrame
+        main.suggestedBufferSize = cast(u32, .largestFrame)
         main.maxBytesPerSec      = .bytesPerSecond(frameEnd)
         try patchValue(sink, .mainHeader, main)
 
         var stream = .createStreamHeader()
         stream.length = frames
-        stream.suggestedBufferSize = cast(u32) .largestFrame
+        stream.suggestedBufferSize = cast(u32, .largestFrame)
         try patchValue(sink, .streamHeader, stream)
 
-        try patchValue(sink, RiffSizeOffset, cast(u32) (sink.position() - ChunkHeaderSize))
-        try patchValue(sink, .frameListSize, cast(u32) (frameEnd - .frameList))
+        try patchValue(sink, RiffSizeOffset, cast(u32, (sink.position() - ChunkHeaderSize)))
+        try patchValue(sink, .frameListSize, cast(u32, (frameEnd - .frameList)))
     }
 
     // Returns the average data rate of the finished stream, in bytes per second.
     mtd const bytesPerSecond(frameEnd: u64)->u32
     {
-        let seconds = cast(f64) .index.count * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
+        let seconds = cast(f64, .index.count) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator())
         if seconds <= 0 do
             return 0
-        return cast(u32) Math.min(cast(f64) (frameEnd - .frameList) / seconds, cast(f64) Swag.U32.Max)
+        return cast(u32, Math.min(cast(f64, (frameEnd - .frameList)) / seconds, cast(f64, Swag.U32.Max)))
     }
 }

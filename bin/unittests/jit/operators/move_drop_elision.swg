@@ -26,7 +26,7 @@ impl Tracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 
     mtd opPostMove()

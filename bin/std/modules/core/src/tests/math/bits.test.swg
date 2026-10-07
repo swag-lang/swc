@@ -5,12 +5,12 @@ using Swag
 
 func expectedLeadingZeros8(value: u8)->u8
 {
-    let input = cast(u16) value
+    let input = cast(u16, value)
     var mask  = 0x80'u16
     for i in 8
     {
         if input & mask do
-            return cast(u8) i
+            return cast(u8, i)
         mask >>= 1
     }
 
@@ -19,12 +19,12 @@ func expectedLeadingZeros8(value: u8)->u8
 
 func expectedTrailingZeros8(value: u8)->u8
 {
-    let input = cast(u16) value
+    let input = cast(u16, value)
     var mask  = 1'u16
     for i in 8
     {
         if input & mask do
-            return cast(u8) i
+            return cast(u8, i)
         mask <<= 1
     }
 
@@ -33,7 +33,7 @@ func expectedTrailingZeros8(value: u8)->u8
 
 func expectedCountOnes8(value: u8)->u8
 {
-    let input = cast(u16) value
+    let input = cast(u16, value)
     var count = 0'u8
     var mask  = 1'u16
     for 8
@@ -49,7 +49,7 @@ func expectedCountOnes8(value: u8)->u8
 func expectedReverse8(value: u8)->u8
 {
     var result = 0'u16
-    var source = cast(u16) value
+    var source = cast(u16, value)
     for 8
     {
         result <<= 1
@@ -57,7 +57,7 @@ func expectedReverse8(value: u8)->u8
         source >>= 1
     }
 
-    return cast(u8) result
+    return cast(u8, result)
 }
 
 func expectedRol8(value, shift: u8)->u8
@@ -65,8 +65,8 @@ func expectedRol8(value, shift: u8)->u8
     let amount = shift & 7
     if amount == 0 do
         return value
-    let result = ((cast(u16) value << amount) | (cast(u16) value >> (8 - amount))) & 0xFF
-    return cast(u8) result
+    let result = ((cast(u16, value) << amount) | (cast(u16, value) >> (8 - amount))) & 0xFF
+    return cast(u8, result)
 }
 
 func expectedRor8(value, shift: u8)->u8
@@ -74,18 +74,18 @@ func expectedRor8(value, shift: u8)->u8
     let amount = shift & 7
     if amount == 0 do
         return value
-    let result = ((cast(u16) value >> amount) | (cast(u16) value << (8 - amount))) & 0xFF
-    return cast(u8) result
+    let result = ((cast(u16, value) >> amount) | (cast(u16, value) << (8 - amount))) & 0xFF
+    return cast(u8, result)
 }
 
 func expectedLeadingZeros16(value: u16)->u16
 {
-    let input = cast(u32) value
+    let input = cast(u32, value)
     var mask  = 0x8000'u32
     for i in 16
     {
         if input & mask do
-            return cast(u16) i
+            return cast(u16, i)
         mask >>= 1
     }
 
@@ -94,12 +94,12 @@ func expectedLeadingZeros16(value: u16)->u16
 
 func expectedTrailingZeros16(value: u16)->u16
 {
-    let input = cast(u32) value
+    let input = cast(u32, value)
     var mask  = 1'u32
     for i in 16
     {
         if input & mask do
-            return cast(u16) i
+            return cast(u16, i)
         mask <<= 1
     }
 
@@ -108,7 +108,7 @@ func expectedTrailingZeros16(value: u16)->u16
 
 func expectedCountOnes16(value: u16)->u16
 {
-    let input = cast(u32) value
+    let input = cast(u32, value)
     var count = 0'u16
     var mask  = 1'u32
     for 16
@@ -124,7 +124,7 @@ func expectedCountOnes16(value: u16)->u16
 func expectedReverse16(value: u16)->u16
 {
     var result = 0'u32
-    var source = cast(u32) value
+    var source = cast(u32, value)
     for 16
     {
         result <<= 1
@@ -132,7 +132,7 @@ func expectedReverse16(value: u16)->u16
         source >>= 1
     }
 
-    return cast(u16) result
+    return cast(u16, result)
 }
 
 func expectedRol16(value: u16, shift: u8)->u16
@@ -140,8 +140,8 @@ func expectedRol16(value: u16, shift: u8)->u16
     let amount = shift & 15
     if amount == 0 do
         return value
-    let result = ((cast(u32) value << amount) | (cast(u32) value >> (16 - amount))) & 0xFFFF
-    return cast(u16) result
+    let result = ((cast(u32, value) << amount) | (cast(u32, value) >> (16 - amount))) & 0xFFFF
+    return cast(u16, result)
 }
 
 func expectedRor16(value: u16, shift: u8)->u16
@@ -149,21 +149,21 @@ func expectedRor16(value: u16, shift: u8)->u16
     let amount = shift & 15
     if amount == 0 do
         return value
-    let result = ((cast(u32) value >> amount) | (cast(u32) value << (16 - amount))) & 0xFFFF
-    return cast(u16) result
+    let result = ((cast(u32, value) >> amount) | (cast(u32, value) << (16 - amount))) & 0xFFFF
+    return cast(u16, result)
 }
 
 func expectedByteswap16(value: u16)->u16
 {
-    let input = cast(u32) value
-    return cast(u16) ((input >> 8) | ((input << 8) & 0xFFFF))
+    let input = cast(u32, value)
+    return cast(u16, ((input >> 8) | ((input << 8) & 0xFFFF)))
 }
 
 #test
 {
     for value in 256
     {
-        let input = cast(u8) value
+        let input = cast(u8, value)
         Swag.assert(Math.leadingZeros(input) == expectedLeadingZeros8(input))
         Swag.assert(Math.trailingZeros(input) == expectedTrailingZeros8(input))
         Swag.assert(Math.countOnes(input) == expectedCountOnes8(input))
@@ -171,7 +171,7 @@ func expectedByteswap16(value: u16)->u16
 
         for shift in 16
         {
-            let amount = cast(u8) shift
+            let amount = cast(u8, shift)
             Swag.assert(Math.rol(input, amount) == expectedRol8(input, amount))
             Swag.assert(Math.ror(input, amount) == expectedRor8(input, amount))
         }
@@ -182,7 +182,7 @@ func expectedByteswap16(value: u16)->u16
 {
     for value in 65536
     {
-        let input = cast(u16) value
+        let input = cast(u16, value)
         Swag.assert(Math.leadingZeros(input) == expectedLeadingZeros16(input))
         Swag.assert(Math.trailingZeros(input) == expectedTrailingZeros16(input))
         Swag.assert(Math.countOnes(input) == expectedCountOnes16(input))
@@ -191,7 +191,7 @@ func expectedByteswap16(value: u16)->u16
 
         for shift in 32
         {
-            let amount = cast(u8) shift
+            let amount = cast(u8, shift)
             Swag.assert(Math.rol(input, amount) == expectedRol16(input, amount))
             Swag.assert(Math.ror(input, amount) == expectedRor16(input, amount))
         }
@@ -345,13 +345,13 @@ func expectedByteswap16(value: u16)->u16
     Swag.assert(Math.byteswap(800's16) == 0x2003's16)
     Swag.assert(Math.byteswap(0x2003's16) == 800's16)
     Swag.assert(Math.byteswap(-1's16) == -1's16)
-    Swag.assert(Math.byteswap(0x00FF's16) == cast #bit (s16) 0xFF00'u16)
+    Swag.assert(Math.byteswap(0x00FF's16) == cast #bit (s16, 0xFF00'u16))
 
     Swag.assert(Math.byteswap(0x12345678's32) == 0x78563412's32)
     Swag.assert(Math.byteswap(-1's32) == -1's32)
-    Swag.assert(Math.byteswap(cast #bit (s32) 0xFFFFFF00'u32) == 0x00FFFFFF's32)
+    Swag.assert(Math.byteswap(cast #bit (s32, 0xFFFFFF00'u32)) == 0x00FFFFFF's32)
 
-    Swag.assert(Math.byteswap(0x01234567_89ABCDEF's64) == cast #bit (s64) 0xEFCDAB89_67452301'u64)
+    Swag.assert(Math.byteswap(0x01234567_89ABCDEF's64) == cast #bit (s64, 0xEFCDAB89_67452301'u64))
     Swag.assert(Math.byteswap(-1's64) == -1's64)
 
     // Swapping twice is the identity on every width, including the negative values a

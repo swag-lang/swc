@@ -800,7 +800,7 @@ image.<span class="SFct">resize</span>(<span class="SNum">256</span>, <span clas
 <span class="SLgc">for</span> index <span class="SLgc">in</span> reader.info.frames.count
 {
     <span class="SKwd">let</span> description = &amp;reader.info.frames[index]
-    <span class="SKwd">var</span> image = <span class="SKwd">try</span> reader.<span class="SFct">read</span>(<span class="SKwd">cast</span>(<span class="STpe">u32</span>) index)
+    <span class="SKwd">var</span> image = <span class="SKwd">try</span> reader.<span class="SFct">read</span>(<span class="SKwd">cast</span>(<span class="STpe">u32</span>, index))
     <span class="SCmt">// Animation clients display this canvas for description.durationSeconds.</span>
 }</span></div>
 <table class="table-markdown">
@@ -966,7 +966,7 @@ renderer.<span class="SFct">end</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> ogl: <span class="SCst"><a href="#Pixel_RenderOgl">RenderOgl</a></span>
 <span class="SKwd">let</span> renderer: <span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span> = &amp;ogl
 <span class="SKwd">var</span> painter = <span class="SCst"><a href="#Pixel_Painter">Painter</a></span>.<span class="SFct">create</span>(renderer)
-<span class="SKwd">var</span> context = <span class="SKwd">try</span> renderer.<span class="SFct">createContext</span>(<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">void</span>?) window.nativeHandle, width, height)
+<span class="SKwd">var</span> context = <span class="SKwd">try</span> renderer.<span class="SFct">createContext</span>(<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">void</span>?, window.nativeHandle), width, height)
 <span class="SLgc">defer</span> renderer.<span class="SFct">deleteContext</span>(&amp;context)
 
 renderer.<span class="SFct">setCurrentContext</span>(context)
@@ -4175,7 +4175,7 @@ canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst">
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> reader = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span>.<span class="SFct">load</span>(<span class="SStr">"animation.webp"</span>)
 <span class="SLgc">for</span> index <span class="SLgc">in</span> reader.info.frames.count
 {
-    <span class="SKwd">var</span> image = <span class="SKwd">try</span> reader.<span class="SFct">read</span>(<span class="SKwd">cast</span>(<span class="STpe">u32</span>) index)
+    <span class="SKwd">var</span> image = <span class="SKwd">try</span> reader.<span class="SFct">read</span>(<span class="SKwd">cast</span>(<span class="STpe">u32</span>, index))
 }</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span></span></div>
 </section>
@@ -7547,27 +7547,27 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidRenderTargetHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidRenderTargetHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidRenderTargetHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L55">src</a></div>
 <p>Sentinel that identifies no framebuffer.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidRenderTargetHandle">InvalidRenderTargetHandle</a></span>: <span class="SCst"><a href="#Pixel_RenderTargetHandle">RenderTargetHandle</a></span> = <span class="SKwd">cast</span>() <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidRenderTargetHandle">InvalidRenderTargetHandle</a></span>: <span class="SCst"><a href="#Pixel_RenderTargetHandle">RenderTargetHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidRenderTargetSurfaceHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidRenderTargetSurfaceHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidRenderTargetSurfaceHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L59">src</a></div>
 <p>Sentinel that identifies no surface.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidRenderTargetSurfaceHandle">InvalidRenderTargetSurfaceHandle</a></span>: <span class="SCst"><a href="#Pixel_RenderTargetSurfaceHandle">RenderTargetSurfaceHandle</a></span> = <span class="SKwd">cast</span>() <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidRenderTargetSurfaceHandle">InvalidRenderTargetSurfaceHandle</a></span>: <span class="SCst"><a href="#Pixel_RenderTargetSurfaceHandle">RenderTargetSurfaceHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidShaderHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidShaderHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidShaderHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/shader.swg#L7">src</a></div>
 <p>Sentinel that identifies no shader program.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidShaderHandle">InvalidShaderHandle</a></span>: <span class="SCst"><a href="#Pixel_ShaderHandle">ShaderHandle</a></span> = <span class="SKwd">cast</span>() <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidShaderHandle">InvalidShaderHandle</a></span>: <span class="SCst"><a href="#Pixel_ShaderHandle">ShaderHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidShaderParamHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidShaderParamHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidShaderParamHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/shader.swg#L11">src</a></div>
 <p>Sentinel for an unavailable uniform.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidShaderParamHandle">InvalidShaderParamHandle</a></span>: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span> = <span class="SKwd">cast</span>() -<span class="SNum">1</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidShaderParamHandle">InvalidShaderParamHandle</a></span>: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span> = <span class="SKwd">cast</span>(-<span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidTextureHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidTextureHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidTextureHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L51">src</a></div>
 <p>Sentinel that identifies no texture.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidTextureHandle">InvalidTextureHandle</a></span>: <span class="SCst"><a href="#Pixel_TextureHandle">TextureHandle</a></span> = <span class="SKwd">cast</span>() <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_InvalidTextureHandle">InvalidTextureHandle</a></span>: <span class="SCst"><a href="#Pixel_TextureHandle">TextureHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_MsdfRange" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.MsdfRange</span> <a class="api-item-permalink" href="#Pixel_MsdfRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L47">src</a></div>

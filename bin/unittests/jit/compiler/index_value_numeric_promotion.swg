@@ -36,7 +36,7 @@ func boxShift0(values: *ByteBox, shift: s64)->s64
     Swag.assert(values[0] == 0'u8)
     Swag.assert(values[1] == 1'u8)
     Swag.assert(arrayShift0(&values, shift) == 482's64)
-    Swag.assert(cast(u8) ((values[0] + shift) % 26 + 'a') == 'o')
+    Swag.assert(cast(u8, ((values[0] + shift) % 26 + 'a')) == 'o')
 }
 
 #test
@@ -47,5 +47,5 @@ func boxShift0(values: *ByteBox, shift: s64)->s64
     Swag.assert(values[0] == 0'u8)
     Swag.assert(values[1] == 1'u8)
     Swag.assert(boxShift0(&values, shift) == 482's64)
-    Swag.assert(cast(u8) ((values[0] + shift) % 26 + 'a') == 'o')
+    Swag.assert(cast(u8, ((values[0] + shift) % 26 + 'a')) == 'o')
 }

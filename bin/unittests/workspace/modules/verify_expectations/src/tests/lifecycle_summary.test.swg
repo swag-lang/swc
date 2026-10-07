@@ -10,7 +10,7 @@ using Core
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let buffer = cast([*] u8) Memory.alloc(16)
+    let buffer = cast([*] u8, Memory.alloc(16))
     buffer[0] = 1
     Memory.free(buffer, 16)         // swc-expected-note {{sanity_note_pointer_released_here}}
     Swag.assert(buffer[0] == 1)     // swc-expected-error {{sanity_err_use_after_free}}
@@ -19,7 +19,7 @@ using Core
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let buffer = cast([*] u8) Memory.alloc(16)
+    let buffer = cast([*] u8, Memory.alloc(16))
     Memory.free(buffer, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
     Memory.free(buffer, 16)     // swc-expected-error {{sanity_err_double_free}}
 }
@@ -28,7 +28,7 @@ using Core
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let buffer = cast([*] u8) Memory.alloc(16)
+    let buffer = cast([*] u8, Memory.alloc(16))
     let same   = buffer
     Memory.free(buffer, 16)       // swc-expected-note {{sanity_note_pointer_released_here}}
     Swag.assert(same[0] == 0)     // swc-expected-error {{sanity_err_use_after_free}}
@@ -38,7 +38,7 @@ using Core
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let buffer = cast([*] u8) Memory.alloc(16)
+    let buffer = cast([*] u8, Memory.alloc(16))
     buffer[0] = 7
     let value = buffer[0]
     Memory.free(buffer, 16)
@@ -60,7 +60,7 @@ func localFree(ptr: *void, size: u64)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let buffer = cast([*] u8) Memory.alloc(16)
+    let buffer = cast([*] u8, Memory.alloc(16))
     buffer[0] = 3
     localFree(buffer, 16)           // swc-expected-note {{sanity_note_pointer_released_here}}
     Swag.assert(buffer[0] == 3)     // swc-expected-error {{sanity_err_use_after_free}}

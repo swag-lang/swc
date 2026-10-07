@@ -97,7 +97,7 @@ impl Vp8Partition
                 return false
             }
 
-            .bits     |= cast(u32) .data![.offset] << (8 - .bitCount)
+            .bits     |= cast(u32, .data![.offset]) << (8 - .bitCount)
             .offset   += 1
             .bitCount += 8
         }
@@ -141,7 +141,7 @@ impl Vp8Partition
 
     mtd readInt(probability, count: u8)->s32
     {
-        let value = cast(s32) .readUint(probability, count)
+        let value = cast(s32, .readUint(probability, count))
         return .readBit(probability) ? -value : value
     }
 
@@ -245,7 +245,7 @@ struct Vp8Decoder
 
 func vp8Clip(value, minimum, maximum: s32)->s32 => Math.min(Math.max(value, minimum), maximum)
 
-func vp8TokenIndex(plane, band: s32, context, probability: u8)->u64 => cast(u64) (((plane * VP8_TOKEN_BANDS + band) * VP8_TOKEN_CONTEXTS + context) * VP8_TOKEN_PROBS + probability)
+func vp8TokenIndex(plane, band: s32, context, probability: u8)->u64 => cast(u64, (((plane * VP8_TOKEN_BANDS + band) * VP8_TOKEN_CONTEXTS + context) * VP8_TOKEN_PROBS + probability))
 
 func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 {
@@ -253,21 +253,21 @@ func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
         fail InvalidFormatError{"WebP VP8 data ends before the frame header"}
 
     decoder.source = source.buffer
-    decoder.size   = cast(u32) source.count
+    decoder.size   = cast(u32, source.count)
     let data = decoder.source
     if data[0] & 1 do
         fail UnsupportedFormatError{"WebP still image contains a non-key VP8 frame"}
 
     decoder.header.version       = (data[0] >> 1) & 7
-    decoder.header.firstPartSize = (cast(u32) data[0] >> 5) | (cast(u32) data[1] << 3) | (cast(u32) data[2] << 11)
+    decoder.header.firstPartSize = (cast(u32, data[0]) >> 5) | (cast(u32, data[1]) << 3) | (cast(u32, data[2]) << 11)
     if data[3] != 0x9D or data[4] != 0x01 or data[5] != 0x2A do
         fail InvalidFormatError{"WebP VP8 frame does not start with the key-frame code"}
 
-    decoder.header.width  = data[6] | (cast(s32) (data[7] & 0x3F) << 8)
-    decoder.header.height = data[8] | (cast(s32) (data[9] & 0x3F) << 8)
+    decoder.header.width  = data[6] | (cast(s32, (data[7] & 0x3F)) << 8)
+    decoder.header.height = data[8] | (cast(s32, (data[9] & 0x3F)) << 8)
     if decoder.header.width == 0 or decoder.header.height == 0 do
         fail InvalidFormatError{"WebP VP8 frame has an empty image"}
-    if cast(u64) decoder.header.width * decoder.header.height > 0x1FFFFFFF do
+    if cast(u64, decoder.header.width) * decoder.header.height > 0x1FFFFFFF do
         fail UnsupportedFormatError{"WebP image needs more than 2 GiB of decoded pixel memory"}
     if decoder.header.firstPartSize > decoder.size - 10 do
         fail InvalidFormatError{"WebP data ends inside the first VP8 partition"}
@@ -295,9 +295,9 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
     {
         decoder.segmentHeader.relativeDelta = not part.readBit(VP8_UNIFORM_PROB)
         for i in VP8_SEGMENTS do
-            decoder.segmentHeader.quantizer[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 7)
+            decoder.segmentHeader.quantizer[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 7))
         for i in VP8_SEGMENTS do
-            decoder.segmentHeader.filterStrength[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
+            decoder.segmentHeader.filterStrength[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 6))
     }
 
     if not decoder.segmentHeader.updateMap do
@@ -305,7 +305,7 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
     for i in 3
     {
         decoder.segmentHeader.probability[i] = part.readBit(VP8_UNIFORM_PROB)
-                                               ? cast(u8) part.readUint(VP8_UNIFORM_PROB, 8)
+                                               ? cast(u8, part.readUint(VP8_UNIFORM_PROB, 8))
                                                : 0xFF
     }
 }
@@ -314,22 +314,22 @@ func vp8ParseFilterHeader(decoder: *Vp8Decoder)
 {
     let part = &decoder.firstPart
     decoder.filterHeader.simple    = part.readBit(VP8_UNIFORM_PROB)
-    decoder.filterHeader.level     = cast(s8) part.readUint(VP8_UNIFORM_PROB, 6)
-    decoder.filterHeader.sharpness = cast(u8) part.readUint(VP8_UNIFORM_PROB, 3)
+    decoder.filterHeader.level     = cast(s8, part.readUint(VP8_UNIFORM_PROB, 6))
+    decoder.filterHeader.sharpness = cast(u8, part.readUint(VP8_UNIFORM_PROB, 3))
     decoder.filterHeader.useDelta  = part.readBit(VP8_UNIFORM_PROB)
     if decoder.filterHeader.useDelta and part.readBit(VP8_UNIFORM_PROB)
     {
         for i in 4 do
-            decoder.filterHeader.referenceDelta[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
+            decoder.filterHeader.referenceDelta[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 6))
         for i in 4 do
-            decoder.filterHeader.modeDelta[i] = cast(s8) part.readOptionalInt(VP8_UNIFORM_PROB, 6)
+            decoder.filterHeader.modeDelta[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 6))
     }
 }
 
 func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
 {
     decoder.otherPartCount = 1 << decoder.firstPart.readUint(VP8_UNIFORM_PROB, 2)
-    let lengthBytes = cast(u32) (3 * (decoder.otherPartCount - 1))
+    let lengthBytes = cast(u32, (3 * (decoder.otherPartCount - 1)))
     if offset + lengthBytes > decoder.size do
         fail InvalidFormatError{"WebP data ends inside the VP8 partition table"}
 
@@ -360,7 +360,7 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
 func vp8ParseQuant(decoder: *Vp8Decoder)
 {
     let part   = &decoder.firstPart
-    let baseQ0 = cast(s32) part.readUint(VP8_UNIFORM_PROB, 7)
+    let baseQ0 = cast(s32, part.readUint(VP8_UNIFORM_PROB, 7))
     let dY1Dc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
     let dY2Dc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
     let dY2Ac  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
@@ -386,7 +386,7 @@ func vp8ParseQuant(decoder: *Vp8Decoder)
         decoder.quant[i].y1[0] = VP8_DEQUANT_DC[y1Dc]
         decoder.quant[i].y1[1] = VP8_DEQUANT_AC[y1Ac]
         decoder.quant[i].y2[0] = VP8_DEQUANT_DC[y2Dc] * 2
-        decoder.quant[i].y2[1] = Math.max(8'u16, cast(u16) (VP8_DEQUANT_AC[y2Ac] * 155 / 100))
+        decoder.quant[i].y2[1] = Math.max(8'u16, cast(u16, (VP8_DEQUANT_AC[y2Ac] * 155 / 100)))
         decoder.quant[i].uv[0] = VP8_DEQUANT_DC[uvDc]
         decoder.quant[i].uv[1] = VP8_DEQUANT_AC[uvAc]
     }
@@ -397,7 +397,7 @@ func vp8ParseTokenProbabilities(decoder: *Vp8Decoder)
     for i in VP8_TOKEN_PROB_COUNT
     {
         if decoder.firstPart.readBit(VP8_TOKEN_UPDATE_PROB[i]) do
-            decoder.tokenProb[i] = cast(u8) decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8)
+            decoder.tokenProb[i] = cast(u8, decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8))
     }
 }
 
@@ -417,7 +417,7 @@ func vp8ParseHeaders(decoder: *Vp8Decoder) fail
     vp8ParseTokenProbabilities(decoder)
     decoder.useSkipProb = decoder.firstPart.readBit(VP8_UNIFORM_PROB)
     if decoder.useSkipProb do
-        decoder.skipProb = cast(u8) decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8)
+        decoder.skipProb = cast(u8, decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8))
     if decoder.firstPart.unexpectedEnd do
         fail InvalidFormatError{"WebP data ends inside the VP8 control partition"}
 }
@@ -426,9 +426,9 @@ func vp8AllocatePlanes(decoder: *Vp8Decoder)
 {
     decoder.yStride = decoder.mbWidth * 16
     decoder.cStride = decoder.mbWidth * 8
-    decoder.y.resize(cast(u64) decoder.yStride * decoder.mbHeight * 16)
-    decoder.cb.resize(cast(u64) decoder.cStride * decoder.mbHeight * 8)
-    decoder.cr.resize(cast(u64) decoder.cStride * decoder.mbHeight * 8)
+    decoder.y.resize(cast(u64, decoder.yStride) * decoder.mbHeight * 16)
+    decoder.cb.resize(cast(u64, decoder.cStride) * decoder.mbHeight * 8)
+    decoder.cr.resize(cast(u64, decoder.cStride) * decoder.mbHeight * 8)
     decoder.upMb.resize(decoder.mbWidth)
-    decoder.perMbFilterParams.resize(cast(u64) decoder.mbWidth * decoder.mbHeight)
+    decoder.perMbFilterParams.resize(cast(u64, decoder.mbWidth) * decoder.mbHeight)
 }

@@ -221,7 +221,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setColorMaskFull()
     for mode, idx in modes
     {
-        let x = cast(f32) idx * 2.0
+        let x = cast(f32, idx) * 2.0
         painter.setBlendingMode(.Copy)
         painter.fillRect(x, 0, 2, 2, Dst)
         painter.setBlendingMode(mode)
@@ -232,7 +232,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image = renderCpu(22, 2, &painter)
     for value, idx in expected do
-        assertPixel(image, cast(s32) idx * 2, 0, value)
+        assertPixel(image, cast(s32, idx) * 2, 0, value)
 }
 
 // The non-separable modes transfer hue, saturation, or luminosity across the complete color,
@@ -253,7 +253,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setColorMaskFull()
     for mode, idx in modes
     {
-        let x = cast(f32) idx * 2.0
+        let x = cast(f32, idx) * 2.0
         painter.setBlendingMode(.Copy)
         painter.fillRect(x, 0, 2, 2, Dst)
         painter.setBlendingMode(mode)
@@ -264,7 +264,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image = renderCpu(8, 2, &painter)
     for value, idx in expected do
-        assertPixel(image, cast(s32) idx * 2, 0, value)
+        assertPixel(image, cast(s32, idx) * 2, 0, value)
 }
 
 // Nearest-neighbor texture sampling preserves the source quadrants.
@@ -306,11 +306,11 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     {
         for x in source.width
         {
-            let pixel = source.pixels.storage() + cast(u64) ((source.height - y - 1) * source.rowStride + x * 4)
-            pixel[0] = cast(u8) (20 + x * 17)
-            pixel[1] = cast(u8) (30 + y * 31)
-            pixel[2] = cast(u8) (40 + x * 7 + y * 5)
-            pixel[3] = cast(u8) (80 + x * 11 + y * 13)
+            let pixel = source.pixels.storage() + cast(u64, ((source.height - y - 1) * source.rowStride + x * 4))
+            pixel[0] = cast(u8, (20 + x * 17))
+            pixel[1] = cast(u8, (30 + y * 31))
+            pixel[2] = cast(u8, (40 + x * 7 + y * 5))
+            pixel[3] = cast(u8, (80 + x * 11 + y * 13))
         }
     }
 
@@ -437,7 +437,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 {
     var source = Image.create(9, 9, .BGRA8)
     source.clear()
-    let white = source.pixels.storage() + cast(u64) ((source.height - 4 - 1) * source.rowStride + 4 * source.bytesPerPixel)
+    let white = source.pixels.storage() + cast(u64, ((source.height - 4 - 1) * source.rowStride + 4 * source.bytesPerPixel))
     white[0], white[1], white[2], white[3] = 255
 
     var renderer: RenderCpu
@@ -535,7 +535,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     {
         for x in 4
         {
-            let pixel = source.pixels.storage() + cast(u64) ((3 - y) * source.rowStride + x * source.bytesPerPixel)
+            let pixel = source.pixels.storage() + cast(u64, ((3 - y) * source.rowStride + x * source.bytesPerPixel))
             if x < 2
             {
                 let value: u8 = ((x + y) & 1) != 0 ? 255 : 0
@@ -674,7 +674,7 @@ func circlePathList(anticlockwise: bool)->LinePathList
         {
             let clockwise     = images[0].pixelColor(x, y)
             let anticlockwise = images[1].pixelColor(x, y)
-            Swag.assert(Math.abs(cast(s32) clockwise.r - cast(s32) anticlockwise.r) <= 1)
+            Swag.assert(Math.abs(cast(s32, clockwise.r) - cast(s32, anticlockwise.r)) <= 1)
             if anticlockwise.r > 20 and anticlockwise.r < 235 do
                 soft += 1
         }
@@ -685,10 +685,10 @@ func circlePathList(anticlockwise: bool)->LinePathList
 
 // Captured device-space f32 coordinates freeze the one-ulp asymmetry independently of
 // transforms, tessellation, SVG parsing, and the compiler's floating-point policy.
-const SharedEdgeA = Math.Vector2{cast #bit (f32) 1096403587'u32, cast #bit (f32) 1096403585'u32}
-const SharedEdgeB = Math.Vector2{cast #bit (f32) 1099362556'u32, cast #bit (f32) 1093586878'u32}
-const SharedEdgeC = Math.Vector2{cast #bit (f32) 1106488610'u32, cast #bit (f32) 1106488610'u32}
-const SharedEdgeD = Math.Vector2{cast #bit (f32) 1093586879'u32, cast #bit (f32) 1099362556'u32}
+const SharedEdgeA = Math.Vector2{cast #bit (f32, 1096403587'u32), cast #bit (f32, 1096403585'u32)}
+const SharedEdgeB = Math.Vector2{cast #bit (f32, 1099362556'u32), cast #bit (f32, 1093586878'u32)}
+const SharedEdgeC = Math.Vector2{cast #bit (f32, 1106488610'u32), cast #bit (f32, 1106488610'u32)}
+const SharedEdgeD = Math.Vector2{cast #bit (f32, 1093586879'u32), cast #bit (f32, 1099362556'u32)}
 
 private func checkSharedEdge(mode: s32)
 {
@@ -766,7 +766,7 @@ private func checkSharedEdge(mode: s32)
 
 // A captured MSDF footprint lands immediately below the alpha 111 truncation boundary.
 // Static descriptor storage is retained by the shaped run; the test only reads it.
-private var g_MsdfRoundingGlyph: GlyphDesc = {uv: {0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32) 0x41F73800'u32, shiftY: cast #bit (f32) 0xC21844A5'u32, width: cast #bit (f32) 0x424D3334'u32, height: 54}
+private var g_MsdfRoundingGlyph: GlyphDesc = {uv: {0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32, 0x41F73800'u32), shiftY: cast #bit (f32, 0xC21844A5'u32), width: cast #bit (f32, 0x424D3334'u32), height: 54}
 
 #test
 {
@@ -788,8 +788,8 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: {0.1640625, 0, 0.1484375, 0.15
     {
         for x in 3
         {
-            let destination = cast(u64) (255 - (27 + y)) * atlas.width + cast(u64) (52 + x) * 4
-            let source      = cast(u64) (y * 3 + x) * 4
+            let destination = cast(u64, (255 - (27 + y))) * atlas.width + cast(u64, (52 + x)) * 4
+            let source      = cast(u64, (y * 3 + x)) * 4
             for channel in 4 do
                 atlas.data[destination + channel] = Texels[source + channel]
         }

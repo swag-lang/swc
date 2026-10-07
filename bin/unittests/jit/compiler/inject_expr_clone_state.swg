@@ -35,7 +35,7 @@ namespace InjectExprCloneSupport
 
                 #scope(Down)
                 {
-                    #inject(stmt, item = cast(*InjectExprCloneSupport.VisitProbe) &.values[cursor], index = cursor, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*InjectExprCloneSupport.VisitProbe, &.values[cursor]), index = cursor, break = break to Up, continue = break to Down)
                 }
 
                 cursor += 1

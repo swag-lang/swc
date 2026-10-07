@@ -62,8 +62,8 @@ func oracle32(a, b: u32)->u32
             Swag.assert(shared(a, b) == (oracle(a, b) ^ shiftLeft(a, b & 63)))
             Swag.assert(compared(a, b) == (a == 0))
             Swag.assert(different(a, b, ~a) == (shiftLeft(a, b & 63) | shiftRight(~a, opposite & 63)))
-            let lowA = cast(u32) (a & 0xFFFFFFFF)
-            let lowB = cast(u32) (b & 0xFFFFFFFF)
+            let lowA = cast(u32, (a & 0xFFFFFFFF))
+            let lowB = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(left32(lowA, lowB) == oracle32(lowA, lowB))
             Swag.assert(right32(lowA, lowB) == oracle32(lowA, 0'u32 - lowB))
         }

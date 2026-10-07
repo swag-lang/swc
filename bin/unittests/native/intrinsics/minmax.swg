@@ -292,30 +292,30 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
 // Strict aliases
 #test
 {
-    const a = Swag.min(cast(MinMaxStrictS32) -5, cast(MinMaxStrictS32) 3)
-    const b = Swag.max(cast(MinMaxStrictS32) -5, cast(MinMaxStrictS32) 3)
-    const c = Swag.min(cast(MinMaxStrictU32) 10, cast(MinMaxStrictU32) 4)
-    const d = Swag.max(cast(MinMaxStrictF32) 1.5'f32, cast(MinMaxStrictF32) 2.5'f32)
+    const a = Swag.min(cast(MinMaxStrictS32, -5), cast(MinMaxStrictS32, 3))
+    const b = Swag.max(cast(MinMaxStrictS32, -5), cast(MinMaxStrictS32, 3))
+    const c = Swag.min(cast(MinMaxStrictU32, 10), cast(MinMaxStrictU32, 4))
+    const d = Swag.max(cast(MinMaxStrictF32, 1.5'f32), cast(MinMaxStrictF32, 2.5'f32))
 
     #assert(#typeof(a) == MinMaxStrictS32)
     #assert(#typeof(b) == MinMaxStrictS32)
     #assert(#typeof(c) == MinMaxStrictU32)
     #assert(#typeof(d) == MinMaxStrictF32)
 
-    Swag.assert(a == cast(MinMaxStrictS32) -5)
-    Swag.assert(b == cast(MinMaxStrictS32) 3)
-    Swag.assert(c == cast(MinMaxStrictU32) 4)
-    Swag.assert(d == cast(MinMaxStrictF32) 2.5'f32)
+    Swag.assert(a == cast(MinMaxStrictS32, -5))
+    Swag.assert(b == cast(MinMaxStrictS32, 3))
+    Swag.assert(c == cast(MinMaxStrictU32, 4))
+    Swag.assert(d == cast(MinMaxStrictF32, 2.5'f32))
 }
 
 #test
 {
-    let si = minStrictS32(cast(MinMaxStrictS32) 7, cast(MinMaxStrictS32) -2)
-    let sx = maxStrictS32(cast(MinMaxStrictS32) 7, cast(MinMaxStrictS32) -2)
-    let ui = minStrictU32(cast(MinMaxStrictU32) 9, cast(MinMaxStrictU32) 11)
-    let ux = maxStrictU32(cast(MinMaxStrictU32) 9, cast(MinMaxStrictU32) 11)
-    let fi = minStrictF32(cast(MinMaxStrictF32) 4.5'f32, cast(MinMaxStrictF32) 2.25'f32)
-    let fx = maxStrictF32(cast(MinMaxStrictF32) 4.5'f32, cast(MinMaxStrictF32) 2.25'f32)
+    let si = minStrictS32(cast(MinMaxStrictS32, 7), cast(MinMaxStrictS32, -2))
+    let sx = maxStrictS32(cast(MinMaxStrictS32, 7), cast(MinMaxStrictS32, -2))
+    let ui = minStrictU32(cast(MinMaxStrictU32, 9), cast(MinMaxStrictU32, 11))
+    let ux = maxStrictU32(cast(MinMaxStrictU32, 9), cast(MinMaxStrictU32, 11))
+    let fi = minStrictF32(cast(MinMaxStrictF32, 4.5'f32), cast(MinMaxStrictF32, 2.25'f32))
+    let fx = maxStrictF32(cast(MinMaxStrictF32, 4.5'f32), cast(MinMaxStrictF32, 2.25'f32))
 
     #assert(#typeof(si) == MinMaxStrictS32)
     #assert(#typeof(sx) == MinMaxStrictS32)
@@ -324,10 +324,10 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
     #assert(#typeof(fi) == MinMaxStrictF32)
     #assert(#typeof(fx) == MinMaxStrictF32)
 
-    Swag.assert(si == cast(MinMaxStrictS32) -2)
-    Swag.assert(sx == cast(MinMaxStrictS32) 7)
-    Swag.assert(ui == cast(MinMaxStrictU32) 9)
-    Swag.assert(ux == cast(MinMaxStrictU32) 11)
-    Swag.assert(fi == cast(MinMaxStrictF32) 2.25'f32)
-    Swag.assert(fx == cast(MinMaxStrictF32) 4.5'f32)
+    Swag.assert(si == cast(MinMaxStrictS32, -2))
+    Swag.assert(sx == cast(MinMaxStrictS32, 7))
+    Swag.assert(ui == cast(MinMaxStrictU32, 9))
+    Swag.assert(ux == cast(MinMaxStrictU32, 11))
+    Swag.assert(fi == cast(MinMaxStrictF32, 2.25'f32))
+    Swag.assert(fx == cast(MinMaxStrictF32, 4.5'f32))
 }

@@ -36,7 +36,7 @@ private impl PalettePicker
         var y = rect.y
         for i in .colors.count
         {
-            .itemRects[i] = {x, y, cast(f32) .itemSize, cast(f32) .itemSize}
+            .itemRects[i] = {x, y, cast(f32, .itemSize), cast(f32, .itemSize)}
             x += .itemSize + .spacing
             if x + .itemSize > rect.right()
             {
@@ -48,9 +48,9 @@ private impl PalettePicker
 
     mtd columnCount()->s32
     {
-        let width  = Math.max(.paddedClientRect().width, cast(f32) .itemSize)
+        let width  = Math.max(.paddedClientRect().width, cast(f32, .itemSize))
         let stride = .itemSize + .spacing
-        return Math.max(1, cast(s32) ((width + .spacing) / stride))
+        return Math.max(1, cast(s32, ((width + .spacing) / stride)))
     }
 }
 
@@ -89,7 +89,7 @@ impl IWnd for PalettePicker
         {
             if .itemRects[i].contains(pos)
             {
-                newHotIndex = cast() i
+                newHotIndex = cast(i)
                 break
             }
         }
@@ -128,11 +128,11 @@ impl IWnd for PalettePicker
         switch evt.key
         {
         case .Left:  index = Math.max(0, index - 1)
-        case .Right: index = Math.min(cast(s32) .colors.count - 1, index + 1)
+        case .Right: index = Math.min(cast(s32, .colors.count) - 1, index + 1)
         case .Up:    index = Math.max(0, index - .columnCount())
-        case .Down:  index = Math.min(cast(s32) .colors.count - 1, index + .columnCount())
+        case .Down:  index = Math.min(cast(s32, .colors.count) - 1, index + .columnCount())
         case .Home:  index = 0
-        case .End:   index = cast(s32) .colors.count - 1
+        case .End:   index = cast(s32, .colors.count) - 1
         case .Space, .Return: break
         default:     return
         }
@@ -211,7 +211,7 @@ impl PalettePicker
         Swag.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
         for i in count
         {
-            var color = Color.fromHsl(i / cast(f32) count, saturation, lightness)
+            var color = Color.fromHsl(i / cast(f32, count), saturation, lightness)
             color.a = 255
             .colors.add(color)
         }
@@ -226,7 +226,7 @@ impl PalettePicker
         let {hue, saturation, ?} = base.toHsl()
         for i in count
         {
-            let lightness = count <= 1 ? 0.5 : i / cast(f32) (count - 1)
+            let lightness = count <= 1 ? 0.5 : i / cast(f32, (count - 1))
             var color     = Color.fromHsl(hue, saturation, lightness)
             color.a = 255
             .colors.add(color)
@@ -243,7 +243,7 @@ impl PalettePicker
         let {hue, ?, ?} = base.toHsl()
         for i in count
         {
-            let saturation = count <= 1 ? 0 : i / cast(f32) (count - 1)
+            let saturation = count <= 1 ? 0 : i / cast(f32, (count - 1))
             var color      = Color.fromHsl(hue, saturation, lightness)
             color.a = 255
             .colors.add(color)

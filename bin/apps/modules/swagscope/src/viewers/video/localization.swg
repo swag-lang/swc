@@ -74,7 +74,7 @@ func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
     var language: String
     if sound.language().count and sound.language() != "und" do
         language = Format.toString(strings.ui_AudioTrackLang, sound.language())
-    return Format.toString(strings.ui_AudioTrack, name.toString(), language.toString(), videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
+    return Format.toString(strings.ui_AudioTrack, name.toString(), language.toString(), videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 }
 
 // Returns the established technical name of an audio payload encoding.
@@ -102,7 +102,7 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
 }
 
 // Formats the active sound track for the information bar.
-func videoAudioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
+func videoAudioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 
 // Formats one embedded or sidecar subtitle-track entry.
 func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, sidecar: bool)->String
@@ -126,5 +126,5 @@ func registerVideoStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'VideoStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'VideoStrings(cast(string, FrenchStrings))
 }

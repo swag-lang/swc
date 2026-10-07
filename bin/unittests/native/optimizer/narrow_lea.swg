@@ -28,9 +28,9 @@ func memory(p: *u32, a: u32)->u32 => p[] * a + p[]
 #[Swag.NoInline]
 func retainHigh(a: u64, b: u32)->u64
 {
-    let low         = cast(u32) (a & 0xFFFFFFFF)
+    let low         = cast(u32, (a & 0xFFFFFFFF))
     let result: u32 = low * b + low
-    return cast(u64) result ^ a
+    return cast(u64, result) ^ a
 }
 #[Swag.NoInline]
 func loadAfterPlus(p: [*]u64, a: u32)->u64
@@ -58,10 +58,10 @@ func indexedWrap(a: u32)->u64
     {
         let added:   u32 = a + 1
         let removed: u32 = a - 1
-        Swag.assert(plus(a) == cast(u64) added)
-        Swag.assert(minus(a) == cast(u64) removed)
+        Swag.assert(plus(a) == cast(u64, added))
+        Swag.assert(minus(a) == cast(u64, removed))
         let scaled: u32 = a * 4 + 7
-        Swag.assert(indexedWrap(a) == cast(u64) scaled)
+        Swag.assert(indexedWrap(a) == cast(u64, scaled))
         for b in values
         {
             let product: u32 = a * b
@@ -69,9 +69,9 @@ func indexedWrap(a: u32)->u64
             Swag.assert(subtract(a, b) == product - a)
             var cell = a
             Swag.assert(memory(&cell, b) == product + a)
-            let wide     = cast(u64) a | 0xFEDCBA9800000000
+            let wide     = cast(u64, a) | 0xFEDCBA9800000000
             let sum: u32 = product + a
-            Swag.assert(retainHigh(wide, b) == (cast(u64) sum ^ wide))
+            Swag.assert(retainHigh(wide, b) == (cast(u64, sum) ^ wide))
         }
     }
     Swag.assert(signedPlus(0x7FFFFFFF) == -2147483648's64)

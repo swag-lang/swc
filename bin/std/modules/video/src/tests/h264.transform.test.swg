@@ -13,12 +13,12 @@ func assertIdct4x4Case(seed: u64)
     var expected: [4 * Stride + 16] u8
     var actual:   [4 * Stride + 16] u8
     for index in 16'u64 do
-        block[index] = cast(s16) (cast(s64) ((index * (seed * 37 + 11) + seed * 101 + 3) & 2047) - 1024)
+        block[index] = cast(s16, (cast(s64, ((index * (seed * 37 + 11) + seed * 101 + 3) & 2047)) - 1024))
     if seed % 5 == 0 do
-        block[0] = cast(s16) (cast(s64) (seed * 977 & 8191) - 4096)
+        block[0] = cast(s16, (cast(s64, (seed * 977 & 8191)) - 4096))
     for index in expected.count
     {
-        let value = cast(u8) ((index * (seed * 13 + 7) + seed * 29) & 255)
+        let value = cast(u8, ((index * (seed * 13 + 7) + seed * 29) & 255))
         expected[index] = value
         actual[index]   = value
     }
@@ -28,7 +28,7 @@ func assertIdct4x4Case(seed: u64)
     Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 
     // The flat DC add on the same samples, over the whole range of the rounded value.
-    var dc = cast(s32) (cast(s64) ((seed * 8191 + 17) & 0x3FFF) - 0x2000)
+    var dc = cast(s32, (cast(s64, ((seed * 8191 + 17) & 0x3FFF)) - 0x2000))
     if seed % 7 == 0 do
         dc *= 4096
     H264.addDc4x4Scalar(expected.buffer + 4, Stride, dc)
@@ -45,7 +45,7 @@ func assertDc8x8QuadCase(seed: u64)
     var actual:   [8 * Stride + 16] u8
     for index in expected.count
     {
-        let value = cast(u8) ((index * (seed * 23 + 5) + seed * 17) & 255)
+        let value = cast(u8, ((index * (seed * 23 + 5) + seed * 17) & 255))
         expected[index] = value
         actual[index]   = value
     }
@@ -53,7 +53,7 @@ func assertDc8x8QuadCase(seed: u64)
     var dcs: [4] s32
     for index in 4'u64
     {
-        dcs[index] = cast(s32) (cast(s64) (((seed + index) * 8191 + 17 * index) & 0x3FFF) - 0x2000)
+        dcs[index] = cast(s32, (cast(s64, (((seed + index) * 8191 + 17 * index) & 0x3FFF)) - 0x2000))
         if (seed + index) % 7 == 0 do
             dcs[index] *= 4
     }
@@ -79,12 +79,12 @@ func assertIdct8x8Case(seed: u64)
     // Dense random blocks amplify through two eight-point passes; a conforming stream bounds
     // the intermediates to 16 bits, which these magnitudes respect with margin.
     for index in 64'u64 do
-        block[index] = cast(s16) (cast(s64) ((index * (seed * 53 + 7) + seed * 131 + 5) & 255) - 128)
+        block[index] = cast(s16, (cast(s64, ((index * (seed * 53 + 7) + seed * 131 + 5) & 255)) - 128))
     if seed % 3 == 0 do
-        block[0] = cast(s16) (cast(s64) (seed * 977 & 4095) - 2048)
+        block[0] = cast(s16, (cast(s64, (seed * 977 & 4095)) - 2048))
     for index in expected.count
     {
-        let value = cast(u8) ((index * (seed * 19 + 3) + seed * 41) & 255)
+        let value = cast(u8, ((index * (seed * 19 + 3) + seed * 41) & 255))
         expected[index] = value
         actual[index]   = value
     }
@@ -102,7 +102,7 @@ func assertHadamard4x4Case(seed: u64)
     var actual:   [16] s16
     for index in 16'u64
     {
-        let value = cast #bit(s16) cast(u16) ((index * (seed * 104729 + 8191) + seed * 65521 + 32749) & 0xFFFF)
+        let value = cast #bit(s16, cast(u16, ((index * (seed * 104729 + 8191) + seed * 65521 + 32749) & 0xFFFF)))
         expected[index] = value
         actual[index]   = value
     }

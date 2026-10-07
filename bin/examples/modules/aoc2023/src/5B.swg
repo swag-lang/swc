@@ -103,7 +103,7 @@ func day5B()
         range.dst  = expect StrConv.toU64(values[0])
         range.src  = expect StrConv.toU64(values[1])
         range.srcE = range.src + rangeV - 1
-        convert[cast(s32) mode].add(range)
+        convert[cast(s32, mode)].add(range)
     }
 
     var ranges: Array'SeedRange

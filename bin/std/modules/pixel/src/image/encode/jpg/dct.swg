@@ -11,7 +11,7 @@ impl Encoder
 {
     // Lifts one colour channel of four consecutive pixels into four 32-bit lanes.
     #[Swag.Inline]
-    func channelOf(source: const [*] u8, lanes: Math.Simd.U8x16)->Math.Simd.S32x4 => cast #bit(Math.Simd.S32x4) Math.Simd.shuffle(Math.Simd.load(source), lanes)
+    func channelOf(source: const [*] u8, lanes: Math.Simd.U8x16)->Math.Simd.S32x4 => cast #bit(Math.Simd.S32x4, Math.Simd.shuffle(Math.Simd.load(source), lanes))
 
     // The fixed-point dot product one component of the format is defined as.
     #[Swag.Inline]
@@ -23,18 +23,18 @@ impl Encoder
     // and the luma one carries the level shift of the format.
     mtd loadFromRGB(xpos: u16, ypos: u16)
     {
-        var location = cast(s32) ypos * .imageX + xpos
-        let pixels   = cast(const [*] u8) .bufferRGB.storage()
-        let luma     = cast([*] s16) &.duY[0]
-        let blue     = cast([*] s16) &.duCb[0]
-        let red      = cast([*] s16) &.duCr[0]
+        var location = cast(s32, ypos) * .imageX + xpos
+        let pixels   = cast(const [*] u8, .bufferRGB.storage())
+        let luma     = cast([*] s16, &.duY[0])
+        let blue     = cast([*] s16, &.duCb[0])
+        let red      = cast([*] s16, &.duCr[0])
 
         let levelShift = Math.Simd.splat(128's32)
         var pos        = 0
 
         for y in 8
         {
-            let row  = pixels + cast(u64) location * #sizeof(ColorRGB)
+            let row  = pixels + cast(u64, location) * #sizeof(ColorRGB)
             let next = row + 4 * #sizeof(ColorRGB)
 
             let redLow    = channelOf(row, RedLanes)
@@ -68,7 +68,7 @@ impl Encoder
         for i in 64 do
             dataFloat[i] = data[i]
 
-        var dataptr = cast([*] f32) &dataFloat[0]
+        var dataptr = cast([*] f32, &dataFloat[0])
         for ctr in rangeTo(0, 7).reversed()
         {
             let tmp0 = dataptr[0] + dataptr[7]
@@ -160,7 +160,7 @@ impl Encoder
         for i in 64
         {
             let temp = dataFloat[i] * fdtbl[i]
-            outData[ZigZag[i]] = cast(s16) (cast(s16) (temp + 16384.5) - 16384)
+            outData[ZigZag[i]] = cast(s16, (cast(s16, (temp + 16384.5)) - 16384))
         }
     }
 
@@ -180,7 +180,7 @@ impl Encoder
         }
         else
         {
-            let diffc    = cast #bit (u64) cast(s64) diff     // If negative
+            let diffc    = cast #bit (u64, cast(s64, diff))     // If negative
             let category = .category!
             let bitcode  = .bitcode!
             .writeBits(hTDC[category[diffc]])
@@ -211,7 +211,7 @@ impl Encoder
                 nrzeroes = nrzeroes % 16
             }
 
-            let offc     = cast #bit (u64) cast(s64) .du[i]     // If negative
+            let offc     = cast #bit (u64, cast(s64, .du[i]))     // If negative
             let category = .category!
             let bitcode  = .bitcode!
             .writeBits(hTAC[nrzeroes * 16 + category[offc]])

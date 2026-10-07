@@ -137,7 +137,7 @@ private impl RenderThread
 {
     func worker(thread: Threading.Thread)
     {
-        let owner = cast(*RenderThread) thread.userParam!
+        let owner = cast(*RenderThread, thread.userParam!)
         while true
         {
             owner.requested.wait()

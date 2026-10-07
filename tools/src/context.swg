@@ -122,7 +122,7 @@ public impl Context
             Console.print(process.standardOutput())
             Console.print(process.standardError())
             let message = Format.toString("process '%' exited with code %", program, process.exitCode())
-            fail Swag.SystemError{Errors.mkString(message.toString()), errorID: cast(u32) process.exitCode()}
+            fail Swag.SystemError{Errors.mkString(message.toString()), errorID: cast(u32, process.exitCode())}
         }
 
         return String.from(process.standardOutput())
@@ -136,7 +136,7 @@ public impl Context
     {
         var result: retval
 
-        let separator = Utf8.indexOf(cast(const [..] u8) relative, "/")
+        let separator = Utf8.indexOf(cast(const [..] u8, relative), "/")
         let workspace = separator == Swag.U64.Max ? relative : relative[0 until separator]
         let inside    = separator == Swag.U64.Max ? "" : relative[separator + 1 until relative.count]
 
@@ -202,7 +202,7 @@ func relaunchToolIfNeeded(context: *Context, script: string, tokens: const [..] 
     Path.normalize(&selected)
 
     var result: retval
-    if Utf8.compare(cast(const [..] u8) running.toString(), cast(const [..] u8) selected.toString(), .Latin1NoCase) == 0 do
+    if Utf8.compare(cast(const [..] u8, running.toString()), cast(const [..] u8, selected.toString()), .Latin1NoCase) == 0 do
         return result
 
     if alreadyRelaunched

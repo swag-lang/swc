@@ -23,7 +23,7 @@ func semaTest001()
     var C: [3] s32 = [x, 2, 3]
     #assert(#typeof(C) == #type [3] s32)
 
-    var D: [2] f32 = [1.0'f32, cast(f32) 2]
+    var D: [2] f32 = [1.0'f32, cast(f32, 2)]
     #assert(#typeof(D) == #type [2] f32)
     #assert(#typeof(D[0]) == f32)
     #assert(#typeof(D[1]) == f32)
@@ -42,7 +42,7 @@ const G1: [3] [1] f32 = [[1.0], [2.0], [3.0]]
 #assert(#typeof(G1[0][0]) == f32)
 #assert(G1[2][0] == 3.0)
 
-const I: [2] s32 = [1, cast(s32) 2.2]
+const I: [2] s32 = [1, cast(s32, 2.2)]
 #assert(#typeof(I) == #type [2] s32)
 #assert(#typeof(I[0]) == s32)
 #assert(#typeof(I[1]) == s32)

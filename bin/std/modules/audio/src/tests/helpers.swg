@@ -10,13 +10,13 @@ func audioAssertFloat(actual, expected: f32, epsilon = 0.0001'f32)
 func audioAssertBufferBytes(actual: [*] void?, actualSize: u64, expected: const [..] u8)
 {
     Swag.assert(actualSize == expected.count)
-    Swag.assert(Slice.equals(Swag.makeSlice(cast(const [*] u8?) actual, actualSize), expected))
+    Swag.assert(Slice.equals(Swag.makeSlice(cast(const [*] u8?, actual), actualSize), expected))
 }
 
 func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 {
     Swag.assert(actual.count == expected.count * #sizeof(s16))
-    let samples = cast(const [*] s16) actual.buffer
+    let samples = cast(const [*] s16, actual.buffer)
     for index in expected.count do
         Swag.assert(samples[index] == expected[index])
 }

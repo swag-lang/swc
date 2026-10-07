@@ -79,7 +79,7 @@ func parseNum(bytes: const [..] u8, pos: *u32)->s64
     {
         if pos[] >= bytes.count or bytes[pos[]] < '0' or bytes[pos[]] > '9' do
             break
-        val   = val * 10 + cast(s64) (bytes[pos[]] - '0')
+        val   = val * 10 + cast(s64, (bytes[pos[]] - '0'))
         pos[] += 1
     }
     return neg ? -val : val
@@ -101,7 +101,7 @@ func skipToNum(bytes: const [..] u8, pos: *u32)
 
 func parseMachines(text: string, out: [*] Machine)->u32
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos:   u32
     var count: u32
     var state = ParseState.WantA
@@ -170,7 +170,7 @@ func solveMachine(m: Machine)->u64
     if na < 0 or nb < 0 do
         return 0
 
-    return CostA * cast(u64) na + CostB * cast(u64) nb
+    return CostA * cast(u64, na) + CostB * cast(u64, nb)
 }
 
 struct Result
@@ -270,12 +270,12 @@ func costTier(cost: u64)->u32
 // Parse number with ternary, negative, while..do
 #test
 {
-    let bytes    = cast(const [..] u8) "X+94"
+    let bytes    = cast(const [..] u8, "X+94")
     var pos: u32 = 2
     let v        = parseNum(bytes, &pos)
     Swag.assert(v == 94)
 
-    let bytes2    = cast(const [..] u8) "-42rest"
+    let bytes2    = cast(const [..] u8, "-42rest")
     var pos2: u32 = 0
     let v2        = parseNum(bytes2, &pos2)
     Swag.assert(v2 == -42)
@@ -375,11 +375,11 @@ func costTier(cost: u64)->u32
     var rev: s64
     for i in 1 to 10
     {
-        fwd += cast(s64) i
+        fwd += cast(s64, i)
     }
     for i in rangeTo(1, 10).reversed()
     {
-        rev += cast(s64) i
+        rev += cast(s64, i)
     }
     Swag.assert(fwd == rev)
     Swag.assert(fwd == 55)

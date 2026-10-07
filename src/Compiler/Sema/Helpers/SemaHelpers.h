@@ -22,6 +22,8 @@ struct CodeGenLoweringPayload;
 
 namespace SemaHelpers
 {
+    Result prepareFallibleCast(Sema& sema);
+    bool   isAssumedCast(Sema& sema);
     bool   isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef);
     Result materializeMovedValue(Sema& sema, SemaNodeView& view);
     bool   ownsExpressionValue(Sema& sema, AstNodeRef nodeRef);

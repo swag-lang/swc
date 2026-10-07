@@ -75,7 +75,7 @@ private func sampleDocument()->Document
     let source = sampleDocument()
     let bytes  = expect source.encode()
     Swag.assert(bytes.count > 400)
-    Swag.assert(cast(string) bytes.toSlice()[0 to 7] == "%PDF-1.7")
+    Swag.assert(cast(string, bytes.toSlice()[0 to 7]) == "%PDF-1.7")
 
     var decoded = expect Document.decode(bytes.toSlice())
     Swag.assert(decoded.pages.count == 1)
@@ -149,14 +149,14 @@ private func sampleDocument()->Document
     defer discard catch File.delete(fileName)
 
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>")
     addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> /Contents 5 0 R >>")
     addObject(&bytes, 4, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> /Contents 6 0 R >>")
-    addStreamObject(&bytes, 5, "", cast(const [..] u8) "2 2 20 12 re f")
-    addStreamObject(&bytes, 6, "/Filter /UnsupportedForStreamingTest", cast(const [..] u8) "deferred")
-    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+    addStreamObject(&bytes, 5, "", cast(const [..] u8, "2 2 20 12 re f"))
+    addStreamObject(&bytes, 6, "/Filter /UnsupportedForStreamingTest", cast(const [..] u8, "deferred"))
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var reader = expect Reader.open(fileName)
@@ -199,7 +199,7 @@ private func sampleDocument()->Document
     let encoded: [7] u8 = [2, 'A', 'B', 'C', 254, 'Z', 128]
     let runLength       = expect decodeRunLength(encoded)
     Swag.assert(runLength.count == 6)
-    Swag.assert(cast(string) runLength.toSlice() == "ABCZZZ")
+    Swag.assert(cast(string, runLength.toSlice()) == "ABCZZZ")
 }
 
 // A forward indirect length must win over delimiter scanning. This stream's final Adler-32 byte
@@ -208,15 +208,15 @@ private func sampleDocument()->Document
 {
     const compressed: [9] u8 = [0x78, 0x9C, 0xE3, 0x04, 0x00, 0x00, 0x0A, 0x00, 0x0A]
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
     addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> /Contents 4 0 R >>")
-    bytes.add(cast(const [..] u8) "4 0 obj\n<< /Length 5 0 R /Filter /FlateDecode >>\nstream\n")
+    bytes.add(cast(const [..] u8, "4 0 obj\n<< /Length 5 0 R /Filter /FlateDecode >>\nstream\n"))
     bytes.add(compressed)
-    bytes.add(cast(const [..] u8) "endstream\nendobj\n")
+    bytes.add(cast(const [..] u8, "endstream\nendobj\n"))
     addObject(&bytes, 5, "9")
-    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
 
     let document = expect Document.decode(bytes.toSlice())
     Swag.assert(document.pages.count == 1)
@@ -228,12 +228,12 @@ private func sampleDocument()->Document
 #test
 {
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
     addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /CropBox [10 20 110 70] /Resources << >> /Contents 4 0 R >>")
-    addStreamObject(&bytes, 4, "", cast(const [..] u8) "10 20 5 5 re f")
-    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+    addStreamObject(&bytes, 4, "", cast(const [..] u8, "10 20 5 5 re f"))
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
 
     let document = expect Document.decode(bytes.toSlice())
     let page     = document.pages[0]
@@ -249,14 +249,14 @@ private func sampleDocument()->Document
 #test
 {
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "%PDF-1.7\n")
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>")
     addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /CropBox [-50 -50 100 200] /Resources << >> /Contents 4 0 R >>")
-    addStreamObject(&bytes, 4, "", cast(const [..] u8) "")
+    addStreamObject(&bytes, 4, "", cast(const [..] u8, ""))
     addObject(&bytes, 5, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /CropBox [300 300 400 400] /Resources << >> /Contents 6 0 R >>")
-    addStreamObject(&bytes, 6, "", cast(const [..] u8) "")
-    bytes.add(cast(const [..] u8) "trailer\n<< /Root 1 0 R >>\n%%EOF\n")
+    addStreamObject(&bytes, 6, "", cast(const [..] u8, ""))
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
 
     let document = expect Document.decode(bytes.toSlice())
     Swag.assert(document.pages[0].width == 100 and document.pages[0].height == 100)
@@ -268,8 +268,8 @@ private func sampleDocument()->Document
 #test
 {
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "Content-Type: application/pdf; some mail preamble\n\n")
-    bytes.add(singlePagePdf("", cast(const [..] u8) "0 0 5 5 re f", "").toSlice())
+    bytes.add(cast(const [..] u8, "Content-Type: application/pdf; some mail preamble\n\n"))
+    bytes.add(singlePagePdf("", cast(const [..] u8, "0 0 5 5 re f"), "").toSlice())
     let document = expect Document.decode(bytes.toSlice())
     Swag.assert(document.pages.count == 1)
     discard onlyItem(document.pages[0], .Path)
@@ -339,7 +339,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
 
     func append(bytes: *Array'u8, text: string)
     {
-        bytes.add(cast(const [..] u8) text)
+        bytes.add(cast(const [..] u8, text))
     }
 
     func appendObject(bytes: *Array'u8, offsets: [..] u64, number: u64, body: string)
@@ -443,7 +443,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
 #test
 {
     let content  = "q 20 20 60 40 re W n 30 30 m 70 30 l 70 50 l 30 50 l h f Q q 20 20 20 20 re W n 10 10 m 90 10 l 90 60 l h f Q"
-    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, cast(const [..] u8) "", "[0 0 200 100]").toSlice())
+    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8, content), cast(const [..] u8, ""), "[0 0 200 100]").toSlice())
     let page     = document.pages[0]
 
     var paths: Array'(const *Pdf.Item)

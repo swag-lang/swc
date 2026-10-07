@@ -51,14 +51,14 @@ impl I1 for T
 #test
 {
     var a: A
-    var i = cast(I) a
+    var i = cast(I, a)
     Swag.assert(i.A() == 0)
 }
 
 #test
 {
     var t: T
-    var i = cast(I1) t
+    var i = cast(I1, t)
     gInterfaceImplTotoCalls = 0
     i.toto()
     Swag.assert(gInterfaceImplTotoCalls == 1)
@@ -112,12 +112,12 @@ impl IReset for Point3
     var pt2: Point2
     var pt3: Point3
 
-    var itf = cast(IReset) pt2
+    var itf = cast(IReset, pt2)
     itf.set(10)
     Swag.assert(pt2.x == 10)
     Swag.assert(pt2.y == 11)
 
-    itf = cast(IReset) pt3
+    itf = cast(IReset, pt3)
     itf.set(10)
     Swag.assert(pt3.x == 10)
     Swag.assert(pt3.y == 11)
@@ -148,26 +148,26 @@ impl IReset for Point3
 {
     var pt2: Point2
     var pt3: Point3
-    var itf = cast(IReset) pt2
+    var itf = cast(IReset, pt2)
 
     #assert(#sizeof(itf) == 2 * #sizeof(*void))
 
-    itf = cast(IReset) pt2
+    itf = cast(IReset, pt2)
     Swag.assert(Swag.kindOf(itf) == Point2)
-    itf = cast(IReset) pt3
+    itf = cast(IReset, pt3)
     Swag.assert(Swag.kindOf(itf) == Point3)
 
-    itf = cast(IReset) pt2
+    itf = cast(IReset, pt2)
     Swag.assert(itf.buffer == &pt2)
-    itf = cast(IReset) pt3
+    itf = cast(IReset, pt3)
     Swag.assert(itf.buffer == &pt3)
 }
 
 #test
 {
     var pt2: Point2
-    var raw = cast(IReset) pt2
-    let itf = (cast(const *StrictIReset) (&raw))[]
+    var raw = cast(IReset, pt2)
+    let itf = cast(const *StrictIReset, (&raw))[]
     Swag.assert(Swag.kindOf(itf) == Point2)
 }
 
@@ -188,7 +188,7 @@ func setThroughInterface(itf: IReset, value: f32)
 {
     var pt2: Point2
     var ptr = &pt2
-    var itf = cast(IReset) ptr
+    var itf = cast(IReset, ptr)
     itf.set(13)
     Swag.assert(pt2.x == 13)
     Swag.assert(pt2.y == 14)

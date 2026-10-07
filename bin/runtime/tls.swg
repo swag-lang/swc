@@ -5,7 +5,7 @@
 private func __releaseTlsVar(value: *void?)
 {
     if value do
-        __bootstrapFree(cast([*] void?) value)
+        __bootstrapFree(cast([*] void?, value))
 }
 
 // Allocates one host thread-storage slot for a runtime thread-local global.
@@ -41,7 +41,7 @@ private func __tlsCreatePtr(id: u64)->*void?
     Swag.memset(ptr, 0, size)
     if not __tlsSetValue(id, ptr)
     {
-        __bootstrapFree(cast([*] void?) ptr)
+        __bootstrapFree(cast([*] void?, ptr))
         return null
     }
 
@@ -88,7 +88,7 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
     Swag.memcpy(created, init, size)
     if not __hostThreadStorageSet(id, created)
     {
-        __bootstrapFree(cast([*] void?) created)
+        __bootstrapFree(cast([*] void?, created))
         return null
     }
 

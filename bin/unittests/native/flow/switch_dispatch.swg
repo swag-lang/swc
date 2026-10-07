@@ -46,7 +46,7 @@ func searchedGroup(value: string)->s32
         "echo--name05", "foxtrot-nm06", "golf--name07", "hotel-name08",
         "india-name09", "juliet-nam10", "kilo--name11", "lima--name12"]
 
-    for text, index in names do Swag.assert(searchedGroup(runtimeString(&buffer[0], text)) == cast(s32) index + 1)
+    for text, index in names do Swag.assert(searchedGroup(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
 
     let others: [4] string = ["alpha-name0", "alpha-name010", "alpha-name02", "zulu--name99"]
     for text in others do Swag.assert(not searchedGroup(runtimeString(&buffer[0], text)))
@@ -81,7 +81,7 @@ func sharedPrefixGroup(value: string)->s32
         "shared--a01", "shared--a02", "shared--a03", "shared--a04", "shared--a05",
         "shared--a06", "shared--a07", "shared--a08", "shared--a09", "shared--a10"]
 
-    for text, index in names do Swag.assert(sharedPrefixGroup(runtimeString(&buffer[0], text)) == cast(s32) index + 1)
+    for text, index in names do Swag.assert(sharedPrefixGroup(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
 
     let others: [3] string = ["shared--a11", "shared--a0", "shared--b01"]
     for text in others do Swag.assert(not sharedPrefixGroup(runtimeString(&buffer[0], text)))
@@ -130,7 +130,7 @@ func sameLengthNames(value: string)->s32
         "delta1", "delta2", "eps001", "eps002", "zeta01",
         "zeta02", "eta001", "eta002", "iota01", "kappa1"]
 
-    for text, index in names do Swag.assert(sameLengthNames(runtimeString(&buffer[0], text)) == cast(s32) index + 1)
+    for text, index in names do Swag.assert(sameLengthNames(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
 
     // Every one of these shares a chunk with a case it must not be mistaken for.
     let others: [8] string = ["alpha6", "beta04", "zeta03", "iota02", "eta003", "kappa2", "alpha", "alpha11"]
@@ -206,7 +206,7 @@ func searchedValue(value: s32)->s32
 #test
 {
     let values: [12] s32 = [700, 3, 42, -8, 0, 19, -100000, 5, 6, 1000000, -1, 128]
-    for value, index in values do Swag.assert(searchedValue(value) == cast(s32) index + 1)
+    for value, index in values do Swag.assert(searchedValue(value) == cast(s32, index) + 1)
 
     let others: [6] s32 = [1, 2, 4, -2, -99999, 1000001]
     for value in others do Swag.assert(not searchedValue(value))
@@ -234,7 +234,7 @@ func unsignedValue(value: u8)->s32
 #test
 {
     let values: [10] u8 = [0, 1, 2, 64, 127, 128, 129, 200, 254, 255]
-    for value, index in values do Swag.assert(unsignedValue(value) == cast(s32) index + 1)
+    for value, index in values do Swag.assert(unsignedValue(value) == cast(s32, index) + 1)
 
     let others: [4] u8 = [3, 63, 130, 253]
     for value in others do Swag.assert(not unsignedValue(value))
@@ -337,10 +337,10 @@ func fruitValue(value: Fruit)->s32
 #test
 {
     let values: [10] Fruit = [.Apple, .Banana, .Cherry, .Date, .Elder, .Fig, .Grape, .Honey, .Ivy, .Jack]
-    for value, index in values do Swag.assert(fruitValue(value) == cast(s32) index + 1)
+    for value, index in values do Swag.assert(fruitValue(value) == cast(s32, index) + 1)
 
-    Swag.assert(not fruitValue(cast(Fruit) 0))
-    Swag.assert(not fruitValue(cast(Fruit) 30))
+    Swag.assert(not fruitValue(cast(Fruit, 0)))
+    Swag.assert(not fruitValue(cast(Fruit, 30)))
 }
 
 #test

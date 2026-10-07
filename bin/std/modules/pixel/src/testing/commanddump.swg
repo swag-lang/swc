@@ -328,7 +328,7 @@ private
 
             for i in count
             {
-                let v = painter.vertexBuffer[cast(u64) (start + i)]
+                let v = painter.vertexBuffer[cast(u64, (start + i))]
 
                 bbMin.x = Math.min(bbMin.x, v.pos.x)
                 bbMin.y = Math.min(bbMin.y, v.pos.y)

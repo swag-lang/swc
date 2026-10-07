@@ -78,9 +78,14 @@ test('compiler token prefixes do not color unknown directives as builtins', () =
 });
 
 test('dynamic casts and type patterns share the language vocabulary', () => {
+    for (const policy of ['try', 'expect', 'assume']) {
+        const line = `${policy} cast(*Widget, value)`;
+        assert.ok(scopesAt(line, 0).some(scope => scope.startsWith('keyword')), line);
+        assert.ok(scopesAt(line, line.indexOf('cast')).some(scope => scope.startsWith('keyword')), line);
+    }
     for (const modifier of ['#try', '#assume']) {
-        const line = `cast ${modifier}(*Widget) value`;
-        assert.ok(scopesAt(line, line.indexOf(modifier)).includes('entity.name.function.intrinsic'), line);
+        const line = `cast ${modifier}(*Widget, value)`;
+        assert.ok(scopesAt(line, line.indexOf(modifier)).includes('invalid'), line);
     }
     assert.ok(scopesAt('value is Widget', 6).includes('keyword.control'));
     assert.ok(scopesAt('case Widget as item:', 12).includes('keyword.control'));

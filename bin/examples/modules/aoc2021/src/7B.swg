@@ -43,7 +43,7 @@ func day7B()
     }
 
     if crabs.count do
-        mean = cast(s32) (mean / cast(f32) crabs.count)
+        mean = cast(s32, (mean / cast(f32, crabs.count)))
 
     var total = 0
     for v in crabs

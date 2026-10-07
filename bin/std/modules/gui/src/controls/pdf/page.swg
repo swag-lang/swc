@@ -287,7 +287,7 @@ internal impl Page
     // page of scans costs a hundred times a page of text, and a page count says nothing about it.
     mtd const memoryUsage()->u64
     {
-        var result = cast(u64) #sizeof(Page)
+        var result = cast(u64, #sizeof(Page))
         for item in .items do
             result += item.memoryUsage()
         for clip in .clipPaths do
@@ -315,7 +315,7 @@ internal impl Page
         let clip = .clipPaths.addNew()
         clip.path    = #move path
         clip.evenOdd = evenOdd
-        return cast(u32) (.clipPaths.count - 1)
+        return cast(u32, (.clipPaths.count - 1))
     }
 
     // Returns the item at `index` for a decoder that has to revise a mark it already recorded.

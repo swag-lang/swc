@@ -129,14 +129,14 @@ impl ScalingLists
                         let dcMinus8 = reader.se()
                         if dcMinus8 < -7 or dcMinus8 > 247 do
                             fail InvalidFormatError{"HEVC scaling list direct-current coefficient is out of range"}
-                        .dc[sizeId - 2, matrixId] = cast(u8) (dcMinus8 + 8)
+                        .dc[sizeId - 2, matrixId] = cast(u8, (dcMinus8 + 8))
                         nextCoef = dcMinus8 + 8
                     }
 
                     for index in count
                     {
                         nextCoef = (nextCoef + reader.se() + 256) % 256
-                        .lists[sizeId, matrixId, index] = cast(u8) nextCoef
+                        .lists[sizeId, matrixId, index] = cast(u8, nextCoef)
                     }
                 }
 
@@ -402,8 +402,8 @@ impl Sps
         .heightInMinCbs = .height / .minCbSize
         .widthInMinTbs  = .width >> .minTbLog2Size
         .heightInMinTbs = .height >> .minTbLog2Size
-        .qpBdOffsetY    = cast(s32) (.bitDepthLuma - 8) * 6
-        .qpBdOffsetC    = cast(s32) (.bitDepthChroma - 8) * 6
+        .qpBdOffsetY    = cast(s32, (.bitDepthLuma - 8)) * 6
+        .qpBdOffsetC    = cast(s32, (.bitDepthChroma - 8)) * 6
     }
 
     // Rejects a sequence this decoder cannot reconstruct.
@@ -705,7 +705,7 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         var previous = 0's32
         for entry in negative
         {
-            previous -= cast(s32) (reader.ue() + 1)
+            previous -= cast(s32, (reader.ue() + 1))
             target.negativeDelta[entry] = previous
             target.negativeUsed[entry]  = reader.bit() != 0
         }
@@ -713,7 +713,7 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         previous = 0
         for entry in positive
         {
-            previous += cast(s32) (reader.ue() + 1)
+            previous += cast(s32, (reader.ue() + 1))
             target.positiveDelta[entry] = previous
             target.positiveUsed[entry]  = reader.bit() != 0
         }
@@ -731,7 +731,7 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         fail InvalidFormatError{"HEVC reference picture set predicts from a set that does not precede it"}
 
     let sign        = reader.bit()
-    let absDelta    = cast(s32) (reader.ue() + 1)
+    let absDelta    = cast(s32, (reader.ue() + 1))
     let deltaRps    = sign ? -absDelta : absDelta
     let source      = &sets[index - deltaIdx]
     let sourceTotal = source.totalCount()
@@ -843,7 +843,7 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
         {
             discard reader.read(8)
             discard reader.read(8)
-            sps.matrixCoefficients = cast(u8) reader.read(8)
+            sps.matrixCoefficients = cast(u8, reader.read(8))
         }
     }
 

@@ -10,7 +10,7 @@ const PowerOfTwo: [4] s32 = #run
 {
     var arr: [4] s32
     for i in arr.count do
-        arr[i] = 1 << cast(u32) i
+        arr[i] = 1 << cast(u32, i)
     return arr
 }
 
@@ -35,7 +35,7 @@ const PersistentAnyPair: AnyPair = #run
 
 const PersistentAnyArray: [2] any = #run
 {
-    return [cast(any) "first", cast(any) "second"]
+    return [cast(any, "first"), cast(any, "second")]
 }
 
 #assert(#typeof(ScalarValue) == s32)
@@ -48,7 +48,7 @@ const PersistentAnyArray: [2] any = #run
 #assert(#typeof(DeducePowerOfTwo) == [4] s32)
 #assert(DeducePowerOfTwo[0] == 1)
 #assert(DeducePowerOfTwo[3] == 4)
-#assert(cast #assume(string) PersistentAnyPair.item == "abc")
-#assert(cast #assume(string) PersistentAnyPair.other == "def")
-#assert(cast #assume(string) PersistentAnyArray[0] == "first")
-#assert(cast #assume(string) PersistentAnyArray[1] == "second")
+#assert(assume cast(string, PersistentAnyPair.item) == "abc")
+#assert(assume cast(string, PersistentAnyPair.other) == "def")
+#assert(assume cast(string, PersistentAnyArray[0]) == "first")
+#assert(assume cast(string, PersistentAnyArray[1]) == "second")

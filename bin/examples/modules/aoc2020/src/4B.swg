@@ -194,7 +194,7 @@ func day4B1()
 
         if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
-            total += cast(s32) (pass == 0b1111111)
+            total += cast(s32, (pass == 0b1111111))
             pass  = 0
         }
     }

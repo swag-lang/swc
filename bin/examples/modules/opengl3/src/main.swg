@@ -198,7 +198,7 @@ func compileShader(stage: GLenum, source: string)->GLuint
         var len: s32
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &len)
         var log: String
-        log.reserve(cast(u64) len + 1)
+        log.reserve(cast(u64, len) + 1)
         glGetShaderInfoLog(id, len, null, log.buffer)
         Console.print("shader compile error: ", log, "\n")
     }
@@ -240,7 +240,7 @@ func display()
 
     // Build model -> view -> projection. The model spins on two axes, the view
     // pushes the cube away from the camera, and the projection adds perspective.
-    let aspect     = cast(f32) g_Width / cast(f32) g_Height
+    let aspect     = cast(f32, g_Width) / cast(f32, g_Height)
     let model      = Mat4.mul(Mat4.rotationY(g_Angle * 0.9), Mat4.rotationX(g_Angle * 0.6))
     let view       = Mat4.translation(0, 0, -6)
     let projection = Mat4.perspective(Math.toRadians(45'f32), aspect, 0.1, 100)

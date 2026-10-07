@@ -15,7 +15,7 @@ func fill(host: *Host, shift: u64, marker: u8, n: u64)
     var i = 0'u64
     for n
     {
-        host.cells[i] = cast(u8) (i + shift)
+        host.cells[i] = cast(u8, (i + shift))
         i += 1
     }
     Swag.assert(marker == 0xEE)
@@ -44,7 +44,7 @@ func fillTable(table: *Table)
     // Unsized constants and a runtime field must all use the concrete element layout
     // when the implicit aggregate conversion is cloned into the indexed write.
     for i in 4 do
-        table.entries[i] = {1, 0xFFF, cast(u8) i}
+        table.entries[i] = {1, 0xFFF, cast(u8, i)}
 }
 
 #test
@@ -57,7 +57,7 @@ func fillTable(table: *Table)
 
     // Read back through the raw buffer, so a wrong store is not masked by an equally wrong read.
     for i in 8 do
-        Swag.assert(raw[i] == cast(u8) (i + 100))
+        Swag.assert(raw[i] == cast(u8, (i + 100)))
 
     var ents: [4] InlineCodePayload.Entry
     var table = Table{0, {&ents[0], 4}}

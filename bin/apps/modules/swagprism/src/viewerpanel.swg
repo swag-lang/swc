@@ -76,7 +76,7 @@ impl ViewerPanel
             .sigChanged += func|panel = me|(combo, index)
             {
                 discard combo
-                panel.selectViewer(cast(ViewerKind) index)
+                panel.selectViewer(cast(ViewerKind, index))
                 panel.requestCompile()
             }
         }
@@ -110,7 +110,7 @@ impl ViewerPanel
             .margin = {8, 0, 0, 0}
             for name in ["O0", "O1", "O2"] do
                 .addItem(name)
-            .setSelectedIndex(cast(u32) me.defaultLevel, notify: false)
+            .setSelectedIndex(cast(u32, me.defaultLevel), notify: false)
             .sigChanged += func|panel = me|(combo, index)
             {
                 discard combo
@@ -136,7 +136,7 @@ impl ViewerPanel
             .sigReset += func|panel = me|(options)
             {
                 discard options
-                panel.optimCombo.setSelectedIndex(cast(u32) panel.defaultLevel, notify: false)
+                panel.optimCombo.setSelectedIndex(cast(u32, panel.defaultLevel), notify: false)
                 panel.viewer!.setOptimization(panel.defaultLevel)
                 panel.requestCompile()
             }
@@ -154,10 +154,10 @@ impl ViewerPanel
         }
 
         .kind = kind
-        let index = cast(u32) kind
+        let index = cast(u32, kind)
         if not .cached[index].viewer
         {
-            .cached[index].viewer = createViewer(me, .sourceEditor, kind, cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)
+            .cached[index].viewer = createViewer(me, .sourceEditor, kind, cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))
             .cached[index].viewer!.window().dockStyle = .Center
             .cached[index].viewer!.subscribeChanged(func|panel = me|(sender)
             {
@@ -167,10 +167,10 @@ impl ViewerPanel
         }
 
         .viewer = .cached[index].viewer
-        .viewer!.setOptimization(cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)
+        .viewer!.setOptimization(cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))
         .viewer.window().show(not .optionsButton.isChecked)
         .refreshPlayback()
-        .kindCombo.setSelectedIndex(cast(u32) kind, notify: false)
+        .kindCombo.setSelectedIndex(cast(u32, kind), notify: false)
         .applyLayout()
         .sigChanged.call(me)
     }
@@ -193,7 +193,7 @@ impl ViewerPanel
         .applyLayout()
     }
 
-    mtd request(source: string)->Pipeline.BuildRequest => {source: String.from(source), stage: String.from(.viewer!.inspectionStage()), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)}
+    mtd request(source: string)->Pipeline.BuildRequest => {source: String.from(source), stage: String.from(.viewer!.inspectionStage()), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))}
 
     mtd requestCompile() { .sigCompileRequested.call(me) }
 
@@ -216,7 +216,7 @@ impl ViewerPanel
         .kindCombo.addItem(appStrings().ui_Microcode)
         .kindCombo.addItem(appStrings().ui_Render2D)
         .kindCombo.addItem(appStrings().ui_Gui)
-        .kindCombo.setSelectedIndex(cast(u32) .kind, notify: false)
+        .kindCombo.setSelectedIndex(cast(u32, .kind), notify: false)
         .applyLayout()
     }
 }

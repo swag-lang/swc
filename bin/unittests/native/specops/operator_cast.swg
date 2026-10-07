@@ -42,7 +42,7 @@ impl RuntimePointerCastBox
     #[Swag.Implicit, Swag.NoInline]
     mtd const opCast()->OpCastStrictPtr
     {
-        return cast(OpCastStrictPtr) &.value
+        return cast(OpCastStrictPtr, &.value)
     }
 }
 
@@ -57,8 +57,8 @@ func consumeNullableStrictPtr(value: OpCastStrictPtr?)->s32
 {
     var value = RuntimeCastBox{value: 41}
 
-    let explicitInt      = cast(s32) value
-    let explicitBool     = cast(bool) value
+    let explicitInt      = cast(s32, value)
+    let explicitBool     = cast(bool, value)
     let implicitInt      = consumeInt(value)
     let initialized: s32 = value
 

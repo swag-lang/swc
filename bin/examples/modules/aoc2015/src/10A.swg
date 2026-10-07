@@ -25,7 +25,7 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
 {
     if count < 10
     {
-        write[0] = cast(u8) count + '0'
+        write[0] = cast(u8, count) + '0'
         return write + 1
     }
 
@@ -35,7 +35,7 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
     var remaining  = count
     for
     {
-        digits[digitCount] = cast(u8) (remaining % 10) + '0'
+        digits[digitCount] = cast(u8, (remaining % 10)) + '0'
         digitCount         += 1
         remaining          /= 10
         if not remaining do
@@ -76,7 +76,7 @@ internal func day10RunStep(input: string, output: *String)
         write    += 1
     }
 
-    output.length = cast(u64) (write - output.buffer)
+    output.length = cast(u64, (write - output.buffer))
     let outBuf = output.storage()
     outBuf[output.length] = 0
 }

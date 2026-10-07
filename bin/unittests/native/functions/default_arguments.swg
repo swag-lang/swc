@@ -94,18 +94,18 @@ func enumDefault(kind: DefaultKind = DefaultKind.B)->s32
     return 30
 }
 
-func strictEnumDefault(kind: StrictDefaultKind = cast(StrictDefaultKind) DefaultKind.B)->s32
+func strictEnumDefault(kind: StrictDefaultKind = cast(StrictDefaultKind, DefaultKind.B))->s32
 {
-    if kind == cast(StrictDefaultKind) DefaultKind.A do
+    if kind == cast(StrictDefaultKind, DefaultKind.A) do
         return 10
-    if kind == cast(StrictDefaultKind) DefaultKind.B do
+    if kind == cast(StrictDefaultKind, DefaultKind.B) do
         return 20
     return 30
 }
 
-func strictFloatDefault(value: StrictDefaultFloat = cast(StrictDefaultFloat) 1.25)->bool
+func strictFloatDefault(value: StrictDefaultFloat = cast(StrictDefaultFloat, 1.25))->bool
 {
-    return value == cast(StrictDefaultFloat) 1.25
+    return value == cast(StrictDefaultFloat, 1.25)
 }
 
 func vecDefaultSum(v: DefaultVec = {x: 10, y: 20})->s32
@@ -161,7 +161,7 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     Swag.assert(enumDefault(DefaultKind.A) == 10)
     Swag.assert(enumDefault(kind: DefaultKind.C) == 30)
     Swag.assert(strictEnumDefault() == 20)
-    Swag.assert(strictEnumDefault(cast(StrictDefaultKind) DefaultKind.A) == 10)
+    Swag.assert(strictEnumDefault(cast(StrictDefaultKind, DefaultKind.A)) == 10)
     Swag.assert(strictFloatDefault())
 
     Swag.assert(vecDefaultSum() == 30)

@@ -73,7 +73,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     }
 
     #[Swag.Safety(.Overflow, false)]
-    func exchangeStamp(address: u64, size: u64)->u8 => cast(u8) ((address >> 4) ^ size ^ 0x5A)
+    func exchangeStamp(address: u64, size: u64)->u8 => cast(u8, ((address >> 4) ^ size ^ 0x5A))
 
     func exchangeSize(state: *u64)->u64
     {
@@ -90,7 +90,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     #[Swag.CallingConvention(.C)]
     func allocatorExchangeThread(param: *void)->AllocatorThreadTest.DWORD
     {
-        let worker   = cast(*AllocatorExchangeWorker) param
+        let worker   = cast(*AllocatorExchangeWorker, param)
         let exchange = worker.exchange!
         var state    = worker.seed
         for 20000
@@ -99,20 +99,20 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             let old  = Swag.atomxchg(&exchange.slots[slot], 0)
             if old
             {
-                let bytes = cast([*] u8) old
-                let size  = (cast(const *u64) old)[]
+                let bytes = cast([*] u8, old)
+                let size  = cast(const *u64, old)[]
                 if bytes[size - 1] != exchangeStamp(old, size) or (size > 16 and bytes[size / 2] != exchangeStamp(old, size)) do
                     discard Swag.atomadd(&exchange.errors, 1)
 
                 var req: AllocatorRequest
-                req.address = cast(*void) old
+                req.address = cast(*void, old)
                 req.size    = size
                 if exchangeNext(&state) % 8 == 0
                 {
                     req.oldSize = size
                     req.size    = exchangeSize(&state)
                     exchange.allocator.realloc(&req)
-                    if (cast(const *u64) req.address!)[] != size do
+                    if cast(const *u64, req.address!)[] != size do
                         discard Swag.atomadd(&exchange.errors, 1)
                 }
 
@@ -123,12 +123,12 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             req.size      = exchangeSize(&state)
             req.alignment = exchangeNext(&state) % 16 == 0 ? 64'u32 : 0'u32
             exchange.allocator.alloc(&req)
-            let address = cast(u64) req.address
+            let address = cast(u64, req.address)
             if req.alignment and (address & 63) != 0 do
                 discard Swag.atomadd(&exchange.errors, 1)
 
-            (cast(*u64) address)[] = req.size
-            let bytes = cast([*] u8) address
+            cast(*u64, address)[] = req.size
+            let bytes = cast([*] u8, address)
             bytes[req.size - 1] = exchangeStamp(address, req.size)
             if req.size > 16 do
                 bytes[req.size / 2] = exchangeStamp(address, req.size)
@@ -137,7 +137,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             if previous
             {
                 var free: AllocatorRequest
-                free.address = cast(*void) previous
+                free.address = cast(*void, previous)
                 exchange.allocator.free(&free)
             }
         }
@@ -149,7 +149,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     #[Swag.CallingConvention(.C)]
     func allocatorRemoteFreeThread(param: *void)->AllocatorThreadTest.DWORD
     {
-        let payload = cast(*AllocatorRemoteFreePayload) param
+        let payload = cast(*AllocatorRemoteFreePayload, param)
 
         var req: AllocatorRequest
         req.address = payload.address
@@ -169,7 +169,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         return
 
     let allocator  = Swag.getContext().allocator
-    let runtimeItf = cast(const *Swag.Interface) &allocator
+    let runtimeItf = cast(const *Swag.Interface, &allocator)
     Swag.assert(runtimeItf.obj == defaultAllocator())
 }
 
@@ -190,9 +190,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == beforeCount + 1)
     Swag.assert(alloc.stats().sizeAlloc == beforeSize + 80)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8, req.address)
     for i in 80 do
-        ptr[i] = cast(u8) (i + 3)
+        ptr[i] = cast(u8, (i + 3))
 
     req.oldSize = 80
     req.size    = 4096
@@ -201,9 +201,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == beforeCount + 1)
     Swag.assert(alloc.stats().sizeAlloc == beforeSize + 4096)
 
-    let grown = cast([*] u8) req.address
+    let grown = cast([*] u8, req.address)
     for i in 80 do
-        Swag.assert(grown[i] == cast(u8) (i + 3))
+        Swag.assert(grown[i] == cast(u8, (i + 3)))
 
     req.size = 4096
     allocItf.free(&req)
@@ -224,16 +224,16 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var reqs: [12] AllocatorRequest
     for i in 12
     {
-        reqs[i].size = 31 + cast(u64) i * 37
+        reqs[i].size = 31 + cast(u64, i) * 37
         if i % 3 == 0 do
             reqs[i].alignment = 64
         let allocItf = Swag.getContext().allocator!
         allocItf.alloc(&reqs[i])
         Swag.assert(reqs[i].address != null)
 
-        let ptr = cast([*] u8) reqs[i].address!
+        let ptr = cast([*] u8, reqs[i].address!)
         for j in reqs[i].size do
-            ptr[j] = cast(u8) ((i + j) & 0xFF)
+            ptr[j] = cast(u8, ((i + j) & 0xFF))
     }
 
     Swag.assert(alloc.stats().countAlloc == beforeCount + 12)
@@ -256,9 +256,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         allocItf.realloc(&reqs[i])
         Swag.assert(reqs[i].address != null)
 
-        let ptr = cast([*] u8) reqs[i].address!
+        let ptr = cast([*] u8, reqs[i].address!)
         for j in reqs[i].oldSize do
-            Swag.assert(ptr[j] == cast(u8) ((i + j) & 0xFF))
+            Swag.assert(ptr[j] == cast(u8, ((i + j) & 0xFF)))
     }
 
     for i in 6 until 12
@@ -277,7 +277,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeAllocatorScratch(&scratch, &alloc)
 
-    let backing = cast(const *Swag.Interface) &scratch.allocator
+    let backing = cast(const *Swag.Interface, &scratch.allocator)
     Swag.assert(backing.obj == &alloc)
     Swag.assert(alloc.stats().countAlloc == 0)
 
@@ -338,7 +338,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == 1)
     Swag.assert(alloc.stats().sizeAlloc == 64)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8, req.address)
     for i in 64 do
         Swag.assert(ptr[i] == Allocator.AllocByte)
 
@@ -430,18 +430,18 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     let original = req.address
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8, req.address!)
     for i in 33 do
-        ptr[i] = cast(u8) (i + 1)
+        ptr[i] = cast(u8, (i + 1))
 
     req.oldSize = 33
     req.size    = 48
     itf.realloc(&req)
     Swag.assert(req.address == original)
 
-    let samePtr = cast([*] u8) req.address!
+    let samePtr = cast([*] u8, req.address!)
     for i in 33 do
-        Swag.assert(samePtr[i] == cast(u8) (i + 1))
+        Swag.assert(samePtr[i] == cast(u8, (i + 1)))
     for i in 33 until 48 do
         Swag.assert(samePtr[i] == Allocator.AllocByte)
 
@@ -461,18 +461,18 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let original = req.address
     Swag.assert(original != null)
 
-    let ptr = cast([*] u8) original
+    let ptr = cast([*] u8, original)
     for i in 96 do
-        ptr[i] = cast(u8) (255 - i)
+        ptr[i] = cast(u8, (255 - i))
 
     req.oldSize = 96
     req.size    = 24
     itf.realloc(&req)
     Swag.assert(req.address == original)
 
-    let shrunk = cast([*] u8) req.address!
+    let shrunk = cast([*] u8, req.address!)
     for i in 24 do
-        Swag.assert(shrunk[i] == cast(u8) (255 - i))
+        Swag.assert(shrunk[i] == cast(u8, (255 - i)))
 
     req.oldSize = 24
     req.size    = 0
@@ -491,18 +491,18 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 24
     itf.alloc(&req)
 
-    let ptr = cast([*] u8) req.address!
+    let ptr = cast([*] u8, req.address!)
     for i in 24 do
-        ptr[i] = cast(u8) (i * 3 + 7)
+        ptr[i] = cast(u8, (i * 3 + 7))
 
     req.oldSize = 24
     req.size    = 2048
     itf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let grown = cast([*] u8) req.address
+    let grown = cast([*] u8, req.address)
     for i in 24 do
-        Swag.assert(grown[i] == cast(u8) (i * 3 + 7))
+        Swag.assert(grown[i] == cast(u8, (i * 3 + 7)))
 
     req.size = 2048
     itf.free(&req)
@@ -539,7 +539,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.alignment = 128
     itf.alloc(&req)
     Swag.assert(req.address != null)
-    Swag.assert(cast(u64) req.address % 128 == 0)
+    Swag.assert(cast(u64, req.address) % 128 == 0)
 
     req.size = 257
     itf.free(&req)
@@ -598,7 +598,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -620,7 +620,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(tracking.stackCount == 0)
     Swag.assert(alloc.firstAlloc == header)
@@ -651,7 +651,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(req.address != null)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -673,11 +673,11 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8, req.address)
     for i in 128 do
         Swag.assert(ptr[i] == Allocator.AllocByte)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(tracking.stackCount <= tracking.stack.count)
 
@@ -697,7 +697,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(req.address != null)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -724,7 +724,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.assert(alloc.stats().countAlloc == 1)
     Swag.assert(alloc.firstAlloc != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(header.magic == Allocator.MagicAlloc)
@@ -764,7 +764,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var reqs: [10] AllocatorRequest
     for i in 10
     {
-        reqs[i].size = 64 + cast(u64) i * 17
+        reqs[i].size = 64 + cast(u64, i) * 17
         reqs[i].hint = "debug-mixed-regression"
         if i % 2 == 0 do
             reqs[i].alignment = 32
@@ -823,7 +823,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var reqs: [32] AllocatorRequest
     for i in 32
     {
-        reqs[i].size = 32 + cast(u64) (i % 8) * 16
+        reqs[i].size = 32 + cast(u64, (i % 8)) * 16
         itf.alloc(&reqs[i])
         Swag.assert(reqs[i].address != null)
 
@@ -921,7 +921,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         // A remote free parks the block on the page's atomic list; the owner picks it up the next
         // time the page runs dry, or when the caller asks for idle memory back.
         Swag.assert(alloc.stats().countAlloc == 0)
-        let page = allocatorPageOf(cast(u64) first)!
+        let page = allocatorPageOf(cast(u64, first))!
         Swag.assert(page.remoteCount() == 1)
 
         alloc.trim()
@@ -981,7 +981,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             var req: AllocatorRequest
             req.size = 64
             itf.alloc(&req)
-            addresses[i] = cast(u64) req.address
+            addresses[i] = cast(u64, req.address)
         }
 
         let first = allocatorPageOf(addresses[0])!
@@ -990,7 +990,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var done:    s32 = 0
         var payload: AllocatorRemoteFreePayload
         payload.allocator = itf
-        payload.address   = cast(*void) addresses[0]
+        payload.address   = cast(*void, addresses[0])
         payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD
@@ -1007,7 +1007,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             var req: AllocatorRequest
             req.size = 64
             itf.alloc(&req)
-            if cast(u64) req.address == addresses[0]
+            if cast(u64, req.address) == addresses[0]
             {
                 reused = true
                 break
@@ -1055,7 +1055,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             if exchange.slots[slot]
             {
                 var req: AllocatorRequest
-                req.address = cast(*void) exchange.slots[slot]
+                req.address = cast(*void, exchange.slots[slot])
                 exchange.allocator.free(&req)
             }
         }

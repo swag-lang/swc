@@ -33,13 +33,13 @@ func assertDeblockHorizontalCase(seed: u64, indexA: s32, strengths: const *H264.
     var actual:   [128] u8
     for index in 128
     {
-        let value = cast(u8) ((index * (seed * 14 + 1) + seed * 29 + 7) & 255)
+        let value = cast(u8, ((index * (seed * 14 + 1) + seed * 29 + 7) & 255))
         expected[index] = value
         actual[index]   = value
     }
 
-    let alpha = cast(s32) H264.DeblockAlpha[cast(u64) indexA]
-    let beta  = cast(s32) H264.DeblockBeta[cast(u64) indexA]
+    let alpha = cast(s32, H264.DeblockAlpha[cast(u64, indexA)])
+    let beta  = cast(s32, H264.DeblockBeta[cast(u64, indexA)])
     referenceFilterLumaHorizontal(expected.buffer + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
     if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4 do
         H264.filterLumaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
@@ -92,13 +92,13 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
     var actual:   [Lines * Stride] u8
     for index in Lines * Stride
     {
-        let value = cast(u8) ((index * (seed * 11 + 3) + seed * 17 + 5) & 255)
+        let value = cast(u8, ((index * (seed * 11 + 3) + seed * 17 + 5) & 255))
         expected[index] = value
         actual[index]   = value
     }
 
-    let alpha = cast(s32) H264.DeblockAlpha[cast(u64) indexA]
-    let beta  = cast(s32) H264.DeblockBeta[cast(u64) indexA]
+    let alpha = cast(s32, H264.DeblockAlpha[cast(u64, indexA)])
+    let beta  = cast(s32, H264.DeblockBeta[cast(u64, indexA)])
 
     // Luma: four strengths, four lines each.
     var reference = expected.buffer + 8

@@ -75,7 +75,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     // place the surface through setPosition, which works in physical screen pixels.
     result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, 16, 16, .ToolWindow | .TopMost | .NoShadow)
     let sf = result.sf
-    sf.setPosition({cast(f32) g_DesktopX, cast(f32) g_DesktopY, cast(f32) g_ScreenWidth, cast(f32) g_ScreenHeight})
+    sf.setPosition({cast(f32, g_DesktopX), cast(f32, g_DesktopY), cast(f32, g_ScreenWidth), cast(f32, g_ScreenHeight)})
 
     let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     captureWnd.main   = main
@@ -102,8 +102,8 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture
     let grabRect     = getGrabRect()
     with let capture = Memory.new'Capture()
     {
-        .width          = cast(s32) grabRect.width
-        .height         = cast(s32) grabRect.height
+        .width          = cast(s32, grabRect.width)
+        .height         = cast(s32, grabRect.height)
         .backImg        = img
         .backImagePos.x = -grabRect.x
         .backImagePos.y = -grabRect.y
@@ -226,10 +226,10 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         // Grab bounds are desktop-relative; blit only that rectangle instead of
         // capturing the whole virtual desktop and cropping.
         var img = try getScreenRectImage(main.captureOptions.captureCursor,
-                                         g_DesktopX + cast(s32) grabRect.x,
-                                         g_DesktopY + cast(s32) grabRect.y,
-                                         cast(s32) wGrab,
-                                         cast(s32) hGrab)
+                                         g_DesktopX + cast(s32, grabRect.x),
+                                         g_DesktopY + cast(s32, grabRect.y),
+                                         cast(s32, wGrab),
+                                         cast(s32, hGrab))
 
         with capture = Memory.new'Capture()
         {

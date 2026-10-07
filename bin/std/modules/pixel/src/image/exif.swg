@@ -147,7 +147,7 @@ private impl Reader
         for index in size
         {
             let shift = .littleEndian ? index * 8 : (size - 1 - index) * 8
-            result |= cast(u64) .bytes[offset + index] << shift
+            result |= cast(u64, .bytes[offset + index]) << shift
         }
 
         return result
@@ -162,7 +162,7 @@ private impl Reader
             let byte = .bytes[offset + index]
             if not byte do
                 return result
-            result += cast(rune) (byte < 32 and byte != 9 and byte != 10 and byte != 13 ? 32 : byte)
+            result += cast(rune, (byte < 32 and byte != 9 and byte != 10 and byte != 13 ? 32 : byte))
         }
 
         if count > limit do
@@ -188,14 +188,14 @@ private impl Reader
                 let numerator   = try .number(at, 4)
                 let denominator = try .number(at + 4, 4)
                 if kind == 10 do
-                    result += Format.toString("%/%", cast #bit(s32) cast(u32) numerator, cast #bit(s32) cast(u32) denominator)
+                    result += Format.toString("%/%", cast #bit(s32, cast(u32, numerator)), cast #bit(s32, cast(u32, denominator)))
                 else do
                     result += Format.toString("%/%", numerator, denominator)
             }
             else
             {
                 let value = try .number(at, size)
-                result += kind == 9 ? Format.toString("%", cast #bit(s32) cast(u32) value) : Format.toString("%", value)
+                result += kind == 9 ? Format.toString("%", cast #bit(s32, cast(u32, value))) : Format.toString("%", value)
             }
         }
 
@@ -218,7 +218,7 @@ private impl Reader
         for index in count
         {
             let at       = offset + 2 + index * 12
-            let tag      = cast(u16) try .number(at, 2)
+            let tag      = cast(u16, try .number(at, 2))
             let kind     = try .number(at + 2, 2)
             let elements = try .number(at + 4, 4)
             var size     = 0'u64

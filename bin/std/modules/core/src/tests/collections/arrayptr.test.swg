@@ -47,7 +47,7 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 {
     var values: ArrayPtr's32
     values.addNew()[] = 7
-    values.add(cast(*s32?) null)
+    values.add(cast(*s32?, null))
     values.addNew()[] = 9
 
     var copy = values
@@ -91,7 +91,7 @@ impl ApTracked
     for i in 5
     {
         let p = arr.addNew()
-        p.id = cast(s32) i
+        p.id = cast(s32, i)
     }
 
     Swag.assert(arr.count == 5)
@@ -101,8 +101,8 @@ impl ApTracked
     let third = arr[2]
     Swag.assert(arr.indexOf(third) == 2)
     Swag.assert(arr.contains(third))
-    Swag.assert(arr.indexOf(cast(*ApTracked?) null) == Swag.U64.Max)
-    Swag.assert(not arr.contains(cast(*ApTracked?) null))
+    Swag.assert(arr.indexOf(cast(*ApTracked?, null)) == Swag.U64.Max)
+    Swag.assert(not arr.contains(cast(*ApTracked?, null)))
 
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)
@@ -174,7 +174,7 @@ func apCountByValue(values: Array'rune)->u64
 {
     var total = 0'u64
     for i in values.count do
-        total += cast(u64) values[i]
+        total += cast(u64, values[i])
     return total
 }
 
@@ -185,12 +185,12 @@ func apCountByValue(values: Array'rune)->u64
 {
     var runes: Array'rune
     runes.add('X')
-    Swag.assert(apCountByValue(runes) == cast(u64) 'X')
+    Swag.assert(apCountByValue(runes) == cast(u64, 'X'))
 
     var holder: ArrayPtr'ApFlagged
     discard holder.addNew()
     let first = holder[0]!
     first.tag = 2
     g_ApTotal = apCountByValue(runes) + first.tag
-    Swag.assert(g_ApTotal == cast(u64) 'X' + 2)
+    Swag.assert(g_ApTotal == cast(u64, 'X') + 2)
 }

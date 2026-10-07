@@ -17,7 +17,7 @@ using Swag, Core, Pixel
     let icons = [ThemeIcons.Appearance, .OpenFile, .ParentFolder, .History, .OpenExternal]
     for icon, idx in icons
     {
-        let x = 8 + cast(f32) idx * 48
+        let x = 8 + cast(f32, idx) * 48
         IconButton.create(&host.root, host.theme.icon(icon, 20), {x, 8, 40, 36})
         IconButton.create(&host.root, host.theme.icon(icon, 16), {x, 52, 40, 36})
     }
@@ -44,8 +44,8 @@ using Swag, Core, Pixel
                  ThemeIcons.RepeatAll, .Shuffle, .PlaybackSpeed]
     for icon, idx in icons
     {
-        let x = 8 + cast(f32) (idx % 5) * 48
-        let y = 8 + cast(f32) (idx / 5) * 44
+        let x = 8 + cast(f32, (idx % 5)) * 48
+        let y = 8 + cast(f32, (idx / 5)) * 44
         IconButton.create(&host.root, host.theme.icon(icon, 20), {x, y, 40, 36})
     }
 

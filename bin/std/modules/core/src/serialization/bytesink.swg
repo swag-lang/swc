@@ -99,7 +99,7 @@ impl ByteSink
     // Appends the bytes of `text` to the stream.
     mtd writeText(text: string) fail
     {
-        try .write(cast(const [..] u8) text)
+        try .write(cast(const [..] u8, text))
     }
 
     // Appends one byte.
@@ -117,7 +117,7 @@ impl ByteSink
     mtd(T) writeNative(value: T) fail
     {
         var stored = value
-        try .write(Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
+        try .write(Swag.makeSlice(cast(const [*] u8, &stored), #sizeof(T)))
     }
 
     // Appends an integer of type `T` in little-endian byte order.

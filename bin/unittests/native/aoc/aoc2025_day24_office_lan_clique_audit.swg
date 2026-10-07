@@ -16,17 +16,17 @@ struct LanAudit
 
 func parseLabel(bytes: const [..] u8, startIndex: u32)->u16
 {
-    return (cast(u16) bytes[startIndex] << 8) | cast(u16) bytes[startIndex + 1]
+    return (cast(u16, bytes[startIndex]) << 8) | cast(u16, bytes[startIndex + 1])
 }
 
 func labelFirstByte(label: u16)->u8
 {
-    return cast(u8) (label >> 8)
+    return cast(u8, (label >> 8))
 }
 
 func labelSecondByte(label: u16)->u8
 {
-    return cast(u8) (label & 0x00FF'u16)
+    return cast(u8, (label & 0x00FF'u16))
 }
 
 func labelLess(left, right: u16)->bool
@@ -54,7 +54,7 @@ func findComputerIndex(labels: const [..] u16, labelCount: u32, target: u16)->u3
 {
     for idx in labelCount
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if labels[index] == target do
             return index
     }
@@ -81,13 +81,13 @@ func isClique(mask: u32, adjacency: const [..] bool, computerCount: u32)->bool
 {
     for index in computerCount
     {
-        let left = cast(u32) index
+        let left = cast(u32, index)
         if (mask & (1'u32 << left)) == 0'u32 do
             continue
 
         for idx in computerCount
         {
-            let right = cast(u32) idx
+            let right = cast(u32, idx)
             if right <= left do
                 continue
 
@@ -109,7 +109,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
     for idx in computerCount
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if (mask & (1'u32 << index)) != 0'u32
         {
             selected[selectedCount] = labels[index]
@@ -119,10 +119,10 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
     for idx in selectedCount
     {
-        let left = cast(u32) idx
+        let left = cast(u32, idx)
         for ordinal in selectedCount
         {
-            let right = cast(u32) ordinal
+            let right = cast(u32, ordinal)
             if right <= left do
                 continue
 
@@ -138,7 +138,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
     var length: u32
     for idx in selectedCount
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         let label = selected[index]
 
         if index != 0
@@ -162,7 +162,7 @@ func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: c
 
     for idx in commonLength
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if leftPassword[index] < rightPassword[index] do
             return true
         if leftPassword[index] > rightPassword[index] do
@@ -174,13 +174,13 @@ func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: c
 
 func passwordMatches(audit: LanAudit, expected: string)->bool
 {
-    let expectedBytes = cast(const [..] u8) expected
-    if audit.passwordLength != cast(u32) expectedBytes.count do
+    let expectedBytes = cast(const [..] u8, expected)
+    if audit.passwordLength != cast(u32, expectedBytes.count) do
         return false
 
     for idx in audit.passwordLength
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if audit.password[index] != expectedBytes[index] do
             return false
     }
@@ -199,7 +199,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
     for line in connections
     {
-        let bytes = cast(const [..] u8) line
+        let bytes = cast(const [..] u8, line)
         Swag.assert(bytes.count == 5)
         Swag.assert(bytes[2] == '-'u8)
 
@@ -230,10 +230,10 @@ func auditLan(connections: const [..] string)->LanAudit
 
     for idx in computerCount
     {
-        let first = cast(u32) idx
+        let first = cast(u32, idx)
         for ordinal in computerCount
         {
-            let second = cast(u32) ordinal
+            let second = cast(u32, ordinal)
             if second <= first do
                 continue
 
@@ -242,7 +242,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
             for position in computerCount
             {
-                let third = cast(u32) position
+                let third = cast(u32, position)
                 if third <= second do
                     continue
 
@@ -260,7 +260,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
     for idx in subsetCount - 1
     {
-        let mask       = cast(u32) idx + 1
+        let mask       = cast(u32, idx) + 1
         let cliqueSize = countBits(mask)
         if cliqueSize < result.largestCliqueSize do
             continue
@@ -281,7 +281,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
             for ordinal in candidateLength
             {
-                let index = cast(u32) ordinal
+                let index = cast(u32, ordinal)
                 result.password[index] = candidatePassword[index]
             }
         }

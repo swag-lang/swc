@@ -122,7 +122,7 @@ impl Program
     mtd addInst(inst: Inst)->u32
     {
         .insts.add(inst)
-        return cast(u32) .insts.count - 1
+        return cast(u32, .insts.count) - 1
     }
 
     mtd emitByteRange(lo, hi: u8, next: u32)->u32 => .addInst({kind: .ByteRange, lo: lo, hi: hi, next: next})
@@ -255,8 +255,8 @@ impl Program
             }
 
             singles += 1
-            for var b = cast(u32) seq.lo[0]; b <= cast(u32) seq.hi[0]; b += 1 do
-                single.add(cast(u8) b)
+            for var b = cast(u32, seq.lo[0]); b <= cast(u32, seq.hi[0]); b += 1 do
+                single.add(cast(u8, b))
         }
 
         var entry = NoNode
@@ -282,7 +282,7 @@ impl Program
         else
         {
             .byteSets.add(single)
-            ascii = .addInst({kind: .ByteSet, slot: cast(u32) .byteSets.count - 1, next: next})
+            ascii = .addInst({kind: .ByteSet, slot: cast(u32, .byteSets.count) - 1, next: next})
         }
 
         if entry == NoNode do
@@ -599,7 +599,7 @@ impl Program
             if inst.kind == InstKind.ByteRange
             {
                 boundary[inst.lo] = true
-                boundary[cast(u32) inst.hi + 1] = true
+                boundary[cast(u32, inst.hi) + 1] = true
                 continue
             }
 
@@ -610,7 +610,7 @@ impl Program
             // the ends of an interval are.
             for var b = 1'u32; b < 256; b += 1
             {
-                if .byteSets[inst.slot].contains(cast(u8) b) != .byteSets[inst.slot].contains(cast(u8) (b - 1)) do
+                if .byteSets[inst.slot].contains(cast(u8, b)) != .byteSets[inst.slot].contains(cast(u8, (b - 1))) do
                     boundary[b] = true
             }
 
@@ -622,14 +622,14 @@ impl Program
         {
             for var b = 1'u32; b < 256; b += 1
             {
-                if isWordByte(cast(u8) b) != isWordByte(cast(u8) (b - 1)) do
+                if isWordByte(cast(u8, b)) != isWordByte(cast(u8, (b - 1))) do
                     boundary[b] = true
             }
         }
 
         if .hasAssert
         {
-            const NewLineByte = cast(u32) '\n'
+            const NewLineByte = cast(u32, '\n')
             boundary[NewLineByte]     = true
             boundary[NewLineByte + 1] = true
         }
@@ -640,13 +640,13 @@ impl Program
             if b != 0 and boundary[b]
             {
                 current += 1
-                .classFirstByte[current] = cast(u8) b
+                .classFirstByte[current] = cast(u8, b)
             }
 
             .byteClass[b] = current
         }
 
-        .byteClassCount = cast(u32) current + 1
+        .byteClassCount = cast(u32, current) + 1
     }
 }
 
@@ -675,14 +675,14 @@ impl Program
         {
             for var b = 0'u32; b < 256; b += 1
             {
-                if .byteSets[.insts[pc].slot].contains(cast(u8) b) do
-                    set.add(cast(u8) b)
+                if .byteSets[.insts[pc].slot].contains(cast(u8, b)) do
+                    set.add(cast(u8, b))
             }
         }
         else
         {
-            for var b = cast(u32) .insts[pc].lo; b <= cast(u32) .insts[pc].hi; b += 1 do
-                set.add(cast(u8) b)
+            for var b = cast(u32, .insts[pc].lo); b <= cast(u32, .insts[pc].hi); b += 1 do
+                set.add(cast(u8, b))
         }
 
         added[] += set.members - before
@@ -784,8 +784,8 @@ func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
     {
         var seq: ByteSequence
         seq.count = 1
-        seq.lo[0] = cast(u8) lo
-        seq.hi[0] = cast(u8) hi
+        seq.lo[0] = cast(u8, lo)
+        seq.hi[0] = cast(u8, hi)
         out.add(seq)
         return
     }

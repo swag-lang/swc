@@ -95,7 +95,7 @@ internal func hasSerialWorkerPool()->bool
     if known == 0 do
         return false
 
-    let sched = cast(*Scheduler) known
+    let sched = cast(*Scheduler, known)
     return sched.count.load() < 2 and sched.started.load() != 0
 }
 
@@ -107,7 +107,7 @@ internal func schedulerInstance()->*Scheduler
 {
     var known = g_Scheduler.load()
     if known != 0 do
-        return cast(*Scheduler) known
+        return cast(*Scheduler, known)
 
     // Serialize first use within this artifact, including the host-anchor failure path.
     // Readers acquire the published pointer without locking once initialization is complete.
@@ -115,13 +115,13 @@ internal func schedulerInstance()->*Scheduler
     defer g_SchedulerMutex.unlock()
     known = g_Scheduler.load()
     if known != 0 do
-        return cast(*Scheduler) known
+        return cast(*Scheduler, known)
 
-    let created = cast(*Scheduler?) __bootstrapAlloc(#sizeof(Scheduler))
+    let created = cast(*Scheduler?, __bootstrapAlloc(#sizeof(Scheduler)))
     if not created do
         Swag.panic("cannot allocate the runtime scheduler", #curlocation)
 
-    let winner = cast(*Scheduler) __hostProcessSingleton(SchedulerAnchorKey, created)
+    let winner = cast(*Scheduler, __hostProcessSingleton(SchedulerAnchorKey, created))
     if winner == created
     {
         g_SchedulerOwned = true
@@ -130,10 +130,10 @@ internal func schedulerInstance()->*Scheduler
     {
         // Another artifact of this process installed the pool first. Nothing has touched this
         // candidate yet, so releasing it is enough.
-        __bootstrapFree(cast([*] void?) created)
+        __bootstrapFree(cast([*] void?, created))
     }
 
-    g_Scheduler.store(cast(u64) winner)
+    g_Scheduler.store(cast(u64, winner))
     return winner
 }
 
@@ -230,7 +230,7 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         if capacity > MaxWorkers do
             capacity = MaxWorkers
 
-        let workers = cast([*] Worker?) __bootstrapAlloc(cast(u64) capacity * #sizeof(Worker))
+        let workers = cast([*] Worker?, __bootstrapAlloc(cast(u64, capacity) * #sizeof(Worker)))
         if not workers do
             return
 
@@ -272,7 +272,7 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
 {
     // The address is kept before the work runs, because the registry below is consulted after
     // this node may already belong to someone else.
-    let address = cast(u64) node
+    let address = cast(u64, node)
     let entry   = node.entry
     if entry
     {
@@ -327,7 +327,7 @@ private func hasWorkObserver(sched: *Scheduler, address: u64)->bool
 // reading the registry. One of the two therefore always observes the other.
 private func claimObserverSlot(sched: *Scheduler, address: u64)->u32
 {
-    let first = cast(u32) ((address >> 5) & cast(u64) (MaxObservers - 1))
+    let first = cast(u32, ((address >> 5) & cast(u64, (MaxObservers - 1))))
     for offset in MaxObservers
     {
         let index = (first + offset) & (MaxObservers - 1)
@@ -411,7 +411,7 @@ internal func runPendingWork()->bool
 #[Swag.CallingConvention(.C)]
 private func schedulerWorkerEntry(param: *void?)->u32
 {
-    let worker = cast(*Worker) param!
+    let worker = cast(*Worker, param!)
     let sched  = worker.scheduler!
 
     Swag.setContext(&worker.context)
@@ -515,7 +515,7 @@ internal func waitWork(node: *WorkNode)
 private func parkWorkObserver(node: *WorkNode)
 {
     let sched = schedulerInstance()
-    let slot  = claimObserverSlot(sched, cast(u64) node)
+    let slot  = claimObserverSlot(sched, cast(u64, node))
 
     sched.mutex.lock()
     sched.joining.add(1)
@@ -564,7 +564,7 @@ internal func __shutdownScheduler()
 
     drainWork()
 
-    let pool = cast(*Scheduler) sched
+    let pool = cast(*Scheduler, sched)
     pool.mutex.lock()
     pool.stopping.store(1)
     pool.mutex.unlock()

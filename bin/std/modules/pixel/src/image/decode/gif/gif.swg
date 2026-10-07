@@ -100,9 +100,9 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeStream()->const [*] u8      => cast(const [*] u8) .stream!
-    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) .streamStart!
-    mtd safePalette()->*Palette         => cast(*Palette) .palette!
+    mtd safeStream()->const [*] u8      => cast(const [*] u8, .stream!)
+    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8, .streamStart!)
+    mtd safePalette()->*Palette         => cast(*Palette, .palette!)
 }
 
 public impl Decoder
@@ -177,7 +177,7 @@ public impl Decoder
     mtd frameCount()->s32 fail
     {
         Swag.assert(.reader.isOpen())
-        return cast(s32) .reader.info.frames.count
+        return cast(s32, .reader.info.frames.count)
     }
 
     // Rewinds frame iteration to the first frame.
@@ -241,7 +241,7 @@ impl IImageSetDecoder for SetDecoder
         result.canvasHeight = .decoder.height
         if .decoder.bgIndex < .decoder.gct.size
         {
-            let color = cast(const [*] u8) &.decoder.gct.colors[cast(u32) .decoder.bgIndex * 3]
+            let color = cast(const [*] u8, &.decoder.gct.colors[cast(u32, .decoder.bgIndex) * 3])
             result.background = {r: color[0], g: color[1], b: color[2], a: 255}
         }
 
@@ -250,13 +250,13 @@ impl IImageSetDecoder for SetDecoder
             try options.checkFrameCount(.frames.count + 1)
             .frames.add({.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
             let control = .decoder.gce
-            let frame: ImageFrameInfo = {kind: .Animation, width: .decoder.fw, height: .decoder.fh, x: .decoder.fx, y: .decoder.fy, pixelFormat: control.transparency ? .RGBA8 : .RGB8, durationSeconds: cast(f64) control.delay / 100, disposal: control.disposal == 3 ? .Previous : (control.disposal == 2 ? .Background : .Keep), blend: .Over}
+            let frame: ImageFrameInfo = {kind: .Animation, width: .decoder.fw, height: .decoder.fh, x: .decoder.fx, y: .decoder.fy, pixelFormat: control.transparency ? .RGBA8 : .RGB8, durationSeconds: cast(f64, control.delay) / 100, disposal: control.disposal == 3 ? .Previous : (control.disposal == 2 ? .Background : .Keep), blend: .Over}
             result.frames.add(frame)
             if result.frames.count == 1 and control.transparency do
                 result.background = {a: 0}
         }
 
-        result.loopCount = .decoder.hasLoopExtension ? (.decoder.loopCount ? cast(u32) .decoder.loopCount + 1 : 0) : 1
+        result.loopCount = .decoder.hasLoopExtension ? (.decoder.loopCount ? cast(u32, .decoder.loopCount) + 1 : 0) : 1
         return result
     }
 
@@ -268,7 +268,7 @@ impl IImageSetDecoder for SetDecoder
         .decoder.streamLen = .frames[index].remaining
         .decoder.gce       = .frames[index].control
         if options.decodePixels do
-            .decoder.frame.resize(cast(u64) .decoder.width * .decoder.height)
+            .decoder.frame.resize(cast(u64, .decoder.width) * .decoder.height)
         try .decoder.readImage(options.decodePixels)
         var result: retval
         result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
@@ -280,11 +280,11 @@ impl IImageSetDecoder for SetDecoder
         {
             for x in result.width
             {
-                let value = .decoder.frame[cast(u64) (.decoder.fy + y) * .decoder.width + .decoder.fx + x]
+                let value = .decoder.frame[cast(u64, (.decoder.fy + y)) * .decoder.width + .decoder.fx + x]
                 if value >= palette.size do
                     fail InvalidFormatError{"GIF palette index is out of range"}
-                let color  = &palette.colors[cast(u32) value * 3]
-                let target = result.pixels.storage() + cast(u64) (result.height - y - 1) * result.rowStride + cast(u64) x * result.bytesPerPixel
+                let color  = &palette.colors[cast(u32, value) * 3]
+                let target = result.pixels.storage() + cast(u64, (result.height - y - 1)) * result.rowStride + cast(u64, x) * result.bytesPerPixel
                 Memory.copy(target, color, 3)
                 if result.bytesPerPixel == 4 do
                     target[3] = value == .decoder.gce.tindex ? 0'u8 : 255'u8

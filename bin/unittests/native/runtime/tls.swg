@@ -50,7 +50,7 @@ tls var g_Point: TlsPoint
     #[Swag.CallingConvention(.C)]
     func tlsWorker(param: *void)->Th.DWORD
     {
-        let result = cast(*TlsResult) param
+        let result = cast(*TlsResult, param)
 
         // What the thread finds before writing anything is its own copy of the initializer, not
         // the value the main thread left in its copy.

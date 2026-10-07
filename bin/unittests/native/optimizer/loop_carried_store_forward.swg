@@ -98,7 +98,7 @@ func aliasedStoreRef(row, other: [*] u64, n: u64)->u64
     }
 
     for n in 15 do
-        Swag.assert(twoLocalRows(cast(u64) n * 77 + 5, n) == twoLocalRowsRef(cast(u64) n * 77 + 5, n))
+        Swag.assert(twoLocalRows(cast(u64, n) * 77 + 5, n) == twoLocalRowsRef(cast(u64, n) * 77 + 5, n))
 }
 
 #test
@@ -213,7 +213,7 @@ func multipleWindowsRef(row: const [*] u64, n: u64)->u64
         var a, b: [14] u64
         for i in 14
         {
-            a[i] = cast(u64) i * 111
+            a[i] = cast(u64, i) * 111
             b[i] = a[i]
         }
         Swag.assert(multipleWindows(&a[0], n) == multipleWindowsRef(&b[0], n))

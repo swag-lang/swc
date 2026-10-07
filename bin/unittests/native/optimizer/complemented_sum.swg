@@ -35,8 +35,8 @@ func checked(a, b: u64)->u64 => ~(~a + b)
             Swag.assert(swapped(a, b) == a - b)
             Swag.assert(shared(a, b) == ((a - b) ^ ~a))
             Swag.assert(compared(a, b) == (a == b))
-            let lowA = cast(u32) (a & 0xFFFFFFFF)
-            let lowB = cast(u32) (b & 0xFFFFFFFF)
+            let lowA = cast(u32, (a & 0xFFFFFFFF))
+            let lowB = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(complemented32(lowA, lowB) == lowA - lowB)
         }
     }

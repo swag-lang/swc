@@ -5,7 +5,7 @@ using Swag
 
 func assertKey(key: Input.Key, index: u32)
 {
-    Swag.assert(cast(u32) key == index)
+    Swag.assert(cast(u32, key) == index)
 }
 
 #test
@@ -13,10 +13,10 @@ func assertKey(key: Input.Key, index: u32)
     var virtualKey: Input.VirtualKey = 42
     Swag.assert(virtualKey == 42)
 
-    Swag.assert(cast(u32) Input.KeyModifiers.None == 0)
-    Swag.assert(cast(u32) Input.KeyModifiers.Shift == 1)
-    Swag.assert(cast(u32) Input.KeyModifiers.Control == 2)
-    Swag.assert(cast(u32) Input.KeyModifiers.Alt == 4)
+    Swag.assert(cast(u32, Input.KeyModifiers.None) == 0)
+    Swag.assert(cast(u32, Input.KeyModifiers.Shift) == 1)
+    Swag.assert(cast(u32, Input.KeyModifiers.Control) == 2)
+    Swag.assert(cast(u32, Input.KeyModifiers.Alt) == 4)
     Swag.assert(Input.KeyModifiers.CtrlShift == (Input.KeyModifiers.Control | Input.KeyModifiers.Shift))
     Swag.assert(Input.KeyModifiers.CtrlAlt == (Input.KeyModifiers.Control | Input.KeyModifiers.Alt))
 }

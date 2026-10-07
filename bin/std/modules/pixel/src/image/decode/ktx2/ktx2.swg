@@ -18,10 +18,10 @@ internal struct Decoder
 }
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => (cast(const *u32) source)[]
+func readU32(source: const [*] u8)->u32 => cast(const *u32, source)[]
 
 #[Swag.Inline]
-func readU64(source: const [*] u8)->u64 => (cast(const *u64) source)[]
+func readU64(source: const [*] u8)->u64 => cast(const *u64, source)[]
 
 func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)->bool
 {
@@ -58,15 +58,15 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
 
 func copyRows(image: *Image, source: const [..] u8, sourceTopDown: bool) fail
 {
-    let required = cast(u64) image.rowStride * cast(u64) image.height
+    let required = cast(u64, image.rowStride) * cast(u64, image.height)
     if source.count < required do
         fail InvalidFormatError{"KTX2 level data is truncated"}
     for y in image.height
     {
         let targetY = sourceTopDown ? image.height - y - 1 : y
-        Memory.copy(image.pixels.storage() + cast(u64) targetY * image.rowStride,
-                    source.buffer + cast(u64) y * image.rowStride,
-                    cast(u64) image.rowStride)
+        Memory.copy(image.pixels.storage() + cast(u64, targetY) * image.rowStride,
+                    source.buffer + cast(u64, y) * image.rowStride,
+                    cast(u64, image.rowStride))
     }
 }
 
@@ -96,15 +96,15 @@ impl Decoder
         let dfdLength        = readU32(buffer.buffer + 52)
         let kvdOffset        = readU32(buffer.buffer + 56)
         let kvdLength        = readU32(buffer.buffer + 60)
-        if baseWidth == 0 or baseWidth > cast(u32) Swag.S32.Max or baseHeight > cast(u32) Swag.S32.Max do
+        if baseWidth == 0 or baseWidth > cast(u32, Swag.S32.Max) or baseHeight > cast(u32, Swag.S32.Max) do
             fail UnsupportedFormatError{"KTX2 dimensions exceed the image limits"}
         if (faceCount != 1 and faceCount != 6) or (depth and (faceCount != 1 or not baseHeight)) or (faceCount == 6 and baseWidth != baseHeight) do
             fail InvalidFormatError{"KTX2 texture dimensions and face count disagree"}
         if storedLevelCount > 32 or levelIndex >= storedLevelCount do
             fail InvalidFormatError{"KTX2 mip level is out of range"}
-        if cast(u64) storedLevelCount > (buffer.count - HeaderSize) / 24 do
+        if cast(u64, storedLevelCount) > (buffer.count - HeaderSize) / 24 do
             fail InvalidFormatError{"KTX2 level index is truncated"}
-        if dfdLength < 28 or cast(u64) dfdOffset + dfdLength > buffer.count or readU32(buffer.buffer + dfdOffset) != dfdLength do
+        if dfdLength < 28 or cast(u64, dfdOffset) + dfdLength > buffer.count or readU32(buffer.buffer + dfdOffset) != dfdLength do
             fail InvalidFormatError{"KTX2 data format descriptor is invalid"}
         if compression != 0 and compression != 3 do
             fail UnsupportedFormatError{"KTX2 supercompression must be absent or ZLIB"}
@@ -112,15 +112,15 @@ impl Decoder
         var sourceTopDown = true
         if kvdLength
         {
-            if cast(u64) kvdOffset + kvdLength > buffer.count do
+            if cast(u64, kvdOffset) + kvdLength > buffer.count do
                 fail InvalidFormatError{"KTX2 key/value data exceeds the file"}
-            var kvdPosition = cast(u64) kvdOffset
+            var kvdPosition = cast(u64, kvdOffset)
             let kvdEnd      = kvdPosition + kvdLength
             while kvdPosition < kvdEnd
             {
                 if kvdEnd - kvdPosition < 4 do
                     fail InvalidFormatError{"KTX2 key/value length is truncated"}
-                let entryLength = cast(u64) readU32(buffer.buffer + kvdPosition)
+                let entryLength = cast(u64, readU32(buffer.buffer + kvdPosition))
                 kvdPosition += 4
                 if entryLength > kvdEnd - kvdPosition do
                     fail InvalidFormatError{"KTX2 key/value entry is truncated"}
@@ -129,7 +129,7 @@ impl Decoder
                     separator += 1
                 if separator == entryLength do
                     fail InvalidFormatError{"KTX2 key/value entry has no key terminator"}
-                let key         = cast(string) Swag.makeSlice(buffer.buffer + kvdPosition, separator)
+                let key         = cast(string, Swag.makeSlice(buffer.buffer + kvdPosition, separator))
                 let valueOffset = kvdPosition + separator + 1
                 let valueLength = entryLength - separator - 1
                 if key == "KTXorientation" and valueLength >= 2
@@ -153,26 +153,26 @@ impl Decoder
             fail UnsupportedFormatError{"KTX2 Vulkan pixel format is not supported"}
         if blocks != .None do
             format = .RGBA8
-        let flags     = buffer[cast(u64) dfdOffset + 15]
+        let flags     = buffer[cast(u64, dfdOffset) + 15]
         let alphaMode = (flags & 1) != 0 and format.hasAlpha() ? AlphaMode.Premultiplied : AlphaMode.Straight
 
         var result: retval
-        result.init(cast(s32) width, cast(s32) height, format, alphaMode)
+        result.init(cast(s32, width), cast(s32, height), format, alphaMode)
         try options.checkImage(result.width, result.height, format)
 
-        let levelEntry  = HeaderSize + cast(u64) levelIndex * 24
+        let levelEntry  = HeaderSize + cast(u64, levelIndex) * 24
         let levelOffset = readU64(buffer.buffer + levelEntry)
         let levelLength = readU64(buffer.buffer + levelEntry + 8)
         let rawLength   = readU64(buffer.buffer + levelEntry + 16)
         if levelOffset > buffer.count or levelLength > buffer.count - levelOffset do
             fail InvalidFormatError{"KTX2 base level points outside the file"}
-        let imageCount = cast(u64) Math.max(layerCount, 1'u32) * faceCount * Math.max(depth >> levelIndex, 1'u32)
+        let imageCount = cast(u64, Math.max(layerCount, 1'u32)) * faceCount * Math.max(depth >> levelIndex, 1'u32)
         if imageCount == 0 or rawLength % imageCount do
             fail InvalidFormatError{"KTX2 base level has an invalid layer size"}
         try options.checkFrameCount(imageCount)
         if imageIndex >= imageCount do
             fail InvalidFormatError{"KTX2 image index is out of range"}
-        let oneImageLength = blocks == .None ? result.byteCount : cast(u64) ((width + 3) / 4) * ((height + 3) / 4) * TextureBlocks.blockBytes(blocks)
+        let oneImageLength = blocks == .None ? result.byteCount : cast(u64, ((width + 3) / 4)) * ((height + 3) / 4) * TextureBlocks.blockBytes(blocks)
         if rawLength / imageCount != oneImageLength do
             fail InvalidFormatError{"KTX2 level size disagrees with its image dimensions"}
         if options.maxDecodedBytes and rawLength > options.maxDecodedBytes do
@@ -229,7 +229,7 @@ impl IImageSetDecoder for Decoder
         {
             let probe  = try .decodeImage(buffer, probeOptions, level)
             let slices = Math.max(depth >> level, 1'u32)
-            try options.checkFrameCount(.frames.count + cast(u64) layers * faces * slices)
+            try options.checkFrameCount(.frames.count + cast(u64, layers) * faces * slices)
             for layer in layers
             {
                 for face in faces
@@ -256,6 +256,6 @@ impl IImageSetDecoder for Decoder
         let buffer = .bytes!
         let faces  = readU32(buffer.buffer + 36)
         let slices = Math.max(readU32(buffer.buffer + 28) >> frame.level, 1'u32)
-        return try .decodeImage(buffer, options, frame.level, (cast(u64) frame.layer * faces + frame.face) * slices + frame.depthSlice)
+        return try .decodeImage(buffer, options, frame.level, (cast(u64, frame.layer) * faces + frame.face) * slices + frame.depthSlice)
     }
 }

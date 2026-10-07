@@ -51,12 +51,12 @@ so like 'Swag.makeSlice' above, it must not outlive the storage it points at.
 
     Swag.assert(Swag.kindOf(view) == s32)
     Swag.assert(view.buffer == &value)
-    Swag.assert(cast #assume(s32) view == 42)
+    Swag.assert(assume cast(s32, view) == 42)
 }
 
 /**
 'Swag.makeInterface' and 'Swag.tableOf' are the corresponding low-level building blocks
-for interface values. Normal 'cast(MyInterface) value' syntax is safer and
+for interface values. Normal 'cast(MyInterface, value)' syntax is safer and
 clearer; use the intrinsics only when implementing generic runtime machinery.
 
 With a runtime type descriptor, 'Swag.makeInterface' returns a nullable interface:

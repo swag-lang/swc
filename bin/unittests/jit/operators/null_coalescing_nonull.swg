@@ -19,8 +19,8 @@ func jitOrelseNonNullBranches()->bool
     let fallbackPointer: *JitOrelseNonNullItem  = &fallbackItem
     let selectedPointerFallback                 = nullPointer orelse fallbackPointer
     let selectedPointerPrimary                  = presentPointer orelse fallbackPointer
-    let aliasNullPointer                        = cast(JitOrelseNullablePointerAlias) nullPointer
-    let aliasPresentPointer                     = cast(JitOrelseNullablePointerAlias) presentPointer
+    let aliasNullPointer                        = cast(JitOrelseNullablePointerAlias, nullPointer)
+    let aliasPresentPointer                     = cast(JitOrelseNullablePointerAlias, presentPointer)
     let selectedAliasFallback                   = aliasNullPointer orelse fallbackPointer
     let selectedAliasPrimary                    = aliasPresentPointer orelse fallbackPointer
 
@@ -56,7 +56,7 @@ func jitOrelseNonNullBranches()->bool
 
     #assert(#typeof(selectedAnyFallback) == any)
     #assert(#typeof(selectedAnyPrimary) == any)
-    if cast #assume(u32) selectedAnyFallback != 61 or cast #assume(u32) selectedAnyPrimary != 51 do
+    if assume cast(u32, selectedAnyFallback) != 61 or assume cast(u32, selectedAnyPrimary) != 51 do
         return false
 
     var nullType:     typeinfo? = null

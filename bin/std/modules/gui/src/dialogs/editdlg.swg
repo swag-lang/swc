@@ -94,7 +94,7 @@ public impl EditDlg
         {
             // A one-line prompt needs one line of explanation, not the taller band that keeps a
             // rich editor's keyboard hint easy to scan above a large text area.
-            let messageHeight = .edit ? cast(s32) Math.ceil(.font().regular!.height) : 40
+            let messageHeight = .edit ? cast(s32, Math.ceil(.font().regular!.height)) : 40
             .setMessage(options.message, messageHeight)
             if .edit do
                 .label.margin.w = .themeMetrics().dialog_BtnPadding
@@ -187,7 +187,7 @@ public impl EditDlg
         }
         else
         {
-            .label.preferredSize.y = cast(f32) height
+            .label.preferredSize.y = cast(f32, height)
             .label.setText(message)
         }
 

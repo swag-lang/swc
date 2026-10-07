@@ -38,8 +38,8 @@ struct InPlaceEditWnd
 // scale to keep its intended weight against the content it annotates.
 func captureMonitorScale(capture: *Capture)->f32
 {
-    let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
-    let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
+    let cx = cast(f32, g_DesktopX) - capture.backImagePos.x + cast(f32, capture.width) * 0.5
+    let cy = cast(f32, g_DesktopY) - capture.backImagePos.y + cast(f32, capture.height) * 0.5
     for m in Env.getMonitors()
     {
         let r = m.physicalBounds
@@ -163,7 +163,7 @@ impl InPlaceEditWnd
         btnColor.sigPopupRequested += func|self = me|(btn)
         {
             let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
-            let picker = PropWnd.createColorPicker(cast #assume (*IconButton) btn, color)
+            let picker = PropWnd.createColorPicker(assume cast (*IconButton, btn), color)
             picker.sigColorChanged += func|self, picker, btn|(pk)
             {
                 if self.editMode == .Marker do
@@ -261,8 +261,8 @@ impl InPlaceEditWnd
     {
         with capture
         {
-            .width, .widthOrg    = cast(s32) .backImg.width
-            .height, .heightOrg  = cast(s32) .backImg.height
+            .width, .widthOrg    = cast(s32, .backImg.width)
+            .height, .heightOrg  = cast(s32, .backImg.height)
             .backImagePos        = {}
             .gizmo.sigHasChanged = null
             .inPlaceEdit         = false
@@ -373,7 +373,7 @@ impl InPlaceEditWnd
         let height = 40.0 * .uiScale
         let width  = .actionBar.position.width
         let x      = Math.max(10.0 * .uiScale, rect.right() - width)
-        let limitY = cast(f32) g_ScreenHeight / .deviceScale()
+        let limitY = cast(f32, g_ScreenHeight) / .deviceScale()
 
         if rect.bottom() < limitY - height + margin do
             .actionBar.setPosition(x, rect.bottom() + margin, width, height)
@@ -388,7 +388,7 @@ impl InPlaceEditWnd
         let margin = 4.0 * .uiScale
         let width  = 40.0 * .uiScale
         let height = .editBar.position.height
-        let limitX = cast(f32) g_ScreenWidth / .deviceScale()
+        let limitX = cast(f32, g_ScreenWidth) / .deviceScale()
 
         if rect.right() < limitX - width + margin do
             .editBar.setPosition(rect.right() + margin, rect.bottom() - height, width, height)

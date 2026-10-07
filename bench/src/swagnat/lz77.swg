@@ -8,15 +8,15 @@ const MAX_CHAIN = 32's64
 
 func hashAt(d: [*] u8, p: s64)->u64
 {
-    return (((cast(u64) d[p] * 33 + d[p + 1]) * 33 + d[p + 2]) * 33 + d[p + 3]) % HASH_SIZE
+    return (((cast(u64, d[p]) * 33 + d[p + 1]) * 33 + d[p + 2]) * 33 + d[p + 3]) % HASH_SIZE
 }
 
 #main
 {
     // ---- data generation (not timed) ----
-    let letters   = cast([*] u8) (benchAlloc(WORDS * 10))!
-    let wordStart = cast([*] u64) (benchAlloc(WORDS * #sizeof(u64)))!
-    let wordLen   = cast([*] u64) (benchAlloc(WORDS * #sizeof(u64)))!
+    let letters   = cast([*] u8, (benchAlloc(WORDS * 10))!)
+    let wordStart = cast([*] u64, (benchAlloc(WORDS * #sizeof(u64)))!)
+    let wordLen   = cast([*] u64, (benchAlloc(WORDS * #sizeof(u64)))!)
     var used      = 0'u64
     for k in WORDS
     {
@@ -24,12 +24,12 @@ func hashAt(d: [*] u8, p: s64)->u64
         wordStart[k] = used
         wordLen[k]   = len
         for j in len do
-            letters[used + j] = cast(u8) (97 + rnd() % 26)
+            letters[used + j] = cast(u8, (97 + rnd() % 26))
         used += len
     }
 
-    let n    = cast(s64) DATA_SIZE
-    let data = cast([*] u8) (benchAlloc(DATA_SIZE))!
+    let n    = cast(s64, DATA_SIZE)
+    let data = cast([*] u8, (benchAlloc(DATA_SIZE))!)
     var pos  = 0's64
     while pos < n
     {
@@ -52,14 +52,14 @@ func hashAt(d: [*] u8, p: s64)->u64
     // ---- timed work ----
     let t0 = now()
 
-    let head = cast([*] s64) (benchAlloc(HASH_SIZE * #sizeof(s64)))!
-    let prev = cast([*] s64) (benchAlloc(cast(u64) WINDOW * #sizeof(s64)))!
+    let head = cast([*] s64, (benchAlloc(HASH_SIZE * #sizeof(s64)))!)
+    let prev = cast([*] s64, (benchAlloc(cast(u64, WINDOW) * #sizeof(s64)))!)
     for i in HASH_SIZE do
         head[i] = -1
     for i in WINDOW do
         prev[i] = -1
 
-    let comp  = cast([*] u8) (benchAlloc(DATA_SIZE * 2 + 16))!
+    let comp  = cast([*] u8, (benchAlloc(DATA_SIZE * 2 + 16))!)
     var csize = 0's64
 
     var i = 0's64
@@ -94,9 +94,9 @@ func hashAt(d: [*] u8, p: s64)->u64
         if best >= MIN_MATCH
         {
             comp[csize]     = 1
-            comp[csize + 1] = cast(u8) (best - MIN_MATCH)
-            comp[csize + 2] = cast(u8) ((dist - 1) % 256)
-            comp[csize + 3] = cast(u8) ((dist - 1) / 256)
+            comp[csize + 1] = cast(u8, (best - MIN_MATCH))
+            comp[csize + 2] = cast(u8, ((dist - 1) % 256))
+            comp[csize + 3] = cast(u8, ((dist - 1) / 256))
             csize           += 4
             for p in i + 1 until i + best
             {
@@ -128,7 +128,7 @@ func hashAt(d: [*] u8, p: s64)->u64
     }
 
     // ---- decompress and verify ----
-    let out = cast([*] u8) (benchAlloc(DATA_SIZE))!
+    let out = cast([*] u8, (benchAlloc(DATA_SIZE))!)
     var o   = 0's64
     var c   = 0's64
     while c < csize
@@ -141,8 +141,8 @@ func hashAt(d: [*] u8, p: s64)->u64
         }
         else
         {
-            let len  = cast(s64) comp[c + 1] + MIN_MATCH
-            let back = cast(s64) comp[c + 2] + cast(s64) comp[c + 3] * 256 + 1
+            let len  = cast(s64, comp[c + 1]) + MIN_MATCH
+            let back = cast(s64, comp[c + 2]) + cast(s64, comp[c + 3]) * 256 + 1
             for len
             {
                 out[o] = out[o - back]
@@ -166,7 +166,7 @@ func hashAt(d: [*] u8, p: s64)->u64
     for k in csize do
         hc = (hc * 31 + comp[k]) % 1000003
 
-    let check = same ? cast(u64) csize * 1000003 + hc : 0
+    let check = same ? cast(u64, csize) * 1000003 + hc : 0
 
     let t1 = now()
     report(check, t0, t1)

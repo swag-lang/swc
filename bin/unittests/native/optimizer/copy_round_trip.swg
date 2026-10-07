@@ -32,7 +32,7 @@ func div32(a: u32)->u32 => a / 10
         let quotient = dynamicDiv(value, 10)
         Swag.assert(div10(value) == quotient)
         Swag.assert(keepBoth(value) == (quotient ^ (quotient >> 3)))
-        let narrow = cast(u32) (value & 0xFFFFFFFF)
+        let narrow = cast(u32, (value & 0xFFFFFFFF))
         Swag.assert(div32(narrow) == dynamicDiv(narrow, 10))
     }
 }

@@ -49,7 +49,7 @@ impl Cpu
     #[Swag.Inline]
     mtd combo(operand: u8)->u64
     {
-        if operand <= 3 do return cast(u64) operand
+        if operand <= 3 do return cast(u64, operand)
         return me.regs[operand - 4]
     }
 
@@ -85,11 +85,11 @@ func run(cpu: *Cpu)
 
         if op == 0     // adv: A >>= combo
         {
-            cpu.regs[0] = cpu.regs[0] >> cast(u8) cpu.combo(arg)
+            cpu.regs[0] = cpu.regs[0] >> cast(u8, cpu.combo(arg))
         }
         elif op == 1     // bxl: B ^= literal
         {
-            cpu.regs[1] ^= cast(u64) arg
+            cpu.regs[1] ^= cast(u64, arg)
         }
         elif op == 2     // bst: B = combo % 8
         {
@@ -98,7 +98,7 @@ func run(cpu: *Cpu)
         elif op == 3     // jnz: jump if A != 0
         {
             if cpu.regs[0] != 0 do
-                cpu.ip = cast(u32) arg
+                cpu.ip = cast(u32, arg)
         }
         elif op == 4     // bxc: B ^= C
         {
@@ -106,15 +106,15 @@ func run(cpu: *Cpu)
         }
         elif op == 5     // out: output combo % 8
         {
-            cpu.emit(cast(u8) (cpu.combo(arg) % 8))
+            cpu.emit(cast(u8, (cpu.combo(arg) % 8)))
         }
         elif op == 6     // bdv: B = A >> combo
         {
-            cpu.regs[1] = cpu.regs[0] >> cast(u8) cpu.combo(arg)
+            cpu.regs[1] = cpu.regs[0] >> cast(u8, cpu.combo(arg))
         }
         elif op == 7     // cdv: C = A >> combo
         {
-            cpu.regs[2] = cpu.regs[0] >> cast(u8) cpu.combo(arg)
+            cpu.regs[2] = cpu.regs[0] >> cast(u8, cpu.combo(arg))
         }
     }
 }
@@ -125,7 +125,7 @@ func run(cpu: *Cpu)
 
 func parseProgram(text: string, cpu: *Cpu)
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     cpu.memLen = 0
     var pos: u32
     for
@@ -168,10 +168,10 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
 {
     for a in maxSearch
     {
-        cpu.reset(cast(u64) a, 0, 0)
+        cpu.reset(cast(u64, a), 0, 0)
         run(cpu)
         if outputMatchesProgram(cpu) do
-            return cast(u64) a
+            return cast(u64, a)
     }
     return 0
 }

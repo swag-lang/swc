@@ -89,8 +89,8 @@ struct CondPair
         return cond ? p0 : p1
     }
 
-    const A  = cast(*void) 0x1234'u64
-    const B  = cast(*void) 0x5678'u64
+    const A  = cast(*void, 0x1234'u64)
+    const B  = cast(*void, 0x5678'u64)
     const V0 = #run ternaryPointer(true, A, B)
     const V1 = #run ternaryPointer(false, A, B)
     #assert(V0 == A)
@@ -130,8 +130,8 @@ struct CondPair
         return cond ? 7 : 9
     }
 
-    const V0 = #run ternaryCondPointer(cast(*void) 0x1'u64)
-    const V1 = #run ternaryCondPointer(cast(*void?) 0'u64)
+    const V0 = #run ternaryCondPointer(cast(*void, 0x1'u64))
+    const V1 = #run ternaryCondPointer(cast(*void?, 0'u64))
     #assert(V0 == 7)
     #assert(V1 == 9)
 }
@@ -186,9 +186,9 @@ var g_Int42:   s32 = 42
 
 #test
 {
-    let v = cast(s32) (g_CondTrue ? g_Float15 : g_Float25)
+    let v = cast(s32, (g_CondTrue ? g_Float15 : g_Float25))
     Swag.assert(v == 1)
-    let w = cast(s32) (not g_CondTrue ? g_Float15 : g_Float25)
+    let w = cast(s32, (not g_CondTrue ? g_Float15 : g_Float25))
     Swag.assert(w == 2)
 
     let f = g_CondTrue ? g_Float15 : g_Float25
@@ -220,8 +220,8 @@ var g_Int42:   s32 = 42
         return selected
     }
 
-    const Left  = cast([16] u8) #run ternarySimd(true)
-    const Right = cast([16] u8) #run ternarySimd(false)
+    const Left  = cast([16] u8, #run ternarySimd(true))
+    const Right = cast([16] u8, #run ternarySimd(false))
     #assert(Left[0] == 255 and Left[15] == 255)
     #assert(Right[0] == 17 and Right[15] == 17)
 }
@@ -243,7 +243,7 @@ var g_CondSt: CondSt
 
     Swag.assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)
 
-    let a = cast(f32) (g_CondTrue ? g_Int42 : 200)
+    let a = cast(f32, (g_CondTrue ? g_Int42 : 200))
     Swag.assert(a == 42.0)
 
     Swag.assert(retF(true, 7) == 7.0)
@@ -259,7 +259,7 @@ var g_CondSt: CondSt
     {
         var chosen = flag ? values[index] : other
         chosen = Swag.max(0's32, chosen + delta)
-        return cast(u32) chosen
+        return cast(u32, chosen)
     }
 
     var values: [4] s32 = [1008, 1024, 1056, 1072]

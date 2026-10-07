@@ -60,7 +60,7 @@ impl StringRefIndexBox
                 continue
             if i == 7 do
                 break
-            acc += cast(s32) i
+            acc += cast(s32, i)
         }
 
         return acc
@@ -78,7 +78,7 @@ impl StringRefIndexBox
         var acc: s32     = 0
         for index in arr.count
         {
-            acc += arr[index] * cast(s32) (index + 1)
+            acc += arr[index] * cast(s32, (index + 1))
         }
 
         return acc
@@ -95,7 +95,7 @@ impl StringRefIndexBox
         var acc: s32 = 0
         for i in rangeTo(1, 4).reversed()
         {
-            acc = acc * 10 + cast(s32) i
+            acc = acc * 10 + cast(s32, i)
         }
 
         return acc
@@ -115,9 +115,9 @@ impl StringRefIndexBox
             switch i
             {
             case 1:
-                acc += cast(s32) i
+                acc += cast(s32, i)
             default:
-                acc += cast(s32) i
+                acc += cast(s32, i)
             }
         }
 
@@ -166,7 +166,7 @@ impl StringRefIndexBox
         let value    = FixedCountedLoop{}
         var acc: s32 = 0
         for i in value.count do
-            acc += cast(s32) i
+            acc += cast(s32, i)
         return acc
     }
 
@@ -181,7 +181,7 @@ impl StringRefIndexBox
         var box = StringRefIndexBox{rows: ["10110", "00100"]}
         var sum = 0
         for i in box[0][].count do
-            sum += cast(s32) i
+            sum += cast(s32, i)
         return sum
     }
 
@@ -201,7 +201,7 @@ impl StringRefIndexBox
             case 2, 4:
                 continue
             }
-            total += cast(s32) i
+            total += cast(s32, i)
         }
         return total
     }

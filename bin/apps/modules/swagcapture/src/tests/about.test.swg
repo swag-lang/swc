@@ -28,8 +28,8 @@ using Swag, Core, Pixel
     let rendered = host.render(dlg)
 
     // The window's bottom border belongs below the action bar, outside this crop.
-    let contentBottom = cast(s32) dlg.buttonBar.surfaceRect().y
-    var image         = rendered.cropped(25, 60, cast(s32) surface.position.width - 50, contentBottom - 60)
+    let contentBottom = cast(s32, dlg.buttonBar.surfaceRect().y)
+    var image         = rendered.cropped(25, 60, cast(s32, surface.position.width) - 50, contentBottom - 60)
     Pixel.Testing.assertImageGolden(&image, "about")
     surface.destroy()
 }

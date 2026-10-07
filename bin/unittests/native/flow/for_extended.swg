@@ -130,7 +130,7 @@
     for v in arr.count
     {
         count += 1
-        sum   += cast(s32) v
+        sum   += cast(s32, v)
     }
     Swag.assert(count == 1)
 }
@@ -141,7 +141,7 @@ func forEarlyReturn()->s32
     for i in 10
     {
         if i == 3 do
-            return cast(s32) i
+            return cast(s32, i)
     }
     return -1
 }
@@ -188,7 +188,7 @@ func forEarlyReturn()->s32
     var val   = -1
     for i in 5 to 5
     {
-        val   = cast(s32) i
+        val   = cast(s32, i)
         count += 1
     }
     Swag.assert(count == 1)
@@ -202,7 +202,7 @@ func forEarlyReturn()->s32
     var val   = -1
     for i in 5 until 6
     {
-        val   = cast(s32) i
+        val   = cast(s32, i)
         count += 1
     }
     Swag.assert(count == 1)
@@ -219,7 +219,7 @@ func forEarlyReturn()->s32
             continue
         if i % 5 == 0 do
             continue
-        sum += cast(s32) i
+        sum += cast(s32, i)
     }
     // odd numbers not divisible by 5: 1,3,7,9,11,13,17,19 = 80
     Swag.assert(sum == 80)
@@ -231,7 +231,7 @@ func forEarlyReturn()->s32
     var lastI = -1
     for i in 5
     {
-        lastI = cast(s32) i
+        lastI = cast(s32, i)
     }
     Swag.assert(lastI == 4)
 }

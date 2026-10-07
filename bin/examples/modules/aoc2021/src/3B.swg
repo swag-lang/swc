@@ -42,7 +42,7 @@ func calc(a, b: u8)->u64
     {
         var count = 0
         for l in scan do
-            count += cast(s32) (l[c] == '1')
+            count += cast(s32, (l[c] == '1'))
 
         var next: Array'String
         for l in scan

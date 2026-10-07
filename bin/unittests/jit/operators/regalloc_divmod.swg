@@ -133,7 +133,7 @@
         var uq: u32 = b / 5'u32        // DIV32:    60 / 5  = 12
         var ur: u32 = b % 7'u32        // DIV32:    60 % 7  = 4
         var bq: s64 = big / 10's64     // IDIV64:  420 / 10 = 42
-        return cast(s64) sq + cast(s64) sr + cast(s64) uq + cast(s64) ur + bq
+        return cast(s64, sq) + cast(s64, sr) + cast(s64, uq) + cast(s64, ur) + bq
         // -30 + (-6) + 12 + 4 + 42 = 22
     }
 

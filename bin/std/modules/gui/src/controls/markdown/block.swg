@@ -210,7 +210,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 else
                 {
                     if not result[blockIndex].sourceOffset do
-                        result[blockIndex].sourceOffset = cast(u64) (raw.buffer - source.buffer)
+                        result[blockIndex].sourceOffset = cast(u64, (raw.buffer - source.buffer))
                     blockIndex += 1
                 }
             }
@@ -347,7 +347,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
         {
             var html:   String
             var hasHtmlContent   = false
-            var htmlSourceOffset = cast(u64) (raw.buffer - source.buffer)
+            var htmlSourceOffset = cast(u64, (raw.buffer - source.buffer))
             var document         = HtmlDocument.create()
             var parser: HtmlParser
             parser.start(&document, .Fragment)
@@ -391,7 +391,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     }
 
                     var markdown: String
-                    let markdownOffset = cast(u64) (lines[index].buffer - source.buffer)
+                    let markdownOffset = cast(u64, (lines[index].buffer - source.buffer))
                     while index < lines.count and Latin1.trim(lines[index]).count and not isHtmlBlockStart(lines[index])
                     {
                         markdown += lines[index]
@@ -409,7 +409,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     html = #move reopen
                     hasHtmlContent = false
                     if index < lines.count do
-                        htmlSourceOffset = cast(u64) (lines[index].buffer - source.buffer)
+                        htmlSourceOffset = cast(u64, (lines[index].buffer - source.buffer))
                     continue
                 }
 

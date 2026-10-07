@@ -23,12 +23,12 @@ func minS32(lhs, rhs: s32)->s32
 
 func digitValue(ch: u8)->s32
 {
-    return cast(s32) (ch - '0')
+    return cast(s32, (ch - '0'))
 }
 
 func bestBankOutput(bank: string)->s32
 {
-    let digits = cast(const [..] u8) bank
+    let digits = cast(const [..] u8, bank)
 
     var best = -1
 
@@ -37,7 +37,7 @@ func bestBankOutput(bank: string)->s32
         let first = digitValue(digits[i])
         if i + 1 >= digits.count do continue
 
-        for j in i + 1 to cast(u64) digits.count - 1
+        for j in i + 1 to cast(u64, digits.count) - 1
         {
             let second = digitValue(digits[j])
             let value  = first * 10 + second
@@ -51,7 +51,7 @@ func bestBankOutput(bank: string)->s32
 func auditBanks(banks: const [..] string)->BatteryAudit
 {
     var result: BatteryAudit
-    result.bankCount  = cast(u32) banks.count
+    result.bankCount  = cast(u32, banks.count)
     result.lowestBank = Swag.S32.Max
 
     for bank in banks

@@ -9,7 +9,7 @@ using Swag
 
     for i in Input.Key.count
     {
-        let key = cast(Input.Key) i
+        let key = cast(Input.Key, i)
         Swag.assert(not keyboard.isKeyPressed(key))
         Swag.assert(keyboard.isKeyReleased(key))
         Swag.assert(not keyboard.isKeyJustPressed(key))
@@ -23,7 +23,7 @@ using Swag
 
     for i in Input.Key.count
     {
-        let key = cast(Input.Key) i
+        let key = cast(Input.Key, i)
 
         keyboard.setKeyStates(key, false, true)
 
@@ -85,9 +85,9 @@ using Swag
 
     for i in Input.Key.count
     {
-        keyboard.setKeyStates(cast(Input.Key) i, true, true)
+        keyboard.setKeyStates(cast(Input.Key, i), true, true)
         keyboard.isRepeating[i] = true
-        keyboard.pressedAtMs[i] = cast(u32) i + 1
+        keyboard.pressedAtMs[i] = cast(u32, i) + 1
     }
 
     keyboard.clear()

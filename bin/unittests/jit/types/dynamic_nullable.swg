@@ -3,13 +3,13 @@
 // The box itself can be present while its stored pointer is null.
 func unboxPresentPointer(value: any)->*s32?
 {
-    return cast #assume (*s32?) value
+    return assume cast (*s32?, value)
 }
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func unboxNullablePointer(value: any?)->*s32?
 {
-    return cast #assume (*s32?) value
+    return assume cast (*s32?, value)
 }
 
 #test

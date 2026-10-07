@@ -148,7 +148,7 @@ impl RuntimeTripleEqBox
     #[Swag.NoInline]
     mtd const opEquals(other: u64)->bool
     {
-        return cast(u64) .value == other
+        return cast(u64, .value) == other
     }
 }
 
@@ -211,7 +211,7 @@ impl RuntimeTripleCmpBox
     #[Swag.NoInline]
     mtd const opCompare(other: u64)->s32
     {
-        let self64 = cast(u64) .value
+        let self64 = cast(u64, .value)
         if self64 < other do return -1
         if self64 > other do return 1
         return 0

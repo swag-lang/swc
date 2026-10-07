@@ -527,7 +527,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let result = Shell32Priv.SHGetStockIconInfo(siid, uFlags, psii)
         if result != S_OK do
-            try failWinError(cast #bit (u32) result)
+            try failWinError(cast #bit (u32, result))
     }
 
     func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) fail
@@ -545,7 +545,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64) result <= 32 do
+        if cast(u64, result) <= 32 do
             try failWinError(GetLastError())
         return result
     }
@@ -553,7 +553,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64) result <= 32 do
+        if cast(u64, result) <= 32 do
             try failWinError(GetLastError())
         return result
     }

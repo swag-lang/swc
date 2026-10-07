@@ -69,22 +69,22 @@ namespace Crypto
     }
 
     #[Swag.Inline]
-    func low32(value: u64)->u32 => cast(u32) (value & 0xFFFF_FFFF)
+    func low32(value: u64)->u32 => cast(u32, (value & 0xFFFF_FFFF))
 
     #[Swag.Inline]
     func store32(data: [*] u8, value: u32)
     {
-        data[0] = cast(u8) (value & 0xFF)
-        data[1] = cast(u8) ((value >> 8) & 0xFF)
-        data[2] = cast(u8) ((value >> 16) & 0xFF)
-        data[3] = cast(u8) ((value >> 24) & 0xFF)
+        data[0] = cast(u8, (value & 0xFF))
+        data[1] = cast(u8, ((value >> 8) & 0xFF))
+        data[2] = cast(u8, ((value >> 16) & 0xFF))
+        data[3] = cast(u8, ((value >> 24) & 0xFF))
     }
 
     #[Swag.Inline]
     func load32(data: const [*] u8)->u32
     {
-        return cast(u32) data[0] | (cast(u32) data[1] << 8) |
-               (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
+        return cast(u32, data[0]) | (cast(u32, data[1]) << 8) |
+               (cast(u32, data[2]) << 16) | (cast(u32, data[3]) << 24)
     }
 
     // Binds a record to its kind and its position. A block cannot be moved,

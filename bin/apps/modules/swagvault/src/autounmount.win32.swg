@@ -9,7 +9,7 @@ private const AutoUnmountSubclassId = 0x7353_4372'u64
 private func autoUnmountSubclass(hwnd: HWND, message: u32, wParam: u64, lParam: s64, id, data: u64)->s64
 {
     discard id
-    let window = cast(*MainWindow) cast #bit (u64) data
+    let window = cast(*MainWindow, cast #bit (u64, data))
     if message == WM_WTSSESSION_CHANGE and wParam == WTS_SESSION_LOCK do
         window.handleAutoUnmount(.SessionLock)
     elif message == WM_POWERBROADCAST and wParam == PBT_APMSUSPEND do
@@ -32,7 +32,7 @@ impl AutoUnmountMonitor
         let hwnd = window.surface!.win32Handle()
         if not hwnd do
             return
-        if not SetWindowSubclass(hwnd, cast() &autoUnmountSubclass, AutoUnmountSubclassId, cast(u64) window) do
+        if not SetWindowSubclass(hwnd, cast(&autoUnmountSubclass), AutoUnmountSubclassId, cast(u64, window)) do
             return
         .hwnd = hwnd
         discard WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION)
@@ -43,7 +43,7 @@ impl AutoUnmountMonitor
         if not .hwnd do
             return
         discard WTSUnRegisterSessionNotification(.hwnd)
-        discard RemoveWindowSubclass(.hwnd, cast() &autoUnmountSubclass, AutoUnmountSubclassId)
+        discard RemoveWindowSubclass(.hwnd, cast(&autoUnmountSubclass), AutoUnmountSubclassId)
         .hwnd = null
     }
 }
@@ -59,5 +59,5 @@ func autoUnmountIdleMilliseconds()->u64
     let now = GetTickCount()
     if now >= info.dwTime do
         return now - info.dwTime
-    return cast(u64) Swag.U32.Max - info.dwTime + now + 1
+    return cast(u64, Swag.U32.Max) - info.dwTime + now + 1
 }

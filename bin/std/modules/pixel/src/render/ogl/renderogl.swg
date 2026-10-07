@@ -47,16 +47,16 @@ const FontGamma = 1.0'f32 / 0.75
 const MsdfRange = 16.0'f32
 
 #[Swag.Strict]
-alias TextureHandle = u64                                // Opaque renderer texture identifier.
-const InvalidTextureHandle: TextureHandle = cast() 0     // Sentinel that identifies no texture.
+alias TextureHandle = u64                               // Opaque renderer texture identifier.
+const InvalidTextureHandle: TextureHandle = cast(0)     // Sentinel that identifies no texture.
 
 #[Swag.Strict]
-alias RenderTargetHandle = u64                                     // Opaque renderer framebuffer identifier.
-const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0     // Sentinel that identifies no framebuffer.
+alias RenderTargetHandle = u64                                    // Opaque renderer framebuffer identifier.
+const InvalidRenderTargetHandle: RenderTargetHandle = cast(0)     // Sentinel that identifies no framebuffer.
 
 #[Swag.Strict]
-alias RenderTargetSurfaceHandle = u64                                            // Opaque renderer depth/stencil-surface identifier.
-const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0     // Sentinel that identifies no surface.
+alias RenderTargetSurfaceHandle = u64                                           // Opaque renderer depth/stencil-surface identifier.
+const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast(0)     // Sentinel that identifies no surface.
 
 // Holds the two chroma planes of a planar texture, beside the luma handle the caller carries.
 //
@@ -192,7 +192,7 @@ private impl RenderOgl
     func oglContext(rc: RenderContext)->*OglContext
     {
         Swag.assert(rc.data != null, "OpenGL render context has no backend state")
-        return cast(*OglContext) rc.data
+        return cast(*OglContext, rc.data)
     }
 
     func hasExtension(name: string)->bool
@@ -201,8 +201,8 @@ private impl RenderOgl
         glGetIntegerv(GL_NUM_EXTENSIONS, &count)
         for idx in count
         {
-            let value = glGetStringi(GL_EXTENSIONS, cast(GLuint) idx)
-            if value and cast(string) (cast(const cstring) value) == name do
+            let value = glGetStringi(GL_EXTENSIONS, cast(GLuint, idx))
+            if value and cast(string, cast(const cstring, value)) == name do
                 return true
         }
 
@@ -284,10 +284,10 @@ private impl RenderOgl
         var logLength: GLint
         glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logLength)
         var log: String
-        log.reserve(cast(u64) logLength + 1)
+        log.reserve(cast(u64, logLength) + 1)
         var written: GLsizei
         glGetShaderInfoLog(shaderID, logLength, &written, log.buffer)
-        log.length = cast(u64) written
+        log.length = cast(u64, written)
         fail Swag.SystemError{Errors.mkString(Format.toString("cannot compile a shader: %", log))}
     }
 
@@ -302,10 +302,10 @@ private impl RenderOgl
         var logLength: GLint
         glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logLength)
         var log: String
-        log.reserve(cast(u64) logLength + 1)
+        log.reserve(cast(u64, logLength) + 1)
         var written: GLsizei
         glGetProgramInfoLog(programID, logLength, &written, log.buffer)
-        log.length = cast(u64) written
+        log.length = cast(u64, written)
         fail Swag.SystemError{Errors.mkString(Format.toString("cannot link a shader program: %", log))}
     }
 
@@ -313,16 +313,16 @@ private impl RenderOgl
     {
         {
             expect .createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderSimple.handle, ("inTexture0").buffer)
-            glUseProgram(cast(GLuint) .shaderSimple.handle)
+            let text0 = glGetUniformLocation(cast(GLuint, .shaderSimple.handle), ("inTexture0").buffer)
+            glUseProgram(cast(GLuint, .shaderSimple.handle))
             glUniform1i(text0, 0)
         }
 
         {
             expect .createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, ("inTexture0").buffer)
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, ("inTexture1").buffer)
-            glUseProgram(cast(GLuint) .shaderAA.handle)
+            let text0 = glGetUniformLocation(cast(GLuint, .shaderAA.handle), ("inTexture0").buffer)
+            let text1 = glGetUniformLocation(cast(GLuint, .shaderAA.handle), ("inTexture1").buffer)
+            glUseProgram(cast(GLuint, .shaderAA.handle))
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
         }
@@ -331,12 +331,12 @@ private impl RenderOgl
             // The picture arrives as three planes on units 0, 3 and 4, and the shader converts
             // while it samples: that is what lets a decoder skip the conversion entirely.
             expect .createShader(&.shaderYuv, VertexShaderSimple, PixelShaderYuv)
-            let text0   = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("inTexture0").buffer)
-            let chromaB = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("inChromaB").buffer)
-            let chromaR = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("inChromaR").buffer)
-            .shaderYuv.lumaRed = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("yuvLumaRed").buffer)
-            .shaderYuv.green   = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("yuvGreen").buffer)
-            glUseProgram(cast(GLuint) .shaderYuv.handle)
+            let text0   = glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("inTexture0").buffer)
+            let chromaB = glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("inChromaB").buffer)
+            let chromaR = glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("inChromaR").buffer)
+            .shaderYuv.lumaRed = cast(ShaderParamHandle, glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("yuvLumaRed").buffer))
+            .shaderYuv.green   = cast(ShaderParamHandle, glGetUniformLocation(cast(GLuint, .shaderYuv.handle), ("yuvGreen").buffer))
+            glUseProgram(cast(GLuint, .shaderYuv.handle))
             glUniform1i(text0, 0)
             glUniform1i(chromaB, 3)
             glUniform1i(chromaR, 4)
@@ -344,10 +344,10 @@ private impl RenderOgl
 
         {
             expect .createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, ("inTexture0").buffer)
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, ("inTexture1").buffer)
-            let gamma = glGetUniformLocation(cast(GLuint) .shaderFont.handle, ("fontGamma").buffer)
-            glUseProgram(cast(GLuint) .shaderFont.handle)
+            let text0 = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("inTexture0").buffer)
+            let text1 = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("inTexture1").buffer)
+            let gamma = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("fontGamma").buffer)
+            glUseProgram(cast(GLuint, .shaderFont.handle))
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
             glUniform1f(gamma, FontGamma)
@@ -355,45 +355,45 @@ private impl RenderOgl
 
         {
             expect .createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("inTexture0").buffer)
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("inTexture1").buffer)
-            let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("fontGamma").buffer)
-            let range = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("msdfRange").buffer)
-            glUseProgram(cast(GLuint) .shaderFontMsdf.handle)
+            let text0 = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("inTexture0").buffer)
+            let text1 = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("inTexture1").buffer)
+            let gamma = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("fontGamma").buffer)
+            let range = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("msdfRange").buffer)
+            glUseProgram(cast(GLuint, .shaderFontMsdf.handle))
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
             glUniform1f(gamma, FontGamma)
             glUniform1f(range, MsdfRange)
 
-            let h = cast(GLuint) .shaderFontMsdf.handle
-            .shaderFontMsdf.fxEnabled      = cast() glGetUniformLocation(h, ("fxEnabled").buffer)
-            .shaderFontMsdf.fxFaceDilate   = cast() glGetUniformLocation(h, ("fxFaceDilate").buffer)
-            .shaderFontMsdf.fxFaceSoftness = cast() glGetUniformLocation(h, ("fxFaceSoftness").buffer)
-            .shaderFontMsdf.fxOutlineWidth = cast() glGetUniformLocation(h, ("fxOutlineWidth").buffer)
-            .shaderFontMsdf.fxOutlineColor = cast() glGetUniformLocation(h, ("fxOutlineColor").buffer)
-            .shaderFontMsdf.fxGlowColor    = cast() glGetUniformLocation(h, ("fxGlowColor").buffer)
-            .shaderFontMsdf.fxGlowOffset   = cast() glGetUniformLocation(h, ("fxGlowOffset").buffer)
-            .shaderFontMsdf.fxGlowInner    = cast() glGetUniformLocation(h, ("fxGlowInner").buffer)
-            .shaderFontMsdf.fxGlowOuter    = cast() glGetUniformLocation(h, ("fxGlowOuter").buffer)
-            .shaderFontMsdf.fxGlowPower    = cast() glGetUniformLocation(h, ("fxGlowPower").buffer)
-            .shaderFontMsdf.fxBevel        = cast() glGetUniformLocation(h, ("fxBevel").buffer)
+            let h = cast(GLuint, .shaderFontMsdf.handle)
+            .shaderFontMsdf.fxEnabled      = cast(glGetUniformLocation(h, ("fxEnabled").buffer))
+            .shaderFontMsdf.fxFaceDilate   = cast(glGetUniformLocation(h, ("fxFaceDilate").buffer))
+            .shaderFontMsdf.fxFaceSoftness = cast(glGetUniformLocation(h, ("fxFaceSoftness").buffer))
+            .shaderFontMsdf.fxOutlineWidth = cast(glGetUniformLocation(h, ("fxOutlineWidth").buffer))
+            .shaderFontMsdf.fxOutlineColor = cast(glGetUniformLocation(h, ("fxOutlineColor").buffer))
+            .shaderFontMsdf.fxGlowColor    = cast(glGetUniformLocation(h, ("fxGlowColor").buffer))
+            .shaderFontMsdf.fxGlowOffset   = cast(glGetUniformLocation(h, ("fxGlowOffset").buffer))
+            .shaderFontMsdf.fxGlowInner    = cast(glGetUniformLocation(h, ("fxGlowInner").buffer))
+            .shaderFontMsdf.fxGlowOuter    = cast(glGetUniformLocation(h, ("fxGlowOuter").buffer))
+            .shaderFontMsdf.fxGlowPower    = cast(glGetUniformLocation(h, ("fxGlowPower").buffer))
+            .shaderFontMsdf.fxBevel        = cast(glGetUniformLocation(h, ("fxBevel").buffer))
         }
 
         {
             expect .createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderBlur.handle, ("inTexture0").buffer)
-            glUseProgram(cast(GLuint) .shaderBlur.handle)
+            let text0 = glGetUniformLocation(cast(GLuint, .shaderBlur.handle), ("inTexture0").buffer)
+            glUseProgram(cast(GLuint, .shaderBlur.handle))
             glUniform1i(text0, 0)
-            .shaderBlur.axis   = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, ("axis").buffer)
-            .shaderBlur.radius = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, ("radius").buffer)
+            .shaderBlur.axis   = cast(glGetUniformLocation(cast(GLuint, .shaderBlur.handle), ("axis").buffer))
+            .shaderBlur.radius = cast(glGetUniformLocation(cast(GLuint, .shaderBlur.handle), ("radius").buffer))
         }
 
         {
             expect .createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderResolve.handle, ("inTexture0").buffer)
-            glUseProgram(cast(GLuint) .shaderResolve.handle)
+            let text0 = glGetUniformLocation(cast(GLuint, .shaderResolve.handle), ("inTexture0").buffer)
+            glUseProgram(cast(GLuint, .shaderResolve.handle))
             glUniform1i(text0, 0)
-            .shaderResolve.factor = cast() glGetUniformLocation(cast(GLuint) .shaderResolve.handle, ("factor").buffer)
+            .shaderResolve.factor = cast(glGetUniformLocation(cast(GLuint, .shaderResolve.handle), ("factor").buffer))
         }
     }
 
@@ -484,8 +484,8 @@ private impl RenderOgl
         // texture brush happens to be bound.
         if .curShader
         {
-            glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (bm == .Copy))
-            glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.usesKhrAdvancedBlending() and bm.usesAdvancedBlending()))
+            glUniform1i(cast(GLint, .curShader.copyMode), cast(GLint, (bm == .Copy)))
+            glUniform1i(cast(GLint, .curShader.premultiplyBlendSource), cast(GLint, (.usesKhrAdvancedBlending() and bm.usesAdvancedBlending())))
         }
 
         switch #complete bm
@@ -598,7 +598,7 @@ impl RenderOgl
             let cache = it!
             for &atlas in cache.atlases where atlas.texture.handle != InvalidTextureHandle
             {
-                var id: GLuint = cast() atlas.texture.handle
+                var id: GLuint = cast(atlas.texture.handle)
                 glDeleteTextures(1, &id)
                 atlas.texture.clear()
             }
@@ -674,7 +674,7 @@ impl RenderOgl
         .scissorOn  = true
         let {?, h} = .targetSizeImpl()
         glEnable(GL_SCISSOR_TEST)
-        glScissor(cast(GLint) rect.x, cast(GLint) (cast(f32) h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
+        glScissor(cast(GLint, rect.x), cast(GLint, (cast(f32, h) - rect.y - rect.height)), cast(GLint, rect.width), cast(GLint, rect.height))
     }
 
     // Lets drawing reach the whole bound target again.
@@ -688,7 +688,7 @@ impl RenderOgl
     private mtd targetRect()->Math.Rectangle
     {
         let {w, h} = .targetSizeImpl()
-        return {0, 0, cast(f32) w, cast(f32) h}
+        return {0, 0, cast(f32, w), cast(f32, h)}
     }
 
     // Sets the destination alpha to one where a batch bounded by `bbMin`/`bbMax` can reach.
@@ -719,8 +719,8 @@ impl RenderOgl
     // Adds one overlap-safe batch to the scratch-clear counters.
     private mtd countScratchClear(bounded: Math.Rectangle, unbounded: Math.Rectangle)
     {
-        .scratchClearedPixels += cast(u64) Math.max(bounded.width * bounded.height, 0.0'f32)
-        .scratchFullPixels    += cast(u64) Math.max(unbounded.width * unbounded.height, 0.0'f32)
+        .scratchClearedPixels += cast(u64, Math.max(bounded.width * bounded.height, 0.0'f32))
+        .scratchFullPixels    += cast(u64, Math.max(unbounded.width * unbounded.height, 0.0'f32))
     }
 
     // Narrows the scissor to what a batch bounded by `bbMin`/`bbMax` in vertex space can reach.
@@ -746,7 +746,7 @@ impl RenderOgl
         let y1 = Math.ceil(box.bottom())
 
         let {w, h} = .targetSizeImpl()
-        var clip   = Math.Rectangle{0, 0, cast(f32) w, cast(f32) h}
+        var clip   = Math.Rectangle{0, 0, cast(f32, w), cast(f32, h)}
         if .scissorOn do
             clip = .scissorBox
 
@@ -785,7 +785,7 @@ impl RenderOgl
         elif hasExtension("GL_NV_blend_equation_advanced_coherent")
         {
             .advancedBlending = AdvancedBlendingNvCoherent
-            glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint) GL_FALSE)
+            glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint, GL_FALSE))
         }
         elif hasExtension("GL_KHR_blend_equation_advanced")
         {
@@ -794,7 +794,7 @@ impl RenderOgl
         elif hasExtension("GL_NV_blend_equation_advanced")
         {
             .advancedBlending = AdvancedBlendingNvBarrier
-            glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint) GL_FALSE)
+            glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint, GL_FALSE))
         }
 
         .createShaders()
@@ -874,9 +874,9 @@ impl RenderOgl
         .curRT = rt
         .curRT.paintAlpha = false
 
-        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) .curRT.handle)
+        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, .curRT.handle))
         if vp do
-            glViewport(cast() vp.x, cast() vp.y, cast() vp.width, cast() vp.height)
+            glViewport(cast(vp.x), cast(vp.y), cast(vp.width), cast(vp.height))
         else do
             glViewport(0, 0, .curRT.colorBuffer.width, .curRT.colorBuffer.height)
     }
@@ -889,9 +889,9 @@ impl RenderOgl
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, w, h: s32)->Image
     {
         var result: retval = Image.create(w, h, .BGRA8)
-        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) rt.handle)
+        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, rt.handle))
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.storage())
+        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         return result
     }
@@ -907,9 +907,9 @@ impl RenderOgl
         // left bound. A painter binds and unbinds targets as it runs, and reading the ambient
         // binding takes the DEFAULT framebuffer instead - a blank buffer, or a foreign window -
         // which is the whole-image mismatch the parity tests were retrying around.
-        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
+        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, curRT.handle))
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.storage())
+        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
         .unbindRenderTargetImpl()
         return result
     }
@@ -921,7 +921,7 @@ impl RenderOgl
         {
             .curRT = .stackRT.popBack()
             let curRT = .curRT!
-            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
+            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, curRT.handle))
             glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
         }
         else
@@ -956,7 +956,7 @@ impl RenderOgl
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
         var result: retval
-        result.attach(cast(RenderTargetHandle) fbo, cast(TextureHandle) colorID, .RGBA8, w, h, cast(RenderTargetSurfaceHandle) rbo)
+        result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h, cast(RenderTargetSurfaceHandle, rbo))
         return result
     }
 
@@ -966,13 +966,13 @@ impl RenderOgl
         if rt.handle == InvalidRenderTargetHandle or not rt.colorBuffer.isValid() do
             return
 
-        var cb: GLuint = cast() rt.colorBuffer.handle
+        var cb: GLuint = cast(rt.colorBuffer.handle)
         glDeleteTextures(1, &cb)
 
-        var ds: GLuint = cast() rt.depthStencil
+        var ds: GLuint = cast(rt.depthStencil)
         glDeleteRenderbuffers(1, &ds)
 
-        var fb: GLuint = cast() rt.handle
+        var fb: GLuint = cast(rt.handle)
         glDeleteFramebuffers(1, &fb)
 
         rt.clear()
@@ -989,7 +989,7 @@ impl RenderOgl
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, cast(GLsizei) width, cast(GLsizei) height, 0, GL_RED, GL_UNSIGNED_BYTE, null)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, cast(GLsizei, width), cast(GLsizei, height), 0, GL_RED, GL_UNSIGNED_BYTE, null)
         return textureID
     }
 
@@ -998,8 +998,8 @@ impl RenderOgl
     {
         glBindTexture(GL_TEXTURE_2D, handle)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint) stride)
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) width, cast(GLsizei) height, GL_RED, GL_UNSIGNED_BYTE, pixels)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint, stride))
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei, width), cast(GLsizei, height), GL_RED, GL_UNSIGNED_BYTE, pixels)
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
     }
 
@@ -1018,7 +1018,7 @@ impl RenderOgl
         planes.chromaR = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
 
         var result: retval
-        result.attach(cast(TextureHandle) luma, view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
+        result.attach(cast(TextureHandle, luma), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .chromaPlanes.add(result.handle, planes)
         .updatePlanarImpl(result, view)
         return result
@@ -1033,7 +1033,7 @@ impl RenderOgl
         if not planes do
             return
 
-        .uploadPlane(cast(GLuint) texture.handle, view.luma, view.lumaStride, texture.width, texture.height)
+        .uploadPlane(cast(GLuint, texture.handle), view.luma, view.lumaStride, texture.width, texture.height)
         .uploadPlane(planes.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight())
         .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight())
         planes.value.factors = view.conversionFactors()
@@ -1077,10 +1077,10 @@ impl RenderOgl
         glGenTextures(1, &textureID)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) source.width, cast(s32) source.height, 0, fmt, dataType, cast([*] u8) source.pixels.storage())
+        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32, source.width), cast(s32, source.height), 0, fmt, dataType, cast([*] u8, source.pixels.storage()))
 
         var result: retval
-        result.attach(cast(TextureHandle) textureID, source.pixelFormat, source.width, source.height)
+        result.attach(cast(TextureHandle, textureID), source.pixelFormat, source.width, source.height)
         return result
     }
 
@@ -1154,10 +1154,10 @@ impl RenderOgl
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
     {
         let fmt       = pixelFormatToNative(texture.pixelFormat)
-        let textureID = cast(GLuint) texture.handle
+        let textureID = cast(GLuint, texture.handle)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(s32) texture.width, cast(s32) texture.height, fmt, pixelFormatToNativeType(texture.pixelFormat), pixels)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(s32, texture.width), cast(s32, texture.height), fmt, pixelFormatToNativeType(texture.pixelFormat), pixels)
     }
 
     // Reads a texture into owned CPU memory in `pixelFormat`.
@@ -1165,9 +1165,9 @@ impl RenderOgl
     {
         var result: retval
         glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, cast() texture.handle)
+        glBindTexture(GL_TEXTURE_2D, cast(texture.handle))
         Swag.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
-        result.resize(cast(u64) texture.width * cast(u64) texture.height * pixelFormat.bitsPerPixel() / 8)
+        result.resize(cast(u64, texture.width) * cast(u64, texture.height) * pixelFormat.bitsPerPixel() / 8)
         let fmt = pixelFormatToNative(pixelFormat)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
         glGetTexImage(GL_TEXTURE_2D, 0, fmt, pixelFormatToNativeType(pixelFormat), result.buffer)
@@ -1191,7 +1191,7 @@ impl RenderOgl
             .chromaPlanes.remove(texture.handle)
         }
 
-        var id: GLuint = cast() texture.handle
+        var id: GLuint = cast(texture.handle)
         glDeleteTextures(1, &id)
         texture.clear()
     }
@@ -1246,13 +1246,13 @@ impl RenderOgl
         let {width, height} = .targetSizeImpl()
 
         // View, ortho projection
-        .orthoMatrix = ortho(cast(f32) height, 0, 0, cast(f32) width, 0, 1.0)
-        glUniformMatrix4fv(cast(GLint) mvp, 1, GL_FALSE, &.orthoMatrix.m[0, 0])
+        .orthoMatrix = ortho(cast(f32, height), 0, 0, cast(f32, width), 0, 1.0)
+        glUniformMatrix4fv(cast(GLint, mvp), 1, GL_FALSE, &.orthoMatrix.m[0, 0])
         glViewport(0, 0, width, height)
 
         // Draw matrix
         .buildModelMatrix(Transform2.Identity)
-        glUniformMatrix4fv(cast(GLint) mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
+        glUniformMatrix4fv(cast(GLint, mdl), 1, GL_FALSE, &.modelMatrix.m[0, 0])
     }
 
     private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64)
@@ -1277,7 +1277,7 @@ impl RenderOgl
             let params = &cmd.transform
             .buildModelMatrix(params.tr)
             let curShader = .curShader!
-            glUniformMatrix4fv(cast(GLint) curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
+            glUniformMatrix4fv(cast(GLint, curShader.mdl), 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
         case .StartClippingRegion:
 
@@ -1290,7 +1290,7 @@ impl RenderOgl
             .clipMaskIndex   = .clipMaskFor(width, height)
             .clipMaskWriting = true
             .clipMaskOn      = false
-            let mask = .clipMasks[cast(u64) .clipMaskIndex]
+            let mask = .clipMasks[cast(u64, .clipMaskIndex)]
             glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
             glViewport(0, 0, width, height)
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
@@ -1312,7 +1312,7 @@ impl RenderOgl
             .rebindCurrentTarget()
             .setColorMask(.colorMask)
             .setBlendingMode(.blendingMode)
-            let mask = .clipMasks[cast(u64) .clipMaskIndex]
+            let mask = .clipMasks[cast(u64, .clipMaskIndex)]
             glActiveTexture(GL_TEXTURE5)
             glBindTexture(GL_TEXTURE_2D, mask.texture)
             glActiveTexture(GL_TEXTURE0)
@@ -1370,13 +1370,13 @@ impl RenderOgl
                     for var start = params.start; start < params.start + params.count; start += 3
                     {
                         .prepareFramebufferTouch()
-                        glDrawArrays(GL_TRIANGLES, cast(GLint) start, 3)
+                        glDrawArrays(GL_TRIANGLES, cast(GLint, start), 3)
                     }
                 }
                 else
                 {
                     .prepareFramebufferTouch()
-                    glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
+                    glDrawArrays(GL_TRIANGLES, cast(GLint, params.start), cast(GLsizei, params.count))
                 }
             }
             else
@@ -1408,7 +1408,7 @@ impl RenderOgl
                 glEnable(GL_BLEND)
                 glBlendFunc(GL_ONE, GL_ZERO)
                 glBlendEquation(GL_MAX)
-                glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
+                glDrawArrays(GL_TRIANGLES, cast(GLint, params.start), cast(GLsizei, params.count))
 
                 // Then we use the stored alpha as the blend factor.
                 // When a pixel is drawn once, the alpha value will be reset to 0, so this means that
@@ -1416,7 +1416,7 @@ impl RenderOgl
                 glBlendFuncSeparate(GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ZERO, GL_ZERO)
                 glBlendEquation(GL_FUNC_ADD)
                 glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
-                glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
+                glDrawArrays(GL_TRIANGLES, cast(GLint, params.start), cast(GLsizei, params.count))
                 .setColorMask(.colorMask)
 
                 if narrowed
@@ -1448,7 +1448,7 @@ impl RenderOgl
             let minF = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             glActiveTexture(GL_TEXTURE1)
             let texture = cache.atlases[params.atlasIndex].texture.handle
-            glBindTexture(GL_TEXTURE_2D, cast(GLuint) texture)
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, texture))
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
@@ -1481,9 +1481,9 @@ impl RenderOgl
                 if isNew do
                     glGenTextures(1, &textureID)
                 else do
-                    textureID = cast() atlas.texture.handle
+                    textureID = cast(atlas.texture.handle)
 
-                atlas.texture.attach(cast(TextureHandle) textureID, atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height)
+                atlas.texture.attach(cast(TextureHandle, textureID), atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height)
 
                 // An atlas keeps fixed dimensions for its whole life, so allocate the
                 // texture storage once and stream new glyphs in with glTexSubImage2D.
@@ -1499,16 +1499,16 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
-                    glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
+                    glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei, atlas.texture.width), cast(GLsizei, atlas.texture.height), 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
                 }
                 else
                 {
                     // New glyphs occupy only a small part of an existing page. Keep the atlas
                     // row stride while uploading its changed rectangle, then restore unpack
                     // state so ordinary image uploads still read tightly packed rows.
-                    let pixels = atlas.data.buffer + cast(u64) atlas.dirtyMinY * atlas.width + atlas.dirtyMinX * bpp
-                    glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint) atlas.texture.width)
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, cast(GLint) atlas.dirtyMinX, cast(GLint) atlas.dirtyMinY, cast(GLsizei) (atlas.dirtyMaxX - atlas.dirtyMinX), cast(GLsizei) (atlas.dirtyMaxY - atlas.dirtyMinY), fmt, GL_UNSIGNED_BYTE, pixels)
+                    let pixels = atlas.data.buffer + cast(u64, atlas.dirtyMinY) * atlas.width + atlas.dirtyMinX * bpp
+                    glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint, atlas.texture.width))
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, cast(GLint, atlas.dirtyMinX), cast(GLint, atlas.dirtyMinY), cast(GLsizei, (atlas.dirtyMaxX - atlas.dirtyMinX)), cast(GLsizei, (atlas.dirtyMaxY - atlas.dirtyMinY)), fmt, GL_UNSIGNED_BYTE, pixels)
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
                 }
 
@@ -1526,10 +1526,10 @@ impl RenderOgl
             }
 
             let curShader = .curShader!
-            glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
-            glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) cast(u32) UVMode.Fill)
-            glUniform1f(cast(GLint) curShader.interpolationMode, cast(GLfloat) cast(u32) InterpolationMode.Pixel)
-            glUniform1i(cast(GLint) curShader.gradientCount, 0)
+            glUniform1f(cast(GLint, curShader.paintType), cast(GLfloat, cast(u32, BrushType.SolidColor)))
+            glUniform1f(cast(GLint, curShader.uvMode), cast(GLfloat, cast(u32, UVMode.Fill)))
+            glUniform1f(cast(GLint, curShader.interpolationMode), cast(GLfloat, cast(u32, InterpolationMode.Pixel)))
+            glUniform1i(cast(GLint, curShader.gradientCount), 0)
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
@@ -1550,14 +1550,14 @@ impl RenderOgl
                 glBindTexture(GL_TEXTURE_2D, planarPlanes.value.chromaR)
                 .setShader(&.shaderYuv)
                 let factors = &planarPlanes.value.factors
-                glUniform4f(cast(GLint) .shaderYuv.lumaRed,
-                            cast(GLfloat) factors.lumaOffset,
-                            cast(GLfloat) factors.lumaScale,
-                            cast(GLfloat) factors.redCr,
-                            cast(GLfloat) factors.blueCb)
-                glUniform2f(cast(GLint) .shaderYuv.green,
-                            cast(GLfloat) factors.greenCb,
-                            cast(GLfloat) factors.greenCr)
+                glUniform4f(cast(GLint, .shaderYuv.lumaRed),
+                            cast(GLfloat, factors.lumaOffset),
+                            cast(GLfloat, factors.lumaScale),
+                            cast(GLfloat, factors.redCr),
+                            cast(GLfloat, factors.blueCb))
+                glUniform2f(cast(GLint, .shaderYuv.green),
+                            cast(GLfloat, factors.greenCb),
+                            cast(GLfloat, factors.greenCr))
             }
             elif .planarPrevShader
             {
@@ -1566,49 +1566,49 @@ impl RenderOgl
             }
 
             let curShader = .curShader!
-            glUniform4fv(cast(GLint) curShader.boundRect, 1, &params.boundRect.x)
-            glUniform4fv(cast(GLint) curShader.textureRect, 1, &params.textureRect.x)
-            glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) params.uvMode)
+            glUniform4fv(cast(GLint, curShader.boundRect), 1, &params.boundRect.x)
+            glUniform4fv(cast(GLint, curShader.textureRect), 1, &params.textureRect.x)
+            glUniform1f(cast(GLint, curShader.uvMode), cast(GLfloat, params.uvMode))
 
             // At a fractional content scale, pixel sampling switches to the sharp
             // bilinear shader path (uniform value 2): texel edges keep one device
             // pixel of smoothing instead of dropping texels or smearing borders.
-            var interpol = cast(GLfloat) params.interpolationMode
+            var interpol = cast(GLfloat, params.interpolationMode)
             if params.interpolationMode == .Pixel and .contentScale != 1 do
                 interpol = 2.0
-            glUniform1f(cast(GLint) curShader.interpolationMode, interpol)
-            glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) params.type)
+            glUniform1f(cast(GLint, curShader.interpolationMode), interpol)
+            glUniform1f(cast(GLint, curShader.paintType), cast(GLfloat, cast(u32, params.type)))
             glActiveTexture(GL_TEXTURE0)
 
             switch #complete params.type
             {
             case .SolidColor:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
-                glUniform1i(cast(GLint) curShader.gradientCount, 0)
+                glUniform1i(cast(GLint, curShader.gradientCount), 0)
 
             case .Texture:
-                glBindTexture(GL_TEXTURE_2D, cast(GLuint) params.texture.handle)
-                glUniform1f(cast(GLint) curShader.textureW, cast(GLfloat) params.texture.width)
-                glUniform1f(cast(GLint) curShader.textureH, cast(GLfloat) params.texture.height)
-                glUniform1i(cast(GLint) curShader.gradientCount, 0)
+                glBindTexture(GL_TEXTURE_2D, cast(GLuint, params.texture.handle))
+                glUniform1f(cast(GLint, curShader.textureW), cast(GLfloat, params.texture.width))
+                glUniform1f(cast(GLint, curShader.textureH), cast(GLfloat, params.texture.height))
+                glUniform1i(cast(GLint, curShader.gradientCount), 0)
 
             case .Hatch:
                 glBindTexture(GL_TEXTURE_2D, .hatchTextures[params.hatch])
-                glUniform1i(cast(GLint) curShader.gradientCount, 0)
+                glUniform1i(cast(GLint, curShader.gradientCount), 0)
 
             case .LinearGradient, .RadialGradient, .SweepGradient:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
-                glUniform1f(cast(GLint) curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
-                glUniform2f(cast(GLint) curShader.gradientStart, cast(GLfloat) params.gradientStart.x, cast(GLfloat) params.gradientStart.y)
-                glUniform2f(cast(GLint) curShader.gradientEnd, cast(GLfloat) params.gradientEnd.x, cast(GLfloat) params.gradientEnd.y)
-                glUniform2f(cast(GLint) curShader.gradientRadius, cast(GLfloat) params.gradientRadius0, cast(GLfloat) params.gradientRadius1)
-                glUniform2f(cast(GLint) curShader.gradientAngles, cast(GLfloat) params.gradientAngle0, cast(GLfloat) params.gradientAngle1)
-                glUniform1i(cast(GLint) curShader.gradientCount, cast(GLint) params.gradientStopCount)
+                glUniform1f(cast(GLint, curShader.gradientSpread), cast(GLfloat, cast(u32, params.gradientSpread)))
+                glUniform2f(cast(GLint, curShader.gradientStart), cast(GLfloat, params.gradientStart.x), cast(GLfloat, params.gradientStart.y))
+                glUniform2f(cast(GLint, curShader.gradientEnd), cast(GLfloat, params.gradientEnd.x), cast(GLfloat, params.gradientEnd.y))
+                glUniform2f(cast(GLint, curShader.gradientRadius), cast(GLfloat, params.gradientRadius0), cast(GLfloat, params.gradientRadius1))
+                glUniform2f(cast(GLint, curShader.gradientAngles), cast(GLfloat, params.gradientAngle0), cast(GLfloat, params.gradientAngle1))
+                glUniform1i(cast(GLint, curShader.gradientCount), cast(GLint, params.gradientStopCount))
 
                 let stops = Swag.makeSlice(dc.gradientStops.buffer + params.gradientStopStart, params.gradientStopCount)
                 if params.gradientStopCount <= 8
                 {
-                    glUniform1i(cast(GLint) curShader.gradientTextureEnabled, 0)
+                    glUniform1i(cast(GLint, curShader.gradientTextureEnabled), 0)
                     var offsets: [8] f32
                     var colors:  [8] Vector4
                     for i in params.gradientStopCount
@@ -1619,21 +1619,21 @@ impl RenderOgl
 
                     if params.gradientStopCount
                     {
-                        glUniform1fv(cast(GLint) curShader.gradientOffsets, cast(GLsizei) params.gradientStopCount, &offsets[0])
-                        glUniform4fv(cast(GLint) curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
+                        glUniform1fv(cast(GLint, curShader.gradientOffsets), cast(GLsizei, params.gradientStopCount), &offsets[0])
+                        glUniform4fv(cast(GLint, curShader.gradientColors), cast(GLsizei, params.gradientStopCount), &colors[0].x)
                     }
                 }
                 else
                 {
-                    glUniform1i(cast(GLint) curShader.gradientTextureEnabled, 1)
-                    glUniform1i(cast(GLint) curShader.gradientTexture, 2)
+                    glUniform1i(cast(GLint, curShader.gradientTextureEnabled), 1)
+                    glUniform1i(cast(GLint, curShader.gradientTexture), 2)
 
                     if .gradientTextureCapacity < params.gradientStopCount
                     {
                         .gradientTextureCapacity = Math.max(.gradientTextureCapacity * 2, params.gradientStopCount)
                         glActiveTexture(GL_TEXTURE2)
                         glBindTexture(GL_TEXTURE_2D, .gradientTexture)
-                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei) .gradientTextureCapacity, 2, 0, GL_RGBA, GL_FLOAT, null)
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei, .gradientTextureCapacity), 2, 0, GL_RGBA, GL_FLOAT, null)
                     }
                     else
                     {
@@ -1649,8 +1649,8 @@ impl RenderOgl
                         .gradientColorUpload[i]  = stops[i].color.toVector4()
                     }
 
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) params.gradientStopCount, 1, GL_RGBA, GL_FLOAT, .gradientOffsetUpload.buffer)
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 1, cast(GLsizei) params.gradientStopCount, 1, GL_RGBA, GL_FLOAT, .gradientColorUpload.buffer)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientOffsetUpload.buffer)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 1, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientColorUpload.buffer)
                     glActiveTexture(GL_TEXTURE0)
                 }
             }
@@ -1715,7 +1715,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i)
+                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64, i))
                     }
                 }
 
@@ -1747,15 +1747,15 @@ impl RenderOgl
 
             case .Blur:
                 .setShader(&.shaderBlur)
-                glUniform1i(cast(GLint) .shaderBlur.axis, params.axis)
+                glUniform1i(cast(GLint, .shaderBlur.axis), params.axis)
 
                 // The blur samples target texels; a logical radius must cover the
                 // same on-screen extent whatever the content scale.
-                glUniform1f(cast(GLint) .shaderBlur.radius, params.radius * .contentScale)
+                glUniform1f(cast(GLint, .shaderBlur.radius), params.radius * .contentScale)
 
             case .Resolve:
                 .setShader(&.shaderResolve)
-                glUniform1i(cast(GLint) .shaderResolve.factor, params.factor)
+                glUniform1i(cast(GLint, .shaderResolve.factor), params.factor)
             }
 
         case .SetShader:
@@ -1766,8 +1766,8 @@ impl RenderOgl
             let params = &cmd.shaderParam
             switch params.type
             {
-            case s32: glUniform1i(cast(GLint) params.param, params._s32)
-            case f32: glUniform1f(cast(GLint) params.param, params._f32)
+            case s32: glUniform1i(cast(GLint, params.param), params._s32)
+            case f32: glUniform1f(cast(GLint, params.param), params._f32)
             default:  Swag.assert(false)
             }
 
@@ -1779,17 +1779,17 @@ impl RenderOgl
             let s  = &.shaderFontMsdf
             let oc = p.outlineColor.toVector4()
             let gc = p.glowColor.toVector4()
-            glUniform1f(cast(GLint) s.fxEnabled, p.enabled)
-            glUniform1f(cast(GLint) s.fxFaceDilate, p.faceDilate)
-            glUniform1f(cast(GLint) s.fxFaceSoftness, p.faceSoftness)
-            glUniform1f(cast(GLint) s.fxOutlineWidth, p.outlineWidth)
-            glUniform4fv(cast(GLint) s.fxOutlineColor, 1, &oc.x)
-            glUniform4fv(cast(GLint) s.fxGlowColor, 1, &gc.x)
-            glUniform1f(cast(GLint) s.fxGlowOffset, p.glowOffset)
-            glUniform1f(cast(GLint) s.fxGlowInner, p.glowInner)
-            glUniform1f(cast(GLint) s.fxGlowOuter, p.glowOuter)
-            glUniform1f(cast(GLint) s.fxGlowPower, p.glowPower)
-            glUniform1f(cast(GLint) s.fxBevel, p.bevel)
+            glUniform1f(cast(GLint, s.fxEnabled), p.enabled)
+            glUniform1f(cast(GLint, s.fxFaceDilate), p.faceDilate)
+            glUniform1f(cast(GLint, s.fxFaceSoftness), p.faceSoftness)
+            glUniform1f(cast(GLint, s.fxOutlineWidth), p.outlineWidth)
+            glUniform4fv(cast(GLint, s.fxOutlineColor), 1, &oc.x)
+            glUniform4fv(cast(GLint, s.fxGlowColor), 1, &gc.x)
+            glUniform1f(cast(GLint, s.fxGlowOffset), p.glowOffset)
+            glUniform1f(cast(GLint, s.fxGlowInner), p.glowInner)
+            glUniform1f(cast(GLint, s.fxGlowOuter), p.glowOuter)
+            glUniform1f(cast(GLint, s.fxGlowPower), p.glowPower)
+            glUniform1f(cast(GLint, s.fxBevel), p.bevel)
         }
     }
 
@@ -1844,11 +1844,11 @@ impl RenderOgl
         .setColorMask({true, true, true, false})
 
         for i in 4 do
-            glEnableVertexAttribArray(cast(GLuint) i)
+            glEnableVertexAttribArray(cast(GLuint, i))
         for cmd, cmdIdx in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx)
         for i in 4 do
-            glDisableVertexAttribArray(cast(GLuint) i)
+            glDisableVertexAttribArray(cast(GLuint, i))
         .finishAdvancedBlendPass()
     }
 
@@ -1858,14 +1858,14 @@ impl RenderOgl
     mtd setShader(shader: *ShaderBase? = null)
     {
         .curShader = shader orelse &.shaderAA
-        glUseProgram(cast(GLuint) .curShader.handle)
-        glUniformMatrix4fv(cast(GLint) .curShader.mvp, 1, GL_FALSE, &.orthoMatrix.m[0, 0])
-        glUniformMatrix4fv(cast(GLint) .curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
+        glUseProgram(cast(GLuint, .curShader.handle))
+        glUniformMatrix4fv(cast(GLint, .curShader.mvp), 1, GL_FALSE, &.orthoMatrix.m[0, 0])
+        glUniformMatrix4fv(cast(GLint, .curShader.mdl), 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
         // Uniforms are per program: the incoming program's copyMode may be stale from an
         // earlier frame, so realign it with the current blending mode; see setBlendingMode.
-        glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
-        glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.usesKhrAdvancedBlending() and .blendingMode.usesAdvancedBlending()))
+        glUniform1i(cast(GLint, .curShader.copyMode), cast(GLint, (.blendingMode == .Copy)))
+        glUniform1i(cast(GLint, .curShader.premultiplyBlendSource), cast(GLint, (.usesKhrAdvancedBlending() and .blendingMode.usesAdvancedBlending())))
         .uploadClipMaskState()
     }
 
@@ -1885,17 +1885,17 @@ impl RenderOgl
         for &mask, index in .clipMasks where mask.width == width and mask.height == height
         {
             mask.lastUse = .clipMaskClock
-            return cast(s32) index
+            return cast(s32, index)
         }
 
         var reuse = -1's32
         if .clipMasks.count >= MaxClipMasks
         {
             var oldest = Swag.U64.Max
-            for mask, index in .clipMasks where cast(s32) index != .clipMaskIndex and mask.lastUse < oldest
+            for mask, index in .clipMasks where cast(s32, index) != .clipMaskIndex and mask.lastUse < oldest
             {
                 oldest = mask.lastUse
-                reuse  = cast(s32) index
+                reuse  = cast(s32, index)
             }
         }
 
@@ -1914,13 +1914,13 @@ impl RenderOgl
 
         if reuse >= 0
         {
-            .releaseClipMask(&.clipMasks[cast(u64) reuse])
-            .clipMasks[cast(u64) reuse] = mask
+            .releaseClipMask(&.clipMasks[cast(u64, reuse)])
+            .clipMasks[cast(u64, reuse)] = mask
             return reuse
         }
 
         .clipMasks.add(mask)
-        return cast(s32) (.clipMasks.count - 1)
+        return cast(s32, (.clipMasks.count - 1))
     }
 
     // Hands every coverage mask back to the graphics context.
@@ -1952,7 +1952,7 @@ impl RenderOgl
         if .curRT
         {
             let curRT = .curRT
-            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
+            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, curRT.handle))
             glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
             return
         }
@@ -1992,11 +1992,11 @@ impl RenderOgl
             mode = 2
         elif .clipMaskOn do
             mode = 1
-        glUniform1i(cast(GLint) curShader.clipMaskMode, cast(GLint) mode)
+        glUniform1i(cast(GLint, curShader.clipMaskMode), cast(GLint, mode))
         if .clipMaskIndex >= 0
         {
-            let mask = .clipMasks[cast(u64) .clipMaskIndex]
-            glUniform2f(cast(GLint) curShader.clipMaskSize, cast(GLfloat) mask.width, cast(GLfloat) mask.height)
+            let mask = .clipMasks[cast(u64, .clipMaskIndex)]
+            glUniform2f(cast(GLint, curShader.clipMaskSize), cast(GLfloat, mask.width), cast(GLfloat, mask.height))
         }
     }
 
@@ -2006,8 +2006,8 @@ impl RenderOgl
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Swag.assert(width > 0 and height > 0)
-        let w2 = Math.roundUpToPowerOf2(cast(u32) width)
-        let h2 = Math.roundUpToPowerOf2(cast(u32) height)
+        let w2 = Math.roundUpToPowerOf2(cast(u32, width))
+        let h2 = Math.roundUpToPowerOf2(cast(u32, height))
 
         for rt, i in .stackReleasedRT
         {
@@ -2030,7 +2030,7 @@ impl RenderOgl
         }
 
         var rt = Memory.new'RenderTarget()
-        rt[] = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
+        rt[] = .createRenderTargetImpl(cast(s32, w2), cast(s32, h2))
         return rt
     }
 
@@ -2051,7 +2051,7 @@ impl RenderOgl
         let vertexShaderID = glCreateShader(GL_VERTEX_SHADER)
         defer glDeleteShader(vertexShaderID)
         var vertexSourcePointer = buf.buffer
-        var vertexSourceLength  = cast(GLint) buf.length
+        var vertexSourceLength  = cast(GLint, buf.length)
         glShaderSource(vertexShaderID, 1, &vertexSourcePointer, &vertexSourceLength)
         glCompileShader(vertexShaderID)
         try checkShaderCompiled(vertexShaderID)
@@ -2067,7 +2067,7 @@ impl RenderOgl
         let fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER)
         defer glDeleteShader(fragmentShaderID)
         var pixelSourcePointer = buf.buffer
-        var pixelSourceLength  = cast(GLint) buf.length
+        var pixelSourceLength  = cast(GLint, buf.length)
         glShaderSource(fragmentShaderID, 1, &pixelSourcePointer, &pixelSourceLength)
         glCompileShader(fragmentShaderID)
         try checkShaderCompiled(fragmentShaderID)
@@ -2081,31 +2081,31 @@ impl RenderOgl
         glDetachShader(progID, fragmentShaderID)
         try checkProgramLinked(progID)
 
-        base.handle = cast(ShaderHandle) progID
+        base.handle = cast(ShaderHandle, progID)
 
-        base.mvp                    = cast() glGetUniformLocation(progID, ("mvp").buffer)
-        base.mdl                    = cast() glGetUniformLocation(progID, ("mdl").buffer)
-        base.boundRect              = cast() glGetUniformLocation(progID, ("boundRect").buffer)
-        base.textureRect            = cast() glGetUniformLocation(progID, ("textureRect").buffer)
-        base.uvMode                 = cast() glGetUniformLocation(progID, ("uvMode").buffer)
-        base.interpolationMode      = cast() glGetUniformLocation(progID, ("interpolationMode").buffer)
-        base.copyMode               = cast() glGetUniformLocation(progID, ("copyMode").buffer)
-        base.textureW               = cast() glGetUniformLocation(progID, ("textureW").buffer)
-        base.textureH               = cast() glGetUniformLocation(progID, ("textureH").buffer)
-        base.paintType              = cast() glGetUniformLocation(progID, ("paintType").buffer)
-        base.gradientSpread         = cast() glGetUniformLocation(progID, ("gradientSpread").buffer)
-        base.gradientStart          = cast() glGetUniformLocation(progID, ("gradientStart").buffer)
-        base.gradientEnd            = cast() glGetUniformLocation(progID, ("gradientEnd").buffer)
-        base.gradientRadius         = cast() glGetUniformLocation(progID, ("gradientRadius").buffer)
-        base.gradientAngles         = cast() glGetUniformLocation(progID, ("gradientAngles").buffer)
-        base.gradientCount          = cast() glGetUniformLocation(progID, ("gradientCount").buffer)
-        base.gradientOffsets        = cast() glGetUniformLocation(progID, ("gradientOffsets[0]").buffer)
-        base.gradientColors         = cast() glGetUniformLocation(progID, ("gradientColors[0]").buffer)
-        base.gradientTexture        = cast() glGetUniformLocation(progID, ("gradientTexture").buffer)
-        base.gradientTextureEnabled = cast() glGetUniformLocation(progID, ("gradientTextureEnabled").buffer)
-        base.premultiplyBlendSource = cast() glGetUniformLocation(progID, ("premultiplyBlendSource").buffer)
-        base.clipMaskMode           = cast() glGetUniformLocation(progID, ("clipMaskMode").buffer)
-        base.clipMaskSize           = cast() glGetUniformLocation(progID, ("clipMaskSize").buffer)
+        base.mvp                    = cast(glGetUniformLocation(progID, ("mvp").buffer))
+        base.mdl                    = cast(glGetUniformLocation(progID, ("mdl").buffer))
+        base.boundRect              = cast(glGetUniformLocation(progID, ("boundRect").buffer))
+        base.textureRect            = cast(glGetUniformLocation(progID, ("textureRect").buffer))
+        base.uvMode                 = cast(glGetUniformLocation(progID, ("uvMode").buffer))
+        base.interpolationMode      = cast(glGetUniformLocation(progID, ("interpolationMode").buffer))
+        base.copyMode               = cast(glGetUniformLocation(progID, ("copyMode").buffer))
+        base.textureW               = cast(glGetUniformLocation(progID, ("textureW").buffer))
+        base.textureH               = cast(glGetUniformLocation(progID, ("textureH").buffer))
+        base.paintType              = cast(glGetUniformLocation(progID, ("paintType").buffer))
+        base.gradientSpread         = cast(glGetUniformLocation(progID, ("gradientSpread").buffer))
+        base.gradientStart          = cast(glGetUniformLocation(progID, ("gradientStart").buffer))
+        base.gradientEnd            = cast(glGetUniformLocation(progID, ("gradientEnd").buffer))
+        base.gradientRadius         = cast(glGetUniformLocation(progID, ("gradientRadius").buffer))
+        base.gradientAngles         = cast(glGetUniformLocation(progID, ("gradientAngles").buffer))
+        base.gradientCount          = cast(glGetUniformLocation(progID, ("gradientCount").buffer))
+        base.gradientOffsets        = cast(glGetUniformLocation(progID, ("gradientOffsets[0]").buffer))
+        base.gradientColors         = cast(glGetUniformLocation(progID, ("gradientColors[0]").buffer))
+        base.gradientTexture        = cast(glGetUniformLocation(progID, ("gradientTexture").buffer))
+        base.gradientTextureEnabled = cast(glGetUniformLocation(progID, ("gradientTextureEnabled").buffer))
+        base.premultiplyBlendSource = cast(glGetUniformLocation(progID, ("premultiplyBlendSource").buffer))
+        base.clipMaskMode           = cast(glGetUniformLocation(progID, ("clipMaskMode").buffer))
+        base.clipMaskSize           = cast(glGetUniformLocation(progID, ("clipMaskSize").buffer))
 
         // The clipping mask has a texture unit of its own, above the paint, font, gradient and
         // chroma units, so binding it never displaces what a program is sampling.

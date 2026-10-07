@@ -29,7 +29,7 @@ func runHelperFunc()->bool
 func runBasicCast()->bool
 {
     var t: T
-    var i = cast(I1) t
+    var i = cast(I1, t)
     gInterfaceImplTotoCalls = 0
     i.toto()
     return gInterfaceImplTotoCalls == 1

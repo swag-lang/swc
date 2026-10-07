@@ -15,7 +15,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
 
     var d: Decimal
     d.assign(mant)
-    d.shift(cast(s32) exp - Swag.F64.MantBits)
+    d.shift(cast(s32, exp) - Swag.F64.MantBits)
 
     var digs: DecimalSlice
     digs.neg = false
@@ -81,7 +81,7 @@ func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs
         {
             if prec > digs.nd do
                 prec = digs.nd
-            return fmtE(dst, neg, forceSign, digs, prec - 1, cast(u8) (fmt + 'e'u8 - 'g'u8))
+            return fmtE(dst, neg, forceSign, digs, prec - 1, cast(u8, (fmt + 'e'u8 - 'g'u8)))
         }
 
         if prec > digs.dp do
@@ -145,16 +145,16 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     {
     case exp < 10:
         dst.addNative('0'u8)
-        dst.addNative(cast(u8) (exp + '0'u8))
+        dst.addNative(cast(u8, (exp + '0'u8)))
 
     case exp < 100:
-        dst.addNative(cast(u8) ((exp / 10) + '0'u8))
-        dst.addNative(cast(u8) ((exp % 10) + '0'u8))
+        dst.addNative(cast(u8, ((exp / 10) + '0'u8)))
+        dst.addNative(cast(u8, ((exp % 10) + '0'u8)))
 
     default:
-        dst.addNative(cast(u8) ((exp / 100) + '0'u8))
-        dst.addNative(cast(u8) (((exp / 10) % 10) + '0'u8))
-        dst.addNative(cast(u8) ((exp % 10) + '0'u8))
+        dst.addNative(cast(u8, ((exp / 100) + '0'u8)))
+        dst.addNative(cast(u8, (((exp / 10) % 10) + '0'u8)))
+        dst.addNative(cast(u8, ((exp % 10) + '0'u8)))
     }
 }
 
@@ -223,7 +223,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
     // or equivalently log2(10)*(dp-nd) > exp-mantbits.
     // It is true if 332/100*(dp-nd) >= exp-mantbits (log2(10) > 3.32).
     let minexp = Swag.F64.Bias + 1     // minimum possible exponent
-    if exp > minexp and 332 * (d.dp - d.nd) >= 100 * (exp - cast(s64) Swag.F64.MantBits)
+    if exp > minexp and 332 * (d.dp - d.nd) >= 100 * (exp - cast(s64, Swag.F64.MantBits))
     {
         // The number is already shortest.
         return
@@ -234,7 +234,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
     // Our upper bound is halfway between, mant*2+1 << exp-mantbits-1.
     var upper: Decimal
     upper.assign(mant * 2 + 1)
-    upper.shift(cast(s32) exp - cast(s32) Swag.F64.MantBits - 1)
+    upper.shift(cast(s32, exp) - cast(s32, Swag.F64.MantBits) - 1)
 
     // d = mant << (exp - mantbits)
     // Next lowest floating point number is mant-1 << exp-mantbits,
@@ -257,7 +257,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
 
     var lower: Decimal
     lower.assign(mantlo * 2 + 1)
-    lower.shift(cast(s32) explo - cast(s32) Swag.F64.MantBits - 1)
+    lower.shift(cast(s32, explo) - cast(s32, Swag.F64.MantBits) - 1)
 
     // The upper and lower bounds are possible outputs only if
     // the original mantissa is even, so that IEEE round-to-even
@@ -366,11 +366,11 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
 // writes the sign of a positive value. A NaN is written `NaN` and an infinity `+Inf` or `-Inf`.
 public func append(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
 {
-    let bits: u64 = cast #bit (u64) val
+    let bits: u64 = cast #bit (u64, val)
 
     var prec = precision
     let neg  = bits >> (Swag.F64.ExpBits + Swag.F64.MantBits) != 0
-    var exp  = cast(s64) (bits >> Swag.F64.MantBits) & ((1 << Swag.F64.ExpBits) - 1)
+    var exp  = cast(s64, (bits >> Swag.F64.MantBits)) & ((1 << Swag.F64.ExpBits) - 1)
     var mant = bits & ((1'u64 << Swag.F64.MantBits) - 1)
 
     switch exp
@@ -448,7 +448,7 @@ public func append(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceS
             digs.nd  = 0
             digs.dp  = 0
             digs.neg = false
-            var f = FloatExt{mant, exp - cast(s64) Swag.F64.MantBits, neg}
+            var f = FloatExt{mant, exp - cast(s64, Swag.F64.MantBits), neg}
             ok = f.fixedDecimal(&digs, digits)
             if ok do
                 return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt)

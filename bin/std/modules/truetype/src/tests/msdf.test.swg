@@ -8,7 +8,7 @@ private func countMsdfSignMismatches(bitmap: const *Bitmap)->u32
 {
     var result: u32
     let buf = bitmap.buffer!
-    for i in cast(u64) bitmap.width * bitmap.rows
+    for i in cast(u64, bitmap.width) * bitmap.rows
     {
         let p      = i * 4
         let median = Math.max(Math.min(buf[p], buf[p + 1]), Math.min(Math.max(buf[p], buf[p + 1]), buf[p + 2]))
@@ -44,7 +44,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
         points.add(Vector{sq[2], sq[1]})
         for 4 do
             tags.add(CURVE_TAG_ON)
-        contours.add(cast(s16) points.count - 1)
+        contours.add(cast(s16, points.count) - 1)
     }
 
     // Loading any glyph leaves the slot holding an outline, which the view then replaces.
@@ -53,14 +53,14 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
     faceData.outlinePoints   = #move points
     faceData.outlineTags     = #move tags
     faceData.outlineContours = #move contours
-    face.glyph.outline.setView(faceData.outlinePoints.buffer, faceData.outlineTags.buffer, faceData.outlineContours.buffer, cast(s16) faceData.outlinePoints.count, cast(s16) faceData.outlineContours.count)
+    face.glyph.outline.setView(faceData.outlinePoints.buffer, faceData.outlineTags.buffer, faceData.outlineContours.buffer, cast(s16, faceData.outlinePoints.count), cast(s16, faceData.outlineContours.count))
     discard expect face.renderGlyphMsdf(8)
 
     let bitmap = &face.glyph.bitmap
     Swag.assert(countMsdfSignMismatches(bitmap) == 0)
 
-    let col = cast(u64) (x - face.glyph.bitmapLeft)
-    let row = cast(u64) (face.glyph.bitmapTop - y)
+    let col = cast(u64, (x - face.glyph.bitmapLeft))
+    let row = cast(u64, (face.glyph.bitmapTop - y))
     let buf = bitmap.buffer!
     let p   = (row * bitmap.width + col) * 4
 
@@ -82,7 +82,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
     discard expect face.setPixelSize(0, 40)
     for c in "MWkx"
     {
-        discard expect face.loadChar(cast(rune) c)
+        discard expect face.loadChar(cast(rune, c))
         discard expect face.glyph.outline.embolden(3 * 64)
         discard expect face.renderGlyphMsdf(8)
         Swag.assert(countMsdfSignMismatches(&face.glyph.bitmap) == 0)

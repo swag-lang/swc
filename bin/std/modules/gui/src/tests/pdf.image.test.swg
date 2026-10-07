@@ -9,7 +9,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     addStreamObject(&extra, 5, dictionary, samples)
 
     let content = "q 10 0 0 10 0 0 cm /Im0 Do Q"
-    return expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    return expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
 }
 
 // Every bit depth expands to the same eight-bit samples.
@@ -57,7 +57,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var grayActual:   [240] u8
     var grayExpected: [240] u8
     for index in graySource.count do
-        graySource[index] = cast(u8) ((cast(u64) index * 37 + 11) & 0xFF)
+        graySource[index] = cast(u8, ((cast(u64, index) * 37 + 11) & 0xFF))
 
     for idx in 65
     {
@@ -82,7 +82,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var cmykActual:   [64] u8
     var cmykExpected: [64] u8
     for index in cmykSource.count do
-        cmykSource[index] = cast(u8) ((cast(u64) index * 53 + 19) & 0xFF)
+        cmykSource[index] = cast(u8, ((cast(u64, index) * 53 + 19) & 0xFF))
 
     for length in 21
     {
@@ -96,7 +96,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         for i in length
         {
             let src = i * 4
-            cmykToRgb(cast(f32) cmykSource[src + 0] / 255.0, cast(f32) cmykSource[src + 1] / 255.0, cast(f32) cmykSource[src + 2] / 255.0, cast(f32) cmykSource[src + 3] / 255.0, cmykExpected[i * 3 until i * 3 + 3])
+            cmykToRgb(cast(f32, cmykSource[src + 0]) / 255.0, cast(f32, cmykSource[src + 1]) / 255.0, cast(f32, cmykSource[src + 2]) / 255.0, cast(f32, cmykSource[src + 3]) / 255.0, cmykExpected[i * 3 until i * 3 + 3])
         }
 
         Swag.assert(Memory.compare(cmykActual.buffer, cmykExpected.buffer, #sizeof(cmykActual)) == 0)
@@ -115,14 +115,14 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         {
             for pixel in 4
             {
-                source[pixel * 4 + 0] = cast(u8) component
-                source[pixel * 4 + 1] = cast(u8) component
-                source[pixel * 4 + 2] = cast(u8) component
-                source[pixel * 4 + 3] = cast(u8) black
+                source[pixel * 4 + 0] = cast(u8, component)
+                source[pixel * 4 + 1] = cast(u8, component)
+                source[pixel * 4 + 2] = cast(u8, component)
+                source[pixel * 4 + 3] = cast(u8, black)
             }
 
             expandCmyk8(actual.buffer, source.buffer, 4)
-            cmykToRgb(cast(f32) component / 255.0, cast(f32) component / 255.0, cast(f32) component / 255.0, cast(f32) black / 255.0, scalar)
+            cmykToRgb(cast(f32, component) / 255.0, cast(f32, component) / 255.0, cast(f32, component) / 255.0, cast(f32, black) / 255.0, scalar)
             for index in actual.count do
                 Swag.assert(actual[index] == scalar[index % 3])
         }
@@ -164,11 +164,11 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 #test
 {
     var extra: Array'u8
-    addStreamObject(&extra, 6, "/N 3", cast(const [..] u8) "profile bytes ignored")
+    addStreamObject(&extra, 6, "/N 3", cast(const [..] u8, "profile bytes ignored"))
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace [/ICCBased 6 0 R] /BitsPerComponent 8", [10'u8, 20, 30])
 
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
-    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = onlyItem(document.pages[0], .Image).imageValue()!
     Swag.assert(image.pixelColor(0, 0).r == 10 and image.pixelColor(0, 0).g == 20 and image.pixelColor(0, 0).b == 30)
 }
@@ -181,7 +181,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /ImageMask true", samples)
 
     let content  = "q 1 0 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
-    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = onlyItem(document.pages[0], .Image).imageValue()!
     Swag.assert(image.pixelFormat == .RGBA8)
 
@@ -198,7 +198,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 4 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", [10'u8, 20, 30, 40])
 
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
-    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = onlyItem(document.pages[0], .Image).imageValue()!
     Swag.assert(image.pixelFormat == .RGBA8)
     Swag.assert(image.pixelColor(0, 0).a == 0 and image.pixelColor(1, 0).a == 0)
@@ -222,9 +222,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 #test
 {
     var content: Array'u8
-    content.add(cast(const [..] u8) "q 20 0 0 10 0 0 cm BI /W 2 /H 1 /CS /RGB /BPC 8 ID ")
+    content.add(cast(const [..] u8, "q 20 0 0 10 0 0 cm BI /W 2 /H 1 /CS /RGB /BPC 8 ID "))
     content.add([255'u8, 0, 0, 0, 0, 255])
-    content.add(cast(const [..] u8) " EI Q")
+    content.add(cast(const [..] u8, " EI Q"))
 
     let document = expect Document.decode(singlePagePdf("", content.toSlice(), "").toSlice())
     let item     = onlyItem(document.pages[0], .Image)
@@ -286,7 +286,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /JBIG2Decode", [0'u8, 0])
 
     let content = "q 10 0 0 10 0 0 cm /Im0 Do Q"
-    let bytes   = singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice())
+    let bytes   = singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice())
     discard catch Document.decode(bytes.toSlice()) as codecError
     Swag.assert(codecError != null)
 }
@@ -301,7 +301,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     document.addPage(#move page)
 
     let bytes = expect document.encode()
-    let text  = cast(string) bytes.toSlice()
+    let text  = cast(string, bytes.toSlice())
     Swag.assert(Utf8.indexOf(text, "/DeviceGray") != Swag.U64.Max)
     Swag.assert(Utf8.indexOf(text, "/SMask") == Swag.U64.Max)
 
@@ -321,7 +321,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     document.addPage(#move page)
 
     let bytes = expect document.encode()
-    Swag.assert(Utf8.indexOf(cast(string) bytes.toSlice(), "/SMask") != Swag.U64.Max)
+    Swag.assert(Utf8.indexOf(cast(string, bytes.toSlice()), "/SMask") != Swag.U64.Max)
 
     var decoded = expect Document.decode(bytes.toSlice())
     let image   = onlyItem(decoded.pages[0], .Image).imageValue()!

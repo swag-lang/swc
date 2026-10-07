@@ -54,7 +54,7 @@ impl PropertiesCtrl
                 if not sel do
                     return
                 list.toggleExpand(sel)
-                let item = cast(*PropertiesItem) sel.userData0!
+                let item = cast(*PropertiesItem, sel.userData0!)
                 let pos  = item.label.rectRelativeTo(ed.properties.edView)
                 ed.properties.scrollWnd.setScrollPos(0, pos.y)
             }
@@ -103,7 +103,7 @@ impl PropertiesCtrl
                 .margin.w  = 12
                 .dockStyle = .Top
                 .setForm(.PushButton)
-                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32) cast(u64) tab.selectedItem()!.userData0) }
+                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32, cast(u64, tab.selectedItem()!.userData0))) }
             }
         }
 
@@ -120,7 +120,7 @@ impl PropertiesCtrl
         {
             .tab.clear()
             let tabItem = .tab.addItem(strings().prop_All)
-            tabItem.userData0 = cast(*void?) .properties.sections.count
+            tabItem.userData0 = cast(*void?, .properties.sections.count)
         }
 
         var parentLine: *ListLine?
@@ -137,7 +137,7 @@ impl PropertiesCtrl
             if .tab != null and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
-                tabItem.userData0 = cast(*void?) idx
+                tabItem.userData0 = cast(*void?, idx)
             }
 
             // In the left pane

@@ -33,7 +33,7 @@ private impl BitArray
 
     mtd dataPtr()->[*] u32 => .buffer!
 
-    mtd const constDataPtr()->const [*] u32 => cast(const [*] u32) .buffer!
+    mtd const constDataPtr()->const [*] u32 => cast(const [*] u32, .buffer!)
 
     // Releases the storage and leaves the array empty; does nothing when nothing is allocated.
     mtd release()
@@ -51,7 +51,7 @@ private impl BitArray
     {
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        .buffer        = cast() Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator)
+        .buffer        = cast(Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator))
         .capacityBytes = newCapacityBytes
     }
 
@@ -62,7 +62,7 @@ private impl BitArray
             return
 
         let lastWord = .wordCount() - 1
-        let mask     = (1'u32 << cast(u32) usedBits) - 1
+        let mask     = (1'u32 << cast(u32, usedBits)) - 1
         .dataPtr()[lastWord] &= mask
     }
 }
@@ -174,7 +174,7 @@ public impl BitArray
             {
                 #scope(Down)
                 {
-                    #inject(stmt, item = cast(bool) (buffer[idx] & (1'u32 << cast(u32) bitIndex)), index = countBits, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(bool, (buffer[idx] & (1'u32 << cast(u32, bitIndex)))), index = countBits, break = break to Up, continue = break to Down)
                 }
 
                 countBits += 1
@@ -216,7 +216,7 @@ public impl BitArray
         Swag.assert(index < .count)
         let val    = index >> 5
         let bit    = index - (val << 5)
-        let shift  = 1'u32 << cast(u32) bit
+        let shift  = 1'u32 << cast(u32, bit)
         let buffer = .dataPtr()
         if value do
             buffer[val] |= shift
@@ -230,8 +230,8 @@ public impl BitArray
         Swag.assert(index < .count)
         let val   = index >> 5
         let bit   = index - (val << 5)
-        let shift = 1'u32 << cast(u32) bit
-        return cast(bool) (.constDataPtr()[val] & shift)
+        let shift = 1'u32 << cast(u32, bit)
+        return cast(bool, (.constDataPtr()[val] & shift))
     }
 
     // Inverts the bit at `index`.
@@ -240,7 +240,7 @@ public impl BitArray
         Swag.assert(index < .count)
         let val    = index >> 5
         let bit    = index - (val << 5)
-        let shift  = 1'u32 << cast(u32) bit
+        let shift  = 1'u32 << cast(u32, bit)
         let buffer = .dataPtr()
         buffer[val] ^= shift
     }

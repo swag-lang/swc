@@ -19,6 +19,7 @@ namespace Runtime
         Expect      = 0x0400,
         Lifecycle   = 0x0800,
         Assert      = 0x1000,
+        Assume      = 0x2000,
         None        = 0x0000,
         All         = 0xFFFF,
     };

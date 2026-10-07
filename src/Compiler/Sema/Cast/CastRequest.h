@@ -39,6 +39,8 @@ enum class CastFlagsE : uint32_t
     LateRelease          = 1 << 11, // 'slot = null' on a 'late' slot: the store that returns it to unset
     Try                  = 1 << 12,
     Assume               = 1 << 13,
+    Fallible             = 1 << 14,
+    NonNullChecked       = 1 << 15, // an explicit cast owns the check or the caller's assumption
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

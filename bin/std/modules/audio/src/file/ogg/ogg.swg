@@ -41,7 +41,7 @@ impl PageHeader
     mtd const totalBytes()->u64 => .headerBytes + .bodyBytes
 }
 
-func readU32(bytes: const [..] u8, offset: u64)->u32 => cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
+func readU32(bytes: const [..] u8, offset: u64)->u32 => cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16) | (cast(u32, bytes[offset + 3]) << 24)
 
 // Reads the page header at `offset`, which needs the capture pattern, the fixed header, and the
 // segment table to be inside `bytes`.
@@ -57,10 +57,10 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
     with var result: retval
     {
         .flags       = bytes[offset + 5]
-        .granule     = cast(u64) readU32(bytes, offset + 6) | (cast(u64) readU32(bytes, offset + 10) << 32)
+        .granule     = cast(u64, readU32(bytes, offset + 6)) | (cast(u64, readU32(bytes, offset + 10)) << 32)
         .serial      = readU32(bytes, offset + 14)
         .sequence    = readU32(bytes, offset + 18)
-        .segments    = cast(u32) bytes[offset + 26]
+        .segments    = cast(u32, bytes[offset + 26])
         .headerBytes = PageHeaderSize + .segments
     }
 
@@ -82,7 +82,7 @@ internal func pageChecksum(page: const [..] u8, table: const [256] u32)->u32
     for byte, index in page
     {
         let value = index >= 22 and index < 26 ? 0'u8 : byte
-        crc = (crc << 8) ^ table[((crc >> 24) ^ cast(u32) value) & 0xFF]
+        crc = (crc << 8) ^ table[((crc >> 24) ^ cast(u32, value)) & 0xFF]
     }
 
     return crc
@@ -93,7 +93,7 @@ internal func buildChecksumTable()->[256] u32
     var result: retval
     for index in 256
     {
-        var value = cast(u32) index << 24
+        var value = cast(u32, index) << 24
         for 8 do
             value = value & 0x80000000 ? (value << 1) ^ ChecksumPolynomial : value << 1
         result[index] = value
@@ -131,7 +131,7 @@ private func identify(body: const [..] u8)->StreamInfo fail
         if readU32(body, 7) != 0 do
             fail UnsupportedFormatError{"Vorbis stream uses an unknown version"}
         result.kind          = .Vorbis
-        result.channels      = cast(u32) body[11]
+        result.channels      = cast(u32, body[11])
         result.sampleRate    = readU32(body, 12)
         result.headerPackets = 3
         if not result.channels or result.channels > Vorbis.MaxChannels do
@@ -147,8 +147,8 @@ private func identify(body: const [..] u8)->StreamInfo fail
         if (body[8] >> 4) != 0 do
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}
         result.kind          = .Opus
-        result.channels      = cast(u32) body[9]
-        result.preSkip       = cast(u64) body[10] | (cast(u64) body[11] << 8)
+        result.channels      = cast(u32, body[9])
+        result.preSkip       = cast(u64, body[10]) | (cast(u64, body[11]) << 8)
         result.sampleRate    = Opus.OutputRate
         result.headerPackets = 2
         if body[18] != 0 do
@@ -297,7 +297,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             var at   = 0'u64
             for index in header.segments
             {
-                let size = cast(u64) header.lacing[index]
+                let size = cast(u64, header.lacing[index])
                 if not run.open
                 {
                     let frames = Opus.packetFrames(body[at until at + size])
@@ -357,13 +357,13 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
                 {
                     // A final page that completes no frame extends the run before it.
                     if not walker.packets.isEmpty() do
-                        walker.packets.backPtr().byteSize += cast(u32) run.bytes
+                        walker.packets.backPtr().byteSize += cast(u32, run.bytes)
                 }
                 else
                 {
                     if run.bytes > Swag.U32.Max or frames > Swag.U32.Max do
                         fail InvalidFormatError{"Ogg page run is larger than a packet may be"}
-                    walker.packets.add({run.start, cast(u32) run.bytes, cast(u32) frames})
+                    walker.packets.add({run.start, cast(u32, run.bytes), cast(u32, frames)})
                     total += frames
                 }
 

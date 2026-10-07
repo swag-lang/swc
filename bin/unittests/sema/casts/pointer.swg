@@ -4,12 +4,12 @@ func semaTest001()
 {
     var ax: s32
     var x:  *s32 = &ax
-    var b        = cast([*]s32) x
+    var b        = cast([*]s32, x)
 
     var v: *s32 = b
     #assert(#typeof(v) == *s32)
 
-    var v2 = cast(*s32) b
+    var v2 = cast(*s32, b)
     #assert(#typeof(v2) == *s32)
 }
 
@@ -17,15 +17,15 @@ func semaTest002()
 {
     var ax: s32
     var x:  *s32 = &ax
-    var b        = cast([*]s32) x
+    var b        = cast([*]s32, x)
 
     var v: *s32 = b
     #assert(#typeof(v) == *s32)
 
-    var v2 = cast(*s32) b
+    var v2 = cast(*s32, b)
     #assert(#typeof(v2) == *s32)
 
-    var b3 = cast([*]s32) x
+    var b3 = cast([*]s32, x)
     #assert(#typeof(b3) == [*]s32)
 }
 
@@ -33,7 +33,7 @@ func semaTest003()
 {
     var ax: s32
     var x:  *s32 = &ax
-    var y        = cast(*u8) x
+    var y        = cast(*u8, x)
     #assert(#typeof(y) == *u8)
 }
 
@@ -41,15 +41,15 @@ func semaTest004()
 {
     var ax: s32
     var x:  const *s32 = &ax
-    var y = cast #unconst (*u8) x
+    var y = cast #unconst (*u8, x)
     #assert(#typeof(y) == *u8)
 }
 
 func semaTest005()
 {
     var ax: s32
-    var x = cast([*]s32) &ax
-    var y = cast([*]u8) x
+    var x = cast([*]s32, &ax)
+    var y = cast([*]u8, x)
     #assert(#typeof(y) == [*]u8)
 }
 
@@ -76,23 +76,23 @@ func semaTest008()
 func semaTest009()
 {
     var a: typeinfo = #typeof(s32)
-    var b = cast(const *u8) a
-    var c = cast(const *void) a
+    var b = cast(const *u8, a)
+    var c = cast(const *void, a)
 }
 
 func semaTest010()
 {
     var ax: s32
     var x:  const *s32 = &ax
-    var y = cast(const *u8) x
+    var y = cast(const *u8, x)
     #assert(#typeof(y) == const *u8)
 }
 
 func semaTest011()
 {
     var ax: s32
-    var x = cast(const [*]s32) &ax
-    var y = cast(const [*]u8) x
+    var x = cast(const [*]s32, &ax)
+    var y = cast(const [*]u8, x)
     #assert(#typeof(y) == const [*]u8)
 }
 
@@ -131,14 +131,14 @@ func semaTest014()
     var handle: StrictHandle = null
     #assert(#typeof(handle) == StrictHandle)
 
-    var handleFromRaw: StrictHandle = cast(const *void?) strictHandleSource()
+    var handleFromRaw: StrictHandle = cast(const *void?, strictHandleSource())
     #assert(#typeof(handleFromRaw) == StrictHandle)
 }
 
 func semaTest015()
 {
     let text = "hello"
-    let ptr  = cast(const [*] u8) text
+    let ptr  = cast(const [*] u8, text)
     #assert(#typeof(ptr) == const [*] u8)
 }
 
@@ -161,7 +161,7 @@ func semaTest017()
 func semaTest018()
 {
     var data: [4] u8
-    let cstr = cast(cstring) &data[0]
+    let cstr = cast(cstring, &data[0])
 
     #assert(#typeof(cstr) == cstring)
 }
@@ -176,26 +176,26 @@ struct SemaCastAlien { x, y, z, w: s64 }
 
 func semaTestCastDescend(b: *SemaCastBase)->*SemaCastDeeper
 {
-    return cast #assume(*SemaCastDeeper) b
+    return assume cast(*SemaCastDeeper, b)
 }
 
 func semaTestCastAscend(d: *SemaCastDeeper)->*SemaCastBase
 {
-    return cast(*SemaCastBase) d
+    return cast(*SemaCastBase, d)
 }
 
 // The deliberate reinterpretation stays available, and has to be spelled.
 func semaTestCastReinterpret(b: *SemaCastBase)->*SemaCastAlien
 {
-    return cast(*SemaCastAlien) cast(*void) b
+    return cast(*SemaCastAlien, cast(*void, b))
 }
 
 func semaTestCastUnrelated(b: *SemaCastBase)->*SemaCastAlien
 {
-    return cast(*SemaCastAlien) b     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+    return cast(*SemaCastAlien, b)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
 }
 
 func semaTestCastUnrelatedReverse(a: *SemaCastAlien)->*SemaCastDerived
 {
-    return cast(*SemaCastDerived) a     // swc-expected-error {{sema_err_cast_unrelated_structs}}
+    return cast(*SemaCastDerived, a)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
 }

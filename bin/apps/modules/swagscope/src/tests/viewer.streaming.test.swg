@@ -12,13 +12,13 @@ using Core, Pixel, Gui
     var source: String
     for index in 12_000 do
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var session  = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view     = cast #assume (*TextViewer) session.view!
+    let view     = assume cast (*TextViewer, session.view)
     view.resize(640, 360)
     view.applyLayout()
     completeTextReads(&host, view)
@@ -58,7 +58,7 @@ using Core, Pixel, Gui
     var source: String
     for index in 12_000 do
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()

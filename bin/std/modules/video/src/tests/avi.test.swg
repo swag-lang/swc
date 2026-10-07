@@ -206,7 +206,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     let rate = expect FrameRate.create(25, 1)
     var clip = expect Clip.create(64, 48, rate)
     for index in 4'u64 do
-        expect clip.addFrame(videoGrayImage(64, 48, cast(u8) (40 + index * 40)))
+        expect clip.addFrame(videoGrayImage(64, 48, cast(u8, (40 + index * 40))))
 
     var low: Avi.EncodeOptions
     low.quality = 20
@@ -239,7 +239,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.assert(aviHasId(raw, 212, "LIST") and aviHasId(raw, 220, "movi") and aviHasId(raw, 224, "00dc"))
 
     // Everything the header could only know once the last frame landed.
-    Swag.assert(aviReadU32(raw, 4) == cast(u32) bytes.count - 8)
+    Swag.assert(aviReadU32(raw, 4) == cast(u32, bytes.count) - 8)
     Swag.assert(aviReadU32(raw, 48) == 3)       // Frame count of the file header.
     Swag.assert(aviReadU32(raw, 64) == 8)       // Frame width of the file header.
     Swag.assert(aviReadU32(raw, 68) == 4)       // Frame height of the file header.
@@ -248,7 +248,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.assert(aviReadU32(raw, 140) == 3)      // Frame count of the stream header.
 
     // The size of the frame list is what places the index right after the last frame.
-    let indexStart = 220 + cast(u64) aviReadU32(raw, 216)
+    let indexStart = 220 + cast(u64, aviReadU32(raw, 216))
     Swag.assert(aviHasId(raw, indexStart, "idx1"))
     Swag.assert(aviReadU32(raw, indexStart + 4) == 3 * 16)
     Swag.assert(aviHasId(raw, indexStart + 8, "00dc"))
@@ -306,14 +306,14 @@ func aviReadU32(bytes: const [..] u8, offset: u64)->u32
 {
     var result = 0'u32
     for shift in 4 do
-        result |= cast(u32) bytes[offset + cast(u64) shift] << cast(u32) (shift * 8)
+        result |= cast(u32, bytes[offset + cast(u64, shift)]) << cast(u32, (shift * 8))
     return result
 }
 
 // Reports whether the four characters of `id` sit at `offset`.
 func aviHasId(bytes: const [..] u8, offset: u64, id: string)->bool
 {
-    for index in 4 where bytes[offset + cast(u64) index] != id[index] do
+    for index in 4 where bytes[offset + cast(u64, index)] != id[index] do
         return false
     return true
 }

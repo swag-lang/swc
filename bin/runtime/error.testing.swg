@@ -34,7 +34,7 @@ private func copyTransportTestMessage(text: string)->string
     request.size = text.count
     allocator.alloc(&request)
     Swag.memcpy(request.address, text.buffer, text.count)
-    return Swag.makeString(cast([*] u8) request.address!, text.count)
+    return Swag.makeString(cast([*] u8, request.address!), text.count)
 }
 
 private func failTransportTestMessage(message: string, drops: [*] AtomicValue'u32) fail
@@ -45,7 +45,7 @@ private func failTransportTestMessage(message: string, drops: [*] AtomicValue'u3
 #[Swag.CallingConvention(.C)]
 private func errorTransportTestThread(param: *void?)->u32
 {
-    let state = cast(*ErrorTransportTestState) param!
+    let state = cast(*ErrorTransportTestState, param!)
     Swag.setContext(state.context)
     state.producerThread = __hostCurrentThreadId()
     {

@@ -34,7 +34,7 @@ func(T) addOne(value: T)->T => value + 1
 func(T) addTwo(value: T)->T => addOne(addOne(value))
 
 // Cast between types
-func(A, B) castTo(value: A)->B => cast(B) value
+func(A, B) castTo(value: A)->B => cast(B, value)
 
 // Generic with const params and expressions
 func(N: s32, M: s32) constProduct()->s32 => N * M

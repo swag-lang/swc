@@ -36,7 +36,7 @@ enum Access
 // and pinning the current behaviour is what makes the future rule visible.
 func forgeEnumValue(raw: s32)->Colour
 {
-    return cast(Colour) raw     // GAP compiler.safety.010: expected a checked conversion
+    return cast(Colour, raw)     // GAP compiler.safety.010: expected a checked conversion
 }
 
 // The forged value matches no case, so a plain switch falls through it.
@@ -91,8 +91,8 @@ func rankComplete(colour: Colour)->s32
 // A declared member converts back to its own value.
 func roundTripDeclaredMember()->bool
 {
-    let raw = cast(s32) Colour.Green
-    return cast(Colour) raw == Colour.Green
+    let raw = cast(s32, Colour.Green)
+    return cast(Colour, raw) == Colour.Green
 }
 
 // A flags enum accepts combinations by design, so any rule on enum conversion has to exclude

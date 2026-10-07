@@ -26,7 +26,7 @@ using Corpus
 #[Swag.Sanity(.Lifecycle, true)]
 func leakOnEveryPath()
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 1
     // No heapFree: no static diagnostic.
 }
@@ -35,7 +35,7 @@ func leakOnEveryPath()
 #[Swag.Sanity(.Lifecycle, true)]
 func leakOnOnePath(release: bool)
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 1
     if release do
         heapFree(pointer, 4)
@@ -47,8 +47,8 @@ func leakOnOnePath(release: bool)
 #[Swag.Sanity(.Lifecycle, true)]
 func leakByOverwrite()
 {
-    var pointer = cast(*s32) heapAlloc(4)
-    pointer = cast(*s32) heapAlloc(4)
+    var pointer = cast(*s32, heapAlloc(4))
+    pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)
     // The first block is unreachable and unreleased: no static diagnostic.
 }
@@ -64,7 +64,7 @@ struct LeakyOwner
 func leakThroughOwnerWithoutDrop()
 {
     var owner: LeakyOwner
-    owner.pointer = cast(*s32) heapAlloc(4)
+    owner.pointer = cast(*s32, heapAlloc(4))
     // 'LeakyOwner' has no 'opDrop': no static diagnostic.
 }
 
@@ -127,7 +127,7 @@ func leakThroughOwnerWithoutDrop()
 #[Swag.Sanity(.Lifecycle, true)]
 func releasedOnEveryPath(early: bool)->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 1
     if early
     {
@@ -159,7 +159,7 @@ impl TidyOwner
 func ownerReleasesOnDrop()->s32
 {
     var owner: TidyOwner
-    owner.pointer   = cast(*s32) heapAlloc(4)
+    owner.pointer   = cast(*s32, heapAlloc(4))
     owner.pointer[] = 5
     return owner.pointer[]
 }

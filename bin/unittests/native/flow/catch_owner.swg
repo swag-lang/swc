@@ -41,7 +41,7 @@ func inlineCatchOwner()->u32
 {
     catch failCatchOwner(112) as error
     if error != null do
-        return (cast #assume(const *CatchOwnerError) error).generation
+        return assume cast(const *CatchOwnerError, error).generation
     return 0
 }
 
@@ -102,13 +102,13 @@ func deferredFailingCatchOwner() fail
     {
         catch failCatchOwner(0) as first
         Swag.assert(first != null and (first is CatchOwnerError))
-        firstGeneration = (cast #assume(const *CatchOwnerError) first).generation
+        firstGeneration = assume cast(const *CatchOwnerError, first).generation
         Swag.assert(firstGeneration < 16)
         Swag.assert(catchOwnerDrops[firstGeneration].load() == 0)
 
         catch failCatchOwner(16) as second
         Swag.assert(second != null and (second is CatchOwnerError))
-        secondGeneration = (cast #assume(const *CatchOwnerError) second).generation
+        secondGeneration = assume cast(const *CatchOwnerError, second).generation
         Swag.assert(secondGeneration == 16 + firstGeneration)
         Swag.assert(catchOwnerDrops[firstGeneration].load() == 0)
         Swag.assert(catchOwnerDrops[secondGeneration].load() == 0)
@@ -139,7 +139,7 @@ func deferredFailingCatchOwner() fail
     {
         catch rethrowCatchOwner() as error
         Swag.assert(error != null and (error is CatchOwnerError))
-        rethrownGeneration = (cast #assume(const *CatchOwnerError) error).generation
+        rethrownGeneration = assume cast(const *CatchOwnerError, error).generation
         Swag.assert(rethrownGeneration >= 80 and rethrownGeneration < 96)
         Swag.assert(catchOwnerDrops[rethrownGeneration].load() == 0)
     }

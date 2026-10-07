@@ -29,7 +29,7 @@ func markdownSystemFaces(names: const [..] string)->[FontFamilyStyle.count] (*Ty
         if family.name.isEmpty() do
             continue
         for index in FontFamilyStyle.count do
-            result[index] = catch FontFamily.createTypeFace(family, cast(FontFamilyStyle) index)
+            result[index] = catch FontFamily.createTypeFace(family, cast(FontFamilyStyle, index))
         if result[0] != null do
             break
     }

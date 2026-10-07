@@ -26,7 +26,7 @@ func viewerSmokeDirectory(arguments: const [..] string)->String
     if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 to] where Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
+    for argument in arguments[1 to] where Utf8.startsWith(cast(const [..] u8, argument), ViewerSmokeArgument) do
         return String.from(argument[ViewerSmokeArgument.count to])
     return {}
 }

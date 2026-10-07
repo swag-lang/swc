@@ -137,7 +137,7 @@ impl Tracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 
     mtd opPostCopy()
@@ -186,7 +186,7 @@ impl DropOnlyTracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 }
 
@@ -219,7 +219,7 @@ impl CompactDropTracked
     mtd opDrop()
     {
         DropCount        += 1
-        DropCompactTrace = DropCompactTrace * 10 + cast(s64) .value
+        DropCompactTrace = DropCompactTrace * 10 + cast(s64, .value)
     }
 }
 
@@ -336,7 +336,7 @@ impl ReallocDropBuffer
         req.address = .buffer
         let allocItf = .allocator!
         allocItf.realloc(&req)
-        .buffer   = cast([*] DropOnlyTracked?) req.address
+        .buffer   = cast([*] DropOnlyTracked?, req.address)
         .capacity = newCapacity
     }
 
@@ -390,7 +390,7 @@ impl GenericOwnedBuffer
         req.address = .buffer
         let allocItf = .allocator!
         allocItf.realloc(&req)
-        .buffer   = cast([*] T?) req.address
+        .buffer   = cast([*] T?, req.address)
         .capacity = newCapacity
     }
 
@@ -446,7 +446,7 @@ impl LazyAllocatorGenericBuffer
         req.address = .buffer
         let allocItf = .allocator!
         allocItf.realloc(&req)
-        .buffer   = cast([*] T?) req.address
+        .buffer   = cast([*] T?, req.address)
         .capacity = newCapacity
     }
 
@@ -496,7 +496,7 @@ impl HelperAllocatorGenericBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
         .capacity = newCapacity
     }
 
@@ -541,7 +541,7 @@ impl MemoryAllocatorGenericBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast([*] T?) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast([*] T?, memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
         .capacity = newCapacity
     }
 
@@ -613,7 +613,7 @@ impl PostCopyAllocatorGenericBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
         .capacity = newCapacity
     }
 
@@ -667,7 +667,7 @@ impl ReceiverLifecycleTracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 
     mtd opPostCopy()
@@ -737,7 +737,7 @@ func intrinsicStrictAliasPointerCountInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var arr: [2] Tracked = [Tracked{5}, Tracked{6}]
-    let ptr = cast(LifecycleStrictTrackedPtr) &arr[0]
+    let ptr = cast(LifecycleStrictTrackedPtr, &arr[0])
     Swag.postMove(ptr, 2)
     Swag.drop(ptr, 2)
     return {arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -793,7 +793,7 @@ func intrinsicInitInfo()->InitInfo
     Swag.init(rgbArr)(50, 60, 70)
     let rgbArrayWholeTrace = rgbArr[3].r * 10000 + rgbArr[3].g * 100 + rgbArr[3].b
 
-    return {x, cast(s32) (y * 100), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
+    return {x, cast(s32, (y * 100)), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
 }
 
 func intrinsicDropThenInitArrayInfo()->s32
@@ -909,7 +909,7 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
     catch intrinsicAutoDropErrorImpl() as errc
     if errc != null
     {
-        let err = cast #assume(IntrinsicLifecycleErr) errc
+        let err = assume cast(IntrinsicLifecycleErr, errc)
         result.first  = err.code
         result.second = 1
     }
@@ -935,11 +935,11 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
     }
 
     {
-        defer result.first = cast(s32) DropCount
+        defer result.first = cast(s32, DropCount)
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
 
         {
-            defer result.second = cast(s32) DropCount
+            defer result.second = cast(s32, DropCount)
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             result.third = nested.tail.value
         }
@@ -961,7 +961,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
         var outer = DropOnlyTracked{9}
         for i in 2
         {
-            var pair = AutoDropPair{DropOnlyTracked{cast(s32) (i * 2 + 1)}, DropOnlyTracked{cast(s32) (i * 2 + 2)}}
+            var pair = AutoDropPair{DropOnlyTracked{cast(s32, (i * 2 + 1))}, DropOnlyTracked{cast(s32, (i * 2 + 2))}}
             first += pair.first.value
             if i == 0 do
                 continue
@@ -992,7 +992,7 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
             for i in 3
             {
                 var current = AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}
-                second = current.second.value + cast(s32) i
+                second = current.second.value + cast(s32, i)
                 break to Exit
             }
         }
@@ -1062,7 +1062,7 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
         catch intrinsicAutoDropCatchResumeImpl(55) as errc
         if errc != null
         {
-            let err = cast #assume(IntrinsicLifecycleErr) errc
+            let err = assume cast(IntrinsicLifecycleErr, errc)
             first  = err.code
             second = outer.second.value
             third  = 1
@@ -1091,7 +1091,7 @@ func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
         var outer = CompactDropTracked{9}
         for i in 2
         {
-            let base       = cast(s32) (i * 3 + 1)
+            let base       = cast(s32, (i * 3 + 1))
             let value: s32 = catch intrinsicAutoDropCatchLoopStep(base)
             if value == 0
             {
@@ -1272,7 +1272,7 @@ func intrinsicInitRuntimeCountScalarInfo()->s32
     var values: [4] s32 = [9, 8, 7, 6]
     var start:  u64     = 1
     var count:  u64     = 2
-    Swag.init(cast([*] s32) &values[0] + start, count)
+    Swag.init(cast([*] s32, &values[0]) + start, count)
     return values[0] * 1000 + values[1] * 100 + values[2] * 10 + values[3]
 }
 
@@ -1281,7 +1281,7 @@ func intrinsicInitRuntimeCountStructInfo()->s32
     var values: [4] InitRgb = [InitRgb{9, 9, 9}, InitRgb{8, 8, 8}, InitRgb{7, 7, 7}, InitRgb{6, 6, 6}]
     var start:  u64         = 1
     var count:  u64         = 2
-    Swag.init(cast([*] InitRgb) &values[0] + start, count)
+    Swag.init(cast([*] InitRgb, &values[0]) + start, count)
     return values[0].r * 1000 + values[1].r * 100 + values[2].r * 10 + values[3].r
 }
 
@@ -1293,15 +1293,15 @@ func intrinsicInitRuntimeCountClosureInfo()->s32
     values[2] = func()->s32 { return 6 }
     var start: u64 = 1
     var count: u64 = 2
-    Swag.init(cast([*] ((func||()->s32)?)) &values[0] + start, count)
+    Swag.init(cast([*] ((func||()->s32)?), &values[0]) + start, count)
     let first = values[0]!
-    return first() * 100 + cast(s32) (values[1] == null) * 10 + cast(s32) (values[2] == null)
+    return first() * 100 + cast(s32, (values[1] == null)) * 10 + cast(s32, (values[2] == null))
 }
 
 func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
-    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 1}
+    var values = ResizeBuffer{cast([*] ResizeTracked, &storage[0]), 1}
     values.resize(3)
     return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + storage[3].value
 }
@@ -1309,18 +1309,18 @@ func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 func intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
-    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 3}
+    var values = ResizeBuffer{cast([*] ResizeTracked, &storage[0]), 3}
     values.resize(1)
-    return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + cast(s32) values.count
+    return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + cast(s32, values.count)
 }
 
 func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var storage: [3] DropOnlyTracked = [DropOnlyTracked{1}, DropOnlyTracked{2}, DropOnlyTracked{3}]
-    var values = RemoveBuffer{cast([*] DropOnlyTracked) &storage[0], 3}
+    var values = RemoveBuffer{cast([*] DropOnlyTracked, &storage[0]), 3}
     values.removeAt(1)
-    return {storage[0].value, storage[1].value, cast(s32) values.count, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return {storage[0].value, storage[1].value, cast(s32, values.count), DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
@@ -1331,10 +1331,10 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    let ptr = cast([*] DropOnlyTracked) req.address!
+    let ptr = cast([*] DropOnlyTracked, req.address!)
     Swag.init(ptr, 3)
     for i in 3 do
-        ptr[i].value = cast(s32) (i + 1)
+        ptr[i].value = cast(s32, (i + 1))
 
     Swag.drop(ptr + 1)
     ptr[1] = #relocate ptr[2]
@@ -1354,10 +1354,10 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    var values = OwnedDropBuffer{itf, cast([*] DropOnlyTracked?) req.address, 3, 3}
+    var values = OwnedDropBuffer{itf, cast([*] DropOnlyTracked?, req.address), 3, 3}
     let buffer = values.buffer!
     for i in 3 do
-        buffer[i].value = cast(s32) (i + 1)
+        buffer[i].value = cast(s32, (i + 1))
 
     values.free()
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1371,7 +1371,7 @@ func intrinsicMemoryAllocatorGenericBufferFreeInfo()->IntrinsicInfo
         var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
         values.clear()
         values.free()
     }
@@ -1391,13 +1391,13 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
         var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(5)
         for i in 5 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
 
         values.remove(1, 3)
         let buffer = values.buffer!
         first  = buffer[0].value
         second = buffer[1].value
-        third  = cast(s32) values.count
+        third  = cast(s32, values.count)
         values.clear()
         values.free()
     }
@@ -1414,7 +1414,7 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
         var values = ReallocDropBuffer{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
     }
 
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1429,7 +1429,7 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
         var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
     }
 
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1443,7 +1443,7 @@ func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
         var values = GenericOwnedBuffer'DropOnlyTracked{Swag.getContext().allocator, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
     }
 
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1457,7 +1457,7 @@ func intrinsicLazyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
         var values: LazyAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
     }
 
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1471,7 +1471,7 @@ func intrinsicHelperAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
         var values: HelperAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
     }
 
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1485,7 +1485,7 @@ func intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
         var values: PostCopyAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
     }
 
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1499,7 +1499,7 @@ func intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()->IntrinsicInfo
         var values: PostCopyAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
         for i in 3 do
-            ptr[i].value = cast(s32) (i + 1)
+            ptr[i].value = cast(s32, (i + 1))
         values.opDrop()
     }
 
@@ -1514,7 +1514,7 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
     var values = ReallocDropBuffer{itf, null, 0, 0}
     let ptr    = values.emplaceAddress(3)
     for i in 3 do
-        ptr[i].value = cast(s32) (i + 1)
+        ptr[i].value = cast(s32, (i + 1))
 
     values.free()
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1523,34 +1523,34 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
 func intrinsicInitStrictEnumInfo()->bool
 {
     var value: IntrinsicStrictEnumAlias
-    Swag.init(value)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B)
+    Swag.init(value)(cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.B))
 
     var values: [3] IntrinsicStrictEnumAlias
-    Swag.init(&values, 3)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A)
+    Swag.init(&values, 3)(cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A))
 
-    return value == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B and values[0] == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A and values[2] == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A
+    return value == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.B) and values[0] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A) and values[2] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A)
 }
 
 func intrinsicInitStrictIntInfo()->bool
 {
     var value: IntrinsicStrictIntAlias
-    Swag.init(value)(cast(IntrinsicStrictIntAlias) 42)
+    Swag.init(value)(cast(IntrinsicStrictIntAlias, 42))
 
     var values: [3] IntrinsicStrictIntAlias
-    Swag.init(&values, 3)(cast(IntrinsicStrictIntAlias) 7)
+    Swag.init(&values, 3)(cast(IntrinsicStrictIntAlias, 7))
 
-    return value == cast(IntrinsicStrictIntAlias) 42 and values[0] == cast(IntrinsicStrictIntAlias) 7 and values[2] == cast(IntrinsicStrictIntAlias) 7
+    return value == cast(IntrinsicStrictIntAlias, 42) and values[0] == cast(IntrinsicStrictIntAlias, 7) and values[2] == cast(IntrinsicStrictIntAlias, 7)
 }
 
 func intrinsicInitStrictFloatInfo()->bool
 {
     var value: IntrinsicStrictFloatAlias
-    Swag.init(value)(cast(IntrinsicStrictFloatAlias) 1.5)
+    Swag.init(value)(cast(IntrinsicStrictFloatAlias, 1.5))
 
     var values: [3] IntrinsicStrictFloatAlias
-    Swag.init(&values, 3)(cast(IntrinsicStrictFloatAlias) 2.5)
+    Swag.init(&values, 3)(cast(IntrinsicStrictFloatAlias, 2.5))
 
-    return value == cast(IntrinsicStrictFloatAlias) 1.5 and values[0] == cast(IntrinsicStrictFloatAlias) 2.5 and values[2] == cast(IntrinsicStrictFloatAlias) 2.5
+    return value == cast(IntrinsicStrictFloatAlias, 1.5) and values[0] == cast(IntrinsicStrictFloatAlias, 2.5) and values[2] == cast(IntrinsicStrictFloatAlias, 2.5)
 }
 
 func intrinsicInitStrictPointerInfo()->bool
@@ -1559,10 +1559,10 @@ func intrinsicInitStrictPointerInfo()->bool
     var second: s32 = 7
 
     var value: IntrinsicStrictS32Ptr
-    Swag.init(&value)(cast(IntrinsicStrictS32Ptr) &first)
+    Swag.init(&value)(cast(IntrinsicStrictS32Ptr, &first))
 
     var values: [2] IntrinsicStrictS32Ptr
-    Swag.init(values)(cast(IntrinsicStrictS32Ptr) &second)
+    Swag.init(values)(cast(IntrinsicStrictS32Ptr, &second))
 
     return value[] == 42 and values[0][] == 7 and values[1][] == 7
 }
@@ -1570,22 +1570,22 @@ func intrinsicInitStrictPointerInfo()->bool
 func intrinsicInitStrictStringInfo()->bool
 {
     var value: IntrinsicStrictStringAlias
-    Swag.init(&value)(cast(IntrinsicStrictStringAlias) "hello")
+    Swag.init(&value)(cast(IntrinsicStrictStringAlias, "hello"))
 
     var values: [2] IntrinsicStrictStringAlias
-    Swag.init(values)(cast(IntrinsicStrictStringAlias) "world")
+    Swag.init(values)(cast(IntrinsicStrictStringAlias, "world"))
 
-    return cast(string) value == "hello" and cast(string) values[0] == "world" and cast(string) values[1] == "world"
+    return cast(string, value) == "hello" and cast(string, values[0]) == "world" and cast(string, values[1]) == "world"
 }
 
 func makeIntrinsicRunStrictIntArray()->[2] IntrinsicStrictIntAlias
 {
-    return [cast(IntrinsicStrictIntAlias) 11, cast(IntrinsicStrictIntAlias) 13]
+    return [cast(IntrinsicStrictIntAlias, 11), cast(IntrinsicStrictIntAlias, 13)]
 }
 
 func makeIntrinsicRunStrictFloatArray()->[2] IntrinsicStrictFloatAlias
 {
-    return [cast(IntrinsicStrictFloatAlias) 1.25, cast(IntrinsicStrictFloatAlias) 2.5]
+    return [cast(IntrinsicStrictFloatAlias, 1.25), cast(IntrinsicStrictFloatAlias, 2.5)]
 }
 
 const IntrinsicRunStrictInts:   [2] IntrinsicStrictIntAlias   = #run makeIntrinsicRunStrictIntArray()
@@ -1973,10 +1973,10 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     Swag.assert(intrinsicInitStrictFloatInfo())
     Swag.assert(intrinsicInitStrictPointerInfo())
     Swag.assert(intrinsicInitStrictStringInfo())
-    Swag.assert(IntrinsicRunStrictInts[0] == cast(IntrinsicStrictIntAlias) 11)
-    Swag.assert(IntrinsicRunStrictInts[1] == cast(IntrinsicStrictIntAlias) 13)
-    Swag.assert(IntrinsicRunStrictFloats[0] == cast(IntrinsicStrictFloatAlias) 1.25)
-    Swag.assert(IntrinsicRunStrictFloats[1] == cast(IntrinsicStrictFloatAlias) 2.5)
+    Swag.assert(IntrinsicRunStrictInts[0] == cast(IntrinsicStrictIntAlias, 11))
+    Swag.assert(IntrinsicRunStrictInts[1] == cast(IntrinsicStrictIntAlias, 13))
+    Swag.assert(IntrinsicRunStrictFloats[0] == cast(IntrinsicStrictFloatAlias, 1.25))
+    Swag.assert(IntrinsicRunStrictFloats[1] == cast(IntrinsicStrictFloatAlias, 2.5))
 }
 
 #test

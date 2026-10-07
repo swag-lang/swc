@@ -10,7 +10,7 @@ func mpeg4WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
     for index in length
     {
         let bit  = (code >> (length - 1 - index)) & 1
-        let slot = cast(u64) (node * 2) + cast(u64) bit
+        let slot = cast(u64, (node * 2)) + cast(u64, bit)
         if slot >= tree.count do
             return -1
 
@@ -22,10 +22,10 @@ func mpeg4WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
             // A leaf before the last bit would mean the code passes through another code.
             if index != length - 1 do
                 return -1
-            return cast(s32) (-next - 1)
+            return cast(s32, (-next - 1))
         }
 
-        node = cast(s32) next
+        node = cast(s32, next)
     }
 
     return -1
@@ -42,15 +42,15 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     var kraft = 0.0'f64
     for entry in lengths.count
     {
-        let length = cast(u32) lengths[entry]
+        let length = cast(u32, lengths[entry])
         Swag.assert(length > 0 and length <= 24)
-        Swag.assert(cast(u32) codes[entry] < (1'u32 << length))
-        kraft += Math.pow(0.5'f64, cast(f64) length)
+        Swag.assert(cast(u32, codes[entry]) < (1'u32 << length))
+        kraft += Math.pow(0.5'f64, cast(f64, length))
 
-        let reached = mpeg4WalkTree(tree, length, cast(u32) codes[entry])
-        if reached != cast(s32) entry do
+        let reached = mpeg4WalkTree(tree, length, cast(u32, codes[entry]))
+        if reached != cast(s32, entry) do
             Swag.print("mpeg4 table ", name, ": entry ", entry, " decodes to ", reached, "\n")
-        Swag.assert(reached == cast(s32) entry)
+        Swag.assert(reached == cast(s32, entry))
     }
 
     // These codes are not complete: the format leaves bit patterns undefined, and a decoder that
@@ -61,9 +61,9 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     {
         let value = tree[slot]
         if value > 0 do
-            Swag.assert(cast(u64) value * 2 + 1 < tree.count and cast(u64) value * 2 > slot)
+            Swag.assert(cast(u64, value) * 2 + 1 < tree.count and cast(u64, value) * 2 > slot)
         elif value < 0 do
-            Swag.assert(cast(u64) (-value - 1) < lengths.count)
+            Swag.assert(cast(u64, (-value - 1)) < lengths.count)
     }
 }
 
@@ -93,11 +93,11 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         let codes:   const [..] u16 = table ? Mpeg4.TcoefInterCod : Mpeg4.TcoefIntraCod
         for entry in lengths.count
         {
-            let length = cast(u32) lengths[entry]
+            let length = cast(u32, lengths[entry])
             if length < Mpeg4.TcoefEscapeLen do
-                Swag.assert((Mpeg4.TcoefEscapeCod >> (Mpeg4.TcoefEscapeLen - length)) != cast(u32) codes[entry])
+                Swag.assert((Mpeg4.TcoefEscapeCod >> (Mpeg4.TcoefEscapeLen - length)) != cast(u32, codes[entry]))
             else do
-                Swag.assert((cast(u32) codes[entry] >> (length - Mpeg4.TcoefEscapeLen)) != Mpeg4.TcoefEscapeCod)
+                Swag.assert((cast(u32, codes[entry]) >> (length - Mpeg4.TcoefEscapeLen)) != Mpeg4.TcoefEscapeCod)
         }
     }
 }
@@ -131,8 +131,8 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     {
         let delta = Mpeg4.MvdDelta[index]
         Swag.assert(delta >= -32 and delta <= 32)
-        Swag.assert(not seen[cast(u64) (delta + 32)])
-        seen[cast(u64) (delta + 32)] = true
+        Swag.assert(not seen[cast(u64, (delta + 32))])
+        seen[cast(u64, (delta + 32))] = true
     }
 }
 
@@ -150,8 +150,8 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         for index in 64'u64
         {
             Swag.assert(scan[index] < 64)
-            Swag.assert(not seen[cast(u64) scan[index]])
-            seen[cast(u64) scan[index]] = true
+            Swag.assert(not seen[cast(u64, scan[index])])
+            seen[cast(u64, scan[index])] = true
         }
     }
 
@@ -183,12 +183,12 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     // Table B.19: the intra levels, by run, for a coefficient that does not end its block.
     const IntraLevelMax: [15] u32 = [27, 10, 5, 4, 3, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1]
     for run in 15'u32 do
-        Swag.assert(Mpeg4.levelMax(false, 0, run) == IntraLevelMax[cast(u64) run])
+        Swag.assert(Mpeg4.levelMax(false, 0, run) == IntraLevelMax[cast(u64, run)])
 
     // Table B.20: the same for an inter block, which codes longer runs and smaller levels.
     const InterLevelMax: [3] u32 = [12, 6, 4]
     for run in 3'u32 do
-        Swag.assert(Mpeg4.levelMax(true, 0, run) == InterLevelMax[cast(u64) run])
+        Swag.assert(Mpeg4.levelMax(true, 0, run) == InterLevelMax[cast(u64, run)])
 
     // Table B.21 and B.22: the runs, by level.
     Swag.assert(Mpeg4.runMax(false, 0, 1) == 14)

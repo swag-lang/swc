@@ -129,7 +129,7 @@ impl Cursor
         let first  = try .readByte(limit)
         let width  = try .vintWidth(first, maximum)
         let marker = 0x80'u8 >> (width - 1)
-        var value  = keepMarker ? cast(u64) first : cast(u64) (first & (marker - 1))
+        var value  = keepMarker ? cast(u64, first) : cast(u64, (first & (marker - 1)))
         for 1 until width do
             value = (value << 8) | (try .readByte(limit))
         return {value, width}
@@ -159,8 +159,8 @@ impl Cursor
         let sizeFirst = try .readByte(limit)
         let sizeWidth = try .vintWidth(sizeFirst, 8)
         let marker    = 0x80'u8 >> (sizeWidth - 1)
-        var size      = cast(u64) (sizeFirst & (marker - 1))
-        var unknown   = size == cast(u64) marker - 1
+        var size      = cast(u64, (sizeFirst & (marker - 1)))
+        var unknown   = size == cast(u64, marker) - 1
         for 1 until sizeWidth
         {
             let value = try .readByte(limit)
@@ -169,10 +169,10 @@ impl Cursor
         }
 
         if unknown do
-            return {cast(u32) idVint.value, .position, limit, true}
+            return {cast(u32, idVint.value), .position, limit, true}
         if size > limit - .position do
             fail InvalidFormatError{"Matroska element size exceeds its parent"}
-        return {cast(u32) idVint.value, .position, .position + size, false}
+        return {cast(u32, idVint.value), .position, .position + size, false}
     }
 
     // Reads an unsigned EBML element value.
@@ -198,8 +198,8 @@ impl Cursor
         var result = 0'u64
         for size do
             result = (result << 8) | (try .readByte(element.end))
-        let shift = cast(u32) (64 - 8 * size)
-        return (cast #bit (s64) (result << shift)) >> shift
+        let shift = cast(u32, (64 - 8 * size))
+        return cast #bit (s64, (result << shift)) >> shift
     }
 
     // Reads a four- or eight-byte big-endian IEEE floating-point value.
@@ -212,7 +212,7 @@ impl Cursor
             var bits = 0'u32
             for 4 do
                 bits = (bits << 8) | (try .readByte(element.end))
-            return cast(f64) cast #bit (f32) bits
+            return cast(f64, cast #bit (f32, bits))
         }
 
         if size == 8
@@ -220,7 +220,7 @@ impl Cursor
             var bits = 0'u64
             for 8 do
                 bits = (bits << 8) | (try .readByte(element.end))
-            return cast #bit (f64) bits
+            return cast #bit (f64, bits)
         }
 
         fail InvalidFormatError{"Matroska floating-point value needs four or eight bytes"}
@@ -261,7 +261,7 @@ impl Cursor
     {
         let encoded = try .readVint(limit, 8, false)
         let bits    = encoded.width * 7
-        let bias    = cast(s64) ((1'u64 << (bits - 1)) - 1)
-        return cast(s64) encoded.value - bias
+        let bias    = cast(s64, ((1'u64 << (bits - 1)) - 1))
+        return cast(s64, encoded.value) - bias
     }
 }

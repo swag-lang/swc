@@ -28,7 +28,7 @@ func within(c, lo, hi: u32)->bool => c >= lo and c <= hi
 {
     for v in 0 until 512
     {
-        let c = cast(u32) v
+        let c = cast(u32, v)
         Swag.assert(isLetter(c) == (within(c, 0x61, 0x7A) or within(c, 0x41, 0x5A)))
         Swag.assert(isHexLetter(c) == (within(c, 0x41, 0x46) or within(c, 0x61, 0x66)))
         Swag.assert(highPair(c) == (within(c, 0x21, 0x3A) or within(c, 0x61, 0x7A)))

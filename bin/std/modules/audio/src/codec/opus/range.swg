@@ -19,7 +19,7 @@ private const UintBits   = 8'u32
 internal const BitRes = 3'u32
 
 // Returns the number of bits needed to hold `value`.
-internal func ilog(value: u32)->u32 => value ? 32 - cast(u32) Swag.bitCountLz(value) : 0
+internal func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.bitCountLz(value)) : 0
 
 // Pulls symbols out of one frame, both from its front through the range coder and from its
 // back as raw bits.
@@ -46,7 +46,7 @@ internal impl RangeDecoder
         with var result: retval
         {
             .data      = frame.buffer
-            .storage   = cast(u32) frame.count
+            .storage   = cast(u32, frame.count)
             .bitsTotal = 9
             .range     = 1'u32 << CodeExtra
             .remainder = .readByte()
@@ -61,7 +61,7 @@ internal impl RangeDecoder
     {
         if .offset >= .storage do
             return 0
-        let byte = cast(u32) .data![.offset]
+        let byte = cast(u32, .data![.offset])
         .offset += 1
         return byte
     }
@@ -71,14 +71,14 @@ internal impl RangeDecoder
         if .endOffset >= .storage do
             return 0
         .endOffset += 1
-        return cast(u32) .data![.storage - .endOffset]
+        return cast(u32, .data![.storage - .endOffset])
     }
 
     mtd normalize()
     {
         while .range <= CodeBottom
         {
-            .bitsTotal += cast(s32) SymBits
+            .bitsTotal += cast(s32, SymBits)
             .range     <<= SymBits
             let symbol = .remainder
             .remainder = .readByte()
@@ -135,7 +135,7 @@ internal impl RangeDecoder
         while true
         {
             t = s
-            s = r * cast(u32) icdf[index]
+            s = r * cast(u32, icdf[index])
             if d >= s do
                 break
             index += 1
@@ -176,33 +176,33 @@ internal impl RangeDecoder
     {
         var window    = .endWindow
         var available = .endBits
-        if available < cast(s32) bits
+        if available < cast(s32, bits)
         {
             while true
             {
-                window    |= .readByteFromEnd() << cast(u32) available
-                available += cast(s32) SymBits
-                if available > cast(s32) (WindowBits - SymBits) do
+                window    |= .readByteFromEnd() << cast(u32, available)
+                available += cast(s32, SymBits)
+                if available > cast(s32, (WindowBits - SymBits)) do
                     break
             }
         }
 
         let result = window & ((1'u32 << bits) - 1)
         window     >>= bits
-        available  -= cast(s32) bits
+        available  -= cast(s32, bits)
         .endWindow = window
         .endBits   = available
-        .bitsTotal += cast(s32) bits
+        .bitsTotal += cast(s32, bits)
         return result
     }
 
     // Returns the number of bits consumed so far, rounded up.
-    mtd const tell()->s32 => .bitsTotal - cast(s32) ilog(.range)
+    mtd const tell()->s32 => .bitsTotal - cast(s32, ilog(.range))
 
     // Returns the number of bits consumed so far in eighths of a bit, rounded up.
     mtd const tellFrac()->u32
     {
-        let nbits = cast(u32) .bitsTotal << BitRes
+        let nbits = cast(u32, .bitsTotal) << BitRes
         var l     = ilog(.range)
         var r     = .range >> (l - 16)
         for BitRes

@@ -12,7 +12,7 @@ using Swag, Core
     var source: String
     for index in 12_000 do
         source += Format.toString("## Section %\n\nVisible paragraph %.\n\n", index, index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -59,7 +59,7 @@ using Swag, Core
     var source: String
     for index in 40 do
         source += Format.toString("Paragraph %.\n\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -86,13 +86,13 @@ using Swag, Core
     var source: String
     for index in 4_000 do
         source += Format.toString("Paragraph % gives the wheel a stable streaming destination.\n\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
     defer host.shutdown()
     host.setReducedMotion(true)
-    let view = Markdown.View.createFile(cast(*Wnd) &host.surfaceWnd, fileName)
+    let view = Markdown.View.createFile(cast(*Wnd, &host.surfaceWnd), fileName)
     defer view.destroy()
     view.resize(720, 480)
     view.applyLayout()
@@ -122,7 +122,7 @@ using Swag, Core
     var source: String
     for index in 12_000 do
         source += Format.toString("## Section %\n\nVisible paragraph %.\n\n", index, index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -177,7 +177,7 @@ using Swag, Core
     var source: String
     for index in 12_000 do
         source += Format.toString("## Section %\n\nVisible paragraph %.\n\n", index, index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -193,7 +193,7 @@ using Swag, Core
     {
         view.scroll.setScrollPos(0, view.virtualHeight * (1 - ratio))
         let destination = view.virtualHeight * ratio
-        let offset      = cast(u64) (ratio * cast(f32) source.length)
+        let offset      = cast(u64, (ratio * cast(f32, source.length)))
         view.scroll.setScrollPos(0, destination)
         var image = host.render(view)
         if not index do

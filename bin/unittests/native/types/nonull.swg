@@ -116,10 +116,10 @@ func nativeNonNullConstruction()->bool
     var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *NativeNonNullItem              = &first
-    let block:                     [*] NativeNonNullItem           = cast([*] NativeNonNullItem) &blockStorage[0]
+    let block:                     [*] NativeNonNullItem           = cast([*] NativeNonNullItem, &blockStorage[0])
     let slice:                     [..] NativeNonNullItem          = blockStorage
     let text:                      string                          = "nonull"
-    let ctext:                     cstring                         = cast(cstring) &cstringStorage[0]
+    let ctext:                     cstring                         = cast(cstring, &cstringStorage[0])
     let boxed:                     any                             = 123
     let reflectedType:             typeinfo                        = NativeNonNullItem
     var nullableValuePointer:      *NativeNonNullItem?             = null
@@ -168,13 +168,13 @@ func nativeNonNullConstruction()->bool
     if not (aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or not (aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
 
-    let holderType           = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullHolder)
+    let holderType           = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullHolder))
     let nestedType           = #typeof(NativeNonNullNested)
     let holderArrayType      = #typeof([2] NativeNonNullHolder)
     let pointerArrayType     = #typeof([2] *NativeNonNullItem)
     let defaultContainerType = #typeof(NativeNonNullDefaultContainer)
-    let genericRequiredType  = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'(*NativeNonNullItem))
-    let genericDefaultType   = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault)
+    let genericRequiredType  = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox'(*NativeNonNullItem)))
+    let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault))
     if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
@@ -255,7 +255,7 @@ func nativeNonNullConstruction()->bool
         return false
     if families.text != "nonull" or families.ctext[0] != 'a'u8 do
         return false
-    if cast #assume(s32) families.boxed != 123 or families.reflectedType.name != "NativeNonNullItem" do
+    if assume cast(s32, families.boxed) != 123 or families.reflectedType.name != "NativeNonNullItem" do
         return false
     if boxedNullableValuePointer == null or
        boxedNullableBlockPointer == null or

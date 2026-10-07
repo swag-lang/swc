@@ -131,7 +131,7 @@ func gridAt(grid: Grid, row, col: u32)->u8 => grid.cells[row * MaxGridCols + col
 #[Swag.Inline]
 func inBounds(row, col: s32, rowCount, colCount: u32)->bool
 {
-    return row >= 0 and col >= 0 and cast(u32) row < rowCount and cast(u32) col < colCount
+    return row >= 0 and col >= 0 and cast(u32, row) < rowCount and cast(u32, col) < colCount
 }
 
 // ---------------------------------------------------------------------------
@@ -144,11 +144,11 @@ func matchWord(grid: Grid, startRow, startCol: s32, dir: Vec2)->bool
 {
     for index in 4
     {
-        let r = startRow + cast(s32) index * dir.dy
-        let c = startCol + cast(s32) index * dir.dx
+        let r = startRow + cast(s32, index) * dir.dy
+        let c = startCol + cast(s32, index) * dir.dx
         if not inBounds(r, c, grid.rowCount, grid.colCount) do
             return false
-        if gridAt(grid, cast(u32) r, cast(u32) c) != XmasWord[index] do
+        if gridAt(grid, cast(u32, r), cast(u32, c)) != XmasWord[index] do
             return false
     }
 
@@ -166,7 +166,7 @@ func countXmasClean(grid: Grid)->u32
             for index in Directions.count
             {
                 let dir = directionVector(Directions[index])
-                if matchWord(grid, cast(s32) row, cast(s32) col, dir) do
+                if matchWord(grid, cast(s32, row), cast(s32, col), dir) do
                     count += 1
             }
         }
@@ -249,7 +249,7 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
 
 #test
 {
-    let sampleGrid  = parseGrid(cast(const [..] u8) SampleInput)
+    let sampleGrid  = parseGrid(cast(const [..] u8, SampleInput))
     let sampleClean = solveClean(sampleGrid)
     let sampleFeat  = solveWithLanguageFeatures(sampleGrid)
 
@@ -266,7 +266,7 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
 
 #test
 {
-    let tinyGrid  = parseGrid(cast(const [..] u8) TinyInput)
+    let tinyGrid  = parseGrid(cast(const [..] u8, TinyInput))
     let tinyClean = solveClean(tinyGrid)
     let tinyFeat  = solveWithLanguageFeatures(tinyGrid)
 
@@ -280,7 +280,7 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
 
 #test
 {
-    let coverageGrid  = parseGrid(cast(const [..] u8) CoverageInput)
+    let coverageGrid  = parseGrid(cast(const [..] u8, CoverageInput))
     let coverageClean = solveClean(coverageGrid)
     let coverageFeat  = solveWithLanguageFeatures(coverageGrid)
 

@@ -11,7 +11,7 @@ using Swag
 alias StrictAny = any
 
 #[Swag.NoInline]
-func isS32(value: any)->bool => Swag.kindOf(value) == s32 and cast #assume(s32) value == 42
+func isS32(value: any)->bool => Swag.kindOf(value) == s32 and assume cast(s32, value) == 42
 
 #[Swag.NoInline]
 func firstIsS32(values: ...)->bool => isS32(values[0])
@@ -19,7 +19,7 @@ func firstIsS32(values: ...)->bool => isS32(values[0])
 #[Swag.Optimize(true), Swag.NoInline]
 func throughVariadic()->bool
 {
-    let boxed = cast(StrictAny) 42's32
+    let boxed = cast(StrictAny, 42's32)
     return firstIsS32(boxed)
 }
 

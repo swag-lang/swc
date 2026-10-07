@@ -35,7 +35,7 @@ impl Painter
         switch #complete pen.borderPos
         {
         case .None:
-            let devSize = cast(s32) Math.round(pen.size * k)
+            let devSize = cast(s32, Math.round(pen.size * k))
             return devSize & 1 ? 0.5 / k : 0.0
 
         case .Inside:
@@ -311,7 +311,7 @@ impl Painter
             return
 
         let rings = Math.max(1, Math.ceilS32(spread * .contentScale()))
-        let peak  = cast(f32) color.a / 255.0
+        let peak  = cast(f32, color.a) / 255.0
 
         var reached = 0.0'f32
         for i in rings
@@ -319,14 +319,14 @@ impl Painter
             // `depth` runs 0 at the outermost ring to 1 at the shape. Smoothstep gives the shadow
             // a long faint tail where it meets the ground and a flat shoulder against the shape,
             // which is what reads as air under it rather than as an outline drawn around it.
-            let ringSpread = spread * cast(f32) (rings - i) / cast(f32) rings
+            let ringSpread = spread * cast(f32, (rings - i)) / cast(f32, rings)
             let depth      = 1.0 - ringSpread / spread
             let target     = peak * Math.smoothstep(0.0, 1.0, depth)
 
             let alpha = 1.0 - (1.0 - target) / (1.0 - reached)
             reached = target
 
-            let quantized = cast(u8) Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0)
+            let quantized = cast(u8, Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0))
             if quantized == 0 do
                 continue
 

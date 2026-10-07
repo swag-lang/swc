@@ -16,7 +16,7 @@ public impl Image
             var context = Math.clamp(factor, -1.0, 1.0)
             .transformLogicalPixels(&context)
             {
-                let adjustment = (cast(const *f32) userData!)[]
+                let adjustment = cast(const *f32, userData!)[]
                 value.r += adjustment
                 value.g += adjustment
                 value.b += adjustment
@@ -25,16 +25,16 @@ public impl Image
             return
         }
 
-        let level     = cast(s32) (Math.clamp(factor, -1.0, 1.0) * 255.0)
+        let level     = cast(s32, (Math.clamp(factor, -1.0, 1.0) * 255.0))
         let keepAlpha = .pixelFormat.hasAlpha()
-        var context   = {adjustment: cast(u8) Math.abs(level), keepAlpha: keepAlpha}
+        var context   = {adjustment: cast(u8, Math.abs(level)), keepAlpha: keepAlpha}
         if level >= 0
         {
             .visitVectorBytes(&context) #code(block, data)
             {
-                let params     = cast(*#decltype(context)) data!
+                let params     = cast(*#decltype(context), data!)
                 let adjustment = Math.Simd.splat(params.adjustment)
-                let alphaMask  = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
+                let alphaMask  = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 let values     = Math.Simd.load(block)
                 let adjusted   = Math.Simd.addSaturating(values, adjustment)
                 if params.keepAlpha do
@@ -47,9 +47,9 @@ public impl Image
         {
             .visitVectorBytes(&context) #code(block, data)
             {
-                let params     = cast(*#decltype(context)) data!
+                let params     = cast(*#decltype(context), data!)
                 let adjustment = Math.Simd.splat(params.adjustment)
-                let alphaMask  = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
+                let alphaMask  = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 let values     = Math.Simd.load(block)
                 let adjusted   = Math.Simd.subSaturating(values, adjustment)
                 if params.keepAlpha do
@@ -64,7 +64,7 @@ public impl Image
         while offset < .byteCount
         {
             if not .pixelFormat.hasAlpha() or offset & 3 != 3 do
-                pixels[offset] = cast(u8) Math.clamp(cast(s32) pixels[offset] + level, 0, 255)
+                pixels[offset] = cast(u8, Math.clamp(cast(s32, pixels[offset]) + level, 0, 255))
             offset += 1
         }
     }

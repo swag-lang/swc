@@ -24,6 +24,6 @@ func addQuad(a, b: #simd [4] s32)->#simd [4] s32 => a + b
 {
     var v: #simd [8] s16
     v += 5
-    let r = cast([4] s32) addQuad(Swag.vecwidenlo(v), Swag.vecwidenhi(v))
+    let r = cast([4] s32, addQuad(Swag.vecwidenlo(v), Swag.vecwidenhi(v)))
     Swag.assert(r[0] == 10 and r[3] == 10)
 }

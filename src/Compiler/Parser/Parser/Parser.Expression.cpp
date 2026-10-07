@@ -242,12 +242,6 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierWrap:
                 toSet = AstModifierFlagsE::Wrap;
                 break;
-            case TokenId::ModifierTry:
-                toSet = AstModifierFlagsE::Try;
-                break;
-            case TokenId::ModifierAssume:
-                toSet = AstModifierFlagsE::Assume;
-                break;
             case TokenId::ModifierNoDrop:
                 toSet = AstModifierFlagsE::NoDrop;
                 break;
@@ -350,24 +344,50 @@ AstNodeRef Parser::parseBinaryExpr()
 
 AstNodeRef Parser::parseCast()
 {
-    const TokenRef         tknOp         = consume();
-    const TokenRef         openRef       = ref();
-    const AstModifierFlags modifierFlags = parseModifiers();
+    const TokenRef   tknOp         = expectAndConsume(TokenId::KwdCast, DiagnosticId::parser_err_expected_token_before);
+    AstModifierFlags modifierFlags = parseModifiers();
+    const TokenRef   openRef       = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    if (consumeIf(TokenId::SymRightParen).isValid())
+    // A single argument infers its destination from context. Only a comma at
+    // this level separates an explicit type from its operand.
+    bool explicitTarget = false;
+    int  depth          = 0;
+    for (const Token* token = curToken_; token < lastToken_; ++token)
+    {
+        if (depth == 0 && token->id == TokenId::SymRightParen)
+            break;
+        if (depth == 0 && token->id == TokenId::SymComma)
+        {
+            explicitTarget = true;
+            break;
+        }
+        if (token->id == TokenId::SymLeftParen || token->id == TokenId::SymLeftBracket || token->id == TokenId::SymLeftCurly)
+            ++depth;
+        else if (token->id == TokenId::SymRightParen || token->id == TokenId::SymRightBracket || token->id == TokenId::SymRightCurly)
+        {
+            if (depth == 0)
+                break;
+            --depth;
+        }
+    }
+    if (!explicitTarget)
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>(tknOp);
         nodePtr->modifierFlags        = modifierFlags;
-        nodePtr->nodeExprRef          = parsePrefixExpr();
+        nodePtr->nodeExprRef          = parseExpression();
+        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
         return nodeRef;
     }
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(tknOp);
     nodePtr->addFlag(AstCastExprFlagsE::Explicit);
-    nodePtr->modifierFlags = modifierFlags;
-    if (modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) &&
-        (is(TokenId::Identifier) || is(TokenId::SymLeftParen)))
+    nodePtr->modifierFlags   = modifierFlags;
+    const Token* targetStart = curToken_;
+    while (targetStart < lastToken_ && targetStart->id == TokenId::SymLeftParen)
+        ++targetStart;
+    const bool expressionTarget = targetStart < lastToken_ && targetStart->id == TokenId::Identifier;
+    if (expressionTarget)
     {
         // A dynamic target can be a type name or an expression yielding typeinfo.
         nodePtr->nodeTypeRef = parsePostFixExpression();
@@ -383,8 +403,9 @@ AstNodeRef Parser::parseCast()
         nodePtr->nodeTypeRef = parseType();
     if (nodePtr->nodeTypeRef.isInvalid())
         skipTo({TokenId::SymRightParen});
+    expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeExprRef = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    nodePtr->nodeExprRef = parsePrefixExpr();
 
     return nodeRef;
 }
@@ -764,6 +785,12 @@ AstNodeRef Parser::parsePrimaryExpression()
 {
     switch (id())
     {
+        case TokenId::KwdCast:
+            return parseCast();
+
+        case TokenId::KwdAssume:
+            return parseErrorManagementExpr();
+
         case TokenId::SymDot:
             return parseAutoMemberAccessExpr();
 
@@ -1111,9 +1138,6 @@ AstNodeRef Parser::parsePrefixExpr()
 {
     switch (id())
     {
-        case TokenId::KwdCast:
-            return parseCast();
-
         case TokenId::ModifierMove:
         case TokenId::SymAmpersand:
         {

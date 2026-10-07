@@ -32,13 +32,13 @@ func wrapDial(position: s32)->s32
 
 func parseRotation(text: string)->Rotation
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
 
     var result: Rotation
     result.turnLeft = bytes[0] == 'L'
 
-    for i in 1 to cast(u32) bytes.count - 1 do
-        result.clicks = result.clicks * 10 + cast(s32) (bytes[i] - '0')
+    for i in 1 to cast(u32, bytes.count) - 1 do
+        result.clicks = result.clicks * 10 + cast(s32, (bytes[i] - '0'))
 
     return result
 }

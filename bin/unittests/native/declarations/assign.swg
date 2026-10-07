@@ -3,9 +3,9 @@
 #test
 {
     var x:   s32
-    var ptr: [*] s32 = cast([*] s32) &x
+    var ptr: [*] s32 = cast([*] s32, &x)
     ptr += 1
-    var ptr1: const [*] s32 = cast(const [*] s32) &x
+    var ptr1: const [*] s32 = cast(const [*] s32, &x)
     ptr1 += 1
     Swag.assert(#typeof(ptr) == [*] s32)
     Swag.assert(#typeof(ptr1) == const [*] s32)
@@ -36,7 +36,7 @@ enum R { A, B }
 #test
 {
     var x: s32
-    var p: [*] s32 = cast([*] s32) &x
+    var p: [*] s32 = cast([*] s32, &x)
     var i: s32
     p += i
     p = p + i

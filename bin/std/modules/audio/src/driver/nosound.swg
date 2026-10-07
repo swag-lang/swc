@@ -37,7 +37,7 @@ impl Voice
 {
     func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
-        voice.handle = cast(*void?) Memory.new'NoSoundVoice(voice.allocationAllocator)
+        voice.handle = cast(*void?, Memory.new'NoSoundVoice(voice.allocationAllocator))
         let file = voice.file!
         voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
         if not voice.handle do
@@ -49,13 +49,13 @@ impl Voice
         if not .handle do
             return
         let allocator = .allocationAllocator
-        Memory.delete(cast(*NoSoundVoice) .handle, allocator)
+        Memory.delete(cast(*NoSoundVoice, .handle), allocator)
         .handle = null
     }
 
     mtd updateNoSound()->bool fail
     {
-        let handle = cast(*NoSoundVoice?) .handle
+        let handle = cast(*NoSoundVoice?, .handle)
         if not handle or not handle.isPlaying do
             return false
 
@@ -80,28 +80,28 @@ impl Voice
 
     mtd playNoSound(batchId: u32 = 0) fail
     {
-        let handle = cast(*NoSoundVoice?) .handle
+        let handle = cast(*NoSoundVoice?, .handle)
         if handle do
             handle.isPlaying = true
     }
 
     mtd stopNoSound(batchId: u32 = 0) fail
     {
-        let handle = cast(*NoSoundVoice?) .handle
+        let handle = cast(*NoSoundVoice?, .handle)
         if handle do
             handle.isPlaying = false
     }
 
     mtd resetNoSound() fail
     {
-        let handle = cast(*NoSoundVoice?) .handle
+        let handle = cast(*NoSoundVoice?, .handle)
         if handle do
             handle.isPlaying = false
     }
 
     mtd playedFramesNoSound()->u64
     {
-        let handle = cast(*NoSoundVoice?) .handle
+        let handle = cast(*NoSoundVoice?, .handle)
         return handle ? handle.samplesPlayed : 0
     }
 }
@@ -113,7 +113,7 @@ internal impl Voice
     {
         if not .handle do
             return
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice, .handle)
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
@@ -122,7 +122,7 @@ internal impl Voice
     {
         if not .handle do
             return 0
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice, .handle)
         return handle.volume
     }
 
@@ -131,7 +131,7 @@ internal impl Voice
     {
         if not .handle do
             return
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice, .handle)
         handle.frequencyRatio = ratio
     }
 
@@ -140,7 +140,7 @@ internal impl Voice
     {
         if not .handle do
             return 0
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice, .handle)
         return handle.frequencyRatio
     }
 
@@ -150,12 +150,12 @@ internal impl Voice
         if not .handle do
             return
 
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice, .handle)
         let count  = buses.count
         if count > handle.buses.count do
             fail SystemError{"too many buses", errorID: count}
 
-        handle.busCount = cast(u32) count
+        handle.busCount = cast(u32, count)
         for i in count
         {
             let bus = buses[i]
@@ -174,7 +174,7 @@ impl Bus
             fail BadParameterError{"parent bus invalid"}
 
         let handle = Memory.new'NoSoundBus(bus.allocationAllocator)
-        bus.handle         = cast(*void?) handle
+        bus.handle         = cast(*void?, handle)
         handle.numChannels = numChannels
         handle.parent      = parent
     }
@@ -184,7 +184,7 @@ impl Bus
         if not .handle do
             return
         let allocator = .allocationAllocator
-        Memory.delete(cast(*NoSoundBus) .handle, allocator)
+        Memory.delete(cast(*NoSoundBus, .handle), allocator)
         .handle = null
     }
 }
@@ -196,7 +196,7 @@ internal impl Bus
     {
         if not .handle do
             return
-        let handle = cast(*NoSoundBus) .handle
+        let handle = cast(*NoSoundBus, .handle)
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
@@ -205,7 +205,7 @@ internal impl Bus
     {
         if not .handle do
             return 0
-        let handle = cast(*NoSoundBus) .handle
+        let handle = cast(*NoSoundBus, .handle)
         return handle.volume
     }
 }

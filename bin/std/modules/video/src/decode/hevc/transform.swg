@@ -39,8 +39,8 @@ struct TransformBlock
 #[Swag.Inline]
 private func coefficientPair(first, second: s16)->Simd.S16x8
 {
-    let packed = (cast(u32) cast #wrap(u16) first) | ((cast(u32) cast #wrap(u16) second) << 16)
-    return cast #bit(Simd.S16x8) Simd.splat(packed)
+    let packed = cast(u32, cast #wrap(u16, first)) | (cast(u32, cast #wrap(u16, second)) << 16)
+    return cast #bit(Simd.S16x8, Simd.splat(packed))
 }
 
 impl Decoder
@@ -55,12 +55,12 @@ impl Decoder
         let sps = .activeSps!
 
         var left = .qpYPrev
-        if x0 > 0 and (x0 & cast(s32) (sps.ctbSize - 1)) != 0 and .isAvailable(x0, y0, x0 - 1, y0) do
-            left = cast(s32) .qpY[.blockIndex(x0 - 1, y0)]
+        if x0 > 0 and (x0 & cast(s32, (sps.ctbSize - 1))) != 0 and .isAvailable(x0, y0, x0 - 1, y0) do
+            left = cast(s32, .qpY[.blockIndex(x0 - 1, y0)])
 
         var above = .qpYPrev
-        if y0 > 0 and (y0 & cast(s32) (sps.ctbSize - 1)) != 0 and .isAvailable(x0, y0, x0, y0 - 1) do
-            above = cast(s32) .qpY[.blockIndex(x0, y0 - 1)]
+        if y0 > 0 and (y0 & cast(s32, (sps.ctbSize - 1))) != 0 and .isAvailable(x0, y0, x0, y0 - 1) do
+            above = cast(s32, .qpY[.blockIndex(x0, y0 - 1)])
 
         .qpYPred = (left + above + 1) >> 1
         .refreshQp()
@@ -87,7 +87,7 @@ impl Decoder
             return index
         if index > 43 do
             return index - 6
-        return cast(s32) ChromaQpMapping[index - 30]
+        return cast(s32, ChromaQpMapping[index - 30])
     }
 
     // Adds the residual of one transform block to samples already in the picture, clause 8.6.6.
@@ -96,7 +96,7 @@ impl Decoder
         let sps      = .activeSps!
         let frame    = .current!
         let bitDepth = block.component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
-        let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
         let size     = block.size
 
         var destination: [*] u16
@@ -108,7 +108,7 @@ impl Decoder
         }
         else
         {
-            destination = frame.chromaAtMutable(block.component - 1, block.x / cast(s32) sps.subWidthC, block.y / cast(s32) sps.subHeightC)
+            destination = frame.chromaAtMutable(block.component - 1, block.x / cast(s32, sps.subWidthC), block.y / cast(s32, sps.subHeightC))
             stride      = frame.strideChroma
         }
 
@@ -117,21 +117,21 @@ impl Decoder
 
         for row in size
         {
-            let out    = destination + cast(u64) row * stride
+            let out    = destination + cast(u64, row) * stride
             let base   = row * size
             var column = 0'u32
             while column + 8 <= size
             {
                 let pixels = Simd.load(out + column)
-                let low    = cast #bit(Simd.S32x4) Simd.widenLow(pixels) + Simd.load(&.residual[base + column])
-                let high   = cast #bit(Simd.S32x4) Simd.widenHigh(pixels) + Simd.load(&.residual[base + column + 4])
+                let low    = cast #bit(Simd.S32x4, Simd.widenLow(pixels)) + Simd.load(&.residual[base + column])
+                let high   = cast #bit(Simd.S32x4, Simd.widenHigh(pixels)) + Simd.load(&.residual[base + column + 4])
                 Simd.store(out + column, Simd.packUnsigned(Math.max(Math.min(low, maxima), zeros), Math.max(Math.min(high, maxima), zeros)))
                 column += 8
             }
 
             while column < size
             {
-                out[column] = cast(u16) Math.clamp(cast(s32) out[column] + .residual[base + column], 0, maximum)
+                out[column] = cast(u16, Math.clamp(cast(s32, out[column]) + .residual[base + column], 0, maximum))
                 column      += 1
             }
         }
@@ -159,19 +159,19 @@ impl Decoder
         if block.bypass
         {
             for index in size * size do
-                .residual[index] = cast(s32) .coefficients[index]
+                .residual[index] = cast(s32, .coefficients[index])
             return
         }
 
         .scaleCoefficients(block, bitDepth)
 
-        let bdShift = Math.max(20 - cast(s32) bitDepth, 0)
+        let bdShift = Math.max(20 - cast(s32, bitDepth), 0)
         if block.transformSkip
         {
             // A skipped transform only rescales, clause 8-298.
-            let tsShift = 5 + cast(s32) block.log2Size
+            let tsShift = 5 + cast(s32, block.log2Size)
             for index in size * size do
-                .residual[index] = ((cast(s32) .coefficients[index] << tsShift) + (1 << (bdShift - 1))) >> bdShift
+                .residual[index] = ((cast(s32, .coefficients[index]) << tsShift) + (1 << (bdShift - 1))) >> bdShift
             return
         }
 
@@ -186,10 +186,10 @@ impl Decoder
         let sps      = .activeSps!
         let pps      = .activePps!
         let size     = block.size
-        let bdShift  = cast(s32) (bitDepth + block.log2Size + 10 - Log2TransformRange)
+        let bdShift  = cast(s32, (bitDepth + block.log2Size + 10 - Log2TransformRange))
         let rounding = 1's32 << (bdShift - 1)
-        let scale    = cast(s32) LevelScale[block.qp % 6]
-        let shift    = cast(u32) (block.qp / 6)
+        let scale    = cast(s32, LevelScale[block.qp % 6])
+        let shift    = cast(u32, (block.qp / 6))
 
         // A flat matrix is the common case, and it collapses the whole derivation to one multiply.
         let flat = not sps.scalingListEnabled or (block.transformSkip and size > 4)
@@ -207,8 +207,8 @@ impl Decoder
                     let y = Math.trailingZeros(rowMask)
                     rowMask &= rowMask - 1
                     let index = y * size + x
-                    let level = cast(s32) .coefficients[index]
-                    .coefficients[index] = cast(s16) Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax)
+                    let level = cast(s32, .coefficients[index])
+                    .coefficients[index] = cast(s16, Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax))
                 }
             }
 
@@ -228,9 +228,9 @@ impl Decoder
                 let y = Math.trailingZeros(rowMask)
                 rowMask &= rowMask - 1
                 let index  = y * size + x
-                let level  = cast(s32) .coefficients[index]
-                let factor = scale * cast(s32) .scalingFactor(&pps.scalingLists, sizeId, matrixId, x, y, size)
-                .coefficients[index] = cast(s16) Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax)
+                let level  = cast(s32, .coefficients[index])
+                let factor = scale * cast(s32, .scalingFactor(&pps.scalingLists, sizeId, matrixId, x, y, size))
+                .coefficients[index] = cast(s16, Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax))
             }
         }
     }
@@ -250,14 +250,14 @@ impl Decoder
     private mtd const scalingFactor(lists: const *ScalingLists, sizeId, matrixId, x, y, size: u32)->u32
     {
         if not sizeId do
-            return cast(u32) lists.lists[0, matrixId, DiagScan4x4Index[y * 4 + x]]
+            return cast(u32, lists.lists[0, matrixId, DiagScan4x4Index[y * 4 + x]])
 
         // Above 8x8 the stored matrix is 8x8 and every entry covers a square of samples.
         let shift = sizeId - 1
         let inner = (y >> shift) * 8 + (x >> shift)
         if sizeId > 1 and not x and not y do
-            return cast(u32) lists.dc[sizeId - 2, matrixId]
-        return cast(u32) lists.lists[sizeId, matrixId, DiagScan8x8Index[inner]]
+            return cast(u32, lists.dc[sizeId - 2, matrixId])
+        return cast(u32, lists.lists[sizeId, matrixId, DiagScan8x8Index[inner]])
     }
 
     // Applies the two-dimensional inverse transform of clause 8.6.4 to the scaled coefficients.
@@ -267,7 +267,7 @@ impl Decoder
         // The first DCT basis is constant, so both matrix passes collapse to one value.
         if not useDst and not lastX and not lastY
         {
-            let first    = Math.clamp((64 * cast(s32) .coefficients[0] + 64) >> 7, CoeffMin, CoeffMax)
+            let first    = Math.clamp((64 * cast(s32, .coefficients[0]) + 64) >> 7, CoeffMin, CoeffMax)
             let rounding = 1's32 << (bdShift - 1)
             let value    = (64 * first + rounding) >> bdShift
             let values   = Simd.splat(value)
@@ -309,7 +309,7 @@ impl Decoder
                 {
                     var sum = 0's32
                     for basis in rows do
-                        sum += cast(s32) TransMatrixDst4[basis, sample] * cast(s32) .coefficients[basis * size + x]
+                        sum += cast(s32, TransMatrixDst4[basis, sample]) * cast(s32, .coefficients[basis * size + x])
                     intermediate[sample * size + x] = Math.clamp((sum + 64) >> 7, CoeffMin, CoeffMax)
                 }
             }
@@ -322,7 +322,7 @@ impl Decoder
                 {
                     var sum = 0's32
                     for basis in columns do
-                        sum += cast(s32) TransMatrixDst4[basis, sample] * intermediate[base + basis]
+                        sum += cast(s32, TransMatrixDst4[basis, sample]) * intermediate[base + basis]
                     .residual[base + sample] = (sum + rounding) >> bdShift
                 }
             }
@@ -344,7 +344,7 @@ impl Decoder
         // widened multiply covered four. What the pair costs is one interleave of two loads the
         // scalar form was loading anyway.
         let step   = 32 >> log2Size
-        let matrix = cast([*] s16) &.transformMatrix[0]
+        let matrix = cast([*] s16, &.transformMatrix[0])
         let minima = Simd.splat(CoeffMin)
         let maxima = Simd.splat(CoeffMax)
 
@@ -380,8 +380,8 @@ impl Decoder
                     let rowA   = Simd.load(matrix + first * step * 32 + sample)
                     let rowB   = Simd.load(matrix + second * step * 32 + sample)
                     let values = coefficientPair(.coefficients[first * size + x], secondValue)
-                    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveLow(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
-                    high += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveHigh(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
+                    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(cast #bit(Simd.U16x8, rowA), cast #bit(Simd.U16x8, rowB))), values)
+                    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(cast #bit(Simd.U16x8, rowA), cast #bit(Simd.U16x8, rowB))), values)
                 }
 
                 Simd.store(&intermediate[column + sample], Math.max(Math.min((low + 64) >> 7, maxima), minima))
@@ -411,21 +411,21 @@ impl Decoder
                     if activeBasis
                     {
                         second      = Math.trailingZeros(activeBasis)
-                        secondValue = cast(s16) intermediate[second * size + y]
+                        secondValue = cast(s16, intermediate[second * size + y])
                         activeBasis &= activeBasis - 1
                     }
 
                     let rowA   = Simd.load(matrix + first * step * 32 + sample)
                     let rowB   = Simd.load(matrix + second * step * 32 + sample)
-                    let values = coefficientPair(cast(s16) intermediate[first * size + y], secondValue)
-                    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveLow(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
-                    high += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveHigh(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
+                    let values = coefficientPair(cast(s16, intermediate[first * size + y]), secondValue)
+                    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(cast #bit(Simd.U16x8, rowA), cast #bit(Simd.U16x8, rowB))), values)
+                    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(cast #bit(Simd.U16x8, rowA), cast #bit(Simd.U16x8, rowB))), values)
                 }
 
                 // A row of the residual is contiguous, so the two vectors are written where they
                 // stand instead of being read back lane by lane.
-                Simd.store(&.residual[base + sample], (low + rounding) >> cast(u32) bdShift)
-                Simd.store(&.residual[base + sample + 4], (high + rounding) >> cast(u32) bdShift)
+                Simd.store(&.residual[base + sample], (low + rounding) >> cast(u32, bdShift))
+                Simd.store(&.residual[base + sample + 4], (high + rounding) >> cast(u32, bdShift))
 
                 sample += 8
             }
@@ -439,10 +439,10 @@ impl Decoder
         let rows = lastY + 1
         for x in lastX + 1
         {
-            let c0 = cast(s32) .coefficients[x]
-            let c1 = rows > 1 ? cast(s32) .coefficients[4 + x] : 0
-            let c2 = rows > 2 ? cast(s32) .coefficients[8 + x] : 0
-            let c3 = rows > 3 ? cast(s32) .coefficients[12 + x] : 0
+            let c0 = cast(s32, .coefficients[x])
+            let c1 = rows > 1 ? cast(s32, .coefficients[4 + x]) : 0
+            let c2 = rows > 2 ? cast(s32, .coefficients[8 + x]) : 0
+            let c3 = rows > 3 ? cast(s32, .coefficients[12 + x]) : 0
             let e0 = 64 * (c0 + c2)
             let e1 = 64 * (c0 - c2)
             let o0 = 83 * c1 + 36 * c3
@@ -481,14 +481,14 @@ impl Decoder
         let rows = lastY + 1
         for x in lastX + 1
         {
-            let c0 = cast(s32) .coefficients[x]
-            let c1 = rows > 1 ? cast(s32) .coefficients[8 + x] : 0
-            let c2 = rows > 2 ? cast(s32) .coefficients[16 + x] : 0
-            let c3 = rows > 3 ? cast(s32) .coefficients[24 + x] : 0
-            let c4 = rows > 4 ? cast(s32) .coefficients[32 + x] : 0
-            let c5 = rows > 5 ? cast(s32) .coefficients[40 + x] : 0
-            let c6 = rows > 6 ? cast(s32) .coefficients[48 + x] : 0
-            let c7 = rows > 7 ? cast(s32) .coefficients[56 + x] : 0
+            let c0 = cast(s32, .coefficients[x])
+            let c1 = rows > 1 ? cast(s32, .coefficients[8 + x]) : 0
+            let c2 = rows > 2 ? cast(s32, .coefficients[16 + x]) : 0
+            let c3 = rows > 3 ? cast(s32, .coefficients[24 + x]) : 0
+            let c4 = rows > 4 ? cast(s32, .coefficients[32 + x]) : 0
+            let c5 = rows > 5 ? cast(s32, .coefficients[40 + x]) : 0
+            let c6 = rows > 6 ? cast(s32, .coefficients[48 + x]) : 0
+            let c7 = rows > 7 ? cast(s32, .coefficients[56 + x]) : 0
 
             let o0  = 89 * c1 + 75 * c3 + 50 * c5 + 18 * c7
             let o1  = 75 * c1 - 18 * c3 - 89 * c5 - 50 * c7
@@ -557,7 +557,7 @@ impl Decoder
         let sps      = .activeSps!
         let frame    = .current!
         let bitDepth = block.component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
-        let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
         let size     = block.size
 
         var destination: [*] u16
@@ -569,7 +569,7 @@ impl Decoder
         }
         else
         {
-            destination = frame.chromaAtMutable(block.component - 1, block.x / cast(s32) sps.subWidthC, block.y / cast(s32) sps.subHeightC)
+            destination = frame.chromaAtMutable(block.component - 1, block.x / cast(s32, sps.subWidthC), block.y / cast(s32, sps.subHeightC))
             stride      = frame.strideChroma
         }
 
@@ -577,8 +577,8 @@ impl Decoder
         {
             for row in size
             {
-                let out = destination + cast(u64) row * stride
-                Memory.copy(out, &.predSamples[row * size], cast(u64) size * #sizeof(u16))
+                let out = destination + cast(u64, row) * stride
+                Memory.copy(out, &.predSamples[row * size], cast(u64, size) * #sizeof(u16))
             }
 
             return
@@ -588,22 +588,22 @@ impl Decoder
         let maxima = Simd.splat(maximum)
         for row in size
         {
-            let out    = destination + cast(u64) row * stride
+            let out    = destination + cast(u64, row) * stride
             let base   = row * size
             var column = 0'u32
             while column + 8 <= size
             {
                 let prediction = Simd.load(&.predSamples[base + column])
-                let low        = cast #bit(Simd.S32x4) Simd.widenLow(prediction) + Simd.load(&.residual[base + column])
-                let high       = cast #bit(Simd.S32x4) Simd.widenHigh(prediction) + Simd.load(&.residual[base + column + 4])
+                let low        = cast #bit(Simd.S32x4, Simd.widenLow(prediction)) + Simd.load(&.residual[base + column])
+                let high       = cast #bit(Simd.S32x4, Simd.widenHigh(prediction)) + Simd.load(&.residual[base + column + 4])
                 Simd.store(out + column, Simd.packUnsigned(Math.max(Math.min(low, maxima), zeros), Math.max(Math.min(high, maxima), zeros)))
                 column += 8
             }
 
             while column < size
             {
-                let value = cast(s32) .predSamples[base + column] + .residual[base + column]
-                out[column] = cast(u16) Math.clamp(value, 0, maximum)
+                let value = cast(s32, .predSamples[base + column]) + .residual[base + column]
+                out[column] = cast(u16, Math.clamp(value, 0, maximum))
                 column      += 1
             }
         }

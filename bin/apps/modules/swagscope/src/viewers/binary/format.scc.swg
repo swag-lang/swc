@@ -23,11 +23,11 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
 
     report.beginGroup(s.scc_Prefix, SccMagic, "", offset: 0, length: Scc.PrefixSize, open: true)
     report.field(8, 4, "Version", "", "")
-    report.numField(8, 2, "FormatMajor", cast(u64) major)
-    report.numField(10, 2, "FormatMinor", cast(u64) minor)
-    report.hexField(12, 4, "Flags", cast(u64) image.u32At(12))
+    report.numField(8, 2, "FormatMajor", cast(u64, major))
+    report.numField(10, 2, "FormatMinor", cast(u64, minor))
+    report.hexField(12, 4, "Flags", cast(u64, image.u32At(12)))
     report.sizeField(16, 8, "HeaderSize", headerSize)
-    report.hexField(24, 4, "HeaderChecksum", cast(u64) image.u32At(24))
+    report.hexField(24, 4, "HeaderChecksum", cast(u64, image.u32At(24)))
     report.field(Scc.PrefixSize, headerSize, "Header", "", s.scc_Manifest)
     report.endGroup()
 
@@ -212,8 +212,8 @@ private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.Chunk
         report.sizeField(chunk.offset, 8, "StoredSize", chunk.storedSize)
         report.sizeField(chunk.offset, 8, "DecodedSize", chunk.decodedSize)
 
-        let storedCrc  = hexText(cast(u64) chunk.storedChecksum, 8)
-        let decodedCrc = hexText(cast(u64) chunk.decodedChecksum, 8)
+        let storedCrc  = hexText(cast(u64, chunk.storedChecksum), 8)
+        let decodedCrc = hexText(cast(u64, chunk.decodedChecksum), 8)
         report.derived("StoredChecksum", storedCrc.toString())
         report.derived("DecodedChecksum", decodedCrc.toString())
         report.endGroup()
@@ -238,5 +238,5 @@ private func sccChunkFlagsText(value: Scc.ChunkFlags)->String
                  BinaryFlagName{2, "Metadata"},
                  BinaryFlagName{4, "Streamable"},
                  BinaryFlagName{8, "PreserveUnknown"}]
-    return flagsText(cast(u64) value, names)
+    return flagsText(cast(u64, value), names)
 }

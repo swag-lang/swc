@@ -15,7 +15,7 @@ private func strokedPath(y: f32)->LinePathList
 #test
 {
     let content  = "2 J 1 j 7 M [10 5 3] 2 d 8 w 20 35 m 80 35 l S"
-    var document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, "", "[0 0 100 50]").toSlice())
+    var document = expect Document.decode(singlePagePdf("", cast(const [..] u8, content), "", "[0 0 100 50]").toSlice())
     let decoded  = onlyItem(document.pages[0], .Path)
     let style    = decoded.pathStrokeStyle()
     Swag.assert(style.cap == .Square and style.join == .Round and style.miterLimit == 7)
@@ -27,7 +27,7 @@ private func strokedPath(y: f32)->LinePathList
     editedStyle.dashPattern.add(10)
     document.editPage(0).setPathStrokeStyle(0, editedStyle)
     let bytes   = expect document.encode()
-    let encoded = cast(string) bytes.toSlice()
+    let encoded = cast(string, bytes.toSlice())
     Swag.assert(Utf8.indexOf(encoded, "0 J\n2 j\n4 M\n[10 10] 0 d") != Swag.U64.Max)
     var roundTrip = expect Document.decode(bytes.toSlice())
     let final     = onlyItem(roundTrip.pages[0], .Path).pathStrokeStyle()
@@ -44,7 +44,7 @@ private func strokedPath(y: f32)->LinePathList
 #test
 {
     let content  = "2 J [8 4] -3 d q 1 J [2 2] 0 d 4 w 20 35 m 80 35 l S Q 4 w 20 15 m 80 15 l S"
-    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, "", "[0 0 100 50]").toSlice())
+    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8, content), "", "[0 0 100 50]").toSlice())
     Swag.assert(document.pages[0].items.count == 2)
 
     let nested   = document.pages[0].items[0].pathStrokeStyle()
@@ -95,7 +95,7 @@ private func strokedPath(y: f32)->LinePathList
     const Invalid: [4] string = ["0.5 J", "0 M", "[-1 2] 0 d", "-1 w"]
     for content in Invalid
     {
-        let bytes = singlePagePdf("", cast(const [..] u8) content, "")
+        let bytes = singlePagePdf("", cast(const [..] u8, content), "")
         discard catch Document.decode(bytes.toSlice()) as strokeError
         Swag.assert(strokeError != null)
     }

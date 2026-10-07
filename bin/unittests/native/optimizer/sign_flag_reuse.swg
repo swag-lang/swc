@@ -7,7 +7,7 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func lastIndex(s: const [*] u8, n: u64, c: u8)->s64
 {
-    var i = cast(s64) n - 1
+    var i = cast(s64, n) - 1
     while i >= 0
     {
         if s[i] == c do return i
@@ -32,7 +32,7 @@ func countDown(from: s64)->s64
 #[Swag.Optimize(true), Swag.NoInline]
 func isNegativeAfterAdd(a, b: s32)->bool
 {
-    let r = cast #wrap (s32) (cast(s64) a + cast(s64) b)
+    let r = cast #wrap (s32, (cast(s64, a) + cast(s64, b)))
     return r < 0
 }
 
@@ -60,8 +60,8 @@ func isNonNegativeAfterSub(a, b: s64)->bool
     {
         for b in values
         {
-            Swag.assert(isNegativeAfterAdd(a, b) == ((cast(s64) a + cast(s64) b) & 0x80000000 != 0))
-            Swag.assert(isNonNegativeAfterSub(a, b) == (cast(s64) a - cast(s64) b >= 0))
+            Swag.assert(isNegativeAfterAdd(a, b) == ((cast(s64, a) + cast(s64, b)) & 0x80000000 != 0))
+            Swag.assert(isNonNegativeAfterSub(a, b) == (cast(s64, a) - cast(s64, b) >= 0))
         }
     }
 }

@@ -84,11 +84,11 @@ Cast to the interface and call its methods.
 {
     var pt2: Point2
     var pt3: Point3
-    var itf = cast(IReset) pt2
+    var itf = cast(IReset, pt2)
     itf.set(10)
     Swag.assert(pt2.x == 10)
     Swag.assert(pt2.y == 11)
-    itf = cast(IReset) pt3
+    itf = cast(IReset, pt3)
     itf.set(10)
     Swag.assert(pt3.x == 10)
     Swag.assert(pt3.y == 11)
@@ -127,19 +127,19 @@ An interface occupies two pointers: object pointer + virtual table pointer.
 {
     var pt2: Point2
     var pt3: Point3
-    var itf = cast(IReset) pt2
+    var itf = cast(IReset, pt2)
     #assert(#sizeof(itf) == 2 * #sizeof(*void?))
 
     // Retrieve the concrete type with 'Swag.kindOf'
-    itf = cast(IReset) pt2
+    itf = cast(IReset, pt2)
     Swag.assert(Swag.kindOf(itf) == Point2)
-    itf = cast(IReset) pt3
+    itf = cast(IReset, pt3)
     Swag.assert(Swag.kindOf(itf) == Point3)
 
     // Retrieve the concrete data with '.buffer'
-    itf = cast(IReset) pt2
+    itf = cast(IReset, pt2)
     Swag.assert(itf.buffer == &pt2)
-    itf = cast(IReset) pt3
+    itf = cast(IReset, pt3)
     Swag.assert(itf.buffer == &pt3)
 }
 
@@ -177,9 +177,9 @@ For 'Point3', 'isImplemented()' returns 'false' (the default).
     var v2: Point2
     var v3: Point3
 
-    let i2 = cast(ITest) v2
+    let i2 = cast(ITest, v2)
     Swag.assert(i2.isImplemented())
 
-    let i3 = cast(ITest) v3
+    let i3 = cast(ITest, v3)
     Swag.assert(not i3.isImplemented())
 }

@@ -21,7 +21,7 @@ func contextualRows(index: u32)->u32
     let seconds = [SecondKind.C, .D, .D]
     Swag.assert(rows[index].first == firsts[index])
     Swag.assert(rows[index].second == seconds[index])
-    return cast(u32) rows[index].first * 10 + cast(u32) rows[index].second
+    return cast(u32, rows[index].first) * 10 + cast(u32, rows[index].second)
 }
 
 #test

@@ -33,7 +33,7 @@ impl IWnd for Spinner
         let painter = evt.paintContext.painter
         let metrics = .themeMetrics()
 
-        let count = Math.max(cast(s32) metrics.spinner_DotCount, 2)
+        let count = Math.max(cast(s32, metrics.spinner_DotCount), 2)
         let rect  = .paddedClientRect()
 
         // A ring of pulsing dots, rather than a rotating arc: an arc needs a stroke weight to
@@ -51,7 +51,7 @@ impl IWnd for Spinner
         {
             // The dot that just passed the head of the cycle is the faintest, so the ring
             // reads as one bright point trailing off behind it.
-            let t     = Math.fract(.animationPhase + cast(f32) i / cast(f32) count)
+            let t     = Math.fract(.animationPhase + cast(f32, i) / cast(f32, count))
             let angle = t * Math.ConstF32.TwoPi
             let x     = centerX + Math.sin(angle) * (ringRadius - dotRadius)
             let y     = centerY - Math.cos(angle) * (ringRadius - dotRadius)

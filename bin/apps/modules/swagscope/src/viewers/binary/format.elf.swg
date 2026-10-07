@@ -194,29 +194,29 @@ func reportElfImage(image: *BinaryImage, report: *BinaryReport)
     let phoff    = image.scalarAt(headerAt + 8 + wide, wide)
     let shoff    = image.scalarAt(headerAt + 8 + wide * 2, wide)
     let tailAt   = headerAt + 8 + wide * 3
-    let phentsz  = cast(u64) image.u16At(tailAt + 6)
-    let phnum    = cast(u64) image.u16At(tailAt + 8)
-    let shentsz  = cast(u64) image.u16At(tailAt + 10)
-    let shnum    = cast(u64) image.u16At(tailAt + 12)
-    let shstrndx = cast(u64) image.u16At(tailAt + 14)
+    let phentsz  = cast(u64, image.u16At(tailAt + 6))
+    let phnum    = cast(u64, image.u16At(tailAt + 8))
+    let shentsz  = cast(u64, image.u16At(tailAt + 10))
+    let shnum    = cast(u64, image.u16At(tailAt + 12))
+    let shstrndx = cast(u64, image.u16At(tailAt + 14))
 
     report.beginGroup(s.elf_Header, "", "", offset: 0, length: tailAt + 16, open: true)
     report.beginGroup(s.elf_Identity, "ELF", "", offset: 0, length: 16)
-    report.numField(4, 1, "EI_CLASS", cast(u64) image.u8At(4), is64 ? s.elf_Class64 : s.elf_Class32)
-    report.numField(5, 1, "EI_DATA", cast(u64) order, order == 2 ? s.elf_Big : s.elf_Little)
-    report.numField(6, 1, "EI_VERSION", cast(u64) image.u8At(6))
-    report.numField(7, 1, "EI_OSABI", cast(u64) image.u8At(7), elfOsAbiName(image.u8At(7)))
-    report.numField(8, 1, "EI_ABIVERSION", cast(u64) image.u8At(8))
+    report.numField(4, 1, "EI_CLASS", cast(u64, image.u8At(4)), is64 ? s.elf_Class64 : s.elf_Class32)
+    report.numField(5, 1, "EI_DATA", cast(u64, order), order == 2 ? s.elf_Big : s.elf_Little)
+    report.numField(6, 1, "EI_VERSION", cast(u64, image.u8At(6)))
+    report.numField(7, 1, "EI_OSABI", cast(u64, image.u8At(7)), elfOsAbiName(image.u8At(7)))
+    report.numField(8, 1, "EI_ABIVERSION", cast(u64, image.u8At(8)))
     report.endGroup()
 
-    report.hexField(headerAt, 2, "e_type", cast(u64) kind, elfTypeName(kind))
-    report.hexField(headerAt + 2, 2, "e_machine", cast(u64) machine, elfMachineName(machine))
-    report.numField(headerAt + 4, 4, "e_version", cast(u64) image.u32At(headerAt + 4))
+    report.hexField(headerAt, 2, "e_type", cast(u64, kind), elfTypeName(kind))
+    report.hexField(headerAt + 2, 2, "e_machine", cast(u64, machine), elfMachineName(machine))
+    report.numField(headerAt + 4, 4, "e_version", cast(u64, image.u32At(headerAt + 4)))
     report.hexField(headerAt + 8, wide, "e_entry", entry)
     report.hexField(headerAt + 8 + wide, wide, "e_phoff", phoff)
     report.hexField(headerAt + 8 + wide * 2, wide, "e_shoff", shoff)
-    report.hexField(tailAt, 4, "e_flags", cast(u64) image.u32At(tailAt))
-    report.numField(tailAt + 4, 2, "e_ehsize", cast(u64) image.u16At(tailAt + 4))
+    report.hexField(tailAt, 4, "e_flags", cast(u64, image.u32At(tailAt)))
+    report.numField(tailAt + 4, 2, "e_ehsize", cast(u64, image.u16At(tailAt + 4)))
     report.numField(tailAt + 6, 2, "e_phentsize", phentsz)
     report.numField(tailAt + 8, 2, "e_phnum", phnum)
     report.numField(tailAt + 10, 2, "e_shentsize", shentsz)
@@ -259,8 +259,8 @@ private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, e
         let mapped   = elfSegmentFlagsText(flags)
 
         report.beginGroup(elfSegmentName(kind), address.toString(), mapped.toString(), offset: image.scalarAt(valuesAt, wide), length: fileSize)
-        report.hexField(entryAt, 4, "p_type", cast(u64) kind, elfSegmentName(kind))
-        report.hexField(is64 ? entryAt + 4 : entryAt + 24, 4, "p_flags", cast(u64) flags, mapped.toString())
+        report.hexField(entryAt, 4, "p_type", cast(u64, kind), elfSegmentName(kind))
+        report.hexField(is64 ? entryAt + 4 : entryAt + 24, 4, "p_flags", cast(u64, flags), mapped.toString())
         report.hexField(valuesAt, wide, "p_offset", image.scalarAt(valuesAt, wide))
         report.hexField(valuesAt + wide, wide, "p_vaddr", image.scalarAt(valuesAt + wide, wide))
         report.hexField(valuesAt + wide * 2, wide, "p_paddr", image.scalarAt(valuesAt + wide * 2, wide))
@@ -277,7 +277,7 @@ private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, e
 private func elfSegmentFlagsText(value: u32)->String
 {
     let names = [BinaryFlagName{1, "PF_X"}, BinaryFlagName{2, "PF_W"}, BinaryFlagName{4, "PF_R"}]
-    return flagsText(cast(u64) value, names)
+    return flagsText(cast(u64, value), names)
 }
 
 private func elfSectionFlagsText(value: u64)->String
@@ -322,7 +322,7 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
         }
 
         if stringsAt do
-            section.name = image.cstringAt(stringsAt + cast(u64) image.u32At(entryAt), 128)
+            section.name = image.cstringAt(stringsAt + cast(u64, image.u32At(entryAt)), 128)
         result.add(#move section)
     }
 
@@ -355,13 +355,13 @@ private func reportElfSections(image: *BinaryImage, report: *BinaryReport, secti
         // a search hit can never be inside bytes the file does not carry.
         let holds = section.kind != 8
         report.beginGroup(label.toString(), elfSectionKindName(section.kind), stored.toString(), offset: holds ? section.offset : Swag.U64.Max, length: holds ? section.size : 0)
-        report.hexField(entryAt + 4, 4, "sh_type", cast(u64) section.kind, elfSectionKindName(section.kind))
+        report.hexField(entryAt + 4, 4, "sh_type", cast(u64, section.kind), elfSectionKindName(section.kind))
         report.hexField(entryAt + 8, wide, "sh_flags", section.flags, names.toString())
         report.hexField(entryAt + 8 + wide, wide, "sh_addr", section.address)
         report.hexField(entryAt + 8 + wide * 2, wide, "sh_offset", section.offset)
         report.sizeField(entryAt + 8 + wide * 3, wide, "sh_size", section.size)
-        report.numField(entryAt + 8 + wide * 4, 4, "sh_link", cast(u64) section.link)
-        report.numField(entryAt + 12 + wide * 4, 4, "sh_info", cast(u64) image.u32At(entryAt + 12 + wide * 4))
+        report.numField(entryAt + 8 + wide * 4, 4, "sh_link", cast(u64, section.link))
+        report.numField(entryAt + 12 + wide * 4, 4, "sh_info", cast(u64, image.u32At(entryAt + 12 + wide * 4)))
         report.numField(entryAt + 16 + wide * 5, wide, "sh_entsize", section.entrySize)
         report.endGroup()
     }
@@ -387,7 +387,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     let wide      = is64 ? 8'u64 : 4
     let at        = dynamic.offset
     var stringsAt = 0'u64
-    if cast(u64) dynamic.link < sections.count do
+    if cast(u64, dynamic.link) < sections.count do
         stringsAt = sections[dynamic.link].offset
 
     var entries: Array'u64
@@ -453,21 +453,21 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
             continue
 
         // A note is a name length, a payload length, a kind, the padded name, then the payload.
-        let nameSize    = cast(u64) image.u32At(section.offset)
-        let payloadSize = cast(u64) image.u32At(section.offset + 4)
+        let nameSize    = cast(u64, image.u32At(section.offset))
+        let payloadSize = cast(u64, image.u32At(section.offset + 4))
         let payloadAt   = section.offset + 12 + ((nameSize + 3) & ~3'u64)
 
         var text: Array'u8
         for index in Math.min(payloadSize, 64'u64)
         {
             let value  = image.u8At(payloadAt + index)
-            let digits = [cast(u8) (value >> 4), value & 0xF]
+            let digits = [cast(u8, (value >> 4)), value & 0xF]
             for nibble in digits do
                 text.add(nibble < 10 ? '0'u8 + nibble : 'a'u8 + nibble - 10)
         }
 
         if text.isEmpty() do
             continue
-        report.field(payloadAt, payloadSize, s.shr_BuildId, cast(string) text.toSlice())
+        report.field(payloadAt, payloadSize, s.shr_BuildId, cast(string, text.toSlice()))
     }
 }

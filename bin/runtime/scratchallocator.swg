@@ -16,7 +16,7 @@ impl ScratchAllocator
     {
         Swag.assert(not alignment or not (alignment & (alignment - 1)))
         let toAlign = alignment != 0 ? alignment : #sizeof(*void)
-        let mask    = cast(u64) (toAlign - 1)
+        let mask    = cast(u64, (toAlign - 1))
         var result  = value & ~mask
         if result < value do
             result += toAlign
@@ -66,7 +66,7 @@ impl ScratchAllocator
         .used = 0
         while .firstLeak
         {
-            let p = cast(*LeakHeader) .firstLeak
+            let p = cast(*LeakHeader, .firstLeak)
             let n = p.next
             .freeMem(p.allocation, p.allocationSize)
             .firstLeak = n
@@ -115,7 +115,7 @@ impl IAllocator for ScratchAllocator
 
         // Otherwise we assume it's a leak. We unlink it, and free it with
         // the allocator
-        var leak = cast([*] LeakHeader) reqAddr
+        var leak = cast([*] LeakHeader, reqAddr)
         leak -= 1
         if not leak.prev do
             .firstLeak = leak.next
@@ -135,7 +135,7 @@ impl IAllocator for ScratchAllocator
     {
         if not .block
         {
-            .block = cast([*] u8?) .alloc(.capacity)
+            .block = cast([*] u8?, .alloc(.capacity))
             if not .block
             {
                 request.address = null
@@ -145,12 +145,12 @@ impl IAllocator for ScratchAllocator
 
         // Allocate in the buffer if there is enough room
         let block        = .block
-        let blockAddress = cast(u64) block
+        let blockAddress = cast(u64, block)
         let userAddress  = ScratchAllocator.align(blockAddress + .used, request.alignment)
         let usedAlign    = userAddress - blockAddress
         if usedAlign <= .capacity and request.size <= .capacity - usedAlign
         {
-            request.address = cast(*void) userAddress
+            request.address = cast(*void, userAddress)
             .used           = usedAlign + request.size
             .maxUsed        = Swag.max(.maxUsed, .used)
             return
@@ -159,12 +159,12 @@ impl IAllocator for ScratchAllocator
         // Otherwise this is a leak
         // We prepend a LeakHeader to the user block, and linked it in
         // the chained list of leak allocations (at the first position)
-        let alignment   = request.alignment != 0 ? request.alignment : cast(u32) #sizeof(*void)
+        let alignment   = request.alignment != 0 ? request.alignment : cast(u32, #sizeof(*void))
         let totalSize   = request.size + #sizeof(LeakHeader) + alignment - 1
-        let allocation  = cast([*] u8) .alloc(totalSize, alignment)!
-        let leakAddress = ScratchAllocator.align(cast(u64) (allocation + #sizeof(LeakHeader)), alignment) - #sizeof(LeakHeader)
-        let ptr         = cast([*] LeakHeader) leakAddress
-        let leak        = cast([*] LeakHeader?) .firstLeak
+        let allocation  = cast([*] u8, .alloc(totalSize, alignment)!)
+        let leakAddress = ScratchAllocator.align(cast(u64, (allocation + #sizeof(LeakHeader))), alignment) - #sizeof(LeakHeader)
+        let ptr         = cast([*] LeakHeader, leakAddress)
+        let leak        = cast([*] LeakHeader?, .firstLeak)
         if leak do
             leak.prev = ptr
         ptr.prev           = null

@@ -38,8 +38,8 @@ func sumPairs(values: const [..] u64)->u64
         {
             Swag.assert(add64(a, b) == a + b)
             Swag.assert(addThenCall(a, b) == ((a + b) ^ 0xABCDE))
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
-            let b32 = cast(u32) (b & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
+            let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(add32(a32, b32) == a32 + b32)
         }
     }

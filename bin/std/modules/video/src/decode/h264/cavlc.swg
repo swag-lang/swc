@@ -21,10 +21,10 @@ private func matchVlc(bits: *BitReader, lengths, values: const [..] u8)->u64
     let count = lengths.count
     for index in count
     {
-        let length = cast(u32) lengths[index]
+        let length = cast(u32, lengths[index])
         if length == 0 do
             continue
-        if (peek >> (16 - length)) == cast(u32) values[index]
+        if (peek >> (16 - length)) == cast(u32, values[index])
         {
             bits.skip(length)
             return index
@@ -40,7 +40,7 @@ private func matchVlc(bits: *BitReader, lengths, values: const [..] u8)->u64
 // table. Returns the number of nonzero coefficients.
 func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->u32 fail
 {
-    for index in cast(u64) maxCoeffs do
+    for index in cast(u64, maxCoeffs) do
         coeffs[index] = 0
 
     // coeff_token: total coefficients and trailing ones.
@@ -51,8 +51,8 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
         let index = matchVlc(bits, ChromaDcCoeffTokenLen, ChromaDcCoeffTokenBits)
         if index == ChromaDcCoeffTokenLen.count do
             fail InvalidFormatError{"H.264 chroma DC coefficient token does not decode"}
-        totalCoeff   = cast(u32) (index / 4)
-        trailingOnes = cast(u32) (index % 4)
+        totalCoeff   = cast(u32, (index / 4))
+        trailingOnes = cast(u32, (index % 4))
     }
     else
     {
@@ -66,8 +66,8 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
         let index = matchVlc(bits, CoeffTokenLen[table * 68 until table * 68 + 68], CoeffTokenBits[table * 68 until table * 68 + 68])
         if index == 68 do
             fail InvalidFormatError{"H.264 coefficient token does not decode"}
-        totalCoeff   = cast(u32) (index / 4)
-        trailingOnes = cast(u32) (index % 4)
+        totalCoeff   = cast(u32, (index / 4))
+        trailingOnes = cast(u32, (index % 4))
     }
 
     if totalCoeff > maxCoeffs do
@@ -77,11 +77,11 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
 
     // Levels, most significant coefficient first.
     var levels: [16] s32
-    for index in cast(u64) trailingOnes do
+    for index in cast(u64, trailingOnes) do
         levels[index] = bits.bit() != 0 ? -1 : 1
 
     var suffixLength = totalCoeff > 10 and trailingOnes < 3 ? 1'u32 : 0'u32
-    for index in cast(u64) trailingOnes until cast(u64) totalCoeff
+    for index in cast(u64, trailingOnes) until cast(u64, totalCoeff)
     {
         // level_prefix: leading zeros before a one.
         var prefix = 0'u32
@@ -98,15 +98,15 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
         elif prefix >= 15 do
             suffixSize = prefix - 3
 
-        var levelCode = cast(s32) (Math.min(15, prefix) << suffixLength)
+        var levelCode = cast(s32, (Math.min(15, prefix) << suffixLength))
         if suffixSize > 0 do
-            levelCode += cast(s32) bits.read(suffixSize)
+            levelCode += cast(s32, bits.read(suffixSize))
         if prefix >= 15 and suffixLength == 0 do
             levelCode += 15
         if prefix >= 16 do
             levelCode += (1's32 << (prefix - 3)) - 4096
 
-        if index == cast(u64) trailingOnes and trailingOnes < 3 do
+        if index == cast(u64, trailingOnes) and trailingOnes < 3 do
             levelCode += 2
 
         levels[index] = levelCode % 2 == 0 ? (levelCode + 2) >> 1 : -((levelCode + 1) >> 1)
@@ -123,19 +123,19 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
     {
         if nC == -1
         {
-            let row   = cast(u64) (totalCoeff - 1) * 4
+            let row   = cast(u64, (totalCoeff - 1)) * 4
             let index = matchVlc(bits, ChromaDcTotalZerosLen[row until row + 4], ChromaDcTotalZerosBits[row until row + 4])
             if index == 4 do
                 fail InvalidFormatError{"H.264 chroma DC zero count does not decode"}
-            totalZeros = cast(u32) index
+            totalZeros = cast(u32, index)
         }
         else
         {
-            let row   = cast(u64) (totalCoeff - 1) * 16
+            let row   = cast(u64, (totalCoeff - 1)) * 16
             let index = matchVlc(bits, TotalZerosLen[row until row + 16], TotalZerosBits[row until row + 16])
             if index == 16 do
                 fail InvalidFormatError{"H.264 zero count does not decode"}
-            totalZeros = cast(u32) index
+            totalZeros = cast(u32, index)
         }
     }
 
@@ -143,23 +143,23 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
     // coefficient except the lowest one.
     var position  = totalCoeff + totalZeros - 1
     var zerosLeft = totalZeros
-    for index in cast(u64) totalCoeff
+    for index in cast(u64, totalCoeff)
     {
         if position >= maxCoeffs do
             fail InvalidFormatError{"H.264 coefficient runs place a coefficient out of range"}
-        coeffs[position] = cast(s16) Math.clamp(levels[index], -32768, 32767)
+        coeffs[position] = cast(s16, Math.clamp(levels[index], -32768, 32767))
 
-        if index + 1 == cast(u64) totalCoeff do
+        if index + 1 == cast(u64, totalCoeff) do
             break
 
         var run = 0'u32
         if zerosLeft > 0
         {
-            let row     = cast(u64) Math.min(zerosLeft - 1, 6) * 16
+            let row     = cast(u64, Math.min(zerosLeft - 1, 6)) * 16
             let matched = matchVlc(bits, RunBeforeLen[row until row + 16], RunBeforeBits[row until row + 16])
             if matched == 16 do
                 fail InvalidFormatError{"H.264 coefficient run does not decode"}
-            run = cast(u32) matched
+            run = cast(u32, matched)
         }
 
         if run > zerosLeft do

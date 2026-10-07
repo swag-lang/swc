@@ -10,7 +10,7 @@ internal impl Properties
     // The window into which a row's trailing action widgets are placed. Grid docks them on the row
     // cell; list places them on the name label in local content coordinates. Null for rows with no
     // label in list mode.
-    mtd rowActionArea(item: *PropertiesItem)->*Wnd? => .isGridLike() ? item.line : cast(*Wnd?) item.label
+    mtd rowActionArea(item: *PropertiesItem)->*Wnd? => .isGridLike() ? item.line : cast(*Wnd?, item.label)
 }
 
 impl Properties
@@ -76,10 +76,10 @@ internal impl Properties
     mtd listUsefulWidth()->f32
     {
         Swag.assert(not .isGridLike())
-        var width = cast(f32) .editorWidth
+        var width = cast(f32, .editorWidth)
         if .edView.position.width > 0 do
             width = .edView.position.width
-        return Math.max(width, cast(f32) (.leftMargin + .rightMargin) + 1.0)
+        return Math.max(width, cast(f32, (.leftMargin + .rightMargin)) + 1.0)
     }
 
     mtd listContentWidthFromUseful(width: f32)->f32
@@ -101,7 +101,7 @@ internal impl Properties
     // Right edge (in row-content coordinates) of the revert/action column: anchored to
     // the value column (editorWidth), not to the full row width, so the arrows stay
     // lined up with the editors whatever the control width.
-    mtd listActionRight()->f32 => .listContentWidthFromUseful(cast(f32) .editorWidth) - PropRevertGap
+    mtd listActionRight()->f32 => .listContentWidthFromUseful(cast(f32, .editorWidth)) - PropRevertGap
 
     mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton?)
     {
@@ -114,7 +114,7 @@ internal impl Properties
 
     mtd clampColumnSize(size: s32)->s32
     {
-        let maxSize = cast(s32) .position.width - .gridMarginColumn - .leftMargin - .rightMargin
+        let maxSize = cast(s32, .position.width) - .gridMarginColumn - .leftMargin - .rightMargin
         if maxSize < .gridMarginColumn do
             return Math.max(size, .gridMarginColumn)
         return Math.clamp(size, .gridMarginColumn, maxSize)
@@ -148,8 +148,8 @@ internal impl Properties
         // header is at 0, a nested subgroup one step in — so its band label lines up with the
         // (level-1)-based indent of the fields it groups.
         if .isGridHeader(item) do
-            return cast(f32) item.level * cast(f32) .gridIndentSize
-        return cast(f32) .itemDepth(item) * cast(f32) .gridIndentSize
+            return cast(f32, item.level) * cast(f32, .gridIndentSize)
+        return cast(f32, .itemDepth(item)) * cast(f32, .gridIndentSize)
     }
 
     // Does the given data-column depth show any disclosure triangle? An ancestor depth always does
@@ -164,8 +164,8 @@ internal impl Properties
     mtd itemLabelGutter(item: *PropertiesItem)->f32
     {
         if not .isGridLike() or .isGridHeader(item) do
-            return cast(f32) .leftMargin
-        return .levelReservesMark(.itemDepth(item)) ? cast(f32) .leftMargin : cast(f32) .leftMargin * 0.5
+            return cast(f32, .leftMargin)
+        return .levelReservesMark(.itemDepth(item)) ? cast(f32, .leftMargin) : cast(f32, .leftMargin) * 0.5
     }
 
     // Recompute, per data-column depth, whether any row at that depth is expandable. Drives
@@ -200,7 +200,7 @@ internal impl Properties
         if .isGridHeader(item)
         {
             var textPadding = item.label.textPadding
-            textPadding.x = cast(f32) .leftMargin + .itemIndent(item)
+            textPadding.x = cast(f32, .leftMargin) + .itemIndent(item)
             item.label.setTextPadding(textPadding)
             item.label.margin.z       = 0
             item.label.position.width = .gridHeaderLabelWidth(item)

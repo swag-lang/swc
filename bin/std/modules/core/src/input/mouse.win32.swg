@@ -9,7 +9,7 @@ func mousePosition()->Point
 {
     var pt: POINT
     GetCursorPos(&pt)
-    return Point{cast(f32) pt.x, cast(f32) pt.y}
+    return Point{cast(f32, pt.x), cast(f32, pt.y)}
 }
 
 // Moves the cursor to (`x`, `y`) in physical desktop pixels.
@@ -23,5 +23,5 @@ func setMousePosition(x, y: s32)
 // Calls nest: the cursor shows again only after as many shows as hides.
 func showMouseCursor(show: bool)
 {
-    ShowCursor(cast(BOOL) show)
+    ShowCursor(cast(BOOL, show))
 }

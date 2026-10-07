@@ -8,8 +8,8 @@ func(U) localStructDefaultType()->bool
     }
 
     var data: Local
-    data.value = cast(U) 2
-    return #typeof(data.value) == U and data.value == cast(U) 2
+    data.value = cast(U, 2)
+    return #typeof(data.value) == U and data.value == cast(U, 2)
 }
 
 func(U) localStructExplicitType()->u16
@@ -33,8 +33,8 @@ func(U) localUnionDefaultType()->bool
     }
 
     var data: Local
-    data.value = cast(U) 3
-    return #typeof(data.value) == U and data.value == cast(U) 3
+    data.value = cast(U, 3)
+    return #typeof(data.value) == U and data.value == cast(U, 3)
 }
 
 func(U) localUnionExplicitType()->u16

@@ -89,7 +89,7 @@ func flagOf(code: u16)->bool
 
     for v in 0 until 256
     {
-        let c        = cast(u8) v
+        let c        = cast(u8, v)
         var expected = -1's32
         if c == '0' do
             expected = 0
@@ -118,7 +118,7 @@ func flagOf(code: u16)->bool
 
     for v in 0 until 70000
     {
-        let code = cast #wrap (u16) v
+        let code = cast #wrap (u16, v)
         Swag.assert(flagOf(code) == (code == 7 or code == 9 or code == 12))
     }
 }

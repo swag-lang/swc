@@ -88,8 +88,8 @@ impl SliderCtrl
                 var val: String
                 switch ctrl.edit.inputMode
                 {
-                case .UnsignedInteger: val = Format.toString("%", cast(u64) wnd.value())
-                case .SignedInteger:   val = Format.toString("%", cast(s64) wnd.value())
+                case .UnsignedInteger: val = Format.toString("%", cast(u64, wnd.value()))
+                case .SignedInteger:   val = Format.toString("%", cast(s64, wnd.value()))
                 case .FloatingPoint:   val = Format.toString("%{f2}", wnd.value())
                 }
 
@@ -106,13 +106,13 @@ impl SliderCtrl
                 switch edit.inputMode
                 {
                 case .UnsignedInteger: let {val, ?, ?} = catch StrConv.parseU64(edit.text())
-                    ctrl.slider.setValue(cast(f32) val)
+                    ctrl.slider.setValue(cast(f32, val))
 
                 case .SignedInteger: let {val, ?, ?} = catch StrConv.parseS64(edit.text())
-                    ctrl.slider.setValue(cast(f32) val)
+                    ctrl.slider.setValue(cast(f32, val))
 
                 case .FloatingPoint: let {val, ?, ?} = catch StrConv.parseF64(edit.text())
-                    ctrl.slider.setValue(cast(f32) val)
+                    ctrl.slider.setValue(cast(f32, val))
                 }
             }
 
@@ -148,13 +148,13 @@ impl SliderCtrl
     {
         .slider.setBounds(min, max)
         .slider.flags.remove(.Integer)
-        .edit.setFloatingPointRange(cast(f64) min, cast(f64) max)
+        .edit.setFloatingPointRange(cast(f64, min), cast(f64, max))
     }
 
     // Configures unsigned-integer bounds and input validation.
     mtd setUnsignedBounds(min, max: u64)
     {
-        .slider.setBounds(cast(f32) min, cast(f32) max)
+        .slider.setBounds(cast(f32, min), cast(f32, max))
         .slider.flags |= .Integer
         .edit.setUnsignedIntegerRange(min, max)
     }
@@ -162,7 +162,7 @@ impl SliderCtrl
     // Configures signed-integer bounds and input validation.
     mtd setSignedBounds(min, max: s64)
     {
-        .slider.setBounds(cast(f32) min, cast(f32) max)
+        .slider.setBounds(cast(f32, min), cast(f32, max))
         .slider.flags |= .Integer
         .edit.setSignedIntegerRange(min, max)
     }

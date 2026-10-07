@@ -182,7 +182,7 @@ impl IWnd for Header
         for item, idx in .items
         {
             Swag.assert(item != null)
-            .paintItem(evt.paintContext, item, cast(u32) idx, x)
+            .paintItem(evt.paintContext, item, cast(u32, idx), x)
             x += item.width
 
             if .flags.has(.Separators)
@@ -307,10 +307,10 @@ private impl Header
         {
             let item = itemIt!
             if pos.x >= x and pos.x < x + item.width do
-                return {cast(u32) idx, false}
+                return {cast(u32, idx), false}
             x += item.width
             if .flags.has(.Separators) and pos.x >= x and pos.x <= x + metrics.header_Separator and item.isResizable do
-                return {cast(u32) idx, true}
+                return {cast(u32, idx), true}
             x += metrics.header_Separator
         }
 
@@ -365,7 +365,7 @@ impl Header
         item.name   = name
         item.icon   = icon
         item.width  = Math.max(width, 0)
-        item.column = cast() .items.count
+        item.column = cast(.items.count)
         .items.add(item)
         .invalidate()
         return item
@@ -417,7 +417,7 @@ impl Header
     // Returns the leading position at one display-order index.
     mtd itemPositionAt(index: u32)->f32
     {
-        Swag.assert(index < cast(u32) .items.count)
+        Swag.assert(index < cast(u32, .items.count))
         return .itemPositionForColumn(.items[index]!.column)
     }
 
@@ -445,7 +445,7 @@ impl Header
         if .items.isEmpty() do
             return .padding.x
 
-        var w = .itemPositionAt(cast(u32) .items.count - 1)
+        var w = .itemPositionAt(cast(u32, .items.count) - 1)
         w += .items.back()!.width
         w += .themeMetrics().header_Separator
         return w

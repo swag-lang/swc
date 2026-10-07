@@ -57,9 +57,9 @@ func semaTestGeneric001()
 #assert(#nameof(Test.B) == "B")
 #assert(#nameof(Test.C) == "C")
 
-#assert(#stringof(cast(u32) Test.A) == "1")
-#assert(#stringof(cast(u32) Test.B) == "2")
-#assert(#stringof(cast(u32) Test.C) == "3")
+#assert(#stringof(cast(u32, Test.A)) == "1")
+#assert(#stringof(cast(u32, Test.B)) == "2")
+#assert(#stringof(cast(u32, Test.C)) == "3")
 
 #assert(#stringof(5) == "5")
 #assert(#stringof(5 * 5) == "25")

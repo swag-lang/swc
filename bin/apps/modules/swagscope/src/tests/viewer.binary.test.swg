@@ -27,7 +27,7 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     while window.activeChoiceIndex < window.instances.count and steps < 10_000
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
+        if not instance.view or not instance.isLoading or not instance.isLoading() do
             break
         Threading.Thread.sleep(1'ms)
         host.fireTimers()
@@ -49,14 +49,14 @@ const FixtureDataAt = 0x600'u64
 func poke(bytes: *Array'u8, at, value, size: u64)
 {
     for index in size do
-        bytes[at + index] = cast(u8) ((value >> (index * 8)) & 0xFF)
+        bytes[at + index] = cast(u8, ((value >> (index * 8)) & 0xFF))
 }
 
 // Writes `value` as `size` big-endian bytes at `at`, for the formats written that way round.
 func pokeBig(bytes: *Array'u8, at, value, size: u64)
 {
     for index in size do
-        bytes[at + index] = cast(u8) ((value >> ((size - 1 - index) * 8)) & 0xFF)
+        bytes[at + index] = cast(u8, ((value >> ((size - 1 - index) * 8)) & 0xFF))
 }
 
 // Writes `text` at `at`, leaving the byte after it as the zero the buffer already holds.
@@ -167,7 +167,7 @@ func buildPeFixture()->Array'u8
     let codeViewAt = FixtureDataAt + 0x1A0
     pokeText(&bytes, codeViewAt, "RSDS")
     for index in 16 do
-        bytes[codeViewAt + 4 + index] = cast(u8) (index + 1)
+        bytes[codeViewAt + 4 + index] = cast(u8, (index + 1))
     poke(&bytes, codeViewAt + 20, 1, 4)     // Age.
     pokeText(&bytes, codeViewAt + 24, "fixture.pdb")
 
@@ -227,9 +227,9 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(rowValue(&doc.report, "AddressOfEntryPoint") == "0x00001000")
     Swag.assert(rowValue(&doc.report, "ImageBase") == "0x0000000180000000")
     Swag.assert(rowDetail(&doc.report, "Subsystem") == "Windows console")
-    Swag.assert(Utf8.contains(cast(const [..] u8) rowDetail(&doc.report, "DllCharacteristics"), "NX_COMPAT"))
-    Swag.assert(Utf8.contains(cast(const [..] u8) rowDetail(&doc.report, "Characteristics"), "DLL"))
-    Swag.assert(Utf8.contains(cast(const [..] u8) rowDetail(&doc.report, "TimeDateStamp"), "2020-09-13"))
+    Swag.assert(Utf8.contains(cast(const [..] u8, rowDetail(&doc.report, "DllCharacteristics")), "NX_COMPAT"))
+    Swag.assert(Utf8.contains(cast(const [..] u8, rowDetail(&doc.report, "Characteristics")), "DLL"))
+    Swag.assert(Utf8.contains(cast(const [..] u8, rowDetail(&doc.report, "TimeDateStamp")), "2020-09-13"))
 
     // The two sections, and the one directory each of them carries.
     let text = findRow(&doc.report, ".text")
@@ -276,7 +276,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
     var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName.toString(), actionParent: commands)
-    let view          = cast #assume (*BinaryViewer) viewerSession.view!
+    let view          = assume cast (*BinaryViewer, viewerSession.view)
     finishBinaryViewer(&host, view)
     view.resize(860, 520)
     view.applyLayout()
@@ -491,7 +491,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(doc.report.formatName == "Mach-O 64")
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "x86-64"))
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "MH_EXECUTE"))
-    Swag.assert(Utf8.contains(cast(const [..] u8) rowDetail(&doc.report, "flags"), "PIE"))
+    Swag.assert(Utf8.contains(cast(const [..] u8, rowDetail(&doc.report, "flags")), "PIE"))
 
     let segment = findRow(&doc.report, "segname")
     Swag.assert(segment != null)
@@ -774,7 +774,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer host.shutdown()
     var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
-    let view = cast #assume (*BinaryViewer) result.view
+    let view = assume cast (*BinaryViewer, result.view)
     finishBinaryViewer(&host, view)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -782,7 +782,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
     var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName)
-    let view = cast #assume (*BinaryViewer) viewerSession.view!
+    let view = assume cast (*BinaryViewer, viewerSession.view)
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -791,7 +791,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     return view
 }
 
-func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString.plainText(line.itemAt(cast(u32) column).name.raw.toString())
+func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw.toString())
 
 // The tree the view builds is the report, and the search the host runs lands in it.
 #[Swag.TestTag("golden")]
@@ -812,7 +812,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 
     // The groups the report opened are visible; the ones it did not are folded away.
     let opened = view.list.lineCount()
-    Swag.assert(opened > 4 and opened < cast(u32) view.doc.report.rows.count)
+    Swag.assert(opened > 4 and opened < cast(u32, view.doc.report.rows.count))
 
     let expandState = view.sendComputeCommandStateEvent(ActionBinary.ExpandAll)
     Swag.assert(expandState.name == binaryStrings().ui_MenuExpand)
@@ -823,7 +823,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     Swag.assert(not collapseState.updatedFields.has(.Checked))
 
     view.sendCommandEvent(ActionBinary.ExpandAll)
-    Swag.assert(view.list.lineCount() == cast(u32) view.doc.report.rows.count)
+    Swag.assert(view.list.lineCount() == cast(u32, view.doc.report.rows.count))
     view.sendCommandEvent(ActionBinary.CollapseAll)
     Swag.assert(view.list.lineCount() < opened)
 
@@ -885,12 +885,12 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     var matches: Array'Viewer.SearchMatch
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.assert(matches.count == 1)
-    Swag.assert(matches[0].minor == cast(u64) BinaryColumn.Detail)
+    Swag.assert(matches[0].minor == cast(u64, BinaryColumn.Detail))
     let revealed = view.revealMatch(matches[0])
     Swag.assert(revealed)
     Swag.assert(view.list.selectedLine() != null)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")
-    let item = view.list.selectedLine()!.itemAt(cast(u32) BinaryColumn.Detail)
+    let item = view.list.selectedLine()!.itemAt(cast(u32, BinaryColumn.Detail))
     Swag.assert(item.name.raw == "file offset of the PE signature")
     Swag.assert(not item.colorBk.a)
 
@@ -975,7 +975,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     window.searchFilterMode = true
     window.updateSearchAvailability()
     window.searchBox.setText("header")
-    while (cast #assume (*BinaryViewer) window.currentView!).filterTimer do
+    while assume cast (*BinaryViewer, window.currentView).filterTimer do
         host.pump()
     host.settleAnimations(window.commandBar, 4)
     image = host.render(window.commandBar)
@@ -1009,7 +1009,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 
     Swag.assert(findRow(&view.doc.report, "Fichier") != null)
     Swag.assert(findRow(&view.doc.report, "En-tête DOS") != null)
-    Swag.assert(view.list.header.itemAt(cast(u32) BinaryColumn.Detail).name.raw == "Signification")
+    Swag.assert(view.list.header.itemAt(cast(u32, BinaryColumn.Detail)).name.raw == "Signification")
     Swag.assert(view.list.selectedLine() != null)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
 }

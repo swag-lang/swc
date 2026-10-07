@@ -106,27 +106,27 @@ impl IExportedMethodScore for ExportedMethodProbe
     }
 }
 
-const HIDDEN_INFO          = cast #assume(const *Swag.TypeInfoStruct) #typeof(HiddenMethodProbe)
-const SIMPLE_INFO          = cast #assume(const *Swag.TypeInfoStruct) #typeof(SimpleMethodProbe)
-const GENERIC_INFO         = cast #assume(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe)
-const ARRAY_INFO           = cast #assume(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe's32)
-const EXPORTED_INFO        = cast #assume(const *Swag.TypeInfoStruct) #typeof(ExportedMethodProbe)
+const HIDDEN_INFO          = assume cast(const *Swag.TypeInfoStruct, #typeof(HiddenMethodProbe))
+const SIMPLE_INFO          = assume cast(const *Swag.TypeInfoStruct, #typeof(SimpleMethodProbe))
+const GENERIC_INFO         = assume cast(const *Swag.TypeInfoStruct, #typeof(GenericMethodProbe))
+const ARRAY_INFO           = assume cast(const *Swag.TypeInfoStruct, #typeof(GenericMethodProbe's32))
+const EXPORTED_INFO        = assume cast(const *Swag.TypeInfoStruct, #typeof(ExportedMethodProbe))
 const SIMPLE_METHOD_INFO   = SIMPLE_INFO.methods[0]
 const ARRAY_METHOD_INFO    = ARRAY_INFO.methods[0]
 const EXPORTED_SCALE_INFO  = EXPORTED_INFO.methods[0]
 const EXPORTED_ADD_INFO    = EXPORTED_INFO.methods[1]
 const EXPORTED_SCALED_INFO = EXPORTED_INFO.methods[2]
 const EXPORTED_SCORE_INFO  = EXPORTED_INFO.methods[3]
-const SIMPLE_METHOD_TYPE   = cast #assume(const *Swag.TypeInfoFunc?) SIMPLE_METHOD_INFO.pointedType
-const ARRAY_METHOD_TYPE    = cast #assume(const *Swag.TypeInfoFunc?) ARRAY_METHOD_INFO.pointedType
-const EXPORTED_SCALE_TYPE  = cast #assume(const *Swag.TypeInfoFunc?) EXPORTED_SCALE_INFO.pointedType
-const EXPORTED_ADD_TYPE    = cast #assume(const *Swag.TypeInfoFunc?) EXPORTED_ADD_INFO.pointedType
-const EXPORTED_SCALED_TYPE = cast #assume(const *Swag.TypeInfoFunc?) EXPORTED_SCALED_INFO.pointedType
-const EXPORTED_SCORE_TYPE  = cast #assume(const *Swag.TypeInfoFunc?) EXPORTED_SCORE_INFO.pointedType
+const SIMPLE_METHOD_TYPE   = assume cast(const *Swag.TypeInfoFunc?, SIMPLE_METHOD_INFO.pointedType)
+const ARRAY_METHOD_TYPE    = assume cast(const *Swag.TypeInfoFunc?, ARRAY_METHOD_INFO.pointedType)
+const EXPORTED_SCALE_TYPE  = assume cast(const *Swag.TypeInfoFunc?, EXPORTED_SCALE_INFO.pointedType)
+const EXPORTED_ADD_TYPE    = assume cast(const *Swag.TypeInfoFunc?, EXPORTED_ADD_INFO.pointedType)
+const EXPORTED_SCALED_TYPE = assume cast(const *Swag.TypeInfoFunc?, EXPORTED_SCALED_INFO.pointedType)
+const EXPORTED_SCORE_TYPE  = assume cast(const *Swag.TypeInfoFunc?, EXPORTED_SCORE_INFO.pointedType)
 
 func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedName: string)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != expectedCount do
         return false
 
@@ -142,7 +142,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
 
 func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     for &methodInfo in info.methods
     {
         if methodInfo.name == expectedName do
@@ -154,12 +154,12 @@ func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 
 func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
-    let methodType = cast #assume(const *Swag.TypeInfoFunc?) methodInfo.pointedType
+    let methodType = assume cast(const *Swag.TypeInfoFunc?, methodInfo.pointedType)
     if methodType == null do
         return false
     let params = methodType.parameters
@@ -173,18 +173,18 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: SimpleMethodProbe = {value: seed}
-    let method = cast(SimplePingFn) methodInfo.value
+    let method = cast(SimplePingFn, methodInfo.value)
     return method(&probe) == seed + 1
 }
 
 func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
-    let methodType = cast #assume(const *Swag.TypeInfoFunc?) methodInfo.pointedType
+    let methodType = assume cast(const *Swag.TypeInfoFunc?, methodInfo.pointedType)
     if methodType == null do
         return false
     let params = methodType.parameters
@@ -200,14 +200,14 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 
     var probe: GenericMethodProbe's32 = {value: start}
     let values = [next, start]
-    let method = cast(GenericCopyFromFn) methodInfo.value
+    let method = cast(GenericCopyFromFn, methodInfo.value)
     let result = method(&probe, values)
     return result == next and probe.value == next
 }
 
 func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != 4 do
         return false
 
@@ -217,10 +217,10 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     let scaledInfo = methods[2]
     let scoreInfo  = methods[3]
 
-    let scaleType  = cast #assume(const *Swag.TypeInfoFunc?) scaleInfo.pointedType
-    let addType    = cast #assume(const *Swag.TypeInfoFunc?) addInfo.pointedType
-    let scaledType = cast #assume(const *Swag.TypeInfoFunc?) scaledInfo.pointedType
-    let scoreType  = cast #assume(const *Swag.TypeInfoFunc?) scoreInfo.pointedType
+    let scaleType  = assume cast(const *Swag.TypeInfoFunc?, scaleInfo.pointedType)
+    let addType    = assume cast(const *Swag.TypeInfoFunc?, addInfo.pointedType)
+    let scaledType = assume cast(const *Swag.TypeInfoFunc?, scaledInfo.pointedType)
+    let scoreType  = assume cast(const *Swag.TypeInfoFunc?, scoreInfo.pointedType)
     if scaleType == null or addType == null or scaledType == null or scoreType == null do
         return false
 
@@ -268,21 +268,21 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scoreInfo.value == null do
         return false
 
-    let scaleValue = cast(ExportedScaleValueFn) scaleInfo.value
+    let scaleValue = cast(ExportedScaleValueFn, scaleInfo.value)
     if scaleValue(seed, 3) != seed * 3 do
         return false
 
     var probe: ExportedMethodProbe = {value: seed}
 
-    let add = cast(ExportedAddFn) addInfo.value
+    let add = cast(ExportedAddFn, addInfo.value)
     if add(&probe, 5) != seed + 5 or probe.value != seed + 5 do
         return false
 
-    let scaled = cast(ExportedScaledFn) scaledInfo.value
+    let scaled = cast(ExportedScaledFn, scaledInfo.value)
     if scaled(&probe, 2) != (seed + 5) * 2 do
         return false
 
-    let score = cast(ExportedScoreFn) scoreInfo.value
+    let score = cast(ExportedScoreFn, scoreInfo.value)
     if score(&probe, 7) != seed + 12 do
         return false
 

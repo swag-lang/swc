@@ -60,21 +60,21 @@ impl Timestamp
     {
         Swag.assert(-120000 <= months and months <= 120000, "overflow")
         var {y, m, d} = ticksToDate(.ticks)
-        var year      = cast(s32) y
-        let i         = cast(s32) (m - 1) + months
+        var year      = cast(s32, y)
+        let i         = cast(s32, (m - 1)) + months
         if i >= 0
         {
-            m    = cast(u16) (i % 12 + 1)
+            m    = cast(u16, (i % 12 + 1))
             year += i / 12
         }
         else
         {
-            m    = cast(u16) (12 + (i + 1) % 12)
+            m    = cast(u16, (12 + (i + 1) % 12))
             year += (i - 11) / 12
         }
 
         Swag.assert(1 <= year and year <= 9999, "overflow")
-        y = cast(u16) year
+        y = cast(u16, year)
         let days = daysInMonth(y, m)
         if d > days do
             d = days
@@ -85,45 +85,45 @@ impl Timestamp
     mtd addDays(days: s32)
     {
         if days > 0 do
-            .add(cast(u32) days, MillisecondsPerDay)
+            .add(cast(u32, days), MillisecondsPerDay)
         else do
-            .remove(cast(u32) -cast(s64) days, MillisecondsPerDay)
+            .remove(cast(u32, -cast(s64, days)), MillisecondsPerDay)
     }
 
     // Shifts the timestamp by whole hours.
     mtd addHours(hours: s32)
     {
         if hours > 0 do
-            .add(cast(u32) hours, MillisecondsPerHour)
+            .add(cast(u32, hours), MillisecondsPerHour)
         else do
-            .remove(cast(u32) -cast(s64) hours, MillisecondsPerHour)
+            .remove(cast(u32, -cast(s64, hours)), MillisecondsPerHour)
     }
 
     // Shifts the timestamp by whole minutes.
     mtd addMinutes(minutes: s32)
     {
         if minutes > 0 do
-            .add(cast(u32) minutes, MillisecondsPerMinute)
+            .add(cast(u32, minutes), MillisecondsPerMinute)
         else do
-            .remove(cast(u32) -cast(s64) minutes, MillisecondsPerMinute)
+            .remove(cast(u32, -cast(s64, minutes)), MillisecondsPerMinute)
     }
 
     // Shifts the timestamp by whole seconds.
     mtd addSeconds(seconds: s32)
     {
         if seconds > 0 do
-            .add(cast(u32) seconds, MillisecondsPerSecond)
+            .add(cast(u32, seconds), MillisecondsPerSecond)
         else do
-            .remove(cast(u32) -cast(s64) seconds, MillisecondsPerSecond)
+            .remove(cast(u32, -cast(s64, seconds)), MillisecondsPerSecond)
     }
 
     // Shifts the timestamp by whole milliseconds.
     mtd addMilliseconds(milliseconds: s32)
     {
         if milliseconds > 0 do
-            .add(cast(u32) milliseconds, 1)
+            .add(cast(u32, milliseconds), 1)
         else do
-            .remove(cast(u32) -cast(s64) milliseconds, 1)
+            .remove(cast(u32, -cast(s64, milliseconds)), 1)
     }
 
     // Returns days elapsed since the timestamp epoch.

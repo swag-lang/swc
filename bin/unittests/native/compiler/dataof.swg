@@ -45,7 +45,7 @@ impl ConstDataOfSpecBuffer
     #assert(#typeof(d) == const [*] u8)
 
     var ebuf: [2] u8  = ['x'u8, 0]
-    var e:    cstring = cast(cstring) &ebuf[0]
+    var e:    cstring = cast(cstring, &ebuf[0])
     var f = e.buffer
     #assert(#typeof(f) == const [*] u8)
 
@@ -115,7 +115,7 @@ impl ConstDataOfSpecBuffer
 // .buffer on const slice at compile time
 #test
 {
-    const s: const [..] u8 = cast(const [..] u8) "abc"
+    const s: const [..] u8 = cast(const [..] u8, "abc")
     const p = s.buffer
     #assert(p != null)
     #assert(p[] == 'a'u8)
@@ -156,7 +156,7 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    var value: StrictDataOfArray = cast(StrictDataOfArray) [10, 20, 30]
+    var value: StrictDataOfArray = cast(StrictDataOfArray, [10, 20, 30])
     let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[1] = 44
@@ -167,7 +167,7 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    const value: StrictDataOfArray = cast(StrictDataOfArray) [7, 8, 9]
+    const value: StrictDataOfArray = cast(StrictDataOfArray, [7, 8, 9])
     const p = value.buffer
     #assert(#typeof(p) == const [*] s32)
     #assert(p[] == 7)
@@ -177,7 +177,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var storage: [4] s32 = [3, 6, 9, 12]
-    var value:   StrictDataOfSlice = cast(StrictDataOfSlice) storage
+    var value:   StrictDataOfSlice = cast(StrictDataOfSlice, storage)
     let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[2] = 55

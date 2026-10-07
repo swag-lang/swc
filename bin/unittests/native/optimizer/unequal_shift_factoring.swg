@@ -18,7 +18,7 @@ func subtract32(value: u32)->u32 => (value << 3) - (value << 1)
     {
         Swag.assert(add64(value) == value * #wrap 10)
         Swag.assert(subtract64(value) == value * #wrap 6)
-        let value32 = cast #wrap (u32) value
+        let value32 = cast #wrap (u32, value)
         Swag.assert(add32(value32) == value32 * #wrap 10)
         Swag.assert(subtract32(value32) == value32 * #wrap 6)
     }

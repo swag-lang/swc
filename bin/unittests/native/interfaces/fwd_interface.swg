@@ -40,7 +40,7 @@ impl IStore for Store
 #test
 {
     var s: Store
-    var i = cast(IStore) s
+    var i = cast(IStore, s)
 
     g_copies, g_moves = 0
     var t = Tracked{1}
@@ -78,7 +78,7 @@ impl ISink for Sink
 #test
 {
     var s: Sink
-    var i = cast(ISink) s
+    var i = cast(ISink, s)
 
     g_copies, g_moves = 0
     var t = Tracked{3}

@@ -2,10 +2,10 @@ using Core, Pixel
 
 func buildDetailCropImage(source: Image)->Image
 {
-    let x = cast(s32) (cast(f32) source.width * 0.21)
-    let y = cast(s32) (cast(f32) source.height * 0.24)
-    let w = cast(s32) (cast(f32) source.width * 0.38)
-    let h = cast(s32) (cast(f32) source.height * 0.52)
+    let x = cast(s32, (cast(f32, source.width) * 0.21))
+    let y = cast(s32, (cast(f32, source.height) * 0.24))
+    let w = cast(s32, (cast(f32, source.width) * 0.38))
+    let h = cast(s32, (cast(f32, source.height) * 0.52))
 
     var result = source.cropped(x, y, w, h)
     result.expand(14, 14, 14, 14, Color.fromArgb(255, 245, 240, 230))
@@ -14,10 +14,10 @@ func buildDetailCropImage(source: Image)->Image
 
 func buildPanoramaCropImage(source: Image)->Image
 {
-    let x = cast(s32) (cast(f32) source.width * 0.16)
-    let y = cast(s32) (cast(f32) source.height * 0.22)
-    let w = cast(s32) (cast(f32) source.width * 0.58)
-    let h = cast(s32) (cast(f32) source.height * 0.30)
+    let x = cast(s32, (cast(f32, source.width) * 0.16))
+    let y = cast(s32, (cast(f32, source.height) * 0.22))
+    let w = cast(s32, (cast(f32, source.width) * 0.58))
+    let h = cast(s32, (cast(f32, source.height) * 0.30))
 
     var result = source.cropped(x, y, w, h)
     result.expand(12, 12, 12, 12, Color.fromArgb(255, 240, 244, 248))

@@ -802,7 +802,7 @@ func parseListItem(line: string)->ListInfo
         result.ordered       = true
         result.marker        = line[digitStart until index]
         result.content       = line[index + 2 to]
-        result.contentIndent = result.indent + cast(u32) (index - digitStart) + 2
+        result.contentIndent = result.indent + cast(u32, (index - digitStart)) + 2
     }
 
     return result
@@ -839,7 +839,7 @@ func parseFence(line: string)->FenceInfo
         return result
     result.found  = true
     result.marker = trimmed[0]
-    result.length = cast(u32) run
+    result.length = cast(u32, run)
     result.info   = Latin1.trim(trimmed[run to])
     return result
 }

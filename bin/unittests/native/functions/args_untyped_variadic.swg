@@ -7,45 +7,45 @@ func variadicAnyOnly(values: ...)->u64
 
 func variadicAnyWithHead(a: s32, values: ...)->s32
 {
-    return a + cast(s32) values.count
+    return a + cast(s32, values.count)
 }
 
 func variadicAnyS32(values: ...)->s32
 {
-    let p0 = cast(*s32) values[0].buffer
-    let p1 = cast(*s32) values[1].buffer
-    let p2 = cast(*s32) values[2].buffer
-    let p3 = cast(*s32) values[3].buffer
+    let p0 = cast(*s32, values[0].buffer)
+    let p1 = cast(*s32, values[1].buffer)
+    let p2 = cast(*s32, values[2].buffer)
+    let p3 = cast(*s32, values[3].buffer)
     return p0[] + p1[] + p2[] + p3[]
 }
 
 func variadicAnyF64(a: f64, values: ...)->f64
 {
-    let p0 = cast(*f64) values[0].buffer
-    let p1 = cast(*f64) values[1].buffer
+    let p0 = cast(*f64, values[0].buffer)
+    let p1 = cast(*f64, values[1].buffer)
     return a + p0[] + p1[]
 }
 
 func variadicAnyBool(a: bool, values: ...)->s32
 {
-    let p0 = cast(*bool) values[0].buffer
-    let p1 = cast(*bool) values[1].buffer
-    return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
+    let p0 = cast(*bool, values[0].buffer)
+    let p1 = cast(*bool, values[1].buffer)
+    return cast(s32, a) + cast(s32, p0[]) + cast(s32, p1[])
 }
 
 func variadicAnyRune(a: rune, values: ...)->s32
 {
-    let p0 = cast(*rune) values[0].buffer
-    let p1 = cast(*rune) values[1].buffer
-    return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
+    let p0 = cast(*rune, values[0].buffer)
+    let p1 = cast(*rune, values[1].buffer)
+    return cast(s32, a) + cast(s32, p0[]) + cast(s32, p1[])
 }
 
 func variadicAnyString(values: ...)->u8
 {
-    let s0 = cast #assume(string) values[0]
-    let s1 = cast #assume(string) values[1]
-    let s2 = cast #assume(string) values[2]
-    return cast #wrap(u8) (cast(u16) s0[0] + cast(u16) s1[0] + cast(u16) s2[0])
+    let s0 = assume cast(string, values[0])
+    let s1 = assume cast(string, values[1])
+    let s2 = assume cast(string, values[2])
+    return cast #wrap(u8, (cast(u16, s0[0]) + cast(u16, s1[0]) + cast(u16, s2[0])))
 }
 
 enum VariadicStrictFlag: u32
@@ -63,12 +63,12 @@ alias VariadicStrictF32Alias  = f32
 
 func variadicAnyStrictFlag(values: ...)->bool
 {
-    return Swag.kindOf(values[0]) == VariadicStrictFlagAlias and cast #assume(VariadicStrictFlagAlias) values[0] == cast(VariadicStrictFlagAlias) VariadicStrictFlag.B
+    return Swag.kindOf(values[0]) == VariadicStrictFlagAlias and assume cast(VariadicStrictFlagAlias, values[0]) == cast(VariadicStrictFlagAlias, VariadicStrictFlag.B)
 }
 
 func variadicAnyStrictF32(values: ...)->bool
 {
-    return Swag.kindOf(values[0]) == VariadicStrictF32Alias and cast #assume(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
+    return Swag.kindOf(values[0]) == VariadicStrictF32Alias and assume cast(VariadicStrictF32Alias, values[0]) == cast(VariadicStrictF32Alias, 1.5)
 }
 
 func variadicAnyWideIntArray(values: ...)->bool
@@ -78,7 +78,7 @@ func variadicAnyWideIntArray(values: ...)->bool
     if Swag.kindOf(values[0]) != [2] s64 do
         return false
 
-    let arr = cast #assume([2] s64) values[0]
+    let arr = assume cast([2] s64, values[0])
     var sum = 0's64
     for v in arr do
         sum += v
@@ -100,7 +100,7 @@ func variadicAnyWideIntArray(values: ...)->bool
     Swag.assert(variadicAnyBool(false, true, true) == 2)
     Swag.assert(variadicAnyRune('a', 'b', 'c') == 294)
     Swag.assert(variadicAnyString("ab", "cd", "ef") == 41'u8)
-    Swag.assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias) VariadicStrictFlag.B))
-    Swag.assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias) 1.5))
+    Swag.assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias, VariadicStrictFlag.B)))
+    Swag.assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias, 1.5)))
     Swag.assert(variadicAnyWideIntArray([1, 5_000_000_000]))
 }

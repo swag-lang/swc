@@ -100,8 +100,8 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
     #[Swag.Compiler]
     func append(buf: [*] u8, start: s32, val: string)->s32
     {
-        Swag.memcpy(buf + start, val.buffer, cast(u64) val.count)
-        return start + cast(s32) val.count
+        Swag.memcpy(buf + start, val.buffer, cast(u64, val.count))
+        return start + cast(s32, val.count)
     }
 
     struct Vector3
@@ -113,7 +113,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
             len = append(buf, len, "x: f32 = 1\n")
             len = append(buf, len, "y: f32 = 2\n")
             len = append(buf, len, "z: f32 = 3\n")
-            return cast(string) Swag.makeSlice(&buf[0], cast(u64) len)
+            return cast(string, Swag.makeSlice(&buf[0], cast(u64, len)))
         }
     }
 

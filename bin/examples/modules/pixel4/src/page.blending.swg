@@ -61,8 +61,8 @@ func drawBlendModeGrid(painter: *Pixel.Painter, samples: const [..] BlendModeSam
     let cardHeight = (Height - Gap) * 0.5
     for sample, idx in samples
     {
-        let column = cast(f32) (idx % 4)
-        let row    = cast(f32) (idx / 4)
+        let column = cast(f32, (idx % 4))
+        let row    = cast(f32, (idx / 4))
         let rect   = Math.Rectangle{Left + column * (cardWidth + Gap), Top + row * (cardHeight + Gap), cardWidth, cardHeight}
         drawBlendModeSample(painter, rect, sample)
     }

@@ -50,8 +50,8 @@ private func packetBits(bytes: const [..] u8, offset: u64, bitPosition, count: u
     var result: u32
     for bit in count
     {
-        let position = cast(u64) bitPosition + bit
-        result = (result << 1) | ((cast(u32) bytes[offset + (position >> 3)] >> cast(u32) (7 - (position & 7))) & 1)
+        let position = cast(u64, bitPosition) + bit
+        result = (result << 1) | ((cast(u32, bytes[offset + (position >> 3)]) >> cast(u32, (7 - (position & 7)))) & 1)
     }
 
     return result
@@ -68,18 +68,18 @@ private func dtsPacketBits(bytes: const [..] u8, bitPosition, count: u32, little
     var result: u32
     for bit in count
     {
-        let position = cast(u64) bitPosition + bit
+        let position = cast(u64, bitPosition) + bit
         result <<= 1
         if packed14
         {
             let byte = position / 14 * 2
-            let word = littleEndianWords ? cast(u32) bytes[byte] | (cast(u32) bytes[byte + 1] << 8) : (cast(u32) bytes[byte] << 8) | cast(u32) bytes[byte + 1]
-            result |= (word >> cast(u32) (13 - position % 14)) & 1
+            let word = littleEndianWords ? cast(u32, bytes[byte]) | (cast(u32, bytes[byte + 1]) << 8) : (cast(u32, bytes[byte]) << 8) | cast(u32, bytes[byte + 1])
+            result |= (word >> cast(u32, (13 - position % 14))) & 1
         }
         else
         {
             let byte = (position >> 3) ^ (littleEndianWords ? 1 : 0)
-            result |= (cast(u32) bytes[byte] >> cast(u32) (7 - (position & 7))) & 1
+            result |= (cast(u32, bytes[byte]) >> cast(u32, (7 - (position & 7)))) & 1
         }
     }
 
@@ -181,14 +181,14 @@ private impl Track
             return {0, 0}
         if not .displayWidth or not .displayHeight or width <= 0 or height <= 0 do
             return {0, 0}
-        if .displayWidth * cast(u64) height == .displayHeight * cast(u64) width do
+        if .displayWidth * cast(u64, height) == .displayHeight * cast(u64, width) do
             return {0, 0}
 
         // The taller of the two axes keeps its stored resolution, so a picture is only ever
         // stretched: shrinking one instead would throw away samples the stream carries.
-        if .displayWidth * cast(u64) height > .displayHeight * cast(u64) width do
-            return {cast(s32) ((cast(u64) height * .displayWidth + .displayHeight / 2) / .displayHeight), height}
-        return {width, cast(s32) ((cast(u64) width * .displayHeight + .displayWidth / 2) / .displayWidth)}
+        if .displayWidth * cast(u64, height) > .displayHeight * cast(u64, width) do
+            return {cast(s32, ((cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight)), height}
+        return {width, cast(s32, ((cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth))}
     }
 
     mtd const isPlayableVideo()->bool
@@ -268,7 +268,7 @@ private impl Track
         let encoding = .soundEncoding()
         if not .isEnabled or .hasEncodings or .kind != AudioTrackType or encoding == .Unknown do
             return false
-        if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or not .channels or .channels > 8 do
+        if .sampleRate <= 0 or .sampleRate > cast(f64, Swag.U32.Max) or not .channels or .channels > 8 do
             return false
         return not Audio.packetEncodingNeedsConfig(encoding) or not .codecPrivate.isEmpty()
     }
@@ -277,10 +277,10 @@ private impl Track
     {
         if not .codecDelay do
             return 0
-        let frames = cast(f64) .codecDelay * .decodedSampleRate() / 1_000_000_000.0
-        if frames > cast(f64) Swag.U32.Max do
+        let frames = cast(f64, .codecDelay) * .decodedSampleRate() / 1_000_000_000.0
+        if frames > cast(f64, Swag.U32.Max) do
             fail UnsupportedFormatError{"Matroska audio codec delay exceeds the supported range"}
-        return cast(u64) Math.round(frames)
+        return cast(u64, Math.round(frames))
     }
 
     // Converts the discard padding a block declares to the sample frames it removes from the
@@ -289,7 +289,7 @@ private impl Track
     {
         if nanoseconds <= 0 do
             return 0
-        return cast(u64) Math.round(cast(f64) nanoseconds * .decodedSampleRate() / 1_000_000_000.0)
+        return cast(u64, Math.round(cast(f64, nanoseconds) * .decodedSampleRate() / 1_000_000_000.0))
     }
 
     mtd const speakerMask(bytes: const [..] u8)->u32 fail
@@ -524,8 +524,8 @@ private impl Layout
             let track = &.tracks[trackIndex]
             if not track.hasAudioStart or not track.audioFrameCount do
                 return false
-            let duration = cast(f64) track.audioFrameCount * 1_000_000_000.0 / track.sampleRate
-            if cast(f64) track.audioStart + duration <= cast(f64) timestampNanoseconds do
+            let duration = cast(f64, track.audioFrameCount) * 1_000_000_000.0 / track.sampleRate
+            if cast(f64, track.audioStart) + duration <= cast(f64, timestampNanoseconds) do
                 return false
         }
 
@@ -838,7 +838,7 @@ private impl Layout
             try cursor.seek(element.end)
         }
 
-        if not .timestampScale or .timestampScale > cast(u64) Swag.S64.Max do
+        if not .timestampScale or .timestampScale > cast(u64, Swag.S64.Max) do
             fail InvalidFormatError{"Matroska timestamp scale exceeds the supported range"}
         if not Math.isFinite(.durationTicks) or .durationTicks < 0 do
             fail InvalidFormatError{"Matroska duration is not finite and non-negative"}
@@ -1050,15 +1050,15 @@ private impl Layout
             {
             case PixelWidthId:
                 let width = try cursor.readUnsigned(element)
-                if width > cast(u64) Swag.S32.Max do
+                if width > cast(u64, Swag.S32.Max) do
                     fail InvalidFormatError{"Matroska video width exceeds the supported range"}
-                track.width = cast(s32) width
+                track.width = cast(s32, width)
 
             case PixelHeightId:
                 let height = try cursor.readUnsigned(element)
-                if height > cast(u64) Swag.S32.Max do
+                if height > cast(u64, Swag.S32.Max) do
                     fail InvalidFormatError{"Matroska video height exceeds the supported range"}
-                track.height = cast(s32) height
+                track.height = cast(s32, height)
 
             case DisplayWidthId:
                 track.displayWidth = try cursor.readUnsigned(element)
@@ -1089,13 +1089,13 @@ private impl Layout
                 let channels = try cursor.readUnsigned(element)
                 if channels > Swag.U32.Max do
                     fail InvalidFormatError{"Matroska audio channel count exceeds the supported range"}
-                track.channels = cast(u32) channels
+                track.channels = cast(u32, channels)
 
             case BitDepthId:
                 let bits = try cursor.readUnsigned(element)
                 if bits > Swag.U32.Max do
                     fail InvalidFormatError{"Matroska audio bit depth exceeds the supported range"}
-                track.bitsPerSample = cast(u32) bits
+                track.bitsPerSample = cast(u32, bits)
             }
 
             try cursor.seek(element.end)
@@ -1243,17 +1243,17 @@ private impl Layout
     // Converts a cluster-relative timestamp to signed nanoseconds with overflow checks.
     mtd timestampNanoseconds(clusterTimestamp: u64, relative: s16)->s64 fail
     {
-        if clusterTimestamp > cast(u64) Swag.S64.Max do
+        if clusterTimestamp > cast(u64, Swag.S64.Max) do
             fail InvalidFormatError{"Matroska cluster timestamp exceeds the supported range"}
-        let clusterTicks = cast(s64) clusterTimestamp
+        let clusterTicks = cast(s64, clusterTimestamp)
         if relative > 0 and clusterTicks > Swag.S64.Max - relative do
             fail InvalidFormatError{"Matroska block timestamp exceeds the supported range"}
         let ticks = clusterTicks + relative
-        if ticks > 0 and ticks > Swag.S64.Max / cast(s64) .timestampScale do
+        if ticks > 0 and ticks > Swag.S64.Max / cast(s64, .timestampScale) do
             fail InvalidFormatError{"Matroska block timestamp exceeds the supported range"}
-        if ticks < 0 and ticks < Swag.S64.Min / cast(s64) .timestampScale do
+        if ticks < 0 and ticks < Swag.S64.Min / cast(s64, .timestampScale) do
             fail InvalidFormatError{"Matroska block timestamp exceeds the supported range"}
-        return ticks * cast(s64) .timestampScale
+        return ticks * cast(s64, .timestampScale)
     }
 
     // Reads the lacing header and retains one byte size per payload.
@@ -1268,7 +1268,7 @@ private impl Layout
             return cursor.position
         }
 
-        let count = cast(u32) (try cursor.readByte(end)) + 1
+        let count = cast(u32, (try cursor.readByte(end))) + 1
         if count < 2 do
             fail InvalidFormatError{"Matroska lacing needs at least two payloads"}
         switch mode
@@ -1312,7 +1312,7 @@ private impl Layout
                 fail InvalidFormatError{"Matroska EBML lace has no payload"}
             .laceSizes.add(first.value)
             var known    = first.value
-            var previous = cast(s64) first.value
+            var previous = cast(s64, first.value)
             for 1 until count - 1
             {
                 let delta = try cursor.readSignedVint(end)
@@ -1321,8 +1321,8 @@ private impl Layout
                 let size = previous + delta
                 if size <= 0 do
                     fail InvalidFormatError{"Matroska EBML lace has no payload"}
-                .laceSizes.add(cast(u64) size)
-                let unsignedSize = cast(u64) size
+                .laceSizes.add(cast(u64, size))
+                let unsignedSize = cast(u64, size)
                 if known > Swag.U64.Max - unsignedSize do
                     fail InvalidFormatError{"Matroska EBML lace size exceeds the supported range"}
                 known    += unsignedSize
@@ -1347,8 +1347,8 @@ private impl Layout
         let trackNumber = try cursor.readVintValue(block.end).value
         if block.end - cursor.position < 3 do
             fail InvalidFormatError{"Matroska block header is truncated"}
-        let timeBits = (cast(u16) (try cursor.readByte(block.end)) << 8) | (try cursor.readByte(block.end))
-        let relative = cast #bit (s16) timeBits
+        let timeBits = (cast(u16, (try cursor.readByte(block.end))) << 8) | (try cursor.readByte(block.end))
+        let relative = cast #bit (s16, timeBits)
         let flags    = try cursor.readByte(block.end)
 
         var trackIndex = NoTrack
@@ -1407,13 +1407,13 @@ private impl Layout
         if isSubtitle
         {
             let timestamp = try .timestampNanoseconds(clusterTimestamp, relative)
-            let declared  = blockDurationTicks ? cast(f64) blockDurationTicks * cast(f64) .timestampScale : cast(f64) track.defaultDuration
+            let declared  = blockDurationTicks ? cast(f64, blockDurationTicks) * cast(f64, .timestampScale) : cast(f64, track.defaultDuration)
             let duration  = declared > 0 ? declared / 1_000_000_000.0 : 5.0
-            let part      = duration / cast(f64) .laceSizes.count
+            let part      = duration / cast(f64, .laceSizes.count)
             var offset    = payload
             for size, index in .laceSizes
             {
-                let start = cast(f64) timestamp / 1_000_000_000.0 + cast(f64) index * part
+                let start = cast(f64, timestamp) / 1_000_000_000.0 + cast(f64, index) * part
                 track.subtitleSamples.add({offset, size, start, start + part})
                 offset += size
             }
@@ -1444,10 +1444,10 @@ private impl Layout
             {
                 // The padding trims the end of the block, which is the end of its last packet.
                 let discarded = track.discardPaddingFrames(discardPadding)
-                frameCount = discarded < frameCount ? frameCount - cast(u32) discarded : 0
+                frameCount = discarded < frameCount ? frameCount - cast(u32, discarded) : 0
             }
 
-            track.audioPackets.add({offset, cast(u32) size, frameCount})
+            track.audioPackets.add({offset, cast(u32, size), frameCount})
             if track.audioFrameCount > Swag.U64.Max - frameCount do
                 fail OverflowError{"Matroska audio packet table is too large"}
             track.audioFrameCount += frameCount
@@ -1482,10 +1482,10 @@ private func frameRateFromDuration(durationNanoseconds: u64)->FrameRate fail
     numerator   /= a
     denominator /= a
     if numerator <= Swag.U32.Max and denominator <= Swag.U32.Max do
-        return try FrameRate.create(cast(u32) numerator, cast(u32) denominator)
+        return try FrameRate.create(cast(u32, numerator), cast(u32, denominator))
 
     // Sub-quarter-frame-per-second media is represented at whole-second precision.
-    return try FrameRate.create(1, cast(u32) Math.min(Math.max(durationNanoseconds / 1_000_000_000, 1), cast(u64) Swag.U32.Max))
+    return try FrameRate.create(1, cast(u32, Math.min(Math.max(durationNanoseconds / 1_000_000_000, 1), cast(u64, Swag.U32.Max))))
 }
 
 private const SoundIndexIdle    = 0'u32
@@ -1565,7 +1565,7 @@ internal func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subt
     var coverEnd = coverEndHint
     for sound in tracks
     {
-        let end = cast(s64) Math.round((sound.timelineStartSeconds() + sound.durationInSeconds()) * 1_000_000_000.0)
+        let end = cast(s64, Math.round((sound.timelineStartSeconds() + sound.durationInSeconds()) * 1_000_000_000.0))
         coverEnd = Math.min(coverEnd, end)
     }
 
@@ -1583,7 +1583,7 @@ internal func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subt
 
     index.seekSounds.add(published)
     Atomic.exchange(&index.seekSoundEnd, coverEnd)
-    Atomic.exchange(&index.currentSeekSound, cast(u64) published)
+    Atomic.exchange(&index.currentSeekSound, cast(u64, published))
 }
 
 private impl FileIndex
@@ -1615,10 +1615,10 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
         let track = &layout.tracks[trackIndex]
         if track.audioPackets.isEmpty() do
             continue
-        let timelineStart = Math.max(cast(f64) track.audioStart / 1_000_000_000.0, 0)
+        let timelineStart = Math.max(cast(f64, track.audioStart) / 1_000_000_000.0, 0)
         let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
         let options       = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart, displayName: track.name.toString(), language: track.language.toString()}
-        let sound         = try SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32) Math.round(track.decodedSampleRate()), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
+        let sound         = try SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32, Math.round(track.decodedSampleRate())), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
         result.add(#move sound)
     }
 }
@@ -1636,8 +1636,8 @@ private func buildSubtitleTracks(bytes: const [..] u8, layout: *Layout, result: 
                 fail InvalidFormatError{"Matroska subtitle packet is truncated"}
             var payload: String
             if not source.headerStrip.isEmpty() do
-                payload += cast(string) source.headerStrip.toSlice()
-            payload += cast(string) bytes[sample.offset until sample.offset + sample.size]
+                payload += cast(string, source.headerStrip.toSlice())
+            payload += cast(string, bytes[sample.offset until sample.offset + sample.size])
             track.addEncodedCue(sample.startSeconds, sample.endSeconds, payload.toString())
         }
 
@@ -1660,7 +1660,7 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
 
     // The run-ahead applies at the start of the file too: a window built without it holds only
     // whatever one cluster happened to carry, which is about two seconds of sound.
-    let requestedEnd = timestampNanoseconds > cast(u64) Swag.S64.Max - cast(u64) SoundSeekRunAheadNanoseconds ? Swag.S64.Max : cast(s64) timestampNanoseconds + SoundSeekRunAheadNanoseconds
+    let requestedEnd = timestampNanoseconds > cast(u64, Swag.S64.Max) - cast(u64, SoundSeekRunAheadNanoseconds) ? Swag.S64.Max : cast(s64, timestampNanoseconds) + SoundSeekRunAheadNanoseconds
     if not (try layout.indexAudioThrough(bytes, requestedEnd, &index.cancel)) do
         fail BadParameterError{"video reader operation was cancelled"}
 
@@ -1668,7 +1668,7 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
     try buildSoundTracks(index.path.toString(), bytes, &layout, &tracks)
     if tracks.count != layout.audioTracks.count do
         fail InvalidFormatError{"Matroska audio window has no packets"}
-    let seconds = cast(f64) timestampNanoseconds / 1_000_000_000.0
+    let seconds = cast(f64, timestampNanoseconds) / 1_000_000_000.0
     for sound in tracks
     {
         let local = seconds - sound.timelineStartSeconds()
@@ -1744,8 +1744,8 @@ private impl Decoder
             // The setup headers state the geometry outright.
             var probe: Mpeg4.Decoder
             try probe.configure(video.videoConfiguration())
-            .info.width  = cast(s32) probe.layer.width
-            .info.height = cast(s32) probe.layer.height
+            .info.width  = cast(s32, probe.layer.width)
+            .info.height = cast(s32, probe.layer.height)
         }
         elif video.isHevcVideo()
         {
@@ -1775,7 +1775,7 @@ private impl Decoder
         if video.defaultDuration do
             .info.frameRate = try frameRateFromDuration(video.defaultDuration)
         if layout.durationTicks > 0 do
-            .durationSeconds = layout.durationTicks * cast(f64) layout.timestampScale / 1_000_000_000.0
+            .durationSeconds = layout.durationTicks * cast(f64, layout.timestampScale) / 1_000_000_000.0
     }
 
     mtd openMemory(layout: *Layout) fail
@@ -1789,12 +1789,12 @@ private impl Decoder
         .streamSampleCount  = .info.frameCount
         .presentationOrigin = .video.presentationTimeAtRank(0)
         let lastTimestamp = .video.presentationTimeAtRank(.info.frameCount - 1)
-        let timestampSpan = cast(u64) (lastTimestamp - .presentationOrigin)
+        let timestampSpan = cast(u64, (lastTimestamp - .presentationOrigin))
         var frameDuration = video.defaultDuration
         if not frameDuration and .info.frameCount > 1 do
             frameDuration = Math.max(timestampSpan / (.info.frameCount - 1), 1)
         .info.frameRate  = try frameRateFromDuration(frameDuration)
-        .durationSeconds = cast(f64) .info.frameCount * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
+        .durationSeconds = cast(f64, .info.frameCount) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator())
         .memoryComplete  = true
     }
 
@@ -1839,10 +1839,10 @@ private impl Decoder
         let rate = .currentFrameRate()
         if not rate.isValid() do
             return .presentationOrigin
-        let offset = cast(f64) index * cast(f64) rate.denominator() * 1_000_000_000.0 / cast(f64) rate.numerator()
-        if offset >= cast(f64) Swag.S64.Max - cast(f64) .presentationOrigin do
+        let offset = cast(f64, index) * cast(f64, rate.denominator()) * 1_000_000_000.0 / cast(f64, rate.numerator())
+        if offset >= cast(f64, Swag.S64.Max) - cast(f64, .presentationOrigin) do
             return Swag.S64.Max
-        return .presentationOrigin + cast(s64) Math.round(offset)
+        return .presentationOrigin + cast(s64, Math.round(offset))
     }
 
     mtd startSoundIndex() fail
@@ -1876,11 +1876,11 @@ private impl Decoder
         // walked the whole file looking for packets that were never going to appear.
         if target >= 0 and (layout.audioTracks.count or layout.subtitleTracks.count)
         {
-            selectSoundWindow(fileIndex, cast(u64) target)
-            discard catch buildSoundWindow(fileIndex, cast(u64) target) as soundWindowError
+            selectSoundWindow(fileIndex, cast(u64, target))
+            discard catch buildSoundWindow(fileIndex, cast(u64, target)) as soundWindowError
         }
 
-        let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
+        let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64, target)) : null
         if cue do
             try layout.resetMediaAt(cue.clusterOffset)
         else do
@@ -1990,12 +1990,12 @@ private impl Decoder
         if .streamSampleCount < 2 do
             return
 
-        let span = cast(u64) (.video.presentationTimeAtRank(.streamSampleCount - 1) - .presentationOrigin)
+        let span = cast(u64, (.video.presentationTimeAtRank(.streamSampleCount - 1) - .presentationOrigin))
         if not span do
             return
 
         let observed = Math.max(span / (.streamSampleCount - 1), 1)
-        let declared = .info.frameRate.isValid() ? cast(u64) Math.round(1_000_000_000.0 * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()) : 0
+        let declared = .info.frameRate.isValid() ? cast(u64, Math.round(1_000_000_000.0 * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator()))) : 0
         if declared and observed * 2 < declared * 3 and declared * 2 < observed * 3 do
             return
 
@@ -2029,8 +2029,8 @@ private impl Decoder
         let rate = .currentFrameRate()
         if not rate.isValid() do
             return 0
-        let seconds = Math.max((timestampNanoseconds - cast(f64) .presentationOrigin) / 1_000_000_000.0, 0)
-        return cast(u64) Math.ceil(seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+        let seconds = Math.max((timestampNanoseconds - cast(f64, .presentationOrigin)) / 1_000_000_000.0, 0)
+        return cast(u64, Math.ceil(seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator())))
     }
 
     // Keeps the bounded sound window ahead of the picture being decoded.
@@ -2056,7 +2056,7 @@ private impl Decoder
         // A window that cannot be built is not retried on the next picture: the walk that would
         // fix it is already running, and asking again every frame would stall every one of them.
         .soundWindowAttempt = target + SoundWindowRetryNanoseconds
-        .requestSoundWindow(fileIndex, cast(u64) target)
+        .requestSoundWindow(fileIndex, cast(u64, target))
     }
 
     // Asks the worker for a window covering `target`, and returns without waiting for it.
@@ -2117,7 +2117,7 @@ private impl Decoder
 // picture whose sound has not arrived yet, so the walk waits here instead.
 private func runMatroskaSoundWindow(thread: Threading.Thread)
 {
-    let index = cast(*FileIndex) thread.userParam!
+    let index = cast(*FileIndex, thread.userParam!)
     while not thread.requestEnd
     {
         index.windowWake.wait()
@@ -2131,7 +2131,7 @@ private func runMatroskaSoundWindow(thread: Threading.Thread)
 
 private func runMatroskaSoundIndex(thread: Threading.Thread)
 {
-    let index = cast(*FileIndex) thread.userParam!
+    let index = cast(*FileIndex, thread.userParam!)
     catch buildSoundIndex(index) as indexError
     if indexError != null
     {
@@ -2198,14 +2198,14 @@ impl IDecoder for Decoder
         if timestamp < 0 do
             return index
         let layout = fileIndex.progressive!
-        let cue    = layout.cueAtOrAfter(cast(u64) timestamp)
+        let cue    = layout.cueAtOrAfter(cast(u64, timestamp))
         if cue
         {
-            let cueNanoseconds = cast(f64) cue.timestamp * cast(f64) layout.timestampScale
+            let cueNanoseconds = cast(f64, cue.timestamp) * cast(f64, layout.timestampScale)
             return Math.max(index, .frameAtTimestamp(cueNanoseconds))
         }
 
-        return .frameAtTimestamp(.currentDuration() * 1_000_000_000.0 + cast(f64) .presentationOrigin)
+        return .frameAtTimestamp(.currentDuration() * 1_000_000_000.0 + cast(f64, .presentationOrigin))
     }
 
     // Makes sure the window reaches a sample the container marks as a clean decode point.
@@ -2312,8 +2312,8 @@ impl IAudioDecoder for Decoder
             return 0
         let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound do
-            return cast(u32) (cast(*PublishedSound) seekSound).tracks.count
-        return Atomic.get(&fileIndex.soundStage) ? cast(u32) fileIndex.soundTracks.count : 0
+            return cast(u32, cast(*PublishedSound, seekSound).tracks.count)
+        return Atomic.get(&fileIndex.soundStage) ? cast(u32, fileIndex.soundTracks.count) : 0
     }
 
     mtd impl audioTrack(index: u32)->const *SoundFile?
@@ -2324,7 +2324,7 @@ impl IAudioDecoder for Decoder
         let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound
         {
-            let tracks = &(cast(*PublishedSound) seekSound).tracks
+            let tracks = &cast(*PublishedSound, seekSound).tracks
             return index < tracks.count ? &tracks[index] : null
         }
 
@@ -2340,11 +2340,11 @@ impl ISubtitleDecoder for Decoder
     {
         let fileIndex = .fileIndex
         if not fileIndex do
-            return cast(u32) .memorySubtitleTracks.count
+            return cast(u32, .memorySubtitleTracks.count)
         let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound do
-            return cast(u32) (cast(*PublishedSound) seekSound).subtitles.count
-        return Atomic.get(&fileIndex.soundStage) ? cast(u32) fileIndex.subtitleTracks.count : 0
+            return cast(u32, cast(*PublishedSound, seekSound).subtitles.count)
+        return Atomic.get(&fileIndex.soundStage) ? cast(u32, fileIndex.subtitleTracks.count) : 0
     }
 
     mtd const impl subtitleTrack(index: u32)->const *Subtitle.Track?
@@ -2355,7 +2355,7 @@ impl ISubtitleDecoder for Decoder
         let seekSound = Atomic.get(&fileIndex.currentSeekSound)
         if seekSound
         {
-            let tracks = &(cast(*PublishedSound) seekSound).subtitles
+            let tracks = &cast(*PublishedSound, seekSound).subtitles
             return index < tracks.count ? &tracks[index] : null
         }
 
@@ -2370,9 +2370,9 @@ impl ITimedDecoder for Decoder
     mtd impl frameTimestamp(index: u64)->f64
     {
         if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount do
-            return cast(f64) (.video.presentationTimeAtRank(index - .windowBaseRank) - .presentationOrigin) / 1_000_000_000.0
+            return cast(f64, (.video.presentationTimeAtRank(index - .windowBaseRank) - .presentationOrigin)) / 1_000_000_000.0
         let rate = .currentFrameRate()
-        return rate.isValid() ? cast(f64) index * cast(f64) rate.denominator() / cast(f64) rate.numerator() : 0
+        return rate.isValid() ? cast(f64, index) * cast(f64, rate.denominator()) / cast(f64, rate.numerator()) : 0
     }
 
     mtd impl frameAtTime(seconds: f64)->u64
@@ -2386,7 +2386,7 @@ impl ITimedDecoder for Decoder
         let rate = .currentFrameRate()
         if not rate.isValid() do
             return 0
-        return Math.min(cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator()), count ? count : Swag.U64.Max)
+        return Math.min(cast(u64, (seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator()))), count ? count : Swag.U64.Max)
     }
 }
 

@@ -42,5 +42,5 @@ func registerMidiStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'MidiStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'MidiStrings(cast(string, FrenchStrings))
 }

@@ -264,7 +264,7 @@ impl Reader
             let instance = (.decoder).buffer
             if type.opDrop do
                 type.opDrop(instance)
-            Memory.free(instance, cast(u64) type.sizeof)
+            Memory.free(instance, cast(u64, type.sizeof))
             .decoder         = null
             .audioDecoder    = null
             .subtitleDecoder = null
@@ -346,7 +346,7 @@ impl Reader
         if .timedDecoder do
             return .timedDecoder.frameTimestamp(index)
         let rate = .frameRate()
-        return cast(f64) index * cast(f64) rate.denominator() / cast(f64) rate.numerator()
+        return cast(f64, index) * cast(f64, rate.denominator()) / cast(f64, rate.numerator())
     }
 
     // Returns the picture presented at `seconds`, or the frame count past the end.
@@ -357,7 +357,7 @@ impl Reader
         if seconds < 0 do
             return 0
         let rate = .frameRate()
-        return Math.min(cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator()), .frameCount())
+        return Math.min(cast(u64, (seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator()))), .frameCount())
     }
 
     // Returns whether this stream can be decoded without converting its pictures to RGB.
@@ -403,7 +403,7 @@ impl Reader
         let rate = .frameRate()
         if not rate.isValid() do
             return 0
-        return cast(f64) .frameCount() * cast(f64) rate.denominator() / cast(f64) rate.numerator()
+        return cast(f64, .frameCount()) * cast(f64, rate.denominator()) / cast(f64, rate.numerator())
     }
 
     // Decodes frame `index` into an owned RGB8 image.

@@ -17,10 +17,10 @@ func aggregateCastRejectImplicit(value: u64)
 
 func aggregateCastRejectDeducedAddress(value: u32)
 {
-    let fields = AggregateCastPointer{pointer: cast() value}     // swc-expected-error {{sema_err_cannot_cast}}
+    let fields = AggregateCastPointer{pointer: cast(value)}     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 func aggregateCastRejectDeducedArrayAddress(value: u32)
 {
-    let pointers: [1] *void = [cast() value]     // swc-expected-error {{sema_err_cannot_cast}}
+    let pointers: [1] *void = [cast(value)]     // swc-expected-error {{sema_err_cannot_cast}}
 }

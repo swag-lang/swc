@@ -10,11 +10,11 @@ const OperatorS64Min = -9_223_372_036_854_775_807's64 - 1
 func makeS32(a, b, c, d: s32)->#simd [4] s32
 {
     var lanes: [4] s32 = [a, b, c, d]
-    return cast(#simd [4] s32) lanes
+    return cast(#simd [4] s32, lanes)
 }
 
 #[Swag.NoInline]
-func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
+func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 
 #test
 {
@@ -112,33 +112,33 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     Swag.assert(r[0] == 4 and r[1] == 8 and r[3] == 1024)
 
     // Unsigned lanes shift logically.
-    let u  = cast(#simd [4] u32) [0x8000_0000, 4, 2, 1]
-    let ru = cast([4] u32) (u >> 1)
+    let u  = cast(#simd [4] u32, [0x8000_0000, 4, 2, 1])
+    let ru = cast([4] u32, (u >> 1))
     Swag.assert(ru[0] == 0x4000_0000 and ru[1] == 2)
 
     // Byte lanes widen and repack in registers.
-    let bytes      = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
-    let bytesLeft  = cast([16] u8) (bytes << 1)
-    let bytesRight = cast([16] u8) (bytes >> 1)
+    let bytes      = cast(#simd [16] u8, [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8])
+    let bytesLeft  = cast([16] u8, (bytes << 1))
+    let bytesRight = cast([16] u8, (bytes >> 1))
     Swag.assert(bytesLeft[0] == 2 and bytesLeft[1] == 254 and bytesLeft[4] == 254)
     Swag.assert(bytesRight[0] == 0x40 and bytesRight[1] == 0x3F and bytesRight[4] == 127)
 
-    let signedBytes = cast(#simd [16] s8) [-128, -3, 127, 1, -1, 0, 2, -2, 1, 2, 3, 4, 5, 6, 7, 8]
-    let signedRight = cast([16] s8) (signedBytes >> 1)
+    let signedBytes = cast(#simd [16] s8, [-128, -3, 127, 1, -1, 0, 2, -2, 1, 2, 3, 4, 5, 6, 7, 8])
+    let signedRight = cast([16] s8, (signedBytes >> 1))
     Swag.assert(signedRight[0] == -64 and signedRight[1] == -2 and signedRight[2] == 63 and signedRight[3] == 0)
 
     count = 8
-    let bytesGone = cast([16] u8) (bytes << count)
-    let signsOnly = cast([16] s8) (signedBytes >> count)
+    let bytesGone = cast([16] u8, (bytes << count))
+    let signsOnly = cast([16] s8, (signedBytes >> count))
     Swag.assert(bytesGone[0] == 0 and bytesGone[15] == 0)
     Swag.assert(signsOnly[0] == -1 and signsOnly[1] == -1 and signsOnly[2] == 0)
 
-    let wide      = cast(#simd [2] s64) [-8, 0x4000_0000_0000_0000]
-    let wideRight = cast([2] s64) (wide >> 2)
+    let wide      = cast(#simd [2] s64, [-8, 0x4000_0000_0000_0000])
+    let wideRight = cast([2] s64, (wide >> 2))
     Swag.assert(wideRight[0] == -2 and wideRight[1] == 0x1000_0000_0000_0000)
 
     count = 64
-    let wideSigns = cast([2] s64) (wide >> count)
+    let wideSigns = cast([2] s64, (wide >> count))
     Swag.assert(wideSigns[0] == -1 and wideSigns[1] == 0)
 }
 
@@ -147,46 +147,46 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     // A constant count rides in the instruction on every lane width that has
     // the form: word and dword lanes both ways, qword lanes logically, byte
     // lanes through the word shift and a mask.
-    let words      = cast(#simd [8] s16) [-32768, -3, 32767, 1, -1, 0, 2, -2]
-    let wordsRight = cast([8] s16) (words >> 3)
-    let wordsLeft  = cast([8] s16) (words << 3)
+    let words      = cast(#simd [8] s16, [-32768, -3, 32767, 1, -1, 0, 2, -2])
+    let wordsRight = cast([8] s16, (words >> 3))
+    let wordsLeft  = cast([8] s16, (words << 3))
     Swag.assert(wordsRight[0] == -4096 and wordsRight[1] == -1 and wordsRight[2] == 4095 and wordsRight[3] == 0)
     Swag.assert(wordsLeft[0] == 0 and wordsLeft[1] == -24 and wordsLeft[2] == -8 and wordsLeft[3] == 8)
 
-    let uwords      = cast(#simd [8] u16) [0x8000, 3, 0xFFFF, 1, 0, 0, 0, 0]
-    let uwordsRight = cast([8] u16) (uwords >> 3)
-    let uwordsLeft  = cast([8] u16) (uwords << 15)
+    let uwords      = cast(#simd [8] u16, [0x8000, 3, 0xFFFF, 1, 0, 0, 0, 0])
+    let uwordsRight = cast([8] u16, (uwords >> 3))
+    let uwordsLeft  = cast([8] u16, (uwords << 15))
     Swag.assert(uwordsRight[0] == 0x1000 and uwordsRight[1] == 0 and uwordsRight[2] == 0x1FFF)
     Swag.assert(uwordsLeft[0] == 0 and uwordsLeft[1] == 0x8000 and uwordsLeft[2] == 0x8000)
 
-    let quads      = cast(#simd [2] u64) [0x8000_0000_0000_0000, 0xFFFF_FFFF_FFFF_FFFF]
-    let quadsRight = cast([2] u64) (quads >> 63)
-    let quadsLeft  = cast([2] u64) (quads << 4)
+    let quads      = cast(#simd [2] u64, [0x8000_0000_0000_0000, 0xFFFF_FFFF_FFFF_FFFF])
+    let quadsRight = cast([2] u64, (quads >> 63))
+    let quadsLeft  = cast([2] u64, (quads << 4))
     Swag.assert(quadsRight[0] == 1 and quadsRight[1] == 1)
     Swag.assert(quadsLeft[0] == 0 and quadsLeft[1] == 0xFFFF_FFFF_FFFF_FFF0)
 
-    let signedQuads     = cast(#simd [2] s64) [-8, 1]
-    let signedQuadsLeft = cast([2] s64) (signedQuads << 60)
+    let signedQuads     = cast(#simd [2] s64, [-8, 1])
+    let signedQuadsLeft = cast([2] s64, (signedQuads << 60))
     Swag.assert(signedQuadsLeft[0] == OperatorS64Min and signedQuadsLeft[1] == 0x1000_0000_0000_0000)
 
-    let bytes      = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
-    let bytesRight = cast([16] u8) (bytes >> 7)
-    let bytesLeft  = cast([16] u8) (bytes << 7)
+    let bytes      = cast(#simd [16] u8, [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8])
+    let bytesRight = cast([16] u8, (bytes >> 7))
+    let bytesLeft  = cast([16] u8, (bytes << 7))
     Swag.assert(bytesRight[0] == 1 and bytesRight[1] == 0 and bytesRight[4] == 1 and bytesRight[6] == 0)
     Swag.assert(bytesLeft[0] == 128 and bytesLeft[1] == 128 and bytesLeft[2] == 128 and bytesLeft[3] == 0 and bytesLeft[6] == 0)
 
     // The compound forms take the same route.
-    var acc = cast(#simd [8] s16) [-32768, -3, 32767, 1, -1, 0, 2, -2]
+    var acc = cast(#simd [8] s16, [-32768, -3, 32767, 1, -1, 0, 2, -2])
     acc >>= 3
-    var lanes = cast([8] s16) acc
+    var lanes = cast([8] s16, acc)
     Swag.assert(lanes[0] == -4096 and lanes[1] == -1 and lanes[2] == 4095)
     acc   <<= 2
-    lanes = cast([8] s16) acc
+    lanes = cast([8] s16, acc)
     Swag.assert(lanes[0] == -16384 and lanes[1] == -4 and lanes[2] == 16380)
 
-    var uacc = cast(#simd [4] u32) [0x8000_0000, 4, 2, 1]
+    var uacc = cast(#simd [4] u32, [0x8000_0000, 4, 2, 1])
     uacc >>= 31
-    let ulanes = cast([4] u32) uacc
+    let ulanes = cast([4] u32, uacc)
     Swag.assert(ulanes[0] == 1 and ulanes[1] == 0)
 }
 
@@ -195,49 +195,49 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     // Sixteen u8 lanes and eight s16 lanes.
     let a8 = Swag.vecsplat(200'u8)
     let b8 = Swag.vecsplat(100'u8)
-    let r8 = cast([16] u8) (a8 + b8)
+    let r8 = cast([16] u8, (a8 + b8))
     Swag.assert(r8[0] == 44 and r8[15] == 44)
 
-    let mul8a = cast(#simd [16] u8) [200, 255, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    let mul8  = cast([16] u8) (mul8a * Swag.vecsplat(2'u8))
+    let mul8a = cast(#simd [16] u8, [200, 255, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+    let mul8  = cast([16] u8, (mul8a * Swag.vecsplat(2'u8)))
     Swag.assert(mul8[0] == 144 and mul8[1] == 254 and mul8[15] == 32)
 
-    let signedMul8a = cast(#simd [16] s8) [-100, -128, -3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    let signedMul8  = cast([16] s8) (signedMul8a * Swag.vecsplat(3's8))
+    let signedMul8a = cast(#simd [16] s8, [-100, -128, -3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+    let signedMul8  = cast([16] s8, (signedMul8a * Swag.vecsplat(3's8)))
     Swag.assert(signedMul8[0] == -44 and signedMul8[1] == -128 and signedMul8[2] == -9)
 
-    let a16 = cast(#simd [8] s16) [1, -2, 3, -4, 5, -6, 7, -8]
+    let a16 = cast(#simd [8] s16, [1, -2, 3, -4, 5, -6, 7, -8])
     let b16 = Swag.vecsplat(10's16)
-    let r16 = cast([8] s16) (a16 * b16)
+    let r16 = cast([8] s16, (a16 * b16))
     Swag.assert(r16[0] == 10 and r16[1] == -20 and r16[7] == -80)
 
-    let u64a  = cast(#simd [2] u64) [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001]
-    let u64b  = cast(#simd [2] u64) [2, 0x1_0000_0001]
-    let mul64 = cast([2] u64) (u64a * u64b)
+    let u64a  = cast(#simd [2] u64, [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001])
+    let u64b  = cast(#simd [2] u64, [2, 0x1_0000_0001])
+    let mul64 = cast([2] u64, (u64a * u64b))
     Swag.assert(mul64[0] == 0xFFFF_FFFF_FFFF_FFFE and mul64[1] == 0x2_0000_0001)
 
-    let signedMul64a = cast(#simd [2] s64) [-3, OperatorS64Min]
-    let signedMul64b = cast(#simd [2] s64) [-7, 3]
-    let signedMul64  = cast([2] s64) (signedMul64a * signedMul64b)
+    let signedMul64a = cast(#simd [2] s64, [-3, OperatorS64Min])
+    let signedMul64b = cast(#simd [2] s64, [-7, 3])
+    let signedMul64  = cast([2] s64, (signedMul64a * signedMul64b))
     Swag.assert(signedMul64[0] == 21 and signedMul64[1] == OperatorS64Min)
 }
 
 #test
 {
     // Float lanes: the four arithmetic operators.
-    let a = cast(#simd [4] f32) [1.0, 2.0, 3.0, 4.0]
+    let a = cast(#simd [4] f32, [1.0, 2.0, 3.0, 4.0])
     let b = Swag.vecsplat(2.0'f32)
-    var r = cast([4] f32) (a * b)
+    var r = cast([4] f32, (a * b))
     Swag.assert(r[0] == 2.0 and r[3] == 8.0)
-    r = cast([4] f32) (a / b)
+    r = cast([4] f32, (a / b))
     Swag.assert(r[0] == 0.5 and r[3] == 2.0)
-    r = cast([4] f32) (a + b)
+    r = cast([4] f32, (a + b))
     Swag.assert(r[1] == 4.0)
-    r = cast([4] f32) (a - b)
+    r = cast([4] f32, (a - b))
     Swag.assert(r[2] == 1.0)
 
-    let d  = cast(#simd [2] f64) [1.5, -2.5]
-    let rd = cast([2] f64) (d + d)
+    let d  = cast(#simd [2] f64, [1.5, -2.5])
+    let rd = cast([2] f64, (d + d))
     Swag.assert(rd[0] == 3.0 and rd[1] == -5.0)
 }
 
@@ -246,25 +246,25 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
     // Comparisons produce unsigned masks: all-ones where the compare holds.
     let a = makeS32(1, 5, 3, -7)
     let b = makeS32(2, 5, 1, 7)
-    var m = cast([4] u32) (a == b)
+    var m = cast([4] u32, (a == b))
     Swag.assert(m[0] == 0 and m[1] == 0xFFFF_FFFF and m[2] == 0 and m[3] == 0)
-    m = cast([4] u32) (a != b)
+    m = cast([4] u32, (a != b))
     Swag.assert(m[0] == 0xFFFF_FFFF and m[1] == 0)
-    m = cast([4] u32) (a < b)
+    m = cast([4] u32, (a < b))
     Swag.assert(m[0] == 0xFFFF_FFFF and m[1] == 0 and m[2] == 0 and m[3] == 0xFFFF_FFFF)
-    m = cast([4] u32) (a >= b)
+    m = cast([4] u32, (a >= b))
     Swag.assert(m[0] == 0 and m[1] == 0xFFFF_FFFF and m[2] == 0xFFFF_FFFF and m[3] == 0)
 
     // Unsigned ordering goes through the sign-bias lowering.
-    let ua = cast(#simd [4] u32) [0xFFFF_FFFF, 1, 0x8000_0000, 0]
-    let ub = cast(#simd [4] u32) [1, 0xFFFF_FFFF, 0x7FFF_FFFF, 0]
-    m = cast([4] u32) (ua > ub)
+    let ua = cast(#simd [4] u32, [0xFFFF_FFFF, 1, 0x8000_0000, 0])
+    let ub = cast(#simd [4] u32, [1, 0xFFFF_FFFF, 0x7FFF_FFFF, 0])
+    m = cast([4] u32, (ua > ub))
     Swag.assert(m[0] == 0xFFFF_FFFF and m[1] == 0 and m[2] == 0xFFFF_FFFF and m[3] == 0)
 
     // Float compares use the hardware predicates.
-    let fa = cast(#simd [4] f32) [1.0, 2.0, 3.0, 4.0]
+    let fa = cast(#simd [4] f32, [1.0, 2.0, 3.0, 4.0])
     let fb = Swag.vecsplat(2.5'f32)
-    m = cast([4] u32) (fa < fb)
+    m = cast([4] u32, (fa < fb))
     Swag.assert(m[0] == 0xFFFF_FFFF and m[1] == 0xFFFF_FFFF and m[2] == 0 and m[3] == 0)
 }
 
@@ -288,14 +288,14 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32) v
 #test
 {
     // Reinterpretations: '#bit' between shapes, and the array round trip.
-    let v  = cast(#simd [4] u32) [0x04030201, 0x08070605, 0x0C0B0A09, 0x100F0E0D]
-    let b  = cast #bit(#simd [16] u8) v
-    let rb = cast([16] u8) b
+    let v  = cast(#simd [4] u32, [0x04030201, 0x08070605, 0x0C0B0A09, 0x100F0E0D])
+    let b  = cast #bit(#simd [16] u8, v)
+    let rb = cast([16] u8, b)
     Swag.assert(rb[0] == 1 and rb[1] == 2 and rb[15] == 16)
 
     var arr: [4] u32 = [5, 6, 7, 8]
-    let w            = cast(#simd [4] u32) arr
-    let back         = cast([4] u32) w
+    let w            = cast(#simd [4] u32, arr)
+    let back         = cast([4] u32, w)
     Swag.assert(back[0] == 5 and back[3] == 8)
 }
 
@@ -325,7 +325,7 @@ func addEight(a, b, c, d, e, f, g, h: #simd [4] s32)->#simd [4] s32 => a + b + c
 }
 
 // Global vectors live in aligned storage and are readable at startup.
-var g_Vector = cast(#simd [4] s32) [7, 8, 9, 10]
+var g_Vector = cast(#simd [4] s32, [7, 8, 9, 10])
 
 #test
 {

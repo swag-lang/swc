@@ -779,7 +779,7 @@ indent-style = spaces</span></div>
 <span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
 <span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
-<div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">assume</span>  <span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
 <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span></span></div>
 <h3 id="_002_007_keywords_swg_Contextual_Source_and_Module_Names">Contextual Source and Module Names</h3>
 <p><span class="code-inline">export</span>, <span class="code-inline">location</span>, <span class="code-inline">link</span>, and <span class="code-inline">version</span> are recognized in specific module-setup positions. Outside those positions the lexer treats them as ordinary identifiers; they are not part of the reserved keyword set above.</p>
@@ -806,8 +806,8 @@ indent-style = spaces</span></div>
 <span class="SItr">#uniq5</span>  <span class="SItr">#uniq6</span>  <span class="SItr">#uniq7</span>  <span class="SItr">#uniq8</span>  <span class="SItr">#uniq9</span></span></div>
 <h3 id="_002_007_keywords_swg_Modifiers">Modifiers</h3>
 <p>Modifiers refine the type, operand, conversion, literal, or statement that follows them. They annotate what carries no symbol; a declaration takes an attribute instead.</p>
-<div class="code-block"><span class="SCde"><span class="SItr">#assume</span>  <span class="SItr">#bit</span>  <span class="SItr">#complete</span>  <span class="SItr">#fail</span>  <span class="SItr">#fwd</span>  <span class="SItr">#move</span>  <span class="SItr">#nodrop</span>  <span class="SItr">#nofail</span>
-<span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#try</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SItr">#bit</span>  <span class="SItr">#complete</span>  <span class="SItr">#fail</span>  <span class="SItr">#fwd</span>  <span class="SItr">#move</span>  <span class="SItr">#nodrop</span>  <span class="SItr">#nofail</span>
+<span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
 <h3 id="_002_007_keywords_swg_Runtime_and_Compiler_Intrinsics">Runtime and Compiler Intrinsics</h3>
 <p>Intrinsic values:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">args</span>()  <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()  <span class="SNsp">Swag</span>.<span class="SFct">gvtd</span>()  <span class="SNsp">Swag</span>.<span class="SFct">jit</span>()
@@ -944,7 +944,7 @@ indent-style = spaces</span></div>
 
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SNum">255</span>'<span class="STpe">u8</span> + <span class="SItr">#prom</span> <span class="SNum">1</span>'<span class="STpe">u8</span>) == <span class="STpe">u32</span>)
 
-    <span class="SKwd">let</span> bits = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>) <span class="SNum">1.0</span>'<span class="STpe">f32</span>
+    <span class="SKwd">let</span> bits = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>, <span class="SNum">1.0</span>'<span class="STpe">f32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(bits == <span class="SNum">0x3F800000</span>)
 }</span></div>
 <p><span class="code-inline">#bit</span> and <span class="code-inline">#unconst</span> select a variant of the <span class="code-inline">cast</span> they sit in; neither is a type qualifier, and neither can be written in a type position. <span class="code-inline">#unconst</span> removes a const qualifier only where the language permits that explicit escape.</p>
@@ -993,7 +993,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <p>Both spellings are legitimate, and the rule above says which is which: <span class="code-inline">#wrap</span> annotates one operation, <span class="code-inline">Swag.Safety</span> annotates a scope. Use the narrowest one that expresses the intent. A local <span class="code-inline">#wrap</span> documents one deliberate wrap more clearly than disabling overflow checks for a file.</p>
 <h3 id="_002_008_sigils_swg_Contextual_Keywords_Are_Different">Contextual Keywords Are Different</h3>
-<p><span class="code-inline">cast</span> is the common conversion expression. Its <span class="code-inline">#try</span> modifier returns a nullable view for a dynamic conversion. Use 'value is T' to test compatibility directly. Its <span class="code-inline">#assume</span> modifier asserts compatibility and checks that assertion when dynamic cast safety is enabled. A compile-time expression such as <span class="code-inline">T is IFoo</span> can constrain a generic declaration with <span class="code-inline">where</span>. The contextual <span class="code-inline">as</span> names the caught error in a <span class="code-inline">catch</span> clause, or the borrowed view in an 'if value is T as name' or 'case T as name' pattern.</p>
+<p>'cast(Type, value)' is the common conversion expression. <span class="code-inline">try</span> propagates a conversion error, <span class="code-inline">expect</span> panics on failure in every configuration, and <span class="code-inline">assume</span> asserts compatibility with a check controlled by runtime safety. Use 'value is T' to test compatibility directly. A compile-time expression such as <span class="code-inline">T is IFoo</span> can constrain a generic declaration with <span class="code-inline">where</span>. The contextual <span class="code-inline">as</span> names the caught error in a <span class="code-inline">catch</span> clause, or the borrowed view in an 'if value is T as name' or 'case T as name' pattern.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value: <span class="STpe">any</span> = <span class="SStr">"text"</span>
@@ -1757,7 +1757,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">const</span> a: [<span class="SNum">3</span>] <span class="STpe">s32</span> = [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>]
-    <span class="SKwd">let</span> ptr = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="STpe">s32</span>) &amp;a[<span class="SNum">0</span>]
+    <span class="SKwd">let</span> ptr = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="STpe">s32</span>, &amp;a[<span class="SNum">0</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[<span class="SNum">0</span>] == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[<span class="SNum">2</span>] == <span class="SNum">2</span>)
 
@@ -1932,11 +1932,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> x: <span class="STpe">s32</span> = <span class="SNum">10</span>
 
-    x = x ^ <span class="SNum">2</span>                    <span class="SCmt">// XOR</span>
-    x = x &amp; <span class="SNum">0b0000_0001</span>'<span class="STpe">s32</span>      <span class="SCmt">// AND</span>
-    x = x | <span class="SKwd">cast</span>(<span class="STpe">s32</span>) <span class="SNum">0b0001</span>     <span class="SCmt">// OR</span>
-    x = x &lt;&lt; <span class="SNum">1</span>                   <span class="SCmt">// Shift left</span>
-    x = x &gt;&gt; <span class="SNum">1</span>                   <span class="SCmt">// Shift right</span>
+    x = x ^ <span class="SNum">2</span>                     <span class="SCmt">// XOR</span>
+    x = x &amp; <span class="SNum">0b0000_0001</span>'<span class="STpe">s32</span>       <span class="SCmt">// AND</span>
+    x = x | <span class="SKwd">cast</span>(<span class="STpe">s32</span>, <span class="SNum">0b0001</span>)     <span class="SCmt">// OR</span>
+    x = x &lt;&lt; <span class="SNum">1</span>                    <span class="SCmt">// Shift left</span>
+    x = x &gt;&gt; <span class="SNum">1</span>                    <span class="SCmt">// Shift right</span>
 }</span></div>
 <h4 id="_003_006_operators_swg_Shift_Semantics">Shift Semantics</h4>
 <p>The result of 'value &lt;&lt; count' or 'value &gt;&gt; count' has exactly the type and bit width of <span class="code-inline">value</span>. The count is an independent integer operand: it keeps its own width and signedness and is never narrowed to the value's type.</p>
@@ -2212,18 +2212,18 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_003_007_cast_swg">Cast</h3>
 <h3 id="_003_007_cast_swg_Explicit_Cast_with__cast_">Explicit Cast with <span class="code-inline">cast</span></h3>
-<p>Explicit casting converts a value from one type to another using the syntax 'cast(type) value'. This transformation changes the type of <span class="code-inline">value</span> to the specified <span class="code-inline">type</span>.</p>
+<p>Explicit casting converts a value from one type to another using the syntax 'cast(type, value)'. This transformation changes the type of <span class="code-inline">value</span> to the specified <span class="code-inline">type</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x = <span class="SNum">1.0</span>     <span class="SCmt">// Defaults to 'f32'</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(x) == <span class="STpe">f32</span>)
 
-    <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) x     <span class="SCmt">// Explicit cast to 's32'</span>
+    <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, x)     <span class="SCmt">// Explicit cast to 's32'</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">1</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Interface_Conversion">Interface Conversion</h3>
-<p><span class="code-inline">cast(IFoo) value</span> produces an <span class="code-inline">IFoo</span> interface value when the source type implements that interface. The compiler establishes this conversion statically. Pass a pointer when borrowing an existing object. A type alias for an interface works as the target too.</p>
+<p><span class="code-inline">cast(IFoo, value)</span> produces an <span class="code-inline">IFoo</span> interface value when the source type implements that interface. The compiler establishes this conversion statically. Pass a pointer when borrowing an existing object. A type alias for an interface works as the target too.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">ICount</span>
 {
     <span class="SKwd">mtd</span> <span class="SFct">count</span>()-&gt;<span class="STpe">s32</span>
@@ -2239,15 +2239,22 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
-    <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
+    <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>, &amp;counter)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view.<span class="SFct">count</span>() == <span class="SNum">42</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(view) == <span class="SCst">ICount</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Dynamic_Casts">Dynamic Casts</h3>
-<p>Use <span class="code-inline">cast #try (*T) value</span> when the concrete type is known only at runtime. It returns a nullable pointer: a compatible object produces a view of that object, and a type mismatch or null source produces <span class="code-inline">null</span>. It never copies the object or extends its lifetime. Test compatibility by comparing the result with <span class="code-inline">null</span>; save the result when the same branch needs to use it.</p>
-<p>Use <span class="code-inline">cast #assume (*T) value</span> when the concrete type is an invariant established by the caller. With <span class="code-inline">.DynCast</span> safety enabled, a failed assertion panics. With that safety disabled, the type assertion is unchecked. Pointer adjustments required by the destination representation still apply.</p>
+<p>The conversion stays <span class="code-inline">cast(Type, value)</span>. Its prefix states how to handle a validity condition that the compiler cannot establish statically:</p>
+<ul>
+<li><span class="code-inline">try cast(*T, value)</span> checks compatibility and propagates a conversion error.</li>
+<li><span class="code-inline">expect cast(*T, value)</span> checks compatibility and panics on failure in every build configuration.</li>
+<li><span class="code-inline">assume cast(*T, value)</span> asserts an invariant established by the caller. The <span class="code-inline">.Assume</span> safety flag checks the assertion; disabling that safety removes the check.</li>
+</ul>
+<p>An ordinary dynamic cast needs one of these policies, or a surrounding <span class="code-inline">catch</span>. A numeric conversion or a statically known conversion to an embedded parent does not gain a dynamic type lookup. An assumed downcast along a known by-value <span class="code-inline">using</span> path needs only its fixed address adjustment when <span class="code-inline">.Assume</span> safety is disabled. Other representations can still require work to locate their borrowed view.</p>
+<p>The destination also states the presence contract. <span class="code-inline">*T</span> requires a present value; <span class="code-inline">*T?</span> accepts null. There is no separate trailing <span class="code-inline">!</span> to add to the operand. When only nullability changes, the checked conversion tests presence without a dynamic type lookup. An assumed presence conversion follows <span class="code-inline">.Assume</span> safety.</p>
+<p>Use <span class="code-inline">catch cast(*T?, value)</span> when a nullable result is useful after a failed conversion. <span class="code-inline">catch ... as error</span> also preserves its error. Like other caught expressions, the destination needs an implicit default value.</p>
 <p>These forms apply to <span class="code-inline">any</span>, interfaces, and pointers to dynamic structs. A plain struct pointer can expose a concrete enclosing type only when its struct is marked <span class="code-inline">#[Swag.DynCast]</span>, or inherits that capability through a by-value <span class="code-inline">using</span> field. The attribute adds a compiler-managed metadata pointer to object storage; pointers to the object retain their ordinary size. A pointer-valued <span class="code-inline">using</span> field does not make its pointee part of the enclosing object's storage.</p>
-<p>Converting towards a known embedded parent remains a static conversion. A plain <span class="code-inline">cast</span> cannot perform a downcast. Use <span class="code-inline">value is T</span> for a boolean compatibility test, or <span class="code-inline">if value is T as name</span> to test and borrow the matching value. Expression <span class="code-inline">as</span> is not a conversion operator; it introduces a binding in a type pattern or a caught error.</p>
+<p>Use <span class="code-inline">value is T</span> for a boolean compatibility test, or <span class="code-inline">if value is T as name</span> to test and borrow the matching value without constructing a conversion error. Expression <span class="code-inline">as</span> is not a conversion operator; it introduces a binding in a type pattern or a caught error.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">DynCast]</span>
 <span class="SKwd">struct</span> <span class="SCst">CastNode</span> { id: <span class="STpe">s32</span> }
 
@@ -2261,19 +2268,20 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
     <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
-    <span class="SKwd">let</span> found = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">CastButton</span>) node
+    <span class="SKwd">let</span> found = (<span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node))
     <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.label == <span class="SStr">"Apply"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (*<span class="SCst">CastButton</span>) node == &amp;button)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>, node) == &amp;button)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">expect</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>, node) == &amp;button)
 }</span></div>
 <h4 id="_003_007_cast_swg_Testing_and_Using_the_Same_Result">Testing and Using the Same Result</h4>
 <p>A type pattern tests compatibility and gives the branch a non-null borrowed view. <span class="code-inline">if value is T as name</span> borrows a <span class="code-inline">*T</span>, or an interface view when <span class="code-inline">T</span> is an interface. Constness follows the source. The source is evaluated once; the name belongs only to the successful branch and its optional <span class="code-inline">where</span> guard. A false guard continues to <span class="code-inline">elif</span> or <span class="code-inline">else</span>. No pattern copies the object or extends its lifetime.</p>
-<p>A <span class="code-inline">cast #try</span> cannot be used directly as a conditional binding, a boolean, or a comparison with <span class="code-inline">null</span>. Use <span class="code-inline">is</span> for compatibility and a pattern for binding. Store or return <span class="code-inline">cast #try</span> when the nullable conversion result itself is useful.</p>
+<p>Prefer <span class="code-inline">is</span> when the purpose is selecting a branch by type. Use a checked cast when failure belongs to the operation's error contract, and <span class="code-inline">assume cast</span> when the caller already guarantees compatibility.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
-    <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
+    <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>, &amp;counter)
     <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="SCst">Counter</span> <span class="SLgc">as</span> found <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.value == <span class="SNum">42</span>)
 
@@ -2284,15 +2292,15 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h4 id="_003_007_cast_swg_Values_Stored_in__any_">Values Stored in <span class="code-inline">any</span></h4>
-<p><span class="code-inline">cast #try (*T) boxed</span> borrows a stored value of type <span class="code-inline">T</span>. Dereference the result to read or update that value. A stored pointer can also expose the object it points to. A mismatching type produces <span class="code-inline">null</span> in either case.</p>
-<p><span class="code-inline">cast #assume (T) boxed</span> extracts a value when its type is an invariant. For a pointer or interface destination, it produces the corresponding borrowed view. Neither mode extends the lifetime of the boxed value or its pointee.</p>
+<p><span class="code-inline">try cast(*T, boxed)</span> borrows a stored value of type <span class="code-inline">T</span>. Dereference the result to read or update that value. A stored pointer can also expose the object it points to. A mismatching type raises a conversion error in either case.</p>
+<p><span class="code-inline">assume cast(T, boxed)</span> extracts a value when its type is an invariant. For a pointer or interface destination, it produces the corresponding borrowed view. Neither mode extends the lifetime of the boxed value or its pointee.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> boxed: <span class="STpe">any</span> = <span class="SNum">42</span>'<span class="STpe">s32</span>
     <span class="SLgc">if</span> boxed <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> value <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value[] == <span class="SNum">42</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> (boxed <span class="SLgc">is</span> <span class="STpe">s64</span>))
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">s32</span>) boxed == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">s32</span>, boxed) == <span class="SNum">42</span>)
 }</span></div>
 <h4 id="_003_007_cast_swg_Compile-Time_Compatibility">Compile-Time Compatibility</h4>
 <p><span class="code-inline">Source is Target</span> tests whether <span class="code-inline">Source</span> exposes a view of type <span class="code-inline">Target</span> and returns a boolean. This relation also works in generic <span class="code-inline">where</span> constraints. Exact type equality remains <span class="code-inline">Source == Target</span>.</p>
@@ -2306,8 +2314,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">return</span> source <span class="SLgc">is</span> <span class="SCst">ICount</span>
 }</span></div>
 <h4 id="_003_007_cast_swg_Targets_Chosen_at_Runtime">Targets Chosen at Runtime</h4>
-<p>Both <span class="code-inline">value is target</span> and explicit dynamic casts accept a <span class="code-inline">typeinfo</span> target, including a function result. With a type-information operand, 'cast #try' returns the source descriptor when the types are compatible, or <span class="code-inline">null</span>. With a value operand, it borrows a value of the requested type and returns an <span class="code-inline">any?</span>. The target must be a descriptor emitted by the compiler; constructing or copying a descriptor does not create a type.</p>
-<p>The value result borrows its source and can also refer to an interface view in the current function. It does not allocate and must not escape that function. 'cast #assume' uses the same conversion and checks failure when dynamic cast safety is enabled.</p>
+<p>Both <span class="code-inline">value is target</span> and explicit dynamic casts accept a <span class="code-inline">typeinfo</span> target, including a function result. With a type-information operand, a successful cast returns the source descriptor. With a value operand, it borrows a value of the requested type and returns an <span class="code-inline">any</span>. The target must be a descriptor emitted by the compiler; constructing or copying a descriptor does not create a type.</p>
+<p>The value result borrows its source and can also refer to an interface view in the current function. It does not allocate and must not escape that function. <span class="code-inline">assume cast</span> checks compatibility when dynamic cast safety is enabled. <span class="code-inline">try</span> and <span class="code-inline">expect</span> keep their checks even when that safety is disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">supportsRuntimeType</span>(target, source: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span>
 {
     <span class="SLgc">return</span> source <span class="SLgc">is</span> target
@@ -2322,17 +2330,17 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">var</span> value = <span class="SNum">42</span>'<span class="STpe">s32</span>
     <span class="SKwd">let</span> target: <span class="STpe">typeinfo</span> = <span class="STpe">s32</span>
-    <span class="SKwd">let</span> view  = <span class="SKwd">cast</span> <span class="SItr">#try</span>(target) &amp;value
+    <span class="SKwd">let</span> view  = <span class="SKwd">expect</span> <span class="SKwd">cast</span>(target, &amp;value)
     <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(number[] == <span class="SNum">42</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view != <span class="SKwd">null</span>)
 }</span></div>
-<h3 id="_003_007_cast_swg_Automatic_Cast_with__cast___">Automatic Cast with <span class="code-inline">cast()</span></h3>
-<p>A <span class="code-inline">cast()</span> without a type performs an <b>automatic cast</b>, allowing the compiler to infer the target type based on the left-hand side of the assignment.</p>
+<h3 id="_003_007_cast_swg_Contextual_Cast_with__cast_value__">Contextual Cast with <span class="code-inline">cast(value)</span></h3>
+<p>A <span class="code-inline">cast(value)</span> without an explicit type performs a <b>contextual cast</b>, allowing the compiler to infer the target type based on the left-hand side of the assignment.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">f32</span> = <span class="SNum">1.0</span>
-    <span class="SKwd">let</span> y: <span class="STpe">s32</span> = <span class="SKwd">cast</span>() x
+    <span class="SKwd">let</span> y: <span class="STpe">s32</span> = <span class="SKwd">cast</span>(x)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">1</span>)
 }</span></div>
@@ -2344,7 +2352,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SFct">testAutoCast</span>(<span class="SKwd">cast</span>() <span class="SNum">1.4</span>)     <span class="SCmt">// Automatically cast to 's32'</span>
+    <span class="SFct">testAutoCast</span>(<span class="SKwd">cast</span>(<span class="SNum">1.4</span>))     <span class="SCmt">// Automatically cast to 's32'</span>
 }</span></div>
 <p>A structure field or a typed array element also supplies a destination. Named and positional fields follow the same rule; the cast remains explicit even though its destination is inferred.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CastCount</span> { value: <span class="STpe">u16</span> }
@@ -2352,8 +2360,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> count:  <span class="STpe">u64</span>     = <span class="SNum">42</span>
-    <span class="SKwd">let</span> field           = <span class="SCst">CastCount</span>{value: <span class="SKwd">cast</span>() count}
-    <span class="SKwd">let</span> values: [<span class="SNum">2</span>] <span class="STpe">u16</span> = [<span class="SKwd">cast</span>() count, <span class="SKwd">cast</span>() count]
+    <span class="SKwd">let</span> field           = <span class="SCst">CastCount</span>{value: <span class="SKwd">cast</span>(count)}
+    <span class="SKwd">let</span> values: [<span class="SNum">2</span>] <span class="STpe">u16</span> = [<span class="SKwd">cast</span>(count), <span class="SKwd">cast</span>(count)]
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(field.value == <span class="SNum">42</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values == [<span class="SNum">42</span>'<span class="STpe">u16</span>, <span class="SNum">42</span>'<span class="STpe">u16</span>])
 }</span></div>
@@ -2362,20 +2370,20 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">f32</span> = <span class="SNum">1.0</span>
-    <span class="SKwd">let</span> y: <span class="STpe">u32</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>) x
+    <span class="SKwd">let</span> y: <span class="STpe">u32</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>, x)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">0x3F800000</span>)     <span class="SCmt">// 1.0 in IEEE 754 format</span>
 
-    <span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>) <span class="SNum">1.0</span> == <span class="SNum">0x3F800000</span>)
-    <span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>) <span class="SNum">0x3F800000</span> == <span class="SNum">1.0</span>)
+    <span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>, <span class="SNum">1.0</span>) == <span class="SNum">0x3F800000</span>)
+    <span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>, <span class="SNum">0x3F800000</span>) == <span class="SNum">1.0</span>)
 }</span></div>
 <p>Bitcasting also allows reinterpreting an integer’s bit pattern as a floating-point value, or vice versa.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> rawBits: <span class="STpe">u32</span> = <span class="SNum">0x40490FDB</span>
-    <span class="SKwd">let</span> pi:      <span class="STpe">f32</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>) rawBits
+    <span class="SKwd">let</span> pi:      <span class="STpe">f32</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>, rawBits)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pi == <span class="SNum">3.1415927</span>)
 
-    <span class="SKwd">let</span> backToBits: <span class="STpe">u32</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>) pi
+    <span class="SKwd">let</span> backToBits: <span class="STpe">u32</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u32</span>, pi)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(backToBits == <span class="SNum">0x40490FDB</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Implicit_Casts">Implicit Casts</h3>
@@ -2404,21 +2412,21 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SCmt">// Explicit cast from 's16' to 's8' required</span>
     <span class="SKwd">let</span> z0: <span class="STpe">s16</span> = <span class="SNum">256</span>
-    <span class="SKwd">let</span> z1: <span class="STpe">s8</span>  = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">s8</span>) z0
+    <span class="SKwd">let</span> z1: <span class="STpe">s8</span>  = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">s8</span>, z0)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(z1 == <span class="SNum">0</span>)
 
     <span class="SCmt">// Explicit cast from 'u16' to 's16' required</span>
     <span class="SKwd">let</span> u_val: <span class="STpe">u16</span> = <span class="SNum">65535</span>
-    <span class="SKwd">let</span> s_val: <span class="STpe">s16</span> = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">s16</span>) u_val
+    <span class="SKwd">let</span> s_val: <span class="STpe">s16</span> = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">s16</span>, u_val)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(s_val == -<span class="SNum">1</span>)
 
     <span class="SCmt">// Explicit cast from 'f64' to 'f32' required</span>
     <span class="SKwd">let</span> large_float:   <span class="STpe">f64</span> = <span class="SNum">1.23456789012345611111</span>
-    <span class="SKwd">let</span> smaller_float: <span class="STpe">f32</span> = <span class="SKwd">cast</span>(<span class="STpe">f32</span>) large_float
+    <span class="SKwd">let</span> smaller_float: <span class="STpe">f32</span> = <span class="SKwd">cast</span>(<span class="STpe">f32</span>, large_float)
 }</span></div>
 <h3 id="_003_007_cast_swg_Casting_Between_Pointers_and_Integers">Casting Between Pointers and Integers</h3>
 <p>An address is an integer, so one explicit cast crosses in either direction. Towards a pointer, any integer type that fits in an address is accepted, and a narrower one is zero-extended; an enum crosses through its underlying type. Towards an integer, the destination has to be able to hold an address: <span class="code-inline">u64</span> and <span class="code-inline">s64</span> do, and a narrower type is refused rather than silently losing the high half of the address.</p>
-<p>Naming the destination is part of it. A <span class="code-inline">cast()</span> takes its destination from the context, and only <span class="code-inline">u64</span> reaches a pointer that way: an integer that could bind any pointer parameter would let overload resolution pick a call nobody wrote.</p>
+<p>Naming the destination is part of it. A <span class="code-inline">cast(value)</span> takes its destination from the context, and only <span class="code-inline">u64</span> reaches a pointer that way: an integer that could bind any pointer parameter would let overload resolution pick a call nobody wrote.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CastPointerTag</span>: <span class="STpe">u64</span>
 {
     <span class="SCst">First</span>  = <span class="SNum">7</span>
@@ -2430,21 +2438,21 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> storage: [<span class="SNum">16</span>] <span class="STpe">u8</span>
     <span class="SKwd">let</span> base = storage.buffer
 
-    <span class="SKwd">let</span> address = <span class="SKwd">cast</span>(<span class="STpe">u64</span>) base
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>([*] <span class="STpe">u8</span>) address == base)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s64</span>) base == <span class="SKwd">cast</span>(<span class="STpe">s64</span>) address)
+    <span class="SKwd">let</span> address = <span class="SKwd">cast</span>(<span class="STpe">u64</span>, base)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>([*] <span class="STpe">u8</span>, address) == base)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s64</span>, base) == <span class="SKwd">cast</span>(<span class="STpe">s64</span>, address))
 
     <span class="SCmt">// A narrower integer needs no second step towards a pointer.</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">0xBEEF</span>'<span class="STpe">u16</span> == <span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">0xBEEF</span>'<span class="STpe">u64</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SCst">CastPointerTag</span>.<span class="SCst">First</span> == <span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">7</span>'<span class="STpe">u64</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="SCst">CastPointerTag</span>) <span class="SKwd">cast</span>(*<span class="STpe">void</span>) <span class="SNum">9</span>'<span class="STpe">u64</span> == <span class="SCst">CastPointerTag</span>.<span class="SCst">Second</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(*<span class="STpe">void</span>, <span class="SNum">0xBEEF</span>'<span class="STpe">u16</span>) == <span class="SKwd">cast</span>(*<span class="STpe">void</span>, <span class="SNum">0xBEEF</span>'<span class="STpe">u64</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(*<span class="STpe">void</span>, <span class="SCst">CastPointerTag</span>.<span class="SCst">First</span>) == <span class="SKwd">cast</span>(*<span class="STpe">void</span>, <span class="SNum">7</span>'<span class="STpe">u64</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="SCst">CastPointerTag</span>, <span class="SKwd">cast</span>(*<span class="STpe">void</span>, <span class="SNum">9</span>'<span class="STpe">u64</span>)) == <span class="SCst">CastPointerTag</span>.<span class="SCst">Second</span>)
 
-    <span class="SCmt">// 'cast(u32) base' is refused. Widen the address first, then narrow that value with</span>
+    <span class="SCmt">// 'cast(u32, base)' is refused. Widen the address first, then narrow that value with</span>
     <span class="SCmt">// '#wrap' to say that dropping its high half is intended.</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>) address == <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>) <span class="SKwd">cast</span>(<span class="STpe">u64</span>) base)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>, address) == <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>, <span class="SKwd">cast</span>(<span class="STpe">u64</span>, base)))
 
     <span class="SCmt">// A deduced destination reaches a pointer from 'u64' only.</span>
-    <span class="SKwd">let</span> deduced: [*] <span class="STpe">u8</span> = <span class="SKwd">cast</span>() address
+    <span class="SKwd">let</span> deduced: [*] <span class="STpe">u8</span> = <span class="SKwd">cast</span>(address)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(deduced == base)
 }</span></div>
 <h3 id="_003_008_alias_swg">Alias</h3>
@@ -2481,8 +2489,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">alias</span> <span class="SCst">MyType</span> = <span class="STpe">s32</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SCst">MyType</span>) != <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> x: <span class="SCst">MyType</span> = <span class="SKwd">cast</span>(<span class="SCst">MyType</span>) <span class="SNum">0</span>
-    <span class="SKwd">let</span> y: <span class="STpe">s32</span>    = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) x
+    <span class="SKwd">let</span> x: <span class="SCst">MyType</span> = <span class="SKwd">cast</span>(<span class="SCst">MyType</span>, <span class="SNum">0</span>)
+    <span class="SKwd">let</span> y: <span class="STpe">s32</span>    = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, x)
 }</span></div>
 <h3 id="_003_008_alias_swg_Name_Alias">Name Alias</h3>
 <p>The <span class="code-inline">alias</span> keyword can also create shortcuts for functions, variables, or namespaces. This helps simplify long names and improve code readability.</p>
@@ -2533,7 +2541,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> ptr0 = array.buffer
     ptr0[<span class="SNum">0</span>] = <span class="SNum">1</span>
 
-    <span class="SKwd">var</span> ptr1 = <span class="SKwd">cast</span>([*] <span class="STpe">s32</span>) &amp;array[<span class="SNum">0</span>]
+    <span class="SKwd">var</span> ptr1 = <span class="SKwd">cast</span>([*] <span class="STpe">s32</span>, &amp;array[<span class="SNum">0</span>])
     ptr1[<span class="SNum">1</span>] = <span class="SNum">2</span>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array[<span class="SNum">0</span>] == <span class="SNum">1</span>)
@@ -2690,7 +2698,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> array: [<span class="SNum">4</span>] <span class="STpe">u32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
 
-    <span class="SKwd">let</span> slice: [..] <span class="STpe">u32</span> = <span class="SNsp">Swag</span>.<span class="SFct">makeSlice</span>(<span class="SKwd">cast</span>([*] <span class="STpe">u32</span>) &amp;array[<span class="SNum">0</span>] + <span class="SNum">2</span>, <span class="SNum">2</span>)
+    <span class="SKwd">let</span> slice: [..] <span class="STpe">u32</span> = <span class="SNsp">Swag</span>.<span class="SFct">makeSlice</span>(<span class="SKwd">cast</span>([*] <span class="STpe">u32</span>, &amp;array[<span class="SNum">0</span>]) + <span class="SNum">2</span>, <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice.count == <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice[<span class="SNum">0</span>] == <span class="SNum">30</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice[<span class="SNum">1</span>] == <span class="SNum">40</span>)
@@ -3023,7 +3031,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SCst">C</span> = <span class="SNum">6.0</span>
     }
 
-    <span class="SCmp">#assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">abs</span>(<span class="SKwd">cast</span>(<span class="STpe">f32</span>) <span class="SCst">Value2</span>.<span class="SCst">B</span> - <span class="SNum">3.14</span>) &lt; <span class="SNum">0.001</span>)
+    <span class="SCmp">#assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">abs</span>(<span class="SKwd">cast</span>(<span class="STpe">f32</span>, <span class="SCst">Value2</span>.<span class="SCst">B</span>) - <span class="SNum">3.14</span>) &lt; <span class="SNum">0.001</span>)
 }</span></div>
 <h3 id="_004_004_enum_swg_Counting_Enum_Values">Counting Enum Values</h3>
 <p><span class="code-inline">.count</span> returns the number of enum members.</p>
@@ -3075,8 +3083,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">enum</span> <span class="SCst">Value</span>: <span class="SKwd">const</span> [..] <span class="STpe">s32</span> { <span class="SCst">A</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>], <span class="SCst">B</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>] }
-    <span class="SKwd">let</span> a = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">s32</span>) <span class="SCst">Value</span>.<span class="SCst">A</span>
-    <span class="SKwd">let</span> b = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">s32</span>) <span class="SCst">Value</span>.<span class="SCst">B</span>
+    <span class="SKwd">let</span> a = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">s32</span>, <span class="SCst">Value</span>.<span class="SCst">A</span>)
+    <span class="SKwd">let</span> b = <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">s32</span>, <span class="SCst">Value</span>.<span class="SCst">B</span>)
     <span class="SCmp">#assert</span>(a.count == <span class="SNum">2</span>)
     <span class="SCmp">#assert</span>(b.count == <span class="SNum">3</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b[<span class="SNum">2</span>] == <span class="SNum">30</span>)
@@ -3505,33 +3513,33 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(grid[<span class="SNum">1</span>, <span class="SNum">2</span>] == <span class="SNum">5</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Reinterpreting_the_Pointed_Storage">Reinterpreting the Pointed Storage</h3>
-<p>Cast the pointer, then dereference it: <span class="code-inline">(cast(*T) expr)[]</span> reads or writes the same storage through a pointer to <span class="code-inline">T</span>. This changes the view of the bytes; it does not perform a numeric conversion. Use <span class="code-inline">const *T</span> for a read-only view. The caller is responsible for providing storage large enough for the requested type.</p>
+<p>Cast the pointer, then dereference it: <span class="code-inline">(cast(*T, expr))[]</span> reads or writes the same storage through a pointer to <span class="code-inline">T</span>. This changes the view of the bytes; it does not perform a numeric conversion. Use <span class="code-inline">const *T</span> for a read-only view. The caller is responsible for providing storage large enough for the requested type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> f = <span class="SNum">1.0</span>'<span class="STpe">f32</span>
     <span class="SKwd">let</span> p = &amp;f
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">u32</span>) p)[] == <span class="SNum">0x3F80_0000</span>)     <span class="SCmt">// The float's bit pattern, not a conversion</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">u32</span>, p)[] == <span class="SNum">0x3F80_0000</span>)     <span class="SCmt">// The float's bit pattern, not a conversion</span>
 
     <span class="SKwd">var</span> value = <span class="SNum">0</span>'<span class="STpe">s32</span>
     <span class="SKwd">let</span> vp    = &amp;value
-    (<span class="SKwd">cast</span>(*<span class="STpe">u32</span>) vp)[] = <span class="SNum">0xFFFF_FFFF</span>     <span class="SCmt">// Writes through the reinterpreted place</span>
+    <span class="SKwd">cast</span>(*<span class="STpe">u32</span>, vp)[] = <span class="SNum">0xFFFF_FFFF</span>     <span class="SCmt">// Writes through the reinterpreted place</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == -<span class="SNum">1</span>)
 }</span></div>
-<p><span class="code-inline">*T</span> points to <b>one</b> value. To walk a buffer with another element type, cast to a block pointer: <span class="code-inline">(cast([*] T) p)[i]</span>. When the element count is known, a pointer to an array provides a fixed shape: <span class="code-inline">(cast(*[4] u32) p)[][1]</span> names its second word.</p>
+<p><span class="code-inline">*T</span> points to <b>one</b> value. To walk a buffer with another element type, cast to a block pointer: <span class="code-inline">(cast([*] T, p))[i]</span>. When the element count is known, a pointer to an array provides a fixed shape: <span class="code-inline">(cast(*[4] u32, p))[][1]</span> names its second word.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> bytes: [<span class="SNum">16</span>] <span class="STpe">u8</span>
     <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">16</span> <span class="SLgc">do</span>
-        bytes[i] = <span class="SKwd">cast</span>(<span class="STpe">u8</span>) i
+        bytes[i] = <span class="SKwd">cast</span>(<span class="STpe">u8</span>, i)
 
     <span class="SCmt">// Walk the same storage as four words.</span>
-    <span class="SKwd">let</span> words = <span class="SKwd">cast</span>([*] <span class="STpe">u32</span>) bytes.buffer
+    <span class="SKwd">let</span> words = <span class="SKwd">cast</span>([*] <span class="STpe">u32</span>, bytes.buffer)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(words[<span class="SNum">0</span>] == <span class="SNum">0x0302_0100</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(words[<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
 
     <span class="SCmt">// Or name a fixed array shape.</span>
     <span class="SKwd">let</span> p = bytes.buffer
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SKwd">const</span> *[<span class="SNum">4</span>] <span class="STpe">u32</span>) p)[][<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="SKwd">const</span> *[<span class="SNum">4</span>] <span class="STpe">u32</span>, p)[][<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Pointers_to_Const_Data">Pointers to Const Data</h3>
 <p><span class="code-inline">const</span> qualifies the <b>pointed-to data</b>, never the pointer itself. Written just before a <span class="code-inline">*</span>, it makes whatever that <span class="code-inline">*</span> points to read-only, so <span class="code-inline">const *u8</span> is a pointer to a read-only <span class="code-inline">u8</span> and assigning through <span class="code-inline">[]</span> is rejected. The pointer variable stays free to point somewhere else; <span class="code-inline">let</span> is what makes a pointer itself immutable.</p>
@@ -3564,7 +3572,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> arr: [<span class="SNum">4</span>] <span class="STpe">s32</span>
-    <span class="SKwd">var</span> ptr = <span class="SKwd">cast</span>([*] <span class="STpe">s32</span>) &amp;arr[<span class="SNum">1</span>]
+    <span class="SKwd">var</span> ptr = <span class="SKwd">cast</span>([*] <span class="STpe">s32</span>, &amp;arr[<span class="SNum">1</span>])
 
     <span class="SCmt">// The pointer is treated as a multi-value pointer</span>
     ptr = ptr - <span class="SNum">1</span>
@@ -3576,7 +3584,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> arr = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
-    <span class="SKwd">let</span> ptr = <span class="SKwd">cast</span>([*] <span class="STpe">s32</span>) &amp;arr[<span class="SNum">0</span>]
+    <span class="SKwd">let</span> ptr = <span class="SKwd">cast</span>([*] <span class="STpe">s32</span>, &amp;arr[<span class="SNum">0</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SItr">#typeof</span>(ptr) == [*] <span class="STpe">s32</span>)
     <span class="SKwd">let</span> value1 = ptr[<span class="SNum">0</span>]
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value1 == <span class="SNum">1</span>)
@@ -3601,22 +3609,22 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SCmt">// Store an s32 literal value in the 'any'</span>
     a = <span class="SNum">6</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) a == <span class="SNum">6</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">s32</span>, a) == <span class="SNum">6</span>)
 
     <span class="SCmt">// Now store a string</span>
     a = <span class="SStr">"string"</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">string</span>) a! == <span class="SStr">"string"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">string</span>, a!) == <span class="SStr">"string"</span>)
 
     <span class="SCmt">// Now store a bool</span>
     a = <span class="SKwd">true</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">bool</span>) a == <span class="SKwd">true</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">bool</span>, a) == <span class="SKwd">true</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Working_with__any__and_Pointers">Working with <span class="code-inline">any</span> and Pointers</h3>
-<p>Use <span class="code-inline">cast #try (*T)</span> to borrow the stored value after checking its type.</p>
+<p>Use <span class="code-inline">try cast(*T, boxed)</span> to borrow the stored value after checking its type. Use <span class="code-inline">catch cast(*T?, boxed)</span> when a failed conversion should produce null.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
-    <span class="SKwd">let</span> ptr    = <span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SKwd">const</span> *<span class="STpe">s32</span>) a
+    <span class="SKwd">let</span> ptr    = (<span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">6</span>)
 }</span></div>
@@ -3639,10 +3647,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) == <span class="STpe">any</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(a) == <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> b = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) a     <span class="SCmt">// Get the value itself</span>
+    <span class="SKwd">let</span> b = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">s32</span>, a)     <span class="SCmt">// Get the value itself</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">42</span>)
 
-    <span class="SKwd">let</span> d = <span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="SKwd">const</span> *<span class="STpe">s32</span>) a     <span class="SCmt">// Get a constant pointer to the value</span>
+    <span class="SKwd">let</span> d = <span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="SKwd">const</span> *<span class="STpe">s32</span>, a)     <span class="SCmt">// Get a constant pointer to the value</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(d[] == <span class="SNum">42</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Arrays_of__any_">Arrays of <span class="code-inline">any</span></h3>
@@ -3656,10 +3664,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(array[<span class="SNum">2</span>]) == <span class="STpe">f32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(array[<span class="SNum">3</span>]) == <span class="STpe">string</span>)
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">bool</span>) array[<span class="SNum">0</span>] == <span class="SKwd">true</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">s32</span>) array[<span class="SNum">1</span>] == <span class="SNum">2</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">f32</span>) array[<span class="SNum">2</span>] == <span class="SNum">3.0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">string</span>) array[<span class="SNum">3</span>] == <span class="SStr">"4"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">bool</span>, array[<span class="SNum">0</span>]) == <span class="SKwd">true</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">s32</span>, array[<span class="SNum">1</span>]) == <span class="SNum">2</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">f32</span>, array[<span class="SNum">2</span>]) == <span class="SNum">3.0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">string</span>, array[<span class="SNum">3</span>]) == <span class="SStr">"4"</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Nullability_of__any_">Nullability of <span class="code-inline">any</span></h3>
 <p>An <span class="code-inline">any?</span> value can be null and defaults to that absent state. A bare <span class="code-inline">any</span> requires a value. Prove presence before inspecting or converting a nullable value, just as for pointers and other nullable types.</p>
@@ -3670,11 +3678,11 @@ swc test -w path/to/workspace -m messages</span></div>
 
     x = <span class="SNum">6</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) x == <span class="SNum">6</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">s32</span>, x) == <span class="SNum">6</span>)
 
     x = <span class="SStr">"string"</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">string</span>) x == <span class="SStr">"string"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">string</span>, x) == <span class="SStr">"string"</span>)
 
     x = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
@@ -3721,66 +3729,66 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> lanes: <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
     <span class="SKwd">let</span> fours = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">4</span>'<span class="STpe">s32</span>)
-    <span class="SKwd">let</span> sum   = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (lanes + fours)
+    <span class="SKwd">let</span> sum   = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (lanes + fours))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(sum[<span class="SNum">0</span>] == <span class="SNum">5</span> <span class="SLgc">and</span> sum[<span class="SNum">3</span>] == <span class="SNum">8</span>)
 
     <span class="SCmt">// A broadcast of a constant is a constant.</span>
     <span class="SKwd">const</span> <span class="SCst">Ones</span>     = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">u8</span>)
-    <span class="SKwd">const</span> <span class="SCst">OneLanes</span> = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SCst">Ones</span>
+    <span class="SKwd">const</span> <span class="SCst">OneLanes</span> = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SCst">Ones</span>)
     <span class="SCmp">#assert</span>(<span class="SCst">OneLanes</span>[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> <span class="SCst">OneLanes</span>[<span class="SNum">15</span>] == <span class="SNum">1</span>)
 
     <span class="SKwd">var</span> raw: [<span class="SNum">8</span>] <span class="STpe">u16</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>]
-    <span class="SKwd">let</span> packed       = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>) raw
-    <span class="SKwd">let</span> bytesView    = <span class="SKwd">cast</span> <span class="SItr">#bit</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) packed
-    <span class="SKwd">let</span> back         = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) bytesView
+    <span class="SKwd">let</span> packed       = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, raw)
+    <span class="SKwd">let</span> bytesView    = <span class="SKwd">cast</span> <span class="SItr">#bit</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, packed)
+    <span class="SKwd">let</span> back         = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, bytesView)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(back[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> back[<span class="SNum">2</span>] == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Element-Wise_Operators">Element-Wise Operators</h3>
 <p>The arithmetic, bitwise and shift operators compute per lane, and a scalar operand broadcasts over the other side's lanes. Lane arithmetic always wraps: a vector is machine data, and no overflow guard applies. The operators follow what the hardware provides on every target: packed integer divide and modulo remain unavailable. Integer multiply and shifts without a direct packed instruction use register-only portable lowerings. Unary <span class="code-inline">+</span> is the identity for every vector shape.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> v = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
-    <span class="SKwd">let</span> w = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
+    <span class="SKwd">let</span> v = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>])
+    <span class="SKwd">let</span> w = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>])
 
-    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (+v)
+    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (+v))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">4</span>)
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (v + w)
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (v + w))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">11</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">44</span>)
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (w * <span class="SNum">2</span>)
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (w * <span class="SNum">2</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">80</span>)
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (v &lt;&lt; <span class="SNum">4</span>)
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (v &lt;&lt; <span class="SNum">4</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">16</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">64</span>)
 
-    <span class="SKwd">let</span> bytes        = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">0x81</span>, <span class="SNum">0x7F</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">255</span>, <span class="SNum">128</span>, <span class="SNum">64</span>, <span class="SNum">3</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>]
-    <span class="SKwd">let</span> shiftedBytes = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) (bytes &lt;&lt; <span class="SNum">1</span>)
+    <span class="SKwd">let</span> bytes        = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">0x81</span>, <span class="SNum">0x7F</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">255</span>, <span class="SNum">128</span>, <span class="SNum">64</span>, <span class="SNum">3</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>])
+    <span class="SKwd">let</span> shiftedBytes = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, (bytes &lt;&lt; <span class="SNum">1</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(shiftedBytes[<span class="SNum">0</span>] == <span class="SNum">2</span> <span class="SLgc">and</span> shiftedBytes[<span class="SNum">1</span>] == <span class="SNum">254</span>)
 
-    <span class="SKwd">let</span> wide        = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">s64</span>) [-<span class="SNum">8</span>, <span class="SNum">0x4000_0000_0000_0000</span>]
-    <span class="SKwd">let</span> shiftedWide = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">s64</span>) (wide &gt;&gt; <span class="SNum">2</span>)
+    <span class="SKwd">let</span> wide        = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">s64</span>, [-<span class="SNum">8</span>, <span class="SNum">0x4000_0000_0000_0000</span>])
+    <span class="SKwd">let</span> shiftedWide = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">s64</span>, (wide &gt;&gt; <span class="SNum">2</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(shiftedWide[<span class="SNum">0</span>] == -<span class="SNum">2</span> <span class="SLgc">and</span> shiftedWide[<span class="SNum">1</span>] == <span class="SNum">0x1000_0000_0000_0000</span>)
 
-    <span class="SKwd">let</span> factors1 = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>) [<span class="SNum">0xFFFF_FFFF_FFFF_FFFF</span>, <span class="SNum">0x1_0000_0001</span>]
-    <span class="SKwd">let</span> factors2 = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>) [<span class="SNum">2</span>, <span class="SNum">0x1_0000_0001</span>]
-    <span class="SKwd">let</span> products = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>) (factors1 * factors2)
+    <span class="SKwd">let</span> factors1 = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>, [<span class="SNum">0xFFFF_FFFF_FFFF_FFFF</span>, <span class="SNum">0x1_0000_0001</span>])
+    <span class="SKwd">let</span> factors2 = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>, [<span class="SNum">2</span>, <span class="SNum">0x1_0000_0001</span>])
+    <span class="SKwd">let</span> products = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>, (factors1 * factors2))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(products[<span class="SNum">0</span>] == <span class="SNum">0xFFFF_FFFF_FFFF_FFFE</span> <span class="SLgc">and</span> products[<span class="SNum">1</span>] == <span class="SNum">0x2_0000_0001</span>)
 
     <span class="SCmt">// Lanes wrap by definition.</span>
     <span class="SKwd">let</span> big  = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">2_147_483_647</span>'<span class="STpe">s32</span>)
-    <span class="SKwd">let</span> wrap = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) (big + <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">s32</span>))
+    <span class="SKwd">let</span> wrap = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (big + <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">s32</span>)))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(wrap[<span class="SNum">0</span>] == -<span class="SNum">2_147_483_648</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Comparisons_And_Masks">Comparisons And Masks</h3>
 <p>An element-wise comparison produces a mask vector, not a bool: unsigned lanes of the same geometry, all-ones where the compare holds. <span class="code-inline">Swag.vecselect</span> blends two vectors through a mask, <span class="code-inline">Swag.vecmask</span> gathers the lane sign bits into an integer, and <span class="code-inline">Swag.vecany</span>/<span class="code-inline">Swag.vecall</span> reduce a mask to a bool.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> a = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">50</span>, <span class="SNum">3</span>, <span class="SNum">70</span>]
-    <span class="SKwd">let</span> b = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
+    <span class="SKwd">let</span> a = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">50</span>, <span class="SNum">3</span>, <span class="SNum">70</span>])
+    <span class="SKwd">let</span> b = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>])
 
     <span class="SKwd">let</span> mask = a &gt; b
-    <span class="SKwd">let</span> m    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) mask
+    <span class="SKwd">let</span> m    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, mask)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(m[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> m[<span class="SNum">1</span>] == <span class="SNum">0xFFFF_FFFF</span>)
 
-    <span class="SKwd">let</span> clamped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecselect</span>(mask, b, a)
+    <span class="SKwd">let</span> clamped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecselect</span>(mask, b, a))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(clamped[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> clamped[<span class="SNum">1</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> clamped[<span class="SNum">2</span>] == <span class="SNum">3</span> <span class="SLgc">and</span> clamped[<span class="SNum">3</span>] == <span class="SNum">40</span>)
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecmask</span>(mask) == <span class="SNum">0b1010</span>)
@@ -3790,7 +3798,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Lanes read and write like array elements. A constant index is checked at compile time against the lane count; a dynamic one is bound-checked at run time like an array index.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> v = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>]
+    <span class="SKwd">var</span> v = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> v[<span class="SNum">7</span>] == <span class="SNum">8</span>)
     v[<span class="SNum">3</span>] = <span class="SNum">99</span>
     <span class="SKwd">var</span> i: <span class="STpe">u64</span> = <span class="SNum">3</span>
@@ -3802,34 +3810,34 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> a = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
     <span class="SKwd">let</span> b = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">100</span>'<span class="STpe">u8</span>)
-    <span class="SKwd">let</span> r = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecsatadd</span>(a, b)
+    <span class="SKwd">let</span> r = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecsatadd</span>(a, b))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">255</span>)
 
     <span class="SCmt">// The classic codec step: 16-bit intermediates narrowed back to bytes,</span>
     <span class="SCmt">// the clamp riding inside the pack.</span>
-    <span class="SKwd">let</span> sums = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>) [-<span class="SNum">20</span>, <span class="SNum">0</span>, <span class="SNum">128</span>, <span class="SNum">300</span>, <span class="SNum">255</span>, <span class="SNum">256</span>, <span class="SNum">64</span>, <span class="SNum">1</span>]
-    <span class="SKwd">let</span> px   = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecpackus</span>(sums, sums)
+    <span class="SKwd">let</span> sums = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>, [-<span class="SNum">20</span>, <span class="SNum">0</span>, <span class="SNum">128</span>, <span class="SNum">300</span>, <span class="SNum">255</span>, <span class="SNum">256</span>, <span class="SNum">64</span>, <span class="SNum">1</span>])
+    <span class="SKwd">let</span> px   = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecpackus</span>(sums, sums))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(px[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> px[<span class="SNum">2</span>] == <span class="SNum">128</span> <span class="SLgc">and</span> px[<span class="SNum">3</span>] == <span class="SNum">255</span> <span class="SLgc">and</span> px[<span class="SNum">4</span>] == <span class="SNum">255</span>)
 
-    <span class="SKwd">let</span> wide = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecwidenlo</span>(a)
+    <span class="SKwd">let</span> wide = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecwidenlo</span>(a))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(wide[<span class="SNum">0</span>] == <span class="SNum">200</span>)
 
-    <span class="SKwd">let</span> indices = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>]
-    <span class="SKwd">let</span> zipped  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecinterleavelo</span>(indices, b)
+    <span class="SKwd">let</span> indices = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>])
+    <span class="SKwd">let</span> zipped  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecinterleavelo</span>(indices, b))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(zipped[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> zipped[<span class="SNum">1</span>] == <span class="SNum">100</span> <span class="SLgc">and</span> zipped[<span class="SNum">14</span>] == <span class="SNum">7</span> <span class="SLgc">and</span> zipped[<span class="SNum">15</span>] == <span class="SNum">100</span>)
 
-    <span class="SKwd">let</span> avg = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecavgr</span>(a, b)
+    <span class="SKwd">let</span> avg = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecavgr</span>(a, b))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(avg[<span class="SNum">0</span>] == <span class="SNum">150</span>)
 
-    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(quads) == <span class="SNum">10</span>)
 
-    <span class="SKwd">let</span> samples = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [<span class="SNum">1.9</span>, -<span class="SNum">1.9</span>, <span class="SNum">32767.9</span>, -<span class="SNum">32768.9</span>]
-    <span class="SKwd">let</span> ints    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SNsp">Swag</span>.<span class="SFct">vectruncs32</span>(samples)
+    <span class="SKwd">let</span> samples = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>, [<span class="SNum">1.9</span>, -<span class="SNum">1.9</span>, <span class="SNum">32767.9</span>, -<span class="SNum">32768.9</span>])
+    <span class="SKwd">let</span> ints    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vectruncs32</span>(samples))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ints[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> ints[<span class="SNum">1</span>] == -<span class="SNum">1</span> <span class="SLgc">and</span> ints[<span class="SNum">2</span>] == <span class="SNum">32767</span> <span class="SLgc">and</span> ints[<span class="SNum">3</span>] == -<span class="SNum">32768</span>)
 
     <span class="SKwd">var</span> lookup: [<span class="SNum">5</span>] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>]
-    <span class="SKwd">let</span> found = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecgather</span>(lookup.buffer, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">4</span>, <span class="SNum">0</span>, <span class="SNum">3</span>, <span class="SNum">1</span>])
+    <span class="SKwd">let</span> found = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecgather</span>(lookup.buffer, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">4</span>, <span class="SNum">0</span>, <span class="SNum">3</span>, <span class="SNum">1</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found[<span class="SNum">0</span>] == <span class="SNum">50</span> <span class="SLgc">and</span> found[<span class="SNum">1</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> found[<span class="SNum">2</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> found[<span class="SNum">3</span>] == <span class="SNum">20</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_The_Other_Half_Of_A_Product">The Other Half Of A Product</h3>
@@ -3837,17 +3845,17 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>A 16-bit lane has the instruction directly. The other widths compose it: bytes widen to words where the product is exact, 32-bit lanes take the two widening products the hardware offers and gather their high halves, and 64-bit lanes add up the four partial products of their halves.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> x = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>) [-<span class="SNum">32768</span>, <span class="SNum">32767</span>, <span class="SNum">1000</span>, -<span class="SNum">1000</span>, <span class="SNum">3</span>, -<span class="SNum">3</span>, <span class="SNum">0</span>, <span class="SNum">12345</span>]
-    <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>) [<span class="SNum">32767</span>, <span class="SNum">32767</span>, -<span class="SNum">2000</span>, <span class="SNum">2000</span>, <span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">12345</span>, -<span class="SNum">1</span>]
+    <span class="SKwd">let</span> x = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>, [-<span class="SNum">32768</span>, <span class="SNum">32767</span>, <span class="SNum">1000</span>, -<span class="SNum">1000</span>, <span class="SNum">3</span>, -<span class="SNum">3</span>, <span class="SNum">0</span>, <span class="SNum">12345</span>])
+    <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>, [<span class="SNum">32767</span>, <span class="SNum">32767</span>, -<span class="SNum">2000</span>, <span class="SNum">2000</span>, <span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">12345</span>, -<span class="SNum">1</span>])
 
-    <span class="SKwd">let</span> low  = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>) (x * y)
-    <span class="SKwd">let</span> high = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecmulhi</span>(x, y)
+    <span class="SKwd">let</span> low  = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>, (x * y))
+    <span class="SKwd">let</span> high = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecmulhi</span>(x, y))
 
     <span class="SCmt">// 1000 * -2000 is -2000000, which is 0xFFE17B80 over two lanes.</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>) low[<span class="SNum">2</span>] == <span class="SNum">0x7B80</span> <span class="SLgc">and</span> <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>) high[<span class="SNum">2</span>] == <span class="SNum">0xFFE1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>, low[<span class="SNum">2</span>]) == <span class="SNum">0x7B80</span> <span class="SLgc">and</span> <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>, high[<span class="SNum">2</span>]) == <span class="SNum">0xFFE1</span>)
 
     <span class="SCmt">// Read as unsigned, the same bits give a different half above the lane.</span>
-    <span class="SKwd">let</span> unsignedHigh = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecmulhi</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>) x, <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>) y)
+    <span class="SKwd">let</span> unsignedHigh = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecmulhi</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, x), <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, y)))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(unsignedHigh[<span class="SNum">2</span>] == <span class="SNum">0x03C9</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Lane_Permutation">Lane Permutation</h3>
@@ -3855,26 +3863,26 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>A pattern the compiler can see selects an immediate form where the target has one: a permutation of 32-bit lanes is one <span class="code-inline">pshufd</span>, a two-source pattern whose low half comes from one vector and whose high half comes from the other is one <span class="code-inline">shufps</span>, and a constant byte offset is one <span class="code-inline">palignr</span>. Everything else becomes a permute against a constant byte table. A pattern that only exists at run time keeps the same meaning through the dynamic byte permute, which is what <span class="code-inline">Swag.vecperm</span> exposes on its own.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>])
 
-    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">3</span>, <span class="SNum">2</span>, <span class="SNum">1</span>, <span class="SNum">0</span>])
+    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">3</span>, <span class="SNum">2</span>, <span class="SNum">1</span>, <span class="SNum">0</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> r[<span class="SNum">1</span>] == <span class="SNum">30</span> <span class="SLgc">and</span> r[<span class="SNum">2</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">10</span>)
 
     <span class="SCmt">// An index past the last lane wraps around instead of reading nothing.</span>
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>])
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">40</span>)
 
-    <span class="SKwd">let</span> other = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>]
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle2</span>(quads, other, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">0</span>, <span class="SNum">2</span>, <span class="SNum">5</span>, <span class="SNum">7</span>])
+    <span class="SKwd">let</span> other = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>])
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle2</span>(quads, other, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">0</span>, <span class="SNum">2</span>, <span class="SNum">5</span>, <span class="SNum">7</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> r[<span class="SNum">1</span>] == <span class="SNum">30</span> <span class="SLgc">and</span> r[<span class="SNum">2</span>] == <span class="SNum">60</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">80</span>)
 
-    <span class="SKwd">let</span> bytes = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>]
-    <span class="SKwd">let</span> next  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">16</span>, <span class="SNum">17</span>, <span class="SNum">18</span>, <span class="SNum">19</span>, <span class="SNum">20</span>, <span class="SNum">21</span>, <span class="SNum">22</span>, <span class="SNum">23</span>, <span class="SNum">24</span>, <span class="SNum">25</span>, <span class="SNum">26</span>, <span class="SNum">27</span>, <span class="SNum">28</span>, <span class="SNum">29</span>, <span class="SNum">30</span>, <span class="SNum">31</span>]
-    <span class="SKwd">let</span> slid  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecalign</span>(bytes, next, <span class="SNum">4</span>)
+    <span class="SKwd">let</span> bytes = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>])
+    <span class="SKwd">let</span> next  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">16</span>, <span class="SNum">17</span>, <span class="SNum">18</span>, <span class="SNum">19</span>, <span class="SNum">20</span>, <span class="SNum">21</span>, <span class="SNum">22</span>, <span class="SNum">23</span>, <span class="SNum">24</span>, <span class="SNum">25</span>, <span class="SNum">26</span>, <span class="SNum">27</span>, <span class="SNum">28</span>, <span class="SNum">29</span>, <span class="SNum">30</span>, <span class="SNum">31</span>])
+    <span class="SKwd">let</span> slid  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecalign</span>(bytes, next, <span class="SNum">4</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slid[<span class="SNum">0</span>] == <span class="SNum">4</span> <span class="SLgc">and</span> slid[<span class="SNum">11</span>] == <span class="SNum">15</span> <span class="SLgc">and</span> slid[<span class="SNum">12</span>] == <span class="SNum">16</span> <span class="SLgc">and</span> slid[<span class="SNum">15</span>] == <span class="SNum">19</span>)
 
     <span class="SCmt">// Past the concatenation there is nothing to read.</span>
-    <span class="SKwd">let</span> empty = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecalign</span>(bytes, next, <span class="SNum">32</span>)
+    <span class="SKwd">let</span> empty = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecalign</span>(bytes, next, <span class="SNum">32</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(empty[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> empty[<span class="SNum">15</span>] == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Horizontal_Reductions">Horizontal Reductions</h3>
@@ -3883,29 +3891,29 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Nothing here goes through memory: each step slides the upper half of the vector down and applies one element-wise operation.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(quads) == <span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemin</span>(quads) == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemax</span>(quads) == <span class="SNum">4</span>)
 
-    <span class="SKwd">let</span> bits = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">0b1110</span>, <span class="SNum">0b1010</span>, <span class="SNum">0b1111</span>, <span class="SNum">0b0110</span>]
+    <span class="SKwd">let</span> bits = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">0b1110</span>, <span class="SNum">0b1010</span>, <span class="SNum">0b1111</span>, <span class="SNum">0b0110</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceand</span>(bits) == <span class="SNum">0b0010</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceor</span>(bits) == <span class="SNum">0b1111</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducexor</span>(bits) == <span class="SNum">0b1101</span>)
 
     <span class="SCmt">// An integer sum wraps, like every other lane arithmetic.</span>
-    <span class="SKwd">let</span> edge = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">2_147_483_647</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
+    <span class="SKwd">let</span> edge = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">2_147_483_647</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">0</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(edge) == -<span class="SNum">2_147_483_648</span>)
 
-    <span class="SKwd">let</span> floats = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [<span class="SNum">1.5</span>, -<span class="SNum">2.5</span>, <span class="SNum">8.0</span>, <span class="SNum">0.25</span>]
+    <span class="SKwd">let</span> floats = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>, [<span class="SNum">1.5</span>, -<span class="SNum">2.5</span>, <span class="SNum">8.0</span>, <span class="SNum">0.25</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(floats) == <span class="SNum">7.25</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemin</span>(floats) == -<span class="SNum">2.5</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemax</span>(floats) == <span class="SNum">8.0</span>)
 
     <span class="SCmt">// The absolute byte differences of each half land in one 64-bit lane each.</span>
-    <span class="SKwd">let</span> left  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
-    <span class="SKwd">let</span> right = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">255</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
-    <span class="SKwd">let</span> diffs = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>) <span class="SNsp">Swag</span>.<span class="SFct">vecsad</span>(left, right)
+    <span class="SKwd">let</span> left  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>])
+    <span class="SKwd">let</span> right = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">255</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>])
+    <span class="SKwd">let</span> diffs = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecsad</span>(left, right))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(diffs[<span class="SNum">0</span>] == <span class="SNum">9</span> + <span class="SNum">18</span> + <span class="SNum">27</span> + <span class="SNum">36</span> + <span class="SNum">45</span> + <span class="SNum">54</span> + <span class="SNum">63</span> + <span class="SNum">72</span> <span class="SLgc">and</span> diffs[<span class="SNum">1</span>] == <span class="SNum">255</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Bit_Operations">Packed Bit Operations</h3>
@@ -3913,30 +3921,30 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>None of these has a single packed instruction on the baseline target: a constant rotation is a shift pair, a variable one reduces its count first, the counts go through a nibble table, and the byte reversal is one dynamic permute.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">0x1234_5678</span>, <span class="SNum">0xFFFF_FFFF</span>]
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">0x1234_5678</span>, <span class="SNum">0xFFFF_FFFF</span>])
 
-    <span class="SKwd">let</span> rotated = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">8</span>)
+    <span class="SKwd">let</span> rotated = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">8</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(rotated[<span class="SNum">1</span>] == <span class="SNum">0x100</span> <span class="SLgc">and</span> rotated[<span class="SNum">2</span>] == <span class="SNum">0x3456_7812</span>)
-    <span class="SKwd">let</span> restored = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">ror</span>(<span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">8</span>), <span class="SNum">8</span>)
+    <span class="SKwd">let</span> restored = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">ror</span>(<span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">8</span>), <span class="SNum">8</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(restored[<span class="SNum">2</span>] == <span class="SNum">0x1234_5678</span>)
 
     <span class="SCmt">// The count reduces modulo the lane width, so a whole turn changes nothing.</span>
-    <span class="SKwd">let</span> turned = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">32</span>)
+    <span class="SKwd">let</span> turned = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">32</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(turned[<span class="SNum">2</span>] == <span class="SNum">0x1234_5678</span>)
 
-    <span class="SKwd">let</span> ones = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">bitCountNz</span>(quads)
+    <span class="SKwd">let</span> ones = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">bitCountNz</span>(quads))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ones[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> ones[<span class="SNum">1</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> ones[<span class="SNum">3</span>] == <span class="SNum">32</span>)
 
     <span class="SCmt">// An empty lane answers the lane width for both counts.</span>
-    <span class="SKwd">let</span> below = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">bitCountTz</span>(quads)
-    <span class="SKwd">let</span> above = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">bitCountLz</span>(quads)
+    <span class="SKwd">let</span> below = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">bitCountTz</span>(quads))
+    <span class="SKwd">let</span> above = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">bitCountLz</span>(quads))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(below[<span class="SNum">0</span>] == <span class="SNum">32</span> <span class="SLgc">and</span> below[<span class="SNum">1</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> below[<span class="SNum">2</span>] == <span class="SNum">3</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(above[<span class="SNum">0</span>] == <span class="SNum">32</span> <span class="SLgc">and</span> above[<span class="SNum">1</span>] == <span class="SNum">31</span> <span class="SLgc">and</span> above[<span class="SNum">3</span>] == <span class="SNum">0</span>)
 
-    <span class="SKwd">let</span> swapped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SNsp">Swag</span>.<span class="SFct">byteSwap</span>(quads)
+    <span class="SKwd">let</span> swapped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">byteSwap</span>(quads))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(swapped[<span class="SNum">1</span>] == <span class="SNum">0x0100_0000</span> <span class="SLgc">and</span> swapped[<span class="SNum">2</span>] == <span class="SNum">0x7856_3412</span>)
 
-    <span class="SKwd">let</span> magnitude = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">f32</span>) <span class="SNsp">Swag</span>.<span class="SFct">abs</span>(<span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [-<span class="SNum">1.5</span>, <span class="SNum">2.5</span>, -<span class="SNum">0.0</span>, -<span class="SNum">8.25</span>])
+    <span class="SKwd">let</span> magnitude = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">f32</span>, <span class="SNsp">Swag</span>.<span class="SFct">abs</span>(<span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>, [-<span class="SNum">1.5</span>, <span class="SNum">2.5</span>, -<span class="SNum">0.0</span>, -<span class="SNum">8.25</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(magnitude[<span class="SNum">0</span>] == <span class="SNum">1.5</span> <span class="SLgc">and</span> magnitude[<span class="SNum">3</span>] == <span class="SNum">8.25</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Boundaries">Boundaries</h3>
@@ -4518,7 +4526,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Iterate from the last element to the first through a borrowed reverse view. The second visit value is the index within the original collection, which counts down; a loop that needs the position within the view keeps its own counter.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> text = <span class="SKwd">cast</span>(<span class="SKwd">const</span> <span class="STpe">cstring</span>) (<span class="SStr">"ABC"</span>).buffer
+    <span class="SKwd">let</span> text = <span class="SKwd">cast</span>(<span class="SKwd">const</span> <span class="STpe">cstring</span>, (<span class="SStr">"ABC"</span>).buffer)
     <span class="SKwd">var</span> cpt  = <span class="SNum">0</span>
     <span class="SLgc">for</span> value, index <span class="SLgc">in</span> text.<span class="SFct">reversed</span>()
     {
@@ -4611,7 +4619,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
 
     <span class="SLgc">for</span> &amp;p, index <span class="SLgc">in</span> points <span class="SLgc">do</span>
-        p[] = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>) index, <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index}
+        p[] = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>, index), <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)}
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(points[<span class="SNum">0</span>].x == <span class="SNum">0</span> <span class="SLgc">and</span> points[<span class="SNum">0</span>].y == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(points[<span class="SNum">1</span>].x == <span class="SNum">1</span> <span class="SLgc">and</span> points[<span class="SNum">1</span>].y == <span class="SNum">1</span>)
@@ -4934,7 +4942,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_005_005_switch_swg_Switching_on_Type_with__any__or__interface_">Switching on Type with <span class="code-inline">any</span> or <span class="code-inline">interface</span></h3>
 <p>A switch over an <span class="code-inline">any</span>, an interface, or a pointer to a dynamic struct can match concrete types. Write <span class="code-inline">case T</span> to test compatibility, or <span class="code-inline">case T as name</span> to borrow the matching object. An interface type can also be the target of a case.</p>
-<p>The subject is evaluated once. Matching uses the same compatibility and pointer adjustments as <span class="code-inline">cast #try</span>. A null source does not match a type. The first matching case whose <span class="code-inline">where</span> guard succeeds is selected. Pointer subjects also retain ordinary pointer cases, including <span class="code-inline">case null</span>; these can appear alongside type cases.</p>
+<p>The subject is evaluated once. Matching uses the same compatibility and pointer adjustments as a checked cast. A null source does not match a type. The first matching case whose <span class="code-inline">where</span> guard succeeds is selected. Pointer subjects also retain ordinary pointer cases, including <span class="code-inline">case null</span>; these can appear alongside type cases.</p>
 <p>A concrete binding has type <span class="code-inline">*T</span>; an interface binding is an interface view. Both are non-null, preserve source constness, and borrow without extending the source's lifetime. The name is visible in its case's guard and body only.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -4948,7 +4956,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <p>A <span class="code-inline">fallthrough</span> into a typed case checks its type and <span class="code-inline">where</span> guard before entering its body; an unsuccessful match continues to the next case. <span class="code-inline">switch #complete</span> asserts that some case matches, with a panic on a miss when <span class="code-inline">.Switch</span> safety is enabled.</p>
-<p>An expressionless switch also accepts <span class="code-inline">case let name = expression</span>. It evaluates the expression once and enters the case if its result is present. This general binding remains useful for nullable results from ordinary expressions. A direct <span class="code-inline">cast #try</span> initializer is rejected; use a typed switch for dynamic dispatch.</p>
+<p>An expressionless switch also accepts <span class="code-inline">case let name = expression</span>. It evaluates the expression once and enters the case if its result is present. This general binding remains useful for nullable results from ordinary expressions. Prefer a typed switch when dispatching by the dynamic type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">findText</span>(value: *<span class="STpe">string</span>?)-&gt;*<span class="STpe">string</span>? =&gt; value
@@ -5434,7 +5442,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> type    = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) <span class="SItr">#type</span> <span class="SCst">MyStruct</span>
+    <span class="SKwd">let</span> type    = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>, <span class="SItr">#type</span> <span class="SCst">MyStruct</span>)
     <span class="SKwd">let</span> methods = type.methods!
     <span class="SKwd">var</span> returnX: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeValue</span>?
 
@@ -5451,7 +5459,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> method = returnX
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(method.pointedType!.kind == .<span class="SCst">Func</span>)
 
-    <span class="SKwd">let</span> call = <span class="SKwd">cast</span>(<span class="SCst">ReflectedMyStructMethod</span>) method.value!
+    <span class="SKwd">let</span> call = <span class="SKwd">cast</span>(<span class="SCst">ReflectedMyStructMethod</span>, method.value!)
     <span class="SKwd">var</span> value: <span class="SCst">MyStruct</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">call</span>(&amp;value) == <span class="SNum">5</span>)
 }</span></div>
@@ -5724,7 +5732,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// -------------------------------------------------------------------------</span>
 
     <span class="SCmt">// Custom casting between the struct and another type; can be overloaded with different return types</span>
-    <span class="SCmt">// Example: var x = cast(OneType) v</span>
+    <span class="SCmt">// Example: var x = cast(OneType, v)</span>
     <span class="SKwd">func</span> <span class="SFct">opCast</span>(<span class="STpe">me</span>)-&gt;<span class="SCst">OneType</span>
     {
         <span class="SLgc">return</span> <span class="SKwd">true</span>
@@ -5891,13 +5899,13 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">u64</span>)
     {
-        <span class="STpe">me</span>.x, <span class="STpe">me</span>.y, <span class="STpe">me</span>.z = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) value
+        <span class="STpe">me</span>.x, <span class="STpe">me</span>.y, <span class="STpe">me</span>.z = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, value)
     }
 
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Implicit]</span>
     <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">u16</span>)
     {
-        <span class="STpe">me</span>.x, <span class="STpe">me</span>.y = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) value
+        <span class="STpe">me</span>.x, <span class="STpe">me</span>.y = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, value)
     }
 }
 
@@ -5927,7 +5935,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 
     <span class="SCmt">// Explicit cast triggers 'opSet(s32)'</span>
-    <span class="SFct">takesExplicit</span>(<span class="SKwd">cast</span>(<span class="SCst">Struct</span>) <span class="SNum">5</span>'<span class="STpe">s32</span>)
+    <span class="SFct">takesExplicit</span>(<span class="SKwd">cast</span>(<span class="SCst">Struct</span>, <span class="SNum">5</span>'<span class="STpe">s32</span>))
 
     <span class="SCmt">// Implicit conversion via 'opSet(u16)'</span>
     <span class="SFct">takesImplicit</span>(<span class="SNum">5</span>'<span class="STpe">u16</span>)
@@ -6012,13 +6020,13 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> total: <span class="STpe">s32</span>
 
     <span class="SLgc">for</span> value, doubled, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
-        total += value + doubled + <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index
+        total += value + doubled + <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
 
     <span class="SLgc">for</span> ?, doubled <span class="SLgc">in</span> values <span class="SLgc">do</span>
         total += doubled
 
     <span class="SLgc">for</span> ?, ?, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
-        total += <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index
+        total += <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">306</span>)
 }
@@ -6075,7 +6083,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="STpe">me</span>.buffer.count
         {
             <span class="SCmp">#static</span> <span class="SLgc">if</span> ptr <span class="SLgc">do</span>
-                <span class="SCmp">#inject</span>(stmt, item = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>) &amp;<span class="STpe">me</span>.buffer[index], index = index)
+                <span class="SCmp">#inject</span>(stmt, item = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>, &amp;<span class="STpe">me</span>.buffer[index]), index = index)
             <span class="SLgc">else</span> <span class="SLgc">do</span>
                 <span class="SCmp">#inject</span>(stmt, item = <span class="STpe">me</span>.buffer[index], index = index)
         }
@@ -6088,7 +6096,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> values = <span class="SCst">SliceStruct</span>{}
 
     <span class="SLgc">for</span> &amp;value, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
-        value[] += <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index
+        value[] += <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values.buffer[<span class="SNum">0</span>] == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values.buffer[<span class="SNum">4</span>] == <span class="SNum">9</span>)
@@ -6387,11 +6395,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> pt2: <span class="SCst">Point2</span>
     <span class="SKwd">var</span> pt3: <span class="SCst">Point3</span>
-    <span class="SKwd">var</span> itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt2
+    <span class="SKwd">var</span> itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt2)
     itf.<span class="SFct">set</span>(<span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pt2.x == <span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pt2.y == <span class="SNum">11</span>)
-    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt3
+    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt3)
     itf.<span class="SFct">set</span>(<span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pt3.x == <span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pt3.y == <span class="SNum">11</span>)
@@ -6417,19 +6425,19 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> pt2: <span class="SCst">Point2</span>
     <span class="SKwd">var</span> pt3: <span class="SCst">Point3</span>
-    <span class="SKwd">var</span> itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt2
+    <span class="SKwd">var</span> itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt2)
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(itf) == <span class="SNum">2</span> * <span class="SItr">#sizeof</span>(*<span class="STpe">void</span>?))
 
     <span class="SCmt">// Retrieve the concrete type with 'Swag.kindOf'</span>
-    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt2
+    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt2)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(itf) == <span class="SCst">Point2</span>)
-    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt3
+    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt3)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(itf) == <span class="SCst">Point3</span>)
 
     <span class="SCmt">// Retrieve the concrete data with '.buffer'</span>
-    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt2
+    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt2)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(itf.buffer == &amp;pt2)
-    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt3
+    itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>, pt3)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(itf.buffer == &amp;pt3)
 }</span></div>
 <h3 id="_006_011_interface_swg_Default_Implementation_in_Interfaces">Default Implementation in Interfaces</h3>
@@ -6457,10 +6465,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> v2: <span class="SCst">Point2</span>
     <span class="SKwd">var</span> v3: <span class="SCst">Point3</span>
 
-    <span class="SKwd">let</span> i2 = <span class="SKwd">cast</span>(<span class="SCst">ITest</span>) v2
+    <span class="SKwd">let</span> i2 = <span class="SKwd">cast</span>(<span class="SCst">ITest</span>, v2)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(i2.<span class="SFct">isImplemented</span>())
 
-    <span class="SKwd">let</span> i3 = <span class="SKwd">cast</span>(<span class="SCst">ITest</span>) v3
+    <span class="SKwd">let</span> i3 = <span class="SKwd">cast</span>(<span class="SCst">ITest</span>, v3)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> i3.<span class="SFct">isImplemented</span>())
 }</span></div>
 <h2 id="_007_000_functions_swg">Functions</h2>
@@ -6625,7 +6633,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x: <span class="STpe">s32</span>) =&gt; x * x) == <span class="SNum">16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x: <span class="STpe">s32</span>) =&gt; x + x) == <span class="SNum">8</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> { <span class="SLgc">return</span> x - x; }) == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> { <span class="SLgc">return</span> x - x ; }) == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_007_002_lambda_swg_Inferred_Parameter_Types_in_Anonymous_Functions">Inferred Parameter Types in Anonymous Functions</h3>
 <p>If the type is clear from context, lambda parameters can omit explicit types.</p>
@@ -6636,7 +6644,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x) =&gt; x * x) == <span class="SNum">16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x) =&gt; x + x) == <span class="SNum">8</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x) { <span class="SLgc">return</span> x - x; }) == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">toDo</span>(<span class="SNum">4</span>, <span class="SKwd">func</span>(x) { <span class="SLgc">return</span> x - x ; }) == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_007_002_lambda_swg_Omitting_Types_When_Assigning_Lambdas">Omitting Types When Assigning Lambdas</h3>
 <p>When the variable type is known, parameter and return types can be omitted in the lambda.</p>
@@ -6858,8 +6866,8 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(params.count == <span class="SNum">2</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(params[<span class="SNum">0</span>]) == <span class="STpe">string</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(params[<span class="SNum">1</span>]) == <span class="STpe">bool</span>)
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">string</span>) params[<span class="SNum">0</span>] == <span class="SStr">"value"</span>)
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">bool</span>) params[<span class="SNum">1</span>] == <span class="SKwd">true</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>, params[<span class="SNum">0</span>]) == <span class="SStr">"value"</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">bool</span>, params[<span class="SNum">1</span>]) == <span class="SKwd">true</span>)
     }
 
     <span class="SKwd">func</span> <span class="SFct">B</span>(params: ...)
@@ -6877,7 +6885,7 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SLgc">for</span> msg <span class="SLgc">in</span> messages
         {
-            <span class="SNsp">Swag</span>.<span class="SFct">print</span>(prefix, <span class="SStr">" =&gt; "</span>, <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">string</span>) msg)
+            <span class="SNsp">Swag</span>.<span class="SFct">print</span>(prefix, <span class="SStr">" =&gt; "</span>, <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>, msg))
         }
     }
 
@@ -7300,9 +7308,9 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(view) == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view.buffer == &amp;value)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) view == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">s32</span>, view) == <span class="SNum">42</span>)
 }</span></div>
-<p><span class="code-inline">Swag.makeInterface</span> and <span class="code-inline">Swag.tableOf</span> are the corresponding low-level building blocks for interface values. Normal 'cast(MyInterface) value' syntax is safer and clearer; use the intrinsics only when implementing generic runtime machinery.</p>
+<p><span class="code-inline">Swag.makeInterface</span> and <span class="code-inline">Swag.tableOf</span> are the corresponding low-level building blocks for interface values. Normal 'cast(MyInterface, value)' syntax is safer and clearer; use the intrinsics only when implementing generic runtime machinery.</p>
 <p>With a runtime type descriptor, <span class="code-inline">Swag.makeInterface</span> returns a nullable interface: it is absent when the concrete type does not implement the requested interface. Presence is determined by the method table. The instance pointer may be null when the methods only return static metadata and do not access instance storage.</p>
 <h3 id="_008_004_math_and_bit_intrinsics_swg">Math and Bit Intrinsics</h3>
 <h3 id="_008_004_math_and_bit_intrinsics_swg_Integer_Helpers">Integer Helpers</h3>
@@ -7602,7 +7610,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">readValue</span>(value: *<span class="SCst">T</span>)-&gt;<span class="STpe">s32</span>
     <span class="SLgc">where</span> <span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">IValue</span>
 {
-    <span class="SKwd">let</span> view = <span class="SKwd">cast</span>(<span class="SCst">IValue</span>) value
+    <span class="SKwd">let</span> view = <span class="SKwd">cast</span>(<span class="SCst">IValue</span>, value)
     <span class="SLgc">return</span> view.<span class="SFct">value</span>()
 }
 
@@ -7746,7 +7754,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>You can inspect attributes via type reflection at runtime. This enables behavior that adapts based on which attributes are present and how they are configured.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> type = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(function2)     <span class="SCmt">// Reflect the function type</span>
+    <span class="SKwd">let</span> type = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>, <span class="SItr">#typeof</span>(function2))     <span class="SCmt">// Reflect the function type</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.attributes.count == <span class="SNum">1</span>)                                  <span class="SCmt">// Exactly one attribute on 'function2'</span>
 }</span></div>
 <h3 id="_010_002_predefined_attributes_swg">Predefined Attributes</h3>
@@ -8414,7 +8422,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_012_001_aggregate_reflection_swg">Aggregate Reflection</h3>
 <h3 id="_012_001_aggregate_reflection_swg_Struct_and_Enum_Reflection">Struct and Enum Reflection</h3>
-<p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Use an <span class="code-inline">is</span> pattern to borrow a specialized descriptor in a branch, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
+<p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Use an <span class="code-inline">is</span> pattern to borrow a specialized descriptor in a branch, or 'assume cast' when its type is known. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ExportType(.Methods)]</span>
 <span class="SKwd">struct</span> <span class="SCst">ReflectedPoint</span>
 {
@@ -8439,7 +8447,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> base = <span class="SItr">#typeof</span>(<span class="SCst">ReflectedPoint</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(base.kind == .<span class="SCst">Struct</span>)
 
-    <span class="SKwd">let</span> type   = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) base
+    <span class="SKwd">let</span> type   = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>, base)
     <span class="SKwd">let</span> fields = type.fields!
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.structName == <span class="SStr">"ReflectedPoint"</span>)
@@ -8462,7 +8470,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> base = <span class="SItr">#typeof</span>(<span class="SCst">ReflectedState</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(base.kind == .<span class="SCst">Enum</span>)
 
-    <span class="SKwd">let</span> type   = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoEnum</span>) base
+    <span class="SKwd">let</span> type   = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoEnum</span>, base)
     <span class="SKwd">let</span> values = type.values!
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.rawType == <span class="STpe">u8</span>)
@@ -8500,7 +8508,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> type       = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedAdd)
+    <span class="SKwd">let</span> type       = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>, <span class="SItr">#typeof</span>(reflectedAdd))
     <span class="SKwd">let</span> parameters = type.parameters!
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(parameters.count == <span class="SNum">2</span>)
@@ -8510,25 +8518,25 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(parameters[<span class="SNum">1</span>].pointedType == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.returnType == <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> noResult = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedNotify)
+    <span class="SKwd">let</span> noResult = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>, <span class="SItr">#typeof</span>(reflectedNotify))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(noResult.returnType == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_012_002_function_and_container_reflection_swg_Pointer__Array__and_Slice_Reflection">Pointer, Array, and Slice Reflection</h3>
 <p>Container descriptors identify their element type. Arrays additionally expose their dimensions; pointer and slice descriptors expose the pointed-to type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> pointer = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoPointer</span>) <span class="SItr">#type</span> *<span class="STpe">s32</span>
+    <span class="SKwd">let</span> pointer = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoPointer</span>, <span class="SItr">#type</span> *<span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pointer.kind == .<span class="SCst">Pointer</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pointer.pointedType == <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> array = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoArray</span>) <span class="SItr">#type</span> [<span class="SNum">2</span>, <span class="SNum">3</span>] <span class="STpe">u16</span>
+    <span class="SKwd">let</span> array = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoArray</span>, <span class="SItr">#type</span> [<span class="SNum">2</span>, <span class="SNum">3</span>] <span class="STpe">u16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.kind == .<span class="SCst">Array</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.pointedType == <span class="SItr">#type</span> [<span class="SNum">3</span>] <span class="STpe">u16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.finalType == <span class="STpe">u16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.count == <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.totalCount == <span class="SNum">6</span>)
 
-    <span class="SKwd">let</span> slice = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoSlice</span>) <span class="SItr">#type</span> [..] <span class="STpe">f32</span>
+    <span class="SKwd">let</span> slice = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoSlice</span>, <span class="SItr">#type</span> [..] <span class="STpe">f32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice.kind == .<span class="SCst">Slice</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice.pointedType == <span class="STpe">f32</span>)
 }</span></div>
@@ -8566,7 +8574,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
 
-    <span class="SKwd">let</span> e = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err
+    <span class="SKwd">let</span> e = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.code == <span class="SNum">7</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.message == <span class="SStr">"name cannot be null"</span>)
 }</span></div>
@@ -8585,7 +8593,7 @@ swc test -w path/to/workspace -m messages</span></div>
     saved.<span class="SFct">reset</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(saved.<span class="SFct">isEmpty</span>())
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err <span class="SLgc">is</span> <span class="SCst">MyError</span>)
-    <span class="SKwd">let</span> e = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err
+    <span class="SKwd">let</span> e = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.code == <span class="SNum">7</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.message == <span class="SStr">"name cannot be null"</span>)
 }</span></div>
@@ -8593,7 +8601,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>'catch e else { H }' runs the anonymous handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. <span class="code-inline">H</span> cannot inspect the error (capture it with 'as err' for that); it is evaluated lazily — only on the failure path — and may divert control flow (e.g. an early <span class="code-inline">return</span>). To read the caught error, use the 'as err' capture form instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
-    out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) (<span class="SKwd">try</span> <span class="SFct">count</span>(name))
+    out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, (<span class="SKwd">try</span> <span class="SFct">count</span>(name)))
 }
 
 <span class="SFct">#test</span>
@@ -8642,10 +8650,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Explicit_Error_Handling">Explicit Error Handling</h3>
-<p>Every call to a function declared with <span class="code-inline">fail</span> needs <span class="code-inline">try</span>, <span class="code-inline">catch</span>, or <span class="code-inline">expect</span>. Declaring the caller with <span class="code-inline">fail</span> permits propagation, but does not make it implicit. The compiler rejects a call that omits its error-management keyword.</p>
+<p>Every call to a function declared with <span class="code-inline">fail</span> needs <span class="code-inline">try</span>, <span class="code-inline">catch</span>, <span class="code-inline">expect</span>, or <span class="code-inline">assume</span>. Declaring the caller with <span class="code-inline">fail</span> permits propagation, but does not make it implicit. The compiler rejects a call that omits its error-management keyword.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">explicitTryCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
@@ -8656,10 +8664,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Error-Handling_Blocks">Error-Handling Blocks</h3>
-<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), and <span class="code-inline">expect</span> can also guard a whole block of code. Each fallible call inside the block still needs its own keyword: use <span class="code-inline">try</span> to pass its error to the enclosing block's handler.</p>
+<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), <span class="code-inline">expect</span>, and <span class="code-inline">assume</span> can also guard a whole block of code. Each fallible call inside the block still needs its own keyword: use <span class="code-inline">try</span> to pass its error to the enclosing block's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">blockTry</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">var</span> total: <span class="STpe">u64</span> = <span class="SNum">0</span>
@@ -8683,7 +8691,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">if</span> err == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span> -<span class="SNum">1</span>
 
-    <span class="SLgc">return</span> (<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code
+    <span class="SLgc">return</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code
 }
 
 <span class="SKwd">func</span> <span class="SFct">blockCatchElse</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
@@ -8702,7 +8710,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }
 
 <span class="SFct">#test</span>
@@ -8737,6 +8745,18 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> value = <span class="SKwd">expect</span> <span class="SFct">count</span>(<span class="SStr">"swag"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">4</span>)
+}</span></div>
+<h3 id="_013_001_error_management_swg_Assume">Assume</h3>
+<p>'assume expression' states that every propagated failure in the expression is impossible under the caller's invariants. With <span class="code-inline">.Assume</span> safety enabled, a failure panics and reports the original error. Without that safety, the caller performs no error-state test and establishes no error-handling frame for the assumption.</p>
+<p>Failure then violates the program's contract: there is no guaranteed continuation, replacement value, or recoverable error. Use <span class="code-inline">expect</span> when failure must terminate reliably in every configuration. A failed function still produces no result; <span class="code-inline">assume</span> does not make it initialize a default.</p>
+<p>Like <span class="code-inline">expect</span>, <span class="code-inline">assume</span> preserves the successful result's type, including non-null pointers and types without a default. It does not unwrap a nullable success value. Nested <span class="code-inline">catch</span> expressions keep handling their own failures normally.</p>
+<p>For conversions, 'assume cast(T, value)' states the same invariant. Its checks use <span class="code-inline">.Assume</span> for both type compatibility and presence. The same flag governs every <span class="code-inline">assume</span>, including casts inside a fallible expression.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> value = <span class="SKwd">assume</span> <span class="SFct">count</span>(<span class="SStr">"swag"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">4</span>)
+    <span class="SKwd">let</span> required = <span class="SKwd">assume</span> <span class="SFct">loadRequiredValue</span>()
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(required[] == <span class="SNum">42</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Defer_on_Error_Paths">Defer on Error Paths</h3>
 <p>A plain <span class="code-inline">defer</span> still runs when a function exits through <span class="code-inline">fail</span>, because <span class="code-inline">fail</span> is an early return carrying an error value.</p>
@@ -8828,15 +8848,15 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> x1 = <span class="SNum">255</span>'<span class="STpe">u8</span>
 
-    <span class="SCmt">// var y0 = cast(s8) x1  // Would panic: 255 not representable as s8</span>
+    <span class="SCmt">// var y0 = cast(s8, x1)  // Would panic: 255 not representable as s8</span>
 
-    <span class="SKwd">let</span> y1 = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">s8</span>) x1
+    <span class="SKwd">let</span> y1 = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">s8</span>, x1)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y1 == -<span class="SNum">1</span>)
 
     <span class="SKwd">let</span> x2 = -<span class="SNum">1</span>'<span class="STpe">s8</span>
 
-    <span class="SCmt">// var y2 = cast(u8) x2  // Would panic: negative to unsigned</span>
-    <span class="SKwd">let</span> y2 = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u8</span>) x2
+    <span class="SCmt">// var y2 = cast(u8, x2)  // Would panic: negative to unsigned</span>
+    <span class="SKwd">let</span> y2 = <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u8</span>, x2)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y2 == <span class="SNum">255</span>)
 }</span></div>
 <h4 id="_013_002_safety_swg_Disabling_Overflow_Safety_Globally">Disabling Overflow Safety Globally</h4>
@@ -8850,16 +8870,16 @@ swc test -w path/to/workspace -m messages</span></div>
     x &gt;&gt;= <span class="SNum">1</span>      <span class="SCmt">// -&gt; 127</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">127</span>)
 }</span></div>
-<h3 id="_013_002_safety_swg_Dynamic_Cast_Type_Safety">Dynamic Cast Type Safety</h3>
+<h3 id="_013_002_safety_swg_Assumption_Safety">Assumption Safety</h3>
 <p>Example:</p>
-<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.DynCast, true)]</span></div>
-<p>Swag panics if a cast from <span class="code-inline">any</span> to another type is invalid.</p>
+<div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Assume, true)]</span></div>
+<p>The <span class="code-inline">.Assume</span> flag checks invariants asserted by <span class="code-inline">assume</span>: successful completion of a fallible operation, cast compatibility, and presence of a non-null cast result. Disabling <span class="code-inline">.DynCast</span> or <span class="code-inline">.Null</span> does not disable an explicit assumption. <span class="code-inline">expect</span> remains checked regardless of safety flags.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"1"</span>
-    <span class="SKwd">let</span> y      = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">string</span>) x
+    <span class="SKwd">let</span> y      = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>, x)
 
-    <span class="SCmt">// var z = cast(s32) x  // Would panic: underlying type mismatch</span>
+    <span class="SCmt">// var z = assume cast(s32, x)  // Would panic: underlying type mismatch</span>
     <span class="SCmt">// Swag.assert(z == 0)</span>
 }</span></div>
 <p>Swag also panics if casting from an interface to a pointer-to-struct cannot be performed.</p>
@@ -9054,7 +9074,7 @@ swc test -w path/to/workspace -m messages</span></div>
         allocItf.<span class="SFct">free</span>(&amp;req)
     }
 
-    <span class="SKwd">let</span> p    = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>) <span class="SFct">exampleAlloc</span>(<span class="SNum">4</span>)!
+    <span class="SKwd">let</span> p    = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>, <span class="SFct">exampleAlloc</span>(<span class="SNum">4</span>)!)
     <span class="SKwd">let</span> same = p
     p[] = <span class="SNum">1</span>
     <span class="SFct">exampleFree</span>(p, <span class="SNum">4</span>)
@@ -9118,8 +9138,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">makeView</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span>
     {
         <span class="SCmt">// var buf: [4] u8</span>
-        <span class="SCmt">// return cast(const [..] u8) buf  // Uncomment: error, the view outlives 'buf'</span>
-        <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">u8</span>) borrowGlobalBuffer     <span class="SCmt">// A global's storage is fine</span>
+        <span class="SCmt">// return cast(const [..] u8, buf)  // Uncomment: error, the view outlives 'buf'</span>
+        <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">u8</span>, borrowGlobalBuffer)     <span class="SCmt">// A global's storage is fine</span>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">makeView</span>().count == <span class="SNum">4</span>)
@@ -9436,7 +9456,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     {
         <span class="SKwd">var</span> arr: [<span class="SCst">N</span>] <span class="STpe">s32</span>
         <span class="SLgc">for</span> i <span class="SLgc">in</span> arr.count <span class="SLgc">do</span>
-            arr[i] = <span class="SNum">1</span> &lt;&lt; <span class="SKwd">cast</span>(<span class="STpe">u32</span>) i
+            arr[i] = <span class="SNum">1</span> &lt;&lt; <span class="SKwd">cast</span>(<span class="STpe">u32</span>, i)
         <span class="SLgc">return</span> arr
     }
 
@@ -9454,7 +9474,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
         str[<span class="SNum">0</span>] = '<span class="SFct">a</span>'
         str[<span class="SNum">1</span>] = '<span class="SFct">b</span>'
         str[<span class="SNum">2</span>] = str[<span class="SNum">1</span>] + <span class="SNum">1</span>
-        <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>) str
+        <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>, str)
     }
 
     <span class="SCmp">#assert</span>(<span class="SCst">MyString</span> == <span class="SStr">"abc"</span>)
@@ -10078,8 +10098,8 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Compiler]</span>
     <span class="SKwd">func</span> <span class="SFct">append</span>(buf: [*] <span class="STpe">u8</span>, start: <span class="STpe">s32</span>, val: <span class="STpe">string</span>)-&gt;<span class="STpe">s32</span>
     {
-        <span class="SNsp">Swag</span>.<span class="SFct">memcpy</span>(buf + start, val.buffer, <span class="SKwd">cast</span>(<span class="STpe">u64</span>) val.count)
-        <span class="SLgc">return</span> start + <span class="SKwd">cast</span>(<span class="STpe">s32</span>) val.count
+        <span class="SNsp">Swag</span>.<span class="SFct">memcpy</span>(buf + start, val.buffer, <span class="SKwd">cast</span>(<span class="STpe">u64</span>, val.count))
+        <span class="SLgc">return</span> start + <span class="SKwd">cast</span>(<span class="STpe">s32</span>, val.count)
     }
 
     <span class="SKwd">struct</span> <span class="SCst">Vector3</span>
@@ -10091,7 +10111,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
             len = <span class="SFct">append</span>(buf, len, <span class="SStr">"x: f32 = 1\n"</span>)
             len = <span class="SFct">append</span>(buf, len, <span class="SStr">"y: f32 = 2\n"</span>)
             len = <span class="SFct">append</span>(buf, len, <span class="SStr">"z: f32 = 3\n"</span>)
-            <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>) <span class="SNsp">Swag</span>.<span class="SFct">makeSlice</span>(&amp;buf[<span class="SNum">0</span>], <span class="SKwd">cast</span>(<span class="STpe">u64</span>) len)
+            <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>, <span class="SNsp">Swag</span>.<span class="SFct">makeSlice</span>(&amp;buf[<span class="SNum">0</span>], <span class="SKwd">cast</span>(<span class="STpe">u64</span>, len)))
         }
     }
 
@@ -10154,7 +10174,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SLgc">if</span> message.type == <span class="SKwd">null</span> <span class="SLgc">or</span> message.name == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span>
 
-    <span class="SKwd">let</span> functionType = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) message.type
+    <span class="SKwd">let</span> functionType = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>, message.type)
     <span class="SCmt">// Inspect functionType.parameters, functionType.returnType, and attributes.</span>
 }</span></div>
 <p>The payload fields are nullable because their meaning depends on the event. Check <span class="code-inline">message.kind</span> and the fields you need before casting.</p>
@@ -10225,7 +10245,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> literal = <span class="SStr">"Swag"</span>
-    <span class="SKwd">let</span> text    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> <span class="STpe">cstring</span>) literal.buffer
+    <span class="SKwd">let</span> text    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> <span class="STpe">cstring</span>, literal.buffer)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text.count == <span class="SNum">4</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[<span class="SNum">0</span>] == '<span class="SFct">S</span>'<span class="STpe">u8</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[<span class="SNum">3</span>] == '<span class="SFct">g</span>'<span class="STpe">u8</span>)
@@ -10670,7 +10690,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Values Stored in any|_003_007_cast_swg_Values_Stored_in__any_|",
 "h|Compile-Time Compatibility|_003_007_cast_swg_Compile-Time_Compatibility|",
 "h|Targets Chosen at Runtime|_003_007_cast_swg_Targets_Chosen_at_Runtime|",
-"h|Automatic Cast with cast()|_003_007_cast_swg_Automatic_Cast_with__cast___|",
+"h|Contextual Cast with cast(value)|_003_007_cast_swg_Contextual_Cast_with__cast_value__|",
 "h|Bit Cast|_003_007_cast_swg_Bit_Cast|",
 "h|Implicit Casts|_003_007_cast_swg_Implicit_Casts|",
 "h|Implicit Cast Rules|_003_007_cast_swg_Implicit_Cast_Rules|",
@@ -11100,6 +11120,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Explicit Error Handling|_013_001_error_management_swg_Explicit_Error_Handling|",
 "h|Error-Handling Blocks|_013_001_error_management_swg_Error-Handling_Blocks|",
 "h|Expect|_013_001_error_management_swg_Expect|",
+"h|Assume|_013_001_error_management_swg_Assume|",
 "h|Defer on Error Paths|_013_001_error_management_swg_Defer_on_Error_Paths|",
 "h|Safety|_013_002_safety_swg|",
 "h|Runtime Safety Checks|_013_002_safety_swg_Runtime_Safety_Checks|",
@@ -11110,7 +11131,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Promoting Operations to Prevent Overflow|_013_002_safety_swg_Promoting_Operations_to_Prevent_Overflow|",
 "h|Information Loss During Casting|_013_002_safety_swg_Information_Loss_During_Casting|",
 "h|Disabling Overflow Safety Globally|_013_002_safety_swg_Disabling_Overflow_Safety_Globally|",
-"h|Dynamic Cast Type Safety|_013_002_safety_swg_Dynamic_Cast_Type_Safety|",
+"h|Assumption Safety|_013_002_safety_swg_Assumption_Safety|",
 "h|Array Bounds Checking|_013_002_safety_swg_Array_Bounds_Checking|",
 "h|Safety When Indexing a Slice|_013_002_safety_swg_Safety_When_Indexing_a_Slice|",
 "h|Safety When Slicing a Sized Value|_013_002_safety_swg_Safety_When_Slicing_a_Sized_Value|",

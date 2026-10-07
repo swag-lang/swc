@@ -48,10 +48,10 @@ impl DetachedTable
 
         let old      = .table
         let oldBytes = .capacity * #sizeof(u64)
-        .table    = cast([*] u64) myAlloc(newCapacity * #sizeof(u64))
+        .table    = cast([*] u64, myAlloc(newCapacity * #sizeof(u64)))
         .capacity = newCapacity
         if old != null do
-            myFree(cast(*void) old, oldBytes)
+            myFree(cast(*void, old), oldBytes)
     }
 
     #[Swag.Sanity(.Lifecycle, true)]
@@ -78,7 +78,7 @@ impl DetachedTable
     mtd opDrop()
     {
         if .table != null do
-            myFree(cast(*void) .table, .capacity * #sizeof(u64))
+            myFree(cast(*void, .table), .capacity * #sizeof(u64))
     }
 }
 
@@ -105,7 +105,7 @@ impl DetachedOwner
 #[Swag.Sanity(.Lifecycle, true)]
 func newOwner()->*DetachedOwner
 {
-    let owner = cast(*DetachedOwner) myAlloc(#sizeof(DetachedOwner))
+    let owner = cast(*DetachedOwner, myAlloc(#sizeof(DetachedOwner)))
     owner.items.table    = null
     owner.items.capacity = 0
     return owner
@@ -115,7 +115,7 @@ func newOwner()->*DetachedOwner
 func deleteOwner(owner: *DetachedOwner)
 {
     Swag.drop(&owner.items)
-    myFree(cast(*void) owner, #sizeof(DetachedOwner))
+    myFree(cast(*void, owner), #sizeof(DetachedOwner))
 }
 
 // Two consecutive calls that grow the embedded container of one heap object:

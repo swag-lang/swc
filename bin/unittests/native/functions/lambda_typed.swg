@@ -119,9 +119,9 @@ func squareValue(value: s32)->s32 => value * value
         #assert(#typeof(boxed) == any)
 
         return {
-            total: cast(s64) payload.base + cast(s64) values[0] + cast(s64) values[3] + cast(s64) cast #assume(s32) boxed,
+            total: cast(s64, payload.base) + cast(s64, values[0]) + cast(s64, values[3]) + cast(s64, assume cast(s32, boxed)),
             mirrored: [values[3], values[2], values[1], values[0]],
-            pair: {a: payload.step + cast(s32) payload.marks[1], b: cast(s32) payload.marks[2]}
+            pair: {a: payload.step + cast(s32, payload.marks[1]), b: cast(s32, payload.marks[2])}
             }
     }
 
@@ -172,10 +172,10 @@ func squareValue(value: s32)->s32 => value * value
         #assert(#typeof(marks) == [2] u16)
         #assert(#typeof(payloads[0]) == LambdaPayload)
 
-        var acc: u64 = cast(u64) pair.a + cast(u64) pair.b + cast(u64) marks[0] + cast(u64) marks[1]
+        var acc: u64 = cast(u64, pair.a) + cast(u64, pair.b) + cast(u64, marks[0]) + cast(u64, marks[1])
         for payload, index in payloads
         {
-            acc += cast(u64) payload.base + cast(u64) payload.marks[index]
+            acc += cast(u64, payload.base) + cast(u64, payload.marks[index])
         }
 
         return acc
@@ -198,8 +198,8 @@ func squareValue(value: s32)->s32 => value * value
         #assert(#nameof(#typeof(values[1])) == "any")
         #assert(#nameof(#typeof(values[2])) == "any")
 
-        let text = cast #assume(string) values[2]
-        return cast #assume(s32) values[0] + cast #assume(s32) values[1] + cast(s32) text[1] + cast(s32) flag
+        let text = assume cast(string, values[2])
+        return assume cast(s32, values[0]) + assume cast(s32, values[1]) + cast(s32, text[1]) + cast(s32, flag)
     }
 
     let result = cb(true, 4, 7, "AZ")

@@ -26,15 +26,15 @@ impl AstAfterInvalidCastStringBuilder
 {
     mtd append(val: string)
     {
-        Swag.memcpy(&.buf[.len], val.buffer, cast(u64) val.count)
-        .len += cast(s32) val.count
+        Swag.memcpy(&.buf[.len], val.buffer, cast(u64, val.count))
+        .len += cast(s32, val.count)
     }
 
     mtd toString()->AstAfterInvalidCastString
     {
         var result: AstAfterInvalidCastString
         result.buffer = &.buf[0]
-        result.length = cast(u64) .len
+        result.length = cast(u64, .len)
         return result
     }
 }
@@ -62,12 +62,12 @@ impl AstAfterInvalidCastSignal
                 {
                     if i do
                         sb.append(",")
-                    sb.append("cast #assume(")
+                    sb.append("assume cast(")
                     let paramType = tsParameters[i].pointedType!
                     sb.append(paramType.fullname!)
-                    sb.append(") params[")
+                    sb.append(", params[")
                     sb.append("0")
-                    sb.append("]")
+                    sb.append("])")
                 }
                 sb.append(")\n")
                 return sb.toString()
@@ -92,8 +92,8 @@ struct AstAfterInvalidCastOwner
         mtd install()
     {
         let captured: *AstAfterInvalidCastDialog? = null
-            .callback = mtd|captured|(dlg, id) { return captured == dlg }
-        .signal.call(me)     // swc-expected-error {{sema_err_cannot_cast}}
+            .callback = mtd|captured|(dlg, id) { return captured == dlg }     // swc-expected-error {{sema_err_cannot_cast}}
+        .signal.call(me)
     }
 }
 

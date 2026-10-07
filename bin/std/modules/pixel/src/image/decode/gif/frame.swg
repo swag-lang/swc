@@ -16,7 +16,7 @@ impl Decoder
 {
     mtd readImage(decodePixels = true) fail
     {
-        .descriptorOffset    = cast(u64) (.stream - .streamStart)
+        .descriptorOffset    = cast(u64, (.stream - .streamStart))
         .descriptorRemaining = .streamLen
 
         // Image descriptor

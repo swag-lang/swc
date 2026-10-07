@@ -365,8 +365,8 @@ impl HtmlStyleResolver
             {
                 var entry: HtmlCascadeEntry
                 entry.block       = source.block
-                entry.declaration = cast(u32) index
-                entry.key         = HtmlStyleResolver.cascadeKey(block.declarations[index].important, source.specificity, source.order, cast(u32) index)
+                entry.declaration = cast(u32, index)
+                entry.key         = HtmlStyleResolver.cascadeKey(block.declarations[index].important, source.specificity, source.order, cast(u32, index))
                 .entries.add(entry)
             }
         }
@@ -378,9 +378,9 @@ impl HtmlStyleResolver
     func cascadeKey(important: bool, specificity, order, position: u32)->u64
     {
         var result = important ? 1'u64 << 63 : 0'u64
-        result |= cast(u64) (specificity & 0x7FFFFF) << 40
-        result |= cast(u64) (order & 0xFFFFFFF) << 12
-        result |= cast(u64) (position & 0xFFF)
+        result |= cast(u64, (specificity & 0x7FFFFF)) << 40
+        result |= cast(u64, (order & 0xFFFFFFF)) << 12
+        result |= cast(u64, (position & 0xFFF))
         return result
     }
 
@@ -482,11 +482,11 @@ impl HtmlStyleResolver
         record.element = element
         record.which   = which
         record.style   = style
-        .pseudoIndex.add(HtmlStyleResolver.pseudoKey(element, which), cast(u32) .pseudos.count)
+        .pseudoIndex.add(HtmlStyleResolver.pseudoKey(element, which), cast(u32, .pseudos.count))
         .pseudos.add(#move record)
     }
 
-    func pseudoKey(element: u32, which: HtmlPseudoElement)->u64 => (cast(u64) element << 8) | cast(u64) which
+    func pseudoKey(element: u32, which: HtmlPseudoElement)->u64 => (cast(u64, element) << 8) | cast(u64, which)
 
     // Computes the style of one element and of every descendant.
     private mtd resolveElement(element: u32, parentStyle: HtmlComputedStyle)
@@ -517,7 +517,7 @@ impl HtmlStyleResolver
             style.margin.bottom = HtmlLength.pixels(0)
         }
 
-        .nodeStyles[element] = cast(u32) .styles.count
+        .nodeStyles[element] = cast(u32, .styles.count)
         .styles.add(style)
 
         // Both generated boxes are resolved before the children, while the candidate list still

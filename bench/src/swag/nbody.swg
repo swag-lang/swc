@@ -99,7 +99,7 @@ func energy(bodies: const [..] Body)->f64
         advance(bodies, 0.01)
     let e = energy(bodies)
 
-    let check = cast(u64) Swag.floor(-e * 1e12'f64)
+    let check = cast(u64, Swag.floor(-e * 1e12'f64))
 
     let t1 = now()
     report(check, t0, t1)

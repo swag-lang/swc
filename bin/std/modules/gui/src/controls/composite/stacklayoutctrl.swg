@@ -77,7 +77,7 @@ impl IWnd for StackLayoutCtrl
         if not count do
             return {}
 
-        main += cast(f32) (count - 1) * .spacing
+        main += cast(f32, (count - 1)) * .spacing
 
         var result: retval
         if horizontal
@@ -203,8 +203,8 @@ private impl StackLayoutCtrl
         if visible.isEmpty() do
             return
 
-        let count        = cast(f32) visible.count
-        let spacingTotal = cast(f32) (visible.count - 1) * .spacing
+        let count        = cast(f32, visible.count)
+        let spacingTotal = cast(f32, (visible.count - 1)) * .spacing
 
         var totalPreferred = spacingTotal
         var totalMinimum   = spacingTotal

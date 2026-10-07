@@ -8,7 +8,7 @@
 func boolTestEmptinessNullableString(text: string?)->s32
 {
     if text do
-        return cast(s32) (text).count
+        return cast(s32, (text).count)
     return 0
 }
 
@@ -67,5 +67,5 @@ func boolTestEmptinessErrTernary(text: string)->s32
 
 func boolTestEmptinessErrExplicitCast(text: string)->bool
 {
-    return cast(bool) text     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    return cast(bool, text)     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
 }

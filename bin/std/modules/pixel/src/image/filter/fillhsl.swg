@@ -35,9 +35,9 @@ public impl Image
             var context = {fillType: fillType, color: color, hsl: hsl}
             .transformLogicalPixels(&context)
             {
-                let params = (cast(const *#decltype(context)) userData!)[]
-                let fx     = x / cast(f32) image.width
-                let fy     = y / cast(f32) image.height
+                let params = cast(const *#decltype(context), userData!)[]
+                let fx     = x / cast(f32, image.width)
+                let fy     = y / cast(f32, image.height)
                 var result: PixelValue
                 switch #complete params.fillType
                 {
@@ -93,8 +93,8 @@ public impl Image
         case .HueVert:
             .visitPixels(&swapRB)
             {
-                let swapRB  = (cast(const *bool) userData!)[]
-                let factor0 = y / cast(f32) image.height
+                let swapRB  = cast(const *bool, userData!)[]
+                let factor0 = y / cast(f32, image.height)
                 let col     = Color.fromHsl(factor0, 1, 0.5)
                 if swapRB
                 {
@@ -117,7 +117,7 @@ public impl Image
             var pix = .pixels.storage()
             for x in .width
             {
-                let factor0 = x / cast(f32) .width
+                let factor0 = x / cast(f32, .width)
                 let col     = Color.fromHsl(factor0, 1, 0.5)
                 if swapRB
                 {
@@ -139,16 +139,16 @@ public impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8, image.pixels.storage()), cast(u64, image.width) * image.bytesPerPixel)
             }
 
         case .SaturationVert:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
+                let params  = cast(const *#decltype(pms), userData!)[]
                 let swapRB  = params.swapRB
-                let factor0 = y / cast(f32) image.height
+                let factor0 = y / cast(f32, image.height)
                 let col     = Color.fromHsl(params.hsl.h, factor0, 0.5)
                 if swapRB
                 {
@@ -171,7 +171,7 @@ public impl Image
             var pix = .pixels.storage()
             for x in .width
             {
-                let factor0 = x / cast(f32) .width
+                let factor0 = x / cast(f32, .width)
                 let col     = Color.fromHsl(hsl.h, factor0, 0.5)
                 if swapRB
                 {
@@ -193,16 +193,16 @@ public impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8, image.pixels.storage()), cast(u64, image.width) * image.bytesPerPixel)
             }
 
         case .LightnessVert:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
+                let params  = cast(const *#decltype(pms), userData!)[]
                 let swapRB  = params.swapRB
-                let factor0 = y / cast(f32) image.height
+                let factor0 = y / cast(f32, image.height)
                 let col     = Color.fromHsl(params.hsl.h, 1, factor0)
                 if swapRB
                 {
@@ -225,7 +225,7 @@ public impl Image
             var pix = .pixels.storage()
             for x in .width
             {
-                let factor0 = x / cast(f32) .width
+                let factor0 = x / cast(f32, .width)
                 let col     = Color.fromHsl(hsl.h, hsl.s, factor0)
                 if swapRB
                 {
@@ -247,16 +247,16 @@ public impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8, image.pixels.storage()), cast(u64, image.width) * image.bytesPerPixel)
             }
 
         case .HueSaturation:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
-                let factor0 = x / cast(f32) image.width
-                let factor1 = y / cast(f32) image.height
+                let params  = cast(const *#decltype(pms), userData!)[]
+                let factor0 = x / cast(f32, image.width)
+                let factor1 = y / cast(f32, image.height)
                 let col     = Color.fromHsl(factor0, factor1, 0.5)
                 if params.swapRB
                 {
@@ -279,9 +279,9 @@ public impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
-                let factor0 = x / cast(f32) image.width
-                let factor1 = y / cast(f32) image.height
+                let params  = cast(const *#decltype(pms), userData!)[]
+                let factor0 = x / cast(f32, image.width)
+                let factor1 = y / cast(f32, image.height)
                 let col     = Color.fromHsl(factor0, 1, factor1)
                 if params.swapRB
                 {
@@ -304,9 +304,9 @@ public impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
-                let factor0 = x / cast(f32) image.width
-                let factor1 = y / cast(f32) image.height
+                let params  = cast(const *#decltype(pms), userData!)[]
+                let factor0 = x / cast(f32, image.width)
+                let factor1 = y / cast(f32, image.height)
                 var l       = 0.5 + ((1 - factor0) * 0.5)
                 l = Math.lerp(0, l, factor1)
                 let col = Color.fromHsl(params.hsl.h, factor0, l)
@@ -331,9 +331,9 @@ public impl Image
             var pms = {fixedRed: color.r / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
-                let factor0 = x / cast(f32) image.width
-                let factor1 = 1 - (y / cast(f32) image.height)
+                let params  = cast(const *#decltype(pms), userData!)[]
+                let factor0 = x / cast(f32, image.width)
+                let factor1 = 1 - (y / cast(f32, image.height))
                 let col     = Color.fromRgbF32(params.fixedRed, factor0, factor1)
                 if params.swapRB
                 {
@@ -356,9 +356,9 @@ public impl Image
             var pms = {fixedGreen: color.g / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
-                let factor0 = x / cast(f32) image.width
-                let factor1 = 1 - (y / cast(f32) image.height)
+                let params  = cast(const *#decltype(pms), userData!)[]
+                let factor0 = x / cast(f32, image.width)
+                let factor1 = 1 - (y / cast(f32, image.height))
                 let col     = Color.fromRgbF32(factor0, params.fixedGreen, factor1)
                 if params.swapRB
                 {
@@ -381,9 +381,9 @@ public impl Image
             var pms = {fixedBlue: color.b / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = (cast(const *#decltype(pms)) userData!)[]
-                let factor0 = x / cast(f32) image.width
-                let factor1 = 1 - (y / cast(f32) image.height)
+                let params  = cast(const *#decltype(pms), userData!)[]
+                let factor0 = x / cast(f32, image.width)
+                let factor1 = 1 - (y / cast(f32, image.height))
                 let col     = Color.fromRgbF32(factor0, factor1, params.fixedBlue)
                 if params.swapRB
                 {

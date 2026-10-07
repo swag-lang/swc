@@ -36,7 +36,7 @@ func weightedReducer(values: s32...)->s32
 {
     var result = 0
     for value, index in values do
-        result += value * (cast(s32) index + 1)
+        result += value * (cast(s32, index) + 1)
     return result
 }
 

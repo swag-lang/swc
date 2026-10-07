@@ -21,6 +21,7 @@ namespace CodeGenCallHelpers
     Result emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args);
     Result emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg);
     Result emitFallibleFailureJump(CodeGen& codeGen);
+    Result emitFallibleCastFailure(CodeGen& codeGen);
     Result emitFallibleFailureJumpIfHasError(CodeGen& codeGen);
     bool   canReadErrorFlagInline(const CodeGen& codeGen);
     void   isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args);

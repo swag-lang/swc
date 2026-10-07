@@ -173,7 +173,7 @@ func chooseShape(opponent: Shape, desired: Outcome)->Shape
 
 func roundScore(mine: Shape, opponent: Shape)->u32
 {
-    return cast(u32) mine + cast(u32) roundOutcome(mine, opponent)
+    return cast(u32, mine) + cast(u32, roundOutcome(mine, opponent))
 }
 
 func storeRound(guide: *StrategyGuide, opponentToken: u8, codeToken: u8)
@@ -248,7 +248,7 @@ func solveClean(guide: StrategyGuide)->ScoreSummary
 
     for index in guide.count
     {
-        let round        = guide.rounds[cast(u32) index]
+        let round        = guide.rounds[cast(u32, index)]
         let opponent     = decodeOpponent(round.opponentToken)
         let partOneShape = decodePartOneShape(round.codeToken)
         let desired      = decodeDesiredOutcome(round.codeToken)
@@ -349,8 +349,8 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
 
     var partOneScorer: PartOneScorer
     var partTwoScorer: PartTwoScorer
-    let iPartOne = cast(IRoundScorer) partOneScorer
-    let iPartTwo = cast(IRoundScorer) partTwoScorer
+    let iPartOne = cast(IRoundScorer, partOneScorer)
+    let iPartTwo = cast(IRoundScorer, partTwoScorer)
 
     defer Swag.assert(featureRoundCount <= MaxRounds)
 
@@ -375,7 +375,7 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
 
 #test
 {
-    let bytes    = cast(const [..] u8) SampleInput
+    let bytes    = cast(const [..] u8, SampleInput)
     let guide    = parseGuide(bytes)
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
@@ -391,7 +391,7 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
 
 #test
 {
-    let bytes    = cast(const [..] u8) CoverageInput
+    let bytes    = cast(const [..] u8, CoverageInput)
     let guide    = parseGuide(bytes)
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
@@ -407,7 +407,7 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
 
 #test
 {
-    let edgeBytes    = cast(const [..] u8) EdgeInput
+    let edgeBytes    = cast(const [..] u8, EdgeInput)
     let edgeGuide    = parseGuide(edgeBytes)
     let edgeClean    = solveClean(edgeGuide)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)

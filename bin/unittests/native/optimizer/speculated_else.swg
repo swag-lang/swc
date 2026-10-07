@@ -12,7 +12,7 @@ func getOrMinus(p: const [*] s64, n, i: u64)->s64 => i < n ? p[i] : -1
 #[Swag.Optimize(true), Swag.NoInline]
 func getOrFallback(p: const [*] u32, n, i: u64, fallback: u32)->u32 => i < n ? p[i] : fallback
 #[Swag.Optimize(true), Swag.NoInline]
-func byteOr7(p: const [*] u8, n, i: u64)->u32 => i >= n ? 7 : cast(u32) p[i]
+func byteOr7(p: const [*] u8, n, i: u64)->u32 => i >= n ? 7 : cast(u32, p[i])
 
 #test
 {
@@ -26,6 +26,6 @@ func byteOr7(p: const [*] u8, n, i: u64)->u32 => i >= n ? 7 : cast(u32) p[i]
         Swag.assert(getOr0(&a[0], 3, i) == (inside ? a[i] : 0))
         Swag.assert(getOrMinus(&b[0], 3, i) == (inside ? b[i] : -1))
         Swag.assert(getOrFallback(&c[0], 3, i, 99) == (inside ? c[i] : 99))
-        Swag.assert(byteOr7(&d[0], 3, i) == (inside ? cast(u32) d[i] : 7))
+        Swag.assert(byteOr7(&d[0], 3, i) == (inside ? cast(u32, d[i]) : 7))
     }
 }

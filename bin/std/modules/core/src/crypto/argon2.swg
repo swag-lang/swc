@@ -39,7 +39,7 @@ private func truncate32(value: u64)->u64 => value & 0xFFFF_FFFF
 private func store32Le(data: [*] u8, value: u32)
 {
     for i in 4 do
-        data[i] = cast(u8) ((value >> cast(u32) (i * 8)) & 0xFF)
+        data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
 }
 
 // Argon2's variant of the BLAKE2b mixing function. The extra multiplication is
@@ -109,7 +109,7 @@ private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: boo
 private func variableHash(input: const [..] u8, destination: [..] u8) fail
 {
     var prefix: [4] u8
-    store32Le(&prefix[0], cast(u32) destination.count)
+    store32Le(&prefix[0], cast(u32, destination.count))
 
     if destination.count <= Hash.Blake2bMaxDigestSize
     {
@@ -306,9 +306,9 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     if secret.count > Hash.Blake2bMaxKeySize do
         fail Errors.BadParameterError{"Argon2 accepts a secret of at most 64 bytes"}
 
-    let lanes         = cast(u64) parameters.parallelism
-    let passes        = cast(u64) parameters.iterations
-    let segmentLength = cast(u64) parameters.memoryKib / (Argon2SyncPoints * lanes)
+    let lanes         = cast(u64, parameters.parallelism)
+    let passes        = cast(u64, parameters.iterations)
+    let segmentLength = cast(u64, parameters.memoryKib) / (Argon2SyncPoints * lanes)
     let laneLength    = segmentLength * Argon2SyncPoints
     let blockCount    = laneLength * lanes
 
@@ -321,7 +321,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     var scalar: [4] u8
     store32Le(&scalar[0], parameters.parallelism)
     initial.update(scalar)
-    store32Le(&scalar[0], cast(u32) destination.count)
+    store32Le(&scalar[0], cast(u32, destination.count))
     initial.update(scalar)
     store32Le(&scalar[0], parameters.memoryKib)
     initial.update(scalar)
@@ -331,16 +331,16 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     initial.update(scalar)
     store32Le(&scalar[0], Argon2TypeId)
     initial.update(scalar)
-    store32Le(&scalar[0], cast(u32) password.count)
+    store32Le(&scalar[0], cast(u32, password.count))
     initial.update(scalar)
     initial.update(password)
-    store32Le(&scalar[0], cast(u32) salt.count)
+    store32Le(&scalar[0], cast(u32, salt.count))
     initial.update(scalar)
     initial.update(salt)
-    store32Le(&scalar[0], cast(u32) secret.count)
+    store32Le(&scalar[0], cast(u32, secret.count))
     initial.update(scalar)
     initial.update(secret)
-    store32Le(&scalar[0], cast(u32) associatedData.count)
+    store32Le(&scalar[0], cast(u32, associatedData.count))
     initial.update(scalar)
     initial.update(associatedData)
     try initial.finalize(seed)
@@ -359,10 +359,10 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     {
         for slot in 2
         {
-            store32Le(&origin[Hash.Blake2bMaxDigestSize], cast(u32) slot)
-            store32Le(&origin[Hash.Blake2bMaxDigestSize + 4], cast(u32) lane)
+            store32Le(&origin[Hash.Blake2bMaxDigestSize], cast(u32, slot))
+            store32Le(&origin[Hash.Blake2bMaxDigestSize + 4], cast(u32, lane))
             let target = (lane * laneLength + slot) * Argon2Words
-            try variableHash(origin, Swag.makeSlice(cast([*] u8) (blocks + target), Argon2BlockSize))
+            try variableHash(origin, Swag.makeSlice(cast([*] u8, (blocks + target)), Argon2BlockSize))
         }
     }
 
@@ -389,5 +389,5 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
             final[i] ^= blocks[last + i]
     }
 
-    try variableHash(Swag.makeSlice(cast(const [*] u8) &final[0], Argon2BlockSize), destination)
+    try variableHash(Swag.makeSlice(cast(const [*] u8, &final[0]), Argon2BlockSize), destination)
 }

@@ -105,18 +105,18 @@ func bswapStrictU32(value: ByteSwapStrictU32)->ByteSwapStrictU32 => Swag.byteSwa
 // Strict aliases
 #test
 {
-    const a = Swag.byteSwap(cast(ByteSwapStrictU32) 0x12345678'u32)
+    const a = Swag.byteSwap(cast(ByteSwapStrictU32, 0x12345678'u32))
 
     #assert(#typeof(a) == ByteSwapStrictU32)
 
-    Swag.assert(a == cast(ByteSwapStrictU32) 0x78563412'u32)
+    Swag.assert(a == cast(ByteSwapStrictU32, 0x78563412'u32))
 }
 
 #test
 {
-    let a = bswapStrictU32(cast(ByteSwapStrictU32) 0x01020304'u32)
+    let a = bswapStrictU32(cast(ByteSwapStrictU32, 0x01020304'u32))
 
     #assert(#typeof(a) == ByteSwapStrictU32)
 
-    Swag.assert(a == cast(ByteSwapStrictU32) 0x04030201'u32)
+    Swag.assert(a == cast(ByteSwapStrictU32, 0x04030201'u32))
 }

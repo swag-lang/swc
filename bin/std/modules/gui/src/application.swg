@@ -199,7 +199,7 @@ private impl Application
             return
         }
 
-        let event = cast #assume (*Event) evt
+        let event = assume cast (*Event, evt)
 
         // Be sure we have a target
         if not event.target do
@@ -360,7 +360,7 @@ private impl Application
             let curP  = .mouse.currentState.pressed[i]
             if not lastP and curP
             {
-                if .mouse.isButtonDoubleClick(cast(Input.MouseButton) i)
+                if .mouse.isButtonDoubleClick(cast(Input.MouseButton, i))
                 {
                     evt.kind = .DoubleClick
                 }
@@ -375,14 +375,14 @@ private impl Application
                         targetWnd.setFocus()
                 }
 
-                evt.button = cast(Input.MouseButton) i
+                evt.button = cast(Input.MouseButton, i)
                 targetWnd.sendEvent(&evt)
                 .toolTip.hide()
             }
             elif lastP and not curP
             {
                 evt.kind   = .Released
-                evt.button = cast(Input.MouseButton) i
+                evt.button = cast(Input.MouseButton, i)
                 targetWnd.sendEvent(&evt)
             }
         }
@@ -460,16 +460,16 @@ private impl Application
             if not lastP and curP
             {
                 var evt = KeyEvent{kind: .Pressed}
-                evt.key       = cast(Input.Key) i
+                evt.key       = cast(Input.Key, i)
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
                 if not evt.accepted do
-                    .routeUnhandledKey(targetWnd, cast(Input.Key) i, modifiers)
+                    .routeUnhandledKey(targetWnd, cast(Input.Key, i), modifiers)
             }
             elif lastP and not curP
             {
                 var evt = KeyEvent{kind: .Released}
-                evt.key       = cast(Input.Key) i
+                evt.key       = cast(Input.Key, i)
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
             }
@@ -502,7 +502,7 @@ private impl Application
         var needUpdateState = false
         for it in copy
         {
-            let evt = cast #assume (*Event) it
+            let evt = assume cast (*Event, it)
 
             if it is InvalidateEvent do
                 evt.target!.invalidate()
@@ -585,7 +585,7 @@ private impl Application
         // Be sure there's no posted event for that window
         for e in .postedEvents
         {
-            let ptr = cast #assume (*Event) e
+            let ptr = assume cast (*Event, e)
             if ptr.target == wnd do
                 ptr.target = null
         }

@@ -32,7 +32,7 @@ func ctxDynamicCatchesCoreFailure()->bool
     return raised != null
 }
 
-func ctxDynamicLifecycleCounts()->u64 => cast(u64) g_InitCount | cast(u64) g_PreMainCount << 32
+func ctxDynamicLifecycleCounts()->u64 => cast(u64, g_InitCount) | cast(u64, g_PreMainCount) << 32
 
 func ctxDynamicSetDropCounter(counter: *u32)
 {

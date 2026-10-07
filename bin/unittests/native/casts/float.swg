@@ -6,13 +6,13 @@ func takes_f32(v: f32) { gFloatF32 = v }
 func takes_f64(v: f64) { gFloatF64 = v }
 
 #[Swag.NoInline]
-func float32ToU64(value: f32)->u64 { return cast(u64) value }
+func float32ToU64(value: f32)->u64 { return cast(u64, value) }
 
 #[Swag.NoInline]
-func float64ToU64(value: f64)->u64 { return cast(u64) value }
+func float64ToU64(value: f64)->u64 { return cast(u64, value) }
 
 #[Swag.NoInline]
-func signed64ToF32(value: s64)->f32 { return cast(f32) value }
+func signed64ToF32(value: s64)->f32 { return cast(f32, value) }
 
 // Exercise both sides of the signed conversion boundary and the largest source
 // value below 2^64. The inputs are exact in their respective floating-point types.
@@ -79,50 +79,50 @@ func signed64ToF32(value: s64)->f32 { return cast(f32) value }
 {
     gFloatF32 = -64.0
     gFloatF64 = -64.0
-    Swag.assert(cast(s8) gFloatF32 == -64)
-    Swag.assert(cast(s16) gFloatF32 == -64)
-    Swag.assert(cast(s32) gFloatF32 == -64)
-    Swag.assert(cast(s64) gFloatF32 == -64)
-    Swag.assert(cast(s64) gFloatF64 == -64)
+    Swag.assert(cast(s8, gFloatF32) == -64)
+    Swag.assert(cast(s16, gFloatF32) == -64)
+    Swag.assert(cast(s32, gFloatF32) == -64)
+    Swag.assert(cast(s64, gFloatF32) == -64)
+    Swag.assert(cast(s64, gFloatF64) == -64)
 }
 
 #test
 {
     gFloatF32 = 3.0e9
     gFloatF64 = 3.0e9
-    Swag.assert(cast(u32) gFloatF32 == 3_000_000_000)
-    Swag.assert(cast(u64) gFloatF32 == 3_000_000_000)
-    Swag.assert(cast(u32) gFloatF64 == 3_000_000_000)
-    Swag.assert(cast(u64) gFloatF64 == 3_000_000_000)
+    Swag.assert(cast(u32, gFloatF32) == 3_000_000_000)
+    Swag.assert(cast(u64, gFloatF32) == 3_000_000_000)
+    Swag.assert(cast(u32, gFloatF64) == 3_000_000_000)
+    Swag.assert(cast(u64, gFloatF64) == 3_000_000_000)
 }
 
 #test
 {
     gFloatF32 = -12_884_901_888.0
     gFloatF64 = -12_884_901_888.0
-    Swag.assert(cast(s64) gFloatF32 == -12_884_901_888)
-    Swag.assert(cast(s64) gFloatF64 == -12_884_901_888)
+    Swag.assert(cast(s64, gFloatF32) == -12_884_901_888)
+    Swag.assert(cast(s64, gFloatF64) == -12_884_901_888)
 }
 
 // The conversion instruction reads a dword source as signed, so a value that only
 // fits unsigned has to reach it widened. Each boundary is exact in both float types.
 #[Swag.NoInline]
-func s32ToF64(value: s32)->f64 { return cast(f64) value }
+func s32ToF64(value: s32)->f64 { return cast(f64, value) }
 
 #[Swag.NoInline]
-func u32ToF64(value: u32)->f64 { return cast(f64) value }
+func u32ToF64(value: u32)->f64 { return cast(f64, value) }
 
 #[Swag.NoInline]
-func s16ToF64(value: s16)->f64 { return cast(f64) value }
+func s16ToF64(value: s16)->f64 { return cast(f64, value) }
 
 #[Swag.NoInline]
-func u16ToF64(value: u16)->f64 { return cast(f64) value }
+func u16ToF64(value: u16)->f64 { return cast(f64, value) }
 
 #[Swag.NoInline]
-func s8ToF32(value: s8)->f32 { return cast(f32) value }
+func s8ToF32(value: s8)->f32 { return cast(f32, value) }
 
 #[Swag.NoInline]
-func u8ToF32(value: u8)->f32 { return cast(f32) value }
+func u8ToF32(value: u8)->f32 { return cast(f32, value) }
 
 #test
 {

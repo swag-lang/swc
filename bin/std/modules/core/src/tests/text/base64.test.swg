@@ -10,7 +10,7 @@ func base64Reference(bytes: const [..] u8)->String
     var index = 0'u64
     while index + 3 <= bytes.count
     {
-        let group = (cast(u32) bytes[index] << 16) | (cast(u32) bytes[index + 1] << 8) | bytes[index + 2]
+        let group = (cast(u32, bytes[index]) << 16) | (cast(u32, bytes[index + 1]) << 8) | bytes[index + 2]
         result.append(Alphabet[group >> 18])
         result.append(Alphabet[(group >> 12) & 63])
         result.append(Alphabet[(group >> 6) & 63])
@@ -20,7 +20,7 @@ func base64Reference(bytes: const [..] u8)->String
 
     if bytes.count - index == 1
     {
-        let group = cast(u32) bytes[index] << 16
+        let group = cast(u32, bytes[index]) << 16
         result.append(Alphabet[group >> 18])
         result.append(Alphabet[(group >> 12) & 63])
         result.append('='u8)
@@ -28,7 +28,7 @@ func base64Reference(bytes: const [..] u8)->String
     }
     elif bytes.count - index == 2
     {
-        let group = (cast(u32) bytes[index] << 16) | (cast(u32) bytes[index + 1] << 8)
+        let group = (cast(u32, bytes[index]) << 16) | (cast(u32, bytes[index + 1]) << 8)
         result.append(Alphabet[group >> 18])
         result.append(Alphabet[(group >> 12) & 63])
         result.append(Alphabet[(group >> 6) & 63])
@@ -41,25 +41,25 @@ func base64Reference(bytes: const [..] u8)->String
 // Encoding covers every padding shape, and decoding reads its own output back.
 #test
 {
-    Swag.assert(Base64.encode(cast(const [..] u8) "").isEmpty())
-    Swag.assert(Base64.encode(cast(const [..] u8) "f") == "Zg==")
-    Swag.assert(Base64.encode(cast(const [..] u8) "fo") == "Zm8=")
-    Swag.assert(Base64.encode(cast(const [..] u8) "foo") == "Zm9v")
-    Swag.assert(Base64.encode(cast(const [..] u8) "foob") == "Zm9vYg==")
-    Swag.assert(Base64.encode(cast(const [..] u8) "fooba") == "Zm9vYmE=")
-    Swag.assert(Base64.encode(cast(const [..] u8) "foobar") == "Zm9vYmFy")
+    Swag.assert(Base64.encode(cast(const [..] u8, "")).isEmpty())
+    Swag.assert(Base64.encode(cast(const [..] u8, "f")) == "Zg==")
+    Swag.assert(Base64.encode(cast(const [..] u8, "fo")) == "Zm8=")
+    Swag.assert(Base64.encode(cast(const [..] u8, "foo")) == "Zm9v")
+    Swag.assert(Base64.encode(cast(const [..] u8, "foob")) == "Zm9vYg==")
+    Swag.assert(Base64.encode(cast(const [..] u8, "fooba")) == "Zm9vYmE=")
+    Swag.assert(Base64.encode(cast(const [..] u8, "foobar")) == "Zm9vYmFy")
 
     let bytes = expect Base64.decode("Zm9vYmFy")
-    Swag.assert(cast(string) bytes.toSlice() == "foobar")
+    Swag.assert(cast(string, bytes.toSlice()) == "foobar")
 }
 
 // Decoding accepts the forms real documents carry: padding, no padding, the URL-safe alphabet,
 // and embedded white space.
 #test
 {
-    Swag.assert(cast(string) (expect Base64.decode("Zm9vYg==")).toSlice() == "foob")
-    Swag.assert(cast(string) (expect Base64.decode("Zm9vYg")).toSlice() == "foob")
-    Swag.assert(cast(string) (expect Base64.decode("Zm9v\r\n YmFy")).toSlice() == "foobar")
+    Swag.assert(cast(string, (expect Base64.decode("Zm9vYg==")).toSlice()) == "foob")
+    Swag.assert(cast(string, (expect Base64.decode("Zm9vYg")).toSlice()) == "foob")
+    Swag.assert(cast(string, (expect Base64.decode("Zm9v\r\n YmFy")).toSlice()) == "foobar")
 
     // `+/` and `-_` spell the same two sextets.
     let standard = expect Base64.decode("+/8=")
@@ -85,7 +85,7 @@ func base64Reference(bytes: const [..] u8)->String
 {
     var input: [129] u8
     for i in 129 do
-        input[i] = cast(u8) ((i * 73 + 19) & 0xFF)
+        input[i] = cast(u8, ((i * 73 + 19) & 0xFF))
 
     for length in 130
     {
@@ -97,7 +97,7 @@ func base64Reference(bytes: const [..] u8)->String
     }
 
     let spaced = expect Base64.decode("QUJDREVGR0hJSktM\r\nTU5PUA==")
-    Swag.assert(cast(string) spaced.toSlice() == "ABCDEFGHIJKLMNOP")
+    Swag.assert(cast(string, spaced.toSlice()) == "ABCDEFGHIJKLMNOP")
     let urlSafe = expect Base64.decode("LS0tX19fLS0tX19fLS0tX19f")
-    Swag.assert(cast(string) urlSafe.toSlice() == "---___---___---___")
+    Swag.assert(cast(string, urlSafe.toSlice()) == "---___---___---___")
 }

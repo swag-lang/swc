@@ -28,8 +28,8 @@ func day3A()
 
             var ok = 0
             for i in 3 do
-                ok += cast(s32) (v[i] + v[(i + 1) % 3] > v[(i + 2) % 3])
-            total += cast(s32) (ok == 3)
+                ok += cast(s32, (v[i] + v[(i + 1) % 3] > v[(i + 2) % 3]))
+            total += cast(s32, (ok == 3))
         }
 
         Swag.assert(total == 869)

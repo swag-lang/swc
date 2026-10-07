@@ -7,13 +7,13 @@ func createLexerPage(parent: *Wnd)
     let left = createPanel(parent, "Lexer + wrap", "This page now renders gui3's own source, with wrap enabled for long review-style reading.", layout.left)
     {
         let rect = left.clientRect()
-        discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(string) SourcePageLexer, .ShowFocusSel | .CurLineBorder | .TabToSpaces | .WordWrap)
+        discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(string, SourcePageLexer), .ShowFocusSel | .CurLineBorder | .TabToSpaces | .WordWrap)
     }
 
     let right = createPanel(parent, "Visible blanks", "A second local gui3 page is shown with blanks enabled so spacing decisions stay obvious.", layout.right)
     {
         let rect = right.clientRect()
-        discard createCodeEditor(right, {18, 88, rect.width - 36, rect.height - 106}, cast(string) SourcePageStyles, .ShowFocusSel | .CurLineBorder | .DrawBlanks | .TabToSpaces)
+        discard createCodeEditor(right, {18, 88, rect.width - 36, rect.height - 106}, cast(string, SourcePageStyles), .ShowFocusSel | .CurLineBorder | .DrawBlanks | .TabToSpaces)
     }
 
     let bottom = createPanel(parent, "Document mode", "The same engine can lean toward prose: softer chrome, line spacing and word wrap.", layout.bottom)

@@ -1989,7 +1989,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <span class="SKwd">var</span> frame  = <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">640</span>, <span class="SNum">480</span>, .<span class="SCst">RGB8</span>)
 <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">90</span>'<span class="STpe">u64</span>
 {
-    frame.<span class="SFct">fill</span>(<span class="SCst">Pixel</span>.<span class="SCst">Color</span>.<span class="SFct">fromRgb</span>(<span class="SKwd">cast</span>(<span class="STpe">u8</span>) index, <span class="SNum">64</span>, <span class="SNum">128</span>))
+    frame.<span class="SFct">fill</span>(<span class="SCst">Pixel</span>.<span class="SCst">Color</span>.<span class="SFct">fromRgb</span>(<span class="SKwd">cast</span>(<span class="STpe">u8</span>, index), <span class="SNum">64</span>, <span class="SNum">128</span>))
     <span class="SKwd">try</span> writer.<span class="SFct">addFrame</span>(frame)
 }
 

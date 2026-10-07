@@ -112,6 +112,7 @@ namespace
         None,
         Catch,
         Expect,
+        Assume,
     };
 
     struct FallibleTarget
@@ -122,9 +123,10 @@ namespace
             FunctionReturn,
         };
 
-        Kind          kind      = Kind::FunctionReturn;
-        AstNodeRef    scopeRef  = AstNodeRef::invalid();
-        MicroLabelRef failLabel = MicroLabelRef::invalid();
+        Kind          kind            = Kind::FunctionReturn;
+        AstNodeRef    scopeRef        = AstNodeRef::invalid();
+        MicroLabelRef failLabel       = MicroLabelRef::invalid();
+        bool          uncheckedAssume = false;
     };
 
     bool isFallibleWrapperOwnerNode(AstNodeId nodeId)
@@ -209,6 +211,9 @@ namespace
             case TokenId::KwdExpect:
                 return FallibleHandlerKind::Expect;
 
+            case TokenId::KwdAssume:
+                return FallibleHandlerKind::Assume;
+
             default:
                 return FallibleHandlerKind::None;
         }
@@ -234,9 +239,10 @@ namespace
             return false;
 
         outTarget = {
-            .kind      = FallibleTarget::Kind::Handler,
-            .scopeRef  = codeGen.resolvedNodeRef(ownerRef),
-            .failLabel = ownerPayload->fallibleFailLabel,
+            .kind            = FallibleTarget::Kind::Handler,
+            .scopeRef        = codeGen.resolvedNodeRef(ownerRef),
+            .failLabel       = ownerPayload->fallibleFailLabel,
+            .uncheckedAssume = ownerPayload->fallibleWrapperTokenId == TokenId::KwdAssume && !ownerPayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume),
         };
         return true;
     }
@@ -574,6 +580,17 @@ namespace
                 return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *catchErr, args);
             }
 
+            case FallibleHandlerKind::Assume:
+            {
+                const auto* lowering = codeGen.loweringPayload(nodeRef);
+                if (!lowering || !lowering->hasRuntimeSafety(Runtime::SafetyWhat::Assume))
+                {
+                    if (failurePath)
+                        codeGen.builder().emitTrap();
+                    return Result::Continue;
+                }
+                [[fallthrough]];
+            }
             case FallibleHandlerKind::Expect:
             {
                 if (failurePath)
@@ -1225,6 +1242,11 @@ namespace
     Result emitFallibleJump(CodeGen& codeGen)
     {
         const FallibleTarget target = resolveFallibleTarget(codeGen);
+        if (target.uncheckedAssume)
+        {
+            codeGen.builder().emitTrap();
+            return Result::Continue;
+        }
 
         if (!codeGen.hasDeferredStatements())
         {
@@ -1296,6 +1318,15 @@ Result CodeGenCallHelpers::emitFallibleFailureJump(CodeGen& codeGen)
     return emitFallibleJump(codeGen);
 }
 
+Result CodeGenCallHelpers::emitFallibleCastFailure(CodeGen& codeGen)
+{
+    const IdentifierRef   failureId = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::FailedCast);
+    const SymbolFunction* failure   = codeGen.compiler().runtimeFunctionSymbol(failureId);
+    SWC_ASSERT(failure != nullptr);
+    SWC_RESULT(emitRuntimeCallWithDirectArgs(codeGen, *failure, std::span<const MicroReg>{}));
+    return emitFallibleFailureJump(codeGen);
+}
+
 // Whether the error a call may have left behind can be read where it lives.
 // The runtime keeps the thread's context in a thread-local slot, and the
 // platform keeps the first of those slots at a fixed place in the thread's own
@@ -1310,6 +1341,9 @@ bool CodeGenCallHelpers::canReadErrorFlagInline(const CodeGen& codeGen)
 
 Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
 {
+    if (resolveFallibleTarget(codeGen).uncheckedAssume)
+        return Result::Continue;
+
     MicroBuilder&       builder       = codeGen.builder();
     const MicroLabelRef continueLabel = builder.createLabel();
 
@@ -1398,6 +1432,9 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
 
     codeGen.pushDeferScope(nodeRef);
 
+    if (payload->fallibleWrapperTokenId == TokenId::KwdAssume && !payload->hasRuntimeSafety(Runtime::SafetyWhat::Assume))
+        return Result::Continue;
+
     const SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
     SWC_ASSERT(runtimePushErr != nullptr);
     if (!runtimePushErr)
@@ -1423,6 +1460,20 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     const bool                hasFallthrough = !codeGen.currentInstructionBlocksFallthrough();
     MicroBuilder&             builder        = codeGen.builder();
     SWC_ASSERT(kind != FallibleHandlerKind::None);
+
+    if (hasResult && kind == FallibleHandlerKind::Catch)
+    {
+        CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
+        if (resultPayload.isAddress())
+        {
+            // The operand can share its address register with a local, or even the
+            // stack base. Catch rebinds its result on failure; keep that join private.
+            const MicroReg operandReg = resultPayload.reg;
+            resultPayload.reg         = codeGen.nextVirtualIntRegister();
+            if (hasFallthrough)
+                builder.emitLoadRegReg(resultPayload.reg, operandReg, MicroOpBits::B64);
+        }
+    }
 
     const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(ownerRef);
     if (hasFallthrough)

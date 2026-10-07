@@ -35,7 +35,7 @@ impl PriorityQueue
     {
         Swag.assert(comparator != null)
         Swag.assert(.isEmpty(), "priority queue is not empty")
-        .comparator = cast(*void) comparator
+        .comparator = cast(*void, comparator)
     }
 
     // Returns the number of elements in the queue.
@@ -63,7 +63,7 @@ impl PriorityQueue
     private mtd const compareItems(left, right: T)->s32
     {
         if .comparator do
-            return (cast(func(const *T, const *T)->s32) .comparator!)(&left, &right)
+            return cast(func(const *T, const *T)->s32, .comparator!)(&left, &right)
 
         Swag.assert(false, "priority queue has not been initialized with a comparator")
         return 0

@@ -51,7 +51,7 @@ impl ViewerSession
     {
         if not .view or not .retire do
             return true
-        if not .retire(.view) do
+        if not .retire() do
             return false
         .retire = null
         return true

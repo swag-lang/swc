@@ -31,7 +31,7 @@ func clampLoop(dst: [*] u8, src: [*] s32, n: u64)
     {
         var v = src[i]
         v      = v < 0 ? 0 : (v > 255 ? 255 : v)
-        dst[i] = cast(u8) v
+        dst[i] = cast(u8, v)
     }
 }
 

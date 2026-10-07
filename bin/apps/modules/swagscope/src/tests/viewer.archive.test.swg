@@ -39,14 +39,14 @@ struct ZipFixtureEntry
 
 func zipFixtureU16(bytes: *Array'u8, value: u16)
 {
-    bytes.add(cast #bit (u8) value)
-    bytes.add(cast #bit (u8) (value >> 8))
+    bytes.add(cast #bit (u8, value))
+    bytes.add(cast #bit (u8, (value >> 8)))
 }
 
 func zipFixtureU32(bytes: *Array'u8, value: u32)
 {
-    zipFixtureU16(bytes, cast #bit (u16) value)
-    zipFixtureU16(bytes, cast #bit (u16) (value >> 16))
+    zipFixtureU16(bytes, cast #bit (u16, value))
+    zipFixtureU16(bytes, cast #bit (u16, (value >> 16)))
 }
 
 func addZipFixtureEntry(bytes: *Array'u8, entry: *ZipFixtureEntry)
@@ -60,9 +60,9 @@ func addZipFixtureEntry(bytes: *Array'u8, entry: *ZipFixtureEntry)
     zipFixtureU16(bytes, 0)
     zipFixtureU16(bytes, 0)
     zipFixtureU32(bytes, entry.crc32)
-    zipFixtureU32(bytes, cast(u32) entry.packed.count)
-    zipFixtureU32(bytes, cast(u32) entry.plain.count)
-    zipFixtureU16(bytes, cast(u16) entry.name.length)
+    zipFixtureU32(bytes, cast(u32, entry.packed.count))
+    zipFixtureU32(bytes, cast(u32, entry.plain.count))
+    zipFixtureU16(bytes, cast(u16, entry.name.length))
     zipFixtureU16(bytes, 0)
     bytes.add(entry.name.toSlice())
     bytes.add(entry.packed.toSlice())
@@ -97,15 +97,15 @@ func buildZipFixture()->Array'u8
         zipFixtureU16(&result, 0)
         zipFixtureU16(&result, 0)
         zipFixtureU32(&result, entry.crc32)
-        zipFixtureU32(&result, cast(u32) entry.packed.count)
-        zipFixtureU32(&result, cast(u32) entry.plain.count)
-        zipFixtureU16(&result, cast(u16) entry.name.length)
+        zipFixtureU32(&result, cast(u32, entry.packed.count))
+        zipFixtureU32(&result, cast(u32, entry.plain.count))
+        zipFixtureU16(&result, cast(u16, entry.name.length))
         zipFixtureU16(&result, 0)
         zipFixtureU16(&result, 0)
         zipFixtureU16(&result, 0)
         zipFixtureU16(&result, 0)
         zipFixtureU32(&result, 0)
-        zipFixtureU32(&result, cast(u32) entry.local)
+        zipFixtureU32(&result, cast(u32, entry.local))
         result.add(entry.name.toSlice())
     }
 
@@ -115,8 +115,8 @@ func buildZipFixture()->Array'u8
     zipFixtureU16(&result, 0)
     zipFixtureU16(&result, entries.count)
     zipFixtureU16(&result, entries.count)
-    zipFixtureU32(&result, cast(u32) directorySize)
-    zipFixtureU32(&result, cast(u32) directoryAt)
+    zipFixtureU32(&result, cast(u32, directorySize))
+    zipFixtureU32(&result, cast(u32, directoryAt))
     zipFixtureU16(&result, 0)
     return result
 }
@@ -144,13 +144,13 @@ func writeZipFixture()->String
     let rootFile = list.createLine(null)
     rootFile.setItem(0, "a.txt")
     rootFile.setItem(1, "1 B")
-    rootFile.userData0 = cast(*void?) 1
+    rootFile.userData0 = cast(*void?, 1)
 
     let rootFolder = list.createLine("z-folder")
     let childFile  = list.createLine(rootFolder)
     childFile.setItem(0, "a.txt")
     childFile.setItem(1, "1 B")
-    childFile.userData0 = cast(*void?) 2
+    childFile.userData0 = cast(*void?, 2)
     let childFolder = list.createLine("z-empty", parentLine: rootFolder)
 
     list.sort(0, persistent: true)
@@ -191,9 +191,9 @@ func writeZipFixture()->String
         expect extractZipEntry(archiveFile, entry, output)
         let decoded = expect File.readAllBytes(output)
         if entry.path == "data/sample.json" do
-            Swag.assert(cast(string) decoded.toSlice() == "{\"answer\": 42}\n")
+            Swag.assert(cast(string, decoded.toSlice()) == "{\"answer\": 42}\n")
         else do
-            Swag.assert(cast(string) decoded.toSlice() == "Archive preview through the text viewer.\n")
+            Swag.assert(cast(string, decoded.toSlice()) == "Archive preview through the text viewer.\n")
     }
 }
 
@@ -247,7 +247,7 @@ func writeZipFixture()->String
     window.openFile(archiveFile)
     completeViewerWindowClassification(&host, window)
 
-    let viewer = cast #assume (*ArchiveViewer) window.currentView!
+    let viewer = assume cast (*ArchiveViewer, window.currentView)
     while not viewer.load.isDone() do
         Threading.Thread.sleep(1'ms)
     host.fireTimer(viewer.loadTimer)
@@ -284,11 +284,11 @@ func writeZipFixture()->String
     host.fireTimer(viewer.previewTimer)
     Swag.assert(not viewer.previewFile.isEmpty())
 
-    let embedded = cast #assume (*EmbeddedViewer) viewer.previewPane.children[0]
+    let embedded = assume cast (*EmbeddedViewer, viewer.previewPane.children[0])
     Swag.assert(embedded.choices[0].key == "text")
     Swag.assert(embedded.currentView != null)
 
-    let textView = cast #assume (*TextViewer) embedded.currentView
+    let textView = assume cast (*TextViewer, embedded.currentView)
     completeTextReads(&host, textView)
     host.fireTimer(textView.loadTimer)
 
@@ -299,13 +299,13 @@ func writeZipFixture()->String
 
     var matches: Array'Viewer.SearchMatch
     let session = &window.instances[window.activeChoiceIndex]
-    collectViewerMatches(session.collectMatches!, viewer, "readme", &matches)
+    collectViewerMatches(session.collectMatches!, "readme", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
-    let revealed = session.revealMatch!(viewer, matches[0], "readme")
+    let revealed = session.revealMatch!(matches[0], "readme")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(session.searchBounds!(viewer, matches[0], &bounds) and not bounds.isEmpty())
-    session.clearSearch!(viewer)
+    Swag.assert(session.searchBounds!(matches[0], &bounds) and not bounds.isEmpty())
+    session.clearSearch!()
 
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     expect host.app.setLanguage("fr")

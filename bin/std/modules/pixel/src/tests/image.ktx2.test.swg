@@ -18,7 +18,7 @@ func ktx2Roundtrip(source: Image)->Image
     {
         var source = Image.create(5, 3, format)
         for i in source.byteCount do
-            source.pixels.storage()[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+            source.pixels.storage()[i] = cast(u8, ((i * 37 + 11) & 0xFF))
         let decoded = ktx2Roundtrip(source)
         assertImage(decoded, source.width, source.height, format)
         Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
@@ -33,13 +33,13 @@ func ktx2Roundtrip(source: Image)->Image
     var encoded = expect source.encode("plain.ktx2")
     encoded.makeLinear()
     var plain      = encoded.toSlice()!
-    let dataOffset = (cast(const *u64) (plain.buffer + 80))[]
-    let rawLength  = (cast(const *u64) (plain.buffer + 96))[]
+    let dataOffset = cast(const *u64, (plain.buffer + 80))[]
+    let rawLength  = cast(const *u64, (plain.buffer + 96))[]
     var zlib: Compress.ZLib
     let compressed = expect zlib.compress(plain[dataOffset until dataOffset + rawLength])
 
     plain[44] = 3
-    (cast(*u64) (plain.buffer + 88))[] = compressed.count
+    cast(*u64, (plain.buffer + 88))[] = compressed.count
     var rebuilt: ConcatBuffer
     rebuilt.addBytes(plain[until dataOffset])
     rebuilt.addBytes(compressed.toSlice())

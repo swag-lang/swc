@@ -11,7 +11,7 @@ private func sleep(milliseconds: u32)
         return
     Swag.setWorkerCount(4)
     let scheduler = Swag.schedulerInstance()
-    Swag.assert(SchedulerDll.schedulerAddress() == cast(u64) scheduler)
+    Swag.assert(SchedulerDll.schedulerAddress() == cast(u64, scheduler))
     var started: Swag.AtomicFlag
     var parked = false
     var task:    Swag.Task

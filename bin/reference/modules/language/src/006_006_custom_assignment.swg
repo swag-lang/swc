@@ -54,13 +54,13 @@ impl Struct
 {
     mtd opSet(value: u64)
     {
-        me.x, me.y, me.z = cast(s32) value
+        me.x, me.y, me.z = cast(s32, value)
     }
 
     #[Swag.Implicit]
     mtd opSet(value: u16)
     {
-        me.x, me.y = cast(s32) value
+        me.x, me.y = cast(s32, value)
     }
 }
 
@@ -96,7 +96,7 @@ Function arguments are not automatically converted through 'opSet' unless
     }
 
     // Explicit cast triggers 'opSet(s32)'
-    takesExplicit(cast(Struct) 5's32)
+    takesExplicit(cast(Struct, 5's32))
 
     // Implicit conversion via 'opSet(u16)'
     takesImplicit(5'u16)

@@ -78,7 +78,7 @@ func explicitCastOriginalAfterDynamicCase(evt: IEvent)->s32
     switch evt
     {
     case MouseEvent as ptr where ptr.button == 2:
-        let typed = cast #assume (*MouseEvent) evt
+        let typed = assume cast (*MouseEvent, evt)
         return typed.code + typed.button
     default:
         return -1
@@ -117,17 +117,17 @@ func classifyNil(evt: IEvent?)->s32
     var base:  EventBase
     var empty: IEvent?
 
-    Swag.assert(dispatchEvent(cast(IEvent) wheel) == 15)
-    Swag.assert(dispatchEvent(cast(IEvent) mouse) == 12)
-    Swag.assert(dispatchEvent(cast(IEvent) key) == 17)
-    Swag.assert(dispatchEvent(cast(IEvent) base) == 10)
-    Swag.assert(classifyEvent(cast(IEvent) wheel) == 1)
-    Swag.assert(classifyEvent(cast(IEvent) mouse) == 1)
-    Swag.assert(classifyEvent(cast(IEvent) key) == 2)
-    Swag.assert(classifyEvent(cast(IEvent) base) == 2)
-    Swag.assert(fallbackAfterWhere(cast(IEvent) mouse) == 10)
-    Swag.assert(explicitCastOriginalAfterDynamicCase(cast(IEvent) mouse) == 12)
-    Swag.assert(fallthroughToBase(cast(IEvent) mouse) == 10)
-    Swag.assert(fallthroughToBase(cast(IEvent) key) == 10)
+    Swag.assert(dispatchEvent(cast(IEvent, wheel)) == 15)
+    Swag.assert(dispatchEvent(cast(IEvent, mouse)) == 12)
+    Swag.assert(dispatchEvent(cast(IEvent, key)) == 17)
+    Swag.assert(dispatchEvent(cast(IEvent, base)) == 10)
+    Swag.assert(classifyEvent(cast(IEvent, wheel)) == 1)
+    Swag.assert(classifyEvent(cast(IEvent, mouse)) == 1)
+    Swag.assert(classifyEvent(cast(IEvent, key)) == 2)
+    Swag.assert(classifyEvent(cast(IEvent, base)) == 2)
+    Swag.assert(fallbackAfterWhere(cast(IEvent, mouse)) == 10)
+    Swag.assert(explicitCastOriginalAfterDynamicCase(cast(IEvent, mouse)) == 12)
+    Swag.assert(fallthroughToBase(cast(IEvent, mouse)) == 10)
+    Swag.assert(fallthroughToBase(cast(IEvent, key)) == 10)
     Swag.assert(classifyNil(empty) == 0)
 }

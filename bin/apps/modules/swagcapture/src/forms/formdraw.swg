@@ -28,7 +28,7 @@ impl IForm for FormDraw
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast #try (*FormDraw) ptr
+        let other = (catch cast(*FormDraw?, ptr))
         if not other do
             return false
         return .isSameBase(ptr) and
@@ -39,8 +39,8 @@ impl IForm for FormDraw
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast #assume (*FormDraw) dst
-        let srcf = cast #assume (*FormDraw) src
+        let dstf = assume cast (*FormDraw, dst)
+        let srcf = assume cast (*FormDraw, src)
         dstf.outlineSize  = srcf.outlineSize
         dstf.outlineColor = srcf.outlineColor
     }

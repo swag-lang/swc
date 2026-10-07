@@ -10,9 +10,9 @@ namespace compiler1643
     {
         const tbl = "0123456789ABCDEF"
         var c = tbl[0]
-        // Swag.print(cast(s64) c)
-        Swag.assert(tbl[0] == cast(u8) '0'rune)
-        Swag.assert(tbl[1] == cast(u8) '1'rune)
+        // Swag.print(cast(s64, c))
+        Swag.assert(tbl[0] == cast(u8, '0'rune))
+        Swag.assert(tbl[1] == cast(u8, '1'rune))
     }
 }
 
@@ -25,7 +25,7 @@ namespace compiler1644
         const tbl = "0123456789ABCDEF"
         let x = 1
         let c = tbl[x]
-        Swag.assert(c == cast(u8) '1'rune)
+        Swag.assert(c == cast(u8, '1'rune))
     }
 }
 
@@ -37,7 +37,7 @@ namespace compiler1654
     {
         let s   = "%%"
         let ptr = s.buffer
-        Swag.assert(ptr[0] == cast(u8) '%'rune)
+        Swag.assert(ptr[0] == cast(u8, '%'rune))
     }
 }
 
@@ -131,10 +131,10 @@ namespace compiler292
     #test
     {
         let b = "abcd"
-        Swag.assert(b[0] == cast(u8) 'a'rune)
-        Swag.assert(b[1] == cast(u8) 'b'rune)
-        Swag.assert(b[2] == cast(u8) 'c'rune)
-        Swag.assert(b[3] == cast(u8) 'd'rune)
+        Swag.assert(b[0] == cast(u8, 'a'rune))
+        Swag.assert(b[1] == cast(u8, 'b'rune))
+        Swag.assert(b[2] == cast(u8, 'c'rune))
+        Swag.assert(b[3] == cast(u8, 'd'rune))
     }
 }
 
@@ -142,15 +142,15 @@ namespace cstring_index_runtime
 {
     #test
     {
-        var text: const cstring = cast(const cstring) ("abcd").buffer
-        Swag.assert(text[0] == cast(u8) 'a'rune)
-        Swag.assert(text[3] == cast(u8) 'd'rune)
+        var text: const cstring = cast(const cstring, ("abcd").buffer)
+        Swag.assert(text[0] == cast(u8, 'a'rune))
+        Swag.assert(text[3] == cast(u8, 'd'rune))
     }
 
     #test
     {
-        let value = (cast(const cstring) ("abcd").buffer)[2]
-        Swag.assert(value == cast(u8) 'c'rune)
+        let value = cast(const cstring, ("abcd").buffer)[2]
+        Swag.assert(value == cast(u8, 'c'rune))
     }
 }
 
@@ -161,7 +161,7 @@ namespace compiler293
     #test
     {
         let b = "XYZ"
-        Swag.assert(b[2] == cast(u8) 'Z'rune)
+        Swag.assert(b[2] == cast(u8, 'Z'rune))
     }
 }
 
@@ -233,10 +233,10 @@ namespace compiler302
     {
         let str = "ABCD"
         let p: const [*] u8 = str.buffer
-        Swag.assert(p[0] == cast(u8) 'A'rune)
-        Swag.assert(p[1] == cast(u8) 'B'rune)
-        Swag.assert(p[2] == cast(u8) 'C'rune)
-        Swag.assert(p[3] == cast(u8) 'D'rune)
+        Swag.assert(p[0] == cast(u8, 'A'rune))
+        Swag.assert(p[1] == cast(u8, 'B'rune))
+        Swag.assert(p[2] == cast(u8, 'C'rune))
+        Swag.assert(p[3] == cast(u8, 'D'rune))
     }
 }
 

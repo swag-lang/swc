@@ -65,7 +65,7 @@ impl AnimationChannel
     // Creates a stable channel from an application-defined name.
     func from(name: string)->AnimationChannel => {Hash.Crc64.compute(name) & 0x7FFF_FFFF_FFFF_FFFF}
 
-    internal func fromPointer(value: *void)->AnimationChannel => {cast(u64) value | 0x8000_0000_0000_0000}
+    internal func fromPointer(value: *void)->AnimationChannel => {cast(u64, value) | 0x8000_0000_0000_0000}
 }
 
 // Configures one finite animation track.
@@ -178,7 +178,7 @@ private impl AnimationGroup
         track.options = options
         track.kind    = kind
         if .kind == .Sequence do
-            track.step = cast(u32) .tracks.count
+            track.step = cast(u32, .tracks.count)
         .tracks.add(track)
         return track
     }
@@ -311,7 +311,7 @@ private impl Animator
     {
         if not track.options.repeatCount do
             return Swag.F64.Max
-        return track.options.delay.seconds + track.options.duration.seconds * cast(f64) track.options.repeatCount
+        return track.options.delay.seconds + track.options.duration.seconds * cast(f64, track.options.repeatCount)
     }
 
     func isElapsed(track: *AnimationTrack)->bool => track.options.repeatCount != 0 and track.elapsedSeconds >= totalSeconds(track)
@@ -328,11 +328,11 @@ private impl Animator
         // The last play holds its final frame instead of wrapping to the beginning again.
         let plays = (track.elapsedSeconds - delay) / duration
         var index = Math.floor(plays)
-        if track.options.repeatCount and index > cast(f64) (track.options.repeatCount - 1) do
-            index = cast(f64) (track.options.repeatCount - 1)
+        if track.options.repeatCount and index > cast(f64, (track.options.repeatCount - 1)) do
+            index = cast(f64, (track.options.repeatCount - 1))
 
-        let local = Math.saturate(cast(f32) (plays - index))
-        if track.options.autoReverse and cast(u64) index & 1 do
+        let local = Math.saturate(cast(f32, (plays - index)))
+        if track.options.autoReverse and cast(u64, index) & 1 do
             return 1 - local
         return local
     }

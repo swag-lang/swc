@@ -20,7 +20,7 @@ func createSuspendedNative(entry: LPTHREAD_START_ROUTINE, param: *void, id: *u64
     var nativeId: DWORD
     let handle = try CreateThread(null, 0, entry, param, CREATE_SUSPENDED, &nativeId)
     id[] = nativeId
-    return cast(ThreadHandle) handle
+    return cast(ThreadHandle, handle)
 }
 
 func startNative(handle: ThreadHandle) fail
@@ -50,7 +50,7 @@ func waitOneNative(handle: ThreadHandle)
 
 func waitManyNative(handles: const [..] ThreadHandle)
 {
-    expect WaitForMultipleObjects(cast(u32) handles.count, cast(const *HANDLE) handles.buffer, TRUE, INFINITE)
+    expect WaitForMultipleObjects(cast(u32, handles.count), cast(const *HANDLE, handles.buffer), TRUE, INFINITE)
 }
 
 func isDoneNative(handle: ThreadHandle)->bool => expect WaitForSingleObject(handle, 0) != WAIT_TIMEOUT

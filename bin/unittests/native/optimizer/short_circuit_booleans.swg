@@ -58,7 +58,7 @@ func countBoth(values: const [*] s32, count: u64, low, high: s32)->u64
 
     for c in 256
     {
-        let b = cast(u8) c
+        let b = cast(u8, c)
         Swag.assert(isDigit(b) == (c >= 48 and c <= 57))
     }
 

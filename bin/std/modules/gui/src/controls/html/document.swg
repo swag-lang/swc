@@ -591,7 +591,7 @@ impl HtmlDocument
 
     // Returns the run a stretch of source occupies, which is the common case: text the document
     // spells the way it is stored.
-    func sourceRange(start, count: u64)->HtmlRange => {cast(u32) start, cast(u32) count}
+    func sourceRange(start, count: u64)->HtmlRange => {cast(u32, start), cast(u32, count)}
 
     // Copies text the source does not spell — a folded name, a decoded run — and returns where it
     // landed. A run built this way is addressed by offset, so a slice read back from it is
@@ -599,8 +599,8 @@ impl HtmlDocument
     mtd intern(text: string)->HtmlRange
     {
         var result: retval
-        result.start = cast(u32) .builtText.length | HtmlBuiltText
-        result.count = cast(u32) text.count
+        result.start = cast(u32, .builtText.length) | HtmlBuiltText
+        result.count = cast(u32, text.count)
         .builtText   += text
         return result
     }
@@ -621,9 +621,9 @@ impl HtmlDocument
     mtd internDecoded(text: string, inAttribute = false)->HtmlRange
     {
         var result: retval
-        result.start = cast(u32) .builtText.length | HtmlBuiltText
+        result.start = cast(u32, .builtText.length) | HtmlBuiltText
         htmlDecodeInto(&.builtText, text, inAttribute)
-        result.count = cast(u32) .builtText.length - (result.start ^ HtmlBuiltText)
+        result.count = cast(u32, .builtText.length) - (result.start ^ HtmlBuiltText)
         return result
     }
 
@@ -730,11 +730,11 @@ impl HtmlDocument
         node.tag          = tag
         node.parent       = parent
         node.sourceOffset = sourceOffset
-        node.attributes   = {cast(u32) .attributePool.count, 0}
-        node.classes      = {cast(u32) .classPool.count, 0}
+        node.attributes   = {cast(u32, .attributePool.count), 0}
+        node.classes      = {cast(u32, .classPool.count), 0}
         node.text         = name
 
-        let index = cast(u32) .nodes.count
+        let index = cast(u32, .nodes.count)
         .nodes.add(#move node)
         .linkChild(parent, index)
         return index
@@ -784,7 +784,7 @@ impl HtmlDocument
         node.parent       = parent
         node.sourceOffset = sourceOffset
 
-        let index = cast(u32) .nodes.count
+        let index = cast(u32, .nodes.count)
         .nodes.add(#move node)
         .linkChild(parent, index)
     }
@@ -808,11 +808,11 @@ impl HtmlDocument
         node.tag          = tag
         node.parent       = parent
         node.sourceOffset = sourceOffset
-        node.attributes   = {cast(u32) .attributePool.count, 0}
-        node.classes      = {cast(u32) .classPool.count, 0}
+        node.attributes   = {cast(u32, .attributePool.count), 0}
+        node.classes      = {cast(u32, .classPool.count), 0}
         node.text         = name
 
-        let index = cast(u32) .nodes.count
+        let index = cast(u32, .nodes.count)
         .nodes.add(#move node)
         .linkBefore(sibling, index)
         return index
@@ -835,7 +835,7 @@ impl HtmlDocument
         node.parent       = .nodes[sibling].parent
         node.sourceOffset = sourceOffset
 
-        let index = cast(u32) .nodes.count
+        let index = cast(u32, .nodes.count)
         .nodes.add(#move node)
         .linkBefore(sibling, index)
     }
@@ -847,12 +847,12 @@ impl HtmlDocument
     mtd addAttribute(element: u32, name: HtmlRange, value: HtmlRange)
     {
         let node = &.nodes[element]
-        Swag.assert(node.attributes.start + node.attributes.count == cast(u32) .attributePool.count, "an element's attributes must stay contiguous")
+        Swag.assert(node.attributes.start + node.attributes.count == cast(u32, .attributePool.count), "an element's attributes must stay contiguous")
 
         // The length rejects every other attribute before a byte of it is read.
         if name.count == ("class").count and .text(name) == "class"
         {
-            Swag.assert(node.classes.start + node.classes.count == cast(u32) .classPool.count, "an element's classes must stay contiguous")
+            Swag.assert(node.classes.start + node.classes.count == cast(u32, .classPool.count), "an element's classes must stay contiguous")
 
             // A class is a run inside the value that is already interned, so the index costs no
             // text of its own.
@@ -868,7 +868,7 @@ impl HtmlDocument
                 if end == start do
                     break
 
-                .classPool.add({value.start + cast(u32) start, cast(u32) (end - start)})
+                .classPool.add({value.start + cast(u32, start), cast(u32, (end - start))})
                 .nodes[element].classes.count += 1
                 start = end
             }

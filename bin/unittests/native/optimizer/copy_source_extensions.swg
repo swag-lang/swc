@@ -7,13 +7,13 @@ func maskedByte(value: u64)->u64 => (value & 255) << 8
 func maskedWord(value: u64)->u64 => (value & 65535) << 16
 
 #[Swag.NoInline]
-func signedByte(value: s8)->s64 => cast(s64) value
+func signedByte(value: s8)->s64 => cast(s64, value)
 
 #[Swag.NoInline]
-func signedWord(value: s16)->s64 => cast(s64) value
+func signedWord(value: s16)->s64 => cast(s64, value)
 
 #[Swag.NoInline]
-func unsignedWord(value: u16)->u64 => cast(u64) value
+func unsignedWord(value: u16)->u64 => cast(u64, value)
 
 #test
 {

@@ -15,14 +15,14 @@ impl Image
             return
 
         var context = {image: me, oldMode: .alphaMode, newMode: newMode}
-        parallel for |&context| parIndex in cast(u64) .height
+        parallel for |&context| parIndex in cast(u64, .height)
         {
-            let row    = cast(u32) parIndex
-            let image  = cast(*Image) context.image
-            let pixels = image.pixels.storage() + cast(u64) row * image.rowStride
+            let row    = cast(u32, parIndex)
+            let image  = cast(*Image, context.image)
+            let pixels = image.pixels.storage() + cast(u64, row) * image.rowStride
             for x in image.width
             {
-                let pixel = pixels + cast(u64) x * image.bytesPerPixel
+                let pixel = pixels + cast(u64, x) * image.bytesPerPixel
                 writeLogicalPixelValue(pixel, image.pixelFormat, context.newMode, readLogicalPixelValue(pixel, image.pixelFormat, context.oldMode))
             }
         }

@@ -126,15 +126,15 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let sli = SliderCtrl.create(wnd, "Density", {CellSize + 120, (CellSize * 2) + GridSize * CellSize, 250})
         sli.slider.setBounds(1, 10)
         sli.edit.setUnsignedIntegerRange(1, 10)
-        sli.slider.setValue(cast() g_Density)
-        sli.slider.sigChanged += func(sli) { g_Density = cast(s32) sli.value() }
+        sli.slider.setValue(cast(g_Density))
+        sli.slider.sigChanged += func(sli) { g_Density = cast(s32, sli.value()) }
 
         setup()
 
     case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
         let pos = wnd.surfaceToLocal(mouseEvt.surfacePos)
-        var x   = cast(s32) (pos.x / CellSize)
-        var y   = cast(s32) (pos.y / CellSize)
+        var x   = cast(s32, (pos.x / CellSize))
+        var y   = cast(s32, (pos.y / CellSize))
         x, y -= 1
         if x < 0 or x >= GridSize or y < 0 or y >= GridSize do
             break
@@ -216,5 +216,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, cast(s32) BoardExtent, cast(s32) (BoardExtent + ControlRow) + CaptionRoom, title: "Minesweeper", canSize: false, hook: &onEvent)
+    Application.runSurface(100, 100, cast(s32, BoardExtent), cast(s32, (BoardExtent + ControlRow)) + CaptionRoom, title: "Minesweeper", canSize: false, hook: &onEvent)
 }

@@ -13,25 +13,25 @@ const TypedValue: s32 = 10
 #assert(#typeof(10's16 + 20's64) == s64)
 #assert(#typeof(1 + 1'u32) == u32)
 #assert(#typeof(1 + 1's64) == s64)
-#assert(#typeof(cast(*u8?) null) == *u8?)
+#assert(#typeof(cast(*u8?, null)) == *u8?)
 #assert(#typeof(true) == bool)
 #assert(#typeof("x") == string)
 #assert(#typeof(func()->s32) == #type func()->s32)
 
 struct TypeOfPair { left, right: s16 }
 
-const TYPEOF_ARRAY = cast(const *Swag.TypeInfoArray) #typeof(#type [2, 3] TypeOfPair)
+const TYPEOF_ARRAY = cast(const *Swag.TypeInfoArray, #typeof(#type [2, 3] TypeOfPair))
 #assert(#typeof(#type [2, 3] TypeOfPair) == #type [2, 3] TypeOfPair)
 #assert(TYPEOF_ARRAY.count == 2)
 #assert(TYPEOF_ARRAY.totalCount == 6)
 #assert(TYPEOF_ARRAY.pointedType == #type [3] TypeOfPair)
 #assert(TYPEOF_ARRAY.finalType == TypeOfPair)
 
-const TYPEOF_SLICE = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] TypeOfPair)
+const TYPEOF_SLICE = cast(const *Swag.TypeInfoSlice, #typeof(#type [..] TypeOfPair))
 #assert(#typeof(#type [..] TypeOfPair) == #type [..] TypeOfPair)
 #assert(TYPEOF_SLICE.pointedType == TypeOfPair)
 
-const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool)
+const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc, #typeof(#type func(s32)->bool))
 #assert(#typeof(#type func(s32)->bool) == #type func(s32)->bool)
 #assert(TYPEOF_FUNC.parameters.count == 1)
 #assert(TYPEOF_FUNC.parameters[0].pointedType == s32)
@@ -41,7 +41,7 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
 #test
 {
     var local = 1 + 1'u16
-    var ptr   = cast(*u8?) null
+    var ptr   = cast(*u8?, null)
 
     #assert(#typeof(local) == u32)
     #assert(#typeof(ptr) == *u8?)
@@ -55,8 +55,8 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
 {
     var types: [?] typeinfo = [#typeof(#type [2, 3] TypeOfPair), #typeof(#type [..] TypeOfPair)]
 
-    let arrayInfo = cast #assume(const *Swag.TypeInfoArray) types[0]
-    let sliceInfo = cast #assume(const *Swag.TypeInfoSlice) types[1]
+    let arrayInfo = assume cast(const *Swag.TypeInfoArray, types[0])
+    let sliceInfo = assume cast(const *Swag.TypeInfoSlice, types[1])
 
     Swag.assert(types[0] == #type [2, 3] TypeOfPair)
     Swag.assert(types[1] == #type [..] TypeOfPair)

@@ -234,7 +234,7 @@ private impl TagBin
         if dstType == srcType
         {
             if Reflection.isSimpleNative(dstType) do
-                .convertNextNative = cast #assume(const *Swag.TypeInfoNative?) srcType
+                .convertNextNative = assume cast(const *Swag.TypeInfoNative?, srcType)
             return true
         }
 
@@ -242,25 +242,25 @@ private impl TagBin
         var toStruct:   const *Swag.TypeInfoStruct?
 
         if Reflection.isStruct(srcType) do
-            fromStruct = cast #assume(const *Swag.TypeInfoStruct?) srcType
+            fromStruct = assume cast(const *Swag.TypeInfoStruct?, srcType)
         if Reflection.isStruct(dstType) do
-            toStruct = cast #assume(const *Swag.TypeInfoStruct?) dstType
+            toStruct = assume cast(const *Swag.TypeInfoStruct?, dstType)
 
         // s64/float/bool/rune to s64/float/bool/rune
         if Reflection.isSimpleNative(dstType) and Reflection.isSimpleNative(srcType)
         {
-            .convertNextNative = cast #assume(const *Swag.TypeInfoNative?) srcType
+            .convertNextNative = assume cast(const *Swag.TypeInfoNative?, srcType)
             return true
         }
 
         if Reflection.isStaticArray(srcType)
         {
-            let fromArr = cast #assume(const *Swag.TypeInfoArray) srcType
+            let fromArr = assume cast(const *Swag.TypeInfoArray, srcType)
 
             // Array to array, this is fine, we will deal with size change
             if Reflection.isStaticArray(dstType)
             {
-                let toArr = cast #assume(const *Swag.TypeInfoArray) dstType
+                let toArr = assume cast(const *Swag.TypeInfoArray, dstType)
                 if .canConvertType(toArr.pointedType, fromArr.pointedType) do
                     return true
             }
@@ -295,7 +295,7 @@ private impl TagBin
                 // Dynamic array to Static array
                 if Reflection.isStaticArray(dstType)
                 {
-                    let toArr = cast #assume(const *Swag.TypeInfoArray) dstType
+                    let toArr = assume cast(const *Swag.TypeInfoArray, dstType)
                     if .canConvertType(toArr.pointedType, Reflection.dynamicArrayElementType(fromStruct)) do
                         return true
                 }
@@ -316,7 +316,7 @@ private impl TagBin
 
         if Reflection.isStaticArray(dstType)
         {
-            let toArr = cast #assume(const *Swag.TypeInfoArray) dstType
+            let toArr = assume cast(const *Swag.TypeInfoArray, dstType)
 
             // Conversion from simple value to array
             if .canConvertType(toArr.pointedType, srcType)
@@ -478,11 +478,11 @@ private impl TagBin
         .stream.setPosition(sec.fatSeek)
         for i in shape.fields.count
         {
-            let off = cast(u64) (try .stream.readNative'u32())
+            let off = cast(u64, (try .stream.readNative'u32()))
             let sf  = shape.fields[i]
             if sec.mapSeek.contains(sf.key) do
                 fail SerializationError{"serialized field key is duplicated"}
-            sec.mapSeek.add(sf.key, {sec.payloadStart + off, cast(u32) i})
+            sec.mapSeek.add(sf.key, {sec.payloadStart + off, cast(u32, i)})
         }
 
         sec.mapLoaded = true
@@ -800,7 +800,7 @@ impl TagBin
             // Count the stream fields the decode never requested; they are data a
             // rewrite of the value would lose.
             if sec.mapLoaded and sec.consumedCount < sec.mapSeek.count do
-                .diag.droppedStreamFields += cast(u32) (sec.mapSeek.count - sec.consumedCount)
+                .diag.droppedStreamFields += cast(u32, (sec.mapSeek.count - sec.consumedCount))
 
             // Fat is after the datas. We need to be sure to point
             // to what's next.
@@ -838,7 +838,7 @@ impl TagBin
 
         var plan: const *Plan?
         if structType and Reflection.isStruct(structType) do
-            plan = try planFor(cast #assume(const *Swag.TypeInfoStruct) structType)
+            plan = try planFor(assume cast(const *Swag.TypeInfoStruct, structType))
 
         // Deal with version
         if plan and plan.hasVersion
@@ -1079,7 +1079,7 @@ impl TagBin
                 if byteLen != byteCount do
                     fail SerializationError{"raw element layout changed"}
 
-                let bufArr = cast(*Array'u8) data!
+                let bufArr = cast(*Array'u8, data!)
                 bufArr.count = countElem[]
                 bufArr.reserve(byteCount)
                 bufArr.capacity = bufArr.count
@@ -1179,47 +1179,47 @@ impl TagBin
                 {
                 case .Bool:
                     let v = try .stream.readNative'bool()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .U8:
                     let v = try .stream.readNative'u8()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .U16:
                     let v = try .stream.readNative'u16()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .U32, .Rune:
                     let v = try .stream.readNative'u32()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .U64:
                     let v = try .stream.readNative'u64()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .S8:
                     let v = try .stream.readNative's8()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .S16:
                     let v = try .stream.readNative's16()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .S32:
                     let v = try .stream.readNative's32()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .S64:
                     let v = try .stream.readNative's64()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .F32:
                     let v = try .stream.readNative'f32()
-                    return cast(NT) v
+                    return cast(NT, v)
 
                 case .F64:
                     let v = try .stream.readNative'f64()
-                    return cast(NT) v
+                    return cast(NT, v)
                 }
             }
 

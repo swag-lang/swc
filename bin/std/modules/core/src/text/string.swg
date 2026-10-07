@@ -77,7 +77,7 @@ impl String
     // and a read through the dangling address faults exactly as loudly as a read through
     // null. Ask 'isNull' or 'isNullOrEmpty' whether there is anything to walk.
     #[Inline]
-    mtd const storage()->[*] u8 => .buffer orelse cast([*] u8) cast(u64) 1
+    mtd const storage()->[*] u8 => .buffer orelse cast([*] u8, cast(u64, 1))
 
     // Replaces the contents with a copy of `value`, which may view this string's own storage.
     //
@@ -197,7 +197,7 @@ impl String
     mtd opPostMove()
     {
         if .buffer and .capacity <= StringSmallSize do
-            .buffer = cast() &.padding[0]
+            .buffer = cast(&.padding[0])
     }
 
     // Gives a copied string storage of its own.
@@ -208,7 +208,7 @@ impl String
 
         if .capacity <= StringSmallSize
         {
-            .buffer = cast() &.padding[0]
+            .buffer = cast(&.padding[0])
         }
         else
         {
@@ -226,7 +226,7 @@ impl String
         if not .buffer do
             return
 
-        if .buffer != cast() &.padding[0] do
+        if .buffer != cast(&.padding[0]) do
             Memory.free(.buffer, .capacity, .allocator)
     }
 
@@ -267,7 +267,7 @@ impl String
         for index in .length
         {
             #static if ptr do
-                #inject(stmt, item = cast(*u8) (buffer + index), index = index)
+                #inject(stmt, item = cast(*u8, (buffer + index)), index = index)
             else do
                 #inject(stmt, item = buffer[index], index = index)
         }
@@ -304,7 +304,7 @@ impl String
     {
         if .buffer do
             return
-        .buffer = cast() &.padding[0]
+        .buffer = cast(&.padding[0])
     }
 
     // Replaces every occurrence of the rune `what` with `by`.
@@ -324,7 +324,7 @@ impl String
         }
 
         var encoded: [4] u8
-        let whatLength = cast(u64) Utf8.encodeRune(encoded, what)
+        let whatLength = cast(u64, Utf8.encodeRune(encoded, what))
         let byLength   = by.count
 
         var idx = Utf8.indexOf(.toString(), what, 0)
@@ -491,7 +491,7 @@ impl String
 
         // One 16-bit store writes the byte and the zero terminator together.
         let buffer = .buffer!
-        var ptr    = cast(*u16) (buffer + .length)
+        var ptr    = cast(*u16, (buffer + .length))
         ptr[]   = value
         .length += 1
     }
@@ -580,7 +580,7 @@ impl String
         if newCapacity <= StringSmallSize
         {
             // Free dynamic memory if this is not a small string
-            if .buffer and .buffer != cast() &.padding[0]
+            if .buffer and .buffer != cast(&.padding[0])
             {
                 Memory.copy(&.padding[0], .buffer, Math.min(newCapacity, .length + 1))
                 Memory.free(.buffer, .capacity, .allocator)
@@ -588,26 +588,26 @@ impl String
 
             // This is a small string again
             .capacity = StringSmallSize
-            .buffer   = cast() &.padding[0]
+            .buffer   = cast(&.padding[0])
         }
         // We were in small size mode, and we are no more
-        elif .buffer == cast() &.padding[0]
+        elif .buffer == cast(&.padding[0])
         {
             let oldBuffer = .buffer
-            .buffer = cast() Memory.alloc(newCapacity, .allocator)
+            .buffer = cast(Memory.alloc(newCapacity, .allocator))
             Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
             .capacity = newCapacity
         }
         // First allocation directly to dynamic storage
         elif not .buffer
         {
-            .buffer   = cast() Memory.alloc(newCapacity, .allocator)
+            .buffer   = cast(Memory.alloc(newCapacity, .allocator))
             .capacity = newCapacity
         }
         // We were in dynamic mode, so just realloc memory
         else
         {
-            .buffer   = cast() Memory.realloc(.buffer, newCapacity, .capacity, .allocator)
+            .buffer   = cast(Memory.realloc(.buffer, newCapacity, .capacity, .allocator))
             .capacity = newCapacity
         }
     }

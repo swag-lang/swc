@@ -21,9 +21,9 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 
     for i in Pixels
     {
-        let value = cast(u16) (i & 0xFFFF)
-        source[1 + 2 * i]       = cast(u8) (value & 0xFF)
-        source[1 + 2 * i + 1]   = cast(u8) (value >> 8)
+        let value = cast(u16, (i & 0xFFFF))
+        source[1 + 2 * i]       = cast(u8, (value & 0xFF))
+        source[1 + 2 * i + 1]   = cast(u8, (value >> 8))
         expected[3 + 3 * i]     = Bmp.maskToByte(value, masks.b)
         expected[3 + 3 * i + 1] = Bmp.maskToByte(value, masks.g)
         expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
@@ -839,10 +839,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var src = Image.create(Width, Height, pixelFormat)
         for i in src.pixels.count do
-            src.pixels.storage()[i] = cast(u8) ((i * 37 + 19) & 0xFF)
+            src.pixels.storage()[i] = cast(u8, ((i * 37 + 19) & 0xFF))
 
         var cb       = expect src.encode("memory.bmp")
-        let rowBytes = cast(u64) Width * src.bytesPerPixel
+        let rowBytes = cast(u64, Width) * src.bytesPerPixel
         let stride   = Bmp.rowStride(Width, src.bitsPerPixel)
         Swag.assert(cb.count() == #sizeof(BmpFH) + #sizeof(Bmp.Header) + stride * Height)
         cb.makeLinear()
@@ -852,14 +852,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             for y in Height
             {
                 for offset in rowBytes until stride do
-                    Swag.assert(bytes[#sizeof(BmpFH) + #sizeof(Bmp.Header) + cast(u64) y * stride + offset] == 0)
+                    Swag.assert(bytes[#sizeof(BmpFH) + #sizeof(Bmp.Header) + cast(u64, y) * stride + offset] == 0)
             }
         }
 
         let img = expect Image.decode("memory.bmp", bytes, {})
-        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        let bytesPerPixel = cast(u64, src.bytesPerPixel)
         Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
-        for pixel in cast(u64) Width * Height
+        for pixel in cast(u64, Width) * Height
         {
             let offset = pixel * bytesPerPixel
             Swag.assert(img.pixels.storage()[offset] == src.pixels.storage()[offset + 2])
@@ -1052,9 +1052,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     Swag.assert(bytes != null)
-    let fh = cast(const *BmpFH) bytes.buffer
-    let bh = cast(const *Bmp.Header) (bytes.buffer + #sizeof(BmpFH))
-    Swag.assert(fh.bfSize == cast(u32) cb.count())
+    let fh = cast(const *BmpFH, bytes.buffer)
+    let bh = cast(const *Bmp.Header, (bytes.buffer + #sizeof(BmpFH)))
+    Swag.assert(fh.bfSize == cast(u32, cb.count()))
     Swag.assert(fh.bfOffBits == 54'u32)
     Swag.assert(bh.biSizeImage == 80'u32)
 
@@ -1076,7 +1076,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var source = Image.create(3, 2, format)
         for i in source.pixels.count do
-            source.pixels[i] = cast(u8) (17 + i * 3)
+            source.pixels[i] = cast(u8, (17 + i * 3))
         if source.bytesPerPixel == 4
         {
             for i in 6 do

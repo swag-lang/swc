@@ -66,7 +66,7 @@ func fillStatic67(target: [*] u8, value: u8) { Swag.memset(target, value, 67) }
     var right: [64] u8
     for index in 64
     {
-        left[index]  = cast(u8) ((index * 7 + 3) & 0xFF)
+        left[index]  = cast(u8, ((index * 7 + 3) & 0xFF))
         right[index] = left[index]
     }
 

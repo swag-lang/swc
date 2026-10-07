@@ -2,14 +2,14 @@ internal impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
-        let arrData = cast(*Array'u8) item.data!
+        let arrData = cast(*Array'u8, item.data!)
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
     mtd reconstructArray(item: *PropertiesItem)
     {
         let valueType        = Reflection.dynamicArrayElementType(item.type)!
-        let arrData          = cast(*Array'u8) item.data!
+        let arrData          = cast(*Array'u8, item.data!)
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -26,7 +26,7 @@ internal impl Properties
         }
 
         // Move all newly reconstructed items at the right place
-        let numAddedChilds = cast(u32) (.items.count - countItemsBefore)
+        let numAddedChilds = cast(u32, (.items.count - countItemsBefore))
         for i in numAddedChilds do
             .items.insertAt(insertItemIdx + i, .items[.items.count - numAddedChilds + i])
         .items.count -= numAddedChilds
@@ -49,10 +49,10 @@ internal impl Properties
 
     mtd refreshArray(item: *PropertiesItem)
     {
-        let arrData = cast(*Array'u8) item.data!
-        if arrData.count == cast(u64) item.userData0 do
+        let arrData = cast(*Array'u8, item.data!)
+        if arrData.count == cast(u64, item.userData0) do
             return
-        item.userData0 = cast(*void?) arrData.count
+        item.userData0 = cast(*void?, arrData.count)
 
         .reconstructArray(item)
         setDescEditBox(item)
@@ -76,12 +76,12 @@ internal impl Properties
         if Reflection.isDynamicArray(arrayItem.type)
         {
             let vt  = Reflection.dynamicArrayElementType(arrayItem.type)!
-            let arr = cast(*Array'u8) arrayItem.data!
+            let arr = cast(*Array'u8, arrayItem.data!)
             return {arr.buffer, vt, arr.count}
         }
 
-        let typeArr = cast #assume(const *Swag.TypeInfoArray) arrayItem.type!
-        return {cast([*] u8?) arrayItem.data, typeArr.pointedType, typeArr.count}
+        let typeArr = assume cast(const *Swag.TypeInfoArray, arrayItem.type)
+        return {cast([*] u8?, arrayItem.data), typeArr.pointedType, typeArr.count}
     }
 
     // Ordinal of an array element among the array's direct children. Robust for struct arrays,
@@ -104,7 +104,7 @@ internal impl Properties
     // of its ancestors, so right-clicking a struct element's field still targets the element.
     mtd resolveArrayElement(item: *PropertiesItem)->*PropertiesItem?
     {
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan and scan.parent
         {
             if .isArrayItem(scan.parent) do
@@ -122,11 +122,11 @@ internal impl Properties
         let arrayItem = elemItem.parent
         let info      = .arrayElementInfo(arrayItem!)
         let idx       = .arrayElementIndex(elemItem)
-        let target    = cast(s64) idx + dir
-        if target < 0 or target >= cast(s64) info.count do
+        let target    = cast(s64, idx) + dir
+        if target < 0 or target >= cast(s64, info.count) do
             return
 
-        Reflection.swapRuntimeValues(info.base, info.valueType, idx, cast(u64) target)
+        Reflection.swapRuntimeValues(info.base, info.valueType, idx, cast(u64, target))
         .commitItemChange(arrayItem)
     }
 
@@ -159,10 +159,10 @@ internal impl Properties
         item.flags.add(.NoSeparator)
 
         let valueType = Reflection.dynamicArrayElementType(item.type)!
-        let arrData   = cast(*Array'u8) data!
+        let arrData   = cast(*Array'u8, data!)
         var newData   = arrData.buffer
 
-        item.userData0 = cast(*void?) arrData.count
+        item.userData0 = cast(*void?, arrData.count)
 
         for i in arrData.count
         {
@@ -173,7 +173,7 @@ internal impl Properties
             newData += valueType.sizeof
         }
 
-        let parentForBtn = .isGridLike() ? item.line : cast(*Wnd?) item.label
+        let parentForBtn = .isGridLike() ? item.line : cast(*Wnd?, item.label)
         let addBtn       = IconButton.create(parentForBtn!, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
@@ -199,6 +199,6 @@ internal impl Properties
         item.assignEditBox(editBox)
 
         setDescEditBox(item)
-        item.numChilds += cast(u32) (.items.count - numItemsBefore)
+        item.numChilds += cast(u32, (.items.count - numItemsBefore))
     }
 }

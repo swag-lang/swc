@@ -14,10 +14,10 @@ using Swag, Core, Core.Errors
 
 private
 {
-    const TripletLowBG  = cast(Math.Simd.U8x16) [0'u8, 8, 0x80, 1, 9, 0x80, 2, 10, 0x80, 3, 11, 0x80, 4, 12, 0x80, 5]
-    const TripletLowR   = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80]
-    const TripletHighBG = cast(Math.Simd.U8x16) [13'u8, 0x80, 6, 14, 0x80, 7, 15, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80]
-    const TripletHighR  = cast(Math.Simd.U8x16) [0x80'u8, 5, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80]
+    const TripletLowBG  = cast(Math.Simd.U8x16, [0'u8, 8, 0x80, 1, 9, 0x80, 2, 10, 0x80, 3, 11, 0x80, 4, 12, 0x80, 5])
+    const TripletLowR   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80])
+    const TripletHighBG = cast(Math.Simd.U8x16, [13'u8, 0x80, 6, 14, 0x80, 7, 15, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+    const TripletHighR  = cast(Math.Simd.U8x16, [0x80'u8, 5, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
 }
 
 // The chroma correction of one group of samples, broadcast over the pixels the group covers.
@@ -38,13 +38,13 @@ private
     // Centers four chroma samples around zero, the way the conversion coefficients expect them.
     func centeredChroma(source: const [*] u8)->Math.Simd.S32x4
     {
-        let samples = cast #bit(Math.Simd.S32x4) Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.load(source)))
+        let samples = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.load(source))))
         return (samples << 1) - Math.Simd.splat(256's32)
     }
 
     // Centers the four low or four high chroma samples of an already widened group of eight.
-    func centeredChromaLow(samples: Math.Simd.U16x8)->Math.Simd.S32x4  => (cast #bit(Math.Simd.S32x4) Math.Simd.widenLow(samples) << 1) - Math.Simd.splat(256's32)
-    func centeredChromaHigh(samples: Math.Simd.U16x8)->Math.Simd.S32x4 => (cast #bit(Math.Simd.S32x4) Math.Simd.widenHigh(samples) << 1) - Math.Simd.splat(256's32)
+    func centeredChromaLow(samples: Math.Simd.U16x8)->Math.Simd.S32x4  => (cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(samples)) << 1) - Math.Simd.splat(256's32)
+    func centeredChromaHigh(samples: Math.Simd.U16x8)->Math.Simd.S32x4 => (cast #bit(Math.Simd.S32x4, Math.Simd.widenHigh(samples)) << 1) - Math.Simd.splat(256's32)
 
     // The three corrections, in the fixed point the decoded value is defined in.
     func redBias(kr: Math.Simd.S32x4)->Math.Simd.S32x4       => (Math.Simd.splat(FixCrToR) * kr + Math.Simd.splat(1's32 << 15)) >> 16
@@ -54,15 +54,15 @@ private
     // Narrows four corrections to eight lanes, each repeated over the pixel pair it covers.
     func duplicatedLanes(value: Math.Simd.S32x4)->Math.Simd.S16x8
     {
-        let packed = cast #bit(Math.Simd.U16x8) Math.Simd.packSigned(value, value)
-        return cast #bit(Math.Simd.S16x8) Math.Simd.interleaveLow(packed, packed)
+        let packed = cast #bit(Math.Simd.U16x8, Math.Simd.packSigned(value, value))
+        return cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(packed, packed))
     }
 
     // Joins the low eight bytes of two planes into one vector.
     func joinLow8(low, high: const [*] u8)->Math.Simd.U8x16
     {
-        let joined = Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2) Math.Simd.load(low), cast #bit(Math.Simd.U64x2) Math.Simd.load(high))
-        return cast #bit(Math.Simd.U8x16) joined
+        let joined = Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2, Math.Simd.load(low)), cast #bit(Math.Simd.U64x2, Math.Simd.load(high)))
+        return cast #bit(Math.Simd.U8x16, joined)
     }
 
     // Corrections of four chroma samples, each covering two horizontally adjacent pixels.
@@ -109,7 +109,7 @@ private
     // byte range lands on its nearest end.
     func storeBgr(destination: [*] u8, luma: const [*] u8, bias: ChromaBias)
     {
-        let y         = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(luma))
+        let y         = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(luma)))
         let blueGreen = Math.Simd.packUnsigned(y + bias.bc, y + bias.gc)
         let red       = Math.Simd.packUnsigned(y + bias.rc, y + bias.rc)
         storeTriplets(destination, blueGreen, red)
@@ -124,19 +124,19 @@ private
 
 private
 {
-    const EvenSum        = cast(Math.Simd.S16x8) [8192's16, 8192, 8192, 8192, 8192, 8192, 8192, 8192]
-    const EvenDifference = cast(Math.Simd.S16x8) [8192's16, -8192, 8192, -8192, 8192, -8192, 8192, -8192]
-    const EvenUpper      = cast(Math.Simd.S16x8) [10703's16, 4433, 10703, 4433, 10703, 4433, 10703, 4433]
-    const EvenLower      = cast(Math.Simd.S16x8) [4433's16, -10704, 4433, -10704, 4433, -10704, 4433, -10704]
+    const EvenSum        = cast(Math.Simd.S16x8, [8192's16, 8192, 8192, 8192, 8192, 8192, 8192, 8192])
+    const EvenDifference = cast(Math.Simd.S16x8, [8192's16, -8192, 8192, -8192, 8192, -8192, 8192, -8192])
+    const EvenUpper      = cast(Math.Simd.S16x8, [10703's16, 4433, 10703, 4433, 10703, 4433, 10703, 4433])
+    const EvenLower      = cast(Math.Simd.S16x8, [4433's16, -10704, 4433, -10704, 4433, -10704, 4433, -10704])
 
-    const Odd0From13 = cast(Math.Simd.S16x8) [2260's16, -6436, 2260, -6436, 2260, -6436, 2260, -6436]
-    const Odd0From57 = cast(Math.Simd.S16x8) [9633's16, -11363, 9633, -11363, 9633, -11363, 9633, -11363]
-    const Odd1From13 = cast(Math.Simd.S16x8) [6437's16, -11362, 6437, -11362, 6437, -11362, 6437, -11362]
-    const Odd1From57 = cast(Math.Simd.S16x8) [2261's16, 9633, 2261, 9633, 2261, 9633, 2261, 9633]
-    const Odd2From13 = cast(Math.Simd.S16x8) [9633's16, -2259, 9633, -2259, 9633, -2259, 9633, -2259]
-    const Odd2From57 = cast(Math.Simd.S16x8) [-11362's16, -6436, -11362, -6436, -11362, -6436, -11362, -6436]
-    const Odd3From13 = cast(Math.Simd.S16x8) [11363's16, 9633, 11363, 9633, 11363, 9633, 11363, 9633]
-    const Odd3From57 = cast(Math.Simd.S16x8) [6437's16, 2260, 6437, 2260, 6437, 2260, 6437, 2260]
+    const Odd0From13 = cast(Math.Simd.S16x8, [2260's16, -6436, 2260, -6436, 2260, -6436, 2260, -6436])
+    const Odd0From57 = cast(Math.Simd.S16x8, [9633's16, -11363, 9633, -11363, 9633, -11363, 9633, -11363])
+    const Odd1From13 = cast(Math.Simd.S16x8, [6437's16, -11362, 6437, -11362, 6437, -11362, 6437, -11362])
+    const Odd1From57 = cast(Math.Simd.S16x8, [2261's16, 9633, 2261, 9633, 2261, 9633, 2261, 9633])
+    const Odd2From13 = cast(Math.Simd.S16x8, [9633's16, -2259, 9633, -2259, 9633, -2259, 9633, -2259])
+    const Odd2From57 = cast(Math.Simd.S16x8, [-11362's16, -6436, -11362, -6436, -11362, -6436, -11362, -6436])
+    const Odd3From13 = cast(Math.Simd.S16x8, [11363's16, 9633, 11363, 9633, 11363, 9633, 11363, 9633])
+    const Odd3From57 = cast(Math.Simd.S16x8, [6437's16, 2260, 6437, 2260, 6437, 2260, 6437, 2260])
 }
 
 #[Swag.Inline]
@@ -144,8 +144,8 @@ private
 private
 {
     // Pairs the lanes of two vectors, low halves and high halves.
-    func pairLow(x, y: Math.Simd.S16x8)->Math.Simd.S16x8  => cast #bit(Math.Simd.S16x8) Math.Simd.interleaveLow(cast #bit(Math.Simd.U16x8) x, cast #bit(Math.Simd.U16x8) y)
-    func pairHigh(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Simd.S16x8) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U16x8) x, cast #bit(Math.Simd.U16x8) y)
+    func pairLow(x, y: Math.Simd.S16x8)->Math.Simd.S16x8  => cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(cast #bit(Math.Simd.U16x8, x), cast #bit(Math.Simd.U16x8, y)))
+    func pairHigh(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(cast #bit(Math.Simd.U16x8, x), cast #bit(Math.Simd.U16x8, y)))
 
     // Transposes eight lines of eight 16-bit lanes, so that a pass over lines becomes a pass over
     // lanes. It is the price of running the eight lines of a pass at once.
@@ -160,23 +160,23 @@ private
         let a6 = pairLow(v[6], v[7])
         let a7 = pairHigh(v[6], v[7])
 
-        let b0 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4) a0, cast #bit(Math.Simd.U32x4) a2)
-        let b1 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4) a0, cast #bit(Math.Simd.U32x4) a2)
-        let b2 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4) a1, cast #bit(Math.Simd.U32x4) a3)
-        let b3 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4) a1, cast #bit(Math.Simd.U32x4) a3)
-        let b4 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4) a4, cast #bit(Math.Simd.U32x4) a6)
-        let b5 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4) a4, cast #bit(Math.Simd.U32x4) a6)
-        let b6 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4) a5, cast #bit(Math.Simd.U32x4) a7)
-        let b7 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4) a5, cast #bit(Math.Simd.U32x4) a7)
+        let b0 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4, a0), cast #bit(Math.Simd.U32x4, a2))
+        let b1 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4, a0), cast #bit(Math.Simd.U32x4, a2))
+        let b2 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4, a1), cast #bit(Math.Simd.U32x4, a3))
+        let b3 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4, a1), cast #bit(Math.Simd.U32x4, a3))
+        let b4 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4, a4), cast #bit(Math.Simd.U32x4, a6))
+        let b5 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4, a4), cast #bit(Math.Simd.U32x4, a6))
+        let b6 = Math.Simd.interleaveLow(cast #bit(Math.Simd.U32x4, a5), cast #bit(Math.Simd.U32x4, a7))
+        let b7 = Math.Simd.interleaveHigh(cast #bit(Math.Simd.U32x4, a5), cast #bit(Math.Simd.U32x4, a7))
 
-        v[0] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2) b0, cast #bit(Math.Simd.U64x2) b4)
-        v[1] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2) b0, cast #bit(Math.Simd.U64x2) b4)
-        v[2] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2) b1, cast #bit(Math.Simd.U64x2) b5)
-        v[3] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2) b1, cast #bit(Math.Simd.U64x2) b5)
-        v[4] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2) b2, cast #bit(Math.Simd.U64x2) b6)
-        v[5] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2) b2, cast #bit(Math.Simd.U64x2) b6)
-        v[6] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2) b3, cast #bit(Math.Simd.U64x2) b7)
-        v[7] = cast #bit(Math.Simd.S16x8) Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2) b3, cast #bit(Math.Simd.U64x2) b7)
+        v[0] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2, b0), cast #bit(Math.Simd.U64x2, b4)))
+        v[1] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2, b0), cast #bit(Math.Simd.U64x2, b4)))
+        v[2] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2, b1), cast #bit(Math.Simd.U64x2, b5)))
+        v[3] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2, b1), cast #bit(Math.Simd.U64x2, b5)))
+        v[4] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2, b2), cast #bit(Math.Simd.U64x2, b6)))
+        v[5] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2, b2), cast #bit(Math.Simd.U64x2, b6)))
+        v[6] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(cast #bit(Math.Simd.U64x2, b3), cast #bit(Math.Simd.U64x2, b7)))
+        v[7] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2, b3), cast #bit(Math.Simd.U64x2, b7)))
     }
 
     // Transforms four lines, and leaves their eight results unscaled: the caller owns the rounding
@@ -228,7 +228,7 @@ impl Decoder
     {
         // A block that carries nothing but its average is the common case of a photograph, and the
         // whole transform then reduces to one repeated sample.
-        let words = cast(const [*] u64) data
+        let words = cast(const [*] u64, data)
         var mixed = words[0] & 0xFFFFFFFF_FFFF0000
         for i in 1 to 15 do
             mixed |= words[i]
@@ -237,7 +237,7 @@ impl Decoder
         {
             // The pass over lines would have scaled the average before the pass over columns
             // removed that scale again, and it stores the product as a sixteen-bit value.
-            let scaled = cast(s32) cast(s16) (cast(s32) data[0] << Pass1Bits)
+            let scaled = cast(s32, cast(s16, (cast(s32, data[0]) << Pass1Bits)))
             let flat   = Math.Simd.splat(clamp(descale(scaled, Pass1Bits + 3) + 128))
             for i in 4 do
                 Math.Simd.store(buf + i * 16, flat)
@@ -249,7 +249,7 @@ impl Decoder
         var high: [8] Math.Simd.S32x4
 
         for i in 8 do
-            v[i] = Math.Simd.load(cast(const [*] s16) (data + i * 8))
+            v[i] = Math.Simd.load(cast(const [*] s16, (data + i * 8)))
 
         transpose(v)
         transformLines(v, low, high)
@@ -312,7 +312,7 @@ impl Decoder
         var s   = .safeSampleBuf() + row * 8
         for i in rangeTo(1, .maxMcusPerRow).reversed()
         {
-            (cast([*] u64) d)[0] = (cast(const [*] u64) s)[0]
+            cast([*] u64, d)[0] = cast(const [*] u64, s)[0]
 
             s += 64
             d += 8
@@ -343,7 +343,7 @@ impl Decoder
             // The three components already are the blue, green and red planes of the pixels, so
             // only the interleave is left to do.
             let blueGreen = joinLow8(s + 128, s + 64)
-            storeTriplets(d, blueGreen, Math.Simd.load(cast(const [*] u8) s))
+            storeTriplets(d, blueGreen, Math.Simd.load(cast(const [*] u8, s)))
 
             d += 24
             s += 64 * 3
@@ -372,10 +372,10 @@ impl Decoder
         {
             for x in 8
             {
-                var cyan    = cast(s32) s[x]
-                var magenta = cast(s32) s[64 + x]
-                var yellow  = cast(s32) s[128 + x]
-                var black   = cast(s32) s[192 + x]
+                var cyan    = cast(s32, s[x])
+                var magenta = cast(s32, s[64 + x])
+                var yellow  = cast(s32, s[128 + x])
+                var black   = cast(s32, s[192 + x])
 
                 if chromatic
                 {
@@ -394,9 +394,9 @@ impl Decoder
                     black   = 255 - black
                 }
 
-                d[3 * x + 0] = cast(u8) (255 - Math.min(255, yellow + black))
-                d[3 * x + 1] = cast(u8) (255 - Math.min(255, magenta + black))
-                d[3 * x + 2] = cast(u8) (255 - Math.min(255, cyan + black))
+                d[3 * x + 0] = cast(u8, (255 - Math.min(255, yellow + black)))
+                d[3 * x + 1] = cast(u8, (255 - Math.min(255, magenta + black)))
+                d[3 * x + 2] = cast(u8, (255 - Math.min(255, cyan + black)))
             }
 
             d += 24
@@ -508,14 +508,14 @@ impl Decoder
         let cbBase       = .compSampH[0] * .compSampV[0]
         let crBase       = cbBase + .compSampH[1] * .compSampV[1]
         var destination  = .scanLine0.storage()
-        var mcu          = cast(const [*] u8) .safeSampleBuf()
+        var mcu          = cast(const [*] u8, .safeSampleBuf())
         for .maxMcusPerRow
         {
             for x in .maxMcuSizeX
             {
-                let y  = cast(s32) .componentSample(mcu, 0, 0, x, row, maxSamplingH, maxSamplingV)
-                let cb = cast(s32) .componentSample(mcu, 1, cbBase, x, row, maxSamplingH, maxSamplingV) * 2 - 256
-                let cr = cast(s32) .componentSample(mcu, 2, crBase, x, row, maxSamplingH, maxSamplingV) * 2 - 256
+                let y  = cast(s32, .componentSample(mcu, 0, 0, x, row, maxSamplingH, maxSamplingV))
+                let cb = cast(s32, .componentSample(mcu, 1, cbBase, x, row, maxSamplingH, maxSamplingV)) * 2 - 256
+                let cr = cast(s32, .componentSample(mcu, 2, crBase, x, row, maxSamplingH, maxSamplingV)) * 2 - 256
                 destination[0] = clamp(y + ((FixCbToB * cb + (1 << 15)) >> 16))
                 destination[1] = clamp(y + ((FixCrToG * cr + FixCbToG * cb + (1 << 15)) >> 16))
                 destination[2] = clamp(y + ((FixCrToR * cr + (1 << 15)) >> 16))

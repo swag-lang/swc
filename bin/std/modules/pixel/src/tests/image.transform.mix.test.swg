@@ -37,10 +37,10 @@ using Swag, Core
 {
     var dstPixels: [48] u8
     for index in dstPixels.count do
-        dstPixels[index] = cast(u8) (index * 3 + 1)
+        dstPixels[index] = cast(u8, (index * 3 + 1))
     var srcPixels: [24] u8
     for index in srcPixels.count do
-        srcPixels[index] = cast(u8) (index * 5 + 7)
+        srcPixels[index] = cast(u8, (index * 5 + 7))
 
     let dst = makeImage(4, 3, .RGBA8, dstPixels)
     let src = makeImage(3, 2, .RGBA8, srcPixels)
@@ -50,8 +50,8 @@ using Swag, Core
     Memory.copy(expected.buffer, dstPixels.buffer, expected.count)
     for row in 2
     {
-        let target = expected.storage() + cast(u64) (row + 1) * 16
-        let source = srcPixels.buffer + cast(u64) row * 12 + 4
+        let target = expected.storage() + cast(u64, (row + 1)) * 16
+        let source = srcPixels.buffer + cast(u64, row) * 12 + 4
         Memory.copy(target, source, 8)
     }
 

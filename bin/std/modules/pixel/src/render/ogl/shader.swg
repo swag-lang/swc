@@ -3,12 +3,12 @@
 using Core, Ogl, Core.Math
 
 #[Swag.Strict]
-alias ShaderHandle = u64                               // Opaque OpenGL program handle owned by [[Pixel.RenderOgl]].
-const InvalidShaderHandle: ShaderHandle = cast() 0     // Sentinel that identifies no shader program.
+alias ShaderHandle = u64                              // Opaque OpenGL program handle owned by [[Pixel.RenderOgl]].
+const InvalidShaderHandle: ShaderHandle = cast(0)     // Sentinel that identifies no shader program.
 
 #[Swag.Strict]
-alias ShaderParamHandle = s64                                     // Opaque shader-uniform location.
-const InvalidShaderParamHandle: ShaderParamHandle = cast() -1     // Sentinel for an unavailable uniform.
+alias ShaderParamHandle = s64                                    // Opaque shader-uniform location.
+const InvalidShaderParamHandle: ShaderParamHandle = cast(-1)     // Sentinel for an unavailable uniform.
 
 // Stores a shader program and the uniform locations shared by Pixel shaders.
 //

@@ -153,7 +153,7 @@ enum FixedKind: u8
 {
     func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
     {
-        return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
+        return a.a + a.b + b[0] + b[2] + cast(s32, c[1])
     }
 
     const V = #run callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
@@ -164,11 +164,11 @@ enum FixedKind: u8
 {
     func callPointerEnum(a: *void?, b: FixedKind, c: s32)->u64
     {
-        return cast(u64) (a != null) + cast(u64) cast(u8) b + cast(u64) c
+        return cast(u64, (a != null)) + cast(u64, cast(u8, b)) + cast(u64, c)
     }
 
     const V0 = #run callPointerEnum(null, FixedKind.A, 3)
-    const V1 = #run callPointerEnum(cast(*void) 0x45'u64, FixedKind.B, 7)
+    const V1 = #run callPointerEnum(cast(*void, 0x45'u64), FixedKind.B, 7)
     #assert(V0 == 8'u64)
     #assert(V1 == 17'u64)
 }
@@ -180,6 +180,6 @@ enum FixedKind: u8
         return #typeof(a) == FixedPair and #typeof(b[0]) == s32 and #typeof(c) == string and #typeof(d) == *void and #typeof(e) == FixedKind
     }
 
-    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B)
+    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10'u64), FixedKind.B)
     #assert(V)
 }

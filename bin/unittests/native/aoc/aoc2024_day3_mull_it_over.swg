@@ -49,7 +49,7 @@ func isDigit(ch: u8)->bool
 
 func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
 {
-    let litBytes = cast(const [..] u8) lit
+    let litBytes = cast(const [..] u8, lit)
     if pos + litBytes.count > bytes.count do
         return false
     for index in litBytes.count
@@ -68,7 +68,7 @@ func parseNumber(bytes: const [..] u8, pos: u64, outVal: *s32, outEnd: *u64)->bo
 
     while i < bytes.count and isDigit(bytes[i]) and digits < 3
     {
-        value  = value * 10 + cast(s32) (bytes[i] - '0')
+        value  = value * 10 + cast(s32, (bytes[i] - '0'))
         digits += 1
         i      += 1
     }
@@ -151,7 +151,7 @@ func evaluateClean(stream: TokenStream)->MulResult
 
     for index in stream.count
     {
-        let tok = stream.tokens[cast(u32) index]
+        let tok = stream.tokens[cast(u32, index)]
         switch tok.kind
         {
         case TokenKind.Do:
@@ -159,7 +159,7 @@ func evaluateClean(stream: TokenStream)->MulResult
         case TokenKind.Dont:
             enabled = false
         case TokenKind.Mul:
-            let product = cast(s64) tok.lhs * cast(s64) tok.rhs
+            let product = cast(s64, tok.lhs) * cast(s64, tok.rhs)
             result.sumAll += product
             if enabled do
                 result.sumEnabled += product
@@ -196,7 +196,7 @@ func emitToken(kind: TokenKind, lhs: s32, rhs: s32)
 #[Swag.Mixin]
 func accumulateMul(lhs: s32, rhs: s32)
 {
-    let product = cast(s64) lhs * cast(s64) rhs
+    let product = cast(s64, lhs) * cast(s64, rhs)
     scanSumAll += product
     if scanEnabled do
         scanSumEnabled += product
@@ -207,7 +207,7 @@ func visitTokens(stream: TokenStream, stmt: #code(tok, idx: u32))
 {
     for index in stream.count
     {
-        #inject(stmt, tok = stream.tokens[cast(u32) index], idx = cast(u32) index)
+        #inject(stmt, tok = stream.tokens[cast(u32, index)], idx = cast(u32, index))
     }
 }
 
@@ -292,69 +292,69 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
 
 #test
 {
-    let sampleStreamA = tokenizeClean(cast(const [..] u8) SampleInputA)
+    let sampleStreamA = tokenizeClean(cast(const [..] u8, SampleInputA))
     let sampleCleanA  = evaluateClean(sampleStreamA)
 
     Swag.assert(sampleStreamA.count == 4'u32)
     Swag.assert(sampleCleanA.sumAll == 161)
     Swag.assert(sampleCleanA.sumEnabled == 161)
 
-    let sampleFeatA = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) SampleInputA))
+    let sampleFeatA = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, SampleInputA)))
     Swag.assert(sampleFeatA.sumAll == sampleCleanA.sumAll)
     Swag.assert(sampleFeatA.sumEnabled == sampleCleanA.sumEnabled)
 }
 
 #test
 {
-    let sampleStreamB = tokenizeClean(cast(const [..] u8) SampleInputB)
+    let sampleStreamB = tokenizeClean(cast(const [..] u8, SampleInputB))
     let sampleCleanB  = evaluateClean(sampleStreamB)
 
     Swag.assert(sampleCleanB.sumAll == 161)
     Swag.assert(sampleCleanB.sumEnabled == 48)
 
-    let sampleFeatB = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) SampleInputB))
+    let sampleFeatB = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, SampleInputB)))
     Swag.assert(sampleFeatB.sumAll == sampleCleanB.sumAll)
     Swag.assert(sampleFeatB.sumEnabled == sampleCleanB.sumEnabled)
 }
 
 #test
 {
-    let edgeStream = tokenizeClean(cast(const [..] u8) EdgeInput)
+    let edgeStream = tokenizeClean(cast(const [..] u8, EdgeInput))
     let edgeClean  = evaluateClean(edgeStream)
 
     Swag.assert(edgeStream.count == 5'u32)
     Swag.assert(edgeClean.sumAll == 14)
     Swag.assert(edgeClean.sumEnabled == 10)
 
-    let edgeFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) EdgeInput))
+    let edgeFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, EdgeInput)))
     Swag.assert(edgeFeat.sumAll == edgeClean.sumAll)
     Swag.assert(edgeFeat.sumEnabled == edgeClean.sumEnabled)
 }
 
 #test
 {
-    let emptyStream = tokenizeClean(cast(const [..] u8) EmptyInput)
+    let emptyStream = tokenizeClean(cast(const [..] u8, EmptyInput))
     let emptyClean  = evaluateClean(emptyStream)
 
     Swag.assert(emptyStream.count == 0'u32)
     Swag.assert(emptyClean.sumAll == 0)
     Swag.assert(emptyClean.sumEnabled == 0)
 
-    let emptyFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) EmptyInput))
+    let emptyFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, EmptyInput)))
     Swag.assert(emptyFeat.sumAll == 0)
     Swag.assert(emptyFeat.sumEnabled == 0)
 }
 
 #test
 {
-    let coverageStream = tokenizeClean(cast(const [..] u8) CoverageInput)
+    let coverageStream = tokenizeClean(cast(const [..] u8, CoverageInput))
     let coverageClean  = evaluateClean(coverageStream)
 
     Swag.assert(coverageStream.count == 9'u32)
     Swag.assert(coverageClean.sumAll == 81)
     Swag.assert(coverageClean.sumEnabled == 60)
 
-    let coverageFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) CoverageInput))
+    let coverageFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, CoverageInput)))
     Swag.assert(coverageFeat.sumAll == coverageClean.sumAll)
     Swag.assert(coverageFeat.sumEnabled == coverageClean.sumEnabled)
 }

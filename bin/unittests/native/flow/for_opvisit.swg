@@ -45,7 +45,7 @@ impl BufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = idx)
+                #inject(stmt, item = cast(*s32, &(me.values[idx])), index = idx)
             }
         }
         else
@@ -130,9 +130,9 @@ impl FieldPointerVisits
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(*s32, &(me.first)), index = 0'u64)
+            #inject(stmt, item = cast(*s32, &(me.second)), index = 1'u64)
+            #inject(stmt, item = cast(*s32, &(me.third)), index = 2'u64)
         }
         else
         {
@@ -161,7 +161,7 @@ impl ConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = idx)
+                #inject(stmt, item = cast(const *s32, &(me.values[idx])), index = idx)
             }
         }
         else
@@ -228,7 +228,7 @@ impl CallSourceVisits
         for idx in .count
         {
             #static if ptr do
-                #inject(stmt, item = cast(const *s32) &me.values[idx], index = idx)
+                #inject(stmt, item = cast(const *s32, &me.values[idx]), index = idx)
             else do
                 #inject(stmt, item = me.values[idx], index = idx)
         }
@@ -298,7 +298,7 @@ impl GenericScopedVisits
         if ordinal == 0 do
             continue
 
-        acc += value + cast(s32) ordinal
+        acc += value + cast(s32, ordinal)
         break
     }
 
@@ -310,7 +310,7 @@ impl GenericScopedVisits
     var values = BufferVisits{}
 
     for &value, ordinal in values do
-        value[] += cast(s32) (ordinal + 1)
+        value[] += cast(s32, (ordinal + 1))
 
     Swag.assert(values.values[0] == 4)
     Swag.assert(values.values[1] == 8)
@@ -342,7 +342,7 @@ impl GenericScopedVisits
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == u64)
-        code = code * 10 + value + cast(s32) index - cast(s32) index
+        code = code * 10 + value + cast(s32, index) - cast(s32, index)
     }
 
     Swag.assert(code == 321)
@@ -357,7 +357,7 @@ impl GenericScopedVisits
     for ?, ?, index in values
     {
         count += 1
-        sum   += cast(s32) index
+        sum   += cast(s32, index)
     }
 
     Swag.assert(count == 3)
@@ -390,7 +390,7 @@ impl GenericScopedVisits
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
-        sum += value + scaled + cast(s32) ordinal
+        sum += value + scaled + cast(s32, ordinal)
     }
 
     Swag.assert(sum == 168)
@@ -402,7 +402,7 @@ impl GenericScopedVisits
     var sum    = 0
 
     for value, scaled, index in values do
-        sum += value + scaled + cast(s32) index
+        sum += value + scaled + cast(s32, index)
 
     Swag.assert(sum == 168)
 }
@@ -415,7 +415,7 @@ impl GenericScopedVisits
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type *s32)
-        value[]    += cast(s32) (ordinal + 1)
+        value[]    += cast(s32, (ordinal + 1))
         mutatedSum += value[]
     }
 
@@ -452,7 +452,7 @@ impl GenericScopedVisits
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type const *s32)
-        sum += value[] + cast(s32) ordinal
+        sum += value[] + cast(s32, ordinal)
     }
 
     Swag.assert(sum == 27)
@@ -471,7 +471,7 @@ impl GenericScopedVisits
     for &value, ordinal in callSource()
     {
         #assert(#typeof(value) == #type const *s32)
-        sum += value[] + cast(s32) ordinal
+        sum += value[] + cast(s32, ordinal)
     }
 
     Swag.assert(sum == 27)

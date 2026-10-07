@@ -66,9 +66,9 @@ func starContour(rng: *Random.Generator, cx, cy: f64, count: u32)->ClipperPath
 
     for i in count
     {
-        let angle  = ConstF64.TwoPi * cast(f64) i / cast(f64) count
+        let angle  = ConstF64.TwoPi * cast(f64, i) / cast(f64, count)
         let radius = rng.nextF64(20_000, 90_000)
-        result.add(IntPoint{cast(s64) (cx + radius * Math.cos(angle)), cast(s64) (cy + radius * Math.sin(angle))})
+        result.add(IntPoint{cast(s64, (cx + radius * Math.cos(angle))), cast(s64, (cy + radius * Math.sin(angle)))})
     }
 
     return result
@@ -82,12 +82,12 @@ func gridContour(rng: *Random.Generator)->ClipperPath
     const Cell = 20_000'f64
 
     var result: retval
-    let col = cast(f64) rng.nextS32(-3, 3)
-    let row = cast(f64) rng.nextS32(-3, 3)
-    let x0  = cast(s64) (col * Cell) + cast(s64) rng.nextS32(-1, 1)
-    let y0  = cast(s64) (row * Cell) + cast(s64) rng.nextS32(-1, 1)
-    let x1  = x0 + cast(s64) (Cell * cast(f64) rng.nextU32(1, 3))
-    let y1  = y0 + cast(s64) (Cell * cast(f64) rng.nextU32(1, 3))
+    let col = cast(f64, rng.nextS32(-3, 3))
+    let row = cast(f64, rng.nextS32(-3, 3))
+    let x0  = cast(s64, (col * Cell)) + cast(s64, rng.nextS32(-1, 1))
+    let y0  = cast(s64, (row * Cell)) + cast(s64, rng.nextS32(-1, 1))
+    let x1  = x0 + cast(s64, (Cell * cast(f64, rng.nextU32(1, 3))))
+    let y1  = y0 + cast(s64, (Cell * cast(f64, rng.nextU32(1, 3))))
 
     result.add(IntPoint{x0, y0})
     result.add(IntPoint{x1, y0})
@@ -102,19 +102,19 @@ func combContour(rng: *Random.Generator, teeth: u32)->ClipperPath
 {
     var result: retval
 
-    let x0   = cast(s64) rng.nextS32(-60_000, 60_000)
-    let y0   = cast(s64) rng.nextS32(-60_000, 60_000)
-    let step = cast(s64) rng.nextS32(4_000, 12_000)
+    let x0   = cast(s64, rng.nextS32(-60_000, 60_000))
+    let y0   = cast(s64, rng.nextS32(-60_000, 60_000))
+    let step = cast(s64, rng.nextS32(4_000, 12_000))
 
     for i in teeth
     {
-        let x = x0 + cast(s64) i * step
+        let x = x0 + cast(s64, i) * step
         result.add(IntPoint{x, y0})
-        result.add(IntPoint{x, y0 + cast(s64) rng.nextS32(5_000, 40_000)})
-        result.add(IntPoint{x + step / 2, y0 + cast(s64) rng.nextS32(5_000, 40_000)})
+        result.add(IntPoint{x, y0 + cast(s64, rng.nextS32(5_000, 40_000))})
+        result.add(IntPoint{x + step / 2, y0 + cast(s64, rng.nextS32(5_000, 40_000))})
     }
 
-    result.add(IntPoint{x0 + cast(s64) teeth * step, y0})
+    result.add(IntPoint{x0 + cast(s64, teeth) * step, y0})
     return result
 }
 

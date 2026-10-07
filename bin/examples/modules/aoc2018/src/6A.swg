@@ -91,7 +91,7 @@ func day6A()
             let r = arr.ptr2(x, y, W)
             if d < r.d or not r.who
             {
-                let border = cast(s32) (not x or not y or x == W - 1 or y == W - 1)
+                let border = cast(s32, (not x or not y or x == W - 1 or y == W - 1))
 
                 if r.who
                 {
@@ -99,7 +99,7 @@ func day6A()
                     borders[r.who - 1] -= border
                 }
 
-                r[] = {d, cast(s32) who + 1}
+                r[] = {d, cast(s32, who) + 1}
 
                 count[who]   += 1
                 borders[who] += border

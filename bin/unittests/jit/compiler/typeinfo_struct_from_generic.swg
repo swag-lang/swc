@@ -8,8 +8,8 @@ struct(T) GenericBox
 
 func hasSharedGenericRoot()->bool
 {
-    let left  = cast(const *Swag.TypeInfoStruct) #typeof(GenericBox's32)
-    let right = cast(const *Swag.TypeInfoStruct) #typeof(GenericBox'bool)
+    let left  = cast(const *Swag.TypeInfoStruct, #typeof(GenericBox's32))
+    let right = cast(const *Swag.TypeInfoStruct, #typeof(GenericBox'bool))
 
     return left.fromGeneric != null and
            right.fromGeneric != null and

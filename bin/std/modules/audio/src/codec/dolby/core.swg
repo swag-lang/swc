@@ -71,7 +71,7 @@ private impl BitReader
             {
                 let byteIndex = .bitPos >> 3
                 let bitIndex  = 7 - (.bitPos & 7)
-                value |= (cast(u32) .data[byteIndex] >> cast(u32) bitIndex) & 1
+                value |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
             }
 
             .bitPos += 1
@@ -87,8 +87,8 @@ private impl BitReader
             return 0
         let sign = 1'u32 << (count - 1)
         if raw & sign do
-            return cast #bit (s32) (raw | (~0'u32 << count))
-        return cast(s32) raw
+            return cast #bit (s32, (raw | (~0'u32 << count)))
+        return cast(s32, raw)
     }
 
     mtd skip(count: u64)
@@ -114,9 +114,9 @@ private func inverseFft(real, imaginary: [*] f64, size: s32)
     var bits = 0's32
     while (1 << bits) < size do
         bits += 1
-    for index in cast(u64) size
+    for index in cast(u64, size)
     {
-        var source = cast(u32) index
+        var source = cast(u32, index)
         var reversed: u32
         for bits
         {
@@ -139,7 +139,7 @@ private func inverseFft(real, imaginary: [*] f64, size: s32)
     while half < size
     {
         let step     = half * 2
-        let angle    = Math.ConstF64.Pi / cast(f64) half
+        let angle    = Math.ConstF64.Pi / cast(f64, half)
         let stepReal = Math.cos(angle)
         let stepImag = Math.sin(angle)
         var base     = 0's32
@@ -147,10 +147,10 @@ private func inverseFft(real, imaginary: [*] f64, size: s32)
         {
             var twiddleReal = 1'f64
             var twiddleImag: f64
-            for offset in cast(u64) half
+            for offset in cast(u64, half)
             {
-                let left        = cast(u64) base + offset
-                let right       = left + cast(u64) half
+                let left        = cast(u64, base) + offset
+                let right       = left + cast(u64, half)
                 let productReal = twiddleReal * real[right] - twiddleImag * imaginary[right]
                 let productImag = twiddleReal * imaginary[right] + twiddleImag * real[right]
                 let leftReal    = real[left]
@@ -395,12 +395,12 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     if delta and (delta.mode == 0 or delta.mode == 1)
     {
         band = 0
-        for segment in cast(u64) delta.count
+        for segment in cast(u64, delta.count)
         {
-            band += cast(s32) delta.offset[segment]
-            let code   = cast(s32) delta.value[segment]
+            band += cast(s32, delta.offset[segment])
+            let code   = cast(s32, delta.value[segment])
             let amount = (code >= 4 ? code - 3 : code - 4) << 7
-            for deltaBand in cast(u64) delta.length[segment]
+            for deltaBand in cast(u64, delta.length[segment])
             {
                 discard deltaBand
                 mask[band] += amount
@@ -455,9 +455,9 @@ private impl MantissaReader
             if .bap1At >= 3
             {
                 let code = .reader.read(5)
-                .bap1[0] = code < 27 ? (cast(f64) (code / 9) - 1.0) * (2.0 / 3.0) : 0
-                .bap1[1] = code < 27 ? (cast(f64) ((code / 3) % 3) - 1.0) * (2.0 / 3.0) : 0
-                .bap1[2] = code < 27 ? (cast(f64) (code % 3) - 1.0) * (2.0 / 3.0) : 0
+                .bap1[0] = code < 27 ? (cast(f64, (code / 9)) - 1.0) * (2.0 / 3.0) : 0
+                .bap1[1] = code < 27 ? (cast(f64, ((code / 3) % 3)) - 1.0) * (2.0 / 3.0) : 0
+                .bap1[2] = code < 27 ? (cast(f64, (code % 3)) - 1.0) * (2.0 / 3.0) : 0
                 .bap1At  = 0
             }
 
@@ -469,9 +469,9 @@ private impl MantissaReader
             if .bap2At >= 3
             {
                 let code = .reader.read(7)
-                .bap2[0] = code < 125 ? (cast(f64) (code / 25) - 2.0) * (2.0 / 5.0) : 0
-                .bap2[1] = code < 125 ? (cast(f64) ((code / 5) % 5) - 2.0) * (2.0 / 5.0) : 0
-                .bap2[2] = code < 125 ? (cast(f64) (code % 5) - 2.0) * (2.0 / 5.0) : 0
+                .bap2[0] = code < 125 ? (cast(f64, (code / 25)) - 2.0) * (2.0 / 5.0) : 0
+                .bap2[1] = code < 125 ? (cast(f64, ((code / 5) % 5)) - 2.0) * (2.0 / 5.0) : 0
+                .bap2[2] = code < 125 ? (cast(f64, (code % 5)) - 2.0) * (2.0 / 5.0) : 0
                 .bap2At  = 0
             }
 
@@ -481,14 +481,14 @@ private impl MantissaReader
 
         case 3:
             let code = .reader.read(3)
-            return code < 7 ? (cast(f64) code - 3.0) * (2.0 / 7.0) : 0
+            return code < 7 ? (cast(f64, code) - 3.0) * (2.0 / 7.0) : 0
 
         case 4:
             if .bap4At >= 2
             {
                 let code = .reader.read(7)
-                .bap4[0] = code < 121 ? (cast(f64) (code / 11) - 5.0) * (2.0 / 11.0) : 0
-                .bap4[1] = code < 121 ? (cast(f64) (code % 11) - 5.0) * (2.0 / 11.0) : 0
+                .bap4[0] = code < 121 ? (cast(f64, (code / 11)) - 5.0) * (2.0 / 11.0) : 0
+                .bap4[1] = code < 121 ? (cast(f64, (code % 11)) - 5.0) * (2.0 / 11.0) : 0
                 .bap4At  = 0
             }
 
@@ -498,16 +498,16 @@ private impl MantissaReader
 
         case 5:
             let code = .reader.read(4)
-            return code < 15 ? (cast(f64) code - 7.0) * (2.0 / 15.0) : 0
+            return code < 15 ? (cast(f64, code) - 7.0) * (2.0 / 15.0) : 0
 
         case 6, 7, 8, 9, 10, 11, 12, 13:
-            return cast(f64) .reader.readSigned(cast(u32) bap - 1) / cast(f64) (1 << (bap - 2))
+            return cast(f64, .reader.readSigned(cast(u32, bap) - 1)) / cast(f64, (1 << (bap - 2)))
 
         case 14:
-            return cast(f64) .reader.readSigned(14) / 8192.0
+            return cast(f64, .reader.readSigned(14)) / 8192.0
 
         case 15:
-            return cast(f64) .reader.readSigned(16) / 32768.0
+            return cast(f64, .reader.readSigned(16)) / 32768.0
 
         default:
             return 0
@@ -519,14 +519,14 @@ private func initializeDolbyCore()
 {
     for index in 128
     {
-        let angle = 2.0 * Math.ConstF64.Pi * (8.0 * cast(f64) index + 1.0) / (8.0 * 512.0)
+        let angle = 2.0 * Math.ConstF64.Pi * (8.0 * cast(f64, index) + 1.0) / (8.0 * 512.0)
         g_LongCos[index] = -Math.cos(angle)
         g_LongSin[index] = -Math.sin(angle)
     }
 
     for index in 64
     {
-        let angle = 2.0 * Math.ConstF64.Pi * (8.0 * cast(f64) index + 1.0) / (4.0 * 512.0)
+        let angle = 2.0 * Math.ConstF64.Pi * (8.0 * cast(f64, index) + 1.0) / (4.0 * 512.0)
         g_ShortCos[index] = -Math.cos(angle)
         g_ShortSin[index] = -Math.sin(angle)
     }

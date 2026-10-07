@@ -33,5 +33,5 @@ func registerCodeStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'CodeStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'CodeStrings(cast(string, FrenchStrings))
 }

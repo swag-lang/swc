@@ -15,7 +15,7 @@ func sharedAddressC()->const *u8 => &SharedBytes[0]
 // Compile this body, but never execute it: constant folding must not read an arbitrary address.
 func explicitAddressRemainsRuntime()->u8
 {
-    const pointer = cast(const *u8) 1234'u64
+    const pointer = cast(const *u8, 1234'u64)
     return pointer[]
 }
 
@@ -52,9 +52,9 @@ func explicitAddressRemainsRuntime()->u8
     var textPtr = &text
     Swag.assert(textPtr[] == "captured constant")
 
-    let raw    = cast(*void) 1234'u64
+    let raw    = cast(*void, 1234'u64)
     let rawPtr = &raw
-    Swag.assert(cast(u64) rawPtr[] == 1234)
+    Swag.assert(cast(u64, rawPtr[]) == 1234)
     let enabled    = true
     let enabledPtr = &enabled
     Swag.assert(enabledPtr[])

@@ -33,7 +33,7 @@ impl Swag.IAllocator for RejectAllocationAllocator
 {
     mtd impl alloc(request: *Swag.AllocatorRequest)
     {
-        Swag.getContext().user0 = cast(u64) request
+        Swag.getContext().user0 = cast(u64, request)
         request.address         = null
     }
 
@@ -46,7 +46,7 @@ impl Swag.IAllocator for RejectAllocationAllocator
 func recordAllocationFailure(message: string?, loc: Swag.SourceCodeLocation)
 {
     AllocationFailureMatched = message == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]"
-    let request = cast(*Swag.AllocatorRequest?) Swag.getContext().user0
+    let request = cast(*Swag.AllocatorRequest?, Swag.getContext().user0)
     if request do
         request.address = &AllocationFailureFallback
 }
@@ -74,7 +74,7 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 
 #test
 {
-    let request = Swag.AllocatorRequest{address: cast(*void?) 0x1234, size: 16384, oldSize: 4096, alignment: 128, hint: "growing texture cache"}
+    let request = Swag.AllocatorRequest{address: cast(*void?, 0x1234), size: 16384, oldSize: 4096, alignment: 128, hint: "growing texture cache"}
     let message = formatAllocationFailure("Memory.realloc", request, true)
     Swag.assert(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
 }
@@ -136,9 +136,9 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
         {
             for 2
             {
-                let block = cast([*] u8) Memory.alloc(size, allocator, alignment)
+                let block = cast([*] u8, Memory.alloc(size, allocator, alignment))
                 if alignment != 0 do
-                    Swag.assert(cast(u64) block % alignment == 0)
+                    Swag.assert(cast(u64, block) % alignment == 0)
                 block[0]        = 17
                 block[size - 1] = 29
                 Swag.assert(block[size - 1] == 29)
@@ -164,7 +164,7 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
         runtime.configure(false, true, false, tracked, true)
 
         let loc   = #curlocation
-        let block = cast([*] u8) Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc)
+        let block = cast([*] u8, Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc))
         for i in 32 do
             Swag.assert(block[i] == Swag.Allocator.AllocByte)
         if tracked

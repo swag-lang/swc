@@ -27,7 +27,7 @@ using Corpus
 #[Swag.Sanity(.Lifecycle, true)]
 func readAfterFree()->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 1
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return pointer[]         // swc-expected-error {{sanity_err_use_after_free}}
@@ -41,7 +41,7 @@ func readAfterFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func writeAfterFree()
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     pointer[] = 2            // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -64,7 +64,7 @@ func releaseWrapper(pointer: *s32)
 #[Swag.Sanity(.Lifecycle, true)]
 func readAfterWrappedFree()->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     releaseWrapper(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return pointer[]            // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -87,7 +87,7 @@ struct Node
 #[Swag.Sanity(.Lifecycle, true)]
 func readFieldAfterFree()->s32
 {
-    let node = cast(*Node) heapAlloc(8)
+    let node = cast(*Node, heapAlloc(8))
     node.second = 1
     heapFree(node, 8)      // swc-expected-note {{sanity_note_pointer_released_here}}
     return node.second     // swc-expected-error {{sanity_err_use_after_free}}
@@ -102,7 +102,7 @@ func readFieldAfterFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func readFirstFieldAfterFree()->s32
 {
-    let node = cast(*Node) heapAlloc(8)
+    let node = cast(*Node, heapAlloc(8))
     heapFree(node, 8)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return node.first     // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -117,7 +117,7 @@ func readFirstFieldAfterFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func readElementAfterFree(index: u64)->s32
 {
-    let block = cast([*] s32) heapAlloc(16)
+    let block = cast([*] s32, heapAlloc(16))
     heapFree(block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return block[index]     // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -131,7 +131,7 @@ func readElementAfterFree(index: u64)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func writeElementAfterFree(index: u64)
 {
-    let block = cast([*] s32) heapAlloc(16)
+    let block = cast([*] s32, heapAlloc(16))
     heapFree(block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
     block[index] = 1        // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -146,9 +146,9 @@ func writeElementAfterFree(index: u64)
 #[Swag.Sanity(.Lifecycle, true)]
 func readAfterCastFree(index: u64)->s32
 {
-    let block = cast([*] s32) heapAlloc(16)
-    heapFree(cast(*void) block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return block[index]                 // swc-expected-error {{sanity_err_use_after_free}}
+    let block = cast([*] s32, heapAlloc(16))
+    heapFree(cast(*void, block), 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return block[index]                  // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -161,7 +161,7 @@ func readAfterCastFree(index: u64)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func readThroughAlias()->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     let other   = pointer
     pointer[] = 1
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
@@ -178,7 +178,7 @@ func readThroughAlias()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func readOriginalAfterAliasFree()->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     let other   = pointer
     heapFree(other, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return pointer[]       // swc-expected-error {{sanity_err_use_after_free}}
@@ -195,7 +195,7 @@ func readOriginalAfterAliasFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func readAfterFreeAcrossCall()->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     discard opaqueS32(1)
     return pointer[]     // swc-expected-error {{sanity_err_use_after_free}}
@@ -218,8 +218,8 @@ struct Owner
 #[Swag.Sanity(.Lifecycle, true)]
 func readObjectFieldAfterFree()->s32
 {
-    let owner = cast(*Owner) heapAlloc(16)
-    owner.buffer = cast(*s32) heapAlloc(4)
+    let owner = cast(*Owner, heapAlloc(16))
+    owner.buffer = cast(*s32, heapAlloc(4))
     heapFree(owner.buffer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return owner.buffer[]         // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -235,7 +235,7 @@ func readObjectFieldAfterFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func returnReleasedBlock()->*s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return pointer           // swc-expected-error {{sanity_err_return_released}}
 }
@@ -256,7 +256,7 @@ func destroyThenTouch(node: *Node)
 
 #test
 {
-    destroyThenTouch(cast(*Node) heapAlloc(8))
+    destroyThenTouch(cast(*Node, heapAlloc(8)))
 }
 
 // A local table of pointers is the shape a program keeps its owned blocks in. An element
@@ -265,7 +265,7 @@ func destroyThenTouch(node: *Node)
 func readTableElementAfterFree()->s32
 {
     var table: [4] (*s32?)
-    table[0] = cast(*s32) heapAlloc(4)
+    table[0] = cast(*s32, heapAlloc(4))
     heapFree(table[0]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return table[0]![]         // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -284,9 +284,9 @@ struct NestedOwner { child: *Owner? }
 #[Swag.Sanity(.Lifecycle, true)]
 func readNestedFieldAfterFree()->s32
 {
-    let outer = cast(*NestedOwner) heapAlloc(#sizeof(NestedOwner))
-    outer.child          = cast(*Owner) heapAlloc(#sizeof(Owner))
-    outer.child.buffer   = cast(*s32) heapAlloc(4)
+    let outer = cast(*NestedOwner, heapAlloc(#sizeof(NestedOwner)))
+    outer.child          = cast(*Owner, heapAlloc(#sizeof(Owner)))
+    outer.child.buffer   = cast(*s32, heapAlloc(4))
     outer.child.buffer[] = 11
     heapFree(outer.child.buffer, 4)
     return outer.child.buffer[]
@@ -313,7 +313,7 @@ func readNestedFieldAfterFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func conditionalFree(release: bool)->s32
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 3
     if release do
         heapFree(pointer, 4)
@@ -342,9 +342,9 @@ func conditionalFree(release: bool)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func readNestedFieldBeforeFree()->s32
 {
-    let outer = cast(*NestedOwner) heapAlloc(#sizeof(NestedOwner))
-    outer.child          = cast(*Owner) heapAlloc(#sizeof(Owner))
-    outer.child.buffer   = cast(*s32) heapAlloc(4)
+    let outer = cast(*NestedOwner, heapAlloc(#sizeof(NestedOwner)))
+    outer.child          = cast(*Owner, heapAlloc(#sizeof(Owner)))
+    outer.child.buffer   = cast(*s32, heapAlloc(4))
     outer.child.buffer[] = 11
     let value = outer.child.buffer[]
     heapFree(outer.child.buffer, 4)
@@ -373,13 +373,13 @@ func readNestedFieldBeforeFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func reallocateThrough(slot: **s32)
 {
-    slot[] = cast(*s32) heapAlloc(4)
+    slot[] = cast(*s32, heapAlloc(4))
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
 func readAfterFreeThroughEscapedSlot()->s32
 {
-    var pointer = cast(*s32) heapAlloc(4)
+    var pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)
     reallocateThrough(&pointer)
     pointer[] = 9
@@ -392,9 +392,9 @@ func readAfterFreeThroughEscapedSlot()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func reassignedAfterFree()->s32
 {
-    var pointer = cast(*s32) heapAlloc(4)
+    var pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)
-    pointer   = cast(*s32) heapAlloc(4)
+    pointer   = cast(*s32, heapAlloc(4))
     pointer[] = 7
     let value = pointer[]
     heapFree(pointer, 4)
@@ -405,10 +405,10 @@ func reassignedAfterFree()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func reassignObjectFieldAfterFree()->s32
 {
-    let owner = cast(*Owner) heapAlloc(16)
-    owner.buffer = cast(*s32) heapAlloc(4)
+    let owner = cast(*Owner, heapAlloc(16))
+    owner.buffer = cast(*s32, heapAlloc(4))
     heapFree(owner.buffer, 4)
-    owner.buffer   = cast(*s32) heapAlloc(4)
+    owner.buffer   = cast(*s32, heapAlloc(4))
     owner.buffer[] = 8
     let value = owner.buffer[]
     heapFree(owner.buffer, 4)
@@ -421,8 +421,8 @@ func reassignObjectFieldAfterFree()->s32
 func readOtherTableElement()->s32
 {
     var table: [2] (*s32?)
-    table[0]    = cast(*s32) heapAlloc(4)
-    table[1]    = cast(*s32) heapAlloc(4)
+    table[0]    = cast(*s32, heapAlloc(4))
+    table[1]    = cast(*s32, heapAlloc(4))
     table[1]![] = 5
     heapFree(table[0]!, 4)
     let value = table[1]![]

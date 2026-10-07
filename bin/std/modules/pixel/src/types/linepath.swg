@@ -106,7 +106,7 @@ public impl LinePath
     // bookkeeping.
     mtd const memoryUsage()->u64
     {
-        var result = cast(u64) #sizeof(LinePath)
+        var result = cast(u64, #sizeof(LinePath))
         result += .elements.capacity * #sizeof(Element)
         result += .polygon.points.capacity * #sizeof(Vector2)
         result += .triangles.vertices.capacity * #sizeof(Vector2)
@@ -729,12 +729,12 @@ impl LinePath
         }
 
         let span  = arc.p1.y - arc.p1.x
-        let count = Math.max(1'u32, cast(u32) Math.ceil(Math.abs(span) / Math.ConstF32.PiBy2))
-        let step  = span / cast(f32) count
+        let count = Math.max(1'u32, cast(u32, Math.ceil(Math.abs(span) / Math.ConstF32.PiBy2)))
+        let step  = span / cast(f32, count)
         let k     = 4.0 / 3.0 * Math.tan(step / 4)
         for i in count
         {
-            let a0 = arc.p1.x + step * cast(f32) i
+            let a0 = arc.p1.x + step * cast(f32, i)
             let a1 = a0 + step
             let p0 = arcPoint(center, radii, a0)
             let p3 = arcPoint(center, radii, a1)
@@ -901,7 +901,7 @@ impl LinePath
         // For cubic curves, use a conservative estimate
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 3.0)
 
-        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
+        return cast(u32, Math.clamp(segments, 1, 1000))     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -946,7 +946,7 @@ impl LinePath
         // So segments needed ≈ sqrt(8 * deviation / tolerance)
         let segments = Math.ceil(Math.sqrt(8.0 * deviation / tolerance))
 
-        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
+        return cast(u32, Math.clamp(segments, 1, 1000))     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -1008,7 +1008,7 @@ impl LinePath
         // Use the flatness criterion: segments ≈ sqrt(maxDeviation / tolerance)
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 2.0)
 
-        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
+        return cast(u32, Math.clamp(segments, 1, 1000))     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -1056,6 +1056,6 @@ impl LinePath
 
         let numSegments = Math.ceil(Math.abs(angleSpan) / maxAnglePerSegment)
 
-        return cast(u32) Math.clamp(numSegments, 1, 1000)     // Reasonable bounds
+        return cast(u32, Math.clamp(numSegments, 1, 1000))     // Reasonable bounds
     }
 }

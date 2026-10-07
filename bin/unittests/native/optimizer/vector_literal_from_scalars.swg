@@ -11,55 +11,55 @@ using Swag
 #[Swag.Optimize(true)]
 func halves(dst: [*] u16, a, b: u16)
 {
-    (cast([*] #simd [8] u16) dst)[0] = cast(#simd [8] u16) [a, a, a, a, b, b, b, b]
+    cast([*] #simd [8] u16, dst)[0] = cast(#simd [8] u16, [a, a, a, a, b, b, b, b])
 }
 
 #[Swag.Optimize(true)]
 func pairs(dst: [*] u16, a, b, c, d: u16)
 {
-    (cast([*] #simd [8] u16) dst)[0] = cast(#simd [8] u16) [a, a, b, b, c, c, d, d]
+    cast([*] #simd [8] u16, dst)[0] = cast(#simd [8] u16, [a, a, b, b, c, c, d, d])
 }
 
 #[Swag.Optimize(true)]
 func alternate(dst: [*] s16, x, y: s16)
 {
-    (cast([*] #simd [8] s16) dst)[0] = cast(#simd [8] s16) [x, y, x, y, x, y, x, y]
+    cast([*] #simd [8] s16, dst)[0] = cast(#simd [8] s16, [x, y, x, y, x, y, x, y])
 }
 
 #[Swag.Optimize(true)]
 func withZeros(dst: [*] s16, x, y, r: s16)
 {
-    (cast([*] #simd [8] s16) dst)[0] = cast(#simd [8] s16) [x, y, r, 0, x, y, r, 0]
+    cast([*] #simd [8] s16, dst)[0] = cast(#simd [8] s16, [x, y, r, 0, x, y, r, 0])
 }
 
 #[Swag.Optimize(true)]
 func oneLane(dst: [*] s16, r: s16)
 {
-    (cast([*] #simd [8] s16) dst)[0] = cast(#simd [8] s16) [0, 0, r, 0, 0, 0, r, 0]
+    cast([*] #simd [8] s16, dst)[0] = cast(#simd [8] s16, [0, 0, r, 0, 0, 0, r, 0])
 }
 
 #[Swag.Optimize(true)]
 func distinctWords(dst: [*] u16, a, b, c, d, e, f, g, h: u16)
 {
-    (cast([*] #simd [8] u16) dst)[0] = cast(#simd [8] u16) [a, b, c, d, e, f, g, h]
+    cast([*] #simd [8] u16, dst)[0] = cast(#simd [8] u16, [a, b, c, d, e, f, g, h])
 }
 
 #[Swag.Optimize(true)]
 func sameWord(dst: [*] u16, a: u16)
 {
-    (cast([*] #simd [8] u16) dst)[0] = cast(#simd [8] u16) [a, a, a, a, a, a, a, a]
+    cast([*] #simd [8] u16, dst)[0] = cast(#simd [8] u16, [a, a, a, a, a, a, a, a])
 }
 
 #[Swag.Optimize(true)]
 func dwords(dst: [*] u32, a, b, c, d: u32)
 {
-    (cast([*] #simd [4] u32) dst)[0] = cast(#simd [4] u32) [a, b, c, d]
+    cast([*] #simd [4] u32, dst)[0] = cast(#simd [4] u32, [a, b, c, d])
 }
 
 #[Swag.Optimize(true)]
 func bytes(dst: [*] u8, a, b: u8)
 {
-    (cast([*] #simd [16] u8) dst)[0] = cast(#simd [16] u8) [a, b, 0, 0, a, b, 0, 0, a, b, 0, 0, a, b, 0, 0]
+    cast([*] #simd [16] u8, dst)[0] = cast(#simd [16] u8, [a, b, 0, 0, a, b, 0, 0, a, b, 0, 0, a, b, 0, 0])
 }
 
 #[Swag.Optimize(true)]
@@ -68,7 +68,7 @@ func readTwice(dst: [*] u16, a, b: u16)->u16
     // The lanes are also read one by one: the frame copy stays, and both
     // readings must agree.
     let lanes = [a, a, a, a, b, b, b, b]
-    (cast([*] #simd [8] u16) dst)[0] = cast(#simd [8] u16) lanes
+    cast([*] #simd [8] u16, dst)[0] = cast(#simd [8] u16, lanes)
     return lanes[1] + lanes[6]
 }
 
@@ -77,8 +77,8 @@ func computedLanes(dst: [*] u16, a, b: u16)
 {
     // The lanes are computed values, still in registers when the vector is
     // read, and the literal feeds an operation instead of a store.
-    let sum = cast(u16) (a + b)
-    (cast([*] #simd [8] u16) dst)[0] = (cast(#simd [8] u16) [a, a, sum, sum, b, b, sum, sum]) + cast(#simd [8] u16) [1, 1, 1, 1, 1, 1, 1, 1]
+    let sum = cast(u16, (a + b))
+    cast([*] #simd [8] u16, dst)[0] = cast(#simd [8] u16, [a, a, sum, sum, b, b, sum, sum]) + cast(#simd [8] u16, [1, 1, 1, 1, 1, 1, 1, 1])
 }
 
 struct Strength

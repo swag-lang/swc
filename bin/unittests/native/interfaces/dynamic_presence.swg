@@ -29,7 +29,7 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
 #test
 {
     let value = metadata(#typeof(Metadata))
-    let raw   = cast(const *Swag.Interface) &value
+    let raw   = cast(const *Swag.Interface, &value)
     Swag.assert(raw.obj == null)
     Swag.assert(raw.itable != null)
     let present = value!
@@ -39,7 +39,7 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
 #test
 {
     let value = metadata(#typeof(Metadata))
-    Swag.assert(cast(bool) value)
+    Swag.assert(cast(bool, value))
     Swag.assert(value != null)
     Swag.assert(not (value == null))
     Swag.assert(not (not value))
@@ -62,7 +62,7 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
 #test
 {
     let value = metadata(#typeof(Other))
-    Swag.assert(not cast(bool) value)
+    Swag.assert(not cast(bool, value))
     Swag.assert(value == null)
     Swag.assert(not (value != null))
     Swag.assert(not value)
@@ -81,29 +81,29 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
 #test
 {
     const value = #run metadata(#typeof(Metadata))
-    #assert(cast(bool) value)
+    #assert(cast(bool, value))
     #assert(value != null)
     const missing = #run metadata(#typeof(Other))
-    #assert(not cast(bool) missing)
+    #assert(not cast(bool, missing))
     #assert(missing == null)
-    const aliasMissing = cast(MetadataAlias?) missing
+    const aliasMissing = cast(MetadataAlias?, missing)
     #assert(aliasMissing == null)
-    #assert(not cast(bool) aliasMissing)
+    #assert(not cast(bool, aliasMissing))
     const fallback = #run metadata(#typeof(Fallback))
     const selected = missing orelse fallback
-    #assert(cast(bool) selected)
+    #assert(cast(bool, selected))
     Swag.assert(selected!.answer() == 7)
 }
 
 #test
 {
-    var value = cast(MetadataAlias?) metadata(#typeof(Metadata))
-    Swag.assert(cast(bool) value)
+    var value = cast(MetadataAlias?, metadata(#typeof(Metadata)))
+    Swag.assert(cast(bool, value))
     Swag.assert(value != null)
     Swag.assert((value ? 1 : 2) == 1)
     let boxed     = Swag.makeAny(&value, #typeof(value))
-    let extracted = cast #assume (MetadataAlias) boxed
-    Swag.assert((cast(IMetadata) extracted).answer() == 42)
+    let extracted = assume cast (MetadataAlias, boxed)
+    Swag.assert(cast(IMetadata, extracted).answer() == 42)
     Swag.assert(metadata(#typeof(Metadata))!.answer() == 42)
     Swag.assert((metadata(#typeof(Metadata))?.answer() orelse 0) == 42)
 }

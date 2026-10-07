@@ -174,7 +174,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     var result = 0's32
     for x in image.width
     {
-        let green = cast(s32) image.pixelColor(x, row).g
+        let green = cast(s32, image.pixelColor(x, row).g)
         if green > 8 and green < 247 do
             result += 1
     }

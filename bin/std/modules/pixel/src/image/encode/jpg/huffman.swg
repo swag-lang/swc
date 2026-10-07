@@ -13,9 +13,9 @@ impl Encoder
     {
         for i in 64
         {
-            var temp = (cast(s32) basicTable[i] * .scaleFactor + 50) / 100
+            var temp = (cast(s32, basicTable[i]) * .scaleFactor + 50) / 100
             temp = Math.clamp(temp, 1, 255)
-            newTable[ZigZag[i]] = cast(u8) temp
+            newTable[ZigZag[i]] = cast(u8, temp)
         }
     }
 
@@ -69,7 +69,7 @@ impl Encoder
             for var j = 1; j <= nrCodes[k]; j += 1
             {
                 hT[stdTable[posInTable]].value  = codevalue
-                hT[stdTable[posInTable]].length = cast(u8) k
+                hT[stdTable[posInTable]].length = cast(u8, k)
                 posInTable                      += 1
                 codevalue                       += #wrap 1
             }
@@ -90,8 +90,8 @@ impl Encoder
     {
         .categoryAlloc.resize(65535)
         .bitcodeAlloc.resize(65535)
-        .category = cast([*] u8) .categoryAlloc.storage() + 32767
-        .bitcode  = cast([*] BitString) .bitcodeAlloc.storage() + 32767
+        .category = cast([*] u8, .categoryAlloc.storage()) + 32767
+        .bitcode  = cast([*] BitString, .bitcodeAlloc.storage()) + 32767
 
         var nrlower = 1
         var nrupper = 2
@@ -99,17 +99,17 @@ impl Encoder
         {
             for nr in nrlower until nrupper
             {
-                .category[nr]       = cast(u8) cat
-                .bitcode[nr].length = cast(u8) cat
-                .bitcode[nr].value  = cast(u16) nr
+                .category[nr]       = cast(u8, cat)
+                .bitcode[nr].length = cast(u8, cat)
+                .bitcode[nr].value  = cast(u16, nr)
             }
 
             for nr in -(nrupper - 1) to -nrlower
             {
-                let nof = cast #bit (u64) cast(s64) nr
-                .category[nof]       = cast(u8) cat
-                .bitcode[nof].length = cast(u8) cat
-                .bitcode[nof].value  = cast(u16) (nrupper - 1 + nr)
+                let nof = cast #bit (u64, cast(s64, nr))
+                .category[nof]       = cast(u8, cat)
+                .bitcode[nof].length = cast(u8, cat)
+                .bitcode[nof].value  = cast(u16, (nrupper - 1 + nr))
             }
 
             nrlower <<= 1
@@ -125,8 +125,8 @@ impl Encoder
         {
             for col in 8
             {
-                .fdtblY[i]  = cast(f32) (1.0 / (cast(f64) .dqtInfo.tableY[ZigZag[i]] * AanSf[row] * AanSf[col] * 8.0))
-                .fdtblCb[i] = cast(f32) (1.0 / (cast(f64) .dqtInfo.tableCb[ZigZag[i]] * AanSf[row] * AanSf[col] * 8.0))
+                .fdtblY[i]  = cast(f32, (1.0 / (cast(f64, .dqtInfo.tableY[ZigZag[i]]) * AanSf[row] * AanSf[col] * 8.0)))
+                .fdtblCb[i] = cast(f32, (1.0 / (cast(f64, .dqtInfo.tableCb[ZigZag[i]]) * AanSf[row] * AanSf[col] * 8.0)))
                 i += 1
             }
         }

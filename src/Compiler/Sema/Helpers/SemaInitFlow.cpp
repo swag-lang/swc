@@ -355,7 +355,7 @@ namespace
                         ref = node.cast<AstAutoCastExpr>().nodeExprRef;
                         break;
                     case AstNodeId::CastExpr:
-                        if (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+                        if (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) || node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Fallible))
                             return ref;
                         ref = node.cast<AstCastExpr>().nodeExprRef;
                         break;

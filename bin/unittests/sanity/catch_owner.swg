@@ -31,7 +31,7 @@ func returnCatchPointer()->*s32?
 {
     catch failBorrowedCapture() as error
     if error != null do
-        return cast #try (*s32) error     // swc-expected-error {{sanity_err_borrow_escape}}
+        return (catch cast(*s32?, error))     // swc-expected-error {{sanity_err_borrow_escape}}
     return null
 }
 
@@ -95,7 +95,7 @@ func returnCatchTextField()->string?
     catch failBorrowedText() as error
     if error != null
     {
-        let payload = cast #assume(const *CapturedText) error
+        let payload = assume cast(const *CapturedText, error)
         return payload.text     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
@@ -106,7 +106,7 @@ func returnCatchTextElement()->string?
     catch failBorrowedText() as error
     if error != null
     {
-        let payload = cast #assume(const *CapturedText) error
+        let payload = assume cast(const *CapturedText, error)
         return payload.texts[0]     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
@@ -115,7 +115,7 @@ func returnCatchTextElement()->string?
 #[Swag.NoInline]
 func catchTextField(error: any)->string?
 {
-    let payload = cast #assume(const *CapturedText) error
+    let payload = assume cast(const *CapturedText, error)
     return payload.text
 }
 
@@ -133,7 +133,7 @@ func readCatchTextInScope()->u8
     catch failBorrowedText() as error
     if error != null
     {
-        let payload = cast #assume(const *CapturedText) error
+        let payload = assume cast(const *CapturedText, error)
         let text    = payload.text
         Swag.assert(text != null)
         return payload.bytes[0]
@@ -159,7 +159,7 @@ func returnIndependentText()->string
 #[Swag.NoInline]
 func catchTextBuffer(error: any)->string?
 {
-    let payload = cast(const *CapturedText) error.buffer
+    let payload = cast(const *CapturedText, error.buffer)
     return payload.text
 }
 
@@ -187,7 +187,7 @@ func returnJoinedCatchText(ordinaryBranch: bool)->string?
     {
         var ordinary = CapturedText{}
         ordinary.text = "permanent"
-        var selected = cast #assume(const *CapturedText) error
+        var selected = assume cast(const *CapturedText, error)
         if ordinaryBranch do
             selected = &ordinary
         return selected.text     // swc-expected-error {{sanity_err_borrow_escape}}

@@ -14,7 +14,7 @@ struct PageCommitShared
 
 func pageCommitWorker(thread: Threading.Thread)
 {
-    let shared = cast(*PageCommitShared) thread.userParam!
+    let shared = cast(*PageCommitShared, thread.userParam!)
     discard Swag.atomadd(&shared.ready, 1)
     while Swag.atomget(&shared.start) == 0 do
         Threading.Thread.yield()
@@ -30,20 +30,20 @@ func pageCommitWorker(thread: Threading.Thread)
             request.size = size
             shared.allocator.alloc(&request)
             Swag.assert(request.address != null)
-            let bytes = cast([*] u8) request.address
-            bytes[0]        = cast(u8) i
-            bytes[size - 1] = cast(u8) (round & 255)
-            addresses[i]    = cast(u64) request.address
+            let bytes = cast([*] u8, request.address)
+            bytes[0]        = cast(u8, i)
+            bytes[size - 1] = cast(u8, (round & 255))
+            addresses[i]    = cast(u64, request.address)
         }
 
         Threading.Thread.yield()
         for i in addresses.count
         {
-            let bytes = cast([*] u8) addresses[i]
-            if bytes[0] != cast(u8) i or bytes[size - 1] != cast(u8) (round & 255) do
+            let bytes = cast([*] u8, addresses[i])
+            if bytes[0] != cast(u8, i) or bytes[size - 1] != cast(u8, (round & 255)) do
                 discard Swag.atomadd(&shared.errors, 1)
             var request: AllocatorRequest
-            request.address = cast(*void) addresses[i]
+            request.address = cast(*void, addresses[i])
             shared.allocator.free(&request)
         }
 

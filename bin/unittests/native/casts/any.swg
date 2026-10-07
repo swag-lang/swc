@@ -6,7 +6,7 @@ alias AnyCastStrictAny = any
 #test
 {
     var a: any = 12
-    var b: s32 = cast #assume() a
+    var b: s32 = assume cast(a)
     Swag.assert(b == 12)
 }
 
@@ -14,14 +14,14 @@ alias AnyCastStrictAny = any
 {
     func takes(v: s32) {}
     var a: any = 12
-    Swag.assert(cast #assume(s32) a == 12)
+    Swag.assert(assume cast(s32, a) == 12)
 }
 
 #test
 {
     func takes(v: s32) {}
     var a: any = 12
-    var b: s32 = cast #assume() a
+    var b: s32 = assume cast(a)
     takes(b)
     Swag.assert(b == 12)
 }
@@ -30,7 +30,7 @@ alias AnyCastStrictAny = any
 {
     var a: any = true
     var passed = false
-    if cast #assume(bool) a
+    if assume cast(bool, a)
     {
         passed = true
     }
@@ -40,8 +40,8 @@ alias AnyCastStrictAny = any
 #test
 {
     var a: any   = 42
-    let refValue = cast #assume(const *s32) a
-    let ptrValue = cast #assume(const *s32) a
+    let refValue = assume cast(const *s32, a)
+    let ptrValue = assume cast(const *s32, a)
     Swag.assert(refValue[] == 42)
     Swag.assert(ptrValue[] == 42)
 }
@@ -62,8 +62,8 @@ struct AnyCompareType {}
 #test
 {
     var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let baseRef    = cast #assume(const *AnyCastBase) boxed
-    let basePtr    = cast #assume(const *AnyCastBase) boxed
+    let baseRef    = assume cast(const *AnyCastBase, boxed)
+    let basePtr    = assume cast(const *AnyCastBase, boxed)
     Swag.assert(baseRef.value == 9)
     Swag.assert(basePtr.value == 9)
 }
@@ -85,24 +85,24 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = 12
-    let boxed    = (cast(const *AnyCastStrictAny) (&raw))[]
+    let boxed    = cast(const *AnyCastStrictAny, (&raw))[]
 
-    Swag.assert(cast #assume(s32) boxed == 12)
+    Swag.assert(assume cast(s32, boxed) == 12)
 }
 
 #test
 {
-    let boxed = cast(AnyCastStrictAny) 21
+    let boxed = cast(AnyCastStrictAny, 21)
 
-    Swag.assert(cast #assume(s32) boxed == 21)
+    Swag.assert(assume cast(s32, boxed) == 21)
 }
 
 #test
 {
     var raw: any = 42
-    let boxed    = (cast(const *AnyCastStrictAny) (&raw))[]
-    let refValue = cast #assume(const *s32) boxed
-    let ptrValue = cast #assume(const *s32) boxed
+    let boxed    = cast(const *AnyCastStrictAny, (&raw))[]
+    let refValue = assume cast(const *s32, boxed)
+    let ptrValue = assume cast(const *s32, boxed)
 
     Swag.assert(refValue[] == 42)
     Swag.assert(ptrValue[] == 42)
@@ -111,9 +111,9 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let boxed    = (cast(const *AnyCastStrictAny) (&raw))[]
-    let baseRef  = cast #assume(const *AnyCastBase) boxed
-    let basePtr  = cast #assume(const *AnyCastBase) boxed
+    let boxed    = cast(const *AnyCastStrictAny, (&raw))[]
+    let baseRef  = assume cast(const *AnyCastBase, boxed)
+    let basePtr  = assume cast(const *AnyCastBase, boxed)
 
     Swag.assert(baseRef.value == 9)
     Swag.assert(basePtr.value == 9)

@@ -70,9 +70,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         let alphaFromBit = alphaMode != 0
         for i in Pixels
         {
-            let value = cast(u16) (i & 0xFFFF)
-            source[1 + i * 2]       = cast(u8) (value & 0xFF)
-            source[1 + i * 2 + 1]   = cast(u8) (value >> 8)
+            let value = cast(u16, (i & 0xFFFF))
+            source[1 + i * 2]       = cast(u8, (value & 0xFF))
+            source[1 + i * 2 + 1]   = cast(u8, (value >> 8))
             expected[3 + i * 4]     = Tga.expand5(value & 31)
             expected[3 + i * 4 + 1] = Tga.expand5((value >> 5) & 31)
             expected[3 + i * 4 + 2] = Tga.expand5((value >> 10) & 31)
@@ -91,7 +91,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
         for i in Pixels
         {
-            let value = cast(u16) ((Pixels - i - 1) & 0xFFFF)
+            let value = cast(u16, ((Pixels - i - 1) & 0xFFFF))
             expected[3 + i * 4]     = Tga.expand5(value & 31)
             expected[3 + i * 4 + 1] = Tga.expand5((value >> 5) & 31)
             expected[3 + i * 4 + 2] = Tga.expand5((value >> 10) & 31)
@@ -113,7 +113,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     for i in Pixels
     {
-        let value = cast(u16) ((Pixels - i - 1) & 0xFFFF)
+        let value = cast(u16, ((Pixels - i - 1) & 0xFFFF))
         expected[3 + i * 3]     = Tga.expand5(value & 31)
         expected[3 + i * 3 + 1] = Tga.expand5((value >> 5) & 31)
         expected[3 + i * 3 + 2] = Tga.expand5((value >> 10) & 31)
@@ -139,7 +139,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             actual.resize(3 + pixelCount * bytesPerPixel + 1)
             expected.resize(actual.count)
             for i in source.count do
-                source[i] = cast(u8) ((i * 43 + 17) & 0xFF)
+                source[i] = cast(u8, ((i * 43 + 17) & 0xFF))
             for i in actual.count
             {
                 actual[i]   = 0xA5
@@ -177,7 +177,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             actual.resize(3 + pixelCount * bytesPerPixel + 1)
             expected.resize(actual.count)
             for i in source.count do
-                source[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+                source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
             for i in actual.count
             {
                 actual[i]   = 0xA5
@@ -211,7 +211,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     pixel.resize(5)
     candidates.resize(1 + Candidates * 4 + 1)
     for channel in 4 do
-        pixel[1 + channel] = cast(u8) (channel * 53 + 17)
+        pixel[1 + channel] = cast(u8, (channel * 53 + 17))
 
     for mismatch in Candidates + 1
     {
@@ -235,18 +235,18 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     const Height = 2'u16
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP, Width, Height)
-    for i in cast(u64) Width * Height do
-        cb.addNative(cast(u16) ((i * 1907 + 123) & 0x7FFF))
+    for i in cast(u64, Width) * Height do
+        cb.addNative(cast(u16, ((i * 1907 + 123) & 0x7FFF)))
 
     let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
     Swag.assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
-    for i in cast(u64) Width * Height
+    for i in cast(u64, Width) * Height
     {
         let sourceY = i / Width
         let x       = i % Width
         let targetY = Height - sourceY - 1
         let offset  = (targetY * Width + x) * 3
-        let value   = cast(u32) ((i * 1907 + 123) & 0x7FFF)
+        let value   = cast(u32, ((i * 1907 + 123) & 0x7FFF))
         Swag.assert(img.pixels.storage()[offset] == Tga.expand5(value & 31))
         Swag.assert(img.pixels.storage()[offset + 1] == Tga.expand5((value >> 5) & 31))
         Swag.assert(img.pixels.storage()[offset + 2] == Tga.expand5((value >> 10) & 31))
@@ -261,19 +261,19 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var cb: ConcatBuffer
         addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP | TGA_DESC_RIGHT, Width, Height)
-        for i in cast(u64) Width * Height do
-            cb.addNative(cast(u16) ((i * 1907 + 123) & 0x7FFF))
+        for i in cast(u64, Width) * Height do
+            cb.addNative(cast(u16, ((i * 1907 + 123) & 0x7FFF)))
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         Swag.assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
-        for i in cast(u64) Width * Height
+        for i in cast(u64, Width) * Height
         {
             let sourceY = i / Width
             let sourceX = i % Width
             let targetY = Height - sourceY - 1
             let targetX = Width - sourceX - 1
             let offset  = (targetY * Width + targetX) * 3
-            let value   = cast(u32) ((i * 1907 + 123) & 0x7FFF)
+            let value   = cast(u32, ((i * 1907 + 123) & 0x7FFF))
             Swag.assert(img.pixels.storage()[offset] == Tga.expand5(value & 31))
             Swag.assert(img.pixels.storage()[offset + 1] == Tga.expand5((value >> 5) & 31))
             Swag.assert(img.pixels.storage()[offset + 2] == Tga.expand5((value >> 10) & 31))
@@ -283,19 +283,19 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var cb: ConcatBuffer
         addTgaImageHeader(&cb, TGA_TYPE_RGB, 16, TGA_DESC_TOP | TGA_DESC_RIGHT | 1, Width, Height)
-        for i in cast(u64) Width * Height do
-            cb.addNative(cast(u16) (i * 1907 + 123))
+        for i in cast(u64, Width) * Height do
+            cb.addNative(cast(u16, (i * 1907 + 123)))
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         Swag.assert(img.width == Width and img.height == Height and img.pixelFormat == .BGRA8)
-        for i in cast(u64) Width * Height
+        for i in cast(u64, Width) * Height
         {
             let sourceY = i / Width
             let sourceX = i % Width
             let targetY = Height - sourceY - 1
             let targetX = Width - sourceX - 1
             let offset  = (targetY * Width + targetX) * 4
-            let value   = cast(u32) ((i * 1907 + 123) & 0xFFFF)
+            let value   = cast(u32, ((i * 1907 + 123) & 0xFFFF))
             Swag.assert(img.pixels.storage()[offset] == Tga.expand5(value & 31))
             Swag.assert(img.pixels.storage()[offset + 1] == Tga.expand5((value >> 5) & 31))
             Swag.assert(img.pixels.storage()[offset + 2] == Tga.expand5((value >> 10) & 31))
@@ -311,21 +311,21 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     const Height = 2'u16
     for bpp in [24'u8, 32'u8]
     {
-        let bytesPerPixel = cast(u64) (bpp / 8)
+        let bytesPerPixel = cast(u64, (bpp / 8))
         for rightMode in 2
         {
             var cb: ConcatBuffer
             addTgaImageHeader(&cb, TGA_TYPE_RGB, bpp, TGA_DESC_TOP | (rightMode ? TGA_DESC_RIGHT : 0), Width, Height)
-            for pixel in cast(u64) Width * Height
+            for pixel in cast(u64, Width) * Height
             {
                 for channel in bytesPerPixel do
-                    cb.addNative(cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF))
+                    cb.addNative(cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF)))
             }
 
             let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
             Swag.assert(img.width == Width and img.height == Height)
             Swag.assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
-            for pixel in cast(u64) Width * Height
+            for pixel in cast(u64, Width) * Height
             {
                 let sourceY = pixel / Width
                 let sourceX = pixel % Width
@@ -333,7 +333,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                 let targetX = rightMode ? Width - sourceX - 1 : sourceX
                 let offset  = (targetY * Width + targetX) * bytesPerPixel
                 for channel in bytesPerPixel do
-                    Swag.assert(img.pixels.storage()[offset + channel] == cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF))
+                    Swag.assert(img.pixels.storage()[offset + channel] == cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF)))
             }
         }
     }
@@ -653,10 +653,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     const Width  = 17'u16
     const Height = 3'u16
-    const Pixels = cast(u64) Width * Height
+    const Pixels = cast(u64, Width) * Height
     for bpp in [24'u8, 32'u8]
     {
-        let bytesPerPixel = cast(u64) (bpp / 8)
+        let bytesPerPixel = cast(u64, (bpp / 8))
         for topMode in 2
         {
             for rightMode in 2
@@ -672,7 +672,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                 {
                     for channel in bytesPerPixel
                     {
-                        let value = cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF)
+                        let value = cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF))
                         cb.addNative(value)
                         expected[pixel * bytesPerPixel + channel] = value
                     }
@@ -680,11 +680,11 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
                 cb.addNative(0x91'u8)
                 for channel in bytesPerPixel do
-                    cb.addNative(cast(u8) ((channel * 53 + 91) & 0xFF))
+                    cb.addNative(cast(u8, ((channel * 53 + 91) & 0xFF)))
                 for pixel in 18'u64
                 {
                     for channel in bytesPerPixel do
-                        expected[(20 + pixel) * bytesPerPixel + channel] = cast(u8) ((channel * 53 + 91) & 0xFF)
+                        expected[(20 + pixel) * bytesPerPixel + channel] = cast(u8, ((channel * 53 + 91) & 0xFF))
                 }
 
                 cb.addNative(12'u8)
@@ -693,7 +693,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                     let pixel = 38 + packetPixel
                     for channel in bytesPerPixel
                     {
-                        let value = cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF)
+                        let value = cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF))
                         cb.addNative(value)
                         expected[pixel * bytesPerPixel + channel] = value
                     }
@@ -819,14 +819,14 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var src = Image.create(Width, Height, pixelFormat)
         for i in src.pixels.count do
-            src.pixels.storage()[i] = cast(u8) ((i * 37 + 19) & 0xFF)
+            src.pixels.storage()[i] = cast(u8, ((i * 37 + 19) & 0xFF))
 
         let cb  = expect src.encode("memory.tga")
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
-        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        let bytesPerPixel = cast(u64, src.bytesPerPixel)
         Swag.assert(cb.count() == #sizeof(TgaH) + src.pixels.count)
         Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
-        for pixel in cast(u64) Width * Height
+        for pixel in cast(u64, Width) * Height
         {
             let offset = pixel * bytesPerPixel
             Swag.assert(img.pixels.storage()[offset] == src.pixels.storage()[offset + 2])
@@ -897,7 +897,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     Swag.assert(bytes != null)
-    let h = cast(const *TgaH) bytes.buffer
+    let h = cast(const *TgaH, bytes.buffer)
     Swag.assert(h.imageTypeCode == TGA_TYPE_RGB)
     Swag.assert(h.bitsPerPixel == 32'u8)
     Swag.assert(h.descriptorByte == 8'u8)
@@ -926,7 +926,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         var cb = expect src.encode("memory.tga", options)
         cb.makeLinear()
         let bytes         = nnBytes(cb.toSlice())
-        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        let bytesPerPixel = cast(u64, src.bytesPerPixel)
         Swag.assert(bytes.count == #sizeof(TgaH) + 3 * (1 + bytesPerPixel))
         Swag.assert(bytes[#sizeof(TgaH)] == 0xFF)
         Swag.assert(bytes[#sizeof(TgaH) + 1 + bytesPerPixel] == 0xFF)
@@ -948,18 +948,18 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     {
         var src = Image.create(Width, 1, pixelFormat)
         for i in src.pixels.count do
-            src.pixels.storage()[i] = cast(u8) ((i * 37 + 19) & 0xFF)
+            src.pixels.storage()[i] = cast(u8, ((i * 37 + 19) & 0xFF))
 
         var cb = expect src.encode("memory.tga", options)
         cb.makeLinear()
         let bytes         = nnBytes(cb.toSlice())
-        let bytesPerPixel = cast(u64) src.bytesPerPixel
+        let bytesPerPixel = cast(u64, src.bytesPerPixel)
         Swag.assert(bytes[#sizeof(TgaH)] == 0x7F)
         Swag.assert(bytes[#sizeof(TgaH) + 1 + 128 * bytesPerPixel] == 2)
 
         let img = expect Image.decode("memory.tga", bytes, {})
         Swag.assert(img.pixelFormat == (pixelFormat == .BGR8 or pixelFormat == .RGB8 ? .BGR8 : .BGRA8))
-        for pixel in cast(u64) Width
+        for pixel in cast(u64, Width)
         {
             let offset = pixel * bytesPerPixel
             if pixelFormat == .BGR8 or pixelFormat == .BGRA8
@@ -987,7 +987,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let srcBuf = src.pixels.storage()
     for x in 4
     {
-        let offset = cast(u64) x * 3
+        let offset = cast(u64, x) * 3
         srcBuf[offset]     = 10'u8
         srcBuf[offset + 1] = 20'u8
         srcBuf[offset + 2] = 30'u8
@@ -995,10 +995,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     for x in 4 until 8
     {
-        let offset = cast(u64) x * 3
-        srcBuf[offset]     = cast(u8) x
-        srcBuf[offset + 1] = cast(u8) (x + 10)
-        srcBuf[offset + 2] = cast(u8) (x + 20)
+        let offset = cast(u64, x) * 3
+        srcBuf[offset]     = cast(u8, x)
+        srcBuf[offset + 1] = cast(u8, (x + 10))
+        srcBuf[offset + 2] = cast(u8, (x + 20))
     }
 
     var options: Tga.EncodeOptions
@@ -1022,7 +1022,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let srcBuf = src.pixels.storage()
     for x in src.width
     {
-        let offset = cast(u64) x * 4
+        let offset = cast(u64, x) * 4
         srcBuf[offset]     = 1'u8
         srcBuf[offset + 1] = 2'u8
         srcBuf[offset + 2] = 3'u8

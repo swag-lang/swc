@@ -192,7 +192,7 @@ impl HtmlMatchContext
         var indices: HashTable'(String, u32)
         for parentIndex in document.nodes.count
         {
-            let children = document.children(cast(u32) parentIndex)
+            let children = document.children(cast(u32, parentIndex))
             if children.first == HtmlNoNode do
                 continue
 
@@ -259,8 +259,8 @@ impl HtmlSelectorPart
     {
         if not .id.isEmpty() do
             specificity[] += 1 << 20
-        specificity[] += cast(u32) .classes.count << 10
-        specificity[] += cast(u32) .attributes.count << 10
+        specificity[] += cast(u32, .classes.count) << 10
+        specificity[] += cast(u32, .attributes.count) << 10
         if .pseudo != .None do
             specificity[] += 1 << 10
         if not .tag.isEmpty() do
@@ -461,7 +461,7 @@ impl HtmlStyleSheet
     // Reports whether a position satisfies an `a*k + b` form for some non-negative integer `k`.
     private func matchesNthForm(a, b: s32, index: u32)->bool
     {
-        let position = cast(s32) index
+        let position = cast(s32, index)
         if a == 0 do
             return position == b
 
@@ -484,7 +484,7 @@ impl HtmlStyleSheet
         if rule.parts.count == 1 do
             return true
 
-        return .matchesAncestors(rule, cast(u32) rule.parts.count - 1, element, context)
+        return .matchesAncestors(rule, cast(u32, rule.parts.count) - 1, element, context)
     }
 
     private mtd const matchesAncestors(rule: const *HtmlRule, partIndex: u32, element: u32, context: const *HtmlMatchContext)->bool
@@ -779,7 +779,7 @@ impl HtmlStyleSheet
         {
         case "media":
             let query = Latin1.trim(source[nameEnd until brace])
-            let index = cast(u32) .media.count
+            let index = cast(u32, .media.count)
             .media.add(String.from(query))
             .parseRules(body, index)
 
@@ -797,7 +797,7 @@ impl HtmlStyleSheet
         if declarations.declarations.isEmpty() do
             return
 
-        let block     = cast(u32) .blocks.count
+        let block     = cast(u32, .blocks.count)
         let selectors = htmlSplitValue(prelude, ','u8)
         var added: bool
         for selector in selectors
@@ -817,7 +817,7 @@ impl HtmlStyleSheet
             for &part in rule.parts do
                 part.addSpecificity(&rule.specificity)
 
-            let index = cast(u32) .rules.count
+            let index = cast(u32, .rules.count)
             .rules.add(#move rule)
             .indexRule(index)
             added = true
@@ -1136,18 +1136,18 @@ impl HtmlStyleSheet
             part.pseudoElement = .After
 
         case "not":
-            let first = cast(u32) .subParts.count
+            let first = cast(u32, .subParts.count)
             if not .addSubSelectors(argument.toString()) do
                 return false
             part.rejectFirst = first
-            part.rejectCount = cast(u32) .subParts.count - first
+            part.rejectCount = cast(u32, .subParts.count) - first
 
         case "is", "where", "matches", "any":
-            let first = cast(u32) .subParts.count
+            let first = cast(u32, .subParts.count)
             if not .addSubSelectors(argument.toString()) do
                 return false
             part.acceptFirst = first
-            part.acceptCount = cast(u32) .subParts.count - first
+            part.acceptCount = cast(u32, .subParts.count) - first
 
         case "nth-child":
             HtmlStyleSheet.applyNth(part, argument.toString(), ofType: false)
@@ -1229,7 +1229,7 @@ impl HtmlStyleSheet
                 let number = htmlParseNumber(text)
                 if number.eat == text.count
                 {
-                    b       = cast(s32) number.value
+                    b       = cast(s32, number.value)
                     matched = true
                 }
             }
@@ -1249,7 +1249,7 @@ impl HtmlStyleSheet
                 {
                     let number = htmlParseNumber(aPart)
                     if number.eat == aPart.count do
-                        a = cast(s32) number.value
+                        a = cast(s32, number.value)
                     else do
                         matched = false
                 }
@@ -1259,7 +1259,7 @@ impl HtmlStyleSheet
                 {
                     let number = htmlParseNumber(bPart)
                     if number.eat == bPart.count do
-                        b = cast(s32) number.value
+                        b = cast(s32, number.value)
                     else do
                         matched = false
                 }

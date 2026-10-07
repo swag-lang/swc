@@ -106,10 +106,10 @@ func touch(flag: bool, delta: s32)->bool
 
 #test
 {
-    let a = cast(CompareStrictEnum) CmpEnum.A
-    let b = cast(CompareStrictEnum) CmpEnum.B
+    let a = cast(CompareStrictEnum, CmpEnum.A)
+    let b = cast(CompareStrictEnum, CmpEnum.B)
 
-    Swag.assert(a == cast(CompareStrictEnum) CmpEnum.A)
+    Swag.assert(a == cast(CompareStrictEnum, CmpEnum.A))
     Swag.assert(a != b)
     Swag.assert(a < b)
     Swag.assert(b > a)
@@ -230,7 +230,7 @@ func matchReferenceValue(value: s32)->bool
 {
     var value: s32 = 42
     var raw:   any = Swag.makeAny(&value, s32)
-    let boxed      = (cast(const *CompareStrictAny) (&raw))[]
+    let boxed      = cast(const *CompareStrictAny, (&raw))[]
 
     Swag.assert(boxed is s32)
     Swag.assert(boxed is s32)
@@ -241,11 +241,11 @@ func matchReferenceValue(value: s32)->bool
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    let raw0          = cast([*] s32) &data[0]
-    let raw1          = cast([*] s32) &data[1]
-    let strict0       = cast(CompareStrictS32Ptr) raw0
-    let strict1       = cast(CompareStrictS32Ptr) raw1
-    let other0        = cast(CompareOtherStrictS32Ptr) raw0
+    let raw0          = cast([*] s32, &data[0])
+    let raw1          = cast([*] s32, &data[1])
+    let strict0       = cast(CompareStrictS32Ptr, raw0)
+    let strict1       = cast(CompareStrictS32Ptr, raw1)
+    let other0        = cast(CompareOtherStrictS32Ptr, raw0)
 
     Swag.assert(strict0 == raw0)
     Swag.assert(raw0 == strict0)
@@ -272,12 +272,12 @@ func compareStrictFloatSpaceship(a, b: CompareStrictF32)->s32
 
 #test
 {
-    let i0 = cast(CompareStrictS32) 10
-    let i1 = cast(CompareStrictS32) 20
-    let f0 = cast(CompareStrictF32) 1.5
-    let f1 = cast(CompareStrictF32) 2.5
+    let i0 = cast(CompareStrictS32, 10)
+    let i1 = cast(CompareStrictS32, 20)
+    let f0 = cast(CompareStrictF32, 1.5)
+    let f1 = cast(CompareStrictF32, 2.5)
 
-    Swag.assert(i0 == cast(CompareStrictS32) 10)
+    Swag.assert(i0 == cast(CompareStrictS32, 10))
     Swag.assert(i0 != i1)
     Swag.assert(i0 < i1)
     Swag.assert(i0 <= i0)
@@ -298,10 +298,10 @@ func compareStrictFloatSpaceship(a, b: CompareStrictF32)->s32
 
 #test
 {
-    const i0 = cast(CompareStrictS32) 10
-    const i1 = cast(CompareStrictS32) 20
-    const f0 = cast(CompareStrictF32) 1.5
-    const f1 = cast(CompareStrictF32) 2.5
+    const i0 = cast(CompareStrictS32, 10)
+    const i1 = cast(CompareStrictS32, 20)
+    const f0 = cast(CompareStrictF32, 1.5)
+    const f1 = cast(CompareStrictF32, 2.5)
 
     #assert(i0 < i1)
     #assert(i0 <= i0)

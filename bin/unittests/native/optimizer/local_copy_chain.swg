@@ -36,7 +36,7 @@ func loopSource(a: u64, count: u32)->u64
 {
     var value = a
     for i in count do
-        value = (value % 3) ^ a ^ cast(u64) i
+        value = (value % 3) ^ a ^ cast(u64, i)
     return value
 }
 
@@ -56,7 +56,7 @@ func loopSource(a: u64, count: u32)->u64
         }
         var expected = a
         for i in 9 do
-            expected = dynamicRemainder(expected, 3) ^ a ^ cast(u64) i
+            expected = dynamicRemainder(expected, 3) ^ a ^ cast(u64, i)
         Swag.assert(loopSource(a, 9) == expected)
     }
     let signedValues = [-9223372036854775808's64, -9223372036854775807, -8, -7, -3, -1, 0, 1, 3, 7, 8, 9223372036854775807]

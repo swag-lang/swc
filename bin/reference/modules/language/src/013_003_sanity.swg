@@ -101,7 +101,7 @@ and the caller has no way to know.
         allocItf.free(&req)
     }
 
-    let p    = cast(*s32) exampleAlloc(4)!
+    let p    = cast(*s32, exampleAlloc(4)!)
     let same = p
     p[] = 1
     exampleFree(p, 4)

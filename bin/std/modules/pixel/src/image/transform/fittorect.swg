@@ -9,7 +9,7 @@ public impl Image
     mtd cover(width, height: s32, mode = ResizeMode.Bicubic)
     {
         Swag.assert(width > 0 and height > 0)
-        let targetAspect = width / cast(f32) height
+        let targetAspect = width / cast(f32, height)
         let imageAspect  = .aspectRatio()
 
         var newWidth, newHeight: s32
@@ -17,12 +17,12 @@ public impl Image
         if imageAspect > targetAspect
         {
             newHeight = height
-            newWidth  = cast(s32) Math.ceil(newHeight * imageAspect)
+            newWidth  = cast(s32, Math.ceil(newHeight * imageAspect))
         }
         else
         {
             newWidth  = width
-            newHeight = cast(s32) Math.ceil(newWidth / imageAspect)
+            newHeight = cast(s32, Math.ceil(newWidth / imageAspect))
         }
 
         .resize(newWidth, newHeight, mode)

@@ -9,7 +9,7 @@ struct CancelWatcherPayload
 
 func cancelWatcherThread(thread: Threading.Thread)
 {
-    let payload = cast(*CancelWatcherPayload) thread.userParam!
+    let payload = cast(*CancelWatcherPayload, thread.userParam!)
     Threading.Thread.sleep(Time.Duration.fromMilliseconds(50))
     payload.watcher.cancel()
 }

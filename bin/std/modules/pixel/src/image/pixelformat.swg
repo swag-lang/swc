@@ -209,14 +209,14 @@ impl PixelFormat
 // infinities, and NaN payload bits that fit in binary32.
 internal func halfToFloat(value: u16)->f32
 {
-    let sign     = cast(u32) (value & 0x8000) << 16
-    let exponent = cast(u32) (value >> 10) & 0x1F
-    var mantissa = cast(u32) value & 0x3FF
+    let sign     = cast(u32, (value & 0x8000)) << 16
+    let exponent = cast(u32, (value >> 10)) & 0x1F
+    var mantissa = cast(u32, value) & 0x3FF
     var bits: u32
     if exponent == 0
     {
         if mantissa == 0 do
-            return cast #bit (f32) sign
+            return cast #bit (f32, sign)
 
         var unbiased = -14
         while (mantissa & 0x400) == 0
@@ -226,7 +226,7 @@ internal func halfToFloat(value: u16)->f32
         }
 
         mantissa &= 0x3FF
-        bits     = sign | (cast(u32) (unbiased + 127) << 23) | (mantissa << 13)
+        bits     = sign | (cast(u32, (unbiased + 127)) << 23) | (mantissa << 13)
     }
     elif exponent == 0x1F
     {
@@ -237,16 +237,16 @@ internal func halfToFloat(value: u16)->f32
         bits = sign | ((exponent + 112) << 23) | (mantissa << 13)
     }
 
-    return cast #bit (f32) bits
+    return cast #bit (f32, bits)
 }
 
 // Converts binary32 to IEEE 754 binary16 with round-to-nearest, ties-to-even.
 // NaNs are canonicalized while their sign is preserved.
 internal func floatToHalf(value: f32)->u16
 {
-    let bits     = cast #bit (u32) value
-    let sign     = cast(u16) ((bits >> 16) & 0x8000)
-    let exponent = cast(s32) ((bits >> 23) & 0xFF)
+    let bits     = cast #bit (u32, value)
+    let sign     = cast(u16, ((bits >> 16) & 0x8000))
+    let exponent = cast(s32, ((bits >> 23) & 0xFF))
     let mantissa = bits & 0x7FFFFF
     if exponent == 0xFF do
         return sign | (mantissa == 0 ? 0x7C00'u16 : 0x7E00'u16)
@@ -260,16 +260,16 @@ internal func floatToHalf(value: f32)->u16
     if unbiased < -14
     {
         let significand = mantissa | 0x800000
-        let shift       = cast(u32) (-unbiased - 1)
+        let shift       = cast(u32, (-unbiased - 1))
         var rounded     = significand >> shift
         let remainder   = significand & ((1'u32 << shift) - 1)
         let halfway     = 1'u32 << (shift - 1)
         if remainder > halfway or (remainder == halfway and (rounded & 1)) do
             rounded += 1
-        return sign | cast(u16) rounded
+        return sign | cast(u16, rounded)
     }
 
-    var halfExponent = cast(u32) (unbiased + 15)
+    var halfExponent = cast(u32, (unbiased + 15))
     var halfMantissa = mantissa >> 13
     let remainder    = mantissa & 0x1FFF
     if remainder > 0x1000 or (remainder == 0x1000 and (halfMantissa & 1))
@@ -284,5 +284,5 @@ internal func floatToHalf(value: f32)->u16
         }
     }
 
-    return sign | cast(u16) ((halfExponent << 10) | halfMantissa)
+    return sign | cast(u16, ((halfExponent << 10) | halfMantissa))
 }

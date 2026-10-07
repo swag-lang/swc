@@ -36,8 +36,8 @@ func checkedSubtractNegative(a, b: s64)->s64 => a - -b
             Swag.assert(addNegative(a, b) == a - b)
             Swag.assert(subtractNegative(a, b) == a + b)
             Swag.assert(sharedNegative(a, b) == ((a - b) ^ (0'u64 - b)))
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
-            let b32 = cast(u32) (b & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
+            let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(addNegative32(a32, b32) == a32 - b32)
             Swag.assert(subtractNegative32(a32, b32) == a32 + b32)
         }

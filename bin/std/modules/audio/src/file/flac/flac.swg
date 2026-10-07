@@ -24,7 +24,7 @@ private func headerCrc8(bytes: const [..] u8)->u8
     {
         crc ^= value
         for 8 do
-            crc = (crc & 0x80) != 0 ? cast(u8) ((crc << 1) ^ 0x07) : cast(u8) (crc << 1)
+            crc = (crc & 0x80) != 0 ? cast(u8, ((crc << 1) ^ 0x07)) : cast(u8, (crc << 1))
     }
 
     return crc
@@ -116,7 +116,7 @@ private func readPrologue(source: *ByteSource)->Prologue fail
 
         let isLast = (header[0] & 0x80) != 0
         let kind   = header[0] & 0x7F
-        let length = (cast(u64) header[1] << 16) | (cast(u64) header[2] << 8) | cast(u64) header[3]
+        let length = (cast(u64, header[1]) << 16) | (cast(u64, header[2]) << 8) | cast(u64, header[3])
         if size - offset - 4 < length do
             fail InvalidFormatError{"FLAC metadata block runs past the end of the file"}
 
@@ -195,7 +195,7 @@ private func readFrameIndex(source: *ByteSource, firstFrame: u64, packets: *Arra
         let count = try packetFrameCount(frame[0 until next - start])
         if next - start > Swag.U32.Max do
             fail InvalidFormatError{"FLAC audio frame is larger than a packet may be"}
-        packets.add({start, cast(u32) (next - start), count})
+        packets.add({start, cast(u32, (next - start)), count})
         total += count
         start = next
     }

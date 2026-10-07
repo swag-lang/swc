@@ -81,7 +81,7 @@ func reduceFields(n: s32, p: *FieldParams)->s64
 {
     var acc: s64 = 0
     for i in 0 until n do
-        acc += cast(s64) i * p.a + p.b - p.c
+        acc += cast(s64, i) * p.a + p.b - p.c
     return acc
 }
 
@@ -115,6 +115,6 @@ func reduceFields(n: s32, p: *FieldParams)->s64
     fp.a = 4; fp.b = 100; fp.c = 10
     var expectReduce: s64 = 0
     for i in 0 until 20 do
-        expectReduce += cast(s64) i * 4 + 100 - 10
+        expectReduce += cast(s64, i) * 4 + 100 - 10
     Swag.assert(reduceFields(20, &fp) == expectReduce)
 }

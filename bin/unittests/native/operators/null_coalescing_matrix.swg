@@ -21,14 +21,14 @@ impl INullCoalescingProbe for NullCoalescingProbe
 
 func probeObject(itf: INullCoalescingProbe)->*void?
 {
-    let runtimeItf = cast(const *Swag.Interface) &itf
+    let runtimeItf = cast(const *Swag.Interface, &itf)
     return runtimeItf.obj
 }
 
 func probeITable(itf: INullCoalescingProbe)->const *void?
 {
-    let runtimeItf = cast(const *Swag.Interface) &itf
-    return cast(const *void?) runtimeItf.itable
+    let runtimeItf = cast(const *Swag.Interface, &itf)
+    return cast(const *void?, runtimeItf.itable)
 }
 
 func falseBoolFallback(value: bool)->bool

@@ -39,8 +39,8 @@ var borrowGlobalValue:  s32
     func makeView()->const [..] u8
     {
         // var buf: [4] u8
-        // return cast(const [..] u8) buf  // Uncomment: error, the view outlives 'buf'
-        return cast(const [..] u8) borrowGlobalBuffer     // A global's storage is fine
+        // return cast(const [..] u8, buf)  // Uncomment: error, the view outlives 'buf'
+        return cast(const [..] u8, borrowGlobalBuffer)     // A global's storage is fine
     }
 
     Swag.assert(makeView().count == 4)

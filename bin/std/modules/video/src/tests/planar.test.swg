@@ -6,15 +6,15 @@ using Core, Pixel
 // Converts one planar sample the way the packed path does, so the two outputs are comparable.
 func planarPixel(picture: const *PlanarFrame, x, y: s32)->Color
 {
-    let luma = cast(s32) picture.luma[cast(u64) y * cast(u64) picture.strideLuma + cast(u64) x]
-    let base = cast(u64) (y / 2) * cast(u64) picture.strideChroma + cast(u64) (x / 2)
-    let d    = cast(s32) picture.chromaB[base] - 128
-    let e    = cast(s32) picture.chromaR[base] - 128
+    let luma = cast(s32, picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)])
+    let base = cast(u64, (y / 2)) * cast(u64, picture.strideChroma) + cast(u64, (x / 2))
+    let d    = cast(s32, picture.chromaB[base]) - 128
+    let e    = cast(s32, picture.chromaR[base]) - 128
     let c    = Math.max(luma - 16, 0) * 298
 
-    return Color.fromRgb(cast(u8) Math.clamp((c + 409 * e + 128) >> 8, 0, 255),
-                         cast(u8) Math.clamp((c - 100 * d - 208 * e + 128) >> 8, 0, 255),
-                         cast(u8) Math.clamp((c + 516 * d + 128) >> 8, 0, 255))
+    return Color.fromRgb(cast(u8, Math.clamp((c + 409 * e + 128) >> 8, 0, 255)),
+                         cast(u8, Math.clamp((c - 100 * d - 208 * e + 128) >> 8, 0, 255)),
+                         cast(u8, Math.clamp((c + 516 * d + 128) >> 8, 0, 255)))
 }
 
 // Asserts that the planar output of `reader` carries exactly the picture its packed output does.
@@ -28,10 +28,10 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
     expect reader.decodeFramePlanesInto(&picture, index)
     Swag.assert(picture.isValid())
     Swag.assert(picture.width == reader.width() and picture.height == reader.height())
-    Swag.assert(picture.strideLuma == cast(u32) reader.width())
-    Swag.assert(picture.strideChroma == cast(u32) ((reader.width() + 1) / 2))
+    Swag.assert(picture.strideLuma == cast(u32, reader.width()))
+    Swag.assert(picture.strideChroma == cast(u32, ((reader.width() + 1) / 2)))
     Swag.assert(picture.chromaHeight() == (reader.height() + 1) / 2)
-    Swag.assert(picture.luma.count == cast(u64) picture.width * cast(u64) picture.height)
+    Swag.assert(picture.luma.count == cast(u64, picture.width) * cast(u64, picture.height))
 
     var packed: Image
     expect reader.decodeFrameInto(&packed, index)

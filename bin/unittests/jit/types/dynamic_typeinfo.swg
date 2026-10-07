@@ -5,11 +5,11 @@ interface IReflectedObject { mtd read()->s32 }
 
 #assert(s32 is const *Swag.TypeInfoNative)
 #assert(not (s32 is const *Swag.TypeInfoStruct))
-#assert((cast #assume(const *Swag.TypeInfoStruct) ReflectedObject).fields.count == 1)
+#assert(assume cast(const *Swag.TypeInfoStruct, ReflectedObject).fields.count == 1)
 
 func reflectStruct(type: typeinfo)->const *Swag.TypeInfoStruct?
 {
-    return cast #try(const *Swag.TypeInfoStruct) type
+    return (catch cast(const *Swag.TypeInfoStruct?, type))
 }
 
 #test

@@ -10,7 +10,7 @@ const PowerOfTwo: [4] s32 = #run
 {
     var arr: [4] s32
     for i in arr.count do
-        arr[i] = 1 << cast(u32) i
+        arr[i] = 1 << cast(u32, i)
     return arr
 }
 
@@ -25,7 +25,7 @@ const PersistentText: string = #run
     data[0] = 'a'
     data[1] = 'b'
     data[2] = data[1] + 1
-    return cast(string) data
+    return cast(string, data)
 }
 
 const PersistentBytes: const [..] u8 = #run
@@ -35,7 +35,7 @@ const PersistentBytes: const [..] u8 = #run
     data[1] = 2
     data[2] = 3
     data[3] = 4
-    return cast(const [..] u8) data
+    return cast(const [..] u8, data)
 }
 
 struct TextHolder
@@ -65,7 +65,7 @@ const PersistentTextHolder: TextHolder = #run
     data[2] = data[1] + 1
 
     var holder: TextHolder
-    holder.text = cast(string) data
+    holder.text = cast(string, data)
     return holder
 }
 
@@ -76,7 +76,7 @@ const PersistentStringArray: [1] string = #run
     data[1] = 'b'
     data[2] = data[1] + 1
 
-    return [cast(string) data]
+    return [cast(string, data)]
 }
 
 const PersistentAnyPair: AnyPair = #run
@@ -89,18 +89,18 @@ const PersistentAnyPair: AnyPair = #run
 
 const PersistentAnyArray: [2] any = #run
 {
-    return [cast(any) "first", cast(any) "second"]
+    return [cast(any, "first"), cast(any, "second")]
 }
 
 const PersistentStrictAny: RunStrictAny = #run
 {
-    let value = cast(RunStrictAny) "strict"
+    let value = cast(RunStrictAny, "strict")
     return value
 }
 
 const PersistentStrictAnyArray: [2] RunStrictAny = #run
 {
-    return [cast(RunStrictAny) "left", cast(RunStrictAny) "right"]
+    return [cast(RunStrictAny, "left"), cast(RunStrictAny, "right")]
 }
 
 const PersistentBytesHolder: BytesHolder = #run
@@ -112,7 +112,7 @@ const PersistentBytesHolder: BytesHolder = #run
     data[3] = 4
 
     var holder: BytesHolder
-    holder.bytes = cast(const [..] u8) data
+    holder.bytes = cast(const [..] u8, data)
     return holder
 }
 
@@ -157,13 +157,13 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(PersistentText == "abc")
 #assert(PersistentTextHolder.text == "abc")
 #assert(PersistentStringArray[0] == "abc")
-#assert(cast #assume(string) PersistentAnyPair.item == "abc")
-#assert(cast #assume(string) PersistentAnyPair.other == "def")
-#assert(cast #assume(string) PersistentAnyArray[0] == "first")
-#assert(cast #assume(string) PersistentAnyArray[1] == "second")
-#assert(cast #assume(string) PersistentStrictAny == "strict")
-#assert(cast #assume(string) PersistentStrictAnyArray[0] == "left")
-#assert(cast #assume(string) PersistentStrictAnyArray[1] == "right")
+#assert(assume cast(string, PersistentAnyPair.item) == "abc")
+#assert(assume cast(string, PersistentAnyPair.other) == "def")
+#assert(assume cast(string, PersistentAnyArray[0]) == "first")
+#assert(assume cast(string, PersistentAnyArray[1]) == "second")
+#assert(assume cast(string, PersistentStrictAny) == "strict")
+#assert(assume cast(string, PersistentStrictAnyArray[0]) == "left")
+#assert(assume cast(string, PersistentStrictAnyArray[1]) == "right")
 #assert(PersistentBytes.count == 4)
 #assert(PersistentBytes[0] == 1)
 #assert(PersistentBytes[3] == 4)
@@ -188,11 +188,11 @@ func functionScopedShortCompilerOnlyRunCall()
 
     let values = #run
     {
-        return [cast(any) "first", cast(any) "second"]
+        return [cast(any, "first"), cast(any, "second")]
     }
 
-    Swag.assert(cast #assume(string) value.item == "abc")
-    Swag.assert(cast #assume(string) value.other == "def")
-    Swag.assert(cast #assume(string) values[0] == "first")
-    Swag.assert(cast #assume(string) values[1] == "second")
+    Swag.assert(assume cast(string, value.item) == "abc")
+    Swag.assert(assume cast(string, value.other) == "def")
+    Swag.assert(assume cast(string, values[0]) == "first")
+    Swag.assert(assume cast(string, values[1]) == "second")
 }

@@ -124,7 +124,7 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Custom casting between the struct and another type; can be overloaded with different return types
-    // Example: var x = cast(OneType) v
+    // Example: var x = cast(OneType, v)
     func opCast(me)->OneType
     {
         return true

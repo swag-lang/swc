@@ -11,7 +11,7 @@ func openDocumentViewerPlugin()->Viewer.Plugin
         .resolveName  = func()->string => openDocumentStrings().ui_Name
         .attach       = &registerOpenDocumentStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.OpenDocument
+        .iconIndex    = cast(s32, ViewerIcons.OpenDocument)
         .create       = &createOpenDocumentViewer
         .smokeFixture = "viewer.odt"
         .addSelectors(".odt;.ott;.fodt;.ods;.ots;.fods;.odp;.otp;.fodp;.odg;.otg;.fodg")
@@ -310,7 +310,7 @@ private func openDocumentDecodeXmlText(source: string)->String
                     let parsed = catch StrConv.parseX64(digits) as parseError
                     if parseError == null and not parsed.ovf and parsed.eat == digits.count and parsed.value
                     {
-                        let character = cast(rune) parsed.value
+                        let character = cast(rune, parsed.value)
                         if Utf8.isValidRune(character)
                         {
                             result.append(character)
@@ -324,7 +324,7 @@ private func openDocumentDecodeXmlText(source: string)->String
                     let parsed = catch StrConv.parseU64(digits) as parseError
                     if parseError == null and parsed.eat == digits.count and parsed.value
                     {
-                        let character = cast(rune) parsed.value
+                        let character = cast(rune, parsed.value)
                         if Utf8.isValidRune(character)
                         {
                             result.append(character)
@@ -361,7 +361,7 @@ private func openDocumentMetadataValue(source: string)->String
 
         if pendingSpace
         {
-            result.append(cast(rune) ' ')
+            result.append(cast(rune, ' '))
             pendingSpace = false
         }
 
@@ -542,7 +542,7 @@ private func openDocumentImageDimension(attributes, name: string)->String
 
     if pixels < 1 or pixels > OpenDocumentImageDimensionLimit do
         return {}
-    return Format.toString("%px", Math.round(cast(f32) pixels))
+    return Format.toString("%px", Math.round(cast(f32, pixels)))
 }
 
 private func openDocumentImageSize(attributes: string)->OpenDocumentImageSize
@@ -1303,7 +1303,7 @@ private impl OpenDocumentReader
         for column, columnIndex in sheet.table.columns where column.isEmpty()
         {
             sheet.table.columns[columnIndex] = Format.toString(openDocumentStrings().ui_Column, columnIndex + 1)
-            sheet.table.generatedColumns.add(cast(u32) columnIndex)
+            sheet.table.generatedColumns.add(cast(u32, columnIndex))
         }
     }
 
@@ -1444,7 +1444,7 @@ private func loadOpenDocumentFlatContent(fileName: string)->OpenDocumentContent 
         fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_TooLarge)}
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Encoding)}
-    return try parseOpenDocumentContent(cast(string) bytes.toSlice(), try openDocumentFlatKind(fileName))
+    return try parseOpenDocumentContent(cast(string, bytes.toSlice()), try openDocumentFlatKind(fileName))
 }
 
 private func openDocumentImageMediaType(path: string)->string
@@ -1524,7 +1524,7 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
         fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_TooLarge)}
 
     let mimeBytes = try loadZipEntry(fileName, mime)
-    let kind      = try openDocumentKindFromMime(cast(string) mimeBytes.toSlice())
+    let kind      = try openDocumentKindFromMime(cast(string, mimeBytes.toSlice()))
     let bytes     = try loadZipEntry(fileName, content)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Encoding)}
@@ -1536,7 +1536,7 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
     {
         let styleBytes = catch loadZipEntry(fileName, styles) as stylesError
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
-            styleSource = String.from(cast(string) styleBytes.toSlice())
+            styleSource = String.from(cast(string, styleBytes.toSlice()))
     }
 
     var metadata: OpenDocumentMetadata
@@ -1544,10 +1544,10 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
     {
         let metadataBytes = catch loadZipEntry(fileName, meta) as metadataError
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
-            metadata = catch parseOpenDocumentMetadata(cast(string) metadataBytes.toSlice())
+            metadata = catch parseOpenDocumentMetadata(cast(string, metadataBytes.toSlice()))
     }
 
-    return try parseOpenDocumentContentWithImages(cast(string) bytes.toSlice(), styleSource.toString(), kind, #move images, #move metadata)
+    return try parseOpenDocumentContentWithImages(cast(string, bytes.toSlice()), styleSource.toString(), kind, #move images, #move metadata)
 }
 
 // Shows an OpenDocument file on the reader surface of its kind, decoding it away from the GUI thread.
@@ -1655,8 +1655,8 @@ private impl OpenDocumentViewer
         if .html == null do
             return
         var style = HtmlStyle.theme()
-        style.bodyFontSize = cast(u32) Math.max(Math.round(16.0 * cast(f32) .zoomPercent / 100), 1)
-        style.codeFontSize = cast(u32) Math.max(Math.round(14.0 * cast(f32) .zoomPercent / 100), 1)
+        style.bodyFontSize = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
+        style.codeFontSize = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
         .html.setDocumentStyle(style)
     }
 
@@ -1785,7 +1785,7 @@ private impl OpenDocumentViewer
         }
 
         if count do
-            .pageCombo.setSelectedIndex(cast(u32) active, notify: false)
+            .pageCombo.setSelectedIndex(cast(u32, active), notify: false)
         let hasChoices = count > 1
         .pageCombo.show(hasChoices)
         .commands.show(hasChoices)
@@ -1809,7 +1809,7 @@ private impl OpenDocumentViewer
         .sheetIndex      = index
         .table           = TableViewer.createDocument(me, #move .document.sheets[index].table)
         .table.dockStyle = .Center
-        .pageCombo.setSelectedIndex(cast(u32) index, notify: false)
+        .pageCombo.setSelectedIndex(cast(u32, index), notify: false)
         if clearSearch do
             .table.clearSearch()
         .applyLayout()
@@ -1846,7 +1846,7 @@ private impl OpenDocumentViewer
             .html.destroy()
         .slideIndex = index
         .createHtmlView(.document.slides[index].html.toString())
-        .pageCombo.setSelectedIndex(cast(u32) index, notify: false)
+        .pageCombo.setSelectedIndex(cast(u32, index), notify: false)
         if clearSearch do
             .html.clearSearch()
         .applyLayout()
@@ -2140,37 +2140,34 @@ func createOpenDocumentViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, progress, matches)->bool
         {
             discard progress
-            (cast #assume (*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
+            view.collectMatches(text, options, matches)
             return true
         }
 
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
-            return (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text)
+            return view.revealMatch(match, text)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*OpenDocumentViewer) wnd).searchBounds(bounds)
+            return view.searchBounds(bounds)
         }
 
-        .clear = func(wnd)
-        {
-            (cast #assume (*OpenDocumentViewer) wnd).clearSearch()
-        }
+        .clear = func|view|() => view.clearSearch()
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null
-        .retire    = func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

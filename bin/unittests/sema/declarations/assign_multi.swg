@@ -25,7 +25,7 @@ func semaTest003()
 func semaTest004()
 {
     var x:     u16
-    var ptr:   const [*] u16 = cast(const [*] u16) &x
+    var ptr:   const [*] u16 = cast(const [*] u16, &x)
     var count: u64
     ptr, count += 1
     ptr, count -= 1

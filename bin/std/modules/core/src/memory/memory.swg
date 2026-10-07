@@ -65,13 +65,13 @@ func set(dest: [*] void, value: u8, size: u64)
 func align(value: u64, alignment: u32)->u64
 {
     Swag.assert(not alignment or not (alignment & (alignment - 1)), "alignment must be a power of two")
-    let toAlign: u64 = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void)) - 1
+    let toAlign: u64 = cast(u64, (alignment != 0 ? alignment : cast(u32, #sizeof(*void)))) - 1
     return (value + toAlign) & ~toAlign
 }
 
 // Rounds `value` up to an address that is a multiple of `alignment`, which must be a power of two.
 #[Inline]
-func align(value: const [*] void, alignment: u32)->const [*] void => cast() align(cast(u64) value, alignment)
+func align(value: const [*] void, alignment: u32)->const [*] void => cast(align(cast(u64, value), alignment))
 
 // Releases every allocation owned by the context's temporary allocator.
 func releaseTemporaryAllocations()

@@ -16,8 +16,8 @@ func sumOfDistances(a, b: const [*] u8, count: u64)->u32
     var total = 0'u32
     for i in count
     {
-        let x = cast(u32) a[i]
-        let y = cast(u32) b[i]
+        let x = cast(u32, a[i])
+        let y = cast(u32, b[i])
         total += x > y ? x - y : y - x
     }
     return total
@@ -41,14 +41,14 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
     {
         for b in values
         {
-            let ua         = cast #wrap (u32) a
-            let ub         = cast #wrap (u32) b
+            let ua         = cast #wrap (u32, a)
+            let ub         = cast #wrap (u32, b)
             let expected32 = ua > ub ? ua - ub : ub - ua
             Swag.assert(distance32(ua, ub) == expected32)
             Swag.assert(distance64(a, b) == slowDistance(a, b))
-            let sa        = cast #wrap (s32) a
-            let sb        = cast #wrap (s32) b
-            let expectedS = sa < sb ? cast #wrap (s32) (cast(s64) sb - cast(s64) sa) : cast #wrap (s32) (cast(s64) sa - cast(s64) sb)
+            let sa        = cast #wrap (s32, a)
+            let sb        = cast #wrap (s32, b)
+            let expectedS = sa < sb ? cast #wrap (s32, (cast(s64, sb) - cast(s64, sa))) : cast #wrap (s32, (cast(s64, sa) - cast(s64, sb)))
             Swag.assert(lowerDistance(sa, sb) == expectedS)
         }
     }
@@ -57,12 +57,12 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
     {
         for j in 0 until 256
         {
-            let x = cast(u8) i
-            let y = cast(u8) j
-            Swag.assert(cast(s64) distance8(x, y) == slowDistance(i, j))
-            let wx = cast #wrap (s16) (i * 131 - 16000)
-            let wy = cast #wrap (s16) (j * 127 - 16000)
-            Swag.assert(distance16(wx, wy) == cast #wrap (s16) slowDistance(wx, wy))
+            let x = cast(u8, i)
+            let y = cast(u8, j)
+            Swag.assert(cast(s64, distance8(x, y)) == slowDistance(i, j))
+            let wx = cast #wrap (s16, (i * 131 - 16000))
+            let wy = cast #wrap (s16, (j * 127 - 16000))
+            Swag.assert(distance16(wx, wy) == cast #wrap (s16, slowDistance(wx, wy)))
         }
     }
 

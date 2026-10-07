@@ -12,7 +12,7 @@ struct FencePricingReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) (cast(const [..] u8) line).count
+    return cast(u32, cast(const [..] u8, line).count)
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -22,13 +22,13 @@ func cellIndex(x, y, width: u32)->u32
 
 func cropAt(layout: const [..] string, x, y: u32)->u8
 {
-    let row = cast(const [..] u8) layout[y]
+    let row = cast(const [..] u8, layout[y])
     return row[x]
 }
 
 func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 {
-    let height     = cast(u32) layout.count
+    let height     = cast(u32, layout.count)
     let width      = lineWidth(layout[0])
     let totalCells = width * height
 
@@ -49,7 +49,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     for index in totalCells
     {
-        let startIndex = cast(u32) index
+        let startIndex = cast(u32, index)
         if visited[startIndex] do
             continue
 
@@ -165,8 +165,8 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
                 sideCount += 1
         }
 
-        result.totalPerimeterPrice  += cast(u64) regionCount * cast(u64) perimeter
-        result.totalDiscountedPrice += cast(u64) regionCount * cast(u64) sideCount
+        result.totalPerimeterPrice  += cast(u64, regionCount) * cast(u64, perimeter)
+        result.totalDiscountedPrice += cast(u64, regionCount) * cast(u64, sideCount)
 
         for idx in regionCount
         {

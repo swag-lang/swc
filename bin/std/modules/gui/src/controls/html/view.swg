@@ -269,8 +269,8 @@ internal impl HtmlView
         result.link           = colors.url_Text
         result.border         = colors.edit_Border
         result.selection      = colors.edit_SelectedBk
-        result.fontSize       = cast(f32) .documentStyle.bodyFontSize
-        result.monoFontSize   = cast(f32) .documentStyle.codeFontSize
+        result.fontSize       = cast(f32, .documentStyle.bodyFontSize)
+        result.monoFontSize   = cast(f32, .documentStyle.codeFontSize)
         return result
     }
 
@@ -279,7 +279,7 @@ internal impl HtmlView
     mtd darkScheme()->bool
     {
         let ground = .themeColors().view_Bk
-        let luma   = (cast(u32) ground.r * 299 + cast(u32) ground.g * 587 + cast(u32) ground.b * 114) / 1000
+        let luma   = (cast(u32, ground.r) * 299 + cast(u32, ground.g) * 587 + cast(u32, ground.b) * 114) / 1000
         return luma < 128
     }
 
@@ -399,16 +399,16 @@ internal impl HtmlView
         var result: retval
         for index in .document.nodes.count
         {
-            let node = .document.constNode(cast(u32) index)
+            let node = .document.constNode(cast(u32, index))
             if node.kind != .Element or node.tag < .H1 or node.tag > .H6 do
                 continue
-            let box = .layout.nodeBox.tryFind(cast(u32) index)
+            let box = .layout.nodeBox.tryFind(cast(u32, index))
             if not box or .layout.constBox(box.value).rect.height <= 0 or not .layout.constStyle(.layout.constBox(box.value).style).visible do
                 continue
             var heading: DocumentHeading
-            heading.title = .document.textContent(cast(u32) index)
+            heading.title = .document.textContent(cast(u32, index))
             heading.title.trim()
-            heading.level        = cast(u32) node.tag - cast(u32) HtmlTag.H1 + 1
+            heading.level        = cast(u32, node.tag) - cast(u32, HtmlTag.H1) + 1
             heading.sourceOffset = node.sourceOffset
             if not heading.title.isEmpty() do
                 result.add(#move heading)
@@ -467,7 +467,7 @@ internal impl HtmlView
         // Updating the extent already clamps the viewport. Reapplying its position would
         // cancel an active glide every time streaming publishes another layout.
         .scroll.setScrollSize(viewport.x, height)
-        .scroll.verticalScrollStep = Math.max(cast(f32) .documentStyle.bodyFontSize * 3, 24)
+        .scroll.verticalScrollStep = Math.max(cast(f32, .documentStyle.bodyFontSize) * 3, 24)
         .canvas.invalidate()
     }
 
@@ -605,11 +605,11 @@ internal impl HtmlView
         if .virtualHeight <= 0
         {
             let measured = Math.max(.layout.documentHeight, .viewportSize().y)
-            .virtualHeight = Math.max(measured * cast(f32) contentBytes / cast(f32) windowBytes, .viewportSize().y)
+            .virtualHeight = Math.max(measured * cast(f32, contentBytes) / cast(f32, windowBytes), .viewportSize().y)
         }
 
-        let localRatio  = cast(f32) (requested - .virtualWindowStart) / cast(f32) windowBytes
-        let globalRatio = cast(f32) (requested - .virtualContentStart) / cast(f32) contentBytes
+        let localRatio  = cast(f32, (requested - .virtualWindowStart)) / cast(f32, windowBytes)
+        let globalRatio = cast(f32, (requested - .virtualContentStart)) / cast(f32, contentBytes)
         let localY      = Math.clamp(localRatio, 0, 1) * .layout.documentHeight
         let targetY     = requestedY >= 0 ? Math.clamp(requestedY, 0, .virtualHeight) : Math.clamp(globalRatio, 0, 1) * .virtualHeight
         .virtualOrigin = targetY - localY
@@ -644,7 +644,7 @@ internal impl HtmlView
         }
         else
         {
-            let declared = htmlDeclaredEncoding(cast(string) probe.toSlice())
+            let declared = htmlDeclaredEncoding(cast(string, probe.toSlice()))
             if declared.matched do
                 result = declared.encoding
         }
@@ -775,12 +775,12 @@ internal impl HtmlView
         var bestOffset = 0'u64
         for index in .document.nodes.count
         {
-            let node = .document.constNode(cast(u32) index)
+            let node = .document.constNode(cast(u32, index))
             if node.kind == .Document or node.sourceOffset > offset do
                 continue
             if best != HtmlNoNode and node.sourceOffset < bestOffset do
                 continue
-            best       = cast(u32) index
+            best       = cast(u32, index)
             bestOffset = node.sourceOffset
         }
 
@@ -815,8 +815,8 @@ internal impl HtmlView
     {
         if not id.count do
             return HtmlNoNode
-        for index in .document.nodes.count where .document.id(cast(u32) index) == id do
-            return cast(u32) index
+        for index in .document.nodes.count where .document.id(cast(u32, index)) == id do
+            return cast(u32, index)
         return HtmlNoNode
     }
 
@@ -953,11 +953,11 @@ internal impl HtmlView
 
         var start = 0'u64
         if .searchNode != HtmlNoNode do
-            start = cast(u64) .searchNode + 1
+            start = cast(u64, .searchNode) + 1
 
         for offset in count
         {
-            let index = cast(u32) ((start + offset) % count)
+            let index = cast(u32, ((start + offset) % count))
             let node  = .document.constNode(index)
             if node.kind != .Text or not node.text.count do
                 continue
@@ -983,9 +983,9 @@ internal impl HtmlView
             return 0
 
         var result: u64
-        for index in .document.nodes.count where .document.constNode(cast(u32) index).kind == .Text
+        for index in .document.nodes.count where .document.constNode(cast(u32, index)).kind == .Text
         {
-            let content = .document.textOf(cast(u32) index)
+            let content = .document.textOf(cast(u32, index))
             var from: u64
             while true
             {
@@ -1009,14 +1009,14 @@ internal impl HtmlView
         var remaining = occurrence
         for index in .document.nodes.count
         {
-            let node = .document.constNode(cast(u32) index)
+            let node = .document.constNode(cast(u32, index))
             if node.kind != .Text or not node.text.count do
                 continue
 
             var from: u64
             while true
             {
-                let match = Utf8.indexOf(.document.textOf(cast(u32) index), text, from, .Latin1NoCase)
+                let match = Utf8.indexOf(.document.textOf(cast(u32, index)), text, from, .Latin1NoCase)
                 if match == Swag.U64.Max do
                     break
                 if remaining
@@ -1026,9 +1026,9 @@ internal impl HtmlView
                     continue
                 }
 
-                if not .scrollToNode(cast(u32) index) do
+                if not .scrollToNode(cast(u32, index)) do
                     return false
-                .searchNode  = cast(u32) index
+                .searchNode  = cast(u32, index)
                 .searchStart = match
                 .searchEnd   = match + text.count
                 .canvas.invalidate()
@@ -1088,12 +1088,12 @@ internal impl HtmlView
         var last  = HtmlNoNode
         for index in .document.nodes.count
         {
-            let node = .document.constNode(cast(u32) index)
+            let node = .document.constNode(cast(u32, index))
             if node.kind != .Text or not node.text.count do
                 continue
             if first == HtmlNoNode do
-                first = cast(u32) index
-            last = cast(u32) index
+                first = cast(u32, index)
+            last = cast(u32, index)
         }
 
         if first == HtmlNoNode do
@@ -1149,7 +1149,7 @@ internal impl HtmlView
     // Selects the word around one text position, the double-click gesture.
     mtd selectWordAt(node: u32, offset: u64)
     {
-        if node == HtmlNoNode or cast(u64) node >= .document.nodes.count do
+        if node == HtmlNoNode or cast(u64, node) >= .document.nodes.count do
             return
         let source = .document.textOf(node)
         if not source.count do
@@ -1383,7 +1383,7 @@ internal impl HtmlView
             {
                 let contentBytes = target.fileSize - target.virtualContentStart
                 let ratio        = Math.clamp(newPosition.y / target.virtualHeight, 0, 1)
-                let offset       = target.virtualContentStart + cast(u64) (ratio * cast(f32) contentBytes)
+                let offset       = target.virtualContentStart + cast(u64, (ratio * cast(f32, contentBytes)))
                 let viewport     = target.scroll.paddedClientRect()
 
                 // Prefetch in rendered screens. Byte margins cannot cover a tall viewport or

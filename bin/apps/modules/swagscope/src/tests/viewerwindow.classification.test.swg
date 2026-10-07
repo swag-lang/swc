@@ -55,7 +55,7 @@ struct ClassificationRetirementGate
 
 func holdClassificationStatistics(thread: Threading.Thread)
 {
-    let gate = cast(*ClassificationRetirementGate) thread.userParam!
+    let gate = cast(*ClassificationRetirementGate, thread.userParam!)
     gate.entered.signal()
     gate.release.wait()
     Atomic.exchange(&gate.finished, 1)
@@ -86,7 +86,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
     let previousView = window.currentView!
-    let previous     = cast #assume (*TextViewer) previousView
+    let previous     = assume cast (*TextViewer, previousView)
     Swag.assert(previous.loadTimer == null)
 
     // Replace completed statistics with a worker whose lifetime is controlled by this test.

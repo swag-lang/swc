@@ -37,8 +37,8 @@ func safeSum(a, b, c: u64)->u64 => a * b + a * c
                 Swag.assert(sum(a, b, c) == first + second)
                 Swag.assert(difference(a, b, c) == first - second)
                 Swag.assert(shared(a, b, c) == ((first + second) ^ first))
-                Swag.assert(narrow(cast(u32) (a & 0xFFFFFFFF), cast(u32) (b & 0xFFFFFFFF), cast(u32) (c & 0xFFFFFFFF)) == cast(u32) ((first - second) & 0xFFFFFFFF))
-                Swag.assert(cast #bit (u64) signedSum(cast #bit (s64) a, cast #bit (s64) b, cast #bit (s64) c) == first + second)
+                Swag.assert(narrow(cast(u32, (a & 0xFFFFFFFF)), cast(u32, (b & 0xFFFFFFFF)), cast(u32, (c & 0xFFFFFFFF))) == cast(u32, ((first - second) & 0xFFFFFFFF)))
+                Swag.assert(cast #bit (u64, signedSum(cast #bit (s64, a), cast #bit (s64, b), cast #bit (s64, c))) == first + second)
             }
         }
     }

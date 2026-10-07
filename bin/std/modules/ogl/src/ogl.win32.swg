@@ -18,7 +18,7 @@ alias WglSwapIntervalProc = func(s32)->BOOL
 // machines showing the same program never presented at the same cadence.
 public func wglSwapIntervalEXT(interval: s32)->bool
 {
-    let entry = cast(WglSwapIntervalProc?) getExtensionAddress(("wglSwapIntervalEXT").buffer)
+    let entry = cast(WglSwapIntervalProc?, getExtensionAddress(("wglSwapIntervalEXT").buffer))
     if not entry do
         return false
     return entry(interval) != 0
@@ -112,7 +112,7 @@ namespace Platform.Win32
 
         let pf = try ChoosePixelFormat(result.hDC, &pfd)
         try SetPixelFormat(result.hDC, pf, &pfd)
-        try DescribePixelFormat(result.hDC, pf, cast(u32) #sizeof(PIXELFORMATDESCRIPTOR), &pfd)
+        try DescribePixelFormat(result.hDC, pf, cast(u32, #sizeof(PIXELFORMATDESCRIPTOR)), &pfd)
 
         result.hRC = try wglCreateContext(result.hDC)
         if makeCurrent do

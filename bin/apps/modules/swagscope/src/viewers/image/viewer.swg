@@ -14,7 +14,7 @@ func imageViewerPlugin()->Viewer.Plugin
         .staticName   = "Image"
         .attach       = &registerImageStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Image
+        .iconIndex    = cast(s32, ViewerIcons.Image)
         .create       = &createImageViewer
         .smokeFixture = "sample.svg"
     }
@@ -60,8 +60,8 @@ func loadViewerImage(fileName: string)->Image fail
     let drawing = try loadViewerDrawing(fileName)
     let largest = Math.max(drawing.width, drawing.height)
     let scale   = largest > SvgRasterLimit ? SvgRasterLimit / largest : 1
-    let width   = cast(s32) Math.max(Math.round(drawing.width * scale), 1)
-    let height  = cast(s32) Math.max(Math.round(drawing.height * scale), 1)
+    let width   = cast(s32, Math.max(Math.round(drawing.width * scale), 1))
+    let height  = cast(s32, Math.max(Math.round(drawing.height * scale), 1))
     return drawing.rasterize(width, height, 1)
 }
 
@@ -70,7 +70,7 @@ func loadViewerDrawing(fileName: string)->Svg.Drawing fail
 {
     var file   = try File.MappedFile.open(fileName)
     let region = try file.mapAll()
-    return try Svg.Drawing.parse(cast(string) region.bytes())
+    return try Svg.Drawing.parse(cast(string, region.bytes()))
 }
 
 private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
@@ -116,7 +116,7 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
 private func formatViewBoxExtent(value: f32)->String
 {
     if value == Math.round(value) do
-        return Format.toString("%", cast(s64) value)
+        return Format.toString("%", cast(s64, value))
     return Format.toString("%", value)
 }
 
@@ -181,7 +181,7 @@ impl ImageViewer
 {
     mtd refreshZoom()
     {
-        let zoom = cast(s32) Math.round(.imageView.effectiveZoom() * 100)
+        let zoom = cast(s32, Math.round(.imageView.effectiveZoom() * 100))
         if .imageView.rotationQuarterTurns or .imageView.isMirrored
         {
             let angle = .imageView.rotationQuarterTurns * 90
@@ -204,7 +204,7 @@ impl ImageViewer
         let movie = &.imageView.movie
         if movie.frameCount <= 1 do
             return
-        .timeline.setValueWithoutGesture(cast(f32) movie.frameIndex)
+        .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
         .frameLabel.setText(Format.toString("% / %", movie.frameIndex + 1, movie.frameCount))
         .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
 
@@ -244,7 +244,7 @@ impl ImageViewer
         .playButton.show(.imageView.movie.isAnimated())
         .timeline.show()
         .frameLabel.show()
-        .timeline.setBounds(0, cast(f32) .imageView.movie.frameCount - 1, 1)
+        .timeline.setBounds(0, cast(f32, .imageView.movie.frameCount) - 1, 1)
         .refreshFrame()
         if .reportChromeChanged do
             .reportChromeChanged(me)
@@ -584,7 +584,7 @@ private impl ImageViewer
             .hide()
             .sigChanged += func|view = me|(slider)
             {
-                view.imageView.setFrameIndex(cast(s32) Math.round(slider.value()))
+                view.imageView.setFrameIndex(cast(s32, Math.round(slider.value())))
             }
         }
 
@@ -651,9 +651,9 @@ func createImageViewer(host: Viewer.Host)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*ImageViewer) wnd).loadTimer != null
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*ImageViewer) wnd).loadTimer != null
-        .retire    = func(wnd)->bool => (cast #assume (*ImageViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

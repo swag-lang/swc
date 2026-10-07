@@ -49,7 +49,7 @@ impl ViewerReadingState
 
         for child, index in wnd.children
         {
-            path.add(cast(u32) index)
+            path.add(cast(u32, index))
             .captureScrolls(child[], path)
             discard path.popBack()
         }
@@ -92,7 +92,7 @@ impl ViewerReadingState
             .imageMirrored = view.imageView.isMirrored
 
         case SoundViewer as view:
-            .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64) view.elapsed
+            .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64, view.elapsed)
             .playing = view.playing
             .volume  = view.volume
             .muted   = view.muted
@@ -106,7 +106,7 @@ impl ViewerReadingState
         }
 
         if key == "markdown" and session.info do
-            .zoom = (cast #assume (*MarkdownZoomButton) session.info.children[0]).zoomPercent
+            .zoom = assume cast (*MarkdownZoomButton, session.info.children[0]).zoomPercent
     }
 
     // Applies the recorded reading scale to the reloaded `session`, then arms [[ViewerReadingState.restore]].
@@ -130,7 +130,7 @@ impl ViewerReadingState
         }
 
         if .viewer == "markdown" and session.info do
-            (cast #assume (*MarkdownZoomButton) session.info.children[0]).applyZoom(.zoom)
+            assume cast (*MarkdownZoomButton, session.info.children[0]).applyZoom(.zoom)
         .restoring = true
         .contentSettingsApplied = false
     }
@@ -142,7 +142,7 @@ impl ViewerReadingState
     {
         if not session.view do
             return true
-        if session.isLoading and session.isLoading(session.view) do
+        if session.isLoading and session.isLoading() do
             return false
         if .contentSettingsApplied do
             return true
@@ -172,7 +172,7 @@ impl ViewerReadingState
         case SoundViewer as view:
             view.setVolume(.volume)
             view.setMuted(.muted)
-            view.seekSeconds(cast(f32) .seconds)
+            view.seekSeconds(cast(f32, .seconds))
             if view.playing != .playing do
                 view.togglePlayback()
 
@@ -206,6 +206,6 @@ impl ViewerReadingState
             }
         }
 
-        return not session.isLoading or not session.isLoading(session.view)
+        return not session.isLoading or not session.isLoading()
     }
 }

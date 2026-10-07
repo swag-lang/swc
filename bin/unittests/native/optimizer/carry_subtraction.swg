@@ -44,9 +44,9 @@ func below(a, b: u64)->bool => a < b
                 Swag.assert(reverseSubtract(a, b, c) == bit - a)
                 if a - bit == 0 do Swag.assert(checked(a, b, c) == 7)
                 else do Swag.assert(checked(a, b, c) == 11)
-                let a32   = cast(u32) (a & 0xFFFFFFFF)
-                let b32   = cast(u32) (b & 0xFFFFFFFF)
-                let c32   = cast(u32) (c & 0xFFFFFFFF)
+                let a32   = cast(u32, (a & 0xFFFFFFFF))
+                let b32   = cast(u32, (b & 0xFFFFFFFF))
+                let c32   = cast(u32, (c & 0xFFFFFFFF))
                 var bit32 = 0'u32
                 if below(b32, c32) do bit32 = 1
                 Swag.assert(subtract32(a32, b32, c32) == a32 - bit32)

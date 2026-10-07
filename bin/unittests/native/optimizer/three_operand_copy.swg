@@ -33,10 +33,10 @@ func maskWithLiveSource(a: u64, b, c: u64)->u64 => ((a & 7) == 0 ? b : c) ^ a
             let shifted = a << (b & 31)
             Swag.assert(left(a, b) == shifted)
             Swag.assert(right(a, b) == a >> (b & 31))
-            Swag.assert(signedRight(cast #bit(s32) a, b) == (cast #bit(s32) a) >> (b & 31))
+            Swag.assert(signedRight(cast #bit(s32, a), b) == cast #bit(s32, a) >> (b & 31))
             Swag.assert(shared(a, b) == (shifted ^ a ^ b))
             Swag.assert(changedSource(a, b) == (shifted ^ (a + b)))
-            Swag.assert(maskWithLiveSource(a, b, 17) == (((a & 7) == 0 ? cast(u64) b : 17) ^ a))
+            Swag.assert(maskWithLiveSource(a, b, 17) == (((a & 7) == 0 ? cast(u64, b) : 17) ^ a))
         }
     }
 }

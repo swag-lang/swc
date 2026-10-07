@@ -158,7 +158,7 @@ using Swag, Core
 
     let angle = 90.0'f32
     var u     = f.capture.newUndo(.SetTypedValue)
-    u.valU32 = cast #bit (u32) angle
+    u.valU32 = cast #bit (u32, angle)
     u.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
     f.capture.pushUndo(u)
     Swag.assert(shape.rotate == 90)
@@ -202,7 +202,7 @@ using Swag, Core
     text.rotate  = 15
     let angle  = 90.0'f32
     var setVal = f.capture.newUndo(.SetTypedValue)
-    setVal.valU32  = cast #bit (u32) angle
+    setVal.valU32  = cast #bit (u32, angle)
     setVal.valRef  = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
     setVal.mdlType = FormText
     f.capture.pushUndo(setVal)
@@ -306,29 +306,29 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     var result: retval
     result.kind   = Swag.kindOf(itf)
     result.rect   = itf.boundRect()
-    result.rotate = (cast #assume (*BaseForm) itf).rotate
+    result.rotate = assume cast (*BaseForm, itf).rotate
 
     if result.kind == FormLine
     {
-        let line = cast #assume (*FormLine) itf
-        result.points.add({cast(f32) line.xa, cast(f32) line.ya})
-        result.points.add({cast(f32) line.xb, cast(f32) line.yb})
+        let line = assume cast (*FormLine, itf)
+        result.points.add({cast(f32, line.xa), cast(f32, line.ya)})
+        result.points.add({cast(f32, line.xb), cast(f32, line.yb)})
     }
     elif result.kind == FormArrow
     {
-        let arrow = cast #assume (*FormArrow) itf
-        result.points.add({cast(f32) arrow.xa, cast(f32) arrow.ya})
-        result.points.add({cast(f32) arrow.xb, cast(f32) arrow.yb})
+        let arrow = assume cast (*FormArrow, itf)
+        result.points.add({cast(f32, arrow.xa), cast(f32, arrow.ya)})
+        result.points.add({cast(f32, arrow.xb), cast(f32, arrow.yb)})
     }
     elif result.kind == FormPolygon
     {
-        let poly = cast #assume (*FormPolygon) itf
+        let poly = assume cast (*FormPolygon, itf)
         for pt in poly.points do
             result.points.add(pt)
     }
     elif result.kind == FormDraw
     {
-        let draw = cast #assume (*FormDraw) itf
+        let draw = assume cast (*FormDraw, itf)
         for pt in draw.points do
             result.points.add(pt)
     }
@@ -378,11 +378,11 @@ func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
 func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 {
     capture.selection.clear()
-    let total = cast(u32) capture.forms.count
-    let want  = cast(u64) Math.min(count, total)
+    let total = cast(u32, capture.forms.count)
+    let want  = cast(u64, Math.min(count, total))
     while capture.selection.count < want
     {
-        let idx = cast(u64) rng.nextU32(0, total)
+        let idx = cast(u64, rng.nextU32(0, total))
         if not capture.selection.contains(idx) do
             capture.selection.add(idx)
     }
@@ -482,15 +482,15 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
         elif op == 6
         {
             testUndoFuzzSelect(f.capture, &rng, rng.nextU32(1, 3))
-            let angle = cast(f32) rng.nextS32(0, 360)
+            let angle = cast(f32, rng.nextS32(0, 360))
             let u     = f.capture.newUndo(.SetTypedValue)
-            u.valU32 = cast #bit (u32) angle
+            u.valU32 = cast #bit (u32, angle)
             u.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
             f.capture.pushUndo(u)
         }
         elif op == 7
         {
-            let idx = cast(u64) rng.nextU32(0, cast(u32) f.capture.forms.count)
+            let idx = cast(u64, rng.nextU32(0, cast(u32, f.capture.forms.count)))
             let itf = f.capture.forms[idx]
             let u   = f.capture.newUndo(.MoveBaseForm)
             u.baseForm = itf
@@ -520,7 +520,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 
             if candidates.count > 0
             {
-                let itf = f.capture.forms[candidates[rng.nextU32(0, cast(u32) candidates.count)]]
+                let itf = f.capture.forms[candidates[rng.nextU32(0, cast(u32, candidates.count))]]
                 let u   = f.capture.newUndo(.MovePoint)
                 u.baseForm = itf
                 u.pointIdx = rng.nextU32(0, 2)

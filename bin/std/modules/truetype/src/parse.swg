@@ -48,11 +48,11 @@ func decodeNameRecord(nameTable: const [..] u8, stringOffset, recordOffset: u64)
         var chars: Array'u16
         chars.resize(raw.count / 2)
         for index in chars.count do
-            chars[index] = try readU16(raw, cast(u64) index * 2)
+            chars[index] = try readU16(raw, cast(u64, index) * 2)
         return Utf8.fromUtf16(chars.toSlice())
     }
 
-    return String.from(cast(string?) raw)
+    return String.from(cast(string?, raw))
 }
 
 // Decodes the best-scoring record a 'name' table holds for 'nameID', or an empty
@@ -67,7 +67,7 @@ func decodeBestName(nameTable: const [..] u8, nameID: u16)->String fail
 
     for index in count
     {
-        let base = 6'u64 + cast(u64) index * 12
+        let base = 6'u64 + cast(u64, index) * 12
         if try readU16(nameTable, base + 6) != nameID do
             continue
 
@@ -173,7 +173,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 
     for index in count
     {
-        let base       = 4'u64 + cast(u64) index * 8
+        let base       = 4'u64 + cast(u64, index) * 8
         let platformID = try readU16(cmapTable, base + 0)
         let encodingID = try readU16(cmapTable, base + 2)
         let offset     = try readU32(cmapTable, base + 4)
@@ -225,14 +225,14 @@ func buildGlyphMetrics(faceData: *FaceImpl) fail
         var metric: GlyphMetric
         if index < faceData.numLongMetrics
         {
-            let base = cast(u64) index * 4
+            let base = cast(u64, index) * 4
             metric.advanceWidth    = try readU16(hmtx, base + 0)
             metric.leftSideBearing = try readS16(hmtx, base + 2)
             lastAdvance            = metric.advanceWidth
         }
         else
         {
-            let base = cast(u64) faceData.numLongMetrics * 4 + cast(u64) (index - faceData.numLongMetrics) * 2
+            let base = cast(u64, faceData.numLongMetrics) * 4 + cast(u64, (index - faceData.numLongMetrics)) * 2
             metric.advanceWidth    = lastAdvance
             metric.leftSideBearing = try readS16(hmtx, base)
         }
@@ -249,12 +249,12 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     if faceData.indexToLocFormat == 0
     {
         for index in faceData.glyphLocations.count do
-            faceData.glyphLocations[index] = cast(u32) (try readU16(loca, cast(u64) index * 2)) * 2
+            faceData.glyphLocations[index] = cast(u32, (try readU16(loca, cast(u64, index) * 2))) * 2
     }
     else
     {
         for index in faceData.glyphLocations.count do
-            faceData.glyphLocations[index] = try readU32(loca, cast(u64) index * 4)
+            faceData.glyphLocations[index] = try readU32(loca, cast(u64, index) * 4)
     }
 }
 
@@ -297,7 +297,7 @@ func parseKern(faceData: *FaceImpl) fail
                 let value = try readS16(table, pairOff + 4)
                 if value != 0
                 {
-                    let key = (cast(u32) left << 16) | cast(u32) right
+                    let key = (cast(u32, left) << 16) | cast(u32, right)
                     faceData.kernPairs.add(key, value)
                 }
 
@@ -355,7 +355,7 @@ func findFaceOffset(data: const [..] u8, faceIndex: u32)->u64 fail
     {
         if faceIndex >= try readU32(data, 8) do
             try fault(0x0F)
-        offset = cast(u64) (try readU32(data, 12 + cast(u64) faceIndex * 4))
+        offset = cast(u64, (try readU32(data, 12 + cast(u64, faceIndex) * 4)))
     }
     elif faceIndex != 0
     {
@@ -372,7 +372,7 @@ func findTableAt(data: const [..] u8, faceOffset: u64, tag: u32)->const [..] u8?
     let numTables = try readU16(data, faceOffset + 4)
     for index in numTables
     {
-        let base = faceOffset + 12 + cast(u64) index * 16
+        let base = faceOffset + 12 + cast(u64, index) * 16
         if try readU32(data, base) != tag do
             continue
         return try getSlice(data, try readU32(data, base + 8), try readU32(data, base + 12))
@@ -419,7 +419,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
             width = try runType1Charstring(&faceData.type1, gid, null)
 
         var metric: GlyphMetric
-        metric.advanceWidth        = cast(u16) Math.clamp(Math.round(width), 0.0, cast(f64) Swag.U16.Max)
+        metric.advanceWidth        = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
         faceData.glyphMetrics[gid] = metric
     }
 }
@@ -436,9 +436,9 @@ func buildSyntheticCMap(faceData: *FaceImpl)
         let gid = faceData.glyphIndexByCode(code)
         if not gid do
             continue
-        let value = standardEncodingRune(cast(u8) code)
-        if value and not faceData.syntheticCMap.contains(cast(u32) value) do
-            faceData.syntheticCMap.add(cast(u32) value, gid)
+        let value = standardEncodingRune(cast(u8, code))
+        if value and not faceData.syntheticCMap.contains(cast(u32, value)) do
+            faceData.syntheticCMap.add(cast(u32, value), gid)
     }
 
     // A subset that names its glyphs by code point still resolves, which is the convention
@@ -447,8 +447,8 @@ func buildSyntheticCMap(faceData: *FaceImpl)
     for name, gid in names
     {
         let value = glyphNameRune(name.toString())
-        if value and not faceData.syntheticCMap.contains(cast(u32) value) do
-            faceData.syntheticCMap.add(cast(u32) value, cast(u32) gid)
+        if value and not faceData.syntheticCMap.contains(cast(u32, value)) do
+            faceData.syntheticCMap.add(cast(u32, value), cast(u32, gid))
     }
 }
 
@@ -477,7 +477,7 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     {
         faceData.type1      = try parseType1Font(data)
         faceData.unitsPerEm = faceData.type1.unitsPerEm
-        faceData.face.setGlyphCount(cast(u32) faceData.type1.charstrings.count)
+        faceData.face.setGlyphCount(cast(u32, faceData.type1.charstrings.count))
         faceData.face.setHeader(faceData.unitsPerEm, faceData.type1.xMin, faceData.type1.yMin, faceData.type1.xMax, faceData.type1.yMax)
         name   = faceData.type1.fontName
         italic = faceData.type1.italic
@@ -489,14 +489,14 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
 
     // The design bounding box is the only vertical information such a program states, and
     // it is what a renderer needs a line height for.
-    let ascender  = cast(s16) faceData.face.bbox.yMax
-    let descender = cast(s16) faceData.face.bbox.yMin
-    faceData.face.setHorizontalMetrics(ascender, descender, 0, cast(s16) faceData.face.bbox.xMax)
+    let ascender  = cast(s16, faceData.face.bbox.yMax)
+    let descender = cast(s16, faceData.face.bbox.yMin)
+    faceData.face.setHorizontalMetrics(ascender, descender, 0, cast(s16, faceData.face.bbox.xMax))
 
     if not name.length do
         name = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     faceData.face.setNames(name, String.from(DEFAULT_STYLE_NAME))
-    faceData.face.setUnderline(cast(s16) -(cast(s32) faceData.unitsPerEm / 10), cast(s16) (faceData.unitsPerEm / 20))
+    faceData.face.setUnderline(cast(s16, -(cast(s32, faceData.unitsPerEm) / 10)), cast(s16, (faceData.unitsPerEm / 20)))
 
     var style = StyleFlag.None
     if bold do
@@ -520,7 +520,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     for idx in numTables
     {
-        let base = faceOffset + 12 + cast(u64) idx * 16
+        let base = faceOffset + 12 + cast(u64, idx) * 16
         faceData.tables[idx].tag    = try readU32(data, base + 0)
         faceData.tables[idx].offset = try readU32(data, base + 8)
         faceData.tables[idx].length = try readU32(data, base + 12)
@@ -580,9 +580,9 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     try parseOS2(faceData)
 
     var style = StyleFlag.None
-    if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(string) "Bold") do
+    if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(string, "Bold")) do
         style |= .Bold
-    if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains(cast(string) "Italic") do
+    if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains(cast(string, "Italic")) do
         style |= .Italic
     faceData.face.setStyle(style)
 

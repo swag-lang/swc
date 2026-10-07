@@ -18,13 +18,13 @@ private var g_DocumentOutlineStrings: DocumentOutlineStrings
 
 #run
 {
-    expect Gui.validateStrings'DocumentOutlineStrings(cast(string) FrenchOutlineStrings)
+    expect Gui.validateStrings'DocumentOutlineStrings(cast(string, FrenchOutlineStrings))
 }
 
 private func loadMarkdownHeadings(fileName: string)->Array'DocumentHeading fail
 {
     let source = try File.readAllBytes(fileName)
-    return Markdown.parseHeadings(cast(string) source.toSlice())
+    return Markdown.parseHeadings(cast(string, source.toSlice()))
 }
 
 // One heading hierarchy shared by every document viewer, hosted in the viewer's side panel.
@@ -112,7 +112,7 @@ impl DocumentOutline
             .sigSelectionChanged += func|panel = result|(list)
             {
                 if let line = list.selectedLine() do
-                    panel.sigSelected.call(panel, cast(u64) line.userData0 - 1)
+                    panel.sigSelected.call(panel, cast(u64, line.userData0) - 1)
             }
         }
 
@@ -153,8 +153,8 @@ impl DocumentOutline
 
         // Every heading stays visible. Indentation expresses depth without disclosure controls.
         let line = .list.createLine(label.toString())
-        line.level     = cast(u32) .levels.count
-        line.userData0 = cast(*void) (target + 1)
+        line.level     = cast(u32, .levels.count)
+        line.userData0 = cast(*void, (target + 1))
         .rows.add(line)
         .levels.add(level)
     }

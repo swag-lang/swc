@@ -109,7 +109,7 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
 // A full initializer remains usable even when the opaque type has no implicit default.
 #test
 {
-    let value = cast(StaticApi.OpaqueRequiredDefault) "ready"
+    let value = cast(StaticApi.OpaqueRequiredDefault, "ready")
     Swag.assert(value.isReady())
 }
 

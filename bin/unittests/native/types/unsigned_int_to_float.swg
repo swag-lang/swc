@@ -1,5 +1,5 @@
 #[Swag.NoInline]
-func castUnsignedToDouble(value: u64)->f64 => cast(f64) value
+func castUnsignedToDouble(value: u64)->f64 => cast(f64, value)
 
 #test
 {
@@ -21,5 +21,5 @@ func castUnsignedToDouble(value: u64)->f64 => cast(f64) value
         ]
 
     for i in values.count do
-        Swag.assert(cast #bit (u64) castUnsignedToDouble(values[i]) == bits[i])
+        Swag.assert(cast #bit (u64, castUnsignedToDouble(values[i])) == bits[i])
 }

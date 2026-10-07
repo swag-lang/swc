@@ -8,8 +8,8 @@ func cpuMicroseconds()->u64
     var created, exited, kernel, user: FILETIME
     let queried = GetThreadTimes(GetCurrentThread(), &created, &exited, &kernel, &user)
     Swag.assert(queried != 0)
-    let kernelTicks = (cast(u64) kernel.dwHighDateTime << 32) | kernel.dwLowDateTime
-    let userTicks   = (cast(u64) user.dwHighDateTime << 32) | user.dwLowDateTime
+    let kernelTicks = (cast(u64, kernel.dwHighDateTime) << 32) | kernel.dwLowDateTime
+    let userTicks   = (cast(u64, user.dwHighDateTime) << 32) | user.dwLowDateTime
     return (kernelTicks + userTicks) / 10
 }
 

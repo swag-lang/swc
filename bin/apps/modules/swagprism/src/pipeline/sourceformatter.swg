@@ -16,7 +16,7 @@ impl SourceFormatter
         try .folder.open()
         let directory = Path.combine(.folder.root, "src")
         let file      = Path.combine(directory, "source.swg")
-        discard try File.writeAllBytes(file, cast(const [..] u8) source)
+        discard try File.writeAllBytes(file, cast(const [..] u8, source))
         let compiler = compilerPath()
 
         // The formatter skips parse errors by design. Syntax supplies the diagnostics before
@@ -50,7 +50,7 @@ impl SourceFormatter
         }
 
         let bytes = try File.readAllBytes(file)
-        result.text = cast(string) bytes.toSlice()
+        result.text = cast(string, bytes.toSlice())
 
         // The editor stores LF; its undo records must count the same runes it inserts.
         result.text.replace("\r\n", "\n")

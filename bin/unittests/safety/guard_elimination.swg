@@ -14,7 +14,7 @@ func opaqueU64(v: u64)->u64 => v
 
 // The sum of two 32-bit values held in 64 bits never carries, and its low half always fits.
 #[Swag.Safety(.Overflow, true)]
-func addWrapping(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & M32)
+func addWrapping(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) & M32))
 
 #test
 {
@@ -29,7 +29,7 @@ func addWrapping(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) &
     #[Swag.Safety(.Overflow, true)]
     func addNarrowing(left, right: u32)->u32
     {
-        return cast(u32) (cast(u64) left + right)     // swc-expected-error {{safety_err_runtime}}
+        return cast(u32, (cast(u64, left) + right))     // swc-expected-error {{safety_err_runtime}}
     }
 
     Swag.assert(addNarrowing(opaqueU32(7), opaqueU32(9)) == 16)
@@ -45,7 +45,7 @@ var g_Wide = Swag.U64.Max
     #[Swag.Safety(.Overflow, true)]
     func addWide(left: u32, right: u64)->u64
     {
-        return cast(u64) left + right     // swc-expected-error {{safety_err_runtime}}
+        return cast(u64, left) + right     // swc-expected-error {{safety_err_runtime}}
     }
 
     Swag.assert(addWide(opaqueU32(1), opaqueU64(2)) == 3)

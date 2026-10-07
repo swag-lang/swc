@@ -9,12 +9,12 @@ func storeRows(dst: [*] u8, dstStride: u64, src: const [*] u8, srcStride: u64, r
 {
     for row in rows
     {
-        let bytes   = (cast(const [*] #simd [16] u8) (src + row * srcStride))[0]
+        let bytes   = cast(const [*] #simd [16] u8, (src + row * srcStride))[0]
         let doubled = bytes + bytes
         if width == 8 do
-            (cast([*] u64) (dst + row * dstStride))[0] = (cast #bit(#simd [2] u64) doubled)[0]
+            cast([*] u64, (dst + row * dstStride))[0] = cast #bit(#simd [2] u64, doubled)[0]
         else do
-            (cast([*] u32) (dst + row * dstStride))[0] = (cast #bit(#simd [4] u32) doubled)[0]
+            cast([*] u32, (dst + row * dstStride))[0] = cast #bit(#simd [4] u32, doubled)[0]
     }
 }
 
@@ -35,7 +35,7 @@ func fillRows(dst: [*] u32, stride: u64, rows: u64, odd: u32, even: u32)
     var plane: [4 * 64] u8
     var out:   [4 * 16] u8
     for i in 4 * 64 do
-        plane[i] = cast(u8) (i & 0x3F)
+        plane[i] = cast(u8, (i & 0x3F))
 
     storeRows(&out[0], 16, &plane[0], 64, 4, 8)
     Swag.assert(out[0] == 0 and out[7] == 14 and out[8] == 0)

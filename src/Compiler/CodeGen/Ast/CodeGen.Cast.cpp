@@ -819,6 +819,9 @@ namespace
     // Emit a DynCast safety panic call using the generic safety panic function.
     Result emitDynCastPanic(CodeGen& codeGen, const AstNode& node)
     {
+        const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (lowering && lowering->fallibleDynamicCast)
+            return CodeGenCallHelpers::emitFallibleCastFailure(codeGen);
         const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
         SWC_ASSERT(idRef.isValid());
         SymbolFunction* panicFn = codeGen.compiler().runtimeFunctionSymbol(idRef);
@@ -850,7 +853,7 @@ namespace
             const MicroReg args[] = {targetReg, source.reg, storageReg, readOnlyReg};
             SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering.runtimeFunctionSymbol, args, resultReg));
         }
-        if (lowering.assumedDynamicCast && lowering.hasRuntimeSafety(Runtime::SafetyWhat::DynCast))
+        if (lowering.assumedDynamicCast && lowering.hasDynamicCastCheck())
         {
             const MicroLabelRef valid = builder.createLabel();
             const MicroOpBits   bits  = lowering.runtimeTypeCast ? MicroOpBits::B64 : MicroOpBits::B8;
@@ -931,7 +934,7 @@ namespace
 
             // An asserted downcast along a known by-value composition needs only
             // its fixed address adjustment when the dynamic guard is disabled.
-            if (lowering->assumedDynamicCast && !lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast) && resultType.isValuePointer())
+            if (lowering->assumedDynamicCast && !lowering->hasDynamicCastCheck() && resultType.isValuePointer())
             {
                 const TypeInfo& declaredType  = codeGen.typeMgr().get(targetTypeRef);
                 const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
@@ -958,7 +961,7 @@ namespace
                         const MicroLabelRef done = builder.createLabel();
                         if (offset)
                         {
-                            if (codeGen.typeMgr().get(sourceTypeRef).isNullable())
+                            if (resultType.isNullable() && codeGen.typeMgr().get(sourceTypeRef).isNullable())
                             {
                                 builder.emitCmpRegImm(sourcePtrReg, ApInt(0, 64), MicroOpBits::B64);
                                 builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
@@ -1011,7 +1014,7 @@ namespace
         const MicroReg allowNullObjectReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegImm(allowNullObjectReg, ApInt(sourceInfo.kind == DynamicStructCastSourceKind::Interface ? 1 : 0, 64), MicroOpBits::B64);
         const bool checksBoxedNull = lowering->assumedDynamicCast && resultType.isNullable() && !resultType.isInterface() &&
-                                     sourceInfo.kind == DynamicStructCastSourceKind::Any && lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast);
+                                     sourceInfo.kind == DynamicStructCastSourceKind::Any && lowering->hasDynamicCastCheck();
         MicroReg matchedNullReg = codeGen.nextVirtualIntRegister();
         if (checksBoxedNull)
             matchedNullReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
@@ -1019,7 +1022,7 @@ namespace
             builder.emitLoadRegImm(matchedNullReg, ApInt(0, 64), MicroOpBits::B64);
         const MicroReg args[] = {targetTypeReg, sourceTypeReg, sourcePtrReg, interfaceReg, allowNullObjectReg, matchedNullReg};
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering->runtimeFunctionSymbol, args, resultReg));
-        if (lowering->assumedDynamicCast && lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast))
+        if (lowering->assumedDynamicCast && lowering->hasDynamicCastCheck())
         {
             const MicroLabelRef valid    = builder.createLabel();
             MicroReg            matchReg = resultReg;
@@ -1247,7 +1250,7 @@ namespace
         SWC_ASSERT(srcPayload.isAddress());
 
         const auto* castPayload      = codeGen.loweringPayload(codeGen.curNodeRef());
-        const bool  hasDynCastSafety = castPayload && castPayload->hasRuntimeSafety(Runtime::SafetyWhat::DynCast);
+        const bool  hasDynCastSafety = castPayload && castPayload->hasDynamicCastCheck();
 
         MicroBuilder& builder = codeGen.builder();
 
@@ -1723,6 +1726,19 @@ namespace
                 }
             }
 
+            const bool          nullableObject = sourceIsPointerLike && resolvedSrcType.isNullable() && dstType.isNullable();
+            const MicroLabelRef interfaceDone  = builder.createLabel();
+            if (nullableObject)
+            {
+                const MicroLabelRef nonNullObject = builder.createLabel();
+                builder.emitCmpRegImm(objectReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nonNullObject);
+                builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, obj), objectReg, MicroOpBits::B64);
+                builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, itable), objectReg, MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, interfaceDone);
+                builder.placeLabel(nonNullObject);
+            }
+
             if (castInfo.usingField)
             {
                 const SymbolVariable& usingField = *castInfo.usingField;
@@ -1749,6 +1765,7 @@ namespace
             MicroReg itableReg = MicroReg::invalid();
             emitLoadInterfaceMethodTableAddress(itableReg, codeGen, interfaceTableCstRef);
             builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
+            builder.placeLabel(interfaceDone);
 
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeItfReg, dstTypeRef);
             return Result::Continue;
@@ -2035,7 +2052,13 @@ Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     if (lowering && (lowering->runtimeTypeCast || lowering->runtimeValueCast))
         return emitRuntimeTargetCast(codeGen, *this, *lowering);
-    return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());
+    SWC_RESULT(emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef()));
+    if (hasFlag(AstCastExprFlagsE::NullabilityOnly))
+    {
+        const auto& value = codeGen.payload(codeGen.curNodeRef());
+        SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, *this, value.reg, value.isAddress(), codeGen.transparentPayloadTypeRef()));
+    }
+    return Result::Continue;
 }
 
 Result AstAsCastExpr::codeGenPostNode(CodeGen& codeGen) const

@@ -4,7 +4,7 @@
 using Swag, Core.Errors
 
 // The byte the stream fixture holds at `index`, chosen so a read landing one byte off is caught.
-func sourcePattern(index: u64)->u8 => cast(u8) ((index * 7 + 3) & 0xFF)
+func sourcePattern(index: u64)->u8 => cast(u8, ((index * 7 + 3) & 0xFF))
 
 func sourceMatches(bytes: const [..] u8, start: u64)->bool
 {
@@ -114,7 +114,7 @@ func writeSourceFixture(name: string, count: u64)->String
 #test
 {
     let text   = "first\r\nsecond\nunterminated"
-    var source = ByteSource.openMemory(cast(const [..] u8) text)
+    var source = ByteSource.openMemory(cast(const [..] u8, text))
     Swag.assert(expect source.readLine(16) == "first")
     Swag.assert(expect source.readLine(16) == "second")
     Swag.assert(source.position() == 14)
@@ -233,7 +233,7 @@ func writeSourceFixture(name: string, count: u64)->String
 {
     let fileName = CoreTests.makeFilesystemTestPath("bytesource_lines.txt")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "HEADER 1\r\nFRAME\n\x01\x02\x03\x04")
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, "HEADER 1\r\nFRAME\n\x01\x02\x03\x04"))
 
     var source = expect ByteSource.openFile(fileName.toString())
     Swag.assert(expect source.readLine(32) == "HEADER 1")

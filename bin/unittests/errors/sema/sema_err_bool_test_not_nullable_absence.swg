@@ -79,5 +79,5 @@ func boolTestAbsenceErrTernary(type: typeinfo)->s32
 
 func boolTestAbsenceErrExplicitCast(itf: IBoolTestAbsence)->bool
 {
-    return cast(bool) itf     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    return cast(bool, itf)     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
 }

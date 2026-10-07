@@ -14,7 +14,7 @@ struct RouteReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) (cast(const [..] u8) line).count
+    return cast(u32, cast(const [..] u8, line).count)
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -55,7 +55,7 @@ func forwardY(y: s32, direction: u32)->s32
 
 func analyzeRoute(layout: const [..] string)->RouteReport
 {
-    let height     = cast(u32) layout.count
+    let height     = cast(u32, layout.count)
     let width      = lineWidth(layout[0])
     let totalCells = width * height
 
@@ -68,12 +68,12 @@ func analyzeRoute(layout: const [..] string)->RouteReport
     for ?, rowIndex in layout
     {
         Swag.assert(lineWidth(layout[rowIndex]) == width)
-        let row = cast(const [..] u8) layout[rowIndex]
+        let row = cast(const [..] u8, layout[rowIndex])
 
         for idx in width
         {
-            let x     = cast(u32) idx
-            let index = cellIndex(x, cast(u32) rowIndex, width)
+            let x     = cast(u32, idx)
+            let index = cellIndex(x, cast(u32, rowIndex), width)
             let value = row[x]
 
             cells[index] = value
@@ -108,7 +108,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
         for idx in stateCount
         {
-            let candidate = cast(u32) idx
+            let candidate = cast(u32, idx)
             if visited[candidate] do
                 continue
 
@@ -128,12 +128,12 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
         let cell      = bestState / 4'u32
         let direction = bestState % 4'u32
-        let x         = cast(s32) (cell % width)
-        let y         = cast(s32) (cell / width)
+        let x         = cast(s32, (cell % width))
+        let y         = cast(s32, (cell / width))
 
         let nextX    = forwardX(x, direction)
         let nextY    = forwardY(y, direction)
-        let nextCell = cellIndex(cast(u32) nextX, cast(u32) nextY, width)
+        let nextCell = cellIndex(cast(u32, nextX), cast(u32, nextY), width)
         if cells[nextCell] != '#'u8
         {
             let forwardState      = stateIndex(nextCell, direction)
@@ -171,7 +171,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     for idx in 4
     {
-        let endState = stateIndex(endCell, cast(u32) idx)
+        let endState = stateIndex(endCell, cast(u32, idx))
         if dist[endState] < result.bestScore or dist[endState] == result.bestScore and steps[endState] < result.stepCount
         {
             result.bestScore = dist[endState]

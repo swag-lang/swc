@@ -5,18 +5,18 @@
 
 func stringToBool()->bool
 {
-    let empty         = cast(string?) null
+    let empty         = cast(string?, null)
     let text: string? = "x"
     let none: string? = ""
-    return not cast(bool) empty and cast(bool) text and cast(bool) none
+    return not cast(bool, empty) and cast(bool, text) and cast(bool, none)
 }
 
 func sliceToBool()->bool
 {
-    let empty = cast([..] s32?) null
+    let empty = cast([..] s32?, null)
     var data:   [2] s32   = [1, 2]
     let values: [..] s32? = data
-    return not cast(bool) empty and cast(bool) values
+    return not cast(bool, empty) and cast(bool, values)
 }
 
 #test

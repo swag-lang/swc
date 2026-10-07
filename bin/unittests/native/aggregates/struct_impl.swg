@@ -86,7 +86,7 @@ impl Vec2
 #test
 {
     var v: Vec2 = {x: 6, y: 8}
-    let p       = cast(StructImplStrictVec2Ptr) &v
+    let p       = cast(StructImplStrictVec2Ptr, &v)
     Swag.assert(p.length2() == 100)
     p.negate()
     Swag.assert(v.x == -6)

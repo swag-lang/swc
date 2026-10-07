@@ -67,7 +67,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
         for child in row.children
         {
             if child.toolTip == tip do
-                return cast #assume (*IconButton) child
+                return assume cast (*IconButton, child)
         }
     }
 
@@ -186,13 +186,13 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     let startButton = testFindStyleButton(prop, appStrings().ui_PropStart)!
     prop.createPopupCapStyle(startButton, begin: true)
     let popup = prop.stylePopup!
-    Swag.assert(popup.selectedIndex == cast(u32) LineCapStyle.SquareAnchor)
+    Swag.assert(popup.selectedIndex == cast(u32, LineCapStyle.SquareAnchor))
     Swag.assert(popup.items.count == LineCapStyle.count)
     Swag.assert(popup.markSelectionOnly)
     Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
 
     let view  = popup.scrollWnd.view
-    let local = Math.Point{12, cast(f32) LineCapStyle.ArrowAnchor * popup.itemHeight + popup.itemHeight * 0.5}
+    let local = Math.Point{12, cast(f32, LineCapStyle.ArrowAnchor) * popup.itemHeight + popup.itemHeight * 0.5}
     var pt    = view.localToSurface(local)
     view.surface!.surfaceToScreen(&pt)
     f.gui.click(pt)
@@ -329,7 +329,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     let posItemX = testFindItem(prop, appStrings().ui_PropPosition)!
     let stackX   = posItemX.line.children[0]
-    f.gui.clickWnd(((cast #assume(*EditCtrl) stackX.children[0]).edit))
+    f.gui.clickWnd((assume cast(*EditCtrl, stackX.children[0]).edit))
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
@@ -337,7 +337,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     // every pump instead of retaining pointers into the previous window tree.
     let posItemY = testFindItem(prop, appStrings().ui_PropPosition)!
     let stackY   = posItemY.line.children[0]
-    let editY    = (cast #assume (*EditCtrl) stackY.children[1]).edit
+    let editY    = assume cast (*EditCtrl, stackY.children[1]).edit
     f.gui.clickWnd(editY)
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
@@ -461,7 +461,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     // Picking an anchor for the other end brings its row back, on the next frame: the style cell
     // sits outside the grid, so the panel rebuilds itself to re-read the rule.
-    prop.pushTypedValue(cast(u32) LineCapStyle.RoundAnchor, FormLine, #nameof(FormLine.beginCap), true)
+    prop.pushTypedValue(cast(u32, LineCapStyle.RoundAnchor), FormLine, #nameof(FormLine.beginCap), true)
     f.gui.runFrames(2)
 
     Swag.assert(testFindItem(prop, #nameof(FormLine.startSize))!.line.isVisible())

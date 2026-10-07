@@ -32,8 +32,8 @@ private func dolbyTonePower(samples: const [*] s16, firstFrame, frameCount, chan
     var real, imaginary: f64
     for frame in frameCount
     {
-        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64) frame / 48_000.0
-        let value = cast(f64) samples[(firstFrame + frame) * channels + channel]
+        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64, frame) / 48_000.0
+        let value = cast(f64, samples[(firstFrame + frame) * channels + channel])
         real      += value * Math.cos(angle)
         imaginary -= value * Math.sin(angle)
     }
@@ -50,7 +50,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     {
         if bytes.count - offset < 6 or bytes[offset] != 0x0B or bytes[offset + 1] != 0x77 do
             fail InvalidFormatError{"E-AC-3 test fixture has an invalid sync frame"}
-        let frameSize = 2 * ((((cast(u32) bytes[offset + 2]) & 7) << 8) | bytes[offset + 3]) + 2
+        let frameSize = 2 * (((cast(u32, bytes[offset + 2]) & 7) << 8) | bytes[offset + 3]) + 2
         let fscod     = bytes[offset + 4] >> 6
         const Blocks: [4] u32 = [1, 2, 3, 6]
         let blockCount = fscod == 3 ? 6 : Blocks[(bytes[offset + 4] >> 4) & 3]
@@ -81,7 +81,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 
     // The streaming buffer targets 100 ms. Three complete 32 ms AC-3 sync frames fit.
     Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16, decoded.buffer!)
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {
@@ -106,7 +106,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 3 * 1536 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16, decoded.buffer!)
     Swag.assert(dolbyTonePower(samples, 2048, 2048, 2, 0, 440) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 0, 660))
     Swag.assert(dolbyTonePower(samples, 2048, 2048, 2, 1, 660) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 1, 440))
 }
@@ -127,7 +127,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16, decoded.buffer!)
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {

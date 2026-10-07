@@ -204,7 +204,7 @@ func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vecto
         var radius = inner
         if (i & 1) == 0 do
             radius = outer
-        let angle = -Math.ConstF32.Pi * 0.5 + cast(f32) i * (Math.ConstF32.TwoPi / cast(f32) total)
+        let angle = -Math.ConstF32.Pi * 0.5 + cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, total))
         result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})
     }
 
@@ -216,7 +216,7 @@ func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
     var result: retval
     for i in 6
     {
-        let angle = Math.ConstF32.Pi / 6 + cast(f32) i * (Math.ConstF32.TwoPi / 6)
+        let angle = Math.ConstF32.Pi / 6 + cast(f32, i) * (Math.ConstF32.TwoPi / 6)
         result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})
     }
 
@@ -389,7 +389,7 @@ func updateTestMode()
 
     var loop: Env.WindowLoop
     if Env.isSmokeRun() do
-        loop.smokeFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
+        loop.smokeFrames = cast(u32, MaxPages) * cast(u32, TestFramesPerPage)
     while loop.next()
     {
         updateShortcuts()

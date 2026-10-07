@@ -36,12 +36,12 @@ var g11: Bytes16
 // Construction folds at compile time: from a full array literal, from a
 // scalar splat, and bit for bit from the matching fixed-size array.
 const FromLiteral: #simd [4] s32 = [1, 2, 3, 4]
-const FromCast                   = cast(#simd [4] s32) [5, 6, 7, 8]
+const FromCast                   = cast(#simd [4] s32, [5, 6, 7, 8])
 const Splat                      = Swag.vecsplat(42's16)
 const Lanes:       [4] s32       = [9, 10, 11, 12]
-const FromArray                  = cast(#simd [4] s32) Lanes
-const Reshaped                   = cast #bit(#simd [16] u8) FromCast
-const BackToArray                = cast([4] s32) FromArray
+const FromArray                  = cast(#simd [4] s32, Lanes)
+const Reshaped                   = cast #bit(#simd [16] u8, FromCast)
+const BackToArray                = cast([4] s32, FromArray)
 
 #assert(BackToArray[0] == 9)
 #assert(BackToArray[3] == 12)

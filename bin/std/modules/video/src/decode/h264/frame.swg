@@ -91,11 +91,11 @@ impl Frame
         .mbWidth      = mbWidth
         .mbHeight     = mbHeight
         .chromaShift  = chromaShift
-        .strideLuma   = cast(u64) (mbWidth * 16 + FramePadding * 2)
-        .strideChroma = cast(u64) (mbWidth * (16 >> chromaShift) + FramePadding * 2)
+        .strideLuma   = cast(u64, (mbWidth * 16 + FramePadding * 2))
+        .strideChroma = cast(u64, (mbWidth * (16 >> chromaShift) + FramePadding * 2))
 
-        let lumaSize   = .strideLuma * cast(u64) (mbHeight * 16 + FramePadding * 2)
-        let chromaSize = .strideChroma * cast(u64) (mbHeight * (16 >> chromaShift) + FramePadding * 2)
+        let lumaSize   = .strideLuma * cast(u64, (mbHeight * 16 + FramePadding * 2))
+        let chromaSize = .strideChroma * cast(u64, (mbHeight * (16 >> chromaShift) + FramePadding * 2))
         if .luma.count != lumaSize or .cb.count != chromaSize
         {
             .luma.resize(lumaSize)
@@ -103,7 +103,7 @@ impl Frame
             .cr.resize(chromaSize)
         }
 
-        let blocks = cast(u64) mbWidth * cast(u64) mbHeight * 16
+        let blocks = cast(u64, mbWidth) * cast(u64, mbHeight) * 16
         if .colRef.count != blocks
         {
             .colMv.resize(blocks * 2)
@@ -111,7 +111,7 @@ impl Frame
             .colPoc.resize(blocks)
             .colShort.resize(blocks)
 
-            let macroblocks = cast(u64) mbWidth * cast(u64) mbHeight
+            let macroblocks = cast(u64, mbWidth) * cast(u64, mbHeight)
             .colUniform.resize(macroblocks)
             .colMbMv.resize(macroblocks * 2)
             .colMbRef.resize(macroblocks)
@@ -226,14 +226,14 @@ impl Frame
 
     // Returns the address of the luma sample at `x`, `y` of the coded picture.
     #[Swag.Inline]
-    mtd pixLuma(x, y: s32)->[*] u8 => .luma.storage() + cast(u64) (y + FramePadding) * .strideLuma + cast(u64) (x + FramePadding)
+    mtd pixLuma(x, y: s32)->[*] u8 => .luma.storage() + cast(u64, (y + FramePadding)) * .strideLuma + cast(u64, (x + FramePadding))
 
     // Returns the address of one chroma sample; `plane` selects Cb or Cr.
     #[Swag.Inline]
     mtd pixChroma(plane: u32, x, y: s32)->[*] u8
     {
         let base: [*] u8 = plane == 0 ? .cb.storage() : .cr.storage()
-        return base + cast(u64) (y + FramePadding) * .strideChroma + cast(u64) (x + FramePadding)
+        return base + cast(u64, (y + FramePadding)) * .strideChroma + cast(u64, (x + FramePadding))
     }
 
     // Returns the address of the sample at `x`, `y` of one colour plane, luma being plane zero.
@@ -313,11 +313,11 @@ impl Frame
         var destination = target.luma.storage()
         for y in height
         {
-            Memory.copy(destination, .pixLuma(cropLeft, cropTop + y), cast(u64) width)
-            destination += cast(u64) target.strideLuma
+            Memory.copy(destination, .pixLuma(cropLeft, cropTop + y), cast(u64, width))
+            destination += cast(u64, target.strideLuma)
         }
 
-        let chromaWidth  = cast(u64) target.strideChroma
+        let chromaWidth  = cast(u64, target.strideChroma)
         let chromaRows   = target.chromaHeight()
         let chromaLeft   = cropLeft >> .chromaShift
         let chromaTop    = cropTop >> .chromaShift
@@ -371,12 +371,12 @@ impl Frame
 // Replicates the left and right edges of `count` rows starting at `first`.
 private func extendPlaneRows(base: [*] u8, stride: u64, width, first, count: s32)
 {
-    let pad = cast(u64) FramePadding
-    var row = base + (pad + cast(u64) first) * stride + pad
+    let pad = cast(u64, FramePadding)
+    var row = base + (pad + cast(u64, first)) * stride + pad
     for count
     {
         Memory.set(row - pad, row[0], pad)
-        Memory.set(row + cast(u64) width, row[cast(u64) width - 1], pad)
+        Memory.set(row + cast(u64, width), row[cast(u64, width) - 1], pad)
         row += stride
     }
 }
@@ -384,7 +384,7 @@ private func extendPlaneRows(base: [*] u8, stride: u64, width, first, count: s32
 // Copies the first row of a plane into the padding above it.
 private func extendPlaneTop(base: [*] u8, stride: u64)
 {
-    let pad = cast(u64) FramePadding
+    let pad = cast(u64, FramePadding)
     let top = base + pad * stride
     for index in pad do
         Memory.copy(base + index * stride, top, stride)
@@ -393,8 +393,8 @@ private func extendPlaneTop(base: [*] u8, stride: u64)
 // Copies the last row of a plane into the padding below it.
 private func extendPlaneBottom(base: [*] u8, stride: u64, height: s32)
 {
-    let pad    = cast(u64) FramePadding
-    let bottom = base + (pad + cast(u64) height - 1) * stride
+    let pad    = cast(u64, FramePadding)
+    let bottom = base + (pad + cast(u64, height) - 1) * stride
     for index in pad do
         Memory.copy(bottom + (index + 1) * stride, bottom, stride)
 }
@@ -402,17 +402,17 @@ private func extendPlaneBottom(base: [*] u8, stride: u64, height: s32)
 // Replicates the edges of one plane into its padding border.
 private func extendPlane(base: [*] u8, stride: u64, width, height: s32)
 {
-    let pad = cast(u64) FramePadding
+    let pad = cast(u64, FramePadding)
     var row = base + pad * stride + pad
     for height
     {
         Memory.set(row - pad, row[0], pad)
-        Memory.set(row + cast(u64) width, row[cast(u64) width - 1], pad)
+        Memory.set(row + cast(u64, width), row[cast(u64, width) - 1], pad)
         row += stride
     }
 
     let top    = base + pad * stride
-    let bottom = base + (pad + cast(u64) height - 1) * stride
+    let bottom = base + (pad + cast(u64, height) - 1) * stride
     for index in pad
     {
         Memory.copy(base + index * stride, top, stride)

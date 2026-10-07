@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 using Swag
 
 // Moving cache entries leaves copied pointers valid, while pointers to their slots
@@ -31,7 +31,7 @@ impl BorrowFieldCache
         request.oldSize = .capacity * #sizeof(BorrowFieldEntry)
         request.size    = count * #sizeof(BorrowFieldEntry)
         Swag.getContext().allocator!.realloc(&request)
-        .data     = cast() request.address
+        .data     = cast(request.address)
         .capacity = count
     }
 

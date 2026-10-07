@@ -13,9 +13,9 @@ late var g_QLen:   [*] u64
 #run
 {
     // ---- data generation (not timed) ----
-    g_Bytes   = cast([*] u8) (benchAlloc(DICT * 16))!
-    g_WordOff = cast([*] u64) (benchAlloc(DICT * #sizeof(u64)))!
-    g_WordLen = cast([*] u64) (benchAlloc(DICT * #sizeof(u64)))!
+    g_Bytes   = cast([*] u8, (benchAlloc(DICT * 16))!)
+    g_WordOff = cast([*] u64, (benchAlloc(DICT * #sizeof(u64)))!)
+    g_WordLen = cast([*] u64, (benchAlloc(DICT * #sizeof(u64)))!)
 
     var wp = 0'u64
     for i in DICT
@@ -26,15 +26,15 @@ late var g_QLen:   [*] u64
         g_WordLen[i] = l
         for k in l
         {
-            g_Bytes[wp] = cast(u8) (97 + (n % 26))
+            g_Bytes[wp] = cast(u8, (97 + (n % 26)))
             wp += 1
             n  = n / 26 + 7 * k
         }
     }
 
-    g_QBytes = cast([*] u8) (benchAlloc(QUERIES * 32))!
-    g_QOff   = cast([*] u64) (benchAlloc(QUERIES * #sizeof(u64)))!
-    g_QLen   = cast([*] u64) (benchAlloc(QUERIES * #sizeof(u64)))!
+    g_QBytes = cast([*] u8, (benchAlloc(QUERIES * 32))!)
+    g_QOff   = cast([*] u64, (benchAlloc(QUERIES * #sizeof(u64)))!)
+    g_QLen   = cast([*] u64, (benchAlloc(QUERIES * #sizeof(u64)))!)
 
     var qp = 0'u64
     for q in QUERIES
@@ -49,7 +49,7 @@ late var g_QLen:   [*] u64
         {
             let p  = rnd() % nw
             let op = rnd() % 3
-            let c  = cast(u8) (97 + (rnd() % 26))
+            let c  = cast(u8, (97 + (rnd() % 26)))
             if op == 0
             {
                 tmp[p] = c
@@ -147,13 +147,13 @@ late var g_QLen:   [*] u64
             if dd < best
             {
                 best    = dd
-                bestIdx = cast(s64) i
+                bestIdx = cast(s64, i)
             }
         }
 
-        check += cast(s64) best * 31 + bestIdx
+        check += cast(s64, best) * 31 + bestIdx
     }
 
     let t1 = now()
-    report(cast(u64) check, t0, t1)
+    report(cast(u64, check), t0, t1)
 }

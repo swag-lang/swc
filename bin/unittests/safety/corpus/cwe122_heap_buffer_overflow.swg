@@ -19,7 +19,7 @@ using Corpus
 #[Swag.Safety(.BoundCheck, true)]
 func heapReadThroughSlice(index: u64)->u8
 {
-    let block = cast([*] u8) heapAlloc(8)
+    let block = cast([*] u8, heapAlloc(8))
     let view  = Swag.makeSlice(block, 8)
     let value = view[index]     // swc-expected-error {{safety_err_runtime}}
     heapFree(block, 8)
@@ -38,7 +38,7 @@ func heapReadThroughSlice(index: u64)->u8
 //
 // func heapReadThroughBlockPointer(index: u64)->u8
 // {
-//     let block = cast([*] u8) heapAlloc(8)
+//     let block = cast([*] u8, heapAlloc(8))
 //     let value = block[index]     // reads past the allocation, silently
 //     heapFree(block, 8)
 //     return value
@@ -48,7 +48,7 @@ func heapReadThroughSlice(index: u64)->u8
 
 func heapReadInRange()->u8
 {
-    let block = cast([*] u8) heapAlloc(8)
+    let block = cast([*] u8, heapAlloc(8))
     let view  = Swag.makeSlice(block, 8)
     view[0] = 42
     let value = view[0]

@@ -36,7 +36,7 @@ func checkedValue(ok: bool)->s32 fail
 {
     catch checkedVoid(false) as err
     Swag.assert((err is InlineError))
-    Swag.assert((cast #assume(InlineError) err).code == 7)
+    Swag.assert(assume cast(InlineError, err).code == 7)
     expect checkedVoid(true)
 }
 

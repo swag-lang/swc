@@ -7,11 +7,11 @@
 
 using Swag, Core, Core.Errors
 
-private const QuantizePack24 = cast(Math.Simd.U8x16) [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
+private const QuantizePack24 = cast(Math.Simd.U8x16, [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
 
 impl Encoder
 {
-    func colorKey(col: Color)->u32 => (cast(u32) col.r << 16) | (cast(u32) col.g << 8) | col.b
+    func colorKey(col: Color)->u32 => (cast(u32, col.r) << 16) | (cast(u32, col.g) << 8) | col.b
 
     func tableBitsForColorCount(count: u32)->u8
     {
@@ -58,7 +58,7 @@ impl Encoder
         if not image.pixelFormat.hasAlpha() do
             return false
 
-        var pix = cast([*] u8) image.pixels.storage()
+        var pix = cast([*] u8, image.pixels.storage())
         for image.width * image.height
         {
             let col = readPixelColor(image, pix)
@@ -74,23 +74,23 @@ impl Encoder
     {
         if not maxLevel do
             return 0
-        return cast(u8) ((level * 255 + maxLevel / 2) / maxLevel)
+        return cast(u8, ((level * 255 + maxLevel / 2) / maxLevel))
     }
 
     func quantizedOpaqueIndex(col: Color)->u8
     {
-        let r = cast(u32) col.r * 3 / 255
-        let g = cast(u32) col.g * 7 / 255
-        let b = cast(u32) col.b * 3 / 255
-        return cast(u8) (r * 32 + g * 4 + b)
+        let r = cast(u32, col.r) * 3 / 255
+        let g = cast(u32, col.g) * 7 / 255
+        let b = cast(u32, col.b) * 3 / 255
+        return cast(u8, (r * 32 + g * 4 + b))
     }
 
     func quantizedTransparentIndex(col: Color)->u8
     {
-        let r = cast(u32) col.r * 4 / 255
-        let g = cast(u32) col.g * 4 / 255
-        let b = cast(u32) col.b * 4 / 255
-        return cast(u8) (1 + r * 25 + g * 5 + b)
+        let r = cast(u32, col.r) * 4 / 255
+        let g = cast(u32, col.g) * 4 / 255
+        let b = cast(u32, col.b) * 4 / 255
+        return cast(u8, (1 + r * 25 + g * 5 + b))
     }
 
     #[Swag.Inline]
@@ -127,8 +127,8 @@ impl Encoder
             indexes = (redLevel << 5) + (greenLevel << 2) + blueLevel
         }
 
-        let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4) indexes, zero32)
-        return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) packed16, zero16)
+        let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4, indexes), zero32)
+        return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, packed16), zero16)
     }
 
     func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizeRow4(source: const [*] u8, destination: [*] u8, pixelCount: u32)
@@ -138,7 +138,7 @@ impl Encoder
         var count = pixelCount
         while count >= 4
         {
-            let pixels = Math.Simd.load(cast(const [*] u32) src)
+            let pixels = Math.Simd.load(cast(const [*] u32, src))
             Math.Simd.storeLow4(dst, quantizePixels4'(BLUE_FIRST, HAS_TRANSPARENCY)(pixels))
             src   += 16
             dst   += 4
@@ -153,7 +153,7 @@ impl Encoder
         var count = pixelCount
         while count >= 4
         {
-            let pixels = cast #bit(Math.Simd.U32x4) Math.Simd.shuffle(Math.Simd.load(src), QuantizePack24)
+            let pixels = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(Math.Simd.load(src), QuantizePack24))
             Math.Simd.storeLow4(dst, quantizePixels4'(BLUE_FIRST, false)(pixels))
             src   += 12
             dst   += 4
@@ -171,9 +171,9 @@ impl Encoder
                 for b in 4
                 {
                     let idx = r * 32 + g * 4 + b
-                    data.colors[idx].r = quantLevel(cast(u32) r, 3)
-                    data.colors[idx].g = quantLevel(cast(u32) g, 7)
-                    data.colors[idx].b = quantLevel(cast(u32) b, 3)
+                    data.colors[idx].r = quantLevel(cast(u32, r), 3)
+                    data.colors[idx].g = quantLevel(cast(u32, g), 7)
+                    data.colors[idx].b = quantLevel(cast(u32, b), 3)
                 }
             }
         }
@@ -192,9 +192,9 @@ impl Encoder
                 for b in 5
                 {
                     let idx = 1 + r * 25 + g * 5 + b
-                    data.colors[idx].r = quantLevel(cast(u32) r, 4)
-                    data.colors[idx].g = quantLevel(cast(u32) g, 4)
-                    data.colors[idx].b = quantLevel(cast(u32) b, 4)
+                    data.colors[idx].r = quantLevel(cast(u32, r), 4)
+                    data.colors[idx].g = quantLevel(cast(u32, g), 4)
+                    data.colors[idx].b = quantLevel(cast(u32, b), 4)
                 }
             }
         }
@@ -218,7 +218,7 @@ impl Encoder
 
     func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
     {
-        let pixelCount = cast(u64) image.width * image.height
+        let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
         var colorMap: HashTable'(u32, u8)
@@ -233,7 +233,7 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast([*] u8) image.pixels.storage() + cast(u64) (image.height - y - 1) * image.rowStride
+            var pix = cast([*] u8, image.pixels.storage()) + cast(u64, (image.height - y - 1)) * image.rowStride
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -241,7 +241,7 @@ impl Encoder
 
                 if hasTransparent and col.a < 128
                 {
-                    paletteIndex = cast(u8) data.transparentIndex
+                    paletteIndex = cast(u8, data.transparentIndex)
                 }
                 else
                 {
@@ -256,7 +256,7 @@ impl Encoder
                         if data.count == MaxPaletteColors do
                             return false
 
-                        paletteIndex = cast(u8) data.count
+                        paletteIndex = cast(u8, data.count)
                         data.colors[paletteIndex] = {col.r, col.g, col.b}
                         colorMap.add(key, paletteIndex)
                         data.count += 1
@@ -275,7 +275,7 @@ impl Encoder
 
     func buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent: bool)
     {
-        let pixelCount = cast(u64) image.width * image.height
+        let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
         if hasTransparent do
@@ -286,11 +286,11 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast([*] u8) image.pixels.storage() + cast(u64) (image.height - y - 1) * image.rowStride
+            var pix = cast([*] u8, image.pixels.storage()) + cast(u64, (image.height - y - 1)) * image.rowStride
             var x   = 0
             if image.bytesPerPixel == 4
             {
-                let vectorWidth = cast(u32) image.width & ~3'u32
+                let vectorWidth = cast(u32, image.width) & ~3'u32
                 let destination = data.indexes.storage() + dstIndex
                 let blueFirst   = image.pixelFormat == .BGRA8
                 if blueFirst
@@ -308,20 +308,20 @@ impl Encoder
                         quantizeRow4'(false, false)(pix, destination, vectorWidth)
                 }
 
-                x        = cast(s32) vectorWidth
-                pix      += cast(u64) vectorWidth * 4
+                x        = cast(s32, vectorWidth)
+                pix      += cast(u64, vectorWidth) * 4
                 dstIndex += vectorWidth
             }
             elif image.bytesPerPixel == 3
             {
-                let vectorWidth = image.width >= 6 ? (cast(u32) image.width - 2) & ~3'u32 : 0'u32
+                let vectorWidth = image.width >= 6 ? (cast(u32, image.width) - 2) & ~3'u32 : 0'u32
                 let destination = data.indexes.storage() + dstIndex
                 if image.pixelFormat == .BGR8 do
                     quantizeRow3'(true)(pix, destination, vectorWidth)
                 else do
                     quantizeRow3'(false)(pix, destination, vectorWidth)
-                x        = cast(s32) vectorWidth
-                pix      += cast(u64) vectorWidth * 3
+                x        = cast(s32, vectorWidth)
+                pix      += cast(u64, vectorWidth) * 3
                 dstIndex += vectorWidth
             }
 
@@ -329,7 +329,7 @@ impl Encoder
             {
                 let col = readPixelColor(image, pix)
                 if hasTransparent and col.a < 128 do
-                    data.indexes[dstIndex] = cast(u8) data.transparentIndex
+                    data.indexes[dstIndex] = cast(u8, data.transparentIndex)
                 elif hasTransparent do
                     data.indexes[dstIndex] = quantizedTransparentIndex(col)
                 else do

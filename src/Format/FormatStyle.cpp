@@ -142,7 +142,6 @@ namespace
         o.spaceAroundRangeOperator         = false;
         o.spaceAfterComma                  = true;
         o.spaceBeforeComma                 = false;
-        o.spaceAfterCast                   = true;
         o.spaceAfterKeyword                = true;
         o.spaceAfterUnaryOperator          = false;
         o.spaceInsideParentheses           = false;

@@ -84,10 +84,10 @@ func deferNestedLoops()->s64
     resetTrace()
     for i in 3
     {
-        defer appendTrace(cast(s64) i + 1)
+        defer appendTrace(cast(s64, i) + 1)
         for j in 2
         {
-            defer appendTrace(cast(s64) j + 5)
+            defer appendTrace(cast(s64, j) + 5)
             if j == 0 do
                 break
         }
@@ -111,7 +111,7 @@ func deferWhileMultiBreak(path: s32)->s64
     while i < 10
     {
         i += 1
-        defer appendTrace(cast(s64) i)
+        defer appendTrace(cast(s64, i))
         if path == 1 and i == 1 do
             break
         if path == 2 and i == 3 do
@@ -210,7 +210,7 @@ func deferForContinue()->s64
     resetTrace()
     for i in 4
     {
-        defer appendTrace(cast(s64) i + 1)
+        defer appendTrace(cast(s64, i) + 1)
         if i % 2 == 0 do
             continue
         appendTrace(9)
@@ -230,7 +230,7 @@ func deferForEarlyBreak()->s64
     resetTrace()
     for i in 100
     {
-        defer appendTrace(cast(s64) i + 1)
+        defer appendTrace(cast(s64, i) + 1)
         appendTrace(8)
         if i == 1 do
             break

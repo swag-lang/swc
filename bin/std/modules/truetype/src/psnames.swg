@@ -98,7 +98,7 @@ func standardString(sid: u32)->string
 func standardEncodingName(code: u8)->string
 {
     if code >= 32 and code <= 126 do
-        return StandardStrings[cast(u32) code - 31]
+        return StandardStrings[cast(u32, code) - 31]
     for entry in StandardEncodingHigh where entry.code == code do
         return StandardStrings[entry.sid]
     return ""
@@ -108,9 +108,9 @@ func standardEncodingName(code: u8)->string
 func standardEncodingRune(code: u8)->rune
 {
     for entry in StandardEncodingRunes where entry.code == code do
-        return cast(rune) entry.value
+        return cast(rune, entry.value)
     if code >= 0x20 and code < 0x7F do
-        return cast(rune) code
+        return cast(rune, code)
     return 0
 }
 
@@ -131,19 +131,19 @@ func glyphNameRune(name: string)->rune
 private func parseNameHex(digits: string)->rune
 {
     var result = 0'u32
-    for c in cast(const [..] u8) digits
+    for c in cast(const [..] u8, digits)
     {
         var value = 0'u32
         if c >= '0' and c <= '9' do
             value = c - '0'
         elif c >= 'A' and c <= 'F' do
-            value = cast(u32) (c - 'A') + 10
+            value = cast(u32, (c - 'A')) + 10
         elif c >= 'a' and c <= 'f' do
-            value = cast(u32) (c - 'a') + 10
+            value = cast(u32, (c - 'a')) + 10
         else do
             return 0
         result = result * 16 + value
     }
 
-    return cast(rune) result
+    return cast(rune, result)
 }

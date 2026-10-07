@@ -244,7 +244,7 @@ private func idmlReadEntry(fileName: string, archive: const *ZipArchive, path: s
     let bytes = try loadZipEntry(fileName, entry)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(Format.toString("IDML entry '%' is not UTF-8 XML", path).toString())}
-    return String.from(cast(string) bytes.toSlice())
+    return String.from(cast(string, bytes.toSlice()))
 }
 
 private func idmlAttribute(tag: string, name: string)->string
@@ -374,7 +374,7 @@ private func idmlTextFrameLayout(content: string, item: *IdmlItem)
     item.hasTextFrameLayout = true
     let columns = idmlNumber(idmlAttribute(preference.toString(), "TextColumnCount"))
     if columns.valid and columns.value >= 1 do
-        item.textColumns = Math.clamp(cast(u32) columns.value, 1'u32, IdmlTextColumnLimit)
+        item.textColumns = Math.clamp(cast(u32, columns.value), 1'u32, IdmlTextColumnLimit)
     let gutter = idmlNumber(idmlAttribute(preference.toString(), "TextColumnGutter"))
     if gutter.valid do
         item.textColumnGutter = Math.max(gutter.value, 0)
@@ -776,7 +776,7 @@ private func idmlLocalGraphicSource(path: string, loaded: *u64)->String
     options.decodePixels   = false
     options.decodeMetadata = false
     let probe = catch Image.load(path, options) as probeError
-    if probeError != null or probe.width <= 0 or probe.height <= 0 or cast(u64) probe.width * cast(u64) probe.height > IdmlGraphicSourcePixelLimit do
+    if probeError != null or probe.width <= 0 or probe.height <= 0 or cast(u64, probe.width) * cast(u64, probe.height) > IdmlGraphicSourcePixelLimit do
         return {}
 
     loaded[] += info.size
@@ -829,20 +829,20 @@ private func idmlEntity(text: string)->rune
         var value: u32
         for digit in text[2 to]
         {
-            let nibble = cast(u32) idmlHexNibble(digit)
+            let nibble = cast(u32, idmlHexNibble(digit))
             if nibble == Swag.U8.Max or value > (Swag.U32.Max - nibble) / 16 do
                 return 0xFFFD
             value = value * 16 + nibble
         }
 
         if value <= 0x10FFFF do
-            return cast(rune) value
+            return cast(rune, value)
     }
     elif text.count > 1 and text[0] == '#'
     {
         let parsed = catch StrConv.parseU32(text[1 to]) as parseError
         if parseError == null and not parsed.ovf and parsed.eat == text.count - 1 do
-            return cast(rune) parsed.value
+            return cast(rune, parsed.value)
     }
 
     return 0xFFFD
@@ -1099,14 +1099,14 @@ private func idmlCssColor(space, value: string)->String
     if not idmlNumbers(value, &values) do
         return {}
     if space == "RGB" and values.count == 3 do
-        return Format.toString("rgb(%, %, %)", cast(u32) Math.round(Math.clamp(values[0], 0, 255)), cast(u32) Math.round(Math.clamp(values[1], 0, 255)), cast(u32) Math.round(Math.clamp(values[2], 0, 255)))
+        return Format.toString("rgb(%, %, %)", cast(u32, Math.round(Math.clamp(values[0], 0, 255))), cast(u32, Math.round(Math.clamp(values[1], 0, 255))), cast(u32, Math.round(Math.clamp(values[2], 0, 255))))
     if space == "CMYK" and values.count == 4
     {
         let cyan    = Math.clamp(values[0] / 100, 0, 1)
         let magenta = Math.clamp(values[1] / 100, 0, 1)
         let yellow  = Math.clamp(values[2] / 100, 0, 1)
         let black   = Math.clamp(values[3] / 100, 0, 1)
-        return Format.toString("rgb(%, %, %)", cast(u32) Math.round(255 * (1 - cyan) * (1 - black)), cast(u32) Math.round(255 * (1 - magenta) * (1 - black)), cast(u32) Math.round(255 * (1 - yellow) * (1 - black)))
+        return Format.toString("rgb(%, %, %)", cast(u32, Math.round(255 * (1 - cyan) * (1 - black))), cast(u32, Math.round(255 * (1 - magenta) * (1 - black))), cast(u32, Math.round(255 * (1 - yellow) * (1 - black))))
     }
 
     return {}
@@ -1170,9 +1170,9 @@ private func idmlTintedColor(color, tint: string)->String
 
     let factor = Math.clamp(percentage.value / 100, 0, 1)
     return Format.toString("rgb(%, %, %)",
-                           cast(u32) Math.round(255 + (channels[0] - 255) * factor),
-                           cast(u32) Math.round(255 + (channels[1] - 255) * factor),
-                           cast(u32) Math.round(255 + (channels[2] - 255) * factor))
+                           cast(u32, Math.round(255 + (channels[0] - 255) * factor)),
+                           cast(u32, Math.round(255 + (channels[1] - 255) * factor)),
+                           cast(u32, Math.round(255 + (channels[2] - 255) * factor)))
 }
 
 private func idmlColor(colors: const *HashTable'(String, String), name: string, tint = "")->String
@@ -1496,7 +1496,7 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
     {
         let remainingFrames = frames.count - index
         consumedCapacity += idmlTextFrameCapacity(frame)
-        let target  = cast(u64) Math.round(cast(f32) blockCount * consumedCapacity / totalCapacity)
+        let target  = cast(u64, Math.round(cast(f32, blockCount) * consumedCapacity / totalCapacity))
         let minimum = remainingBlocks >= remainingFrames ? 1 : 0
         let maximum = remainingBlocks - (remainingBlocks >= remainingFrames ? remainingFrames - 1 : 0)
         let desired = target > allocatedBlocks ? target - allocatedBlocks : 0

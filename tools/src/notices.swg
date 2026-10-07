@@ -60,7 +60,7 @@ private func auditNoticeIndex(context: *Context, directory: string, index: strin
             continue
 
         let relative = noticeRelativePath(context, file.fullName.toString())
-        if Utf8.indexOf(cast(const [..] u8) index, relative.toString()) != Swag.U64.Max do
+        if Utf8.indexOf(cast(const [..] u8, index), relative.toString()) != Swag.U64.Max do
             continue
 
         Console.println("error: bin/THIRDPARTY.md does not index ", relative.toString())
@@ -78,7 +78,7 @@ private func noticeRelativePath(context: *Context, fullName: string)->String
     let start      = rootLength < fullName.count and (fullName[rootLength] == '/' or fullName[rootLength] == '\\') ? rootLength + 1 : rootLength
     var result     = String.from(fullName[start until fullName.count])
     result.replace("\\", "/")
-    if Utf8.startsWith(cast(const [..] u8) result.toString(), "bin/") do
+    if Utf8.startsWith(cast(const [..] u8, result.toString()), "bin/") do
         result = String.from((result.toString())[4 until (result.toString()).count])
     return result
 }
@@ -106,7 +106,7 @@ private func auditNoticeFile(context: *Context, fileName: string)->u32 fail
     for line in Tokenize.splitLines(content.toString())
     {
         lineNumber += 1
-        let marker = Utf8.indexOf(cast(const [..] u8) line, NoticeMarker)
+        let marker = Utf8.indexOf(cast(const [..] u8, line), NoticeMarker)
         if marker == Swag.U64.Max do
             continue
 
@@ -119,7 +119,7 @@ private func auditNoticeFile(context: *Context, fileName: string)->u32 fail
 
 private func auditNoticeTarget(context: *Context, fileName: string, lineNumber: u64, target: string)->u32 fail
 {
-    let hash = Utf8.indexOf(cast(const [..] u8) target, "#")
+    let hash = Utf8.indexOf(cast(const [..] u8, target), "#")
     let path = hash == Swag.U64.Max ? target : target[0 until hash]
 
     // A notice names its attribution either from the shipped root, as `/bin/THIRDPARTY.md`, or

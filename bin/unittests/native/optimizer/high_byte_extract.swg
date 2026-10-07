@@ -9,7 +9,7 @@ func third(a, b, c, d: u64)->u64 => ((c >> 8) & 255) ^ a ^ b ^ d
 #[Swag.NoInline]
 func fourth(a, b, c, d: u64)->u64 => ((d >> 8) & 255) ^ a ^ b ^ c
 #[Swag.NoInline]
-func signedByte(a: s64)->u64 => cast(u64) ((a >> 8) & 255)
+func signedByte(a: s64)->u64 => cast(u64, ((a >> 8) & 255))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func product(a, b: u64)->u64 => ((a * b) >> 8) & 255
 #[Swag.NoInline]
@@ -28,7 +28,7 @@ func variable(a, count: u64)->u64 => (a >> count) & 255
     for a in values
     {
         Swag.assert(first(a) == variable(a, 8))
-        Swag.assert(signedByte(cast #bit (s64) a) == variable(a, 8))
+        Swag.assert(signedByte(cast #bit (s64, a)) == variable(a, 8))
         Swag.assert(shared(a) == ((a >> 8) & 0xFFFFFFFFFFFFFF00))
         for b in values
         {

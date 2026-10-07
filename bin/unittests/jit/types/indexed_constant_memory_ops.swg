@@ -12,9 +12,9 @@ func updateIndexedWords(values: *[16] u32)
 func jitIndexedConstantUpdates()->bool
 {
     var values: [16] u32
-    for i in 16 do values[i] = cast(u32) i
+    for i in 16 do values[i] = cast(u32, i)
     updateIndexedWords(&values)
-    for i in 16 do if values[i] != (cast(u32) i ^ 0x35) do return false
+    for i in 16 do if values[i] != (cast(u32, i) ^ 0x35) do return false
     return true
 }
 

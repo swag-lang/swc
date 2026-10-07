@@ -19,7 +19,7 @@ impl Vec
     {
         if not .buffer
         {
-            .buffer   = cast([*] T) Memory.alloc(8 * #sizeof(T))
+            .buffer   = cast([*] T, Memory.alloc(8 * #sizeof(T)))
             .capacity = 8
         }
 

@@ -47,7 +47,7 @@ struct GamepadState
 
 impl GamepadState
 {
-    private func normalizedStick(value: s16)->f32 => Math.max(cast(f32) value / 32767.0'f32, -1.0'f32)
+    private func normalizedStick(value: s16)->f32 => Math.max(cast(f32, value) / 32767.0'f32, -1.0'f32)
 
     private mtd activationThreshold(button: GamepadButton)->f32 => .pressed[button] ? 0.7'f32 : 0.9'f32
 

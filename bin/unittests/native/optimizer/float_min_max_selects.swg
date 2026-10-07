@@ -23,18 +23,18 @@ func wideMax(a, b: f64)->f64 => a > b ? a : b
 func clamp01(x: f32)->f32 => x < 0.0 ? 0.0 : (x > 1.0 ? 1.0 : x)
 
 #[Swag.Optimize(false), Swag.NoInline]
-func greaterRef(a, b: f32)->bool => cast(f64) a > cast(f64) b
+func greaterRef(a, b: f32)->bool => cast(f64, a) > cast(f64, b)
 #[Swag.Optimize(false), Swag.NoInline]
-func greaterEqualRef(a, b: f32)->bool => cast(f64) a >= cast(f64) b
+func greaterEqualRef(a, b: f32)->bool => cast(f64, a) >= cast(f64, b)
 
-func bits(x: f32)->u32 => cast #bit (u32) x
+func bits(x: f32)->u32 => cast #bit (u32, x)
 
 #[Swag.Safety(.All, false)]
 #test
 {
-    let nan             = cast #bit (f32) 0x7FC00000'u32
-    let negZero         = cast #bit (f32) 0x80000000'u32
-    let inf             = cast #bit (f32) 0x7F800000'u32
+    let nan             = cast #bit (f32, 0x7FC00000'u32)
+    let negZero         = cast #bit (f32, 0x80000000'u32)
+    let inf             = cast #bit (f32, 0x7F800000'u32)
     let values: [9] f32 = [0.0, negZero, 1.0, -1.0, 0.25, nan, inf, -inf, 2.0]
 
     for a in values
@@ -48,8 +48,8 @@ func bits(x: f32)->u32 => cast #bit (u32) x
             Swag.assert(bits(maxGreaterEqual(a, b)) == bits(greaterEqualRef(a, b) ? a : b))
             Swag.assert(bits(minLessEqual(a, b)) == bits(greaterEqualRef(b, a) ? a : b))
 
-            let wide = wideMax(cast(f64) a, cast(f64) b)
-            Swag.assert(cast #bit (u64) wide == cast #bit (u64) (greaterRef(a, b) ? cast(f64) a : cast(f64) b))
+            let wide = wideMax(cast(f64, a), cast(f64, b))
+            Swag.assert(cast #bit (u64, wide) == cast #bit (u64, (greaterRef(a, b) ? cast(f64, a) : cast(f64, b))))
         }
 
         let clamped = clamp01(a)

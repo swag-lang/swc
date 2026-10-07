@@ -30,7 +30,7 @@ using Core, Pixel
     for 20 do
         source += "A paragraph after the destination.\n\n"
     let fileName = Testing.tempFilePath("outline-markdown-", ".md")
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     defer discard catch File.delete(fileName)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -82,7 +82,7 @@ using Core, Pixel
 
     for 20 do
         source += "A closing paragraph after the last heading.\n\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(720, 480)
     defer host.shutdown()

@@ -87,14 +87,14 @@ impl ByteSet
         if .contains(value) do
             return
 
-        let bit = cast(u8) (1 << ((value >> 4) & 7))
+        let bit = cast(u8, (1 << ((value >> 4) & 7)))
         if value < 0x80 do
             .lowHalf[value & 0x0F] |= bit
         else do
             .highHalf[value & 0x0F] |= bit
 
         .members += 1
-        .weight  += cast(u32) ByteFrequency[value]
+        .weight  += cast(u32, ByteFrequency[value])
     }
 
     // Whether one byte belongs to the set. This is on the hot path of a scan that decides its
@@ -102,7 +102,7 @@ impl ByteSet
     #[Swag.Inline]
     mtd const contains(value: u8)->bool
     {
-        let bit   = cast(u8) (1 << ((value >> 4) & 7))
+        let bit   = cast(u8, (1 << ((value >> 4) & 7)))
         let entry = value < 0x80 ? .lowHalf[value & 0x0F] : .highHalf[value & 0x0F]
         return (entry & bit) != 0
     }
@@ -161,7 +161,7 @@ impl Prefilter
                 if score < bestScore
                 {
                     bestScore = score
-                    rarest    = cast(u32) i
+                    rarest    = cast(u32, i)
                 }
 
                 if setCount(&sequence[i]) != 1 do
@@ -184,9 +184,9 @@ impl Prefilter
                 {
                     for var b = 0'u32; b < 256; b += 1
                     {
-                        if not sequence[rarest].contains(cast(u8) b) do
+                        if not sequence[rarest].contains(cast(u8, b)) do
                             continue
-                        result.bytes[result.byteCount] = cast(u8) b
+                        result.bytes[result.byteCount] = cast(u8, b)
                         result.byteCount += 1
                     }
 
@@ -205,8 +205,8 @@ impl Prefilter
 
                 for var b = 0'u32; b < 256; b += 1
                 {
-                    if sequence[0].contains(cast(u8) b) do
-                        result.bytes[0] = cast(u8) b
+                    if sequence[0].contains(cast(u8, b)) do
+                        result.bytes[0] = cast(u8, b)
                 }
 
                 return result
@@ -247,7 +247,7 @@ impl Prefilter
             if cost < bestCost
             {
                 bestCost   = cost
-                bestSingle = cast(u32) i
+                bestSingle = cast(u32, i)
                 bestLow    = NoPosition
             }
         }
@@ -267,8 +267,8 @@ impl Prefilter
                 {
                     bestCost   = cost
                     bestSingle = NoPosition
-                    bestLow    = cast(u32) i
-                    bestHigh   = cast(u32) j
+                    bestLow    = cast(u32, i)
+                    bestHigh   = cast(u32, j)
                 }
             }
         }
@@ -295,9 +295,9 @@ impl Prefilter
             var written = 0'u32
             for var b = 0'u32; b < 256; b += 1
             {
-                if not sets[bestSingle].contains(cast(u8) b) do
+                if not sets[bestSingle].contains(cast(u8, b)) do
                     continue
-                result.bytes[written] = cast(u8) b
+                result.bytes[written] = cast(u8, b)
                 written += 1
             }
 
@@ -339,7 +339,7 @@ impl Prefilter
 
         for var i = 0'u64; i < sequence.count; i += 1
         {
-            if cast(u32) i == rarest do
+            if cast(u32, i) == rarest do
                 continue
             if setCount(&sequence[i]) > 3 do
                 continue
@@ -348,7 +348,7 @@ impl Prefilter
             if score < secondScore
             {
                 secondScore = score
-                second      = cast(u32) i
+                second      = cast(u32, i)
             }
         }
 
@@ -369,9 +369,9 @@ impl Prefilter
         .scanAt2 = second
         for var b = 0'u32; b < 256; b += 1
         {
-            if not sequence[second].contains(cast(u8) b) do
+            if not sequence[second].contains(cast(u8, b)) do
                 continue
-            .bytes2[.byteCount2] = cast(u8) b
+            .bytes2[.byteCount2] = cast(u8, b)
             .byteCount2 += 1
         }
     }
@@ -403,7 +403,7 @@ impl Prefilter
         case .Bytes:
             var total = 0'u32
             for var i = 0'u32; i < .byteCount; i += 1 do
-                total += cast(u32) ByteFrequency[.bytes[i]]
+                total += cast(u32, ByteFrequency[.bytes[i]])
             return total
 
         case .Set:
@@ -417,11 +417,11 @@ impl Prefilter
             return setScore(&.sequence[.scanAt])
 
         case .Literal:
-            let rarest = cast(u32) ByteFrequency[.literal[.rareLow]]
+            let rarest = cast(u32, ByteFrequency[.literal[.rareLow]])
             if .rareHigh == .rareLow do
                 return rarest
 
-            let paired = (rarest * cast(u32) ByteFrequency[.literal[.rareHigh]]) / 1000
+            let paired = (rarest * cast(u32, ByteFrequency[.literal[.rareHigh]])) / 1000
             return paired < 1 ? 1 : paired
         }
 
@@ -435,7 +435,7 @@ impl Prefilter
         var bestScore = 0xFFFF'u32
         for var i = 0'u32; i < .literal.count; i += 1
         {
-            let score = cast(u32) ByteFrequency[.literal[i]]
+            let score = cast(u32, ByteFrequency[.literal[i]])
             if score < bestScore
             {
                 bestScore = score
@@ -449,7 +449,7 @@ impl Prefilter
         {
             if i == .rareLow do
                 continue
-            let score = cast(u32) ByteFrequency[.literal[i]]
+            let score = cast(u32, ByteFrequency[.literal[i]])
             if score < bestScore
             {
                 bestScore = score
@@ -636,8 +636,8 @@ impl Prefilter
         var pos   = at
 
         let wanted    = .kind == PrefilterKind.Sequence ? &.sequence[which] : &.sets[which]
-        let lowTable  = Simd.load(cast(const [*] u8) &wanted.lowHalf[0])
-        let highTable = Simd.load(cast(const [*] u8) &wanted.highHalf[0])
+        let lowTable  = Simd.load(cast(const [*] u8, &wanted.lowHalf[0]))
+        let highTable = Simd.load(cast(const [*] u8, &wanted.highHalf[0]))
 
         while pos + 16 <= count
         {
@@ -668,10 +668,10 @@ impl Prefilter
         let first = .offsets[0]
         let last  = .offsets[1]
 
-        let lowTable0  = Simd.load(cast(const [*] u8) &.sets[0].lowHalf[0])
-        let highTable0 = Simd.load(cast(const [*] u8) &.sets[0].highHalf[0])
-        let lowTable1  = Simd.load(cast(const [*] u8) &.sets[1].lowHalf[0])
-        let highTable1 = Simd.load(cast(const [*] u8) &.sets[1].highHalf[0])
+        let lowTable0  = Simd.load(cast(const [*] u8, &.sets[0].lowHalf[0]))
+        let highTable0 = Simd.load(cast(const [*] u8, &.sets[0].highHalf[0]))
+        let lowTable1  = Simd.load(cast(const [*] u8, &.sets[1].lowHalf[0]))
+        let highTable1 = Simd.load(cast(const [*] u8, &.sets[1].highHalf[0]))
 
         var pos = at
         while pos + last + 16 <= count
@@ -707,7 +707,7 @@ impl Prefilter
         if wanted == 0 or count < wanted do
             return count
 
-        let needle = cast(const [*] u8) (.literal).storage()
+        let needle = cast(const [*] u8, (.literal).storage())
 
         // One byte is looked for by the plain byte scan; there is no second byte to pair it
         // with, and comparing the same byte twice would only halve the throughput.
@@ -783,7 +783,7 @@ func setMask(chunk, lowTable, highTable: Simd.U8x16)->u32
     let nibble   = chunk & Simd.splat(0x0F'u8)
     let outside  = (chunk & Simd.splat(0x80'u8)) == Simd.splat(0x80'u8)
     let selected = Simd.select(outside, Simd.shuffle(highTable, nibble), Simd.shuffle(lowTable, nibble))
-    let wanted   = Simd.shuffle(cast(Simd.U8x16) [1'u8, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128], (chunk >> 4) & Simd.splat(0x07'u8))
+    let wanted   = Simd.shuffle(cast(Simd.U8x16, [1'u8, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128]), (chunk >> 4) & Simd.splat(0x07'u8))
     return ~Simd.bitmask((selected & wanted) == Simd.splat(0'u8)) & 0xFFFF
 }
 
@@ -804,10 +804,10 @@ func twoOffsetMask(data: const [*] u8, first, last: u32, firstA, firstB, secondA
 #[Swag.Inline]
 func combinedMask(m0, m1, m2, m3: Simd.U8x16)->u64
 {
-    return cast(u64) Simd.bitmask(m0) |
-           (cast(u64) Simd.bitmask(m1) << 16) |
-           (cast(u64) Simd.bitmask(m2) << 32) |
-           (cast(u64) Simd.bitmask(m3) << 48)
+    return cast(u64, Simd.bitmask(m0)) |
+           (cast(u64, Simd.bitmask(m1)) << 16) |
+           (cast(u64, Simd.bitmask(m2)) << 32) |
+           (cast(u64, Simd.bitmask(m3)) << 48)
 }
 
 // Returns the first offset at or after 'at' holding that byte, or the length of the subject.

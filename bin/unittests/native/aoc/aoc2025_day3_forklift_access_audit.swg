@@ -29,20 +29,20 @@ func countAdjacentRolls(plan: const [..] string, row, column: u32)->u32
             if rowOffset == 0 and columnOffset == 0 do
                 continue
 
-            let neighborRow    = cast(s32) row + rowOffset
-            let neighborColumn = cast(s32) column + columnOffset
+            let neighborRow    = cast(s32, row) + rowOffset
+            let neighborColumn = cast(s32, column) + columnOffset
 
             if neighborRow < 0 or neighborColumn < 0 do
                 continue
 
-            if neighborRow >= cast(s32) plan.count do
+            if neighborRow >= cast(s32, plan.count) do
                 continue
 
-            let line = cast(const [..] u8) plan[cast(u32) neighborRow]
-            if neighborColumn >= cast(s32) line.count do
+            let line = cast(const [..] u8, plan[cast(u32, neighborRow)])
+            if neighborColumn >= cast(s32, line.count) do
                 continue
 
-            neighbors += line[cast(u32) neighborColumn] == 64'u8 ? 1'u32 : 0'u32
+            neighbors += line[cast(u32, neighborColumn)] == 64'u8 ? 1'u32 : 0'u32
         }
     }
 
@@ -54,12 +54,12 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
     Swag.assert(plan.count > 0)
 
     var result: ForkliftAudit
-    result.rowCount    = cast(u32) plan.count
-    result.columnCount = cast(u32) (cast(const [..] u8) plan[0]).count
+    result.rowCount    = cast(u32, plan.count)
+    result.columnCount = cast(u32, cast(const [..] u8, plan[0]).count)
 
     for line, row in plan
     {
-        let bytes = cast(const [..] u8) line
+        let bytes = cast(const [..] u8, line)
         Swag.assert(bytes.count == result.columnCount)
 
         for column in bytes.count
@@ -67,7 +67,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
             var neighbors: u32
 
             if bytes[column] == 64'u8 do
-                neighbors = countAdjacentRolls(plan, cast(u32) row, cast(u32) column)
+                neighbors = countAdjacentRolls(plan, cast(u32, row), cast(u32, column))
             if bytes[column] == 64'u8 do
                 result.totalRolls += 1
             if bytes[column] == 64'u8 do

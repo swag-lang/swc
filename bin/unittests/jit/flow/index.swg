@@ -10,13 +10,13 @@
 
         for index in arr.count
         {
-            outer += cast(s32) index
+            outer += cast(s32, index)
 
             for value, idx in arr
             {
                 if idx == 0 do
                     continue
-                inner += value + cast(s32) idx
+                inner += value + cast(s32, idx)
             }
         }
 
@@ -40,7 +40,7 @@
                 continue
             if index == 4 do
                 break
-            acc += arr[index] + cast(s32) index
+            acc += arr[index] + cast(s32, index)
         }
 
         return acc
@@ -57,7 +57,7 @@
         var acc: s32 = 0
         for index in 6
         {
-            acc += cast(s32) index * 3
+            acc += cast(s32, index) * 3
         }
 
         return acc

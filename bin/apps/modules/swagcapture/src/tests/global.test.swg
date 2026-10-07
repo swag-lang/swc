@@ -108,7 +108,7 @@ func testSetupGlobalMain(main: *MainWnd)
 
     // In icon-only mode the active rule's own margin replaces the leading cell padding.
     // Counting both used to leave the glyph visibly adrift from its selection marker.
-    let firstTool = cast #assume (*IconButton) f.main.toolRail.children[0]
+    let firstTool = assume cast (*IconButton, f.main.toolRail.children[0])
     let metrics   = f.main.themeMetrics()
     Swag.assert(firstTool.flags.has(.IconOnly))
     Swag.assert(firstTool.padding.x == 0)
@@ -122,8 +122,8 @@ func testSetupGlobalMain(main: *MainWnd)
     // standing there covers nothing; hidden, it leaves no gap, because the bar stacks only what
     // is visible.
     let bar     = f.main.libWnd.commandBar
-    let spinner = cast(*Wnd) f.main.libWnd.view.imgSpin
-    Swag.assert(spinner.parent == cast(*Wnd) bar)
+    let spinner = cast(*Wnd, f.main.libWnd.view.imgSpin)
+    Swag.assert(spinner.parent == cast(*Wnd, bar))
     Swag.assert(not spinner.isLocallyVisible())
 
     let packed = bar.measure({}).preferred.x
@@ -204,7 +204,7 @@ func testSetupGlobalMain(main: *MainWnd)
     f.main.migrateStoredOptions()
     Swag.assert(f.main.editorOptions.editBackColor == 0xFF123456'u32)
 
-    f.main.editorOptions.theme = cast(AppearanceTheme) 99
+    f.main.editorOptions.theme = cast(AppearanceTheme, 99)
     f.main.migrateStoredOptions()
     Swag.assert(f.main.editorOptions.theme == .SwagDark)
 }

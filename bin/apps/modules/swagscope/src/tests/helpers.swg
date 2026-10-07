@@ -44,7 +44,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
     plugin.create(host)
     if waitForText and plugin.key == TextViewerKey and result.view
     {
-        let view = cast #assume (*TextViewer) result.view
+        let view = assume cast (*TextViewer, result.view)
         if view.read.started
         {
             view.read.task.wait()
@@ -57,10 +57,10 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
 }
 
 // Collects every match a viewer answers for, polling one that reads its document in the background.
-func collectViewerMatches(collect: Viewer.CollectSearchMatches, view: *Wnd, text: string, matches: *Array'Viewer.SearchMatch)
+func collectViewerMatches(collect: Viewer.CollectSearchMatches, text: string, matches: *Array'Viewer.SearchMatch)
 {
     var progress = 0'u64
-    while not collect(view, text, {}, &progress, matches) do
+    while not collect(text, {}, &progress, matches) do
         Threading.Thread.sleep(1'ms)
 }
 
@@ -110,7 +110,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
             let instance = &window.instances[index]
             if instance.view and window.choices[index].key == TextViewerKey
             {
-                let view = cast #assume (*TextViewer) instance.view
+                let view = assume cast (*TextViewer, instance.view)
                 if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
                     view.statisticsThread.wait()
             }
@@ -133,11 +133,11 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
+        if not instance.view or not instance.isLoading or not instance.isLoading() do
             break
         if window.choices[window.activeChoiceIndex].key == TextViewerKey
         {
-            let view = cast #assume (*TextViewer) instance.view
+            let view = assume cast (*TextViewer, instance.view)
             completeTextReads(host, view)
             host.fireTimer(view.loadTimer)
         }

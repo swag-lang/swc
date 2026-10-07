@@ -78,14 +78,14 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
         window = root
 
     var title: [1024] u16
-    let titleLength = GetWindowTextW(window, &title[0], cast(s32) title.count)
+    let titleLength = GetWindowTextW(window, &title[0], cast(s32, title.count))
     if titleLength > 0 do
-        result.title = Utf8.fromUtf16(Swag.makeSlice(&title[0], cast(u64) titleLength))
+        result.title = Utf8.fromUtf16(Swag.makeSlice(&title[0], cast(u64, titleLength)))
 
     var className: [256] u16
-    let classLength = GetClassNameW(window, &className[0], cast(s32) className.count)
+    let classLength = GetClassNameW(window, &className[0], cast(s32, className.count))
     if classLength > 0 do
-        result.className = Utf8.fromUtf16(Swag.makeSlice(&className[0], cast(u64) classLength))
+        result.className = Utf8.fromUtf16(Swag.makeSlice(&className[0], cast(u64, classLength)))
 
     var processId: u32
     discard GetWindowThreadProcessId(window, &processId)
@@ -99,11 +99,11 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 
     var path: Array'u16
     path.resize(32768)
-    var pathLength = cast(u32) path.count
+    var pathLength = cast(u32, path.count)
     if not QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
         return result
 
-    result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64) pathLength))
+    result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64, pathLength)))
     result.application = Path.fileNameWithoutExtension(result.executable) orelse ""
     return result
 }
@@ -113,12 +113,12 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
 
-    g_HitTest.x = cast() x
-    g_HitTest.y = cast() y
+    g_HitTest.x = cast(x)
+    g_HitTest.y = cast(y)
 
     g_Hit    = null
     g_Ignore = srf.win32Handle()
-    EnumWindows(cast() &enumProc, 0)
+    EnumWindows(cast(&enumProc), 0)
     if not g_Hit do
         return null
 
@@ -202,20 +202,20 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
     if not (ci.flags & CURSOR_SHOWING) or not ci.hCursor do
         return
 
-    let hIcon = cast(HICON) ci.hCursor
+    let hIcon = cast(HICON, ci.hCursor)
 
     var ii: ICONINFO
     catch GetIconInfo(hIcon, &ii)
     defer
     {
         if ii.hbmMask do
-            catch DeleteObject(cast() ii.hbmMask)
+            catch DeleteObject(cast(ii.hbmMask))
         if ii.hbmColor do
-            catch DeleteObject(cast() ii.hbmColor)
+            catch DeleteObject(cast(ii.hbmColor))
     }
 
-    let x = ci.ptScreenPos.x - offsetX - cast(s32) ii.xHotspot
-    let y = ci.ptScreenPos.y - offsetY - cast(s32) ii.yHotspot
+    let x = ci.ptScreenPos.x - offsetX - cast(s32, ii.xHotspot)
+    let y = ci.ptScreenPos.y - offsetY - cast(s32, ii.yHotspot)
     DrawIconEx(memDC, x, y, hIcon, 0, 0, 0, null, DI_NORMAL)
 }
 
@@ -262,16 +262,16 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     bi.bmiHeader.biCompression = BI_RGB
 
     var bits: *u8?
-    let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
+    let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast(DIB_RGB_COLORS), &bits, null, 0)
     if not memBMP or not bits do
         fail Swag.SystemError{"CreateDIBSection failed"}
-    defer catch DeleteObject(cast() memBMP)
+    defer catch DeleteObject(cast(memBMP))
 
     // Keep the DC's original bitmap so we can re-select it before deleting memBMP:
     // GDI refuses to delete an object that is still selected into a DC. The defer
     // below runs (LIFO) before the DeleteObject/DeleteDC defers, restoring the DC
     // first so DeleteObject actually succeeds instead of silently leaking the DIB.
-    let oldBMP = SelectObject(memDC, cast() memBMP)
+    let oldBMP = SelectObject(memDC, cast(memBMP))
     defer discard SelectObject(memDC, oldBMP)
 
     try BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)

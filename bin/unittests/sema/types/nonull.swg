@@ -27,9 +27,9 @@ alias SemaConstPointerAlias   = const *SemaNonNullItem
 const SEMA_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
 const SEMA_NONULL_NULL_VALUE_POINTER: *void?    = null
-const SEMA_NONULL_PRESENT_VALUE_POINTER         = cast(*void) 1'u64
+const SEMA_NONULL_PRESENT_VALUE_POINTER         = cast(*void, 1'u64)
 const SEMA_NONULL_NULL_BLOCK_POINTER: [*] void? = null
-const SEMA_NONULL_PRESENT_BLOCK_POINTER         = cast([*] void) 1'u64
+const SEMA_NONULL_PRESENT_BLOCK_POINTER         = cast([*] void, 1'u64)
 
 #assert(SEMA_NONULL_NULL_VALUE_POINTER < SEMA_NONULL_PRESENT_VALUE_POINTER)
 #assert(SEMA_NONULL_NULL_VALUE_POINTER <= SEMA_NONULL_PRESENT_VALUE_POINTER)
@@ -146,10 +146,10 @@ func semaNonNullConstruction()
 
     let direct:                *SemaNonNullItem              = &first
     let readOnly:              const *SemaNonNullItem        = &first
-    let block:                 [*] SemaNonNullItem           = cast([*] SemaNonNullItem) &blockStorage[0]
+    let block:                 [*] SemaNonNullItem           = cast([*] SemaNonNullItem, &blockStorage[0])
     let slice:                 [..] SemaNonNullItem          = blockStorage
     let text:                  string                        = "nonull"
-    let ctext:                 cstring                       = cast(cstring) &cstringStorage[0]
+    let ctext:                 cstring                       = cast(cstring, &cstringStorage[0])
     let boxed:                 any                           = 123
     let reflectedType:         typeinfo                      = SemaNonNullItem
     let legacyOpCast:          string                        = SemaNonNullLegacyOpCastBox{}
@@ -180,7 +180,7 @@ func semaNonNullConstruction()
     var widened:      *SemaNonNullItem? = migrated
     widened = null     // the qualifier is real: null flows into it below
     widened = migrated
-    let completeSet = cast(SemaNonNullCompleteSet) &first
+    let completeSet = cast(SemaNonNullCompleteSet, &first)
     let genericRequired: SemaNonNullGenericBox'(*SemaNonNullItem) = {value: &first}
     var genericDefault:  SemaNonNullGenericBox'SemaNonNullStringDefault
     #assert(#typeof(migrated) == *SemaNonNullItem)

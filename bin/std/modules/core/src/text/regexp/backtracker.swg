@@ -172,7 +172,7 @@ impl Backtracker
                 pc          = insts[pc].next
 
             case .Backref:
-                let opening = 2 * cast(u64) insts[pc].slot
+                let opening = 2 * cast(u64, insts[pc].slot)
                 let closing = opening + 1
                 if closing >= slotCount
                 {

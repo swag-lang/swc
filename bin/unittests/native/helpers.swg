@@ -8,7 +8,7 @@ func fault(code: u32)
 {
     var ptr: [*] u8? = null
     let p = ptr!
-    p[code] = cast(u8) code
+    p[code] = cast(u8, code)
 }
 
 func check(cond: bool, code: u32)
@@ -43,7 +43,7 @@ func square_plus_seed(value: s32)->s32
 func pointer_step_delta()->s64
 {
     var data: [8] u16
-    let base = cast([*] u16) &data[0]
+    let base = cast([*] u16, &data[0])
     let next = 1 + base
     var ptr  = base
     ptr += 3

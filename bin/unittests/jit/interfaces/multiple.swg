@@ -39,8 +39,8 @@ impl IFoo for Other
 func runMultipleInterfaces()->bool
 {
     var m: Multi
-    var f = cast(IFoo) m
-    var b = cast(IBar) m
+    var f = cast(IFoo, m)
+    var b = cast(IBar, m)
     return f.foo() == 5 and b.bar() == 7
 }
 
@@ -48,10 +48,10 @@ func runReassignment()->bool
 {
     var m: Multi
     var o: Other
-    var f: IFoo = cast(IFoo) m
+    var f: IFoo = cast(IFoo, m)
     if f.foo() != 5 do
         return false
-    f = cast(IFoo) o
+    f = cast(IFoo, o)
     return f.foo() == 99
 }
 
@@ -61,7 +61,7 @@ var FooStorage: Multi
 
 func makeFoo()->IFoo
 {
-    return cast(IFoo) FooStorage
+    return cast(IFoo, FooStorage)
 }
 
 func runReturnValue()->bool
@@ -79,7 +79,7 @@ func runParameter()->bool
 {
     var m: Multi
     var o: Other
-    return callFoo(cast(IFoo) m) == 5 and callFoo(cast(IFoo) o) == 99
+    return callFoo(cast(IFoo, m)) == 5 and callFoo(cast(IFoo, o)) == 99
 }
 
 #test

@@ -30,7 +30,7 @@ func makeTypeStructLiteralJitPayloads() => [{first: #type [2] TypeStructLiteralJ
     var total: u64 = 0
     for payload in payloads
     {
-        total += (cast(const *Swag.TypeInfoArray) payload.first).totalCount
+        total += cast(const *Swag.TypeInfoArray, payload.first).totalCount
     }
 
     Swag.assert(total == 5)

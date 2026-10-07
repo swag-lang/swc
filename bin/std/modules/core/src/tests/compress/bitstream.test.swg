@@ -6,7 +6,7 @@ using Swag
 #test
 {
     let input: [3] u8 = [0xCA, 0x74, 0x05]
-    let start         = cast(const [*] u8) input.buffer
+    let start         = cast(const [*] u8, input.buffer)
 
     var stream: Compress.BitStream
     stream.reset(input)
@@ -31,7 +31,7 @@ using Swag
     // extraction. 64 bytes forces many bulk-refill fast paths at assorted numBits.
     var input: [64] u8
     for i in 64 do
-        input[i] = cast #bit (u8) (i * 173 + 41)
+        input[i] = cast #bit (u8, (i * 173 + 41))
 
     var stream: Compress.BitStream
     stream.reset(input)
@@ -51,7 +51,7 @@ using Swag
             let byteIdx = (bitPos + b) >> 3
             let bitIdx  = (bitPos + b) & 7
             let bit     = (input[byteIdx] >> bitIdx) & 1
-            exp |= cast(u32) bit << b
+            exp |= cast(u32, bit) << b
         }
 
         if got != exp do
@@ -76,7 +76,7 @@ using Swag
 #test
 {
     let input: [3] u8 = [0xAA, 0xBB, 0xCC]
-    let start         = cast(const [*] u8) input.buffer
+    let start         = cast(const [*] u8, input.buffer)
 
     var stream: Compress.BitStream
     stream.reset(input)

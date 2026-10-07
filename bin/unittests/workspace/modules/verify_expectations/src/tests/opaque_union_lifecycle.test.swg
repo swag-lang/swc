@@ -57,7 +57,7 @@ using StaticApi
 
 #test
 {
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(OpaqueUnionLifecycleOwner)
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueUnionLifecycleOwner))
     Swag.assert(info.opDrop != null)
     Swag.assert(info.opPostCopy != null)
     Swag.assert(info.opPostMove != null)

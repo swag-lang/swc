@@ -72,7 +72,7 @@ func reference(values: [*] u64, rounds: u32)
             var actual, expected: [14] u64
             for i in 14
             {
-                actual[i]   = seed ^ (cast(u64) i * 0x123456789ABCDEF'u64)
+                actual[i]   = seed ^ (cast(u64, i) * 0x123456789ABCDEF'u64)
                 expected[i] = actual[i]
             }
             transform(&actual[0], rounds)

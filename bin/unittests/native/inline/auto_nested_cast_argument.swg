@@ -40,7 +40,7 @@ impl AutoInlineReceiver
 #[Swag.Safety(.Overflow, false)]
 func autoInlineInferredParameter(kind = AutoInlineArgumentKind.First)->u32
 {
-    return cast(u32) kind
+    return cast(u32, kind)
 }
 
 #[Swag.Inline]

@@ -18,7 +18,7 @@ func negated64(x: s64)->s64 => ~(x - 1)
 func keptDecrement(x: u32)->u64
 {
     let d = x - 1
-    return cast(u64) ~d + cast(u64) d
+    return cast(u64, ~d) + cast(u64, d)
 }
 
 #test

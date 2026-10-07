@@ -10,7 +10,7 @@ func isNamedStruct(type: typeinfo?, name: string?)->bool
     if not isStruct(type) do
         return false
 
-    let typeStruct = cast #assume(const *TypeInfoStruct) type!
+    let typeStruct = assume cast(const *TypeInfoStruct, type)
     return typeStruct.structName == name
 }
 
@@ -21,7 +21,7 @@ func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
     if not isStruct(type) do
         return null
 
-    let typeStruct = cast #assume(const *TypeInfoStruct) type!
+    let typeStruct = assume cast(const *TypeInfoStruct, type)
     for &it in typeStruct.methods where it.name == name do
         return it
     return null
@@ -34,7 +34,7 @@ func findField(type: typeinfo?, name: string?)->const *TypeValue?
     if not isStruct(type) do
         return null
 
-    let typeStruct = cast #assume(const *TypeInfoStruct) type!
+    let typeStruct = assume cast(const *TypeInfoStruct, type)
     for &it in typeStruct.fields where it.name == name do
         return it
     return null
@@ -59,7 +59,7 @@ func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void
     let fieldType = field.pointedType
     if not fieldType do
         return
-    Reflection.assign(destination, cast([*] u8) source + field.offset, fieldType)
+    Reflection.assign(destination, cast([*] u8, source) + field.offset, fieldType)
 }
 
 // Copies the value at `source` into `field` of the struct at `destination`.
@@ -74,7 +74,7 @@ func writeFieldValue(destination: *void?, field: const *TypeValue?, source: cons
     let fieldType = field.pointedType
     if not fieldType do
         return
-    Reflection.assign(cast([*] u8) destination + field.offset, source, fieldType)
+    Reflection.assign(cast([*] u8, destination) + field.offset, source, fieldType)
 }
 
 // Returns whether a struct type has the method `name`.
@@ -91,18 +91,18 @@ func canCompare(type: typeinfo?)->bool
     switch type.kind
     {
     case .Alias:
-        let typeAlias = cast #assume(const *TypeInfoAlias) type
+        let typeAlias = assume cast(const *TypeInfoAlias, type)
         return canCompare(typeAlias.rawType)
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) type
+        let typeEnum = assume cast(const *TypeInfoEnum, type)
         return canCompare(typeEnum.rawType)
 
     case .Pointer:
         return true
 
     case .Native:
-        let typeNative = cast #assume(const *TypeInfoNative) type
+        let typeNative = assume cast(const *TypeInfoNative, type)
         switch typeNative.nativeKind
         {
         case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String: return true
@@ -155,7 +155,7 @@ func hasInterface(type: typeinfo?, itf: typeinfo)->bool
     if not isStruct(type) do
         return false
 
-    let typeStruct = cast #assume(const *TypeInfoStruct) type!
+    let typeStruct = assume cast(const *TypeInfoStruct, type)
     for it in typeStruct.interfaces
     {
         // Compare with the canonical crc so a '?'-qualified interface type matches the

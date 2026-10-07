@@ -57,7 +57,7 @@ func semaTest001()
 {
     var undo:    UndoAction
     var redo:    RedoAction
-    let actions: [2] IAction = [cast(IAction) undo, cast(IAction) redo]
+    let actions: [2] IAction = [cast(IAction, undo), cast(IAction, redo)]
 
     discard actions[0].accept(1)
     discard actions[0].execute(2)
@@ -68,10 +68,10 @@ func semaTest001()
 func semaTest002()
 {
     var base: Base
-    base.itf = cast(IDispatch) base
+    base.itf = cast(IDispatch, base)
     discard dispatch(&base)
 
     var child: Child
-    child.itf = cast(IDispatch) child
+    child.itf = cast(IDispatch, child)
     discard dispatch(&child.base)
 }

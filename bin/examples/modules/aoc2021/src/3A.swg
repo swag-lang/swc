@@ -48,10 +48,10 @@ func day3A()
 
         var count = 0
         for l in lines do
-            count += cast(s32) (l[c] == '1')
+            count += cast(s32, (l[c] == '1'))
 
-        gamma   |= cast(s32) (count > lines.count / 2)
-        epsilon |= cast(s32) (count < lines.count / 2)
+        gamma   |= cast(s32, (count > lines.count / 2))
+        epsilon |= cast(s32, (count < lines.count / 2))
     }
 
     Swag.assert(gamma * epsilon == 2967914)

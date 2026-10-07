@@ -196,7 +196,7 @@ private func verifyNativeTestRecovery(context: *Context, options: *Options, buil
             }
             """, body.toString())
         let sourcePath = Path.combine(scratch.toString(), "recovery.swg")
-        try File.writeAllBytes(sourcePath.toString(), cast(const [..] u8) source.toString())
+        try File.writeAllBytes(sourcePath.toString(), cast(const [..] u8, source.toString()))
 
         var command: Arguments
         command.add(["test", "--file", sourcePath.toString(), "--build-cfg", buildCfg])
@@ -548,7 +548,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
 
     let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
     try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
-    try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8) "#main\n{\n}\n")
+    try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8, "#main\n{\n}\n"))
 
     var built = workspaceModuleCommand("build", scratch.toString(), "probe", buildCfg)
     options.appendExtra(&built)
@@ -599,7 +599,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
 
     let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
     try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
-    try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8) "#main\n{\n}\n")
+    try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8, "#main\n{\n}\n"))
 
     var built: Arguments
     built.add(["build", "--module-file", moduleFile.toString(), "--directory", "src"])
@@ -796,9 +796,9 @@ private func workspaceSourceRewrite(path, replacement: string)->String
             let path = #raw "%"
             let content = "%"
             let file = createFile(path.buffer, 0x40000000, 1, null, 2, 0, null)
-            Swag.assert(cast(u64) file != Swag.U64.Max)
+            Swag.assert(cast(u64, file) != Swag.U64.Max)
             var written: u32
-            let result = writeFile(file, content.buffer, cast(u32) content.count, &written, null)
+            let result = writeFile(file, content.buffer, cast(u32, content.count), &written, null)
             let closed = closeHandle(file)
             Swag.assert(result and closed and written == content.count)
         }
@@ -836,7 +836,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
             else do Swag.print("source-edit-value=2\n")
         }
         """)
-    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8) source.toString())
+    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8, source.toString()))
 
     var command = workspaceModuleCommand("run", scratch.toString(), "probe", buildCfg)
     options.appendExtra(&command)
@@ -865,7 +865,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     // module.swg as evidence for the configuration read from the source that replaced itself.
     var setupSource = workspaceSourceRewrite(modulePath.toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.name = \\\"after\\\" }\\n")
     setupSource.append("\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.name = \"before\"; rewriteSource() }\n")
-    try File.writeAllBytes(modulePath.toString(), cast(const [..] u8) setupSource.toString())
+    try File.writeAllBytes(modulePath.toString(), cast(const [..] u8, setupSource.toString()))
     try File.writeAllText(mainPath.toString(), "#main { }\n")
     for expected in ["before.exe", "after.exe"]
     {
@@ -886,8 +886,8 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     let providerSource    = Path.combine(providerModule.toString(), "src")
     for directory in [providerWorkspace, providerModules, providerModule, providerSource] do
         try Directory.create(directory.toString())
-    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"ReadApi\" }\n")
-    try File.writeAllBytes(Path.combine(providerSource.toString(), "value.swg").toString(), cast(const [..] u8) "public const Value = 1\n")
+    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"ReadApi\" }\n"))
+    try File.writeAllBytes(Path.combine(providerSource.toString(), "value.swg").toString(), cast(const [..] u8, "public const Value = 1\n"))
     var producer = workspaceModuleCommand("build", providerWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&producer)
     let providerOutput = try context.captureCompiler(producer)
@@ -900,7 +900,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
         #import("core", location: "swag@std")
         #run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
         """, dependencyRoot.toString())
-    try File.writeAllBytes(modulePath.toString(), cast(const [..] u8) consumerSetup.toString())
+    try File.writeAllBytes(modulePath.toString(), cast(const [..] u8, consumerSetup.toString()))
     var apiConsumer = workspaceSourceRewrite(apiPath.toString(), "#global namespace ReadApi\\n#global public\\nconst Value = 2\\n")
     apiConsumer.append(#raw """
 
@@ -911,7 +911,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
             else do Swag.print("api-edit-value=2\n")
         }
         """)
-    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8) apiConsumer.toString())
+    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8, apiConsumer.toString()))
     iteration = 0
     for expected in ["1", "2", "2"]
     {
@@ -942,7 +942,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
             else do Swag.print("api-membership=absent\n")
         }
         """, apiPath.toString())
-    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8) deletingConsumer.toString())
+    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8, deletingConsumer.toString()))
     iteration = 0
     for expected in ["present", "absent", "absent"]
     {
@@ -988,7 +988,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     }
 
     let providerSource = Path.combine(providerModule.toString(), "src", "value.swg")
-    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n")
+    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n"))
     try File.writeAllText(providerSource.toString(), "public func value()->s32 => 1\n")
     var producer = workspaceModuleCommand("build", providerWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&producer)
@@ -1008,8 +1008,8 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     let replacementSource    = Path.combine(replacementModule.toString(), "src")
     for directory in [replacementWorkspace, replacementModules, replacementModule, replacementSource] do
         try Directory.create(directory.toString())
-    try File.writeAllBytes(Path.combine(replacementModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n")
-    try File.writeAllBytes(Path.combine(replacementSource.toString(), "value.swg").toString(), cast(const [..] u8) "public func value()->s32 => 2\n")
+    try File.writeAllBytes(Path.combine(replacementModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n"))
+    try File.writeAllBytes(Path.combine(replacementSource.toString(), "value.swg").toString(), cast(const [..] u8, "public func value()->s32 => 2\n"))
     var replacement = workspaceModuleCommand("build", replacementWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&replacement)
     let replacementOutput = try context.captureCompiler(replacement)
@@ -1022,7 +1022,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
         return 1
     }
 
-    try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#import(\"core\", location: \"swag@std\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n")
+    try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#import(\"core\", location: \"swag@std\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n"))
     let writer     = workspaceNativePublisher(replacementNative.toString(), nativeOutput.toString())
     let writerPath = Path.combine(writerModule.toString(), "src", "main.swg")
     try File.writeAllText(writerPath.toString(), "public const Marker = 1\n")
@@ -1031,15 +1031,15 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
         #import("provider", location: "%", link: "shared-library")
         #run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
         """, dependencyRoot.toString())
-    try File.writeAllBytes(Path.combine(consumerModule.toString(), "module.swg").toString(), cast(const [..] u8) consumerSetup.toString())
-    try File.writeAllBytes(Path.combine(consumerModule.toString(), "src", "main.swg").toString(), cast(const [..] u8) #raw """
+    try File.writeAllBytes(Path.combine(consumerModule.toString(), "module.swg").toString(), cast(const [..] u8, consumerSetup.toString()))
+    try File.writeAllBytes(Path.combine(consumerModule.toString(), "src", "main.swg").toString(), cast(const [..] u8, #raw """
         const Captured = #run NativeReadApi.value()
         #main
         {
             if Captured == 1 do Swag.print("native-read-value=1\n")
             else do Swag.print("native-read-value=2\n")
         }
-        """)
+        """))
 
     var command = workspaceModuleCommand("run", consumerWorkspace.toString(), "consumer", buildCfg)
     options.appendExtra(&command)
@@ -1054,7 +1054,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
         }
     }
 
-    try File.writeAllBytes(writerPath.toString(), cast(const [..] u8) writer.toString())
+    try File.writeAllBytes(writerPath.toString(), cast(const [..] u8, writer.toString()))
     var iteration: u32
     for expected in ["1", "2", "2"]
     {

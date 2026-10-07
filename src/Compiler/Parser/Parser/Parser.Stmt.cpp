@@ -1152,6 +1152,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseLifecycleIntrinsic<AstNodeId::IntrinsicPostMove>();
 
         case TokenId::KwdExpect:
+        case TokenId::KwdAssume:
         case TokenId::KwdCatch:
         case TokenId::KwdTry:
             return parseErrorManagementStmt();
@@ -1162,6 +1163,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseDiscard();
 
         case TokenId::Identifier:
+        case TokenId::KwdCast:
         case TokenId::SymDot:
         case TokenId::SymLeftParen:
         case TokenId::KwdMe:

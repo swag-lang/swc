@@ -9,5 +9,5 @@ func semaTest001()
     #assert(#typeof(anded) == rune)
     #assert(#typeof(shifted) == rune)
     #assert(('A'rune & 0x7F) == 'A'rune)
-    #assert(('A'rune << 1) == cast(rune) 130'u32)
+    #assert(('A'rune << 1) == cast(rune, 130'u32))
 }

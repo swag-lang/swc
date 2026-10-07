@@ -63,7 +63,7 @@ func stackWriteInRange()->u8
 {
     var buffer: [8] u8
     for index in buffer.count do
-        buffer[index] = cast(u8) index
+        buffer[index] = cast(u8, index)
     return buffer[7]
 }
 

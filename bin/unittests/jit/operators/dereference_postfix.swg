@@ -45,7 +45,7 @@
     {
         var bits = 0xFFFF_FFFF'u32
         let p    = &bits
-        return (cast(const *s32) p)[]
+        return cast(const *s32, p)[]
     }
     const V = #run derefCastRead()
     #assert(V == -1)
@@ -57,7 +57,7 @@
     {
         var value = 0x0102_0304'u32
         let p     = &value
-        (cast(*u8) p)[] = 0xFF
+        cast(*u8, p)[] = 0xFF
         return value
     }
     const V = #run derefCastWrite()
@@ -72,7 +72,7 @@ struct DerefPlaceReceiver
 impl DerefPlaceReceiver
 {
     #[Swag.Implicit]
-    mtd opSet(value: string) { .seen = cast(s64) value.count }
+    mtd opSet(value: string) { .seen = cast(s64, value.count) }
 
     mtd record(value: s64) { .seen = value }
 }
@@ -82,8 +82,8 @@ impl DerefPlaceReceiver
     func derefCastMethodReceiver()->s64
     {
         var slot: DerefPlaceReceiver
-        let p = cast(*void) &slot
-        (cast(*DerefPlaceReceiver) p)[].record(11)
+        let p = cast(*void, &slot)
+        cast(*DerefPlaceReceiver, p)[].record(11)
         return slot.seen
     }
     const V = #run derefCastMethodReceiver()
@@ -95,8 +95,8 @@ impl DerefPlaceReceiver
     func derefCastOpSetReceiver()->s64
     {
         var slot: DerefPlaceReceiver
-        let p = cast(*void) &slot
-        (cast(*DerefPlaceReceiver) p)[] = "beta"
+        let p = cast(*void, &slot)
+        cast(*DerefPlaceReceiver, p)[] = "beta"
         return slot.seen
     }
     const V = #run derefCastOpSetReceiver()

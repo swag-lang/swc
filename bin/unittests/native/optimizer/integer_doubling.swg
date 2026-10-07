@@ -28,7 +28,7 @@ func checkedTwice(a: u64)->u64 => a + a
     {
         Swag.assert(twice64(a) == (a << 1))
         Swag.assert(keepOriginal(a) == ((a << 1) ^ a))
-        let a32 = cast(u32) (a & 0xFFFFFFFF)
+        let a32 = cast(u32, (a & 0xFFFFFFFF))
         Swag.assert(twice32(a32) == (a32 << 1))
         for b in values do
             Swag.assert(accumulateTwice(a, b) == ((a + b) << 1))

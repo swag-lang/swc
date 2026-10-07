@@ -120,7 +120,7 @@ internal impl Item
     // pages it keeps needs that order of magnitude.
     mtd const memoryUsage()->u64
     {
-        var result = cast(u64) #sizeof(Item)
+        var result = cast(u64, #sizeof(Item))
         result += .text.capacity
         result += .textCodes.capacity * #sizeof(u32)
         result += .textAdvances.capacity * #sizeof(f32)
@@ -206,13 +206,13 @@ internal impl Item
         if .maskImage.width != coverage.width or .maskImage.height != coverage.height do
             return
 
-        for y in cast(u64) .maskImage.height
+        for y in cast(u64, .maskImage.height)
         {
-            var target = .maskImage.pixels.storage() + y * cast(u64) .maskImage.rowStride
-            var source = coverage.pixels.storage() + y * cast(u64) coverage.rowStride
-            for cast(u64) .maskImage.width
+            var target = .maskImage.pixels.storage() + y * cast(u64, .maskImage.rowStride)
+            var source = coverage.pixels.storage() + y * cast(u64, coverage.rowStride)
+            for cast(u64, .maskImage.width)
             {
-                target[3] = cast(u8) ((cast(u32) target[3] * source[3]) / 255)
+                target[3] = cast(u8, ((cast(u32, target[3]) * source[3]) / 255))
                 target    += 4
                 source    += 4
             }

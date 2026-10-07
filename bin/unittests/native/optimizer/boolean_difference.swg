@@ -32,18 +32,18 @@ func expected(less, greater: bool)->s32
         for b in signed
         {
             Swag.assert(compare64(a, b) == expected(a < b, a > b))
-            let a32 = cast #wrap (s32) a
-            let b32 = cast #wrap (s32) b
+            let a32 = cast #wrap (s32, a)
+            let b32 = cast #wrap (s32, b)
             Swag.assert(compare32(a32, b32) == expected(a32 < b32, a32 > b32))
-            let au = cast #bit (u64) a
-            let bu = cast #bit (u64) b
+            let au = cast #bit (u64, a)
+            let bu = cast #bit (u64, b)
             Swag.assert(compareU64(au, bu) == expected(au < bu, au > bu))
-            let au32 = cast #wrap (u32) a
-            let bu32 = cast #wrap (u32) b
+            let au32 = cast #wrap (u32, a)
+            let bu32 = cast #wrap (u32, b)
             Swag.assert(compareU32(au32, bu32) == expected(au32 < bu32, au32 > bu32))
-            let a8 = cast #wrap (u8) a
-            let b8 = cast #wrap (u8) b
-            Swag.assert(compareU8(a8, b8) == cast(s64) expected(a8 < b8, a8 > b8))
+            let a8 = cast #wrap (u8, a)
+            let b8 = cast #wrap (u8, b)
+            Swag.assert(compareU8(a8, b8) == cast(s64, expected(a8 < b8, a8 > b8)))
         }
     }
 }

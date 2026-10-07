@@ -83,7 +83,7 @@ impl Task
 
 private func taskEntry(node: *WorkNode)
 {
-    let task = cast #assume (*Task) node
+    let task = assume cast (*Task, node)
     let body = task.body
     if not body do
         return
@@ -135,7 +135,7 @@ struct GroupChild
     body:       (func||())?     // The child's work.
 }
 
-private const GroupBlockCapacity = cast(u32) ((AllocatorHostCommitGranularity - BootstrapAllocationHeaderSize - 2 * #sizeof(u64)) / #sizeof(GroupChild))
+private const GroupBlockCapacity = cast(u32, ((AllocatorHostCommitGranularity - BootstrapAllocationHeaderSize - 2 * #sizeof(u64)) / #sizeof(GroupChild)))
 
 #[Swag.NoDoc]
 struct GroupBlock
@@ -208,7 +208,7 @@ impl TaskGroup
         while block
         {
             let next = block.next
-            __bootstrapFree(cast([*] void?) block)
+            __bootstrapFree(cast([*] void?, block))
             block = next
         }
 
@@ -280,7 +280,7 @@ impl TaskGroup
             return child
         }
 
-        let block = cast(*GroupBlock?) __bootstrapAlloc(#sizeof(GroupBlock))
+        let block = cast(*GroupBlock?, __bootstrapAlloc(#sizeof(GroupBlock)))
         if not block do
             Swag.panic("cannot allocate task group storage", #curlocation)
 
@@ -294,7 +294,7 @@ impl TaskGroup
 
 private func groupChildEntry(node: *WorkNode)
 {
-    let child = cast #assume (*GroupChild) node
+    let child = assume cast (*GroupChild, node)
     let body  = child.body
     if not body do
         return

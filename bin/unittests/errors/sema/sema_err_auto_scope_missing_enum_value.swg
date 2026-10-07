@@ -48,7 +48,7 @@ impl IShapePicker for Picker
 func useInterface(opponent: Shape)->Shape
 {
     var picker: Picker
-    let iface = cast(IShapePicker) picker
+    let iface = cast(IShapePicker, picker)
     return iface.pick(opponent)
 }
 

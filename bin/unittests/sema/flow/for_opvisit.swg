@@ -45,7 +45,7 @@ impl SemaBufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = idx)
+                #inject(stmt, item = cast(*s32, &(me.values[idx])), index = idx)
             }
         }
         else
@@ -110,9 +110,9 @@ impl SemaFieldPointerVisits
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(*s32, &(me.first)), index = 0'u64)
+            #inject(stmt, item = cast(*s32, &(me.second)), index = 1'u64)
+            #inject(stmt, item = cast(*s32, &(me.third)), index = 2'u64)
         }
         else
         {
@@ -177,7 +177,7 @@ impl SemaConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = idx)
+                #inject(stmt, item = cast(const *s32, &(me.values[idx])), index = idx)
             }
         }
         else

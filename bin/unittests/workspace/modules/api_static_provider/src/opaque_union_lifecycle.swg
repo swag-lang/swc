@@ -110,7 +110,7 @@ private union(T) OpaqueUnionLifecycleGeneric
 #[Swag.NoInline]
 func opaqueUnionLifecycleGenericControl()->bool
 {
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(OpaqueUnionLifecycleGeneric'OpaqueUnionLifecyclePayload)
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueUnionLifecycleGeneric'OpaqueUnionLifecyclePayload))
     if info.opDrop == null or info.opPostCopy == null or info.opPostMove == null do
         return false
 

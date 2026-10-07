@@ -524,7 +524,7 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
     else if (const auto* autoCast = view.node()->safeCast<AstAutoCastExpr>())
         sourceRef = autoCast->nodeExprRef;
     SemaNodeView    sourceView     = sema.viewTypeConstant(sourceRef);
-    TypeRef        sourceTypeRef  = SemaHelpers::aliasEnumType(sema, sourceView).typeRef();
+    TypeRef         sourceTypeRef  = SemaHelpers::aliasEnumType(sema, sourceView).typeRef();
     const TypeInfo* targetTypeInfo = &sema.typeMgr().get(dstTypeRef);
     if (const TypeInfo* unwrappedType = targetTypeInfo->unwrapAliasEnumType(sema.ctx()))
         targetTypeInfo = unwrappedType;
@@ -664,12 +664,12 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
     auto& payload              = SemaHelpers::ensureCodeGenLoweringPayload(sema, view.nodeRef());
     payload.dynamicCast        = true;
     payload.assumedDynamicCast = assumeCast;
-    if (assumeCast)
-        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, view.nodeRef(), Runtime::SafetyWhat::DynCast, sema.node(view.nodeRef()).codeRef()));
+    if (assumeCast && !flags.has(CastFlagsE::Fallible))
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, view.nodeRef(), Runtime::SafetyWhat::Assume, sema.node(view.nodeRef()).codeRef()));
     SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, view.nodeRef(), IdentifierManager::RuntimeFunctionKind::DynamicCast, sema.node(view.nodeRef()).codeRef()));
     if (targetType.isInterface())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, view.nodeRef(), sema.node(view.nodeRef()), dstTypeRef, "__dynamic_cast_storage"));
-    else if (assumeCast && resultType.isNullable() && sourceInfo.kind == DynamicStructCastSourceKind::Any && payload.hasRuntimeSafety(Runtime::SafetyWhat::DynCast))
+    else if (assumeCast && resultType.isNullable() && sourceInfo.kind == DynamicStructCastSourceKind::Any && payload.hasDynamicCastCheck())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, view.nodeRef(), sema.node(view.nodeRef()), sema.typeMgr().typeBool(), "__dynamic_cast_null_match"));
     view.recompute(sema);
     return Result::Continue;

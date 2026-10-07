@@ -42,7 +42,7 @@ using Core, Core.Errors, Pixel
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
 
-    var expectedSync = cast(u64) decoder.video.hevc.sampleAtRank[47]
+    var expectedSync = cast(u64, decoder.video.hevc.sampleAtRank[47])
     while expectedSync > 0 and decoder.video.hevc.syncFlags[expectedSync] == 0 do
         expectedSync -= 1
     decoder.video.hevc.seekTo(47)
@@ -111,8 +111,8 @@ using Core, Core.Errors, Pixel
     {
         for x in 32's32
         {
-            reference0.lumaAtMutable(x, y)[0] = cast(u16) (x + y)
-            reference1.lumaAtMutable(x, y)[0] = cast(u16) (100 + 2 * x + y)
+            reference0.lumaAtMutable(x, y)[0] = cast(u16, (x + y))
+            reference1.lumaAtMutable(x, y)[0] = cast(u16, (100 + 2 * x + y))
         }
     }
 
@@ -120,10 +120,10 @@ using Core, Core.Errors, Pixel
     {
         for x in 16's32
         {
-            reference0.chromaAtMutable(0, x, y)[0] = cast(u16) (20 + x + y)
-            reference1.chromaAtMutable(0, x, y)[0] = cast(u16) (60 + 2 * x + y)
-            reference0.chromaAtMutable(1, x, y)[0] = cast(u16) (40 + x + y)
-            reference1.chromaAtMutable(1, x, y)[0] = cast(u16) (80 + 2 * x + y)
+            reference0.chromaAtMutable(0, x, y)[0] = cast(u16, (20 + x + y))
+            reference1.chromaAtMutable(0, x, y)[0] = cast(u16, (60 + 2 * x + y))
+            reference0.chromaAtMutable(1, x, y)[0] = cast(u16, (40 + x + y))
+            reference1.chromaAtMutable(1, x, y)[0] = cast(u16, (80 + 2 * x + y))
         }
     }
 
@@ -157,7 +157,7 @@ using Core, Core.Errors, Pixel
         for x in 32's32
         {
             let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
-            Swag.assert(picture.luma[cast(u64) y * cast(u64) picture.strideLuma + cast(u64) x] == cast(u8) ((reconstructed + 2) >> 2))
+            Swag.assert(picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)] == cast(u8, ((reconstructed + 2) >> 2)))
         }
     }
 
@@ -167,9 +167,9 @@ using Core, Core.Errors, Pixel
         {
             let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
             let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
-            let index = cast(u64) y * cast(u64) picture.strideChroma + cast(u64) x
-            Swag.assert(picture.chromaB[index] == cast(u8) ((blue + 2) >> 2))
-            Swag.assert(picture.chromaR[index] == cast(u8) ((red + 2) >> 2))
+            let index = cast(u64, y) * cast(u64, picture.strideChroma) + cast(u64, x)
+            Swag.assert(picture.chromaB[index] == cast(u8, ((blue + 2) >> 2)))
+            Swag.assert(picture.chromaR[index] == cast(u8, ((red + 2) >> 2)))
         }
     }
 }
@@ -196,7 +196,7 @@ using Core, Core.Errors, Pixel
         for y in 64'u64
         {
             for x in 96'u64 do
-                Swag.assert(frame.luma[y * cast(u64) frame.strideLuma + x] == bytes[rank * frameSize + y * 96 + x])
+                Swag.assert(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
         }
     }
 
@@ -206,6 +206,6 @@ using Core, Core.Errors, Pixel
     for y in 64'u64
     {
         for x in 96'u64 do
-            Swag.assert(early.luma[y * cast(u64) early.strideLuma + x] == bytes[y * 96 + x])
+            Swag.assert(early.luma[y * cast(u64, early.strideLuma) + x] == bytes[y * 96 + x])
     }
 }

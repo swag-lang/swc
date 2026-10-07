@@ -47,7 +47,7 @@ func localScaled(value: u64)->u64 => localHandle(value) * 3
 func localRelease(handle: u64)->u64 fail
 {
     let native = localHandle(handle)
-    if native == cast #bit (u64) -1 do
+    if native == cast #bit (u64, -1) do
         fail LocalCleanupError{base: Swag.BaseError{"cleanup"}, code: 1}
     return native
 }

@@ -30,5 +30,5 @@ func registerSubtitleStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'SubtitleStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'SubtitleStrings(cast(string, FrenchStrings))
 }

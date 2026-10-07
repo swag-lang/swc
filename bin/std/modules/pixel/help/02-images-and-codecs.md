@@ -35,7 +35,7 @@ var reader = try ImageReader.load("animation.webp")
 for index in reader.info.frames.count
 {
     let description = &reader.info.frames[index]
-    var image = try reader.read(cast(u32) index)
+    var image = try reader.read(cast(u32, index))
     // Animation clients display this canvas for description.durationSeconds.
 }
 ```

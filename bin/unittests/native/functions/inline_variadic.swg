@@ -10,7 +10,7 @@ func inlineTypedVariadicSum(base: s32, values: s32...)->s32
     {
         sum0 += v
     }
-    return sum0 + cast(s32) values.count
+    return sum0 + cast(s32, values.count)
 }
 
 #[Swag.Inline]
@@ -38,14 +38,14 @@ func inlineUntypedVariadicScore(values: ...)->s32
         switch Swag.kindOf(v)
         {
         case s32:
-            sum2 += cast #assume(s32) v
+            sum2 += assume cast(s32, v)
         case bool:
-            if cast #assume(bool) v
+            if assume cast(bool, v)
             {
                 sum2 += 10
             }
         case string:
-            sum2 += (cast #assume (string) v)[0]
+            sum2 += assume cast (string, v)[0]
         }
     }
 
@@ -55,7 +55,7 @@ func inlineUntypedVariadicScore(values: ...)->s32
 #[Swag.Inline]
 func inlineUntypedVariadicHead(head: s32, values: ...)->s32
 {
-    return head + cast(s32) values.count
+    return head + cast(s32, values.count)
 }
 
 func inlineTypedVariadicLiteralForward()->s32

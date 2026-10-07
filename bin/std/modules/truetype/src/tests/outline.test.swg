@@ -92,7 +92,7 @@ using Swag, Core
     let sampleBeforeX = samplePts[sampleIdx].x
     let sampleBeforeY = samplePts[sampleIdx].y
     face.glyph.oblique()
-    Swag.assert(samplePts[sampleIdx].x == sampleBeforeX + cast(s32) Math.round(sampleBeforeY * 0.21256))
+    Swag.assert(samplePts[sampleIdx].x == sampleBeforeX + cast(s32, Math.round(sampleBeforeY * 0.21256)))
 }
 
 // A 3/64-pixel embolden of this captured contour lies on a half-integer boundary.

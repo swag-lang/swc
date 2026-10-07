@@ -16,10 +16,10 @@ func vp8Filter2(pixels: [*] u8, level, index, iStep, jStep: s32)
     var offset = index
     for 16
     {
-        let p1 = cast(s32) pixels[offset - 2 * jStep]
-        let p0 = cast(s32) pixels[offset - 1 * jStep]
-        let q0 = cast(s32) pixels[offset]
-        let q1 = cast(s32) pixels[offset + 1 * jStep]
+        let p1 = cast(s32, pixels[offset - 2 * jStep])
+        let p0 = cast(s32, pixels[offset - 1 * jStep])
+        let q0 = cast(s32, pixels[offset])
+        let q1 = cast(s32, pixels[offset + 1 * jStep])
         if 2 * vp8Abs(p0 - q0) + vp8Abs(p1 - q1) / 2 <= level
         {
             let a  = 3 * (q0 - p0) + vp8Clamp127(p1 - q1)
@@ -38,14 +38,14 @@ func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jS
     var offset = index
     for count
     {
-        let p3 = cast(s32) pixels[offset - 4 * jStep]
-        let p2 = cast(s32) pixels[offset - 3 * jStep]
-        let p1 = cast(s32) pixels[offset - 2 * jStep]
-        let p0 = cast(s32) pixels[offset - 1 * jStep]
-        let q0 = cast(s32) pixels[offset]
-        let q1 = cast(s32) pixels[offset + 1 * jStep]
-        let q2 = cast(s32) pixels[offset + 2 * jStep]
-        let q3 = cast(s32) pixels[offset + 3 * jStep]
+        let p3 = cast(s32, pixels[offset - 4 * jStep])
+        let p2 = cast(s32, pixels[offset - 3 * jStep])
+        let p1 = cast(s32, pixels[offset - 2 * jStep])
+        let p0 = cast(s32, pixels[offset - 1 * jStep])
+        let q0 = cast(s32, pixels[offset])
+        let q1 = cast(s32, pixels[offset + 1 * jStep])
+        let q2 = cast(s32, pixels[offset + 2 * jStep])
+        let q3 = cast(s32, pixels[offset + 3 * jStep])
         if 2 * vp8Abs(p0 - q0) + vp8Abs(p1 - q1) / 2 > level or
            vp8Abs(p3 - p2) > iLevel or
            vp8Abs(p2 - p1) > iLevel or
@@ -99,7 +99,7 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
 {
     for segment in VP8_SEGMENTS
     {
-        var baseLevel = cast(s32) decoder.filterHeader.level
+        var baseLevel = cast(s32, decoder.filterHeader.level)
         if decoder.segmentHeader.useSegment
         {
             baseLevel = decoder.segmentHeader.filterStrength[segment]
@@ -134,8 +134,8 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
             }
 
             iLevel = Math.max(iLevel, 1)
-            parameter.iLevel = cast(u8) iLevel
-            parameter.level  = cast(u8) (2 * level + iLevel)
+            parameter.iLevel = cast(u8, iLevel)
+            parameter.level  = cast(u8, (2 * level + iLevel))
             parameter.hLevel = level < 15 ? 0 : (level < 40 ? 1 : 2)
         }
     }
@@ -143,7 +143,7 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
 
 func vp8SimpleFilter(decoder: *Vp8Decoder)
 {
-    let yData = cast([*] u8) decoder.y.storage()
+    let yData = cast([*] u8, decoder.y.storage())
     for mbY in decoder.mbHeight
     {
         for mbX in decoder.mbWidth
@@ -151,7 +151,7 @@ func vp8SimpleFilter(decoder: *Vp8Decoder)
             let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
             if not parameter.level do
                 continue
-            let level  = cast(s32) parameter.level
+            let level  = cast(s32, parameter.level)
             let offset = (mbY * decoder.yStride + mbX) * 16
             if mbX do
                 vp8Filter2(yData, level + 4, offset, decoder.yStride, 1)
@@ -176,9 +176,9 @@ func vp8SimpleFilter(decoder: *Vp8Decoder)
 
 func vp8NormalFilter(decoder: *Vp8Decoder)
 {
-    let yData  = cast([*] u8) decoder.y.storage()
-    let cbData = cast([*] u8) decoder.cb.storage()
-    let crData = cast([*] u8) decoder.cr.storage()
+    let yData  = cast([*] u8, decoder.y.storage())
+    let cbData = cast([*] u8, decoder.cb.storage())
+    let crData = cast([*] u8, decoder.cr.storage())
     for mbY in decoder.mbHeight
     {
         for mbX in decoder.mbWidth
@@ -186,9 +186,9 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
             let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
             if not parameter.level do
                 continue
-            let level   = cast(s32) parameter.level
-            let iLevel  = cast(s32) parameter.iLevel
-            let hLevel  = cast(s32) parameter.hLevel
+            let level   = cast(s32, parameter.level)
+            let iLevel  = cast(s32, parameter.iLevel)
+            let hLevel  = cast(s32, parameter.hLevel)
             let yOffset = (mbY * decoder.yStride + mbX) * 16
             let cOffset = (mbY * decoder.cStride + mbX) * 8
             if mbX

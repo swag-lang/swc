@@ -14,7 +14,7 @@ func offset(p: [*]s16, i: u64)->s64 => p[i + 65]
 func shared(p: [*]s16, i: u64)->s64
 {
     let value = p[i]
-    return cast(s64) value + cast(s64) (value < 0 ? -1 : 1)
+    return cast(s64, value) + cast(s64, (value < 0 ? -1 : 1))
 }
 #[Swag.NoInline]
 func stored(p: [*]s16, i: u64)->s64
@@ -44,7 +44,7 @@ func sum(p: [*]s8, count: u64)->s64
         Swag.assert(word32(&words[0], i) == words[i])
         displaced[i + 65] = words[i]
         Swag.assert(offset(&displaced[0], i) == words[i])
-        Swag.assert(shared(&words[0], i) == cast(s64) words[i] + (words[i] < 0 ? -1 : 1))
+        Swag.assert(shared(&words[0], i) == cast(s64, words[i]) + (words[i] < 0 ? -1 : 1))
         let before = words[i]
         Swag.assert(stored(&words[0], i) == before)
         Swag.assert(words[i] == 19)

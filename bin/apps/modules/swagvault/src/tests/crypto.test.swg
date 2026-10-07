@@ -7,7 +7,7 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     var result: retval
     for i in Crypto.MasterKeySize do
-        result[i] = cast(u8) ((i * 7 + seed) & 0xFF)
+        result[i] = cast(u8, ((i * 7 + seed) & 0xFF))
     return result
 }
 
@@ -95,8 +95,8 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     // A key slot wraps the master key under the key derived once for the whole
     // slot area. Wrapped bytes never repeat because each slot draws a fresh nonce.
     let master        = testMasterKey(5)
-    let password      = cast(const [..] u8) "slot password"
-    let wrongPassword = cast(const [..] u8) "slot passwore"
+    let password      = cast(const [..] u8, "slot password")
+    let wrongPassword = cast(const [..] u8, "slot passwore")
     let salt: [Crypto.SaltSize] u8 = [11]
     var slotKey       = expect Crypto.deriveSlotKey(password, salt)
     var wrongSlotKey  = expect Crypto.deriveSlotKey(wrongPassword, salt)
@@ -147,8 +147,8 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     // Version 1 uses one fixed KDF profile. Derivation is reproducible and both
     // the password and the common salt contribute to the resulting key.
-    let password = cast(const [..] u8) "profiles"
-    let differentPassword = cast(const [..] u8) "profilet"
+    let password = cast(const [..] u8, "profiles")
+    let differentPassword = cast(const [..] u8, "profilet")
     let salt: [Crypto.SaltSize] u8 = [17]
     let differentSalt: [Crypto.SaltSize] u8 = [18]
 

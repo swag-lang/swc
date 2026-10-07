@@ -74,13 +74,13 @@ impl ReversedHashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &table[tableIndex].key, value = cast(*V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &table[tableIndex].key), value = cast(*V, &table[tableIndex].value), break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }
@@ -105,10 +105,10 @@ impl HashTable
     }
 
     #[Swag.NoDoc]
-    mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V)) 1'u64
+    mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
 
     #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashTableEntry => cast(const [*] HashTableEntry'(K, V)) (.table orelse cast([*] HashTableEntry'(K, V)) 1'u64)
+    mtd const constTablePtr()->const [*] HashTableEntry => cast(const [*] HashTableEntry'(K, V), (.table orelse cast([*] HashTableEntry'(K, V), 1'u64)))
 
     // Returns the number of key-value pairs in the table.
     #[Inline]
@@ -151,7 +151,7 @@ impl HashTable
                 .allocator = Swag.getContext().allocator
 
             let oldTable = .tablePtr()
-            let newTable = cast([*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
+            let newTable = cast([*] HashTableEntry'(K, V), Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator))
             #static if Reflection.hasDynamicStorage(HashTableEntry'(K, V)) do
                 Swag.init(newTable, .capacity)
             else do
@@ -216,13 +216,13 @@ impl HashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &table[tableIndex].key, value = cast(*V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &table[tableIndex].key), value = cast(*V, &table[tableIndex].value), break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = table[tableIndex].value, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V) &table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }
@@ -301,7 +301,7 @@ impl HashTable
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        .table = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashTableEntry'(K, V), Memory.alloc(newCapacityBytes, .allocator))
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.
@@ -314,7 +314,7 @@ impl HashTable
         let oldCapacity = .capacity
         .capacity      = reqCapacity
         .growThreshold = reqCapacity / 2
-        let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V)) 1'u64
+        let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V), 1'u64)
         for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
@@ -420,7 +420,7 @@ impl HashTable
         }
 
         let hashVal = hashKey(key)
-        var index   = cast(u64) hashVal & (.capacity - 1)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
         let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
@@ -459,7 +459,7 @@ impl HashTable
     {
         .grow()
 
-        var index = cast(u64) hashVal & (.capacity - 1)
+        var index = cast(u64, hashVal) & (.capacity - 1)
         let table = .tablePtr()
 
         index = .getNewIndex(key[], index, hashVal)
@@ -501,7 +501,7 @@ impl HashTable
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
+        var index   = cast(u64, hashVal) & mask
         let table   = .tablePtr()
 
         while table[index].hash
@@ -526,7 +526,7 @@ impl HashTable
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
+        var index   = cast(u64, hashVal) & mask
         let table   = .constTablePtr()
 
         while table[index].hash
@@ -547,7 +547,7 @@ impl HashTable
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
+        var index   = cast(u64, hashVal) & mask
         let table   = .tablePtr()
 
         // Read each slot hash once, and test the match before the end of chain: a lookup walks
@@ -577,7 +577,7 @@ impl HashTable
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
+        var index   = cast(u64, hashVal) & mask
         let table   = .constTablePtr()
 
         while table[index].hash
@@ -642,7 +642,7 @@ impl HashTable
         }
 
         let hashVal = hashKey(key)
-        var index   = cast(u64) hashVal & (.capacity - 1)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
         let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)

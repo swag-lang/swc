@@ -48,12 +48,12 @@ func makeLegacyImage()->LegacyImage
     result.pf     = .BGRA8
     result.bpp    = 32
     result.bpp8   = 4
-    result.size   = cast(u64) (result.width8 * result.height)
+    result.size   = cast(u64, (result.width8 * result.height))
 
     // A recognizable ramp, so a stride or format mistake shows up as wrong bytes rather
     // than as a plausible-looking image.
     for i in result.size do
-        result.pixels.add(cast(u8) (i * 7))
+        result.pixels.add(cast(u8, (i * 7)))
 
     var meta: LegacyImageMetaData
     meta.sig = 0xCAFE
@@ -86,7 +86,7 @@ func makeLegacyImage()->LegacyImage
     Swag.assert(decoded.isValid())
 
     for i in decoded.byteCount do
-        Swag.assert(decoded.pixels.storage()[i] == cast(u8) (i * 7))
+        Swag.assert(decoded.pixels.storage()[i] == cast(u8, (i * 7)))
 
     Swag.assert(decoded.metadata.count == 1)
     Swag.assert(decoded.metadata[0].signature == 0xCAFE)

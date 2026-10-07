@@ -16,7 +16,6 @@ enum class FormatRoleE : uint64_t
     Zero                = 0,
     CallOpenParen       = 1ULL << 0,  // `(` opening a call argument list
     DeclOpenParen       = 1ULL << 1,  // `(` opening a parameter list (func decl, lambda, attr decl)
-    CastCloseParen      = 1ULL << 2,  // `)` closing a `cast(...)` type list
     DeclColon           = 1ULL << 3,  // `:` between a declaration name and its type
     BaseClauseColon     = 1ULL << 4,  // `:` introducing an underlying type (`enum E: u32`)
     CaseColon           = 1ULL << 5,  // `:` after `case X` / `default`

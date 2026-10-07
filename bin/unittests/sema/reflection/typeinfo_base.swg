@@ -4,13 +4,13 @@
 #assert(s32 != u32)
 #assert(not (s8 == s32))
 
-#assert((cast(const *Swag.TypeInfo) #typeof(f32)).name == "f32")
-#assert((cast(typeinfo) #typeof(f32)).name == "f32")
+#assert(cast(const *Swag.TypeInfo, #typeof(f32)).name == "f32")
+#assert(cast(typeinfo, #typeof(f32)).name == "f32")
 
-#assert((cast #assume(const *Swag.TypeInfoPointer) #typeof(*f32)).pointedType.name == "f32")
+#assert(assume cast(const *Swag.TypeInfoPointer, #typeof(*f32)).pointedType.name == "f32")
 
 struct A { R, G, B: s32 }
-#assert(((cast #assume(const *Swag.TypeInfoStruct) #typeof(A)).fields).count == 3)
+#assert((assume cast(const *Swag.TypeInfoStruct, #typeof(A)).fields).count == 3)
 
 func semaTest001()
 {
@@ -28,7 +28,7 @@ func semaTest001()
     #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)
 }
 
-const PA = cast #assume(const *Swag.TypeInfoStruct) #typeof(A)
+const PA = assume cast(const *Swag.TypeInfoStruct, #typeof(A))
 #assert(PA.fields[0].name == "R")
 #assert(PA.fields[1].name == "G")
 #assert(PA.fields[2].name == "B")
@@ -46,7 +46,7 @@ func semaTest002()
 func semaTest003()
 {
     var a: typeinfo = #typeof(*f32)
-    var b = cast #assume(const *Swag.TypeInfoPointer) (a)
+    var b = assume cast(const *Swag.TypeInfoPointer, (a))
     var c = b.pointedType == f32
 }
 
@@ -69,7 +69,7 @@ func semaTest004()
 func semaTest005()
 {
     const p = #typeof(*s32)
-    #assert((cast #assume(const *Swag.TypeInfoPointer) p).pointedType == s32)
+    #assert(assume cast(const *Swag.TypeInfoPointer, p).pointedType == s32)
 }
 
 #[Swag.ConstExpr]
@@ -89,5 +89,5 @@ func switchFieldTypeHit()->bool
 func semaTest006()
 {
     const t = #typeof(A)
-    #assert((cast(const *Swag.TypeInfo) t).name == "A")
+    #assert(cast(const *Swag.TypeInfo, t).name == "A")
 }

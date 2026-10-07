@@ -213,5 +213,5 @@ func inlineTakeBool(value: bool)->bool => value
     Swag.assert(inlineTakeS32(inlineSeedS32() + 1) == 42)
     Swag.assert(inlineTakeBool(inlineSeedS32() == 41))
     Swag.assert(inlineTakeS32(inlineArraySeed()[1]) == 42)
-    Swag.assert(inlineTakeS32(cast(s32) inlineAddU32(40, 2)) == 42)
+    Swag.assert(inlineTakeS32(cast(s32, inlineAddU32(40, 2))) == 42)
 }

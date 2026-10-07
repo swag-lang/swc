@@ -39,8 +39,8 @@ func regularPolygon(sides: u32, radius: f64)->ClipperPath
 
     for i in sides
     {
-        let angle = ConstF64.TwoPi * cast(f64) i / cast(f64) sides
-        result.add(IntPoint{cast(s64) (radius * Math.cos(angle)), cast(s64) (radius * Math.sin(angle))})
+        let angle = ConstF64.TwoPi * cast(f64, i) / cast(f64, sides)
+        result.add(IntPoint{cast(s64, (radius * Math.cos(angle))), cast(s64, (radius * Math.sin(angle)))})
     }
 
     return result
@@ -82,11 +82,11 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
 
     let contour   = regularPolygon(Sides, Radius)
     let area      = Math.abs(contourArea(contour))
-    let perimeter = 2.0 * cast(f64) Sides * Radius * Math.sin(ConstF64.Pi / cast(f64) Sides)
+    let perimeter = 2.0 * cast(f64, Sides) * Radius * Math.sin(ConstF64.Pi / cast(f64, Sides))
 
     for delta in [20_000.0'f64, 60_000.0]
     {
-        let cornerTerm = cast(f64) Sides * delta * delta * Math.tan(ConstF64.Pi / cast(f64) Sides)
+        let cornerTerm = cast(f64, Sides) * delta * delta * Math.tan(ConstF64.Pi / cast(f64, Sides))
 
         let round = offsetArea(contour, delta, .Round)
         Swag.assert(round.contours == 1)

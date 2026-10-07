@@ -557,7 +557,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.markdown", &g_MarkdownViewerSettings)
         if evt.serializer.isReading()
         {
-            .themeIndex     = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
+            .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
             .recentPaneSize = Math.max(.recentPaneSize, ViewerPaneMinSize)
             if not .filePanel.items.isEmpty() do
                 .filePanel.items[0]!.size = .recentPaneSize
@@ -567,7 +567,7 @@ impl IWnd for ViewerWindow
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(not .folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
-            if cast(u32) .playMode > cast(u32) Viewer.PlayMode.Shuffle do
+            if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle) do
                 .playMode = .Once
             .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
             g_VideoSubtitleSettings.delay        = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
@@ -587,7 +587,7 @@ impl IWnd for ViewerWindow
         elif evt.kind == .ThemeChanged
         {
             for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
-                (cast #assume(*ViewerErrorView) instance.view).refreshTheme()
+                assume cast(*ViewerErrorView, instance.view).refreshTheme()
             if .panelVisible and not .currentFile.isEmpty() do
                 .refreshFileLists()
             .refreshArtwork()
@@ -632,8 +632,8 @@ impl ViewerWindow
 
     mtd applyTheme(index: u32)
     {
-        .themeIndex = Math.min(index, cast(u32) AppearanceTheme.Dark)
-        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme) .themeIndex)
+        .themeIndex = Math.min(index, cast(u32, AppearanceTheme.Dark))
+        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 
     mtd applyLanguage()
@@ -806,7 +806,7 @@ impl ViewerWindow
         .appearanceButton = AppearanceButton.create(.surface!, "scope.appearance")
         .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
-            window.themeIndex = cast(u32) button.appearanceTheme
+            window.themeIndex = cast(u32, button.appearanceTheme)
             catch window.saveState()
         }
 
@@ -1544,7 +1544,7 @@ impl ViewerWindow
             var selected = Swag.U32.Max
             for choice, index in .choices where choice.key == key
             {
-                selected = cast(u32) index
+                selected = cast(u32, index)
                 break
             }
 
@@ -1577,8 +1577,8 @@ impl ViewerWindow
             return
         }
 
-        let loading  = instance.view and instance.isLoading and instance.isLoading(instance.view)
-        let blocking = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay(instance.view!)
+        let loading  = instance.view and instance.isLoading and instance.isLoading()
+        let blocking = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay()
 
         // Streaming text already has a presentable first chunk while it continues reading. Keep
         // it visible for a bounded interval so late errors cross the viewer contract; only a
@@ -1800,7 +1800,7 @@ impl ViewerWindow
         let instance = &.instances[.activeChoiceIndex]
         if not instance.view or (expected and instance.view != expected) do
             return
-        if instance.needsLoadingOverlay and instance.needsLoadingOverlay(instance.view) do
+        if instance.needsLoadingOverlay and instance.needsLoadingOverlay() do
             return
 
         .discardOutgoingViewer()
@@ -1877,7 +1877,7 @@ impl ViewerWindow
         if .activeChoiceIndex == nextIndex or .activeChoiceIndex >= .instances.count do
             return true
         let instance = &.instances[.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
+        if not instance.view or not instance.isLoading or not instance.isLoading() do
             return true
 
         if not instance.retireView() do
@@ -1927,8 +1927,8 @@ impl ViewerWindow
         if not loading and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
-            loading     = instance.view and instance.isLoading and instance.isLoading(instance.view)
-            wantOverlay = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay(instance.view!)
+            loading     = instance.view and instance.isLoading and instance.isLoading()
+            wantOverlay = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay()
         }
 
         let now = Time.monotonicMicroseconds()
@@ -2045,7 +2045,7 @@ impl ViewerWindow
         if not next.failureReason.isEmpty()
         {
             if next.view and next.retire do
-                discard next.retire(next.view)
+                discard next.retire()
             let reason = #move next.failureReason
             next.destroyWindows()
             next      = {}
@@ -2062,7 +2062,7 @@ impl ViewerWindow
         if not .retireActiveLoadingChoice(index)
         {
             if next.retire do
-                discard next.retire(next.view)
+                discard next.retire()
             next.destroyWindows()
             return false
         }
@@ -2201,7 +2201,7 @@ impl ViewerWindow
             if instance.view and instance.prepareSearch
             {
                 var plan: Viewer.SearchPlan
-                return instance.prepareSearch(instance.view, edit.text(), &plan)
+                return instance.prepareSearch(edit.text(), &plan)
             }
         }
 
@@ -2216,7 +2216,7 @@ impl ViewerWindow
         {
             let instance = &.instances[.activeChoiceIndex]
             if instance.view and instance.describeSearch do
-                instance.describeSearch(instance.view, &presentation)
+                instance.describeSearch(&presentation)
         }
 
         if not presentation.canFilter do
@@ -2292,7 +2292,7 @@ impl ViewerWindow
                 options.expression = &expression
             }
 
-            instance.filterSearch(instance.view, .searchQuery.toString(), options)
+            instance.filterSearch(.searchQuery.toString(), options)
             .searchComplete = true
             .refreshSearchReadout()
             return
@@ -2302,7 +2302,7 @@ impl ViewerWindow
         // occurrences in it. An empty filter is also delivered above, so clearing the field is an
         // immediate return to the unfiltered tree.
         if instance.filterSearch and instance.view do
-            instance.filterSearch(instance.view, "", .searchOptions())
+            instance.filterSearch("", .searchOptions())
 
         if .searchQuery.isEmpty() do
             return
@@ -2327,7 +2327,7 @@ impl ViewerWindow
         if instance.prepareSearch and instance.view
         {
             var plan: Viewer.SearchPlan
-            let state = instance.prepareSearch(instance.view, .searchQuery.toString(), &plan)
+            let state = instance.prepareSearch(.searchQuery.toString(), &plan)
             if state != .Valid
             {
                 .searchComplete = true
@@ -2341,7 +2341,7 @@ impl ViewerWindow
         }
 
         if instance.useSearchMatches and instance.view do
-            instance.useSearchMatches(instance.view, &.searchMatches)
+            instance.useSearchMatches(&.searchMatches)
 
         .beginSearch()
     }
@@ -2365,7 +2365,7 @@ impl ViewerWindow
             options.expression = &expression
         }
 
-        let complete = instance.collectMatches!(instance.view!, .searchQuery.toString(), options, &.searchProgress, &.searchMatches)
+        let complete = instance.collectMatches!(.searchQuery.toString(), options, &.searchProgress, &.searchMatches)
         if not complete and not .searchSelectLast and .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
         {
             .searchIndex = 0
@@ -2471,7 +2471,7 @@ impl ViewerWindow
             .searchBox.setFocus()
 
         let match = .searchMatches[.searchIndex]
-        if not instance.revealMatch(instance.view, match, .searchQuery.toString()) do
+        if not instance.revealMatch(match, .searchQuery.toString()) do
             return
         .searchMatch = match.offset
         .refreshSearchReadout()
@@ -2494,7 +2494,7 @@ impl ViewerWindow
         }
 
         var bounds: Math.Rectangle
-        if instance.searchBounds(instance.view, .searchMatches[.searchIndex], &bounds)
+        if instance.searchBounds(.searchMatches[.searchIndex], &bounds)
         {
             let viewport = instance.view.surfaceRect()
             bounds.intersect(viewport)
@@ -2511,7 +2511,7 @@ impl ViewerWindow
         // Animation advances on the host timer, outside painting. Invalidating from inside a
         // translucent paint pass can enqueue another partial pass before the backing content has
         // been restored, which accumulates alpha and leaves trails around the word.
-        .searchOverlay.phase = Math.fract(.searchOverlay.phase + cast(f32) ViewerSearchBoundsPoll.seconds / ViewerSearchGlowPeriod)
+        .searchOverlay.phase = Math.fract(.searchOverlay.phase + cast(f32, ViewerSearchBoundsPoll.seconds) / ViewerSearchGlowPeriod)
         .searchOverlay.invalidate()
 
         // A streamed document can materialize the result after revealMatch returns, and any
@@ -2673,9 +2673,9 @@ impl ViewerWindow
         {
             let instance = &.instances[.activeChoiceIndex]
             if instance.view and instance.useSearchMatches do
-                instance.useSearchMatches(instance.view, null)
+                instance.useSearchMatches(null)
             if instance.view and instance.clearSearch do
-                instance.clearSearch(instance.view)
+                instance.clearSearch()
         }
 
         if .searchBoundsTimer
@@ -2726,7 +2726,7 @@ impl ViewerWindow
         }
 
         bytes.resize(count)
-        .searchCarry += cast(string) bytes.toSlice()
+        .searchCarry += cast(string, bytes.toSlice())
         let eof      = count == 0
         let instance = &.instances[.activeChoiceIndex]
 
@@ -2744,7 +2744,7 @@ impl ViewerWindow
 
         var candidates: Array'Viewer.SearchMatch
         if instance.collectFileMatches and instance.view do
-            instance.collectFileMatches(instance.view, .searchCarry.toString(), .searchCarryBase, &candidates)
+            instance.collectFileMatches(.searchCarry.toString(), .searchCarryBase, &candidates)
         else do
             Viewer.collectTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
         for match in candidates where match.offset >= .searchProcessed and (eof or match.offset < .searchCarryBase + stableEnd) do
@@ -2850,7 +2850,7 @@ impl ViewerWindow
         for one in .preferences where one.kind == kind
         {
             for choice, index in .choices where choice.key == one.viewer do
-                return cast(u32) index
+                return cast(u32, index)
             break
         }
 
@@ -2892,7 +2892,7 @@ impl ViewerWindow
         if .reloading
         {
             for choice, index in .choices where choice.key == .readingState.viewer do
-                selected = cast(u32) index
+                selected = cast(u32, index)
         }
 
         if not .activateChoice(selected)
@@ -2901,7 +2901,7 @@ impl ViewerWindow
             for choice, index in .choices where choice.key == TextViewerKey
             {
                 discard choice
-                selected = cast(u32) index
+                selected = cast(u32, index)
                 break
             }
 
@@ -2959,7 +2959,7 @@ impl ViewerWindow
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
-            (cast #assume(*ViewerErrorView) instance.view).retranslate()
+            assume cast(*ViewerErrorView, instance.view).retranslate()
         if .currentFile.isEmpty()
         {
             .folderLabel.setText(texts.ui_Folder)
@@ -3052,8 +3052,8 @@ impl ViewerWindow
                 line.colorFg = .themeColors().label_TextLight
             if .currentFile == name
             {
-                currentIndex = cast(u32) index
-                list.selectLine(cast(u32) index)
+                currentIndex = cast(u32, index)
+                list.selectLine(cast(u32, index))
             }
         }
 
@@ -3280,12 +3280,12 @@ impl ViewerWindow
         if .siblings.count <= 1 do
             return
 
-        var index = cast(s64) .siblingIndex + delta
+        var index = cast(s64, .siblingIndex) + delta
         if index < 0 do
-            index = cast(s64) .siblings.count - 1
-        elif index >= cast(s64) .siblings.count do
+            index = cast(s64, .siblings.count) - 1
+        elif index >= cast(s64, .siblings.count) do
             index = 0
-        .queueFile(.siblings[cast(u64) index].toString())
+        .queueFile(.siblings[cast(u64, index)].toString())
     }
 
     // Returns the files of the current file's folder that its viewer opens, in folder order and

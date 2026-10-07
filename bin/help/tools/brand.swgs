@@ -194,10 +194,10 @@ func writeMark(svgPath, pngPath: string, size: s32) fail
     try doc.save(svgPath)
     wrote(svgPath)
 
-    let scale = cast(f32) size / boxHeight
+    let scale = cast(f32, size) / boxHeight
     var path  = buildMark(scale, MARGIN * scale, MARGIN * scale)
 
-    var canvas = try ImageCanvas.create(cast(s32) (boxWidth * scale), size)
+    var canvas = try ImageCanvas.create(cast(s32, (boxWidth * scale)), size)
     canvas.painter.fillPath(&path, VOLTAGE)
 
     var img = try canvas.toImage()
@@ -208,7 +208,7 @@ func writeMark(svgPath, pngPath: string, size: s32) fail
 // The mark on a square field of ink, at one size.
 func renderIcon(size: s32, fill: f32)->Image fail
 {
-    var path   = buildTileMark(cast(f32) size, fill)
+    var path   = buildTileMark(cast(f32, size), fill)
     var canvas = try ImageCanvas.create(size, size)
     canvas.clear(INK)
     canvas.painter.fillPath(&path, VOLTAGE)

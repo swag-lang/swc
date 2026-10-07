@@ -56,7 +56,7 @@ func day5B0()
     {
         var cpt = 0
         for c in 8 do
-            cpt += cast(s32) here[r, c]
+            cpt += cast(s32, here[r, c])
 
         if cpt == 7     // Search for one missing seat in the row
         {

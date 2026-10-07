@@ -13,7 +13,7 @@ struct Owner
 
 impl Owner
 {
-    mtd opDrop() { drops += cast(s32) .value }
+    mtd opDrop() { drops += cast(s32, .value) }
     mtd opPostCopy() { copies += 1 }
     mtd opPostMove() { moves += 1 }
 }
@@ -103,7 +103,7 @@ struct Unique
 
 impl Unique
 {
-    mtd opDrop() { drops += cast(s32) .value }
+    mtd opDrop() { drops += cast(s32, .value) }
 }
 
 struct UniquePair
@@ -145,7 +145,7 @@ func chooseUnique(flag: bool)
     Swag.assert(drops == 68)
 }
 
-func readValue(owner: *Owner)->s32 => cast(s32) owner.value
+func readValue(owner: *Owner)->s32 => cast(s32, owner.value)
 
 var dropTrace: u64
 struct TraceOwner { value: u64 }
@@ -286,7 +286,7 @@ impl AddressOwner
     mtd opDrop()
     {
         if .address do Swag.assert(.address == &.value)
-        drops += cast(s32) .value
+        drops += cast(s32, .value)
     }
 }
 

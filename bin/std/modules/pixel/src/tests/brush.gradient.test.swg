@@ -55,7 +55,7 @@ using Swag, Core
 {
     var gradient = Brush.createLinearGradient(0, 0, 1, 0, Argb.Black, Argb.White)
     for i in 32 do
-        gradient.addGradientStop(cast(f32) (31 - i) / 31.0, Color.fromRgb(cast(u8) i, 0, 0))
+        gradient.addGradientStop(cast(f32, (31 - i)) / 31.0, Color.fromRgb(cast(u8, i), 0, 0))
 
     Swag.assert(gradient.gradientStops.count == 34)
     for var i = 1'u64; i < gradient.gradientStops.count; i += 1 do

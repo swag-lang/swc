@@ -35,7 +35,7 @@ func(T) addTwo(value: T)->T  => addOne(addOne(value))
 func(T) addFour(value: T)->T => addTwo(addTwo(value))
 
 // Generic calling another generic with different type
-func(T) toF64(value: T)->f64       => cast(f64) value
+func(T) toF64(value: T)->f64       => cast(f64, value)
 func(T) doubleAsF64(value: T)->f64 => toF64(value) * 2.0
 
 // Generic with multiple return paths
@@ -97,7 +97,7 @@ func addS32(a: s32, b: s32)->s32 => a + b
 func mulS32(a: s32, b: s32)->s32 => a * b
 
 // Generic with cast from one type param to another
-func(A, B) castTo(value: A)->B => cast(B) value
+func(A, B) castTo(value: A)->B => cast(B, value)
 
 // Generic swap via pointers
 func(T) swap(a: *T, b: *T)

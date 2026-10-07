@@ -16,7 +16,7 @@ private func fallbackTestFace(symbols: bool)->*TypeFace fail
     var horizontalMetrics = 0'u32
     for index in tables
     {
-        let offset = 12 + cast(u64) index * 16
+        let offset = 12 + cast(u64, index) * 16
         reader.setPosition(offset)
         let tag = try reader.readBigEndian'u32()
         if tag == 0x636D6170
@@ -52,15 +52,15 @@ private func fallbackTestFace(symbols: bool)->*TypeFace fail
         let code  = codes[index]
         let glyph = original.face.glyphIndex(code == '\U0001F680'rune ? 'V'rune : code)
         Swag.assert(glyph != 0)
-        writer.writeBigEndian(cast(u32) code)
-        writer.writeBigEndian(cast(u32) code)
+        writer.writeBigEndian(cast(u32, code))
+        writer.writeBigEndian(cast(u32, code))
         writer.writeBigEndian(glyph)
     }
 
     let length = bytes.count - offset
     writer.setPosition(directory + 8)
-    writer.writeBigEndian(cast(u32) offset)
-    writer.writeBigEndian(cast(u32) length)
+    writer.writeBigEndian(cast(u32, offset))
+    writer.writeBigEndian(cast(u32, length))
     if not symbols
     {
         // Make a short primary line box: fallback ink must still fit, and drawing a fallback

@@ -57,9 +57,9 @@ func slowBucket(v: u8)->s32
 #test
 {
     for m in 0 until 40 do
-        Swag.assert(dayLength(cast(u32) m) == slowDayLength(cast(u32) m))
+        Swag.assert(dayLength(cast(u32, m)) == slowDayLength(cast(u32, m)))
     for m in [0xFFFFFFFF'u32, 0x80000001, 0x100, 0x107] do
         Swag.assert(dayLength(m) == 30)
     for v in 0 until 256 do
-        Swag.assert(bucket(cast(u8) v) == slowBucket(cast(u8) v))
+        Swag.assert(bucket(cast(u8, v)) == slowBucket(cast(u8, v)))
 }

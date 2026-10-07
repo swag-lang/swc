@@ -1213,7 +1213,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_BLACKNESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLACKNESS</span> <a class="api-item-permalink" href="#Gdi32_BLACKNESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L88">src</a></div>
 <p>dest = BLACK</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BLACKNESS">BLACKNESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00000042</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_BLACKNESS">BLACKNESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00000042</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_BLTALIGNMENT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.BLTALIGNMENT</span> <a class="api-item-permalink" href="#Gdi32_BLTALIGNMENT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L267">src</a></div>
@@ -1222,7 +1222,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_CAPTUREBLT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.CAPTUREBLT</span> <a class="api-item-permalink" href="#Gdi32_CAPTUREBLT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L91">src</a></div>
 <p>Include layered windows</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_CAPTUREBLT">CAPTUREBLT</a></span>     = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x40000000</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_CAPTUREBLT">CAPTUREBLT</a></span>     = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x40000000</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_CHINESEBIG5_CHARSET" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.CHINESEBIG5_CHARSET</span> <a class="api-item-permalink" href="#Gdi32_CHINESEBIG5_CHARSET" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L201">src</a></div>
@@ -1287,7 +1287,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_DSTINVERT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.DSTINVERT</span> <a class="api-item-permalink" href="#Gdi32_DSTINVERT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L87">src</a></div>
 <p>dest = (NOT dest)</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_DSTINVERT">DSTINVERT</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00550009</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_DSTINVERT">DSTINVERT</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00550009</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_EASTEUROPE_CHARSET" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.EASTEUROPE_CHARSET</span> <a class="api-item-permalink" href="#Gdi32_EASTEUROPE_CHARSET" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L210">src</a></div>
@@ -1428,27 +1428,27 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_MERGECOPY" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.MERGECOPY</span> <a class="api-item-permalink" href="#Gdi32_MERGECOPY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L82">src</a></div>
 <p>dest = (source AND pattern)</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_MERGECOPY">MERGECOPY</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00C000CA</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_MERGECOPY">MERGECOPY</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00C000CA</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_MERGEPAINT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.MERGEPAINT</span> <a class="api-item-permalink" href="#Gdi32_MERGEPAINT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L83">src</a></div>
 <p>dest = (NOT source) OR dest</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_MERGEPAINT">MERGEPAINT</a></span>     = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00BB0226</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_MERGEPAINT">MERGEPAINT</a></span>     = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00BB0226</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_NOMIRRORBITMAP" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.NOMIRRORBITMAP</span> <a class="api-item-permalink" href="#Gdi32_NOMIRRORBITMAP" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L90">src</a></div>
 <p>Do not Mirror the bitmap in this call</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_NOMIRRORBITMAP">NOMIRRORBITMAP</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x80000000</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_NOMIRRORBITMAP">NOMIRRORBITMAP</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x80000000</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_NOTSRCCOPY" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.NOTSRCCOPY</span> <a class="api-item-permalink" href="#Gdi32_NOTSRCCOPY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L80">src</a></div>
 <p>dest = (NOT source)</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_NOTSRCCOPY">NOTSRCCOPY</a></span>     = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00330008</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_NOTSRCCOPY">NOTSRCCOPY</a></span>     = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00330008</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_NOTSRCERASE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.NOTSRCERASE</span> <a class="api-item-permalink" href="#Gdi32_NOTSRCERASE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L81">src</a></div>
 <p>dest = (NOT src) AND (NOT dest)</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_NOTSRCERASE">NOTSRCERASE</a></span>    = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x001100A6</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_NOTSRCERASE">NOTSRCERASE</a></span>    = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x001100A6</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_NULL_BRUSH" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.NULL_BRUSH</span> <a class="api-item-permalink" href="#Gdi32_NULL_BRUSH" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L181">src</a></div>
@@ -1497,17 +1497,17 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_PATCOPY" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.PATCOPY</span> <a class="api-item-permalink" href="#Gdi32_PATCOPY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L84">src</a></div>
 <p>dest = pattern</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PATCOPY">PATCOPY</a></span>        = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00F00021</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PATCOPY">PATCOPY</a></span>        = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00F00021</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_PATINVERT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.PATINVERT</span> <a class="api-item-permalink" href="#Gdi32_PATINVERT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L86">src</a></div>
 <p>dest = pattern XOR dest</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PATINVERT">PATINVERT</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x005A0049</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PATINVERT">PATINVERT</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x005A0049</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_PATPAINT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.PATPAINT</span> <a class="api-item-permalink" href="#Gdi32_PATPAINT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L85">src</a></div>
 <p>dest = DPSnoo</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PATPAINT">PATPAINT</a></span>       = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00FB0A09</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_PATPAINT">PATPAINT</a></span>       = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00FB0A09</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_PDEVICESIZE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.PDEVICESIZE</span> <a class="api-item-permalink" href="#Gdi32_PDEVICESIZE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L243">src</a></div>
@@ -1712,27 +1712,27 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_SRCAND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.SRCAND</span> <a class="api-item-permalink" href="#Gdi32_SRCAND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L77">src</a></div>
 <p>dest = source AND dest</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCAND">SRCAND</a></span>         = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x008800C6</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCAND">SRCAND</a></span>         = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x008800C6</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_SRCCOPY" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.SRCCOPY</span> <a class="api-item-permalink" href="#Gdi32_SRCCOPY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L75">src</a></div>
 <p>dest = source</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCCOPY">SRCCOPY</a></span>        = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00CC0020</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCCOPY">SRCCOPY</a></span>        = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00CC0020</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_SRCERASE" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.SRCERASE</span> <a class="api-item-permalink" href="#Gdi32_SRCERASE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L79">src</a></div>
 <p>dest = source AND (NOT dest )</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCERASE">SRCERASE</a></span>       = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00440328</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCERASE">SRCERASE</a></span>       = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00440328</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_SRCINVERT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.SRCINVERT</span> <a class="api-item-permalink" href="#Gdi32_SRCINVERT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L78">src</a></div>
 <p>dest = source XOR dest</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCINVERT">SRCINVERT</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00660046</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCINVERT">SRCINVERT</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00660046</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_SRCPAINT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.SRCPAINT</span> <a class="api-item-permalink" href="#Gdi32_SRCPAINT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L76">src</a></div>
 <p>dest = source OR dest</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCPAINT">SRCPAINT</a></span>       = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00EE0086</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_SRCPAINT">SRCPAINT</a></span>       = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00EE0086</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_SYMBOL_CHARSET" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.SYMBOL_CHARSET</span> <a class="api-item-permalink" href="#Gdi32_SYMBOL_CHARSET" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L196">src</a></div>
@@ -1797,7 +1797,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Gdi32_WHITENESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gdi32.WHITENESS</span> <a class="api-item-permalink" href="#Gdi32_WHITENESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L89">src</a></div>
 <p>dest = WHITE</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_WHITENESS">WHITENESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>) <span class="SNum">0x00FF0062</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gdi32_WHITENESS">WHITENESS</a></span>      = <span class="SKwd">cast</span>(<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, <span class="SNum">0x00FF0062</span>)</span></div>
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">

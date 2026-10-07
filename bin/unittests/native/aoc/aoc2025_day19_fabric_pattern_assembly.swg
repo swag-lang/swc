@@ -13,15 +13,15 @@ struct DesignReport
 
 func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bool
 {
-    let patternBytes  = cast(const [..] u8) pattern
-    let patternLength = cast(u32) patternBytes.count
+    let patternBytes  = cast(const [..] u8, pattern)
+    let patternLength = cast(u32, patternBytes.count)
 
-    if startIndex + patternLength > cast(u32) design.count do
+    if startIndex + patternLength > cast(u32, design.count) do
         return false
 
     for index in patternLength
     {
-        let offset = cast(u32) index
+        let offset = cast(u32, index)
         if design[startIndex + offset] != patternBytes[offset] do
             return false
     }
@@ -31,8 +31,8 @@ func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bo
 
 func countAssemblies(patterns: const [..] string, design: string)->u64
 {
-    let designBytes  = cast(const [..] u8) design
-    let designLength = cast(u32) designBytes.count
+    let designBytes  = cast(const [..] u8, design)
+    let designLength = cast(u32, designBytes.count)
     Swag.assert(designLength <= MaxDesignLength)
 
     var ways: [MaxDesignLength + 1] u64
@@ -40,7 +40,7 @@ func countAssemblies(patterns: const [..] string, design: string)->u64
 
     for idx in designLength
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if ways[index] == 0 do
             continue
 
@@ -48,7 +48,7 @@ func countAssemblies(patterns: const [..] string, design: string)->u64
         {
             if matchesPattern(designBytes, index, pattern)
             {
-                let patternLength = cast(u32) (cast(const [..] u8) pattern).count
+                let patternLength = cast(u32, cast(const [..] u8, pattern).count)
                 ways[index + patternLength] += ways[index]
             }
         }

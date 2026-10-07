@@ -1031,7 +1031,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS16ToS8(v: s16)->s8
     {
-        return cast(s8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS16ToS8(128's16)
@@ -1042,7 +1042,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS16ToS8Neg(v: s16)->s8
     {
-        return cast(s8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS16ToS8Neg(-129's16)
@@ -1053,7 +1053,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS32ToS16(v: s32)->s16
     {
-        return cast(s16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS32ToS16(32768's32)
@@ -1064,7 +1064,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS64ToS32(v: s64)->s32
     {
-        return cast(s32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS64ToS32(2147483648's64)
@@ -1079,7 +1079,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU16ToU8(v: u16)->u8
     {
-        return cast(u8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU16ToU8(256'u16)
@@ -1090,7 +1090,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU32ToU16(v: u32)->u16
     {
-        return cast(u16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU32ToU16(65536'u32)
@@ -1101,7 +1101,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU64ToU32(v: u64)->u32
     {
-        return cast(u32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU64ToU32(4294967296'u64)
@@ -1116,7 +1116,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS8ToU8(v: s8)->u8
     {
-        return cast(u8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS8ToU8(-1's8)
@@ -1127,7 +1127,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS16ToU16(v: s16)->u16
     {
-        return cast(u16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS16ToU16(-1's16)
@@ -1138,7 +1138,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS32ToU32(v: s32)->u32
     {
-        return cast(u32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS32ToU32(-1's32)
@@ -1149,7 +1149,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castS64ToU64(v: s64)->u64
     {
-        return cast(u64) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u64, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castS64ToU64(-1's64)
@@ -1164,7 +1164,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU8ToS8(v: u8)->s8
     {
-        return cast(s8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU8ToS8(128'u8)
@@ -1175,7 +1175,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU16ToS16(v: u16)->s16
     {
-        return cast(s16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU16ToS16(32768'u16)
@@ -1186,7 +1186,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU32ToS32(v: u32)->s32
     {
-        return cast(s32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU32ToS32(2147483648'u32)
@@ -1197,7 +1197,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castU64ToS64(v: u64)->s64
     {
-        return cast(s64) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s64, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castU64ToS64(9223372036854775808'u64)
@@ -1212,7 +1212,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToS8(v: f64)->s8
     {
-        return cast(s8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToS8(128.0)
@@ -1223,7 +1223,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToS8Neg(v: f64)->s8
     {
-        return cast(s8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToS8Neg(-129.0)
@@ -1234,7 +1234,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToS16(v: f64)->s16
     {
-        return cast(s16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToS16(32768.0)
@@ -1245,7 +1245,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToS32(v: f64)->s32
     {
-        return cast(s32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToS32(2147483648.0)
@@ -1256,7 +1256,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToS64(v: f64)->s64
     {
-        return cast(s64) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s64, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToS64(9223372036854775808.0)
@@ -1271,7 +1271,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToU8(v: f64)->u8
     {
-        return cast(u8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToU8(256.0)
@@ -1282,7 +1282,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToU8Neg(v: f64)->u8
     {
-        return cast(u8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToU8Neg(-1.0)
@@ -1293,7 +1293,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToU16(v: f64)->u16
     {
-        return cast(u16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToU16(65536.0)
@@ -1304,7 +1304,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToU32(v: f64)->u32
     {
-        return cast(u32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToU32(4294967296.0)
@@ -1315,7 +1315,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF64ToU64(v: f64)->u64
     {
-        return cast(u64) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u64, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF64ToU64(18446744073709551616.0)
@@ -1330,7 +1330,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF32ToS8(v: f32)->s8
     {
-        return cast(s8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF32ToS8(128.0'f32)
@@ -1341,7 +1341,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF32ToU8(v: f32)->u8
     {
-        return cast(u8) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF32ToU8(256.0'f32)
@@ -1352,7 +1352,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF32ToS16(v: f32)->s16
     {
-        return cast(s16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF32ToS16(32768.0'f32)
@@ -1363,7 +1363,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF32ToU16(v: f32)->u16
     {
-        return cast(u16) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF32ToU16(65536.0'f32)
@@ -1374,7 +1374,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF32ToS32(v: f32)->s32
     {
-        return cast(s32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF32ToS32(2147483648.0'f32)
@@ -1385,7 +1385,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func castF32ToU32(v: f32)->u32
     {
-        return cast(u32) v     // swc-expected-error {{safety_err_runtime}}
+        return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castF32ToU32(4294967296.0'f32)
@@ -1488,7 +1488,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func wrapCastU16ToU8(v: u16)->u8
     {
-        return cast #wrap(u8) v
+        return cast #wrap(u8, v)
     }
 
     const value = #run wrapCastU16ToU8(257'u16)
@@ -1500,7 +1500,7 @@ func opaqueS64(v: s64)->s64
     #[Swag.Safety(.Overflow, true)]
     func wrapCastS8ToU8(v: s8)->u8
     {
-        return cast #wrap(u8) v
+        return cast #wrap(u8, v)
     }
 
     const value = #run wrapCastS8ToU8(-1's8)

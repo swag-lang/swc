@@ -26,12 +26,12 @@ const VP8_CATEGORY_PROB: [48] u8 = [
 
 func vp8Pack4(values: *[4] u8, shift: s32)->u32
 {
-    let value = cast(u32) values[][0] | (cast(u32) values[][1] << 1) |
-                (cast(u32) values[][2] << 2) | (cast(u32) values[][3] << 3)
+    let value = cast(u32, values[][0]) | (cast(u32, values[][1]) << 1) |
+                (cast(u32, values[][2]) << 2) | (cast(u32, values[][3]) << 3)
     return value << shift
 }
 
-func vp8Clip8(value: s32)->u8 => cast(u8) vp8Clip(value, 0, 255)
+func vp8Clip8(value: s32)->u8 => cast(u8, vp8Clip(value, 0, 255))
 
 func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
 {
@@ -43,8 +43,8 @@ func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
     {
         let a = decoder.coeff[base + 0] + decoder.coeff[base + 8]
         let b = decoder.coeff[base + 0] - decoder.coeff[base + 8]
-        let c = (cast(s32) decoder.coeff[base + 4] * C2 >> 16) - (cast(s32) decoder.coeff[base + 12] * C1 >> 16)
-        let d = (cast(s32) decoder.coeff[base + 4] * C1 >> 16) + (cast(s32) decoder.coeff[base + 12] * C2 >> 16)
+        let c = (cast(s32, decoder.coeff[base + 4]) * C2 >> 16) - (cast(s32, decoder.coeff[base + 12]) * C1 >> 16)
+        let d = (cast(s32, decoder.coeff[base + 4]) * C1 >> 16) + (cast(s32, decoder.coeff[base + 12]) * C2 >> 16)
         matrix[i][0] = a + d
         matrix[i][1] = b + c
         matrix[i][2] = b - c
@@ -68,7 +68,7 @@ func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
 
 func vp8InverseDct4Dc(decoder: *Vp8Decoder, y, x, coeffBase: s32)
 {
-    let dc = (cast(s32) decoder.coeff[coeffBase] + 4) >> 3
+    let dc = (cast(s32, decoder.coeff[coeffBase]) + 4) >> 3
     for j in 4 do
         for i in 4 do
             decoder.ybr[y + j][x + i] = vp8Clip8(decoder.ybr[y + j][x + i] + dc)
@@ -113,10 +113,10 @@ func vp8InverseWht(decoder: *Vp8Decoder)
         let a1 = matrix[i * 4 + 1] + matrix[i * 4 + 2]
         let a2 = matrix[i * 4 + 1] - matrix[i * 4 + 2]
         let a3 = dc - matrix[i * 4 + 3]
-        decoder.coeff[output + 0]  = cast(s16) ((a0 + a1) >> 3)
-        decoder.coeff[output + 16] = cast(s16) ((a3 + a2) >> 3)
-        decoder.coeff[output + 32] = cast(s16) ((a0 - a1) >> 3)
-        decoder.coeff[output + 48] = cast(s16) ((a3 - a2) >> 3)
+        decoder.coeff[output + 0]  = cast(s16, ((a0 + a1) >> 3))
+        decoder.coeff[output + 16] = cast(s16, ((a3 + a2) >> 3))
+        decoder.coeff[output + 32] = cast(s16, ((a0 - a1) >> 3))
+        decoder.coeff[output + 48] = cast(s16, ((a3 - a2) >> 3))
         output += 64
     }
 }
@@ -124,7 +124,7 @@ func vp8InverseWht(decoder: *Vp8Decoder)
 func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s32, context: u8, dcQuant, acQuant: u16, skipFirst: bool, coeffBase: s32)->u8
 {
     var coefficient     = skipFirst ? 1 : 0
-    var band            = cast(s32) VP8_BANDS[coefficient]
+    var band            = cast(s32, VP8_BANDS[coefficient])
     var probabilityBase = vp8TokenIndex(plane, band, context, 0)
     if not partition.readBit(decoder.tokenProb[probabilityBase]) do
         return 0
@@ -182,10 +182,10 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
         }
 
         let zigzag  = VP8_ZIGZAG[coefficient - 1]
-        var decoded = cast(s32) value * (zigzag ? acQuant : dcQuant)
+        var decoded = cast(s32, value) * (zigzag ? acQuant : dcQuant)
         if partition.readBit(VP8_UNIFORM_PROB) do
             decoded = -decoded
-        decoder.coeff[coeffBase + zigzag] = cast(s16) decoded
+        decoder.coeff[coeffBase + zigzag] = cast(s16, decoded)
         if coefficient == 16 or not partition.readBit(decoder.tokenProb[probabilityBase]) do
             return 1
     }
@@ -271,8 +271,8 @@ func vp8ParseResiduals(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
         chroma   += 2
     }
 
-    decoder.leftMb.nzMask    = cast(u8) (leftMask | (vp8Pack4(&leftNz, 4)))
-    decoder.upMb[mbX].nzMask = cast(u8) (upperMask | vp8Pack4(&upperNz, 4))
+    decoder.leftMb.nzMask    = cast(u8, (leftMask | (vp8Pack4(&leftNz, 4))))
+    decoder.upMb[mbX].nzMask = cast(u8, (upperMask | vp8Pack4(&upperNz, 4)))
     decoder.nzDcMask         = nzDcMask
     decoder.nzAcMask         = nzAcMask
     return nzDcMask == 0 and nzAcMask == 0
@@ -330,9 +330,9 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
     }
     else
     {
-        let yData   = cast([*] u8) decoder.y.storage()
-        let cbData  = cast([*] u8) decoder.cb.storage()
-        let crData  = cast([*] u8) decoder.cr.storage()
+        let yData   = cast([*] u8, decoder.y.storage())
+        let cbData  = cast([*] u8, decoder.cb.storage())
+        let crData  = cast([*] u8, decoder.cr.storage())
         let yOffset = (16 * mbY - 1) * decoder.yStride + 16 * mbX
         let cOffset = (8 * mbY - 1) * decoder.cStride + 8 * mbX
         for i in 16 do
@@ -417,9 +417,9 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     if decoder.segmentHeader.updateMap
     {
         if not decoder.firstPart.readBit(decoder.segmentHeader.probability[0]) do
-            decoder.segment = cast(s32) decoder.firstPart.readUint(decoder.segmentHeader.probability[1], 1)
+            decoder.segment = cast(s32, decoder.firstPart.readUint(decoder.segmentHeader.probability[1], 1))
         else do
-            decoder.segment = cast(s32) decoder.firstPart.readUint(decoder.segmentHeader.probability[2], 1) + 2
+            decoder.segment = cast(s32, decoder.firstPart.readUint(decoder.segmentHeader.probability[2], 1)) + 2
     }
 
     var skip = decoder.useSkipProb and decoder.firstPart.readBit(decoder.skipProb)
@@ -451,9 +451,9 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     }
 
     vp8ReconstructMacroblock(decoder, mbX, mbY)
-    let yData   = cast([*] u8) decoder.y.storage()
-    let cbData  = cast([*] u8) decoder.cb.storage()
-    let crData  = cast([*] u8) decoder.cr.storage()
+    let yData   = cast([*] u8, decoder.y.storage())
+    let cbData  = cast([*] u8, decoder.cb.storage())
+    let crData  = cast([*] u8, decoder.cr.storage())
     var yOffset = (mbY * decoder.yStride + mbX) * 16
     for row in 16
     {

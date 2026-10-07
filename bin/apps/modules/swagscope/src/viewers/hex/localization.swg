@@ -90,5 +90,5 @@ func registerHexStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'HexStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'HexStrings(cast(string, FrenchStrings))
 }

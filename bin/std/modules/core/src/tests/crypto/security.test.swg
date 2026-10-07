@@ -6,7 +6,7 @@ using Swag
 
 #test
 {
-    let key  = cast(const [..] u8) "key"
+    let key  = cast(const [..] u8, "key")
     let text = "The quick brown fox jumps over the lazy dog"
     let expected: [32] u8 = [
         0xF7, 0xBC, 0x83, 0xF4, 0x30, 0x53, 0x84, 0x24,
@@ -14,12 +14,12 @@ using Swag
         0xEF, 0x4D, 0x59, 0xA1, 0x49, 0x46, 0x17, 0x59,
         0x97, 0x47, 0x9D, 0xBC, 0x2D, 0x1A, 0x3C, 0xD8]
 
-    let actual = Crypto.HmacSha256.compute(key, cast(const [..] u8) text)
+    let actual = Crypto.HmacSha256.compute(key, cast(const [..] u8, text))
     Swag.assert(Slice.equals(actual, expected))
 
     var incremental = Crypto.HmacSha256.create(key)
-    incremental.update(cast(const [..] u8) text[until 12])
-    incremental.update(cast(const [..] u8) text[12 to])
+    incremental.update(cast(const [..] u8, text[until 12]))
+    incremental.update(cast(const [..] u8, text[12 to]))
     let split = incremental.finalize()
     Swag.assert(Slice.equals(split, expected))
     Swag.assert(not incremental.initialized)
@@ -27,8 +27,8 @@ using Swag
 
 #test
 {
-    let password = cast(const [..] u8) "password"
-    let salt     = cast(const [..] u8) "salt"
+    let password = cast(const [..] u8, "password")
+    let salt     = cast(const [..] u8, "salt")
     let expected: [64] u8 = [
         0xAE, 0x4D, 0x0C, 0x95, 0xAF, 0x6B, 0x46, 0xD3,
         0x2D, 0x0A, 0xDF, 0xF9, 0x28, 0xF0, 0x6D, 0xD0,
@@ -64,7 +64,7 @@ using Swag
 
 #test
 {
-    let empty         = cast(const [..] u8) ""
+    let empty         = cast(const [..] u8, "")
     let one:   [1] u8 = [1]
     let other: [1] u8 = [2]
     Swag.assert(Crypto.constantTimeEqual(empty, empty))
@@ -90,7 +90,7 @@ using Swag
     var right: [112] u8
     for i in 112
     {
-        left[i]  = cast(u8) ((i * 29 + 3) & 0xFF)
+        left[i]  = cast(u8, ((i * 29 + 3) & 0xFF))
         right[i] = left[i]
     }
 

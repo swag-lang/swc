@@ -12,7 +12,7 @@ private func mp3WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
     for index in length
     {
         let bit  = (code >> (length - 1 - index)) & 1
-        let slot = cast(u64) (node * 2) + cast(u64) bit
+        let slot = cast(u64, (node * 2)) + cast(u64, bit)
         if slot >= tree.count do
             return -1
 
@@ -22,10 +22,10 @@ private func mp3WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
             // A leaf before the last bit means the code passes through another code.
             if index != length - 1 do
                 return -1
-            return cast(s32) (-next - 1)
+            return cast(s32, (-next - 1))
         }
 
-        node = cast(s32) next
+        node = cast(s32, next)
     }
 
     return -1
@@ -42,17 +42,17 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
     var kraft = 0.0'f64
     for symbol in lengths.count
     {
-        let length = cast(u32) lengths[symbol]
+        let length = cast(u32, lengths[symbol])
         Swag.assert(length > 0 and length <= 19)
-        kraft += Math.pow(0.5'f64, cast(f64) length)
+        kraft += Math.pow(0.5'f64, cast(f64, length))
 
         // The code must fit the length it states.
-        Swag.assert(cast(u32) codes[symbol] < (1'u32 << length))
+        Swag.assert(cast(u32, codes[symbol]) < (1'u32 << length))
 
-        let reached = mp3WalkTree(tree, length, cast(u32) codes[symbol])
-        if reached != cast(s32) symbol do
+        let reached = mp3WalkTree(tree, length, cast(u32, codes[symbol]))
+        if reached != cast(s32, symbol) do
             Swag.print("mp3 table ", name, ": symbol ", symbol, " decodes to ", reached, "\n")
-        Swag.assert(reached == cast(s32) symbol)
+        Swag.assert(reached == cast(s32, symbol))
     }
 
     // A complete prefix code has a Kraft sum of exactly one. Below one leaves bit patterns that
@@ -65,9 +65,9 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
     {
         let value = tree[slot]
         if value >= 0 do
-            Swag.assert(cast(u64) value * 2 + 1 < tree.count and cast(u64) value * 2 > slot)
+            Swag.assert(cast(u64, value) * 2 + 1 < tree.count and cast(u64, value) * 2 > slot)
         else do
-            Swag.assert(cast(u64) (-value - 1) < lengths.count)
+            Swag.assert(cast(u64, (-value - 1)) < lengths.count)
     }
 }
 
@@ -101,7 +101,7 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
     for symbol in 16'u32
     {
         Swag.assert(Mp3.Count1BLen[symbol] == 4)
-        Swag.assert(cast(u32) Mp3.Count1BCod[symbol] == 15 - symbol)
+        Swag.assert(cast(u32, Mp3.Count1BCod[symbol]) == 15 - symbol)
     }
 }
 
@@ -128,13 +128,13 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
     {
         var total = 0'u32
         for band in 22'u64 do
-            total += cast(u32) Mp3.ScfBandLong[rate, band]
+            total += cast(u32, Mp3.ScfBandLong[rate, band])
         Swag.assert(total == 576)
         Swag.assert(Mp3.ScfBandLong[rate, 22] == 0)
 
         total = 0
         for band in 39'u64 do
-            total += cast(u32) Mp3.ScfBandShort[rate, band]
+            total += cast(u32, Mp3.ScfBandShort[rate, band])
         Swag.assert(total == 576)
         Swag.assert(Mp3.ScfBandShort[rate, 39] == 0)
     }

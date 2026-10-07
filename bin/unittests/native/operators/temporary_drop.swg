@@ -32,7 +32,7 @@ impl TemporaryOwner
     mtd opDrop()
     {
         DropCount  += 1
-        DropTrace  = DropTrace * 10 + cast(s64) .value
+        DropTrace  = DropTrace * 10 + cast(s64, .value)
         EventTrace = EventTrace * 10 + 2
     }
 }
@@ -91,7 +91,7 @@ impl TemporaryVisits
     {
         for idx in 2
         {
-            #inject(stmt, item = cast(s32) idx, index = idx)
+            #inject(stmt, item = cast(s32, idx), index = idx)
         }
     }
 }

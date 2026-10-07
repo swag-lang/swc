@@ -9,7 +9,7 @@ struct Node
 
 func bottomUp(depth: s32)->*Node
 {
-    let node = cast(*Node) (benchAlloc(#sizeof(Node)))!
+    let node = cast(*Node, (benchAlloc(#sizeof(Node)))!)
     if depth > 0
     {
         node.left  = bottomUp(depth - 1)
@@ -58,7 +58,7 @@ func release(node: *Node)
     var d = MIN_DEPTH
     while d <= MAX_DEPTH
     {
-        let iterations = 1'u64 << cast(u64) (MAX_DEPTH - d + MIN_DEPTH)
+        let iterations = 1'u64 << cast(u64, (MAX_DEPTH - d + MIN_DEPTH))
         for iterations
         {
             let tree = bottomUp(d)

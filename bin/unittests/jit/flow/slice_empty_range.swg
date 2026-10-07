@@ -107,7 +107,7 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
             acc += v
         for v in empty do
             acc += v
-        return acc + cast(s32) (empty.count + again.count)
+        return acc + cast(s32, (empty.count + again.count))
     }
 
     const V = #run sliceOfEmptySlice()

@@ -99,40 +99,40 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 #test
 {
     // A migration-compatible legacy type must not launder a constant known to be null.
-    let value: *NonNullCannotCastItem = cast(*NonNullCannotCastItem) null     // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = cast(*NonNullCannotCastItem, null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    let value = cast(*NonNullCannotCastItem) null     // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem, null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // The cast result, not just the source literal, must satisfy the contract.
-    let value = cast(*NonNullCannotCastItem) 0'u64     // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem, 0'u64)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // Boxing null in 'any' must not hide it from the explicit non-null contract.
-    let value: any = cast(any) null     // swc-expected-error {{sema_err_cannot_cast}}
+    let value: any = cast(any, null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    let value = cast(any) null     // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(any, null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // A boxed zero is a present 'any' value, not a null 'any'.
     let direct:   any = 0
-    let preboxed: any = cast(any) 0
+    let preboxed: any = cast(any, 0)
 
     // Boxing a typed null pointer also creates a present 'any' value.
     let nullPointer:  *NonNullCannotCastItem? = null
-    let boxedPointer: any = cast(any) nullPointer
+    let boxedPointer: any = cast(any, nullPointer)
     #assert(boxedPointer != null)
 }
 

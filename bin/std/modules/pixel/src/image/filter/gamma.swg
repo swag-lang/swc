@@ -17,7 +17,7 @@ public impl Image
             var context = g
             .transformLogicalPixels(&context)
             {
-                let exponent = (cast(const *f32) userData!)[]
+                let exponent = cast(const *f32, userData!)[]
                 value.r = Math.pow(Math.max(value.r, 0.0), exponent)
                 value.g = Math.pow(Math.max(value.g, 0.0), exponent)
                 value.b = Math.pow(Math.max(value.b, 0.0), exponent)
@@ -28,9 +28,9 @@ public impl Image
 
         var convArr: [256] u8
         for i in 256 do
-            convArr[i] = cast(u8) (Math.pow(i / 255.0, g) * 255)
+            convArr[i] = cast(u8, (Math.pow(i / 255.0, g) * 255))
 
-        let table = cast(const [*] u8) &convArr[0]
+        let table = cast(const [*] u8, &convArr[0])
         .applyColorLuts(table, table, table)
     }
 }

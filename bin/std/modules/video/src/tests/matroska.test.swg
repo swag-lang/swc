@@ -184,7 +184,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         expect longStream.decodeFrameInto(&actual, index)
         expect reference.decodeFrameInto(&expected, index % reference.frameCount())
         Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
-        Swag.assert(Math.isEqualEpsilon(longStream.frameTimestamp(index), cast(f64) index / 25.0, 0.000001))
+        Swag.assert(Math.isEqualEpsilon(longStream.frameTimestamp(index), cast(f64, index) / 25.0, 0.000001))
     }
 
     Swag.assert(longStream.frameAtTime(599.96) == 14_999)
@@ -381,7 +381,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         })
 
         let wanted   = expect File.readAllBytes(videoFixturePath(Pcm[fileIndex]))
-        let wantedAt = cast(const [*] s16) wanted.storage()
+        let wantedAt = cast(const [*] s16, wanted.storage())
         let compared = Math.min(decoded.count, wanted.count / #sizeof(s16))
         Swag.assert(decoded.count == sound.sampleFrameCount() * 2)
         Swag.assert(compared >= 44_000 * 2 and decoded.count <= wanted.count / #sizeof(s16) + 2 * 1_024)
@@ -389,6 +389,6 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         // The references are libopus's and libvorbis's; this module's decoders sit within one
         // least significant bit of them, as the audio module's own tests establish.
         for index in compared do
-            Swag.assert(Math.abs(cast(s32) decoded[index] - cast(s32) wantedAt[index]) <= 1)
+            Swag.assert(Math.abs(cast(s32, decoded[index]) - cast(s32, wantedAt[index])) <= 1)
     }
 }

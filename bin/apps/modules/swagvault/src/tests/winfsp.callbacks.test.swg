@@ -12,7 +12,7 @@ struct DirectoryCapture
 func captureDirectoryEntry(context: *void?, name: const [*] u8?, info: const *WinFsp.FileInfo)->u8
 {
     discard info
-    let capture = cast(*DirectoryCapture) context!
+    let capture = cast(*DirectoryCapture, context!)
     if capture.limit and capture.names.count >= capture.limit do
         return 0
     capture.names.add(WinFsp.cString(name))
@@ -34,7 +34,7 @@ func statusForError(kind: ErrorKind)->s32
 
 #test
 {
-    Swag.assert(WinFsp.statusBits(cast #bit (s32) 0x80070430'u32) == 0x80070430)
+    Swag.assert(WinFsp.statusBits(cast #bit (s32, 0x80070430'u32)) == 0x80070430)
     Swag.assert(statusForError(.InvalidInput) == WinFsp.StatusInvalidParameter)
     Swag.assert(statusForError(.SparseContainer) == WinFsp.StatusInvalidParameter)
     Swag.assert(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
@@ -56,13 +56,13 @@ func statusForError(kind: ErrorKind)->s32
     let path = Path.combine(temp.toString(), Format.toString("vault_callbacks_%.bin", Guid64.random()))
     defer discard catch File.delete(path)
 
-    let password = cast(const [..] u8) "callback password"
+    let password = cast(const [..] u8, "callback password")
     var volume   = expect Volume.create(path, password, MinimumSize)
-    let context  = cast(*void) &volume
+    let context  = cast(*void, &volume)
 
     var total, free: u64
     var label:       [64] u8
-    var callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], cast(u32) #sizeof(label))
+    var callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], cast(u32, #sizeof(label)))
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
     Swag.assert(total == volume.totalBytes())
     Swag.assert(free == volume.freeBytes())
@@ -98,7 +98,7 @@ func statusForError(kind: ErrorKind)->s32
 
     var source: [5000] u8
     for value, i in source do
-        source[i] = cast(u8) ((i * 13 + 5) & 0xFF)
+        source[i] = cast(u8, ((i * 13 + 5) & 0xFF))
     var transferred: u32
     callbackStatus = WinFsp.callbackWrite(context, fileId, &source[0], 0, #sizeof(source), 0, 0, &transferred, &info)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
@@ -215,8 +215,8 @@ func statusForError(kind: ErrorKind)->s32
     let temp = Env.getSpecialDirectory(.Temp)
     let path = Path.combine(temp.toString(), Format.toString("vault_batch_rename_%.bin", Guid64.random()))
     defer discard catch File.delete(path)
-    let password: const [..] u8 = cast() "batch rename password"
-    let security: const [..] u8 = cast() ""
+    let password: const [..] u8 = cast("batch rename password")
+    let security: const [..] u8 = cast("")
     var volume = expect Volume.create(path, password, MinimumSize)
     discard expect volume.createNode("\\vid1", true, FileAttributeDirectory, security)
     let occupied = expect volume.createNode("\\vid1\\clip (1).mp4", false, FileAttributeNormal, security)
@@ -227,7 +227,7 @@ func statusForError(kind: ErrorKind)->s32
     {
         let source = Format.toString("\\vid1\\source-%.mp4", i)
         ids[i] = expect volume.createNode(source, false, FileAttributeNormal, security)
-        let bytes: [1] u8 = [cast(u8) (i + 1)]
+        let bytes: [1] u8 = [cast(u8, (i + 1))]
         let bytesWritten  = expect volume.writeNode(ids[i], 0, bytes, false, false)
         Swag.assert(bytesWritten == 1)
     }

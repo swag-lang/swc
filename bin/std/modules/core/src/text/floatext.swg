@@ -134,10 +134,10 @@ impl FloatExt
         .mant = mantp
         .exp  = expp - Swag.F64.MantBits
         .neg  = negp
-        if .exp <= 0 and .mant == (.mant >> cast(u32) -.exp) << cast(u32) -.exp
+        if .exp <= 0 and .mant == (.mant >> cast(u32, -.exp)) << cast(u32, -.exp)
         {
             // An exact integer
-            .mant        >>= cast(u32) -.exp
+            .mant        >>= cast(u32, -.exp)
             .exp         = 0
             result.lower = me
             result.upper = me
@@ -161,8 +161,8 @@ impl FloatExt
         if .mant == 0 do
             return
         let shift = Swag.bitCountLz(.mant)
-        .mant <<= cast(u32) shift
-        .exp  -= cast(s64) shift
+        .mant <<= cast(u32, shift)
+        .exp  -= cast(s64, shift)
     }
 
     // Multiply sets f to the product f*g: the result is correctly rounded,
@@ -263,9 +263,9 @@ impl FloatExt
         .normalize()
         let {exp10, ?} = .frexp10()
 
-        let shift    = cast(u32) -.exp
-        var integer  = cast(u32) (.mant >> shift)
-        var fraction = .mant - (cast(u64) integer << shift)
+        let shift    = cast(u32, -.exp)
+        var integer  = cast(u32, (.mant >> shift))
+        var fraction = .mant - (cast(u64, integer) << shift)
         var e        = 1'u64     // e is the uncertainty we have on the mantissa of f.
 
         // Write exactly n digits to d.
@@ -276,7 +276,7 @@ impl FloatExt
         var pow = 1'u64
         for i in 20
         {
-            if pow > cast(u64) integer
+            if pow > cast(u64, integer)
             {
                 integerDigits = i
                 break
@@ -290,8 +290,8 @@ impl FloatExt
         {
             // the integral part is already large, trim the last digits.
             pow10   = uint64pow10[integerDigits - needed]
-            integer /= cast(u32) pow10
-            rest    -= integer * cast(u32) pow10
+            integer /= cast(u32, pow10)
+            rest    -= integer * cast(u32, pow10)
         }
         else
         {
@@ -308,14 +308,14 @@ impl FloatExt
             let v1 = v / 10
             v        -= 10 * v1
             pos      -= 1
-            buf[pos] = cast(u8) (v + '0')
+            buf[pos] = cast(u8, (v + '0'))
             v        = v1
         }
 
         for var i = pos; i < buf.count; i += 1 do
             d.d[i - pos] = buf[i]
 
-        var nd = cast(s64) (buf.count - pos)
+        var nd = cast(s64, (buf.count - pos))
         d.nd   = nd
         d.dp   = integerDigits + exp10
         needed -= nd
@@ -335,7 +335,7 @@ impl FloatExt
                 }
 
                 let digit = fraction >> shift
-                d.d[nd]  = cast(u8) (digit + '0')
+                d.d[nd]  = cast(u8, (digit + '0'))
                 fraction -= digit << shift
                 nd       += 1
                 needed   -= 1
@@ -359,7 +359,7 @@ impl FloatExt
         //
         // We pass this information to the rounding routine for adjustment.
 
-        let ok = adjustLastDigitFixed(d, (cast(u64) rest << shift) | fraction, pow10, shift, e)
+        let ok = adjustLastDigitFixed(d, (cast(u64, rest) << shift) | fraction, pow10, shift, e)
         if not ok do
             return false
 
@@ -443,12 +443,12 @@ impl FloatExt
             {
                 let v1 = v / 10
                 v      -= 10 * v1
-                buf[n] = cast(u8) (v + '0')
+                buf[n] = cast(u8, (v + '0'))
                 n      -= 1
                 v      = v1
             }
 
-            let nd = cast(s64) (buf.count - n - 1)
+            let nd = cast(s64, (buf.count - n - 1))
             for var i = 0; i < nd; i += 1 do
                 d.d[i] = buf[n + 1 + i]
 
@@ -468,13 +468,13 @@ impl FloatExt
         // Uniformize exponents.
         if .exp > upper.exp
         {
-            .mant <<= cast(u32) (.exp - upper.exp)
+            .mant <<= cast(u32, (.exp - upper.exp))
             .exp  = upper.exp
         }
 
         if lower.exp > upper.exp
         {
-            lower.mant <<= cast(u32) (lower.exp - upper.exp)
+            lower.mant <<= cast(u32, (lower.exp - upper.exp))
             lower.exp  = upper.exp
         }
 
@@ -486,9 +486,9 @@ impl FloatExt
 
         // The shortest representation of f is either rounded up or down, but
         // in any case, it is a truncation of upper.
-        let shift    = cast(u32) -upper.exp
-        var integer  = cast(u32) (upper.mant >> shift)
-        var fraction = upper.mant - (cast(u64) integer << shift)
+        let shift    = cast(u32, -upper.exp)
+        var integer  = cast(u32, (upper.mant >> shift))
+        var fraction = upper.mant - (cast(u64, integer) << shift)
 
         // How far we can go down from upper until the result is wrong.
         let allowance = upper.mant - lower.mant
@@ -501,7 +501,7 @@ impl FloatExt
         var pow = 1'u64
         for i in 20
         {
-            if pow > cast(u64) integer
+            if pow > cast(u64, integer)
             {
                 integerDigits = i
                 break
@@ -513,12 +513,12 @@ impl FloatExt
         for i in integerDigits
         {
             pow = uint64pow10[integerDigits - i - 1]
-            let digit = integer / cast(u32) pow
-            d.d[i]  = cast(u8) (digit + '0')
-            integer -= digit * cast(u32) pow
+            let digit = integer / cast(u32, pow)
+            d.d[i]  = cast(u8, (digit + '0'))
+            integer -= digit * cast(u32, pow)
 
             // evaluate whether we should stop.
-            let currentDiff = (cast(u64) integer << shift) + fraction
+            let currentDiff = (cast(u64, integer) << shift) + fraction
             if currentDiff < allowance
             {
                 d.nd  = i + 1
@@ -543,10 +543,10 @@ impl FloatExt
         {
             fraction   *= 10
             multiplier *= 10
-            digit      = cast(s64) (fraction >> shift)
-            d.d[d.nd]  = cast(u8) (digit + '0')
+            digit      = cast(s64, (fraction >> shift))
+            d.d[d.nd]  = cast(u8, (digit + '0'))
             d.nd       += 1
-            fraction   -= cast(u64) digit << shift
+            fraction   -= cast(u64, digit) << shift
             if fraction < allowance * multiplier
             {
                 // We are in the admissible range. Note that if allowance is about to

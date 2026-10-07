@@ -643,6 +643,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                 return Result::Continue;
 
             const SemaNodeView typedSymbolView = sema.curViewSymbol();
+            if (!typedSymbolView.sym() && !typedSymbolView.hasSymbolList())
+            {
+                // An inline clone carries the resolved destination type across scopes,
+                // including aliases that are private to the function's namespace.
+                if (const auto* cast = parentNode.safeCast<AstCastExpr>(); cast && cast->nodeTypeRef == sema.curNodeRef())
+                    return Result::Continue;
+            }
             if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
             {
                 if (typedSymbolView.sym() || typedSymbolView.hasSymbolList())

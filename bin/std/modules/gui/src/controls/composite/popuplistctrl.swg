@@ -149,7 +149,7 @@ internal impl IWnd for PopupListView
             {
                 if v.isSeparator do
                     return Swag.U32.Max
-                return cast(u32) i
+                return cast(u32, i)
             }
 
             y -= h
@@ -279,7 +279,7 @@ private impl PopupListView
             return
         .closing = true
 
-        if .app().mouseCaptureWnd == cast(*Wnd) me do
+        if .app().mouseCaptureWnd == cast(*Wnd, me) do
             .releaseMouse()
 
         let list = .list
@@ -300,25 +300,25 @@ private impl PopupListView
         if .hotIdx >= .list.items.count
         {
             if .list.selectedIndex < .list.items.count do
-                idx = cast(s64) .list.selectedIndex
+                idx = cast(s64, .list.selectedIndex)
             else do
-                idx = dir > 0 ? -1 : cast(s64) .list.items.count
+                idx = dir > 0 ? -1 : cast(s64, .list.items.count)
         }
         else
         {
-            idx = cast(s64) .hotIdx
+            idx = cast(s64, .hotIdx)
         }
 
         for
         {
             idx += dir
-            if idx < 0 or idx >= cast(s64) .list.items.count do
+            if idx < 0 or idx >= cast(s64, .list.items.count) do
                 return
-            if not .list.items[cast(u64) idx]!.isSeparator do
+            if not .list.items[cast(u64, idx)]!.isSeparator do
                 break
         }
 
-        .hotIdx = cast(u32) idx
+        .hotIdx = cast(u32, idx)
         .invalidate()
     }
 
@@ -330,7 +330,7 @@ private impl PopupListView
             {
                 if not v!.isSeparator
                 {
-                    .hotIdx = cast(u32) idx
+                    .hotIdx = cast(u32, idx)
                     .invalidate()
                     return
                 }
@@ -338,11 +338,11 @@ private impl PopupListView
         }
         else
         {
-            for var i = cast(s64) .list.items.count - 1; i >= 0; i -= 1
+            for var i = cast(s64, .list.items.count) - 1; i >= 0; i -= 1
             {
-                if not .list.items[cast(u64) i]!.isSeparator
+                if not .list.items[cast(u64, i)]!.isSeparator
                 {
-                    .hotIdx = cast(u32) i
+                    .hotIdx = cast(u32, i)
                     .invalidate()
                     return
                 }
@@ -371,7 +371,7 @@ impl PopupListCtrl
     }
 
     // Returns the view that paints the entries and tracks the highlight.
-    private mtd listView()->*PopupListView => cast #assume (*PopupListView) .scrollWnd.view
+    private mtd listView()->*PopupListView => assume cast (*PopupListView, .scrollWnd.view)
 
     // Moves the highlighted item by a signed distance, skipping separators.
     mtd moveHighlight(direction: s32) => .listView().moveHot(direction)
@@ -437,7 +437,7 @@ impl PopupListCtrl
         if item.icon.isValid()
         {
             let iconWidth = .iconSize != 0 ? .iconSize : item.icon.sizeX
-            .maxIconSize = Math.max(.maxIconSize, cast(s32) iconWidth)
+            .maxIconSize = Math.max(.maxIconSize, cast(s32, iconWidth))
         }
 
         .items.add(item)

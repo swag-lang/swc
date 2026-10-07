@@ -27,31 +27,31 @@ internal impl MappedRegion
 
         var systemInfo: SYSTEM_INFO
         GetSystemInfo(&systemInfo)
-        let granularity   = cast(u64) systemInfo.dwAllocationGranularity
+        let granularity   = cast(u64, systemInfo.dwAllocationGranularity)
         let alignedOffset = offset / granularity * granularity
         let prefix        = offset - alignedOffset
         if length > Swag.U64.Max - prefix do
             fail Errors.OverflowError{}
         let mappedLength = length + prefix
 
-        let mapping = try CreateFileMappingW(cast(HANDLE) sourceHandle, null, protect, 0, 0, null)
+        let mapping = try CreateFileMappingW(cast(HANDLE, sourceHandle), null, protect, 0, 0, null)
         defer if not .mapHandle do
             CloseHandle(mapping)
 
         let currentProcess = GetCurrentProcess()
         var duplicate: HANDLE
-        try DuplicateHandle(currentProcess, cast(HANDLE) sourceHandle, currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
+        try DuplicateHandle(currentProcess, cast(HANDLE, sourceHandle), currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
         defer if not .fileHandle do
             CloseHandle(duplicate)
 
-        let nativeView = try MapViewOfFile(mapping, desiredAccess, cast(DWORD) (alignedOffset >> 32), cast(DWORD) alignedOffset, mappedLength)
+        let nativeView = try MapViewOfFile(mapping, desiredAccess, cast(DWORD, (alignedOffset >> 32)), cast(DWORD, alignedOffset), mappedLength)
         defer if not .nativeView do
             discard catch UnmapViewOfFile(nativeView)
 
-        .mapHandle  = cast(FileHandle) mapping
-        .fileHandle = cast(FileHandle) duplicate
+        .mapHandle  = cast(FileHandle, mapping)
+        .fileHandle = cast(FileHandle, duplicate)
         .nativeView = nativeView
-        .view       = cast([*] u8) nativeView! + prefix
+        .view       = cast([*] u8, nativeView!) + prefix
     }
 
     mtd closeNative()
@@ -65,13 +65,13 @@ internal impl MappedRegion
 
         if .mapHandle
         {
-            CloseHandle(cast(HANDLE) .mapHandle)
+            CloseHandle(cast(HANDLE, .mapHandle))
             .mapHandle = null
         }
 
         if .fileHandle
         {
-            CloseHandle(cast(HANDLE) .fileHandle)
+            CloseHandle(cast(HANDLE, .fileHandle))
             .fileHandle = null
         }
 
@@ -83,7 +83,7 @@ internal impl MappedRegion
     mtd flushNative() fail
     {
         try FlushViewOfFile(.view, .length)
-        catch FlushFileBuffers(cast(HANDLE) .fileHandle) as err
+        catch FlushFileBuffers(cast(HANDLE, .fileHandle)) as err
         try Errors.transformWinErrors(err)
     }
 
@@ -91,6 +91,6 @@ internal impl MappedRegion
     // working set; the call reports an error for that case, which is the outcome wanted here.
     func releasePagesNative(bytes: const [..] u8)
     {
-        discard VirtualUnlock(cast #unconst (LPVOID) bytes.buffer, bytes.count)
+        discard VirtualUnlock(cast #unconst (LPVOID, bytes.buffer), bytes.count)
     }
 }

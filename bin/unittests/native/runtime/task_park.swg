@@ -79,7 +79,7 @@ struct Observer
 
 func observe(param: *void?)->u32
 {
-    let observer = cast(*Observer) param!
+    let observer = cast(*Observer, param!)
     Swag.setContext(&observer.context)
     defer
     {

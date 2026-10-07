@@ -135,9 +135,9 @@ impl Reader
             entry.level = item.level
             let title = .parser.stringValue(.parser.dict(node, "Title"))
             if title.count >= 2 and title[0] == 0xFE and title[1] == 0xFF do
-                entry.title = Text.decode(cast(const [..] u8) title[2 to], .Utf16Be)
+                entry.title = Text.decode(cast(const [..] u8, title[2 to]), .Utf16Be)
             else do
-                entry.title = Text.decode(cast(const [..] u8) title, .Windows1252)
+                entry.title = Text.decode(cast(const [..] u8, title), .Windows1252)
 
             var destination = .parser.dict(node, "Dest")
             if destination == InvalidNode
@@ -187,13 +187,13 @@ impl Reader
                             var x    = region.box.x
                             var y    = region.box.bottom()
                             if (mode == "XYZ" or mode == "FitV" or mode == "FitBV" or mode == "FitR") and values.count > 2 do
-                                x = cast(f32) .parser.number(values[2], x)
+                                x = cast(f32, .parser.number(values[2], x))
                             if mode == "XYZ" and values.count > 3 do
-                                y = cast(f32) .parser.number(values[3], y)
+                                y = cast(f32, .parser.number(values[3], y))
                             elif (mode == "FitH" or mode == "FitBH") and values.count > 2 do
-                                y = cast(f32) .parser.number(values[2], y)
+                                y = cast(f32, .parser.number(values[2], y))
                             elif mode == "FitR" and values.count > 5 do
-                                y = cast(f32) .parser.number(values[5], y)
+                                y = cast(f32, .parser.number(values[5], y))
                             x -= region.box.x
                             y -= region.box.y
                             switch region.rotate

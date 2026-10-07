@@ -28,22 +28,22 @@ internal func blockBytes(format: Format)->u64
 }
 
 #[Swag.Inline]
-func readU16(source: const [*] u8)->u16 => cast(u16) source[0] | (cast(u16) source[1] << 8)
+func readU16(source: const [*] u8)->u16 => cast(u16, source[0]) | (cast(u16, source[1]) << 8)
 
 #[Swag.Inline]
 func readU32(source: const [*] u8)->u32
 {
-    return cast(u32) source[0] |
-           (cast(u32) source[1] << 8) |
-           (cast(u32) source[2] << 16) |
-           (cast(u32) source[3] << 24)
+    return cast(u32, source[0]) |
+           (cast(u32, source[1]) << 8) |
+           (cast(u32, source[2]) << 16) |
+           (cast(u32, source[3]) << 24)
 }
 
 #[Swag.Inline]
-func expand5(value: u16)->u8 => cast(u8) ((value << 3) | (value >> 2))
+func expand5(value: u16)->u8 => cast(u8, ((value << 3) | (value >> 2)))
 
 #[Swag.Inline]
-func expand6(value: u16)->u8 => cast(u8) ((value << 2) | (value >> 4))
+func expand6(value: u16)->u8 => cast(u8, ((value << 2) | (value >> 4)))
 
 func colorPalette(result: *[4] Color, color0, color1: u16, forceFourColors: bool)
 {
@@ -51,18 +51,18 @@ func colorPalette(result: *[4] Color, color0, color1: u16, forceFourColors: bool
     result[][1] = Color.fromRgb(expand5((color1 >> 11) & 31), expand6((color1 >> 5) & 63), expand5(color1 & 31))
     if color0 > color1 or forceFourColors
     {
-        result[][2] = Color.fromRgb(cast(u8) ((cast(u16) result[][0].r * 2 + result[][1].r) / 3),
-                                    cast(u8) ((cast(u16) result[][0].g * 2 + result[][1].g) / 3),
-                                    cast(u8) ((cast(u16) result[][0].b * 2 + result[][1].b) / 3))
-        result[][3] = Color.fromRgb(cast(u8) ((cast(u16) result[][0].r + cast(u16) result[][1].r * 2) / 3),
-                                    cast(u8) ((cast(u16) result[][0].g + cast(u16) result[][1].g * 2) / 3),
-                                    cast(u8) ((cast(u16) result[][0].b + cast(u16) result[][1].b * 2) / 3))
+        result[][2] = Color.fromRgb(cast(u8, ((cast(u16, result[][0].r) * 2 + result[][1].r) / 3)),
+                                    cast(u8, ((cast(u16, result[][0].g) * 2 + result[][1].g) / 3)),
+                                    cast(u8, ((cast(u16, result[][0].b) * 2 + result[][1].b) / 3)))
+        result[][3] = Color.fromRgb(cast(u8, ((cast(u16, result[][0].r) + cast(u16, result[][1].r) * 2) / 3)),
+                                    cast(u8, ((cast(u16, result[][0].g) + cast(u16, result[][1].g) * 2) / 3)),
+                                    cast(u8, ((cast(u16, result[][0].b) + cast(u16, result[][1].b) * 2) / 3)))
     }
     else
     {
-        result[][2] = Color.fromRgb(cast(u8) ((cast(u16) result[][0].r + result[][1].r) / 2),
-                                    cast(u8) ((cast(u16) result[][0].g + result[][1].g) / 2),
-                                    cast(u8) ((cast(u16) result[][0].b + result[][1].b) / 2))
+        result[][2] = Color.fromRgb(cast(u8, ((cast(u16, result[][0].r) + result[][1].r) / 2)),
+                                    cast(u8, ((cast(u16, result[][0].g) + result[][1].g) / 2)),
+                                    cast(u8, ((cast(u16, result[][0].b) + result[][1].b) / 2)))
         result[][3] = Color.fromArgb(0, 0, 0, 0)
     }
 }
@@ -74,12 +74,12 @@ func alphaPalette(result: *[8] u8, source: const [*] u8)
     if result[][0] > result[][1]
     {
         for i in rangeTo(1, 6) do
-            result[][i + 1] = cast(u8) ((cast(u16) result[][0] * (7 - i) + cast(u16) result[][1] * i) / 7)
+            result[][i + 1] = cast(u8, ((cast(u16, result[][0]) * (7 - i) + cast(u16, result[][1]) * i) / 7))
     }
     else
     {
         for i in rangeTo(1, 4) do
-            result[][i + 1] = cast(u8) ((cast(u16) result[][0] * (5 - i) + cast(u16) result[][1] * i) / 5)
+            result[][i + 1] = cast(u8, ((cast(u16, result[][0]) * (5 - i) + cast(u16, result[][1]) * i) / 5))
         result[][6] = 0
         result[][7] = 255
     }
@@ -90,8 +90,8 @@ func alphaIndex(source: const [*] u8, pixel: u32)->u8
 {
     var bits = 0'u64
     for i in 6 do
-        bits |= cast(u64) source[2 + i] << (i * 8)
-    return cast(u8) ((bits >> (pixel * 3)) & 7)
+        bits |= cast(u64, source[2 + i]) << (i * 8)
+    return cast(u8, ((bits >> (pixel * 3)) & 7))
 }
 
 func storePixel(image: *Image, x, sourceY: s32, color: Color, sourceTopDown: bool)
@@ -99,7 +99,7 @@ func storePixel(image: *Image, x, sourceY: s32, color: Color, sourceTopDown: boo
     if x >= image.width or sourceY >= image.height do
         return
     let targetY = sourceTopDown ? image.height - sourceY - 1 : sourceY
-    let target  = image.pixels.storage() + cast(u64) targetY * image.rowStride + cast(u64) x * 4
+    let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride + cast(u64, x) * 4
     target[0] = color.r
     target[1] = color.g
     target[2] = color.b
@@ -108,8 +108,8 @@ func storePixel(image: *Image, x, sourceY: s32, color: Color, sourceTopDown: boo
 
 internal func decode(image: *Image, source: const [..] u8, format: Format, sourceTopDown = true) fail
 {
-    let columns  = cast(u64) (image.width + 3) / 4
-    let rows     = cast(u64) (image.height + 3) / 4
+    let columns  = cast(u64, (image.width + 3)) / 4
+    let rows     = cast(u64, (image.height + 3)) / 4
     let oneBlock = blockBytes(format)
     if columns > Swag.U64.Max / rows or columns * rows > source.count / oneBlock do
         fail InvalidFormatError{"block-compressed texture data is truncated"}
@@ -155,8 +155,8 @@ internal func decode(image: *Image, source: const [..] u8, format: Format, sourc
 
             for pixel in 16'u32
             {
-                let x = cast(s32) (blockX * 4 + pixel % 4)
-                let y = cast(s32) (blockY * 4 + pixel / 4)
+                let x = cast(s32, (blockX * 4 + pixel % 4))
+                let y = cast(s32, (blockY * 4 + pixel / 4))
                 var color: Color
                 if format == .BC4
                 {
@@ -171,7 +171,7 @@ internal func decode(image: *Image, source: const [..] u8, format: Format, sourc
                 {
                     color = colors[(indices >> (pixel * 2)) & 3]
                     if format == .BC2 do
-                        color.a = cast(u8) (((readU16(block + cast(u64) (pixel / 4) * 2) >> ((pixel & 3) * 4)) & 15) * 17)
+                        color.a = cast(u8, (((readU16(block + cast(u64, (pixel / 4)) * 2) >> ((pixel & 3) * 4)) & 15) * 17))
                     elif format == .BC3 do
                         color.a = alpha[alphaIndex(block, pixel)]
                 }

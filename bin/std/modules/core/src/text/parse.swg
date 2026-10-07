@@ -33,7 +33,7 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
             value <<= 4
             let c = buffer[]
             if Latin1.isDigit(c) do
-                value += cast(u64) (c - '0'u8)
+                value += cast(u64, (c - '0'u8))
             elif c <= 'F'u8 do
                 value += 10'u64 + (c - 'A'u8)
             else do
@@ -76,7 +76,7 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         else
         {
             value <<= 1
-            value += cast(u64) (buffer[] - '0'u8)
+            value += cast(u64, (buffer[] - '0'u8))
         }
 
         buffer, cpt += 1
@@ -95,7 +95,7 @@ func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } fail
     let {res, eat, ovf} = try parseU64(str)
     if res > Swag.U8.Max do
         return {Swag.U8.Max, eat, true}
-    return {cast(u8) res, eat, ovf}
+    return {cast(u8, res), eat, ovf}
 }
 
 // Parses the unsigned integer at the start of `str` as a `u16`, like [[Core.StrConv.parseU64]].
@@ -106,7 +106,7 @@ func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
     let {res, eat, ovf} = try parseU64(str)
     if res > Swag.U16.Max do
         return {Swag.U16.Max, eat, true}
-    return {cast(u16) res, eat, ovf}
+    return {cast(u16, res), eat, ovf}
 }
 
 // Parses the unsigned integer at the start of `str` as a `u32`, like [[Core.StrConv.parseU64]].
@@ -117,7 +117,7 @@ func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } fail
     let {res, eat, ovf} = try parseU64(str)
     if res > Swag.U32.Max do
         return {Swag.U32.Max, eat, true}
-    return {cast(u32) res, eat, ovf}
+    return {cast(u32, res), eat, ovf}
 }
 
 // Parses the unsigned integer at the start of `str`.
@@ -173,7 +173,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 
         if not result.ovf
         {
-            let add = cast(u64) (buffer[] - '0'u8)
+            let add = cast(u64, (buffer[] - '0'u8))
             if value + #wrap add < value
             {
                 result.ovf = true
@@ -203,7 +203,7 @@ func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } fail
         return {Swag.S8.Min, eat, true}
     if res > Swag.S8.Max do
         return {Swag.S8.Max, eat, true}
-    return {cast(s8) res, eat, ovf}
+    return {cast(s8, res), eat, ovf}
 }
 
 // Parses the signed decimal integer at the start of `str` as an `s16`, like [[Core.StrConv.parseS64]].
@@ -216,7 +216,7 @@ func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
         return {Swag.S16.Min, eat, true}
     if res > Swag.S16.Max do
         return {Swag.S16.Max, eat, true}
-    return {cast(s16) res, eat, ovf}
+    return {cast(s16, res), eat, ovf}
 }
 
 // Parses the signed decimal integer at the start of `str` as an `s32`, like [[Core.StrConv.parseS64]].
@@ -229,7 +229,7 @@ func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
         return {Swag.S32.Min, eat, true}
     if res > Swag.S32.Max do
         return {Swag.S32.Max, eat, true}
-    return {cast(s32) res, eat, ovf}
+    return {cast(s32, res), eat, ovf}
 }
 
 // Parses the signed decimal integer at the start of `str`.
@@ -253,7 +253,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
     // An optional sign comes first.
     var signed   = false
     let c        = str[0]
-    var maxValue = cast(u64) Swag.S64.Max
+    var maxValue = cast(u64, Swag.S64.Max)
     if c == g_CultureInfo.numberFormat.negativeSign
     {
         buffer, cpt += 1
@@ -287,7 +287,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 
         if not result.ovf
         {
-            let toAdd = cast(u64) (buffer[] - '0'u8)
+            let toAdd = cast(u64, (buffer[] - '0'u8))
             if value + toAdd > maxValue
             {
                 result.ovf = true
@@ -309,11 +309,11 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
             if value == maxValue do
                 result.value = Swag.S64.Min
             else do
-                result.value = -cast(s64) value
+                result.value = -cast(s64, value)
         }
         else
         {
-            result.value = cast(s64) value
+            result.value = cast(s64, value)
         }
     }
 
@@ -336,7 +336,7 @@ func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
         return {Swag.F32.Max, eat, true}
     }
 
-    return {cast(f32) res, eat, ovf}
+    return {cast(f32, res), eat, ovf}
 }
 
 // Parses the floating-point number at the start of `str`.
@@ -363,7 +363,7 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
     default: fail SyntaxError{}
     }
 
-    result.eat = cast(u32) sub.count
+    result.eat = cast(u32, sub.count)
     return result
 }
 
@@ -451,7 +451,7 @@ func parseString(result: *String, str: string)->u32 fail
         fail ParseIncompleteError{}
     if isQuoted do
         cpt += 1
-    return cast(u32) cpt
+    return cast(u32, cpt)
 }
 
 // Parses the text at the start of `str` and returns it with the number of bytes consumed.

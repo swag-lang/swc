@@ -38,9 +38,9 @@ func changedOr(a, b, c: u64)->u64
             {
                 Swag.assert(sharedAnd64(a, b, c) == (a & (b | c)))
                 Swag.assert(sharedOr64(a, b, c) == (a | (b & c)))
-                let a32 = cast(u32) (a & 0xFFFFFFFF)
-                let b32 = cast(u32) (b & 0xFFFFFFFF)
-                let c32 = cast(u32) (c & 0xFFFFFFFF)
+                let a32 = cast(u32, (a & 0xFFFFFFFF))
+                let b32 = cast(u32, (b & 0xFFFFFFFF))
+                let c32 = cast(u32, (c & 0xFFFFFFFF))
                 Swag.assert(sharedAnd32(a32, b32, c32) == (a32 & (b32 | c32)))
                 Swag.assert(sharedOr32(a32, b32, c32) == (a32 | (b32 & c32)))
                 Swag.assert(reusedAnd(a, b, c) == (a & c & ~b))

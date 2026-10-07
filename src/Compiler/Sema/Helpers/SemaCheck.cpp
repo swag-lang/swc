@@ -382,8 +382,8 @@ namespace
         switch (flag)
         {
             case AstModifierFlagsE::Bit: return TokenId::ModifierBit;
-            case AstModifierFlagsE::Try: return TokenId::ModifierTry;
-            case AstModifierFlagsE::Assume: return TokenId::ModifierAssume;
+            case AstModifierFlagsE::Try: return TokenId::KwdTry;
+            case AstModifierFlagsE::Assume: return TokenId::KwdAssume;
             case AstModifierFlagsE::UnConst: return TokenId::ModifierUnConst;
             case AstModifierFlagsE::Fail: return TokenId::ModifierFail;
             case AstModifierFlagsE::NoFail: return TokenId::ModifierNoFail;

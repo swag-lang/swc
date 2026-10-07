@@ -52,7 +52,7 @@ using Core
         }
     }
 
-    return cast(string) result
+    return cast(string, result)
 }
 
 func day7B()

@@ -83,9 +83,9 @@ enum CmpEnum: u16
 #test
 {
     func cmpPointer(a: *void?, b: *void?)->bool { return a != b }
-    const V0 = #run cmpPointer(cast(*void) 0x1234'u64, cast(*void) 0x5678'u64)
-    const V1 = #run cmpPointer(cast(*void) 0x1234'u64, cast(*void) 0x1234'u64)
-    const V2 = #run cmpPointer(null, cast(*void) 0x1'u64)
+    const V0 = #run cmpPointer(cast(*void, 0x1234'u64), cast(*void, 0x5678'u64))
+    const V1 = #run cmpPointer(cast(*void, 0x1234'u64), cast(*void, 0x1234'u64))
+    const V2 = #run cmpPointer(null, cast(*void, 0x1'u64))
     #assert(V0)
     #assert(not V1)
     #assert(V2)
@@ -123,11 +123,11 @@ enum CmpEnum: u16
         a4: f32, a5: f64, a6: s64, a7: u64,
         a8: *void, a9: CmpEnum)->bool
     {
-        return cast(s32) a0 < cast(s32) a1 and
-               cast(s32) a2 >= 65 and
+        return cast(s32, a0) < cast(s32, a1) and
+               cast(s32, a2) >= 65 and
                a3 == true and
-               a4 <= cast(f32) a5 and
-               a6 < cast(s64) a7 and
+               a4 <= cast(f32, a5) and
+               a6 < cast(s64, a7) and
                a8 != null and
                a9 == CmpEnum.B
     }
@@ -135,12 +135,12 @@ enum CmpEnum: u16
     const V0 = #run cmpAbiMix(
         -3's8, 10'u16, 'A', true,
         2.5'f32, 3.0'f64, 20's64, 30'u64,
-        cast(*void) 0x1111'u64, CmpEnum.B)
+        cast(*void, 0x1111'u64), CmpEnum.B)
 
     const V1 = #run cmpAbiMix(
         10's8, 10'u16, 'A', true,
         2.5'f32, 3.0'f64, 20's64, 30'u64,
-        cast(*void) 0x1111'u64, CmpEnum.B)
+        cast(*void, 0x1111'u64), CmpEnum.B)
 
     #assert(V0)
     #assert(not V1)
@@ -198,9 +198,9 @@ enum CmpEnum: u16
         return p and flag
     }
 
-    const V0 = #run cmpLogicalPointer(cast(*void) 0x1'u64, true)
-    const V1 = #run cmpLogicalPointer(cast(*void?) 0'u64, true)
-    const V2 = #run cmpLogicalPointer(cast(*void) 0x1'u64, false)
+    const V0 = #run cmpLogicalPointer(cast(*void, 0x1'u64), true)
+    const V1 = #run cmpLogicalPointer(cast(*void?, 0'u64), true)
+    const V2 = #run cmpLogicalPointer(cast(*void, 0x1'u64), false)
     #assert(V0)
     #assert(not V1)
     #assert(not V2)
@@ -261,8 +261,8 @@ enum CmpEnum: u16
         return acc
     }
 
-    const V0 = #run cmpLogicalStressPtr(cast(*void) 0x10'u64, null, 1, 2, false)
-    const V1 = #run cmpLogicalStressPtr(cast(*void) 0x10'u64, cast(*void) 0x20'u64, 3, 1, true)
+    const V0 = #run cmpLogicalStressPtr(cast(*void, 0x10'u64), null, 1, 2, false)
+    const V1 = #run cmpLogicalStressPtr(cast(*void, 0x10'u64), cast(*void, 0x20'u64), 3, 1, true)
     const V2 = #run cmpLogicalStressPtr(null, null, 3, 1, true)
     #assert(V0 == 1)
     #assert(V1 == 15)

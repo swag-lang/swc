@@ -13,7 +13,7 @@ struct ShortcutReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) (cast(const [..] u8) line).count
+    return cast(u32, cast(const [..] u8, line).count)
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -30,7 +30,7 @@ func absDiff(a, b: u32)->u32
 
 func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
 {
-    let height     = cast(u32) layout.count
+    let height     = cast(u32, layout.count)
     let width      = lineWidth(layout[0])
     let totalCells = width * height
     Swag.assert(totalCells <= MaxTrackCells)
@@ -45,12 +45,12 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     for ?, rowIndex in layout
     {
         Swag.assert(lineWidth(layout[rowIndex]) == width)
-        let row = cast(const [..] u8) layout[rowIndex]
+        let row = cast(const [..] u8, layout[rowIndex])
 
         for idx in width
         {
-            let x     = cast(u32) idx
-            let index = cellIndex(x, cast(u32) rowIndex, width)
+            let x     = cast(u32, idx)
+            let index = cellIndex(x, cast(u32, rowIndex), width)
             let cell  = row[x]
 
             walkable[index]      = cell != '#'u8
@@ -189,7 +189,7 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
 
     for idx in totalCells
     {
-        let fromCell = cast(u32) idx
+        let fromCell = cast(u32, idx)
         if not walkable[fromCell] or distFromStart[fromCell] == Swag.U32.Max do
             continue
 
@@ -198,7 +198,7 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
 
         for ordinal in totalCells
         {
-            let toCell = cast(u32) ordinal
+            let toCell = cast(u32, ordinal)
             if not walkable[toCell] or distFromEnd[toCell] == Swag.U32.Max do
                 continue
 

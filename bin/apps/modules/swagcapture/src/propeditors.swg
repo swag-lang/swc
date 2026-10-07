@@ -24,7 +24,7 @@ private func createAlignButton(line: *Wnd, vert: bool, width, height: f32, index
         if g_Main
         {
             let base = vert ? CaptureIcons.AlignTop : CaptureIcons.TextAlignLeft
-            .setIcon(g_Main!.icon(cast(CaptureIcons) (cast(s32) base + index)))
+            .setIcon(g_Main!.icon(cast(CaptureIcons, (cast(s32, base) + index))))
         }
         else
         {
@@ -48,7 +48,7 @@ impl IPropertyEditor for AlignEditor
         parent.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parent)
-        let align = cast(*FormTextAlign) data
+        let align = cast(*FormTextAlign, data)
         let vert  = value.name == #nameof(FormText.alignVert)
 
         const BtnW = 34

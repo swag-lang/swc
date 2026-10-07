@@ -188,7 +188,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
         }
 
         // Test name alias
-        let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(string?) null)
+        let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(string?, null))
         if aliasName != null and isSameName(aliasName orelse "", name)
         {
             result.field = it
@@ -274,13 +274,13 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         }
 
         let typeField = field.pointedType orelse #typeof(u8)
-        let addr      = cast([*] u8) st + field.offset
+        let addr      = cast([*] u8, st) + field.offset
 
         // Bool: Result is true if the option does not have an associated value
         if Reflection.isBool(typeField) and
            (itp + 1 == maxItp or isOption(allArgs[itp + 1].value, options))
         {
-            (cast(*bool) addr)[] = true
+            cast(*bool, addr)[] = true
         }
         // All types supported by 'Parse.pokeValue'
         elif typeField == #typeof(Core.String) or
@@ -347,7 +347,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         }
 
         // 'IsSet' holds one 'bool' per field of 'T', in field order.
-        (cast([*] bool) &result.isSet)[fieldResult.index] = true
+        cast([*] bool, &result.isSet)[fieldResult.index] = true
     }
 
     return result

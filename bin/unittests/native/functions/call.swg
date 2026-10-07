@@ -45,7 +45,7 @@ namespace compiler1629
     #test
     {
         var arr: [64] u8
-        var ptr = cast([*] ([*] void?)) &arr[0]
+        var ptr = cast([*] ([*] void?), &arr[0])
         ptr[0] = null
         Swag.assert(ptr[0] == null)
     }
@@ -131,7 +131,7 @@ namespace compiler1648
         x %= 16'u32
 
         let m: u32 = 16
-        x %= cast(u64) m
+        x %= cast(u64, m)
         Swag.assert(x == 15)
     }
 }
@@ -142,7 +142,7 @@ namespace compiler1651
     //
     func toto1(x: any)->s32
     {
-        let v = cast #assume(s32) x
+        let v = assume cast(s32, x)
         Swag.assert(v == 100)
         return v
     }
@@ -214,8 +214,8 @@ namespace compiler1662
     #test
     {
         var value: s64             = 666
-        var addr1: [*] s64         = cast([*] s64) &value
-        var addr:  [1] [*] [*] s64 = [cast([*] [*] s64) &addr1]
+        var addr1: [*] s64         = cast([*] s64, &value)
+        var addr:  [1] [*] [*] s64 = [cast([*] [*] s64, &addr1)]
 
         Swag.assert(addr[0][0][0] == 666)
     }
@@ -233,8 +233,8 @@ namespace compiler1663
     #test
     {
         var value: TT
-        var addr1: [*] TT         = cast([*] TT) &value
-        var addr:  [1] [*] [*] TT = [cast([*] [*] TT) &addr1]
+        var addr1: [*] TT         = cast([*] TT, &value)
+        var addr:  [1] [*] [*] TT = [cast([*] [*] TT, &addr1)]
 
         // Swag.print(addr1.value)
         Swag.assert(addr[0][0].value == 456)
@@ -253,7 +253,7 @@ namespace compiler1664
     #test
     {
         var value: TT
-        var addr:  [2, 2] (*TT?) = cast(*TT?) null
+        var addr:  [2, 2] (*TT?) = cast(*TT?, null)
 
         addr[0, 0] = &value
 
@@ -275,8 +275,8 @@ namespace compiler1666
 
     func C(x: ...)
     {
-        let ptr1 = cast #assume(TT) x[0]
-        // Swag.print(cast(s64) ptr1.value)
+        let ptr1 = assume cast(TT, x[0])
+        // Swag.print(cast(s64, ptr1.value))
         Swag.assert(ptr1.value == 456)
     }
 
@@ -398,14 +398,14 @@ namespace compiler1678
 
     func D(x: TT)->s64
     {
-        // Swag.print(cast(s64) x.value)
+        // Swag.print(cast(s64, x.value))
         Swag.assert(x.value == 456)
         return x.value
     }
 
     func C(x: any)->s64
     {
-        return D(cast #assume(TT) x)
+        return D(assume cast(TT, x))
     }
 
     #test
@@ -435,14 +435,14 @@ namespace compiler1679
 
     func E(x: any)->s64
     {
-        let ptr = cast #assume(TT) x
-        // C(cast(TT) x)
+        let ptr = assume cast(TT, x)
+        // C(cast(TT, x))
         return C(ptr)
     }
 
     func C(x: TT)->s64
     {
-        // Swag.print(cast(s64) x.value)
+        // Swag.print(cast(s64, x.value))
         Swag.assert(x.value == 456)
         return x.value
     }
@@ -474,12 +474,12 @@ namespace compiler1680
 
     func E(x: any)->s64
     {
-        return C(cast #assume(TT) x)
+        return C(assume cast(TT, x))
     }
 
     func C(x: TT)->s64
     {
-        // Swag.print(cast(s64) x.value)
+        // Swag.print(cast(s64, x.value))
         Swag.assert(x.value == 456)
         return x.value
     }
@@ -508,7 +508,7 @@ namespace compiler1681
 
     func C(x: myStruct)->s64
     {
-        // Swag.print(cast(s64) x.value)
+        // Swag.print(cast(s64, x.value))
         Swag.assert(x.value == 456)
         return x.value
     }
@@ -537,8 +537,8 @@ namespace compiler1682
 
     func C(x: any)->s64
     {
-        // Swag.print(cast(s64) x.value)
-        let val = cast #assume(myStruct) x
+        // Swag.print(cast(s64, x.value))
+        let val = assume cast(myStruct, x)
         Swag.assert(val.value == 456)
         return val.value
     }
@@ -806,7 +806,7 @@ namespace compiler231
 
         var b = 1.0'f64
         b += 1.5'f64; Swag.assert(b == 2.5)
-        return cast(f64) a + b
+        return cast(f64, a) + b
     }
 
     #test

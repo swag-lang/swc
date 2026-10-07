@@ -183,10 +183,10 @@ impl Slice
         let mbX     = .mbX
         let mbY     = .mbY
         let sliceId = .sliceId
-        let index   = cast(u64) (mbY * mbWidth + mbX)
-        let block   = cast(u64) (mbY * 4 * (mbWidth * 4) + mbX * 4)
-        let chroma  = cast(u64) (mbY * 2 * (mbWidth * 2) + mbX * 2)
-        let row     = cast(u64) mbWidth
+        let index   = cast(u64, (mbY * mbWidth + mbX))
+        let block   = cast(u64, (mbY * 4 * (mbWidth * 4) + mbX * 4))
+        let chroma  = cast(u64, (mbY * 2 * (mbWidth * 2) + mbX * 2))
+        let row     = cast(u64, mbWidth)
         .neighbors.blockBase = block
 
         // An unavailable neighbor's indexes wrap below zero and are never read.
@@ -227,7 +227,7 @@ impl Slice
         let sps = dec.sps!
         if mbX < 0 or mbY < 0 or mbX >= sps.mbWidth or mbY >= sps.mbHeight do
             return false
-        return dec.mbInfo[cast(u64) (mbY * sps.mbWidth + mbX)].sliceId == .sliceId
+        return dec.mbInfo[cast(u64, (mbY * sps.mbWidth + mbX))].sliceId == .sliceId
     }
 
     // Returns the macroblock info at a position the caller knows is valid.
@@ -235,7 +235,7 @@ impl Slice
     mtd const mbInfoAt(mbX, mbY: s32)->*MbInfo
     {
         let dec = .dec!
-        return &dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)]
+        return &dec.mbInfo[cast(u64, (mbY * dec.sps!.mbWidth + mbX))]
     }
 
     // Fetches the motion of the 4x4 block at `rx`, `ry` relative to the macroblock's top-left
@@ -265,9 +265,9 @@ impl Slice
             // A block of the current macroblock contributes as soon as its motion for this
             // list is assigned, which is how earlier partitions feed the entropy contexts
             // and the prediction of later ones.
-            if (mb.motionMask[list] & (1'u32 << cast(u32) (ry * 4 + rx))) == 0 do
+            if (mb.motionMask[list] & (1'u32 << cast(u32, (ry * 4 + rx)))) == 0 do
                 return result
-            index = .neighbors.blockBase + cast(u64) (ry * gw + rx)
+            index = .neighbors.blockBase + cast(u64, (ry * gw + rx))
         }
         else
         {
@@ -289,7 +289,7 @@ impl Slice
                 // (deriveSkipP), and its vector is in the compact lanes it published for the
                 // filter, sixteen bytes a macroblock, rather than in its whole parsed record,
                 // which the macroblock above has long left the cache with.
-                let lanes = cast(const [*] s16) (dec.skipMotion.storage() + other.mbIndex)
+                let lanes = cast(const [*] s16, (dec.skipMotion.storage() + other.mbIndex))
                 result.available = true
                 result.refIdx    = list == 0 ? 0 : -1
                 result.mvX       = list == 0 ? lanes[0] : 0
@@ -297,7 +297,7 @@ impl Slice
                 return result
             }
 
-            index = other.blockBase + cast(u64) ((ry & 3) * gw + (rx & 3))
+            index = other.blockBase + cast(u64, ((ry & 3) * gw + (rx & 3)))
         }
 
         let motion = list == 0 ? &dec.motionL0[index] : &dec.motionL1[index]
@@ -319,9 +319,9 @@ impl Slice
         var index:  u64
         if rx >= 0 and ry >= 0
         {
-            if (mb.motionMask[list] & (1'u32 << cast(u32) (ry * 4 + rx))) == 0 do
+            if (mb.motionMask[list] & (1'u32 << cast(u32, (ry * 4 + rx)))) == 0 do
                 return result
-            index = .neighbors.blockBase + cast(u64) (ry * (dec.sps!.mbWidth * 4) + rx)
+            index = .neighbors.blockBase + cast(u64, (ry * (dec.sps!.mbWidth * 4) + rx))
         }
         else
         {
@@ -331,7 +331,7 @@ impl Slice
             let info = other.info!
             if info.class != MbClassInter or (.header.type == SliceTypeP and info.skipped) do
                 return result
-            index = other.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))
+            index = other.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))
         }
 
         let diffs = list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()
@@ -357,19 +357,19 @@ impl Slice
         switch shapeHint
         {
         case 1:
-            if b.available and not b.intra and cast(s32) b.refIdx == refIdx do
+            if b.available and not b.intra and cast(s32, b.refIdx) == refIdx do
                 return [b.mvX, b.mvY]
 
         case 2:
-            if a.available and not a.intra and cast(s32) a.refIdx == refIdx do
+            if a.available and not a.intra and cast(s32, a.refIdx) == refIdx do
                 return [a.mvX, a.mvY]
 
         case 3:
-            if a.available and not a.intra and cast(s32) a.refIdx == refIdx do
+            if a.available and not a.intra and cast(s32, a.refIdx) == refIdx do
                 return [a.mvX, a.mvY]
 
         case 4:
-            if c.available and not c.intra and cast(s32) c.refIdx == refIdx do
+            if c.available and not c.intra and cast(s32, c.refIdx) == refIdx do
                 return [c.mvX, c.mvY]
 
         default:
@@ -381,9 +381,9 @@ impl Slice
             return [a.mvX, a.mvY]
 
         // A single neighbor sharing the reference wins over the median.
-        let matchA = a.available and not a.intra and cast(s32) a.refIdx == refIdx
-        let matchB = b.available and not b.intra and cast(s32) b.refIdx == refIdx
-        let matchC = c.available and not c.intra and cast(s32) c.refIdx == refIdx
+        let matchA = a.available and not a.intra and cast(s32, a.refIdx) == refIdx
+        let matchB = b.available and not b.intra and cast(s32, b.refIdx) == refIdx
+        let matchC = c.available and not c.intra and cast(s32, c.refIdx) == refIdx
         if matchA and not matchB and not matchC do
             return [a.mvX, a.mvY]
         if matchB and not matchA and not matchC do
@@ -391,9 +391,9 @@ impl Slice
         if matchC and not matchA and not matchB do
             return [c.mvX, c.mvY]
 
-        let medianX = Math.max(Math.min(cast(s32) a.mvX, cast(s32) b.mvX), Math.min(Math.max(cast(s32) a.mvX, cast(s32) b.mvX), cast(s32) c.mvX))
-        let medianY = Math.max(Math.min(cast(s32) a.mvY, cast(s32) b.mvY), Math.min(Math.max(cast(s32) a.mvY, cast(s32) b.mvY), cast(s32) c.mvY))
-        return [cast(s16) medianX, cast(s16) medianY]
+        let medianX = Math.max(Math.min(cast(s32, a.mvX), cast(s32, b.mvX)), Math.min(Math.max(cast(s32, a.mvX), cast(s32, b.mvX)), cast(s32, c.mvX)))
+        let medianY = Math.max(Math.min(cast(s32, a.mvY), cast(s32, b.mvY)), Math.min(Math.max(cast(s32, a.mvY), cast(s32, b.mvY)), cast(s32, c.mvY)))
+        return [cast(s16, medianX), cast(s16, medianY)]
     }
 
     // Stores the final motion of one partition into the picture grid and the parse state.
@@ -404,17 +404,17 @@ impl Slice
     mtd assignMotion(mb: *Mb, list: u32, x4, y4, w4, h4: s32, refIdx: s32, mv: [2] s16, mvd: [2] s16, isDirect: bool)
     {
         let dec   = .dec!
-        let gw    = cast(u64) (dec.sps!.mbWidth * 4)
+        let gw    = cast(u64, (dec.sps!.mbWidth * 4))
         let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
-        let entry = packedMotion(mv, cast(s8) refIdx, refId)
-        let diff  = cast(u32) cast #bit (u16) mvd[0] | (cast(u32) cast #bit (u16) mvd[1] << 16)
+        let entry = packedMotion(mv, cast(s8, refIdx), refId)
+        let diff  = cast(u32, cast #bit (u16, mvd[0])) | (cast(u32, cast #bit (u16, mvd[1])) << 16)
         let flag  = isDirect ? 1'u8 : 0'u8
-        let grid  = cast([*] u64) (list == 0 ? dec.motionL0.storage() : dec.motionL1.storage())
-        let diffs = cast([*] u32) (list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage())
+        let grid  = cast([*] u64, (list == 0 ? dec.motionL0.storage() : dec.motionL1.storage()))
+        let diffs = cast([*] u32, (list == 0 ? dec.mvdL0.storage() : dec.mvdL1.storage()))
         let flags = dec.directFlags.storage()
-        let width = cast(u64) w4
-        var index = cast(u64) ((mb.mbY * 4 + y4) * cast(s32) gw + mb.mbX * 4 + x4)
-        for cast(u64) h4
+        let width = cast(u64, w4)
+        var index = cast(u64, ((mb.mbY * 4 + y4) * cast(s32, gw) + mb.mbX * 4 + x4))
+        for cast(u64, h4)
         {
             for column in width
             {
@@ -424,7 +424,7 @@ impl Slice
 
             if width == 4
             {
-                (cast([*] u32) (flags + index))[0] = cast(u32) flag * 0x01010101
+                cast([*] u32, (flags + index))[0] = cast(u32, flag) * 0x01010101
             }
             else
             {
@@ -435,10 +435,10 @@ impl Slice
             index += gw
         }
 
-        let rowMask = ((1'u32 << cast(u32) w4) - 1) << cast(u32) x4
-        for row in cast(u32) h4
+        let rowMask = ((1'u32 << cast(u32, w4)) - 1) << cast(u32, x4)
+        for row in cast(u32, h4)
         {
-            let mask = rowMask << cast(u32) ((y4 + cast(s32) row) * 4)
+            let mask = rowMask << cast(u32, ((y4 + cast(s32, row)) * 4))
             mb.motionMask[list] |= mask
         }
     }
@@ -450,8 +450,8 @@ impl Slice
     {
         let dec    = .dec!
         let gw     = dec.sps!.mbWidth * 4
-        let id0    = refIdx[0] >= 0 ? .refs[0, cast(u64) refIdx[0]].identity : NoReferenceIdentity
-        let id1    = refIdx[1] >= 0 ? .refs[1, cast(u64) refIdx[1]].identity : NoReferenceIdentity
+        let id0    = refIdx[0] >= 0 ? .refs[0, cast(u64, refIdx[0])].identity : NoReferenceIdentity
+        let id1    = refIdx[1] >= 0 ? .refs[1, cast(u64, refIdx[1])].identity : NoReferenceIdentity
         let entry0 = BlockMotion{mvX: mv0[0], mvY: mv0[1], refIdx: refIdx[0], refId: id0}
         let entry1 = BlockMotion{mvX: mv1[0], mvY: mv1[1], refIdx: refIdx[1], refId: id1}
         if x4 == 0 and y4 == 0 and w4 == 4 and h4 == 4
@@ -466,9 +466,9 @@ impl Slice
             let direct  = Simd.splat(isDirect ? 1'u8 : 0)
             for row in 4'u64
             {
-                let index = cast(u64) ((mb.mbY * 4 + cast(s32) row) * gw + mb.mbX * 4)
-                let grid0 = cast([*] u64) (dec.motionL0.storage() + index)
-                let grid1 = cast([*] u64) (dec.motionL1.storage() + index)
+                let index = cast(u64, ((mb.mbY * 4 + cast(s32, row)) * gw + mb.mbX * 4))
+                let grid0 = cast([*] u64, (dec.motionL0.storage() + index))
+                let grid1 = cast([*] u64, (dec.motionL1.storage() + index))
                 Simd.store(grid0, pair0)
                 Simd.store(grid0 + 2, pair0)
                 Simd.store(grid1, pair1)
@@ -483,11 +483,11 @@ impl Slice
             return
         }
 
-        for row in cast(u64) h4
+        for row in cast(u64, h4)
         {
-            for column in cast(u64) w4
+            for column in cast(u64, w4)
             {
-                let index = cast(u64) ((mb.mbY * 4 + y4 + cast(s32) row) * gw + mb.mbX * 4 + x4 + cast(s32) column)
+                let index = cast(u64, ((mb.mbY * 4 + y4 + cast(s32, row)) * gw + mb.mbX * 4 + x4 + cast(s32, column)))
                 dec.motionL0[index]      = entry0
                 dec.motionL1[index]      = entry1
                 dec.mvdL0[index * 2]     = 0
@@ -498,10 +498,10 @@ impl Slice
             }
         }
 
-        let rowMask = ((1'u32 << cast(u32) w4) - 1) << cast(u32) x4
-        for row in cast(u32) h4
+        let rowMask = ((1'u32 << cast(u32, w4)) - 1) << cast(u32, x4)
+        for row in cast(u32, h4)
         {
-            let mask = rowMask << cast(u32) ((y4 + cast(s32) row) * 4)
+            let mask = rowMask << cast(u32, ((y4 + cast(s32, row)) * 4))
             mb.motionMask[0] |= mask
             mb.motionMask[1] |= mask
         }
@@ -586,11 +586,11 @@ impl Slice
     {
         let dec = .dec!
         let gw  = dec.sps!.mbWidth * 4
-        return cast(u64) ((mb.mbY * 4 + y4) * gw + mb.mbX * 4 + x4)
+        return cast(u64, ((mb.mbY * 4 + y4) * gw + mb.mbX * 4 + x4))
     }
 
     // Returns the macroblock's index in the picture, which the co-located records are kept by.
-    mtd const colMbIndex(mb: *Mb)->u64 => cast(u64) (mb.mbY * .dec!.sps!.mbWidth + mb.mbX)
+    mtd const colMbIndex(mb: *Mb)->u64 => cast(u64, (mb.mbY * .dec!.sps!.mbWidth + mb.mbX))
 
     // Spatial direct prediction, section 8.4.1.2.2.
     mtd deriveDirectSpatial(mb: *Mb, quad: s32)
@@ -611,11 +611,11 @@ impl Slice
 
             var minimum = -1's32
             if a.available and not a.intra and a.refIdx >= 0 do
-                minimum = cast(s32) a.refIdx
-            if b.available and not b.intra and b.refIdx >= 0 and (minimum < 0 or cast(s32) b.refIdx < minimum) do
-                minimum = cast(s32) b.refIdx
-            if c.available and not c.intra and c.refIdx >= 0 and (minimum < 0 or cast(s32) c.refIdx < minimum) do
-                minimum = cast(s32) c.refIdx
+                minimum = cast(s32, a.refIdx)
+            if b.available and not b.intra and b.refIdx >= 0 and (minimum < 0 or cast(s32, b.refIdx) < minimum) do
+                minimum = cast(s32, b.refIdx)
+            if c.available and not c.intra and c.refIdx >= 0 and (minimum < 0 or cast(s32, c.refIdx) < minimum) do
+                minimum = cast(s32, c.refIdx)
             if list == 0 do
                 refL0 = minimum
             else do
@@ -656,14 +656,14 @@ impl Slice
                     let motion   = col.colMotion(.colMbIndex(mb), colIndex)
                     if motion.ref == 0 and motion.isShort
                     {
-                        let cx = cast(s32) motion.mv[0]
-                        let cy = cast(s32) motion.mv[1]
+                        let cx = cast(s32, motion.mv[0])
+                        let cy = cast(s32, motion.mv[1])
                         if cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1 do
-                            mask |= 1'u32 << cast(u32) q
+                            mask |= 1'u32 << cast(u32, q)
                     }
                 }
 
-                knownColZeroMask = cast(s32) mask
+                knownColZeroMask = cast(s32, mask)
                 uniform          = mask == 0 or mask == 15
                 collapseZero     = mask == 15
             }
@@ -676,7 +676,7 @@ impl Slice
                     blockMvL0 = [0's16, 0's16]
                 if refL1 < 0 or (refL1 == 0 and collapseZero) do
                     blockMvL1 = [0's16, 0's16]
-                var refs: [2] s8 = [cast(s8) refL0, cast(s8) refL1]
+                var refs: [2] s8 = [cast(s8, refL0), cast(s8, refL1)]
                 .assignSkipMotion(mb, 0, 0, 4, 4, refs, blockMvL0, blockMvL1, true)
                 .addJob(mb, 0, 0, 4, 4, refs, blockMvL0, blockMvL1)
                 return
@@ -721,8 +721,8 @@ impl Slice
                     let motion   = col.colMotion(.colMbIndex(mb), colIndex)
                     if motion.ref == 0 and motion.isShort
                     {
-                        let cx = cast(s32) motion.mv[0]
-                        let cy = cast(s32) motion.mv[1]
+                        let cx = cast(s32, motion.mv[0])
+                        let cy = cast(s32, motion.mv[1])
                         colZero = cx >= -1 and cx <= 1 and cy >= -1 and cy <= 1
                     }
                 }
@@ -747,7 +747,7 @@ impl Slice
                     blockMvL0 = zeroMv
                 if refL1 < 0 do
                     blockMvL1 = zeroMv
-                var refs: [2] s8 = [cast(s8) refL0, cast(s8) refL1]
+                var refs: [2] s8 = [cast(s8, refL0), cast(s8, refL1)]
                 .assignSkipMotion(mb, bx, by, span, span, refs, blockMvL0, blockMvL1, true)
                 .addJob(mb, bx, by, span, span, refs, blockMvL0, blockMvL1)
             }
@@ -791,8 +791,8 @@ impl Slice
 
                 let colIndex = .colBlockIndex(mb, colX, colY)
                 let motion   = col.colMotion(.colMbIndex(mb), colIndex)
-                var colMvX   = cast(s32) motion.mv[0]
-                var colMvY   = cast(s32) motion.mv[1]
+                var colMvX   = cast(s32, motion.mv[0])
+                var colMvY   = cast(s32, motion.mv[1])
                 var refL0    = 0's32
                 var longTerm = false
                 var poc0     = .refs[0, 0].poc
@@ -809,7 +809,7 @@ impl Slice
                     var found = false
                     for index in .refCount[0] where .refs[0, index].poc == wantedPoc
                     {
-                        refL0 = cast(s32) index
+                        refL0 = cast(s32, index)
                         poc0  = .refs[0, index].poc
                         found = true
                         break
@@ -828,7 +828,7 @@ impl Slice
                 let td   = Math.clamp(poc1 - poc0, -128, 127)
                 if longTerm or td == 0 or .refs[0, refL0].isLong
                 {
-                    mvL0 = [cast(s16) colMvX, cast(s16) colMvY]
+                    mvL0 = [cast(s16, colMvX), cast(s16, colMvY)]
                     mvL1 = [0's16, 0's16]
                 }
                 else
@@ -836,11 +836,11 @@ impl Slice
                     let tb    = Math.clamp(currentPoc - poc0, -128, 127)
                     let tx    = (16384 + Math.abs(td / 2)) / td
                     let scale = Math.clamp((tb * tx + 32) >> 6, -1024, 1023)
-                    mvL0 = [cast(s16) ((scale * colMvX + 128) >> 8), cast(s16) ((scale * colMvY + 128) >> 8)]
-                    mvL1 = [cast(s16) (cast(s32) mvL0[0] - colMvX), cast(s16) (cast(s32) mvL0[1] - colMvY)]
+                    mvL0 = [cast(s16, ((scale * colMvX + 128) >> 8)), cast(s16, ((scale * colMvY + 128) >> 8))]
+                    mvL1 = [cast(s16, (cast(s32, mvL0[0]) - colMvX)), cast(s16, (cast(s32, mvL0[1]) - colMvY))]
                 }
 
-                var refs: [2] s8 = [cast(s8) refL0, 0]
+                var refs: [2] s8 = [cast(s8, refL0), 0]
                 .assignSkipMotion(mb, bx, by, span, span, refs, mvL0, mvL1, true)
                 .addJob(mb, bx, by, span, span, refs, mvL0, mvL1)
             }
@@ -854,10 +854,10 @@ impl Slice
     {
         let dec     = .dec!
         let sps     = dec.sps!
-        let mbCount = cast(u32) (sps.mbWidth * sps.mbHeight)
+        let mbCount = cast(u32, (sps.mbWidth * sps.mbHeight))
         .mbAddr = .header.firstMb
-        .mbX    = cast(s32) (.mbAddr % cast(u32) sps.mbWidth)
-        .mbY    = cast(s32) (.mbAddr / cast(u32) sps.mbWidth)
+        .mbX    = cast(s32, (.mbAddr % cast(u32, sps.mbWidth)))
+        .mbY    = cast(s32, (.mbAddr / cast(u32, sps.mbWidth)))
         if .mbAddr >= mbCount do
             fail InvalidFormatError{"H.264 slice starts past the end of the picture"}
 
@@ -958,7 +958,7 @@ impl Slice
             Memory.clear(&residual.lumaDc, #sizeof(residual.lumaDc))
         for quad in 4'u64
         {
-            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
+            if (mb.cbpLuma & (1'u32 << cast(u32, quad))) == 0 do
                 continue
             if mb.transform8x8
             {
@@ -986,7 +986,7 @@ impl Slice
         let dec = .dec!
         mb.mbX           = .mbX
         mb.mbY           = .mbY
-        mb.sliceIndex    = cast(u32) .sliceId - 1
+        mb.sliceIndex    = cast(u32, .sliceId) - 1
         mb.class         = MbClassInter
         mb.skipped       = false
         mb.transform8x8  = false
@@ -1028,7 +1028,7 @@ impl Slice
                 mb.residual = &dec.parsedResiduals[entry]
             }
 
-            Memory.set(&mb.intraModes, cast(u8) IntraDc, #sizeof(mb.intraModes))
+            Memory.set(&mb.intraModes, cast(u8, IntraDc), #sizeof(mb.intraModes))
             if mb.residual != &.scratchResidual or not .scratchClean do
                 Memory.clear(mb.residual, #sizeof(MbResidual))
             .scratchClean = false
@@ -1062,7 +1062,7 @@ impl Slice
             // reconstruction, and summary paths consume.
             mb.mbX           = .mbX
             mb.mbY           = .mbY
-            mb.sliceIndex    = cast(u32) .sliceId - 1
+            mb.sliceIndex    = cast(u32, .sliceId) - 1
             mb.class         = MbClassInter
             mb.skipped       = true
             mb.transform8x8  = false
@@ -1107,7 +1107,7 @@ impl Slice
             if .dec.inlineRecon do
                 .dec.completeReconstructedRow(.mbY - 1)
             else do
-                .dec.scheduleParsedRows(cast(u32) .mbY)
+                .dec.scheduleParsedRows(cast(u32, .mbY))
         }
     }
 
@@ -1160,14 +1160,14 @@ impl Slice
             {
                 if code >= 16 do
                     fail InvalidFormatError{"H.264 coded block pattern does not decode"}
-                mb.cbpLuma   = cast(u32) (isIntra ? GolombToIntraCbpNoChroma[code] : GolombToInterCbpNoChroma[code])
+                mb.cbpLuma   = cast(u32, (isIntra ? GolombToIntraCbpNoChroma[code] : GolombToInterCbpNoChroma[code]))
                 mb.cbpChroma = 0
             }
             else
             {
                 if code >= 48 do
                     fail InvalidFormatError{"H.264 coded block pattern does not decode"}
-                let cbp = isIntra ? cast(u32) GolombToIntraCbp[code] : cast(u32) GolombToInterCbp[code]
+                let cbp = isIntra ? cast(u32, GolombToIntraCbp[code]) : cast(u32, GolombToInterCbp[code])
                 mb.cbpLuma   = cbp & 15
                 mb.cbpChroma = cbp >> 4
             }
@@ -1248,19 +1248,19 @@ impl Slice
                     let bx   = (quad & 1) * 2
                     let by   = (quad >> 1) * 2
                     let mode = .parseIntraMode(mb, by * 4 + bx, fromCabac)
-                    mb.intraModes[cast(u64) (by * 4 + bx)]           = cast(u8) mode
-                    mb.intraModes[cast(u64) (by * 4 + bx + 1)]       = cast(u8) mode
-                    mb.intraModes[cast(u64) ((by + 1) * 4 + bx)]     = cast(u8) mode
-                    mb.intraModes[cast(u64) ((by + 1) * 4 + bx + 1)] = cast(u8) mode
+                    mb.intraModes[cast(u64, (by * 4 + bx))]           = cast(u8, mode)
+                    mb.intraModes[cast(u64, (by * 4 + bx + 1))]       = cast(u8, mode)
+                    mb.intraModes[cast(u64, ((by + 1) * 4 + bx))]     = cast(u8, mode)
+                    mb.intraModes[cast(u64, ((by + 1) * 4 + bx + 1))] = cast(u8, mode)
                 }
             }
             else
             {
                 for coded in 16's32
                 {
-                    let raster = cast(s32) CodedToRaster4[coded]
+                    let raster = cast(s32, CodedToRaster4[coded])
                     let mode   = .parseIntraMode(mb, raster, fromCabac)
-                    mb.intraModes[cast(u64) raster] = cast(u8) mode
+                    mb.intraModes[cast(u64, raster)] = cast(u8, mode)
                 }
             }
         }
@@ -1306,23 +1306,23 @@ impl Slice
         let modeB     = .neighborIntraMode(mb, bx, by - 1)
         var predicted = Math.min(modeA, modeB)
         if predicted < 0 do
-            predicted = cast(s32) IntraDc
+            predicted = cast(s32, IntraDc)
 
         var mode: u32
         if fromCabac
         {
-            mode = .intraModeCabac(cast(u32) predicted)
+            mode = .intraModeCabac(cast(u32, predicted))
         }
         else
         {
             if .bits.bit()
             {
-                mode = cast(u32) predicted
+                mode = cast(u32, predicted)
             }
             else
             {
                 let rem = .bits.read(3)
-                mode = rem < cast(u32) predicted ? rem : rem + 1
+                mode = rem < cast(u32, predicted) ? rem : rem + 1
             }
         }
 
@@ -1334,7 +1334,7 @@ impl Slice
     mtd const neighborIntraMode(mb: *Mb, rx, ry: s32)->s32
     {
         if rx >= 0 and ry >= 0 do
-            return cast(s32) mb.intraModes[cast(u64) (ry * 4 + rx)]
+            return cast(s32, mb.intraModes[cast(u64, (ry * 4 + rx))])
 
         let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
         if not neighbor.available do
@@ -1344,8 +1344,8 @@ impl Slice
         if neighborClass == MbClassInter and dec.pps!.constrainedIntra do
             return -1
         if neighborClass != MbClassIntra4x4 and neighborClass != MbClassIntra8x8 do
-            return cast(s32) IntraDc
-        return cast(s32) dec.intraModes[neighbor.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))]
+            return cast(s32, IntraDc)
+        return cast(s32, dec.intraModes[neighbor.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))])
     }
 
     // Reads the raw samples of an I_PCM macroblock.
@@ -1370,7 +1370,7 @@ impl Slice
         for row in 16's32
         {
             for column in 16's32 do
-                frame.pixLuma(mb.mbX * 16 + column, mb.mbY * 16 + row)[0] = cast(u8) .bits.read(8)
+                frame.pixLuma(mb.mbX * 16 + column, mb.mbY * 16 + row)[0] = cast(u8, .bits.read(8))
         }
 
         let chromaMb = 16 >> dec.sps!.chromaShift()
@@ -1379,7 +1379,7 @@ impl Slice
             for row in chromaMb
             {
                 for column in chromaMb do
-                    frame.pixChroma(plane, mb.mbX * chromaMb + column, mb.mbY * chromaMb + row)[0] = cast(u8) .bits.read(8)
+                    frame.pixChroma(plane, mb.mbX * chromaMb + column, mb.mbY * chromaMb + row)[0] = cast(u8, .bits.read(8))
             }
         }
 
@@ -1427,7 +1427,7 @@ impl Slice
                 let sub = .isCabac ? .subMbTypePCabac() : .bits.ue()
                 if sub > 3 do
                     fail InvalidFormatError{"H.264 P sub-partition type is out of range"}
-                mb.subShape[quad]  = cast(u8) sub
+                mb.subShape[quad]  = cast(u8, sub)
                 mb.subDirect[quad] = false
             }
 
@@ -1457,7 +1457,7 @@ impl Slice
                 let sub = .isCabac ? .subMbTypeBCabac() : .bits.ue()
                 if sub > 12 do
                     fail InvalidFormatError{"H.264 B sub-partition type is out of range"}
-                mb.subType[quad] = cast(u8) sub
+                mb.subType[quad] = cast(u8, sub)
                 if sub == 0
                 {
                     mb.subDirect[quad] = true
@@ -1483,17 +1483,17 @@ impl Slice
     mtd parsePartitions(mb: *Mb, count: u32) fail
     {
         var refs: [2] s32
-        for part in cast(u64) count
+        for part in cast(u64, count)
         {
-            refs[part] = try .parseRefIdx(mb, 0, cast(u32) part)
-            .markCtxRef(mb, 0, cast(u32) part, refs[part])
+            refs[part] = try .parseRefIdx(mb, 0, cast(u32, part))
+            .markCtxRef(mb, 0, cast(u32, part), refs[part])
         }
 
-        for part in cast(u64) count
+        for part in cast(u64, count)
         {
-            let geometry = .partGeometry(mb.shape, cast(u32) part)
+            let geometry = .partGeometry(mb.shape, cast(u32, part))
             let mvd      = try .parseMvd(mb, 0, geometry.x4, geometry.y4)
-            .applyMotion(mb, 0, cast(u32) part, refs[part], mvd)
+            .applyMotion(mb, 0, cast(u32, part), refs[part], mvd)
 
             // A P partition never uses list 1; writing that down keeps the deblocking
             // reference comparison off stale values from an earlier picture.
@@ -1513,7 +1513,7 @@ impl Slice
                 let inPartX = quadX * 2 >= geometry.x4 and quadX * 2 < geometry.x4 + geometry.w4
                 let inPartY = quadY * 2 >= geometry.y4 and quadY * 2 < geometry.y4 + geometry.h4
                 if inPartX and inPartY do
-                    mb.ctxRef[list, cast(u64) (quadY * 2 + quadX)] = cast(s8) refIdx
+                    mb.ctxRef[list, cast(u64, (quadY * 2 + quadX))] = cast(s8, refIdx)
             }
         }
     }
@@ -1545,7 +1545,7 @@ impl Slice
     {
         let geometry    = .partGeometry(mb.shape, part)
         let predicted   = .predictMv(mb, list, geometry.x4, geometry.y4, geometry.w4, refIdx, geometry.hint)
-        var mv: [2] s16 = [cast(s16) (cast(s32) predicted[0] + cast(s32) mvd[0]), cast(s16) (cast(s32) predicted[1] + cast(s32) mvd[1])]
+        var mv: [2] s16 = [cast(s16, (cast(s32, predicted[0]) + cast(s32, mvd[0]))), cast(s16, (cast(s32, predicted[1]) + cast(s32, mvd[1])))]
         .assignMotion(mb, list, geometry.x4, geometry.y4, geometry.w4, geometry.h4, refIdx, mv, mvd, false)
 
         // Jobs merge the two lists: the first list to arrive creates the job, the second
@@ -1554,7 +1554,7 @@ impl Slice
         for index in mb.jobCount where .jobAt(mb, index).x == geometry.x4 * 4 and .jobAt(mb, index).y == geometry.y4 * 4
         {
             let job = .jobAt(mb, index)
-            job.refIdx[list] = cast(s8) refIdx
+            job.refIdx[list] = cast(s8, refIdx)
             job.mv[list, 0]  = mv[0]
             job.mv[list, 1]  = mv[1]
             found = true
@@ -1564,7 +1564,7 @@ impl Slice
         if not found
         {
             var refs: [2] s8 = [-1, -1]
-            refs[list] = cast(s8) refIdx
+            refs[list] = cast(s8, refIdx)
             var zero: [2] s16
             .addJob(mb, geometry.x4, geometry.y4, geometry.w4, geometry.h4, refs, list == 0 ? mv : zero, list == 1 ? mv : zero)
         }
@@ -1594,7 +1594,7 @@ impl Slice
 
         if value >= active do
             fail InvalidFormatError{"H.264 reference index exceeds the active reference count"}
-        return cast(s32) value
+        return cast(s32, value)
     }
 
     // Parses one motion vector difference for a partition whose top-left block is at
@@ -1612,7 +1612,7 @@ impl Slice
             let y = .bits.se()
             if x < -8192 or x > 8191 or y < -2048 or y > 2047 do
                 fail InvalidFormatError{"H.264 motion vector difference is out of range"}
-            result = [cast(s16) x, cast(s16) y]
+            result = [cast(s16, x), cast(s16, y)]
         }
 
         return result
@@ -1626,8 +1626,8 @@ impl Slice
         {
             refs[quad] = 0
             if not refZero do
-                refs[quad] = try .parseSubRefIdx(mb, 0, cast(s32) quad)
-            mb.ctxRef[0, quad] = cast(s8) refs[quad]
+                refs[quad] = try .parseSubRefIdx(mb, 0, cast(s32, quad))
+            mb.ctxRef[0, quad] = cast(s8, refs[quad])
         }
 
         for quad in 4's32
@@ -1661,7 +1661,7 @@ impl Slice
 
         if value >= active do
             fail InvalidFormatError{"H.264 reference index exceeds the active reference count"}
-        return cast(s32) value
+        return cast(s32, value)
     }
 
     // Parses the vectors of one 8x8 quadrant, sub-block by sub-block.
@@ -1704,11 +1704,11 @@ impl Slice
 
             let mvd         = try .parseMvd(mb, list, x4, y4)
             let predicted   = .predictMv(mb, list, x4, y4, w4, refIdx, 0)
-            var mv: [2] s16 = [cast(s16) (cast(s32) predicted[0] + cast(s32) mvd[0]), cast(s16) (cast(s32) predicted[1] + cast(s32) mvd[1])]
+            var mv: [2] s16 = [cast(s16, (cast(s32, predicted[0]) + cast(s32, mvd[0]))), cast(s16, (cast(s32, predicted[1]) + cast(s32, mvd[1])))]
             .assignMotion(mb, list, x4, y4, w4, h4, refIdx, mv, mvd, false)
 
             var refs: [2] s8 = [-1, -1]
-            refs[list] = cast(s8) refIdx
+            refs[list] = cast(s8, refIdx)
             var zero: [2] s16
             if list == 0
             {
@@ -1720,7 +1720,7 @@ impl Slice
                 for index in mb.jobCount where .jobAt(mb, index).x == x4 * 4 and .jobAt(mb, index).y == y4 * 4 and .jobAt(mb, index).width == w4 * 4 and .jobAt(mb, index).height == h4 * 4
                 {
                     let job = .jobAt(mb, index)
-                    job.refIdx[1] = cast(s8) refIdx
+                    job.refIdx[1] = cast(s8, refIdx)
                     job.mv[1, 0]  = mv[0]
                     job.mv[1, 1]  = mv[1]
                     found         = true
@@ -1745,7 +1745,7 @@ impl Slice
         {
             for part in partCount
             {
-                let use = (usage >> cast(u32) (part + list * 4)) & 1
+                let use = (usage >> cast(u32, (part + list * 4))) & 1
                 if use != 0
                 {
                     refs[list, part] = try .parseRefIdx(mb, list, part)
@@ -1796,7 +1796,7 @@ impl Slice
                 if use != 0
                 {
                     refs[list, quad] = try .parseSubRefIdx(mb, list, quad)
-                    mb.ctxRef[list, cast(u64) quad] = cast(s8) refs[list, quad]
+                    mb.ctxRef[list, cast(u64, quad)] = cast(s8, refs[list, quad])
                 }
             }
         }
@@ -1828,7 +1828,7 @@ impl Slice
     }
 
     // Returns the parsed sub-type index of a B quadrant, for its list usage.
-    mtd const bSubIndex(mb: *Mb, quad: s32)->u64 => cast(u64) mb.subType[quad]
+    mtd const bSubIndex(mb: *Mb, quad: s32)->u64 => cast(u64, mb.subType[quad])
 
     // Writes the completed macroblock's summary for its neighbors and the filter.
     mtd bookkeepMb(mb: *Mb)
@@ -1836,17 +1836,17 @@ impl Slice
         let dec  = .dec!
         let info = .mbInfoAt(mb.mbX, mb.mbY)
         info.class        = mb.class
-        info.cbpLuma      = cast(u8) mb.cbpLuma
-        info.cbpChroma    = cast(u8) mb.cbpChroma
-        info.qp           = cast(u8) mb.qp
-        info.chromaMode   = cast(u8) mb.chromaMode
+        info.cbpLuma      = cast(u8, mb.cbpLuma)
+        info.cbpChroma    = cast(u8, mb.cbpChroma)
+        info.qp           = cast(u8, mb.qp)
+        info.chromaMode   = cast(u8, mb.chromaMode)
         info.transform8x8 = mb.transform8x8
         info.skipped      = mb.skipped
         info.direct       = mb.directMb or (mb.skipped and .header.type == SliceTypeB)
         info.sliceId      = .sliceId
-        info.deblockIdc   = cast(u8) .header.deblockIdc
-        info.alphaOffset  = cast(s8) .header.alphaOffset
-        info.betaOffset   = cast(s8) .header.betaOffset
+        info.deblockIdc   = cast(u8, .header.deblockIdc)
+        info.alphaOffset  = cast(s8, .header.alphaOffset)
+        info.betaOffset   = cast(s8, .header.betaOffset)
         info.uniform      = mb.class == MbClassInter and mb.jobCount == 1 and mb.cbpLuma == 0
 
         if mb.skipped and .header.type == SliceTypeP
@@ -1856,30 +1856,30 @@ impl Slice
         }
 
         let gw    = dec.sps!.mbWidth * 4
-        let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
+        let mbIdx = cast(u64, (mb.mbY * dec.sps.mbWidth + mb.mbX))
 
         // The per-block state the next macroblocks' contexts and the filter read. A grid row of
         // four blocks is one 32-bit word, and the macroblock's own arrays are laid out the same
         // way, so a row moves as a word instead of four bytes.
         let perBlockModes = mb.class == MbClassIntra4x4 or mb.class == MbClassIntra8x8
         let dcModes       = IntraDc * 0x01010101
-        let modeWords     = cast(const [*] u32) &mb.intraModes[0]
-        let nzWords       = cast(const [*] u32) &mb.nzLuma[0]
-        let codedWords    = cast(const [*] u32) &mb.codedBlocks[0]
+        let modeWords     = cast(const [*] u32, &mb.intraModes[0])
+        let nzWords       = cast(const [*] u32, &mb.nzLuma[0])
+        let codedWords    = cast(const [*] u32, &mb.codedBlocks[0])
 
         // The grids are addressed from the macroblock's first block, a row further each time;
         // their storage is read once rather than on every row.
-        let firstBlock = cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
-        let rowStep    = cast(u64) gw
+        let firstBlock = cast(u64, (mb.mbY * 4 * gw + mb.mbX * 4))
+        let rowStep    = cast(u64, gw)
         let modesGrid  = dec.intraModes.storage() + firstBlock
         let nzGrid     = dec.nonZeroLuma.storage() + firstBlock
         let codedGrid  = dec.codedLuma.storage() + firstBlock
         for row in 4'u64
         {
             let offset = row * rowStep
-            (cast([*] u32) (modesGrid + offset))[0] = perBlockModes ? modeWords[row] : dcModes
-            (cast([*] u32) (nzGrid + offset))[0]    = nzWords[row]
-            (cast([*] u32) (codedGrid + offset))[0] = codedWords[row]
+            cast([*] u32, (modesGrid + offset))[0] = perBlockModes ? modeWords[row] : dcModes
+            cast([*] u32, (nzGrid + offset))[0]    = nzWords[row]
+            cast([*] u32, (codedGrid + offset))[0] = codedWords[row]
         }
 
         // A 4:4:4 colour plane has one block per luma block, and its counts go out on the
@@ -1888,24 +1888,24 @@ impl Slice
         {
             for block in 16's32
             {
-                let index = cast(u64) ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3))
-                dec.nonZeroCb[index] = mb.nzCb[cast(u64) block]
-                dec.nonZeroCr[index] = mb.nzCr[cast(u64) block]
+                let index = cast(u64, ((mb.mbY * 4 + (block >> 2)) * gw + mb.mbX * 4 + (block & 3)))
+                dec.nonZeroCb[index] = mb.nzCb[cast(u64, block)]
+                dec.nonZeroCr[index] = mb.nzCr[cast(u64, block)]
             }
         }
         else
         {
             // Two chroma blocks of a row are adjacent in both grids: one 16-bit word each.
-            let cw       = cast(u64) (dec.sps.mbWidth * 2)
-            let index    = cast(u64) (mb.mbY * 2) * cw + cast(u64) (mb.mbX * 2)
-            let countsCb = cast([*] u16) &mb.nzCb[0]
-            let countsCr = cast([*] u16) &mb.nzCr[0]
+            let cw       = cast(u64, (dec.sps.mbWidth * 2))
+            let index    = cast(u64, (mb.mbY * 2)) * cw + cast(u64, (mb.mbX * 2))
+            let countsCb = cast([*] u16, &mb.nzCb[0])
+            let countsCr = cast([*] u16, &mb.nzCr[0])
             let targetCb = dec.nonZeroCb.storage()
             let targetCr = dec.nonZeroCr.storage()
-            (cast([*] u16) (targetCb + index))[0]      = countsCb[0]
-            (cast([*] u16) (targetCb + index + cw))[0] = countsCb[1]
-            (cast([*] u16) (targetCr + index))[0]      = countsCr[0]
-            (cast([*] u16) (targetCr + index + cw))[0] = countsCr[1]
+            cast([*] u16, (targetCb + index))[0]      = countsCb[0]
+            cast([*] u16, (targetCb + index + cw))[0] = countsCb[1]
+            cast([*] u16, (targetCr + index))[0]      = countsCr[0]
+            cast([*] u16, (targetCr + index + cw))[0] = countsCr[1]
         }
 
         dec.dcFlags[mbIdx * 3]     = mb.dcFlags[0]
@@ -1918,7 +1918,7 @@ impl Slice
         {
             // Four records of a grid row are adjacent, so a whole row goes out in two stores.
             let refs    = packedReferences(-1, NoReferenceIdentity)
-            let clean   = cast(Simd.S16x8) [0's16, 0's16, refs, 0's16, 0's16, 0's16, refs, 0's16]
+            let clean   = cast(Simd.S16x8, [0's16, 0's16, refs, 0's16, 0's16, 0's16, refs, 0's16])
             let zeros16 = Simd.splat(0's16)
             let zeros8  = Simd.splat(0'u8)
             let motion0 = dec.motionL0.storage()
@@ -1929,8 +1929,8 @@ impl Slice
             for row in 4'u64
             {
                 let index = firstBlock + row * rowStep
-                let grid0 = cast([*] s16) (motion0 + index)
-                let grid1 = cast([*] s16) (motion1 + index)
+                let grid0 = cast([*] s16, (motion0 + index))
+                let grid1 = cast([*] s16, (motion1 + index))
                 Simd.store(grid0, clean)
                 Simd.store(grid0 + 8, clean)
                 Simd.store(grid1, clean)
@@ -1968,26 +1968,26 @@ impl Slice
                 mvY = job.mv[list, 1]
                 if ref >= 0
                 {
-                    poc   = .refs[list, cast(u64) ref].poc
-                    short = .refs[list, cast(u64) ref].isLong ? 0 : 1
+                    poc   = .refs[list, cast(u64, ref)].poc
+                    short = .refs[list, cast(u64, ref)].isLong ? 0 : 1
                 }
             }
 
             // One motion for the whole macroblock: every row of the four arrays is the same
             // word or vector, so a row goes out in one store each.
-            let refWord   = cast(u32) (cast #bit(u8) ref) * 0x01010101
-            let shortWord = cast(u32) short * 0x01010101
-            let mvRow     = Simd.splat(cast(u32) cast #bit (u16) mvX | (cast(u32) cast #bit (u16) mvY << 16))
+            let refWord   = cast(u32, cast #bit(u8, ref)) * 0x01010101
+            let shortWord = cast(u32, short) * 0x01010101
+            let mvRow     = Simd.splat(cast(u32, cast #bit (u16, mvX)) | (cast(u32, cast #bit (u16, mvY)) << 16))
             let pocRow    = Simd.splat(poc)
             let colRef    = frame.colRef.storage()
             let colShort  = frame.colShort.storage()
-            let colMv     = cast([*] u32) frame.colMv.storage()
+            let colMv     = cast([*] u32, frame.colMv.storage())
             let colPoc    = frame.colPoc.storage()
             for row in 4'u64
             {
                 let index = firstBlock + row * rowStep
-                (cast([*] u32) (colRef + index))[0]   = refWord
-                (cast([*] u32) (colShort + index))[0] = shortWord
+                cast([*] u32, (colRef + index))[0]   = refWord
+                cast([*] u32, (colShort + index))[0] = shortWord
                 Simd.store(colMv + index, mvRow)
                 Simd.store(colPoc + index, pocRow)
             }
@@ -2000,10 +2000,10 @@ impl Slice
         let motions0 = dec.motionL0.storage()
         let motions1 = dec.motionL1.storage()
         let colRef   = frame.colRef.storage()
-        let colMv    = cast([*] u32) frame.colMv.storage()
+        let colMv    = cast([*] u32, frame.colMv.storage())
         let colPoc   = frame.colPoc.storage()
         let colShort = frame.colShort.storage()
-        var rowIndex = cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        var rowIndex = cast(u64, (mb.mbY * 4 * gw + mb.mbX * 4))
         for 4
         {
             for column in 4'u64
@@ -2019,10 +2019,10 @@ impl Slice
 
                 let ref = entry.refIdx
                 colRef[index] = ref
-                colMv[index]  = cast(u32) cast #bit (u16) entry.mvX | (cast(u32) cast #bit (u16) entry.mvY << 16)
+                colMv[index]  = cast(u32, cast #bit (u16, entry.mvX)) | (cast(u32, cast #bit (u16, entry.mvY)) << 16)
                 if ref >= 0
                 {
-                    let picture = &.refs[list, cast(u64) ref]
+                    let picture = &.refs[list, cast(u64, ref)]
                     colPoc[index]   = picture.poc
                     colShort[index] = picture.isLong ? 0 : 1
                 }
@@ -2033,7 +2033,7 @@ impl Slice
                 }
             }
 
-            rowIndex += cast(u64) gw
+            rowIndex += cast(u64, gw)
         }
     }
 
@@ -2043,22 +2043,22 @@ impl Slice
         let dec   = .dec!
         let job   = &mb.firstJob
         let ref   = job.refIdx[0]
-        let poc   = ref >= 0 ? .refs[0, cast(u64) ref].poc : 0
+        let poc   = ref >= 0 ? .refs[0, cast(u64, ref)].poc : 0
         let gw    = dec.sps!.mbWidth * 4
         let zeros = Simd.splat(0'u8)
-        let coded = dec.codedLuma.storage() + cast(u64) (mb.mbY * 4 * gw + mb.mbX * 4)
+        let coded = dec.codedLuma.storage() + cast(u64, (mb.mbY * 4 * gw + mb.mbX * 4))
         for row in 4'u64 do
-            Simd.storeLow4(coded + row * cast(u64) gw, zeros)
+            Simd.storeLow4(coded + row * cast(u64, gw), zeros)
 
         // The lanes the deblocking filter compares for every block of this macroblock: each
         // list's vector and its reference identity in the high byte of the third lane.
         let ref1  = job.refIdx[1]
-        let id0   = ref >= 0 ? .refs[0, cast(u64) ref].identity : NoReferenceIdentity
-        let id1   = ref1 >= 0 ? .refs[1, cast(u64) ref1].identity : NoReferenceIdentity
-        let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
+        let id0   = ref >= 0 ? .refs[0, cast(u64, ref)].identity : NoReferenceIdentity
+        let id1   = ref1 >= 0 ? .refs[1, cast(u64, ref1)].identity : NoReferenceIdentity
+        let mbIdx = cast(u64, (mb.mbY * dec.sps.mbWidth + mb.mbX))
 
         // Two packed halves rather than a vector assembled lane by lane through memory.
-        let lanes = cast([*] u64) dec.skipMotion.storage() + mbIdx * 2
+        let lanes = cast([*] u64, dec.skipMotion.storage()) + mbIdx * 2
         lanes[0] = packedMotion([job.mv[0, 0], job.mv[0, 1]], 0, id0)
         lanes[1] = packedMotion([job.mv[1, 0], job.mv[1, 1]], 0, id1)
 
@@ -2066,13 +2066,13 @@ impl Slice
         if not dec.isRefPicture do
             return
         let frame        = dec.current!
-        let compactIndex = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
+        let compactIndex = cast(u64, (mb.mbY * dec.sps.mbWidth + mb.mbX))
         frame.colUniform[compactIndex]      = 1
         frame.colMbMv[compactIndex * 2]     = job.mv[0, 0]
         frame.colMbMv[compactIndex * 2 + 1] = job.mv[0, 1]
         frame.colMbRef[compactIndex]        = ref
         frame.colMbPoc[compactIndex]        = poc
-        frame.colMbShort[compactIndex]      = ref >= 0 and not .refs[0, cast(u64) ref].isLong ? 1 : 0
+        frame.colMbShort[compactIndex]      = ref >= 0 and not .refs[0, cast(u64, ref)].isLong ? 1 : 0
     }
 
     // Parses every residual block of the macroblock with CAVLC coding, section 7.3.5.3.
@@ -2101,17 +2101,17 @@ impl Slice
         {
             for plane in 2'u64
             {
-                let scale = .dequantRow4(mb, cast(u32) plane + 1)
+                let scale = .dequantRow4(mb, cast(u32, plane) + 1)
                 for block in 4's32
                 {
-                    let nC    = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
+                    let nC    = .chromaNc(mb, cast(u32, plane), block & 1, block >> 1)
                     var levels: [16] s16
                     let count = try residualCavlc(&.bits, nC, 15, levels.buffer)
-                    storeLevels(levels.buffer, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64) block * 16, ResidualOrderAc, scale, 4)
+                    storeLevels(levels.buffer, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64, block) * 16, ResidualOrderAc, scale, 4)
                     if plane == 0 do
-                        mb.nzCb[cast(u64) block] = cast(u8) count
+                        mb.nzCb[cast(u64, block)] = cast(u8, count)
                     else do
-                        mb.nzCr[cast(u64) block] = cast(u8) count
+                        mb.nzCr[cast(u64, block)] = cast(u8, count)
                 }
             }
         }
@@ -2131,7 +2131,7 @@ impl Slice
         {
             let nC    = .planeNc(mb, plane, 0, 0)
             let count = try residualCavlc(&.bits, nC, 16, storage.dc)
-            mb.dcFlags[cast(u64) plane] = count > 0 ? 1 : 0
+            mb.dcFlags[cast(u64, plane)] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
                 for block in 16'u64 do
@@ -2144,7 +2144,7 @@ impl Slice
         let scale8 = .dequantRow8(mb, plane)
         for quad in 4's32
         {
-            if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
+            if (mb.cbpLuma & (1'u32 << cast(u32, quad))) == 0 do
                 continue
             var quadAny = false
             for cell in 4's32
@@ -2158,34 +2158,34 @@ impl Slice
                 if isIntra16
                 {
                     count = try residualCavlc(&.bits, nC, 15, levels.buffer)
-                    storeLevels(levels.buffer, 15, storage.ac + cast(u64) raster * 16, ResidualOrderAc, scale4, 4)
+                    storeLevels(levels.buffer, 15, storage.ac + cast(u64, raster) * 16, ResidualOrderAc, scale4, 4)
                 }
                 elif mb.transform8x8
                 {
                     // CAVLC codes an 8x8 block as four interleaved 4x4 blocks: the levels of
                     // this cell sit at every fourth position of the 8x8 scan.
                     count = try residualCavlc(&.bits, nC, 16, levels.buffer)
-                    let block = storage.t8 + cast(u64) quad * 64
+                    let block = storage.t8 + cast(u64, quad) * 64
                     for coefficient in 16'u64
                     {
-                        let level = cast(s32) levels[coefficient]
+                        let level = cast(s32, levels[coefficient])
                         if level == 0 do
                             continue
-                        let position = cast(u64) ResidualOrder[ResidualOrder8x8 + coefficient * 4 + cast(u64) cell]
+                        let position = cast(u64, ResidualOrder[ResidualOrder8x8 + coefficient * 4 + cast(u64, cell)])
                         block[position] = dequantLevel(level, scale8[position], 6)
                     }
                 }
                 else
                 {
                     count = try residualCavlc(&.bits, nC, 16, levels.buffer)
-                    storeLevels(levels.buffer, 16, storage.ac + cast(u64) raster * 16, ResidualOrder4x4, scale4, 4)
+                    storeLevels(levels.buffer, 16, storage.ac + cast(u64, raster) * 16, ResidualOrder4x4, scale4, 4)
                 }
 
-                storage.nz[cast(u64) raster] = cast(u8) count
+                storage.nz[cast(u64, raster)] = cast(u8, count)
                 if count > 0
                 {
                     if isLuma do
-                        mb.codedBlocks[cast(u64) raster] = 1
+                        mb.codedBlocks[cast(u64, raster)] = 1
                     quadAny = true
                 }
             }
@@ -2197,7 +2197,7 @@ impl Slice
                 for cell in 4's32
                 {
                     let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
-                    mb.codedBlocks[cast(u64) raster] = 1
+                    mb.codedBlocks[cast(u64, raster)] = 1
                 }
             }
         }
@@ -2209,22 +2209,22 @@ impl Slice
     {
         if plane == 0 do
             return mb.qp
-        return cast(s32) ChromaQp[cast(u64) Math.clamp(mb.qp + .pps!.chromaQpOffset[cast(u64) plane - 1], 0, 51)]
+        return cast(s32, ChromaQp[cast(u64, Math.clamp(mb.qp + .pps!.chromaQpOffset[cast(u64, plane) - 1], 0, 51))])
     }
 
     // Returns the 4x4 dequantization factors of one colour plane of `mb`, in raster order.
     mtd dequantRow4(mb: *Mb, plane: u32)->[*] u32
     {
-        let list = cast(u64) plane + (mb.class == MbClassInter ? 3'u64 : 0'u64)
-        return cast([*] u32) &.pps!.dequant4[list, cast(u64) .planeQp(mb, plane), 0]
+        let list = cast(u64, plane) + (mb.class == MbClassInter ? 3'u64 : 0'u64)
+        return cast([*] u32, &.pps!.dequant4[list, cast(u64, .planeQp(mb, plane)), 0])
     }
 
     // Returns the 8x8 dequantization factors of one colour plane of `mb`, in raster order;
     // the list is the plane's intra one of Table 7-2, or the inter one beside it.
     mtd dequantRow8(mb: *Mb, plane: u32)->[*] u32
     {
-        let list = cast(u64) plane * 2 + (mb.class == MbClassInter ? 1'u64 : 0'u64)
-        return cast([*] u32) &.pps!.dequant8[list, cast(u64) .planeQp(mb, plane), 0]
+        let list = cast(u64, plane) * 2 + (mb.class == MbClassInter ? 1'u64 : 0'u64)
+        return cast([*] u32, &.pps!.dequant8[list, cast(u64, .planeQp(mb, plane)), 0])
     }
 
     // Returns where one colour plane of `mb` keeps its coefficients and nonzero counts.
@@ -2234,7 +2234,7 @@ impl Slice
             return {(mb.residual!.lumaDc).buffer, (mb.residual!.lumaAc).buffer, (mb.residual!.luma8).buffer, (mb.nzLuma).buffer}
 
         let side  = mb.residual444!
-        let index = cast(u64) plane - 1
+        let index = cast(u64, plane) - 1
         return {
             (side.dc).buffer + index * 16,
             (side.ac).buffer + index * 256,
@@ -2280,10 +2280,10 @@ impl Slice
     {
         if rx >= 0 and ry >= 0
         {
-            let local = cast(u64) (ry * 4 + rx)
+            let local = cast(u64, (ry * 4 + rx))
             if plane == 0 do
-                return cast(s32) mb.nzLuma[local]
-            return cast(s32) (plane == 1 ? mb.nzCb[local] : mb.nzCr[local])
+                return cast(s32, mb.nzLuma[local])
+            return cast(s32, (plane == 1 ? mb.nzCb[local] : mb.nzCr[local]))
         }
 
         let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
@@ -2293,10 +2293,10 @@ impl Slice
             return 0
 
         let dec   = .dec!
-        let index = neighbor.blockBase + cast(u64) ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3))
+        let index = neighbor.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))
         if plane == 0 do
-            return cast(s32) dec.nonZeroLuma[index]
-        return cast(s32) (plane == 1 ? dec.nonZeroCb[index] : dec.nonZeroCr[index])
+            return cast(s32, dec.nonZeroLuma[index])
+        return cast(s32, (plane == 1 ? dec.nonZeroCb[index] : dec.nonZeroCr[index]))
     }
 
     // Predicted nonzero count for one chroma block.
@@ -2319,8 +2319,8 @@ impl Slice
     {
         if rx >= 0 and ry >= 0
         {
-            let local = cast(u64) (ry * 2 + rx)
-            return cast(s32) (plane == 0 ? mb.nzCb[local] : mb.nzCr[local])
+            let local = cast(u64, (ry * 2 + rx))
+            return cast(s32, (plane == 0 ? mb.nzCb[local] : mb.nzCr[local]))
         }
 
         let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
@@ -2330,8 +2330,8 @@ impl Slice
             return 0
 
         let dec   = .dec!
-        let index = neighbor.chromaBase + cast(u64) ((ry & 1) * (dec.sps!.mbWidth * 2) + (rx & 1))
-        return cast(s32) (plane == 0 ? dec.nonZeroCb[index] : dec.nonZeroCr[index])
+        let index = neighbor.chromaBase + cast(u64, ((ry & 1) * (dec.sps!.mbWidth * 2) + (rx & 1)))
+        return cast(s32, (plane == 0 ? dec.nonZeroCb[index] : dec.nonZeroCr[index]))
     }
 }
 
@@ -2343,14 +2343,14 @@ const NoReferenceIdentity = 0's8
 // A record is two vectors then these two bytes, so a packed store publishing whole records has
 // to present them as a lane rather than as two fields.
 #[Swag.Inline]
-func packedReferences(refIdx, refId: s8)->s16 => cast #bit (s16) (cast(u16) (cast #bit (u8) refIdx) | (cast(u16) (cast #bit (u8) refId) << 8))
+func packedReferences(refIdx, refId: s8)->s16 => cast #bit (s16, (cast(u16, cast #bit (u8, refIdx)) | (cast(u16, cast #bit (u8, refId)) << 8)))
 
 // Packs one block's motion record, laid out as `BlockMotion`, into one 64-bit word.
 #[Swag.Inline]
 func packedMotion(mv: [2] s16, refIdx, refId: s8)->u64
 {
-    return cast(u64) cast #bit (u16) mv[0] | (cast(u64) cast #bit (u16) mv[1] << 16) |
-           (cast(u64) cast #bit (u16) packedReferences(refIdx, refId) << 32)
+    return cast(u64, cast #bit (u16, mv[0])) | (cast(u64, cast #bit (u16, mv[1])) << 16) |
+           (cast(u64, cast #bit (u16, packedReferences(refIdx, refId))) << 32)
 }
 
 // Partition shape of each B macroblock type 1..21, Table 7-14.

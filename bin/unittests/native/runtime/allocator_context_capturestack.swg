@@ -38,9 +38,9 @@ func contextCaptureFree(req: *AllocatorRequest)
     var req = contextCaptureAlloc(80)
     Swag.assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8, req.address)
     for i in 80 do
-        ptr[i] = cast(u8) (i + 9)
+        ptr[i] = cast(u8, (i + 9))
 
     req.oldSize = 80
     req.size    = 4096
@@ -48,9 +48,9 @@ func contextCaptureFree(req: *AllocatorRequest)
     allocItf.realloc(&req)
     Swag.assert(req.address != null)
 
-    let grown = cast([*] u8) req.address
+    let grown = cast([*] u8, req.address)
     for i in 80 do
-        Swag.assert(grown[i] == cast(u8) (i + 9))
+        Swag.assert(grown[i] == cast(u8, (i + 9)))
 
     contextCaptureFree(&req)
     Swag.assert(alloc.stats().countAlloc == beforeCount)
@@ -68,7 +68,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     var reqs: [8] AllocatorRequest
     for i in 8
     {
-        reqs[i] = contextCaptureAlloc(31 + cast(u64) i * 37, i % 3 == 0 ? 64 : 0)
+        reqs[i] = contextCaptureAlloc(31 + cast(u64, i) * 37, i % 3 == 0 ? 64 : 0)
         Swag.assert(reqs[i].address != null)
     }
 
@@ -91,7 +91,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     itf.alloc(&req)
     Swag.assert(req.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)

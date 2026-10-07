@@ -61,7 +61,7 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
         captured[] = true
     }
 
-    button.sigPressed.call(cast(*Button) button)
+    button.sigPressed.call(cast(*Button, button))
     Swag.assert(captured)
     host.pump()
 }
@@ -311,13 +311,13 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     for i in 32
     {
         let capture = Memory.new'Capture()
-        capture.width, capture.widthOrg   = 96 + cast(s32) i
-        capture.height, capture.heightOrg = 64 + cast(s32) i
+        capture.width, capture.widthOrg   = 96 + cast(s32, i)
+        capture.height, capture.heightOrg = 64 + cast(s32, i)
         capture.backImg = Gui.Testing.indexedImage(capture.width, capture.height)
 
         let image = testAddImage(capture, 8, 8, 40, 32)
         image.kind  = .Image
-        image.image = Gui.Testing.indexedImage(16 + cast(s32) (i % 7), 12 + cast(s32) (i % 5))
+        image.image = Gui.Testing.indexedImage(16 + cast(s32, (i % 7)), 12 + cast(s32, (i % 5)))
 
         f.editView.setCapture(capture)
         f.editView.setZoom(1)

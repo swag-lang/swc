@@ -80,7 +80,7 @@ func indexOfValue(target: s32)->s32
     for value, index in values
     {
         if value == target do
-            return cast(s32) index
+            return cast(s32, index)
     }
     return -1
 }

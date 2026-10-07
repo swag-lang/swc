@@ -7,7 +7,7 @@
         var acc: s32 = 0
         for i in 0 until 7 where i % 2 == 1
         {
-            acc = acc * 10 + cast(s32) i
+            acc = acc * 10 + cast(s32, i)
         }
 
         return acc
@@ -24,7 +24,7 @@
         var acc: s32 = 0
         for i in rangeTo(-2, 2).reversed()
         {
-            acc = acc * 10 + cast(s32) (i + 3)
+            acc = acc * 10 + cast(s32, (i + 3))
         }
 
         return acc

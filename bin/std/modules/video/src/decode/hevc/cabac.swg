@@ -61,16 +61,16 @@ impl CabacReader
             if initBase == NoInit do
                 continue
 
-            for index in cast(u32) group.count
+            for index in cast(u32, group.count)
             {
-                let initValue = cast(s32) ContextInitValues[cast(u32) initBase + index]
+                let initValue = cast(s32, ContextInitValues[cast(u32, initBase) + index])
                 let m         = (initValue >> 4) * 5 - 45
                 let n         = ((initValue & 15) << 3) - 16
                 let preState  = Math.clamp(((m * qp) >> 4) + n, 1, 126)
                 if preState <= 63 do
-                    .contexts[cast(u32) group.offset + index] = cast(u8) ((63 - preState) << 1)
+                    .contexts[cast(u32, group.offset) + index] = cast(u8, ((63 - preState) << 1))
                 else do
-                    .contexts[cast(u32) group.offset + index] = cast(u8) (((preState - 64) << 1) | 1)
+                    .contexts[cast(u32, group.offset) + index] = cast(u8, (((preState - 64) << 1) | 1))
             }
         }
 
@@ -107,7 +107,7 @@ impl CabacReader
 
     // Reports whether decoding consumed bits past the end of the substream.
     #[Swag.Inline]
-    mtd const hasOverrun()->bool => (.position + .padBytes) * 8 - cast(u64) .bitCount > .size * 8
+    mtd const hasOverrun()->bool => (.position + .padBytes) * 8 - cast(u64, .bitCount) > .size * 8
 
     // Refills the top of the bit buffer, padding with zero bytes past the end of the data.
     private mtd refill()
@@ -115,7 +115,7 @@ impl CabacReader
         // An empty buffer with a whole word of data left loads it in one swapped read.
         if .bitCount <= 0 and .position + 8 <= .size
         {
-            .bitBuffer = Swag.byteSwap((cast(const [*] u64) (.data! + .position))[0])
+            .bitBuffer = Swag.byteSwap(cast(const [*] u64, (.data! + .position))[0])
             .bitCount  = 64
             .position  += 8
             return
@@ -134,7 +134,7 @@ impl CabacReader
                 .padBytes += 1
             }
 
-            .bitBuffer |= cast(u64) value << cast(u32) (56 - .bitCount)
+            .bitBuffer |= cast(u64, value) << cast(u32, (56 - .bitCount))
             .bitCount  += 8
         }
     }
@@ -143,11 +143,11 @@ impl CabacReader
     #[Swag.Inline]
     private mtd takeBits(count: u32)->u32
     {
-        if .bitCount < cast(s32) count do
+        if .bitCount < cast(s32, count) do
             .refill()
-        let bits = cast(u32) (.bitBuffer >> cast(u32) (64 - count))
+        let bits = cast(u32, (.bitBuffer >> cast(u32, (64 - count))))
         .bitBuffer <<= count
-        .bitCount  -= cast(s32) count
+        .bitCount  -= cast(s32, count)
         return bits
     }
 
@@ -161,16 +161,16 @@ impl CabacReader
     {
         var range  = .range
         var low    = .low
-        let state  = cast(u32) .contexts[contextIndex]
-        let pState = cast(u64) (state >> 1)
+        let state  = cast(u32, .contexts[contextIndex])
+        let pState = cast(u64, (state >> 1))
         let mps    = state & 1
-        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((range >> 6) & 3)]
+        let lps    = cast(u32, CabacRangeLps[pState * 4 + cast(u64, ((range >> 6) & 3))])
 
         range -= lps
         var result: u32
         if low < range
         {
-            .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransMps[pState] << 1) | mps)
+            .contexts[contextIndex] = cast(u8, ((cast(u32, CabacTransMps[pState]) << 1) | mps))
             result = mps
         }
         else
@@ -180,16 +180,16 @@ impl CabacReader
 
             // State zero is the only one where the least probable symbol swaps the meaning of
             // the most probable one; the shift turns that test into a mask.
-            let lpsMps = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
-            .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransLps[pState] << 1) | lpsMps)
+            let lpsMps = mps ^ cast(u32, ((pState - #wrap 1) >> 63))
+            .contexts[contextIndex] = cast(u8, ((cast(u32, CabacTransLps[pState]) << 1) | lpsMps))
             result = mps ^ 1
         }
 
-        let shift = Math.max(cast(s32) Swag.bitCountLz(range) - 23, 0)
+        let shift = Math.max(cast(s32, Swag.bitCountLz(range)) - 23, 0)
         if shift != 0
         {
-            range <<= cast(u32) shift
-            low   = (low << cast(u32) shift) | .takeBits(cast(u32) shift)
+            range <<= cast(u32, shift)
+            low   = (low << cast(u32, shift)) | .takeBits(cast(u32, shift))
         }
 
         .range = range
@@ -231,11 +231,11 @@ impl CabacReader
         if .low >= .range do
             return 1
 
-        let shift = Math.max(cast(s32) Swag.bitCountLz(.range) - 23, 0)
+        let shift = Math.max(cast(s32, Swag.bitCountLz(.range)) - 23, 0)
         if shift != 0
         {
-            .range <<= cast(u32) shift
-            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
+            .range <<= cast(u32, shift)
+            .low   = (.low << cast(u32, shift)) | .takeBits(cast(u32, shift))
         }
 
         return 0

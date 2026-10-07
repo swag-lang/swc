@@ -174,8 +174,8 @@ impl OffsetOwnedEvent
     let evt = Event.create'OffsetOwnedEvent()
     evt.drops = &drops
     let base: *Event = evt
-    Swag.assert(cast(*void) base != cast(*void) evt)
-    Swag.assert(cast #try (*OffsetOwnedEvent) base == evt)
+    Swag.assert(cast(*void, base) != cast(*void, evt))
+    Swag.assert((catch cast(*OffsetOwnedEvent?, base)) == evt)
     host.root.postEvent(evt)
     host.pumpPostedEvents()
     Swag.assert(drops == 1)
@@ -188,7 +188,7 @@ impl OffsetOwnedEvent
     defer Memory.delete(evt)
     let view: IEvent = evt
     Swag.assert(Swag.kindOf(view) == #typeof(CommandStateEvent))
-    Swag.assert(cast #try (*CommandStateEvent) view == evt)
+    Swag.assert((catch cast(*CommandStateEvent?, view)) == evt)
     Swag.assert(not evt.accepted)
 
     evt.kind          = .Apply
@@ -229,20 +229,20 @@ impl OffsetOwnedEvent
     let cmd = Event.create'CommandEvent()
     defer Memory.delete(cmd)
     cmd.id = Dialog.BtnCancel
-    Swag.assert(Swag.kindOf(cast(IEvent) cmd) == #typeof(CommandEvent))
+    Swag.assert(Swag.kindOf(cast(IEvent, cmd)) == #typeof(CommandEvent))
     Swag.assert(cmd.id == "Dialog.BtnCancel")
     Swag.assert(cmd.source == null)
 
     let resize = Event.create'ResizeEvent()
     defer Memory.delete(resize)
     resize.oldSize = {640, 480}
-    Swag.assert(Swag.kindOf(cast(IEvent) resize) == #typeof(ResizeEvent))
+    Swag.assert(Swag.kindOf(cast(IEvent, resize)) == #typeof(ResizeEvent))
     Swag.assert(resize.oldSize == Math.Point{640, 480})
 
     let move = Event.create'MoveEvent()
     defer Memory.delete(move)
     move.oldPos = {12, 34}
-    Swag.assert(Swag.kindOf(cast(IEvent) move) == #typeof(MoveEvent))
+    Swag.assert(Swag.kindOf(cast(IEvent, move)) == #typeof(MoveEvent))
     Swag.assert(move.oldPos == Math.Point{12, 34})
 }
 

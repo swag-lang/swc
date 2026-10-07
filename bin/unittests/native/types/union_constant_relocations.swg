@@ -49,7 +49,7 @@ union ArrayPartialDefault
 }
 
 #[Swag.NoInline]
-func unionRuntimeAddress()->u64 => cast(u64) UNION_TARGET.buffer
+func unionRuntimeAddress()->u64 => cast(u64, UNION_TARGET.buffer)
 
 struct NestedDefaults
 {
@@ -218,14 +218,14 @@ var globalReplaced:      PartialDefault           = {whole: 79}
 // Constant-set folding must not substitute zero storage for a runtime receiver default.
 #test
 {
-    let value    = cast(RuntimeDefaultSet) 7'u64
+    let value    = cast(RuntimeDefaultSet, 7'u64)
     let expected = (unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55
     Swag.assert(value.value.whole == expected)
     Swag.assert(value.observed == (expected ^ 7))
 
     let resolved: FullRuntimeDefaultSet
     Swag.assert(resolved.value.whole == expected)
-    const initialized = cast(FullRuntimeDefaultSet) 89'u64
+    const initialized = cast(FullRuntimeDefaultSet, 89'u64)
     Swag.assert(initialized.value.whole == 0)
     Swag.assert(initialized.observed == 89)
 }

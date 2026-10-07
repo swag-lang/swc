@@ -661,7 +661,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         let g   = scanCssComponent(text, &pos, 255)
         let b   = scanCssComponent(text, &pos, 255)
         let a   = isRgba ? scanCssComponent(text, &pos, 1) : 1.0
-        result.color = Color.fromArgb(cast(u8) Math.round(a * 255), cast(u8) Math.round(r), cast(u8) Math.round(g), cast(u8) Math.round(b))
+        result.color = Color.fromArgb(cast(u8, Math.round(a * 255)), cast(u8, Math.round(r)), cast(u8, Math.round(g)), cast(u8, Math.round(b)))
         return result
     }
 
@@ -676,7 +676,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         let lightness  = scanCssComponent(text, &pos, 1)
         let alpha      = isHsla ? scanCssComponent(text, &pos, 1) : 1.0
         result.color   = Color.fromHsl(hue / 360, saturation, lightness)
-        result.color.a = cast(u8) Math.round(alpha * 255)
+        result.color.a = cast(u8, Math.round(alpha * 255))
         return result
     }
 
@@ -687,7 +687,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     {
         if it.name and not Latin1.compare(it.name, text, ignoreCase: true)
         {
-            result.color = Color.fromArgb((cast(const *Argb) it.value!)[])
+            result.color = Color.fromArgb(cast(const *Argb, it.value!)[])
             return result
         }
     }
@@ -1154,8 +1154,8 @@ private func appendArcElement(path: *LinePath, state: *GroupState, center, angle
 
     // The stored parameterization runs clockwise from the top of the ellipse.
     let sweepAngle = angles.y - angles.x
-    let segCount   = cast(s32) Math.max(Math.ceil(Math.abs(sweepAngle) / (Math.ConstF32.Pi * 0.5)), 1.0)
-    let segAngle   = sweepAngle / cast(f32) segCount
+    let segCount   = cast(s32, Math.max(Math.ceil(Math.abs(sweepAngle) / (Math.ConstF32.Pi * 0.5)), 1.0))
+    let segAngle   = sweepAngle / cast(f32, segCount)
     let k          = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
     var angle = angles.x
@@ -1277,8 +1277,8 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
         sweepAngle -= 2 * Math.ConstF32.Pi
 
     // Split into segments no larger than a quarter turn and emit each as a cubic.
-    let segCount = cast(s32) Math.max(Math.ceil(Math.abs(sweepAngle) / (Math.ConstF32.Pi * 0.5)), 1.0)
-    let segAngle = sweepAngle / cast(f32) segCount
+    let segCount = cast(s32, Math.max(Math.ceil(Math.abs(sweepAngle) / (Math.ConstF32.Pi * 0.5)), 1.0))
+    let segAngle = sweepAngle / cast(f32, segCount)
     let k        = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
     var angle = startAngle
@@ -1475,7 +1475,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             begY    = y
 
             // Following coordinate pairs are implicit line-to commands.
-            cmd = rel ? cast(u8) 'l' : cast(u8) 'L'
+            cmd = rel ? cast(u8, 'l') : cast(u8, 'L')
 
         case 'L', 'l':
             var x = number(data, &pos, &valid)
@@ -2137,7 +2137,7 @@ private impl Parser
                     }
                 }
 
-                color.a = cast(u8) Math.round(cast(f32) color.a * opacity)
+                color.a = cast(u8, Math.round(cast(f32, color.a) * opacity))
                 var normalizedOffset = Math.saturate(offset.value)
                 if not gradient.stops.isEmpty() do
                     normalizedOffset = Math.max(normalizedOffset, gradient.stops.back().offset)
@@ -2298,7 +2298,7 @@ private impl Parser
     // instead of failing the document; only a document with no usable face at all fails.
     mtd typeFaceFor(kind: FontFamilyKind)->*TypeFace fail
     {
-        let slot = cast(u64) kind
+        let slot = cast(u64, kind)
         if .typeFaces[slot] do
             return .typeFaces[slot]!
 
@@ -3665,8 +3665,8 @@ impl Drawing
             return
 
         let rasterScale         = Math.max(painter.contentScale(), 1.0'f32)
-        let pixelWidth          = cast(s32) Math.max(Math.ceil(tileWidth * rasterScale), 1.0'f32)
-        let pixelHeight         = cast(s32) Math.max(Math.ceil(tileHeight * rasterScale), 1.0'f32)
+        let pixelWidth          = cast(s32, Math.max(Math.ceil(tileWidth * rasterScale), 1.0'f32))
+        let pixelHeight         = cast(s32, Math.max(Math.ceil(tileHeight * rasterScale), 1.0'f32))
         var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
         cpu.begin(pixelWidth, pixelHeight)
@@ -3682,8 +3682,8 @@ impl Drawing
         {
             for copyX in 3
             {
-                let offsetX       = cast(f32) (cast(s32) copyX - 1) * tileWidth
-                let offsetY       = cast(f32) (cast(s32) copyY - 1) * tileHeight
+                let offsetX       = cast(f32, (cast(s32, copyX) - 1)) * tileWidth
+                let offsetY       = cast(f32, (cast(s32, copyY) - 1)) * tileHeight
                 var tileTransform = Math.Transform2.createTranslation(-tileX - phaseX + offsetX, -tileY - phaseY + offsetY)
                 tileTransform.multiply(Math.Transform2.createScale(rasterScale, rasterScale, 0, 0))
                 tilePainter.setTransform(tileTransform)
@@ -3732,7 +3732,7 @@ impl Drawing
             origin.x += run.dx
             origin.y += run.dy
 
-            let size = cast(u32) Math.max(Math.round(run.fontSize), 1.0'f32)
+            let size = cast(u32, Math.max(Math.round(run.fontSize), 1.0'f32))
             let font = painter.renderer().fontCache().createFont(run.typeFace, size, forceBold: run.forceBold, forceItalic: run.forceItalic)
 
             // Shape once: the anchor needs the advance the spacing produces, and drawing
@@ -3803,8 +3803,8 @@ impl Drawing
     {
         var layer: Layer
         var begin: LayerBeginInfo
-        begin.width      = cast(s32) Math.ceil(.width * scale)
-        begin.height     = cast(s32) Math.ceil(.height * scale)
+        begin.width      = cast(s32, Math.ceil(.width * scale))
+        begin.height     = cast(s32, Math.ceil(.height * scale))
         begin.paintAlpha = false
 
         painter.setTransform(Math.Transform2.createScale(scale, scale, 0, 0))
@@ -4021,7 +4021,7 @@ impl Drawing
         Swag.assert(width > 0 and height > 0)
         Swag.assert(sampleTileSide > 0)
 
-        let ss            = cast(s32) Math.max(supersample, 1'u8)
+        let ss            = cast(s32, Math.max(supersample, 1'u8))
         let tileWidth     = Math.min(width, Math.max(sampleTileSide / ss, 1))
         let tileHeight    = Math.min(height, Math.max(sampleTileSide / ss, 1))
         let sampledWidth  = tileWidth * ss
@@ -4061,21 +4061,21 @@ impl Drawing
                     painter.setColorMaskFull()
                     painter.clear(Color.fromArgb(matte == 0 ? Argb.Black : Argb.White))
                     painter.setColorMaskColor()
-                    .paintImpl(&painter, cast(f32) (-tileX * ss), cast(f32) (-tileY * ss), cast(f32) (width * ss) / .width)
+                    .paintImpl(&painter, cast(f32, (-tileX * ss)), cast(f32, (-tileY * ss)), cast(f32, (width * ss)) / .width)
 
                     // Restore opaque coverage after stroke scratch, so the resolve averages
                     // matte colors without unpremultiplying them by a discarded alpha plane.
                     painter.setColorMaskAlpha()
                     painter.setBlendingMode(.Copy)
-                    painter.fillRect({0, 0, cast(f32) sampledWidth, cast(f32) sampledHeight}, Argb.White)
+                    painter.fillRect({0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}, Argb.White)
                     painter.unbindRenderTarget()
 
                     // Average each matte before recovering straight RGB; averaging straight
                     // translucent colors would introduce a fringe along antialiased contours.
                     if ss > 1
                     {
-                        let dstRect = Math.Rectangle{0, 0, cast(f32) tileWidth, cast(f32) tileHeight}
-                        let srcRect = Math.Rectangle{0, 0, cast(f32) sampledWidth, cast(f32) sampledHeight}
+                        let dstRect = Math.Rectangle{0, 0, cast(f32, tileWidth), cast(f32, tileHeight)}
+                        let srcRect = Math.Rectangle{0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}
                         painter.bindRenderTarget(&resolved)
                         painter.setResolveShader(ss)
                         painter.setColorMaskFull()
@@ -4096,20 +4096,20 @@ impl Drawing
 
                 for row in copyHeight
                 {
-                    let black       = mattes[0].pixels.storage() + cast(u64) row * cast(u64) mattes[0].rowStride
-                    let white       = mattes[1].pixels.storage() + cast(u64) row * cast(u64) mattes[1].rowStride
+                    let black       = mattes[0].pixels.storage() + cast(u64, row) * cast(u64, mattes[0].rowStride)
+                    let white       = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
                     let resultRow   = result.height - tileY - copyHeight + row
-                    let destination = result.pixels.storage() + cast(u64) resultRow * cast(u64) result.rowStride + cast(u64) tileX * result.bytesPerPixel
+                    let destination = result.pixels.storage() + cast(u64, resultRow) * cast(u64, result.rowStride) + cast(u64, tileX) * result.bytesPerPixel
                     for column in copyWidth
                     {
-                        let offset = cast(u64) column * 4
+                        let offset = cast(u64, column) * 4
                         var uncovered: s32
                         for channel in 3 do
-                            uncovered += cast(s32) white[offset + channel] - cast(s32) black[offset + channel]
+                            uncovered += cast(s32, white[offset + channel]) - cast(s32, black[offset + channel])
                         let alpha = Math.clamp(255 - (uncovered + 1) / 3, 0, 255)
-                        destination[offset + 3] = cast(u8) alpha
+                        destination[offset + 3] = cast(u8, alpha)
                         for channel in 3 do
-                            destination[offset + channel] = alpha == 0 ? 255'u8 : cast(u8) Math.min((cast(s32) black[offset + channel] * 255 + alpha / 2) / alpha, 255)
+                            destination[offset + channel] = alpha == 0 ? 255'u8 : cast(u8, Math.min((cast(s32, black[offset + channel]) * 255 + alpha / 2) / alpha, 255))
                     }
                 }
 

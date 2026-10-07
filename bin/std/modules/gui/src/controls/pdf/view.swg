@@ -234,7 +234,7 @@ internal impl PdfView
 
         let count = .pageSizes.count
         result.x = .widestPage * scale + 2 * PageMargin
-        result.y = .pageStarts[count] * scale + cast(f32) (count - 1) * PageGap + 2 * PageMargin
+        result.y = .pageStarts[count] * scale + cast(f32, (count - 1)) * PageGap + 2 * PageMargin
         return result
     }
 
@@ -243,7 +243,7 @@ internal impl PdfView
     {
         if .pageLayout == .Single do
             return PageMargin
-        return PageMargin + .pageStarts[index] * .effectiveZoom() + cast(f32) index * PageGap
+        return PageMargin + .pageStarts[index] * .effectiveZoom() + cast(f32, index) * PageGap
     }
 
     // Returns the rectangle one page occupies in the laid-out document, in logical units.
@@ -492,7 +492,7 @@ internal impl PdfView
                 // page to select or outline.
                 if not value.count do
                     continue
-                let found = cast(u64) cast(s64) (value.buffer - sourceData)
+                let found = cast(u64, cast(s64, (value.buffer - sourceData)))
                 if not options.wholeWord or isWholeWord(source, found, value.count) do
                     result.add({pageIndex, found, value.count})
             }
@@ -855,7 +855,7 @@ internal impl PdfView
         var rects: Array'Math.Rectangle
         entry.textIndex.rangeRects(range.start, range.end, &rects)
         var wash = .themeColors().edit_SelectedBk
-        wash.a = cast(u8) (cast(u32) wash.a * 140 / 255)
+        wash.a = cast(u8, (cast(u32, wash.a) * 140 / 255))
         for rect in rects do
             painter.fillRect({box.x + rect.x * scale, box.y + rect.y * scale, rect.width * scale, rect.height * scale}, wash)
     }

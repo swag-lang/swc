@@ -251,18 +251,18 @@ impl RadioButton
         {
             if child is RadioButton as other where other.groupId == .groupId
             {
-                if child == cast(*Wnd) me do
-                    current = cast(s64) group.count
+                if child == cast(*Wnd, me) do
+                    current = cast(s64, group.count)
                 group.add(other)
             }
         }
 
-        let count = cast(s64) group.count
+        let count = cast(s64, group.count)
         if count < 2 do
             return false
 
         let step = forward ? 1's64 : count - 1
-        let next = group[cast(u64) ((current + step) % count)]
+        let next = group[cast(u64, ((current + step) % count))]
         next.selectFromUser()
         next.setFocus()
         return true
@@ -276,7 +276,7 @@ impl RadioButton
 
         for c in .parent.children
         {
-            if c == cast(*Wnd) me do
+            if c == cast(*Wnd, me) do
                 continue
             if c is RadioButton as other where other.groupId == .groupId do
                 other.setChecked(false)

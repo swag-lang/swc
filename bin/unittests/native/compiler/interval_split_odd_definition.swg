@@ -33,8 +33,8 @@ func collectInterlacedSamples(width, height: s32, samples: const [..] u16)->Inte
             raw.add(0)
             for var x = startX[pass]; x < width; x += stepX[pass]
             {
-                let pixel = cast(u64) (y * width + x) * 3
-                raw.add(cast(u8) (samples[pixel] / 257))
+                let pixel = cast(u64, (y * width + x)) * 3
+                raw.add(cast(u8, (samples[pixel] / 257)))
             }
         }
     }
@@ -51,9 +51,9 @@ func collectInterlacedSamples(width, height: s32, samples: const [..] u16)->Inte
         for x in Width
         {
             let pixel = (y * Width + x) * 3
-            samples[pixel]     = cast(u16) (10 + x + y * Width) * 257
-            samples[pixel + 1] = cast(u16) (50 + x * 2 + y) * 257
-            samples[pixel + 2] = cast(u16) (100 + x + y * 3) * 257
+            samples[pixel]     = cast(u16, (10 + x + y * Width)) * 257
+            samples[pixel + 1] = cast(u16, (50 + x * 2 + y)) * 257
+            samples[pixel + 2] = cast(u16, (100 + x + y * 3)) * 257
         }
     }
 

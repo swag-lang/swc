@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaPurity.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -199,6 +200,9 @@ namespace
 
             if (node.is(AstNodeId::CastExpr) || node.is(AstNodeId::AutoCastExpr))
             {
+                const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(currentRef);
+                if (lowering && lowering->fallibleDynamicCast)
+                    return false;
                 const SemaNodeView result = sema.viewTypeConstant(currentRef);
                 if (!result.hasType())
                     return false;

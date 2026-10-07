@@ -36,14 +36,14 @@ impl SoundFile
 
             let allocator   = Swag.getContext().allocator!
             let decoderData = Memory.new(desc.type, allocator)!
-            let decoder     = cast(*Codec) decoderData
+            let decoder     = cast(*Codec, decoderData)
             decoder.configure(.encoding, .Pcm16, desc.type, allocator)
             let packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)
             defer
             {
                 if decoder.type.opDrop do
                     decoder.type.opDrop(decoder)
-                Memory.free(decoder, cast(u64) decoder.type.sizeof, allocator)
+                Memory.free(decoder, cast(u64, decoder.type.sizeof), allocator)
             }
 
             try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
@@ -59,20 +59,20 @@ impl SoundFile
                 try source.seek(packet.sourceOffset)
                 try source.readExact(packetBytes.toSlice())
 
-                let decodedSize = cast(u64) packet.sampleFrameCount * .channelCount * #sizeof(s16)
+                let decodedSize = cast(u64, packet.sampleFrameCount) * .channelCount * #sizeof(s16)
                 if decodedBytes.count != decodedSize do
                     decodedBytes.resize(decodedSize)
                 let produced = try packetCodec!.decodePacket(decodedBytes.storage(), decodedSize, packetBytes.toSlice())
                 if produced != decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
 
-                let skippedFrames = Math.min(discardFrames, cast(u64) packet.sampleFrameCount)
+                let skippedFrames = Math.min(discardFrames, cast(u64, packet.sampleFrameCount))
                 discardFrames -= skippedFrames
                 let firstSample = skippedFrames * .channelCount
                 let sampleCount = produced / #sizeof(s16)
                 if firstSample < sampleCount
                 {
-                    let samples = cast(const [*] s16) decodedBytes.storage()
+                    let samples = cast(const [*] s16, decodedBytes.storage())
                     if not consumer(samples[firstSample until sampleCount]) do
                         return
                 }

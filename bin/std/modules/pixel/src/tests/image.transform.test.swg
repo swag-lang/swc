@@ -8,9 +8,9 @@ func transformImage(pf: PixelFormat)->Image
     var pixels: [24] u8
     for i in 6
     {
-        pixels[i * 4 + 0] = cast(u8) (i * 40 + 10)
-        pixels[i * 4 + 1] = cast(u8) (200 - i * 30)
-        pixels[i * 4 + 2] = cast(u8) (i * 17 + 5)
+        pixels[i * 4 + 0] = cast(u8, (i * 40 + 10))
+        pixels[i * 4 + 1] = cast(u8, (200 - i * 30))
+        pixels[i * 4 + 2] = cast(u8, (i * 17 + 5))
         pixels[i * 4 + 3] = 255
     }
 

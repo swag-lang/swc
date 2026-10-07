@@ -181,7 +181,7 @@ impl RuntimeIndexedHolder
 
     mtd readWideSlot(slot: RuntimeWideIndexedSlot)->bool
     {
-        return .wideValues[cast(u64) slot]
+        return .wideValues[cast(u64, slot)]
     }
 }
 
@@ -197,7 +197,7 @@ func readStrictRuntimeIndexedSlot(values: [RuntimeIndexedSlot] bool, slot: Stric
 
 func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot)->bool
 {
-    return values[cast(u64) slot]
+    return values[cast(u64, slot)]
 }
 
 #test
@@ -251,10 +251,10 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
 {
     var values: [RuntimeIndexedSlot] bool
 
-    values[cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second] = true
-    Swag.assert(values[cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second])
+    values[cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)] = true
+    Swag.assert(values[cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)])
 
-    var index = cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second
+    var index = cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)
     Swag.assert(values[index])
     Swag.assert(readStrictRuntimeIndexedSlot(&values, index))
 }
@@ -287,8 +287,8 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
 {
     var values: [128] bool
 
-    values[cast(u64) RuntimeWideIndexedSlot.Mid] = true
-    Swag.assert(values[cast(u64) RuntimeWideIndexedSlot.Mid])
+    values[cast(u64, RuntimeWideIndexedSlot.Mid)] = true
+    Swag.assert(values[cast(u64, RuntimeWideIndexedSlot.Mid)])
     Swag.assert(readRuntimeWideIndexedSlot(&values, RuntimeWideIndexedSlot.Mid))
 
     var index = RuntimeWideIndexedSlot.Mid
@@ -299,8 +299,8 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
 {
     var holder: RuntimeIndexedHolder
 
-    holder.wideValues[cast(u64) RuntimeWideIndexedSlot.Mid] = true
-    Swag.assert(holder.wideValues[cast(u64) RuntimeWideIndexedSlot.Mid])
+    holder.wideValues[cast(u64, RuntimeWideIndexedSlot.Mid)] = true
+    Swag.assert(holder.wideValues[cast(u64, RuntimeWideIndexedSlot.Mid)])
     Swag.assert(holder.readWideSlot(RuntimeWideIndexedSlot.Mid))
 
     var index = RuntimeWideIndexedSlot.Mid

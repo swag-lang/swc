@@ -74,9 +74,9 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let order = FocusOrder.collect(&host.root)
 
     Swag.assert(order.stops.count == 3)
-    Swag.assert(order.stops[0] == cast(*Wnd) card.field)
-    Swag.assert(order.stops[1] == cast(*Wnd) card.browse)
-    Swag.assert(order.stops[2] == cast(*Wnd) card.submit)
+    Swag.assert(order.stops[0] == cast(*Wnd, card.field))
+    Swag.assert(order.stops[1] == cast(*Wnd, card.browse))
+    Swag.assert(order.stops[2] == cast(*Wnd, card.submit))
 }
 
 // Two columns keep their own fields together instead of interleaving row by row.
@@ -91,10 +91,10 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let order = FocusOrder.collect(&host.root)
 
     Swag.assert(order.stops.count == 6)
-    Swag.assert(order.stops[0] == cast(*Wnd) left.field)
-    Swag.assert(order.stops[2] == cast(*Wnd) left.submit)
-    Swag.assert(order.stops[3] == cast(*Wnd) right.field)
-    Swag.assert(order.stops[5] == cast(*Wnd) right.submit)
+    Swag.assert(order.stops[0] == cast(*Wnd, left.field))
+    Swag.assert(order.stops[2] == cast(*Wnd, left.submit))
+    Swag.assert(order.stops[3] == cast(*Wnd, right.field))
+    Swag.assert(order.stops[5] == cast(*Wnd, right.submit))
 }
 
 // Tab walks the ring and wraps around, Shift+Tab walks it backwards.
@@ -166,7 +166,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.assert(host.app.keyboardFocusWnd == null)
     Swag.assert(not edit.hasFocus())
     Swag.assert(edit.timerCaret == null)
-    Swag.assert(host.surface.focusWnd == cast(*Wnd?) edit)
+    Swag.assert(host.surface.focusWnd == cast(*Wnd?, edit))
     Swag.assert(lostCount == 1)
 
     let focusRestored = host.surface.restoreFocus()
@@ -260,16 +260,16 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let order    = FocusOrder.collect(&host.root)
 
     Swag.assert(order.stops.count == 2)
-    Swag.assert(order.stops[0] == cast(*Wnd) password)
-    Swag.assert(order.stops[1] == cast(*Wnd) list)
+    Swag.assert(order.stops[0] == cast(*Wnd, password))
+    Swag.assert(order.stops[1] == cast(*Wnd, list))
 
     password.setFocus()
     Swag.assert(password.hasFocus())
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) password.edit)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, password.edit))
 
     host.keyPress(.Tab)
     Swag.assert(list.hasFocus())
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) list.listView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, list.listView))
 }
 
 // A group of options is one stop, entered on the option that is checked.
@@ -288,8 +288,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let order = FocusOrder.collect(&host.root)
     Swag.assert(order.stops.count == 2)
-    Swag.assert(order.stops[0] == cast(*Wnd) b)
-    Swag.assert(order.stops[1] == cast(*Wnd) after)
+    Swag.assert(order.stops[0] == cast(*Wnd, b))
+    Swag.assert(order.stops[1] == cast(*Wnd, after))
 
     // The arrows choose inside the group, and Tab is what leaves it.
     b.setFocus()
@@ -630,7 +630,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     dlg.applyLayout()
 
     // Both read before the action bar, so either is what the box would have opened on.
-    Swag.assert(FocusOrder.collect(dlg.surface!.wnd).first() == cast(*Wnd) again)
+    Swag.assert(FocusOrder.collect(dlg.surface!.wnd).first() == cast(*Wnd, again))
     Swag.assert(again.wndFlags.has(.ActivatesOnKey) and toggle.wndFlags.has(.ActivatesOnKey))
 
     var checked: bool

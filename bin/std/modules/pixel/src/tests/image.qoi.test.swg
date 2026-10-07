@@ -43,23 +43,23 @@ using Swag, Core
         {
             for x in source.width
             {
-                let offset = cast(u64) y * source.rowStride + cast(u64) x * source.bytesPerPixel
+                let offset = cast(u64, y) * source.rowStride + cast(u64, x) * source.bytesPerPixel
                 let pixel  = source.pixels.storage() + offset
                 if pixelFormat == .RGB8 or pixelFormat == .RGBA8
                 {
-                    pixel[0] = cast(u8) ((x * 13 + y * 3) & 0xFF)
-                    pixel[1] = cast(u8) ((x * 5 + y * 17) & 0xFF)
-                    pixel[2] = cast(u8) ((x * 7 + y * 11) & 0xFF)
+                    pixel[0] = cast(u8, ((x * 13 + y * 3) & 0xFF))
+                    pixel[1] = cast(u8, ((x * 5 + y * 17) & 0xFF))
+                    pixel[2] = cast(u8, ((x * 7 + y * 11) & 0xFF))
                 }
                 else
                 {
-                    pixel[0] = cast(u8) ((x * 7 + y * 11) & 0xFF)
-                    pixel[1] = cast(u8) ((x * 5 + y * 17) & 0xFF)
-                    pixel[2] = cast(u8) ((x * 13 + y * 3) & 0xFF)
+                    pixel[0] = cast(u8, ((x * 7 + y * 11) & 0xFF))
+                    pixel[1] = cast(u8, ((x * 5 + y * 17) & 0xFF))
+                    pixel[2] = cast(u8, ((x * 13 + y * 3) & 0xFF))
                 }
 
                 if source.bytesPerPixel == 4 do
-                    pixel[3] = cast(u8) ((x * 9 + y * 19) & 0xFF)
+                    pixel[3] = cast(u8, ((x * 9 + y * 19) & 0xFF))
             }
         }
 

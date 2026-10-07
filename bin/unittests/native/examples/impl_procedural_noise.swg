@@ -33,7 +33,7 @@ impl GardenRng
     mtd nextU32()->u32
     {
         .state = (.state * #wrap 6364136223846793005'u64) + #wrap 1442695040888963407'u64
-        return cast(u32) (.state >> 32)
+        return cast(u32, (.state >> 32))
     }
 
     mtd nextF32()->f32
@@ -41,7 +41,7 @@ impl GardenRng
         var value = .nextU32()
         while value == Swag.U32.Max do
             value = .nextU32()
-        return cast(f32) value / cast(f32) Swag.U32.Max
+        return cast(f32, value) / cast(f32, Swag.U32.Max)
     }
 
     mtd nextF32(min, max: f32)->f32
@@ -52,8 +52,8 @@ impl GardenRng
 
     mtd nextS32(min, max: s32)->s32
     {
-        let range = cast(u32) (max - min)
-        let value = cast(s32) (.nextU32() % range)
+        let range = cast(u32, (max - min))
+        let value = cast(s32, (.nextU32() % range))
         return min + value
     }
 
@@ -90,9 +90,9 @@ func lerp(a, b, alpha: f32)->f32
 #[Swag.Safety(.Overflow, false)]
 func hashGrid(x, y, seed: s32)->u32
 {
-    var hash = cast #wrap(u32) x * #wrap 0x9E3779B9'u32
-    hash ^= cast #wrap(u32) y * #wrap 0x85EBCA77'u32
-    hash ^= cast #wrap(u32) seed * #wrap 0xC2B2AE3D'u32
+    var hash = cast #wrap(u32, x) * #wrap 0x9E3779B9'u32
+    hash ^= cast #wrap(u32, y) * #wrap 0x85EBCA77'u32
+    hash ^= cast #wrap(u32, seed) * #wrap 0xC2B2AE3D'u32
     hash ^= hash >> 16
     hash = hash * #wrap 0x7FEB352D'u32
     hash ^= hash >> 15
@@ -104,14 +104,14 @@ func hashGrid(x, y, seed: s32)->u32
 func gridValue(x, y, seed: s32)->f32
 {
     let hash = hashGrid(x, y, seed)
-    let unit = cast(f32) hash / cast(f32) Swag.U32.Max
+    let unit = cast(f32, hash) / cast(f32, Swag.U32.Max)
     return unit * 2.0'f32 - 1.0'f32
 }
 
 func valueNoise(x, y: f32, seed: s32)->f32
 {
-    let x0 = cast(s32) Swag.floor(x)
-    let y0 = cast(s32) Swag.floor(y)
+    let x0 = cast(s32, Swag.floor(x))
+    let y0 = cast(s32, Swag.floor(y))
     let tx = smoothStep(x - x0)
     let ty = smoothStep(y - y0)
 
@@ -134,7 +134,7 @@ func fractalNoise(x, y: f32, seed: s32)->f32
 
     for index in 4
     {
-        let octaveSeed = seed + cast(s32) index * 131
+        let octaveSeed = seed + cast(s32, index) * 131
         sum        += valueNoise(x * frequency, y * frequency, octaveSeed) * amplitude
         normalizer += amplitude
         amplitude  *= 0.55'f32
@@ -149,26 +149,26 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
     var rng: GardenRng
     rng.seed(seed)
 
-    let terrainSeed  = cast(s32) seed
-    let moistureSeed = cast(s32) seed + 911
+    let terrainSeed  = cast(s32, seed)
+    let moistureSeed = cast(s32, seed) + 911
 
     var result: GardenPlanSummary
 
     for row in 3
     {
-        let y = cast(f32) row
+        let y = cast(f32, row)
 
         for column in 4
         {
-            let x             = cast(f32) column
+            let x             = cast(f32, column)
             let jitterX       = rng.nextF32(-0.35'f32, 0.35'f32)
             let jitterY       = rng.nextF32(-0.35'f32, 0.35'f32)
             let terrainHeight = fractalNoise(x + jitterX, y + jitterY, terrainSeed)
             let moistureLevel = fractalNoise(x - jitterY, y + jitterX, moistureSeed)
             let sunlight      = rng.nextF32(0.75'f32, 1.25'f32)
-            let terrainMark   = cast(s32) ((terrainHeight + 1.0'f32) * 1000.0'f32)
-            let moistureMark  = cast(s32) ((moistureLevel + 1.0'f32) * 1000.0'f32)
-            let sunlightMark  = cast(s32) (sunlight * 1000.0'f32)
+            let terrainMark   = cast(s32, ((terrainHeight + 1.0'f32) * 1000.0'f32))
+            let moistureMark  = cast(s32, ((moistureLevel + 1.0'f32) * 1000.0'f32))
+            let sunlightMark  = cast(s32, (sunlight * 1000.0'f32))
             result.layoutSignature += terrainMark * 3 + moistureMark * 5 + sunlightMark * 7 + row * 11 + column * 13
 
             if terrainHeight < -0.30'f32

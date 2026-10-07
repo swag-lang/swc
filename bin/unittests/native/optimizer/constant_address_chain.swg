@@ -5,7 +5,7 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func countBits16(value: u16)->u16
 {
-    let input = cast(u32) value
+    let input = cast(u32, value)
     var count = 0'u16
     var mask  = 1'u32
     for 16
@@ -58,7 +58,7 @@ func countWrapping64(value: u64)->u64
 #test
 {
     for value in 65536 do
-        Swag.assert(countBits16(cast(u16) value) == countBitsReference(cast(u16) value))
+        Swag.assert(countBits16(cast(u16, value)) == countBitsReference(cast(u16, value)))
     Swag.assert(countWrapping32(0xFFFFFFFF) == 1)
     Swag.assert(countWrapping32(0x7FFFFFFF) == 0)
     Swag.assert(countWrapping64(0xFFFFFFFFFFFFFFFF) == 1)

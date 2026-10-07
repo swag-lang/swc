@@ -31,8 +31,8 @@ func popupExtent(count, size: f32)->f32 => count * size + Math.max(count - 1, 0)
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
-func(T) enumToUserData(value: T)->*void   => cast(*void) cast(u64) value
-func(T) enumFromUserData(data: *void?)->T => cast(T) cast(u64) data
+func(T) enumToUserData(value: T)->*void   => cast(*void, cast(u64, value))
+func(T) enumFromUserData(data: *void?)->T => cast(T, cast(u64, data))
 
 // Reports whether a line end is one the "Start Size" and "End Size" rows can resize.
 //
@@ -147,7 +147,7 @@ impl PropWnd
         if not capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return cast #assume (*BaseForm) iform
+            return assume cast (*BaseForm, iform)
         }
 
         return capture.getSelectedBaseForm()!
@@ -161,7 +161,7 @@ impl PropWnd
     // survives to the kind the editor was made for reads one form's bytes as another's, and a
     // field the two do not share comes back as whatever lay at that offset — which is how a
     // '#complete switch' over a three-value enum ends up with a value it has no case for.
-    mtd(T) getSelectedForm()->*T? => cast #try (*T) .getSelectedBaseForm()
+    mtd(T) getSelectedForm()->*T? => (catch cast(*T?, .getSelectedBaseForm()))
 
     mtd getSelectedFormType()->typeinfo
     {
@@ -257,7 +257,7 @@ impl PropWnd
     // forms go through the same popup.
     mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: string)
     {
-        let cells  = cast(f32) FormShapeKind.count
+        let cells  = cast(f32, FormShapeKind.count)
         let frame  = btn.createAnchorPopup(popupExtent(cells, PopupCellSize), popupExtent(1, PopupCellSize))
         let layout = frame.createView'WrapLayoutCtrl()
         layout.itemWidth, layout.itemHeight = PopupCellSize
@@ -269,7 +269,7 @@ impl PropWnd
             var val: u32
             let field = Reflection.findField(type, fieldName)!
             Reflection.readFieldValue(&val, field, prop.getSelectedBaseForm())
-            return cast(FormShapeKind) val
+            return cast(FormShapeKind, val)
         }
 
         func updateBtnState(prop: *PropWnd, layout: *Wnd, type: typeinfo, fieldName: string)
@@ -277,7 +277,7 @@ impl PropWnd
             let cur = selectedKind(prop, type, fieldName)
             for c in layout.children
             {
-                let btn  = cast #assume (*IconButton) c
+                let btn  = assume cast (*IconButton, c)
                 let kind = enumFromUserData'FormShapeKind(btn.userData)
                 btn.setChecked(cur == kind)
                 btn.invalidate()
@@ -305,7 +305,7 @@ impl PropWnd
             btn0.sigPressed += func|prop = me, layout, type, fieldName|(btn)
             {
                 let kind = enumFromUserData'u64(btn.userData)
-                prop.pushTypedValue(cast() kind, type, fieldName, true)
+                prop.pushTypedValue(cast(kind), type, fieldName, true)
                 updateBtnState(prop, layout, type, fieldName)
             }
         }
@@ -327,7 +327,7 @@ impl PropWnd
             return null
         }
 
-        let popup = PopupListCtrl.create(cast(*Wnd) btn)
+        let popup = PopupListCtrl.create(cast(*Wnd, btn))
         .stylePopup             = popup
         popup.itemHeight        = rowHeight
         popup.minimumWidth      = width
@@ -351,7 +351,7 @@ impl PropWnd
             let type = prop.getSelectedFormType()
             if type != FormLine and type != FormArrow do
                 return .None
-            let curSel = cast #assume (*FormLine) prop.getSelectedBaseForm()
+            let curSel = assume cast (*FormLine, prop.getSelectedBaseForm())
             return begin ? curSel.beginCap : curSel.endCap
         }
 
@@ -369,13 +369,13 @@ impl PropWnd
             }
         }
 
-        popup.setSelectedIndex(cast(u32) cur)
+        popup.setSelectedIndex(cast(u32, cur))
         popup.sigClosed = func|prop = me, btn, fieldName|(list, idx)
         {
             if idx != Swag.U32.Max
             {
                 let cap = enumFromUserData'LineCapStyle(list.items[idx]!.userData0)
-                prop.pushTypedValue(cast(u32) cap, FormLine, fieldName, true)
+                prop.pushTypedValue(cast(u32, cap), FormLine, fieldName, true)
             }
 
             prop.stylePopup = null
@@ -402,7 +402,7 @@ impl PropWnd
         for i in DashStyle where i != .Pattern
         {
             if curSel.dashStyle == i do
-                cur = cast(u32) popup.items.count
+                cur = cast(u32, popup.items.count)
 
             let item = popup.addItem("")
             item.userData0      = enumToUserData(i)
@@ -426,7 +426,7 @@ impl PropWnd
             if idx != Swag.U32.Max
             {
                 let dash = enumFromUserData'DashStyle(list.items[idx]!.userData0)
-                prop.pushTypedValue(cast(u32) dash, BaseForm, #nameof(BaseForm.dashStyle), true, true)
+                prop.pushTypedValue(cast(u32, dash), BaseForm, #nameof(BaseForm.dashStyle), true, true)
             }
 
             prop.stylePopup = null
@@ -490,9 +490,9 @@ impl PropWnd
         let curSel = .getSelectedBaseForm()
         switch .getSelectedFormType()
         {
-        case FormLine:  return (cast #assume (*FormLine) curSel).outlineColor
-        case FormArrow: return (cast #assume (*FormArrow) curSel).outlineColor
-        case FormDraw:  return (cast #assume (*FormDraw) curSel).outlineColor
+        case FormLine:  return assume cast (*FormLine, curSel).outlineColor
+        case FormArrow: return assume cast (*FormArrow, curSel).outlineColor
+        case FormDraw:  return assume cast (*FormDraw, curSel).outlineColor
         }
 
         return Argb.Black
@@ -557,7 +557,7 @@ impl PropWnd
 
             if curSelType == FormImage
             {
-                let imgSel = cast #assume (*FormImage) curSel
+                let imgSel = assume cast (*FormImage, curSel)
                 if imgSel.kind != .Image do
                     return
             }
@@ -665,7 +665,7 @@ impl PropWnd
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            let curSel = cast #assume (*FormLine) prop.getSelectedBaseForm()
+            let curSel = assume cast (*FormLine, prop.getSelectedBaseForm())
             bc.painter.setParams(.Antialiased)
             drawCapGlyph(bc.painter, curSel.beginCap, true, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -687,7 +687,7 @@ impl PropWnd
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            let curSel = cast #assume (*FormLine) prop.getSelectedBaseForm()
+            let curSel = assume cast (*FormLine, prop.getSelectedBaseForm())
             bc.painter.setParams(.Antialiased)
             drawCapGlyph(bc.painter, curSel.endCap, false, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -899,7 +899,7 @@ impl PropWnd
             // Tool model: direct edition, no undo (as before)
             let mdl = .main.editModeToModel(.main.editMode)
             .gridBindType = Swag.kindOf(mdl)
-            bases.add(cast(*u8?) mdl.buffer)
+            bases.add(cast(*u8?, mdl.buffer))
             .grid.setExternalUndoMgr(null)
             .grid.setUndoEnabled(false)
         }
@@ -920,7 +920,7 @@ impl PropWnd
                     allSame = false
                 if t != FormLine and t != FormArrow do
                     lineOnly = false
-                bases.add(cast(*u8?) form)
+                bases.add(cast(*u8?, form))
             }
 
             if allSame do
@@ -934,7 +934,7 @@ impl PropWnd
             .grid.setUndoEnabled(true)
         }
 
-        .grid.addStructMulti(.gridBindType, cast([..] *u8) bases.toSlice(), null, onlyNamed: true)
+        .grid.addStructMulti(.gridBindType, cast([..] *u8, bases.toSlice()), null, onlyNamed: true)
 
         // The generated border-size slider serves every form as "Thickness"; a text form
         // edits its glyph outline instead: matching label and a much thinner range. The
@@ -948,7 +948,7 @@ impl PropWnd
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
-                sliderBox.setSignedBounds(cast() MinTextBorderSize, cast() MaxTextBorderSize)
+                sliderBox.setSignedBounds(cast(MinTextBorderSize), cast(MaxTextBorderSize))
                 sliderBox.setValueWithoutGesture(.getSelectedBaseForm().borderSize)
             }
         }
@@ -1153,7 +1153,7 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormLine.startSize), #nameof(FormLine.endSize):
             if .gridBindType == FormLine or .gridBindType == FormArrow
             {
-                let line = cast #assume (*FormLine) base
+                let line = assume cast (*FormLine, base)
                 let cap  = name == #nameof(FormLine.startSize) ? line.beginCap : line.endCap
                 return base.subKind != .PixSel and capStyleHasSize(cap)
             }
@@ -1163,14 +1163,14 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormShape.roundSize):
             if .gridBindType == FormShape
             {
-                let shape = cast #assume (*FormShape) base
+                let shape = assume cast (*FormShape, base)
                 return shape.kind == .RoundRectangle
             }
 
         case #nameof(FormImage.strength):
             if .gridBindType == FormImage
             {
-                let img = cast #assume (*FormImage) base
+                let img = assume cast (*FormImage, base)
                 return img.kind != .Image
             }
         }

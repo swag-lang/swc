@@ -51,14 +51,14 @@ func reference(less, greater: bool)->s64
     {
         for y in values
         {
-            let x32 = cast #wrap (s32) x
-            let y32 = cast #wrap (s32) y
-            Swag.assert(cast(s64) order(x32, y32) == reference(x32 < y32, x32 > y32))
-            let ux = cast #bit (u64) x
-            let uy = cast #bit (u64) y
+            let x32 = cast #wrap (s32, x)
+            let y32 = cast #wrap (s32, y)
+            Swag.assert(cast(s64, order(x32, y32)) == reference(x32 < y32, x32 > y32))
+            let ux = cast #bit (u64, x)
+            let uy = cast #bit (u64, y)
             Swag.assert(orderReversed(ux, uy) == reference(ux < uy, ux > uy))
-            let z32 = cast #wrap (s32) (x + #wrap 1)
-            Swag.assert(cast(s64) notOrder(x32, y32, z32) == reference(x32 < y32, x32 > z32))
+            let z32 = cast #wrap (s32, (x + #wrap 1))
+            Swag.assert(cast(s64, notOrder(x32, y32, z32)) == reference(x32 < y32, x32 > z32))
         }
     }
 }

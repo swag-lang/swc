@@ -86,12 +86,12 @@ func checkBuffer(ptr, last: const [*] u8, size: u64) fail
         fail InvalidFormatError{"invalid source buffer"}
 }
 
-func rowStride(width: s32, bitCount: u16)->u64 => ((cast(u64) width * cast(u64) bitCount + 31) / 32) * 4
+func rowStride(width: s32, bitCount: u16)->u64 => ((cast(u64, width) * cast(u64, bitCount) + 31) / 32) * 4
 
 func defaultPaletteCount(bitCount: u16)->u32
 {
     if bitCount <= 8 do
-        return 1'u32 << cast(u32) bitCount
+        return 1'u32 << cast(u32, bitCount)
     return 0
 }
 
@@ -121,9 +121,9 @@ func maskToByte(pixel: u32, mask: Mask)->u8
     if not mask.value or not mask.bits do
         return 0
 
-    let value = cast(u64) ((pixel & mask.value) >> cast(u32) mask.shift)
-    let max   = (1'u64 << cast(u64) mask.bits) - 1
-    return cast(u8) ((value * 255 + (max >> 1)) / max)
+    let value = cast(u64, ((pixel & mask.value) >> cast(u32, mask.shift)))
+    let max   = (1'u64 << cast(u64, mask.bits)) - 1
+    return cast(u8, ((value * 255 + (max >> 1)) / max))
 }
 
 func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
@@ -166,7 +166,7 @@ internal impl IImageDecoder for Decoder
         var bfOffBits:     u32
         if countof >= #sizeof(FileHeader)
         {
-            let fh = cast(const *FileHeader) dataof
+            let fh = cast(const *FileHeader, dataof)
             if fh.bfType == BMP_SIGNATURE
             {
                 hasFileHeader = true
@@ -183,7 +183,7 @@ internal impl IImageDecoder for Decoder
 
         try checkBuffer(dataof, last, #sizeof(u32))
         let headerStart = dataof
-        let size        = (cast(const *u32) dataof)[]
+        let size        = cast(const *u32, dataof)[]
         if size < #sizeof(CoreHeader) do
             fail UnsupportedFormatError{"unsupported BMP header"}
 
@@ -193,13 +193,13 @@ internal impl IImageDecoder for Decoder
         if size == #sizeof(CoreHeader)
         {
             try checkBuffer(dataof, last, #sizeof(CoreHeader))
-            let ch = cast(const *CoreHeader) dataof
+            let ch = cast(const *CoreHeader, dataof)
             dataof += #sizeof(CoreHeader)
             paletteEntrySize = 3
 
             bh.biSize        = ch.bcSize
-            bh.biWidth       = cast(s32) ch.bcWidth
-            bh.biHeight      = cast(s32) ch.bcHeight
+            bh.biWidth       = cast(s32, ch.bcWidth)
+            bh.biHeight      = cast(s32, ch.bcHeight)
             bh.biPlanes      = ch.bcPlanes
             bh.biBitCount    = ch.bcBitCount
             bh.biCompression = BI_RGB
@@ -228,18 +228,18 @@ internal impl IImageDecoder for Decoder
             let maskPtr = headerStart + #sizeof(Header)
             if size >= 52
             {
-                masks.r = readMask((cast(const *u32) maskPtr)[])
-                masks.g = readMask((cast(const *u32) (maskPtr + 4))[])
-                masks.b = readMask((cast(const *u32) (maskPtr + 8))[])
+                masks.r = readMask(cast(const *u32, maskPtr)[])
+                masks.g = readMask(cast(const *u32, (maskPtr + 4))[])
+                masks.b = readMask(cast(const *u32, (maskPtr + 8))[])
                 if size >= 56 do
-                    masks.a = readMask((cast(const *u32) (maskPtr + 12))[])
+                    masks.a = readMask(cast(const *u32, (maskPtr + 12))[])
             }
             elif size == #sizeof(Header)
             {
                 try checkBuffer(dataof, last, 12)
-                masks.r = readMask((cast(const *u32) dataof)[])
-                masks.g = readMask((cast(const *u32) (dataof + 4))[])
-                masks.b = readMask((cast(const *u32) (dataof + 8))[])
+                masks.r = readMask(cast(const *u32, dataof)[])
+                masks.g = readMask(cast(const *u32, (dataof + 4))[])
+                masks.b = readMask(cast(const *u32, (dataof + 8))[])
                 dataof  += 12
             }
             else
@@ -276,8 +276,8 @@ internal impl IImageDecoder for Decoder
         let palette      = dataof
         if paletteCount
         {
-            try checkBuffer(palette, last, cast(u64) paletteCount * paletteEntrySize)
-            dataof += cast(u64) paletteCount * paletteEntrySize
+            try checkBuffer(palette, last, cast(u64, paletteCount) * paletteEntrySize)
+            dataof += cast(u64, paletteCount) * paletteEntrySize
         }
 
         let pixelData = hasFileHeader and bfOffBits ? buffer.buffer + bfOffBits : dataof

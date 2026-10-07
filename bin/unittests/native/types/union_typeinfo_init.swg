@@ -29,7 +29,7 @@ union UnionInitText
 
 func unionInitHook(type: typeinfo)->bool
 {
-    let structType = cast #assume(const *Swag.TypeInfoStruct) type
+    let structType = assume cast(const *Swag.TypeInfoStruct, type)
     return structType.opInit != null
 }
 

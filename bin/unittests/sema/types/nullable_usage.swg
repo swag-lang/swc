@@ -35,7 +35,7 @@ func nullableUsageLocalIndex(count: u64)->s32
 {
     var block: [*] s32?
     if count do
-        block = cast([*] s32?) &g_nullableUsageStorage
+        block = cast([*] s32?, &g_nullableUsageStorage)
     if block == null do
         return 0
     return block[0]

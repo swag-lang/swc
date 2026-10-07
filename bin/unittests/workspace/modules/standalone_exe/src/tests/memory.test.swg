@@ -53,7 +53,7 @@ impl Swag.IAllocator for RequestRecorder
     defer Swag.setContext(previous)
 
     let fromContext = Memory.alloc(17, alignment: 16, hint: "context allocation")
-    Swag.assert(fromContext == cast([*] void) &contextRecorder.storage)
+    Swag.assert(fromContext == cast([*] void, &contextRecorder.storage))
     Swag.assert(contextRecorder.allocations == 1)
     Swag.assert(contextRecorder.last.size == 17)
     Swag.assert(contextRecorder.last.alignment == 16)
@@ -64,7 +64,7 @@ impl Swag.IAllocator for RequestRecorder
 
     let explicit: Swag.IAllocator = &explicitRecorder
     let fromExplicit = Memory.alloc(33, explicit, 32, "explicit allocation")
-    Swag.assert(fromExplicit == cast([*] void) &explicitRecorder.storage)
+    Swag.assert(fromExplicit == cast([*] void, &explicitRecorder.storage))
     Swag.assert(contextRecorder.allocations == 1)
     Swag.assert(explicitRecorder.allocations == 1)
     Swag.assert(explicitRecorder.last.size == 33)

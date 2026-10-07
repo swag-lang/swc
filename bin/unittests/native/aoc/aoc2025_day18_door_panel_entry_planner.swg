@@ -83,8 +83,8 @@ func directionalKeyIndex(key: u8)->u32
 func absValue(value: s32)->u32
 {
     if value < 0 do
-        return cast(u32) (-value)
-    return cast(u32) value
+        return cast(u32, (-value))
+    return cast(u32, value)
 }
 
 func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: bool, horizontalFirst: bool)->bool
@@ -179,7 +179,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
 func sequenceCost(path: PathBuffer, depth: u32)->u64
 {
     if depth == 0 do
-        return cast(u64) path.count
+        return cast(u64, path.count)
 
     var total: u64
     var current = 'A'u8
@@ -229,14 +229,14 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
 
 func codeValue(code: string)->u64
 {
-    let bytes = cast(const [..] u8) code
+    let bytes = cast(const [..] u8, code)
     var value: u64
 
     for ch in bytes
     {
         if ch == 'A'u8 do
             break
-        value = value * 10'u64 + cast(u64) (ch - '0'u8)
+        value = value * 10'u64 + cast(u64, (ch - '0'u8))
     }
 
     return value
@@ -244,7 +244,7 @@ func codeValue(code: string)->u64
 
 func codePressCount(code: string, depth: u32)->u64
 {
-    let bytes   = cast(const [..] u8) code
+    let bytes   = cast(const [..] u8, code)
     var total: u64
     var current = 'A'u8
 

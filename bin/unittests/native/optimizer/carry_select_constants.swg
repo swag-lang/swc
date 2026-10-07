@@ -44,7 +44,7 @@ func slowBelow(x, y: u64)->bool => x < y
 {
     for i in 0 until 256
     {
-        let c = cast(u8) i
+        let c = cast(u8, i)
         Swag.assert(utf8Len(c) == slowUtf8Len(c))
     }
 
@@ -53,9 +53,9 @@ func slowBelow(x, y: u64)->bool => x < y
     {
         for y in values
         {
-            let x32     = cast #wrap (u32) x
-            let y32     = cast #wrap (u32) y
-            let below32 = slowBelow(cast(u64) x32, cast(u64) y32)
+            let x32     = cast #wrap (u32, x)
+            let y32     = cast #wrap (u32, y)
+            let below32 = slowBelow(cast(u64, x32), cast(u64, y32))
             Swag.assert(belowMinusOne(x32, y32) == (below32 ? 9 : 10))
             Swag.assert(belowPlusOne(x32, y32) == (below32 ? 11 : 10))
             Swag.assert(wrapAround(x32, y32) == (below32 ? 0xFFFFFFFF : 0))

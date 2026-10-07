@@ -16,7 +16,7 @@ impl ReversedCount
         var item = .count
         for .count
         {
-            item -= cast(T) 1
+            item -= cast(T, 1)
             #inject(stmt, item = item)
         }
     }
@@ -26,8 +26,8 @@ impl ReversedCount
 #[Swag.Inline]
 func(T) reversed(count: T)->ReversedCount'T
     where #typeof(#type T).kind == .Native and
-          (cast(const *Swag.TypeInfoNative) #typeof(#type T)).nativeKind >= .S8 and
-          (cast(const *Swag.TypeInfoNative) #typeof(#type T)).nativeKind <= .U64
+          cast(const *Swag.TypeInfoNative, #typeof(#type T)).nativeKind >= .S8 and
+          cast(const *Swag.TypeInfoNative, #typeof(#type T)).nativeKind <= .U64
 {
     return {count: count}
 }
@@ -72,7 +72,7 @@ impl IterationRange
                 #inject(stmt, item = item, break = break to Up, continue = break to Down)
                 if item == .upper do
                     break
-                item += cast(T) 1
+                item += cast(T, 1)
             }
         }
     }
@@ -94,7 +94,7 @@ impl ReversedRange
         {
             var item = .upper
             if not .inclusive do
-                item -= cast(T) 1
+                item -= cast(T, 1)
 
             #scope(Up)
             while true
@@ -103,7 +103,7 @@ impl ReversedRange
                 #inject(stmt, item = item, break = break to Up, continue = break to Down)
                 if item == .lower do
                     break
-                item -= cast(T) 1
+                item -= cast(T, 1)
             }
         }
     }
@@ -126,9 +126,9 @@ impl ReversedSlice
             scan -= 1
             let index = (.values).count - offset - 1
             #static if ptr do
-                #inject(stmt, item = cast(*T) scan, index = index)
+                #inject(stmt, item = cast(*T, scan), index = index)
             elif #typeof(#type T).kind == .Struct do
-                #inject(stmt, item = cast(const *T) scan, index = index)
+                #inject(stmt, item = cast(const *T, scan), index = index)
             else do
                 #inject(stmt, item = scan[0], index = index)
         }
@@ -153,7 +153,7 @@ impl ConstReversedSlice
             scan -= 1
             let index = (.values).count - offset - 1
             #static if #typeof(#type T).kind == .Struct do
-                #inject(stmt, item = cast(const *T) scan, index = index)
+                #inject(stmt, item = cast(const *T, scan), index = index)
             else do
                 #inject(stmt, item = scan[0], index = index)
         }
@@ -199,7 +199,7 @@ impl Pairs
         for index in count - 1
         {
             #static if #typeof(#type T).kind == .Struct do
-                #inject(stmt, left = cast(const *T) (data + index), right = cast(const *T) (data + index + 1), index = index)
+                #inject(stmt, left = cast(const *T, (data + index)), right = cast(const *T, (data + index + 1)), index = index)
             else do
                 #inject(stmt, left = data[index], right = data[index + 1], index = index)
         }

@@ -35,9 +35,9 @@ func within(v, lo, hi: u32)->bool => v >= lo and v <= hi
     var all: [256] u8
     for v in 0 until 256
     {
-        let c = cast(u8) v
+        let c = cast(u8, v)
         all[v] = c
-        let u = cast(u32) v
+        let u = cast(u32, v)
         Swag.assert(isUpper(c) == within(u, 65, 90))
         Swag.assert(isDigit(c) == within(u, 48, 57))
         Swag.assert(isHigh(c) == within(u, 200, 255))

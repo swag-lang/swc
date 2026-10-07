@@ -23,11 +23,11 @@ enum II { A, B, C }
 #[Swag.EnumFlags]
 enum AliasFlags: FlagsAliasU32 { A, B, C }
 #assert(#kindof(AliasFlags) == u32)
-#assert(cast(u32) AliasFlags.C == 4)
+#assert(cast(u32, AliasFlags.C) == 4)
 
 #[Swag.EnumFlags]
 enum StrictAliasFlags: FlagsStrictAliasU16 { A, B, C }
-#assert(cast(u16) StrictAliasFlags.C == 4)
+#assert(cast(u16, StrictAliasFlags.C) == 4)
 
 #[Swag.EnumFlags]
 enum JJ { A, B, C }
@@ -71,7 +71,7 @@ enum QQ0: u32
     AB = A | B
 }
 #assert(#typeof(QQ0.AB) == QQ0)
-#assert(cast(u32) QQ0.AB == 3)
+#assert(cast(u32, QQ0.AB) == 3)
 
 #[Swag.EnumFlags]
 enum RR: u8
@@ -98,9 +98,9 @@ enum RR: u8
 #assert((JJ.A | JJ.C) == 5)
 #assert((JJ.A | JJ.B | JJ.C) == 7)
 #assert(#typeof(JJ.A | JJ.B) == JJ)
-#assert(cast(bool) JJ.A == true)
-#assert(cast(bool) (JJ.A & JJ.A) == true)
-#assert(cast(bool) (JJ.A & JJ.B) == false)
+#assert(cast(bool, JJ.A) == true)
+#assert(cast(bool, (JJ.A & JJ.A)) == true)
+#assert(cast(bool, (JJ.A & JJ.B)) == false)
 #assert((JJ.A & JJ.B) == 0)
 #assert(((JJ.A | JJ.B) & JJ.B) == JJ.B)
 #assert(#typeof(JJ.A & JJ.B) == JJ)

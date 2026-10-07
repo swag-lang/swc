@@ -71,7 +71,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var res: Resources.Bundle
     registerDefaultStrings(&res)
     registerStrings'TestStrings(&g_TestStrings, "testtable")
-    res.addEmbedded("lang/fr/testtable.tweak", cast(const [..] u8) TestFrench)
+    res.addEmbedded("lang/fr/testtable.tweak", cast(const [..] u8, TestFrench))
 
     // Whatever this test asserts, the next test starts from the reference language.
     defer discard catch applyLanguage(&res, "en")
@@ -99,7 +99,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 {
     var res: Resources.Bundle
     registerDefaultStrings(&res)
-    res.addEmbedded("lang/fr/latetable.tweak", cast(const [..] u8) TestFrench)
+    res.addEmbedded("lang/fr/latetable.tweak", cast(const [..] u8, TestFrench))
     defer discard catch applyLanguage(&res, "en")
 
     expect applyLanguage(&res, "fr")
@@ -170,11 +170,11 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     discard catch validateStrings'TestStrings("helo Bonjour\n") as err
     Swag.assert(err != null)
     Swag.assert(err is Core.Errors.SyntaxError)
-    Swag.assert((cast #assume (const *Core.Errors.SyntaxError) err).line == 1)
+    Swag.assert(assume cast (const *Core.Errors.SyntaxError, err).line == 1)
 
     discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as err2
     Swag.assert(err2 != null)
-    Swag.assert((cast #assume (const *Core.Errors.SyntaxError) err2).line == 2)
+    Swag.assert(assume cast (const *Core.Errors.SyntaxError, err2).line == 2)
 }
 
 // A theme sheet drives colors, metrics, and atlas rects, with '$' references.
@@ -203,7 +203,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     const CustomSheet = "/ThemeMetrics\nbtnPush_Width 123\n"
 
     var res: Resources.Bundle
-    res.addEmbedded("themes/custom.tweak", cast(const [..] u8) CustomSheet)
+    res.addEmbedded("themes/custom.tweak", cast(const [..] u8, CustomSheet))
 
     var theme: Theme
     expect theme.loadSheet(&res, "themes/custom.tweak")

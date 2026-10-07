@@ -145,7 +145,7 @@ struct PaddedHolder
 #[Swag.Optimize(false)]
 func viewText(buffer: const [*] u8)->string
 {
-    return cast(string) Swag.makeSlice(buffer, 3'u64)
+    return cast(string, Swag.makeSlice(buffer, 3'u64))
 }
 
 #[Swag.Optimize(false)]
@@ -159,8 +159,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var left:  [3] u8 = ['a', 'b', 'c']
     var right: [3] u8 = ['a', 'b', 'c']
 
-    let leftText  = viewText(cast(const [*] u8) &left[0])
-    let rightText = viewText(cast(const [*] u8) &right[0])
+    let leftText  = viewText(cast(const [*] u8, &left[0]))
+    let rightText = viewText(cast(const [*] u8, &right[0]))
     Swag.assert(leftText == rightText)
 
     let a = StringHolder{text: leftText, tag: 7}
@@ -176,9 +176,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var left:  [3] u8 = ['a', 'b', 'c']
     var right: [3] u8 = ['a', 'b', 'c']
 
-    let a = NestedHolder{holder: {text: viewText(cast(const [*] u8) &left[0]), tag: 7}, extra: 3}
-    let b = NestedHolder{holder: {text: viewText(cast(const [*] u8) &right[0]), tag: 7}, extra: 3}
-    let c = NestedHolder{holder: {text: viewText(cast(const [*] u8) &right[0]), tag: 7}, extra: 4}
+    let a = NestedHolder{holder: {text: viewText(cast(const [*] u8, &left[0])), tag: 7}, extra: 3}
+    let b = NestedHolder{holder: {text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 3}
+    let c = NestedHolder{holder: {text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 4}
     Swag.assert(a == b)
     Swag.assert(a != c)
 }
@@ -188,9 +188,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var left:  [3] u8 = ['a', 'b', 'c']
     var right: [3] u8 = ['a', 'b', 'c']
 
-    let a = SliceHolder{data: viewBytes(cast(const [*] u8) &left[0]), tag: 1}
-    let b = SliceHolder{data: viewBytes(cast(const [*] u8) &right[0]), tag: 1}
-    let c = SliceHolder{data: viewBytes(cast(const [*] u8) &right[0]), tag: 2}
+    let a = SliceHolder{data: viewBytes(cast(const [*] u8, &left[0])), tag: 1}
+    let b = SliceHolder{data: viewBytes(cast(const [*] u8, &right[0])), tag: 1}
+    let c = SliceHolder{data: viewBytes(cast(const [*] u8, &right[0])), tag: 2}
     Swag.assert(a == b)
     Swag.assert(a != c)
 }
@@ -218,9 +218,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
         tag:   s64
     }
 
-    let a = LocalHolder'string{value: viewText(cast(const [*] u8) &left[0]), tag: 1}
-    let b = LocalHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 1}
-    let c = LocalHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 2}
+    let a = LocalHolder'string{value: viewText(cast(const [*] u8, &left[0])), tag: 1}
+    let b = LocalHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 1}
+    let c = LocalHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 2}
     Swag.assert(a == b)
     Swag.assert(a != c)
 
@@ -230,8 +230,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
         tag:  s64
     }
 
-    let d = LocalPlainHolder{text: viewText(cast(const [*] u8) &left[0]), tag: 1}
-    let e = LocalPlainHolder{text: viewText(cast(const [*] u8) &right[0]), tag: 1}
+    let d = LocalPlainHolder{text: viewText(cast(const [*] u8, &left[0])), tag: 1}
+    let e = LocalPlainHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 1}
     Swag.assert(d == e)
 }
 
@@ -241,9 +241,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var right: [3] u8 = ['a', 'b', 'c']
 
     // Each generic instance decides on its own members.
-    let a = GenericHolder'string{value: viewText(cast(const [*] u8) &left[0]), tag: 4}
-    let b = GenericHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 4}
-    let c = GenericHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 5}
+    let a = GenericHolder'string{value: viewText(cast(const [*] u8, &left[0])), tag: 4}
+    let b = GenericHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 4}
+    let c = GenericHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 5}
     Swag.assert(a == b)
     Swag.assert(a != c)
 
@@ -270,8 +270,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var right: [3] u8 = ['a', 'b', 'c']
 
     // An explicit '#[Swag.Operators]' still owns the comparison.
-    let a = ExplicitStringHolder{text: viewText(cast(const [*] u8) &left[0]), tag: 9}
-    let b = ExplicitStringHolder{text: viewText(cast(const [*] u8) &right[0]), tag: 9}
+    let a = ExplicitStringHolder{text: viewText(cast(const [*] u8, &left[0])), tag: 9}
+    let b = ExplicitStringHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 9}
     Swag.assert(a == b)
 }
 
@@ -304,9 +304,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     // The overload against another type is additive: two 'Counted' values still compare, and
     // the holder still gets its member-wise comparison.
-    let a = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8) &left[0])}
-    let b = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8) &right[0])}
-    let c = CountedHolder{counted: {length: 4}, text: viewText(cast(const [*] u8) &right[0])}
+    let a = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8, &left[0]))}
+    let b = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8, &right[0]))}
+    let c = CountedHolder{counted: {length: 4}, text: viewText(cast(const [*] u8, &right[0]))}
     Swag.assert(a == b)
     Swag.assert(a != c)
 

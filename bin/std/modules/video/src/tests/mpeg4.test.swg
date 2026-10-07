@@ -17,9 +17,9 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
 
     let reference = expect File.readAllBytes(videoFixturePath(Format.toString("%.yuv", name).toString()).toString())
     let bytes     = reference.toSlice()
-    let lumaSize  = cast(u64) width * cast(u64) height
-    let chromaW   = cast(u64) ((width + 1) / 2)
-    let chromaH   = cast(u64) ((height + 1) / 2)
+    let lumaSize  = cast(u64, width) * cast(u64, height)
+    let chromaW   = cast(u64, ((width + 1) / 2))
+    let chromaH   = cast(u64, ((height + 1) / 2))
     let frameSize = lumaSize + chromaW * chromaH * 2
     Swag.assert(bytes.count >= frameSize * frameCount)
 
@@ -33,21 +33,21 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
         Swag.assert(frame.width == width and frame.height == height)
 
         let base = index * frameSize
-        for y in cast(u64) height
+        for y in cast(u64, height)
         {
-            for x in cast(u64) width
+            for x in cast(u64, width)
             {
-                let got        = cast(s32) frame.luma[y * cast(u64) frame.strideLuma + x]
-                let want       = cast(s32) bytes[base + y * cast(u64) width + x]
+                let got        = cast(s32, frame.luma[y * cast(u64, frame.strideLuma) + x])
+                let want       = cast(s32, bytes[base + y * cast(u64, width) + x])
                 let difference = Math.abs(got - want)
-                total += cast(f64) difference
+                total += cast(f64, difference)
                 worst = Math.max(worst, difference)
                 count += 1
             }
         }
     }
 
-    let mean = total / cast(f64) count
+    let mean = total / cast(f64, count)
     if mean > meanLimit or worst > worstLimit do
         Swag.print("mpeg4 ", name, ": mean ", mean, " worst ", worst, " over ", count, " samples\n")
     Swag.assert(mean <= meanLimit)

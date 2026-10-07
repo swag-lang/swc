@@ -5,7 +5,7 @@ const NonPositive: [4] f64 = [-0.25, 0.0, -1.0, -2.0]
 const Mixed:       [4] f64 = [0.25, 0.5, 1.0, -2.0]
 const Positive32:  [4] f32 = [0.25, 0.5, 1.0, 2.0]
 const Mixed32:     [4] f32 = [-0.25, -0.5, -1.0, 2.0]
-const Unordered:   [4] f64 = [cast #bit (f64) 0x7FF8000000000000'u64, -0.5, 0.0, -2.0]
+const Unordered:   [4] f64 = [cast #bit (f64, 0x7FF8000000000000'u64), -0.5, 0.0, -2.0]
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func positive(index: u64)->u64

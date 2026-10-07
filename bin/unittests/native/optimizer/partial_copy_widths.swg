@@ -10,21 +10,21 @@ using Swag
 #[Swag.Optimize(true), Swag.NoInline]
 func truncThenWiden(big: u64)->u64
 {
-    let low = cast(u32) big
-    return cast(u64) low * 3
+    let low = cast(u32, big)
+    return cast(u64, low) * 3
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
-func truncatedSum(a, b: u64)->u32 => cast(u32) (a + b)
+func truncatedSum(a, b: u64)->u32 => cast(u32, (a + b))
 
 #[Swag.Optimize(true), Swag.NoInline]
-func widenedSum(a, b: u64)->u64 => cast(u64) truncatedSum(a, b) + 1
+func widenedSum(a, b: u64)->u64 => cast(u64, truncatedSum(a, b)) + 1
 
 #[Swag.Optimize(true), Swag.NoInline]
 func lowByteIndex(big: u64, table: const [*] u64)->u64
 {
-    let index = cast(u8) big
-    return table[index] + cast(u64) index
+    let index = cast(u8, big)
+    return table[index] + cast(u64, index)
 }
 
 struct PairU32
@@ -35,7 +35,7 @@ struct PairU32
 // The overflow checks call out, so the register holding the truncated field
 // is saved around the calls and the allocator runs again on physical code.
 #[Swag.Optimize(true), Swag.Safety(.Overflow, true), Swag.NoInline]
-func checkedPair(a: u64, p: PairU32, b: u64)->u64 => a * 1000000 + cast(u64) p.x * 1000 + cast(u64) p.y + b
+func checkedPair(a: u64, p: PairU32, b: u64)->u64 => a * 1000000 + cast(u64, p.x) * 1000 + cast(u64, p.y) + b
 
 #test
 {

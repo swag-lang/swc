@@ -304,13 +304,13 @@ impl Decoder
         .gridWidth  = sps.widthInCtbs * blocksPerCtb
         .gridHeight = sps.heightInCtbs * blocksPerCtb
 
-        .ctbRsToTs.resize(cast(u64) ctbSize)
-        .ctbTsToRs.resize(cast(u64) ctbSize)
-        .tileId.resize(cast(u64) ctbSize)
-        .ctbSliceAddr.resize(cast(u64) ctbSize)
+        .ctbRsToTs.resize(cast(u64, ctbSize))
+        .ctbTsToRs.resize(cast(u64, ctbSize))
+        .tileId.resize(cast(u64, ctbSize))
+        .ctbSliceAddr.resize(cast(u64, ctbSize))
         try .buildTileScan(sps, pps)
 
-        let blocks = cast(u64) .gridWidth * cast(u64) .gridHeight
+        let blocks = cast(u64, .gridWidth) * cast(u64, .gridHeight)
         .zScan.resize(blocks)
         .buildZScan(sps)
 
@@ -365,7 +365,7 @@ impl Decoder
                 for y in pps.rowBoundary[row] until pps.rowBoundary[row + 1]
                 {
                     for x in pps.colBoundary[column] until pps.colBoundary[column + 1] do
-                        .tileId[.ctbRsToTs[y * sps.widthInCtbs + x]] = cast(u16) tileIndex
+                        .tileId[.ctbRsToTs[y * sps.widthInCtbs + x]] = cast(u16, tileIndex)
                 }
 
                 tileIndex += 1
@@ -393,20 +393,20 @@ impl Decoder
                         address += 2 * mask * mask
                 }
 
-                .zScan[cast(u64) y * cast(u64) .gridWidth + cast(u64) x] = address
+                .zScan[cast(u64, y) * cast(u64, .gridWidth) + cast(u64, x)] = address
             }
         }
     }
 
     // Returns the index of the four-sample block covering luma sample `(x, y)`.
     #[Swag.Inline]
-    mtd const blockIndex(x, y: s32)->u64 => (cast(u64) (y >> MinBlockLog2)) * cast(u64) .gridWidth + cast(u64) (x >> MinBlockLog2)
+    mtd const blockIndex(x, y: s32)->u64 => cast(u64, (y >> MinBlockLog2)) * cast(u64, .gridWidth) + cast(u64, (x >> MinBlockLog2))
 
     // Reports whether the block covering `(xNb, yNb)` may be predicted from, clause 6.4.1.
     mtd const isAvailable(xCurr, yCurr, xNb, yNb: s32)->bool
     {
         let sps = .activeSps!
-        if xNb < 0 or yNb < 0 or xNb >= cast(s32) sps.width or yNb >= cast(s32) sps.height do
+        if xNb < 0 or yNb < 0 or xNb >= cast(s32, sps.width) or yNb >= cast(s32, sps.height) do
             return false
 
         let currentZ   = .zScan[.blockIndex(xCurr, yCurr)]
@@ -449,7 +449,7 @@ impl Decoder
     mtd const ctbAddressRs(x, y: s32)->u64
     {
         let sps = .activeSps!
-        return (cast(u64) (cast(u32) y >> sps.ctbLog2Size)) * cast(u64) sps.widthInCtbs + cast(u64) (cast(u32) x >> sps.ctbLog2Size)
+        return cast(u64, (cast(u32, y) >> sps.ctbLog2Size)) * cast(u64, sps.widthInCtbs) + cast(u64, (cast(u32, x) >> sps.ctbLog2Size))
     }
 
     // Computes the picture order count of the picture starting here, clause 8.3.1.
@@ -472,14 +472,14 @@ impl Decoder
             let lsb  = header.pocLsb
             let half = maxPocLsb / 2
             if lsb < .prevPocLsb and .prevPocLsb - lsb >= half do
-                .pocMsb = .prevPocMsb + cast(s32) maxPocLsb
+                .pocMsb = .prevPocMsb + cast(s32, maxPocLsb)
             elif lsb > .prevPocLsb and lsb - .prevPocLsb > half do
-                .pocMsb = .prevPocMsb - cast(s32) maxPocLsb
+                .pocMsb = .prevPocMsb - cast(s32, maxPocLsb)
             else do
                 .pocMsb = .prevPocMsb
         }
 
-        .pocValue = .pocMsb + cast(s32) header.pocLsb
+        .pocValue = .pocMsb + cast(s32, header.pocLsb)
     }
 
     // Finds a decoded picture by its order count.
@@ -505,7 +505,7 @@ impl Decoder
         for index in .referenceCount
         {
             let frame = .references[index].frame!
-            if (cast(u32) frame.poc & mask) == pocLsb do
+            if (cast(u32, frame.poc) & mask) == pocLsb do
                 return frame
         }
 
@@ -569,9 +569,9 @@ impl Decoder
         let maxPocLsb = 1'u32 << sps.log2MaxPocLsb
         for index in header.numLongTermSps + header.numLongTermPics
         {
-            var poc = cast(s32) header.ltPocLsb[index]
+            var poc = cast(s32, header.ltPocLsb[index])
             if header.ltMsbPresent[index] do
-                poc = .pocValue - cast(s32) (header.ltMsbCycle[index] * maxPocLsb) - (.pocValue & cast(s32) (maxPocLsb - 1)) + cast(s32) header.ltPocLsb[index]
+                poc = .pocValue - cast(s32, (header.ltMsbCycle[index] * maxPocLsb)) - (.pocValue & cast(s32, (maxPocLsb - 1))) + cast(s32, header.ltPocLsb[index])
 
             if header.ltUsedByCurr[index]
             {
@@ -609,9 +609,9 @@ impl Decoder
             }
 
             let mask = maxPocLsb - 1
-            for entry in ltCurrCount where (cast(u32) frame.poc & mask) == (cast(u32) ltCurr[entry] & mask) do
+            for entry in ltCurrCount where (cast(u32, frame.poc) & mask) == (cast(u32, ltCurr[entry]) & mask) do
                 named = true
-            for entry in ltFollCount where (cast(u32) frame.poc & mask) == (cast(u32) ltFoll[entry] & mask) do
+            for entry in ltFollCount where (cast(u32, frame.poc) & mask) == (cast(u32, ltFoll[entry]) & mask) do
                 named = true
             if named
             {
@@ -654,7 +654,7 @@ impl Decoder
         var tempLong:  [ListCount, 3 * MaxRefPics] bool
         var tempCount: [ListCount] u32
 
-        let totalCurr = cast(u32) (before.count + after.count + longTerm.count)
+        let totalCurr = cast(u32, (before.count + after.count + longTerm.count))
         if not totalCurr do
             fail InvalidFormatError{"HEVC predicted slice has no reference picture available"}
 
@@ -689,7 +689,7 @@ impl Decoder
                 {
                     if tempCount[list] >= needed do
                         break
-                    temp[list, tempCount[list]]     = .findByPocLsb(cast(u32) poc & lsbMask, lsbMask)
+                    temp[list, tempCount[list]]     = .findByPocLsb(cast(u32, poc) & lsbMask, lsbMask)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = true
                     tempCount[list] += 1

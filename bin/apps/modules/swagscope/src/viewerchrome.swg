@@ -111,7 +111,7 @@ impl ViewerInfoLayout
         var viewers: Array'(*Wnd)
         for child in .children
         {
-            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton) or not child.isLocallyVisible() do
+            if child == cast(*Wnd, .filesButton) or child == cast(*Wnd, .fileGroup) or child == cast(*Wnd, .generalLabel) or (.sideButton and child == cast(*Wnd, .sideButton)) or not child.isLocallyVisible() do
                 continue
             viewers.add(child)
         }
@@ -220,11 +220,11 @@ impl IWnd for ViewerSearchOverlay
         // ring stays a breath. Filling rather than stroking also keeps the whole marker off the
         // renderer's antialiased no-overlap pass, which clears alpha on a translucent top layer
         // and leaves seams as the pulse changes intensity.
-        let glowStrength = (0.35'f32 + pulse * 0.65) / cast(f32) ViewerSearchGlowSteps
-        let glow         = colors.searchMatch_Glow.withAlpha(cast(u8) (cast(f32) colors.searchMatch_Glow.a * glowStrength))
+        let glowStrength = (0.35'f32 + pulse * 0.65) / cast(f32, ViewerSearchGlowSteps)
+        let glow         = colors.searchMatch_Glow.withAlpha(cast(u8, (cast(f32, colors.searchMatch_Glow.a) * glowStrength)))
         for step in ViewerSearchGlowSteps
         {
-            let reach = ViewerSearchGlowReach * cast(f32) (ViewerSearchGlowSteps - step) / cast(f32) ViewerSearchGlowSteps
+            let reach = ViewerSearchGlowReach * cast(f32, (ViewerSearchGlowSteps - step)) / cast(f32, ViewerSearchGlowSteps)
             var ring  = mark
             ring.inflate(reach)
             painter.fillRoundRect(ring, ViewerSearchMarkRadius + reach, ViewerSearchMarkRadius + reach, glow)
@@ -408,6 +408,6 @@ impl IWnd for ViewerInfoBar
             return
         }
 
-        (cast #assume(*ViewerWindow) .parent!.parent!).showCurrentFileActions(evt.surfacePos)
+        assume cast(*ViewerWindow, .parent!.parent).showCurrentFileActions(evt.surfacePos)
     }
 }

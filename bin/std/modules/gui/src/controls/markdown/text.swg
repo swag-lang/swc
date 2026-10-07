@@ -94,7 +94,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
             number = parsed.value
         }
 
-        let character = cast(rune) number
+        let character = cast(rune, number)
         if not Utf8.isValidRune(character) do
             return result
         if character == '<'

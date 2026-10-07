@@ -54,7 +54,7 @@ func narrow31(a, b: u32)->u32 => ((a >> 31) & 1) * b
 func signedBit(a, b: s64)->s64 => ((a >> 17) & 1) * b
 
 #[Swag.NoInline]
-func widenedBit(a: u32, b: u64)->u64 => cast(u64) ((a >> 31) & 1) * b
+func widenedBit(a: u32, b: u64)->u64 => cast(u64, ((a >> 31) & 1)) * b
 
 #test
 {
@@ -74,12 +74,12 @@ func widenedBit(a: u32, b: u64)->u64 => cast(u64) ((a >> 31) & 1) * b
             Swag.assert(bit32(a, b) == ((a & 0x100000000) != 0 ? b : 0))
             Swag.assert(bit40(a, b) == ((a & 0x10000000000) != 0 ? b : 0))
             Swag.assert(bit63(a, b) == ((a & 0x8000000000000000) != 0 ? b : 0))
-            let lowA = cast(u32) (a & 0xFFFFFFFF)
-            let lowB = cast(u32) (b & 0xFFFFFFFF)
+            let lowA = cast(u32, (a & 0xFFFFFFFF))
+            let lowB = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(narrow7(lowA, lowB) == ((lowA & 0x80) != 0 ? lowB : 0))
             Swag.assert(narrow15(lowA, lowB) == ((lowA & 0x8000) != 0 ? lowB : 0))
             Swag.assert(narrow31(lowA, lowB) == ((lowA & 0x80000000) != 0 ? lowB : 0))
-            Swag.assert(signedBit(cast #bit(s64) a, cast #bit(s64) b) == ((a & 0x20000) != 0 ? cast #bit(s64) b : 0))
+            Swag.assert(signedBit(cast #bit(s64, a), cast #bit(s64, b)) == ((a & 0x20000) != 0 ? cast #bit(s64, b) : 0))
             Swag.assert(widenedBit(lowA, b) == ((lowA & 0x80000000) != 0 ? b : 0))
             Swag.assert(shared(a, b) == (((a & 0x20000) != 0 ? b : 0) ^ (a >> 17)))
         }

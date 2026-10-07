@@ -36,8 +36,8 @@ impl IValue for Counter
 #test
 {
     var c: Counter = {label: "hits", count: 0}
-    var n = cast(IName) c
-    var v = cast(IValue) c
+    var n = cast(IName, c)
+    var v = cast(IValue, c)
 
     Swag.assert(n.getName() == "hits")
     Swag.assert(v.getValue() == 0)
@@ -64,7 +64,7 @@ func increment(h: *Holder)
 {
     var c: Counter = {label: "held", count: 10}
     var h: Holder
-    h.itf = cast(IValue) c
+    h.itf = cast(IValue, c)
     increment(&h)
     increment(&h)
     Swag.assert(c.count == 12)
@@ -92,7 +92,7 @@ impl IValue for Tripler
 {
     var d:     Doubler    = {val: 5}
     var t:     Tripler    = {val: 5}
-    var items: [2] IValue = [cast(IValue) d, cast(IValue) t]
+    var items: [2] IValue = [cast(IValue, d), cast(IValue, t)]
 
     var sum = 0
     for i in 2 do
@@ -108,7 +108,7 @@ impl IValue for Tripler
     var b: Counter = {label: "b", count: 2}
     var c: Counter = {label: "c", count: 3}
 
-    var arr: [3] IValue = [cast(IValue) a, cast(IValue) b, cast(IValue) c]
+    var arr: [3] IValue = [cast(IValue, a), cast(IValue, b), cast(IValue, c)]
 
     for i in 3 do
         arr[i].setValue(arr[i].getValue() * 10)
@@ -124,11 +124,11 @@ impl IValue for Tripler
     var d: Doubler = {val: 7}
     var t: Tripler = {val: 7}
 
-    var itf: IValue = cast(IValue) d
+    var itf: IValue = cast(IValue, d)
     Swag.assert(itf.getValue() == 14)
     Swag.assert(Swag.kindOf(itf) == Doubler)
 
-    itf = cast(IValue) t
+    itf = cast(IValue, t)
     Swag.assert(itf.getValue() == 21)
     Swag.assert(Swag.kindOf(itf) == Tripler)
 }
@@ -148,7 +148,7 @@ func sumValues(items: [*] IValue, count: u32)->s32
     var d2: Doubler = {val: 7}
     var t1: Tripler = {val: 2}
 
-    var arr: [3] IValue = [cast(IValue) d1, cast(IValue) d2, cast(IValue) t1]
+    var arr: [3] IValue = [cast(IValue, d1), cast(IValue, d2), cast(IValue, t1)]
 
     Swag.assert(sumValues(&arr[0], 3) == 6 + 14 + 6)
     Swag.assert(sumValues(&arr[0], 3) == 26)

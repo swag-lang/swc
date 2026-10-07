@@ -392,7 +392,7 @@ private impl GenericCodeLexer
 private func codePaint(line: *RichEditLine, first, last: u64, style: GenericCodeLexer.Style)
 {
     for index in first until Math.min(last, line.length()) do
-        line.setStyleAt(index, cast(RichEditStyleRef) style)
+        line.setStyleAt(index, cast(RichEditStyleRef, style))
 }
 
 private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
@@ -435,13 +435,13 @@ impl IRichEditLexer for GenericCodeLexer
         number.ensureContrast(ground, 4.5)
         function.ensureContrast(ground, 4.5)
         preprocessor.ensureContrast(ground, 4.5)
-        ed.styles[cast(u64) Style.Comment].colFg      = comment
-        ed.styles[cast(u64) Style.Keyword].colFg      = keyword
-        ed.styles[cast(u64) Style.Type].colFg         = type
-        ed.styles[cast(u64) Style.String].colFg       = stringColor
-        ed.styles[cast(u64) Style.Number].colFg       = number
-        ed.styles[cast(u64) Style.Function].colFg     = function
-        ed.styles[cast(u64) Style.Preprocessor].colFg = preprocessor
+        ed.styles[cast(u64, Style.Comment)].colFg      = comment
+        ed.styles[cast(u64, Style.Keyword)].colFg      = keyword
+        ed.styles[cast(u64, Style.Type)].colFg         = type
+        ed.styles[cast(u64, Style.String)].colFg       = stringColor
+        ed.styles[cast(u64, Style.Number)].colFg       = number
+        ed.styles[cast(u64, Style.Function)].colFg     = function
+        ed.styles[cast(u64, Style.Preprocessor)].colFg = preprocessor
     }
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
@@ -455,7 +455,7 @@ impl IRichEditLexer for GenericCodeLexer
     {
         let length = line.length()
         codePaint(line, 0, length, .Default)
-        var state = linePrev ? cast(GenericCodeState) linePrev.lexerState() : GenericCodeState.Default
+        var state = linePrev ? cast(GenericCodeState, linePrev.lexerState()) : GenericCodeState.Default
         var seek  = 0'u64
 
         if .language == .Xml or .language == .Html
@@ -617,7 +617,7 @@ impl IRichEditLexer for GenericCodeLexer
                             next += 1
                         if next < length and line.runeAt(next) == '(' do
                             codePaint(line, first, seek, .Function)
-                        elif Latin1.isUpper(cast(u8) value) do
+                        elif Latin1.isUpper(cast(u8, value)) do
                             codePaint(line, first, seek, .Type)
                         elif next < length and (line.runeAt(next) == ':' or line.runeAt(next) == '=') and .hasDataKeys() do
                             codePaint(line, first, seek, .Type)
@@ -630,7 +630,7 @@ impl IRichEditLexer for GenericCodeLexer
             }
         }
 
-        if line.setLexerState(cast(s32) state) and lineNext do
+        if line.setLexerState(cast(s32, state)) and lineNext do
             lineNext.markStyleDirty()
     }
 }

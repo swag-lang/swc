@@ -36,7 +36,7 @@ private func createPdfFixture()->String
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
 
-    let view = cast #assume (*PdfViewer) result.view
+    let view = assume cast (*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(view.details == "PDF")
@@ -120,7 +120,7 @@ private func createPdfFixture()->String
     Swag.assert(result.view != null and result.commands == null and result.info != null)
     infoBar.centerGroup = result.info
 
-    let view = cast #assume (*PdfViewer) result.view
+    let view = assume cast (*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle        = .Center
     result.info.dockStyle = .None
@@ -165,7 +165,7 @@ private func createPdfFixture()->String
 
     var result = openTestViewer(pdfViewerPlugin(), document, fileName.toString(), commandParent: document, infoParent: layout)
     Swag.assert(result.view != null and result.info != null)
-    let view = cast #assume (*PdfViewer) result.view
+    let view = assume cast (*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     host.root.applyLayout()
     layout.computeLayout()
@@ -190,7 +190,7 @@ private func createPdfFixture()->String
     defer host.shutdown()
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null)
-    let view = cast #assume (*PdfViewer) result.view
+    let view = assume cast (*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -209,14 +209,14 @@ private func createPdfFixture()->String
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
-    let view = cast #assume (*PdfViewer) result.view!
+    let view = assume cast (*PdfViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.resize(640, 420)
     view.applyLayout()
 
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches, result.view, "second", &matches)
-    let revealed = matches.count == 1 and result.revealMatch(result.view, matches[0], "second")
+    collectViewerMatches(result.collectMatches, "second", &matches)
+    let revealed = matches.count == 1 and result.revealMatch(matches[0], "second")
     Swag.assert(revealed)
     Swag.assert(view.pdfView.pageIndex == 1)
     Swag.assert(view.pdfView.selectedText() == "Second")
@@ -228,15 +228,15 @@ private func createPdfFixture()->String
     {
         discard host.render()
         host.fireTimers()
-        if result.searchBounds(result.view, matches[0], &bounds) do
+        if result.searchBounds(matches[0], &bounds) do
             break
         Threading.Thread.sleep(1'ms)
     }
 
     Swag.assert(not bounds.isEmpty())
-    result.clearSearch(result.view)
+    result.clearSearch()
     Swag.assert(view.pdfView.selectedText().isEmpty())
     matches.clear()
-    collectViewerMatches(result.collectMatches, result.view, "absent", &matches)
+    collectViewerMatches(result.collectMatches, "absent", &matches)
     Swag.assert(matches.isEmpty())
 }

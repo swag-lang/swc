@@ -16,8 +16,8 @@ impl Image
         var f = {img: me, angle: angle}
         dstImage.visitPixels(&f)
         {
-            let data     = cast(*#decltype(f)) userData!
-            let srcImage = cast(const *Image) data.img
+            let data     = cast(*#decltype(f), userData!)
+            let srcImage = cast(const *Image, data.img)
             var nx, ny: s32
             switch data.angle
             {
@@ -34,9 +34,9 @@ impl Image
                 ny = srcImage.height - x - 1
             }
 
-            let pixSrc = srcImage.pixels.storage() + cast(u64) nx * srcImage.bytesPerPixel + cast(u64) ny * srcImage.rowStride
+            let pixSrc = srcImage.pixels.storage() + cast(u64, nx) * srcImage.bytesPerPixel + cast(u64, ny) * srcImage.rowStride
             if srcImage.bytesPerPixel == 4 do
-                (cast(*u32) pix)[] = (cast(const *u32) pixSrc)[]
+                cast(*u32, pix)[] = cast(const *u32, pixSrc)[]
             elif srcImage.bytesPerPixel == 3
             {
                 pix[0] = pixSrc[0]

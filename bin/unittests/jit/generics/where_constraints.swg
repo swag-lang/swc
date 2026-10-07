@@ -82,7 +82,7 @@ impl MovingWindow
         var total: T = 0
         for var i = 0; i < .filled; i += 1 do
             total += .values[i]
-        return total / cast(T) .filled
+        return total / cast(T, .filled)
     }
 }
 

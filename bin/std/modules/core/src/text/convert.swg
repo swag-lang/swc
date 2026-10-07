@@ -70,10 +70,10 @@ impl ConvertFormatFloat
         // Precision
         if cpt < countof
         {
-            let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64) (countof - cpt)))
+            let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, (countof - cpt))))
             Swag.assert(userWidth <= 255, "precision overflow")
             if eatCount do
-                .precision = cast(s8) userWidth
+                .precision = cast(s8, userWidth)
         }
     }
 }
@@ -147,10 +147,10 @@ impl ConvertFormatInt
         // Next comes the padding width
         if cpt >= countof do
             return
-        let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64) countof - cpt))
+        let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, countof) - cpt))
         Swag.assert(userWidth <= 255, "padding width overflow")
         if eatCount do
-            .width = cast(u8) userWidth
+            .width = cast(u8, userWidth)
     }
 }
 
@@ -167,8 +167,8 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     // A reference
     if Reflection.isPointerRef(type)
     {
-        let ptrType = cast #assume(const *TypeInfoPointer) type
-        valueData = (cast(const **void) valueData!)[]
+        let ptrType = assume cast(const *TypeInfoPointer, type)
+        valueData = cast(const **void, valueData!)[]
         type      = ptrType.pointedType
     }
 
@@ -177,7 +177,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     // This is a type
     if Reflection.isType(type)
     {
-        let ptrType = (cast(const *(typeinfo?)) valueData!)[]
+        let ptrType = cast(const *(typeinfo?), valueData!)[]
         if ptrType do
             buf.addBytes(ptrType.fullname)
         else do
@@ -190,8 +190,8 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     {
         if type.flags & TypeInfoFlags.CString
         {
-            let ptr = (cast(const *[*] u8) valueData!)[]
-            let len = (cast(cstring?) ptr).count
+            let ptr = cast(const *[*] u8, valueData!)[]
+            let len = cast(cstring?, ptr).count
             buf.addBytes(Swag.makeSlice(ptr, len))
             return
         }
@@ -201,7 +201,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
         fmt.width   = 16
         fmt.padding = '0'u8
         fmt.setFormat(strFormat)
-        convertInt(buf, (cast(const *u64) valueData!)[], fmt)
+        convertInt(buf, cast(const *u64, valueData!)[], fmt)
         return
     }
 
@@ -226,10 +226,10 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     // A slice
     if Reflection.isSlice(type)
     {
-        let ptrSlice = cast #assume(const *TypeInfoSlice) type
+        let ptrSlice = assume cast(const *TypeInfoSlice, type)
         buf.addBytes("[")
 
-        let sl       = cast(const [..] u8?) valueData
+        let sl       = cast(const [..] u8?, valueData)
         var bufSlice = sl.buffer
         for index in sl.count
         {
@@ -247,8 +247,8 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     // A static array
     if Reflection.isStaticArray(type)
     {
-        let ptrArr = cast #assume(const *TypeInfoArray) type
-        var bufArr = cast(const [*] u8?) valueData
+        let ptrArr = assume cast(const *TypeInfoArray, type)
+        var bufArr = cast(const [*] u8?, valueData)
 
         buf.addBytes("[")
         for index in ptrArr.count
@@ -279,7 +279,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     // Any
     if Reflection.isAny(type)
     {
-        let ptrAny = cast(const * (any?)) valueData!
+        let ptrAny = cast(const * (any?), valueData!)
         buf.addBytes("{type = ")
         let typeAny = Swag.kindOf(ptrAny[])
         convertAny(buf, typeAny, convFmt, strFormat)
@@ -296,19 +296,19 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     // matching is too strict here. Switch on the native kind instead.
     if Reflection.isNative(type)
     {
-        let typeNative = cast #assume(const *TypeInfoNative) type
+        let typeNative = assume cast(const *TypeInfoNative, type)
         switch typeNative.nativeKind
         {
         case .Bool:
-            convertBool(buf, (cast(const *bool) valueData!)[])
+            convertBool(buf, cast(const *bool, valueData!)[])
             return
 
         case .Rune:
-            convertRune(buf, (cast(const *rune) valueData!)[])
+            convertRune(buf, cast(const *rune, valueData!)[])
             return
 
         case .String:
-            buf.addBytes((cast(const *string) valueData!)[])
+            buf.addBytes(cast(const *string, valueData!)[])
             return
         }
     }
@@ -322,14 +322,14 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
 // itself, and any other struct is written as `{field = value, ...}`.
 func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
-    let kindof = cast #assume(const *Swag.TypeInfoStruct) Swag.kindOf(value)
+    let kindof = assume cast(const *Swag.TypeInfoStruct, Swag.kindOf(value))
     Swag.assert(kindof.kind == TypeInfoKind.Struct, "this is not a structure")
-    let ptr = cast(const [*] u8?) value.buffer
+    let ptr = cast(const [*] u8?, value.buffer)
 
     // Core.String
     if kindof == String
     {
-        let ptrStr = cast(const *String) ptr!
+        let ptrStr = cast(const *String, ptr!)
         buf.addBytes(ptrStr.toSlice())
         return
     }
@@ -359,7 +359,7 @@ func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat
 // Appends the text of the floating-point `value` to `buf`, formatted by `fmt`.
 func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat)
 {
-    let kindof = cast #assume(const *Swag.TypeInfoNative) Swag.kindOf(value)
+    let kindof = assume cast(const *Swag.TypeInfoNative, Swag.kindOf(value))
     Swag.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
 
     let dataof = value.buffer
@@ -367,17 +367,17 @@ func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat
     var value64: f64
     switch kindof.nativeKind
     {
-    case .F32: value64 = cast(f64) (cast(const *f32) dataof!)[]
-    case .F64: value64 = (cast(const *f64) dataof!)[]
+    case .F32: value64 = cast(f64, cast(const *f32, dataof!)[])
+    case .F64: value64 = cast(const *f64, dataof!)[]
     }
 
-    Dtoa.append(buf, value64, fmt.fmt, cast(s64) fmt.precision, fmt.forceSign)
+    Dtoa.append(buf, value64, fmt.fmt, cast(s64, fmt.precision), fmt.forceSign)
 }
 
 // Appends the text of the integer `value` to `buf`, formatted by `fmt`.
 func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 {
-    let kindof = cast #assume(const *Swag.TypeInfoNative) Swag.kindOf(value)
+    let kindof = assume cast(const *Swag.TypeInfoNative, Swag.kindOf(value))
     Swag.assert(kindof.flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
     Swag.assert(0 < fmt.base and fmt.base <= 16, "invalid convert base")
 
@@ -391,35 +391,35 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
     switch kindof.nativeKind
     {
     case .S8:
-        signedValue = cast(s64) (cast(const *s8) dataof!)[]
-        value64     = cast(u64) Math.abs(signedValue)
+        signedValue = cast(s64, cast(const *s8, dataof!)[])
+        value64     = cast(u64, Math.abs(signedValue))
 
     case .S16:
-        signedValue = cast(s64) (cast(const *s16) dataof!)[]
-        value64     = cast(u64) Math.abs(signedValue)
+        signedValue = cast(s64, cast(const *s16, dataof!)[])
+        value64     = cast(u64, Math.abs(signedValue))
 
     case .S32:
-        signedValue = cast(s64) (cast(const *s32) dataof!)[]
-        value64     = cast(u64) Math.abs(signedValue)
+        signedValue = cast(s64, cast(const *s32, dataof!)[])
+        value64     = cast(u64, Math.abs(signedValue))
 
     case .S64:
-        signedValue = (cast(const *s64) dataof!)[]
+        signedValue = cast(const *s64, dataof!)[]
         if signedValue == Swag.S64.Min do
             overflowS64 = true
         else do
-            value64 = cast(u64) Math.abs(signedValue)
+            value64 = cast(u64, Math.abs(signedValue))
 
     case .U8:
-        value64 = cast(u64) (cast(const *u8) dataof!)[]
+        value64 = cast(u64, cast(const *u8, dataof!)[])
 
     case .U16:
-        value64 = cast(u64) (cast(const *u16) dataof!)[]
+        value64 = cast(u64, cast(const *u16, dataof!)[])
 
     case .U32:
-        value64 = cast(u64) (cast(const *u32) dataof!)[]
+        value64 = cast(u64, cast(const *u32, dataof!)[])
 
     case .U64:
-        value64 = (cast(const *u64) dataof!)[]
+        value64 = cast(const *u64, dataof!)[]
     }
 
     const Tbl = "0123456789ABCDEF"
@@ -447,7 +447,7 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
         let c = Tbl[value64 % fmt.base]
         tmp[cpt] = c
         cpt      -= 1
-        value64  /= cast(u64) fmt.base
+        value64  /= cast(u64, fmt.base)
         if not value64 do
             break
     }
@@ -471,12 +471,12 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
     // Prepend the negative character
     if signedValue < 0
     {
-        tmp[cpt] = cast(u8) g_CultureInfo.numberFormat.negativeSign
+        tmp[cpt] = cast(u8, g_CultureInfo.numberFormat.negativeSign)
         cpt      -= 1
     }
     elif fmt.forceSign
     {
-        tmp[cpt] = cast(u8) g_CultureInfo.numberFormat.positiveSign
+        tmp[cpt] = cast(u8, g_CultureInfo.numberFormat.positiveSign)
         cpt      -= 1
     }
 

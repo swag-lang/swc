@@ -21,7 +21,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let page = fontCharacterPage(face, 0x20, 192)
     Swag.assert(page.characters.count == 192)
     Swag.assert(containsCharacter(page.characters.toSlice(), 'A'))
-    Swag.assert(page.end >= cast(u32) 'A' and page.hasNext)
+    Swag.assert(page.end >= cast(u32, 'A') and page.hasNext)
 }
 
 #test
@@ -38,7 +38,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
 
-    let view = cast #assume (*FontViewer) result.view
+    let view = assume cast (*FontViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.pageLabel.arrowPosition == .RightUpward)
     Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
@@ -79,7 +79,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: commandBar)
     Swag.assert(result.view != null)
     commandBar.centerGroup = result.commands
-    let view = cast #assume (*FontViewer) result.view
+    let view = assume cast (*FontViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
@@ -110,7 +110,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     var result = openTestViewer(fontViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = cast #assume (*FontViewer) result.view
+    let view = assume cast (*FontViewer, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }

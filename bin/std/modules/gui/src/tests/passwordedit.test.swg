@@ -17,18 +17,18 @@ using Swag, Core
     host.sendRune(Input.Key.A, '\U0001F642')
 
     Swag.assert(password.edit.text() == "***")
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8) "A\u00E9\U0001F642"))
+    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "A\u00E9\U0001F642")))
     Swag.assert(password.byteCount == 7)
 
     host.keyPress(Input.Key.Left)
     host.keyPress(Input.Key.Back)
     Swag.assert(password.edit.text() == "**")
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8) "A\U0001F642"))
+    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "A\U0001F642")))
 
     password.selectAll()
     host.sendRune(Input.Key.B, 'Z')
     Swag.assert(password.edit.text() == "*")
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8) "Z"))
+    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "Z")))
 }
 
 #test
@@ -48,7 +48,7 @@ using Swag, Core
 
     host.shortcut(Input.Key.V, Input.KeyModifiers.Control)
     host.shortcut(Input.Key.Insert, Input.KeyModifiers.Shift)
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8) "secret"))
+    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "secret")))
     Swag.assert(password.edit.text() == "******")
 
     password.clear()

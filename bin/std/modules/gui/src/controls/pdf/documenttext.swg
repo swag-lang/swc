@@ -42,7 +42,7 @@ impl DocumentText
     }
 
     // Returns how many pages, from the first, have their text published.
-    mtd readyCount()->u64 => cast(u64) Atomic.get(&.ready)
+    mtd readyCount()->u64 => cast(u64, Atomic.get(&.ready))
 
     // Reports whether every page has its text published.
     mtd isComplete()->bool => .started and .readyCount() == .pages.count
@@ -96,10 +96,10 @@ impl DocumentText
                 var text = catch reader.loadPageText(index) as pageError
                 if pageError == null do
                     .pages[index] = #move text
-                Atomic.exchange(&.ready, cast(u32) (index + 1))
+                Atomic.exchange(&.ready, cast(u32, (index + 1)))
             }
         }
 
-        Atomic.exchange(&.ready, cast(u32) .pages.count)
+        Atomic.exchange(&.ready, cast(u32, .pages.count))
     }
 }

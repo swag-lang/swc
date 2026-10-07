@@ -67,7 +67,7 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
     let version = Reflection.attributeValue(structType, Serialization.Version, "v")
     if version != null
     {
-        plan.version    = cast #assume (u32) version
+        plan.version    = assume cast (u32, version)
         plan.hasVersion = true
     }
 
@@ -106,7 +106,7 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
 // Returns the shared serialization plan of a struct type, building it on first use.
 public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
 {
-    let key = cast(u64) structType
+    let key = cast(u64, structType)
 
     // Fast path: the plan already exists.
     {

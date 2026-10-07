@@ -35,7 +35,7 @@ impl Image
         for cy in srcH
         {
             var srcPix = .pixels.buffer + (srcY + cy) * .rowStride
-            srcPix += cast(u64) (srcX * .bytesPerPixel)
+            srcPix += cast(u64, (srcX * .bytesPerPixel))
             Memory.copy(dstPix, srcPix, srcW)
             dstPix += dstImage.rowStride
         }

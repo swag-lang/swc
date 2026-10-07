@@ -31,7 +31,7 @@ impl Bag
     mtd opDrop()
     {
         if .buffer != null do
-            heapFree(cast(*void) .buffer, .capacity * 4)
+            heapFree(cast(*void, .buffer), .capacity * 4)
         .buffer = null
     }
 
@@ -40,11 +40,11 @@ impl Bag
     mtd grow()
     {
         let capacity = .capacity == 0 ? 4 : .capacity * 2
-        let block    = cast([*] s32) heapAlloc(capacity * 4)
+        let block    = cast([*] s32, heapAlloc(capacity * 4))
         for index in .count do
             block[index] = .buffer![index]
         if .buffer != null do
-            heapFree(cast(*void) .buffer, .capacity * 4)
+            heapFree(cast(*void, .buffer), .capacity * 4)
         .buffer   = block
         .capacity = capacity
     }

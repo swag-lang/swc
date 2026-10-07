@@ -54,13 +54,13 @@ only the last value discards the ones before it rather than naming them.
     var total: s32
 
     for value, doubled, index in values do
-        total += value + doubled + cast(s32) index
+        total += value + doubled + cast(s32, index)
 
     for ?, doubled in values do
         total += doubled
 
     for ?, ?, index in values do
-        total += cast(s32) index
+        total += cast(s32, index)
 
     Swag.assert(total == 306)
 }
@@ -124,7 +124,7 @@ impl SliceStruct
         for index in me.buffer.count
         {
             #static if ptr do
-                #inject(stmt, item = cast(*s32) &me.buffer[index], index = index)
+                #inject(stmt, item = cast(*s32, &me.buffer[index]), index = index)
             else do
                 #inject(stmt, item = me.buffer[index], index = index)
         }
@@ -144,7 +144,7 @@ into the loop binding.
     var values = SliceStruct{}
 
     for &value, index in values do
-        value[] += cast(s32) index
+        value[] += cast(s32, index)
 
     Swag.assert(values.buffer[0] == 1)
     Swag.assert(values.buffer[4] == 9)

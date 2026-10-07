@@ -71,7 +71,7 @@ private func holdsTestSource(directory: string)->bool
     for entry in entries
     {
         let name = Path.fileName(entry.fullName.toString()) orelse ""
-        if Utf8.endsWith(cast(const [..] u8) name, ".test.swg") do
+        if Utf8.endsWith(cast(const [..] u8, name), ".test.swg") do
             return true
     }
 
@@ -330,7 +330,7 @@ public func runScripts(context: *Context, options: *Options)->s32 fail
     if not options.module.isEmpty()
     {
         named = Path.combine(scriptsDir.toString(), options.module.toString())
-        if not Utf8.endsWith(cast(const [..] u8) named.toString(), ".swgs") do
+        if not Utf8.endsWith(cast(const [..] u8, named.toString()), ".swgs") do
             named += ".swgs"
         if not File.exists(named)
         {

@@ -5,7 +5,7 @@ internal impl Properties
 {
     mtd validateDynamicString(item: *PropertiesItem)
     {
-        var data = cast(*String) item.data!
+        var data = cast(*String, item.data!)
         if item.editBox != null do
             data[] = item.editBox.text()
         .commitItemChange(item)
@@ -24,12 +24,12 @@ internal impl Properties
             return
         }
 
-        let cur = cast(*String) item.data!
+        let cur = cast(*String, item.data!)
         var sel = 0'u32
         for &fnt, idx in g_PropSysFonts
         {
             if cur[] == fnt.name do
-                sel = cast(u32) idx + 1
+                sel = cast(u32, idx) + 1
         }
 
         item.comboBox.setSelectedIndex(sel, notify: false)
@@ -41,7 +41,7 @@ internal impl Properties
         if sel == Swag.U32.Max do
             return
 
-        var data = cast(*String) item.data!
+        var data = cast(*String, item.data!)
         if sel == 0 do
             data.clear()
         else do
@@ -65,14 +65,14 @@ internal impl Properties
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
-                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
+                .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
             }
 
             combo = ctrl.combo
         }
         else
         {
-            var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
+            var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
             if not .isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
             with combo = ComboBox.create(item.line)
@@ -109,7 +109,7 @@ internal impl Properties
         }
 
         let item      = .addItem(value, data, parentItem)
-        var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
+        var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
         if not me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
         var ed: *EditBox?
@@ -117,16 +117,16 @@ internal impl Properties
         {
             if item.label != null do
                 item.label.hide()
-            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), (cast(const *String) data!)[], flags: .ReleaseFocusOnEnterOrEscape)
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *String, data!)[], flags: .ReleaseFocusOnEnterOrEscape)
             {
                 .anchorStyle = .Right
-                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
+                .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
             }
 
             ed = ctrl.edit
         }
         else do
-            ed = EditBox.create(item.line, (cast(const *String) data!)[])
+            ed = EditBox.create(item.line, cast(const *String, data!)[])
 
         with let edit: *EditBox = ed
         {
@@ -174,7 +174,7 @@ internal impl Properties
     mtd constructStaticString(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item      = .addItem(value, data, parentItem)
-        var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
+        var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
         if not me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
@@ -183,16 +183,16 @@ internal impl Properties
         {
             if item.label != null do
                 item.label.hide()
-            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), (cast(const *string) data!)[])
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *string, data!)[])
             {
                 .anchorStyle = .Right
-                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
+                .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
             }
 
             ed = ctrl.edit
         }
         else do
-            ed = EditBox.create(item.line, (cast(const *string) data!)[])
+            ed = EditBox.create(item.line, cast(const *string, data!)[])
 
         with let edit: *EditBox = ed
         {

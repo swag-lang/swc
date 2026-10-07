@@ -9,13 +9,13 @@ internal impl Properties
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = .addItem(value, data, parentItem)
-        let color = cast(*Color) data!
+        let color = cast(*Color, data!)
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
         let editAlpha = not opaque and not keepAlpha
 
-        var width = cast(f32) Reflection.attributeValue(value, .EditSize, "size", .editorWidth)
+        var width = cast(f32, Reflection.attributeValue(value, .EditSize, "size", .editorWidth))
         if not .isGridLike() do
             width = .listContentWidthFromUseful(width)
         const MarginBtn = 4
@@ -51,11 +51,11 @@ internal impl Properties
             .setHexadecimalRange(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
             .sigCommitted += func|prop = me, color, item, opaque, keepAlpha|(ed)
             {
-                var result = cast(u32) (catch StrConv.parseX64(ed.text()).value & 0xFFFFFFFF)
+                var result = cast(u32, (catch StrConv.parseX64(ed.text()).value & 0xFFFFFFFF))
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do
-                    result |= cast(u32) color.a << 24
+                    result |= cast(u32, color.a) << 24
                 color.argb = result
                 prop.commitItemChange(item)
             }
@@ -93,7 +93,7 @@ internal impl Properties
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do
-                    result |= cast(u32) color.a << 24
+                    result |= cast(u32, color.a) << 24
                 color.argb = result
                 prop.commitItemChange(item)
             }

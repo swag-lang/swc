@@ -20,7 +20,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     {
         let symbol = library.symbol("prism_build")
         Swag.assert(symbol != null)
-        let build = cast(func(*Wnd)) symbol
+        let build = cast(func(*Wnd), symbol)
         host.setup(FrameChannel.Width, FrameChannel.Height)
         host.setReducedMotion(false)
         host.theme.setSwagDark()
@@ -32,7 +32,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     {
         let symbol = library.symbol("prism_shade")
         Swag.assert(symbol != null)
-        shade = cast(func(f32, f32, f32)->u32) symbol
+        shade = cast(func(f32, f32, f32)->u32, symbol)
     }
 
     var clock: Time.Stopwatch
@@ -48,7 +48,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
             let click = Atomic.get(&header.click)
             if click != Atomic.get(&header.clicked)
             {
-                host.click({cast(f32) header.clickX, cast(f32) header.clickY})
+                host.click({cast(f32, header.clickX), cast(f32, header.clickY)})
                 Atomic.exchange(&header.clicked, click)
             }
 
@@ -58,17 +58,17 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
         }
         else
         {
-            let pixels = cast([*] u32) channel.pixels()
+            let pixels = cast([*] u32, channel.pixels())
             let shader = shade!
-            let time   = frame == 0 ? 0.0 : cast(f32) clock.elapsedMicroseconds() / 1000000
-            parallel for |pixels, shader, time| y in cast(u64) FrameChannel.Height
+            let time   = frame == 0 ? 0.0 : cast(f32, clock.elapsedMicroseconds()) / 1000000
+            parallel for |pixels, shader, time| y in cast(u64, FrameChannel.Height)
             {
                 for x in FrameChannel.Width do
-                    pixels[y * FrameChannel.Width + x] = shader((cast(f32) x - 320) / 200, (cast(f32) y - 200) / 200, time)
+                    pixels[y * FrameChannel.Width + x] = shader((cast(f32, x) - 320) / 200, (cast(f32, y) - 200) / 200, time)
             }
         }
 
-        header.renderUs = cast(u32) Math.min(watch.elapsedMicroseconds(), Swag.U32.Max)
+        header.renderUs = cast(u32, Math.min(watch.elapsedMicroseconds(), Swag.U32.Max))
         frame += 1
         Atomic.exchange(&header.published, frame)
     }

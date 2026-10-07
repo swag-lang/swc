@@ -15,7 +15,7 @@ func info(fullName: string)->FileInfo fail
 
     result.fullName   = fullName
     result.attributes = FileAttributes.fromDWORD(attrDatas.dwFileAttributes)
-    result.size       = attrDatas.nFileSizeLow + (cast(u64) attrDatas.nFileSizeHigh << 32)
+    result.size       = attrDatas.nFileSizeLow + (cast(u64, attrDatas.nFileSizeHigh) << 32)
 
     var fileTime: SYSTEMTIME
     catch FileTimeToSystemTime(&attrDatas.ftCreationTime, &fileTime)

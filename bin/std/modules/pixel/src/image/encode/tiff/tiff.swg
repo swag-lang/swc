@@ -49,7 +49,7 @@ func packBitsRow(result: *Array'u8, src: const [*] u8, count: u64)
         let runLength = tiffRunLength(src, index, count)
         if runLength >= 3
         {
-            result.add(cast(u8) (257 - runLength))
+            result.add(cast(u8, (257 - runLength)))
             result.add(src[index])
             index += runLength
             continue
@@ -68,7 +68,7 @@ func packBitsRow(result: *Array'u8, src: const [*] u8, count: u64)
         }
 
         let literalCount = index - literalStart
-        result.add(cast(u8) (literalCount - 1))
+        result.add(cast(u8, (literalCount - 1)))
         result.add(Swag.makeSlice(src + literalStart, literalCount))
     }
 }
@@ -84,7 +84,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            userOptions = (cast(const *EncodeOptions) options.buffer!)[]
+            userOptions = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
@@ -95,8 +95,8 @@ internal impl IImageEncoder for Encoder
         let hasAlpha = image.pixelFormat.hasAlpha()
         let samples  = hasAlpha ? 4'u32 : 3'u32
 
-        let rowBytes   = cast(u64) width * samples
-        let rawDataLen = rowBytes * cast(u64) height
+        let rowBytes   = cast(u64, width) * samples
+        let rawDataLen = rowBytes * cast(u64, height)
         if rawDataLen > Swag.U32.Max do
             fail UnsupportedFormatError{"image is too big"}
 
@@ -106,7 +106,7 @@ internal impl IImageEncoder for Encoder
         for fileY in height
         {
             let srcY = height - fileY - 1
-            var psrc = image.pixels.buffer + cast(u64) srcY * image.rowStride
+            var psrc = image.pixels.buffer + cast(u64, srcY) * image.rowStride
 
             for width
             {
@@ -140,15 +140,15 @@ internal impl IImageEncoder for Encoder
         }
 
         var packedData:   Array'u8
-        var storedData     = cast(const [*] u8) rawData.storage()
+        var storedData     = cast(const [*] u8, rawData.storage())
         var storedLen      = rawData.count
         var compressionTag = COMPRESSION_NONE
         var hasPredictor: bool
         if userOptions.compression == .Lzw
         {
-            applyHorizontalPredictor(rawData.storage(), rowBytes, cast(u64) height, samples)
+            applyHorizontalPredictor(rawData.storage(), rowBytes, cast(u64, height), samples)
             packLzw(&packedData, storedData, storedLen)
-            storedData     = cast(const [*] u8) packedData.storage()
+            storedData     = cast(const [*] u8, packedData.storage())
             storedLen      = packedData.count
             compressionTag = COMPRESSION_LZW
             hasPredictor   = true
@@ -156,8 +156,8 @@ internal impl IImageEncoder for Encoder
         elif userOptions.compression == .PackBits
         {
             for y in height do
-                packBitsRow(&packedData, storedData + cast(u64) y * rowBytes, rowBytes)
-            storedData     = cast(const [*] u8) packedData.storage()
+                packBitsRow(&packedData, storedData + cast(u64, y) * rowBytes, rowBytes)
+            storedData     = cast(const [*] u8, packedData.storage())
             storedLen      = packedData.count
             compressionTag = COMPRESSION_PACKBITS
         }
@@ -165,16 +165,16 @@ internal impl IImageEncoder for Encoder
         // Layout: header(8) | pixel data | IFD | BitsPerSample array
         let dataPad    = storedLen & 1
         let ifdOffset  = 8 + storedLen + dataPad
-        let numEntries = (hasAlpha ? 10'u32 : 9'u32) + cast(u32) hasPredictor
-        let ifdLen     = 2'u64 + cast(u64) numEntries * 12 + 4
+        let numEntries = (hasAlpha ? 10'u32 : 9'u32) + cast(u32, hasPredictor)
+        let ifdLen     = 2'u64 + cast(u64, numEntries) * 12 + 4
         let bpsOffset  = ifdOffset + ifdLen
-        if bpsOffset + cast(u64) samples * 2 > Swag.U32.Max do
+        if bpsOffset + cast(u64, samples) * 2 > Swag.U32.Max do
             fail UnsupportedFormatError{"image is too big"}
 
         // Header
-        result.addNative(0x4949'u16)              // "II" little-endian
-        result.addNative(42'u16)                  // magic
-        result.addNative(cast(u32) ifdOffset)     // offset to first IFD
+        result.addNative(0x4949'u16)               // "II" little-endian
+        result.addNative(42'u16)                   // magic
+        result.addNative(cast(u32, ifdOffset))     // offset to first IFD
 
         result.addBytes(Swag.makeSlice(storedData, storedLen))
 
@@ -182,16 +182,16 @@ internal impl IImageEncoder for Encoder
             result.addNative(0'u8)
 
         // IFD (entries must be in ascending tag order)
-        result.addNative(cast(u16) numEntries)
-        addEntry(result, TAG_IMAGE_WIDTH, TYPE_LONG, 1, cast(u32) width)
-        addEntry(result, TAG_IMAGE_LENGTH, TYPE_LONG, 1, cast(u32) height)
-        addEntry(result, TAG_BITS_PER_SAMPLE, TYPE_SHORT, samples, cast(u32) bpsOffset)
+        result.addNative(cast(u16, numEntries))
+        addEntry(result, TAG_IMAGE_WIDTH, TYPE_LONG, 1, cast(u32, width))
+        addEntry(result, TAG_IMAGE_LENGTH, TYPE_LONG, 1, cast(u32, height))
+        addEntry(result, TAG_BITS_PER_SAMPLE, TYPE_SHORT, samples, cast(u32, bpsOffset))
         addEntry(result, TAG_COMPRESSION, TYPE_SHORT, 1, compressionTag)
         addEntry(result, TAG_PHOTOMETRIC, TYPE_SHORT, 1, PHOTO_RGB)
         addEntry(result, TAG_STRIP_OFFSETS, TYPE_LONG, 1, 8)
         addEntry(result, TAG_SAMPLES_PER_PIXEL, TYPE_SHORT, 1, samples)
-        addEntry(result, TAG_ROWS_PER_STRIP, TYPE_LONG, 1, cast(u32) height)
-        addEntry(result, TAG_STRIP_BYTE_COUNTS, TYPE_LONG, 1, cast(u32) storedLen)
+        addEntry(result, TAG_ROWS_PER_STRIP, TYPE_LONG, 1, cast(u32, height))
+        addEntry(result, TAG_STRIP_BYTE_COUNTS, TYPE_LONG, 1, cast(u32, storedLen))
         if hasPredictor do
             addEntry(result, TAG_PREDICTOR, TYPE_SHORT, 1, 2)
         if hasAlpha do

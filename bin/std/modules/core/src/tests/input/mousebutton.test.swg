@@ -5,7 +5,7 @@ using Swag
 
 func assertMouseButton(button: Input.MouseButton, index: u32)
 {
-    Swag.assert(cast(u32) button == index)
+    Swag.assert(cast(u32, button) == index)
 }
 
 #test

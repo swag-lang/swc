@@ -74,9 +74,9 @@ private const Rev8Arr: [256] u8 = [
     func byteswap(x: u32) => Swag.byteSwap(x)
     func byteswap(x: u64) => Swag.byteSwap(x)
     func byteswap(x: s8)  => x
-    func byteswap(x: s16) => cast #bit (s16) Swag.byteSwap(cast #bit (u16) x)
-    func byteswap(x: s32) => cast #bit (s32) Swag.byteSwap(cast #bit (u32) x)
-    func byteswap(x: s64) => cast #bit (s64) Swag.byteSwap(cast #bit (u64) x)
+    func byteswap(x: s16) => cast #bit (s16, Swag.byteSwap(cast #bit (u16, x)))
+    func byteswap(x: s32) => cast #bit (s32, Swag.byteSwap(cast #bit (u32, x)))
+    func byteswap(x: s64) => cast #bit (s64, Swag.byteSwap(cast #bit (u64, x)))
 }
 
 // Returns `x` with the order of its bits reversed, the most significant bit becoming the least significant.
@@ -84,7 +84,7 @@ private const Rev8Arr: [256] u8 = [
 func reverse(x: u8)->u8 => Rev8Arr[x]
 
 #[ConstExpr]
-func reverse(x: u16)->u16 => cast(u16) Rev8Arr[x >> 8] | cast(u16) Rev8Arr[x & 0xFF] << 8
+func reverse(x: u16)->u16 => cast(u16, Rev8Arr[x >> 8]) | cast(u16, Rev8Arr[x & 0xFF]) << 8
 
 #[ConstExpr, Safety(.Overflow, false)]
 func reverse(x: u32)->u32
@@ -118,14 +118,14 @@ func reverse(x: Simd.U8x16)->Simd.U8x16
 {
     // Two nibble tables answer the whole byte: one places the reversed low nibble high, the
     // other places the reversed high nibble low.
-    const LowNibble  = cast(Simd.U8x16) [0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0]
-    const HighNibble = cast(Simd.U8x16) [0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F]
+    const LowNibble  = cast(Simd.U8x16, [0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0])
+    const HighNibble = cast(Simd.U8x16, [0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F])
     const Mask       = Swag.vecsplat(0x0F'u8)
 
     // The word shift is what the byte lanes have; masking to the low nibble drops the four
     // bits it dragged in from the neighbouring byte.
     let low  = x & Mask
-    let high = cast #bit (Simd.U8x16) (cast #bit (Simd.U16x8) x >> 4) & Mask
+    let high = cast #bit (Simd.U8x16, (cast #bit (Simd.U16x8, x) >> 4)) & Mask
     return Simd.shuffle(LowNibble, low) | Simd.shuffle(HighNibble, high)
 }
 
@@ -134,7 +134,7 @@ func reverse(x: Simd.U8x16)->Simd.U8x16
 // A lane wider than a byte reverses its bytes as well as the bits of each byte.
 #[Inline]
 {
-    func reverse(x: Simd.U16x8)->Simd.U16x8 => Swag.byteSwap(cast #bit (Simd.U16x8) reverse(cast #bit (Simd.U8x16) x))
-    func reverse(x: Simd.U32x4)->Simd.U32x4 => Swag.byteSwap(cast #bit (Simd.U32x4) reverse(cast #bit (Simd.U8x16) x))
-    func reverse(x: Simd.U64x2)->Simd.U64x2 => Swag.byteSwap(cast #bit (Simd.U64x2) reverse(cast #bit (Simd.U8x16) x))
+    func reverse(x: Simd.U16x8)->Simd.U16x8 => Swag.byteSwap(cast #bit (Simd.U16x8, reverse(cast #bit (Simd.U8x16, x))))
+    func reverse(x: Simd.U32x4)->Simd.U32x4 => Swag.byteSwap(cast #bit (Simd.U32x4, reverse(cast #bit (Simd.U8x16, x))))
+    func reverse(x: Simd.U64x2)->Simd.U64x2 => Swag.byteSwap(cast #bit (Simd.U64x2, reverse(cast #bit (Simd.U8x16, x))))
 }

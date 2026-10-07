@@ -124,7 +124,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
     var values: [25] u16
     for i in values.count do
-        values[i] = cast(u16) (i + 1)
+        values[i] = cast(u16, (i + 1))
 
     for count in values.count + 1
     {
@@ -136,7 +136,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     {
         values[terminator] = 0
         Swag.assert(Utf16.lengthUntilZero(values) == terminator)
-        values[terminator] = cast(u16) (terminator + 1)
+        values[terminator] = cast(u16, (terminator + 1))
     }
 }
 
@@ -148,7 +148,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     var actual:   [160] u16
     var expected: [160] u16
     for index in source.count do
-        source[index] = cast(u8) ('a' + index % 26)
+        source[index] = cast(u8, ('a' + index % 26))
 
     for idx in 66
     {
@@ -168,7 +168,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     for index in 48
     {
         for idx in source.count do
-            source[idx] = cast(u8) ('a' + idx % 26)
+            source[idx] = cast(u8, ('a' + idx % 26))
         source[index]     = 0xC3
         source[index + 1] = 0xA9
         for idx in actual.count

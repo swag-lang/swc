@@ -20,7 +20,7 @@ func(T, N: s32) sumN(values: [N] T)->T
     return total
 }
 
-func(T) toS32(value: T)->s32         => cast(s32) value
+func(T) toS32(value: T)->s32         => cast(s32, value)
 func(T) castAndDouble(value: T)->s32 => toS32(value) * 2
 
 #test

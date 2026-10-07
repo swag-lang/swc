@@ -59,8 +59,8 @@ impl Icon
 
         .imageList = imageList
         .index     = index
-        .sizeX     = width != 0 ? width : cast(f32) imageList.frameWidth
-        .sizeY     = height != 0 ? height : cast(f32) imageList.frameHeight
+        .sizeX     = width != 0 ? width : cast(f32, imageList.frameWidth)
+        .sizeY     = height != 0 ? height : cast(f32, imageList.frameHeight)
     }
 
     // Draws the icon with its top-left corner at `x`, `y`, tinted by `color`.

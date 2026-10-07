@@ -74,10 +74,10 @@ impl YuvPlanarView
         // conversions on the caller without starting workers.
         let view  = me
         let band  = 1's32 << .chromaShift
-        let count = (cast(u64) .height + cast(u64) band - 1) / cast(u64) band
+        let count = (cast(u64, .height) + cast(u64, band) - 1) / cast(u64, band)
         parallel for |view, target, band| group in count
         {
-            let first = cast(s32) (group * cast(u64) band)
+            let first = cast(s32, (group * cast(u64, band)))
             view.convertRowsToRgb(target, first, first + Math.min(band, view.height - first))
         }
     }
@@ -90,9 +90,9 @@ impl YuvPlanarView
         let factors = .conversionFactors()
         for y in firstY until endY
         {
-            var destination = target.pixels.storage() + cast(u64) (.height - y - 1) * cast(u64) target.rowStride
-            let luma        = .luma + cast(u64) y * .lumaStride
-            let chromaRow   = cast(u64) (y >> .chromaShift) * .chromaStride
+            var destination = target.pixels.storage() + cast(u64, (.height - y - 1)) * cast(u64, target.rowStride)
+            let luma        = .luma + cast(u64, y) * .lumaStride
+            let chromaRow   = cast(u64, (y >> .chromaShift)) * .chromaStride
             let cbRow       = .chromaB + chromaRow
             let crRow       = .chromaR + chromaRow
             if .chromaShift == 0 do
@@ -134,8 +134,8 @@ private func convertRowFullChroma(destination: [*] u8, luma, cb, cr: const [*] u
 
     while remaining > 0
     {
-        let d = cast(s32) cb[at] - 128
-        let e = cast(s32) cr[at] - 128
+        let d = cast(s32, cb[at]) - 128
+        let e = cast(s32, cr[at]) - 128
         storeYuvRgbPixel(out,
                          yuvLumaTerm(y[0], factors),
                          factors.redCr * e + 128,
@@ -168,8 +168,8 @@ private func convertRowHalfChroma(destination: [*] u8, luma, cb, cr: const [*] u
     // conversion are computed once per pair.
     while remaining >= 2
     {
-        let d     = cast(s32) cb[at] - 128
-        let e     = cast(s32) cr[at] - 128
+        let d     = cast(s32, cb[at]) - 128
+        let e     = cast(s32, cr[at]) - 128
         let rTerm = factors.redCr * e + 128
         let gTerm = factors.greenCb * d + factors.greenCr * e + 128
         let bTerm = factors.blueCb * d + 128
@@ -183,8 +183,8 @@ private func convertRowHalfChroma(destination: [*] u8, luma, cb, cr: const [*] u
 
     if remaining
     {
-        let d = cast(s32) cb[at] - 128
-        let e = cast(s32) cr[at] - 128
+        let d = cast(s32, cb[at]) - 128
+        let e = cast(s32, cr[at]) - 128
         storeYuvRgbPixel(out,
                          yuvLumaTerm(y[0], factors),
                          factors.redCr * e + 128,
@@ -209,7 +209,7 @@ struct YuvConversionFactors
 #[Swag.Inline]
 private func yuvLumaTerm(luma: u8, factors: const *YuvConversionFactors)->s32
 {
-    let above = cast(s32) luma - factors.lumaOffset
+    let above = cast(s32, luma) - factors.lumaOffset
     return (above & ~(above >> 31)) * factors.lumaScale
 }
 
@@ -218,7 +218,7 @@ private func yuvLumaTerm(luma: u8, factors: const *YuvConversionFactors)->s32
 private func clampYuvChannel(value: s32)->u8
 {
     let positive = value & ~(value >> 31)
-    return cast(u8) ((positive | ((255 - positive) >> 31)) & 255)
+    return cast(u8, ((positive | ((255 - positive) >> 31)) & 255))
 }
 
 // Stores one converted pixel from its scaled luma and the shared chroma terms.
@@ -239,26 +239,26 @@ private func storeYuvRgbPixel(destination: [*] u8, c298, rTerm, gTerm, bTerm: s3
 private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8, factors: const *YuvConversionFactors)
 {
     // Each chroma byte serves a pair of pixels.
-    const DupPairs = cast(Simd.U8x16) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]
+    const DupPairs = cast(Simd.U8x16, [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7])
 
-    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8) factors.lumaOffset))
+    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8, factors.lumaOffset)))
     let yLo = Simd.widenLow(y16)
     let yHi = Simd.widenHigh(y16)
-    let y0  = (cast #bit(Simd.S32x4) Simd.widenLow(yLo)) * factors.lumaScale
-    let y1  = (cast #bit(Simd.S32x4) Simd.widenHigh(yLo)) * factors.lumaScale
-    let y2  = (cast #bit(Simd.S32x4) Simd.widenLow(yHi)) * factors.lumaScale
-    let y3  = (cast #bit(Simd.S32x4) Simd.widenHigh(yHi)) * factors.lumaScale
+    let y0  = cast #bit(Simd.S32x4, Simd.widenLow(yLo)) * factors.lumaScale
+    let y1  = cast #bit(Simd.S32x4, Simd.widenHigh(yLo)) * factors.lumaScale
+    let y2  = cast #bit(Simd.S32x4, Simd.widenLow(yHi)) * factors.lumaScale
+    let y3  = cast #bit(Simd.S32x4, Simd.widenHigh(yHi)) * factors.lumaScale
 
     // A chroma plane may end after exactly eight bytes. Read only those bytes; the
     // duplicated high half is ignored by DupPairs.
-    let cb8    = cast #bit(Simd.U8x16) Simd.splat((cast(const [*] u64) cb)[0])
-    let cr8    = cast #bit(Simd.U8x16) Simd.splat((cast(const [*] u64) cr)[0])
+    let cb8    = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, cb)[0]))
+    let cr8    = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, cr)[0]))
     let dBytes = Simd.shuffle(cb8, DupPairs)
     let eBytes = Simd.shuffle(cr8, DupPairs)
-    let dSLo   = (cast #bit(Simd.S16x8) Simd.widenLow(dBytes)) - 128
-    let dSHi   = (cast #bit(Simd.S16x8) Simd.widenHigh(dBytes)) - 128
-    let eSLo   = (cast #bit(Simd.S16x8) Simd.widenLow(eBytes)) - 128
-    let eSHi   = (cast #bit(Simd.S16x8) Simd.widenHigh(eBytes)) - 128
+    let dSLo   = cast #bit(Simd.S16x8, Simd.widenLow(dBytes)) - 128
+    let dSHi   = cast #bit(Simd.S16x8, Simd.widenHigh(dBytes)) - 128
+    let eSLo   = cast #bit(Simd.S16x8, Simd.widenLow(eBytes)) - 128
+    let eSHi   = cast #bit(Simd.S16x8, Simd.widenHigh(eBytes)) - 128
 
     let d0 = Simd.widenLow(dSLo)
     let d1 = Simd.widenHigh(dSLo)
@@ -286,15 +286,15 @@ private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8, fa
 #[Swag.Inline]
 private func storeYuvRgb48(destination: [*] u8, r8, g8, b8: Simd.U8x16)
 {
-    const PermR0 = cast(Simd.U8x16) [0'u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128, 5]
-    const PermG0 = cast(Simd.U8x16) [128'u8, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128]
-    const PermB0 = cast(Simd.U8x16) [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128]
-    const PermR1 = cast(Simd.U8x16) [128'u8, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10, 128]
-    const PermG1 = cast(Simd.U8x16) [5'u8, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10]
-    const PermB1 = cast(Simd.U8x16) [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128]
-    const PermR2 = cast(Simd.U8x16) [128'u8, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128, 128]
-    const PermG2 = cast(Simd.U8x16) [128'u8, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128]
-    const PermB2 = cast(Simd.U8x16) [10'u8, 128, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15]
+    const PermR0 = cast(Simd.U8x16, [0'u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128, 5])
+    const PermG0 = cast(Simd.U8x16, [128'u8, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128])
+    const PermB0 = cast(Simd.U8x16, [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
+    const PermR1 = cast(Simd.U8x16, [128'u8, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10, 128])
+    const PermG1 = cast(Simd.U8x16, [5'u8, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10])
+    const PermB1 = cast(Simd.U8x16, [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128])
+    const PermR2 = cast(Simd.U8x16, [128'u8, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128, 128])
+    const PermG2 = cast(Simd.U8x16, [128'u8, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128])
+    const PermB2 = cast(Simd.U8x16, [10'u8, 128, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15])
 
     Simd.store(destination, Simd.shuffle(r8, PermR0) | Simd.shuffle(g8, PermG0) | Simd.shuffle(b8, PermB0))
     Simd.store(destination + 16, Simd.shuffle(r8, PermR1) | Simd.shuffle(g8, PermG1) | Simd.shuffle(b8, PermB1))
@@ -307,20 +307,20 @@ private func storeYuvRgb48(destination: [*] u8, r8, g8, b8: Simd.U8x16)
 #[Swag.Inline]
 private func convertYuvRgb16Full(destination: [*] u8, luma, cb, cr: const [*] u8, factors: const *YuvConversionFactors)
 {
-    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8) factors.lumaOffset))
+    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8, factors.lumaOffset)))
     let yLo = Simd.widenLow(y16)
     let yHi = Simd.widenHigh(y16)
-    let y0  = (cast #bit(Simd.S32x4) Simd.widenLow(yLo)) * factors.lumaScale
-    let y1  = (cast #bit(Simd.S32x4) Simd.widenHigh(yLo)) * factors.lumaScale
-    let y2  = (cast #bit(Simd.S32x4) Simd.widenLow(yHi)) * factors.lumaScale
-    let y3  = (cast #bit(Simd.S32x4) Simd.widenHigh(yHi)) * factors.lumaScale
+    let y0  = cast #bit(Simd.S32x4, Simd.widenLow(yLo)) * factors.lumaScale
+    let y1  = cast #bit(Simd.S32x4, Simd.widenHigh(yLo)) * factors.lumaScale
+    let y2  = cast #bit(Simd.S32x4, Simd.widenLow(yHi)) * factors.lumaScale
+    let y3  = cast #bit(Simd.S32x4, Simd.widenHigh(yHi)) * factors.lumaScale
 
     let dBytes = Simd.load(cb)
     let eBytes = Simd.load(cr)
-    let dSLo   = (cast #bit(Simd.S16x8) Simd.widenLow(dBytes)) - 128
-    let dSHi   = (cast #bit(Simd.S16x8) Simd.widenHigh(dBytes)) - 128
-    let eSLo   = (cast #bit(Simd.S16x8) Simd.widenLow(eBytes)) - 128
-    let eSHi   = (cast #bit(Simd.S16x8) Simd.widenHigh(eBytes)) - 128
+    let dSLo   = cast #bit(Simd.S16x8, Simd.widenLow(dBytes)) - 128
+    let dSHi   = cast #bit(Simd.S16x8, Simd.widenHigh(dBytes)) - 128
+    let eSLo   = cast #bit(Simd.S16x8, Simd.widenLow(eBytes)) - 128
+    let eSHi   = cast #bit(Simd.S16x8, Simd.widenHigh(eBytes)) - 128
 
     let d0 = Simd.widenLow(dSLo)
     let d1 = Simd.widenHigh(dSLo)

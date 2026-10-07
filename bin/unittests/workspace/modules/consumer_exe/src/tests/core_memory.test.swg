@@ -21,7 +21,7 @@ impl AllocatedObject
     objectDrops = 0
     let type: typeinfo = AllocatedObject
     let storage        = Memory.new(type)!
-    Swag.assert((cast(*AllocatedObject) storage).value == 37)
+    Swag.assert(cast(*AllocatedObject, storage).value == 37)
     Memory.delete(storage, type)
     Swag.assert(objectDrops == 1)
 }

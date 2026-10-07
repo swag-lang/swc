@@ -93,7 +93,7 @@ private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
     var center: Math.Vector2
     for pt in points do
         center += pt
-    center /= cast(f32) count
+    center /= cast(f32, count)
 
     // Outward side of each edge, taken as the one facing away from the centre. A convex outline
     // lies on one side of every one of its edges, so this needs no winding order.
@@ -375,7 +375,7 @@ impl Painter
             if dist < minDist do
                 continue
 
-            .sharedRoundTmp.insertAt(cast(u64) i + 1, {angle, point})
+            .sharedRoundTmp.insertAt(cast(u64, i) + 1, {angle, point})
             i -= 1
         }
 
@@ -645,8 +645,8 @@ impl Painter
             return
 
         case .Pattern:
-            cxt.pattern      = cast(const [*] f32) cxt.pen.pattern.storage()
-            cxt.patternCount = cast(s32) cxt.pen.pattern.count
+            cxt.pattern      = cast(const [*] f32, cxt.pen.pattern.storage())
+            cxt.patternCount = cast(s32, cxt.pen.pattern.count)
             if cxt.patternCount != 0 do
                 break
             const P = [1.0, 1.0]
@@ -674,7 +674,7 @@ impl Painter
             cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
         cxt.patternTotalLen *= cxt.pen.size
 
-        let repeatCount = cast(s32) (cxt.path.polygon.perimeter / cxt.patternTotalLen)
+        let repeatCount = cast(s32, (cxt.path.polygon.perimeter / cxt.patternTotalLen))
         cxt.error = cxt.path.polygon.perimeter - (repeatCount * cxt.patternTotalLen)
 
         // We must dispatch error at each blank in the pattern. So "divError" is the

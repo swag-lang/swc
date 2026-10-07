@@ -8,7 +8,7 @@ func exifNumber(bytes: *Array'u8, at, value, size: u64, little: bool)
     for index in size
     {
         let shift = little ? index * 8 : (size - 1 - index) * 8
-        bytes[at + index] = cast(u8) ((value >> shift) & 255)
+        bytes[at + index] = cast(u8, ((value >> shift) & 255))
     }
 }
 

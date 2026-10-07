@@ -202,7 +202,7 @@ private impl Curve
         for index in Steps
         {
             let eighth   = (index + 6) % 8
-            let x        = cast(f32) index * Eighth
+            let x        = cast(f32, index) * Eighth
             let envelope = Math.pow(2'f32, -Decay * x)
             let value    = envelope * Sines[eighth] + 1
             let slope    = envelope * (Omega * Cosines[eighth] - Decay * Math.ConstF32.Ln2 * Sines[eighth])

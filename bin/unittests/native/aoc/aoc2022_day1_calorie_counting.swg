@@ -88,7 +88,7 @@ func(T) swap(a, b: *T)
 
 func elfTotal(elf: Elf)->u32
 {
-    let itf = cast(ICalorieSource) elf
+    let itf = cast(ICalorieSource, elf)
     return itf.totalCalories()
 }
 
@@ -96,10 +96,10 @@ func collectTotals(outTotals: [..] u32, elves: const [..] Elf, mapper: func(Elf)
 {
     Swag.assert(outTotals.count >= elves.count)
 
-    let elfCount = cast(u32) elves.count
+    let elfCount = cast(u32, elves.count)
     for idx in elfCount
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         outTotals[index] = mapper(elves[index])
     }
 

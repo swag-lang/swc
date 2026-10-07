@@ -46,15 +46,15 @@ func oracleSigned32(a: s32, b: u32)->s32 => a >> b
             let masked = b & 63
             Swag.assert(left(a, b) == oracleLeft(a, masked))
             Swag.assert(right(a, b) == oracleRight(a, masked))
-            Swag.assert(signedRight(cast #bit (s64) a, b) == oracleSigned(cast #bit (s64) a, masked))
+            Swag.assert(signedRight(cast #bit (s64, a), b) == oracleSigned(cast #bit (s64, a), masked))
             Swag.assert(widerMask(a, b) == oracleLeft(a, masked))
             Swag.assert(smallerMask(a, b) == oracleLeft(a, b & 31))
             Swag.assert(shared(a, b) == (oracleLeft(a, masked) ^ masked))
-            let lowA = cast(u32) (a & 0xFFFFFFFF)
-            let lowB = cast(u32) (b & 0xFFFFFFFF)
-            Swag.assert(left32(lowA, lowB) == cast(u32) (oracleLeft(lowA, b & 31) & 0xFFFFFFFF))
+            let lowA = cast(u32, (a & 0xFFFFFFFF))
+            let lowB = cast(u32, (b & 0xFFFFFFFF))
+            Swag.assert(left32(lowA, lowB) == cast(u32, (oracleLeft(lowA, b & 31) & 0xFFFFFFFF)))
             Swag.assert(right32(lowA, lowB) == oracleRight(lowA, b & 31))
-            Swag.assert(signedRight32(cast #bit (s32) lowA, lowB) == oracleSigned32(cast #bit (s32) lowA, lowB & 31))
+            Swag.assert(signedRight32(cast #bit (s32, lowA), lowB) == oracleSigned32(cast #bit (s32, lowA), lowB & 31))
         }
     }
 }

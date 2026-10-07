@@ -282,7 +282,7 @@ AstNodeRef Parser::parseLambdaExpression()
 
     if (flags.has(AstFunctionFlagsE::Closure))
     {
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ClosureExpr>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ClosureExpr>(tokStart);
         nodePtr->flags()            = flags;
         nodePtr->nodeCaptureArgsRef = captureArgs;
         nodePtr->spanArgsRef        = args;
@@ -291,7 +291,7 @@ AstNodeRef Parser::parseLambdaExpression()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::FunctionExpr>(ref());
+    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::FunctionExpr>(tokStart);
     nodePtr->flags()           = flags;
     nodePtr->spanArgsRef       = args;
     nodePtr->nodeReturnTypeRef = returnType;

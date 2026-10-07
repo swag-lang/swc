@@ -70,7 +70,7 @@ func semaTest006()
         // A binding that targets the conditional still settles unsized constants.
         var fromConstants: u8 = flag ? 1 : 2
         #assert(#typeof(flag ? 1 : 2) != u8)
-        return cast(u32) fromIndex + fromConstants
+        return cast(u32, fromIndex) + fromConstants
     }
 }
 
@@ -84,6 +84,6 @@ func semaTest007()
         var bare      = #run { return 3 }
         #assert(#typeof(typed) == u8)
         #assert(#typeof(bare) == s32)
-        return cast(u32) typed + cast(u32) bare
+        return cast(u32, typed) + cast(u32, bare)
     }
 }

@@ -206,7 +206,7 @@ private impl FileBrowserCtrl
     {
         let treeCtrl = .treeCtrl!
         let l        = treeCtrl.createLine(name, icon)
-        l.userData0      = cast(*void?) .treePathStr.count
+        l.userData0      = cast(*void?, .treePathStr.count)
         l.leftTextMargin = 10
         .treePathStr.add(String.from(path))
     }
@@ -272,7 +272,7 @@ private impl FileBrowserCtrl
         var sel      = .listCtrl.selectedLines()
         for lineIt in sel
         {
-            let fi = cast(const *FileInfo) lineIt!.userData0!
+            let fi = cast(const *FileInfo, lineIt!.userData0!)
             if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
                 continue
             selCount += 1
@@ -304,9 +304,9 @@ private impl FileBrowserCtrl
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
-            .addColumn(strings().browser_ColName, me.options.state ? cast(f32) me.options.state.nameColumnWidth : 220.0)
-            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 130.0)
-            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32) me.options.state.sizeColumnWidth : 90.0)
+            .addColumn(strings().browser_ColName, me.options.state ? cast(f32, me.options.state.nameColumnWidth) : 220.0)
+            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 130.0)
+            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 90.0)
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $veilSoft")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
@@ -363,7 +363,7 @@ private impl FileBrowserCtrl
                     let l = list.focusedLine()
                     if not l do
                         break
-                    let fi = cast(const *FileInfo) l.userData0!
+                    let fi = cast(const *FileInfo, l.userData0!)
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurrentFolder(fi.fullName)
@@ -383,7 +383,7 @@ private impl FileBrowserCtrl
                 var l = list.selectedLine()
                 if not l do
                     return
-                var fi = cast(const *FileInfo) l.userData0!
+                var fi = cast(const *FileInfo, l.userData0!)
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurrentFolder(fi.fullName)
@@ -401,7 +401,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = cast(const *FileInfo) l!.userData0!
+                    let fi = cast(const *FileInfo, l!.userData0!)
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -428,8 +428,8 @@ private impl FileBrowserCtrl
                 if not l1 or not l2 do
                     return 0
 
-                var fi1 = cast(*FileInfo) l1.userData0!
-                var fi2 = cast(*FileInfo) l2.userData0!
+                var fi1 = cast(*FileInfo, l1.userData0!)
+                var fi2 = cast(*FileInfo, l2.userData0!)
                 if fi1.isDirectory() and not fi2.isDirectory() do
                     return -1
                 if not fi1.isDirectory() and fi2.isDirectory() do
@@ -469,9 +469,9 @@ impl FileBrowserCtrl
 
         let state = .options.state
         state.currentFolder       = .currentFolder
-        state.nameColumnWidth     = cast() .listCtrl.header.itemWidthForColumn(0)
-        state.modifiedColumnWidth = cast() .listCtrl.header.itemWidthForColumn(1)
-        state.sizeColumnWidth     = cast() .listCtrl.header.itemWidthForColumn(2)
+        state.nameColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(0))
+        state.modifiedColumnWidth = cast(.listCtrl.header.itemWidthForColumn(1))
+        state.sizeColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(2))
     }
 
     // Returns the inset every band of the browser keeps from the edges of its column.
@@ -521,7 +521,7 @@ impl FileBrowserCtrl
                     var line = list.selectedLine()
                     if not line do
                         return
-                    var idx = cast(u64) line.userData0
+                    var idx = cast(u64, line.userData0)
                     fileBrowser.setCurrentFolder(fileBrowser.treePathStr[idx].toString())
                 }
             }
@@ -634,7 +634,7 @@ impl FileBrowserCtrl
                 .addItem(strings().browser_Folders)
             else do
                 for f, idx in fileBrowser.options.filters do
-                    .addItem(f.name, userData0: cast(*void?) idx)
+                    .addItem(f.name, userData0: cast(*void?, idx))
             .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
@@ -684,7 +684,7 @@ impl FileBrowserCtrl
             let tree = fileBrowser.treeCtrl
             for line, idx in tree.lines where line and not line.separator
             {
-                tree.selectLine(cast(u32) idx)
+                tree.selectLine(cast(u32, idx))
                 break
             }
         }
@@ -933,7 +933,7 @@ impl FileBrowserCtrl
         if .options.mode == .SelectFolder or .options.filters.isEmpty() do
             return null
 
-        let filterIndex = cast(u64) .comboType.selectedItem()!.userData0
+        let filterIndex = cast(u64, .comboType.selectedItem()!.userData0)
         if filterIndex >= .options.filters.count do
             return null
         return .options.filters[filterIndex].extensions

@@ -61,12 +61,12 @@ func day3A()
                     x   += 1
                 }
 
-                nums.add({num, sx, x - 1, cast(s32) y})
+                nums.add({num, sx, x - 1, cast(s32, y)})
             }
 
             if c != '.' and x < l.length
             {
-                symbols.add({x, cast(s32) y})
+                symbols.add({x, cast(s32, y)})
             }
         }
     }

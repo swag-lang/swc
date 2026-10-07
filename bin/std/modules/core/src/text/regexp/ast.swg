@@ -151,14 +151,14 @@ impl Ast
     mtd addNode(node: Node)->u32
     {
         .nodes.add(node)
-        return cast(u32) .nodes.count - 1
+        return cast(u32, .nodes.count) - 1
     }
 
     mtd addChildren(children: const [..] u32)->{ first: u32, count: u32 }
     {
         var result: retval
-        result.first = cast(u32) .kids.count
-        result.count = cast(u32) children.count
+        result.first = cast(u32, .kids.count)
+        result.count = cast(u32, children.count)
         .kids.add(children)
         return result
     }
@@ -166,7 +166,7 @@ impl Ast
     mtd addChild(child: u32)->{ first: u32, count: u32 }
     {
         var result: retval
-        result.first = cast(u32) .kids.count
+        result.first = cast(u32, .kids.count)
         result.count = 1
         .kids.add(child)
         return result
@@ -199,7 +199,7 @@ impl Ast
             return .addNode({kind: .Literal, value: cls.ranges[0].lo})
 
         .classes.add(cls)
-        return .addNode({kind: .Class, classIndex: cast(u32) .classes.count - 1})
+        return .addNode({kind: .Class, classIndex: cast(u32, .classes.count) - 1})
     }
 
     // Adds a class node whose case folding is already done, so a negated class is not
@@ -213,7 +213,7 @@ impl Ast
             return .addNode({kind: .Literal, value: cls.ranges[0].lo})
 
         .classes.add(cls)
-        return .addNode({kind: .Class, classIndex: cast(u32) .classes.count - 1})
+        return .addNode({kind: .Class, classIndex: cast(u32, .classes.count) - 1})
     }
 
     // Adds a literal node, which becomes a class when the flags fold its case.
@@ -378,7 +378,7 @@ impl Ast
         var result: retval
         while .isDigit(.peek()) and result <= MaxRepeatCount
         {
-            result = result * 10 + cast(u32) (.peek() - '0')
+            result = result * 10 + cast(u32, (.peek() - '0'))
             .advance()
         }
 
@@ -409,7 +409,7 @@ impl Ast
             }
 
             .classes.add(cls)
-            return .addNode({kind: .Class, classIndex: cast(u32) .classes.count - 1})
+            return .addNode({kind: .Class, classIndex: cast(u32, .classes.count) - 1})
 
         case '^':
             .advance()
@@ -604,7 +604,7 @@ impl Ast
         case '1', '2', '3', '4', '5', '6', '7', '8', '9':
             .advance()
             .hasBackref = true
-            return .addNode({kind: .Backref, reference: cast(u32) (value - '0')})
+            return .addNode({kind: .Backref, reference: cast(u32, (value - '0'))})
         }
 
         let cls = try .parseClassEscape()
@@ -721,17 +721,17 @@ impl Ast
 
         if value > Utf8.MaxRune do
             fail SyntaxError{"hexadecimal escape is above the largest scalar value"}
-        return cast(rune) value
+        return cast(rune, value)
     }
 
     mtd hexDigit(value: rune)->u32 fail
     {
         if value >= '0' and value <= '9' do
-            return cast(u32) (value - '0')
+            return cast(u32, (value - '0'))
         if value >= 'a' and value <= 'f' do
-            return cast(u32) (value - 'a') + 10
+            return cast(u32, (value - 'a')) + 10
         if value >= 'A' and value <= 'F' do
-            return cast(u32) (value - 'A') + 10
+            return cast(u32, (value - 'A')) + 10
         fail SyntaxError{"invalid hexadecimal escape"}
     }
 
@@ -976,8 +976,8 @@ impl Ast
 
         case .Repeat:
             let inner = .minLength(.kids[current.first])
-            let total = cast(u64) inner * current.minCount
-            return total > Ceiling ? Ceiling : cast(u32) total
+            let total = cast(u64, inner) * current.minCount
+            return total > Ceiling ? Ceiling : cast(u32, total)
 
         case .Concat:
             var total = 0'u32
@@ -1091,7 +1091,7 @@ impl Ast
             let count = Utf8.encodeRune(buffer, value)
             for var b = 0'u32; b < count; b += 1
             {
-                let score = cast(u32) ByteFrequency[buffer[b]]
+                let score = cast(u32, ByteFrequency[buffer[b]])
                 if score < rarest
                 {
                     second = rarest

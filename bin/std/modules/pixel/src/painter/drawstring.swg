@@ -299,9 +299,9 @@ private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize
 
     var spaceAdvance = spaceDesc.advanceX
     if spaceAdvance <= 0 do
-        spaceAdvance = cast(f32) font.cache.refSize * 0.25
+        spaceAdvance = cast(f32, font.cache.refSize) * 0.25
 
-    let tabWidth   = spaceAdvance * cast(f32) effectiveTabSize
+    let tabWidth   = spaceAdvance * cast(f32, effectiveTabSize)
     let nextStop   = (Math.floor(run.metrics.width / tabWidth) + 1) * tabWidth
     let tabAdvance = nextStop - run.metrics.width
     appendShapedGlyph(run, spaceFont, spaceGlyphIndex, cluster, 0, tabAdvance, true)
@@ -351,7 +351,7 @@ impl Painter
     func computeTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
     {
         var result: retval
-        result.drawFont    = Font.resolveDrawFont(font, cast(f32) font.size * zoom * transformScale)
+        result.drawFont    = Font.resolveDrawFont(font, cast(f32, font.size) * zoom * transformScale)
         result.snapPixels  = not result.drawFont.cache.renderMode.isDistanceField()
         result.deviceScale = transformScale
 
@@ -937,7 +937,7 @@ impl Painter
             if c.isEol
             {
                 line.start  = startLine
-                line.end    = cast(s32) idx
+                line.end    = cast(s32, idx)
                 line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
                 if format.minLineHeight > 0 do
                     line.height = Math.max(line.height, format.minLineHeight)
@@ -987,7 +987,7 @@ impl Painter
                         // from its first chunk. It carries no space chunk, by construction.
                         startLine = wordStart
                         line      = OneLine{}
-                        for w in startLine to cast(s32) idx
+                        for w in startLine to cast(s32, idx)
                         {
                             let wc = &text.chunks[w]
                             line.measure.width   += wc.boundRect.width
@@ -1006,14 +1006,14 @@ impl Painter
                     if startLine != idx
                     {
                         line.start  = startLine
-                        line.end    = cast(s32) idx
+                        line.end    = cast(s32, idx)
                         line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
                         if format.minLineHeight > 0 do
                             line.height = Math.max(line.height, format.minLineHeight)
                         lines.add(line)
                     }
 
-                    startLine = cast(s32) idx
+                    startLine = cast(s32, idx)
                     line      = OneLine{}
 
                     // We: not want the new line to start with a space
@@ -1060,7 +1060,7 @@ impl Painter
             // rewinds to.
             if c.isSpace
             {
-                wordStart = cast(s32) idx + 1
+                wordStart = cast(s32, idx) + 1
                 wordLine  = line
             }
         }
@@ -1068,7 +1068,7 @@ impl Painter
         if startLine != text.chunks.count
         {
             line.start  = startLine
-            line.end    = cast(s32) text.chunks.count
+            line.end    = cast(s32, text.chunks.count)
             line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
             if format.minLineHeight > 0 do
                 line.height = Math.max(line.height, format.minLineHeight)
@@ -1081,9 +1081,9 @@ impl Painter
         var cutLine = -1's64
         if format.maxLines and lines.count > format.maxLines
         {
-            lines.resize(cast(u64) format.maxLines)
+            lines.resize(cast(u64, format.maxLines))
             lines[lines.count - 1].hasEol = false
-            cutLine = cast(s64) lines.count - 1
+            cutLine = cast(s64, lines.count) - 1
         }
 
         // Ellipsis
@@ -1098,7 +1098,7 @@ impl Painter
             for i in lines.count
             {
                 let l      = &lines[i]
-                let wasCut = cast(s64) i == cutLine and l.end > l.start
+                let wasCut = cast(s64, i) == cutLine and l.end > l.start
                 if l.measure.width <= pos.width and not wasCut do
                     continue
 
@@ -1183,9 +1183,9 @@ impl Painter
             totalHeight += l.height
             if idxLine != lines.count - 1
             {
-                totalHeight += cast(f32) format.lineGap
+                totalHeight += cast(f32, format.lineGap)
                 if l.hasEol do
-                    totalHeight += cast(f32) format.paragraphGap
+                    totalHeight += cast(f32, format.paragraphGap)
             }
         }
 
@@ -1252,9 +1252,9 @@ impl Painter
             y += l.height
             if idxLine != lines.count - 1
             {
-                y += cast(f32) format.lineGap
+                y += cast(f32, format.lineGap)
                 if l.hasEol do
-                    y += cast(f32) format.paragraphGap
+                    y += cast(f32, format.paragraphGap)
             }
         }
 

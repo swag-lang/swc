@@ -21,7 +21,7 @@ func day4B()
         var str: [6] u8
         for i in 6
         {
-            str[i] = cast(u8) ((x / div) % 10)
+            str[i] = cast(u8, ((x / div) % 10))
             div    /= 10
         }
 

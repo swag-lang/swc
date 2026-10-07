@@ -17,12 +17,12 @@ func compute()
     var data   = {minS: slider.lowerValue(), maxS: slider.upperValue()}
     g_Image.visitPixels(&data)
     {
-        var params = cast(*#decltype(data)) userData!
+        var params = cast(*#decltype(data), userData!)
         var minS   = params.minS
         var maxS   = params.maxS
 
-        var a = map(cast(f32) x, 0, cast(f32) g_Image.width, minS, maxS)
-        var b = map(cast(f32) y, 0, cast(f32) g_Image.height, minS, maxS)
+        var a = map(cast(f32, x), 0, cast(f32, g_Image.width), minS, maxS)
+        var b = map(cast(f32, y), 0, cast(f32, g_Image.height), minS, maxS)
 
         var ca = a
         var cb = b
@@ -43,7 +43,7 @@ func compute()
                 break
         }
 
-        var light = cast(u8) Math.map(cast(f32) n, 0, cast(f32) MaxIterations, 0, 255)
+        var light = cast(u8, Math.map(cast(f32, n), 0, cast(f32, MaxIterations), 0, 255))
         pix[0] = light
         pix[1] = light
         pix[2] = light
@@ -52,8 +52,8 @@ func compute()
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    let w = cast(s32) wnd.position.width
-    let h = cast(s32) wnd.position.height
+    let w = cast(s32, wnd.position.width)
+    let h = cast(s32, wnd.position.height)
 
     switch evt
     {
@@ -77,7 +77,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         paintEvt.paintContext.renderer.updateTexture(g_Texture, g_Image.pixels.storage())
-        painter.drawTexture(0, 0, cast(f32) w, cast(f32) h, g_Texture)
+        painter.drawTexture(0, 0, cast(f32, w), cast(f32, h), g_Texture)
         return true
     }
 

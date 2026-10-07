@@ -23,19 +23,19 @@ impl IAction for RedoAction
 
 func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoStruct, expectNullObject: bool)->bool
 {
-    let runtimeItf = cast(*Swag.Interface) &itf
+    let runtimeItf = cast(*Swag.Interface, &itf)
     if runtimeItf == null or runtimeItf.itable == null do
         return false
 
-    let kind      = cast #assume(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
-    let tableType = cast(const *Swag.TypeInfoStruct?) runtimeItf.itable[]
+    let kind      = assume cast(const *Swag.TypeInfoStruct, Swag.kindOf(itf))
+    let tableType = cast(const *Swag.TypeInfoStruct?, runtimeItf.itable[])
     if kind != expectedType or tableType != expectedType do
         return false
 
     if expectNullObject do
         return runtimeItf.obj == null
 
-    return runtimeItf.obj != null and runtimeItf.obj != cast(*void) runtimeItf
+    return runtimeItf.obj != null and runtimeItf.obj != cast(*void, runtimeItf)
 }
 
 func runActionRegistry()->bool
@@ -50,9 +50,9 @@ func runActionRegistry()->bool
 
     return actions[0].accept(1) and
            actions[1].execute(3) == 83 and
-           validateRuntimeInterface(actions[0], cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), true) and
-           validateRuntimeInterface(actions[1], cast(const *Swag.TypeInfoStruct) #typeof(RedoAction{}), true) and
-           validateRuntimeInterface(castAction, cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), false)
+           validateRuntimeInterface(actions[0], cast(const *Swag.TypeInfoStruct, #typeof(UndoAction{})), true) and
+           validateRuntimeInterface(actions[1], cast(const *Swag.TypeInfoStruct, #typeof(RedoAction{})), true) and
+           validateRuntimeInterface(castAction, cast(const *Swag.TypeInfoStruct, #typeof(UndoAction{})), false)
 }
 
 #test

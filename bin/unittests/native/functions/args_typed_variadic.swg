@@ -33,12 +33,12 @@ func variadicTypedF64(values: f64...)->f64
 
 func variadicTypedBool(values: bool...)->s32
 {
-    return cast(s32) values[0] + cast(s32) values[1] + cast(s32) values[2] + cast(s32) values[3]
+    return cast(s32, values[0]) + cast(s32, values[1]) + cast(s32, values[2]) + cast(s32, values[3])
 }
 
 func variadicTypedRune(a: rune, values: rune...)->s32
 {
-    return cast(s32) a + cast(s32) values[0] + cast(s32) values[1]
+    return cast(s32, a) + cast(s32, values[0]) + cast(s32, values[1])
 }
 
 func variadicTypedString(a: string, values: string...)->u8
@@ -102,7 +102,7 @@ func variadicTypedPairForward(values: TypedVariadicPair...)->s32
 
 func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
 {
-    return cast(f32) values[0] + cast(f32) values[1]
+    return cast(f32, values[0]) + cast(f32, values[1])
 }
 
 #test
@@ -116,7 +116,7 @@ func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
 #test
 {
     Swag.assert(variadicTypedF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64) == 10.0'f64)
-    Swag.assert(variadicTypedStrictF32(cast(TypedVariadicStrictF32) 1.5, cast(TypedVariadicStrictF32) 2.5) == 4.0'f32)
+    Swag.assert(variadicTypedStrictF32(cast(TypedVariadicStrictF32, 1.5), cast(TypedVariadicStrictF32, 2.5)) == 4.0'f32)
     Swag.assert(variadicTypedBool(true, false, true, true) == 3)
     Swag.assert(variadicTypedRune('a', 'b', 'c') == 294)
     Swag.assert(variadicTypedString("Az", "By", "Cx") == 198'u8)

@@ -72,23 +72,23 @@ const PFD_DEPTH_DONTCARE        = 0x20000000
 const PFD_DOUBLEBUFFER_DONTCARE = 0x40000000
 const PFD_STEREO_DONTCARE       = 0x80000000
 
-const SRCCOPY        = cast(DWORD) 0x00CC0020     /* dest = source                   */
-const SRCPAINT       = cast(DWORD) 0x00EE0086     /* dest = source OR dest           */
-const SRCAND         = cast(DWORD) 0x008800C6     /* dest = source AND dest          */
-const SRCINVERT      = cast(DWORD) 0x00660046     /* dest = source XOR dest          */
-const SRCERASE       = cast(DWORD) 0x00440328     /* dest = source AND (NOT dest )   */
-const NOTSRCCOPY     = cast(DWORD) 0x00330008     /* dest = (NOT source)             */
-const NOTSRCERASE    = cast(DWORD) 0x001100A6     /* dest = (NOT src) AND (NOT dest) */
-const MERGECOPY      = cast(DWORD) 0x00C000CA     /* dest = (source AND pattern)     */
-const MERGEPAINT     = cast(DWORD) 0x00BB0226     /* dest = (NOT source) OR dest     */
-const PATCOPY        = cast(DWORD) 0x00F00021     /* dest = pattern                  */
-const PATPAINT       = cast(DWORD) 0x00FB0A09     /* dest = DPSnoo                   */
-const PATINVERT      = cast(DWORD) 0x005A0049     /* dest = pattern XOR dest         */
-const DSTINVERT      = cast(DWORD) 0x00550009     /* dest = (NOT dest)               */
-const BLACKNESS      = cast(DWORD) 0x00000042     /* dest = BLACK                    */
-const WHITENESS      = cast(DWORD) 0x00FF0062     /* dest = WHITE                    */
-const NOMIRRORBITMAP = cast(DWORD) 0x80000000     /* Do not Mirror the bitmap in this call */
-const CAPTUREBLT     = cast(DWORD) 0x40000000     /* Include layered windows */
+const SRCCOPY        = cast(DWORD, 0x00CC0020)     /* dest = source                   */
+const SRCPAINT       = cast(DWORD, 0x00EE0086)     /* dest = source OR dest           */
+const SRCAND         = cast(DWORD, 0x008800C6)     /* dest = source AND dest          */
+const SRCINVERT      = cast(DWORD, 0x00660046)     /* dest = source XOR dest          */
+const SRCERASE       = cast(DWORD, 0x00440328)     /* dest = source AND (NOT dest )   */
+const NOTSRCCOPY     = cast(DWORD, 0x00330008)     /* dest = (NOT source)             */
+const NOTSRCERASE    = cast(DWORD, 0x001100A6)     /* dest = (NOT src) AND (NOT dest) */
+const MERGECOPY      = cast(DWORD, 0x00C000CA)     /* dest = (source AND pattern)     */
+const MERGEPAINT     = cast(DWORD, 0x00BB0226)     /* dest = (NOT source) OR dest     */
+const PATCOPY        = cast(DWORD, 0x00F00021)     /* dest = pattern                  */
+const PATPAINT       = cast(DWORD, 0x00FB0A09)     /* dest = DPSnoo                   */
+const PATINVERT      = cast(DWORD, 0x005A0049)     /* dest = pattern XOR dest         */
+const DSTINVERT      = cast(DWORD, 0x00550009)     /* dest = (NOT dest)               */
+const BLACKNESS      = cast(DWORD, 0x00000042)     /* dest = BLACK                    */
+const WHITENESS      = cast(DWORD, 0x00FF0062)     /* dest = WHITE                    */
+const NOMIRRORBITMAP = cast(DWORD, 0x80000000)     /* Do not Mirror the bitmap in this call */
+const CAPTUREBLT     = cast(DWORD, 0x40000000)     /* Include layered windows */
 
 struct BITMAP
 {

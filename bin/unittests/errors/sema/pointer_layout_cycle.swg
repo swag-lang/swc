@@ -8,7 +8,7 @@ func advance(value: [*] Item)->[*] Item => value + 1
 func initialValue(value: [*] Item?)->s64
 {
     if value do
-        return cast(s64) advance(value)
+        return cast(s64, advance(value))
     return 17
 }
 

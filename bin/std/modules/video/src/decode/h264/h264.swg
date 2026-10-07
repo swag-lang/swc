@@ -188,15 +188,15 @@ impl Decoder
         if record[0] != 1 do
             fail UnsupportedFormatError{"H.264 decoder configuration has an unknown version"}
 
-        .nalLengthSize = cast(u32) (record[4] & 3) + 1
+        .nalLengthSize = cast(u32, (record[4] & 3)) + 1
         var offset   = 5'u64
-        let spsCount = cast(u64) (record[offset] & 0x1F)
+        let spsCount = cast(u64, (record[offset] & 0x1F))
         offset += 1
         for spsCount do
             offset = try .configureSet(record, offset)
         if offset >= record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
-        let ppsCount = cast(u64) record[offset]
+        let ppsCount = cast(u64, record[offset])
         offset += 1
         for ppsCount do
             offset = try .configureSet(record, offset)
@@ -207,7 +207,7 @@ impl Decoder
     {
         if offset + 2 > record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
-        let size  = (cast(u64) record[offset] << 8) | cast(u64) record[offset + 1]
+        let size  = (cast(u64, record[offset]) << 8) | cast(u64, record[offset + 1])
         let start = offset + 2
         if size < 1 or start + size > record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
@@ -326,7 +326,7 @@ impl Decoder
             var size = 0'u64
             for .nalLengthSize
             {
-                size   = (size << 8) | cast(u64) sample[offset]
+                size   = (size << 8) | cast(u64, sample[offset])
                 offset += 1
             }
 
@@ -400,7 +400,7 @@ impl Decoder
             var size = 0'u64
             for .nalLengthSize
             {
-                size   = (size << 8) | cast(u64) sample[offset]
+                size   = (size << 8) | cast(u64, sample[offset])
                 offset += 1
             }
 
@@ -534,7 +534,7 @@ impl Decoder
             var size = 0'u64
             for .nalLengthSize
             {
-                size   = (size << 8) | cast(u64) sample[offset]
+                size   = (size << 8) | cast(u64, sample[offset])
                 offset += 1
             }
 
@@ -581,7 +581,7 @@ impl Decoder
             var size = 0'u64
             for .nalLengthSize
             {
-                size   = (size << 8) | cast(u64) sample[offset]
+                size   = (size << 8) | cast(u64, sample[offset])
                 offset += 1
             }
 
@@ -608,8 +608,8 @@ impl Decoder
         let header = nal[0]
         if header & 0x80 do
             fail InvalidFormatError{"H.264 NAL unit has a set forbidden bit"}
-        let refIdc  = cast(u32) header >> 5
-        let nalType = cast(u32) header & 0x1F
+        let refIdc  = cast(u32, header) >> 5
+        let nalType = cast(u32, header) & 0x1F
 
         switch nalType
         {
@@ -658,7 +658,7 @@ impl Decoder
         }
 
         .sliceCount   += 1
-        slice.sliceId = cast(u16) .sliceCount
+        slice.sliceId = cast(u16, .sliceCount)
         if slice.header.type != SliceTypeI do
             try slice.buildLists()
         .pictureSlices.add(#move slice)
@@ -729,7 +729,7 @@ impl Decoder
         frame.poc      = poc
         .current       = frame
 
-        let mbCount     = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight
+        let mbCount     = cast(u64, sps.mbWidth) * cast(u64, sps.mbHeight)
         let blocks      = mbCount * 16
         let chromaCells = sps.is444() ? blocks : mbCount * 4
         if .mbInfo.count != mbCount or .nonZeroCb.count != chromaCells
@@ -774,7 +774,7 @@ impl Decoder
         .sliceCount       = 0
         .refIdentityCount = 0
         .pictureSlices.clear()
-        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Swag.workerCount(), ReconstructionBands, cast(u32) sps.mbHeight) : 0
+        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Swag.workerCount(), ReconstructionBands, cast(u32, sps.mbHeight)) : 0
         .pipelineScheduled = 0
         .pipelineFailed    = 0
     }
@@ -790,20 +790,20 @@ impl Decoder
         for index in .refIdentityCount
         {
             if .refIdentityPoc[index] == poc do
-                return cast(s8) (index + 1)
+                return cast(s8, (index + 1))
         }
 
         Swag.assert(.refIdentityCount < MaxReferenceIdentities)
         .refIdentityPoc[.refIdentityCount] = poc
         .refIdentityCount += 1
-        return cast(s8) .refIdentityCount
+        return cast(s8, .refIdentityCount)
     }
 
     // Verifies that the parsed slices cover the complete current picture.
     private mtd validatePicture() fail
     {
         let sps     = .sps!
-        let mbCount = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight
+        let mbCount = cast(u64, sps.mbWidth) * cast(u64, sps.mbHeight)
         if .decodedMbs != mbCount do
             fail InvalidFormatError{"H.264 access unit does not cover the whole picture"}
     }
@@ -847,7 +847,7 @@ impl Decoder
         {
             // Sliding window: the oldest short-term reference leaves when the buffer is full.
             let maxRefs = Math.max(.sps!.maxRefFrames, 1)
-            while .shortRefs.count + .longRefs.count >= cast(u64) maxRefs and .shortRefs.count
+            while .shortRefs.count + .longRefs.count >= cast(u64, maxRefs) and .shortRefs.count
             {
                 let oldest = .shortRefs.back()
                 oldest.isShortTerm = false
@@ -868,7 +868,7 @@ impl Decoder
             switch operation.op
             {
             case 1:
-                let wanted = cast(s32) frame.frameNum - cast(s32) (operation.arg0 + 1)
+                let wanted = cast(s32, frame.frameNum) - cast(s32, (operation.arg0 + 1))
                 for index in .shortRefs.count where .mmcoPicNum(.shortRefs[index], frame, maxFrameNum) == wanted
                 {
                     .shortRefs[index].isShortTerm = false
@@ -877,7 +877,7 @@ impl Decoder
                 }
 
             case 2:
-                for index in .longRefs.count where .longRefs[index].longTermIdx == cast(s32) operation.arg0
+                for index in .longRefs.count where .longRefs[index].longTermIdx == cast(s32, operation.arg0)
                 {
                     .longRefs[index].isLongTerm = false
                     .longRefs.removeAtOrdered(index)
@@ -885,21 +885,21 @@ impl Decoder
                 }
 
             case 3:
-                let wanted = cast(s32) frame.frameNum - cast(s32) (operation.arg0 + 1)
+                let wanted = cast(s32, frame.frameNum) - cast(s32, (operation.arg0 + 1))
                 for index in .shortRefs.count where .mmcoPicNum(.shortRefs[index], frame, maxFrameNum) == wanted
                 {
                     let moved = .shortRefs[index]
                     .shortRefs.removeAtOrdered(index)
                     moved.isShortTerm = false
-                    .unmarkLongIndex(cast(s32) operation.arg1)
+                    .unmarkLongIndex(cast(s32, operation.arg1))
                     moved.isLongTerm  = true
-                    moved.longTermIdx = cast(s32) operation.arg1
+                    moved.longTermIdx = cast(s32, operation.arg1)
                     .insertLong(moved)
                     break
                 }
 
             case 4:
-                let maxIdx = cast(s32) operation.arg0 - 1
+                let maxIdx = cast(s32, operation.arg0) - 1
                 var index  = 0'u64
                 while index < .longRefs.count
                 {
@@ -928,9 +928,9 @@ impl Decoder
                 frame.poc           = 0
 
             case 6:
-                .unmarkLongIndex(cast(s32) operation.arg0)
+                .unmarkLongIndex(cast(s32, operation.arg0))
                 frame.isLongTerm  = true
-                frame.longTermIdx = cast(s32) operation.arg0
+                frame.longTermIdx = cast(s32, operation.arg0)
                 .insertLong(frame)
 
             default:
@@ -942,7 +942,7 @@ impl Decoder
     // Returns the picture number of a short-term reference relative to the current picture.
     private mtd const mmcoPicNum(reference, frame: *Frame, maxFrameNum: s32)->s32
     {
-        let wrap = cast(s32) reference.frameNum > cast(s32) frame.frameNum ? cast(s32) reference.frameNum - maxFrameNum : cast(s32) reference.frameNum
+        let wrap = cast(s32, reference.frameNum) > cast(s32, frame.frameNum) ? cast(s32, reference.frameNum) - maxFrameNum : cast(s32, reference.frameNum)
         return wrap
     }
 
@@ -974,13 +974,13 @@ impl Decoder
     {
         let sps         = .sps!
         let maxFrameNum = 1's32 << sps.log2MaxFrameNum
-        let frameNum    = cast(s32) header.frameNum
+        let frameNum    = cast(s32, header.frameNum)
 
         switch sps.pocType
         {
         case 0:
             let maxLsb = 1's32 << sps.log2MaxPocLsb
-            let lsb    = cast(s32) header.pocLsb
+            let lsb    = cast(s32, header.pocLsb)
             var msb    = .prevPocMsb
             if header.isIdr
             {
@@ -1008,14 +1008,14 @@ impl Decoder
             if not header.isIdr
             {
                 frameNumOffset = .prevFrameNumOffset
-                if cast(s32) .prevFrameNum > frameNum do
+                if cast(s32, .prevFrameNum) > frameNum do
                     frameNumOffset += maxFrameNum
             }
 
             .prevFrameNumOffset = frameNumOffset
             .prevFrameNum       = header.frameNum
 
-            let cycleCount = cast(s32) .sps.pocCycle.count
+            let cycleCount = cast(s32, .sps.pocCycle.count)
             if not cycleCount do
                 return 0
 
@@ -1033,7 +1033,7 @@ impl Decoder
                 let cycles  = (absFrameNum - 1) / cycleCount
                 let inCycle = (absFrameNum - 1) % cycleCount
                 expected = cycles * expectedDelta
-                for index in cast(u64) inCycle + 1 do
+                for index in cast(u64, inCycle) + 1 do
                     expected += .sps.pocCycle[index]
             }
 
@@ -1049,7 +1049,7 @@ impl Decoder
             if not header.isIdr
             {
                 frameNumOffset = .prevFrameNumOffset
-                if cast(s32) .prevFrameNum > frameNum do
+                if cast(s32, .prevFrameNum) > frameNum do
                     frameNumOffset += maxFrameNum
             }
 

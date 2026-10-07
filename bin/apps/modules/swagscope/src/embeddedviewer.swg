@@ -125,7 +125,7 @@ impl Viewer.Embedded for EmbeddedViewer
         if .activeIndex >= .instances.count do
             return false
         let instance = &.instances[.activeIndex]
-        return instance.view and instance.isLoading and instance.isLoading(instance.view)
+        return instance.view and instance.isLoading and instance.isLoading()
     }
 }
 
@@ -246,7 +246,7 @@ private impl EmbeddedViewer
             instance.view           = ViewerErrorView.create(.document, reason)
             instance.view.dockStyle = .Center
             if index == .activeIndex do
-                .showInstance(cast(u32) index)
+                .showInstance(cast(u32, index))
             return
         }
     }

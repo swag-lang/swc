@@ -10,7 +10,7 @@ using Swag
     {
         let size = Allocator.classSize(classIndex)
         var page: AllocatorPage
-        page.setupBlockDivision(cast(u32) size)
+        page.setupBlockDivision(cast(u32, size))
         page.areaStart = 0x1_0000_0000
         page.areaEnd   = page.areaStart + (512 * 1024 / size) * size
 

@@ -13,12 +13,12 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
     {
         for x in source.width
         {
-            let pixel  = source.pixels.storage() + cast(u64) ((source.height - y - 1) * source.rowStride + x * 4)
+            let pixel  = source.pixels.storage() + cast(u64, ((source.height - y - 1) * source.rowStride + x * 4))
             let border = x == 0 or y == 0 or x == 7 or y == 7
-            pixel[0] = border ? 255'u8 : cast(u8) (x * 28)
-            pixel[1] = border ? 0'u8 : cast(u8) (y * 28)
-            pixel[2] = border ? 255'u8 : cast(u8) ((x + y) * 14)
-            pixel[3] = cast(u8) (64 + x * 20)
+            pixel[0] = border ? 255'u8 : cast(u8, (x * 28))
+            pixel[1] = border ? 0'u8 : cast(u8, (y * 28))
+            pixel[2] = border ? 255'u8 : cast(u8, ((x + y) * 14))
+            pixel[3] = cast(u8, (64 + x * 20))
         }
     }
 

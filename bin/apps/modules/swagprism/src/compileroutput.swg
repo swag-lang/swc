@@ -24,13 +24,13 @@ impl CompilerOutput
         for i in .colors.count
         {
             if .colors[i] == color do
-                return cast(RichEditStyleRef) (i + 1)
+                return cast(RichEditStyleRef, (i + 1))
         }
 
         if .colors.count == 255 do
             return 0
         .colors.add(color)
-        return cast(RichEditStyleRef) .colors.count
+        return cast(RichEditStyleRef, .colors.count)
     }
 
     mtd parse(source: string)
@@ -39,7 +39,7 @@ impl CompilerOutput
         .runs.clear()
         .colors.clear()
 
-        let bytes = cast(const [..] u8) source
+        let bytes = cast(const [..] u8, source)
         var index = 0'u64
         var style: RichEditStyleRef
         while index < bytes.count
@@ -106,7 +106,7 @@ impl CompilerOutput
                 elif code == 38 and param + 4 < params.count and params[param + 1] == 2
                 {
                     if params[param + 2] <= 255 and params[param + 3] <= 255 and params[param + 4] <= 255 do
-                        style = .colorStyle(Color.fromRgb(cast(u8) params[param + 2], cast(u8) params[param + 3], cast(u8) params[param + 4]))
+                        style = .colorStyle(Color.fromRgb(cast(u8, params[param + 2]), cast(u8, params[param + 3]), cast(u8, params[param + 4])))
                     param += 4
                 }
 

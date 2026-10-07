@@ -34,7 +34,7 @@ func compared(a: u64)->bool => (a & (a - 1)) == 0
         let previous = a - 1
         let expected = a & previous
         Swag.assert(clear(a) == expected)
-        Swag.assert(clear32(cast(u32) (a & 0xFFFFFFFF)) == cast(u32) (expected & 0xFFFFFFFF))
+        Swag.assert(clear32(cast(u32, (a & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
         Swag.assert(unionPrevious(a) == (a | previous))
         Swag.assert(xorOffset(a) == (a ^ (a + 7)))
         Swag.assert(sumOffset(a) == a + (a - 7))

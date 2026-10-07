@@ -96,10 +96,10 @@ alias LocalStrict = s32
 
 #test
 {
-    func retAlias()->LocalStrict { return cast(LocalStrict) 77 }
+    func retAlias()->LocalStrict { return cast(LocalStrict, 77) }
     const V = #run retAlias()
     #assert(#typeof(V) == LocalStrict)
-    #assert(cast(s32) V == 77)
+    #assert(cast(s32, V) == 77)
 }
 
 #test
@@ -154,7 +154,7 @@ struct LocalStruct
     func retEnum()->LocalEnum { return LocalEnum.A }
     const V = #run retEnum()
     #assert(#typeof(V) == LocalEnum)
-    #assert(cast(u16) V == 513'u16)
+    #assert(cast(u16, V) == 513'u16)
 }
 
 #test

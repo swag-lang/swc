@@ -1989,7 +1989,7 @@ impl Buffer
 {
     mtd opSet(text: string)
     {
-        .value = cast(u32) text.count
+        .value = cast(u32, text.count)
     }
 }
 #test

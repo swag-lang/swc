@@ -103,7 +103,7 @@ impl Document
         if rule == .EvenOdd do
             .body += " fill-rule=\"evenodd\""
         if color.a != 255 do
-            .body.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32) color.a / 255.0)
+            .body.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32, color.a) / 255.0)
         .body.appendFormat(" d=\"%\"/>\n", data)
     }
 
@@ -204,7 +204,7 @@ private func num(value: f32)->String
     var result: retval
     if value == Math.trunc(value) and Math.abs(value) < 1e9
     {
-        result.appendFormat("%", cast(s64) value)
+        result.appendFormat("%", cast(s64, value))
         return result
     }
 

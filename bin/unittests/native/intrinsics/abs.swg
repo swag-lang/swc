@@ -139,24 +139,24 @@ func absStrictF32(value: AbsStrictF32)->AbsStrictF32 => Swag.abs(value)
 // Strict aliases
 #test
 {
-    const a = Swag.abs(cast(AbsStrictS32) -42)
-    const b = Swag.abs(cast(AbsStrictF32) -1.5'f32)
+    const a = Swag.abs(cast(AbsStrictS32, -42))
+    const b = Swag.abs(cast(AbsStrictF32, -1.5'f32))
 
     #assert(#typeof(a) == AbsStrictS32)
     #assert(#typeof(b) == AbsStrictF32)
 
-    Swag.assert(a == cast(AbsStrictS32) 42)
-    Swag.assert(b == cast(AbsStrictF32) 1.5'f32)
+    Swag.assert(a == cast(AbsStrictS32, 42))
+    Swag.assert(b == cast(AbsStrictF32, 1.5'f32))
 }
 
 #test
 {
-    let a = absStrictS32(cast(AbsStrictS32) -123)
-    let b = absStrictF32(cast(AbsStrictF32) -2.25'f32)
+    let a = absStrictS32(cast(AbsStrictS32, -123))
+    let b = absStrictF32(cast(AbsStrictF32, -2.25'f32))
 
     #assert(#typeof(a) == AbsStrictS32)
     #assert(#typeof(b) == AbsStrictF32)
 
-    Swag.assert(a == cast(AbsStrictS32) 123)
-    Swag.assert(b == cast(AbsStrictF32) 2.25'f32)
+    Swag.assert(a == cast(AbsStrictS32, 123))
+    Swag.assert(b == cast(AbsStrictF32, 2.25'f32))
 }

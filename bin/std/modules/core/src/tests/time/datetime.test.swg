@@ -18,13 +18,13 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 {
     using Time.DayOfWeek
 
-    Swag.assert(cast(u32) Sunday == 0)
-    Swag.assert(cast(u32) Monday == 1)
-    Swag.assert(cast(u32) Tuesday == 2)
-    Swag.assert(cast(u32) Wednesday == 3)
-    Swag.assert(cast(u32) Thursday == 4)
-    Swag.assert(cast(u32) Friday == 5)
-    Swag.assert(cast(u32) Saturday == 6)
+    Swag.assert(cast(u32, Sunday) == 0)
+    Swag.assert(cast(u32, Monday) == 1)
+    Swag.assert(cast(u32, Tuesday) == 2)
+    Swag.assert(cast(u32, Wednesday) == 3)
+    Swag.assert(cast(u32, Thursday) == 4)
+    Swag.assert(cast(u32, Friday) == 5)
+    Swag.assert(cast(u32, Saturday) == 6)
     Swag.assert(Time.DayOfWeek.count == 7)
 
     Swag.assert(Time.DateTime.dayOfWeekName(Sunday) == "Sunday")
@@ -40,16 +40,16 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 {
     using Time.DateTimeFormat
 
-    Swag.assert(cast(u32) DateIso == 0)
-    Swag.assert(cast(u32) TimeIso == 1)
-    Swag.assert(cast(u32) TimeIsoMs == 2)
-    Swag.assert(cast(u32) TimeIsoHm == 3)
-    Swag.assert(cast(u32) Date == 4)
-    Swag.assert(cast(u32) DateTime == 5)
-    Swag.assert(cast(u32) DateTimeMs == 6)
-    Swag.assert(cast(u32) DateTimeIso == 7)
-    Swag.assert(cast(u32) DateTimeIsoMs == 8)
-    Swag.assert(cast(u32) DateTimeIsoHm == 9)
+    Swag.assert(cast(u32, DateIso) == 0)
+    Swag.assert(cast(u32, TimeIso) == 1)
+    Swag.assert(cast(u32, TimeIsoMs) == 2)
+    Swag.assert(cast(u32, TimeIsoHm) == 3)
+    Swag.assert(cast(u32, Date) == 4)
+    Swag.assert(cast(u32, DateTime) == 5)
+    Swag.assert(cast(u32, DateTimeMs) == 6)
+    Swag.assert(cast(u32, DateTimeIso) == 7)
+    Swag.assert(cast(u32, DateTimeIsoMs) == 8)
+    Swag.assert(cast(u32, DateTimeIsoHm) == 9)
     Swag.assert(Time.DateTimeFormat.count == 10)
 }
 

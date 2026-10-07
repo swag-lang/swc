@@ -99,7 +99,7 @@ impl QuickStylePaintForm
     func create(srcItf: IForm)->QuickStylePaintForm
     {
         let paintBase = MainWnd.newFormFromForm(srcItf)
-        let paintItf  = cast #assume (IForm) paintBase
+        let paintItf  = assume cast (IForm, paintBase)
 
         var cxt: FormPaintContext
         cxt.z         = 1
@@ -118,21 +118,21 @@ impl QuickStylePaintForm
         case FormText as txt:     txt.text = "A"
         }
 
-        paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
+        paintItf.setBaseForm(cast(rect.x), cast(rect.y), cast(rect.width), cast(rect.height))
 
         // The callout tail lives in canvas space and is never carried by a style; give the
         // preview a shortened body and an in-cell downward tail so it renders to scale.
         if Swag.kindOf(paintItf) == FormCallout
         {
-            let cl = cast #assume (*FormCallout) paintItf
+            let cl = assume cast (*FormCallout, paintItf)
             cl.text = "A"
 
             // Read as a clean speech bubble: quick mode already normalizes the glyph size to
             // a fixed range, so a small fontSize just lands at the airy end; keep the body
             // nearly full-cell so the letter breathes, and hang a short downward tail nub.
             cl.fontSize = 10
-            cl.h        = cast(s32) (cast(f32) cl.h * 0.82)
-            cl.tailX    = cl.x + cast(s32) (cast(f32) cl.w * 0.28)
+            cl.h        = cast(s32, (cast(f32, cl.h) * 0.82))
+            cl.tailX    = cl.x + cast(s32, (cast(f32, cl.w) * 0.28))
             cl.tailY    = cl.y + cl.h + 8
         }
 
@@ -155,7 +155,7 @@ impl QuickStylePaintForm
     // flat by the cell and the preset reads as broken rather than as pointed.
     func sampleInset(itf: IForm, cxt: FormPaintContext)->f32
     {
-        let sel  = cast #assume (*BaseForm) itf
+        let sel  = assume cast (*BaseForm, itf)
         let type = Swag.kindOf(itf)
 
         // An arrow is a line carrying its own defaults, so both answer through the line.
@@ -164,7 +164,7 @@ impl QuickStylePaintForm
             // The line ends are shaped from the stroke and the contour is pushed out around the
             // result, so the contour adds its own width once instead of widening the stroke the
             // ends are measured against.
-            let line  = cast #assume (*FormLine) itf
+            let line  = assume cast (*FormLine, itf)
             let sizes = line.paintSizes(cxt)
             let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
             let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
@@ -179,7 +179,7 @@ impl QuickStylePaintForm
 
         var inset = BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
         if type == FormDraw do
-            inset += (cast #assume (*FormDraw) itf).paintOutlineSize(cxt)
+            inset += assume cast (*FormDraw, itf).paintOutlineSize(cxt)
         return inset
     }
 }
@@ -194,7 +194,7 @@ func quickStyleTip(itf: IForm)->string
     if Swag.kindOf(itf) != FormImage do
         return ""
 
-    let img = cast #assume (*FormImage) itf
+    let img = assume cast (*FormImage, itf)
     switch #complete img.kind
     {
     case .Image:    return appStrings().prop_KindImage
@@ -341,7 +341,7 @@ impl QuickWnd
         let res = menu.doModal(pos, autoDestroy: true)
         if res == "0" and btn
         {
-            let qbtn = cast #assume (*QuickButton) btn
+            let qbtn = assume cast (*QuickButton, btn)
             .currentStyle!.remove(qbtn.formItf!)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
@@ -709,9 +709,9 @@ impl QuickWnd
         // button is ever hidden), so form 'i' maps directly to child 'i'.
         for it, i in .currentStyle.forms
         {
-            let btn = cast #assume (*IconButton) .layout.children[i]
+            let btn = assume cast (*IconButton, .layout.children[i])
             let mdl = .main.modelFor(Swag.kindOf(it))
-            btn.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(cast #assume (*BaseForm) mdl))
+            btn.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(assume cast (*BaseForm, mdl)))
 
             if btn.isChecked do
                 done = true
@@ -721,7 +721,7 @@ impl QuickWnd
         // empty; guard back() against an out-of-bounds read.
         if not .layout.children.isEmpty()
         {
-            let curMdl = cast #assume (*QuickButton) .layout.children.back()
+            let curMdl = assume cast (*QuickButton, .layout.children.back())
             if curMdl.isModel
             {
                 curMdl.show(not done)
@@ -801,7 +801,7 @@ impl QuickWnd
             return
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
-        let baseForm    = cast #assume (*BaseForm) formItf
+        let baseForm    = assume cast (*BaseForm, formItf)
         var canAddModel = true
         if .main.editMode == .Highlight
         {
@@ -845,8 +845,8 @@ impl QuickWnd
                 .quickWnd = me
                 .toolTip  = quickStyleTip(it)
 
-                .iconPainter     = func(btn, bc, pos, flags) { paintForm(bc.painter, cast #assume (*QuickButton) btn) }
-                .sigRightPressed += func(btn) { (cast #assume (*QuickButton) btn).quickWnd.btnPopup(btn, btn.surfaceRect().center()) }
+                .iconPainter     = func(btn, bc, pos, flags) { paintForm(bc.painter, assume cast (*QuickButton, btn)) }
+                .sigRightPressed += func(btn) { assume cast (*QuickButton, btn).quickWnd.btnPopup(btn, btn.surfaceRect().center()) }
             }
 
             btn.sigCheckedChanged += func(btn)
@@ -854,7 +854,7 @@ impl QuickWnd
                 if not btn.isChecked do
                     return
 
-                let quickBtn = cast #assume (*QuickButton) btn
+                let quickBtn = assume cast (*QuickButton, btn)
                 let quick    = quickBtn.quickWnd
                 let it       = quickBtn.formItf!
                 quick.main.updateModel(it)
@@ -891,7 +891,7 @@ impl QuickWnd
 
             btn.iconPainter = func(btn, bc, pos, flags)
             {
-                paintForm(bc.painter, cast #assume (*QuickButton) btn)
+                paintForm(bc.painter, assume cast (*QuickButton, btn))
                 var rect = btn.clientRect()
                 rect.inflate(-2, -2)
                 bc.painter.setParams(.Antialiased)

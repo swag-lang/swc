@@ -180,7 +180,7 @@ impl Brush
     mtd multiplyOpacity(alpha: f32)
     {
         let factor = Math.saturate(alpha)
-        .color = .color.withAlphaF32((cast(f32) .color.a / 255.0) * factor)
+        .color = .color.withAlphaF32((cast(f32, .color.a) / 255.0) * factor)
     }
 
     // Creates a uniform straight-alpha color brush.

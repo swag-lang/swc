@@ -7,14 +7,14 @@ impl Image
         if .bitsPerPixel == 32
         {
             var context = {src: me, dst: dstImage}
-            parallel for |&context| parIndex in cast(u64) .height
+            parallel for |&context| parIndex in cast(u64, .height)
             {
-                let row    = cast(u32) parIndex
+                let row    = cast(u32, parIndex)
                 let params = &context
-                let src    = cast(const *Image) params.src
-                let dst    = cast(*Image) params.dst
-                let srcRow = src.pixels.storage() + cast(u64) row * src.rowStride
-                let dstRow = dst.pixels.storage() + cast(u64) row * dst.rowStride
+                let src    = cast(const *Image, params.src)
+                let dst    = cast(*Image, params.dst)
+                let srcRow = src.pixels.storage() + cast(u64, row) * src.rowStride
+                let dstRow = dst.pixels.storage() + cast(u64, row) * dst.rowStride
                 PackedPixel.reverseBgra32Row(srcRow, dstRow, src.width)
             }
 
@@ -24,14 +24,14 @@ impl Image
         if .bitsPerPixel == 24
         {
             var context = {src: me, dst: dstImage}
-            parallel for |&context| parIndex in cast(u64) .height
+            parallel for |&context| parIndex in cast(u64, .height)
             {
-                let row    = cast(u32) parIndex
+                let row    = cast(u32, parIndex)
                 let params = &context
-                let src    = cast(const *Image) params.src
-                let dst    = cast(*Image) params.dst
-                let srcRow = src.pixels.storage() + cast(u64) row * src.rowStride
-                let dstRow = dst.pixels.storage() + cast(u64) row * dst.rowStride
+                let src    = cast(const *Image, params.src)
+                let dst    = cast(*Image, params.dst)
+                let srcRow = src.pixels.storage() + cast(u64, row) * src.rowStride
+                let dstRow = dst.pixels.storage() + cast(u64, row) * dst.rowStride
                 PackedPixel.reverseBgr24Row(srcRow, dstRow, src.width)
             }
 
@@ -39,18 +39,18 @@ impl Image
         }
 
         var context = {src: me, dst: dstImage}
-        parallel for |&context| parIndex in cast(u64) .height
+        parallel for |&context| parIndex in cast(u64, .height)
         {
-            let row    = cast(u32) parIndex
+            let row    = cast(u32, parIndex)
             let params = &context
-            let src    = cast(const *Image) params.src
-            let dst    = cast(*Image) params.dst
-            let srcRow = src.pixels.storage() + cast(u64) row * src.rowStride
-            let dstRow = dst.pixels.storage() + cast(u64) row * dst.rowStride
+            let src    = cast(const *Image, params.src)
+            let dst    = cast(*Image, params.dst)
+            let srcRow = src.pixels.storage() + cast(u64, row) * src.rowStride
+            let dstRow = dst.pixels.storage() + cast(u64, row) * dst.rowStride
             for x in src.width
             {
-                let source = srcRow + cast(u64) (src.width - x - 1) * src.bytesPerPixel
-                Memory.copy(dstRow + cast(u64) x * dst.bytesPerPixel, source, src.bytesPerPixel)
+                let source = srcRow + cast(u64, (src.width - x - 1)) * src.bytesPerPixel
+                Memory.copy(dstRow + cast(u64, x) * dst.bytesPerPixel, source, src.bytesPerPixel)
             }
         }
     }

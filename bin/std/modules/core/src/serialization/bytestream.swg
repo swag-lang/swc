@@ -58,7 +58,7 @@ public impl ByteStream
         let wb = .writeBuffer!
         if .seek + #sizeof(T) > wb.count do
             wb.grow(.seek + #sizeof(T))
-        let ptr = cast(*T) (wb.storage() + .seek)
+        let ptr = cast(*T, (wb.storage() + .seek))
         ptr[]    = val
         .seek    += #sizeof(T)
         wb.count = Math.max(wb.count, .seek)
@@ -88,7 +88,7 @@ public impl ByteStream
     {
         if .seek + #sizeof(T) > .length() do
             fail OverflowError{"byte stream overflow"}
-        let val = (cast(const *T) (.data() + .seek))[]
+        let val = cast(const *T, (.data() + .seek))[]
         .seek += #sizeof(T)
         return val
     }
@@ -132,11 +132,11 @@ public impl ByteStream
         var v = value
         while v >= 0x80
         {
-            .writeNative(cast(u8) ((v & 0x7F) | 0x80))
+            .writeNative(cast(u8, ((v & 0x7F) | 0x80)))
             v >>= 7
         }
 
-        .writeNative(cast(u8) v)
+        .writeNative(cast(u8, v))
     }
 
     // Reads an unsigned LEB128 varint written by [[Core.ByteStream.writeVarint]].
@@ -149,7 +149,7 @@ public impl ByteStream
         while true
         {
             let b       = try .readNative'u8()
-            let payload = cast(u64) (b & 0x7F)
+            let payload = cast(u64, (b & 0x7F))
 
             // The tenth byte can only carry the top bit of a 64-bit value; anything
             // wider is an over-long encoding.
@@ -171,8 +171,8 @@ public impl ByteStream
     // not a character count.
     mtd writeSizedString(value: string)
     {
-        .writeLittleEndian(cast(u32) value.count)
-        .writeBytes(cast(const [..] u8) value)
+        .writeLittleEndian(cast(u32, value.count))
+        .writeBytes(cast(const [..] u8, value))
     }
 
     // Reads a string written by [[Core.ByteStream.writeSizedString]].
@@ -182,7 +182,7 @@ public impl ByteStream
     mtd readSizedString(maxLength: u64 = Swag.U32.Max)->String fail
     {
         var result: retval
-        let count = cast(u64) (try .readLittleEndian'u32())
+        let count = cast(u64, (try .readLittleEndian'u32()))
         if count > maxLength do
             fail OverflowError{"sized string is too long"}
         if count > .remainingBytes().count do

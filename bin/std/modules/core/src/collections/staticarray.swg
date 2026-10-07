@@ -86,7 +86,7 @@ impl StaticArray
         if countof
         {
             let dataof = arr.buffer
-            let buffer = cast([*] T) &.buffer[0]
+            let buffer = cast([*] T, &.buffer[0])
             if dataof >= buffer and dataof < buffer + .count
             {
                 var copy: Array'T
@@ -126,16 +126,16 @@ impl StaticArray
             return
 
         // The cursor advances at the top of the loop, so a 'continue' in the visited code cannot skip it.
-        var scan = cast([*] T) &.buffer[0] - 1
+        var scan = cast([*] T, &.buffer[0]) - 1
 
         for visitIdx in .count
         {
             scan += 1
 
             #static if ptr do
-                #inject(stmt, item = cast(*T) scan, index = visitIdx)
+                #inject(stmt, item = cast(*T, scan), index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const *T) scan, index = visitIdx)
+                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
@@ -181,13 +181,13 @@ impl StaticArray
         Swag.assert(newCount <= N, "size is too big")
         if newCount > .count
         {
-            let data = cast([*] T) &.buffer[0]
+            let data = cast([*] T, &.buffer[0])
             Swag.init(data + .count, newCount - .count)
             .count = newCount
         }
         else
         {
-            let data         = cast([*] T) &.buffer[0]
+            let data         = cast([*] T, &.buffer[0])
             let droppedCount = .count - newCount
             Swag.drop(data + newCount, droppedCount)
             Swag.init(data + newCount, droppedCount)
@@ -240,7 +240,7 @@ impl StaticArray
     {
         Swag.assert(.count + num <= N, "the array is full")
         .count += num
-        return cast([*] T) &.buffer[0] + .count - num
+        return cast([*] T, &.buffer[0]) + .count - num
     }
 
     // Appends `num` default-initialized elements and returns the address of the first one.
@@ -250,7 +250,7 @@ impl StaticArray
     {
         Swag.assert(.count + num <= N, "the array is full")
         .count += num
-        let res = cast([*] T) &.buffer[0] + .count - num
+        let res = cast([*] T, &.buffer[0]) + .count - num
         Swag.init(res, num)
         return res
     }
@@ -292,7 +292,7 @@ impl StaticArray
         var sliceCount = values.count
         if not sliceCount do
             return
-        let buffer = cast([*] T) &.buffer[0]
+        let buffer = cast([*] T, &.buffer[0])
         let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
@@ -341,7 +341,7 @@ impl StaticArray
         var sliceCount = values.count
         if not sliceCount do
             return
-        let buffer = cast([*] T) &.buffer[0]
+        let buffer = cast([*] T, &.buffer[0])
         let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
@@ -389,7 +389,7 @@ impl StaticArray
         var sliceCount = values.count
         if not sliceCount do
             return
-        let buffer = cast([*] T) &.buffer[0]
+        let buffer = cast([*] T, &.buffer[0])
         let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
@@ -405,7 +405,7 @@ impl StaticArray
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             let vals    = values!
-            var destPtr = cast([*] T) &.buffer[oldCount]
+            var destPtr = cast([*] T, &.buffer[oldCount])
             for index in sliceCount
             {
                 destPtr[] = #nodrop vals[index]
@@ -431,7 +431,7 @@ impl StaticArray
 
         #static if not (Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)) and not Reflection.hasDrop(T)
         {
-            Memory.copyOverlapping(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
+            Memory.copyOverlapping(cast([*] T, &.buffer[0]) + index, cast([*] T, &.buffer[0]) + index + num, shiftCount * #sizeof(T))
         }
         else
         {

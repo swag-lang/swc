@@ -35,10 +35,10 @@ func dispatch(base: *Base)->s32
 func runEmbeddedDispatch()->bool
 {
     var base: Base
-    base.itf = cast(IDispatch) base
+    base.itf = cast(IDispatch, base)
 
     var child: Child
-    child.itf = cast(IDispatch) child
+    child.itf = cast(IDispatch, child)
 
     return dispatch(&base) == 10 and dispatch(&child.base) == 20
 }

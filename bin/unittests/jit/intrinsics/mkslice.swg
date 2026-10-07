@@ -83,7 +83,7 @@
     {
         var buf: [5] u8 = [72, 101, 108, 108, 111]
         let text        = Swag.makeString(&buf[0], 5)
-        let bytes       = cast(const [..] u8) text
+        let bytes       = cast(const [..] u8, text)
         return text == "Hello" and bytes.count == 5 and bytes[0] == 72'u8 and bytes[4] == 111'u8
     }
 

@@ -26,7 +26,7 @@ public
     func isDigit(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isDigit(cast(u8) c)
+            return Latin1.isDigit(cast(u8, c))
         return isInTable(TableDigit, c)
     }
 
@@ -34,7 +34,7 @@ public
     func isNumber(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isNumber(cast(u8) c)
+            return Latin1.isNumber(cast(u8, c))
         return isInTable(TableNumber, c)
     }
 
@@ -42,7 +42,7 @@ public
     func isControl(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isControl(cast(u8) c)
+            return Latin1.isControl(cast(u8, c))
         return false
     }
 
@@ -50,7 +50,7 @@ public
     func isSpace(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isSpace(cast(u8) c)
+            return Latin1.isSpace(cast(u8, c))
         return isInTable(TableWhiteSpace, c)
     }
 
@@ -58,7 +58,7 @@ public
     func isLetter(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isLetter(cast(u8) c)
+            return Latin1.isLetter(cast(u8, c))
         return isInTable(TableLetter, c)
     }
 
@@ -66,7 +66,7 @@ public
     func isSymbol(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isSymbol(cast #bit (u8) c)
+            return Latin1.isSymbol(cast #bit (u8, c))
         return isInTable(TableSymbol, c)
     }
 
@@ -77,7 +77,7 @@ public
     func isLetterOrDigit(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isLetterOrDigit(cast(u8) c)
+            return Latin1.isLetterOrDigit(cast(u8, c))
         return isDigit(c) or isLetter(c)
     }
 
@@ -93,7 +93,7 @@ public
     func isLower(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isLower(cast(u8) c)
+            return Latin1.isLower(cast(u8, c))
         return isInTable(TableLower, c)
     }
 
@@ -101,7 +101,7 @@ public
     func isUpper(c: rune)->bool
     {
         if isLatin1(c) do
-            return Latin1.isUpper(cast(u8) c)
+            return Latin1.isUpper(cast(u8, c))
         return isInTable(TableUpper, c)
     }
 
@@ -112,7 +112,7 @@ public
     func toLower(c: rune)->rune
     {
         if isLatin1(c) do
-            return cast() Latin1.toLower(cast(u8) c)
+            return cast(Latin1.toLower(cast(u8, c)))
 
         var res = caseChangeTo(WantedCase.LowerCase, c, TableSpecialCaseRanges)
         if res.foundMapping do
@@ -127,7 +127,7 @@ public
     func toUpper(c: rune)->rune
     {
         if isAscii(c) do
-            return cast() Latin1.toUpper(cast(u8) c)
+            return cast(Latin1.toUpper(cast(u8, c)))
 
         var res = caseChangeTo(WantedCase.UpperCase, c, TableSpecialCaseRanges)
         if res.foundMapping do
@@ -143,7 +143,7 @@ public
     func toTitle(c: rune)->rune
     {
         if isAscii(c) do
-            return cast() Latin1.toUpper(cast(u8) c)
+            return cast(Latin1.toUpper(cast(u8, c)))
 
         var res = caseChangeTo(WantedCase.TitleCase, c, TableSpecialCaseRanges)
         if res.foundMapping do
@@ -237,7 +237,7 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
         {
             let c1 = toLower(src[i])
             let c2 = toLower(dst[i])
-            result = cast(s32) c1 - cast(s32) c2
+            result = cast(s32, c1) - cast(s32, c2)
             if result != 0 do
                 return Math.sign(result)
         }
@@ -343,12 +343,12 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
                 // bit in the sequence offset.
                 // The constants UpperCase and TitleCase are even while LowerCase
                 // is odd so we take the low bit from wCase.
-                result.mappedRune   = cr.lo + #wrap ((r - cr.lo) & ~1'u32 | (cast(rune) wCase & 1))
+                result.mappedRune   = cr.lo + #wrap ((r - cr.lo) & ~1'u32 | (cast(rune, wCase) & 1))
                 result.foundMapping = true
                 return result
             }
 
-            result.mappedRune   = r + #wrap cast #bit (rune) delta
+            result.mappedRune   = r + #wrap cast #bit (rune, delta)
             result.foundMapping = true
             return result
         }

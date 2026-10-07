@@ -84,7 +84,7 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
 #test
 {
     var completed: Swag.AtomicValue'u32
-    completeDescendants(cast(u32) Swag.MaxErrors + 8, &completed)
+    completeDescendants(cast(u32, Swag.MaxErrors) + 8, &completed)
     Swag.assert(completed.load() == 1)
 }
 
@@ -112,7 +112,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         catch dropGroupWhileFailing(&succeeded, &failed) as error
         valid = error != null and (error is ParentFailure)
         if valid do
-            valid = (cast #assume(const *ParentFailure) error!).value == 42
+            valid = assume cast(const *ParentFailure, error).value == 42
         valid = valid and succeeded.load() == 11 and failed.load() == 0
     })
     Swag.assert(ready)
@@ -165,7 +165,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         catch joinWhileFailing(&succeeded, &failed) as error
         valid = error != null and (error is ParentFailure)
         if valid do
-            valid = (cast #assume(const *ParentFailure) error!).value == 42
+            valid = assume cast(const *ParentFailure, error).value == 42
         valid = valid and succeeded.load() == 1 and failed.load() == 0
     })
     Swag.assert(ready)
@@ -182,7 +182,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         for round in 16
         {
             for index in 8 do
-                tasks[index].submit(func|&total, index|() { total.add(cast(u32) index + 1) })
+                tasks[index].submit(func|&total, index|() { total.add(cast(u32, index) + 1) })
             for index in 8 do
                 tasks[(index * 5) % 8].wait()
         }

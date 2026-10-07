@@ -67,7 +67,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     p[] = 1
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let x = p[]      // swc-expected-error {{sanity_err_use_after_free}}
@@ -78,7 +78,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     p[] = 2          // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -87,7 +87,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     myFree(p, 4)     // swc-expected-error {{sanity_err_double_free}}
 }
@@ -129,7 +129,7 @@ var gUafOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    gUafOwned    = cast(*s32) myAlloc(4)
+    gUafOwned    = cast(*s32, myAlloc(4))
     gUafOwned![] = 9
     Swag.assert(gUafOwned![] == 9)
     myFree(gUafOwned!, 4)
@@ -140,9 +140,9 @@ var gUafOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    var p = cast(*s32) myAlloc(4)
+    var p = cast(*s32, myAlloc(4))
     myFree(p, 4)
-    p   = cast(*s32) myAlloc(4)
+    p   = cast(*s32, myAlloc(4))
     p[] = 3
     Swag.assert(p[] == 3)
     myFree(p, 4)
@@ -152,7 +152,7 @@ var gUafOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     let q = p
     p[] = 6
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
@@ -164,7 +164,7 @@ var gUafOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     let q = p
     myFree(q, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let x = p[]      // swc-expected-error {{sanity_err_use_after_free}}
@@ -175,7 +175,7 @@ var gUafOwned: *s32?
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     let q = p
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     myFree(q, 4)     // swc-expected-error {{sanity_err_double_free}}
@@ -193,8 +193,8 @@ func opaqueStep(value: s32)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let first = cast(*s32) myAlloc(4)
-    let p     = cast(*s32) myAlloc(4)
+    let first = cast(*s32, myAlloc(4))
+    let p     = cast(*s32, myAlloc(4))
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     discard opaqueStep(1)
     let x = p[]     // swc-expected-error {{sanity_err_use_after_free}}
@@ -206,13 +206,13 @@ func opaqueStep(value: s32)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func reallocateThrough(slot: **s32)
 {
-    slot[] = cast(*s32) myAlloc(4)
+    slot[] = cast(*s32, myAlloc(4))
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    var p = cast(*s32) myAlloc(4)
+    var p = cast(*s32, myAlloc(4))
     myFree(p, 4)
     reallocateThrough(&p)
     p[] = 8
@@ -232,8 +232,8 @@ struct UafNode
 #[Swag.Sanity(.Lifecycle, true)]
 func releaseObjectField()->s32
 {
-    let node = cast(*UafNode) myAlloc(16)
-    node.data = cast(*s32) myAlloc(4)
+    let node = cast(*UafNode, myAlloc(16))
+    node.data = cast(*s32, myAlloc(4))
     myFree(node.data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return node.data[]       // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -250,8 +250,8 @@ func releaseFieldOfParameterObject(n: *UafNode)->s32
 {
     discard releaseObjectField()
 
-    let node = cast(*UafNode) myAlloc(16)
-    node.data = cast(*s32) myAlloc(4)
+    let node = cast(*UafNode, myAlloc(16))
+    node.data = cast(*s32, myAlloc(4))
     discard releaseFieldOfParameterObject(node)
 }
 
@@ -280,7 +280,7 @@ impl UafNode
     mtd reset()
     {
         myFree(.data!, 4)
-        .data   = cast(*s32) myAlloc(4)
+        .data   = cast(*s32, myAlloc(4))
         .data[] = 1
     }
 }
@@ -289,7 +289,7 @@ impl UafNode
 #test
 {
     var touched: UafNode
-    touched.data = cast(*s32) myAlloc(4)
+    touched.data = cast(*s32, myAlloc(4))
     touched.releaseThenTouch()
 }
 
@@ -297,12 +297,12 @@ impl UafNode
 #test
 {
     var released: UafNode
-    released.data = cast(*s32) myAlloc(4)
+    released.data = cast(*s32, myAlloc(4))
     released.release()
     Swag.assert(released.data == null)
 
     var recycled: UafNode
-    recycled.data = cast(*s32) myAlloc(4)
+    recycled.data = cast(*s32, myAlloc(4))
     recycled.reset()
     Swag.assert(recycled.data[] == 1)
     myFree(recycled.data, 4)
@@ -314,20 +314,20 @@ impl UafNode
 #[Swag.Sanity(.Lifecycle, true)]
 func refillNode(n: *UafNode)
 {
-    n.data = cast(*s32) myAlloc(4)
+    n.data = cast(*s32, myAlloc(4))
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let node = cast(*UafNode) myAlloc(16)
-    node.data  = cast(*s32) myAlloc(4)
+    let node = cast(*UafNode, myAlloc(16))
+    node.data  = cast(*s32, myAlloc(4))
     node.count = 4
 
     myFree(node.data, 4)
     Swag.assert(node.count == 4)
 
-    node.data   = cast(*s32) myAlloc(4)
+    node.data   = cast(*s32, myAlloc(4))
     node.data[] = 7
     Swag.assert(node.data[] == 7)
 
@@ -346,7 +346,7 @@ func refillNode(n: *UafNode)
 #[Swag.Sanity(.Lifecycle, true)]
 func returnReleasedLocal()->*s32
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return p         // swc-expected-error {{sanity_err_return_released}}
 }
@@ -362,7 +362,7 @@ func returnReleasedParameter(p: *s32)->*s32
 #test
 {
     discard returnReleasedLocal()
-    discard returnReleasedParameter(cast(*s32) myAlloc(4))
+    discard returnReleasedParameter(cast(*s32, myAlloc(4)))
 }
 
 // Reading the value out before the release, and reallocating before the return, are
@@ -370,7 +370,7 @@ func returnReleasedParameter(p: *s32)->*s32
 #[Swag.Sanity(.Lifecycle, true)]
 func returnValueBeforeRelease()->s32
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     p[] = 3
     let value = p[]
     myFree(p, 4)
@@ -380,9 +380,9 @@ func returnValueBeforeRelease()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func returnFreshAllocation()->*s32
 {
-    var p = cast(*s32) myAlloc(4)
+    var p = cast(*s32, myAlloc(4))
     myFree(p, 4)
-    p = cast(*s32) myAlloc(4)
+    p = cast(*s32, myAlloc(4))
     return p
 }
 
@@ -415,8 +415,8 @@ func releaseParameterTwice(p: *s32)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    discard releaseThenUseParameter(cast(*s32) myAlloc(4))
-    releaseParameterTwice(cast(*s32) myAlloc(4))
+    discard releaseThenUseParameter(cast(*s32, myAlloc(4)))
+    releaseParameterTwice(cast(*s32, myAlloc(4)))
 }
 
 // Releasing one parameter says nothing about the other.
@@ -432,8 +432,8 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let one = cast(*s32) myAlloc(4)
-    let two = cast(*s32) myAlloc(4)
+    let one = cast(*s32, myAlloc(4))
+    let two = cast(*s32, myAlloc(4))
     two[] = 11
     Swag.assert(releaseOneOfTwoParameters(one, two) == 11)
 }
@@ -444,7 +444,7 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 #test
 {
     var table: [4] (*s32?)
-    table[0] = cast(*s32) myAlloc(4)
+    table[0] = cast(*s32, myAlloc(4))
     myFree(table[0]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let x = table[0]![]      // swc-expected-error {{sanity_err_use_after_free}}
     discard x
@@ -454,7 +454,7 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 #test
 {
     var table: [4] (*s32?)
-    table[2] = cast(*s32) myAlloc(4)
+    table[2] = cast(*s32, myAlloc(4))
     myFree(table[2]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     table[2]![] = 1          // swc-expected-error {{sanity_err_use_after_free}}
 }
@@ -464,8 +464,8 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 #test
 {
     var table: [2] (*s32?)
-    table[0]    = cast(*s32) myAlloc(4)
-    table[1]    = cast(*s32) myAlloc(4)
+    table[0]    = cast(*s32, myAlloc(4))
+    table[1]    = cast(*s32, myAlloc(4))
     table[1]![] = 4
     myFree(table[0]!, 4)
     Swag.assert(table[1]![] == 4)
@@ -483,7 +483,7 @@ struct UafOwner
 #test
 {
     var owner: UafOwner
-    owner.data = cast(*s32) myAlloc(4)
+    owner.data = cast(*s32, myAlloc(4))
     myFree(owner.data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let x = owner.data[]      // swc-expected-error {{sanity_err_use_after_free}}
     discard x
@@ -495,13 +495,13 @@ struct UafOwner
 func releaseAndReplace(ptr: *void, slot: **s32)
 {
     myFree(ptr, 4)
-    slot[] = cast(*s32) myAlloc(4)
+    slot[] = cast(*s32, myAlloc(4))
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    var p = cast(*s32) myAlloc(4)
+    var p = cast(*s32, myAlloc(4))
     releaseAndReplace(p, &p)
     p[] = 5
     Swag.assert(p[] == 5)
@@ -512,7 +512,7 @@ func releaseAndReplace(ptr: *void, slot: **s32)
 #[Swag.Sanity(.Lifecycle, true)]
 func useAfterConditionalFree(cond: bool)->s32
 {
-    let p = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
     p[] = 4
     if cond do
         myFree(p, 4)
@@ -526,8 +526,8 @@ func useAfterConditionalFree(cond: bool)->s32
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let p = cast(*s32) myAlloc(4)
-    let q = cast(*s32) myAlloc(4)
+    let p = cast(*s32, myAlloc(4))
+    let q = cast(*s32, myAlloc(4))
     q[] = 5
     myFree(p, 4)
     Swag.assert(q[] == 5)
@@ -557,7 +557,7 @@ impl UafHost
     #[Swag.Sanity(.Lifecycle, true)]
     mtd setup()
     {
-        let p = cast(*UafCarrier) myAlloc(#sizeof(UafCarrier))
+        let p = cast(*UafCarrier, myAlloc(#sizeof(UafCarrier)))
         p.owner = me
         myFree(p, #sizeof(UafCarrier))
         .value = 1

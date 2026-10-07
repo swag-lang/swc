@@ -174,7 +174,7 @@ impl Decimal
         {
             let v1 = v / 10
             v      -= 10 * v1
-            buf[n] = cast(u8) (v + '0')
+            buf[n] = cast(u8, (v + '0'))
             n      += 1
             v      = v1
         }
@@ -229,7 +229,7 @@ impl Decimal
                 break
             }
 
-            let c = cast(u64) .d[r]
+            let c = cast(u64, .d[r])
             n = (n * 10) + c - '0'
             r += 1
         }
@@ -241,10 +241,10 @@ impl Decimal
         // Pick up a digit, put down a digit.
         while r < .nd
         {
-            let c   = cast(u64) .d[r]
+            let c   = cast(u64, .d[r])
             let dig = n >> k
             n     &= mask
-            .d[w] = cast(u8) (dig + '0')
+            .d[w] = cast(u8, (dig + '0'))
             w     += 1
             n     = (n * 10) + c - '0'
             r     += 1
@@ -257,7 +257,7 @@ impl Decimal
             n &= mask
             if w < (.d).count
             {
-                .d[w] = cast(u8) (dig + '0')
+                .d[w] = cast(u8, (dig + '0'))
                 w     += 1
             }
             elif dig > 0
@@ -299,12 +299,12 @@ impl Decimal
         r -= 1
         while r >= 0
         {
-            n += (cast(u64) .d[r] - '0') << k
+            n += (cast(u64, .d[r]) - '0') << k
             let quo = n / 10
             let rem = n - (10 * quo)
             w -= 1
             if w < (.d).count do
-                .d[w] = cast(u8) (rem + '0')
+                .d[w] = cast(u8, (rem + '0'))
             elif rem != 0 do
                 .trunc = true
             n = quo
@@ -318,7 +318,7 @@ impl Decimal
             let rem = n - (10 * quo)
             w -= 1
             if w < (.d).count do
-                .d[w] = cast(u8) (rem + '0')
+                .d[w] = cast(u8, (rem + '0'))
             elif rem != 0 do
                 .trunc = true
             n = quo
@@ -326,7 +326,7 @@ impl Decimal
 
         .nd += delta
         if .nd >= (.d).count do
-            .nd = cast(s32) (.d).count
+            .nd = cast(s32, (.d).count)
         .dp += delta
         .trim()
     }
@@ -346,16 +346,16 @@ impl Decimal
                 k -= MaxShift
             }
 
-            .leftShift(cast(u32) k)
+            .leftShift(cast(u32, k))
 
         case k < 0:
-            while k < -cast(s32) MaxShift
+            while k < -cast(s32, MaxShift)
             {
                 .rightShift(MaxShift)
                 k += MaxShift
             }
 
-            .rightShift(cast(u32) -k)
+            .rightShift(cast(u32, -k))
         }
     }
 
@@ -420,7 +420,7 @@ impl Decimal
                         if ndMant < maxMantDigits
                         {
                             .mantissa *= 10
-                            .mantissa += cast(u64) (c - '0')
+                            .mantissa += cast(u64, (c - '0'))
                             ndMant    += 1
                         }
                         elif c != '0'
@@ -538,7 +538,7 @@ impl Decimal
                     n = 27
                 else do
                     n = PowTab[.dp]
-                .shift(-cast(s32) n)
+                .shift(-cast(s32, n))
                 .exp += n
             }
 
@@ -549,7 +549,7 @@ impl Decimal
                     n = 27
                 else do
                     n = PowTab[-.dp]
-                .shift(cast(s32) n)
+                .shift(cast(s32, n))
                 .exp -= n
             }
 
@@ -562,7 +562,7 @@ impl Decimal
             if .exp < Swag.F64.Bias + 1
             {
                 let n = Swag.F64.Bias + 1 - .exp
-                .shift(-cast(s32) n)
+                .shift(-cast(s32, n))
                 .exp += n
             }
 
@@ -573,7 +573,7 @@ impl Decimal
             }
 
             // Extract 1 + Swag.F64.MantBits bits.
-            .shift(cast(s32) (1 + Swag.F64.MantBits))
+            .shift(cast(s32, (1 + Swag.F64.MantBits)))
             mant = .roundedInteger()
 
             // Rounding might have added a bit; shift down.
@@ -597,13 +597,13 @@ impl Decimal
         if overflow
         {
             mant = 0
-            .exp = ((1's64 << Swag.F64.MantBits) - 1) + cast(s64) Swag.F64.Bias
+            .exp = ((1's64 << Swag.F64.MantBits) - 1) + cast(s64, Swag.F64.Bias)
         }
 
         // Assemble bits.
         var result: retval
         var bits = mant & ((1'u64 << Swag.F64.MantBits) - 1)
-        bits |= cast(u64) ((.exp - Swag.F64.Bias) & ((1's64 << Swag.F64.MantBits) - 1)) << Swag.F64.MantBits
+        bits |= cast(u64, ((.exp - Swag.F64.Bias) & ((1's64 << Swag.F64.MantBits) - 1))) << Swag.F64.MantBits
         if .neg do
             bits |= (1'u64 << 63)
         result.b        = bits
@@ -620,7 +620,7 @@ impl Decimal
         var n = 0'u64
         while i < .dp and i < .nd
         {
-            n = (n * 10) + cast(u64) (.d[i] - '0')
+            n = (n * 10) + cast(u64, (.d[i] - '0'))
             i += 1
         }
 

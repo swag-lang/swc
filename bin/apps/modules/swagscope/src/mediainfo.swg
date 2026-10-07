@@ -72,7 +72,7 @@ func registerMediaInfoStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'MediaInfoStrings(cast(string) FrenchMediaStrings)
+    expect Gui.validateStrings'MediaInfoStrings(cast(string, FrenchMediaStrings))
 }
 
 // One property of the panel, or the heading of a group of them.
@@ -173,7 +173,7 @@ impl MediaInfoData
 
             var tag: String
             for byte in record.tag do
-                tag += cast(rune) (byte >= 32 ? byte : '?')
+                tag += cast(rune, (byte >= 32 ? byte : '?'))
             if tag.isEmpty() do
                 tag = Format.toString("APP%", record.signature)
             let bytes = record.toSlice()
@@ -183,7 +183,7 @@ impl MediaInfoData
             if pngText
             {
                 for index in Math.min(bytes.count, 4096) do
-                    text += cast(rune) (bytes[index] >= 32 or bytes[index] == 10 or bytes[index] == 9 ? bytes[index] : ' ')
+                    text += cast(rune, (bytes[index] >= 32 or bytes[index] == 10 or bytes[index] == 9 ? bytes[index] : ' '))
                 if bytes.count > 4096 do
                     text += "…"
             }

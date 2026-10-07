@@ -24,7 +24,7 @@ struct Timer
 
 private func timerEntry(param: *void?)
 {
-    let timer = cast(*Timer) param!
+    let timer = cast(*Timer, param!)
 
     // A periodic callback can overlap another one. Its mutable runtime state belongs to this
     // invocation; the stored timer context contains only inherited policy and user values.
@@ -77,7 +77,7 @@ impl Timer
         let allocator = .context.allocator!
         .context.tempAllocator.setCapacity(tempCapacity, allocator)
         .context.errorAllocator.setCapacity(errorCapacity, allocator)
-        .handle = try createTimerNative(me, cast(u32) delayMs, periodic)
+        .handle = try createTimerNative(me, cast(u32, delayMs), periodic)
     }
 
     // Stops the timer and waits for any active callback before returning.

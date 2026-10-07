@@ -187,7 +187,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     utf16.add(0xFE)
     for c in "a wide export nothing claims"
     {
-        utf16.add(cast(u8) c)
+        utf16.add(cast(u8, c))
         utf16.add(0)
     }
 
@@ -202,7 +202,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     // are not offered as a page of text.
     var binary: Array'u8
     for i in 512'u32 do
-        binary.add(cast(u8) ((i * 7) & 0xFF))
+        binary.add(cast(u8, ((i * 7) & 0xFF)))
     let opaque = Gui.Testing.tempFilePath("scope-opaque-", "")
     defer discard catch File.delete(opaque)
     expect File.writeAllBytes(opaque, binary.toSlice())
@@ -221,16 +221,16 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     }
 
     let movie = registry.choices("movie.mp4")
-    Swag.assert(movie[0].key == "video" and cast(ViewerIcons) choicePlugin(&registry, &movie[0]).iconIndex == .Video)
-    Swag.assert(movie[1].key == "binary" and cast(ViewerIcons) choicePlugin(&registry, &movie[1]).iconIndex == .Binary)
-    Swag.assert(movie[2].key == "hex" and cast(ViewerIcons) choicePlugin(&registry, &movie[2]).iconIndex == .Hex)
+    Swag.assert(movie[0].key == "video" and cast(ViewerIcons, choicePlugin(&registry, &movie[0]).iconIndex) == .Video)
+    Swag.assert(movie[1].key == "binary" and cast(ViewerIcons, choicePlugin(&registry, &movie[1]).iconIndex) == .Binary)
+    Swag.assert(movie[2].key == "hex" and cast(ViewerIcons, choicePlugin(&registry, &movie[2]).iconIndex) == .Hex)
 
     let plain = Gui.Testing.tempFilePath("scope-keys-", ".txt")
     defer discard catch File.delete(plain)
     expect File.writeAllBytes(plain, "plain UTF-8 text")
     let readable = registry.choices(plain)
     Swag.assert(readable[0].key == TextViewerKey)
-    Swag.assert(cast(ViewerIcons) choicePlugin(&registry, &readable[0]).iconIndex == .Text)
+    Swag.assert(cast(ViewerIcons, choicePlugin(&registry, &readable[0]).iconIndex) == .Text)
 }
 
 // A descriptor unknown to the built-in registry participates in discovery and creation without

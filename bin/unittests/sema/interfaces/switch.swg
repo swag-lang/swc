@@ -78,7 +78,7 @@ func explicitCastOriginalAfterDynamicCase(evt: IEvent)->s32
     switch evt
     {
     case MouseEvent as ptr where ptr.button == 2:
-        let typed = cast #assume (*MouseEvent) evt
+        let typed = assume cast (*MouseEvent, evt)
         return typed.code + typed.button
     default:
         return -1
@@ -117,17 +117,17 @@ func semaTest001()
     var base:  EventBase
     var empty: IEvent?
 
-    discard dispatchEvent(cast(IEvent) wheel)
-    discard dispatchEvent(cast(IEvent) mouse)
-    discard dispatchEvent(cast(IEvent) key)
-    discard dispatchEvent(cast(IEvent) base)
-    discard classifyEvent(cast(IEvent) wheel)
-    discard classifyEvent(cast(IEvent) mouse)
-    discard classifyEvent(cast(IEvent) key)
-    discard classifyEvent(cast(IEvent) base)
-    discard fallbackAfterWhere(cast(IEvent) mouse)
-    discard explicitCastOriginalAfterDynamicCase(cast(IEvent) mouse)
-    discard fallthroughToBase(cast(IEvent) mouse)
-    discard fallthroughToBase(cast(IEvent) key)
+    discard dispatchEvent(cast(IEvent, wheel))
+    discard dispatchEvent(cast(IEvent, mouse))
+    discard dispatchEvent(cast(IEvent, key))
+    discard dispatchEvent(cast(IEvent, base))
+    discard classifyEvent(cast(IEvent, wheel))
+    discard classifyEvent(cast(IEvent, mouse))
+    discard classifyEvent(cast(IEvent, key))
+    discard classifyEvent(cast(IEvent, base))
+    discard fallbackAfterWhere(cast(IEvent, mouse))
+    discard explicitCastOriginalAfterDynamicCase(cast(IEvent, mouse))
+    discard fallthroughToBase(cast(IEvent, mouse))
+    discard fallthroughToBase(cast(IEvent, key))
     discard classifyNil(empty)
 }

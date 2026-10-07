@@ -32,7 +32,7 @@ func checked(a, b: u64)->u64 => a + b * 7
     {
         let isolated = a & (~a + 1)
         Swag.assert(lowest(a) == isolated)
-        Swag.assert(lowest32(cast(u32) (a & 0xFFFFFFFF)) == cast(u32) (isolated & 0xFFFFFFFF))
+        Swag.assert(lowest32(cast(u32, (a & 0xFFFFFFFF))) == cast(u32, (isolated & 0xFFFFFFFF)))
         Swag.assert(compared(a) == (a == 0))
         for b in values
         {

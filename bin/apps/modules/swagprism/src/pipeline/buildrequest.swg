@@ -18,7 +18,7 @@ struct BuildSettings
 
 impl BuildSettings
 {
-    const DefaultConfiguration = cast(string) #include("../../datas/preview/configuration.txt")
+    const DefaultConfiguration = cast(string, #include("../../datas/preview/configuration.txt"))
 
     // Applied inside module.swg: an explicit CLI build preset would overwrite user edits.
     // These are the preset deltas from the compiler's implicit devmode configuration.
@@ -87,7 +87,7 @@ impl BuildRequest
         var result: retval
         if .needsDependency() do
             result.appendFormat("#import(\"%\", location: \"swag@std\")\n", dependency)
-        result.appendFormat("%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n", .settings.presetSource(), cast(u8) .settings.optimization, .settings.configuration, backend)
+        result.appendFormat("%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n", .settings.presetSource(), cast(u8, .settings.optimization), .settings.configuration, backend)
         return result
     }
 }

@@ -97,7 +97,7 @@ impl HtmlValuePool
 
     mtd addCalc(node: HtmlCalcNode)->u32
     {
-        let index = cast(u32) .calc.count
+        let index = cast(u32, .calc.count)
         .calc.add(node)
         return index
     }
@@ -105,8 +105,8 @@ impl HtmlValuePool
     mtd addString(value: string)->u32
     {
         for index in .strings.count where .strings[index].toString() == value do
-            return cast(u32) index
-        let index = cast(u32) .strings.count
+            return cast(u32, index)
+        let index = cast(u32, .strings.count)
         .strings.add(String.from(value))
         return index
     }
@@ -207,7 +207,7 @@ impl HtmlLength
         case .Percent:        return context.hasBasis ? .value * context.basis : fallback
         case .ViewportWidth:  return .value * context.viewportWidth
         case .ViewportHeight: return .value * context.viewportHeight
-        case .Calc:           return pool.evaluateCalc(cast(u32) .value, context)
+        case .Calc:           return pool.evaluateCalc(cast(u32, .value), context)
         }
 
         return fallback
@@ -220,7 +220,7 @@ impl HtmlLength
         {
         case .Pixels, .ViewportWidth, .ViewportHeight: return true
         case .Percent: return hasBasis
-        case .Calc:    return hasBasis or not pool.calcNeedsBasis(cast(u32) .value)
+        case .Calc:    return hasBasis or not pool.calcNeedsBasis(cast(u32, .value))
         }
 
         return false
@@ -334,7 +334,7 @@ func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
     if parseError != null or parsed.ovf do
         return result
 
-    result.value = cast(f32) parsed.value
+    result.value = cast(f32, parsed.value)
     result.eat   = index
     return result
 }
@@ -678,7 +678,7 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
     }
 
     result.length.kind  = .Calc
-    result.length.value = cast(f32) root
+    result.length.value = cast(f32, root)
     result.matched      = true
     return result
 }

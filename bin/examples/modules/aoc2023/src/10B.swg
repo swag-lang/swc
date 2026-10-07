@@ -127,7 +127,7 @@ func day10B()
     {
         for c, col in l.bytes()
         {
-            let one = mp(cast(s64) col, cast(s64) line)
+            let one = mp(cast(s64, col), cast(s64, line))
             switch c
             {
             case '-':
@@ -204,14 +204,14 @@ func day10B()
     {
         for c, col in l.bytes()
         {
-            let one = mp(cast(s64) col, cast(s64) line)[]
+            let one = mp(cast(s64, col), cast(s64, line))[]
             if one & .Edge do
                 continue
 
             var inside = false
             for x in col
             {
-                let one1 = mp(cast(s64) x, cast(s64) line)[]
+                let one1 = mp(cast(s64, x), cast(s64, line))[]
                 if one1 & .Edge and one1 & .North do
                     inside = not inside
             }

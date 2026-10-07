@@ -13,9 +13,9 @@ func addOrSubtract64(a, b, flag: u64)->u64 => flag & 1 != 0 ? a + b : a - b
     for a in values do for b in values do for flag in values
             {
                 Swag.assert(addOrSubtract64(a, b, flag) == (flag & 1 != 0 ? a + b : a - b))
-                let a32    = cast(u32) a
-                let b32    = cast(u32) b
-                let flag32 = cast(u32) flag
+                let a32    = cast(u32, a)
+                let b32    = cast(u32, b)
+                let flag32 = cast(u32, flag)
                 Swag.assert(addOrSubtract32(a32, b32, flag32) == (flag32 & 1 != 0 ? a32 + b32 : a32 - b32))
             }
 }

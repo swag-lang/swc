@@ -12,31 +12,31 @@
 
 using Core, Core.Errors
 
-const Expand4LowBytes  = cast(Math.Simd.U8x16) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]
-const Expand4HighBytes = cast(Math.Simd.U8x16) [8'u8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15]
-const Expand4HighMask  = cast(Math.Simd.U8x16) [15'u8, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0]
-const Expand4LowMask   = cast(Math.Simd.U8x16) [0'u8, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15]
-const Expand1Bytes     = cast(Math.Simd.U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
-const Expand1Bits      = cast(Math.Simd.U8x16) [128'u8, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1]
-const Expand2Bytes     = cast(Math.Simd.U8x16) [0'u8, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15]
-const ShiftBytes1      = cast(Math.Simd.U8x16) [0x80'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-const ShiftBytes2      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-const ShiftBytes3      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-const ShiftBytes4      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-const ShiftBytes6      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-const ShiftBytes8      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7]
-const ShiftBytes12     = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3]
-const CarryBytes3      = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0]
+const Expand4LowBytes  = cast(Math.Simd.U8x16, [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7])
+const Expand4HighBytes = cast(Math.Simd.U8x16, [8'u8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15])
+const Expand4HighMask  = cast(Math.Simd.U8x16, [15'u8, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0])
+const Expand4LowMask   = cast(Math.Simd.U8x16, [0'u8, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15, 0, 15])
+const Expand1Bytes     = cast(Math.Simd.U8x16, [0'u8, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15])
+const Expand1Bits      = cast(Math.Simd.U8x16, [128'u8, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1])
+const Expand2Bytes     = cast(Math.Simd.U8x16, [0'u8, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15])
+const ShiftBytes1      = cast(Math.Simd.U8x16, [0x80'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+const ShiftBytes2      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+const ShiftBytes3      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+const ShiftBytes4      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+const ShiftBytes6      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+const ShiftBytes8      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7])
+const ShiftBytes12     = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3])
+const CarryBytes3      = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
 
 #[Swag.Inline]
 func expand4Half(value, table: Math.Simd.U8x16, multiplier: u8)->Math.Simd.U8x16
 {
     let duplicated = Math.Simd.shuffle(value, table)
-    let shifted    = cast #bit(Math.Simd.U8x16) (cast #bit(Math.Simd.U16x8) duplicated >> 4)
+    let shifted    = cast #bit(Math.Simd.U8x16, (cast #bit(Math.Simd.U16x8, duplicated) >> 4))
     let nibbles    = (shifted & Expand4HighMask) | (duplicated & Expand4LowMask)
     if multiplier == 1 do
         return nibbles
-    return cast #bit(Math.Simd.U8x16) (cast #bit(Math.Simd.U16x8) nibbles * cast(u16) multiplier)
+    return cast #bit(Math.Simd.U8x16, (cast #bit(Math.Simd.U16x8, nibbles) * cast(u16, multiplier)))
 }
 
 func defilterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
@@ -61,7 +61,7 @@ func defilterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u
 
     while offset < count
     {
-        destination[offset] = cast #bit(u8) (source[offset] + #wrap previous[offset])
+        destination[offset] = cast #bit(u8, (source[offset] + #wrap previous[offset]))
         offset += 1
     }
 }
@@ -84,15 +84,15 @@ func expand4Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     while remaining >= 2
     {
         let value = src[0]
-        dst[0]    = cast(u8) (value >> 4) * multiplier
-        dst[1]    = cast(u8) (value & 15) * multiplier
+        dst[0]    = cast(u8, (value >> 4)) * multiplier
+        dst[1]    = cast(u8, (value & 15)) * multiplier
         src       += 1
         dst       += 2
         remaining -= 2
     }
 
     if remaining do
-        dst[0] = cast(u8) (src[0] >> 4) * multiplier
+        dst[0] = cast(u8, (src[0] >> 4)) * multiplier
 }
 
 func expand1Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, multiplier: u8)
@@ -102,8 +102,8 @@ func expand1Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     var remaining = sampleCount
     while remaining >= 16
     {
-        let packed     = cast(u16) src[0] | (cast(u16) src[1] << 8)
-        let duplicated = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16) Math.Simd.splat(packed), Expand1Bytes)
+        let packed     = cast(u16, src[0]) | (cast(u16, src[1]) << 8)
+        let duplicated = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, Math.Simd.splat(packed)), Expand1Bytes)
         var expanded   = (duplicated & Expand1Bits) == Expand1Bits
         if multiplier == 1 do
             expanded &= Math.Simd.splat(1'u8)
@@ -116,14 +116,14 @@ func expand1Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     while remaining >= 8
     {
         let value = src[0]
-        dst[0]    = cast(u8) (value >> 7) * multiplier
-        dst[1]    = cast(u8) ((value >> 6) & 1) * multiplier
-        dst[2]    = cast(u8) ((value >> 5) & 1) * multiplier
-        dst[3]    = cast(u8) ((value >> 4) & 1) * multiplier
-        dst[4]    = cast(u8) ((value >> 3) & 1) * multiplier
-        dst[5]    = cast(u8) ((value >> 2) & 1) * multiplier
-        dst[6]    = cast(u8) ((value >> 1) & 1) * multiplier
-        dst[7]    = cast(u8) (value & 1) * multiplier
+        dst[0]    = cast(u8, (value >> 7)) * multiplier
+        dst[1]    = cast(u8, ((value >> 6) & 1)) * multiplier
+        dst[2]    = cast(u8, ((value >> 5) & 1)) * multiplier
+        dst[3]    = cast(u8, ((value >> 4) & 1)) * multiplier
+        dst[4]    = cast(u8, ((value >> 3) & 1)) * multiplier
+        dst[5]    = cast(u8, ((value >> 2) & 1)) * multiplier
+        dst[6]    = cast(u8, ((value >> 1) & 1)) * multiplier
+        dst[7]    = cast(u8, (value & 1)) * multiplier
         src       += 1
         dst       += 8
         remaining -= 8
@@ -133,7 +133,7 @@ func expand1Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     {
         let value = src[0]
         for i in remaining do
-            dst[i] = cast(u8) ((value >> (7 - i)) & 1) * multiplier
+            dst[i] = cast(u8, ((value >> (7 - i)) & 1)) * multiplier
     }
 }
 
@@ -144,16 +144,16 @@ func expand2Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     var remaining = sampleCount
     while remaining >= 16
     {
-        let packed   = cast(u32) src[0] | (cast(u32) src[1] << 8) | (cast(u32) src[2] << 16) | (cast(u32) src[3] << 24)
-        let bytes    = cast #bit(Math.Simd.U8x16) Math.Simd.splat(packed)
-        let words    = cast #bit(Math.Simd.U32x4) Math.Simd.shuffle(bytes, Expand2Bytes)
+        let packed   = cast(u32, src[0]) | (cast(u32, src[1]) << 8) | (cast(u32, src[2]) << 16) | (cast(u32, src[3]) << 24)
+        let bytes    = cast #bit(Math.Simd.U8x16, Math.Simd.splat(packed))
+        let words    = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(bytes, Expand2Bytes))
         var expanded = ((words >> 6) & 0x0000_0003'u32) |
                        ((words >> 4) & 0x0000_0300'u32) |
                        ((words >> 2) & 0x0003_0000'u32) |
                        (words & 0x0300_0000'u32)
         if multiplier != 1 do
-            expanded *= cast(u32) multiplier
-        Math.Simd.store(dst, cast #bit(Math.Simd.U8x16) expanded)
+            expanded *= cast(u32, multiplier)
+        Math.Simd.store(dst, cast #bit(Math.Simd.U8x16, expanded))
         src       += 4
         dst       += 16
         remaining -= 16
@@ -162,10 +162,10 @@ func expand2Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     while remaining >= 4
     {
         let value = src[0]
-        dst[0]    = cast(u8) (value >> 6) * multiplier
-        dst[1]    = cast(u8) ((value >> 4) & 3) * multiplier
-        dst[2]    = cast(u8) ((value >> 2) & 3) * multiplier
-        dst[3]    = cast(u8) (value & 3) * multiplier
+        dst[0]    = cast(u8, (value >> 6)) * multiplier
+        dst[1]    = cast(u8, ((value >> 4) & 3)) * multiplier
+        dst[2]    = cast(u8, ((value >> 2) & 3)) * multiplier
+        dst[3]    = cast(u8, (value & 3)) * multiplier
         src       += 1
         dst       += 4
         remaining -= 4
@@ -175,7 +175,7 @@ func expand2Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     {
         let value = src[0]
         for i in remaining do
-            dst[i] = cast(u8) ((value >> (6 - 2 * i)) & 3) * multiplier
+            dst[i] = cast(u8, ((value >> (6 - 2 * i)) & 3)) * multiplier
     }
 }
 
@@ -210,8 +210,8 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
             values += Math.Simd.shuffle(values, ShiftBytes2)
             values += Math.Simd.shuffle(values, ShiftBytes4)
             values += Math.Simd.shuffle(values, ShiftBytes8)
-            let carry = (cast(const [*] u16) (destination + offset - 2))[0]
-            values += cast #bit(Math.Simd.U8x16) Math.Simd.splat(carry)
+            let carry = cast(const [*] u16, (destination + offset - 2))[0]
+            values += cast #bit(Math.Simd.U8x16, Math.Simd.splat(carry))
             Math.Simd.store(destination + offset, values)
             offset += 16
         }
@@ -227,7 +227,7 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
             values += Math.Simd.shuffle(values, ShiftBytes3)
             values += Math.Simd.shuffle(values, ShiftBytes6)
             values += Math.Simd.shuffle(values, ShiftBytes12)
-            let carry = cast #bit(Math.Simd.U8x16) Math.Simd.splat((cast(const [*] u64) (destination + offset - 3))[0])
+            let carry = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, (destination + offset - 3))[0]))
             values += Math.Simd.shuffle(carry, CarryBytes3)
             Math.Simd.store(destination + offset, values)
             offset += 15
@@ -239,8 +239,8 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
             var values = Math.Simd.load(source + offset)
             values += Math.Simd.shuffle(values, ShiftBytes4)
             values += Math.Simd.shuffle(values, ShiftBytes8)
-            let carry = (cast(const [*] u32) (destination + offset - 4))[0]
-            values += cast #bit(Math.Simd.U8x16) Math.Simd.splat(carry)
+            let carry = cast(const [*] u32, (destination + offset - 4))[0]
+            values += cast #bit(Math.Simd.U8x16, Math.Simd.splat(carry))
             Math.Simd.store(destination + offset, values)
             offset += 16
         }
@@ -250,8 +250,8 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
         {
             var values = Math.Simd.load(source + offset)
             values += Math.Simd.shuffle(values, ShiftBytes8)
-            let carry = (cast(const [*] u64) (destination + offset - 8))[0]
-            values += cast #bit(Math.Simd.U8x16) Math.Simd.splat(carry)
+            let carry = cast(const [*] u64, (destination + offset - 8))[0]
+            values += cast #bit(Math.Simd.U8x16, Math.Simd.splat(carry))
             Math.Simd.store(destination + offset, values)
             offset += 16
         }
@@ -259,20 +259,20 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
 
     while offset < count
     {
-        destination[offset] = cast #bit(u8) (source[offset] + #wrap destination[offset - bytesPerPixel])
+        destination[offset] = cast #bit(u8, (source[offset] + #wrap destination[offset - bytesPerPixel]))
         offset += 1
     }
 }
 
 func filterPaeth(left, up, upLeft: u8)->u8
 {
-    let aa = cast(s16) left
-    let bb = cast(s16) up
-    let cc = cast(s16) upLeft
+    let aa = cast(s16, left)
+    let bb = cast(s16, up)
+    let cc = cast(s16, upLeft)
     let p  = aa + bb - cc
-    let pa = Math.abs(cast(s16) (p - aa))
-    let pb = Math.abs(cast(s16) (p - bb))
-    let pc = Math.abs(cast(s16) (p - cc))
+    let pa = Math.abs(cast(s16, (p - aa)))
+    let pb = Math.abs(cast(s16, (p - bb)))
+    let pc = Math.abs(cast(s16, (p - cc)))
     if pa <= pb and pa <= pc do
         return left
     if pb <= pc do
@@ -287,8 +287,8 @@ func filterPaeth(left, up, upLeft: u8)->u8
 #[Swag.Inline]
 func loadPixelLanes(source: const [*] u8)->Math.Simd.S16x8
 {
-    let bytes = cast #bit(Math.Simd.U8x16) Math.Simd.splat((cast(const [*] u64) source)[0])
-    return cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(bytes)
+    let bytes = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, source)[0]))
+    return cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(bytes))
 }
 
 // Adds two lane-per-byte pixels the way PNG reconstruction does, modulo 256.
@@ -296,7 +296,7 @@ func loadPixelLanes(source: const [*] u8)->Math.Simd.S16x8
 // Every lane holds a byte in its low half and zero above it, so adding as bytes wraps each
 // channel on its own and leaves the lanes in that same shape.
 #[Swag.Inline]
-func addPixelLanes(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Simd.S16x8) (cast #bit(Math.Simd.U8x16) x + cast #bit(Math.Simd.U8x16) y)
+func addPixelLanes(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Simd.S16x8, (cast #bit(Math.Simd.U8x16, x) + cast #bit(Math.Simd.U8x16, y)))
 
 // Picks the Paeth predictor per lane, with the same ties as the scalar rule.
 //
@@ -334,7 +334,7 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
         var left = Math.Simd.splat(0's16)
         while offset + 8 <= count
         {
-            let up        = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(previous + offset))
+            let up        = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(previous + offset)))
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, (left + up) >> 1)
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -346,8 +346,8 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
     while offset < count
     {
         let left    = offset >= bytesPerPixel ? destination[offset - bytesPerPixel] : 0'u8
-        let average = cast(u8) ((cast(u16) previous[offset] + left) >> 1)
-        destination[offset] = cast #bit(u8) (source[offset] + #wrap average)
+        let average = cast(u8, ((cast(u16, previous[offset]) + left) >> 1))
+        destination[offset] = cast #bit(u8, (source[offset] + #wrap average))
         offset += 1
     }
 }
@@ -364,7 +364,7 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
         var upLeft = Math.Simd.splat(0's16)
         while offset + 8 <= count
         {
-            let up        = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(previous + offset))
+            let up        = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(previous + offset)))
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, paethPredict(left, up, upLeft))
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -379,7 +379,7 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
         let left      = offset >= bytesPerPixel ? destination[offset - bytesPerPixel] : 0'u8
         let upLeft    = offset >= bytesPerPixel ? previous[offset - bytesPerPixel] : 0'u8
         let predictor = filterPaeth(left, previous[offset], upLeft)
-        destination[offset] = cast #bit(u8) (source[offset] + #wrap predictor)
+        destination[offset] = cast #bit(u8, (source[offset] + #wrap predictor))
         offset += 1
     }
 }
@@ -402,7 +402,7 @@ impl Decoder
             {
                 let dest = orgDest
                 orgDest += rowStrideOut
-                expand1Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
+                expand1Row(dest + srcOffset, dest, rowStrideOut, cast(u8, mul))
             }
         }
         // 2 bits => 8 bits
@@ -413,7 +413,7 @@ impl Decoder
             {
                 let dest = orgDest
                 orgDest += rowStrideOut
-                expand2Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
+                expand2Row(dest + srcOffset, dest, rowStrideOut, cast(u8, mul))
             }
         }
         // 4 bits => 8 bits
@@ -424,7 +424,7 @@ impl Decoder
             {
                 let dest = orgDest
                 orgDest += rowStrideOut
-                expand4Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
+                expand4Row(dest + srcOffset, dest, rowStrideOut, cast(u8, mul))
             }
         }
     }
@@ -432,14 +432,14 @@ impl Decoder
     mtd getStrideIn(width: u32)->u64
     {
         if .header.bitDepth < 8 do
-            return cast(u64) ((.inChannels * width * .header.bitDepth) + 7) / 8
-        return cast(u64) .inChannels * width * (.header.bitDepth / 8)
+            return cast(u64, ((.inChannels * width * .header.bitDepth) + 7)) / 8
+        return cast(u64, .inChannels) * width * (.header.bitDepth / 8)
     }
 
     mtd defilter8(width, height: u32, input, output: [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
-        let rowStrideOut = .header.bitDepth < 8 ? cast(u64) .inChannels * width : rowStrideIn
+        let rowStrideOut = .header.bitDepth < 8 ? cast(u64, .inChannels) * width : rowStrideIn
         let destOffset   = rowStrideOut - rowStrideIn
 
         var src  = input
@@ -459,11 +459,11 @@ impl Decoder
         // PNG filtering references the previous byte of the same pixel. Packed
         // samples (bit depths below 8) have an effective byte offset of 1, not
         // the number of channels; otherwise narrow Adam7 passes underflow here.
-        let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels * (.header.bitDepth / 8)
+        let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64, .inChannels) * (.header.bitDepth / 8)
         var row = 0'u32
         while row < height
         {
-            let filter = cast(RowFilter) src[0]
+            let filter = cast(RowFilter, src[0])
             src += 1
 
             var destOff = dest + destOffset
@@ -513,12 +513,12 @@ impl Decoder
             if x <= 0 or y <= 0 do
                 continue
 
-            let pixelBytes = cast(u64) .inChannels * (.header.bitDepth == 16 ? 2 : 1)
-            tmpArr.resize(cast(u64) (x * y) * pixelBytes + 16)
+            let pixelBytes = cast(u64, .inChannels) * (.header.bitDepth == 16 ? 2 : 1)
+            tmpArr.resize(cast(u64, (x * y)) * pixelBytes + 16)
             let tmpBuffer = tmpArr.storage()
             Memory.clear(tmpBuffer, tmpArr.count)
 
-            .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
+            .defilter(cast(u32, x), cast(u32, y), input, tmpBuffer)
 
             var t = tmpBuffer
             for j in y
@@ -536,7 +536,7 @@ impl Decoder
                 }
             }
 
-            let stride = (.getStrideIn(cast(u32) x) + 1) * y
+            let stride = (.getStrideIn(cast(u32, x)) + 1) * y
             input += stride
         }
     }

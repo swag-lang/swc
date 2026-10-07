@@ -39,11 +39,11 @@ impl WorkloadForecast
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.monday), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.tuesday), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.wednesday), index = 2'u64)
-            #inject(stmt, item = cast(*s32) &(me.thursday), index = 3'u64)
-            #inject(stmt, item = cast(*s32) &(me.friday), index = 4'u64)
+            #inject(stmt, item = cast(*s32, &(me.monday)), index = 0'u64)
+            #inject(stmt, item = cast(*s32, &(me.tuesday)), index = 1'u64)
+            #inject(stmt, item = cast(*s32, &(me.wednesday)), index = 2'u64)
+            #inject(stmt, item = cast(*s32, &(me.thursday)), index = 3'u64)
+            #inject(stmt, item = cast(*s32, &(me.friday)), index = 4'u64)
         }
         else
         {

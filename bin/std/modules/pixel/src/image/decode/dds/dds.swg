@@ -22,7 +22,7 @@ internal struct Decoder
 }
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => (cast(const *u32) source)[]
+func readU32(source: const [*] u8)->u32 => cast(const *u32, source)[]
 
 func blockFormat(fourCc: u32)->TextureBlocks.Format
 {
@@ -84,27 +84,27 @@ func maskToByte(value, mask: u32, fallback: u8)->u8
     let shift  = Math.trailingZeros(mask)
     let bits   = Math.countOnes(mask)
     let limit  = bits == 32 ? Swag.U32.Max : (1'u32 << bits) - 1
-    let sample = cast(u64) ((value & mask) >> shift)
-    return cast(u8) ((sample * 255 + limit / 2) / limit)
+    let sample = cast(u64, ((value & mask) >> shift))
+    return cast(u8, ((sample * 255 + limit / 2) / limit))
 }
 
 func decodeMasked(image: *Image, buffer: const [..] u8, offset: u64, pitch: u64, bits: u32, redMask, greenMask, blueMask, alphaMask: u32, luminance: bool) fail
 {
-    let pixelBytes = cast(u64) (bits + 7) / 8
-    let rowBytes   = cast(u64) image.width * pixelBytes
-    if pitch < rowBytes or cast(u64) image.height > (buffer.count - offset) / pitch do
+    let pixelBytes = cast(u64, (bits + 7)) / 8
+    let rowBytes   = cast(u64, image.width) * pixelBytes
+    if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch do
         fail InvalidFormatError{"DDS pixel rows are truncated"}
 
     for y in image.height
     {
-        let source  = buffer.buffer + offset + cast(u64) y * pitch
+        let source  = buffer.buffer + offset + cast(u64, y) * pitch
         let targetY = image.height - y - 1
-        var target  = image.pixels.storage() + cast(u64) targetY * image.rowStride
+        var target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
         for x in image.width
         {
             var value = 0'u32
             for byte in pixelBytes do
-                value |= cast(u32) source[cast(u64) x * pixelBytes + byte] << (byte * 8)
+                value |= cast(u32, source[cast(u64, x) * pixelBytes + byte]) << (byte * 8)
             if luminance
             {
                 target[0] = maskToByte(value, redMask, 0)
@@ -126,18 +126,18 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset: u64, pitch: u64,
 
 func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpaqueAlpha: bool) fail
 {
-    let rowBytes = cast(u64) image.rowStride
-    if pitch < rowBytes or cast(u64) image.height > (buffer.count - offset) / pitch do
+    let rowBytes = cast(u64, image.rowStride)
+    if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch do
         fail InvalidFormatError{"DDS pixel rows are truncated"}
     for y in image.height
     {
         let targetY = image.height - y - 1
-        let target  = image.pixels.storage() + cast(u64) targetY * image.rowStride
-        Memory.copy(target, buffer.buffer + offset + cast(u64) y * pitch, rowBytes)
+        let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
+        Memory.copy(target, buffer.buffer + offset + cast(u64, y) * pitch, rowBytes)
         if forceOpaqueAlpha
         {
             for x in image.width do
-                target[cast(u64) x * 4 + 3] = 255
+                target[cast(u64, x) * 4 + 3] = 255
         }
     }
 }
@@ -153,7 +153,7 @@ impl Decoder
 
         var height = readU32(buffer.buffer + 12)
         var width  = readU32(buffer.buffer + 16)
-        if width == 0 or height == 0 or width > cast(u32) Swag.S32.Max or height > cast(u32) Swag.S32.Max do
+        if width == 0 or height == 0 or width > cast(u32, Swag.S32.Max) or height > cast(u32, Swag.S32.Max) do
             fail UnsupportedFormatError{"DDS dimensions exceed the image limits"}
 
         let pfFlags   = readU32(buffer.buffer + 80)
@@ -257,7 +257,7 @@ impl Decoder
         let levels = Math.max(readU32(buffer.buffer + 28), 1'u32)
         if levels > 32 do
             fail InvalidFormatError{"DDS mip count exceeds its dimensions"}
-        try options.checkFrameCount(cast(u64) layers * faces.count * levels)
+        try options.checkFrameCount(cast(u64, layers) * faces.count * levels)
         let baseWidth  = width
         let baseHeight = height
         var cursor     = offset
@@ -276,11 +276,11 @@ impl Decoder
                     let frameHeight = Math.max(baseHeight >> level, 1'u32)
                     let slices      = Math.max(depth >> level, 1'u32)
                     try options.checkFrameCount(current + slices)
-                    try options.checkImage(cast(s32) frameWidth, cast(s32) frameHeight, format)
-                    let rowBytes      = directCopy ? cast(u64) frameWidth * format.bitsPerPixel() / 8 : (cast(u64) frameWidth * bits + 7) / 8
-                    let declaredPitch = level == 0 ? cast(u64) readU32(buffer.buffer + 20) : 0
+                    try options.checkImage(cast(s32, frameWidth), cast(s32, frameHeight), format)
+                    let rowBytes      = directCopy ? cast(u64, frameWidth) * format.bitsPerPixel() / 8 : (cast(u64, frameWidth) * bits + 7) / 8
+                    let declaredPitch = level == 0 ? cast(u64, readU32(buffer.buffer + 20)) : 0
                     let pitch         = Math.max(rowBytes, declaredPitch)
-                    let length        = blocks != .None ? cast(u64) ((frameWidth + 3) / 4) * ((frameHeight + 3) / 4) * TextureBlocks.blockBytes(blocks) : pitch * frameHeight
+                    let length        = blocks != .None ? cast(u64, ((frameWidth + 3) / 4)) * ((frameHeight + 3) / 4) * TextureBlocks.blockBytes(blocks) : pitch * frameHeight
                     for slice in slices
                     {
                         if cursor > buffer.count or length > buffer.count - cursor do
@@ -296,7 +296,7 @@ impl Decoder
 
                         if collect
                         {
-                            let frame: ImageFrameInfo = {kind: .Texture, width: cast(s32) frameWidth, height: cast(s32) frameHeight, pixelFormat: format, layer: layer, face: face, level: level, depthSlice: slice}
+                            let frame: ImageFrameInfo = {kind: .Texture, width: cast(s32, frameWidth), height: cast(s32, frameHeight), pixelFormat: format, layer: layer, face: face, level: level, depthSlice: slice}
                             .frames.add(frame)
                         }
 
@@ -310,7 +310,7 @@ impl Decoder
         if selected >= current do
             fail InvalidFormatError{"DDS image index is out of range"}
         var result: retval
-        result.init(cast(s32) width, cast(s32) height, format, alphaMode)
+        result.init(cast(s32, width), cast(s32, height), format, alphaMode)
         if not options.decodePixels do
             return result
         result.allocPixels()

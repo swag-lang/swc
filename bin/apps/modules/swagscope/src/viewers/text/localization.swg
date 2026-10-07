@@ -42,5 +42,5 @@ func registerTextStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'TextStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'TextStrings(cast(string, FrenchStrings))
 }

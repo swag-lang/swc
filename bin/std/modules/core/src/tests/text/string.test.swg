@@ -19,7 +19,7 @@ func makePatternString(count: u64)->String
     var result: retval
     for i in count
     {
-        let offset = cast(u8) (i % 26)
+        let offset = cast(u8, (i % 26))
         result.append('a'u8 + offset)
     }
 
@@ -68,19 +68,19 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(value.isEmpty())
     Swag.assert(value.isNullOrEmpty())
     Swag.assert(assertString(value, ""))
-    let emptyCstr = cast(cstring?) value
+    let emptyCstr = cast(cstring?, value)
     Swag.assert(emptyCstr.count == 0)
 
     value = "abc"
     Swag.assert(assertString(value, "abc"))
-    let cstr = cast(cstring?) value
+    let cstr = cast(cstring?, value)
     Swag.assert(cstr.count == 3)
 
     let nullText: string? = null
     value = nullText
     Swag.assert(value.isEmpty())
     Swag.assert(assertString(value, ""))
-    let nullCstr = cast(cstring?) value
+    let nullCstr = cast(cstring?, value)
     Swag.assert(nullCstr.count == 0)
 }
 
@@ -105,11 +105,11 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     var sumIndexes: u64
     for byte, index in value
     {
-        sumBytes   += cast(u32) byte
+        sumBytes   += cast(u32, byte)
         sumIndexes += index
     }
 
-    Swag.assert(sumBytes == cast(u32) 'a'u8 + cast(u32) 'Z'u8 + cast(u32) 'c'u8 + cast(u32) 'd'u8 + cast(u32) 'e'u8 + cast(u32) 'f'u8)
+    Swag.assert(sumBytes == cast(u32, 'a'u8) + cast(u32, 'Z'u8) + cast(u32, 'c'u8) + cast(u32, 'd'u8) + cast(u32, 'e'u8) + cast(u32, 'f'u8))
     Swag.assert(sumIndexes == 15)
 
     for &byte in value do
@@ -239,10 +239,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
     Swag.assert(value.contains('C'u8))
     Swag.assert(value.contains('\u00E9'rune))
-    Swag.assert(value.contains(cast(string) "Caf"))
+    Swag.assert(value.contains(cast(string, "Caf")))
 
     let needle: [3] u8 = ['a'u8, 'f'u8, 0xC3]
-    Swag.assert(value.contains(cast(const [..] u8) needle))
+    Swag.assert(value.contains(cast(const [..] u8, needle)))
 
     Swag.assert(value.startsWith("Core"))
     Swag.assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))
@@ -268,7 +268,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var value: String = "alpha"
-    let ptr = cast(const *String) &value
+    let ptr = cast(const *String, &value)
 
     Swag.assert(ptr.toString() == "alpha")
     Swag.assert(ptr[] == "alpha")

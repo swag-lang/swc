@@ -120,7 +120,7 @@ public impl PacketDurationProbe
     mtd opDrop()
     {
         if .vorbis != null do
-            Memory.delete(cast(*Vorbis.DurationProbe) .vorbis)
+            Memory.delete(cast(*Vorbis.DurationProbe, .vorbis))
     }
 
     // Prepares the probe for one stream of `encoding`, whose decoder configuration is `config`.
@@ -143,14 +143,14 @@ public impl PacketDurationProbe
         switch .encoding
         {
         case .Vorbis:
-            let probe = cast(*Vorbis.DurationProbe) .vorbis!
+            let probe = cast(*Vorbis.DurationProbe, .vorbis!)
             return try probe.frames(packet)
 
         case .Opus:
             let count = Opus.packetFrames(packet)
             if not count do
                 fail InvalidFormatError{"Opus packet has an invalid table of contents"}
-            return cast(u32) count
+            return cast(u32, count)
 
         default:
             return try packetFrameCount(.encoding, packet)

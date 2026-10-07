@@ -41,8 +41,8 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
     {
         for rawValue in 256'u32
         {
-            let unsignedValue = cast(u8) rawValue
-            let signedValue   = cast #wrap (s8) rawValue
+            let unsignedValue = cast(u8, rawValue)
+            let signedValue   = cast #wrap (s8, rawValue)
 
             for count in [0'u64, 1, 2, 3, 4, 5, 6, 7]
             {

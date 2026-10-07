@@ -56,7 +56,7 @@ func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line: InvoiceL
 {
     for idx in lines.count
     {
-        #inject(stmt, line = lines[idx], index = cast(s32) idx, lineTotalCents = lines[idx].quantity * lines[idx].unitPriceCents)
+        #inject(stmt, line = lines[idx], index = cast(s32, idx), lineTotalCents = lines[idx].quantity * lines[idx].unitPriceCents)
     }
 }
 

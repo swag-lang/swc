@@ -31,17 +31,17 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
     Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
-    let wantedAt = cast(const [*] s16) wanted.storage()
+    let wantedAt = cast(const [*] s16, wanted.storage())
     var energy   = 0.0'f64
     var worst    = 0.0'f64
     for index in decoded.count
     {
-        let difference = cast(f64) decoded[index] - cast(f64) wantedAt[index]
+        let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
         energy += difference * difference
         worst  = Math.max(worst, Math.abs(difference))
     }
 
-    let rms = Math.sqrt(energy / cast(f64) decoded.count) / 32768.0'f64
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
     if rms > 0.0001'f64 do
         Swag.print("vorbis ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, "\n")
     Swag.assert(rms <= 0.0001'f64)
@@ -89,7 +89,7 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer
+    let samples = cast(const [*] s16, decoded.buffer)
     for index in 32 * 2 do
         Swag.assert(samples[index] == wanted[Target * 2 + index])
 }

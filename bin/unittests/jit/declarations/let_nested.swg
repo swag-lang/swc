@@ -47,7 +47,7 @@
         {
             let second: u16 = 20'u16
             {
-                let third: s32 = cast(s32) first + cast(s32) second
+                let third: s32 = cast(s32, first) + cast(s32, second)
                 return third
             }
         }

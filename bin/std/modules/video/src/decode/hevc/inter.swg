@@ -247,7 +247,7 @@ impl Decoder
             return false
         for list in ListCount
         {
-            if (cast(u32) left.predFlags & (1'u32 << list)) == 0 do
+            if (cast(u32, left.predFlags) & (1'u32 << list)) == 0 do
                 continue
             if left.refIdx[list] != right.refIdx[list] do
                 return false
@@ -276,8 +276,8 @@ impl Decoder
             if (first.predFlags & 1) == 0 or (second.predFlags & 2) == 0 do
                 continue
 
-            let firstPoc  = .refList.poc[0, cast(u32) first.refIdx[0]]
-            let secondPoc = .refList.poc[1, cast(u32) second.refIdx[1]]
+            let firstPoc  = .refList.poc[0, cast(u32, first.refIdx[0])]
+            let secondPoc = .refList.poc[1, cast(u32, second.refIdx[1])]
             if firstPoc == secondPoc and first.mv[0, 0] == second.mv[1, 0] and first.mv[0, 1] == second.mv[1, 1] do
                 continue
 
@@ -308,7 +308,7 @@ impl Decoder
         while count[] < header.maxNumMergeCand
         {
             var candidate: PuMotion
-            let index = zeroIdx < usable ? cast(s8) zeroIdx : 0's8
+            let index = zeroIdx < usable ? cast(s8, zeroIdx) : 0's8
             candidate.refIdx[0] = index
             candidate.predFlags = 1
             if bi
@@ -343,7 +343,7 @@ impl Decoder
         // the same coding tree block row.
         let xColBr = xPb + nPbW
         let yColBr = yPb + nPbH
-        if (yPb >> sps.ctbLog2Size) == (yColBr >> sps.ctbLog2Size) and yColBr < cast(s32) sps.height and xColBr < cast(s32) sps.width
+        if (yPb >> sps.ctbLog2Size) == (yColBr >> sps.ctbLog2Size) and yColBr < cast(s32, sps.height) and xColBr < cast(s32, sps.width)
         {
             result = .collocatedMotion(collocated, (xColBr >> 4) << 4, (yColBr >> 4) << 4, list, refIdx)
             if result.available do
@@ -371,17 +371,17 @@ impl Decoder
         elif (column.predFlags & 2) != 0
         {
             source = .noBackwardPrediction() ? list : (.header.collocatedFromL0 ? 1'u32 : 0'u32)
-            if (cast(u32) column.predFlags & (1'u32 << source)) == 0 do
+            if (cast(u32, column.predFlags) & (1'u32 << source)) == 0 do
                 source = source ^ 1
         }
 
-        let currentLongTerm = .refList.longTerm[list, cast(u32) refIdx]
-        let sourceLongTerm  = (cast(u32) column.longTermRef & (1'u32 << source)) != 0
+        let currentLongTerm = .refList.longTerm[list, cast(u32, refIdx)]
+        let sourceLongTerm  = (cast(u32, column.longTermRef) & (1'u32 << source)) != 0
         if currentLongTerm != sourceLongTerm do
             return result
 
         let colPocDiff  = collocated.poc - column.refPoc[source]
-        let currPocDiff = .pocValue - .refList.poc[list, cast(u32) refIdx]
+        let currPocDiff = .pocValue - .refList.poc[list, cast(u32, refIdx)]
 
         result.available = true
         if currentLongTerm or colPocDiff == currPocDiff
@@ -391,8 +391,8 @@ impl Decoder
             return result
         }
 
-        result.mv[0] = cast(s16) .scaleMotion(cast(s32) column.mv[source, 0], currPocDiff, colPocDiff)
-        result.mv[1] = cast(s16) .scaleMotion(cast(s32) column.mv[source, 1], currPocDiff, colPocDiff)
+        result.mv[0] = cast(s16, .scaleMotion(cast(s32, column.mv[source, 0]), currPocDiff, colPocDiff))
+        result.mv[1] = cast(s16, .scaleMotion(cast(s32, column.mv[source, 1]), currPocDiff, colPocDiff))
         return result
     }
 
@@ -507,19 +507,19 @@ impl Decoder
     private mtd takePredictor(target: [*] s16, x, y: s32, list: u32, refIdx: s32, allowScaling: bool)->bool
     {
         let neighbour  = .motionAt(x, y)
-        let wantedPoc  = .refList.poc[list, cast(u32) refIdx]
-        let wantedLong = .refList.longTerm[list, cast(u32) refIdx]
+        let wantedPoc  = .refList.poc[list, cast(u32, refIdx)]
+        let wantedLong = .refList.longTerm[list, cast(u32, refIdx)]
 
         for offset in ListCount
         {
             // The neighbour's own list is preferred, and the other one is the fallback.
             let candidateList = (list + offset) & 1
-            if (cast(u32) neighbour.predFlags & (1'u32 << candidateList)) == 0 do
+            if (cast(u32, neighbour.predFlags) & (1'u32 << candidateList)) == 0 do
                 continue
             if neighbour.refIdx[candidateList] < 0 do
                 continue
 
-            let index = cast(u32) neighbour.refIdx[candidateList]
+            let index = cast(u32, neighbour.refIdx[candidateList])
             if index >= .refList.count[candidateList] do
                 continue
 
@@ -547,8 +547,8 @@ impl Decoder
 
             let currentDiff   = .pocValue - wantedPoc
             let referenceDiff = .pocValue - neighbourPoc
-            target[0] = cast(s16) .scaleMotion(cast(s32) neighbour.mv[candidateList, 0], currentDiff, referenceDiff)
-            target[1] = cast(s16) .scaleMotion(cast(s32) neighbour.mv[candidateList, 1], currentDiff, referenceDiff)
+            target[0] = cast(s16, .scaleMotion(cast(s32, neighbour.mv[candidateList, 0]), currentDiff, referenceDiff))
+            target[1] = cast(s16, .scaleMotion(cast(s32, neighbour.mv[candidateList, 1]), currentDiff, referenceDiff))
             return true
         }
 
@@ -558,14 +558,14 @@ impl Decoder
     // Records the motion of one prediction block over the blocks it covers.
     mtd storeMotion(xPb, yPb, nPbW, nPbH: s32, motion: const *PuMotion)
     {
-        let blocksX = cast(u32) nPbW >> MinBlockLog2
-        let blocksY = cast(u32) nPbH >> MinBlockLog2
+        let blocksX = cast(u32, nPbW) >> MinBlockLog2
+        let blocksY = cast(u32, nPbH) >> MinBlockLog2
         let origin  = .blockIndex(xPb, yPb)
         for row in blocksY
         {
-            let line = origin + cast(u64) row * cast(u64) .gridWidth
+            let line = origin + cast(u64, row) * cast(u64, .gridWidth)
             for column in blocksX do
-                .motion[line + cast(u64) column] = motion[]
+                .motion[line + cast(u64, column)] = motion[]
         }
     }
 }

@@ -74,7 +74,7 @@ func qsort(a: [*] u64, first, last: s64)
 #main
 {
     // ---- data generation (not timed) ----
-    let a = cast([*] u64) (benchAlloc(cast(u64) N * #sizeof(u64)))!
+    let a = cast([*] u64, (benchAlloc(cast(u64, N) * #sizeof(u64)))!)
     for i in N do
         a[i] = rnd()
 
@@ -94,7 +94,7 @@ func qsort(a: [*] u64, first, last: s64)
     if sorted
     {
         for i in N do
-            check += (a[i] % 1000) * cast(u64) (i % 7 + 1)
+            check += (a[i] % 1000) * cast(u64, (i % 7 + 1))
     }
 
     let t1 = now()

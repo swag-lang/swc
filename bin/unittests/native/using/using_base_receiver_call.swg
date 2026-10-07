@@ -64,7 +64,7 @@ struct(T) BoxPtr
     b.addFwd(&i)
     Swag.assert(b.count == 1)
     Swag.assert(b.slot == &i)
-    b.addFwd(cast(*s32?) null)
+    b.addFwd(cast(*s32?, null))
     Swag.assert(b.count == 2)
     Swag.assert(b.slot == null)
 }

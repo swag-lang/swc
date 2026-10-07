@@ -76,7 +76,7 @@ using Swag, Core
     var source: String
     for index in 8_000 do
         source += Format.toString("## Section %\n\nA paragraph gives each source block a stable identity during scrolling.\n\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -214,7 +214,7 @@ using Swag, Core
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_%.svg", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
     let source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><rect width=\"40\" height=\"20\" fill=\"#285078\"/></svg>"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var cache: HtmlImageCache
     cache.basePath = Path.directoryName(fileName.toString())!
     let entry = cache.fetch(Path.fileName(fileName.toString())!)
@@ -236,7 +236,7 @@ using Swag, Core
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_svg_size_%.svg", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
     let source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"464\" height=\"464\" viewBox=\"40 40 928 928\"><rect x=\"40\" y=\"40\" width=\"928\" height=\"928\" fill=\"#285078\"/></svg>"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
 
     var host: Testing.HeadlessHost
     host.setup(1000, 700)
@@ -282,7 +282,7 @@ using Swag, Core
     expect picture.save(imagePath)
 
     let source = Format.toString("![Local figure](<%>)\n\n![Embedded](%)\n\n![Reference][figure] and <img src=\"%\" alt=\"Inline\">\n\n[figure]: <%>\n\n![Remote](https://example.com/image.png)\n\n![Missing](missing-image.png)", Path.fileName(imagePath.toString())!, Embedded, Path.fileName(imagePath.toString())!, Path.fileName(imagePath.toString())!)
-    discard expect File.writeAllBytes(markdownPath, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(markdownPath, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(640, 900)
@@ -398,7 +398,7 @@ using Swag, Core
     for 900 do
         source += "hidden note\n"
     source += "\n-->\n<div align=\"center\">\n\n<p>Visible spread</p>\n\n</div>\n\nAfter."
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(640, 480)
     defer host.shutdown()
@@ -594,11 +594,11 @@ func markdownFixturePath()->String => Path.combine(Path.directoryName(#curlocati
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img
     {
         hasImage  = true
-        imageNode = cast(u32) index
+        imageNode = cast(u32, index)
     }
 
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .P do
-        paragraph = cast(u32) index
+        paragraph = cast(u32, index)
     Swag.assert(hasImage)
     Swag.assert(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(paragraph).textAlign == .Center)
     Swag.assert(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(imageNode).width == HtmlLength.pixels(120))
@@ -695,7 +695,7 @@ func markdownFixturePath()->String => Path.combine(Path.directoryName(#curlocati
     Swag.assert(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
     var imageNode = HtmlNoNode
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
-        imageNode = cast(u32) index
+        imageNode = cast(u32, index)
     Swag.assert(imageNode != HtmlNoNode)
     Swag.assert(view.blocks[0].html!.layout.styleOfNode(imageNode).width.kind == .Percent and view.blocks[0].html!.layout.styleOfNode(imageNode).width.value == 0.8)
 }
@@ -976,8 +976,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let above  = inline.localToSurface(Math.Point{0, inline.lines[0].top + inline.lines[0].height - 3})
     let below  = inline.localToSurface(Math.Point{0, inline.lines[1].top + 3})
     Swag.assert(below.y > above.y)
-    for y in cast(s32) above.y to cast(s32) below.y do
-        Swag.assert(image.pixelColor(cast(s32) column.x, y) != ground)
+    for y in cast(s32, above.y) to cast(s32, below.y) do
+        Swag.assert(image.pixelColor(cast(s32, column.x), y) != ground)
 }
 
 // The context menu and the keyboard reach the same two commands.
@@ -1348,7 +1348,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     }
 
     Swag.assert(source.length > 8 * 1024)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
@@ -1523,7 +1523,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var source: String
     for 64 do
         source += "One paragraph per block.\n\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 1000)
@@ -1547,7 +1547,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var source = String.from("A paragraph before the embedded content.\n\n<div><p>Embedded prose stays at its measured height.</p></div>\n\n")
     for 64 do
         source += "Another paragraph stays in reading order.\n\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
     host.setup(720, 1000)
@@ -1628,7 +1628,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var source: String
     for 32 do
         source += "> [!WARNING]\n> Retain this body.\n\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     let file = Markdown.View.createFile(&host.root, fileName)
     file.resize(720, 1000)
     file.applyLayout()

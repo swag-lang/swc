@@ -461,7 +461,10 @@ namespace
         if (!fromExplicitNode && !Cast::isImplicitNullableAnyStringCast(srcType, dstType))
             return Result::Continue;
 
-        const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::DynCast);
+        const bool assumedCast          = castFlags.has(CastFlagsE::Assume) && !castFlags.has(CastFlagsE::Fallible);
+        const auto typeSafety           = assumedCast ? Runtime::SafetyWhat::Assume : Runtime::SafetyWhat::DynCast;
+        const auto nullSafety           = assumedCast ? Runtime::SafetyWhat::Assume : Runtime::SafetyWhat::Null;
+        const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), typeSafety);
         const bool dstUsesTypeInfoMatch = dstType.isStruct() ||
                                           dstType.isAnyPointer() ||
                                           dstType.isReference() ||
@@ -473,25 +476,25 @@ namespace
         // The 'any' payload may hold a null value: extracting it into a bare (non-null)
         // destination is guarded like an implicit 'notnull'.
         const bool hasNullExtractSafety = dstType.isNonNullable() &&
-                                          sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Null);
+                                          sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), nullSafety);
 
         auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, nodeRef);
 
         if (hasDynCastSafety)
-            payload.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
+            payload.addRuntimeSafety(typeSafety);
         if (hasNullExtractSafety)
-            payload.addRuntimeSafety(Runtime::SafetyWhat::Null);
+            payload.addRuntimeSafety(nullSafety);
 
         if (!sema.isCurrentFunction())
             return Result::Continue;
 
-        // An unchecked '#assume' value extraction reads the boxed storage directly. Runtime
+        // An unchecked 'assume' value extraction reads the boxed storage directly. Runtime
         // lookup can neither adjust that value nor report a mismatch when dynamic-cast safety
         // is disabled, so pulling the complete dynamic-cast runtime into the call graph only
         // adds dead work and code. Pointer, reference, and interface destinations still need
         // lookup because their borrowed address may require adjustment.
         const bool directAssumedValue = castFlags.has(CastFlagsE::Assume) &&
-                                        !castFlags.hasAny({CastFlagsE::Try, CastFlagsE::NoOverflow, CastFlagsE::UnConst}) &&
+                                        !castFlags.hasAny({CastFlagsE::Try, CastFlagsE::NoOverflow, CastFlagsE::UnConst, CastFlagsE::Fallible}) &&
                                         !dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
                                         !dstType.isInterface() && !dstType.isTypeInfo();
         if (directAssumedValue && !hasDynCastSafety)
@@ -1585,7 +1588,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     // still-nullable value are rejected upstream at the use site, so a nullable receiver
     // reaching this cast is either flow-narrowed or guarded by a '?.' chain link.
     const bool boxesTypedValueIntoAny = dstType.isAny() && !srcType.isAny();
-    if (srcType.isNullable() && dstType.isNonNullable() && !boxesTypedValueIntoAny && !castRequest.flags.has(CastFlagsE::UfcsArgument))
+    if (srcType.isNullable() && dstType.isNonNullable() && !boxesTypedValueIntoAny && !castRequest.flags.hasAny({CastFlagsE::UfcsArgument, CastFlagsE::NonNullChecked}))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))
@@ -1596,10 +1599,10 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (srcType.isAlias() || dstType.isAlias())
     {
-        const TypeInfo* unwrappedSrc      = srcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo* unwrappedDst      = dstType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& resolvedSrcType   = unwrappedSrc ? *unwrappedSrc : srcType;
-        const TypeInfo& resolvedDstType   = unwrappedDst ? *unwrappedDst : dstType;
+        const TypeInfo* unwrappedSrc    = srcType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo* unwrappedDst    = dstType.unwrapAliasEnumType(sema.ctx());
+        const TypeInfo& resolvedSrcType = unwrappedSrc ? *unwrappedSrc : srcType;
+        const TypeInfo& resolvedDstType = unwrappedDst ? *unwrappedDst : dstType;
 
         const bool allowAliasBoolCast               = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
         const bool allowAliasNullCast               = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();

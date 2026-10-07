@@ -13,7 +13,7 @@ internal impl Properties
         var width = .position.width
         if not .isGridLike()
         {
-            width = cast(f32) Reflection.attributeValue(value, .EditSize, "size", .editorWidth)
+            width = cast(f32, Reflection.attributeValue(value, .EditSize, "size", .editorWidth))
             width = .listContentWidthFromUseful(width)
         }
 
@@ -31,8 +31,8 @@ internal impl Properties
 
         for v in typeStruct.fields
         {
-            let dataField   = cast(*f32) (data + v.offset)!
-            let fieldOffset = cast(u64) v.offset
+            let dataField   = cast(*f32, (data + v.offset)!)
+            let fieldOffset = cast(u64, v.offset)
 
             with let label = Label.create(line, v.name![0 to 0], {0, 0, item.line.position.height})
             {
@@ -82,7 +82,7 @@ internal impl IPropertyEditor for VectorEditor
                type == Math.Rectangle
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructVector(value, cast #assume(const *Swag.TypeInfoStruct) value.pointedType!, data, parent!)
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructVector(value, assume cast(const *Swag.TypeInfoStruct, value.pointedType), data, parent!)
 }
 
 #init

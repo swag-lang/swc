@@ -239,7 +239,7 @@ impl IWnd for PushButton
         if evt.key != .Space and evt.key != .Return do
             return
 
-        .sigPressed.call(cast(*Button) me)
+        .sigPressed.call(cast(*Button, me))
         .postCommandEvent(.id)
         evt.accepted = true
     }
@@ -326,7 +326,7 @@ impl PushButton
             }
         }
 
-        return dominant == cast(*Wnd) me ? PushButtonForm.Default : PushButtonForm.Normal
+        return dominant == cast(*Wnd, me) ? PushButtonForm.Default : PushButtonForm.Normal
     }
 
     // Changes visual emphasis and repaints the button.

@@ -41,13 +41,13 @@ private func testAtlasUpload(mode: FontRenderMode)
     Swag.assert(changedPixels * 4 < atlas.width / atlas.bytesPerPixel * atlas.height)
 
     // Force the next glyph to start a shelf without filling the entire page with test text.
-    atlas.curX = cast(s32) atlas.width
+    atlas.curX = cast(s32, atlas.width)
     discard font.getGlyphDesc('g')
     Swag.assert(font.cache.atlases.count == 1)
     let rowBytes = (atlas.dirtyMaxX - atlas.dirtyMinX) * atlas.bytesPerPixel
     for y in atlas.dirtyMinY until atlas.dirtyMaxY
     {
-        let offset = cast(u64) y * atlas.width + atlas.dirtyMinX * atlas.bytesPerPixel
+        let offset = cast(u64, y) * atlas.width + atlas.dirtyMinX * atlas.bytesPerPixel
         Memory.copy(uploaded.storage() + offset, atlas.data.storage() + offset, rowBytes)
     }
 

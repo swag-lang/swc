@@ -55,7 +55,7 @@ impl RefCountedRuntime
 #test
 {
     func countCString(value: const cstring)->u64 { return value.count }
-    const V0 = #run countCString(cast(const cstring) ("runtime").buffer)
+    const V0 = #run countCString(cast(const cstring, ("runtime").buffer))
     #assert(V0 == 7'u64)
 }
 
@@ -64,7 +64,7 @@ impl RefCountedRuntime
     func countSlice(value: const [..] u8)->u64 { return value.count }
 
     const data: [6] u8 = [0, 0, 0, 0, 0, 0]
-    const V0 = #run countSlice(cast(const [..] u8) data)
+    const V0 = #run countSlice(cast(const [..] u8, data))
     #assert(V0 == 6'u64)
 }
 
@@ -147,7 +147,7 @@ impl RefCountedRuntime
     func countZeroSizedSlice()->u64
     {
         var values: [3] ZeroSized
-        let slice = cast([..] ZeroSized) values
+        let slice = cast([..] ZeroSized, values)
         return slice.count
     }
 
@@ -185,7 +185,7 @@ impl RefCountedRuntime
     func countCStringRef()->u64
     {
         var valueData: [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
-        var value:     cstring  = cast(cstring) &valueData[0]
+        var value:     cstring  = cast(cstring, &valueData[0])
         var valueRef:  *cstring = &value
         return (valueRef[]).count
     }
@@ -193,7 +193,7 @@ impl RefCountedRuntime
     func loopCStringRef()->u64
     {
         var valueData: [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
-        var value:     cstring  = cast(cstring) &valueData[0]
+        var value:     cstring  = cast(cstring, &valueData[0])
         let valueRef:  *cstring = &value
         var count:     u64      = 0
         for valueRef[] do
@@ -215,7 +215,7 @@ impl RefCountedRuntime
         var arrayRef: *[2, 3] u8 = &array
 
         var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
-        let slice = cast([..] u8) flat
+        let slice = cast([..] u8, flat)
         let sliceRef: const *[..] u8 = &slice
         return (arrayRef[]).count + (sliceRef[]).count
     }
@@ -223,7 +223,7 @@ impl RefCountedRuntime
     func loopSliceRef()->u64
     {
         var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
-        let slice                    = cast([..] u8) flat
+        let slice                    = cast([..] u8, flat)
         let sliceRef: const *[..] u8 = &slice
         var count:    u64            = 0
         for sliceRef[] do

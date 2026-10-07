@@ -19,8 +19,8 @@ public impl Gamepad
     func setVibration(padIndex: u32, left, right: f32) fail
     {
         var vibration: XINPUT_VIBRATION
-        vibration.wLeftMotorSpeed  = cast(WORD) (0xFFFF * Math.saturate(left))
-        vibration.wRightMotorSpeed = cast(WORD) (0xFFFF * Math.saturate(right))
+        vibration.wLeftMotorSpeed  = cast(WORD, (0xFFFF * Math.saturate(left)))
+        vibration.wRightMotorSpeed = cast(WORD, (0xFFFF * Math.saturate(right)))
         let res = XInputSetState(padIndex, &vibration)
         switch res
         {

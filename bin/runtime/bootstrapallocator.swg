@@ -35,10 +35,10 @@ internal func __bootstrapAlloc(size: u64)->[*] void?
         return null
     }
 
-    let header = cast(*BootstrapAllocationHeader) base
+    let header = cast(*BootstrapAllocationHeader, base)
     header.reservedSize = reservedSize
     header._padding     = 0
-    return cast([*] void) (base + BootstrapAllocationHeaderSize)
+    return cast([*] void, (base + BootstrapAllocationHeaderSize))
 }
 
 internal func __bootstrapFree(ptr: [*] void?)
@@ -46,7 +46,7 @@ internal func __bootstrapFree(ptr: [*] void?)
     if not ptr do
         return
 
-    let base   = cast([*] u8) ptr - BootstrapAllocationHeaderSize
-    let header = cast(*BootstrapAllocationHeader) base
+    let base   = cast([*] u8, ptr) - BootstrapAllocationHeaderSize
+    let header = cast(*BootstrapAllocationHeader, base)
     __hostPageRelease(base, header.reservedSize)
 }

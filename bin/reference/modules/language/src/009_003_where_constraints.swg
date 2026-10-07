@@ -74,7 +74,7 @@ impl IValue for ConstantValue
 func(T) readValue(value: *T)->s32
     where T is IValue
 {
-    let view = cast(IValue) value
+    let view = cast(IValue, value)
     return view.value()
 }
 

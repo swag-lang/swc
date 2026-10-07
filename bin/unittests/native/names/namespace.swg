@@ -23,7 +23,7 @@ namespace compiler163
 namespace compiler1650
 {
     //
-    func aa(x: u32, y: any) {}
+    func aa(?: u32, ?: any) {}
 
     namespace aa1650
     {

@@ -14,7 +14,7 @@ var TabHeadlessSelChangedCount: u32
     TabHeadlessSelChangedCount = 0
 
     let tab = Tab.create(&host.root, {10, 10, 300, 180})
-    tab.sigSelectionChanged += func(tab) { TabHeadlessSelChangedCount += 1 }
+    tab.sigSelectionChanged += func(?) { TabHeadlessSelChangedCount += 1 }
 
     tab.addItem("A")
     tab.addItem("B")
@@ -121,7 +121,7 @@ var TabHeadlessSelChangedCount: u32
     tab.addItem("A", view: viewA)
     tab.addItem("B", view: viewB)
     tab.addItem("C", view: viewC)
-    tab.sigSelectionChanged += func(tab) { TabHeadlessSelChangedCount += 1 }
+    tab.sigSelectionChanged += func(?) { TabHeadlessSelChangedCount += 1 }
 
     tab.setSelectedIndex(2)
     tab.removeItemAt(0)

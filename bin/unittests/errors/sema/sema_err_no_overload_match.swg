@@ -1,10 +1,11 @@
 #global private
 
 func A() {}
-func A(a: s32) {}
+func A(a: s32) { discard a }
 
 func overloadProbe(type: typeinfo, value: string)->any?
 {
+    discard type, value
     return null
 }
 
@@ -29,7 +30,7 @@ struct S {}
 impl S
 {
     mtd foo() {}
-    mtd foo(a: s32) {}
+    mtd foo(a: s32) { discard a }
 }
 #test
 {
@@ -64,7 +65,7 @@ impl S
 }
 
 struct NullableRefNode {}
-func takesNonNullRef(r: *NullableRefNode) {}
+func takesNonNullRef(r: *NullableRefNode) { discard r }
 
 #test
 {

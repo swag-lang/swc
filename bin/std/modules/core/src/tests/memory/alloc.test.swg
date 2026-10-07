@@ -24,9 +24,9 @@ impl Swag.IAllocator for RecordingAllocationAllocator
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
-    mtd impl free(request: *Swag.AllocatorRequest) {}
-    mtd impl freeAll(request: *Swag.AllocatorRequest) {}
-    mtd impl assertAllocated(request: *Swag.AllocatorRequest) {}
+    mtd impl free(?: *Swag.AllocatorRequest) {}
+    mtd impl freeAll(?: *Swag.AllocatorRequest) {}
+    mtd impl assertAllocated(?: *Swag.AllocatorRequest) {}
 }
 
 impl Swag.IAllocator for RejectAllocationAllocator
@@ -38,12 +38,12 @@ impl Swag.IAllocator for RejectAllocationAllocator
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
-    mtd impl free(request: *Swag.AllocatorRequest) {}
-    mtd impl freeAll(request: *Swag.AllocatorRequest) {}
-    mtd impl assertAllocated(request: *Swag.AllocatorRequest) {}
+    mtd impl free(?: *Swag.AllocatorRequest) {}
+    mtd impl freeAll(?: *Swag.AllocatorRequest) {}
+    mtd impl assertAllocated(?: *Swag.AllocatorRequest) {}
 }
 
-func recordAllocationFailure(message: string?, loc: Swag.SourceCodeLocation)
+func recordAllocationFailure(message: string?, ?: Swag.SourceCodeLocation)
 {
     AllocationFailureMatched = message == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]"
     let request = cast(*Swag.AllocatorRequest?, Swag.getContext().user0)

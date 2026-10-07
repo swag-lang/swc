@@ -11,7 +11,7 @@ func readDynamicCase(value: any)->s32
 {
     switch value
     {
-    case SwitchDynamicOther as item:
+    case SwitchDynamicOther:
         return -1
     case SwitchDynamicValue as item where item.value < 0:
         return -2
@@ -67,6 +67,7 @@ func readCompleteDynamicCase(value: any)->s32
     case let number = inspectCaseCalls(value, &calls) where number[] == 42:
         result = number[]
     case let number = inspectCaseCalls(value, &calls):
+        discard number
         result = -2
     }
     Swag.assert(calls == 2)
@@ -82,7 +83,7 @@ func readCompleteDynamicCase(value: any)->s32
     default:
         result = 1
         fallthrough
-    case s64 as number:
+    case s64:
         result = -1
     case s32 as number:
         result += number[]

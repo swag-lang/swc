@@ -165,8 +165,7 @@ using Swag
     writer.writeSizedString("too long")
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    let value  = catch reader.readSizedString(4) as err
-    discard value
+    discard catch reader.readSizedString(4) as err
     Swag.assert(err != null)
 }
 
@@ -179,7 +178,6 @@ using Swag
     buffer.resize(buffer.count - 2)
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    let value  = catch reader.readSizedString() as err
-    discard value
+    discard catch reader.readSizedString() as err
     Swag.assert(err != null)
 }

@@ -14,9 +14,8 @@ var MenuResolvedLabel: string = "Open"
 
 func menuResolvedLabel()->string => MenuResolvedLabel
 
-func menuCommandSelected(menu: *MenuCtrl, id: WndId)
+func menuCommandSelected(?: *MenuCtrl, id: WndId)
 {
-    discard menu
     if id == Menu_Open do
         MenuSelectedCount += 1
 }
@@ -60,9 +59,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addRadioItem("Unavailable choice", "Menu.DisabledRadio", disabled: true, checked: true).icon = host.theme.icon(.PlayOnce, 16)
 
     var captured: bool
-    host.app.sigFrame += func|host = &host, golden, captured = &captured|(app)
+    host.app.sigFrame += func|host = &host, golden, captured = &captured|(?)
     {
-        discard app
         if captured[] do
             return
         var image = host.render()
@@ -240,7 +238,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     var frameCount: u32
     var didClick:   bool
-    host.app.sigFrame += func|host = &host, popup, frames = &frameCount, didClick = &didClick|(app)
+    host.app.sigFrame += func|host = &host, popup, frames = &frameCount, didClick = &didClick|(?)
     {
         frames[] += 1
         if not didClick[]
@@ -329,13 +327,12 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var didOpen:     bool
     var didClick:    bool
     var hidTogether: bool
-    sub.sigCommandSelected += func|popup, sub, hidTogether = &hidTogether|(menu, id)
+    sub.sigCommandSelected += func|popup, sub, hidTogether = &hidTogether|(?, ?)
     {
-        discard menu, id
         hidTogether[] = popup.isHidden() and sub.isHidden()
     }
 
-    host.app.sigFrame += func|host = &host, popup, sub, opened = &didOpen, clicked = &didClick|(app)
+    host.app.sigFrame += func|host = &host, popup, sub, opened = &didOpen, clicked = &didClick|(?)
     {
         if not opened[]
         {
@@ -376,7 +373,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     let anchor = Math.Point{310, 40}
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, anchor, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, anchor, checked = &checked|(?)
     {
         if checked[] do
             return
@@ -406,7 +403,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Open", Menu_Open)
 
     var didDismiss: bool
-    host.app.sigFrame += func|host = &host, dismissed = &didDismiss|(app)
+    host.app.sigFrame += func|host = &host, dismissed = &didDismiss|(?)
     {
         if not dismissed[]
         {
@@ -445,9 +442,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Use regular expression", Menu_Quit)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let anchor = button.surfaceRect()
@@ -487,9 +483,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Reset transform", Menu_Quit, host.theme.icon(.Update, 16))
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let anchor = button.surfaceRect()
@@ -520,9 +515,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         popup.addItem(Format.toString("Caption %", index).toString(), Menu_Open)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let margin = popup.themeMetrics().menuPopup_WindowMargin
@@ -557,9 +551,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Filter", Menu_New)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let shadow = popup.themeMetrics().menuPopup_ShadowSize
@@ -590,9 +583,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addPopup("More choices", sub)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let submenuOpened = host.openPopupSubMenu("More choices")
@@ -625,9 +617,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(popup.submenuDirection == .Left)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let submenuOpened = host.openPopupSubMenu("More choices")
@@ -665,9 +656,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.setSubmenuDirection(.Left)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         var image = host.render()
@@ -700,7 +690,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     sub.addItem("Monospace", Menu_Quit)
 
     let popup = MenuCtrl.createPopup(&host.root)
-    let item  = popup.addPopup("Typography", sub)
+    discard popup.addPopup("Typography", sub)
     popup.addItem("Plain item", Menu_New)
     popup.setSubmenuDirection(.Left)
     popup.computeLayoutPopup()
@@ -719,9 +709,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(Math.abs(popup.position.width - iconPopup.position.width - (metrics.chevron_Size + metrics.menuPopup_IconMargin - metrics.menuPopup_IconSize)) < 0.01)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         var image = host.render()

@@ -248,10 +248,8 @@ impl IWnd for PushButton
     //
     // The theme push-button width stays a floor, so a short caption keeps the regular
     // button size of the surface and only a caption that would not fit widens it.
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
-
         let metrics = .themeMetrics()
         return {Math.max(.labelWidth(), metrics.btnPush_Width), metrics.btnPush_Height}
     }

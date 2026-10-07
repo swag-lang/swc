@@ -775,7 +775,7 @@ impl TagBin
     }
 
     // Opens a section of kind `kind`.
-    mtd beginSection(kind: SectionKind, _skipFat = false) fail => try .openSection(kind, null)
+    mtd beginSection(kind: SectionKind, ? = false) fail => try .openSection(kind, null)
 
     // Closes the current section and moves past its end.
     mtd endSection() fail
@@ -814,7 +814,7 @@ impl TagBin
     //
     // Fails with [[Core.Errors.InvalidVersion]] when the stream holds a newer version of the
     // struct and `options.tryForward` is not set.
-    mtd beginStruct(structType: typeinfo?, _structData: [*] u8?)->bool fail
+    mtd beginStruct(structType: typeinfo?, ?: [*] u8?)->bool fail
     {
         var sig = try .stream.readNative'u32()
         if sig == Write.TagBinSignature.Raw
@@ -972,7 +972,7 @@ impl TagBin
     }
 
     // Closes the current field and clears any pending conversion.
-    mtd endElement(_val: TypeValue) fail
+    mtd endElement(?: TypeValue) fail
     {
         .convertNextNative = null
 

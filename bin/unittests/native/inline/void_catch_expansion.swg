@@ -16,7 +16,7 @@ func processId()->u32 => 7
 func lastError()->u32 => 5
 
 #[Swag.NoInline]
-func closeNativeHandle(handle: u64) { g_Released += 1 }
+func closeNativeHandle(?: u64) { g_Released += 1 }
 
 #[Swag.NoInline]
 func raiseNativeError(code: u32) fail
@@ -27,7 +27,7 @@ func raiseNativeError(code: u32) fail
 // Produces no value, so its expansion records no register. A caller consuming the expansion's
 // payload must read that as 'already emitted', not as 'not emitted yet'.
 #[Swag.Inline]
-func unmapView(address: const [*] void?) fail
+func unmapView(?: const [*] void?) fail
 {
     g_Unmapped += 1
     if not processId() do

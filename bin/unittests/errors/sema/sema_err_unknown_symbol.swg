@@ -18,7 +18,7 @@
 {
     if let x = 4 where x > 2
     {
-        let y = x
+        let y = x; discard y
     }
 }
 
@@ -27,14 +27,17 @@
     if let x = 1 where false {}
     else
     {
-        let y = x
+        let y = x; discard y
     }
 }
 
 #test
 {
-    if let x = 4 where x > 2 do
+    if let x = 4 where x > 2
+    {
         let y = x
+        discard y
+    }
 }
 
 struct Broken

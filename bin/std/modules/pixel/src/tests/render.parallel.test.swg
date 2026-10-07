@@ -37,7 +37,7 @@ using Swag, Core
     painter.end()
 
     let serial = renderCpu(Narrow, Height, &painter)
-    for repeat in 3
+    for 3
     {
         let image = renderCpu(Wide, Height, &painter)
         for y in Height

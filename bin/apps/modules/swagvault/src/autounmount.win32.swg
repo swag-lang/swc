@@ -6,9 +6,8 @@ private const AutoUnmountSubclassId = 0x7353_4372'u64
 
 // Receives the two notifications that must be handled before the window's ordinary event queue.
 #[Swag.CallingConvention(.C)]
-private func autoUnmountSubclass(hwnd: HWND, message: u32, wParam: u64, lParam: s64, id, data: u64)->s64
+private func autoUnmountSubclass(hwnd: HWND, message: u32, wParam: u64, lParam: s64, ?, data: u64)->s64
 {
-    discard id
     let window = cast(*MainWindow, cast #bit (u64, data))
     if message == WM_WTSSESSION_CHANGE and wParam == WTS_SESSION_LOCK do
         window.handleAutoUnmount(.SessionLock)

@@ -380,7 +380,7 @@ public impl IWnd for MenuCtrl
             .paintPopup(evt.paintContext.painter)
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(?: *TimerEvent)
     {
         .hideSubVisible()
         .removeTimer()
@@ -1004,7 +1004,7 @@ impl MenuCtrl
         var rsf: Pixel.RichStringFormat
         rsf.font = .font()
 
-        for i, idx in .items
+        for i in .items
         {
             let it = i!
             if it.hidden do

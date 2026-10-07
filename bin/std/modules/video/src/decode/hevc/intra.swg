@@ -73,9 +73,7 @@ impl Decoder
     // clauses 8.4.4.2.1 and 8.4.4.2.2.
     private mtd gatherReference(reference: *IntraReference, x, y, xLuma, yLuma: s32, size, component, bitDepth: u32)
     {
-        let sps   = .activeSps!
         let pps   = .activePps!
-        let frame = .current!
         let total = size * 2
         let scale = component == 0 ? 1's32 : 2's32
 
@@ -86,7 +84,6 @@ impl Decoder
         // group rather than once per sample.
         let step = component == 0 ? 4'u32 : 2'u32
 
-        discard frame
 
         // The corner.
         let cornerAvailable = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma - 1, yLuma - 1, pps.constrainedIntraPred)

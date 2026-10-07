@@ -82,7 +82,7 @@ internal impl Properties
         item.comboBox.addItem(attributeText(Reflection.attributeValue(value, .BoolCombo, "on")))
 
         .refreshBool(item)
-        item.comboBox.sigChanged += func|prop = me, item|(ed, n) { prop.validateBool(item) }
+        item.comboBox.sigChanged += func|prop = me, item|(?, ?) { prop.validateBool(item) }
     }
 
     mtd constructBool(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
@@ -105,7 +105,7 @@ internal impl Properties
             }
 
             itemP.assignCheckBox(ed)
-            ed.sigChanged += func|prop = me, itemP|(ed) { prop.validateBool(itemP) }
+            ed.sigChanged += func|prop = me, itemP|(?) { prop.validateBool(itemP) }
 
             .refreshBool(itemP)
             return
@@ -154,7 +154,7 @@ internal impl Properties
                 .setText(dispDesc == null ? "" : attributeText(dispDesc))
             }
 
-            item.sigResize += func|label, line, lineHeight|(item)
+            item.sigResize += func|label, line, lineHeight|(?)
             {
                 // The check box is a symmetric square centered on the row, but a centered
                 // text line reads slightly high because the descender space below the
@@ -173,7 +173,7 @@ internal impl Properties
         }
 
         item.assignCheckBox(ed)
-        ed.sigChanged += func|prop = me, item|(ed) { prop.validateBool(item) }
+        ed.sigChanged += func|prop = me, item|(?) { prop.validateBool(item) }
 
         .refreshBool(item)
     }

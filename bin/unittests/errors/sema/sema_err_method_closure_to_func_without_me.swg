@@ -29,6 +29,7 @@ impl CallbackOwner
         let dlg = &dlgStorage
         dlg.sigPressed = mtd|dlg|(dialog, buttonId)     // swc-expected-error {{sema_err_cannot_cast}}
         {
+            discard dlg, dialog
             .accepted = buttonId == "ok"
             return .accepted
         }

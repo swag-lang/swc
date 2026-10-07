@@ -26,9 +26,8 @@ func countOpenDocumentImageTags(html: string)->u64
     return result
 }
 
-func reportOpenDocumentTestDetails(view: *Wnd, details: string)
+func reportOpenDocumentTestDetails(?: *Wnd, details: string)
 {
-    discard view
     openDocumentReportedDetails = details
 }
 
@@ -549,8 +548,7 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     host.root.applyLayout()
-    var french = host.render(&host.root)
-    discard french
+    discard host.render(&host.root)
     Swag.assert(view.pageCombo.toolTip == "Choisir une feuille de calcul")
     Testing.assertContentFits(view.commands)
 }
@@ -608,8 +606,7 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     host.root.applyLayout()
-    var french = host.render(&host.root)
-    discard french
+    discard host.render(&host.root)
     Swag.assert(view.pageCombo.toolTip == "Choisir une diapositive")
     Testing.assertContentFits(view.commands)
 }

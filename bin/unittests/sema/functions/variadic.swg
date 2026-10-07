@@ -1,11 +1,11 @@
 #global private
 
-func titi(a: ...) {}
-func tata(a: s32...) {}
+func titi(?: ...) {}
+func tata(?: s32...) {}
 
-func toto(a: s32, b: ...) {}
+func toto(?: s32, ?: ...) {}
 
-func tutu(a: s32, b: s32...) {}
+func tutu(?: s32, ?: s32...) {}
 
 alias AliasVariadicS32 = s32...
 func variadicAliasTail(a: s32, values: AliasVariadicS32)->s32 => a + cast(s32, values.count)

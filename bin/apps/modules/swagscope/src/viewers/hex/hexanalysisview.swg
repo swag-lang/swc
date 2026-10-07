@@ -259,9 +259,8 @@ private impl HexAnalysisView
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisClose
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.sigClose.call(view)
             }
         }
@@ -271,9 +270,8 @@ private impl HexAnalysisView
             .dockStyle = .Right
             .toolTip   = hexStrings().ui_AnalysisCancel
             .hide()
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.sigCancel.call(view)
             }
         }
@@ -282,9 +280,8 @@ private impl HexAnalysisView
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisRun
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.sigAnalyze.call(view)
             }
         }
@@ -407,9 +404,8 @@ impl HexAnalysisView
 
         with result.histogram = HexHistogramView.create(result)
         {
-            .sigByteChanged += func|view = result|(histogram, value)
+            .sigByteChanged += func|view = result|(?, value)
             {
-                discard histogram
                 view.updateByteDetail(value)
             }
         }

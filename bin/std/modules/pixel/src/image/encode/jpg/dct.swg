@@ -32,7 +32,7 @@ impl Encoder
         let levelShift = Math.Simd.splat(128's32)
         var pos        = 0
 
-        for y in 8
+        for 8
         {
             let row  = pixels + cast(u64, location) * #sizeof(ColorRGB)
             let next = row + 4 * #sizeof(ColorRGB)
@@ -69,7 +69,7 @@ impl Encoder
             dataFloat[i] = data[i]
 
         var dataptr = cast([*] f32, &dataFloat[0])
-        for ctr in rangeTo(0, 7).reversed()
+        for ? in rangeTo(0, 7).reversed()
         {
             let tmp0 = dataptr[0] + dataptr[7]
             let tmp7 = dataptr[0] - dataptr[7]
@@ -114,7 +114,7 @@ impl Encoder
 
         dataptr = &dataFloat[0]
 
-        for ctr in rangeTo(0, 7).reversed()
+        for ? in rangeTo(0, 7).reversed()
         {
             let tmp0 = dataptr[0] + dataptr[56]
             let tmp7 = dataptr[0] - dataptr[56]
@@ -206,7 +206,7 @@ impl Encoder
             var nrzeroes = i - startpos
             if nrzeroes >= 16
             {
-                for nrmarker in 1 to nrzeroes / 16 do
+                for 1 to nrzeroes / 16 do
                     .writeBits(m16Zeroes)
                 nrzeroes = nrzeroes % 16
             }

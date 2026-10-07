@@ -434,54 +434,53 @@ impl IWnd for Wnd
     }
 
     // Ignores global hook events by default.
-    mtd impl onHookEvent(evt: IEvent) {}
+    mtd impl onHookEvent(?: IEvent) {}
 
     // Reports no content size by default, which keeps the authored size on both axes.
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
         return {}
     }
 
     // Performs no additional creation work by default.
-    mtd impl onCreateEvent(evt: *CreateEvent) {}
+    mtd impl onCreateEvent(?: *CreateEvent) {}
 
     // Releases no additional resources by default.
-    mtd impl onDestroyEvent(evt: *DestroyEvent) {}
+    mtd impl onDestroyEvent(?: *DestroyEvent) {}
 
     // Ignores state changes by default.
-    mtd impl onStateEvent(evt: *StateEvent) {}
+    mtd impl onStateEvent(?: *StateEvent) {}
 
     // Ignores size changes by default.
-    mtd impl onResizeEvent(evt: *ResizeEvent) {}
+    mtd impl onResizeEvent(?: *ResizeEvent) {}
 
     // Performs no type-specific work during a deferred layout pass.
     mtd impl onLayout() {}
 
     // Paints no before-children content by default.
-    mtd impl onBeforePaint(evt: *PaintEvent) {}
+    mtd impl onBeforePaint(?: *PaintEvent) {}
 
     // Paints no primary content by default.
-    mtd impl onPaint(evt: *PaintEvent) {}
+    mtd impl onPaint(?: *PaintEvent) {}
 
     // Paints no after-children overlay by default.
-    mtd impl onAfterPaint(evt: *PaintEvent) {}
+    mtd impl onAfterPaint(?: *PaintEvent) {}
 
     // Invalidates painting and requests layout after a theme change.
-    mtd impl onThemeEvent(evt: *ThemeEvent)
+    mtd impl onThemeEvent(?: *ThemeEvent)
     {
         .invalidate()
         .sendResizeEvent()
     }
 
     // Ignores timers by default.
-    mtd impl onTimerEvent(evt: *TimerEvent) {}
+    mtd impl onTimerEvent(?: *TimerEvent) {}
 
     // Declines state serialization by default.
-    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
+    mtd impl onSerializeStateEvent(?: *SerializeStateEvent) {}
 
     // Ignores frame callbacks by default.
-    mtd impl onFrameEvent(evt: *FrameEvent) {}
+    mtd impl onFrameEvent(?: *FrameEvent) {}
 
     // Declines platform commands by default.
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)

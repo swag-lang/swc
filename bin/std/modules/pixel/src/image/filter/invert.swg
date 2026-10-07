@@ -23,18 +23,16 @@ public impl Image
         let keepAlpha = .pixelFormat.hasAlpha()
         if keepAlpha
         {
-            .visitVectorBytes() #code(block, data)
+            .visitVectorBytes() #code(block, ?)
             {
-                discard data
                 let invertMask = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
                 Math.Simd.store(block, Math.Simd.load(block) ^ invertMask)
             }
         }
         else
         {
-            .visitVectorBytes() #code(block, data)
+            .visitVectorBytes() #code(block, ?)
             {
-                discard data
                 Math.Simd.store(block, Math.Simd.load(block) ^ Math.Simd.splat(255'u8))
             }
         }

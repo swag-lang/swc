@@ -590,7 +590,8 @@ namespace
         bool first = true;
         for (const IdentifierRef idRef : params)
         {
-            if (!idRef.isValid())
+            // A compiler-made name, such as the one behind a '?' parameter, is no argument name.
+            if (!idRef.isValid() || sema.idMgr().get(idRef).name.starts_with("__"))
                 continue;
 
             if (!first)

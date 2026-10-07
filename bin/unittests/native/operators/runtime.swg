@@ -169,12 +169,16 @@ namespace compiler226
     func main()->bool
     {
         var a: s32
+        discard a
         {
             var b: s64
+            discard b
             var c: s64
+            discard c
         }
         {
             var b: s64
+            discard b
         }
         return true
     }

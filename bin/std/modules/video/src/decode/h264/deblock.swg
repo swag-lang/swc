@@ -993,9 +993,8 @@ func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta
 
 // Filters one chroma line across an edge.
 #[Swag.Inline]
-func filterChroma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta: s32)
+func filterChroma(pix: [*] u8, step, ?: u64, bs: u32, indexA, alpha, beta: s32)
 {
-    discard lineStride
     let p0 = cast(s32, (pix - step)[0])
     let q0 = cast(s32, pix[0])
     let p1 = cast(s32, (pix - 2 * step)[0])

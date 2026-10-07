@@ -8,7 +8,7 @@ var gInterfaceImplTotoCalls: s32
 
 impl T
 {
-    mtd toto(x: s32) {}
+    mtd toto(?: s32) {}
 }
 
 impl I1 for T

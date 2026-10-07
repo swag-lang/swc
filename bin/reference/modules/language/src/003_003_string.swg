@@ -135,6 +135,7 @@ not just ASCII.
     let char0 = 'a'
     let char1 = '我'
     let value = 5's32     // Type suffix example
+    Swag.assert(char0 != char1)
 
     // The same literal, with the blank the lexer ignores.
     let spaced = 5 's32
@@ -156,6 +157,7 @@ can select any integer type or 'rune' when the value fits the target type.
         let c: u32  = '我'
         let d: u64  = '我'
         let e: rune = '我'
+        Swag.assert(a == 'a' and b == 'a' and c == '我' and d == '我' and e == '我')
     }
 
     {
@@ -163,6 +165,7 @@ can select any integer type or 'rune' when the value fits the target type.
         let b: s16 = 'a'
         let c: s32 = '我'
         let d: s64 = '我'
+        Swag.assert(a == 'a' and b == 'a' and c == '我' and d == '我')
     }
 }
 

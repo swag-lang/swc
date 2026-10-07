@@ -24,11 +24,13 @@ func useConstCallResult()->s32
 func failPureCallResult()
 {
     var x: s32 = 4
+    discard x
 }
 
 func failConstExprCallResult()
 {
     var x: s32 = 4
+    discard x
 }
 
 #test

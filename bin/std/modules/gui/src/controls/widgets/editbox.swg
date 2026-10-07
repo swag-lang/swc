@@ -421,7 +421,7 @@ impl IWnd for EditBox
     }
 
     // Blinking caret timer handler.
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(?: *TimerEvent)
     {
         .visibleCaret = not .visibleCaret
 
@@ -482,9 +482,8 @@ private impl EditBox
             .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
-            .clearBtn.sigPressed += func|edit = me|(btn)
+            .clearBtn.sigPressed += func|edit = me|(?)
             {
-                discard btn
                 edit.setText(null)
                 edit.setFocus()
             }

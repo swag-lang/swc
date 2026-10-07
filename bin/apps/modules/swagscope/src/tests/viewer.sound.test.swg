@@ -91,9 +91,8 @@ func waitForSoundOpen(host: *Testing.HeadlessHost, view: *SoundViewer)
     Swag.assert(view.openFinished)
 }
 
-func markSoundOpenFailure(wnd: *Wnd, reason: string)
+func markSoundOpenFailure(wnd: *Wnd, ?: string)
 {
-    discard reason
     let failed = cast(*bool, wnd.userData!)
     failed[] = true
 }

@@ -5,7 +5,7 @@ alias CCallback = func(s32)->s32
 
 func swagCallback(value: s32)->s32 => value
 
-func takesCCallback(callback: CCallback) {}
+func takesCCallback(callback: CCallback) { discard callback }
 
 #test
 {

@@ -35,6 +35,9 @@ namespace SemaCheck
     // expression body ('=> expr', and every short lambda) is the value, and never asks the
     // question.
     Result missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef);
+    // Every local, parameter, and closure capture a body declares must be named somewhere in
+    // it. A parameter the body has no use for is spelled '?'.
+    Result unusedVariables(Sema& sema, const SymbolFunction& sym);
 }
 
 SWC_END_NAMESPACE();

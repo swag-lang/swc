@@ -133,7 +133,7 @@ impl SemaNonNullCompleteSet
     }
 }
 
-func acceptSemaNonNullHolder(value: SemaNonNullHolder) {}
+func acceptSemaNonNullHolder(?: SemaNonNullHolder) {}
 
 func migrateSemaLegacyPointer(value: *SemaNonNullItem)->*SemaNonNullItem => value
 
@@ -170,9 +170,13 @@ func semaNonNullConstruction()
     #assert(#typeof(aliasRequired) == const *SemaNonNullItem)
 
     var defaultItem:     SemaNonNullStringDefault
+    discard defaultItem
     var defaultArray:    [2] SemaNonNullStringDefault
+    discard defaultArray
     let omittedDefaults = SemaNonNullDefaultContainer{}
+    discard omittedDefaults
     let partialDefaults: [2] SemaNonNullStringDefault = [{value: "explicit"}]
+    discard partialDefaults
 
     // A bare (non-null) pointer can widen to '?'.
     let legacySource: *SemaNonNullItem  = &first
@@ -241,7 +245,9 @@ func semaNonNullConstruction()
 
     // Non-null values are initialized explicitly; no uninitialized escape exists.
     var initializedPointer: *SemaNonNullItem = &second
+    discard initializedPointer
     var initializedHolder = SemaNonNullRequiredHolder{required: &second}
+    discard initializedHolder
 
     // Explicitly nullable pointers retain their default.
     var nullableDefault: *SemaNonNullItem?

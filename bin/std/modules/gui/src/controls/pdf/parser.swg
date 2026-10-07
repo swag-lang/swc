@@ -489,9 +489,8 @@ impl PdfParser
         // other number keeps the last definition the scan meets, which is the only ordering a
         // file with no usable index offers.
         var indexed: HashTable'(u32, bool)
-        for number, nodeId in .objects
+        for number in .objects
         {
-            discard nodeId
             indexed[number] = true
         }
 
@@ -528,8 +527,7 @@ impl PdfParser
     {
         if .hasScanned do
             return
-        catch .scanObjects() as scanError
-        discard scanError
+        catch .scanObjects()
         .hasScanned = true
     }
 
@@ -854,9 +852,8 @@ impl PdfParser
         // Resolving reaches back into the object table, which may parse an object and insert
         // it, so the walk works from a snapshot rather than from the table itself.
         var scanned: Array'u32
-        for objectNumber, nodeId in .objects
+        for ?, nodeId in .objects
         {
-            discard objectNumber
             scanned.add(nodeId)
         }
 
@@ -913,9 +910,8 @@ impl PdfParser
     mtd scanTrailers()
     {
         var scanned: Array'u32
-        for objectNumber, nodeId in .objects
+        for ?, nodeId in .objects
         {
-            discard objectNumber
             scanned.add(nodeId)
         }
 
@@ -986,7 +982,7 @@ impl PdfParser
     //
     // This is what makes opening a document cost its trailer chain rather than its length: an
     // object nothing reaches is never read, and a page that is never displayed is never parsed.
-    mtd objectNode(number: u32, generation: u16)->u32
+    mtd objectNode(number: u32, ?: u16)->u32
     {
         let known = .objects.tryFind(number)
         if known do
@@ -998,7 +994,6 @@ impl PdfParser
             // A reference whose generation disagrees with the index is still followed. Writers
             // disagree about generations far more often than they disagree about offsets, and
             // refusing the object would lose content the file plainly means to carry.
-            discard generation
             let node = .parseIndexedObject(number, indexed.value)
             if node != InvalidNode
             {
@@ -1051,8 +1046,7 @@ impl PdfParser
             return InvalidNode
         if .nodes[nodeId].kind == .Dictionary
         {
-            catch .attachStream(nodeId) as streamError
-            discard streamError
+            catch .attachStream(nodeId)
         }
 
         return nodeId

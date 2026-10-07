@@ -639,7 +639,7 @@ namespace
 
                     const SymbolVariable* param = function.parameters()[i];
                     SWC_ASSERT(param != nullptr);
-                    if (param->idRef().isValid())
+                    if (param->idRef().isValid() && !param->isUnnamed())
                     {
                         out += param->name(ctx);
                         out += ": ";

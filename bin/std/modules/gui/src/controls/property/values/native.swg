@@ -343,11 +343,11 @@ internal impl Properties
 
         if item.sliderBox != null
         {
-            item.sliderBox.sigChanged += func|prop = me, item|(ed) { prop.validateNative(item) }
+            item.sliderBox.sigChanged += func|prop = me, item|(?) { prop.validateNative(item) }
 
             // Coalesce the whole drag into one undo command (see recordUndo)
-            item.sliderBox.slider.sigStartChange += func|prop = me, item|(s) { prop.beginItemDrag(item) }
-            item.sliderBox.slider.sigEndChange   += func|prop = me|(s) { prop.endItemDrag() }
+            item.sliderBox.slider.sigStartChange += func|prop = me, item|(?) { prop.beginItemDrag(item) }
+            item.sliderBox.slider.sigEndChange   += func|prop = me|(?) { prop.endItemDrag() }
         }
         elif item.editBox != null
         {

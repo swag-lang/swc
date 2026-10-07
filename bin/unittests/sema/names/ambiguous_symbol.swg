@@ -1,7 +1,7 @@
 #global private
 
 func Amb() {}
-func Amb(a: s32) {}
+func Amb(?: s32) {}
 
 func semaTest001()
 {
@@ -12,7 +12,7 @@ func semaTest001()
 namespace N
 {
     func Amb() {}
-    func Amb(a: s32) {}
+    func Amb(?: s32) {}
 }
 
 func semaTest002()

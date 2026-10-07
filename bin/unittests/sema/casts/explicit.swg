@@ -117,7 +117,9 @@ func semaTest001()
 {
     var a: [4] u8
     var b = cast(string, a)
+    discard b
     var c = cast(cstring, a)
+    discard c
 }
 
 func semaTest002()
@@ -125,6 +127,7 @@ func semaTest002()
     var x: s32
     var a = cast([*] s32, &x)
     var b = cast(u64, a)
+    discard b
 }
 
 func semaTest003()

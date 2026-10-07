@@ -46,6 +46,7 @@ func scheduleDeployment(replicas: s32, region: string, dryRun: bool, authToken: 
 #[StringPolicyRule("approvalCode", 6, false, true)]
 func submitWireTransfer(cents: s32, toAccount: string, approvalCode: string)->WireReceipt
 {
+    discard toAccount
     let approved  = cents <= 500_000 and approvalCode.count >= 6
     let queueSlot = cents / 100
     return {approved: approved, queueSlot: queueSlot, reviewRequired: cents > 200_000}

@@ -79,9 +79,8 @@ impl DocumentOutline
         with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
         {
             .dockStyle  = .Right
-            .sigPressed += func|panel = result|(button)
+            .sigPressed += func|panel = result|(?)
             {
-                discard button
                 panel.toggle.setChecked(false)
                 panel.toggle.sigCheckedChanged.call(panel.toggle)
             }
@@ -210,9 +209,8 @@ impl DocumentOutline
             panel.publish(headings.toSlice())
         }
 
-        .sigSelected += func|view|(panel, offset)
+        .sigSelected += func|view|(?, offset)
         {
-            discard panel
             discard view.revealFileOffset(offset, "")
         }
     }
@@ -226,9 +224,8 @@ impl DocumentOutline
                 panel.startMarkdown()
         }
 
-        .sigSelected += func|view|(panel, offset)
+        .sigSelected += func|view|(?, offset)
         {
-            discard panel
             discard view.revealHeading(offset)
         }
     }

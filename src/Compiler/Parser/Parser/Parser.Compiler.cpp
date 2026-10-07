@@ -217,8 +217,8 @@ AstNodeRef Parser::parseCompilerCode()
 
 bool Parser::isCodeLiteralBinderAhead() const
 {
-    // '#code' '(' [ident {',' ident}] ')' followed by '{' or '=>'. Anything else
-    // is the legacy expression literal (e.g. '#code (a + b)').
+    // '#code' '(' [name {',' name}] ')' followed by '{' or '=>', a name being an identifier
+    // or '?'. Anything else is the legacy expression literal (e.g. '#code (a + b)').
     const Token* t = curToken_ + 1;
     if (t >= lastToken_ || t->id != TokenId::SymLeftParen)
         return false;
@@ -226,7 +226,7 @@ bool Parser::isCodeLiteralBinderAhead() const
     ++t;
     while (t < lastToken_ && t->id != TokenId::SymRightParen)
     {
-        if (t->id != TokenId::Identifier)
+        if (t->id != TokenId::Identifier && t->id != TokenId::SymQuestion)
             return false;
         ++t;
         if (t < lastToken_ && t->id == TokenId::SymComma)
@@ -248,13 +248,21 @@ SpanRef Parser::parseCodeBinderNames()
 {
     const TokenRef openRef = consumeAssert(TokenId::SymLeftParen);
 
+    // A '?' binder holds its position with no name, like a discarded 'for' name.
     SmallVector<TokenRef> names;
     while (!atEnd() && isNot(TokenId::SymRightParen))
     {
-        const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
-        if (nameRef.isInvalid())
-            break;
-        names.push_back(nameRef);
+        if (consumeIf(TokenId::SymQuestion).isValid())
+        {
+            names.push_back(TokenRef::invalid());
+        }
+        else
+        {
+            const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+            if (nameRef.isInvalid())
+                break;
+            names.push_back(nameRef);
+        }
 
         if (isNot(TokenId::SymRightParen) &&
             expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before).isInvalid())

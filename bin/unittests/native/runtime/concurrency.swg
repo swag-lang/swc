@@ -10,7 +10,7 @@
     var mutex: Swag.Mutex
     var count = 0'u64
 
-    parallel for |&mutex, &count| index in 500
+    parallel for |&mutex, &count| 500
     {
         Swag.scopedLock(&mutex)
         count += 1
@@ -30,7 +30,7 @@
     value = 7
     lock.unlock()
 
-    parallel for |&lock, &value, &readSum| index in 200
+    parallel for |&lock, &value, &readSum| 200
     {
         Swag.scopedLockShared(&lock)
         readSum.add(value)
@@ -81,7 +81,7 @@
     var peak:     Swag.AtomicValue'u32
     permits.setPermits(2)
 
-    parallel for |&permits, &inFlight, &peak| index in 64
+    parallel for |&permits, &inFlight, &peak| 64
     {
         permits.acquire()
         let now = inFlight.add(1) + 1
@@ -109,7 +109,7 @@
     var phases = 0'u32
     barrier.setParticipants(1)
 
-    for phase in 3
+    for 3
     {
         if barrier.arrive() do
             phases += 1
@@ -126,7 +126,7 @@
 
     {
         var group: Swag.TaskGroup
-        for index in 40 do
+        for 40 do
             group.spawn(func|&done|() { done.add(1) })
     }
 
@@ -137,7 +137,7 @@
         var group: Swag.TaskGroup
         group.cancel()
         Swag.assert(group.isCancelled())
-        for index in 8
+        for 8
         {
             group.spawn(func|&group, &started|()
             {
@@ -159,7 +159,7 @@
 
     Swag.assert(not task.isPending() and not task.isDone())
 
-    for round in 50
+    for 50
     {
         task.submit(func|&runs|() { runs.add(1) })
         task.wait()

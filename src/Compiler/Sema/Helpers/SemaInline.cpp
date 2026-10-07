@@ -853,6 +853,7 @@ namespace
     }
 
     using AliasIdentifierArray = std::array<IdentifierRef, 10>;
+    using AliasNameRefArray    = std::array<SourceCodeRef, 10>;
 
     struct DeclaredCodeParam
     {
@@ -946,9 +947,10 @@ namespace
         return nullptr;
     }
 
-    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, std::span<const AstNodeRef> args, std::span<const DeclaredCodeParam> declaredParams, AliasIdentifierArray& outAliasIdentifiers)
+    Result collectAliasIdentifiers(Sema& sema, AliasIdentifierArray& outAliasIdentifiers, AliasNameRefArray& outAliasNameRefs, AstNodeRef callRef, std::span<const AstNodeRef> args, std::span<const DeclaredCodeParam> declaredParams)
     {
         outAliasIdentifiers.fill(IdentifierRef::invalid());
+        outAliasNameRefs.fill(SourceCodeRef::invalid());
 
         SmallVector<TokenRef> foreachNames;
         bool                  isForeachCall = false;
@@ -979,7 +981,7 @@ namespace
             SourceCodeRef errorRef;
             if (!binderNames.empty())
             {
-                errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[slotCount]};
+                errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[slotCount].isValid() ? binderNames[slotCount] : binderNode->tokRef()};
             }
             else
             {
@@ -997,11 +999,22 @@ namespace
         {
             if (foreachNames[slot].isInvalid())
                 continue;
-            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
+            outAliasNameRefs[slot]    = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]};
+            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), outAliasNameRefs[slot]);
         }
 
+        // A '?' binder holds its position with no name: the slot gets one nothing can write.
         for (size_t slot = 0; slot < binderNames.size() && slot < outAliasIdentifiers.size(); ++slot)
-            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{binderNode->srcViewRef(), binderNames[slot]});
+        {
+            if (binderNames[slot].isInvalid())
+            {
+                outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__code_alias");
+                continue;
+            }
+
+            outAliasNameRefs[slot]    = SourceCodeRef{binderNode->srcViewRef(), binderNames[slot]};
+            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), outAliasNameRefs[slot]);
+        }
 
         if (isForeachCall)
         {
@@ -2976,7 +2989,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     appendDeclaredCodeParams(*declAst, *decl, declaredCodeParams);
 
     AliasIdentifierArray aliasIdentifiers = {};
-    SWC_RESULT(collectAliasIdentifiers(sema, callRef, args, declaredCodeParams.span(), aliasIdentifiers));
+    AliasNameRefArray    aliasNameRefs    = {};
+    SWC_RESULT(collectAliasIdentifiers(sema, aliasIdentifiers, aliasNameRefs, callRef, args, declaredCodeParams.span()));
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();
     TypeRef    variadicExprTypeRef = TypeRef::invalid();
@@ -3033,6 +3047,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->resultVar           = resultVar;
     inlinePayload->returnTypeRef       = returnTypeRef;
     inlinePayload->aliasIdentifiers    = aliasIdentifiers;
+    inlinePayload->aliasNameRefs       = aliasNameRefs;
     for (const AstNodeRef materializedBindingRef : materializedBindings)
         inlinePayload->materializedArgRefs.push_back(materializedBindingRef);
     if (isOrdinaryInline)

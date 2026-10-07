@@ -92,9 +92,8 @@ impl MicrocodeViewer
         }
 
         result.fillStages()
-        result.stageCombo.sigChanged += func|viewer = result|(combo, index)
+        result.stageCombo.sigChanged += func|viewer = result|(?, ?)
         {
-            discard combo, index
             viewer.optionsChanged()
         }
 
@@ -292,7 +291,7 @@ impl IViewer for MicrocodeViewer
     mtd impl inspectionStage()->string => Pipeline.Stages[.stageCombo.selectedIndex]
     mtd impl setOptimization(level: Swag.BuildCfgBackendOptimLevel) { .level = level }
     mtd impl isPaused()->bool => false
-    mtd impl setPaused(paused: bool) { discard paused }
+    mtd impl setPaused(?: bool) {}
     mtd impl shutdown() { .stopCompile() }
     mtd impl isRunning()->bool => .job.running
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }

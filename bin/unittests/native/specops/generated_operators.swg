@@ -33,7 +33,7 @@ struct GeneratedEqualsIgnoresUserCompare
 
 impl GeneratedEqualsIgnoresUserCompare
 {
-    mtd const opCompare(other: GeneratedEqualsIgnoresUserCompare)->s32
+    mtd const opCompare(?: GeneratedEqualsIgnoresUserCompare)->s32
     {
         return 0
     }

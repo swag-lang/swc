@@ -8,15 +8,13 @@ const IconButtonHeadless_Command = "IconButtonHeadless.Command"
 var IconButtonHeadlessPressedCount: u32
 var IconButtonHeadlessCheckCount:   u32
 
-func iconButtonHeadlessPressed(btn: *Button)
+func iconButtonHeadlessPressed(?: *Button)
 {
-    discard btn
     IconButtonHeadlessPressedCount += 1
 }
 
-func iconButtonHeadlessChecked(btn: *IconButton)
+func iconButtonHeadlessChecked(?: *IconButton)
 {
-    discard btn
     IconButtonHeadlessCheckCount += 1
 }
 

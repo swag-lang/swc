@@ -34,6 +34,7 @@ in 'release', where the runtime guard is off.
 {
     var d = 0
     var a = 10
+    discard a, d
 
     // var x = a / d  // Uncomment: error, division by zero (proven)
 

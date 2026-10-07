@@ -62,7 +62,7 @@ struct BorrowLazyLocalWriter { value: s32 }
 
 impl BorrowLazyWriter for BorrowLazyLocalWriter
 {
-    mtd print(text: string) {}
+    mtd print(?: string) {}
 }
 
 var borrowLazySavedLog: BorrowLazyLog

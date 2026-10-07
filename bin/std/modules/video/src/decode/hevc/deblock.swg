@@ -172,11 +172,8 @@ impl Decoder
     // Reports whether the loop filter may cross this edge, clause 8.7.2.
     private mtd const filterAcrossAllowed(x, y, xP, yP: s32)->bool
     {
-        let sps    = .activeSps!
         let pps    = .activePps!
-        let header = &.header
 
-        discard header
 
         let currentCtb   = .ctbRsToTs[.ctbAddressRs(x, y)]
         let neighbourCtb = .ctbRsToTs[.ctbAddressRs(xP, yP)]
@@ -189,7 +186,6 @@ impl Decoder
         let slice = &.sliceParams[cast(u64, .ctbSliceIndex[.ctbAddressRs(x, y)])]
         if not slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)] do
             return false
-        discard sps
         return true
     }
 
@@ -347,7 +343,7 @@ impl Decoder
         }
 
         var line = origin
-        for index in 4'u32
+        for 4'u32
         {
             let p0 = cast(s32, line[-crossStep])
             let p1 = cast(s32, line[-2 * crossStep])
@@ -512,7 +508,7 @@ impl Decoder
 
         // One luma segment of four lines covers two chroma lines.
         var line = origin
-        for index in 2'u32
+        for 2'u32
         {
             let p0 = cast(s32, line[-crossStep])
             let p1 = cast(s32, line[-2 * crossStep])

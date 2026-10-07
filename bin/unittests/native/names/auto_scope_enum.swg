@@ -54,6 +54,7 @@ impl E
     mtd foo(f: *F)
     {
         let a = f.x == .R
+        discard a
     }
 }
 

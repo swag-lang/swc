@@ -122,8 +122,7 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     const Unknown = "<svg width='200' height='32'><text x='4' y='24' font-size='18' fill='white' font-family='Papyrus'>Hi</text></svg>"
     const Mono    = "<svg width='200' height='32'><text x='4' y='24' font-size='18' fill='white' font-family='Consolas, monospace'>Hi</text></svg>"
 
-    let serif = catch Svg.Drawing.parse(Serif, options) as serifError
-    discard serif
+    discard catch Svg.Drawing.parse(Serif, options) as serifError
     Swag.assert(serifError != null)
 
     Swag.assert(textInkWidth(Sans, options) > 0)

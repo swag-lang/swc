@@ -17,10 +17,8 @@ func markdownHeadingAnchor(line: string)->String
         return result
 
     start += 1
-    Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(c, charIndex, byteIndex)
+    Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(c, ?, ?)
     {
-        discard charIndex
-        discard byteIndex
         if Unicode.isLetterOrDigit(c) do
             result += Unicode.toLower(c)
         elif c == '-' or c == '_' do

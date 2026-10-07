@@ -15,7 +15,7 @@
 #test
 {
     var count = 0
-    for i in 0
+    for 0
     {
         count += 1
     }
@@ -37,7 +37,7 @@
 #test
 {
     var count = 0
-    for i in 10
+    for 10
     {
         count += 1
         break
@@ -50,7 +50,7 @@
 #test
 {
     var sum = 0
-    for i in 5
+    for 5
     {
         continue
         sum += 1     // unreachable
@@ -107,7 +107,7 @@
 {
     var outerCount = 0
     var innerTotal = 0
-    for i in 4
+    for 4
     {
         outerCount += 1
         for j in 10

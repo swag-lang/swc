@@ -246,7 +246,6 @@ func writeSourceFixture(name: string, count: u64)->String
 #test
 {
     let fileName = CoreTests.makeFilesystemTestPath("bytesource_missing.bin")
-    let source   = catch ByteSource.openFile(fileName.toString()) as err
-    discard source
+    discard catch ByteSource.openFile(fileName.toString()) as err
     Swag.assert(err != null)
 }

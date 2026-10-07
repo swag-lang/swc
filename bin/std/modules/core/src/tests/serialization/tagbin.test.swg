@@ -220,8 +220,8 @@ public struct TagBinHookPayload
 
 public impl Serialization.ISerialize for TagBinHookPayload
 {
-    mtd impl read(_decoder: Serialization.IDecoder)->bool fail  => false
-    mtd impl write(_encoder: Serialization.IEncoder)->bool fail => false
+    mtd impl read(?: Serialization.IDecoder)->bool fail  => false
+    mtd impl write(?: Serialization.IEncoder)->bool fail => false
 
     mtd impl readElement(type: TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail
     {
@@ -279,7 +279,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl postRead(data: *void?, _decoder: Serialization.IDecoder) fail
+    mtd impl postRead(data: *void?, ?: Serialization.IDecoder) fail
     {
         let value = cast(*TagBinHookPayload, data!)
         value.postReadSeen = true
@@ -303,12 +303,12 @@ public struct TagBinVersionProbe
 
 public impl Serialization.ISerialize for TagBinVersionProbe
 {
-    mtd impl read(_decoder: Serialization.IDecoder)->bool fail  => false
-    mtd impl write(_encoder: Serialization.IEncoder)->bool fail => false
+    mtd impl read(?: Serialization.IDecoder)->bool fail  => false
+    mtd impl write(?: Serialization.IEncoder)->bool fail => false
 
-    mtd impl readElement(_type: TypeValue, _data: *void?, _decoder: Serialization.IDecoder)->bool fail => false
+    mtd impl readElement(?: TypeValue, ?: *void?, ?: Serialization.IDecoder)->bool fail => false
 
-    mtd impl writeElement(_type: TypeValue, _data: const *void?, _encoder: Serialization.IEncoder)->bool fail => false
+    mtd impl writeElement(?: TypeValue, ?: const *void?, ?: Serialization.IEncoder)->bool fail => false
 
     mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail
     {

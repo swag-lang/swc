@@ -54,9 +54,9 @@ using Swag
     Swag.assert(Slice.noneOf(values, func(value: s32)->bool => value < 0))
     Swag.assert(not Slice.noneOf(values, func(value: s32)->bool => value == 4))
 
-    Swag.assert(Slice.allOf(empty, func(value: s32)->bool => false))
-    Swag.assert(not Slice.anyOf(empty, func(value: s32)->bool => true))
-    Swag.assert(Slice.noneOf(empty, func(value: s32)->bool => true))
+    Swag.assert(Slice.allOf(empty, func(?: s32)->bool => false))
+    Swag.assert(not Slice.anyOf(empty, func(?: s32)->bool => true))
+    Swag.assert(Slice.noneOf(empty, func(?: s32)->bool => true))
 }
 
 #test

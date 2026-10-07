@@ -305,12 +305,15 @@ without requiring an explicit 'cast' statement.
     let x: s16 = 1's8
     let y: s32 = 1's16
     let z: s64 = 1's32
+    Swag.assert(x == 1 and y == 1 and z == 1)
 
     let a: u16 = 255'u8
     let b: u32 = 65535'u16
     let c: u64 = 4294967295'u32
+    Swag.assert(a == 255 and b == 65535 and c == 4294967295)
 
     let d: f64 = 1.23'f32
+    Swag.assert(d > 1.22 and d < 1.24)
 }
 
 /**
@@ -335,6 +338,7 @@ acknowledge potential data loss.
     // Explicit cast from 'f64' to 'f32' required
     let large_float:   f64 = 1.23456789012345611111
     let smaller_float: f32 = cast(f32, large_float)
+    Swag.assert(smaller_float > 1.23 and smaller_float < 1.24)
 }
 
 /**

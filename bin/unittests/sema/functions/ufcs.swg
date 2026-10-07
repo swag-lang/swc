@@ -4,9 +4,9 @@ struct A {}
 
 impl A
 {
-    mtd toto(a: s32) {}
-    mtd const titi(a: s32) {}
-    func tata(me, a: s32) {}
+    mtd toto(?: s32) {}
+    mtd const titi(?: s32) {}
+    func tata(me, ?: s32) {}
 
     mtd titi()
     {

@@ -38,6 +38,7 @@ func nativeIfLetNullableNullElse()->s32
 {
     if let str = nativeRetNothing()
     {
+        discard str
         return -1
     }
 

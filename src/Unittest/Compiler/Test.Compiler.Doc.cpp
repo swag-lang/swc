@@ -494,8 +494,8 @@ func documented(value: s32)->s32
 }
 
 // Source-order summary for an overloaded function.
-func ordered(value: s32) {}
-func ordered(value: f32) {}
+func ordered(value: s32) { discard value }
+func ordered(value: f32) { discard value }
 
 // A small public value used to verify methods and anonymous storage.
 //
@@ -584,7 +584,7 @@ enum TestKey
 func(T, K) genericSignature(value: T, other: K)->T { return value }
 
 // An explicit enum reference still links to its real case.
-func selectedKey(value: TestKey = TestKey.T) {}
+func selectedKey(value: TestKey = TestKey.T) { discard value }
 
 #[Swag.Opaque]
 // An opaque public record.

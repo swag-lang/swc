@@ -10,6 +10,7 @@ namespace compiler1643
     {
         const tbl = "0123456789ABCDEF"
         var c = tbl[0]
+        discard c
         // Swag.print(cast(s64, c))
         Swag.assert(tbl[0] == cast(u8, '0'rune))
         Swag.assert(tbl[1] == cast(u8, '1'rune))
@@ -87,7 +88,7 @@ namespace compiler247
         return a
     }
 
-    func main(a: s32, b: s32)->s32
+    func main(?: s32, b: s32)->s32
     {
         // Swag.print("2");
         return b

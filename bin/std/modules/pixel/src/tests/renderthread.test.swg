@@ -16,11 +16,10 @@ impl IRenderer for PresentProbe
 {
     mtd const impl needsNativeWindow()->bool => false
 
-    mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
+    mtd impl createContext(renderHandle: const *void?, width, height: s32, ?: *RenderContext? = null)->RenderContext fail
     {
         Swag.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
         Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
-        discard shared
         .workerId = Env.Process.currentThreadId()
         return {renderHandle, null, width, height}
     }
@@ -73,7 +72,7 @@ impl IRenderer for PresentProbe
         .cpu.drawImpl(painter)
     }
 
-    mtd impl bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null)
+    mtd impl bindRenderTarget(target: *RenderTarget, ?: *Math.Rectangle? = null)
     {
         .cpu.bindRenderTargetImpl(target)
     }
@@ -230,9 +229,8 @@ impl IRenderer for PresentProbe
     worker.start(&backend)
     defer worker.close()
     let renderer: IRenderer = &worker
-    for attempt in 3
+    for 3
     {
-        discard attempt
         discard catch renderer.addImage("render-thread-missing-image.png") as error
         Swag.assert(error is RenderThreadError)
         let message = String.from(Errors.message(error))
@@ -274,7 +272,7 @@ func verifyWaitFailureProcess(tag: string)
 var waitFailureBorrowLive: Swag.AtomicValue'u32
 var waitFailureWorker:     *RenderThread?
 
-func observeWaitFailurePanic(_message: string?, _location: Swag.SourceCodeLocation)
+func observeWaitFailurePanic(?: string?, ?: Swag.SourceCodeLocation)
 {
     let worker = waitFailureWorker
     if waitFailureBorrowLive.load() == 0 and worker != null and worker.isReady() do

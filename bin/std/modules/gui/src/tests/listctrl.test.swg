@@ -5,9 +5,8 @@ using Swag, Core
 
 var ListCtrlHeadlessSelCount: u32
 
-func listCtrlHeadlessSel(list: *ListCtrl)
+func listCtrlHeadlessSel(?: *ListCtrl)
 {
-    discard list
     ListCtrlHeadlessSelCount += 1
 }
 
@@ -228,9 +227,8 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     defer host.shutdown()
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 400, 300})
-    list.onFillVirtualLine = func(owner, line, index)
+    list.onFillVirtualLine = func(?, line, index)
     {
-        discard owner
         if line do
             discard line.setItem(0, Format.toString("row %", index).toString())
     }

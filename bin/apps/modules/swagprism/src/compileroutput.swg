@@ -138,19 +138,15 @@ impl CompilerOutput
 
 impl IRichEditLexer for CompilerOutput
 {
-    mtd impl setup(ed: *RichEditCtrl) { discard ed }
+    mtd impl setup(?: *RichEditCtrl) {}
 
     mtd impl setupTheme(ed: *RichEditCtrl) { .applyColors(ed) }
 
-    mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
+    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool
     {
-        discard ed, ch
         return false
     }
 
     // Styles were supplied with the text and survive subsequent layout passes.
-    mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
-    {
-        discard linePrev, line, lineNext
-    }
+    mtd impl compute(?: *RichEditLine?, ?: *RichEditLine, ?: *RichEditLine?) {}
 }

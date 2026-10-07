@@ -12,7 +12,7 @@ public func submitObserved(task: *Swag.Task, started: *Swag.AtomicFlag, parked: 
     {
         started.raise()
         let scheduler = Swag.schedulerInstance()
-        for attempt in 1000
+        for 1000
         {
             if scheduler.joining.load() != 0
             {

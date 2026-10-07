@@ -1335,7 +1335,7 @@ namespace
                 return Result::Continue;
 
             IdentifierRef idRef = IdentifierRef::invalid();
-            if (param.hasFlag(AstLambdaParamFlagsE::Named))
+            if (param.hasFlag(AstLambdaParamFlagsE::Named) && sema.token(param.codeRef()).id != TokenId::SymQuestion)
                 idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
 
             auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);

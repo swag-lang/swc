@@ -178,9 +178,8 @@ using Swag, Core
     view.applyLayout()
     var commands: u64
     view.wndFlags.add(.AfterChildrenPaint)
-    view.hookOnEvent = func|count = &commands|(wnd, evt)
+    view.hookOnEvent = func|count = &commands|(?, evt)
     {
-        discard wnd
         if evt is PaintEvent as paint where paint.kind == .After do
             count[] = paint.paintContext.painter.commandBuffer.count
         return false
@@ -1566,25 +1565,22 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let firstPosition = first.position
     let htmlPosition  = html.position
     var resizes, extents: u64
-    first.hookOnEvent = func|count = &resizes|(wnd, evt)
+    first.hookOnEvent = func|count = &resizes|(?, evt)
     {
-        discard wnd
         if evt is ResizeEvent do
             count[] += 1
         return false
     }
 
-    html.hookOnEvent = func|count = &resizes|(wnd, evt)
+    html.hookOnEvent = func|count = &resizes|(?, evt)
     {
-        discard wnd
         if evt is ResizeEvent do
             count[] += 1
         return false
     }
 
-    view.scroll.sigScrollSizeChanged += func|count = &extents|(scroll, before, after)
+    view.scroll.sigScrollSizeChanged += func|count = &extents|(?, ?, ?)
     {
-        discard scroll, before, after
         count[] += 1
     }
 
@@ -1687,9 +1683,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     var reported: String
     let view = Markdown.View.createFile(&host.root, path)
-    view.sigLoadFailed += func|&reported|(markdown, reason)
+    view.sigLoadFailed += func|&reported|(?, reason)
     {
-        discard markdown
         reported = reason
     }
 

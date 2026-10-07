@@ -238,7 +238,7 @@ private impl Codec
         if reader.read(1) do
             fail InvalidFormatError{"FLAC frame sets the reserved header bit"}
 
-        let variableBlocking = reader.read(1) != 0
+        discard reader.read(1) // Blocking strategy bit: decoding does not depend on it.
         let blockSizeCode    = reader.read(4)
         let sampleRateCode   = reader.read(4)
 
@@ -266,7 +266,6 @@ private impl Codec
             extraBytes = 1
         elif lead >= 0x80 do
             fail InvalidFormatError{"FLAC frame number is malformed"}
-        discard variableBlocking
         for extraBytes do
             discard reader.read(8)
 

@@ -310,7 +310,7 @@ public impl Json
     }
 
     // Begins an array.
-    mtd beginSequence(_typeElem: typeinfo?, _data: *u8?, _countElem: *u64)->bool fail
+    mtd beginSequence(?: typeinfo?, ?: *u8?, ?: *u64)->bool fail
     {
         .zapBlanks()
         try .expectByte('[', "JSON array is missing its opening bracket")
@@ -332,7 +332,7 @@ public impl Json
     }
 
     // Returns whether another array element remains.
-    mtd toNextSequenceElement(_countElem: *u64)->bool
+    mtd toNextSequenceElement(?: *u64)->bool
     {
         .zapBlanks()
         return .stream.peekU8() != ']'
@@ -350,7 +350,7 @@ public impl Json
     }
 
     // Begins an object section.
-    mtd beginSection(_kind: SectionKind) fail => try .beginObject()
+    mtd beginSection(?: SectionKind) fail => try .beginObject()
 
     // Ends an object section.
     mtd endSection() fail
@@ -360,7 +360,7 @@ public impl Json
     }
 
     // Begins a reflected struct object.
-    mtd beginStruct(_structType: typeinfo?, _structData: const *u8?)->bool fail
+    mtd beginStruct(?: typeinfo?, ?: const *u8?)->bool fail
     {
         try .beginObject()
         return false
@@ -419,7 +419,7 @@ public impl Json
     }
 
     // Completes a property.
-    mtd endElement(_val: TypeValue) fail {}
+    mtd endElement(?: TypeValue) fail {}
 
     // Begins a value, consuming the separator required by an enclosing array.
     mtd beginValue() fail

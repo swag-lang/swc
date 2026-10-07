@@ -5,6 +5,7 @@ func semaTest001()
     if var x: s32 = 1 where x
     {
         var y = x
+        discard y
     }
 }
 
@@ -14,6 +15,7 @@ func semaTest002()
     else
     {
         var y = x
+        discard y
     }
 }
 
@@ -23,6 +25,7 @@ func semaTest003()
     else
     {
         var y = x
+        discard y
     }
 }
 
@@ -31,6 +34,7 @@ func semaTest004()
     if var x = 0 where x == 0
     {
         var y = x
+        discard y
     }
 }
 

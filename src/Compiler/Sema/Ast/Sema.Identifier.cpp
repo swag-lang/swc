@@ -707,6 +707,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (sym && sym->isVariable())
     {
         const SymbolVariable& symVar = sym->cast<SymbolVariable>();
+        symVar.markReferenced();
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             // A read that '#ast' produced after the body was cloned resolves, by name, to the

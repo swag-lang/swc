@@ -33,7 +33,7 @@ func failCopied() fail
     for &drops in copiedErrorDrops do
         drops.store(0)
 
-    catch parallel for || index in 1
+    catch parallel for || 1
     {
         try failCopied()
     } as error

@@ -7,7 +7,7 @@ enum CompressionLevel: u32
 }
 
 func(T) minLike(x, y: T)->T  => x
-func minLike(x, y: u32)->u32 => x
+func minLike(x, y: u32)->u32 { discard y; return x }
 
 #test
 {
@@ -15,7 +15,7 @@ func minLike(x, y: u32)->u32 => x
 }
 
 func(const N: s32) zipLike(lhs: [N] s32, rhs: [N] s32) {}
-func zipLike(lhs, rhs: s32) {}
+func zipLike(lhs, rhs: s32) { discard lhs, rhs }
 
 #test
 {
@@ -38,7 +38,7 @@ func(T) severityLike(value: T)->u8
     return 1
 }
 
-func severityLike(value: bool)->u8 => 0
+func severityLike(value: bool)->u8 { discard value; return 0 }
 
 #test
 {

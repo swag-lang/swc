@@ -247,7 +247,7 @@ impl Decoder
     }
 
     // Expands one entry of a quantization matrix to the sample grid, equations 7-44 to 7-49.
-    private mtd const scalingFactor(lists: const *ScalingLists, sizeId, matrixId, x, y, size: u32)->u32
+    private mtd const scalingFactor(lists: const *ScalingLists, sizeId, matrixId, x, y, ?: u32)->u32
     {
         if not sizeId do
             return cast(u32, lists.lists[0, matrixId, DiagScan4x4Index[y * 4 + x]])

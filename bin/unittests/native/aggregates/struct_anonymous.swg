@@ -17,7 +17,9 @@ func toto()->{x: s32, y: bool}
 {
     var st1: struct { x: s32; y: s32 }
     let a = st1.x == 1
+    discard a
     let b = st1.y == 2
+    discard b
     #assert(#sizeof(st1) == 8)
     Swag.assert(st1.x == 0)
     Swag.assert(st1.y == 0)
@@ -33,6 +35,7 @@ func toto()->{x: s32, y: bool}
 #test
 {
     let s = toto()
+    discard s
     var t: struct { x: s32; y: bool }
     t.x = 1
     t.y = false

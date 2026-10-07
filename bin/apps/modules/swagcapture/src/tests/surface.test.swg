@@ -44,9 +44,8 @@ func testSetupLibrarySurface(host: *Gui.Testing.HeadlessHost)->*MainWnd
 func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, button: *IconButton, golden: string)
 {
     var captured: bool
-    host.app.sigFrame += func|host, main, button, golden, captured = &captured|(app)
+    host.app.sigFrame += func|host, main, button, golden, captured = &captured|(?)
     {
-        discard app
         if captured[] do
             return
 

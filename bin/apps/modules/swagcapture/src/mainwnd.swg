@@ -203,7 +203,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         .saveAppState()
         .icons.free()
@@ -513,7 +513,7 @@ impl MainWnd
                 return
 
             .embInfoFreeze = InfoBar.create(.editWnd.view, appStrings().ui_Frozen, .Message, flags: .Bottom)
-            .embInfoFreeze.sigDismissed += func|main = me|(ctrl)
+            .embInfoFreeze.sigDismissed += func|main = me|(?)
             {
                 main.freezeSel     = false
                 main.embInfoFreeze = null
@@ -811,7 +811,7 @@ impl MainWnd
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
     // sprite for this tool, so it paints its own rounded body plus a small tail. Its round
     // corners are deliberate — the glyph depicts a shape the user draws, not chrome.
-    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
+    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, ?: PaintItemFlags)
     {
         bc.painter.setParams(.Antialiased)
         let col = btn.isChecked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
@@ -1124,9 +1124,8 @@ impl MainWnd
             main.saveAppState()
         }
 
-        .appearanceButton.sigAboutRequested += func|main = me|(button)
+        .appearanceButton.sigAboutRequested += func|main = me|(?)
         {
-            discard button
             main.postCommandEvent(ActionAbout.About)
         }
     }
@@ -1147,7 +1146,7 @@ impl MainWnd
         {
             .dockStyle            = .Center
             .backgroundStyle      = .Transparent
-            .sigScrollSizeChanged += func|main = me|(scroll, old, new) { main.updateZoomDisplay() }
+            .sigScrollSizeChanged += func|main = me|(?, ?, ?) { main.updateZoomDisplay() }
         }
     }
 

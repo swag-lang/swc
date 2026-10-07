@@ -24,7 +24,7 @@ public impl Image
         mtd(PF: PixelFormat) fillFirstLine()
         {
             var pix = .pixels.buffer
-            for x in .width
+            for .width
             {
                 convertToRGBA8'PF(cast([*] u8, pix!), color.r, color.g, color.b, color.a)
                 pix += .bytesPerPixel

@@ -1044,9 +1044,8 @@ private impl IndesignViewer
 
 private impl IWnd for IndesignViewer
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         if .isMarkup() and .markupFit and .htmlView
         {
             let scale = .markupFitScale(.previewIndex)
@@ -1212,16 +1211,14 @@ impl IndesignViewer
         {
             .backgroundStyle = .View
             .dockStyle       = .Center
-            .sigZoomChanged  += func|view = result|(imageView)
+            .sigZoomChanged  += func|view = result|(?)
             {
-                discard imageView
                 view.refreshZoom()
             }
         }
 
-        result.hookOnChildEvent = func|view = result|(wnd, evt)
+        result.hookOnChildEvent = func|view = result|(?, evt)
         {
-            discard wnd
             switch evt
             {
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .G and keyEvt.modifiers == .Control:
@@ -1280,9 +1277,8 @@ impl IndesignViewer
             .margin.x  = 8
             .toolTip   = indesignStrings().ui_PreviousPage
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 if view.previewIndex do
                     view.selectPreview(view.previewIndex - 1)
             }
@@ -1293,9 +1289,8 @@ impl IndesignViewer
             .dockStyle = .Left
             .toolTip   = indesignStrings().ui_NextPage
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 if view.previewIndex + 1 < view.pageCount() do
                     view.selectPreview(view.previewIndex + 1)
             }
@@ -1309,9 +1304,8 @@ impl IndesignViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = indesignStrings().ui_ChoosePage
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showPageMenu()
             }
         }
@@ -1330,9 +1324,8 @@ impl IndesignViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = indesignStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -1347,9 +1340,8 @@ func createIndesignViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func|view|(text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, ?, matches)->bool
         {
-            discard progress
             view.collectMatches(text, options, matches)
             return true
         }
@@ -1359,9 +1351,8 @@ func createIndesignViewer(host: Viewer.Host)
             return view.revealMatch(match, text)
         }
 
-        .matchBounds = func|view|(match, bounds)->bool
+        .matchBounds = func|view|(?, bounds)->bool
         {
-            discard match
             return view.searchBounds(bounds)
         }
 

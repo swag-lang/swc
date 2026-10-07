@@ -289,7 +289,7 @@ impl Sps
             fail InvalidFormatError{"HEVC picture order count range is out of bounds"}
 
         let subLayerOrdering = reader.bit() != 0
-        for index in (subLayerOrdering ? 0'u32 : maxSubLayersMinus1) to maxSubLayersMinus1
+        for (subLayerOrdering ? 0'u32 : maxSubLayersMinus1) to maxSubLayersMinus1
         {
             .maxDecPicBuffering = reader.ue() + 1
             .maxNumReorder      = reader.ue()
@@ -658,7 +658,7 @@ func readProfileTierLevel(reader: *BitReader, maxSubLayersMinus1: u32) fail
 
     if maxSubLayersMinus1 > 0
     {
-        for index in maxSubLayersMinus1 until 8'u32 do
+        for maxSubLayersMinus1 until 8'u32 do
             discard reader.read(2)
     }
 
@@ -916,7 +916,7 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
         discard reader.read(5)
     }
 
-    for layer in maxSubLayersMinus1 + 1
+    for maxSubLayersMinus1 + 1
     {
         let fixedRateGeneral = reader.bit() != 0
         var fixedRateWithin  = fixedRateGeneral
@@ -938,7 +938,7 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
         {
             if (pass == 0 and not nalHrd) or (pass == 1 and not vclHrd) do
                 continue
-            for index in cpbCount
+            for cpbCount
             {
                 discard reader.ue()
                 discard reader.ue()

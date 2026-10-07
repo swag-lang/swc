@@ -556,7 +556,7 @@ private impl RenderCpu
         return blended * srcAlpha * dstAlpha + src * srcAlpha * (1.0 - dstAlpha) + dst * (1.0 - srcAlpha)
     }
 
-    func blendChannel(src, dst, srcAlpha, dstAlpha: f32, mode: BlendingMode)->f32
+    func blendChannel(src, dst, srcAlpha, ?: f32, mode: BlendingMode)->f32
     {
         switch #complete mode
         {

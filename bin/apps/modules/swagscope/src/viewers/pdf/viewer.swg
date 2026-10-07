@@ -38,9 +38,8 @@ private struct PdfInfoControls
 
 private impl IWnd for PdfInfoControls
 {
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
         return .preferredSize
     }
 }
@@ -199,9 +198,8 @@ private impl PdfViewer
         return complete
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
     {
-        discard text
         return .pdfView.revealTextMatch({match.major, match.offset, match.length})
     }
 
@@ -305,9 +303,8 @@ private impl PdfViewer
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = pdfStrings().ui_Previous
-            .sigPressed      += func|view = me|(button)
+            .sigPressed      += func|view = me|(?)
             {
-                discard button
                 view.pdfView.previousPage()
             }
         }
@@ -320,9 +317,8 @@ private impl PdfViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = pdfStrings().ui_GoToPage
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.promptGoToPage()
             }
         }
@@ -332,9 +328,8 @@ private impl PdfViewer
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = pdfStrings().ui_Next
-            .sigPressed      += func|view = me|(button)
+            .sigPressed      += func|view = me|(?)
             {
-                discard button
                 view.pdfView.nextPage()
             }
         }
@@ -353,9 +348,8 @@ private impl PdfViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = pdfStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -367,21 +361,18 @@ private impl PdfViewer
         with .pdfView = PdfView.create(me)
         {
             .dockStyle      = .Center
-            .sigPageChanged += func|view = me|(pdf)
+            .sigPageChanged += func|view = me|(?)
             {
-                discard pdf
                 view.refreshNavigation()
             }
 
-            .sigZoomChanged += func|view = me|(pdf)
+            .sigZoomChanged += func|view = me|(?)
             {
-                discard pdf
                 view.refreshZoom()
             }
 
-            .sigRenderError += func|view = me|(pdf, message)
+            .sigRenderError += func|view = me|(?, message)
             {
-                discard pdf
                 if view.reportFailure do
                     view.reportFailure(view, message)
             }
@@ -404,9 +395,8 @@ func createPdfViewer(host: Viewer.Host)
     let view = PdfViewer.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
-    view.outline.sigSelected += func|view|(panel, index)
+    view.outline.sigSelected += func|view|(?, index)
     {
-        discard panel
         if index < view.bookmarks.count
         {
             let entry = &view.bookmarks[index]
@@ -423,7 +413,7 @@ func createPdfViewer(host: Viewer.Host)
         .collectMatches = func|view|(text, options, progress, matches)->bool => view.collectMatches(text, options, progress, matches)
         .revealMatch    = func|view|(match, text)->bool => view.revealMatch(match, text)
         .matchBounds    = func|view|(match, bounds)->bool => view.searchBounds(match, bounds)
-        .clear          = func|view|() { view.pdfView.clearSelection() }
+        .clear          = func|view|() => view.pdfView.clearSelection()
     }
 
     host.setSearch(search)

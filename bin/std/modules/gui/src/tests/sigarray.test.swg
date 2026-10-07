@@ -22,15 +22,13 @@ var SigArrayTestTrace: String
     Swag.assert(SigArrayTestTotal == 2)
 }
 
-func sigArrayTestAdd(value: *s32)
+func sigArrayTestAdd(?: *s32)
 {
-    discard value
     SigArrayTestTotal += 1
 }
 
-func sigArrayTestAddDelta(value: *s32, delta: s32)
+func sigArrayTestAddDelta(?: *s32, delta: s32)
 {
-    discard value
     SigArrayTestTotal += delta
 }
 
@@ -47,7 +45,7 @@ func sigArrayTestAppendA(value: *s32)
     Swag.assert(signal.isEmpty())
 
     signal += &sigArrayTestAdd
-    signal += func(value: *s32) { discard value; SigArrayTestTotal += 10 }
+    signal += func(?: *s32) { SigArrayTestTotal += 10 }
     Swag.assert(not signal.isEmpty())
     Swag.assert(signal.count() == 2)
 
@@ -81,9 +79,8 @@ func sigArrayTestAppendA(value: *s32)
 {
     var signal: SigArray'func||(*s32, s32)
     signal += &sigArrayTestAddDelta
-    signal += func(value: *s32, delta: s32)
+    signal += func(?: *s32, delta: s32)
     {
-        discard value
         SigArrayTestTotal += delta * 10
     }
 

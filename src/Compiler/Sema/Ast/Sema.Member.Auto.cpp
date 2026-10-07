@@ -126,6 +126,7 @@ namespace
         leftPtr->setCodeRef(autoMemberCodeRef);
         if (candidate.symVar)
         {
+            candidate.symVar->markReferenced();
             sema.setSymbol(leftRef, candidate.symVar);
             sema.setIsLValue(*leftPtr);
         }

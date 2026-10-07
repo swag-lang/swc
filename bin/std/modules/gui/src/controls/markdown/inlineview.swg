@@ -1313,7 +1313,7 @@ impl InlineView
 
 impl IWnd for InlineView
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         .releaseRenderCache()
         .images.clear()

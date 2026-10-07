@@ -686,6 +686,7 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
+    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
 
     const TokenId tokenId = sema.token(codeRef()).id;
     if (tokenId == TokenId::CompilerAst)

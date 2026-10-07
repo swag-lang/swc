@@ -578,9 +578,8 @@ impl HexViewer
             .addItem("32")
             .addItem("64")
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(combo, index)
+            .sigChanged += func|view = me|(?, ?)
             {
-                discard combo, index
                 view.applyRowWidth()
             }
         }
@@ -595,9 +594,8 @@ impl HexViewer
             .addItem(hexStrings().ui_Width32)
             .addItem(hexStrings().ui_Width64)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(combo, index)
+            .sigChanged += func|view = me|(?, ?)
             {
-                discard combo, index
                 view.rebuildFormats()
             }
         }
@@ -611,9 +609,8 @@ impl HexViewer
             .addItem(hexStrings().ui_FormatUns)
             .addItem(hexStrings().ui_FormatSigned)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(combo, index)
+            .sigChanged += func|view = me|(?, ?)
             {
-                discard combo, index
                 view.applyValueMode()
             }
         }
@@ -626,9 +623,8 @@ impl HexViewer
             .addItem(hexStrings().ui_EndianLittle)
             .addItem(hexStrings().ui_EndianBig)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(combo, index)
+            .sigChanged += func|view = me|(?, ?)
             {
-                discard combo, index
                 view.applyByteOrder()
             }
         }
@@ -652,27 +648,23 @@ impl HexViewer
 
         with .analysisView = HexAnalysisView.create(sidePanel.content)
         {
-            .sigAnalyze += func|view = me|(panel)
+            .sigAnalyze += func|view = me|(?)
             {
-                discard panel
                 view.startAnalysis()
             }
 
-            .sigCancel += func|view = me|(panel)
+            .sigCancel += func|view = me|(?)
             {
-                discard panel
                 view.analysis.cancel()
             }
 
-            .sigClose += func|view = me|(panel)
+            .sigClose += func|view = me|(?)
             {
-                discard panel
                 view.closeAnalysis()
             }
 
-            .sigNavigate += func|view = me|(panel, offset, length)
+            .sigNavigate += func|view = me|(?, offset, length)
             {
-                discard panel
                 discard view.grid.revealRange(offset, length)
                 view.refreshInspector()
                 view.grid.setFocus()
@@ -693,9 +685,8 @@ impl HexViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = hexStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -713,15 +704,13 @@ impl HexViewer
     {
         with .grid = HexGridView.create(me)
         {
-            .sigCaretChanged += func|view = me|(grid)
+            .sigCaretChanged += func|view = me|(?)
             {
-                discard grid
                 view.refreshInspector()
             }
 
-            .sigZoomChanged += func|view = me|(grid)
+            .sigZoomChanged += func|view = me|(?)
             {
-                discard grid
                 view.refreshZoom()
             }
         }
@@ -738,39 +727,22 @@ func createHexViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool
-        {
-            discard text
-            return view.revealOffset(match.offset, match.length)
-        }
-
-        .matchBounds = func|view|(match, bounds)->bool
-        {
-            discard match
-            return view.grid.matchBounds(bounds)
-        }
-
-        .clear = func|view|() => view.grid.clearSearchMatch()
-
-        .describe = func|view|(presentation) => view.describeSearch(presentation)
-
-        .prepare = func|view|(query, plan)->EditBoxCheckResult
-        {
-            return view.prepareSearch(query, plan)
-        }
-
+        .revealMatch        = func|view|(match, ?) => view.revealOffset(match.offset, match.length)
+        .matchBounds        = func|view|(?, bounds) => view.grid.matchBounds(bounds)
+        .clear              = func|view|() => view.grid.clearSearchMatch()
+        .describe           = func|view|(presentation) => view.describeSearch(presentation)
+        .prepare            = func|view|(query, plan) => view.prepareSearch(query, plan)
         .collectFileMatches = func|view|(source, baseOffset, matches) => view.collectSearchMatches(source, baseOffset, matches)
-
-        .useMatches = func|view|(matches) => view.grid.setSearchMatches(matches)
+        .useMatches         = func|view|(matches) => view.grid.setSearchMatches(matches)
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func|view|()->bool => view.loadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-        .retire    = func|view|()->bool => view.retire()
+        .isLoading = func|view|() => view.loadTimer != null
+        .needsLoadingOverlay = func|view|() => view.loadTimer != null
+        .retire    = func|view|() => view.retire()
     }
 
     host.setLifecycle(lifecycle)

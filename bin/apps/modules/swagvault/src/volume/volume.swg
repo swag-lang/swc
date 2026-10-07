@@ -1348,7 +1348,7 @@ impl Volume
         // never writes over a block the previous one still needs.
         var pages: Array'u64
         pages.reserve(pageCount)
-        for i in pageCount do
+        for pageCount do
             pages.add(try .blocks.allocate())
 
         for page, i in pages do
@@ -1411,7 +1411,7 @@ impl Volume
 
     // Reads a record written by `writeFramedRecord`. An empty result means the
     // area holds no record for this key.
-    mtd readFramedRecord(offset, area: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array'u8 fail
+    mtd readFramedRecord(offset, ?: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array'u8 fail
     {
         var result: retval
 

@@ -12,6 +12,7 @@ Pointers can address any type of data and are fundamental for efficient memory a
 {
     var ptr1: *u8?         // Pointer to a single 'u8' value
     var ptr2: *(*u8?)?     // Pointer to another pointer to 'u8'
+    Swag.assert(ptr1 == null and ptr2 == null)
 }
 
 /**
@@ -461,6 +462,7 @@ that follows it, exactly one level down.
     var ptr:  *(const *u8?)?           // The 'u8' is read-only, the inner pointer is writable
     var ptr1: const *(const *u8?)?     // Both the inner pointer and the 'u8' are read-only
     var ptr2: const *(*u8?)?           // The inner pointer is read-only, the 'u8' is writable
+    Swag.assert(ptr == null and ptr1 == null and ptr2 == null)
 }
 
 /**

@@ -79,9 +79,8 @@ using Swag, Core, Pixel
     Swag.assert(button.position.right() < host.surfaceWnd.clientRect().right())
 
     var themeChanges, languageChanges, aboutRequests: u32
-    button.sigThemeChanged += func|count = &themeChanges|(appearance)
+    button.sigThemeChanged += func|count = &themeChanges|(?)
     {
-        discard appearance
         count[] += 1
     }
 
@@ -91,9 +90,8 @@ using Swag, Core, Pixel
         count[] += 1
     }
 
-    button.sigAboutRequested += func|count = &aboutRequests|(appearance)
+    button.sigAboutRequested += func|count = &aboutRequests|(?)
     {
-        discard appearance
         count[] += 1
     }
 
@@ -119,9 +117,8 @@ using Swag, Core, Pixel
     Swag.assert(sub.parent == &host.surfaceWnd)
 
     var popupChecked: bool
-    host.app.sigFrame += func|host = &host, button, popup, sub, checked = &popupChecked|(app)
+    host.app.sigFrame += func|host = &host, button, popup, sub, checked = &popupChecked|(?)
     {
-        discard app
         if checked[] do
             return
 

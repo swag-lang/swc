@@ -747,7 +747,7 @@ func borrowEscapeThroughWrapperGlobal()
 // A wrapper whose callee returns caller-independent data borrows nothing: the chain
 // stays silent whatever was passed in.
 #[Swag.NoInline]
-func borrowEscapeGlobalSource(p: *s32)->*s32
+func borrowEscapeGlobalSource(?: *s32)->*s32
 {
     return &borrowEscapeGlobalInt
 }
@@ -1424,7 +1424,7 @@ func borrowEscapeHeapParamPayloadForward(box: BorrowEscapeHeapBox)->[*] BorrowEs
 
 // A callee that hands back caller-independent storage stays silent whatever was passed.
 #[Swag.NoInline]
-func borrowEscapeHeapParamPayloadStatic(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
+func borrowEscapeHeapParamPayloadStatic(?: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
 {
     return borrowEscapeGlobalHeapBox.slots!
 }

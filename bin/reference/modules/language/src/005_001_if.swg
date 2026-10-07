@@ -71,7 +71,7 @@ non-zero (or non-null) values are considered `true`.
     // Since 'a' is 0, the condition is false and the block will not execute.
     if let a = 0
     {
-        Swag.assert(false)
+        Swag.assert(a != 0)
     }
 
     // Redeclare 'a' as a constant in another scope.

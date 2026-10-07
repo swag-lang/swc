@@ -61,7 +61,7 @@ struct FileDlg
 
 impl IWnd for FileDlg
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         // The browser saves the folder and column widths in its own destruction event. At this
         // point its child tree may already be gone, so only the dialog-owned rectangle is read.
@@ -96,9 +96,8 @@ private impl FileDlg
         edit.selectAll()
         edit.setFocus()
 
-        dlg.validateResult = func|dlg, browser = me.browser, edit|(fdlg, btnid)
+        dlg.validateResult = func|dlg, browser = me.browser, edit|(?, btnid)
         {
-            discard fdlg
             if btnid != Dialog.BtnOk do
                 return true
 
@@ -201,11 +200,11 @@ impl FileDlg
         with dlg.browser = FileBrowserCtrl.create(dlg.createContentView(inset: false), opt)
         {
             .dockStyle   = .Center
-            .sigAccepted += func|fileDlg = dlg|(b) { fileDlg.closeWithResult(Dialog.BtnOk) }
-            .sigNewFolderRequested += func|fileDlg = dlg|(b) { fileDlg.onNewFolder() }
+            .sigAccepted += func|fileDlg = dlg|(?) { fileDlg.closeWithResult(Dialog.BtnOk) }
+            .sigNewFolderRequested += func|fileDlg = dlg|(?) { fileDlg.onNewFolder() }
         }
 
-        dlg.validateResult = func|dlg|(bdlg, id)
+        dlg.validateResult = func|dlg|(?, id)
         {
             if id == Dialog.BtnOk
             {

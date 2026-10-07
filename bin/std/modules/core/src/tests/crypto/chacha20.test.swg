@@ -172,7 +172,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     let first     = Swag.U32.Max - cast(u32, ((input.count - 1) / Crypto.ChaCha20BlockSize))
     let keyPtr    = &key
     let noncePtr  = &nonce
-    parallel for |keyPtr, noncePtr, input, reference, first| record in 3
+    parallel for |keyPtr, noncePtr, input, reference, first| 3
     {
         var encrypted: Array'u8
         encrypted.resize(input.count)

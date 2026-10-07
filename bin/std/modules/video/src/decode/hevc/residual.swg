@@ -29,9 +29,8 @@ impl Decoder
     //
     // The parsed levels are left in `.coefficients` in raster order, and everything the transform
     // needs to know about where they sit is reported back.
-    mtd residualCoding(x0, y0: s32, log2TrafoSize, component: u32, predModeIntra: u32, isIntra, bypass: bool)->ResidualResult fail
+    mtd residualCoding(?, ?: s32, log2TrafoSize, component: u32, predModeIntra: u32, isIntra, bypass: bool)->ResidualResult fail
     {
-        let sps  = .activeSps!
         let pps  = .activePps!
         let size = 1'u32 << log2TrafoSize
 

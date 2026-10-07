@@ -187,7 +187,9 @@ func foreachCStringRefSum(value: *cstring)->s32
             #assert(#typeof(v) == any)
             #assert(#typeof(i) == u64)
             var x = v
+            discard x
             var y = i
+            discard y
             count += 1
         }
         return count
@@ -205,7 +207,9 @@ func foreachCStringRefSum(value: *cstring)->s32
             #assert(#typeof(v) == s32)
             #assert(#typeof(i) == u64)
             var x = v
+            discard x
             var y = i
+            discard y
             count += 1
         }
         return count
@@ -218,7 +222,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     func foreachVariadicAnyErr(values: ...)->u64
     {
         var count: u64
-        for v in values
+        for values
         {
             count += 1
         }
@@ -232,7 +236,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     func foreachVariadicTypedErr(values: s32...)->u64
     {
         var count: u64
-        for v, i in values
+        for values
         {
             count += 1
         }

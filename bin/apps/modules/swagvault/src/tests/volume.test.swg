@@ -146,7 +146,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let fileId = expect volume.createNode("\\large.bin", false, FileAttributeNormal, emptyBytes())
     var source: Array'u8
     source.resize(DataBlockCount * BlockSize)
-    for byte, i in source do
+    for ?, i in source do
         source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
 
     let bytesWritten = expect volume.writeNode(fileId, 0, source.toSlice(), false, false)
@@ -188,8 +188,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     const RunCount = 180'u64
     var volume    = expect Volume.create(path, testPassword(), pagingContainerSize())
-    let directory = expect volume.createNode("\\destination", true, FileAttributeDirectory, emptyBytes())
-    discard directory
+    discard expect volume.createNode("\\destination", true, FileAttributeDirectory, emptyBytes())
     let fileId = expect volume.createNode("\\fragmented.bin", false, FileAttributeNormal, emptyBytes())
     var block: [BlockSize] u8 = [0x5A]
     for index in RunCount
@@ -254,7 +253,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     Swag.assert(volume.resolve("\\DOCUMENTS\\SAMPLE.BIN") != null)
 
     var source: [7000] u8
-    for value, i in source do
+    for ?, i in source do
         source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
     let bytesWritten = expect volume.writeNode(fileId, 0, source, false, false)
     Swag.assert(bytesWritten == #sizeof(source))

@@ -202,8 +202,7 @@ using Swag
     discard expect File.writeAllBytes(path.toString(), payload)
     Swag.assert(File.exists(path.toString()))
 
-    let refused = catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as err
-    discard refused
+    discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as err
     Swag.assert(err != null)
     Swag.assert(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
 }

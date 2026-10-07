@@ -62,7 +62,7 @@ func day6A()
     for v in str do
         values.add(expect StrConv.toS32(v))
 
-    for day in 80
+    for 80
     {
         for f in values.count
         {

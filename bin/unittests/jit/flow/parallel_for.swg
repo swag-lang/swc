@@ -39,12 +39,12 @@
 {
     var ran = false
 
-    parallel for |&ran| index in 0 do
+    parallel for |&ran| 0 do
         ran = true
 
     Swag.assert(not ran)
 
-    parallel for |&ran| index in 5 until 5 do
+    parallel for |&ran| 5 until 5 do
         ran = true
 
     Swag.assert(not ran)
@@ -83,7 +83,7 @@
     var visited = 0'u32
     let counter = &visited
 
-    parallel for |counter| index in 4 do
+    parallel for |counter| 4 do
         counter[] += 1
 
     Swag.assert(visited == 4)
@@ -96,7 +96,7 @@
 
     parallel for |&grid| row in 4
     {
-        parallel for |&grid, row| column in 3 do
+        parallel for |&grid, row| 3 do
             grid[row] += 1
     }
 

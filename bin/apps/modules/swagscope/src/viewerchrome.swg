@@ -11,9 +11,8 @@ struct ViewerActionBar
 
 impl IWnd for ViewerActionBar
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         .centerContent()
     }
 }
@@ -64,9 +63,8 @@ struct ViewerInfoLayout
 
 impl IWnd for ViewerInfoLayout
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         if .fileGroup != null and .generalLabel != null do
             .computeLayout()
     }

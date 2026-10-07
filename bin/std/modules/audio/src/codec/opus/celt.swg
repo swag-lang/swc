@@ -298,7 +298,7 @@ private impl CeltMdct
 
         var lowIndex  = 0'u32
         var highIndex = CeltOverlap - 1
-        for i in CeltOverlap / 2
+        for CeltOverlap / 2
         {
             let x1 = out[highIndex]
             let x2 = out[lowIndex]
@@ -1139,7 +1139,7 @@ internal impl CeltDecoder
     mtd quantBandN1(ctx: *BandContext, x: [*] f32, y: [*] f32?, lowbandOut: [*] f32?, dec: *RangeDecoder)->u32
     {
         var target = x
-        for c in (y ? 2'u32 : 1)
+        for (y ? 2'u32 : 1)
         {
             var sign = false
             if ctx.remainingBits >= 1's32 << BitRes

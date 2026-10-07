@@ -11,6 +11,7 @@ and can mix any combination of data types.
 {
     let tuple1 = {2, 2}
     let tuple2 = {"string", 2, true}
+    Swag.assert(tuple1.item0 == tuple1.item1 and tuple2.item2)
 }
 
 /**

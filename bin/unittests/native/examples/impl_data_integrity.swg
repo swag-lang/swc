@@ -152,7 +152,7 @@ impl Adler32
 
             while i + NMax <= count
             {
-                for rounds in n
+                for n
                 {
                     for j in 16'u64
                     {

@@ -61,7 +61,7 @@ func compactMutationFor(text: string)->u64
     }
 
     var blockIndex, total: u64
-    for span, visitIndex in map
+    for span in map
     {
         if span.what == MutationFreeSpanId do
             break
@@ -131,7 +131,7 @@ func compactMutationWhile(text: string)->u64
     }
 
     var blockIndex, total: u64
-    for span, visitIndex in map
+    for span in map
     {
         if span.what == MutationFreeSpanId do
             break

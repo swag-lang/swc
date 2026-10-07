@@ -118,7 +118,7 @@ impl BitReader
     mtd read(count: u32)->u32
     {
         var result = 0'u32
-        for index in count
+        for count
         {
             result <<= 1
             if .bitPos < .bitEnd
@@ -919,9 +919,8 @@ impl IPacketCodec for Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Mp3
 
-    mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
+    mtd impl initialize(?: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        discard config
         if channels < 1 or channels > 2 do
             fail UnsupportedFormatError{"MP3 carries one or two channels"}
         .sampleRate = sampleRateHz

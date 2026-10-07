@@ -400,9 +400,8 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
             band += cast(s32, delta.offset[segment])
             let code   = cast(s32, delta.value[segment])
             let amount = (code >= 4 ? code - 3 : code - 4) << 7
-            for deltaBand in cast(u64, delta.length[segment])
+            for cast(u64, delta.length[segment])
             {
-                discard deltaBand
                 mask[band] += amount
                 band       += 1
             }

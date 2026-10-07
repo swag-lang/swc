@@ -22,7 +22,7 @@ using Swag
         break
     }
 
-    for i in 4 where arrayType do
+    for 4 where arrayType do
         count += 1
 
     var switchHit = 0

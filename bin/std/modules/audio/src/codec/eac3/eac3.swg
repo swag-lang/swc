@@ -221,7 +221,7 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
         let converterStrategies = bsi.blocks == 6 or reader.read(1) != 0
         if converterStrategies
         {
-            for channel in bsi.nfchans do
+            for bsi.nfchans do
                 discard reader.read(5)
         }
     }
@@ -681,9 +681,8 @@ impl IPacketCodec for Eac3Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Eac3
 
-    mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
+    mtd impl initialize(?: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        discard config
         if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"E-AC-3 audio needs one to six channels and a non-zero sample rate"}
         .sampleRate = sampleRateHz

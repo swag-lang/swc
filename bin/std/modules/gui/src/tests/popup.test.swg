@@ -9,15 +9,13 @@ var PopupHeadlessChangedCount:  u32
 var PopupListContentPaintCount: u32
 var PopupListContentPaintFlags: PaintItemFlags
 
-func popupHeadlessChanged(combo: *ComboBox, idx: u32)
+func popupHeadlessChanged(?: *ComboBox, ?: u32)
 {
-    discard combo, idx
     PopupHeadlessChangedCount += 1
 }
 
-func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect: Math.Rectangle, flags: PaintItemFlags)
+func popupListContentPainter(?: *PopupListCtrlItem, ?: *PaintContext, ?: Math.Rectangle, flags: PaintItemFlags)
 {
-    discard item, cxt, rect
     PopupListContentPaintCount += 1
     PopupListContentPaintFlags = flags
 }

@@ -410,9 +410,8 @@ func encodeDocument(document: const *Document)->Array'u8 fail
 
     let fonts = documentFonts(document)
     var fontObjects: Array'u32
-    for font in fonts
+    for fonts
     {
-        discard font
         fontObjects.add(nextObject)
         nextObject += 1
     }

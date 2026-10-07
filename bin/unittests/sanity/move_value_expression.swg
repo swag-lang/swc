@@ -8,6 +8,7 @@ struct Box { item: Item }
 {
     var source = Item{1, 2}
     let box    = Box{#move source}     // swc-expected-note {{sanity_note_move_origin}}
+    discard box
     Swag.assert(source.x == 1)         // swc-expected-error {{sanity_err_use_after_move}}
 }
 
@@ -15,5 +16,6 @@ struct Box { item: Item }
 {
     var source = Item{1, 2}
     let items  = [#move source]     // swc-expected-note {{sanity_note_move_origin}}
+    discard items
     Swag.assert(source.y == 2)      // swc-expected-error {{sanity_err_use_after_move}}
 }

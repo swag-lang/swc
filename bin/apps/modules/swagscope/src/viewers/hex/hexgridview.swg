@@ -1165,9 +1165,8 @@ impl IWnd for HexGridView
         .updateDragSelection(.selectionPoint)
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         .refreshLayout()
     }
 
@@ -1192,9 +1191,8 @@ impl IWnd for HexGridView
         .stopSelection()
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         .stopSelection()
         .doc.close()
     }
@@ -1442,9 +1440,8 @@ impl HexGridView
             .style.setFont(.theme().createDefaultFontFs(.fontSize), .Regular)
         }
 
-        scroll.sigScrollPositionChanged += func|view = result|(scrollWnd, oldPosition, newPosition)
+        scroll.sigScrollPositionChanged += func|view = result|(?, ?, newPosition)
         {
-            discard scrollWnd, oldPosition
             view.adoptScrollPosition(newPosition.y)
         }
 

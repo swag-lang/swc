@@ -192,21 +192,21 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func pickFirst(a: s32, b: s32, c: s32, d: s32, e: s32) => a
+    func pickFirst(a: s32, ?: s32, ?: s32, ?: s32, ?: s32) => a
     const V = #run pickFirst(11, 22, 33, 44, 55)
     #assert(V == 11)
 }
 
 #test
 {
-    func pickFourth(a: s32, b: s32, c: s32, d: s32) => d
+    func pickFourth(?: s32, ?: s32, ?: s32, d: s32) => d
     const V = #run pickFourth(1, 2, 3, 44)
     #assert(V == 44)
 }
 
 #test
 {
-    func pickFifth(a: s32, b: s32, c: s32, d: s32, e: s32) => e
+    func pickFifth(?: s32, ?: s32, ?: s32, ?: s32, e: s32) => e
     const V = #run pickFifth(1, 2, 3, 4, 55)
     #assert(V == 55)
 }
@@ -214,8 +214,8 @@ alias BigArray   = [5] s32
 #test
 {
     func pickNinth(
-        a0: s32, a1: s32, a2: s32, a3: s32, a4: s32,
-        a5: s32, a6: s32, a7: s32, a8: s32)->s32
+        ?: s32, ?: s32, ?: s32, ?: s32, ?: s32,
+        ?: s32, ?: s32, ?: s32, a8: s32)->s32
     {
         return a8
     }
@@ -226,21 +226,21 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func pickFifthF64(a0: f64, a1: f64, a2: f64, a3: f64, a4: f64) => a4
+    func pickFifthF64(?: f64, ?: f64, ?: f64, ?: f64, a4: f64) => a4
     const V = #run pickFifthF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64, 5.5'f64)
     #assert(V == 5.5'f64)
 }
 
 #test
 {
-    func pickSixthF32(a0: f32, a1: f32, a2: f32, a3: f32, a4: f32, a5: f32) => a5
+    func pickSixthF32(?: f32, ?: f32, ?: f32, ?: f32, ?: f32, a5: f32) => a5
     const V = #run pickSixthF32(1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 5.0'f32, 6.25'f32)
     #assert(V == 6.25'f32)
 }
 
 #test
 {
-    func pickFifthSmall(a: s32, b: s32, c: s32, d: s32, e: SmallPair) => e
+    func pickFifthSmall(?: s32, ?: s32, ?: s32, ?: s32, e: SmallPair) => e
     const V = #run pickFifthSmall(1, 2, 3, 4, {a: 88'u32, b: 99'u32, c: 111'u64})
     #assert(V.a == 88'u32)
     #assert(V.b == 99'u32)
@@ -249,7 +249,7 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func pickSixthBig(a: s32, b: s32, c: s32, d: s32, e: s32, f: BigBlob) => f
+    func pickSixthBig(?: s32, ?: s32, ?: s32, ?: s32, ?: s32, f: BigBlob) => f
     const V = #run pickSixthBig(1, 2, 3, 4, 5, {
         a0: 10'u64,
         a1: 20'u64,
@@ -263,7 +263,7 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func pickSeventhString(a: s32, b: s32, c: s32, d: s32, e: s32, f: s32, g: string) => g
+    func pickSeventhString(?: s32, ?: s32, ?: s32, ?: s32, ?: s32, ?: s32, g: string) => g
     const V = #run pickSeventhString(1, 2, 3, 4, 5, 6, "hello")
     #assert(V == "hello")
 }
@@ -271,8 +271,8 @@ alias BigArray   = [5] s32
 #test
 {
     func pickEighthArray(
-        a: s32, b: s32, c: s32, d: s32,
-        e: s32, f: s32, g: s32, h: BigArray)->BigArray
+        ?: s32, ?: s32, ?: s32, ?: s32,
+        ?: s32, ?: s32, ?: s32, h: BigArray)->BigArray
     {
         return h
     }

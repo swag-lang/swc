@@ -1,6 +1,6 @@
 #global private
 
-func accept(value: u32) {}
+func accept(value: u32) { discard value }
 
 func invalidIndex()
 {

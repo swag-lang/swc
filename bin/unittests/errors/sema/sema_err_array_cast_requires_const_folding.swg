@@ -1,6 +1,6 @@
 #global private
 
-func TakeArrayU32(v: [2] u32) {}
+func TakeArrayU32(v: [2] u32) { discard v }
 
 #test
 {

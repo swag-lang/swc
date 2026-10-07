@@ -37,6 +37,7 @@ func semaTest001()
     {
         #assert(#typeof(v) == s32)
         var x = v
+        discard x
     }
 }
 
@@ -48,7 +49,9 @@ func semaTest002()
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
         var x = v
+        discard x
         var y = i
+        discard y
     }
 }
 
@@ -58,6 +61,7 @@ func semaTest003()
     for v in arr where v > 0
     {
         var x = v
+        discard x
     }
 }
 
@@ -67,6 +71,7 @@ func semaTest004()
     for &v in arr
     {
         var x = v
+        discard x
     }
 }
 
@@ -78,7 +83,9 @@ func semaTest005()
         #assert(#typeof(v) == u8)
         #assert(#typeof(i) == u64)
         var x = v
+        discard x
         var y = i
+        discard y
     }
 }
 
@@ -91,7 +98,9 @@ func semaTest006()
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
         var x = v
+        discard x
         var y = i
+        discard y
     }
 }
 
@@ -105,7 +114,9 @@ func semaTest007()
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
         var x = v
+        discard x
         var y = i
+        discard y
     }
 }
 
@@ -118,7 +129,9 @@ func semaTest008()
             #assert(#typeof(v) == any)
             #assert(#typeof(i) == u64)
             var x = v
+            discard x
             var y = i
+            discard y
         }
     }
 }
@@ -132,7 +145,9 @@ func semaTest009()
             #assert(#typeof(v) == s32)
             #assert(#typeof(i) == u64)
             var x = v
+            discard x
             var y = i
+            discard y
         }
     }
 }
@@ -151,7 +166,9 @@ func semaTest010()
         #assert(#typeof(value) == Priority)
         #assert(#typeof(idx) == u64)
         var x = value
+        discard x
         var y = idx
+        discard y
     }
 }
 
@@ -182,6 +199,7 @@ func semaTest012()
     {
         #assert(#typeof(slot) == ForeachIndexedSlot)
         var value = values[slot]
+        discard value
     }
 
     for value, slot in values
@@ -189,6 +207,7 @@ func semaTest012()
         #assert(#typeof(value) == s32)
         #assert(#typeof(slot) == ForeachIndexedSlot)
         var sameValue = value == values[slot]
+        discard sameValue
     }
 }
 
@@ -200,5 +219,6 @@ func semaTest013()
     {
         #assert(#typeof(index) == u64)
         var x = index
+        discard x
     }
 }

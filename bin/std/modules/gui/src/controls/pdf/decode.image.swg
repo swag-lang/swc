@@ -585,7 +585,7 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
 }
 
 // Reads an image XObject as an 8-bit coverage plane, which is what a soft mask carries.
-private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil: bool)->SamplePlane fail
+private func readMaskPlane(parser: *PdfParser, nodeId, ?: u32, stencil: bool)->SamplePlane fail
 {
     var result: retval
     if parser.imageCodec(nodeId) == "DCTDecode"

@@ -453,7 +453,7 @@ impl PropWnd
 
         let btn = createStyleButton(stack, tip)
 
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
@@ -519,7 +519,7 @@ impl PropWnd
             return
 
         let btn = createStyleButton(stack, appStrings().ui_PropOutline)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let color = prop.strokeOutlineColor()
@@ -564,7 +564,7 @@ impl PropWnd
         }
 
         let btn = createStyleButton(stack, appStrings().ui_PropFill)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
@@ -616,7 +616,7 @@ impl PropWnd
             return
 
         let btn = createStyleButton(stack, appStrings().act_Shape)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormShape()
@@ -638,7 +638,7 @@ impl PropWnd
             return
 
         let btn = createStyleButton(stack, appStrings().act_Shape)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormStep()
@@ -661,7 +661,7 @@ impl PropWnd
 
         let btn = createStyleButton(stack, appStrings().ui_PropStart)
 
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
@@ -683,7 +683,7 @@ impl PropWnd
             return
 
         let btn = createStyleButton(stack, appStrings().ui_PropEnd)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
@@ -709,7 +709,7 @@ impl PropWnd
             return
 
         let btn = createStyleButton(stack, appStrings().ui_PropDash)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
@@ -741,7 +741,7 @@ impl PropWnd
             .margin.x      = 5
             .dockStyle     = .Right
             .toolTip       = appStrings().tip_ResetSteps
-            btn.sigPressed += func|prop = me|(btn)
+            btn.sigPressed += func|prop = me|(?)
             {
                 // The button outlives the panel build; the capture may be gone by the
                 // time it is pressed, so guard instead of assuming it is still there.
@@ -779,7 +779,7 @@ impl PropWnd
             return
 
         let btn = createStyleButton(stack, appStrings().act_Text)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormCallout()
@@ -1112,7 +1112,7 @@ impl PropWnd
 // fields) and the reaction to every edit.
 impl IPropertyNotify for PropWnd
 {
-    mtd impl isItemVisible(list: *Properties, item: *PropertiesItem)->bool
+    mtd impl isItemVisible(?: *Properties, item: *PropertiesItem)->bool
     {
         let base = .getSelectedBaseForm()
 
@@ -1178,7 +1178,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    mtd impl isEnumValueVisible(?: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
         // The join combo omits JoinStyle.None: no join drawn = notched corners on any
         // thick stroke, never what a Swag Capture form wants.
@@ -1188,7 +1188,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl itemHasChanged(list: *Properties, item: *PropertiesItem?)
+    mtd impl itemHasChanged(?: *Properties, item: *PropertiesItem?)
     {
         let capture = .main.getCapture()
         if capture and capture.selection.count
@@ -1230,7 +1230,7 @@ impl IWnd for PropWnd
         .frameWnd.IWnd.onResizeEvent(evt)
     }
 
-    mtd impl onFrameEvent(evt: *FrameEvent)
+    mtd impl onFrameEvent(?: *FrameEvent)
     {
         if .needRebuild
         {

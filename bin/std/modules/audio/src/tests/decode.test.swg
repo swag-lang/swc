@@ -60,7 +60,7 @@ func audioPcmPacketSound()->SoundFile fail
     audioAssertBufferBytes(buffer0, size0, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
     Swag.assert(voice.streamCurSeek == file.dataSize)
 
-    let {_, size1} = expect voice.readBuffer()
+    let {?, size1} = expect voice.readBuffer()
     Swag.assert(size1 == 0)
 
     voice.playFlags = .Loop

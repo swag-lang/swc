@@ -114,9 +114,8 @@ namespace WinFsp
             try failWith(Format.toString("Windows could not start the portable WinFsp helper: %.", Errors.message(launchError)))
         }
 
-        for attempt in 1200
+        for 1200
         {
-            discard attempt
             var status = catch File.readAllText(statusPath) as readError
             if readError == null
             {

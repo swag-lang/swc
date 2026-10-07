@@ -17,7 +17,7 @@ func incrementExecutionCount()->s32
     return executionCount
 }
 
-func readExecutionCount(_0, _1, _2, _3, _4, _5, _6, _7: s32)->s32 => executionCount
+func readExecutionCount(?, ?, ?, ?, ?, ?, ?, ?: s32)->s32 => executionCount
 
 const execution0 = #run incrementExecutionCount()
 const execution1 = #run incrementExecutionCount()

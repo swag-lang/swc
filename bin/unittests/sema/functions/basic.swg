@@ -1,9 +1,9 @@
 #global private
 
 func A() {}
-func B(x: s32) {}
-func C(x: s32, y: s32) {}
-func D(x, y: s32 = 0) {}
+func B(?: s32) {}
+func C(?: s32, ?: s32) {}
+func D(?, ?: s32 = 0) {}
 struct Point
 {
     x: s32
@@ -30,7 +30,7 @@ func T()->s32
     return a
 }
 
-func T1(a0, b0: s32)->s32
+func T1(a0, ?: s32)->s32
 {
     let c = a0
     return c
@@ -51,16 +51,16 @@ func semaTest001()
     F6(1, 2)
 }
 
-func TakePoint(p: Point) {}
-func TakeSingleString(v: SingleString) {}
-func TakeRequiredPoint(v: RequiredPoint) {}
-func TakeArray2(v: [2] s32) {}
-func TakeMatrix2(v: [2, 2] s32) {}
-func TakeArrayU32(v: [2] u32) {}
-func TakeByteU8(v: u8) {}
+func TakePoint(?: Point) {}
+func TakeSingleString(?: SingleString) {}
+func TakeRequiredPoint(?: RequiredPoint) {}
+func TakeArray2(?: [2] s32) {}
+func TakeMatrix2(?: [2, 2] s32) {}
+func TakeArrayU32(?: [2] u32) {}
+func TakeByteU8(?: u8) {}
 
 func F0() {}
-func F1(x: s32) {}
+func F1(?: s32) {}
 
-func F5(a: s32, b: s32 = 0) {}
-func F6(a, b: s32 = 0) {}
+func F5(?: s32, ?: s32 = 0) {}
+func F6(?, ?: s32 = 0) {}

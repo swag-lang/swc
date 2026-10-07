@@ -119,9 +119,8 @@ func applyTheme()
     app.notifyThemeChanged()
 }
 
-func toggleTheme(btn: *Button)
+func toggleTheme(?: *Button)
 {
-    discard btn
     g_DarkTheme = not g_DarkTheme
     applyTheme()
 }
@@ -181,9 +180,8 @@ func layoutCurvePage()
     g_Wall!.setPosition({PagePad, PagePad + NoteHeight + RowGap, width, Math.max(rect.height - 2 * PagePad - NoteHeight - RowGap, 1.0)})
 }
 
-func onCurvePageEvent(page: *Wnd, evt: IEvent)->bool
+func onCurvePageEvent(?: *Wnd, evt: IEvent)->bool
 {
-    discard page
     if evt is ResizeEvent do
         layoutCurvePage()
     return false
@@ -227,9 +225,8 @@ func buildStagePage(parent: *Wnd)->*Wnd
     for index in WallCurves.count do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(5, false)
-    easing.sigChanged += func(box, index)
+    easing.sigChanged += func(?, ?)
     {
-        discard box, index
         playEntrance()
     }
 
@@ -249,9 +246,8 @@ func buildStagePage(parent: *Wnd)->*Wnd
 
     let replay = PushButton.create(controls, "Replay", {}, null, .Strong)
     g_StageReplay     = replay
-    replay.sigPressed += func(btn)
+    replay.sigPressed += func(?)
     {
-        discard btn
         playEntrance()
     }
 
@@ -265,9 +261,8 @@ func buildStagePage(parent: *Wnd)->*Wnd
     return page
 }
 
-func onStageSlider(slider: *Slider)
+func onStageSlider(?: *Slider)
 {
-    discard slider
     updateStageReadout()
     playEntrance()
 }
@@ -318,10 +313,8 @@ func playEntrance()
     discard app.animator.start(#move group)
 }
 
-func onEntranceEnded(result: AnimationResult)
+func onEntranceEnded(?: AnimationResult)
 {
-    discard result
-
     // Presentation state is dropped once it is back at rest, so a settled tile costs the painter
     // nothing: no layer, no resample, no per-frame composition.
     for card in g_Cards
@@ -373,9 +366,8 @@ func layoutStagePage()
     g_StageHint!.setPosition({PagePad, stripY + cardH + 10, width, 22})
 }
 
-func onStagePageEvent(page: *Wnd, evt: IEvent)->bool
+func onStagePageEvent(?: *Wnd, evt: IEvent)->bool
 {
-    discard page
     if evt is ResizeEvent do
         layoutStagePage()
     return false
@@ -403,9 +395,8 @@ func buildFieldPage(parent: *Wnd)->*Wnd
     for index in WallCurves.count do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(2, false)
-    easing.sigChanged += func(box, index)
+    easing.sigChanged += func(?, index)
     {
-        discard box
         g_Field!.easing = WallCurves[index]
     }
 
@@ -430,9 +421,8 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 
     let clear = PushButton.create(controls, "Clear trail")
     g_FieldClear     = clear
-    clear.sigPressed += func(btn)
+    clear.sigPressed += func(?)
     {
-        discard btn
         g_Field!.clearTrail()
         g_Field!.invalidate()
     }
@@ -480,9 +470,8 @@ func layoutFieldPage()
     g_Field!.setPosition({PagePad, fieldY, width, Math.max(rect.height - fieldY - PagePad, 80.0)})
 }
 
-func onFieldPageEvent(page: *Wnd, evt: IEvent)->bool
+func onFieldPageEvent(?: *Wnd, evt: IEvent)->bool
 {
-    discard page
     if evt is ResizeEvent do
         layoutFieldPage()
     return false
@@ -528,9 +517,8 @@ func startEssentialBreath()
     discard app.animator.animateF32(g_EssentialLbl!, AnimationChannel.from("Gui11.Pref.Breath"), 1, 0.35, &setCardOpacity, options)
 }
 
-func toggleExpander(btn: *Button)
+func toggleExpander(?: *Button)
 {
-    discard btn
     g_Expanded        = not g_Expanded
     g_ExpandBtn!.name = g_Expanded ? "Hide the panel" : "Show the panel"
     g_ExpandBtn!.invalidate()
@@ -616,9 +604,8 @@ func layoutPrefPage()
     g_DetailText!.setPosition({12, 12, Math.max(expInner.width - 24, 40.0), ExpandedDetail - 24})
 }
 
-func onPrefPageEvent(page: *Wnd, evt: IEvent)->bool
+func onPrefPageEvent(?: *Wnd, evt: IEvent)->bool
 {
-    discard page
     if evt is ResizeEvent do
         layoutPrefPage()
     return false
@@ -647,9 +634,8 @@ func layoutRootView()
     g_Footer!.setPosition({RootMargin, TabsY + tabsH + 8, width, 24})
 }
 
-func onRootEvent(view: *Wnd, evt: IEvent)->bool
+func onRootEvent(?: *Wnd, evt: IEvent)->bool
 {
-    discard view
     if evt is ResizeEvent
     {
         layoutRootView()
@@ -708,9 +694,8 @@ func onRootEvent(view: *Wnd, evt: IEvent)->bool
 }
 
 // Drives the smoke run through every page and replays what each of them demonstrates.
-func onFrame(application: *Application)
+func onFrame(?: *Application)
 {
-    discard application
     if not Env.isSmokeRun() or not g_Tabs do
         return
 

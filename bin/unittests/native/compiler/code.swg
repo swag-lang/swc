@@ -206,7 +206,7 @@ func remapLoopFlow(stmt: #code)
 {
     var count = 0
     var values: [4] s32 = [10, 20, 30, 40]
-    for value in values
+    for values
     {
         count += 1
         breakAsContinue(#code {

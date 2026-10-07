@@ -38,6 +38,7 @@ func jitIfLetNullableNullElse()->s32
 {
     if let str = jitRetNothing()
     {
+        discard str
         return -1
     }
 

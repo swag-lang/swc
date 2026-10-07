@@ -329,9 +329,8 @@ impl IWnd for ViewerWindow
         evt.accepted = false
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         .layoutFullScreenChrome()
     }
 
@@ -493,7 +492,7 @@ impl IWnd for ViewerWindow
         }
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         if .fullScreen do
             .setFullScreen(false)
@@ -816,9 +815,8 @@ impl ViewerWindow
             catch window.saveState()
         }
 
-        .appearanceButton.sigAboutRequested += func|window = me|(button)
+        .appearanceButton.sigAboutRequested += func|window = me|(?)
         {
-            discard button
             window.showAbout()
         }
 
@@ -841,9 +839,8 @@ impl ViewerWindow
         with .openButton = .commandButtons.addButton(.theme().icon(.OpenFile, themeActionIconSize(.themeMetrics())))
         {
             .toolTip    = appStrings().ui_Open
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.chooseFile()
             }
         }
@@ -852,9 +849,8 @@ impl ViewerWindow
         {
             .toolTip = appStrings().ui_OpenDefault
             .enable(false)
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.openCurrentFileDefault()
             }
         }
@@ -863,9 +859,8 @@ impl ViewerWindow
         {
             .toolTip = appStrings().ui_CloseFile
             .enable(false)
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.closeFile()
             }
         }
@@ -893,9 +888,8 @@ impl ViewerWindow
             .layoutSpec.alignY = .Center
             .toolTip = appStrings().ui_SearchOptions
             .setArrowPosition(.RightDownward)
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.showSearchOptionsMenu()
             }
         }
@@ -905,21 +899,18 @@ impl ViewerWindow
             .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = me|(edit)->EditBoxCheckResult => window.validateSearchEdit(edit))
-            .sigTextChanged += func|window = me|(edit)
+            .sigTextChanged += func|window = me|(?)
             {
-                discard edit
                 window.restartSearch()
             }
 
-            .sigSubmitted += func|window = me|(edit)
+            .sigSubmitted += func|window = me|(?)
             {
-                discard edit
                 window.findNext()
             }
 
-            .sigCancelled += func|window = me|(edit)
+            .sigCancelled += func|window = me|(?)
             {
-                discard edit
                 window.hideSearch()
             }
 
@@ -936,9 +927,8 @@ impl ViewerWindow
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed        += func|window = me|(button)
+            .sigPressed        += func|window = me|(?)
             {
-                discard button
                 window.findPrevious()
             }
 
@@ -949,9 +939,8 @@ impl ViewerWindow
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
-            .sigPressed        += func|window = me|(button)
+            .sigPressed        += func|window = me|(?)
             {
-                discard button
                 window.findNext()
             }
 
@@ -974,9 +963,8 @@ impl ViewerWindow
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|window = me|(combo, index)
+            .sigChanged += func|window = me|(?, index)
             {
-                discard combo
                 window.selectViewer(index)
             }
         }
@@ -1109,9 +1097,8 @@ impl ViewerWindow
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.confirmClearRecent()
             }
         }
@@ -1176,9 +1163,8 @@ impl ViewerWindow
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
             .enable(false)
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.showFolderHistory()
             }
         }
@@ -1270,9 +1256,8 @@ impl ViewerWindow
 
     private mtd hookChildEvents()
     {
-        .hookOnChildEvent = func|window = me|(wnd, evt)
+        .hookOnChildEvent = func|window = me|(?, evt)
         {
-            discard wnd
             switch evt
             {
             case KeyEvent as key where window.routePlaybackKey(key):         return true
@@ -2900,7 +2885,6 @@ impl ViewerWindow
             selected = Swag.U32.Max
             for choice, index in .choices where choice.key == TextViewerKey
             {
-                discard choice
                 selected = cast(u32, index)
                 break
             }

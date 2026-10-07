@@ -1877,7 +1877,7 @@ private impl Decoder
         if target >= 0 and (layout.audioTracks.count or layout.subtitleTracks.count)
         {
             selectSoundWindow(fileIndex, cast(u64, target))
-            discard catch buildSoundWindow(fileIndex, cast(u64, target)) as soundWindowError
+            discard catch buildSoundWindow(fileIndex, cast(u64, target))
         }
 
         let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64, target)) : null
@@ -2080,7 +2080,7 @@ private impl Decoder
             {
                 // No worker means no window, and a silent film is worse than a late one.
                 Atomic.exchange(&index.windowBuilding, 0)
-                discard catch buildSoundWindow(index, target) as windowError
+                discard catch buildSoundWindow(index, target)
                 return
             }
         }
@@ -2124,7 +2124,7 @@ private func runMatroskaSoundWindow(thread: Threading.Thread)
         if thread.requestEnd do
             break
 
-        discard catch buildSoundWindow(index, Atomic.get(&index.windowTarget)) as windowError
+        discard catch buildSoundWindow(index, Atomic.get(&index.windowTarget))
         Atomic.exchange(&index.windowBuilding, 0)
     }
 }
@@ -2249,9 +2249,8 @@ impl IDecoder for Decoder
         }
     }
 
-    mtd impl seekFrame(source: *ByteSource, index: u64) fail
+    mtd impl seekFrame(?: *ByteSource, index: u64) fail
     {
-        discard source
         if .fileIndex and Atomic.get(&.fileIndex.soundStatus) == SoundIndexRunning
         {
             // Video reconstruction has the foreground deadline. The complete audio packet scan

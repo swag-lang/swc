@@ -43,9 +43,13 @@ func ForeignReturnTriple()->Triple64
     if false
     {
         var a = ForeignTakePair(pair)
+        discard a
         var b = ForeignTakeTriple(triple)
+        discard b
         var c = ForeignReturnPair()
+        discard c
         var d = ForeignReturnTriple()
+        discard d
     }
     Swag.assert(pair.a == 1)
     Swag.assert(pair.b == 2)

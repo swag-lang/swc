@@ -351,7 +351,7 @@ private func buildContainers(flow: *Flow)
     list.setFrameForm(.Square)
     list.updateFlags(.HotTrack)
     list.setIconSize(16)
-    for name, i in ["Selected row", "Plain row", "Another row", "A longer row label"] do
+    for name in ["Selected row", "Plain row", "Another row", "A longer row label"] do
         list.createLine(name, app.theme.icon(.OpenFile, 16))
     list.computeLayout()
     list.selectLine(0)
@@ -400,14 +400,14 @@ private func buildDocuments(flow: *Flow)
     markdown.dockStyle = .Center
 }
 
-private func showMessageDialog(_button: *Button)
+private func showMessageDialog(?: *Button)
 {
     var options: MessageDlgOptions
     options.title = "Save changes"
     discard MessageDlg.yesNoCancel(g_Surface!, "Save the current changes before continuing?", options: options)
 }
 
-private func showEditDialog(_button: *Button)
+private func showEditDialog(?: *Button)
 {
     var options: EditDlgOptions
     options.title   = "Rename item"
@@ -416,7 +416,7 @@ private func showEditDialog(_button: *Button)
     discard EditDlg.createSingleLine(g_Surface!, options).doModal()
 }
 
-private func showAboutDialog(_button: *Button)
+private func showAboutDialog(?: *Button)
 {
     let params = AboutDlgParams{
         surfaceTitle: "About GUI10",

@@ -21,8 +21,8 @@ func semaTest001()
     #assert(#typeof(d) == s32)
 }
 
-func semaTest002() { var a = 0 ? 1 : 2 }
-func semaTest005() { var a = 0.0'f32 ? 1 : 2 }
+func semaTest002() { var a = 0 ? 1 : 2; discard a }
+func semaTest005() { var a = 0.0'f32 ? 1 : 2; discard a }
 
 namespace NC{}
 
@@ -37,6 +37,7 @@ func semaTest003()
 {
     var A: *s32?
     var C = A ? A : null
+    discard C
 }
 
 func semaTest004()

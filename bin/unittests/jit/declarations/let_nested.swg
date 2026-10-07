@@ -92,6 +92,7 @@
         let value = 1
         {
             let value = 2
+            discard value
         }
 
         return value

@@ -920,7 +920,7 @@ private impl Codec
         index = 0
         while index < floor.order
         {
-            for dimension in book.dimensions where index < floor.order
+            for book.dimensions where index < floor.order
             {
                 curve[][index] += last
                 index += 1

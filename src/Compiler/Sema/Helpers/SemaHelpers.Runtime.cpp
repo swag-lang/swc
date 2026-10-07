@@ -588,6 +588,23 @@ void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, const SymbolFunct
     sema.currentFunction()->addCallDependency(calleeSym);
 }
 
+namespace
+{
+    // Whether 'symVar' is written inside the declaration of the function an inline call expands.
+    bool isDeclaredByInlineSource(Sema& sema, SemaInlinePayload& payload, const SymbolVariable& symVar)
+    {
+        const SymbolFunction* source = payload.sourceFunction;
+        if (!source || !source->decl() || source->srcViewRef() != symVar.srcViewRef())
+            return false;
+        if (sema.ast().srcView().ref() != source->srcViewRef())
+            return false;
+        if (!payload.sourceEndRef.isValid())
+            payload.sourceEndRef = source->decl()->tokRefEnd(sema.ast());
+        const uint32_t tok = symVar.tokRef().get();
+        return tok >= source->decl()->tokRef().get() && tok <= payload.sourceEndRef.get();
+    }
+}
+
 Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
 {
     if (!sema.isCurrentFunction() || !typeRef.isValid())
@@ -602,6 +619,33 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
     {
         if (std::ranges::find(inlinePayload->localVariables, &symVar) == inlinePayload->localVariables.end())
             inlinePayload->localVariables.push_back(&symVar);
+
+        // An inlined copy is not the declaration: the callee's own body answers for its locals,
+        // except for a name the call site supplied as an alias, and for the code the call site
+        // passed to the callee.
+        symVar.setInlineExpansion();
+        for (const SemaInlinePayload* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
+        {
+            const auto it = std::ranges::find(payload->aliasIdentifiers, symVar.idRef());
+            if (it == payload->aliasIdentifiers.end())
+                continue;
+            const auto slot = static_cast<size_t>(it - payload->aliasIdentifiers.begin());
+            if (payload->aliasNameRefs[slot].isValid())
+            {
+                symVar.setCallerNameRef(payload->aliasNameRefs[slot]);
+                return Result::Continue;
+            }
+            break;
+        }
+
+        for (SemaInlinePayload* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
+        {
+            if (isDeclaredByInlineSource(sema, *payload, symVar))
+            {
+                symVar.markReferenced();
+                break;
+            }
+        }
     }
 
     return Result::Continue;

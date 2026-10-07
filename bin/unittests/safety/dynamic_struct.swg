@@ -5,6 +5,7 @@ func assumeWrongNullPointer(value: any?)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
     let pointer = assume cast (*s32?, value)
+    discard pointer
 }
 
 #test
@@ -22,6 +23,7 @@ func assumeDynamicChild(value: *CheckedDynamicBase)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
     let child = assume cast (*CheckedDynamicChild, value)
+    discard child
 }
 
 #test
@@ -35,6 +37,7 @@ func assumePresentChild(value: *CheckedDynamicBase?)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
     let child = assume cast (*CheckedDynamicChild, value)
+    discard child
 }
 
 #test

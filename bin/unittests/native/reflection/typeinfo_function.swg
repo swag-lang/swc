@@ -1,7 +1,7 @@
 #global private
 
-func add(x: s32, y: bool)->f32 => 1.0
-func consume(value: string) {}
+func add(x: s32, y: bool)->f32 { discard x, y; return 1.0 }
+func consume(value: string) { discard value }
 
 #assert(cast(const *Swag.TypeInfoFunc, #typeof(add)).name == "func(x: s32, y: bool)->f32")
 

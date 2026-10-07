@@ -2,6 +2,7 @@
 
 func select(value: s32)->string
 {
+    discard value
     return "integer"
 }
 

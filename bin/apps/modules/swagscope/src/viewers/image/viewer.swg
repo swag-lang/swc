@@ -521,9 +521,8 @@ private impl ImageViewer
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipPrevious
             .enable(me.navigateFile != null)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.navigate(-1)
             }
         }
@@ -533,9 +532,8 @@ private impl ImageViewer
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipNext
             .enable(me.navigateFile != null)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.navigate(1)
             }
         }
@@ -546,9 +544,8 @@ private impl ImageViewer
             .margin.x  = 8
             .toolTip   = imageStrings().ui_TipTransform
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showTransformMenu()
             }
         }
@@ -569,9 +566,8 @@ private impl ImageViewer
             .margin.x  = 10
             .toolTip   = imageStrings().ui_TipPlay
             .hide()
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.imageView.setPaused(not view.imageView.movie.isPaused)
                 view.refreshFrame()
             }
@@ -608,9 +604,8 @@ private impl ImageViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = imageStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -622,15 +617,13 @@ private impl ImageViewer
         with .imageView = ImageView.create(me)
         {
             .dockStyle      = .Center
-            .sigZoomChanged += func|view = me|(imageView)
+            .sigZoomChanged += func|view = me|(?)
             {
-                discard imageView
                 view.refreshZoom()
             }
 
-            .sigFrameChanged += func|view = me|(imageView)
+            .sigFrameChanged += func|view = me|(?)
             {
-                discard imageView
                 view.refreshFrame()
             }
 

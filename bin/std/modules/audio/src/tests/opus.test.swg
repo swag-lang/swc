@@ -135,7 +135,6 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     for i in 4 do
         bytes[22 + i] = cast(u8, ((checksum >> cast(u32, (8 * i))) & 0xFF))
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
-    var sound = catch SoundFile.load(path.toString()) as err
-    discard sound
+    discard catch SoundFile.load(path.toString()) as err
     Swag.assert((err is Errors.UnsupportedFormatError))
 }

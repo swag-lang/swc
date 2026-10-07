@@ -40,7 +40,7 @@ using Core
         for range in 2
         {
             view.studioRange = range == 0
-            for repeat in 3
+            for 3
             {
                 view.convertToRgb(&image)
                 for y in Height

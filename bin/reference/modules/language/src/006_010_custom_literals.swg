@@ -47,7 +47,7 @@ impl Duration
 You can then place the suffix right after the numeric literal when the type is 'Duration'.
 */
 
-func toto(x: Duration) {}
+func toto(x: Duration) => Swag.assert(x.timeInSeconds > 0)
 
 #test
 {

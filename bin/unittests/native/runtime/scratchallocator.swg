@@ -355,7 +355,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
-    for i in 20
+    for 20
     {
         var req: AllocatorRequest
         req.size = 64

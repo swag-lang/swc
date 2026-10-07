@@ -26,7 +26,7 @@ impl NonNullCannotCastNullableOpCastBox
     mtd const opCast()->string? => "present-but-optional"
 }
 
-func acceptNonNullCannotCast(value: *NonNullCannotCastItem) {}
+func acceptNonNullCannotCast(value: *NonNullCannotCastItem) { discard value }
 
 func defaultNonNullCannotCast(value: *NonNullCannotCastItem = null)     // swc-expected-error {{sema_err_cannot_cast}}
 {}
@@ -127,8 +127,8 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 #test
 {
     // A boxed zero is a present 'any' value, not a null 'any'.
-    let direct:   any = 0
-    let preboxed: any = cast(any, 0)
+    let direct:   any = 0; discard direct
+    let preboxed: any = cast(any, 0); discard preboxed
 
     // Boxing a typed null pointer also creates a present 'any' value.
     let nullPointer:  *NonNullCannotCastItem? = null

@@ -75,7 +75,7 @@ namespace AttrTypeInfoReflection
         value: s32
     }
 
-    func hasAttribute(type: typeinfo, attribute: typeinfo)->bool
+    func hasAttribute(?: typeinfo, ?: typeinfo)->bool
     {
         return true
     }
@@ -94,12 +94,14 @@ func semaTest001()
 {
     #[AttrAutoScope(.B)]
     var V: s32 = 0
+    discard V
 }
 
 func semaTest002()
 {
     #[AttrAutoScopeFlag(.A | .B)]
     var V: s32 = 0
+    discard V
 }
 
 func semaTest003()

@@ -5,9 +5,8 @@ using Swag, Core
 
 var CircularHeadlessChangedCount: u32
 
-func circularHeadlessChanged(c: *Circular)
+func circularHeadlessChanged(?: *Circular)
 {
-    discard c
     CircularHeadlessChangedCount += 1
 }
 

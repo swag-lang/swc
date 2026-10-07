@@ -150,7 +150,7 @@ impl Decoder
             strLen = entry.length
             if not strLen or strLen > frmSize - frmOff do
                 fail InvalidFormatError{"GIF LZW string exceeds its frame"}
-            for i in strLen
+            for strLen
             {
                 let p = frmOff + entry.length - 1
                 let x = p % .fw

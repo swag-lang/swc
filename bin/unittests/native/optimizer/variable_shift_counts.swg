@@ -22,7 +22,7 @@ func shiftSum(x: u64, a, b: u8)->u64 => x << (a + b)
 func slowShiftLeft(x: u64, n: u32)->u64
 {
     var result = x
-    for i in 0 until n do
+    for 0 until n do
         result = result * #wrap 2
     return result
 }

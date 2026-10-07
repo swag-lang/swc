@@ -92,7 +92,7 @@ struct AstAfterInvalidCastOwner
         mtd install()
     {
         let captured: *AstAfterInvalidCastDialog? = null
-            .callback = mtd|captured|(dlg, id) { return captured == dlg }     // swc-expected-error {{sema_err_cannot_cast}}
+            .callback = mtd|captured|(dlg, id) { discard id; return captured == dlg }     // swc-expected-error {{sema_err_cannot_cast}}
         .signal.call(me)
     }
 }

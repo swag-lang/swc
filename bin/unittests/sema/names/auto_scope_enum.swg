@@ -47,6 +47,7 @@ impl E
     mtd foo(f: *F)
     {
         let a = f.x == .R
+        discard a
     }
 }
 
@@ -55,6 +56,7 @@ func semaTest004()
     var f: F
     f.x = .G
     let a = f.x == .G
+    discard a
 }
 
 enum BindingDirection { North, South }
@@ -102,8 +104,10 @@ impl ConflictingFlagOwner
     {
         var flags   = ConflictingFlagName.Name
         let hasName = flags.has(.Name)
+        discard hasName
         flags.add(.Other)
         let hasOther = flags.has(.Other)
+        discard hasOther
     }
 }
 

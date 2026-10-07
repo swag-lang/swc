@@ -562,22 +562,19 @@ func createTableViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func|view|(text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, ?, matches)->bool
         {
-            discard progress
             view.collectMatches(text, options, matches)
             return true
         }
 
-        .revealMatch = func|view|(match, text)->bool
+        .revealMatch = func|view|(match, ?)->bool
         {
-            discard text
             return view.revealMatch(match)
         }
 
-        .matchBounds = func|view|(match, bounds)->bool
+        .matchBounds = func|view|(?, bounds)->bool
         {
-            discard match
             return view.searchBounds(bounds)
         }
 

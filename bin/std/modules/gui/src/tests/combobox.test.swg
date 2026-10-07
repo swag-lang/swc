@@ -10,9 +10,8 @@ const ComboHeadless_Item3 = "ComboHeadless.Item3"
 var ComboHeadlessChangedCount: u32
 var ComboHeadlessLastIdx:      u32
 
-func comboHeadlessChanged(combo: *ComboBox, idx: u32)
+func comboHeadlessChanged(?: *ComboBox, idx: u32)
 {
-    discard combo
     ComboHeadlessChangedCount += 1
     ComboHeadlessLastIdx      = idx
 }
@@ -34,15 +33,13 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     host.app.notifyThemeChanged()
     host.notify(.ThemeChanged)
     combo.invalidate()
-    var dark = host.render(&host.root)
-    discard dark
+    discard host.render(&host.root)
 
     host.theme.setLight()
     host.app.notifyThemeChanged()
     host.notify(.ThemeChanged)
     combo.invalidate()
-    var light = host.render(&host.root)
-    discard light
+    discard host.render(&host.root)
 
     Swag.assert(combo.aniBk.cur() == Color.fromVector4(combo.aniBk.destVec4))
     Swag.assert(combo.aniBorder.cur() == Color.fromVector4(combo.aniBorder.destVec4))

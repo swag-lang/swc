@@ -39,7 +39,7 @@ impl ImplGeneratedMember
 impl AA
 {
     mtd toto() {}
-    mtd titi(x: s32) {}
+    mtd titi(?: s32) {}
 }
 
 namespace ConvertNs
@@ -79,9 +79,13 @@ func semaTest001()
     let hash  = cast(HashNs.IHash32, value)
 
     let converted  = conv.convert()
+    discard converted
     let hashValue  = hash.hash()
+    discard hashValue
     let helperText = QualifiedInterfacesA.IConvert.helper()
+    discard helperText
     let helperHash = QualifiedInterfacesA.IHash32.helper()
+    discard helperHash
 }
 
 struct ImplPendingOverloadSet
@@ -99,7 +103,7 @@ impl ImplPendingOverloadSet
 
 impl ImplPendingOverloadSet
 {
-    func setVibration(padIndex: u32, left, right: f32)->u32
+    func setVibration(padIndex: u32, ?, ?: f32)->u32
     {
         return padIndex
     }
@@ -109,4 +113,5 @@ func semaTest002()
 {
     var pad   = ImplPendingOverloadSet{}
     let value = pad.setVibration(0.0, 1.0)
+    discard value
 }

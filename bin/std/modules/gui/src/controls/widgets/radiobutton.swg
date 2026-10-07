@@ -133,10 +133,8 @@ impl IWnd for RadioButton
     //
     // The caption keeps the same trailing margin it has leading room, so a box followed
     // by a long label does not end flush against the edge of the control.
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
-
         let metrics = .themeMetrics()
         let width   = metrics.btnCheck_Size + metrics.btnCheck_Padding + .captionWidth() + metrics.btnPush_TextMargin
         return {Math.max(width, metrics.btnPush_Width), metrics.btnPush_Height}

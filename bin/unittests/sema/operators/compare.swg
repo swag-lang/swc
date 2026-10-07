@@ -5,7 +5,9 @@ func semaTest001()
     var a: *s32?
     var b: *s8?
     let c = a == b
+    discard c
     let d = a <= b
+    discard d
 }
 
 func semaTest002()
@@ -22,8 +24,11 @@ func semaTest003()
     var a: *s32?
     var b: *s8?
     let c = a < b
+    discard c
     let d = a > b
+    discard d
     let e = a >= b
+    discard e
 }
 
 func semaTest004()

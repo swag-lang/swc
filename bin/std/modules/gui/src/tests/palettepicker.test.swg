@@ -6,9 +6,8 @@ using Swag, Core
 
 var PalettePickerHeadlessChangedCount: u32
 
-func palettePickerHeadlessChanged(picker: *PalettePicker)
+func palettePickerHeadlessChanged(?: *PalettePicker)
 {
-    discard picker
     PalettePickerHeadlessChangedCount += 1
 }
 

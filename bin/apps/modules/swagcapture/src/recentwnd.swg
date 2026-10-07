@@ -306,7 +306,7 @@ struct RecentWnd
 
 impl IWnd for RecentWnd
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         if .timer do
             .app().removeTimer(.timer)

@@ -64,7 +64,7 @@ struct FlatDiscount { amountCent: s32 }
 
 impl IDiscountRule for FlatDiscount
 {
-    mtd impl apply(line: *OrderLine)->s32 => me.amountCent
+    mtd impl apply(?: *OrderLine)->s32 => me.amountCent
     mtd impl tag()->string => "flat"
 }
 

@@ -1,9 +1,9 @@
 #global private
 
 struct A {}
-func titi(a: *A) {}
+func titi(?: *A) {}
 
-func tata(a: A) {}
+func tata(?: A) {}
 func semaTest001()
 {
     var a: A
@@ -14,8 +14,11 @@ func semaTest002()
 {
     var a: A
     var b: *A       = &a
+    discard b
     var c: const *A = &a
+    discard c
     var d: const *A = &a
+    discard d
 }
 
 struct ConstAddrValue

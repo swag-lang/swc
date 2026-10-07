@@ -52,7 +52,7 @@ func(T) overloaded(value: *T)->s32
     return view.value()
 }
 
-func overloaded(value: bool)->s32 => 0
+func overloaded(value: bool)->s32 { discard value; return 0 }
 
 #test
 {
@@ -65,7 +65,7 @@ func(T) rejectedCall(value: T)
 {}
 
 #[Swag.ConstExpr]
-func accepts(type: typeinfo)->bool => false
+func accepts(type: typeinfo)->bool { discard type; return false }
 
 #test
 {

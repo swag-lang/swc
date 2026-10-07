@@ -995,6 +995,7 @@ impl Application
     // test suite; `testFrames` is ignored.
     func runSurface(x, y, width, height: s32, title: string? = null, view: *Wnd? = null, borders = true, canSize = true, hook: HookEvent? = null, init: (func(*Application))? = null, testFrames: u32 = 50)
     {
+        discard testFrames
         var app: Application
 
         var flags = SurfaceFlags.StandardWindow
@@ -1006,7 +1007,6 @@ impl Application
         surface.setTitle(title)
         if init do
             init(&app)
-        discard testFrames
         surface.show()
         app.run()
     }

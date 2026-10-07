@@ -141,9 +141,9 @@ equality, inequality, and relational comparisons.
         let x = 5
         let y = 10
         Swag.assert(x == 5)
-        Swag.assert(x != 10)
+        Swag.assert(x != y)
         Swag.assert(x <= 5)
-        Swag.assert(x < 10)
+        Swag.assert(x < y)
         Swag.assert(x >= 5)
         Swag.assert(x > 0)
     }

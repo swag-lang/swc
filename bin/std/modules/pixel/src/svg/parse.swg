@@ -1159,7 +1159,7 @@ private func appendArcElement(path: *LinePath, state: *GroupState, center, angle
     let k          = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
     var angle = angles.x
-    for i in segCount
+    for segCount
     {
         let a0 = angle
         let a1 = angle + segAngle
@@ -1282,7 +1282,7 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
     let k        = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
     var angle = startAngle
-    for i in segCount
+    for segCount
     {
         let a0  = angle
         let a1  = angle + segAngle
@@ -3143,7 +3143,7 @@ private impl Parser
         const MaxInheritanceDepth = 16'u32
 
         var keys: Array'String
-        for id, gradient in .gradients do
+        for id in .gradients do
             keys.add(id)
 
         for id in keys

@@ -373,7 +373,7 @@ impl GizmoRect
         .anchors[6] = {.rect.horzCenter() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
         .anchors[7] = {.rect.right() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
 
-        for c, i in .anchors
+        for c in .anchors
         {
             if .roundShape
             {

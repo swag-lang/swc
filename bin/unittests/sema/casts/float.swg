@@ -1,13 +1,15 @@
 #global private
 
-func takes_f32(v: f32) {}
-func takes_f64(v: f64) {}
+func takes_f32(?: f32) {}
+func takes_f64(?: f64) {}
 
 func semaTest001()
 {
     var a: u8  = 10
     var b: f32 = a
+    discard b
     var c: f64 = a
+    discard c
 }
 
 func semaTest002()
@@ -21,7 +23,9 @@ func semaTest003()
 {
     var a: u16 = 10
     var b: f32 = a
+    discard b
     var c: f64 = a
+    discard c
 }
 
 func semaTest004()
@@ -35,11 +39,14 @@ func semaTest005()
 {
     var a: s16 = -10
     var b: f32 = a
+    discard b
     var c: f64 = a
+    discard c
 }
 
 func semaTest006()
 {
     var a: f32 = 12.5
     var b: f64 = a
+    discard b
 }

@@ -14,7 +14,7 @@ alias NonNullMoveArrayElementAlias = NonNullMoveArrayRequired
 alias NonNullMoveArrayAlias        = [2] NonNullMoveArrayElementAlias
 alias NonNullMoveArrayNestedAlias  = NonNullMoveArrayAlias
 
-func consumeNonNullMoveArray(value: NonNullMoveArrayNestedAlias) {}
+func consumeNonNullMoveArray(value: NonNullMoveArrayNestedAlias) { discard value }
 
 #test
 {

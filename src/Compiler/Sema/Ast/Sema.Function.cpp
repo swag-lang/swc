@@ -1937,6 +1937,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     }
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, declNode.nodeBodyRef));
+    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
     SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, declNode.nodeBodyRef);
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
@@ -1962,6 +1963,7 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
     SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
 
@@ -1988,6 +1990,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
     SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
 

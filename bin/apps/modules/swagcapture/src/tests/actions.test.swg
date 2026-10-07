@@ -551,8 +551,6 @@ using Swag, Core
     evt = Gui.Testing.commandState(ActionQuickStyle.Reset)
     Swag.assert(Gui.Testing.actionUpdate'ActionQuickStyle(f.main, ActionQuickStyle.Reset, &evt))
     Swag.assert(not evt.name.isEmpty())
-
-    discard shape
 }
 
 // FlattenAll command execution is renderer-backed but stays fully in memory.

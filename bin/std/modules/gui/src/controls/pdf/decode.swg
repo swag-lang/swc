@@ -1616,9 +1616,8 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
             info = resolvedInfo(parser, parser.trailerInfo)
 
         var scanned: Array'u32
-        for objectNumber, nodeId in parser.objects
+        for ?, nodeId in parser.objects
         {
-            discard objectNumber
             scanned.add(nodeId)
         }
 

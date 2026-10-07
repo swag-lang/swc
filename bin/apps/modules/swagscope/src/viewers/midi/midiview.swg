@@ -224,9 +224,8 @@ impl MidiRollView
 
 impl IWnd for MidiRollView
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         if .scroll != null do
             .refreshLayout()
     }

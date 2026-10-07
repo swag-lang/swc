@@ -436,7 +436,7 @@ impl Inflate
             {
                 // Overlapping: copy forward one byte at a time so each byte reads
                 // output the loop has already written.
-                for i in length
+                for length
                 {
                     obuf[count] = obuf[from]
                     count       += 1

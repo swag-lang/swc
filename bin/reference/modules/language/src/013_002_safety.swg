@@ -76,6 +76,7 @@ safety guards a shift's amount only.
 #test
 {
     var x = 255'u8
+    discard x
 
     // x += 1  // Uncomment to see overflow panic
 }
@@ -171,6 +172,7 @@ result. Disabling '.DynCast' or '.Null' does not disable an explicit assumption.
 {
     let x: any = "1"
     let y      = assume cast(string, x)
+    Swag.assert(y == "1")
 
     // var z = assume cast(s32, x)  // Would panic: underlying type mismatch
     // Swag.assert(z == 0)
@@ -196,6 +198,7 @@ Swag panics if an index is out of range when dereferencing sized values
 {
     var x   = [0, 1, 2]
     var idx = 10
+    discard x, idx
 
     // Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
@@ -223,6 +226,7 @@ Slice operations are checked for bounds.
 #test
 {
     var x: const [..] s32 = [0, 1, 2]
+    discard x
 
     // var slice = x[1 to 4]   // Would panic: out-of-bounds
     // Swag.assert(slice[0] == 1)
@@ -232,6 +236,7 @@ Slice operations are checked for bounds.
 {
     var x   = "string"
     var idx = 10
+    discard x, idx
 
     // var slice = x[0 to idx] // Would panic: out-of-bounds
     // Swag.assert(slice[0] == 's')
@@ -364,6 +369,7 @@ Swag panics if a 'bool' is not 'true' (1) or 'false' (0).
 #test
 {
     var b: u8 = 2
+    discard b
 
     // if b { }  // Would panic: invalid boolean value
 }

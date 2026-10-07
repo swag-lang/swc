@@ -40,7 +40,7 @@ enum ReflectedEnum: u8
 
 #[ReflectionTypeAttr(7, "hello"), ReflectionMarker, DefaultedAttr(5), VariadicAttr(3, 5, 8)]
 func reflectedFunction( #[ParamReflectionAttr("payload")]
-value: s32) {}
+?: s32) {}
 
 const REFLECTED_FUNCTION_INFO = cast(const *Swag.TypeInfoFunc, #typeof(reflectedFunction))
 const REFLECTED_STRUCT_INFO   = cast(const *Swag.TypeInfoStruct, #typeof(ReflectedStruct))

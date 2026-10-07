@@ -65,9 +65,9 @@ func sum(x, y: s32) => x + y
 
 Parameters are declared within parentheses after the function name, each with a name and type.
 */
-func sum1(x, y: s32, unused: f32)->s32
+func sum1(x, y: s32, scale: f32)->f32
 {
-    return x + y
+    return cast(f32, x + y) * scale
 }
 
 /**
@@ -75,9 +75,9 @@ func sum1(x, y: s32, unused: f32)->s32
 
 Parameters may have default values, used when not provided by the caller.
 */
-func sum2(x, y: s32, unused: f32 = 666)->s32
+func sum2(x, y: s32, scale: f32 = 1)->f32
 {
-    return x + y
+    return cast(f32, x + y) * scale
 }
 
 /**
@@ -100,6 +100,7 @@ enum Values { A, B }
 
 func toto(x: s32, y = Values.A)
 {
+    #assert(#typeof(x) == s32)
     #assert(#typeof(y) == Values)
 }
 

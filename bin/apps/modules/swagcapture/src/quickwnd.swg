@@ -889,7 +889,7 @@ impl QuickWnd
 
             .layout.sendResizeEvent()
 
-            btn.iconPainter = func(btn, bc, pos, flags)
+            btn.iconPainter = func(btn, bc, ?, ?)
             {
                 paintForm(bc.painter, assume cast (*QuickButton, btn))
                 var rect = btn.clientRect()
@@ -911,7 +911,7 @@ impl QuickWnd
             .layout.sendResizeEvent()
             .setScrollSize(0, .layout.contentHeight)
 
-            addBtn.sigPressed += func|quickWnd = me|(btn)
+            addBtn.sigPressed += func|quickWnd = me|(?)
             {
                 let main = quickWnd.main
                 let mdl  = main.newFormFromModel(main.getEditMode())

@@ -7,6 +7,7 @@ func semaTest001()
     for 3
     {
         var x = 0
+        discard x
     }
 }
 
@@ -15,6 +16,7 @@ func semaTest002()
     for i in 3
     {
         var x = i
+        discard x
     }
 }
 
@@ -23,6 +25,7 @@ func semaTest003()
     for ? in (5).reversed()
     {
         var x = 0
+        discard x
     }
 }
 
@@ -31,6 +34,7 @@ func semaTest004()
     for i in (5).reversed()
     {
         var x = i
+        discard x
     }
 }
 
@@ -55,6 +59,7 @@ func semaTest007()
     for i in 1 to 5
     {
         var x = i
+        discard x
     }
 }
 
@@ -63,6 +68,7 @@ func semaTest008()
     for i in 1 until 5
     {
         var x = i
+        discard x
     }
 }
 
@@ -71,6 +77,7 @@ func semaTest009()
     for i in rangeTo(1, 5).reversed()
     {
         var x = i
+        discard x
     }
 }
 
@@ -79,6 +86,7 @@ func semaTest010()
     for i in range(1, 5).reversed()
     {
         var x = i
+        discard x
     }
 }
 
@@ -87,6 +95,7 @@ func semaTest011()
     for i in 10 where i > 3
     {
         var x = i
+        discard x
     }
 }
 
@@ -95,6 +104,7 @@ func semaTest012()
     for i in 0 to 10 where i % 2 == 0
     {
         var x = i
+        discard x
     }
 }
 
@@ -103,6 +113,7 @@ func semaTest013()
     for i in 0 until 10 where i > 5
     {
         var x = i
+        discard x
     }
 }
 
@@ -111,6 +122,7 @@ func semaTest014()
     for i in (10).reversed() where i < 5
     {
         var x = i
+        discard x
     }
 }
 
@@ -121,7 +133,9 @@ func semaTest015()
         for j in 3
         {
             var x = i
+            discard x
             var y = j
+            discard y
         }
     }
 }
@@ -131,6 +145,7 @@ func semaTest016()
     for 10
     {
         var x = 0
+        discard x
         break
     }
 }
@@ -141,8 +156,10 @@ func semaTest017()
     for i in 10
     {
         var x = i
+        discard x
         continue
         var y = 0     // Unreachable code is allowed
+        discard y
     }
 }
 
@@ -155,6 +172,7 @@ func semaTest018()
             break
         }
         var x = 0
+        discard x
     }
 }
 
@@ -164,6 +182,7 @@ func semaTest019()
     for arr
     {
         var x = 0
+        discard x
     }
 }
 
@@ -173,6 +192,7 @@ func semaTest020()
     for i in arr.count
     {
         var x = i
+        discard x
     }
 }
 
@@ -183,34 +203,42 @@ func semaTest021()
 
 func semaTest022()
 {
-    for i in 0 to 3 {}
+    for i in 0 to 3 { discard i }
 }
 
 func semaTest023()
 {
-    for 3 do
+    for 3
+    {
         var x = 0
+        discard x
+    }
 }
 
 func semaTest024()
 {
-    for i in 3 do
+    for i in 3
+    {
         var x = i
+        discard x
+    }
 }
 
 func semaTest025()
 {
-    for i in 1 {}
+    for i in 1 { discard i }
 
-    for i in 1 {}
+    for i in 1 { discard i }
 }
 
 func semaTest026()
 {
     var i = 5
+    discard i
     for i in 3
     {
         var x = i     // shadows outer i
+        discard x
     }
 }
 
@@ -219,15 +247,16 @@ func semaTest027()
     for i in 5 where i > 0
     {
         var x = i
+        discard x
     }
 }
 
 func semaTest028()
 {
     var str: string?
-    for it in str.count {}
+    for it in str.count { discard it }
     var v: u32
-    for it in v {}
+    for it in v { discard it }
     var v1: s32 = 4
     for it in v1
     {
@@ -244,6 +273,7 @@ func semaTest029()
     {
         #assert(#typeof(idx) == u32)
         var x = idx
+        discard x
     }
 }
 
@@ -252,12 +282,16 @@ func semaTest030()
     switch
     {
     case true:
-        for x in 1 do
+        for x in 1
+        {
             var y = x
+            discard y
+        }
 
     case false:
         let x = 0
         var y = x
+        discard y
     }
 }
 
@@ -266,11 +300,13 @@ func semaTest031()
     for i in 1 to ForRangeUpperBound
     {
         var x = i
+        discard x
     }
 
     const LocalUpperBound = 7
     for i in 2 until LocalUpperBound
     {
         var x = i
+        discard x
     }
 }

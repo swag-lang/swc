@@ -71,7 +71,7 @@ func captureDefaultByAddress(value: u32 = 17)
 {
     // '#move' needs an addressable lvalue, like '&'.
     struct DD { x: s32 }
-    func takeMove(v: #move DD) {}
+    func takeMove(v: #move DD) { discard v }
     func makeDD(x: s32)->DD { return DD{x} }
     var i = 1's32
     takeMove(#move makeDD(i))     // swc-expected-error {{sema_err_take_address_not_lvalue}}

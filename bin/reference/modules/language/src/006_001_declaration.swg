@@ -70,6 +70,7 @@ This is particularly useful for lightweight, temporary groupings of data.
     tuple.y = 2.0
     Swag.assert(tuple.x == 1.0)
     Swag.assert(tuple.y == 2.0)
+    Swag.assert(tuple1.x == 0 and tuple1.y == 0)
 }
 
 #test

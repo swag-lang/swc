@@ -143,7 +143,7 @@ func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
     var local: [8] u32
     for i in 8 do local[i] = seed + cast(u32, i)
     var values = source
-    for iteration in 2
+    for 2
     {
         values[0] ^= local[0]
         values[1] ^= local[1]

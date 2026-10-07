@@ -33,7 +33,7 @@ const SpanLoc = #run spanCaller()
 // Multiple parameters: #callerlocation as last param with other defaults
 // =========================================================================
 
-func multiParam(a: s32, b: s32 = 10, loc = #callerlocation)->SourceCodeLocation => loc
+func multiParam(a: s32, b: s32 = 10, loc = #callerlocation)->SourceCodeLocation { discard a, b; return loc }
 
 func multiParamCaller()->SourceCodeLocation
 {
@@ -47,7 +47,7 @@ const MultiLoc = #run multiParamCaller()
 // #callerlocation as the first default param
 // =========================================================================
 
-func locFirst(loc = #callerlocation, extra: s32 = 0)->SourceCodeLocation => loc
+func locFirst(loc = #callerlocation, extra: s32 = 0)->SourceCodeLocation { discard extra; return loc }
 
 func locFirstCaller()->SourceCodeLocation
 {
@@ -158,7 +158,7 @@ func semaTest002()
 // #callerlocation with named arguments
 // =========================================================================
 
-func namedArgFunc(a: s32 = 0, loc = #callerlocation, b: s32 = 0)->SourceCodeLocation => loc
+func namedArgFunc(a: s32 = 0, loc = #callerlocation, b: s32 = 0)->SourceCodeLocation { discard a, b; return loc }
 
 func namedArgCaller()->SourceCodeLocation
 {

@@ -139,8 +139,9 @@ AstNodeRef Parser::parseVarDecl()
         SmallVector<TokenRef> tokNames;
         while (true)
         {
+            // A parameter named '?' is one the body leaves unnamed.
             TokenRef tokName = TokenRef::invalid();
-            if (Token::isCompilerUniq(id()))
+            if (Token::isCompilerUniq(id()) || (hasContextFlag(ParserContextFlagsE::InFunctionParam) && is(TokenId::SymQuestion)))
                 tokName = consume();
             else
                 tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);

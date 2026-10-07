@@ -52,6 +52,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for 3
     {
         var x = 0
+        discard x
         count += 1
     }
     Swag.assert(count == 3)
@@ -63,6 +64,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 3
     {
         var x = i
+        discard x
         sum += cast(s32, i)
     }
     Swag.assert(sum == 3)
@@ -76,6 +78,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in (3).reversed()
     {
         var x = i
+        discard x
         if first == -1 do
             first = cast(s32, i)
         last = cast(s32, i)
@@ -92,6 +95,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for ? in (5).reversed()
     {
         var x = 0
+        discard x
         count += 1
     }
     Swag.assert(count == 5)
@@ -103,6 +107,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in (5).reversed()
     {
         var x = i
+        discard x
         sum += cast(s32, i)
     }
     Swag.assert(sum == 10)
@@ -136,6 +141,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 1 to 5
     {
         var x = i
+        discard x
         sum += cast(s32, i)
     }
     Swag.assert(sum == 15)
@@ -239,6 +245,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 1 until 5
     {
         var x = i
+        discard x
         sum += cast(s32, i)
     }
     Swag.assert(sum == 10)
@@ -252,6 +259,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in rangeTo(1, 5).reversed()
     {
         var x = i
+        discard x
         if first == -1 do
             first = cast(s32, i)
         last = cast(s32, i)
@@ -270,6 +278,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in range(1, 5).reversed()
     {
         var x = i
+        discard x
         if first == -1 do
             first = cast(s32, i)
         last = cast(s32, i)
@@ -287,6 +296,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 10 where i > 3
     {
         var x = i
+        discard x
         count += 1
         sum   += cast(s32, i)
     }
@@ -334,6 +344,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 0 to 10 where i % 2 == 0
     {
         var x = i
+        discard x
         count += 1
         sum   += cast(s32, i)
     }
@@ -348,6 +359,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 0 until 10 where i > 5
     {
         var x = i
+        discard x
         count += 1
         sum   += cast(s32, i)
     }
@@ -363,6 +375,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in (10).reversed() where i < 5
     {
         var x = i
+        discard x
         if first == -1 do
             first = cast(s32, i)
         last  = cast(s32, i)
@@ -381,7 +394,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         for j in 3
         {
             var x = i
+            discard x
             var y = j
+            discard y
             count += 1
         }
     }
@@ -392,7 +407,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 {
     var count = 0
     var last  = -1
-    for i in 1
+    for 1
     {
         for j in 1
         {
@@ -411,6 +426,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for 10
     {
         var x = 0
+        discard x
         count += 1
         break
     }
@@ -424,9 +440,11 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 10
     {
         var x = i
+        discard x
         sum += cast(s32, i)
         continue
         var y = 0     // Unreachable code is allowed
+        discard y
     }
     Swag.assert(sum == 45)
 }
@@ -443,6 +461,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
             break
         }
         var x = 0
+        discard x
         outerCount += 1
     }
     Swag.assert(outerCount == 2)
@@ -456,6 +475,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for arr
     {
         var x = 0
+        discard x
         count += 1
     }
     Swag.assert(count == 5)
@@ -512,12 +532,12 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    for i in 1
+    for 1
     {
         count += 1
     }
 
-    for i in 1
+    for 1
     {
         count += 1
     }
@@ -531,6 +551,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 3
     {
         var x = i     // shadows outer i
+        discard x
         count += 1
     }
     Swag.assert(i == 5)
@@ -543,6 +564,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in 5 where i > 0
     {
         var x = i
+        discard x
         sum += cast(s32, i)
     }
     Swag.assert(sum == 10)
@@ -552,10 +574,10 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 {
     var str: string?
     var count0 = 0
-    for it in str.count { count0 += 1 }
+    for str.count { count0 += 1 }
     var v: u32
     var count1 = 0
-    for it in v { count1 += 1 }
+    for v { count1 += 1 }
     var v1: s32
     Swag.assert(count0 == 0)
     Swag.assert(count1 == 0)

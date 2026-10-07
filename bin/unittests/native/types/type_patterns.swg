@@ -66,7 +66,7 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     var result = 0
     if patternSource(view, &calls) is PatternValue as item where item.number < 0 do
         result = -1
-    elif patternSource(view, &calls) is PatternOther as item do
+    elif patternSource(view, &calls) is PatternOther do
         result = -2
     elif patternSource(view, &calls) is PatternValue as item where item.number == 42
     {
@@ -94,7 +94,7 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
         Swag.assert(item == &value)
         result = item.number
         fallthrough
-    case PatternOther as item: result = -3
+    case PatternOther: result = -3
     case PatternValue as item where item.number > 50: result = -4
     case PatternValue as item: result += item.number
     default: result = -5
@@ -142,7 +142,7 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
 
 func patternAbsent(value: any?)->bool
 {
-    if value is s32 as number do
+    if value is s32 do
         return true
     switch value
     {
@@ -179,7 +179,7 @@ func patternAbsent(value: any?)->bool
     Swag.assert(not (noBase is PatternValue))
     switch noBase
     {
-    case PatternValue as item: Swag.assert(false)
+    case PatternValue: Swag.assert(false)
     default: break
     }
 }

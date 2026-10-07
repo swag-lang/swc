@@ -56,10 +56,7 @@ private func reportEmbeddedChromeChanged(view: *Wnd)
     embedded.applyLayout()
 }
 
-private func reportEmbeddedLoadingChanged(view: *Wnd)
-{
-    discard view
-}
+private func reportEmbeddedLoadingChanged(?: *Wnd) {}
 
 impl Viewer.Embedded for EmbeddedViewer
 {
@@ -270,9 +267,8 @@ private impl EmbeddedViewer
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|embedded = result|(combo, index)
+            .sigChanged += func|embedded = result|(?, index)
             {
-                discard combo
                 if index != Swag.U32.Max do
                     discard embedded.activate(index)
             }

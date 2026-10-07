@@ -47,9 +47,8 @@ private impl PasswordEdit
     mtd byteOffsetAt(runeIndex: u64)->u64
     {
         var byteOffset = 0'u64
-        for i in runeIndex
+        for runeIndex
         {
-            discard i
             let {?, eat} = Utf8.decodeRune(.storage[byteOffset until .byteCount])
             byteOffset += eat
         }
@@ -208,9 +207,8 @@ private impl PasswordEdit
         }
     }
 
-    mtd handleEditEvent(wnd: *Wnd, evt: IEvent)->bool
+    mtd handleEditEvent(?: *Wnd, evt: IEvent)->bool
     {
-        discard wnd
         switch evt
         {
         case KeyEvent as key:
@@ -262,9 +260,8 @@ private impl PasswordEdit
 impl IWnd for PasswordEdit
 {
     // Keeps the private edit box fitted to this control.
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         if .edit != null do
             .layoutChildren()
     }
@@ -290,9 +287,8 @@ impl IWnd for PasswordEdit
     }
 
     // Clears plaintext before the GUI releases the widget allocation.
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         .setRevealed(false)
         Crypto.secureClear(.storage)
         .byteCount = 0
@@ -330,15 +326,13 @@ impl PasswordEdit
         result.edit.focusPolicy  = .Inner
         result.focusDelegate     = result.edit
         result.edit.hookOnEvent  = func|password = result|(wnd, evt) => password.handleEditEvent(wnd, evt)
-        result.edit.sigSubmitted += func|password = result|(edit)
+        result.edit.sigSubmitted += func|password = result|(?)
         {
-            discard edit
             password.sigSubmitted.call(password)
         }
 
-        result.edit.sigCancelled += func|password = result|(edit)
+        result.edit.sigCancelled += func|password = result|(?)
         {
-            discard edit
             password.sigCancelled.call(password)
         }
 

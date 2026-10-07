@@ -77,11 +77,13 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     let sf = result.sf
     sf.setPosition({cast(f32, g_DesktopX), cast(f32, g_DesktopY), cast(f32, g_ScreenWidth), cast(f32, g_ScreenHeight)})
 
-    let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
-    captureWnd.main   = main
-    captureWnd.cursor = Cursor.from(CursorShape.Cross)
-    captureWnd.setPosition(0, 0, sf.size().x, sf.size().y)
-    captureWnd.captureMouse()
+    with let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
+    {
+        .main   = main
+        .cursor = Cursor.from(CursorShape.Cross)
+        .setPosition(0, 0, sf.size().x, sf.size().y)
+        .captureMouse()
+    }
 
     sf.setView(captureWnd)
     sf.show()
@@ -99,7 +101,8 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
 // In place edition of capture image
 func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture? fail
 {
-    let grabRect     = getGrabRect()
+    let grabRect = getGrabRect()
+
     with let capture = Memory.new'Capture()
     {
         .width          = cast(s32, grabRect.width)

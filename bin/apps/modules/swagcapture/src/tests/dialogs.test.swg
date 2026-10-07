@@ -18,9 +18,12 @@ using Swag, Core
     let appIcon = expect Pixel.Image.decode(".png", AppIcon)
     gui.app.setAppIcon(appIcon)
 
-    let main = MainWnd.create(&gui.surfaceWnd)
-    main.setPosition(gui.surfaceWnd.paddedClientRect())
-    main.applyLayout()
+    with let main = MainWnd.create(&gui.surfaceWnd)
+    {
+        .setPosition(gui.surfaceWnd.paddedClientRect())
+        .applyLayout()
+    }
+
     defer
     {
         main.libWnd.requestClose()

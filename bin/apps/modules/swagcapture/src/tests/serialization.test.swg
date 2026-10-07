@@ -18,15 +18,19 @@ using Swag, Core
     f.capture.backImgOriginal = Image.create(64, 48, .BGRA8)
     f.capture.backImgOriginal.fill(ColorGreen)
 
-    let shape = testAddShape(f.capture, 1, 2, 10, 11, .Highlight)
-    shape.kind      = .RoundRectangle
-    shape.roundSize = 18
+    with let shape = testAddShape(f.capture, 1, 2, 10, 11, .Highlight)
+    {
+        .kind      = .RoundRectangle
+        .roundSize = 18
+    }
 
-    let line = testAddLine(f.capture, 3, 4, 20, 21, .PixSel)
-    line.bezier      = true
-    line.xc          = 6
-    line.yc          = 7
-    line.paintShadow = false
+    with let line = testAddLine(f.capture, 3, 4, 20, 21, .PixSel)
+    {
+        .bezier      = true
+        .xc          = 6
+        .yc          = 7
+        .paintShadow = false
+    }
 
     let arrow = testAddArrow(f.capture, 5, 6, 30, 31)
     arrow.endSize = 9
@@ -36,9 +40,11 @@ using Swag, Core
     points.add({22, 8})
     points.add({18, 25})
 
-    let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
-    polygon.bezier      = true
-    polygon.paintShadow = false
+    with let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
+    {
+        .bezier      = true
+        .paintShadow = false
+    }
 
     let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
     draw.paintShadow = false
@@ -49,10 +55,12 @@ using Swag, Core
     text.alignHorz = .RightBottom
     text.alignVert = .LeftTop
 
-    let step = testAddStep(f.capture, 11, 12, 20, 20)
-    step.index     = 5
-    step.kind      = .Rectangle
-    step.typeIndex = .LetterUp
+    with let step = testAddStep(f.capture, 11, 12, 20, 20)
+    {
+        .index     = 5
+        .kind      = .Rectangle
+        .typeIndex = .LetterUp
+    }
 
     let image = testAddImage(f.capture, 13, 14, 16, 17)
     image.kind    = .Image
@@ -61,17 +69,19 @@ using Swag, Core
     image.image   = Image.create(4, 3, .BGRA8)
     image.image.fill(ColorYellow)
 
-    let callout = testAddCallout(f.capture, 15, 16, 40, 24)
-    callout.text      = "hi there"
-    callout.roundSize = 20
-    callout.fontSize  = 36
-    callout.boldSize  = 3
-    callout.textColor = ColorGreen
-    callout.tailX     = 8
-    callout.tailY     = 70
-    callout.fontStyle = .BoldItalic
-    callout.alignHorz = .LeftTop
-    callout.alignVert = .RightBottom
+    with let callout = testAddCallout(f.capture, 15, 16, 40, 24)
+    {
+        .text      = "hi there"
+        .roundSize = 20
+        .fontSize  = 36
+        .boldSize  = 3
+        .textColor = ColorGreen
+        .tailX     = 8
+        .tailY     = 70
+        .fontStyle = .BoldItalic
+        .alignHorz = .LeftTop
+        .alignVert = .RightBottom
+    }
 
     f.capture.title             = "My Capture Name"
     f.capture.sourceKind        = .Screen

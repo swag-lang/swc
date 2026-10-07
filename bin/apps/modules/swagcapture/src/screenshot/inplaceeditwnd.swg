@@ -73,10 +73,12 @@ impl InPlaceEditWnd
     // Private helper methods
     func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
-        let newMain = Wnd.create'MainWnd(main.parent, {})
-        newMain.registerActions()
-        newMain.registerShortcuts()
-        newMain.inPlaceEdit = true
+        with let newMain = Wnd.create'MainWnd(main.parent, {})
+        {
+            .registerActions()
+            .registerShortcuts()
+            .inPlaceEdit = true
+        }
 
         with let frame = Wnd.create'InPlaceEditWnd(parent)
         {

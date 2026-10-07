@@ -127,9 +127,12 @@ func testResetClipboardToImage()
     f.capture.undo()
     Swag.assert(f.capture.forms.count == 0)
 
-    let target = testAddImage(f.capture, 3, 4, 12, 10)
-    target.kind  = .Image
-    target.image = Gui.Testing.indexedImage(2, 2)
+    with let target = testAddImage(f.capture, 3, 4, 12, 10)
+    {
+        .kind  = .Image
+        .image = Gui.Testing.indexedImage(2, 2)
+    }
+
     f.capture.selection.add(0)
 
     testSetClipboardImage(6, 5)

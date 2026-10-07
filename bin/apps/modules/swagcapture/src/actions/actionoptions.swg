@@ -68,9 +68,12 @@ impl IActionUI for ActionOptions
         let dlg = Dialog.create(view.surface!, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
         dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
 
-        let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)
-        opt.setAllMargins(10)
-        opt.dockStyle = .Center
+        with let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)
+        {
+            .setAllMargins(10)
+            .dockStyle = .Center
+        }
+
         fillOptions(opt, main)
 
         opt.properties.sigValueChanged += func|main, opt|(?, item)

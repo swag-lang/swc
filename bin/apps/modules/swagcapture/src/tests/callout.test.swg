@@ -110,9 +110,12 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let cf = testAddCallout(f.capture, 0, 0, 60, 30)
-    cf.fontName  = "old"
-    cf.fontStyle = .Regular
+    with let cf = testAddCallout(f.capture, 0, 0, 60, 30)
+    {
+        .fontName  = "old"
+        .fontStyle = .Regular
+    }
+
     f.capture.selection.add(0)
 
     var us = f.capture.newUndo(.SetFontStyle)
@@ -140,11 +143,13 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let cf = testAddCallout(f.capture, 20, 20, 120, 60)
-    cf.text        = "Hi!"
-    cf.backColor   = ColorBlue
-    cf.borderColor = Argb.White
-    cf.textColor   = Argb.White
+    with let cf = testAddCallout(f.capture, 20, 20, 120, 60)
+    {
+        .text        = "Hi!"
+        .backColor   = ColorBlue
+        .borderColor = Argb.White
+        .textColor   = Argb.White
+    }
 
     var painter: Painter
     painter.begin(layoutOnly: true)
@@ -164,11 +169,13 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let cf = testAddCallout(f.capture, 0, 0, 40, 20)
-    cf.roundSize = 22
-    cf.fontSize  = 30
-    cf.textColor = ColorRed
-    cf.text      = "content"
+    with let cf = testAddCallout(f.capture, 0, 0, 40, 20)
+    {
+        .roundSize = 22
+        .fontSize  = 30
+        .textColor = ColorRed
+        .text      = "content"
+    }
 
     var copy: FormCallout
     cf.IForm.copy(&copy, cf)
@@ -213,11 +220,13 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let cf = testAddCallout(f.capture, 12, 14, 50, 25)
-    cf.text      = "hello"
-    cf.roundSize = 18
-    cf.tailX     = 4
-    cf.tailY     = 90
+    with let cf = testAddCallout(f.capture, 12, 14, 50, 25)
+    {
+        .text      = "hello"
+        .roundSize = 18
+        .tailX     = 4
+        .tailY     = 90
+    }
 
     var clip: CaptureClipboardForms
     clip.add(cf)

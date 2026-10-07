@@ -68,12 +68,15 @@ impl ScenarioFixture
 func scenarioNewCapture(main: *MainWnd, application: string)->String
 {
     main.newCapture(Gui.Testing.indexedImage(96, 64), sourceKind: .Screen)
-    let capture = main.editWnd.getCapture()!
-    capture.sourceApplication = application
-    capture.sourceExecutable  = "scenario.exe"
-    capture.sourceWindowTitle = "Scenario window"
-    capture.changed = true
-    capture.computePreview()
+    with let capture = main.editWnd.getCapture()!
+    {
+        .sourceApplication = application
+        .sourceExecutable  = "scenario.exe"
+        .sourceWindowTitle = "Scenario window"
+        .changed = true
+        .computePreview()
+    }
+
     main.saveCapture(capture)
     return String.from(capture.file)
 }

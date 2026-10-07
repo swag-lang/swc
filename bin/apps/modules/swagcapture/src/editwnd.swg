@@ -9,9 +9,13 @@ impl EditWnd
     func create(main: *MainWnd, parent: *Wnd)->*EditWnd
     {
         let scroll = Wnd.create'EditWnd(parent)
-        let view   = Wnd.create'EditView(scroll)
-        view.scroll     = scroll
-        view.main       = main
+
+        with let view = Wnd.create'EditView(scroll)
+        {
+            .scroll = scroll
+            .main   = main
+        }
+
         scroll.editView = view
         scroll.view     = view
         return scroll

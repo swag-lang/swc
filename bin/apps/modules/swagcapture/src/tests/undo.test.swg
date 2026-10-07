@@ -431,9 +431,12 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
         if op == 0
         {
             testUndoFuzzSelect(f.capture, &rng, rng.nextU32(1, 4))
-            let u = f.capture.newUndo(.OffsetSelection)
-            u.newPosX = rng.nextS32(-8, 9)
-            u.newPosY = rng.nextS32(-8, 9)
+            with let u = f.capture.newUndo(.OffsetSelection)
+            {
+                .newPosX = rng.nextS32(-8, 9)
+                .newPosY = rng.nextS32(-8, 9)
+            }
+
             f.capture.pushUndo(u)
         }
         elif op == 1
@@ -483,19 +486,26 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
         {
             testUndoFuzzSelect(f.capture, &rng, rng.nextU32(1, 3))
             let angle = cast(f32, rng.nextS32(0, 360))
-            let u     = f.capture.newUndo(.SetTypedValue)
-            u.valU32 = cast #bit (u32, angle)
-            u.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
+
+            with let u = f.capture.newUndo(.SetTypedValue)
+            {
+                .valU32 = cast #bit (u32, angle)
+                .valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
+            }
+
             f.capture.pushUndo(u)
         }
         elif op == 7
         {
             let idx = cast(u64, rng.nextU32(0, cast(u32, f.capture.forms.count)))
             let itf = f.capture.forms[idx]
-            let u   = f.capture.newUndo(.MoveBaseForm)
-            u.baseForm = itf
-            u.newPosX  = rng.nextS32(-10, 11)
-            u.newPosY  = rng.nextS32(-10, 11)
+
+            with let u = f.capture.newUndo(.MoveBaseForm)
+            {
+                .baseForm = itf
+                .newPosX  = rng.nextS32(-10, 11)
+                .newPosY  = rng.nextS32(-10, 11)
+            }
 
             // Size deltas rescale the point list of point-based forms, which is not
             // exactly invertible in f32; keep them for the integer box forms only.
@@ -521,11 +531,15 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
             if candidates.count > 0
             {
                 let itf = f.capture.forms[candidates[rng.nextU32(0, cast(u32, candidates.count))]]
-                let u   = f.capture.newUndo(.MovePoint)
-                u.baseForm = itf
-                u.pointIdx = rng.nextU32(0, 2)
-                u.newPosX  = rng.nextS32(-10, 11)
-                u.newPosY  = rng.nextS32(-10, 11)
+
+                with let u = f.capture.newUndo(.MovePoint)
+                {
+                    .baseForm = itf
+                    .pointIdx = rng.nextU32(0, 2)
+                    .newPosX  = rng.nextS32(-10, 11)
+                    .newPosY  = rng.nextS32(-10, 11)
+                }
+
                 f.capture.pushUndo(u)
             }
         }

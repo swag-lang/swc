@@ -175,7 +175,8 @@ impl IWnd for LibraryView
 
             let focused        = .items[.focusItem]
             let focusedCapture = focused.capture
-            with let menu      = MenuCtrl.createPopup(me)
+
+            with let menu = MenuCtrl.createPopup(me)
             {
                 if me.libWnd.trashMode
                 {
@@ -945,9 +946,11 @@ impl LibraryView
         .allItems.reserve(res.count)
         for fi in res
         {
-            let ptr = .allItems.addNew()
-            ptr.fi   = fi
-            ptr.kind = Capture.isFileName(fi.fullName) ? .Capture : .Image
+            with let ptr = .allItems.addNew()
+            {
+                .fi   = fi
+                .kind = Capture.isFileName(fi.fullName) ? .Capture : .Image
+            }
         }
 
         .filter()

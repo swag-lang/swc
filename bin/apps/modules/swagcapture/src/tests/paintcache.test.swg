@@ -65,9 +65,12 @@ func testPopulate(capture: *Capture)
     discard f.gui.render(f.main)
 
     f.capture.selection.add(0)
-    let u = f.capture.newUndo(.OffsetSelection)
-    u.newPosX = 60
-    u.newPosY = 25
+    with let u = f.capture.newUndo(.OffsetSelection)
+    {
+        .newPosX = 60
+        .newPosY = 25
+    }
+
     f.capture.pushUndo(u)
 
     var moved = f.gui.render(f.main)

@@ -70,9 +70,12 @@ impl MainWnd
             return
 
         let capture = .getCapture()!
-        let undo    = capture.newUndo(.SetImage)
-        undo.newImagePos = capture.backImagePos
-        undo.newImg      = capture.backImg
+
+        with let undo = capture.newUndo(.SetImage)
+        {
+            .newImagePos = capture.backImagePos
+            .newImg      = capture.backImg
+        }
 
         var boundRects: Array'Math.Rectangle
         for f in forms do
@@ -109,9 +112,12 @@ impl MainWnd
             return
 
         let capture = .getCapture()!
-        let undo    = capture.newUndo(.SetImage)
-        undo.newImagePos = capture.backImagePos
-        undo.newImg      = capture.backImg
+
+        with let undo = capture.newUndo(.SetImage)
+        {
+            .newImagePos = capture.backImagePos
+            .newImg      = capture.backImg
+        }
 
         struct Info
         {

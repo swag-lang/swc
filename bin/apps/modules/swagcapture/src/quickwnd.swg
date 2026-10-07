@@ -372,16 +372,19 @@ impl QuickWnd
     {
         mtd add(startSize, borderSize, endSize: f32, color: Color, startCap = LineCapStyle.ArrowAnchor, dash = DashStyle.None)
         {
-            let form = Memory.new'FormArrow()
-            form.startSize  = startSize
-            form.borderSize = borderSize
-            form.endSize    = endSize
-            form.dashStyle  = dash
-            if startSize != 0 do
-                form.beginCap = startCap
-            if endSize != 0 do
-                form.endCap = .ArrowAnchor
-            form.borderColor = color
+            with let form = Memory.new'FormArrow()
+            {
+                .startSize  = startSize
+                .borderSize = borderSize
+                .endSize    = endSize
+                .dashStyle  = dash
+                if startSize != 0 do
+                    .beginCap = startCap
+                if endSize != 0 do
+                    .endCap = .ArrowAnchor
+                .borderColor = color
+            }
+
             .qsArrow.add(form)
         }
 
@@ -408,9 +411,12 @@ impl QuickWnd
     {
         mtd add(borderSize: f32, color: Color)
         {
-            let form = Memory.new'FormLine()
-            form.borderSize  = borderSize
-            form.borderColor = color
+            with let form = Memory.new'FormLine()
+            {
+                .borderSize  = borderSize
+                .borderColor = color
+            }
+
             .qsLine.add(form)
         }
 
@@ -429,11 +435,14 @@ impl QuickWnd
     {
         mtd add(borderSize: f32, kind: FormShapeKind, color: Color, backColor: Color)
         {
-            let form = Memory.new'FormShape()
-            form.borderSize  = borderSize
-            form.borderColor = color
-            form.backColor   = backColor
-            form.kind        = kind
+            with let form = Memory.new'FormShape()
+            {
+                .borderSize  = borderSize
+                .borderColor = color
+                .backColor   = backColor
+                .kind        = kind
+            }
+
             .qsShape.add(form)
         }
 
@@ -465,13 +474,16 @@ impl QuickWnd
     {
         mtd add(borderSize: f32, kind: FormImageKind, color: Color)
         {
-            let form = Memory.new'FormImage()
-            form.borderSize  = borderSize
-            form.borderColor = color
-            form.backColor   = Argb.Gray
-            form.kind        = kind
-            if borderSize == 0 do
-                form.paintShadow = false
+            with let form = Memory.new'FormImage()
+            {
+                .borderSize  = borderSize
+                .borderColor = color
+                .backColor   = Argb.Gray
+                .kind        = kind
+                if borderSize == 0 do
+                    .paintShadow = false
+            }
+
             .qsImage.add(form)
         }
 
@@ -486,10 +498,13 @@ impl QuickWnd
     {
         mtd add(kind: FormShapeKind, color: Color, backColor: Color)
         {
-            let form = Memory.new'FormStep()
-            form.borderColor = color
-            form.backColor   = backColor
-            form.kind        = kind
+            with let form = Memory.new'FormStep()
+            {
+                .borderColor = color
+                .backColor   = backColor
+                .kind        = kind
+            }
+
             .qsStep.add(form)
         }
 
@@ -508,11 +523,14 @@ impl QuickWnd
     {
         mtd add(borderSize: f32, color: Color, bezier = false)
         {
-            let form = Memory.new'FormPolygon()
-            form.borderSize  = borderSize
-            form.borderColor = color
-            form.backColor   = 0
-            form.bezier      = bezier
+            with let form = Memory.new'FormPolygon()
+            {
+                .borderSize  = borderSize
+                .borderColor = color
+                .backColor   = 0
+                .bezier      = bezier
+            }
+
             .qsPolygon.add(form)
         }
 
@@ -536,14 +554,17 @@ impl QuickWnd
     {
         mtd add(bdColor, bkColor, txColor: Color)
         {
-            let form = Memory.new'FormCallout()
-            form.borderSize  = 4
-            form.borderColor = bdColor
-            form.backColor   = bkColor
-            form.textColor   = txColor
-            form.roundSize   = 16
-            form.fontSize    = 40
-            form.text        = "A"
+            with let form = Memory.new'FormCallout()
+            {
+                .borderSize  = 4
+                .borderColor = bdColor
+                .backColor   = bkColor
+                .textColor   = txColor
+                .roundSize   = 16
+                .fontSize    = 40
+                .text        = "A"
+            }
+
             .qsCallout.add(form)
         }
 
@@ -559,12 +580,15 @@ impl QuickWnd
     {
         mtd add(borderSize, fontSize: f32, bdColor, bkColor: Color)
         {
-            let form = Memory.new'FormText()
-            form.borderSize  = borderSize
-            form.borderColor = bdColor
-            form.backColor   = bkColor
-            form.fontSize    = fontSize
-            form.text        = "A"
+            with let form = Memory.new'FormText()
+            {
+                .borderSize  = borderSize
+                .borderColor = bdColor
+                .backColor   = bkColor
+                .fontSize    = fontSize
+                .text        = "A"
+            }
+
             .qsText.add(form)
         }
 
@@ -591,9 +615,12 @@ impl QuickWnd
     {
         mtd add(borderSize: f32, color: Color)
         {
-            let form = Memory.new'FormDraw()
-            form.borderSize  = borderSize
-            form.borderColor = color
+            with let form = Memory.new'FormDraw()
+            {
+                .borderSize  = borderSize
+                .borderColor = color
+            }
+
             .qsDraw.add(form)
         }
 
@@ -613,34 +640,43 @@ impl QuickWnd
     {
         mtd addDraw(borderSize: f32, color: Color)
         {
-            let form = Memory.new'FormDraw()
-            form.borderSize  = borderSize
-            form.borderColor = color
-            form.alpha       = 30
-            form.subKind     = .Highlight
+            with let form = Memory.new'FormDraw()
+            {
+                .borderSize  = borderSize
+                .borderColor = color
+                .alpha       = 30
+                .subKind     = .Highlight
+            }
+
             .qsHighlight.add(form)
         }
 
         mtd addShape(kind: FormShapeKind, backColor: Color)
         {
-            let form = Memory.new'FormShape()
-            form.borderSize  = 0
-            form.borderColor = Argb.Zero
-            form.backColor   = backColor
-            form.alpha       = 30
-            form.kind        = kind
-            form.subKind     = .Highlight
+            with let form = Memory.new'FormShape()
+            {
+                .borderSize  = 0
+                .borderColor = Argb.Zero
+                .backColor   = backColor
+                .alpha       = 30
+                .kind        = kind
+                .subKind     = .Highlight
+            }
+
             .qsHighlight.add(form)
         }
 
         mtd addPoly(backColor: Color)
         {
-            let form = Memory.new'FormPolygon()
-            form.borderSize  = 0
-            form.borderColor = Argb.Zero
-            form.backColor   = backColor
-            form.alpha       = 30
-            form.subKind     = .Highlight
+            with let form = Memory.new'FormPolygon()
+            {
+                .borderSize  = 0
+                .borderColor = Argb.Zero
+                .backColor   = backColor
+                .alpha       = 30
+                .subKind     = .Highlight
+            }
+
             .qsHighlight.add(form)
         }
 
@@ -666,26 +702,35 @@ impl QuickWnd
     {
         mtd addDraw()
         {
-            let form = Memory.new'FormDraw()
-            form.subKind     = .PixSel
-            form.paintShadow = false
+            with let form = Memory.new'FormDraw()
+            {
+                .subKind     = .PixSel
+                .paintShadow = false
+            }
+
             .qsPixSel.add(form)
         }
 
         mtd addShape(kind: FormShapeKind)
         {
-            let form = Memory.new'FormShape()
-            form.kind        = kind
-            form.subKind     = .PixSel
-            form.paintShadow = false
+            with let form = Memory.new'FormShape()
+            {
+                .kind        = kind
+                .subKind     = .PixSel
+                .paintShadow = false
+            }
+
             .qsPixSel.add(form)
         }
 
         mtd addPoly()
         {
-            let form = Memory.new'FormPolygon()
-            form.subKind     = .PixSel
-            form.paintShadow = false
+            with let form = Memory.new'FormPolygon()
+            {
+                .subKind     = .PixSel
+                .paintShadow = false
+            }
+
             .qsPixSel.add(form)
         }
 
@@ -862,9 +907,12 @@ impl QuickWnd
                 let capture = quick.main.getCapture()!
                 if not capture.selection.isEmpty()
                 {
-                    let undo = capture.newUndo(.SetFormFromModel)
-                    undo.mdlType  = Swag.kindOf(it)
-                    undo.mdlValue = MainWnd.newFormFromForm(it)
+                    with let undo = capture.newUndo(.SetFormFromModel)
+                    {
+                        .mdlType  = Swag.kindOf(it)
+                        .mdlValue = MainWnd.newFormFromForm(it)
+                    }
+
                     capture.pushUndo(undo)
                 }
 

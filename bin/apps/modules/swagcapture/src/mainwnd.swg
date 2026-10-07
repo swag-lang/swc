@@ -154,9 +154,11 @@ impl IWnd for MainWnd
         case .TrayIcon:
             if evt.trayAction == .Activate
             {
-                let srf = .surface!
-                srf.show()
-                srf.bringToFront()
+                with let srf = .surface!
+                {
+                    .show()
+                    .bringToFront()
+                }
             }
             elif evt.trayAction == .ContextMenu
             {
@@ -302,7 +304,8 @@ impl MainWnd
     // main window may be hidden when the tray icon is clicked.
     mtd popupTrayMenu()
     {
-        let sf        = expect .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost)
+        let sf = expect .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost)
+
         with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
         {
             .addItem(ActionGlobal.ShowEditor)

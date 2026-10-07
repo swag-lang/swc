@@ -192,11 +192,14 @@ impl PropWnd
         {
             if not first do
                 capture.undo()
-            let undo = capture.newUndo(.SetTypedValue)
-            undo.valU32 = val
-            if not common do
-                undo.mdlType = type
-            undo.valRef = Reflection.findField(type, name)!
+            with let undo = capture.newUndo(.SetTypedValue)
+            {
+                .valU32 = val
+                if not common do
+                    .mdlType = type
+                .valRef = Reflection.findField(type, name)!
+            }
+
             capture.pushUndo(undo)
         }
 
@@ -235,6 +238,7 @@ impl PropWnd
     func createColorPicker(btn: *IconButton, color: Color)->*ColorPickerCtrl
     {
         let frame = btn.createAnchorPopup(356, 382)
+
         with var pal: Array'Color
         {
             .add(Argb.White)
@@ -288,12 +292,14 @@ impl PropWnd
 
         for i in FormShapeKind.count
         {
-            let btn0 = IconButton.create(frame.view, {}, {0, 0, PopupCellSize, PopupCellSize})
-            btn0.userData = enumToUserData(i)
-            btn0.setForm(.Rectangle)
-            btn0.updateFlags(.Radio)
-            if cur == i do
-                btn0.setChecked(true)
+            with let btn0 = IconButton.create(frame.view, {}, {0, 0, PopupCellSize, PopupCellSize})
+            {
+                .userData = enumToUserData(i)
+                .setForm(.Rectangle)
+                .updateFlags(.Radio)
+                if cur == i do
+                    .setChecked(true)
+            }
 
             btn0.iconPainter = func(btn, bc, pos, flags)
             {

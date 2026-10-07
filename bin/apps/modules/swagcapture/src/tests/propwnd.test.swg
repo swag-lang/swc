@@ -447,9 +447,12 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     defer f.shutdown()
     let prop = testSetupPropWnd(&f)
 
-    let line = testAddLine(f.capture, 10, 20, 100, 50)
-    line.beginCap = .Round
-    line.endCap   = .ArrowAnchor
+    with let line = testAddLine(f.capture, 10, 20, 100, 50)
+    {
+        .beginCap = .Round
+        .endCap   = .ArrowAnchor
+    }
+
     f.capture.selection.add(0)
     prop.selectionHasChanged()
     f.gui.pump()

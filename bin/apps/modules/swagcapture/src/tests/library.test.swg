@@ -429,12 +429,15 @@ impl IAllocator for LibraryRejectAllocator
     imported.width  = 400
     imported.height = 300
 
-    let image = view.allItems.addNew()
-    image.fi.fullName = "wallpaper.png"
-    image.kind        = .Image
-    image.loaded      = true
-    image.width       = 2560
-    image.height      = 1440
+    with let image = view.allItems.addNew()
+    {
+        .fi.fullName = "wallpaper.png"
+        .kind        = .Image
+        .loaded      = true
+        .width       = 2560
+        .height      = 1440
+    }
+
     view.items.add(image)
 
     lib.contentFilter = .ScreenCaptures
@@ -514,9 +517,12 @@ impl IAllocator for LibraryRejectAllocator
     var source = Gui.Testing.indexedImage(48, 32)
     expect source.save(path)
 
-    let item = view.allItems.addNew()
-    item.fi.fullName = path
-    item.kind        = .Image
+    with let item = view.allItems.addNew()
+    {
+        .fi.fullName = path
+        .kind        = .Image
+    }
+
     view.items.add(item)
     view.loadOne(item)
 
@@ -599,12 +605,14 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.loaded = true
     g_Library.files.clear()
     f.main.libWnd = LibraryWnd.create(f.main)
-    let lib = f.main.libWnd
-    lib.setPosition({0, 0, 1100, 700})
-    lib.applyLayout()
-    lib.layoutSidebarColumns()
-    lib.listCtrl.computeLayout()
-    lib.commandBar.computeLayout()
+    with let lib = f.main.libWnd
+    {
+        .setPosition({0, 0, 1100, 700})
+        .applyLayout()
+        .layoutSidebarColumns()
+        .listCtrl.computeLayout()
+        .commandBar.computeLayout()
+    }
 
     Swag.assert((lib.folderBtn.text()).count != 0)
     Swag.assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())

@@ -348,9 +348,12 @@ impl LibraryWnd
         if values.isEmpty() do
             return
 
-        let root = .listCtrl.createLine(name, .theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
-        root.userData0 = cast(Swag.U64.Max)
-        root.userData3 = cast(cast(u64, kind))
+        with let root = .listCtrl.createLine(name, .theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
+        {
+            .userData0 = cast(Swag.U64.Max)
+            .userData3 = cast(cast(u64, kind))
+        }
+
         let rootCount = root.setItem(1, Format.toString("% ", values.count))
         rootCount.horzAlign = .Right
 
@@ -363,9 +366,12 @@ impl LibraryWnd
                 icon.color = Argb.White
             }
 
-            let line = .listCtrl.createLine(value.name, icon, parentLine: root)
-            line.userData0 = cast(i)
-            line.userData3 = cast(cast(u64, kind))
+            with let line = .listCtrl.createLine(value.name, icon, parentLine: root)
+            {
+                .userData0 = cast(i)
+                .userData3 = cast(cast(u64, kind))
+            }
+
             let count = line.setItem(1, Format.toString("% ", value.count))
             count.horzAlign = .Right
         }
@@ -1088,7 +1094,8 @@ impl LibraryWnd
 
     func create(parent: *MainWnd)->*LibraryWnd
     {
-        let metrics  = parent.themeMetrics()
+        let metrics = parent.themeMetrics()
+
         with let res = Wnd.create'LibraryWnd(parent, "capture.librarywnd")
         {
             .main            = parent

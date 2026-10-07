@@ -9,9 +9,12 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let shape = testAddShape(f.capture, 10, 10, 40, 30, .Highlight)
-    shape.kind  = .Rectangle
-    shape.alpha = 35
+    with let shape = testAddShape(f.capture, 10, 10, 40, 30, .Highlight)
+    {
+        .kind  = .Rectangle
+        .alpha = 35
+    }
+
     f.main.updateModel(shape)
     Swag.assert(f.main.editMode == .Shape)
     Swag.assert(f.main.mdlHighlight.buffer == &f.main.mdlFormShape)
@@ -23,9 +26,13 @@ using Swag, Core
     Swag.assert(Swag.kindOf(f.main.editModeToModel(.Highlight)) == FormShape)
 
     var emptyPoints: Array'Math.Vector2
-    let draw = testAddDraw(f.capture, emptyPoints.toSlice())
-    draw.subKind     = .PixSel
-    draw.paintShadow = false
+
+    with let draw = testAddDraw(f.capture, emptyPoints.toSlice())
+    {
+        .subKind     = .PixSel
+        .paintShadow = false
+    }
+
     f.main.updateModel(draw)
     Swag.assert(f.main.mdlPixSel.buffer == &f.main.mdlFormDraw)
     Swag.assert(f.main.mdlFormDraw.subKind == .PixSel)

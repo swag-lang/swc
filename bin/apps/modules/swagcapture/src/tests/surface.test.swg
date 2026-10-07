@@ -14,9 +14,12 @@ func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = false, dpiS
     if caption do
         host.surface.updateFlags(.LargeCaption)
 
-    let main = MainWnd.create(&host.surfaceWnd)
-    main.setPosition(host.surfaceWnd.paddedClientRect())
-    main.applyLayout()
+    with let main = MainWnd.create(&host.surfaceWnd)
+    {
+        .setPosition(host.surfaceWnd.paddedClientRect())
+        .applyLayout()
+    }
+
     return main
 }
 

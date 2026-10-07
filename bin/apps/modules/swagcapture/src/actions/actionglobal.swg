@@ -50,9 +50,11 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            let srf = main.surface!
-            srf.show()
-            srf.bringToFront()
+            with let srf = main.surface!
+            {
+                .show()
+                .bringToFront()
+            }
 
         case .ShowLibrary:
             main.swapLibraryMode()

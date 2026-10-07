@@ -45,12 +45,15 @@ using Swag, Core
 {
     func newTextStyle(border: Color)->IForm
     {
-        let form = Memory.new'FormText()
-        form.borderSize  = 4
-        form.fontSize    = 48
-        form.borderColor = border
-        form.backColor   = Argb.White
-        form.text        = "A"
+        with let form = Memory.new'FormText()
+        {
+            .borderSize  = 4
+            .fontSize    = 48
+            .borderColor = border
+            .backColor   = Argb.White
+            .text        = "A"
+        }
+
         let itf: IForm = form
         itf.setup(null)
         return itf

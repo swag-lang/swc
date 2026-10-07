@@ -252,9 +252,12 @@ impl IActionUI for ActionFile
 
             func addLine(lt: *Wnd, title, val: String)
             {
-                let wnd = Wnd.create'StackLayoutCtrl(lt)
-                wnd.mode = .Left
-                wnd.position.height = 20
+                with let wnd = Wnd.create'StackLayoutCtrl(lt)
+                {
+                    .mode = .Left
+                    .position.height = 20
+                }
+
                 let lbl1 = Label.create(wnd, title, {0, 0, 100, 0})
                 lbl1.setTextHorizontalAlignment(.Left)
                 let lbl2 = Label.create(wnd, val, {0, 0, 1000, 0})
@@ -263,9 +266,12 @@ impl IActionUI for ActionFile
 
             let dlg = Dialog.create(main.surface!, 600, 400, title: appStrings().dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
             dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
-            let lt = StackLayoutCtrl.create(dlg)
-            lt.dockStyle = .Center
-            lt.padding   = 5
+            with let lt = StackLayoutCtrl.create(dlg)
+            {
+                .dockStyle = .Center
+                .padding   = 5
+            }
+
             addLine(lt, appStrings().ui_DetailFile, Format.toString("%", capture.file))
             if capture.linkedImage != null do
                 addLine(lt, appStrings().ui_DetailLinkedImage, Format.toString("%", capture.linkedImage))
@@ -537,9 +543,12 @@ impl MainWnd
 
     mtd newImage()
     {
-        let dlg = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)
-        dlg.addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
-        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        with let dlg = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)
+        {
+            .addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
+            .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        }
+
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
         let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(16, 4096)

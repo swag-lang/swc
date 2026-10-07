@@ -128,17 +128,23 @@ impl MainWnd
         switch cmdId
         {
         case ActionImage.ResizeImage:
-            let undo2 = capture.newUndo(.MoveCapture)
-            undo2.newImg   = img
-            undo2.newSizeX = w - capture.width
-            undo2.newSizeY = h - capture.height
+            with let undo2 = capture.newUndo(.MoveCapture)
+            {
+                .newImg   = img
+                .newSizeX = w - capture.width
+                .newSizeY = h - capture.height
+            }
+
             capture.pushUndo(undo2, serial)
 
         case ActionImage.RotateImageRight, ActionImage.RotateImageLeft:
-            let undo2 = capture.newUndo(.MoveCapture)
-            undo2.newImg   = img
-            undo2.newSizeX = img.width - oldW
-            undo2.newSizeY = img.height - oldH
+            with let undo2 = capture.newUndo(.MoveCapture)
+            {
+                .newImg   = img
+                .newSizeX = img.width - oldW
+                .newSizeY = img.height - oldH
+            }
+
             capture.pushUndo(undo2, serial)
         }
     }
@@ -148,9 +154,12 @@ impl MainWnd
         let capture = .getCapture()!
         let ratio   = cast(f32, capture.width) / capture.height
 
-        let dlg = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
-        dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
-        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        with let dlg = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
+        {
+            .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
+            .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        }
+
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
         let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
@@ -208,9 +217,11 @@ impl MainWnd
                 {
                     if c.userData
                     {
-                        let btnc = assume cast(*CheckButton, c)
-                        btnc.setState(c != btn ? .Unchecked : .Indeterminate)
-                        btnc.invalidate()
+                        with let btnc = assume cast(*CheckButton, c)
+                        {
+                            .setState(c != btn ? .Unchecked : .Indeterminate)
+                            .invalidate()
+                        }
                     }
                 }
             }
@@ -233,9 +244,11 @@ impl MainWnd
 
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
-        let dlg = Dialog.create(.surface!, 350, 265, title: title)
-        dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
-        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        with let dlg = Dialog.create(.surface!, 350, 265, title: title)
+        {
+            .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
+            .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        }
 
         let ratio = cast(f32, w) / h
 
@@ -266,9 +279,11 @@ impl MainWnd
             }
         }
 
-        let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {70, 85})
-        btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
-        btnRatio.sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }
+        with let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {70, 85})
+        {
+            .setState(g_KeepRatio ? .Checked : .Unchecked)
+            .sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }
+        }
 
         dlg.createBtnGrid()
 
@@ -358,9 +373,11 @@ impl MainWnd
         let nw = w - capture.width
         let nh = h - capture.height
 
-        let undo = capture.newUndo(.MoveCapture)
-        undo.newSizeX = nw
-        undo.newSizeY = nh
+        with let undo = capture.newUndo(.MoveCapture)
+        {
+            .newSizeX = nw
+            .newSizeY = nh
+        }
 
         switch g_ResizeMode
         {

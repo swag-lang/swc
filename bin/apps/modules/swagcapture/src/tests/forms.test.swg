@@ -188,9 +188,12 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     image.IForm.moveBaseForm(7, 8, 9, 10)
     Gui.Testing.assertRect(image.freePos, 10, 12, 19, 30)
 
-    let step = testAddStep(f.capture, 0, 0, 10, 10)
-    step.ws = 30
-    step.hs = 40
+    with let step = testAddStep(f.capture, 0, 0, 10, 10)
+    {
+        .ws = 30
+        .hs = 40
+    }
+
     f.capture.nextStepIndex = 7
     var evt     = testMouse(.Move)
     let editing = step.IForm.edit(&evt, {100, 90}, {120, 110}, 1)
@@ -253,13 +256,17 @@ func testAssertFormFitsItsMargin(itf: IForm)
         for a in Angles.count
         {
             let angle = Math.toRadians(Angles[a])
-            let line  = testAddLine(f.capture, 200, 200, 200 + Math.cos(angle) * 120, 200 + Math.sin(angle) * 120)
-            line.borderSize  = 18
-            line.outlineSize = 4
-            line.beginCap    = cap
-            line.endCap      = cap
-            line.startSize   = MaxCapSize
-            line.endSize     = MaxCapSize
+
+            with let line = testAddLine(f.capture, 200, 200, 200 + Math.cos(angle) * 120, 200 + Math.sin(angle) * 120)
+            {
+                .borderSize  = 18
+                .outlineSize = 4
+                .beginCap    = cap
+                .endCap      = cap
+                .startSize   = MaxCapSize
+                .endSize     = MaxCapSize
+            }
+
             testAssertFormFitsItsMargin(line)
 
             line.dashStyle = .Dash
@@ -417,9 +424,12 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let shape = testAddShape(f.capture, 1, 2, 30, 40, .Highlight)
-    shape.kind      = .RoundRectangle
-    shape.roundSize = 25
+    with let shape = testAddShape(f.capture, 1, 2, 30, 40, .Highlight)
+    {
+        .kind      = .RoundRectangle
+        .roundSize = 25
+    }
+
     var shapeCopy: FormShape
     shape.IForm.copy(&shapeCopy, shape)
     Swag.assert(shapeCopy.subKind == .Highlight)
@@ -427,21 +437,27 @@ func testAssertFormFitsItsMargin(itf: IForm)
     shapeCopy.roundSize += 1
     Swag.assert(not shape.IForm.isSame(&shapeCopy))
 
-    let text = testAddText(f.capture, 0, 0, 50, 60)
-    text.fontSize  = 34
-    text.boldSize  = 2
-    text.joinStyle = .Bevel
+    with let text = testAddText(f.capture, 0, 0, 50, 60)
+    {
+        .fontSize  = 34
+        .boldSize  = 2
+        .joinStyle = .Bevel
+    }
+
     var textCopy: FormText
     text.IForm.copy(&textCopy, text)
     Swag.assert(text.IForm.isSame(&textCopy))
     textCopy.fontSize += 1
     Swag.assert(not text.IForm.isSame(&textCopy))
 
-    let step = testAddStep(f.capture, 0, 0, 20, 30)
-    step.kind      = .RoundRectangle
-    step.typeIndex = .LetterDown
-    step.ws        = 36
-    step.hs        = 44
+    with let step = testAddStep(f.capture, 0, 0, 20, 30)
+    {
+        .kind      = .RoundRectangle
+        .typeIndex = .LetterDown
+        .ws        = 36
+        .hs        = 44
+    }
+
     var stepCopy: FormStep
     step.IForm.copy(&stepCopy, step)
     Swag.assert(stepCopy.ws == 36)
@@ -450,12 +466,15 @@ func testAssertFormFitsItsMargin(itf: IForm)
     stepCopy.typeIndex = .LetterUp
     Swag.assert(not step.IForm.isSame(&stepCopy))
 
-    let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
-    line.outlineSize  = 3
-    line.outlineColor = ColorBlue
-    line.dashCap      = .Round
-    line.bezier       = true
-    line.paintShadow  = false
+    with let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
+    {
+        .outlineSize  = 3
+        .outlineColor = ColorBlue
+        .dashCap      = .Round
+        .bezier       = true
+        .paintShadow  = false
+    }
+
     var lineCopy: FormLine
     line.IForm.copy(&lineCopy, line)
     Swag.assert(lineCopy.subKind == .PixSel)
@@ -470,9 +489,12 @@ func testAssertFormFitsItsMargin(itf: IForm)
     points.add({20, 1})
     points.add({10, 20})
 
-    let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
-    polygon.paintShadow = false
-    polygon.bezier      = true
+    with let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
+    {
+        .paintShadow = false
+        .bezier      = true
+    }
+
     var polygonCopy: FormPolygon
     polygon.IForm.copy(&polygonCopy, polygon)
     Swag.assert(polygonCopy.subKind == .Highlight)
@@ -481,10 +503,13 @@ func testAssertFormFitsItsMargin(itf: IForm)
     polygonCopy.subKind = .PixSel
     Swag.assert(not polygon.IForm.isSame(&polygonCopy))
 
-    let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
-    draw.outlineSize  = 3
-    draw.outlineColor = ColorBlue
-    draw.paintShadow  = false
+    with let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
+    {
+        .outlineSize  = 3
+        .outlineColor = ColorBlue
+        .paintShadow  = false
+    }
+
     var drawCopy: FormDraw
     draw.IForm.copy(&drawCopy, draw)
     Swag.assert(drawCopy.subKind == .PixSel)
@@ -494,10 +519,13 @@ func testAssertFormFitsItsMargin(itf: IForm)
     drawCopy.paintShadow = true
     Swag.assert(not draw.IForm.isSame(&drawCopy))
 
-    let image = testAddImage(f.capture, 0, 0, 40, 50)
-    image.kind      = .Image
-    image.strength  = 77
-    image.backColor = ColorRed
+    with let image = testAddImage(f.capture, 0, 0, 40, 50)
+    {
+        .kind      = .Image
+        .strength  = 77
+        .backColor = ColorRed
+    }
+
     var imageCopy: FormImage
     image.IForm.copy(&imageCopy, image)
     Swag.assert(image.IForm.isSame(&imageCopy))

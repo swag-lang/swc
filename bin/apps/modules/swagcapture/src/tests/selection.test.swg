@@ -210,7 +210,8 @@ using Swag, Core
     f.capture.redo()
     Swag.assert(f.capture.forms.count == 1)
 
-    let undo    = f.capture.newUndo(.CreateForm)
+    let undo = f.capture.newUndo(.CreateForm)
+
     let newText = Memory.new'FormText()
     newText.IForm.setup(f.capture)
     newText.IForm.setBaseForm(70, 80, 20, 25)
@@ -321,9 +322,11 @@ using Swag, Core
     text.fontStyle = .Regular
     text.rotate    = 45
 
-    let shape = testAddShape(f.capture, 150, 0, 50, 50)
-    shape.borderSize = 3
-    shape.rotate     = 30
+    with let shape = testAddShape(f.capture, 150, 0, 50, 50)
+    {
+        .borderSize = 3
+        .rotate     = 30
+    }
 
     f.capture.selection.add(0)
     var setText = f.capture.newUndo(.SetText)
@@ -364,10 +367,13 @@ using Swag, Core
 
     f.capture.selection.clear()
     f.capture.selection.add(1)
-    let model = Memory.new'FormShape()
-    model.subKind    = .None
-    model.borderSize = 12
-    model.backColor  = ColorBlue
+    with let model = Memory.new'FormShape()
+    {
+        .subKind    = .None
+        .borderSize = 12
+        .backColor  = ColorBlue
+    }
+
     var style = f.capture.newUndo(.SetFormFromModel)
     style.mdlType  = FormShape
     style.mdlValue = model

@@ -291,21 +291,26 @@ func testDate(day: u16)->Time.DateTime => {year: 2026, month: 1, day: day}
 
 func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, linked: string = "", linkedUpToDate = true, title: string = "")->*LibraryItem
 {
-    let it = view.allItems.addNew()
-    it.fi.fullName      = name
-    it.fi.size          = size
-    it.fi.lastWriteTime = testDate(day)
-    it.visible          = true
-    it.loaded           = true
-    it.width            = 100
-    it.height           = 100
-    it.rect             = {cast(f32, view.items.count) * 60, 0, 50, 50}
+    with let it = view.allItems.addNew()
+    {
+        .fi.fullName      = name
+        .fi.size          = size
+        .fi.lastWriteTime = testDate(day)
+        .visible          = true
+        .loaded           = true
+        .width            = 100
+        .height           = 100
+        .rect             = {cast(f32, view.items.count) * 60, 0, 50, 50}
+    }
 
-    let capture = Memory.new'Capture()
-    capture.linkedImage    = linked
-    capture.linkedUpToDate = linkedUpToDate
-    capture.title          = title
-    it.capture             = capture
+    with let capture = Memory.new'Capture()
+    {
+        .linkedImage    = linked
+        .linkedUpToDate = linkedUpToDate
+        .title          = title
+    }
+
+    it.capture = capture
 
     view.items.add(it)
     return it

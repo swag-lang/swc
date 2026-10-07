@@ -1563,6 +1563,12 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         {
             if (definitionCounts_[denseIndex] != 1)
                 continue;
+            const uint32_t first = result.valueNodesBegin[denseIndex];
+            const uint32_t last  = result.valueNodesBegin[denseIndex + 1];
+            // A used value kept in one register needs neither a remade load
+            // nor a dead-definition proof. No connector can read this node.
+            if (last == first + 1 && !result.nodes[first].spilled && !result.nodes[first].usePositions.empty())
+                continue;
             RematRecipe&             recipe = remat[denseIndex];
             const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[recipe.defIndex];
             const MicroInstr*        inst   = instructions_->ptr(defRef);
@@ -1673,10 +1679,16 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
             if (!defNode || !defNode->usePositions.empty())
                 continue;
+            const uint32_t first = result.valueNodesBegin[denseIndex];
+            const uint32_t last  = result.valueNodesBegin[denseIndex + 1];
+            // This node has no direct use and no other node can carry its
+            // definition onward or require a connector from it.
+            if (last == first + 1)
+            {
+                recipe.defDead = true;
+                continue;
+            }
             ensureLabelEdges();
-
-            const uint32_t      first     = result.valueNodesBegin[denseIndex];
-            const uint32_t      last      = result.valueNodesBegin[denseIndex + 1];
             const LiveInterval* firstNode = result.nodes.data() + first;
             const auto          nodeSlot  = [&](const LiveInterval* node) -> int64_t {
                 const int64_t slot = node - firstNode;

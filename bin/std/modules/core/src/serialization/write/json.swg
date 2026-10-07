@@ -117,7 +117,7 @@ impl Json
     mtd endRoot() {}
 
     // Begins a JSON array.
-    mtd beginSequence(_typeElem: typeinfo?, _data: const *void?, _countElem: u64)->bool
+    mtd beginSequence(?: typeinfo?, ?: const *void?, ?: u64)->bool
     {
         .output.addBytes("[")
         .lastSeekValue  = .output.position()
@@ -149,7 +149,7 @@ impl Json
     }
 
     // Begins a JSON object section.
-    mtd beginSection(_kind: SectionKind)
+    mtd beginSection(?: SectionKind)
     {
         .output.addBytes("{")
         .lastSeekValue  = .output.position()
@@ -179,7 +179,7 @@ impl Json
     }
 
     // Opens a struct as a JSON object and returns false, so the encoder writes its fields.
-    mtd beginStruct(_structType: typeinfo?, _structData: const *u8?)->bool
+    mtd beginStruct(?: typeinfo?, ?: const *u8?)->bool
     {
         .beginSection(.Ordered)
         return false
@@ -201,7 +201,7 @@ impl Json
     }
 
     // Does nothing: a property ends with its value.
-    mtd endElement(val: TypeValue) {}
+    mtd endElement(?: TypeValue) {}
 
     // Does nothing: a JSON value needs no opening mark.
     mtd beginValue() {}

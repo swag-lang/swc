@@ -149,7 +149,7 @@ func failCopiedMessage(text: string) fail
 // Its capture and the transport copy both leave before this caller examines the final error.
 #test
 {
-    catch parallel for || index in 257
+    catch parallel for || 257
     {
         try failCopiedMessage("the parallel error retains its producer's copied text")
     } as error
@@ -158,7 +158,7 @@ func failCopiedMessage(text: string) fail
 
 var copiedThreadMessagesValid: Swag.AtomicFlag
 
-func consumeThreadMessages(_thread: Threading.Thread)
+func consumeThreadMessages(?: Threading.Thread)
 {
     let pending = Errors.mkString("an unraised thread message is reclaimed on exit")
     var valid   = true

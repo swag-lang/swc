@@ -73,6 +73,7 @@ func logicalKeepsLeftOperand(flag: bool)->bool
 {
     let d        = false
     let combined = flag and d
+    discard combined
     return flag
 }
 
@@ -84,9 +85,11 @@ func logicalKeepsLeftOperand(flag: bool)->bool
 
     var v = true
     let a = v and false
+    discard a
     Swag.assert(v == true)
 
     var u = false
     let b = u or true
+    discard b
     Swag.assert(u == false)
 }

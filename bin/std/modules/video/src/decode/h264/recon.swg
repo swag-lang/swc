@@ -347,7 +347,6 @@ impl Slice
     // Adds one chroma plane's residual: transformed DC plus per-block AC.
     mtd addChromaResidual(mb: *Mb, frame: *Frame, plane: u32, qpc: s32)
     {
-        let dec    = .dec!
         let pps    = .pps!
         let stride = frame.strideChroma
         if mb.cbpChroma == 0 do
@@ -646,7 +645,7 @@ impl Slice
     }
 
     // Combines the two list predictions of one bidirectional job.
-    mtd combineBi(mb: *Mb, job: *McJob, src0, src1: [*] u8, dst: [*] u8, dstStride: u64, width, height: s32, luma: bool, plane: u32)
+    mtd combineBi(?: *Mb, job: *McJob, src0, src1: [*] u8, dst: [*] u8, dstStride: u64, width, height: s32, luma: bool, plane: u32)
     {
         if .useWeights
         {

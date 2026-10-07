@@ -103,7 +103,7 @@ func semaLateOkMaybeSet(it: *SemaLateItem, use: bool)->s32
 }
 
 // An escaped address may be filled by the callee: no static verdict.
-func semaLateFill(slot: **SemaLateItem) {}
+func semaLateFill(?: **SemaLateItem) {}
 func semaLateOkEscaped()->bool
 {
     var b: SemaLateBox

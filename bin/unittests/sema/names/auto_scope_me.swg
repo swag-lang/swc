@@ -16,6 +16,7 @@ impl A
         let a = .x
         #assert(#typeof(a) == s32)
         let b = .x + .y
+        discard b
     }
 }
 
@@ -35,6 +36,7 @@ impl I for A
         let a = .x
         #assert(#typeof(a) == s32)
         let b = .x + .y
+        discard b
     }
 }
 

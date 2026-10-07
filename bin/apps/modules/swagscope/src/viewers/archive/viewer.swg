@@ -525,21 +525,18 @@ private impl ArchiveViewer
             .header.form = .Transparent
             .addColumn(archiveStrings().ui_ColName, 170)
             .addColumn(archiveStrings().ui_ColSize, 60)
-            .sigSelectionChanged += func|viewer = me|(list)
+            .sigSelectionChanged += func|viewer = me|(?)
             {
-                discard list
                 viewer.previewSelectedEntry()
             }
 
-            .sigLeftDoubleClicked += func|viewer = me|(list, point)
+            .sigLeftDoubleClicked += func|viewer = me|(?, ?)
             {
-                discard list, point
                 viewer.previewSelectedEntry()
             }
 
-            .sigKeyPressed += func|viewer = me|(list, event)
+            .sigKeyPressed += func|viewer = me|(?, event)
             {
-                discard list
                 if event.key == .Enter and event.modifiers == .None
                 {
                     viewer.previewSelectedEntry()
@@ -577,22 +574,19 @@ func createArchiveViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func|view|(text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, ?, matches)->bool
         {
-            discard progress
             view.collectMatches(text, options, matches)
             return true
         }
 
-        .revealMatch = func|view|(match, text)->bool
+        .revealMatch = func|view|(match, ?)->bool
         {
-            discard text
             return view.revealEntry(match)
         }
 
-        .matchBounds = func|view|(match, bounds)->bool
+        .matchBounds = func|view|(?, bounds)->bool
         {
-            discard match
             return view.searchBounds(bounds)
         }
 
@@ -606,10 +600,8 @@ func createArchiveViewer(host: Viewer.Host)
     with var lifecycle: Viewer.LifecycleApi
     {
         .isLoading = func|view|()->bool => view.loadTimer != null or view.extract.started or view.embedded.isLoading()
-
         .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-
-        .retire = func|view|()->bool => view.retire()
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

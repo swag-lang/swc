@@ -17,7 +17,7 @@ func useConstCallResult()
     const B = constMul(6, 7)
     var C = pureAdd(1, 2)
     var D = constMul(2, 3)
-    var E = A + B + C + D
+    var E = A + B + C + D; discard E
 }
 
 func failPureCallResult()

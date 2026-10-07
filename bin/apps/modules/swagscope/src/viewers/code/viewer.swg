@@ -346,9 +346,8 @@ impl CodeViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = codeStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -377,15 +376,13 @@ impl CodeViewer
     // keeps painting and resizing from reloading text.
     private mtd hookEvents()
     {
-        .editor.sigScrollPositionChanged += func|view = me|(editor, oldPosition, newPosition)
+        .editor.sigScrollPositionChanged += func|view = me|(?, oldPosition, newPosition)
         {
-            discard editor
             view.followScroll(oldPosition, newPosition)
         }
 
-        .hookOnChildEvent = func|view = me|(wnd, evt)
+        .hookOnChildEvent = func|view = me|(?, evt)
         {
-            discard wnd
             switch evt
             {
             case PaintEvent as paintEvt:
@@ -436,9 +433,8 @@ impl CodeViewer
             }
         }
 
-        .hookOnEvent = func|view = me|(wnd, evt)
+        .hookOnEvent = func|view = me|(?, evt)
         {
-            discard wnd
             if evt is ResizeEvent
             {
                 view.updateEstimatedHeight()
@@ -476,9 +472,8 @@ impl CodeViewer
 
 impl IWnd for CodeViewer
 {
-    mtd impl onPaint(evt: *PaintEvent)
+    mtd impl onPaint(?: *PaintEvent)
     {
-        discard evt
         if .pendingSeek do
             discard .revealOffset(.pendingSeekOffset, "")
     }
@@ -490,7 +485,7 @@ impl IWnd for CodeViewer
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         .stopLoading()
     }
@@ -536,21 +531,9 @@ func createCodeViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool
-        {
-            return view.revealOffset(match.offset, text)
-        }
-
-        .matchBounds = func|view|(match, bounds)->bool
-        {
-            discard match
-            return Viewer.richEditMatchBounds(view.editor, bounds)
-        }
-
-        .clear = func|view|()
-        {
-            Viewer.clearRichEditMatch(view.editor)
-        }
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
+        .matchBounds = func|view|(?, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
+        .clear       = func|view|() => Viewer.clearRichEditMatch(view.editor)
     }
 
     host.setSearch(search)

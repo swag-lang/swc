@@ -58,6 +58,23 @@ synchronization, because no two iterations touch the same storage.
 }
 
 /**
+# Without an Index
+
+Like an ordinary 'for', the loop names its index only when the body reads it:
+'parallel for |...| 8' runs eight iterations that do not need to know which
+one they are.
+*/
+#test
+{
+    var started = 0'u64
+
+    parallel for |&started| 8 do
+        discard Swag.atomadd(&started, 1)
+
+    Swag.assert(started == 8)
+}
+
+/**
 # Ranges
 
 The range is written like a 'for' range: a count, 'a until b' for a half-open

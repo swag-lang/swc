@@ -192,10 +192,10 @@ func reverseLoopUntil(low, high: s32)->s32
     func emptyInnerLoop(inner: s32)->s32
     {
         var acc: s32 = 0
-        for i in 0 until 3
+        for 0 until 3
         {
             defer acc += 1
-            for j in 0 until inner do
+            for 0 until inner do
                 acc += 10
         }
 

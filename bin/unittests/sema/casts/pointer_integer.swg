@@ -79,10 +79,13 @@ func semaTest007()
 {
     let payload = PointerCastPayload{address: cast(*void?, 0x1234'u64), size: 16}
     let address = payload.address
+    discard address
     let size    = payload.size
+    discard size
 
     let single: SinglePointerCastPayload = cast(*void?, 0x5678'u64)
     let singleAddress = single.address
+    discard singleAddress
 }
 
 // Indexing or selecting through a pointer made from a by-value parameter writes the memory that

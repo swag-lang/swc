@@ -11,7 +11,7 @@ func crc32Reference(buffer: const [..] u8, seed: u32 = 0)->u32
     for value in buffer
     {
         crc ^= cast(u32, value)
-        for bit in 8
+        for 8
         {
             if crc & 1 do
                 crc = (crc >> 1) ^ 0xEDB88320'u32

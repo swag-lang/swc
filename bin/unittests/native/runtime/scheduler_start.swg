@@ -127,7 +127,7 @@ func checkSchedulerPublication()
         probe.start.raise()
 
     var ready = false
-    for attempt in 5000
+    for 5000
     {
         if not created do
             break

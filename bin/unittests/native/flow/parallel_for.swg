@@ -37,7 +37,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
         {
             var values: [2048] u64
             let begin = 0xFFFF_FFFF_FFFF_0000'u64
-            for repeat in 3 do
+            for 3 do
                 fillProfiledRange(values, begin, count, cost)
             for index in count
             {
@@ -62,7 +62,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
         {
             group.spawn(func|&grid, row|()
             {
-                for repeat in 64 do
+                for 64 do
                     fillProfiledRange(grid[row], 100, 257, row % 3)
             })
         }
@@ -131,7 +131,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
 
     parallel for |&grid| row in 64
     {
-        parallel for |&grid, row| column in 16 do
+        parallel for |&grid, row| 16 do
             grid[row].add(1)
     }
 
@@ -144,9 +144,9 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
 {
     var total: Swag.AtomicValue'u64
 
-    for round in 20
+    for 20
     {
-        parallel for |&total| index in 50 do
+        parallel for |&total| 50 do
             total.add(1)
     }
 

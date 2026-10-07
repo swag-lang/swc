@@ -413,10 +413,7 @@ private func codeIdentifier(value: rune)->bool      => Unicode.isLetterOrDigit(v
 
 impl IRichEditLexer for GenericCodeLexer
 {
-    mtd impl setup(ed: *RichEditCtrl)
-    {
-        discard ed
-    }
+    mtd impl setup(?: *RichEditCtrl) {}
 
     mtd impl setupTheme(ed: *RichEditCtrl)
     {
@@ -444,9 +441,8 @@ impl IRichEditLexer for GenericCodeLexer
         ed.styles[cast(u64, Style.Preprocessor)].colFg = preprocessor
     }
 
-    mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
+    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool
     {
-        discard ed, ch
         return false
     }
 

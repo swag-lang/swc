@@ -62,9 +62,8 @@ impl SourceActions
 
 impl IWnd for SourceActions
 {
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
         return {0, 36}
     }
 

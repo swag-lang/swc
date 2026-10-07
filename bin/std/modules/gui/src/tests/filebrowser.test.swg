@@ -142,9 +142,8 @@ using Swag, Core, File
     host.root.applyLayout()
     host.pump()
     var checked: bool
-    host.app.sigFrame += func|host = &host, fb, checked = &checked|(app)
+    host.app.sigFrame += func|host = &host, fb, checked = &checked|(?)
     {
-        discard app
         if checked[] do
             return
         let popup  = host.capturedPopupMenu()!

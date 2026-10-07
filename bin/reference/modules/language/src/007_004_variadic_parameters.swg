@@ -10,6 +10,7 @@ They allow flexibility in cases where the number of arguments is not known in ad
     func myFunction(value: bool, parameters: ...)
     {
         // This function can accept any number of extra arguments after 'value'.
+        Swag.assert(value and parameters.count == 3)
     }
 
     myFunction(true, 4, "true", 5.6)     // Passes extra arguments after 'value'
@@ -51,6 +52,7 @@ This prevents parameters from defaulting to 'any'.
     func myFunction(value: bool, parameters: s32...)
     {
         // All 'parameters' elements must be of type 's32'
+        Swag.assert(value)
         #assert(#typeof(parameters[0]).name == "s32")
         #assert(#typeof(parameters[1]).name == "s32")
         #assert(#typeof(parameters[2]) == s32)

@@ -60,15 +60,13 @@ private func dtsVqPacket()->Array'u8
     bits.add(6, 3)     // Direct seven-bit scale factors.
     bits.add(6, 3)     // Direct five-bit allocation indices.
     bits.add(1, 1)
-    for book in 1'u32 until 5
+    for 1'u32 until 5
     {
-        discard book
         bits.add(3, 2)
     }
 
-    for book in 5'u32 until 10
+    for 5'u32 until 10
     {
-        discard book
         bits.add(7, 3)
     }
 
@@ -120,15 +118,13 @@ private func dtsPredictionPacket()->Array'u8
     bits.add(6, 3)     // Direct seven-bit scale factors.
     bits.add(6, 3)     // Direct five-bit allocation indices.
     bits.add(1, 1)
-    for book in 1'u32 until 5
+    for 1'u32 until 5
     {
-        discard book
         bits.add(3, 2)
     }
 
-    for book in 5'u32 until 10
+    for 5'u32 until 10
     {
-        discard book
         bits.add(7, 3)
     }
 
@@ -141,9 +137,8 @@ private func dtsPredictionPacket()->Array'u8
     bits.add(0, 5)
     bits.add(64, 7)     // Scalar scale factor.
     bits.add(1, 5)      // One impulse followed by seven zero residuals.
-    for index in 1'u32 until 8
+    for 1'u32 until 8
     {
-        discard index
         bits.add(0, 5)
     }
 
@@ -359,7 +354,6 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let swapped14 = expect Dts.frameInfo(littleEndian14.toSlice())
     Swag.assert(swapped14.frameBytes == packedInfo.frameBytes and swapped14.speakerMask == packedInfo.speakerMask)
 
-    var malformed = catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as err
-    discard malformed
+    discard catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as err
     Swag.assert(err != null)
 }

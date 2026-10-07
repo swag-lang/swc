@@ -11,7 +11,7 @@
 
 func awaitFlag(flag: *Swag.AtomicFlag)->bool
 {
-    for attempt in 1000
+    for 1000
     {
         if flag.isRaised() do
             return true
@@ -23,7 +23,7 @@ func awaitFlag(flag: *Swag.AtomicFlag)->bool
 func awaitParked(count: u32)->bool
 {
     let scheduler = Swag.schedulerInstance()
-    for attempt in 1000
+    for 1000
     {
         if scheduler.joining.load() >= count do
             return true
@@ -102,7 +102,7 @@ func observe(param: *void?)->u32
     var started: Swag.AtomicFlag
     var parked = false
     var target:  Swag.Task
-    for round in 8
+    for 8
     {
         started.reset()
         parked = false

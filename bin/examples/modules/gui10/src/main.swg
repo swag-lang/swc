@@ -298,7 +298,7 @@ func layoutRootView()
     g_Footer!.setPosition({RootMargin, Math.max(rect.height - 34.0, pageY + pageHeight + 4.0), contentWidth, 26})
 }
 
-func onRootEvent(view: *Wnd, evt: IEvent)->bool
+func onRootEvent(?: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -384,7 +384,7 @@ func createRootView()
     {
         let variant = cast(ThemeVariant, cast(s32, i))
         let btn     = PushButton.create(view, variantName(variant), {})
-        btn.sigPressed += func|variant|(btn) { setVariant(variant) }
+        btn.sigPressed += func|variant|(?) { setVariant(variant) }
         g_ThemeButtons.add(btn)
     }
 
@@ -392,7 +392,7 @@ func createRootView()
     {
         let page = cast(s32, i)
         let btn  = PushButton.create(view, pageTitle(page), {})
-        btn.sigPressed += func|page|(btn) { showPage(page) }
+        btn.sigPressed += func|page|(?) { showPage(page) }
         g_PageButtons.add(btn)
     }
 

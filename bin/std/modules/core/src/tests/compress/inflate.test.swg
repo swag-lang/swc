@@ -81,7 +81,7 @@ func nextSeed(seed: *u32)->u32
     var seed = 0x12345678'u32
     var payload: Array'u8
     payload.reserve(Block * Copies)
-    for index in Block do
+    for Block do
         payload.add(cast #bit (u8, nextSeed(&seed)))
 
     for copy in 1 until Copies
@@ -161,7 +161,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
         var buffer: Array'u8
         for i in 64 do
             buffer.add(cast #bit (u8, (i * 13)))
-        for i in 512 do
+        for 512 do
             buffer.add(buffer[buffer.count - distance])
 
         roundTrip(buffer.toSlice(), .BestSpeed)

@@ -67,17 +67,17 @@ internal impl IPropertyEditor for FontStyleEditor
             list.commitItemChange(item)
         }
 
-        btnBold.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(btn)
+        btnBold.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(?)
         {
             writeStyle(list, item, style, btnBold, btnItalic)
         }
 
-        btnItalic.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(btn)
+        btnItalic.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(?)
         {
             writeStyle(list, item, style, btnBold, btnItalic)
         }
 
-        item.sigRefresh += func|style, btnBold, btnItalic|(item)
+        item.sigRefresh += func|style, btnBold, btnItalic|(?)
         {
             let s = style![]
             btnBold.setChecked(s == .Bold or s == .BoldItalic)

@@ -803,7 +803,6 @@ private impl SilkChannel
                 }
             }
 
-            var resAt: u32
             if signalType == TypeVoiced
             {
                 var predLag = sLtpBufIdx - cast(u32, lag) + LtpOrder / 2

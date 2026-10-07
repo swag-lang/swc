@@ -108,7 +108,7 @@ func releaseCarrierForJitSummary(pointer: *void)
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
-func allocateIndependentForJitSummary(pointer: *void)->*void => allocateForJitSummary()
+func allocateIndependentForJitSummary(?: *void)->*void => allocateForJitSummary()
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func releaseIndependentForJitSummary(pointer: *void)

@@ -22,7 +22,7 @@ func sumInvariantArith(n: s32, k: s32)->s32
 func sumGlobalLoad(n: s32, idx: s32)->s32
 {
     var acc = 0
-    for i in 0 until n do
+    for 0 until n do
         acc += GTab[idx]     // invariant load (no store in loop): hoistable
     return acc
 }
@@ -48,7 +48,7 @@ func aliasStoreLoad(n: s32)->s32
     var buf: [4] s32
     buf[0] = 0
     var acc = 0
-    for i in 0 until n
+    for 0 until n
     {
         buf[0] = buf[0] + 1
         acc    += buf[0]

@@ -74,7 +74,7 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
         source.pixels[index] = cast(u8, ((index * 31 + 7) & 0xFF))
     let expected  = serialFilteredResize(&source, 97, 71, .Bicubic)
     let reference = &expected
-    parallel for |&source, reference| iteration in 7
+    parallel for |&source, reference| 7
     {
         let actual = source.resized(97, 71, .Bicubic)
         Swag.assert(Memory.compare(actual.pixels.buffer, reference.pixels.buffer, reference.byteCount) == 0)

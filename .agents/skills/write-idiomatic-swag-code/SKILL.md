@@ -397,8 +397,15 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
   control-flow pattern when the current compiler proves all cases.
 - Use expression-bodied functions for one direct expression, but keep blocks when validation,
   ownership, or failure behavior deserves to remain visible.
-- Discard several variables with one statement: `discard sender, index`, not one `discard` per line.
-  A list holds variable names only; discard any other expression with its own `discard`.
+- Every local, parameter, and capture is used, or the compiler rejects it. A parameter the body
+  ignores is spelled `?` (`func(?, index)`, `mtd impl onPaint(?: *PaintEvent) {}`); a loop that
+  does not read its index has no name (`for 3`, `parallel for |c| 8`), and an unread position is
+  `?` (`for ?, v in`, `#code(?, b)`, `let {?, b} =`). Remove an unused local; keep a needed
+  initializer as `discard init`. There is no `_name` convention.
+- Keep a name with `discard name` only when the name itself must stay: a public parameter the
+  documentation cites or callers pass by name, a parameter reflection or a generator reads, or a
+  value used only in a `#static if` branch. One `discard a, b` lists them all; a list holds
+  variable names only, and any other expression keeps its own `discard`.
 
 ## Use Dynamic Type Patterns
 

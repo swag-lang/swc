@@ -37,9 +37,8 @@ impl BuildOptions
             .dockStyle = .Right
             .margin    = {8, 0, 0, 0}
             .setIconSize(18, 18)
-            .sigPressed += func|options = result|(button)
+            .sigPressed += func|options = result|(?)
             {
-                discard button
                 options.reset()
             }
         }
@@ -52,9 +51,8 @@ impl BuildOptions
             .addItem("release")
             .addItem("devmode")
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|options = result|(combo, index)
+            .sigChanged += func|options = result|(?, ?)
             {
-                discard combo, index
                 options.sigChanged.call(options)
             }
         }
@@ -64,9 +62,8 @@ impl BuildOptions
             .dockStyle = .Center
             .setLexer(&result.lexer)
             .setText(Pipeline.BuildSettings.DefaultConfiguration)
-            .sigChanged += func|options = result|(editor)
+            .sigChanged += func|options = result|(?)
             {
-                discard editor
                 options.sigChanged.call(options)
             }
         }

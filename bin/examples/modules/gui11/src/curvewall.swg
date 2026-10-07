@@ -67,9 +67,8 @@ impl CurveWall
                                            AnimationChannel.from("Gui11.Curves.Clock"),
                                            0,
                                            1,
-                                           func|wall = me|(animationWnd, value)
+                                           func|wall = me|(?, value)
                                            {
-                                               discard animationWnd
                                                wall.phase = value
                                            },
                                            options)

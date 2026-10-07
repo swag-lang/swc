@@ -194,6 +194,7 @@ namespace compiler1661
         var addr1: *TT?        = null
         var addr:  [1] *(*TT?) = [&addr1]
         var value: TT
+        discard value
 
         // addr1[0] = &value
 

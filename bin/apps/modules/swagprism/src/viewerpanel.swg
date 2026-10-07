@@ -73,9 +73,8 @@ impl ViewerPanel
         {
             .dockStyle = .Center
             .style.setStyleSheetMetrics("comboBox_Width 0")
-            .sigChanged += func|panel = me|(combo, index)
+            .sigChanged += func|panel = me|(?, index)
             {
-                discard combo
                 panel.selectViewer(cast(ViewerKind, index))
                 panel.requestCompile()
             }
@@ -111,9 +110,8 @@ impl ViewerPanel
             for name in ["O0", "O1", "O2"] do
                 .addItem(name)
             .setSelectedIndex(cast(u32, me.defaultLevel), notify: false)
-            .sigChanged += func|panel = me|(combo, index)
+            .sigChanged += func|panel = me|(?, ?)
             {
-                discard combo, index
                 panel.requestCompile()
             }
         }
@@ -126,15 +124,13 @@ impl ViewerPanel
         {
             .dockStyle = .Center
             .hide()
-            .sigChanged += func|panel = me|(options)
+            .sigChanged += func|panel = me|(?)
             {
-                discard options
                 panel.sigOptionsChanged.call(panel)
             }
 
-            .sigReset += func|panel = me|(options)
+            .sigReset += func|panel = me|(?)
             {
-                discard options
                 panel.optimCombo.setSelectedIndex(cast(u32, panel.defaultLevel), notify: false)
                 panel.viewer!.setOptimization(panel.defaultLevel)
                 panel.requestCompile()
@@ -158,9 +154,8 @@ impl ViewerPanel
         {
             .cached[index].viewer = createViewer(me, .sourceEditor, kind, cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))
             .cached[index].viewer!.window().dockStyle = .Center
-            .cached[index].viewer!.subscribeChanged(func|panel = me|(sender)
+            .cached[index].viewer!.subscribeChanged(func|panel = me|(?)
             {
-                discard sender
                 panel.sigChanged.call(panel)
             })
         }

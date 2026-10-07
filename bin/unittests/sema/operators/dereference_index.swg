@@ -36,6 +36,7 @@ func semaTest005()
 {
     var A = "titi"
     var B = A[1]
+    discard B
 }
 
 func semaTest006()

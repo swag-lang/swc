@@ -83,9 +83,8 @@ private impl MidiViewer
     mtd publishDocument(document: *MidiDocument)
     {
         .roll = MidiRollView.create(me, #move document[])
-        .roll.sigZoomChanged += func|view = me|(roll)
+        .roll.sigZoomChanged += func|view = me|(?)
         {
-            discard roll
             view.refreshZoom()
         }
 
@@ -202,9 +201,8 @@ impl MidiViewer
         {
             .dockStyle  = .Left
             .toolTip    = midiStrings().ui_AllTracks
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = result|(?, index)
             {
-                discard combo
                 view.roll.setTrack(index ? index - 1 : Swag.U32.Max)
             }
         }
@@ -218,9 +216,8 @@ impl MidiViewer
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = midiStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = result|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }

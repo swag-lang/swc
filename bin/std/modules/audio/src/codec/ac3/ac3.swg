@@ -173,9 +173,8 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
         written        = 1
     }
 
-    for group in groups
+    for groups
     {
-        discard group
         let code = reader.read(7)
         if code >= 125 do
             fail InvalidFormatError{"AC-3 exponent group has a reserved code"}
@@ -185,9 +184,8 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
             previous += cast(s32, ((code / Divisors[part]) % 5)) - 2
             if previous < 0 or previous > 24 do
                 fail InvalidFormatError{"AC-3 exponent is outside its valid range"}
-            for repeated in groupSize
+            for groupSize
             {
-                discard repeated
                 destination[written] = previous
                 written += 1
             }
@@ -570,9 +568,8 @@ impl IPacketCodec for Ac3Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Ac3
 
-    mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
+    mtd impl initialize(?: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        discard config
         if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"AC-3 audio needs one to six channels and a non-zero sample rate"}
         .sampleRate = sampleRateHz

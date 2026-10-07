@@ -22,7 +22,7 @@ struct ImageRect
 
 impl IWnd for ImageRect
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         .clear()
     }
@@ -87,7 +87,7 @@ impl ImageRect
     {
         Swag.assert(parent != null)
         let result = Wnd.create'ImageRect(parent, null, position, id)
-        result.movie.sigFrameChanged += func|result|(movie)
+        result.movie.sigFrameChanged += func|result|(?)
         {
             result.sigFrameChanged.call(result)
             result.invalidate()

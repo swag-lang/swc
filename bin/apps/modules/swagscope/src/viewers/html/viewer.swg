@@ -93,9 +93,8 @@ private impl HtmlViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = htmlStrings().ui_ZoomMenu
-            .sigPressed += func|viewer = me|(button)
+            .sigPressed += func|viewer = me|(?)
             {
-                discard button
                 viewer.showZoomMenu()
             }
         }
@@ -104,9 +103,8 @@ private impl HtmlViewer
     // Routes the zoom shortcuts to the page, wherever the keyboard focus is inside it.
     mtd hookZoomKeys()
     {
-        .hookOnChildEvent = func|viewer = me|(wnd, evt)
+        .hookOnChildEvent = func|viewer = me|(?, evt)
         {
-            discard wnd
             switch evt
             {
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
@@ -152,9 +150,8 @@ func createHtmlViewer(host: Viewer.Host)
     if services.reportFailure
     {
         let reportFailure: Viewer.ReportFailure = services.reportFailure
-        result.view.sigLoadFailed += func|reportFailure, result|(html, reason)
+        result.view.sigLoadFailed += func|reportFailure, result|(?, reason)
         {
-            discard html
             reportFailure(result, reason)
         }
     }
@@ -167,26 +164,16 @@ func createHtmlViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|result|(match, text)->bool
-        {
-            return result.view.revealFileOffset(match.offset, text)
-        }
-
-        .matchBounds = func|result|(match, bounds)->bool
-        {
-            discard match
-            return result.view.searchMatchRect(bounds)
-        }
-
-        .clear = func|result|() => result.view.clearSearch()
+        .revealMatch = func|result|(match, text)->bool => result.view.revealFileOffset(match.offset, text)
+        .matchBounds = func|result|(?, bounds)->bool => result.view.searchMatchRect(bounds)
+        .clear       = func|result|() => result.view.clearSearch()
     }
 
     host.setSearch(search)
 
     host.setLifecycle({isLoading: func|result|()->bool => result.view.isLoading()})
-    result.view.sigLinkActivated += func(html, url)
+    result.view.sigLinkActivated += func(?, url)
     {
-        discard html
         Env.openUrl(url)
     }
 }

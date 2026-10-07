@@ -344,9 +344,8 @@ func createMarkdownViewer(host: Viewer.Host)
     zoomButton.outline = DocumentOutline.create(host)
     zoomButton.outline.bindMarkdown(view, host.fileName())
 
-    view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(wnd, evt)
+    view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(?, evt)
     {
-        discard wnd
         switch evt
         {
         case KeyEvent as key where key.kind == .Pressed and key.modifiers.has(.Control):
@@ -398,18 +397,9 @@ func createMarkdownViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool
-        {
-            return view.revealFileOffset(match.offset, text)
-        }
-
-        .matchBounds = func|view|(match, bounds)->bool
-        {
-            discard match
-            return view.searchMatchRect(bounds)
-        }
-
-        .clear = func|view|() => view.clearSearchHighlight()
+        .revealMatch = func|view|(match, text)->bool => view.revealFileOffset(match.offset, text)
+        .matchBounds = func|view|(?, bounds)->bool => view.searchMatchRect(bounds)
+        .clear       = func|view|() => view.clearSearchHighlight()
     }
 
     host.setSearch(search)
@@ -427,25 +417,22 @@ func createMarkdownViewer(host: Viewer.Host)
 
     host.setLifecycle(lifecycle)
 
-    themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
+    themeCombo.sigChanged += func|view, widthCombo, zoomButton|(?, index)
     {
-        discard combo
         g_MarkdownViewerSettings.themeIndex = index
         applyMarkdownViewerStyle(view, index, widthCombo.selectedIndex, zoomButton.zoomPercent)
         catch g_App.saveState()
     }
 
-    widthCombo.sigChanged += func|view, themeCombo, zoomButton|(combo, index)
+    widthCombo.sigChanged += func|view, themeCombo, zoomButton|(?, index)
     {
-        discard combo
         g_MarkdownViewerSettings.widthIndex = index
         applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent, applyColors: false)
         catch g_App.saveState()
     }
 
-    view.sigLinkActivated += func(markdown, url)
+    view.sigLinkActivated += func(?, url)
     {
-        discard markdown
         Env.openUrl(url)
     }
 }

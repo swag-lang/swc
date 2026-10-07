@@ -35,15 +35,13 @@ private func writeRandomKeyFile(path: string) fail
 
 impl IWnd for KeyFileField
 {
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
         return {0, .themeMetrics().comboBox_Height}
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         if .remove == null do
             return
         let room = .clientRect()
@@ -178,18 +176,16 @@ impl KeyFileField
 
         with result.add = IconButton.create(result, result.theme().icon(.OpenFile, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(button)
+            .sigPressed += func|field = result|(?)
             {
-                discard button
                 field.chooseExisting()
             }
         }
 
         with result.generate = IconButton.create(result, result.theme().icon(.SaveAs, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(button)
+            .sigPressed += func|field = result|(?)
             {
-                discard button
                 field.generateRandom()
             }
         }
@@ -199,9 +195,8 @@ impl KeyFileField
 
         with result.remove = IconButton.create(result, result.theme().icon(.Remove, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(button)
+            .sigPressed += func|field = result|(?)
             {
-                discard button
                 field.removeSelected()
             }
         }

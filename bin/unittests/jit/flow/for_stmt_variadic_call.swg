@@ -1,6 +1,6 @@
 #global private
 
-func touch(params: ...)->u32
+func touch(?: ...)->u32
 {
     return 1
 }

@@ -85,10 +85,8 @@ impl IWnd for Header
     // is chosen by the owning list or dragged by the reader, and a column deliberately
     // narrower than its label is a state the header supports rather than a misfit. Use
     // [[Gui.Header.setItemWidthLimits]] to keep a label from being squeezed out.
-    mtd impl measureContent(available: Math.Point)->Math.Point
+    mtd impl measureContent(?: Math.Point)->Math.Point
     {
-        discard available
-
         let metrics = .themeMetrics()
         return {.contentWidth() + .padding.z, metrics.header_Height}
     }
@@ -428,7 +426,7 @@ impl Header
 
         var x = .padding.x
         let m = .themeMetrics().header_Separator
-        for itemIt, i in .items
+        for itemIt in .items
         {
             let item = itemIt!
             if item.column == column do

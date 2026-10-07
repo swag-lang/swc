@@ -8,7 +8,7 @@ var eventStatusPanicCount:     u32
 var eventStatusBorrowLive:     bool
 var eventStatusObservedBorrow: bool
 
-func observeEventStatusPanic(_message: string?, _location: SourceCodeLocation)
+func observeEventStatusPanic(?: string?, ?: SourceCodeLocation)
 {
     eventStatusPanicCount     += 1
     eventStatusObservedBorrow = eventStatusObservedBorrow or eventStatusBorrowLive

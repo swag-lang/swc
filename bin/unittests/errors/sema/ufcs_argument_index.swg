@@ -21,7 +21,7 @@ impl Counter
     }
 }
 
-func scale(counter: *Counter, factor: u32) {}
+func scale(counter: *Counter, factor: u32) { discard counter, factor }
 
 #test
 {
@@ -68,12 +68,12 @@ struct CandidateArgumentCounter {}
 
 impl CandidateArgumentCounter
 {
-    mtd take(values: [..] u32) {}
-    mtd take(values: *u32) {}
-    mtd takeAfter(first: u32, values: [..] u32) {}
-    mtd takeAfter(first: u32, values: *u32) {}
+    mtd take(values: [..] u32) { discard values }
+    mtd take(values: *u32) { discard values }
+    mtd takeAfter(first: u32, values: [..] u32) { discard first, values }
+    mtd takeAfter(first: u32, values: *u32) { discard first, values }
     mtd change() {}
-    mtd change(value: u32 = 0) {}
+    mtd change(value: u32 = 0) { discard value }
 }
 
 #test
@@ -115,8 +115,8 @@ impl CandidateArgumentCounter
     counter.change()     // swc-expected-error {{sema_err_no_overload_match}}
 }
 
-func candidateNumberReceiver(receiver: *u32) {}
-func candidateNumberReceiver(receiver: *f32) {}
+func candidateNumberReceiver(receiver: *u32) { discard receiver }
+func candidateNumberReceiver(receiver: *f32) { discard receiver }
 
 #test
 {

@@ -305,12 +305,26 @@ namespace SemaHelpers
         TaskContext&        ctx = sema.ctx();
         const SourceCodeRef nameRef{node.srcViewRef(), tokNameRef};
         const Token&        tok   = sema.srcView(nameRef.srcViewRef).token(nameRef.tokRef);
-        const IdentifierRef idRef = forcedIdentRef.isValid() ? forcedIdentRef : (Token::isCompilerUniq(tok.id) ? ensureCurrentScopeUniqIdentifier(sema, tok.id) : resolveIdentifier(sema, nameRef));
+        IdentifierRef       idRef = forcedIdentRef;
+        if (!idRef.isValid())
+        {
+            if (Token::isCompilerUniq(tok.id))
+                idRef = ensureCurrentScopeUniqIdentifier(sema, tok.id);
+            else if (tok.id == TokenId::SymQuestion)
+                idRef = sema.idMgr().addIdentifierOwned(std::format("__unnamed_param_{}", tokNameRef.get())); // A '?' parameter: no source name reaches it.
+            else
+                idRef = resolveIdentifier(sema, nameRef);
+        }
 
         const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 
         T*         sym        = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
         SymbolMap* symbolMap  = SemaFrame::currentSymMap(sema);
+        if constexpr (std::is_same_v<T, SymbolVariable>)
+        {
+            if (tok.id == TokenId::SymQuestion)
+                sym->setUnnamed();
+        }
         SemaScope* localScope = currentLocalSymbolScope(sema);
 
         if (localScope)

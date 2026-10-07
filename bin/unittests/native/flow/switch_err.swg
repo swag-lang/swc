@@ -44,6 +44,7 @@
 #test
 {
     var a: [4] s32
+    discard a
     var hit = 0
     switch
     {

@@ -66,9 +66,8 @@ internal impl IImageEncoder for Encoder
 {
     mtd impl format()->ImageFormat => {"EXR - OpenEXR", ".exr"}
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
+    mtd impl encode(result: *ConcatBuffer, image: Image, ?: any?) fail
     {
-        discard options
         if not image.isValid() or not image.pixelFormat.isPacked() do
             fail InvalidFormatError{"invalid packed image"}
 

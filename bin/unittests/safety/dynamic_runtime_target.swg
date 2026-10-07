@@ -5,6 +5,7 @@ func assumeRuntimeValue(target: typeinfo, source: any)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
     let view = assume cast(target, source)
+    discard view
 }
 
 #test
@@ -17,6 +18,7 @@ func assumeRuntimeType(target, source: typeinfo)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
     let type = assume cast(target, source)
+    discard type
 }
 
 #test
@@ -29,6 +31,7 @@ func assumeWrongConstantDescriptor()
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
     let type = assume cast(const *Swag.TypeInfoStruct, s32)
+    discard type
 }
 
 #test

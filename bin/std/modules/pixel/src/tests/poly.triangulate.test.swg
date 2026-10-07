@@ -188,7 +188,7 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
         Vector2{20, 20}, Vector2{20, 60}, Vector2{0, 60}]
 
     var reused: Pixel.Poly2Tri.Tessellate
-    for pass in 3
+    for 3
     {
         assertRecycledMatchesFresh(&reused, ngon[to])
         assertRecycledMatchesFresh(&reused, dart)

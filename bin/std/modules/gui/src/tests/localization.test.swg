@@ -33,18 +33,16 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     defer host.shutdown()
 
     let child = Wnd.create'Wnd(&host.root)
-    host.root.hookOnEvent = func|count = &rootNotifications|(wnd, evt)
+    host.root.hookOnEvent = func|count = &rootNotifications|(?, evt)
     {
-        discard wnd
         if evt is NotifyEvent as notify where notify.kind == .LanguageChanged do
             count[] += 1
 
         return false
     }
 
-    child.hookOnEvent = func|count = &childNotifications|(wnd, evt)
+    child.hookOnEvent = func|count = &childNotifications|(?, evt)
     {
-        discard wnd
         if evt is NotifyEvent as notify where notify.kind == .LanguageChanged do
             count[] += 1
 

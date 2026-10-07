@@ -3,7 +3,7 @@
 func expectedValue(index, rounds: u64)->u64
 {
     var value = index + 1
-    for round in rounds
+    for rounds
     {
         value ^= value << 13
         value ^= value >> 7

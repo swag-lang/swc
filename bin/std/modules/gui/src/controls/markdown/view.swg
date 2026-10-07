@@ -507,9 +507,8 @@ private impl View
             let basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
             let prepared = .pendingImageIndex == .pendingIndex ? &.pendingImages : null
             let html     = HtmlView.createEmbedded(.body, block.text.toString(), basePath, htmlStyle(.documentStyle), prepared)
-            html.sigLinkActivated += func|markdown = me|(document, target)
+            html.sigLinkActivated += func|markdown = me|(?, target)
             {
-                discard document
                 markdown.sigLinkActivated.call(markdown, target)
             }
 
@@ -1146,9 +1145,8 @@ impl View
         result.scroll.verticalScrollStep       = result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
         result.body = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
-        result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
+        result.scroll.sigScrollPositionChanged += func|view = result|(?, oldPosition, newPosition)
         {
-            discard scroll
             view.trimRenderCaches(newPosition.y)
             if (view.jumpToEnd and not view.prioritizeViewport) or view.repositioning do
                 return
@@ -1219,10 +1217,8 @@ impl View
 
         // The scroll viewport receives its final size during the parent's layout pass. Relayout
         // from that child resize so document centering never uses the previous window width.
-        result.scroll.hookOnEvent = func|view = result|(wnd, evt)
+        result.scroll.hookOnEvent = func|view = result|(?, evt)
         {
-            discard wnd
-
             // Modified wheel gestures belong to the document host, before the viewport scrolls.
             if evt is MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
             {
@@ -1894,9 +1890,8 @@ internal impl View
 
 internal impl IWnd for View
 {
-    mtd impl onPaint(evt: *PaintEvent)
+    mtd impl onPaint(?: *PaintEvent)
     {
-        discard evt
         if .pendingSeek
         {
             let offset = .pendingSeekOffset
@@ -1945,7 +1940,7 @@ internal impl IWnd for View
         evt.accepted = false
     }
 
-    mtd impl onThemeEvent(evt: *ThemeEvent)
+    mtd impl onThemeEvent(?: *ThemeEvent)
     {
         if .scroll != null do
             .applyDocumentStyle()
@@ -1976,7 +1971,7 @@ internal impl IWnd for View
         }
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         .stopLoading()
     }

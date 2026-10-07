@@ -525,7 +525,7 @@ impl Capture
     mtd setup(view: *EditView)
     {
         .editView         = view
-        .gizmo.sigChanged = func|capture = me|(g, first, hitMove)
+        .gizmo.sigChanged = func|capture = me|(g, ?, ?)
         {
             let editView = capture.editView!
             var undo     = capture.newUndo(.MoveCapture)

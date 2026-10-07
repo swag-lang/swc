@@ -35,6 +35,7 @@ func earlyReturn()->u64
 
     parallel for |&total| index in 4
     {
+        discard index
         for inner in 10
         {
             if inner == 2 do

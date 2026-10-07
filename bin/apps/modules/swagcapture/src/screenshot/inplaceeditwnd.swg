@@ -151,7 +151,7 @@ impl InPlaceEditWnd
     {
         let btnColor = .editBar.addButton({}, "color", .Popup)
 
-        btnColor.iconPainter = func|self = me|(btn, bc, pos, flags)
+        btnColor.iconPainter = func|self = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             var rect = pos
@@ -164,7 +164,7 @@ impl InPlaceEditWnd
         {
             let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
             let picker = PropWnd.createColorPicker(assume cast (*IconButton, btn), color)
-            picker.sigColorChanged += func|self, picker, btn|(pk)
+            picker.sigColorChanged += func|self, picker, btn|(?)
             {
                 if self.editMode == .Marker do
                     self.editColorHilight = picker.color()

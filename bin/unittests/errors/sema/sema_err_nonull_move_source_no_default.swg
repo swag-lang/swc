@@ -15,7 +15,7 @@ impl NonNullMoveSourceOwner
     mtd opDrop() {}
 }
 
-func consumeNonNullMoveSource(value: NonNullMoveSourceOwner) {}
+func consumeNonNullMoveSource(value: NonNullMoveSourceOwner) { discard value }
 
 func forwardNonNullMoveSource(value: #fwd NonNullMoveSourceOwner)
 {

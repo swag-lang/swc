@@ -33,8 +33,12 @@ func semaTest001()
     if false
     {
         var a = ForeignTakePair(pair)
+        discard a
         var b = ForeignTakeTriple(triple)
+        discard b
         var c = ForeignReturnPair()
+        discard c
         var d = ForeignReturnTriple()
+        discard d
     }
 }

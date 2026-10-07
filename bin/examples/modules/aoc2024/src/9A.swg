@@ -103,7 +103,7 @@ func day9A()
     }
 
     var idx, total: u64
-    for v, i in map
+    for v in map
     {
         if v.what == -1 do
             break

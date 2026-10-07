@@ -167,7 +167,7 @@ namespace compiler1667
         value: s64 = 456
     }
 
-    func C(x: ...)
+    func C(?: ...)
     {
         // Swag.print(#typeof(x[0]).name)
         // var ptr1 = cast(const TT, x[0])
@@ -224,7 +224,7 @@ namespace compiler1893
         Swag.assert(x == 666)
     }
 
-    func titi(x: bool)
+    func titi(?: bool)
     {
         #run
         {
@@ -270,6 +270,7 @@ namespace compiler2407
         #run
         {
             var x = 4
+            discard x
         }
     }
 }
@@ -451,6 +452,7 @@ namespace compiler3100
     #test
     {
         var x = 1
+        discard x
         #static if false do
             #error(#run msg())
     }

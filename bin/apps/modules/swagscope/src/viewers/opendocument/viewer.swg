@@ -412,9 +412,8 @@ private impl OpenDocumentMetadataReader
         .text += text[0 until count]
     }
 
-    mtd endTag(tag: const *OpenDocumentTag)
+    mtd endTag(?: const *OpenDocumentTag)
     {
-        discard tag
         if .field == .None do
             return
         .depth -= 1
@@ -1824,9 +1823,8 @@ private impl OpenDocumentViewer
         .html = HtmlView.createText(me, markup)
         .html.dockStyle = .Center
         .applyZoom()
-        .html.sigLinkActivated += func(html, url)
+        .html.sigLinkActivated += func(?, url)
         {
-            discard html
             Env.openUrl(url)
         }
     }
@@ -1950,9 +1948,8 @@ private impl OpenDocumentViewer
                 }
 
                 .outline.refresh()
-                .outline.sigSelected += func|view = me|(panel, index)
+                .outline.sigSelected += func|view = me|(?, index)
                 {
-                    discard panel
                     discard view.showPage(index, true)
                 }
             }
@@ -2058,9 +2055,8 @@ private impl OpenDocumentViewer
         }
 
         result.createZoomButton(host)
-        result.hookOnChildEvent = func|view = result|(wnd, evt)
+        result.hookOnChildEvent = func|view = result|(?, evt)
         {
-            discard wnd
             switch evt
             {
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
@@ -2103,9 +2099,8 @@ private impl OpenDocumentViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = openDocumentStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -2121,9 +2116,8 @@ private impl OpenDocumentViewer
             .dockStyle = .Left
             .hide()
             .toolTip    = openDocumentStrings().ui_TipSheet
-            .sigChanged += func|view = me|(combo, index)
+            .sigChanged += func|view = me|(?, index)
             {
-                discard combo
                 discard view.showPage(index, true)
             }
         }
@@ -2140,9 +2134,8 @@ func createOpenDocumentViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func|view|(text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, ?, matches)->bool
         {
-            discard progress
             view.collectMatches(text, options, matches)
             return true
         }
@@ -2152,9 +2145,8 @@ func createOpenDocumentViewer(host: Viewer.Host)
             return view.revealMatch(match, text)
         }
 
-        .matchBounds = func|view|(match, bounds)->bool
+        .matchBounds = func|view|(?, bounds)->bool
         {
-            discard match
             return view.searchBounds(bounds)
         }
 

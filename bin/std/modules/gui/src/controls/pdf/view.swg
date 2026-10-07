@@ -978,7 +978,7 @@ internal impl PdfView
 
 impl IWnd for PdfView
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
         .stopPrepare()
         .documentText.stop()
@@ -1250,9 +1250,8 @@ impl PdfView
         // resize that has to trigger it is the view's own: the frame reserves the room its bars
         // take before it places the view, and hooking the frame instead would lay the document
         // out against the rectangle it had before that.
-        let view = result.scroll.createView'Wnd(func|target = result|(wnd, evt)
+        let view = result.scroll.createView'Wnd(func|target = result|(?, evt)
         {
-            discard wnd
             if evt is ResizeEvent do
                 target.placeDocument()
             return false
@@ -1264,9 +1263,8 @@ impl PdfView
         result.canvas.owner    = result
         result.canvas.wndFlags |= .NoScroll
 
-        result.scroll.sigScrollPositionChanged += func|target = result|(scroll, oldPosition, newPosition)
+        result.scroll.sigScrollPositionChanged += func|target = result|(?, ?, ?)
         {
-            discard scroll, oldPosition, newPosition
             target.updateCurrentPage()
             target.canvas.invalidate()
         }

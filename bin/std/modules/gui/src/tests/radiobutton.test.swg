@@ -7,9 +7,8 @@ const RadioButtonHeadless_Command = "RadioButtonHeadless.Command"
 
 var RadioButtonHeadlessChangedCount: u32
 
-func radioButtonHeadlessChanged(btn: *RadioButton)
+func radioButtonHeadlessChanged(?: *RadioButton)
 {
-    discard btn
     RadioButtonHeadlessChangedCount += 1
 }
 

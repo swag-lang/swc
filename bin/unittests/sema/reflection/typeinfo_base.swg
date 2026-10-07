@@ -41,6 +41,7 @@ func semaTest002()
 {
     var a: typeinfo = #typeof(f32)
     let b = a.flags | .Nullable
+    discard b
 }
 
 func semaTest003()
@@ -48,6 +49,7 @@ func semaTest003()
     var a: typeinfo = #typeof(*f32)
     var b = assume cast(const *Swag.TypeInfoPointer, (a))
     var c = b.pointedType == f32
+    discard c
 }
 
 func semaTest004()

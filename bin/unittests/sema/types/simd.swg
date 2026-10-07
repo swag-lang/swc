@@ -47,4 +47,4 @@ const BackToArray                = cast([4] s32, FromArray)
 #assert(BackToArray[3] == 12)
 
 // A 'const' qualifier is accepted on the vector type.
-func takeVector(v: const #simd [4] f32) {}
+func takeVector(?: const #simd [4] f32) {}

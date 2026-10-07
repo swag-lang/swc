@@ -33,8 +33,8 @@ struct(T) LambdaTypeBox
 #assert(#nameof(#type func(a: s32)) == "func(a: s32)")
 
 func PtrMatch0() {}
-func PtrMatch1(value: s32) {}
-func PtrMatch2(lhs: s32, rhs: bool)->string => "ok"
+func PtrMatch1(?: s32) {}
+func PtrMatch2(?: s32, ?: bool)->string => "ok"
 func PtrMatch4(values: s32...)->s32
 {
     var result = 0

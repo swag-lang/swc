@@ -83,9 +83,8 @@ impl IWnd for SubtitleViewer
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         if .track do
             Subtitle.Track.destroy(.track)
         .track = null
@@ -194,9 +193,8 @@ private impl SubtitleViewer
             .setText(Viewer.durationText(result.duration))
             .setForm(.Rectangle)
             .toolTip    = subtitleStrings().ui_GoToTime
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = result|(?)
             {
-                discard button
                 view.promptGoToTime()
             }
         }
@@ -207,9 +205,8 @@ private impl SubtitleViewer
             .setText(subtitleCueCountText(result.track!.cueCount()).toString())
             .setForm(.Rectangle)
             .toolTip    = subtitleStrings().ui_GoToCue
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = result|(?)
             {
-                discard button
                 view.promptGoToCue()
             }
         }
@@ -272,22 +269,19 @@ func createSubtitleViewer(host: Viewer.Host)
 
         with var search: Viewer.SearchApi
         {
-            .collectMatches = func|view|(text, options, progress, matches)->bool
+            .collectMatches = func|view|(text, options, ?, matches)->bool
             {
-                discard progress
                 view.collectMatches(text, options, matches)
                 return true
             }
 
-            .revealMatch = func|view|(match, text)->bool
+            .revealMatch = func|view|(match, ?)->bool
             {
-                discard text
                 return view.revealMatch(match)
             }
 
-            .matchBounds = func|view|(match, bounds)->bool
+            .matchBounds = func|view|(?, bounds)->bool
             {
-                discard match
                 return Viewer.richEditMatchBounds(view.editor, bounds)
             }
 

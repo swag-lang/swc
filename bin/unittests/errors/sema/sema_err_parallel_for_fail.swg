@@ -4,6 +4,7 @@ func plainCaller()
 {
     try parallel for || index in 4     // swc-expected-error {{sema_err_try_outside_fallible_context}}
     {
+        discard index
         fail Swag.BaseError{"parallel failure"}
     }
 }

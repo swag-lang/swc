@@ -16,12 +16,12 @@ struct Overloaded {}
 
 impl IOverloaded for Overloaded
 {
-    mtd impl select(value: string)->s32
+    mtd impl select(?: string)->s32
     {
         return 1
     }
 
-    mtd impl select(value: *s32)->s32
+    mtd impl select(?: *s32)->s32
     {
         return 2
     }

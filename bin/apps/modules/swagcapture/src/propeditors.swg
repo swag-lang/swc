@@ -86,7 +86,7 @@ impl IPropertyEditor for AlignEditor
             }
         }
 
-        item.sigRefresh += func|align, btns|(item)
+        item.sigRefresh += func|align, btns|(?)
         {
             for i in 3
             {

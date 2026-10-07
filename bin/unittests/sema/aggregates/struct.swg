@@ -37,6 +37,7 @@ func semaTest001()
 
     var st: AA
     let x = st.x
+    discard x
 }
 
 func semaTest002()

@@ -142,7 +142,7 @@ impl MainWnd
                 var y1 = cast(s32, (br.bottom() - capture.backImagePos.y))
                 y1 = Math.clamp(y1, 0, undo.newImg.height - 1)
                 y1 = undo.newImg.height - y1
-                for i in undo.newImg.height
+                for undo.newImg.height
                 {
                     pt.y = cast(f32, (capture.backImg.height - y1)) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
@@ -159,7 +159,7 @@ impl MainWnd
                 var y2 = cast(s32, (br.y - capture.backImagePos.y))
                 y2 = undo.newImg.height - y2
                 y2 = Math.clamp(y2, 0, undo.newImg.height - 1)
-                for i in undo.newImg.height
+                for undo.newImg.height
                 {
                     pt.y = cast(f32, (capture.backImg.height - y2)) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)

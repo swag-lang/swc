@@ -409,7 +409,7 @@ impl SliceHeader
                     fail InvalidFormatError{"HEVC slice declares too many entry points"}
                 .entryPointOffsets.clear()
                 .entryPointOffsets.reserve(cast(u64, .numEntryPointOffsets))
-                for index in .numEntryPointOffsets do
+                for .numEntryPointOffsets do
                     .entryPointOffsets.add(reader.read(offsetBits) + 1)
             }
         }

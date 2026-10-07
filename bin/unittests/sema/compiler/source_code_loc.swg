@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    var a: Swag.SourceCodeLocation
+    var a: Swag.SourceCodeLocation; discard a
 }
 
 const A = #curlocation

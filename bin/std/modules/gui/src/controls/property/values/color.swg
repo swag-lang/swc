@@ -63,7 +63,7 @@ internal impl Properties
 
         .flattenCondensedEdit(ed)
 
-        btn.iconPainter = func|color|(btn, bc, pos, paintFlags)
+        btn.iconPainter = func|color|(btn, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let radius = btn.themeRects().btnIcon_RoundSquareBk.radius
@@ -99,7 +99,7 @@ internal impl Properties
             }
         }
 
-        btn.sigPopupClosed += func|prop = me|(btn)
+        btn.sigPopupClosed += func|prop = me|(?)
         {
             prop.editPopup = null
         }

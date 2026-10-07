@@ -24,7 +24,7 @@ var D3: const [2] s32
 #assert(#fullnameof(#type const QualifiedStrictPtr) == "const *s32")
 #assert(#fullnameof(#type const QualifiedStrictSlice) == "const [..] s32")
 
-func acceptConstAny(value: const any) {}
+func acceptConstAny(?: const any) {}
 func widenConstAny(value: any)->const any => value
 
 var E0:  *s32?
@@ -54,12 +54,12 @@ func widenNullableAny(value: any)->any?                => value
 func widenNullableCString(value: cstring)->cstring?    => value
 func widenNullableTypeInfo(value: typeinfo)->typeinfo? => value
 
-func acceptNullablePointer(value: *s32?) {}
-func acceptNullableString(value: string?) {}
-func acceptNullableSlice(value: [..] s32?) {}
-func acceptNullableAny(value: any?) {}
-func acceptNullableCString(value: cstring?) {}
-func acceptNullableTypeInfo(value: typeinfo?) {}
+func acceptNullablePointer(?: *s32?) {}
+func acceptNullableString(?: string?) {}
+func acceptNullableSlice(?: [..] s32?) {}
+func acceptNullableAny(?: any?) {}
+func acceptNullableCString(?: cstring?) {}
+func acceptNullableTypeInfo(?: typeinfo?) {}
 
 func semaTest001()
 {

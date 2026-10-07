@@ -183,7 +183,7 @@ func hashString(text: string)->u64
     return hash
 }
 
-func hashAlwaysCollide(value: s32)->u64
+func hashAlwaysCollide(?: s32)->u64
 {
     return 1'u64
 }

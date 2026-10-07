@@ -3,7 +3,7 @@
 func nestedParallelStack(depth: u64)->u64
 {
     var location = 0'u64
-    parallel for |&location, depth| index in 1
+    parallel for |&location, depth| 1
     {
         if depth == 0 do
             location = cast(u64, &location)

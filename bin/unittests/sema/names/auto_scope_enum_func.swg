@@ -10,8 +10,8 @@ enum OverFlags: u8
     B
 }
 
-func overload(x: s32, e: OverA)->s32 { return 10 }
-func overload(x: f32, e: OverB)->f32 { return 20.0 }
+func overload(?: s32, ?: OverA)->s32 { return 10 }
+func overload(?: f32, ?: OverB)->f32 { return 20.0 }
 func withFlags(e: OverFlags)->OverFlags { return e }
 func(T) addFlagsByUfcs(flags: *T, value: T) { flags[] |= value }
 
@@ -21,7 +21,7 @@ func semaTest001()
     #assert(#typeof(r) == f32)
 }
 
-func fct(x: f32, e: OverB)->f32 { return 20.0 }
+func fct(?: f32, ?: OverB)->f32 { return 20.0 }
 
 struct Vec2
 {

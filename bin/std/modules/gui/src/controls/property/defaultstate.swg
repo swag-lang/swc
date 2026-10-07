@@ -291,7 +291,7 @@ internal impl Properties
             .margin.x    = PropRevertGap     // breathing room from the editor / previous action
             .margin.z    = PropRevertGap
 
-            .sigPressed += func|prop = me, item|(b) { prop.resetItemDefault(item) }
+            .sigPressed += func|prop = me, item|(?) { prop.resetItemDefault(item) }
         }
 
         item.revertButton.clearIcon()     // reserved column, arrow hidden until modified

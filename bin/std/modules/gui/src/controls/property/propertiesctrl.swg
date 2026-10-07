@@ -82,7 +82,7 @@ impl PropertiesCtrl
                 .dockStyle  = .Right
                 .margin.x   = 8
                 .toolTip    = strings().prop_ViewOptions
-                .sigPressed += func|ed|(btn) { discard btn; ed.openViewMenu() }
+                .sigPressed += func|ed|(?) { ed.openViewMenu() }
             }
 
             with ed.search = EditBox.create(bar, "")

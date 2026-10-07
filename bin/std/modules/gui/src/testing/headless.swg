@@ -475,7 +475,7 @@ impl HeadlessHost
     // Records command count and the most recent identifier at the root event boundary.
     mtd recordCommands()
     {
-        .root.hookOnEvent = func|host = me|(wnd, evt)
+        .root.hookOnEvent = func|host = me|(?, evt)
         {
             switch evt
             {
@@ -494,7 +494,7 @@ impl HeadlessHost
     // Records commands and closes the host when `cmdId` reaches the root.
     mtd closeOnCommand(cmdId: WndId)
     {
-        .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
+        .root.hookOnEvent = func|host = me, cmdId|(?, evt)
         {
             switch evt
             {

@@ -63,7 +63,7 @@ func loopOnePastEnd(count: u64)->s32
 func invertedRangeRunsEmpty(low, high: s32)->s32
 {
     var turns = 0's32
-    for index in low until high do
+    for low until high do
         turns += 1
     return turns
 }
@@ -88,7 +88,7 @@ func sliceUntilCount()->s64
 
     // An empty 'until' range is empty, not inverted: it runs zero turns and does not panic.
     var turns = 0's32
-    for index in opaqueS32(2) until opaqueS32(2) do
+    for opaqueS32(2) until opaqueS32(2) do
         turns += 1
     Swag.assert(turns == 0)
 }

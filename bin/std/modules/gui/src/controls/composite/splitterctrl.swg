@@ -118,7 +118,7 @@ impl IWnd for SplitterCtrl
             .cursor.clear()
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
         .computeLayout()
 
@@ -227,7 +227,7 @@ private impl SplitterCtrl
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0
             var totalSize = 0'f32
-            for item, idx in .items
+            for item in .items
             {
                 let it = item!
                 if not it.visible do
@@ -250,7 +250,7 @@ private impl SplitterCtrl
             if countNotPreserve
             {
                 let diff = cast(f32, Math.round(dispatch / countNotPreserve))
-                for item, idx in .items
+                for item in .items
                 {
                     let it = item!
                     if it.preserveSize do
@@ -275,7 +275,7 @@ private impl SplitterCtrl
             if countPreserve
             {
                 let diff = cast(f32, Math.round(dispatch / countPreserve))
-                for item, idx in .items
+                for item in .items
                 {
                     let it = item!
                     if not it.preserveSize do

@@ -83,6 +83,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 #test
 {
     let t      = {x: 1.0, y: 2.0, z: 3.0}
+    discard t
     let {a, ?} = {x: 10, y: 20}
     Swag.assert(a == 10)
     let {?, b} = {x: 10, y: 20}

@@ -247,7 +247,7 @@ impl Offset
             .sinVal = -.sinVal
 
         .destPolys.reserve(.polyNodes.childs.count * 2)
-        for node, i in .polyNodes.childs
+        for node in .polyNodes.childs
         {
             .srcPoly = node.contour
 
@@ -276,7 +276,7 @@ impl Offset
                 {
                     var x = -1.0'f64
                     var y = -1.0'f64
-                    for j in 4
+                    for 4
                     {
                         let r1 = cround(.srcPoly[0].x + x * delta)
                         let r2 = cround(.srcPoly[0].y + y * delta)
@@ -416,7 +416,7 @@ impl Offset
 
         var x = kN.x
         var y = kN.y
-        for i in steps
+        for steps
         {
             let r1 = cround(jP.x + x * .deltaVal)
             let r2 = cround(jP.y + y * .deltaVal)

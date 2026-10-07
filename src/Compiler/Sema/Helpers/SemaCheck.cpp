@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaVarDeclHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
@@ -819,8 +820,11 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
             return Result::Error;
         }
 
-        // If a parameter has a name, then what follows should have a name
-        if (param.idRef().isValid())
+        // If a parameter has a name, then what follows should have a name. A '?' parameter
+        // holds a name position the body leaves empty.
+        const AstNode* paramDecl = param.decl();
+        const bool     unnamed   = paramDecl && paramDecl->is(AstNodeId::LambdaParam) && paramDecl->cast<AstLambdaParam>().hasFlag(AstLambdaParamFlagsE::Named);
+        if (param.idRef().isValid() || unnamed)
             hasName = true;
         else if (hasName)
             return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param);
@@ -1016,6 +1020,158 @@ Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRe
         diag.addArgument(Diagnostic::ARG_SYM, sym.name(sema.ctx()));
     diag.report(sema.ctx());
     return Result::Error;
+}
+
+namespace
+{
+    // A body cloned for a generic instance can keep a different set of '#static if' branches
+    // per instance, so a name one instance leaves unused may be the one another needs.
+    bool isInGenericInstance(const SymbolFunction& sym)
+    {
+        for (const SymbolFunction* function = &sym; function; function = function->parentLexicalFunction())
+        {
+            if (function->isGenericInstance())
+                return true;
+            const SymbolStruct* owner = function->ownerStruct();
+            if (owner && owner->isGenericInstance())
+                return true;
+        }
+
+        return false;
+    }
+
+    bool isReportedUnused(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (symVar.isReferenced() || !symVar.idRef().isValid() || !symVar.decl())
+            return false;
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) || symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+        if (symVar.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return false;
+
+        // A 'using' variable is reached through the names it brings in, not through its own.
+        if (symVar.isUsingField())
+            return false;
+
+        // Compiler-made names ('__' prefix, '#uniq') are not the author's to remove.
+        if (sema.idMgr().get(symVar.idRef()).name.starts_with("__") || Token::isCompilerUniq(sema.token(symVar.codeRef()).id))
+            return false;
+
+        const AstNode* decl = symVar.decl();
+        if (decl->is(AstNodeId::LambdaParam) && decl->cast<AstLambdaParam>().hasFlag(AstLambdaParamFlagsE::Generated))
+            return false;
+
+        // An '#inject' binding is offered to the injected code, which takes what it needs.
+        if (decl->is(AstNodeId::SingleVarDecl) && decl->cast<AstSingleVarDecl>().injectBlockRef.isValid())
+            return false;
+
+        return true;
+    }
+}
+
+Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
+{
+    // No body to search, or no single body to judge: a macro or mixin only exists where it
+    // expands.
+    if (sym.isEmpty() || sym.isForeign() || isInGenericInstance(sym))
+        return Result::Continue;
+    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        return Result::Continue;
+    if (!SemaError::isCurrentModuleSymbol(sema, sym))
+        return Result::Continue;
+
+    // A local function an inline expansion declared is the callee's, wrapped around code the call
+    // site injected: the callee's declaration answers for the first, the caller for the second.
+    if (sym.hasExtraFlag(SymbolFunctionFlagsE::InlineLocalFunction))
+        return Result::Continue;
+
+    // Generated code ('#ast', '#[Swag.Operators]') has no author to answer for its names: its
+    // source view points back to where it was generated from.
+    const SourceView& srcView = sema.srcView(sym.srcViewRef());
+    if (srcView.debugSourceCodeRef().isValid() || (srcView.ownerFileRef().isValid() && srcView.ownerFileRef() != srcView.fileRef()))
+        return Result::Continue;
+
+    // An interface method's parameters belong to the interface: every implementation answers to
+    // those names, and the documentation refers to them, whatever a default body does with them.
+    const bool interfaceContract = sym.ownerSymMap() && sym.ownerSymMap()->isInterface();
+
+    bool reported = false;
+    for (const SymbolVariable* param : sym.parameters())
+    {
+        if (interfaceContract)
+            break;
+        if (param && isReportedUnused(sema, *param))
+        {
+            SemaError::report(sema, DiagnosticId::sema_err_unused_parameter, *param).report(sema.ctx());
+            reported = true;
+        }
+    }
+
+    // An alias the call site supplied can be declared by several expansions of the same call:
+    // one use among them is a use of the name the caller wrote.
+    SmallVector<SourceCodeRef> usedAliasNames;
+    for (const SymbolVariable* local : sym.localVariables())
+    {
+        if (local && local->callerNameRef().isValid() && local->isReferenced())
+            usedAliasNames.push_back(local->callerNameRef());
+    }
+
+    SmallVector<SourceCodeRef> reportedAliasNames;
+    TokenRef                   bodyEndRef = TokenRef::invalid();
+    for (const SymbolVariable* local : sym.localVariables())
+    {
+        if (!local || local->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            continue;
+
+        // A local whose type has a drop is a guard: its lifetime is its use, ended by the drop at
+        // the end of the scope.
+        const bool guard = sema.typeMgr().hasLifecycleOperator(sema.ctx(), local->typeRef(), &SymbolStruct::opDrop);
+
+        // An inline expansion declares locals of the callee's: they answer here only when this
+        // body wrote their name, as an alias of the call or as code it passed to the callee.
+        if (local->isInlineExpansion())
+        {
+            const SourceCodeRef& aliasRef = local->callerNameRef();
+            if (aliasRef.isValid())
+            {
+                if (local->isReferenced() || guard || std::ranges::find(usedAliasNames, aliasRef) != usedAliasNames.end() || std::ranges::find(reportedAliasNames, aliasRef) != reportedAliasNames.end())
+                    continue;
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_unused_variable, aliasRef);
+                diag.addArgument(Diagnostic::ARG_SYM, local->idRef());
+                diag.report(sema.ctx());
+                reportedAliasNames.push_back(aliasRef);
+                reported = true;
+                continue;
+            }
+
+            if (local->srcViewRef() != sym.srcViewRef())
+                continue;
+            if (!bodyEndRef.isValid())
+                bodyEndRef = sym.decl()->tokRefEnd(sema.ast());
+            if (local->tokRef().get() < sym.tokRef().get() || local->tokRef().get() > bodyEndRef.get())
+                continue;
+        }
+
+        if (guard || !isReportedUnused(sema, *local))
+            continue;
+
+        SemaError::report(sema, DiagnosticId::sema_err_unused_variable, *local).report(sema.ctx());
+        reported = true;
+    }
+
+    std::vector<const Symbol*> symbols;
+    sym.getAllSymbols(symbols, true);
+    for (const Symbol* symbol : symbols)
+    {
+        const auto* capture = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+        if (capture && capture->isClosureCapture() && isReportedUnused(sema, *capture))
+        {
+            SemaError::report(sema, DiagnosticId::sema_err_unused_capture, *capture).report(sema.ctx());
+            reported = true;
+        }
+    }
+
+    return reported ? Result::Error : Result::Continue;
 }
 
 SWC_END_NAMESPACE();

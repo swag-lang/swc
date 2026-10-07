@@ -164,6 +164,7 @@ func solve(text: string)->u64
     let queue = cast([*] QEntry, (testAlloc(cast(u64, MaxQueue) * #sizeof(QEntry)))!)
     defer testFree(queue)
     var head: u32
+    discard head
     var tail: u32
 
     // Start facing East (dir=0)

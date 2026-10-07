@@ -401,7 +401,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let iChecker = cast(IAdjacencyChecker, checker)
 
     // Part 1 via interface dispatch
-    for entry, idx in numbers.entries[0 until numbers.count]
+    for entry in numbers.entries[0 until numbers.count]
     {
         if iChecker.hasAdjacentSymbol(grid, entry)
         {

@@ -97,9 +97,8 @@ impl MainWindow
                 catch g_App.saveState()
             }
 
-            .sigAboutRequested += func|window = me|(button)
+            .sigAboutRequested += func|window = me|(?)
             {
-                discard button
                 window.showAbout()
             }
         }
@@ -121,9 +120,8 @@ impl MainWindow
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.theme().icon(.Play, 18))
             .setIconSize(18, 18)
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.compile(force: true)
             }
         }
@@ -133,9 +131,8 @@ impl MainWindow
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.icon(.Format))
             .setIconSize(18, 18)
-            .sigPressed += func|window = me|(button)
+            .sigPressed += func|window = me|(?)
             {
-                discard button
                 window.format()
             }
         }
@@ -144,18 +141,16 @@ impl MainWindow
         {
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setState(.Checked)
-            .sigChanged += func|window = me|(button)
+            .sigChanged += func|window = me|(?)
             {
-                discard button
                 window.scheduleCompile()
             }
         }
 
         with .commandBar.exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
         {
-            .sigChanged += func|window = me|(combo, index)
+            .sigChanged += func|window = me|(?, index)
             {
-                discard combo
                 window.openExample(cast(ExampleKind, index))
             }
         }
@@ -236,9 +231,8 @@ impl MainWindow
         .panels[0].selectViewer(.Render2D)
         .createLayoutButton()
         .refreshPaneLayout()
-        .editor.sigChanged += func|window = me|(editor)
+        .editor.sigChanged += func|window = me|(?)
         {
-            discard editor
             window.scheduleCompile()
         }
     }
@@ -248,21 +242,18 @@ impl MainWindow
     {
         with let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
         {
-            .sigChanged += func|window = me|(sender)
+            .sigChanged += func|window = me|(?)
             {
-                discard sender
                 window.refreshStatus()
             }
 
-            .sigCompileRequested += func|window = me|(sender)
+            .sigCompileRequested += func|window = me|(?)
             {
-                discard sender
                 window.compile()
             }
 
-            .sigOptionsChanged += func|window = me|(sender)
+            .sigOptionsChanged += func|window = me|(?)
             {
-                discard sender
                 window.scheduleCompile()
             }
         }

@@ -400,9 +400,8 @@ impl StackLayoutCtrl
     }
 
     // Recomputes the arrangement after a parent resize.
-    mtd applyLayout(oldSize: Math.Point)
+    mtd applyLayout(?: Math.Point)
     {
-        discard oldSize
         .computeLayout()
     }
 }

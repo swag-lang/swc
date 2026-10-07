@@ -49,7 +49,7 @@ func patternCaseValue(value: IPatternError)
     }
 }
 
-func patternMutable(value: *PatternError) {}
+func patternMutable(value: *PatternError) { discard value }
 
 func patternConstIf(value: const IPatternError)
 {

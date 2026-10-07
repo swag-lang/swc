@@ -12,14 +12,14 @@ alias AnyCastStrictAny = any
 
 #test
 {
-    func takes(v: s32) {}
+    func takes(?: s32) {}
     var a: any = 12
     Swag.assert(assume cast(s32, a) == 12)
 }
 
 #test
 {
-    func takes(v: s32) {}
+    func takes(?: s32) {}
     var a: any = 12
     var b: s32 = assume cast(a)
     takes(b)

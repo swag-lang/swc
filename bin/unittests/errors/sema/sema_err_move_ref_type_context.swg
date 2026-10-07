@@ -3,7 +3,7 @@
 struct MoveCtxVec { x: s32 }
 
 // A move reference is allowed as a function parameter type.
-func takeMoveCtx(v: #move MoveCtxVec) {}
+func takeMoveCtx(v: #move MoveCtxVec) { discard v }
 
 #test
 {

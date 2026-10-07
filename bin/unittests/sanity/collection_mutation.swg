@@ -120,7 +120,7 @@ func collMutReadDuringIter()->u64
     var v: CollMutVec
     v.add(1)
     var total: u64
-    for x in v
+    for v
     {
         total += v.opCount()
         total += cast(u64, v[0])
@@ -136,6 +136,7 @@ func collMutAfterIter()
     for x in v
     {
         var _ = x
+        discard _
     }
     v.add(2)
 }
@@ -169,7 +170,7 @@ func collMutRemoveThenReturn(target: s32)->bool
     var v: CollMutVec
     v.add(1)
     v.add(2)
-    for x, i in v
+    for x in v
     {
         if x == target
         {
@@ -185,7 +186,7 @@ func collMutRemoveThenBreak()
 {
     var v: CollMutVec
     v.add(1)
-    for x, i in v
+    for x in v
     {
         if x == 1
         {

@@ -323,10 +323,10 @@ func deferBreakToScopeAndDrop()->DeferDropInfo
 }
 
 #[Swag.NoInline]
-func consumeDropTracker(value: DeferDropTracker) {}
+func consumeDropTracker(?: DeferDropTracker) {}
 
 #[Swag.NoInline]
-func consumeDropHolder(value: DeferDropHolder) {}
+func consumeDropHolder(?: DeferDropHolder) {}
 
 #[Swag.NoInline]
 func deferSkippedAddressBranch()->bool
@@ -335,7 +335,7 @@ func deferSkippedAddressBranch()->bool
 }
 
 #[Swag.NoInline]
-func consumePointerForDefer(value: *u8) {}
+func consumePointerForDefer(?: *u8) {}
 
 func deferParameterDropInfo()->DeferDropInfo
 {

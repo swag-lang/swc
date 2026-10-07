@@ -73,7 +73,7 @@ impl IActionUI for ActionOptions
         opt.dockStyle = .Center
         fillOptions(opt, main)
 
-        opt.properties.sigValueChanged += func|main, opt|(prop, item)
+        opt.properties.sigValueChanged += func|main, opt|(?, item)
         {
             var fieldName: string = ""
             if item do

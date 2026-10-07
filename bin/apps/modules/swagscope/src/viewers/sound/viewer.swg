@@ -809,9 +809,8 @@ impl IWnd for SoundViewer
         .refreshTransport()
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         .retireBlocking()
     }
 
@@ -851,9 +850,8 @@ impl SoundViewer
             .dockStyle = .Left
             .toolTip   = soundStrings().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.togglePlayback()
             }
         }
@@ -864,9 +862,8 @@ impl SoundViewer
             .margin.x  = 8
             .toolTip   = soundStrings().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.stopPlayback()
             }
         }
@@ -877,9 +874,8 @@ impl SoundViewer
             .margin.x  = 8
             .toolTip   = soundStrings().ui_TipBackward
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.seekRelative(-SoundSeekSeconds)
             }
         }
@@ -890,9 +886,8 @@ impl SoundViewer
             .margin.x  = 8
             .toolTip   = soundStrings().ui_TipForward
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.seekRelative(SoundSeekSeconds)
             }
         }

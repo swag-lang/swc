@@ -275,7 +275,7 @@ zero times; this differs from slicing, which validates the requested length.
 
     // The same holds for a constant empty range, and away from zero.
     var cpt = 0
-    for i in 7 until 7 do
+    for 7 until 7 do
         cpt += 1
     Swag.assert(cpt == 0)
 }

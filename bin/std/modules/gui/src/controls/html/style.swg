@@ -428,7 +428,7 @@ impl HtmlComputedStyle
     mtd const borderWidthY()->f32 => .borderTop.width + .borderBottom.width
 
     // Returns the line height in pixels for the element's own font size.
-    mtd const resolvedLineHeight(pool: const *HtmlValuePool, fontHeight: f32)->f32
+    mtd const resolvedLineHeight(?: const *HtmlValuePool, fontHeight: f32)->f32
     {
         switch .lineHeight.kind
         {
@@ -441,7 +441,6 @@ impl HtmlComputedStyle
             return .lineHeight.value * .fontSize
         }
 
-        discard pool
         return fontHeight
     }
 }

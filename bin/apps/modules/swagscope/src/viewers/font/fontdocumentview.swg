@@ -197,9 +197,8 @@ private impl FontDocumentView
 
 impl IWnd for FontDocumentView
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         if .face
         {
             .face.destroy()
@@ -207,9 +206,8 @@ impl IWnd for FontDocumentView
         }
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         if .scroll == null do
             return
         .refreshLayout()

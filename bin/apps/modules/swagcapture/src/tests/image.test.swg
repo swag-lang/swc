@@ -102,7 +102,7 @@ using Swag, Core
     g_ResizeMode = 1
     var modalFrames: u32
     var didClick:    bool
-    f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
+    f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(?)
     {
         frames[] += 1
         g_Width  = 42
@@ -145,7 +145,7 @@ using Swag, Core
 
     g_ResizeMode = 1
     var didClick: bool
-    f.gui.app.sigFrame += func|host = &f.gui, didClick = &didClick|(app)
+    f.gui.app.sigFrame += func|host = &f.gui, didClick = &didClick|(?)
     {
         g_Width  = 42
         g_Height = 27

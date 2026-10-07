@@ -445,7 +445,7 @@ impl TagBin
     }
 
     // Opens the struct `structType`, writing its version, and returns false so the encoder writes its fields.
-    mtd beginStruct(structType: typeinfo?, _structData: const [*] u8?)->bool fail
+    mtd beginStruct(structType: typeinfo?, ?: const [*] u8?)->bool fail
     {
         let output = .output!
         if not structType
@@ -555,7 +555,7 @@ impl TagBin
     }
 
     // Closes the current field, compressing its payload when the field asks for it.
-    mtd endElement(val: TypeValue)
+    mtd endElement(?: TypeValue)
     {
         // If section is raw, then we just have values without versioning
         let sec = .sections.back()!

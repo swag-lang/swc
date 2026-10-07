@@ -5,11 +5,11 @@ func added(a, b: u32)->u64 => cast(u64, (a + b))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func product(a, b: u32)->u64 => cast(u64, (a * b))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func rotated(a, b: u32)->u64 => cast(u64, ((a << 7) | (a >> 25)))
+func rotated(a, ?: u32)->u64 => cast(u64, ((a << 7) | (a >> 25)))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func shifted(a, b: u32)->u64 => cast(u64, (a << 3))
+func shifted(a, ?: u32)->u64 => cast(u64, (a << 3))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func inverted(a, b: u32)->u64 => cast(u64, (~a))
+func inverted(a, ?: u32)->u64 => cast(u64, (~a))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func square(a, b: u32)->u64 => cast(u64, ((a + b) * (a + b)))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]

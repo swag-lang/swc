@@ -98,7 +98,7 @@ struct SceneCard
 impl IPropertyNotify for SceneCard
 {
     // Conditional enable: radius is meaningless for a pill, shadow softness only when shadows are on.
-    mtd impl isItemEnabled(_list: *Properties, item: *PropertiesItem)->bool
+    mtd impl isItemEnabled(?: *Properties, item: *PropertiesItem)->bool
     {
         switch item.typeValue.name
         {
@@ -110,7 +110,7 @@ impl IPropertyNotify for SceneCard
     }
 
     // Per-field validation, surfaced by the grid as an accent bar + tooltip.
-    mtd impl validateItem(_list: *Properties, item: *PropertiesItem)->PropValidationResult
+    mtd impl validateItem(?: *Properties, item: *PropertiesItem)->PropValidationResult
     {
         switch item.typeValue.name
         {
@@ -205,7 +205,7 @@ func applyTheme()
     app.notifyThemeChanged()
 }
 
-func toggleTheme(_btn: *Button)
+func toggleTheme(?: *Button)
 {
     g_DarkTheme = not g_DarkTheme
     applyTheme()
@@ -298,7 +298,7 @@ func rebuildInspector()
         g_Filter = fil.text()
     }
 
-    props.sigValueChanged += func(_list, item)
+    props.sigValueChanged += func(?, item)
     {
         updateStatus(item)
         g_Preview?.invalidate()
@@ -344,7 +344,7 @@ func createInspectorPage(parent: *Wnd)
         .addItem("List")
         .addItem("Panel")
         .setSelectedIndex(displayModeIndex(g_DisplayMode))
-        .sigChanged += func(_cb, idx) { setDisplayMode(displayModeFromIndex(idx)); }
+        .sigChanged += func(?, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
 
     discard createText(controls, "Edit:", {252, 0, 40, 44})
@@ -354,7 +354,7 @@ func createInspectorPage(parent: *Wnd)
         .addItem("2 cards")
         .addItem("3 cards")
         .setSelectedIndex(cast(u32, (g_CardCount - 1)))
-        .sigChanged += func(_cb, idx) { setCardCount(cast(s32, idx) + 1); }
+        .sigChanged += func(?, idx) { setCardCount(cast(s32, idx) + 1); }
     }
 
     rebuildInspector()
@@ -492,14 +492,14 @@ impl IPropertyEditor for RatingEditor
             {
                 .dockStyle = .Left
                 .updateFlags(.Flat)
-                .sigPressed += func|prop, item, rating, idx|(b)
+                .sigPressed += func|prop, item, rating, idx|(?)
                 {
                     let rat = rating!
                     rat.value = rat.value == idx + 1 ? idx : idx + 1
                     prop.commitItemChange(item)
                 }
 
-                .iconPainter = func|rating, idx|(b, bc, pos, paintFlags)
+                .iconPainter = func|rating, idx|(?, bc, pos, ?)
                 {
                     bc.painter.setParams(.Antialiased)
                     let on  = idx < rating!.value
@@ -510,7 +510,7 @@ impl IPropertyEditor for RatingEditor
             }
         }
 
-        item.sigRefresh += func|line|(item)
+        item.sigRefresh += func|line|(?)
         {
             for c in line.children do
                 c.invalidate()
@@ -581,7 +581,7 @@ func layoutRootView()
     footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(_view: *Wnd, evt: IEvent)->bool
+func onRootEvent(?: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -663,7 +663,7 @@ func updateTestMode()
         Env.exit(0)
 }
 
-func onFrame(_app: *Application)
+func onFrame(?: *Application)
 {
     updateTestMode()
 }

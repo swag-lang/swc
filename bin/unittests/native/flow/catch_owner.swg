@@ -64,7 +64,7 @@ func conditionalCatchOwner(take: bool)
 #[Swag.NoInline]
 func deferredDirectCatchOwner()
 {
-    defer catch failCatchOwner(176) as error
+    defer catch failCatchOwner(176)
     return
 }
 

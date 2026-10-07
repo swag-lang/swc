@@ -41,7 +41,7 @@ struct NonNullRequiresInitSetTarget
 
 impl NonNullRequiresInitSetTarget
 {
-    mtd opSet(value: s32) {}
+    mtd opSet(value: s32) { discard value }
 }
 
 var NonNullRequiresInitGlobal: *NonNullRequiresInitItem     // swc-expected-error {{sema_err_type_requires_init}}

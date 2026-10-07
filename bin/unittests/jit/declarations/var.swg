@@ -86,6 +86,7 @@ enum IfElseKind: u16
     func shadowInsideBranches(flag: bool)->s32
     {
         var value = 5
+        discard value
         if flag
         {
             var value = 7
@@ -823,6 +824,7 @@ enum IfElseKind: u16
     func explicitUndefinedSkipInit()->s32
     {
         var x: s32
+        discard x
         return 7
     }
 

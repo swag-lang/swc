@@ -34,7 +34,7 @@ internal impl Properties
         .edView.moveLastChildrenTo(insertItemIdx, numAddedChilds)
 
         // Remove all old items and children
-        for i in item.numChilds
+        for item.numChilds
         {
             .items.destroy(.items[itemIdx + 1])
             .items.removeAtOrdered(itemIdx + 1)
@@ -180,7 +180,7 @@ internal impl Properties
         item.arrayAddButton = addBtn
         if not .isGridLike() do
             item.label.wndFlags.remove(.ClipChildren)
-        addBtn.sigPressed += func|prop = me, item|(btn) { prop.appendArrayValue(item) }
+        addBtn.sigPressed += func|prop = me, item|(?) { prop.appendArrayValue(item) }
 
         with let editBox = EditBox.create(item.line, "")
         {

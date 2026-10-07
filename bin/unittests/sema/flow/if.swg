@@ -17,10 +17,12 @@ func semaTest002()
     if true
     {
         var x = 0
+        discard x
     }
     else
     {
         var x = 1
+        discard x
     }
 }
 
@@ -31,6 +33,7 @@ func semaTest003()
         if true
         {
             var x = 0
+            discard x
         }
     }
 }

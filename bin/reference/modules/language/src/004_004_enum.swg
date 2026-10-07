@@ -280,7 +280,7 @@ This works with flags too.
 #test
 {
     enum Values { A, B }
-    func toto(v1, v2: Values) {}
+    func toto(v1, v2: Values) => Swag.assert(v1 == .A and v2 == .B)
     toto(.A, .B)
 }
 

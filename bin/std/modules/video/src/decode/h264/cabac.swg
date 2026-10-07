@@ -337,7 +337,7 @@ impl Slice
     }
 
     // Decodes one intra macroblock type, with its slice-dependent context base.
-    mtd intraMbTypeCabac(mb: *Mb, ctxBase: u32, intraSlice: bool)->u32
+    mtd intraMbTypeCabac(?: *Mb, ctxBase: u32, intraSlice: bool)->u32
     {
         var base = ctxBase
         if intraSlice
@@ -474,7 +474,7 @@ impl Slice
     }
 
     // Decodes the intra chroma prediction mode.
-    mtd chromaModeCabac(mb: *Mb)->u32
+    mtd chromaModeCabac(?: *Mb)->u32
     {
         var ctx = 0'u32
         if .neighbors.a.available and .neighbors.a.info!.chromaMode != 0 do
@@ -504,7 +504,7 @@ impl Slice
     }
 
     // Decodes the 8x8 transform flag with its neighbor context.
-    mtd transformFlagCabac(mb: *Mb)->u32
+    mtd transformFlagCabac(?: *Mb)->u32
     {
         var ctx = 0'u32
         if .neighbors.a.available and .neighbors.a.info!.transform8x8 do
@@ -515,7 +515,7 @@ impl Slice
     }
 
     // Decodes the luma coded block pattern, four bins with spatial contexts.
-    mtd cbpLumaCabac(mb: *Mb)->u32
+    mtd cbpLumaCabac(?: *Mb)->u32
     {
         // An unavailable neighbor reads as fully coded, so it never raises the context.
         var leftCbp = 0xF'u32
@@ -548,7 +548,7 @@ impl Slice
     }
 
     // Decodes the chroma coded block pattern, two bins.
-    mtd cbpChromaCabac(mb: *Mb)->u32
+    mtd cbpChromaCabac(?: *Mb)->u32
     {
         var leftCbp = 0'u32
         var topCbp  = 0'u32
@@ -1159,7 +1159,7 @@ impl Slice
 
     // Returns the DC coded flag of the neighbor macroblock at the given offset, or -1 when
     // it is unavailable; `which` selects luma, Cb, or Cr.
-    mtd const dcFlagNeighbor(mb: *Mb, dx, dy: s32, which: s32)->s32
+    mtd const dcFlagNeighbor(?: *Mb, dx, ?: s32, which: s32)->s32
     {
         let neighbor = dx < 0 ? &.neighbors.a : &.neighbors.b
         if not neighbor.available do

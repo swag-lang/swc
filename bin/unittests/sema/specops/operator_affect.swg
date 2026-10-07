@@ -252,8 +252,8 @@ func semaTest005()
 
 func semaTest006()
 {
-    func takesExplicit(value: ParamSetTarget) {}
-    func takesImplicit(value: ParamSetTarget) {}
+    func takesExplicit(?: ParamSetTarget) {}
+    func takesImplicit(?: ParamSetTarget) {}
 
     takesExplicit(cast(ParamSetTarget, 5's32))
     takesImplicit(7'u16)
@@ -270,7 +270,7 @@ func semaTest007()
     var delay4                   = LiteralSetTarget{}
     delay4 = 1'h
 
-    func takesImplicit(value: LiteralSetTarget) {}
+    func takesImplicit(?: LiteralSetTarget) {}
     takesImplicit(5'ms)
 
     #assert(#typeof(delay1) == LiteralSetTarget)
@@ -287,7 +287,7 @@ func semaTest008()
     let castInt   = cast(LiteralOverloadTarget, 250'ms)
     let castFloat = cast(LiteralOverloadTarget, 0.5'h)
 
-    func takesImplicit(value: LiteralOverloadTarget) {}
+    func takesImplicit(?: LiteralOverloadTarget) {}
     takesImplicit(2'min)
     takesImplicit(250.0'ms)
 

@@ -497,9 +497,8 @@ private impl Codec
         var subbands:   [MaxPrimaryChannels, MaxSubbands, MaxSubbandSamples] f64
         var lfeSamples: [64] f64
         var subbandPosition, lfePosition: u32
-        for subframe in header.subframes
+        for header.subframes
         {
-            discard subframe
             let subsubframes = reader.read(2) + 1
             reader.skip(3)
             let subbandSamples = subsubframes * SamplesPerSubband
@@ -572,7 +571,6 @@ private impl Codec
 
             for channel in channels where joint[channel]
             {
-                discard channel
                 fail UnsupportedFormatError{"DTS joint-intensity coding is not supported"}
             }
 
@@ -584,7 +582,7 @@ private impl Codec
             // the addresses so the scalar bands still reconstruct instead of rejecting the frame.
             for channel in channels
             {
-                for band in Math.min(vqStart[channel], subbandCount[channel]) until subbandCount[channel] do
+                for Math.min(vqStart[channel], subbandCount[channel]) until subbandCount[channel] do
                     discard reader.read(10)
             }
 
@@ -704,9 +702,8 @@ impl IPacketCodec for Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Dts
 
-    mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
+    mtd impl initialize(?: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        discard config
         if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"DTS audio needs one to six channels and a non-zero sample rate"}
         .sampleRate = sampleRateHz

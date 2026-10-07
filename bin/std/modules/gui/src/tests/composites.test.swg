@@ -7,21 +7,18 @@ var CompositeSliderChangedCount: u32
 var CompositeInfoDismissedCount: u32
 var CompositeColorChangedCount:  u32
 
-func compositeSliderChanged(s: *SliderCtrl)
+func compositeSliderChanged(?: *SliderCtrl)
 {
-    discard s
     CompositeSliderChangedCount += 1
 }
 
-func compositeInfoDismissed(bar: *InfoBar)
+func compositeInfoDismissed(?: *InfoBar)
 {
-    discard bar
     CompositeInfoDismissedCount += 1
 }
 
-func compositeColorChanged(picker: *ColorPickerCtrl)
+func compositeColorChanged(?: *ColorPickerCtrl)
 {
-    discard picker
     CompositeColorChangedCount += 1
 }
 
@@ -51,9 +48,8 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     Swag.assert(dlg.contentView.padding.y == dlg.themeMetrics().dialog_Padding)
 
     var didClose: bool
-    host.app.sigFrame += func|host = &host, didClose = &didClose|(app)
+    host.app.sigFrame += func|host = &host, didClose = &didClose|(?)
     {
-        discard app
         if not didClose[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnCancel)
@@ -97,7 +93,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     let ctrl = EditCtrl.create(dlg, "Name", "Bob", {20, 20, 210, 26})
 
     var didSet: bool
-    host.app.sigFrame += func|host = &host, ctrl, didSet = &didSet|(app)
+    host.app.sigFrame += func|host = &host, ctrl, didSet = &didSet|(?)
     {
         if not didSet[]
         {

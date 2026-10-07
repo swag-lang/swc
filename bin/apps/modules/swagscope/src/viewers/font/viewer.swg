@@ -228,9 +228,8 @@ impl FontViewer
             .dockStyle = .Left
             .setMaximumLength(128)
             .setPlaceholder(fontStrings().ui_SamplePlaceholder)
-            .sigTextChanged += func|view = me|(edit)
+            .sigTextChanged += func|view = me|(?)
             {
-                discard edit
                 if not view.loadTimer do
                     view.document.invalidate()
             }
@@ -241,9 +240,8 @@ impl FontViewer
             .dockStyle  = .Left
             .margin.x   = 8
             .toolTip    = fontStrings().ui_PreviousPage
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.document.previousPage()
                 view.refreshPageCommands()
             }
@@ -253,9 +251,8 @@ impl FontViewer
         {
             .dockStyle  = .Left
             .toolTip    = fontStrings().ui_NextPage
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.document.nextPage()
                 view.refreshPageCommands()
             }
@@ -269,9 +266,8 @@ impl FontViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().res.fontDefaultFs)
             .toolTip    = fontStrings().ui_CharacterRange
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showRangeMenu()
             }
         }

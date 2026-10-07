@@ -9,7 +9,7 @@ struct BadgeScorer {}
 
 impl IGroupScorer for BadgeScorer
 {
-    mtd impl score(firstMask, secondMask, thirdMask: u64)->u32
+    mtd impl score(?, ?, ?: u64)->u32
     {
         return 0
     }

@@ -1058,7 +1058,7 @@ namespace
                 Runtime::TypeValue& tv = paramsPtr[i];
 
                 std::string_view paramName;
-                if (symParam->idRef().isValid())
+                if (symParam->idRef().isValid() && !symParam->isUnnamed())
                 {
                     const auto& id = ctx.idMgr().get(symParam->idRef());
                     paramName      = id.name;

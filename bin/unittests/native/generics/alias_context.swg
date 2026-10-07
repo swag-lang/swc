@@ -49,7 +49,7 @@ impl Vector3
 alias VectorAlias  = Vector3
 alias VectorAlias2 = VectorAlias
 
-func choose(value: bool, other: f32)->s32
+func choose(?: bool, ?: f32)->s32
 {
     return 1
 }

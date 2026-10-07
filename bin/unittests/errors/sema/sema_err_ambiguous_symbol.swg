@@ -1,7 +1,7 @@
 #global private
 
 func Amb() {}
-func Amb(a: s32) {}
+func Amb(a: s32) { discard a }
 
 #test
 {
@@ -17,7 +17,7 @@ func Amb(a: s32) {}
 namespace N
 {
     func Amb() {}
-    func Amb(a: s32) {}
+    func Amb(a: s32) { discard a }
 }
 
 #test

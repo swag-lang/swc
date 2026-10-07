@@ -554,9 +554,8 @@ impl TextViewer
 
 impl IWnd for TextViewer
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         discard .retire()
         .read.wait()
         if .statisticsThread.isValid() do
@@ -694,9 +693,8 @@ impl TextViewer
             .dockStyle = .Left
             .toolTip   = textStrings().ui_WrapOn
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = me|(button)
+            .sigCheckedChanged += func|view = me|(?)
             {
-                discard button
                 view.toggleWrap()
             }
         }
@@ -712,9 +710,8 @@ impl TextViewer
                 .addItem(name)
             for candidate, index in TextEncodings where candidate == me.encoding do
                 .setSelectedIndex(cast(u32, index), notify: false)
-            .sigChanged += func|view = me|(combo, index)
+            .sigChanged += func|view = me|(?, index)
             {
-                discard combo
                 view.applyEncoding(TextEncodings[index])
             }
         }
@@ -734,9 +731,8 @@ impl TextViewer
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = textStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showZoomMenu()
             }
         }
@@ -751,9 +747,8 @@ impl TextViewer
             .marginLeft  = 12
             .marginRight = 12
             .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
-            .sigScrollPositionChanged += func|view = me|(editor, oldPosition, newPosition)
+            .sigScrollPositionChanged += func|view = me|(?, oldPosition, newPosition)
             {
-                discard editor
                 view.followScroll(oldPosition, newPosition)
             }
         }
@@ -762,9 +757,8 @@ impl TextViewer
     // Routes the keys the text view answers for, and keeps painting and resizing from reloading text.
     private mtd hookEvents()
     {
-        .hookOnChildEvent = func|view = me|(wnd, evt)
+        .hookOnChildEvent = func|view = me|(?, evt)
         {
-            discard wnd
             switch evt
             {
             case PaintEvent as paintEvt:
@@ -815,9 +809,8 @@ impl TextViewer
             }
         }
 
-        .hookOnEvent = func|view = me|(wnd, evt)
+        .hookOnEvent = func|view = me|(?, evt)
         {
-            discard wnd
             if evt is ResizeEvent
             {
                 view.updateEstimatedHeight()
@@ -868,7 +861,7 @@ func createTextViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
-        .matchBounds = func|view|(match, bounds)->bool { discard match; return view.searchBounds(bounds) }
+        .matchBounds = func|view|(?, bounds)->bool { return view.searchBounds(bounds) }
         .clear       = func|view|() => view.clearSearch()
     }
 

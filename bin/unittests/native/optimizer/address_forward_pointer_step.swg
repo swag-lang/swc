@@ -22,9 +22,9 @@ func upsample(dst: [*] u8, luma: const [*] u8, units: u64)
     var d = dst
     var y = luma
     var c = luma + 2 * 64
-    for i in units
+    for units
     {
-        for l in 2
+        for 2
         {
             d[0] = y[0]
             d[1] = c[0]
@@ -43,9 +43,9 @@ func referenceUpsample(dst: [*] u8, luma: const [*] u8, units: u64)
     var d: u64
     var y: u64
     var c: u64 = 2 * 64
-    for i in units
+    for units
     {
-        for l in 2
+        for 2
         {
             dst[d]     = luma[y]
             dst[d + 1] = luma[c]

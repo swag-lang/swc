@@ -6,6 +6,7 @@
     while i < 3
     {
         var x = 0
+        discard x
         i += 1
     }
     Swag.assert(i == 3)
@@ -17,6 +18,7 @@
     while count < 4
     {
         var x = 0
+        discard x
         count += 1
     }
 
@@ -32,6 +34,7 @@
         while inner < 3
         {
             var x = 0
+            discard x
             inner += 1
         }
 

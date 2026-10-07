@@ -953,9 +953,8 @@ impl IWnd for BinaryViewer
         .finishLoadTimer()
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
-        discard evt
         .layoutPreviews()
         .layoutColumns()
     }
@@ -984,9 +983,8 @@ impl IWnd for BinaryViewer
             evt.accepted = false
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         .retireBlocking()
     }
 }
@@ -1115,9 +1113,8 @@ impl BinaryViewer
             .dockStyle = .Left
             .toolTip   = s.ui_MenuBack
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 discard view.navigateHistory(-1)
             }
         }
@@ -1127,9 +1124,8 @@ impl BinaryViewer
             .dockStyle = .Left
             .toolTip   = s.ui_MenuForward
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 discard view.navigateHistory(1)
             }
         }
@@ -1153,9 +1149,8 @@ impl BinaryViewer
             .addColumn(s.ui_ColValue, 200)
             .addColumn(s.ui_ColOffset, BinaryOffsetWidth)
             .addColumn(s.ui_ColDetail, 320)
-            .sigRightClicked += func|view = me|(list, position)
+            .sigRightClicked += func|view = me|(?, position)
             {
-                discard list
                 view.showContextMenu(view.list.listView.localToSurface(position))
             }
 
@@ -1228,22 +1223,19 @@ func createBinaryViewer(host: Viewer.Host)
 
             .filter = func|view|(text, options) => view.applyFilter(text, options)
 
-            .collectMatches = func|view|(text, options, progress, matches)->bool
+            .collectMatches = func|view|(text, options, ?, matches)->bool
             {
-                discard progress
                 view.collectMatches(text, options, matches)
                 return true
             }
 
-            .revealMatch = func|view|(match, text)->bool
+            .revealMatch = func|view|(match, ?)->bool
             {
-                discard text
                 return view.revealMatch(match)
             }
 
-            .matchBounds = func|view|(match, bounds)->bool
+            .matchBounds = func|view|(?, bounds)->bool
             {
-                discard match
                 return view.searchBounds(bounds)
             }
 

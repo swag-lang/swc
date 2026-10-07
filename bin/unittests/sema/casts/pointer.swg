@@ -57,13 +57,16 @@ func semaTest006()
 {
     var a:  [2] s32
     var p1: *s32       = a
+    discard p1
     var p2: const *s32 = a
+    discard p2
 }
 
 func semaTest007()
 {
     var a:  [2] s32
     var p1: *void = a
+    discard p1
 }
 
 func semaTest008()
@@ -71,13 +74,16 @@ func semaTest008()
     var str1:  string         = "abc"
     let data1                 = str1.buffer
     let data2: const [*] void = data1
+    discard data2
 }
 
 func semaTest009()
 {
     var a: typeinfo = #typeof(s32)
     var b = cast(const *u8, a)
+    discard b
     var c = cast(const *void, a)
+    discard c
 }
 
 func semaTest010()
@@ -100,6 +106,7 @@ func semaTest012()
 {
     var a:  [2] s32
     var p1: const *void = a
+    discard p1
 }
 
 struct RawPointerCast

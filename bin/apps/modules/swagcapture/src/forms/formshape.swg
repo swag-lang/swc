@@ -103,7 +103,7 @@ impl IForm for FormShape
         .y += newPosY
     }
 
-    mtd impl movePoint(pt: u32, newPosX, newPosY: s32) {}
+    mtd impl movePoint(?: u32, ?, ?: s32) {}
 
     mtd impl boundRect()->Math.Rectangle => .rectFormBound()
 

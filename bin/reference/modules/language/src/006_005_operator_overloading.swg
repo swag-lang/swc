@@ -79,17 +79,20 @@ impl Struct
     // Access a value by slicing with the [low..up] notation. Returns a string or a slice.
     func opSlice(me, low, up: u64)->string
     {
+        discard low, up
         return "true"
     }
 
     // Access a value by one or more indices. All index parameters must have the same type.
     func opIndex(me, index: OneType)->WhateverType
     {
+        discard index
         return true
     }
 
     func opIndex(me, row: OneType, column: OneType)->WhateverType
     {
+        discard row, column
         return true
     }
 
@@ -98,12 +101,14 @@ impl Struct
     // an assignment when no dedicated write operator matches.
     func opIndexPtr(me, index: OneType)->*AnotherType
     {
+        discard index
         return &me.x
     }
 
     // The 'const' overload serves read-only receivers with a read-only element address.
     func opIndexPtr(const me, index: OneType)->const *AnotherType
     {
+        discard index
         return &me.x
     }
 
@@ -142,22 +147,26 @@ impl Struct
     // Compare the struct value with another; used in '==' and '!=' operations
     func opEquals(me, other: OneType)->bool
     {
+        discard other
         return false
     }
 
     func opEquals(me, other: AnotherType)->bool
     {
+        discard other
         return false
     }
 
     // Three-way comparison; returns -1, 0, or 1 (used for '<', '>', '<=', '>=', '<=>')
     func opCompare(me, other: OneType)->s32
     {
+        discard other
         return 0
     }
 
     func opCompare(me, other: AnotherType)->s32
     {
+        discard other
         return 0
     }
 
@@ -166,8 +175,8 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Direct assignment via '='
-    func opSet(me, other: OneType) {}
-    func opSet(me, other: AnotherType) {}
+    func opSet(me, other: OneType) { discard other }
+    func opSet(me, other: AnotherType) { discard other }
 
     // Assign a literal value with a specific suffix to the struct (generic)
     func(suffix: string) opSetLiteral(me, value: OneType) {}
@@ -175,9 +184,9 @@ impl Struct
 
     // Assign to an indexed position via '[?] ='. All index parameters must have the same type.
     // 'opIndexSet' keeps priority over writing through the 'opIndexPtr' element address.
-    func opIndexSet(me, index: OneType, value: OneType) {}
-    func opIndexSet(me, row: OneType, column: OneType, value: OneType) {}
-    func opIndexSet(me, index: OneType, value: AnotherType) {}
+    func opIndexSet(me, index: OneType, value: OneType) { discard index, value }
+    func opIndexSet(me, row: OneType, column: OneType, value: OneType) { discard row, column, value }
+    func opIndexSet(me, index: OneType, value: AnotherType) { discard index, value }
 
     // -------------------------------------------------------------------------
     // Operators (binary, unary, compound assignment)

@@ -367,11 +367,11 @@ impl Serialization.ISerialize for DateTime
         return true
     }
 
-    mtd impl readElement(type: Swag.TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail => false
+    mtd impl readElement(?: Swag.TypeValue, ?: *void?, ?: Serialization.IDecoder)->bool fail => false
 
-    mtd impl writeElement(type: Swag.TypeValue, data: const *void?, decoder: Serialization.IEncoder)->bool fail => false
+    mtd impl writeElement(?: Swag.TypeValue, ?: const *void?, ?: Serialization.IEncoder)->bool fail => false
 
-    mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail {}
+    mtd impl postRead(?: *void?, ?: Serialization.IDecoder) fail {}
 }
 
 impl StrConv.IConvert for DateTime
@@ -381,7 +381,7 @@ impl StrConv.IConvert for DateTime
     // The letters `a` to `j` select, in order, `DateTime`, `DateTimeMs`, `DateTimeIso`,
     // `DateTimeIsoMs`, `DateTimeIsoHm`, `DateIso`, `TimeIso`, `TimeIsoMs`, `TimeIsoHm`, and
     // `Date`. Any other format uses the default.
-    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string?)
+    mtd const impl convert(buf: *ConcatBuffer, ?: StrConv.ConvertFormat, strFormat: string?)
     {
         var fmt = DateTimeFormat.DateTime
         if strFormat.count == 1

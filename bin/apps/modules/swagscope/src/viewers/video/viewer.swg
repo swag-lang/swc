@@ -125,9 +125,8 @@ struct VideoSubtitleOverlay
 
 private impl IWnd for VideoSubtitleOverlay
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         for track in .sidecars do
             Subtitle.Track.destroy(track)
         .sidecars.clear()
@@ -259,9 +258,8 @@ private impl IWnd for VideoSeekOverlay
         .resetPresentation()
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         if .timer do
             .removeTimer(.timer)
     }
@@ -1769,9 +1767,8 @@ private impl IWnd for VideoViewer
         }
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        discard evt
         .retireBlocking()
     }
 
@@ -1985,9 +1982,8 @@ private impl VideoViewer
             .dockStyle = .Left
             .toolTip   = videoStrings().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.togglePlayback()
             }
         }
@@ -1998,9 +1994,8 @@ private impl VideoViewer
             .margin.x  = 4
             .toolTip   = videoStrings().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.stopPlayback()
             }
         }
@@ -2013,9 +2008,8 @@ private impl VideoViewer
             // one block of air between them.
             .margin.x   = 16
             .toolTip    = videoStrings().ui_TipBackward
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.seekRelative(-VideoSeekSeconds)
             }
         }
@@ -2025,9 +2019,8 @@ private impl VideoViewer
             .dockStyle  = .Left
             .margin.x   = 4
             .toolTip    = videoStrings().ui_TipForward
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.seekRelative(VideoSeekSeconds)
             }
         }
@@ -2045,9 +2038,8 @@ private impl VideoViewer
             .margin.x  = 4
             .toolTip   = videoStrings().ui_TipPlaybackSpeed
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showPlaybackSpeedMenu()
             }
         }
@@ -2064,9 +2056,8 @@ private impl VideoViewer
             .toolTip   = videoStrings().ui_TipAudio
             .setArrowPosition(.RightUpward)
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showAudioTrackMenu()
             }
         }
@@ -2080,9 +2071,8 @@ private impl VideoViewer
             .setArrowPosition(.RightUpward)
             .style.setFont(me.theme().createDefaultFont(10, .Bold), .Regular)
             .enable(false)
-            .sigPressed += func|view = me|(button)
+            .sigPressed += func|view = me|(?)
             {
-                discard button
                 view.showSubtitleMenu()
             }
         }
@@ -2123,9 +2113,8 @@ private impl VideoViewer
 
             // A drag may cross hundreds of frames. Decode its final position once instead of
             // serially decoding every intermediate value queued by the pointer movement.
-            .sigStartChange += func|view = me|(slider)
+            .sigStartChange += func|view = me|(?)
             {
-                discard slider
                 view.timelineChanging = true
             }
 

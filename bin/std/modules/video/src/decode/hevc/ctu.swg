@@ -111,7 +111,7 @@ impl Decoder
             let motion = .deriveMergeMotion(x0, y0, nCbS, x0, y0, nCbS, nCbS, 0, Part2Nx2N, mergeIdx)
             .storeMotion(x0, y0, nCbS, nCbS, &motion)
             .interPredict(x0, y0, nCbS, nCbS, &motion)
-            .finishCodingUnit(x0, y0, nCbS, hasResidual: false)
+            .finishCodingUnit(x0, y0, nCbS)
             return
         }
 
@@ -210,7 +210,7 @@ impl Decoder
 
         let maxDepth = sps.maxTrafoDepthIntra + (split ? 1'u32 : 0'u32)
         try .transformTree(x0, y0, x0, y0, log2CbSize, 0, 0, parentCbfCb: false, parentCbfCr: false, maxTrafoDepth: maxDepth, isIntra: true, intraSplit: split, bypass: bypass, partMode: partMode, chromaMode: chromaMode)
-        .finishCodingUnit(x0, y0, nCbS, hasResidual: true)
+        .finishCodingUnit(x0, y0, nCbS)
     }
 
     // Derives one luma intra prediction mode from its neighbours, clause 8.4.2.
@@ -348,7 +348,7 @@ impl Decoder
             try .transformTree(x0, y0, x0, y0, log2CbSize, 0, 0, parentCbfCb: false, parentCbfCr: false, maxTrafoDepth: sps.maxTrafoDepthInter, isIntra: false, intraSplit: false, bypass: bypass, partMode: partMode, chromaMode: IntraDc)
         }
 
-        .finishCodingUnit(x0, y0, nCbS, hasResidual)
+        .finishCodingUnit(x0, y0, nCbS)
     }
 
     // Decodes one prediction unit and predicts its samples, clause 7.3.8.6.
@@ -536,10 +536,8 @@ impl Decoder
     }
 
     // Records the quantization parameter of a finished coding unit over the blocks it covers.
-    private mtd finishCodingUnit(x0, y0, nCbS: s32, hasResidual: bool)
+    private mtd finishCodingUnit(x0, y0, nCbS: s32)
     {
-        discard hasResidual
-
         let blocks = cast(u32, nCbS) >> MinBlockLog2
         let origin = .blockIndex(x0, y0)
         for row in blocks
@@ -601,7 +599,7 @@ impl Decoder
     }
 
     // Decodes one transform unit and reconstructs its samples, clause 7.3.8.10.
-    mtd transformUnit(x0, y0, xBase, yBase: s32, log2TrafoSize, trafoDepth, blkIdx: u32, cbfLuma, cbfCb, cbfCr, isIntra, bypass: bool, chromaMode: u8) fail
+    mtd transformUnit(x0, y0, xBase, yBase: s32, log2TrafoSize, ?, blkIdx: u32, cbfLuma, cbfCb, cbfCr, isIntra, bypass: bool, chromaMode: u8) fail
     {
         let sps  = .activeSps!
         let pps  = .activePps!

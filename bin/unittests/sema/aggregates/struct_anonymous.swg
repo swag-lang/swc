@@ -15,7 +15,9 @@ func semaTest002()
 {
     var st1: struct { x: s32; y: s32 }
     let a = st1.x == 1
+    discard a
     let b = st1.y == 2
+    discard b
     #assert(#sizeof(st1) == 8)
 }
 
@@ -29,6 +31,7 @@ func semaTest003()
 func semaTest004()
 {
     let s = toto()
+    discard s
     var t: struct { x: s32; y: bool }
     t.x = 1
     t.y = false

@@ -2,7 +2,7 @@
 
 var dropPanics: u32
 
-func recordDropPanic(message: string?, location: Swag.SourceCodeLocation)
+func recordDropPanic(?: string?, ?: Swag.SourceCodeLocation)
 {
     dropPanics += 1
 }
@@ -176,10 +176,10 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
 #test
 {
     var total: Swag.AtomicValue'u32
-    parallel for |&total| parent in 16
+    parallel for |&total| 16
     {
         var tasks: [8] Swag.Task
-        for round in 16
+        for 16
         {
             for index in 8 do
                 tasks[index].submit(func|&total, index|() { total.add(cast(u32, index) + 1) })
@@ -226,7 +226,7 @@ func withBlockedWorkers(body: func||())->bool
         })
     }
 
-    for attempt in 5000
+    for 5000
     {
         mutex.lock()
         let ready = started.load() == workers
@@ -285,7 +285,7 @@ func withBlockedWorkers(body: func||())->bool
         var tasks:    [5] Swag.Task
         var expected: [5] u32
         let order:    [5] u32 = [2, 0, 4, 1, 3]
-        for round in 3
+        for 3
         {
             for index in 5 do
                 tasks[index].submit(func|&runs, index|() { runs[index].add(1) })
@@ -313,13 +313,13 @@ func withBlockedWorkers(body: func||())->bool
         parent.submit(func|&total|()
         {
             var group: Swag.TaskGroup
-            for index in 40 do
+            for 40 do
                 group.spawn(func|&total|() { total.add(1) })
         })
         parent.wait()
-        parallel for |&total| row in 7
+        parallel for |&total| 7
         {
-            parallel for |&total| column in 5 do
+            parallel for |&total| 5 do
                 total.add(1)
         }
         invalid = total.load() != 75

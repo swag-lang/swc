@@ -86,7 +86,7 @@ impl CannotCastOpCastBox
     }
 }
 
-func consumeCannotCastRawS32(value: s32) {}
+func consumeCannotCastRawS32(value: s32) { discard value }
 
 #test
 {
@@ -96,11 +96,11 @@ func consumeCannotCastRawS32(value: s32) {}
 
 alias CannotCastExactDigest = [16] u8
 
-func consumeCannotCastExact4(values: [4] s32) {}
+func consumeCannotCastExact4(values: [4] s32) { discard values }
 
-func consumeCannotCastExactDigest(digest: CannotCastExactDigest) {}
+func consumeCannotCastExactDigest(digest: CannotCastExactDigest) { discard digest }
 
-func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
+func consumeCannotCastExactGrid(grid: [2, 3] s16) { discard grid }
 
 #test
 {
@@ -124,7 +124,7 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
 {
     // A '#move' parameter only binds a move reference formed with '#move': a plain address must not match.
     struct MoveBindVec { x: s32 }
-    func takeMoveBind(v: #move MoveBindVec) {}
+    func takeMoveBind(v: #move MoveBindVec) { discard v }
     var value: MoveBindVec
     takeMoveBind(&value)     // swc-expected-error {{sema_err_cannot_cast}}
 }
@@ -141,7 +141,7 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
 // nullable pointer to a non-null parameter stays a cast error.
 
 struct NarrowLimitNode { value: s32 }
-func narrowLimitTakes(p: *NarrowLimitNode) {}
+func narrowLimitTakes(p: *NarrowLimitNode) { discard p }
 
 #test
 {

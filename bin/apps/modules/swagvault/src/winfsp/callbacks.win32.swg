@@ -125,7 +125,7 @@ namespace WinFsp
         return fillInfo(volume, id, info)
     }
 
-    func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
+    func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, ?: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
         volume.accessLock.lockExclusive()
@@ -344,12 +344,11 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackRename(context: *void?, nodeId: u64, oldPath, newPath: const [*] u8?, replace: u8)->s32
+    func callbackRename(context: *void?, nodeId: u64, ?, newPath: const [*] u8?, replace: u8)->s32
     {
         let volume = cast(*Volume, context!)
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
-        discard oldPath
         discard catch volume.renameNode(nodeId, cString(newPath), replace != 0) as err
         return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
     }

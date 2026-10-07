@@ -810,9 +810,8 @@ private impl AacCodec
         let sectionBits   = value.windowSequence == 2 ? 3 : 5
         let sectionEscape = value.windowSequence == 2 ? 7 : 31
         var flatBand      = 0's32
-        for group in value.numWindowGroups
+        for value.numWindowGroups
         {
-            discard group
             var filled = 0's32
             while filled < value.maxSfb
             {

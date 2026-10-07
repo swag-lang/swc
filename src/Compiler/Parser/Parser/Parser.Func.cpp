@@ -168,9 +168,10 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
     {
         nodeType = parseCompilerTypeExpr();
     }
-    else if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
+    else if (isAny(TokenId::Identifier, TokenId::SymQuestion) && nextIs(TokenId::SymColon))
     {
-        tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        // '?: T' declares a parameter the body leaves unnamed.
+        tokName = consume();
         flags.add(AstLambdaParamFlagsE::Named);
         consumeAssert(TokenId::SymColon);
         nodeType = parseType();

@@ -1,8 +1,8 @@
 #global private
 
-func takes_u32(v: u32) {}
-func takes_u8(v: u8) {}
-func takes_s32(v: s32) {}
+func takes_u32(?: u32) {}
+func takes_u8(?: u8) {}
+func takes_s32(?: s32) {}
 
 func semaTest001()
 {
@@ -10,6 +10,7 @@ func semaTest001()
     var b: u16 = a
     var c: u32 = b
     var d: u64 = c
+    discard d
 }
 
 func semaTest002()
@@ -18,6 +19,7 @@ func semaTest002()
     var b: s16 = a
     var c: s32 = b
     var d: s64 = c
+    discard d
 }
 
 func semaTest003()
@@ -25,6 +27,7 @@ func semaTest003()
     var a: u32 = 10
     var b: s32 = a
     var c: u32 = b
+    discard c
 }
 
 func semaTest004()
@@ -39,6 +42,7 @@ func semaTest005()
     var a: u16 = 10
     var b: s32 = a
     var c: u32 = b
+    discard c
 }
 
 func semaTest006()

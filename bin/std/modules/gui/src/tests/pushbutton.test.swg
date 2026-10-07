@@ -8,15 +8,13 @@ const PushButtonHeadless_Command = "PushButtonHeadless.Command"
 var PushButtonHeadlessPressedCount:      u32
 var PushButtonHeadlessRightPressedCount: u32
 
-func pushButtonHeadlessPressed(btn: *Button)
+func pushButtonHeadlessPressed(?: *Button)
 {
-    discard btn
     PushButtonHeadlessPressedCount += 1
 }
 
-func pushButtonHeadlessRightPressed(btn: *Button)
+func pushButtonHeadlessRightPressed(?: *Button)
 {
-    discard btn
     PushButtonHeadlessRightPressedCount += 1
 }
 
@@ -162,7 +160,7 @@ func pushButtonHeadlessResetCounters()
     button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
     button.aniText.themeCrc   = 44'u32
-    button.sigPressed         += func|panel|(btn)
+    button.sigPressed         += func|panel|(?)
     {
         panel.hide()
         PushButtonHeadlessPressedCount += 1

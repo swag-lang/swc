@@ -41,7 +41,7 @@ impl BitReader
     mtd read(count: u32)->u32
     {
         var result = 0'u32
-        for index in count
+        for count
         {
             result <<= 1
             if .bitPos < .bitEnd

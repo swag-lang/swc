@@ -115,7 +115,7 @@ struct AbiNested
 
 #test
 {
-    func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: *void?)->s32 { return a + c.a + d[1] }
+    func passMixed(a: s32, ?: string, c: AbiPair, d: [2] s32, ?: *void?)->s32 { return a + c.a + d[1] }
     const V = #run passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null)
     #assert(V == 22)
     const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567'u64))

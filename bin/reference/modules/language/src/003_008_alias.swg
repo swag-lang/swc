@@ -37,6 +37,7 @@ domain-specific, improving clarity when a type has a specific contextual meaning
 
     var x: Float32 = 1.0
     var y: Float64 = 1.0
+    Swag.assert(x == 1.0 and y == 1.0)
 
     #assert(#typeof(Float32) == f32)
     #assert(#typeof(Float64) == f64)
@@ -58,6 +59,7 @@ the alias and its base type. Explicit casting is still permitted.
 
     let x: MyType = cast(MyType, 0)
     let y: s32    = cast(s32, x)
+    Swag.assert(y == 0)
 }
 
 /**

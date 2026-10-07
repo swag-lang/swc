@@ -224,6 +224,7 @@ func semaTest001()
         #assert(#typeof(value) == #type *s32)
         #assert(#typeof(ordinal) == u64)
         var x = value
+        discard x
     }
 }
 
@@ -236,7 +237,9 @@ func semaTest002()
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == u64)
         var x = value
+        discard x
         var y = ordinal
+        discard y
     }
 }
 
@@ -250,7 +253,9 @@ func semaTest002b()
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == u64)
         var x = value
+        discard x
         var y = ordinal
+        discard y
     }
 }
 
@@ -262,7 +267,9 @@ func semaTest003()
     {
         let ordinal = index
         var x       = ordinal
+        discard x
         var y       = value
+        discard y
     }
 }
 
@@ -275,6 +282,7 @@ func semaTest004()
         #assert(#typeof(index) == u64)
         let ordinal = index
         var x       = ordinal
+        discard x
     }
 }
 
@@ -287,8 +295,11 @@ func semaTest005()
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
         var x = value
+        discard x
         var y = scaled
+        discard y
         var z = ordinal
+        discard z
     }
 }
 
@@ -299,8 +310,11 @@ func semaTest005b()
     for value, scaled, index in values
     {
         var x = value
+        discard x
         var y = scaled
+        discard y
         var z = index
+        discard z
     }
 }
 
@@ -312,7 +326,9 @@ func semaTest006()
     {
         #assert(#typeof(value) == #type *s32)
         var x = value
+        discard x
         var y = ordinal
+        discard y
     }
 }
 
@@ -326,8 +342,11 @@ func semaTest007()
         #assert(#typeof(right) == s32)
         #assert(#typeof(index) == u64)
         var x = left
+        discard x
         var y = right
+        discard y
         var z = index
+        discard z
     }
 }
 
@@ -339,7 +358,9 @@ func semaTest008()
     {
         #assert(#typeof(value) == #type const *s32)
         var x = value
+        discard x
         var y = ordinal
+        discard y
     }
 }
 
@@ -352,7 +373,9 @@ func semaTest009()
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == u64)
         var x = value
+        discard x
         var y = ordinal
+        discard y
     }
 }
 
@@ -373,7 +396,9 @@ func semaTest010()
     for i in 0 until 1
     {
         var x = i
+        discard x
     }
 
     var total = outside + inside
+    discard total
 }

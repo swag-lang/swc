@@ -20,7 +20,7 @@ struct EditCtrl
 
 impl IWnd for EditCtrl
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(?: *ResizeEvent)
     {
         if .label == null do
             return

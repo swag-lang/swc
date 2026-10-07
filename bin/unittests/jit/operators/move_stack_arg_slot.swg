@@ -24,12 +24,12 @@ impl Tracked
 
 var g_slot: Tracked
 
-func moveScalarOnStack(a, b, c, d: u64, value: #move u64)
+func moveScalarOnStack(?, ?, ?, ?: u64, value: #move u64)
 {
     g_out = #move value
 }
 
-func moveScalarInRegister(value: #move u64, a, b, c, d: u64)
+func moveScalarInRegister(value: #move u64, ?, ?, ?, ?: u64)
 {
     g_out = #move value
 }
@@ -46,7 +46,7 @@ func moveScalarInRegister(value: #move u64, a, b, c, d: u64)
     Swag.assert(g_out == 88)
 }
 
-func fwdScalarOnStack(a, b, c, d: u64, value: #fwd u64)
+func fwdScalarOnStack(?, ?, ?, ?: u64, value: #fwd u64)
 {
     g_out = #fwd value
 }
@@ -63,7 +63,7 @@ func fwdScalarOnStack(a, b, c, d: u64, value: #fwd u64)
     Swag.assert(g_out == 22)
 }
 
-func moveStructOnStack(a, b, c, d: u64, value: #move Tracked)
+func moveStructOnStack(?, ?, ?, ?: u64, value: #move Tracked)
 {
     g_slot = #nodrop #move value
 }

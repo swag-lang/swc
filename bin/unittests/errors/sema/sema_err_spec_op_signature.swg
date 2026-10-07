@@ -28,12 +28,12 @@ struct BadIndexPtrNullableReturn {}
 
 impl BadMultiIndexGet
 {
-    mtd opIndex(row: s32, col: u32)->s32 { return 0 }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd opIndex(row: s32, col: u32)->s32 { discard row, col; return 0 }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 impl BadMultiIndexSet
 {
-    mtd opIndexSet(row: s32, col: u32, value: s32) {}     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd opIndexSet(row: s32, col: u32, value: s32) { discard row, col, value }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 impl BadMultiIndexAssign
@@ -44,12 +44,12 @@ impl BadMultiIndexAssign
 // 'opIndexPtr' must hand back a non-null single-value pointer: the element's address.
 impl BadIndexPtrValueReturn
 {
-    mtd opIndexPtr(index: u64)->s32 { return 0 }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd opIndexPtr(index: u64)->s32 { discard index; return 0 }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 impl BadIndexPtrNullableReturn
 {
-    mtd opIndexPtr(index: u64)->*s32? { return null }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd opIndexPtr(index: u64)->*s32? { discard index; return null }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 #test

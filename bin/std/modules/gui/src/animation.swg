@@ -976,9 +976,8 @@ impl Animator
             group.addF32(outgoing, AnimationChannel.from("Gui.Page.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
         group.addF32(incoming, AnimationChannel.from("Gui.Page.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
         group.addPoint(incoming, AnimationChannel.from("Gui.Page.Offset"), offset, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
-        group.setCompletion(func|outgoing, incoming|(result)
+        group.setCompletion(func|outgoing, incoming|(?)
         {
-            discard result
             if outgoing
             {
                 let wnd = outgoing

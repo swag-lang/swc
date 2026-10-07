@@ -824,7 +824,7 @@ func freeOne(itf: IAllocator, address: *void?)
 // ----------------------------------------------------------------------------
 var g_DoubleFreePanics: u32
 
-func recordDoubleFreePanic(message: string?, _loc: SourceCodeLocation)
+func recordDoubleFreePanic(message: string?, ?: SourceCodeLocation)
 {
     if message == "memory block is freed twice" do
         g_DoubleFreePanics += 1
@@ -969,7 +969,7 @@ func freeAddress(itf: IAllocator, address: u64)
 // ----------------------------------------------------------------------------
 var g_FreedWritePanics: u32
 
-func recordFreedWritePanic(message: string?, _loc: SourceCodeLocation)
+func recordFreedWritePanic(message: string?, ?: SourceCodeLocation)
 {
     if message == "memory block was written after being freed" do
         g_FreedWritePanics += 1

@@ -25,7 +25,7 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
 #test
 {
     var values: [512][17] u64
-    for repeat in 2 do
+    for 2 do
         fillManyProfiles'(0, 512)(&values, 3, 100, 32768)
     for leaf in 512
     {
@@ -49,7 +49,7 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
     for width in widths
     {
         var values: [512][17] u64
-        for repeat in 17 do
+        for 17 do
             fillManyProfiles'(0, 512)(&values, width, 0xFFFF_FFFF_FFFF_FFE0)
         for leaf in 512
         {
@@ -69,7 +69,7 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
         {
             group.spawn(func|&grids, lane|()
             {
-                for repeat in 17 do
+                for 17 do
                     fillManyProfiles'(0, 512)(&grids[lane], 17, lane * 100)
             })
         }

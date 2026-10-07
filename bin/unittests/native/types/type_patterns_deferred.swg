@@ -49,7 +49,7 @@ func deferredPatternBinding(value: s32, result: *s32, early: bool)
         let error = Swag.getContext().curError
         switch error
         {
-        case s64 as number:
+        case s64:
             result = -1
         case s32 as number where number[] == 7:
             result = number[]

@@ -476,13 +476,13 @@ AstNodeRef Parser::parseFor()
     return parseForLoop();
 }
 
-// 'parallel for |captures| name in range { body }'.
+// 'parallel for |captures| [name in] range { body }'.
 //
 // The loop is lowered here into the shape the runtime schedules: a closure taking one
 // partition's half-open bounds, whose body is an ordinary 'for' over them. The two bounds are
-// named by the 'for' and 'in' keywords of this statement, which is deliberate -- a keyword can
-// never collide with a name the body can write, and the generated identifiers need no token of
-// their own.
+// named by the 'for' and 'in' keywords of this statement ('parallel' when 'in' is absent), which
+// is deliberate -- a keyword can never collide with a name the body can write, and the generated
+// identifiers need no token of their own.
 AstNodeRef Parser::parseParallelFor(bool fallible)
 {
     const TokenRef tokParallel = consumeAssert(TokenId::KwdParallel);
@@ -494,8 +494,18 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
     else if (is(TokenId::SymPipePipe))
         consume();
 
-    const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-    const TokenRef tokIn   = expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
+    // The index name is optional, as in 'for': 'parallel for |c| 4' and 'parallel for |c| ? in 4'
+    // leave it unnamed. Without 'in', the 'parallel' keyword names the upper partition bound.
+    TokenRef tokName = TokenRef::invalid();
+    TokenRef tokIn   = tokParallel;
+    if (isAny(TokenId::Identifier, TokenId::SymQuestion) && nextIs(TokenId::KwdIn))
+    {
+        if (is(TokenId::Identifier))
+            tokName = consume();
+        else
+            consume();
+        tokIn = consume();
+    }
 
     if (isAny(TokenId::KwdTo, TokenId::KwdUntil))
     {
@@ -539,7 +549,8 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
     bounds->nodeExprUpRef    = hiRef;
 
     SmallVector<TokenRef> names;
-    names.push_back(tokName);
+    if (tokName.isValid())
+        names.push_back(tokName);
     loopPtr->spanNamesRef = ast_->pushSpan(names.span());
     loopPtr->nodeExprRef  = boundsRef;
     loopPtr->nodeWhereRef.setInvalid();

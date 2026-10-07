@@ -180,7 +180,7 @@ impl Guid128
 // Formats a [[Core.Guid128]] in its canonical lowercase UUID form.
 impl StrConv.IConvert for Guid128
 {
-    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string?)
+    mtd const impl convert(buf: *ConcatBuffer, ?: StrConv.ConvertFormat, ?: string?)
     {
         buf.addBytes(.toString())
     }

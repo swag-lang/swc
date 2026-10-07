@@ -47,7 +47,7 @@ func chainC()->SourceCodeLocation
 // Multiple params with #callerlocation
 // =========================================================================
 
-func multiParam(a: s32, b: s32 = 10, loc = #callerlocation)->SourceCodeLocation => loc
+func multiParam(a: s32, b: s32 = 10, loc = #callerlocation)->SourceCodeLocation { discard a, b; return loc }
 
 func multiParamCaller()->SourceCodeLocation
 {
@@ -64,7 +64,7 @@ func multiParamCaller()->SourceCodeLocation
 // #callerlocation as the first default param
 // =========================================================================
 
-func locFirst(loc = #callerlocation, extra: s32 = 0)->SourceCodeLocation => loc
+func locFirst(loc = #callerlocation, extra: s32 = 0)->SourceCodeLocation { discard extra; return loc }
 
 func locFirstCaller()->SourceCodeLocation
 {
@@ -220,7 +220,7 @@ func fileCaller()->LocPair
 // Named arguments: #callerlocation still captures correctly
 // =========================================================================
 
-func namedArgFunc(a: s32 = 0, loc = #callerlocation, b: s32 = 0)->SourceCodeLocation => loc
+func namedArgFunc(a: s32 = 0, loc = #callerlocation, b: s32 = 0)->SourceCodeLocation { discard a, b; return loc }
 
 func namedArgCaller()->SourceCodeLocation
 {
@@ -266,7 +266,7 @@ const JitResult = #run jitCaller()
 // Multiple #callerlocation parameters in different positions
 // =========================================================================
 
-func twoLocParams(x: s32, loc = #callerlocation, y: s32 = 0)->SourceCodeLocation => loc
+func twoLocParams(x: s32, loc = #callerlocation, y: s32 = 0)->SourceCodeLocation { discard x, y; return loc }
 
 func twoLocCaller()->SourceCodeLocation
 {

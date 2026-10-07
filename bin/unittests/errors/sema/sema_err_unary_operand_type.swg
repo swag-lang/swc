@@ -24,7 +24,7 @@
 #test
 {
     // '#move' on a raw pointer is ambiguous (move the pointer or the pointee?): use '[]'.
-    func takeMove(v: #move s32) {}
+    func takeMove(v: #move s32) { discard v }
     var value: s32
     var p = &value
     takeMove(#move p)     // swc-expected-error {{sema_err_unary_operand_type}}

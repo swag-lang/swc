@@ -277,7 +277,7 @@ func failStoredTextWithCleanup() fail
     let baseline = allocator.stats().countAlloc
     var valid: bool
     {
-        catch parallel for || index in 1
+        catch parallel for || 1
         {
             try failStoredText("the copied parallel error retains its message")
         } as transported

@@ -38,6 +38,7 @@
     if true
     {
         var x = 0
+        discard x
         count += 1
     }
     Swag.assert(count == 1)
@@ -65,6 +66,7 @@
         if true
         {
             var x = 0
+            discard x
             count += 1
         }
     }

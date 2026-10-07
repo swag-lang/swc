@@ -1,6 +1,6 @@
 #global private
 
-func choose(value: bool, other: f32)->s32
+func choose(?: bool, ?: f32)->s32
 {
     return 1
 }

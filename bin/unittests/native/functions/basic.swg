@@ -19,7 +19,7 @@ func T()->s32
     return a
 }
 
-func T1(a0, b0: s32)->s32
+func T1(a0, ?: s32)->s32
 {
     let c = a0
     return c

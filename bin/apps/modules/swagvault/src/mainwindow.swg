@@ -583,9 +583,8 @@ impl MainWindow
             catch g_App.saveState()
         }
 
-        result.appearanceButton.sigAboutRequested += func|window = result|(button)
+        result.appearanceButton.sigAboutRequested += func|window = result|(?)
         {
-            discard button
             window.showAbout()
         }
 
@@ -611,9 +610,8 @@ impl MainWindow
             .addItem(appStrings().ui_OptionsTab, view: result.createOptionsCard(tabs))
         }
 
-        tabs.sigSelectionChanged += func|window = result|(tab)
+        tabs.sigSelectionChanged += func|window = result|(?)
         {
-            discard tab
             window.arrangeCards()
         }
 
@@ -739,18 +737,16 @@ impl MainWindow
     {
         mtd onEdit(edit: *EditBox)
         {
-            edit.sigTextChanged += func|window = me|(box)
+            edit.sigTextChanged += func|window = me|(?)
             {
-                discard box
                 window.refreshActions()
             }
         }
 
         mtd onPassword(edit: *PasswordEdit)
         {
-            edit.sigChanged += func|window = me|(box)
+            edit.sigChanged += func|window = me|(?)
             {
-                discard box
                 window.refreshActions()
             }
         }
@@ -762,9 +758,8 @@ impl MainWindow
         .onPassword(.confirmPassword)
         .onPassword(.mountPassword)
 
-        .drive.sigChanged += func|window = me|(combo, index)
+        .drive.sigChanged += func|window = me|(?, ?)
         {
-            discard combo, index
             window.refreshActions()
         }
 
@@ -780,18 +775,16 @@ impl MainWindow
     {
         mtd onCreateEdit(edit: *EditBox)
         {
-            edit.sigSubmitted += func|window = me|(box)
+            edit.sigSubmitted += func|window = me|(?)
             {
-                discard box
                 window.submitCreate()
             }
         }
 
         mtd onCreatePassword(edit: *PasswordEdit)
         {
-            edit.sigSubmitted += func|window = me|(box)
+            edit.sigSubmitted += func|window = me|(?)
             {
-                discard box
                 window.submitCreate()
             }
         }
@@ -801,15 +794,13 @@ impl MainWindow
         .onCreatePassword(.createPassword)
         .onCreatePassword(.confirmPassword)
 
-        .mountPath.sigSubmitted += func|window = me|(box)
+        .mountPath.sigSubmitted += func|window = me|(?)
         {
-            discard box
             window.submitMount()
         }
 
-        .mountPassword.sigSubmitted += func|window = me|(box)
+        .mountPassword.sigSubmitted += func|window = me|(?)
         {
-            discard box
             window.submitMount()
         }
     }
@@ -909,35 +900,30 @@ impl MainWindow
 
         // The semantic column shares are resolved again every time the table receives a new
         // width, so the header covers the complete logical client area at every surface size.
-        .mountedDrives.list.listView.hookOnEvent = func|window = me|(wnd, evt)
+        .mountedDrives.list.listView.hookOnEvent = func|window = me|(?, evt)
         {
-            discard wnd
             if evt is ResizeEvent do
                 window.mountedDrives.layoutColumns()
             return false
         }
 
-        .mountedDrives.unmountButton.sigPressed += func|window = me|(btn)
+        .mountedDrives.unmountButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.unmountSelectedDrive()
         }
 
-        .mountedDrives.list.sigSelectionChanged += func|window = me|(list)
+        .mountedDrives.list.sigSelectionChanged += func|window = me|(?)
         {
-            discard list
             window.refreshActions()
         }
 
-        .mountedDrives.sigDrivesChanged += func|window = me|(drives)
+        .mountedDrives.sigDrivesChanged += func|window = me|(?)
         {
-            discard drives
             window.refreshActions()
         }
 
-        .mountedDrives.list.sigCheckedChanged += func|window = me|(list)
+        .mountedDrives.list.sigCheckedChanged += func|window = me|(?)
         {
-            discard list
             window.applyStartupMarks()
         }
 
@@ -960,33 +946,28 @@ impl MainWindow
         for minutes in [5'u32, 15, 30, 60] do
             .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes).toString())
 
-        .privacyModeControl.sigChanged += func|window = me|(button)
+        .privacyModeControl.sigChanged += func|window = me|(?)
         {
-            discard button
             window.readPrivacyControl()
         }
 
-        .unmountOnLock.sigChanged += func|window = me|(button)
+        .unmountOnLock.sigChanged += func|window = me|(?)
         {
-            discard button
             window.readAutoUnmountControls()
         }
 
-        .unmountOnSuspend.sigChanged += func|window = me|(button)
+        .unmountOnSuspend.sigChanged += func|window = me|(?)
         {
-            discard button
             window.readAutoUnmountControls()
         }
 
-        .unmountOnIdle.sigChanged += func|window = me|(button)
+        .unmountOnIdle.sigChanged += func|window = me|(?)
         {
-            discard button
             window.readAutoUnmountControls()
         }
 
-        .idleTimeout.sigChanged += func|window = me|(combo, index)
+        .idleTimeout.sigChanged += func|window = me|(?, ?)
         {
-            discard combo, index
             window.readAutoUnmountControls()
         }
 
@@ -1216,9 +1197,8 @@ impl MainWindow
         .createPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.createPath)
         .browseCreate = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
-        .browseCreate.sigPressed += func|window = me|(btn)
+        .browseCreate.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.chooseContainer(window.createPath, true)
         }
 
@@ -1249,9 +1229,8 @@ impl MainWindow
         // number tuned on one wording.
         .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, form: .Strong)
         .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, themeActionIconSize(.themeMetrics())))
-        .createButton.sigPressed += func|window = me|(btn)
+        .createButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             if window.state == .Creating do
                 window.stopLongOperation()
             else do
@@ -1273,17 +1252,15 @@ impl MainWindow
         .mountPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.mountPath)
         .browseMount = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
-        .browseMount.sigPressed += func|window = me|(btn)
+        .browseMount.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.chooseContainer(window.mountPath, false)
         }
 
         .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
         .hiddenButton  = form.addRowAction(appStrings().ui_CreateHidden)
-        .hiddenButton.sigPressed += func|window = me|(btn)
+        .hiddenButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.createHiddenContainer()
         }
 
@@ -1317,16 +1294,14 @@ impl MainWindow
         // are stated once in this form and consumed from here.
         .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, form: .Strong)
         .mountButton.setIcon(.theme().icon(ThemeIcons.Play, themeActionIconSize(.themeMetrics())))
-        .mountButton.sigPressed += func|window = me|(btn)
+        .mountButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.mountContainer()
         }
 
         .resizeButton = PushButton.create(card.actions, appStrings().ui_Resize)
-        .resizeButton.sigPressed += func|window = me|(btn)
+        .resizeButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             if window.state == .Resizing do
                 window.stopLongOperation()
             else do
@@ -1334,16 +1309,14 @@ impl MainWindow
         }
 
         .passwordButton = PushButton.create(card.actions, appStrings().ui_ChangePassword)
-        .passwordButton.sigPressed += func|window = me|(btn)
+        .passwordButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.changeVaultPassword()
         }
 
         .keyFilesButton = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
-        .keyFilesButton.sigPressed += func|window = me|(btn)
+        .keyFilesButton.sigPressed += func|window = me|(?)
         {
-            discard btn
             window.changeVaultKeyFiles()
         }
 

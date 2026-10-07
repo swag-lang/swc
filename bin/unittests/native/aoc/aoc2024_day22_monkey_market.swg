@@ -70,6 +70,7 @@ func parseBuyers(text: string)->BuyerList
     var result: BuyerList
     let bytes = cast(const [..] u8, text)
     var pos:    u32
+    discard pos
     var inNum = false
     var acc:    u64
 

@@ -1,7 +1,7 @@
 #global private
 
-func add(x: s32, y: bool)->f32 => 1.0
-func consume(value: string) {}
+func add(x: s32, y: bool)->f32 { discard x, y; return 1.0 }
+func consume(value: string) { discard value }
 
 #assert(assume cast(const *Swag.TypeInfoFunc, #typeof(add)).name == "func(x: s32, y: bool)->f32")
 
@@ -22,4 +22,5 @@ func semaTest001()
 {
     let typeFunc = assume cast(const *Swag.TypeInfoFunc, #typeof(add))
     let ok       = typeFunc.parameters[0].pointedType == s32 and typeFunc.returnType == f32
+    discard ok
 }

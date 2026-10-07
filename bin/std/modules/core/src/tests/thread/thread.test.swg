@@ -14,7 +14,7 @@ struct WaitManyPayload
     sleepMs:        u32
 }
 
-func idleThread(_th: Threading.Thread) {}
+func idleThread(?: Threading.Thread) {}
 
 func waitManyThread(th: Threading.Thread)
 {

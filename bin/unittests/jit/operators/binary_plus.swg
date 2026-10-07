@@ -100,9 +100,9 @@
 #test
 {
     func addManyInts(
-        a0: s32, a1: s32, a2: s32, a3: s32,
-        a4: s32, a5: s32, a6: s32, a7: s32,
-        a8: s32, a9: s32, a10: s32, a11: s32)->s32
+        a0: s32, ?: s32, ?: s32, ?: s32,
+        ?: s32, ?: s32, ?: s32, ?: s32,
+        ?: s32, ?: s32, ?: s32, a11: s32)->s32
     {
         return a0 + a11
     }
@@ -150,7 +150,7 @@
 #test
 {
     #[Swag.Optimize(false)]
-    func thirdFloatArg(a: f64, b: f64, c: f64, d: f64)->f64 { return c }
+    func thirdFloatArg(?: f64, ?: f64, c: f64, ?: f64)->f64 { return c }
     const V = #run thirdFloatArg(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
     #assert(#typeof(V) == f64)
     #assert(V == 5.25'f64)

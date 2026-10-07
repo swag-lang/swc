@@ -1190,7 +1190,7 @@ impl LibraryWnd
             .backgroundStyle = .Transparent
             .sigItemPressed  += func|libWnd = me|(bc, idx) { libWnd.navigateFolder(bc.items[idx].tag.toString()) }
             .sigFillMenu     += func|libWnd = me|(bc, idx, menu) { libWnd.fillBreadcrumbMenu(bc, idx, menu) }
-            .sigMenuSelected += func|libWnd = me|(bc, idx, id) { libWnd.navigateFolder(id) }
+            .sigMenuSelected += func|libWnd = me|(?, ?, id) { libWnd.navigateFolder(id) }
         }
     }
 

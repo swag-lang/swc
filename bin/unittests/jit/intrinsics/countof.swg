@@ -77,7 +77,7 @@ impl RefCountedRuntime
 
 #test
 {
-    func countTypedVariadicWithHead(head: s32, values: s32...)->u64 { return values.count }
+    func countTypedVariadicWithHead(?: s32, values: s32...)->u64 { return values.count }
     const V0 = #run countTypedVariadicWithHead(10, 20, 30, 40)
     #assert(V0 == 3'u64)
 }

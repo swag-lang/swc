@@ -348,9 +348,8 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(fileName.toString())
 
     var pageChanges = 0
-    view.sigPageChanged += func|&pageChanges|(pdf)
+    view.sigPageChanged += func|&pageChanges|(?)
     {
-        discard pdf
         pageChanges += 1
     }
 

@@ -14,9 +14,6 @@ interface IViewer
     // Returns the pipeline stage the viewer prints, or an empty string when it only runs the program.
     mtd inspectionStage()->string
 
-    // Records the backend optimization level the panel selected.
-    mtd setOptimization(level: Swag.BuildCfgBackendOptimLevel)
-
     // Returns whether playback is paused.
     mtd isPaused()->bool
 
@@ -42,12 +39,12 @@ enum ViewerKind
 }
 
 // New viewer kinds enter through this factory without changing the comparison window.
-func createViewer(parent: *ViewerPanel, source: *RichEditCtrl, kind: ViewerKind, level: Swag.BuildCfgBackendOptimLevel)->IViewer
+func createViewer(parent: *ViewerPanel, source: *RichEditCtrl, kind: ViewerKind)->IViewer
 {
     switch #complete kind
     {
-    case .Microcode: return MicrocodeViewer.create(parent, source, level)
-    case .Render2D:  return PreviewViewer.create(parent, source, false, level)
-    case .Gui:       return PreviewViewer.create(parent, source, true, level)
+    case .Microcode: return MicrocodeViewer.create(parent, source)
+    case .Render2D:  return PreviewViewer.create(parent, source, false)
+    case .Gui:       return PreviewViewer.create(parent, source, true)
     }
 }

@@ -1101,6 +1101,8 @@ impl Application
     }
 
     // Selects the file used to persist surface placement with [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
+    //
+    // The folders above `path` need not exist: the first save creates them.
     mtd setStatePath(path: string)
     {
         .statePath = path
@@ -1329,6 +1331,8 @@ impl Application
         entry.name         = "state"
         entry.primaryChunk = stateId
         writer.manifest().entries.add(#move entry)
+        if let folder = Path.directoryName(.statePath) do
+            try Directory.create(folder, recurse: true)
         try writer.saveAtomic(.statePath)
     }
 

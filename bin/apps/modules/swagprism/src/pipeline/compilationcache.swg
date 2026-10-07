@@ -86,12 +86,15 @@ impl CompilationCache
                 break
         }
 
-        let entry = Memory.new'BuildArtifact()
-        entry.request    = request
-        entry.generation = .generation
-        entry.users      = 1
-        .buildCount      += 1
-        entry.id         = .buildCount
+        .buildCount += 1
+        with let entry = Memory.new'BuildArtifact()
+        {
+            .request    = request
+            .generation = me.generation
+            .users      = 1
+            .id         = me.buildCount
+        }
+
         .entries.add(entry)
         entry.task.submit(func|entry|()
         {

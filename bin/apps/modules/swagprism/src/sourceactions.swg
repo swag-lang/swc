@@ -62,11 +62,7 @@ impl SourceActions
 
 impl IWnd for SourceActions
 {
-    mtd impl measureContent(?: Math.Point)->Math.Point
-    {
-        return {0, 36}
-    }
-
+    mtd impl measureContent(?: Math.Point)->Math.Point => {0, 36}
     mtd impl onLayout() { .layoutFields() }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)

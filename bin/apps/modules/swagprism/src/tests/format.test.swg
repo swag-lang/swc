@@ -28,12 +28,12 @@ func awaitFormat(window: *MainWindow)
     Swag.assert(window.formatStatus == .Done and not window.spinner.isVisible())
     Swag.assert(window.editor.text().contains("\n    return 42\n"))
     window.editor.undo()
-    Swag.assert(window.editor.text().toString() == Source)
+    Swag.assert(window.editor.text() == Source)
     window.format()
     window.editor.setText("// A newer edit\n")
     awaitFormat(window)
     Swag.assert(window.formatStatus == .Changed)
-    Swag.assert(window.editor.text().toString() == "// A newer edit\n")
+    Swag.assert(window.editor.text() == "// A newer edit\n")
 }
 
 // A syntax error keeps the original source and exposes the formatter diagnostics.
@@ -48,6 +48,6 @@ func awaitFormat(window: *MainWindow)
     window.format()
     awaitFormat(window)
     Swag.assert(window.formatStatus == .Failed and not window.spinner.isVisible())
-    Swag.assert(window.editor.text().toString() == Source)
+    Swag.assert(window.editor.text() == Source)
     Swag.assert(not window.status.toolTip.isEmpty())
 }

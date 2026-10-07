@@ -57,7 +57,7 @@ using Core
     const Source = "const Only = 1\n"
 
     let inspected = Pipeline.inspectedSource(Source, "pre-emit")
-    Swag.assert(inspected.toString() == Source)
+    Swag.assert(inspected == Source)
 }
 
 // Only a `func` that starts its own line is taken for the declaration the reader meant.
@@ -85,9 +85,7 @@ using Core
     const Levels: [?] Swag.BuildCfgBackendOptimLevel = [.O0, .O1, .O2]
     for level in Levels
     {
-        var artifact = Pipeline.BuildArtifact{request: {
-            source: String.from("using Core\nfunc value()->s32 { return 42 }"),
-            stage: String.from("pre-emit"), kind: .Microcode, settings: {optimization: level}}}
+        var artifact = Pipeline.BuildArtifact{request: {source: String.from("using Core\nfunc value()->s32 => 42"), stage: String.from("pre-emit"), kind: .Microcode, settings: {optimization: level}}}
         expect artifact.run()
         let result = &artifact.result
         Swag.assert(not result.failed, result.text.toString())
@@ -103,9 +101,7 @@ using Core
 // Microcode does not import the rendering stack implicitly.
 #test
 {
-    var artifact = Pipeline.BuildArtifact{request: {
-        source: String.from("using Pixel\nfunc value()->u32 { return 0 }"),
-        stage: String.from("pre-emit"), kind: .Microcode}}
+    var artifact = Pipeline.BuildArtifact{request: {source: String.from("using Pixel\nfunc value()->u32 => 0"), stage: String.from("pre-emit"), kind: .Microcode}}
     expect artifact.run()
     let result = &artifact.result
     Swag.assert(result.failed)
@@ -172,6 +168,6 @@ using Core
     expect Pipeline.writeIfChanged(path.toString(), "// replaced\n")
     let rewritten = expect File.info(path.toString())
     let content   = expect File.readAllText(path.toString())
-    Swag.assert(content.toString() == "// replaced\n")
+    Swag.assert(content == "// replaced\n")
     Swag.assert(rewritten.lastWriteTime != before.lastWriteTime)
 }

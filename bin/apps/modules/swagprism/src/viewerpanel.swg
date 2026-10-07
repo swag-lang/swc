@@ -2,12 +2,6 @@
 
 using Core, Gui
 
-// The viewer a panel created for one kind, kept while the panel shows another.
-struct ViewerSlot
-{
-    viewer: IViewer?
-}
-
 // A comparison panel selects a viewer type and owns its independent compilation state.
 struct ViewerPanel
 {
@@ -26,7 +20,7 @@ struct ViewerPanel
     }
 
     defaultLevel:        Swag.BuildCfgBackendOptimLevel
-    cached:              [3] ViewerSlot     // One slot per `ViewerKind`.
+    cached:              [3] (IViewer?)     // The viewer created for each `ViewerKind`, kept while the panel shows another.
     viewer:              IViewer?
     kind:                ViewerKind
     sigChanged:          SigArray'func||(*ViewerPanel)
@@ -110,10 +104,7 @@ impl ViewerPanel
             for name in ["O0", "O1", "O2"] do
                 .addItem(name)
             .setSelectedIndex(cast(u32, me.defaultLevel), notify: false)
-            .sigChanged += func|panel = me|(?, ?)
-            {
-                panel.requestCompile()
-            }
+            .sigChanged += func|panel = me|(?, ?) { panel.requestCompile() }
         }
     }
 
@@ -132,7 +123,6 @@ impl ViewerPanel
             .sigReset += func|panel = me|(?)
             {
                 panel.optimCombo.setSelectedIndex(cast(u32, panel.defaultLevel), notify: false)
-                panel.viewer!.setOptimization(panel.defaultLevel)
                 panel.requestCompile()
             }
         }
@@ -150,19 +140,15 @@ impl ViewerPanel
 
         .kind = kind
         let index = cast(u32, kind)
-        if not .cached[index].viewer
+        if not .cached[index]
         {
-            .cached[index].viewer = createViewer(me, .sourceEditor, kind, cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))
-            .cached[index].viewer!.window().dockStyle = .Center
-            .cached[index].viewer!.subscribeChanged(func|panel = me|(?)
-            {
-                panel.sigChanged.call(panel)
-            })
+            .cached[index] = createViewer(me, .sourceEditor, kind)
+            .cached[index]!.window().dockStyle = .Center
+            .cached[index]!.subscribeChanged(func|panel = me|(?) { panel.sigChanged.call(panel) })
         }
 
-        .viewer = .cached[index].viewer
-        .viewer!.setOptimization(cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))
-        .viewer.window().show(not .optionsButton.isChecked)
+        .viewer = .cached[index]
+        .viewer!.window().show(not .optionsButton.isChecked)
         .refreshPlayback()
         .kindCombo.setSelectedIndex(cast(u32, kind), notify: false)
         .applyLayout()
@@ -191,26 +177,24 @@ impl ViewerPanel
 
     mtd requestCompile() { .sigCompileRequested.call(me) }
 
-    mtd compile(request: Pipeline.BuildRequest)
-    {
-        .viewer!.setOptimization(request.settings.optimization)
-        .viewer.compile(request)
-    }
-
+    mtd compile(request: Pipeline.BuildRequest) { .viewer!.compile(request) }
     mtd shutdown() { .viewer!.shutdown() }
     mtd isRunning()->bool => .viewer!.isRunning()
 
+    // Writes the tooltips and viewer names in the active language.
     mtd retranslate()
     {
         .optionsButton.toolTip = appStrings().ui_BuildOptions
         .optimCombo.toolTip    = appStrings().ui_Optimize
-        .refreshPlayback()
-        .kindCombo.toolTip = appStrings().ui_ViewerType
+        .kindCombo.toolTip     = appStrings().ui_ViewerType
+
+        // The entries follow the order of `ViewerKind`.
         .kindCombo.clear()
-        .kindCombo.addItem(appStrings().ui_Microcode)
-        .kindCombo.addItem(appStrings().ui_Render2D)
-        .kindCombo.addItem(appStrings().ui_Gui)
+        for label in [appStrings().ui_Microcode, appStrings().ui_Render2D, appStrings().ui_Gui] do
+            .kindCombo.addItem(label)
         .kindCombo.setSelectedIndex(cast(u32, .kind), notify: false)
+
+        .refreshPlayback()
         .applyLayout()
     }
 }

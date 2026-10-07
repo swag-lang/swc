@@ -63,11 +63,11 @@ impl PreviewProbe
         if Atomic.get(&.cancelled) do
             return
         let channelPath = Path.combine(.folder.session, "frame.bin")
-        try .channel.open(channelPath.toString(), true)
+        try .channel.open(channelPath, true)
         let executable = Env.executablePath()
         let outDir     = Path.combine(lease.artifact.folder.session, "out")
-        let childArgs  = Env.joinArguments(["--prism-preview-host", channelPath.toString(), lease.artifact.binary.toString(), request.kind == .Gui ? "gui" : "pixel"])
-        var child      = try Env.startProcess(Env.StartInfo{fileName: executable, arguments: childArgs.toString(), workingDirectory: outDir.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+        let childArgs  = Env.joinArguments(["--prism-preview-host", channelPath, lease.artifact.binary, request.kind == .Gui ? "gui" : "pixel"])
+        var child      = try Env.startProcess(Env.StartInfo{fileName: executable, arguments: childArgs, workingDirectory: outDir, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&child)
         Atomic.exchange(&.ready, 1)
         watch.restart()

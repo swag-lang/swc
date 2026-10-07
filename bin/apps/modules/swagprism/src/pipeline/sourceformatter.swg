@@ -27,8 +27,8 @@ impl SourceFormatter
             if Atomic.get(cancelled) do
                 return {}
             let workers   = Format.toString("%", compilerWorkerCount())
-            let arguments = Env.joinArguments([command, "--num-cores", workers.toString(), "--file", file.toString()])
-            var process   = try Env.startProcess(Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+            let arguments = Env.joinArguments([command, "--num-cores", workers, "--file", file])
+            var process   = try Env.startProcess(Env.StartInfo{fileName: compiler, arguments: arguments, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
             defer retireProcess(&process)
             var watch: Time.Stopwatch
             watch.start()

@@ -14,18 +14,9 @@ const SurfaceId   = "swag.prism"
     // here keeps that cost out of the first compilation.
     Swag.startWorkers()
 
-    let appIcon = expect Image.decode(".png", AppIcon)
-    g_App.setAppIcon(appIcon)
+    g_App.setAppIcon(expect Image.decode(".png", AppIcon))
+    g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "prism", "settings.scc"))
     registerAppStrings(&g_App.resources)
-
-    let stateRoot = Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag")
-    if not Directory.exists(stateRoot) do
-        discard catch Directory.create(stateRoot)
-    let stateFolder = Path.combine(stateRoot, "prism")
-    if not Directory.exists(stateFolder) do
-        discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder) do
-        g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
 
     let surface = try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setSwagDark()

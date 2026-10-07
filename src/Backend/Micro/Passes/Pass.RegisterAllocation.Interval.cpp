@@ -1315,7 +1315,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     SmallVector<EdgeMove, 8> edgeMoves;
     const uint32_t           wordCount = denseVirtualRegs_.wordCount();
-    for (uint32_t s = 0; s < instructionCount_; ++s)
+    // Without split children every value has one location across all edges.
+    const uint32_t edgeInstructionCount = result.nodes.size() == virtualCount ? 0 : instructionCount_;
+    for (uint32_t s = 0; s < edgeInstructionCount; ++s)
     {
         const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
         if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
@@ -1329,26 +1331,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 return false;
 
             const bool isJump = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction);
-            // Conditionality lives in the operand, not the opcode: an
-            // unconditional jump is a JumpCond carrying Unconditional, and it
-            // has no fall-through side to protect.
-            const MicroInstrOperand* predOpsEarly  = predInst->ops(*operands_);
-            const bool               isConditional = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::ConditionalJump) &&
-                                       predOpsEarly && predOpsEarly[0].cpuCond != MicroCond::Unconditional;
-
-            // A conditional jump falls through to the label right after it:
-            // that edge is its not-taken side, and its moves belong before the
-            // label, on that side alone. Placed before the jump, or in the
-            // taken edge's trampoline, they would run where the jump goes
-            // instead. Only a jump to that very label reaches it both ways.
-            const MicroInstrOperand* labelOps        = labelInst->ops(*operands_);
-            const bool               jumpsToLabel    = isJump && predOpsEarly && labelOps && predOpsEarly[2].valueU64 == labelOps[0].valueU64;
-            const bool               fallThroughPred = p + 1 == s && (!MicroInstrInfo::isTerminatorInstruction(*predInst) || (isConditional && !jumpsToLabel));
-
-            // The insertion point: before the label for the fall-through
-            // edge (jumps land past it), before the jump otherwise.
-            const uint32_t beforeIndex = fallThroughPred ? s : p;
-
             // Where the edge leaves the predecessor. The edge leaves at the
             // jump's INPUT slot: a value dead on the jump's other side closes
             // its range at p*2+1 exclusive, so the output slot may sit in a
@@ -1370,6 +1352,10 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     wordBits &= wordBits - 1ull;
                     SWC_ASSERT(denseIndex < virtualCount);
 
+                    // An unsplit value can only stay in its one node or
+                    // be absent on one side; neither case needs a move.
+                    if (result.valueNodesBegin[denseIndex + 1] == result.valueNodesBegin[denseIndex] + 1)
+                        continue;
                     const LiveInterval* atLabel = locate(denseIndex, s * 2);
                     if (!atLabel)
                         continue;
@@ -1387,6 +1373,27 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 
             if (edgeMoves.empty())
                 continue;
+
+            // Conditionality lives in the operand, not the opcode: an
+            // unconditional jump is a JumpCond carrying Unconditional, and it
+            // has no fall-through side to protect.
+            const MicroInstrOperand* predOpsEarly  = predInst->ops(*operands_);
+            const bool               isConditional = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::ConditionalJump) &&
+                                       predOpsEarly && predOpsEarly[0].cpuCond != MicroCond::Unconditional;
+
+            // A conditional jump falls through to the label right after it:
+            // that edge is its not-taken side, and its moves belong before the
+            // label, on that side alone. Placed before the jump, or in the
+            // taken edge's trampoline, they would run where the jump goes
+            // instead. Only a jump to that very label reaches it both ways.
+            const MicroInstrOperand* labelOps        = labelInst->ops(*operands_);
+            const bool               jumpsToLabel    = isConditional && predOpsEarly && labelOps && predOpsEarly[2].valueU64 == labelOps[0].valueU64;
+            const bool               fallThroughPred = p + 1 == s && (!MicroInstrInfo::isTerminatorInstruction(*predInst) || (isConditional && !jumpsToLabel));
+
+            // The insertion point: before the label for the fall-through
+            // edge (jumps land past it), before the jump otherwise.
+            const uint32_t beforeIndex = fallThroughPred ? s : p;
+
             if (!isJump && !fallThroughPred)
                 return false; // an edge shape this stage does not model
 

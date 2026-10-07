@@ -165,9 +165,7 @@ namespace InstructionCombine
         // promotion. A global has no such client: its update is one
         // instruction-pointer-relative read-modify-write, unless its words may
         // still form a packed group.
-        const bool frameBase    = isFrameDerivedAddress(ctx, base, loadRef);
-        const bool globalBase   = !frameBase && isRelocatedAddress(ctx, base, loadRef);
-        const bool globalInLoop = globalBase && ctx.isInsideLoop(loadRef);
+        const bool frameBase = isFrameDerivedAddress(ctx, base, loadRef);
         if (frameBase && ctx.isInsideLoop(loadRef))
             return false;
 
@@ -203,7 +201,8 @@ namespace InstructionCombine
                     (tri.middleIsUnary ? (tri.microOp != MicroOp::BitwiseNot && tri.microOp != MicroOp::Negate) : !isMemFoldableOp(tri.microOp)) ||
                     (tri.middleIsRegImm && opOps[3].hasWideImmediateValue()))
                     return false;
-                if (ctx.passContext->deferXorMemoryFoldForSlp && (tri.microOp == MicroOp::Xor || globalInLoop) && loadBits == MicroOpBits::B32 &&
+                if (ctx.passContext->deferXorMemoryFoldForSlp && loadBits == MicroOpBits::B32 &&
+                    (tri.microOp == MicroOp::Xor || (!frameBase && isRelocatedAddress(ctx, base, loadRef) && ctx.isInsideLoop(loadRef))) &&
                     hasPotentialWordStoreGroup(ctx, loadRef))
                 {
                     ctx.passContext->deferredXorMemoryFold = true;
@@ -326,7 +325,6 @@ namespace InstructionCombine
         const bool directUnaryUpdate = op->op == MicroInstrOpcode::OpUnaryReg;
         if (preCopyRef.isValid() && !immediateUpdate && !directUnaryUpdate)
             return false;
-        bool        unaryUpdate         = false;
         MicroOpBits immediateFoldBits   = loadOps[3].opBits;
         uint64_t    immediateFoldValue  = 0;
         uint64_t    immediateFoldOffset = loadOps[6].valueU64;
@@ -381,9 +379,6 @@ namespace InstructionCombine
                                                                                                                        : X64Immediate::canEncodeSigned32(immediateFoldValue);
             if (!immediateFits)
                 return false;
-
-            unaryUpdate = immediate == 1 && (opOps[2].microOp == MicroOp::Add || opOps[2].microOp == MicroOp::Subtract) &&
-                          MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder);
         }
         else if (directUnaryUpdate)
         {
@@ -465,6 +460,11 @@ namespace InstructionCombine
             return true;
         }
 
+        // Flag liveness only chooses the form of an accepted update. A
+        // missing store or a claimed instruction needs no such analysis.
+        const bool unaryUpdate = immediateUpdate && opOps[3].valueU64 == 1 &&
+                                 (opOps[2].microOp == MicroOp::Add || opOps[2].microOp == MicroOp::Subtract) &&
+                                 MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder);
         MicroInstrOperand update[8] = {};
         update[0]                   = loadOps[1];
         update[1]                   = loadOps[2];

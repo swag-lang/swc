@@ -510,6 +510,7 @@ namespace
         uint32_t next = node.firstUseAfter(from);
         if (!walk.loops)
             return next;
+        uint32_t lastAccess = K_IV_INVALID;
         for (const LoopRange& loop : *walk.loops)
         {
             const uint32_t headPos = loop.head * 2;
@@ -518,8 +519,15 @@ namespace
                 continue;
             if (!node.covers(headPos) || !node.covers(tailPos))
                 continue;
-            const uint32_t lastAccess = node.lastAccessBefore(from);
-            if (lastAccess == K_IV_INVALID || lastAccess < headPos)
+            // All enclosing loops ask about the same interval and position.
+            // Resolve its previous access only when one loop needs it.
+            if (lastAccess == K_IV_INVALID)
+            {
+                lastAccess = node.lastAccessBefore(from);
+                if (lastAccess == K_IV_INVALID)
+                    return next;
+            }
+            if (lastAccess < headPos)
                 continue;
             next = tailPos;
         }
@@ -1416,21 +1424,30 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                         // emitted after this branch. Writing the register
                         // first would store the wrong value - which is what
                         // sent an MP4 sample table through the wrong bounds.
-                        for (uint32_t other = 0; plainOk && other < virtualCount; ++other)
+                        // Input-slot coverage comes from live-in. Values absent
+                        // from this row cannot own the fall-through register.
+                        const auto fallThroughLive = DenseBits::row(liveInVirtualBits_, p + 1, wordCount);
+                        for (size_t wordIndex = 0; plainOk && wordIndex < fallThroughLive.size(); ++wordIndex)
                         {
-                            if (other == move.denseIndex)
-                                continue;
-                            const LiveInterval* node = locate(other, p * 2 + 2);
-                            if (!node)
-                                continue; // dead on the fall-through side: the register is free
-                            if (!node->spilled && node->assignedReg == toReg)
+                            uint64_t wordBits = fallThroughLive[wordIndex];
+                            while (plainOk && wordBits)
                             {
-                                plainOk = false;
-                                break;
+                                const auto other = static_cast<uint32_t>(wordIndex * 64ull + std::countr_zero(wordBits));
+                                wordBits &= wordBits - 1ull;
+                                if (other == move.denseIndex)
+                                    continue;
+                                const LiveInterval* node = locate(other, p * 2 + 2);
+                                if (!node)
+                                    continue;
+                                if (!node->spilled && node->assignedReg == toReg)
+                                {
+                                    plainOk = false;
+                                    break;
+                                }
+                                const LiveInterval* atBranch = locate(other, predEndPos);
+                                if (atBranch && !atBranch->spilled && atBranch->assignedReg == toReg)
+                                    plainOk = false;
                             }
-                            const LiveInterval* atBranch = locate(other, predEndPos);
-                            if (atBranch && !atBranch->spilled && atBranch->assignedReg == toReg)
-                                plainOk = false;
                         }
                         if (!plainOk)
                             break;

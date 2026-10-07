@@ -1464,7 +1464,10 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
                                            (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                                             !ops[1].reg.isVirtual()));
                 if (!fromArgument || !defined.insert(reg).second)
-                    rejected.insert(reg);
+                {
+                    if (rejected.insert(reg).second && rejected.size() == marked.size())
+                        return;
+                }
                 continue;
             }
 
@@ -1486,7 +1489,10 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
                 continue;
             }
 
-            rejected.insert(reg);
+            // Rejection is permanent. Once every marked base is rejected,
+            // neither later operands nor copy propagation can add an output.
+            if (rejected.insert(reg).second && rejected.size() == marked.size())
+                return;
         }
     }
 
@@ -1500,6 +1506,8 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
             if (fromRejected != toRejected)
             {
                 rejected.insert(fromRejected ? to : from);
+                if (rejected.size() == marked.size())
+                    return;
                 changed = true;
             }
         }

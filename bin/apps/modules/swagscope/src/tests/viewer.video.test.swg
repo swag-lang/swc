@@ -852,8 +852,8 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     view.clock.restart()
     view.seekFrame(8)
     waitForVideoFrame(view)
-    Swag.assert(view.audioRangePending and view.resumeAudioAfterSeek and not view.voice!.isPlaying())
-    Swag.assert(view.currentSeconds() >= 1.9 and view.voice!.playbackSampleFrame() == 0)
+    Swag.assert(view.audioRangePending and view.resumeAudioAfterSeek and not view.voice.isPlaying())
+    Swag.assert(view.currentSeconds() >= 1.9 and view.voice.playbackSampleFrame() == 0)
     view.followAudioClock()
     Swag.assert(view.currentSeconds() >= 1.9)
 
@@ -867,12 +867,12 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     let longerSound = sounds.allocate()
     longerSound[] = expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
     sounds.add(longerSound)
-    view.voice!.destroy()
+    view.voice.destroy()
     view.audio = longerSound
     view.voice = expect Voice.create(longerSound)
     view.resumeAudio()
-    Swag.assert(not view.audioRangePending and not view.resumeAudioAfterSeek and view.voice!.isPlaying())
-    Swag.assert(view.voice!.playbackSampleFrame() >= 200)
+    Swag.assert(not view.audioRangePending and not view.resumeAudioAfterSeek and view.voice.isPlaying())
+    Swag.assert(view.voice.playbackSampleFrame() >= 200)
     view.voice.destroy()
     view.voice = null
     view.audio = null

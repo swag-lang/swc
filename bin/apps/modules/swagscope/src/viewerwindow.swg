@@ -677,6 +677,9 @@ impl ViewerWindow
     // previous window placement or maximized state.
     mtd setFullScreen(enabled: bool)
     {
+        var fullWatch: Time.Stopwatch
+        fullWatch.restart()
+        defer Console.println("fullscreen total us ", fullWatch.elapsedMicroseconds())
         if .fullScreen == enabled do
             return
 
@@ -708,6 +711,7 @@ impl ViewerWindow
 
             // One geometry transaction that shows the full-screen frame before the window grows,
             // as a maximize does, from a maximized window as well as from a regular one.
+            Console.println("fullscreen layout us ", fullWatch.elapsedMicroseconds())
             srfn.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
         }
         else

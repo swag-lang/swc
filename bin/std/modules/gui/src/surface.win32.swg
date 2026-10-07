@@ -151,6 +151,9 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
 
 private func updatePlacementOverlay(surface: *Surface, hWnd: HWND, x, y, width, height: s32)->bool
 {
+    var overlayWatch: Time.Stopwatch
+    overlayWatch.restart()
+    defer Console.println("overlay total us ", overlayWatch.elapsedMicroseconds())
     var info: BITMAPINFO
     info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
     info.bmiHeader.biWidth       = width
@@ -180,6 +183,7 @@ private func updatePlacementOverlay(surface: *Surface, hWnd: HWND, x, y, width, 
     if not frame.isValid() do
         return false
 
+    Console.println("overlay readback us ", overlayWatch.elapsedMicroseconds())
     Memory.copy(bits, frame.pixels.buffer, frame.pixels.count)
 
     let origin = POINT{x, y}
@@ -640,6 +644,10 @@ impl Surface
 {
     private mtd showDiscretePlacement(x, y, width, height: s32, maximized: bool)->bool
     {
+        .app.frameTrace.enabled = true
+        var placementWatch: Time.Stopwatch
+        placementWatch.restart()
+        defer Console.println("placement total us ", placementWatch.elapsedMicroseconds())
         if width <= 0 or height <= 0 do
             return false
 
@@ -670,10 +678,14 @@ impl Surface
         }
 
         .placementOverlay = overlay
+        Console.println("snapshot us ", placementWatch.elapsedMicroseconds())
 
         .preparingFrame = true
         .sendResizeEvent(cast(f32) width, cast(f32) height)
+        Console.println("resize layout us ", placementWatch.elapsedMicroseconds())
         let ready = .prepareResizeFrame(.wnd)
+        Console.println("prepare paint us ", placementWatch.elapsedMicroseconds())
+        Console.println("prepare GPU us ", placementWatch.elapsedMicroseconds(), " record ", .paintRecordUs, " target ", .paintTargetUs, " batches ", .paintBatches, " vertices ", .paintVertices)
         .preparingFrame = false
         if not ready do
             return false
@@ -690,34 +702,40 @@ impl Surface
 
     private mtd finishDiscretePlacement()
     {
-        .inDiscretePlacement = false
+        var finishWatch: Time.Stopwatch
+        finishWatch.restart()
+        defer Console.println("finish total us ", finishWatch.elapsedMicroseconds())
+        .preparingFrame = true
+        defer .preparingFrame = false
+        defer .inDiscretePlacement = false
 
         if .canPresentNow()
         {
-            // The drawable now has its final bounds. Reuse the prepared frame unless a native
-            // notification changed its layout or DPI during the transaction.
-            if .preparedFrame and not .isDirty do
-                .presentPreparedFrame()
-            else
+            if not .preparedFrame or .isDirty
             {
                 .invalidate()
-                .paint()
+                discard .prepareResizeFrame(.wnd)
             }
 
+            if .placementOverlay
+            {
+                discard updatePlacementOverlay(me, .placementOverlay, cast(s32) .position.x, cast(s32) .position.y, .rc.width, .rc.height)
+                Console.println("finish overlay us ", finishWatch.elapsedMicroseconds())
+                discard DwmFlush()
+                var cloak = FALSE
+                discard DwmSetWindowAttribute(.hWnd, DWMWA_CLOAK, cast(LPCVOID) &cloak, #sizeof(cloak))
+            }
+
+            .presentPreparedFrame()
+            Console.println("finish present us ", finishWatch.elapsedMicroseconds())
             discard ValidateRect(.hWnd, null)
         }
         else do
             .invalidate()
         .preparedFrame = false
 
-        // One layered-window update publishes the final image and rectangle together. The real
-        // window remains composed behind it without changing native visibility or activation.
         if .placementOverlay
         {
-            discard updatePlacementOverlay(me, .placementOverlay, cast(s32) .position.x, cast(s32) .position.y, .rc.width, .rc.height)
-            discard DwmFlush()
-            var cloak = FALSE
-            discard DwmSetWindowAttribute(.hWnd, DWMWA_CLOAK, cast(LPCVOID) &cloak, #sizeof(cloak))
             discard DwmFlush()
             catch DestroyWindow(.placementOverlay)
         }

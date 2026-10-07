@@ -251,8 +251,7 @@ namespace InstructionCombine
             return false;
 
         const auto lea = ctx.ssa->reachingDef(address, ref);
-        if (!lea.valid() || lea.isPhi || !lea.inst || lea.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.isClaimed(lea.instRef) ||
-            ctx.ssa->transitiveInstructionUseCount(lea.valueId, 2) != 1)
+        if (!lea.valid() || lea.isPhi || !lea.inst || lea.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.isClaimed(lea.instRef))
             return false;
         const MicroInstrOperand* leaOps = lea.inst->ops(*ctx.operands);
         if (!leaOps || leaOps[0].reg != address || leaOps[3].opBits != MicroOpBits::B64 || leaOps[4].opBits != MicroOpBits::B64 ||
@@ -264,6 +263,8 @@ namespace InstructionCombine
         const uint64_t scale = leaOps[5].valueU64;
         const bool     fits  = scale == 1 || scale == 2 || scale == 4 || scale == 8;
         if (!fits && (scale < 16 || scale > (uint64_t{1} << 30) || !std::has_single_bit(scale)))
+            return false;
+        if (ctx.ssa->transitiveInstructionUseCount(lea.valueId, 2) != 1)
             return false;
 
         if (!ctx.ssa->sameValueAt(base, lea.instRef, ref) || !ctx.ssa->sameValueAt(index, lea.instRef, ref))
@@ -1489,8 +1490,6 @@ namespace InstructionCombine
             return false;
         if (loadBits != MicroOpBits::B32 && loadBits != MicroOpBits::B64)
             return false;
-        if (!valueHasSingleUse(*ctx.ssa, vt, loadRef))
-            return false;
 
         // The move must sit right after the load: the vector register's
         // definition then moves up by one instruction, over nothing.
@@ -1505,6 +1504,8 @@ namespace InstructionCombine
 
         const MicroReg fd = copyOps[0].reg;
         if (!fd.isVirtualFloat() || ctx.builder->shouldPreserveVirtualCopy(fd))
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, vt, loadRef))
             return false;
 
         // The load is rewritten where it stands, so its relocation survives;

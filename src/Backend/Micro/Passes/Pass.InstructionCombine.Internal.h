@@ -65,15 +65,13 @@ namespace InstructionCombine
         // new values; initialized once per run, when a rule first needs one.
         uint32_t nextVirtualFloatRegIndex = 0;
         uint32_t nextVirtualIntRegIndex   = 0;
-        bool     virtualIndicesReady      = false;
 
         void ensureVirtualIndices()
         {
-            if (virtualIndicesReady)
+            if (nextVirtualIntRegIndex)
                 return;
             SWC_ASSERT(passContext != nullptr);
             MicroPassHelpers::computeNextVirtualRegIndices(*passContext, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
-            virtualIndicesReady = true;
         }
 
         enum class FloatReadFit : uint8_t

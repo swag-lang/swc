@@ -1282,8 +1282,7 @@ namespace InstructionCombine
         if (!reached || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
             return false;
-        if (!ctx.nextVirtualFloatRegIndex)
-            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+        ctx.ensureVirtualIndices();
         if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
             !ctx.claimAll({ref, product.instRef, initial.instRef, productCopy.isValid() ? productCopy : ref}))
             return false;

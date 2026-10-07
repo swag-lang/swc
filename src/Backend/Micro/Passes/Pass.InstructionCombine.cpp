@@ -262,7 +262,6 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.loopSlotsAll             = false;
     ctx.nextVirtualFloatRegIndex = 0;
     ctx.nextVirtualIntRegIndex   = 0;
-    ctx.virtualIndicesReady      = false;
     ctx.floatReadFits.fill(Context::FloatReadFit::Unknown);
     ctx.passContext  = &context;
     ctx.storage      = context.instructions;

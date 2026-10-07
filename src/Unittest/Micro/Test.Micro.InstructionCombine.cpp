@@ -4259,6 +4259,41 @@ SWC_TEST_BEGIN(InstCombine_ThreeWaySelects_BecomeByteDifference)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_QueuedTemporariesStayReserved)
+{
+    MicroBuilder builder(ctx);
+    emitTwoSelects(builder, MicroCond::Greater, 1, MicroCond::Less, 0xFFFFFFFFFFFFFFFF, false);
+
+    MicroPassContext passContext;
+    passContext.builder      = &builder;
+    passContext.instructions = &builder.instructions();
+    passContext.operands     = &builder.operands();
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    InstructionCombine::Context rewrite;
+    rewrite.passContext = &passContext;
+    rewrite.builder     = &builder;
+    rewrite.storage     = &builder.instructions();
+    rewrite.operands    = &builder.operands();
+    rewrite.ssa         = &ssa;
+
+    bool folded = false;
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+    {
+        if (it->op == MicroInstrOpcode::LoadCondRegReg)
+            folded |= InstructionCombine::tryFoldThreeWaySelects(rewrite, it.current, *it);
+    }
+    if (!folded)
+        return Result::Error;
+
+    const uint32_t nextInt = rewrite.nextVirtualIntRegIndex;
+    rewrite.ensureVirtualIndices();
+    if (rewrite.nextVirtualIntRegIndex != nextInt)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The other order of the tests, unsigned, is the same sign.
 SWC_TEST_BEGIN(InstCombine_UnsignedThreeWaySelectsReversed_BecomeByteDifference)
 {

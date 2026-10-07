@@ -961,11 +961,7 @@ namespace InstructionCombine
         }
 
         const MicroOpBits wideBits = slotBytes == 8 ? MicroOpBits::B64 : MicroOpBits::B32;
-        if (!ctx.nextVirtualIntRegIndex)
-        {
-            SWC_ASSERT(ctx.passContext != nullptr);
-            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
-        }
+        ctx.ensureVirtualIndices();
         if (ctx.nextVirtualIntRegIndex + regs.size() + 1 >= MicroReg::K_MAX_INDEX)
             return false;
 

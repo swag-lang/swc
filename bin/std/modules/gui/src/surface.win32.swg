@@ -65,7 +65,6 @@ struct NativeSurface
     preparedWidth:       s32
     preparedHeight:      s32
     placementOverlay:    HWND
-    placementWasActive:  bool
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -100,12 +99,6 @@ private func placementOverlayProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam:
     {
         let cs = cast(*CREATESTRUCTW) cast #bit (u64) lParam
         SetWindowLongPtrW(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) cs.lpCreateParams)
-    }
-    elif msg == WM_TIMER
-    {
-        discard KillTimer(hWnd, 1)
-        catch DestroyWindow(hWnd)
-        return 0
     }
     elif msg == WM_NCDESTROY
     {
@@ -147,6 +140,17 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
     if not hWnd do
         return null
 
+    if not updatePlacementOverlay(surface, hWnd, x, y, width, height)
+    {
+        catch DestroyWindow(hWnd)
+        return null
+    }
+
+    return hWnd
+}
+
+private func updatePlacementOverlay(surface: *Surface, hWnd: HWND, x, y, width, height: s32)->bool
+{
     var info: BITMAPINFO
     info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
     info.bmiHeader.biWidth       = width
@@ -157,57 +161,32 @@ private func createPlacementOverlay(surface: *Surface, x, y, width, height: s32)
 
     var bits: *void?
     let bitmap = catch CreateDIBSection(null, &info, DIB_RGB_COLORS, &bits, null, 0)
-    if not bitmap or not bits
-    {
-        catch DestroyWindow(hWnd)
-        return null
-    }
+    if not bitmap or not bits do
+        return false
 
     defer catch DeleteObject(cast(Gdi32.HGDIOBJ) bitmap)
 
     let dc = catch CreateCompatibleDC(null)
-    if not dc
-    {
-        catch DestroyWindow(hWnd)
-        return null
-    }
+    if not dc do
+        return false
 
     defer catch DeleteDC(dc)
     let previous = SelectObject(dc, cast(Gdi32.HGDIOBJ) bitmap)
     defer discard SelectObject(dc, previous)
 
-    // UpdateLayeredWindow requires premultiplied BGRA. The render target readback is
-    // bottom-up BGRA, so the DIB can keep its row order without another image flip.
+    // The surface silhouette and shadow already store premultiplied BGRA. Preserve those
+    // pixels exactly; multiplying by alpha again darkens every translucent edge of the snapshot.
     var frame = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
-    if not frame.isValid()
-    {
-        catch DestroyWindow(hWnd)
-        return null
-    }
+    if not frame.isValid() do
+        return false
 
-    let source = frame.pixels.buffer!
-    let dest   = cast([*] u8) bits
-    for pixel in cast(u64) (width * height)
-    {
-        let at    = pixel * 4
-        let alpha = cast(u32) source[at + 3]
-        dest[at + 0] = cast() (cast(u32) source[at + 0] * alpha / 255)
-        dest[at + 1] = cast() (cast(u32) source[at + 1] * alpha / 255)
-        dest[at + 2] = cast() (cast(u32) source[at + 2] * alpha / 255)
-        dest[at + 3] = cast() alpha
-    }
+    Memory.copy(bits, frame.pixels.buffer, frame.pixels.count)
 
     let origin = POINT{x, y}
     let size   = SIZE{width, height}
     let zero   = POINT{0, 0}
     let blend  = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
-    if not UpdateLayeredWindow(hWnd, null, &origin, &size, dc, &zero, 0, &blend, ULW_ALPHA)
-    {
-        catch DestroyWindow(hWnd)
-        return null
-    }
-
-    return hWnd
+    return UpdateLayeredWindow(hWnd, null, &origin, &size, dc, &zero, 0, &blend, ULW_ALPHA) != 0
 }
 
 #[Swag.CallingConvention(.C)]
@@ -515,9 +494,17 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             let width    = cast(s32) LOWORD(lParam)
             let height   = cast(s32) HIWORD(lParam)
             let prepared = surface.preparedFrame and surface.preparedWidth == width and surface.preparedHeight == height and not surface.isDirty
-            surface.preparedFrame = false
+            surface.preparedFrame = prepared
             if not prepared do
                 surface.sendResizeEvent(cast(f32) width, cast(f32) height)
+
+            // USER32 has not committed the drawable while its size notification is running.
+            // The placement overlay preserves the previous image; WGL may present only after the complete
+            // native transaction returns, otherwise it can submit to the previous drawable.
+            if surface.inDiscretePlacement do
+                return 0
+
+            surface.preparedFrame = false
 
             // Drawing and geometry share the window thread, so WGL does not retire drawable
             // buffers on a worker while USER32 is still changing that same window.
@@ -656,8 +643,33 @@ impl Surface
         if width <= 0 or height <= 0 do
             return false
 
-        if .placementOverlay do
-            catch DestroyWindow(.placementOverlay)
+        // Preserve the frame that is actually on screen, including its old bounds. Showing the
+        // final image here would expose it before the native drawable was ready to replace it.
+        var previous: RECT
+        if not .canPresentNow() or not IsWindowVisible(.hWnd) or not GetWindowRect(.hWnd, &previous) do
+            return false
+        let overlay = createPlacementOverlay(me, previous.left, previous.top, previous.right - previous.left, previous.bottom - previous.top)
+        if not overlay do
+            return false
+        catch SetWindowPos(overlay, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW) as errShow
+        if errShow != null
+        {
+            catch DestroyWindow(overlay)
+            return false
+        }
+
+        discard DwmFlush()
+
+        // Cloaking keeps the native visibility and focus while DWM continues composing the
+        // resized drawable. The unchanged overlay is already on screen, so there is no gap.
+        var cloak = TRUE
+        if DwmSetWindowAttribute(.hWnd, DWMWA_CLOAK, cast(LPCVOID) &cloak, #sizeof(cloak)) != 0
+        {
+            catch DestroyWindow(overlay)
+            return false
+        }
+
+        .placementOverlay = overlay
 
         .preparingFrame = true
         .sendResizeEvent(cast(f32) width, cast(f32) height)
@@ -669,73 +681,45 @@ impl Surface
         .preparedFrame  = true
         .preparedWidth  = width
         .preparedHeight = height
-        let overlay = createPlacementOverlay(me, x, y, width, height)
-        if not overlay do
-            return false
-
-        // Display the prepared frame while removing the old WGL surface from DWM.
-        // The two visibility changes share one desktop refresh, so a restore does
-        // not leave the former maximized picture behind the smaller window.
-        .placementWasActive = GetForegroundWindow() == .hWnd
-        var batch = BeginDeferWindowPos(2)
-        if batch do
-            batch = DeferWindowPos(batch, overlay, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW | SWP_NOACTIVATE)
-        if batch do
-            batch = DeferWindowPos(batch, .hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_HIDEWINDOW)
-        if not batch or not EndDeferWindowPos(batch)
-        {
-            catch DestroyWindow(overlay)
-            return false
-        }
-
-        // Wait until DWM has consumed the replacement before changing the hidden
-        // WGL window's bounds. It can otherwise expose the old image at new bounds.
-        discard DwmFlush()
-        catch SetWindowPos(.hWnd, null, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS) as err
-        if err != null
-        {
-            catch DestroyWindow(overlay)
-            catch SetWindowPos(.hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
-            return false
-        }
-
         let style     = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
         let nextStyle = maximized ? style | WS_MAXIMIZE : style & ~WS_MAXIMIZE
         SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) nextStyle)
-        .placementOverlay = overlay
-        return true
+        catch SetWindowPos(.hWnd, null, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED) as err
+        return err == null
     }
 
     private mtd finishDiscretePlacement()
     {
         .inDiscretePlacement = false
-        .preparedFrame       = false
+
         if .canPresentNow()
         {
-            // WM_SIZE can submit before USER32 has finished changing the drawable. Some WGL
-            // drivers leave DWM showing the previous window-sized image even though SwapBuffers
-            // succeeded. Publish again once ShowWindow/SetWindowPlacement has returned and the
-            // final drawable exists, including when WM_SIZE consumed the prepared frame.
-            .invalidate()
-            .paint()
+            // The drawable now has its final bounds. Reuse the prepared frame unless a native
+            // notification changed its layout or DPI during the transaction.
+            if .preparedFrame and not .isDirty do
+                .presentPreparedFrame()
+            else
+            {
+                .invalidate()
+                .paint()
+            }
+
             discard ValidateRect(.hWnd, null)
         }
         else do
             .invalidate()
+        .preparedFrame = false
 
-        // The overlay is a stable DWM surface while the WGL HWND's new frame enters
-        // the compositor. Retire it after several desktop refresh opportunities.
+        // One layered-window update publishes the final image and rectangle together. The real
+        // window remains composed behind it without changing native visibility or activation.
         if .placementOverlay
         {
-            catch SetWindowPos(.hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
-            if .placementWasActive
-            {
-                discard SetActiveWindow(.hWnd)
-                discard SetForegroundWindow(.hWnd)
-            }
-
-            if not SetTimer(.placementOverlay, 1, 100, null) do
-                catch DestroyWindow(.placementOverlay)
+            discard updatePlacementOverlay(me, .placementOverlay, cast(s32) .position.x, cast(s32) .position.y, .rc.width, .rc.height)
+            discard DwmFlush()
+            var cloak = FALSE
+            discard DwmSetWindowAttribute(.hWnd, DWMWA_CLOAK, cast(LPCVOID) &cloak, #sizeof(cloak))
+            discard DwmFlush()
+            catch DestroyWindow(.placementOverlay)
         }
     }
 

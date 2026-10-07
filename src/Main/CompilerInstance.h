@@ -333,7 +333,7 @@ public:
             for (size_t i = freesForwardings_.size(); i < freeForwardingEdgeIndices_.size(); ++i)
             {
                 const SemaEscapeSummaryEdge& edge = escapeSummaryEdges_[freeForwardingEdgeIndices_[i]];
-                freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, false});
+                freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect, false});
             }
         }
 

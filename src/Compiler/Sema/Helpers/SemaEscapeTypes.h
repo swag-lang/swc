@@ -155,6 +155,9 @@ struct SemaEscapeSummaryEdge
     // distinct allocation. The borrow still propagates, and so does the STORES summary,
     // but the FREES summary must not: releasing the carrier releases the carrier.
     bool viaStoredField = false;
+    // The argument was read out of the caller parameter's box as 'parameter[]'. A callee
+    // freeing it frees what the box holds: the caller's INDIRECT frees summary.
+    bool viaParameterPointee = false;
     // First field used to reach the callee argument from the caller parameter. A callee
     // reallocation then affects this field, whatever nested payload it moves internally.
     const SymbolVariable* callerProjectionField = nullptr;
@@ -173,14 +176,18 @@ struct SemaEscapeFreesForwarding
     const SymbolFunction* callee           = nullptr;
     uint32_t              callerParamIndex = 0;
     uint32_t              calleeParamIndex = 0;
+    bool                  callerIndirect   = false;
     bool                  applied          = false;
 };
 
 // An edge that forwards a release: what the callee frees through its parameter, the caller frees
-// through the parameter it passed. It is the only kind the frees propagation reads.
+// through the parameter it passed - or, for a value read out of that parameter's box, through
+// the box. It is the only kind the frees propagation reads.
 inline bool isFreeForwardingEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
 {
-    return edge.caller && edge.callee && edge.kind == SemaEscapeSummaryEdgeKind::StoresToStores && !edge.viaStoredField && !edge.viaOwnedPayload && !edge.callerIndirect && !edge.calleeIndirect;
+    if (!edge.caller || !edge.callee || edge.kind != SemaEscapeSummaryEdgeKind::StoresToStores || edge.viaOwnedPayload || edge.calleeIndirect)
+        return false;
+    return edge.callerIndirect ? edge.viaParameterPointee : !edge.viaStoredField;
 }
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

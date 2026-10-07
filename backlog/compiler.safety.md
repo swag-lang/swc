@@ -43,6 +43,25 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.025 — The box-content release summary stops at the module boundary
+
+- Recorded: 2026-10-07 20:42
+- Area: compiler/sema, `SemaEscape`; `Swag.BorrowSummary`; `Sanitizer`
+- Evidence: a function that releases the pointer stored in the box its parameter designates
+  (`if let item = slot[] { Memory.delete(item); slot[] = null }`) now records
+  `SymbolFunction::freesIndirectParamsMask` instead of claiming it frees the box, and a caller
+  handing it `&local` has every other frame copy of the released pointer marked released
+  ([use_after_free_box_content.swg](../bin/unittests/sanity/use_after_free_box_content.swg)).
+  The mask is inferred inside the module only: `ModuleApiExport` re-emits `frees` but has no
+  indirect counterpart, so an importer calling `Wnd.stopTimer(&timer)` and then reading a copy
+  of the old timer pointer gets no diagnostic. Wrappers that hand their own box parameter on
+  (`func w(slot: **T) => stop(slot)`) do not forward the indirect bit either.
+- Next: add a `freesIndirect` argument to `Swag.BorrowSummary` (runtime `api.swg`, `Sema.Attributes`,
+  `AttributeList`, the export), then forward the bit along direct edges whose argument is
+  exactly the caller's parameter.
+- Complete when: a cross-module caller of a box-content release reports the old-copy read the
+  in-module suite case reports, and wrappers keep the summary.
+
 ### compiler.safety.005 — A write through a pointer into a moved value is not reported
 
 - Recorded: 2026-09-04 17:05

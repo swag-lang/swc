@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-07 20:42 |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-07 19:55 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-07 12:09 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-10-07 10:42 |
@@ -42,7 +43,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-06 21:14 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-10-06 20:59 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-10-06 20:59 |
-| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-06 20:59 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-10-06 20:57 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-10-06 20:57 |
 | [std.video.md](std.video.md) | `std/video` | 2026-10-06 20:56 |

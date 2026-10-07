@@ -99,6 +99,11 @@ struct SemaEscapeInfo
     // carrier must not outlive what it points at — but the FREES summary must not:
     // releasing the carrier releases the carrier's own storage and nothing else.
     bool viaStoredField = false;
+    // The value IS the pointer stored in the box a pointer parameter designates, read
+    // as 'parameter[]': the indirect origins name that box exactly. Releasing such a
+    // value releases what the caller's box holds and leaves the box alive, which is
+    // the only release a caller can pin on the storage it passed.
+    bool viaParameterPointee = false;
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
@@ -126,6 +131,8 @@ struct SemaEscapeInfo
             // One direct borrow among the merged facts is enough to make the value stand
             // for the parameter's storage.
             viaStoredField = viaStoredField && other.viaStoredField;
+            // Naming the box's content exactly takes every alternative agreeing on it.
+            viaParameterPointee = viaParameterPointee && other.viaParameterPointee;
             return;
         }
 

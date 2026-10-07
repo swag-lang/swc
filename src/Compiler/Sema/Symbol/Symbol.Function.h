@@ -129,13 +129,19 @@ public:
     // 'IAllocator.free/realloc' with that pointer as the request address). Seeded on
     // the language allocator interface, propagated through wrappers by the summary
     // fixpoint, serialized like the other summaries.
+    //
+    // The indirect mask is the same fact one dereference further: bit i set = the call
+    // releases the pointer STORED in the box parameter #i designates ('Memory.delete(slot[])'),
+    // and leaves the box itself alive. It is inferred inside the module only.
     uint64_t freesParamsMask() const noexcept;
-    void     addFreesParam(size_t paramIndex) noexcept
+    uint64_t freesIndirectParamsMask() const noexcept { return freesIndirectParamsMask_.load(std::memory_order_acquire); }
+    void     addFreesParam(size_t paramIndex, bool indirect = false) noexcept
     {
         if (paramIndex >= 64)
             return;
-        const uint64_t bit = 1ULL << paramIndex;
-        if (!(freesParamsMask_.fetch_or(bit, std::memory_order_release) & bit))
+        const uint64_t bit  = 1ULL << paramIndex;
+        auto&          mask = indirect ? freesIndirectParamsMask_ : freesParamsMask_;
+        if (!(mask.fetch_or(bit, std::memory_order_release) & bit))
             s_freesMaskVersion.fetch_add(1, std::memory_order_release);
     }
 
@@ -527,6 +533,7 @@ private:
     uint64_t                                      storesIndirectIntoParamPairs_ = 0;
     std::vector<PendingBorrowStore>               pendingBorrowStores_;
     std::atomic<uint64_t>                         freesParamsMask_                           = 0;
+    std::atomic<uint64_t>                         freesIndirectParamsMask_                   = 0;
     uint64_t                                      reallocatesParamsMask_                     = 0;
     uint64_t                                      reallocatesUnknownProjectionParamsMask_    = 0;
     uint64_t                                      returnsPayloadParamsMask_                  = 0;

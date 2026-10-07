@@ -295,10 +295,14 @@ func parseWorkload(name: string)->Workload fail
         try pool[i].init(func||(thread: Threading.Thread)
         {
             let job = cast(*Job, thread.userParam!)
-            if job.workload != .Xfer do
+            if job.workload != .Xfer
+            {
                 job.operations = run(job.workload, job.seed)
-            elif job.producer do
+            }
+            elif job.producer
+            {
                 produce(job.ring!, job.seed)
+            }
             else
             {
                 consume(job.ring!)

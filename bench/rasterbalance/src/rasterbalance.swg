@@ -33,8 +33,10 @@ func measure(name: string, size: s32, region: u32, expected: *Image)
             renderer.draw(&painter)
         watch.stop()
         let result = cpu.surfaceImage()
-        if Swag.workerCount() == 1 do
+        if Swag.workerCount() == 1
+        {
             expected[] = result
+        }
         else
         {
             Swag.assert(result.byteCount == expected.byteCount)

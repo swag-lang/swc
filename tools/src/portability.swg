@@ -387,8 +387,10 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
             state.publicStruct = false
             state.publicOpaque = false
         }
-        else do
+        else
+        {
             state.privateDepth = cast(s32, opens) - cast(s32, closes)
+        }
 
         state.pendingScope  = false
         state.pendingPublic = false
@@ -453,8 +455,10 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
                 state.publicStruct = isStruct
                 state.publicOpaque = isStruct and state.pendingOpaque
             }
-            else do
+            else
+            {
                 state.privateDepth = cast(s32, opens) - cast(s32, closes)
+            }
         }
         else
         {
@@ -489,8 +493,11 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
                 state.multilineText = false
                 index += 3
             }
-            else do
+            else
+            {
                 index += 1
+            }
+
             continue
         }
 
@@ -501,8 +508,11 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
                 state.blockComment = false
                 index += 2
             }
-            else do
+            else
+            {
                 index += 1
+            }
+
             continue
         }
 
@@ -541,8 +551,11 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             quoted = true
             result += ' '
         }
-        else do
+        else
+        {
             result += value
+        }
+
         index += 1
     }
 

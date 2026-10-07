@@ -297,8 +297,10 @@ public func runReference(context: *Context, options: *Options)->s32 fail
 
     // The language suites compare JIT and native behavior; the reference checks the documented
     // programs once in their shipped native form.
-    if options.command == "build" do
+    if options.command == "build"
+    {
         arguments.add(["--no-test-jit", "--no-output"])
+    }
     else
     {
         arguments.add(["--no-test-jit"])

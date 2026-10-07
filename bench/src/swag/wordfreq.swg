@@ -45,8 +45,8 @@ func qsort(lowIn, highIn: s64)
                 let t = g_Idx[cast(u64, i)]
                 g_Idx[cast(u64, i)] = g_Idx[cast(u64, j)]
                 g_Idx[cast(u64, j)] = t
-                i                  += 1
-                j                  -= 1
+                i                   += 1
+                j                   -= 1
             }
         }
 

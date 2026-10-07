@@ -54,8 +54,10 @@ private func parseStamp(text: string)->u64
                 return 0
             value = value * 10 + cast(u64, (text[i] - '0'))
         }
-        elif text[i] != StampShape[i] do
+        elif text[i] != StampShape[i]
+        {
             return 0
+        }
     }
 
     let date = Time.DateTime{
@@ -161,8 +163,11 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
                 Console.println("error: ", fileName, ":", lineNumber, ": duplicate backlog identifier ", key)
                 result.errors += 1
             }
-            else do
+            else
+            {
                 seen.add(key)
+            }
+
             continue
         }
 
@@ -361,8 +366,10 @@ private func isBacklogScope(text: string)->bool
             segments     += 1
             segmentStart = i + 1
         }
-        elif not Latin1.isLower(text[i]) and not Latin1.isDigit(text[i]) do
+        elif not Latin1.isLower(text[i]) and not Latin1.isDigit(text[i])
+        {
             return false
+        }
     }
 
     return segments >= 2 and segmentStart != text.count
@@ -577,8 +584,10 @@ private impl BacklogIdentity
 private func readBacklogIdentity(context: *Context, revision: string, path: string)->BacklogIdentity fail
 {
     var content: String
-    if revision.count == 0 do
+    if revision.count == 0
+    {
         content = try File.readAllText(Path.combine(context.root.toString(), path).toString())
+    }
     else
     {
         var command: Arguments
@@ -631,8 +640,10 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
         let stem = Path.fileNameWithoutExtension(fields[1]) orelse ""
         if (Path.extension(fields[1]) orelse "") != ".md" or not isBacklogScope(stem) do
             continue
-        if fields[0] == "D" do
+        if fields[0] == "D"
+        {
             sourcePaths.add(String.from(fields[1]))
+        }
         else
         {
             destinationPaths.add(String.from(fields[1]))
@@ -800,8 +811,10 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
             Console.println("error: backlog identifier '", text, "' must use suffix ", maximum + 1, "; retired suffixes stay allocated")
             errors += 1
         }
-        else do
+        else
+        {
             allocated.add(identifier)
+        }
     }
 
     return errors

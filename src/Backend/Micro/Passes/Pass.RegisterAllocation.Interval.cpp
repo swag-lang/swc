@@ -835,21 +835,22 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // call even when a less-used value occupies a persistent register.
         // Try the blocked election first in that case; retain the partial
         // free register as a fallback when no owner can be displaced.
-        const bool freeServesWhole = bestFree < poolCount && freeUntilPos[bestFree] >= out.nodes[currentIndex].end();
-        const bool freeSplittable  = bestFree < poolCount && (freeUntilPos[bestFree] & ~1u) > position;
-        bool       freeEndsAtCall  = false;
+        const uint32_t bestFreeUntil   = bestFree < poolCount ? freeUntilPos[bestFree] : 0;
+        const bool     freeServesWhole = bestFree < poolCount && bestFreeUntil >= out.nodes[currentIndex].end();
+        const bool     freeSplittable  = bestFree < poolCount && (bestFreeUntil & ~1u) > position;
+        bool           freeEndsAtCall  = false;
         if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty() &&
-            fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == freeUntilPos[bestFree])
+            fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == bestFreeUntil)
         {
-            const uint32_t    blockIndex = freeUntilPos[bestFree] / 2;
+            const uint32_t    blockIndex = bestFreeUntil / 2;
             const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
             freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction);
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
-            if (freeUntilPos[bestFree] < out.nodes[currentIndex].end())
+            if (bestFreeUntil < out.nodes[currentIndex].end())
             {
-                const uint32_t splitPos   = chooseSplitPos(walk, position + 1, freeUntilPos[bestFree]);
+                const uint32_t splitPos   = chooseSplitPos(walk, position + 1, bestFreeUntil);
                 const uint32_t childIndex = splitNodeAt(walk, currentIndex, splitPos);
                 if (childIndex != K_IV_INVALID)
                     pushUnhandled(walk, childIndex);
@@ -871,7 +872,8 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // INPUT slot: an owner the very same instruction still reads must
         // never win the election, since its register cannot be vacated
         // between the read and the write.
-        // The free election is finished; this phase overwrites every position.
+        // This phase overwrites every position. The fallback retains its chosen
+        // free boundary in bestFreeUntil even when a candidate is disqualified.
         auto&          nextUsePos   = electionPositions;
         const uint32_t electionFrom = position & ~1u;
         for (size_t i = 0; i < poolCount; ++i)

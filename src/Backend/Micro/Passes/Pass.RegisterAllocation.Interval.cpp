@@ -507,8 +507,11 @@ namespace
     // the back-edge.
     uint32_t nextAccessForElection(const WalkState& walk, const MicroRegisterAllocationPass::LiveInterval& node, const uint32_t from)
     {
+        SWC_ASSERT((from & 1u) == 0);
         uint32_t next = node.firstUseAfter(from);
-        if (!walk.loops)
+        // Elections start at input slots. An enclosing loop's even tail
+        // cannot precede an access already at this input.
+        if (next == from || !walk.loops)
             return next;
         uint32_t lastAccess = K_IV_INVALID;
         for (const LoopRange& loop : *walk.loops)
@@ -542,9 +545,9 @@ namespace
         const uint32_t splitPos = pos & ~1u;
         if (splitPos <= nodes[ownerIndex].start() || splitPos >= nodes[ownerIndex].end())
             return false;
-        const uint32_t lastUse = nodes[ownerIndex].lastAccessBefore(splitPos + 1);
-        if (lastUse != K_IV_INVALID && splitPos <= lastUse)
-            return false;
+        // The next access rules out both this instruction's input and output
+        // slots. A separate backward search for an input-slot access repeats
+        // a case already rejected by the same rounded-forward boundary.
         const uint32_t firstAccess = nodes[ownerIndex].firstUseAfter(splitPos);
         if (firstAccess != K_IV_INVALID && (firstAccess & ~1u) <= splitPos)
             return false;

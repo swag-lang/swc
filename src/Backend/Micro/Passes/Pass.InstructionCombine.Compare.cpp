@@ -75,21 +75,25 @@ namespace InstructionCombine
             (cmp[4].opBits != MicroOpBits::B32 && cmp[4].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef initRef  = ctx.storage->findPreviousInstructionRef(cmpRef);
-        const MicroInstrRef jumpRef  = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstrRef loadRef  = ctx.storage->findNextInstructionRef(jumpRef);
-        const MicroInstrRef copyRef  = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstrRef initRef = ctx.storage->findPreviousInstructionRef(cmpRef);
+        const MicroInstr*   init    = ctx.storage->ptr(initRef);
+        if (!init || init->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstr*   jump    = ctx.storage->ptr(jumpRef);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+            return false;
+        const MicroInstrRef loadRef = ctx.storage->findNextInstructionRef(jumpRef);
+        const MicroInstr*   load    = ctx.storage->ptr(loadRef);
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+        const MicroInstrRef copyRef = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstr*   copy    = ctx.storage->ptr(copyRef);
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return false;
         const MicroInstrRef labelRef = ctx.storage->findNextInstructionRef(copyRef);
-        const MicroInstr*   init     = ctx.storage->ptr(initRef);
-        const MicroInstr*   jump     = ctx.storage->ptr(jumpRef);
-        const MicroInstr*   load     = ctx.storage->ptr(loadRef);
-        const MicroInstr*   copy     = ctx.storage->ptr(copyRef);
         const MicroInstr*   label    = ctx.storage->ptr(labelRef);
-        if (!init || init->op != MicroInstrOpcode::LoadRegReg ||
-            !jump || jump->op != MicroInstrOpcode::JumpCond ||
-            !load || load->op != MicroInstrOpcode::LoadAmcRegMem ||
-            !copy || copy->op != MicroInstrOpcode::LoadRegReg ||
-            !label || label->op != MicroInstrOpcode::Label)
+        if (!label || label->op != MicroInstrOpcode::Label)
             return false;
         const MicroInstrOperand* initOps  = init->ops(*ctx.operands);
         const MicroInstrOperand* jumpOps  = jump->ops(*ctx.operands);
@@ -153,11 +157,12 @@ namespace InstructionCombine
             return false;
 
         const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstrRef loadRef = ctx.storage->findNextInstructionRef(jumpRef);
         const MicroInstr*   jump    = ctx.storage->ptr(jumpRef);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+            return false;
+        const MicroInstrRef loadRef = ctx.storage->findNextInstructionRef(jumpRef);
         const MicroInstr*   load    = ctx.storage->ptr(loadRef);
-        if (!jump || jump->op != MicroInstrOpcode::JumpCond ||
-            !load || load->op != MicroInstrOpcode::LoadAmcRegMem)
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem)
             return false;
         const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
         const MicroInstrOperand* loadOps = load->ops(*ctx.operands);

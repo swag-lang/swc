@@ -739,10 +739,12 @@ namespace
         return fn.parameters()[fail.paramIndex];
     }
 
-    const SymbolVariable* declaredFailedParameter(const SymbolFunction& fn, const MatchFailure& fail)
+    // The parameter a message can name. An unnamed one ('func(s32)', '?') has nothing
+    // to show; the implicit 'me' of a method has no declaration and still has its name.
+    const SymbolVariable* namedFailedParameter(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
         const SymbolVariable* param = failedParameter(fn, fail);
-        if (!param || !param->decl())
+        if (!param || param->name(ctx).empty())
             return nullptr;
 
         return param;
@@ -771,14 +773,14 @@ namespace
             const SymbolFunction& dstFunc  = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef)).payloadSymFunction();
             const Utf8            actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, CallConv::get(srcFunc.callConvKind()).displayName);
             const Utf8            required = std::format("'{}' with the {} calling convention", dstTypeName, CallConv::get(dstFunc.callConvKind()).displayName);
-            if (const SymbolVariable* param = failedParameter(fn, fail))
+            if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
                 return std::format("{}, but parameter '{}' needs {}", actual, param->name(ctx), required);
-            return std::format("{}, but needs {}", actual, required);
+            return std::format("{}, but the parameter needs {}", actual, required);
         }
-        if (const SymbolVariable* param = failedParameter(fn, fail))
+        if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
             return std::format("has type '{}', but parameter '{}' needs '{}'", srcTypeName, param->name(ctx), dstTypeName);
 
-        return std::format("has type '{}', expected '{}'", srcTypeName, dstTypeName);
+        return std::format("has type '{}', but the parameter needs '{}'", srcTypeName, dstTypeName);
     }
 
     bool isFunctionWhereFailure(DiagnosticId diagId)
@@ -896,7 +898,7 @@ namespace
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_fwd_not_copyable)
                 {
                     const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<type unavailable>"};
-                    if (const SymbolVariable* param = failedParameter(fn, fail))
+                    if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
                         return std::format("its '#fwd' parameter '{}' cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", param->name(ctx), typeName);
                     return std::format("its '#fwd' parameter cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", typeName);
                 }
@@ -904,19 +906,19 @@ namespace
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_not_copyable)
                 {
                     const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<type unavailable>"};
-                    if (const SymbolVariable* param = failedParameter(fn, fail))
+                    if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
                         return std::format("its '#move' parameter '{}' cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", param->name(ctx), typeName);
                     return std::format("its '#move' parameter cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", typeName);
                 }
 
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_param_not_move)
                 {
-                    if (const SymbolVariable* param = failedParameter(fn, fail))
+                    if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
                         return std::format("its reference parameter '{}' cannot take a '#move' argument", param->name(ctx));
                     return Utf8{"its reference parameter cannot take a '#move' argument"};
                 }
 
-                if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? failedParameter(fn, fail) : nullptr)
+                if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? namedFailedParameter(fn, fail, ctx) : nullptr)
                 {
                     const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
                     if (!argNumber)
@@ -926,7 +928,7 @@ namespace
                 return Utf8{Diagnostic::diagIdMessage(fail.castFailure.diagId)};
             }
 
-            if (const SymbolVariable* param = failedParameter(fn, fail))
+            if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
             {
                 const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
                 if (!argNumber)
@@ -1014,9 +1016,9 @@ namespace
 
         if (!hasFunctionCallConvMismatch(fail, ctx))
         {
-            if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
+            if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
             {
-                diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                diagElement.addArgument(Diagnostic::ARG_PARAM, Utf8{param->name(ctx)});
                 return;
             }
         }
@@ -1070,8 +1072,8 @@ namespace
                 diagElement.addArgument(Diagnostic::ARG_VALUE, writtenArgCount(fail.providedCount, ufcsArg));
                 if (fail.kind == MatchFailKind::TooFewArguments)
                 {
-                    if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
-                        diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                    if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
+                        diagElement.addArgument(Diagnostic::ARG_PARAM, Utf8{param->name(ctx)});
                 }
                 break;
             }
@@ -1094,8 +1096,8 @@ namespace
                         (void) addCastFailureArgs(diagElement, fail.castFailure);
                     if (isNote && diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
                     {
-                        if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
-                            diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                        if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
+                            diagElement.addArgument(Diagnostic::ARG_PARAM, Utf8{param->name(ctx)});
                     }
                     addCastFailureNote(sema, diag, fail.castFailure);
                     addFunctionWhereFailureNotes(sema, diag, fail.castFailure);
@@ -1148,6 +1150,11 @@ namespace
 
         Diagnostic diag = reportMatchFailure(sema, id, nodeCallee, fail, args, ufcsArg);
         fillMatchDiagnostic(sema, primaryDiagnosticElement(diag), diag, fn, fail, args, ufcsArg, false);
+
+        // A function type has no name of its own: a call through a function value names
+        // that value, never the symbol at the report site, which is an argument.
+        if (fn.name(sema.ctx()).empty() && nodeCallee.sym())
+            primaryDiagnosticElement(diag).addArgument(Diagnostic::ARG_SYM, nodeCallee.sym()->name(sema.ctx()));
         diag.report(sema.ctx());
         return Result::Error;
     }

@@ -27,6 +27,7 @@ public:
     constexpr static std::string_view ARG_BEFORE               = "{before}";
     constexpr static std::string_view ARG_BECAUSE              = "{because}";
     constexpr static std::string_view ARG_TOK                  = "{tok}";
+    constexpr static std::string_view ARG_PARAM                = "{param}";
     constexpr static std::string_view ARG_TOK_FAM              = "{tok-fam}";
     constexpr static std::string_view ARG_A_TOK_FAM            = "{a-tok-fam}";
     constexpr static std::string_view ARG_EXPECT_TOK           = "{expect-tok}";

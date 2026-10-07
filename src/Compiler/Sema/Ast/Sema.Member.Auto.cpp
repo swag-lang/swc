@@ -956,7 +956,12 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         if (selected.resultTypeRef.isValid())
             substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
         sema.setSubstitute(sema.curNodeRef(), substituteRef);
-        sema.setIsValue(*substituteNode);
+
+        // '.IThing' names the subject's implementation of an interface: a scope that
+        // qualifies the member after it, exactly as 'subject.IThing' does, never a value.
+        // The receiver of '.IThing.method()' is the subject, not that scope.
+        if (!std::ranges::all_of(symbols, [](const Symbol* symbol) { return symbol->isSymMap(); }))
+            sema.setIsValue(*substituteNode);
         return Result::SkipChildren;
     }
 

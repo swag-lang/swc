@@ -406,7 +406,7 @@ impl IWnd for LibraryView
             if capture and capture.rating and .libWnd.showRatingOverlay
             {
                 let star  = .mainWnd.icon(.RatingStar, RatingGlyphSize)
-                let width = cast(f32, capture.rating) * RatingGlyphSize + cast(f32, (capture.rating - 1)) * RatingGlyphGap
+                let width = cast(f32, capture.rating) * RatingGlyphSize + cast(f32, capture.rating - 1) * RatingGlyphGap
                 var sx    = it.rect.right() - width - 8
                 let sy    = it.rect.y + (capture.favorite ? 24 : 8)
                 for capture.rating

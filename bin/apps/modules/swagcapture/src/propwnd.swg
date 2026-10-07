@@ -147,7 +147,7 @@ impl PropWnd
         if not capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return assume cast (*BaseForm, iform)
+            return assume cast(*BaseForm, iform)
         }
 
         return capture.getSelectedBaseForm()!
@@ -277,7 +277,7 @@ impl PropWnd
             let cur = selectedKind(prop, type, fieldName)
             for c in layout.children
             {
-                let btn  = assume cast (*IconButton, c)
+                let btn  = assume cast(*IconButton, c)
                 let kind = enumFromUserData'FormShapeKind(btn.userData)
                 btn.setChecked(cur == kind)
                 btn.invalidate()
@@ -351,7 +351,7 @@ impl PropWnd
             let type = prop.getSelectedFormType()
             if type != FormLine and type != FormArrow do
                 return .None
-            let curSel = assume cast (*FormLine, prop.getSelectedBaseForm())
+            let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
             return begin ? curSel.beginCap : curSel.endCap
         }
 
@@ -490,9 +490,9 @@ impl PropWnd
         let curSel = .getSelectedBaseForm()
         switch .getSelectedFormType()
         {
-        case FormLine:  return assume cast (*FormLine, curSel).outlineColor
-        case FormArrow: return assume cast (*FormArrow, curSel).outlineColor
-        case FormDraw:  return assume cast (*FormDraw, curSel).outlineColor
+        case FormLine:  return assume cast(*FormLine, curSel).outlineColor
+        case FormArrow: return assume cast(*FormArrow, curSel).outlineColor
+        case FormDraw:  return assume cast(*FormDraw, curSel).outlineColor
         }
 
         return Argb.Black
@@ -557,7 +557,7 @@ impl PropWnd
 
             if curSelType == FormImage
             {
-                let imgSel = assume cast (*FormImage, curSel)
+                let imgSel = assume cast(*FormImage, curSel)
                 if imgSel.kind != .Image do
                     return
             }
@@ -665,7 +665,7 @@ impl PropWnd
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            let curSel = assume cast (*FormLine, prop.getSelectedBaseForm())
+            let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
             bc.painter.setParams(.Antialiased)
             drawCapGlyph(bc.painter, curSel.beginCap, true, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -687,7 +687,7 @@ impl PropWnd
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            let curSel = assume cast (*FormLine, prop.getSelectedBaseForm())
+            let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
             bc.painter.setParams(.Antialiased)
             drawCapGlyph(bc.painter, curSel.endCap, false, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -1153,7 +1153,7 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormLine.startSize), #nameof(FormLine.endSize):
             if .gridBindType == FormLine or .gridBindType == FormArrow
             {
-                let line = assume cast (*FormLine, base)
+                let line = assume cast(*FormLine, base)
                 let cap  = name == #nameof(FormLine.startSize) ? line.beginCap : line.endCap
                 return base.subKind != .PixSel and capStyleHasSize(cap)
             }
@@ -1163,14 +1163,14 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormShape.roundSize):
             if .gridBindType == FormShape
             {
-                let shape = assume cast (*FormShape, base)
+                let shape = assume cast(*FormShape, base)
                 return shape.kind == .RoundRectangle
             }
 
         case #nameof(FormImage.strength):
             if .gridBindType == FormImage
             {
-                let img = assume cast (*FormImage, base)
+                let img = assume cast(*FormImage, base)
                 return img.kind != .Image
             }
         }

@@ -146,7 +146,7 @@ impl PreviewViewer
         .running    = true
         .frameCount = 0
         if not .timer do
-            .timer = .app().addTimer(16'ms, me)
+            .timer = .addTimer(16'ms)
         .probe.start(.request, .cache)
         .refreshStatus()
         .sigChanged.call(me)
@@ -214,9 +214,7 @@ impl PreviewViewer
         {
             if .preparing do
                 return
-            if .timer do
-                .removeTimer(.timer)
-            .timer   = null
+            .stopTimer(&.timer)
             .running = false
             if .queued
             {
@@ -284,9 +282,7 @@ impl PreviewViewer
 
         .retired.clear()
 
-        if .timer and not .isPendingDestroy do
-            .removeTimer(.timer)
-        .timer   = null
+        .stopTimer(&.timer)
         .running = false
         .queued  = false
         .probe.channel.close()

@@ -1241,7 +1241,7 @@ impl LibraryWnd
                 .addItem(ActionLibView.LinkMarkers)
             }
 
-            discard menu.doModal(assume cast (*IconButton, btn), autoDestroy: true)
+            discard menu.doModal(assume cast(*IconButton, btn), autoDestroy: true)
         }
 
         .sortBtn = .createMenuButton(.theme().icon(.Sort, iconSize), appStrings().ui_BarSort)
@@ -1262,17 +1262,17 @@ impl LibraryWnd
                 .addItem(ActionLibSort.Invert)
             }
 
-            discard menu.doModal(assume cast (*IconButton, btn), autoDestroy: true)
+            discard menu.doModal(assume cast(*IconButton, btn), autoDestroy: true)
         }
 
         .filterBtn = .createMenuButton(.theme().icon(.Filter, iconSize), appStrings().ui_BarFilter)
-        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterMenu(assume cast (*IconButton, btn)) }
+        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterMenu(assume cast(*IconButton, btn)) }
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.
         .folderBtn            = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
         .folderBtn.toolTip    = appStrings().tip_LibraryFolders
-        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(assume cast (*IconButton, btn)) }
+        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(assume cast(*IconButton, btn)) }
 
         // Loading state stays with the commands it updates, before the flexible gap, so it
         // appears without moving the search field away from the right edge.

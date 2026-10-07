@@ -23,7 +23,7 @@ impl IActionUI for ActionPixSel
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
 
         switch cxt.id
         {
@@ -144,7 +144,7 @@ impl MainWnd
                 y1 = undo.newImg.height - y1
                 for undo.newImg.height
                 {
-                    pt.y = cast(f32, (capture.backImg.height - y1)) + capture.backImagePos.y
+                    pt.y = cast(f32, capture.backImg.height - y1) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
@@ -156,12 +156,12 @@ impl MainWnd
                     y1 += 1
                 }
 
-                var y2 = cast(s32, (br.y - capture.backImagePos.y))
+                var y2 = cast(s32, br.y - capture.backImagePos.y)
                 y2 = undo.newImg.height - y2
                 y2 = Math.clamp(y2, 0, undo.newImg.height - 1)
                 for undo.newImg.height
                 {
-                    pt.y = cast(f32, (capture.backImg.height - y2)) + capture.backImagePos.y
+                    pt.y = cast(f32, capture.backImg.height - y2) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
@@ -205,8 +205,8 @@ impl MainWnd
                         if p.masks
                         {
                             let masks = p.masks!
-                            let xx    = cast(s32, (pt.x - infos[idx].boundRect.x))
-                            var yy    = cast(s32, (pt.y - infos[idx].boundRect.y))
+                            let xx    = cast(s32, pt.x - infos[idx].boundRect.x)
+                            var yy    = cast(s32, pt.y - infos[idx].boundRect.y)
                             let pmask = masks.storage() + idx
                             yy = pmask.height - yy
                             if xx < pmask.width and yy < pmask.height
@@ -217,7 +217,7 @@ impl MainWnd
                             }
                         }
 
-                        var fVert = (y - y1) / cast(f32, (y2 - y1))
+                        var fVert = (y - y1) / cast(f32, y2 - y1)
                         fVert = Math.clamp(fVert, 0, 1)
                         let col = Color.lerp(col1, col2, fVert)
                         cast(*u32, pix)[] = col.argb
@@ -273,7 +273,7 @@ impl MainWnd
 
         for f, idx in undo.oldForms
         {
-            let nf = assume cast (*FormImage, f)
+            let nf = assume cast(*FormImage, f)
             nf.backCaptureMask((masks.buffer + idx)!)
         }
 

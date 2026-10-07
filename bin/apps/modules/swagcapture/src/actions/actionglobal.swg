@@ -16,7 +16,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
 
         switch cxt.id
         {
@@ -45,7 +45,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
 
         switch cxt.id
         {

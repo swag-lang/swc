@@ -67,7 +67,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
         for child in row.children
         {
             if child.toolTip == tip do
-                return assume cast (*IconButton, child)
+                return assume cast(*IconButton, child)
         }
     }
 
@@ -337,7 +337,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     // every pump instead of retaining pointers into the previous window tree.
     let posItemY = testFindItem(prop, appStrings().ui_PropPosition)!
     let stackY   = posItemY.line.children[0]
-    let editY    = assume cast (*EditCtrl, stackY.children[1]).edit
+    let editY    = assume cast(*EditCtrl, stackY.children[1]).edit
     f.gui.clickWnd(editY)
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)

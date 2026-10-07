@@ -3,10 +3,10 @@
 // id starts with its own scope. This mixin generates the accept() implementation
 // from that rule; invoke it inside the 'impl IActionUI for X' block.
 #[Swag.Mixin]
-func acceptOwnCmdIds()
-{
-    #ast("mtd impl accept(cxt: ActionContext)->bool { return Utf8.startsWith(cxt.id, \"", #scopename, ".\") }")
-}
+func acceptOwnCmdIds() { #ast("mtd impl accept(cxt: ActionContext)->bool { return Utf8.startsWith(cxt.id, \"", #scopename, ".\") }") }
+
+// Returns the main window every command of this application runs against.
+func mainWndOf(cxt: ActionContext)->*MainWnd => assume cast(*MainWnd, cxt.wnd)
 
 // What a purely-mechanical command needs to be enabled; evaluated by updateFromTable
 enum CmdNeed
@@ -38,7 +38,7 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         if d.id != cxt.id do
             continue
 
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()
 
         var disabled = false

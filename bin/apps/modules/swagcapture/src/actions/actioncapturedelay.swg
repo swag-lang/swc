@@ -18,7 +18,7 @@ impl IActionUI for ActionCaptureDelay
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
         switch cxt.id
         {
         case .Delay:
@@ -68,7 +68,7 @@ impl IActionUI for ActionCaptureDelay
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
         switch cxt.id
         {
         case .Delay0: main.captureOptions.delay = 0

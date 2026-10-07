@@ -300,9 +300,7 @@ impl MainWindow
         {
             Atomic.exchange(&.formatCancelled, 1)
             .formatTask.wait()
-            if .formatTimer and not .isPendingDestroy do
-                .removeTimer(.formatTimer)
-            .formatTimer  = null
+            .stopTimer(&.formatTimer)
             .formatStatus = .None
         }
 
@@ -320,7 +318,7 @@ impl MainWindow
         .formatCancelled = 0
         .formatStatus    = .Working
         .commandBar.formatButton.enable(false)
-        .formatTimer = .app().addTimer(20'ms, me)
+        .formatTimer = .addTimer(20'ms)
         .formatTask.submit(func|window = me|()
         {
             window.formatResult = catch window.formatter.format(window.formatSource, &window.formatCancelled) as error
@@ -332,8 +330,7 @@ impl MainWindow
 
     mtd finishFormat()
     {
-        .removeTimer(.formatTimer!)
-        .formatTimer = null
+        .stopTimer(&.formatTimer)
         .commandBar.formatButton.enable()
         if .formatResult.failed
         {
@@ -365,16 +362,14 @@ impl MainWindow
 
     mtd cancelEditTimer()
     {
-        if .editTimer and not .isPendingDestroy do
-            .removeTimer(.editTimer)
-        .editTimer = null
+        .stopTimer(&.editTimer)
     }
 
     mtd scheduleCompile()
     {
         .cancelEditTimer()
         if .commandBar.liveEdit.isChecked() do
-            .editTimer = .app().addTimer(150'ms, me)
+            .editTimer = .addTimer(150'ms)
     }
 
     mtd openExample(kind: ExampleKind)

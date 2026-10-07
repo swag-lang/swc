@@ -40,18 +40,18 @@ impl IForm for FormShape
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = assume cast (*FormShape, dst)
-        let srcf = assume cast (*FormShape, src)
+        let dstf = assume cast(*FormShape, dst)
+        let srcf = assume cast(*FormShape, src)
         dstf.kind      = srcf.kind
         dstf.roundSize = srcf.roundSize
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        let xa = cast(s32, (movingStart.x / zoom))
-        let ya = cast(s32, (movingStart.y / zoom))
-        var xb = cast(s32, (localPos.x / zoom))
-        var yb = cast(s32, (localPos.y / zoom))
+        let xa = cast(s32, movingStart.x / zoom)
+        let ya = cast(s32, movingStart.y / zoom)
+        var xb = cast(s32, localPos.x / zoom)
+        var yb = cast(s32, localPos.y / zoom)
         .setBaseForm(xa, ya, xb - xa, yb - ya)
 
         var xbu = 0
@@ -61,7 +61,7 @@ impl IForm for FormShape
         yb += ybu
 
         // Same size
-        let shiftPressed = cast(bool, (evt.modifiers & .Shift))
+        let shiftPressed = cast(bool, evt.modifiers & .Shift)
         if shiftPressed
         {
             let ww = xb - xa
@@ -86,10 +86,10 @@ impl IForm for FormShape
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32, (.x * scale))
-        .y = cast(s32, (.y * scale))
-        .w = cast(s32, (.w * scale))
-        .h = cast(s32, (.h * scale))
+        .x = cast(s32, .x * scale)
+        .y = cast(s32, .y * scale)
+        .w = cast(s32, .w * scale)
+        .h = cast(s32, .h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)

@@ -104,7 +104,7 @@ impl BaseForm
         if quickMode do
             return QuickPaintOverdraw
 
-        let base   = assume cast (*BaseForm, itf)
+        let base   = assume cast(*BaseForm, itf)
         let type   = Swag.kindOf(itf)
         var extent = base.borderSize * 1.5
         if type == FormLine or type == FormArrow
@@ -118,7 +118,7 @@ impl BaseForm
             // The caps are shaped from the stroke itself and the contour is pushed out around the
             // result, so the contour adds its own width once rather than widening the stroke the
             // caps are measured against.
-            let line   = assume cast (*FormLine, base)
+            let line   = assume cast(*FormLine, base)
             let stroke = base.borderSize
             let beg    = Painter.capStyleRadius(line.beginCap, stroke, line.startSize)
             let end    = Painter.capStyleRadius(line.endCap, stroke, line.endSize)
@@ -126,7 +126,7 @@ impl BaseForm
         }
         elif type == FormDraw
         {
-            let draw = assume cast (*FormDraw, base)
+            let draw = assume cast(*FormDraw, base)
             extent = base.borderSize * 1.5 + draw.outlineSize
         }
 
@@ -232,7 +232,7 @@ impl BaseForm
     {
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
-        let base = assume cast (*BaseForm, itf)
+        let base = assume cast(*BaseForm, itf)
         var pos  = Math.Vector2{pt.x, pt.y}
         if base.subKind != .Highlight and base.subKind != .PixSel and not Math.isZeroEpsilon(base.rotate)
         {

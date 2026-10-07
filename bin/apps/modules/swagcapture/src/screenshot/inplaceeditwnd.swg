@@ -163,7 +163,7 @@ impl InPlaceEditWnd
         btnColor.sigPopupRequested += func|self = me|(btn)
         {
             let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
-            let picker = PropWnd.createColorPicker(assume cast (*IconButton, btn), color)
+            let picker = PropWnd.createColorPicker(assume cast(*IconButton, btn), color)
             picker.sigColorChanged += func|self, picker, btn|(?)
             {
                 if self.editMode == .Marker do

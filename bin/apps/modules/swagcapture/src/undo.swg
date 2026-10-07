@@ -48,7 +48,7 @@ func formEditableTextDirty(f: IForm)
 {
     if Swag.kindOf(f) == FormText
     {
-        let b = assume cast (*FormText, f)
+        let b = assume cast(*FormText, f)
         b.isDirty = true
     }
 }
@@ -83,7 +83,7 @@ func formFontDirty(f: IForm)
 {
     if Swag.kindOf(f) == FormText
     {
-        let b = assume cast (*FormText, f)
+        let b = assume cast(*FormText, f)
         b.isDirtyFont = true
     }
 }
@@ -186,13 +186,13 @@ impl Undo
         {
             if let value = .mdlValue
             {
-                let view = assume cast (IForm, value)
+                let view = assume cast(IForm, value)
                 Memory.delete(view.buffer, Swag.kindOf(view))
             }
 
             for f in .oldForm
             {
-                let view = assume cast (IForm, f)
+                let view = assume cast(IForm, f)
                 Memory.delete(view.buffer, Swag.kindOf(view))
             }
         }
@@ -298,7 +298,7 @@ impl Undo
                 let mdlType = .mdlType orelse #typeof(FormShape)
                 let storage = Memory.new(mdlType)!
                 let view    = Swag.makeInterface(storage, mdlType, IForm)!
-                let save    = assume cast (*BaseForm, view)
+                let save    = assume cast(*BaseForm, view)
                 itf.copy(save, form)
                 .oldForm.add(save)
             }

@@ -406,7 +406,7 @@ impl RecentWnd
         if .loadDone or .loadTimer do
             return
         .prepareLoadRecent = true
-        .loadTimer         = .app().addTimer(100'ms, me)
+        .loadTimer         = .addTimer(100'ms)
     }
 
     mtd onLibraryFileDeleted(file: String)
@@ -463,7 +463,7 @@ impl RecentWnd
         if .loadTimer or .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
         .prepareLoadRecent = false
-        .loadTimer         = .app().addTimer(1'ms, me)
+        .loadTimer         = .addTimer(1'ms)
     }
 
     mtd loadNextRecent()
@@ -498,7 +498,7 @@ impl RecentWnd
 
         if .timer do
             .app().removeTimer(.timer)
-        .timer = .app().addTimer(1's, me)
+        .timer = .addTimer(1's)
 
         let capture = .main.editWnd.getCapture()
         if not capture do

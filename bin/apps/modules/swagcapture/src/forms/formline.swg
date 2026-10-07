@@ -95,8 +95,8 @@ impl IForm for FormLine
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = assume cast (*FormLine, dst)
-        let srcf = assume cast (*FormLine, src)
+        let dstf = assume cast(*FormLine, dst)
+        let srcf = assume cast(*FormLine, src)
         dstf.outlineSize  = srcf.outlineSize
         dstf.outlineColor = srcf.outlineColor
         dstf.beginCap     = srcf.beginCap
@@ -109,10 +109,10 @@ impl IForm for FormLine
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        .xa = cast(s32, (movingStart.x / zoom))
-        .ya = cast(s32, (movingStart.y / zoom))
-        .xb = cast(s32, (localPos.x / zoom))
-        .yb = cast(s32, (localPos.y / zoom))
+        .xa = cast(s32, movingStart.x / zoom)
+        .ya = cast(s32, movingStart.y / zoom)
+        .xb = cast(s32, localPos.x / zoom)
+        .yb = cast(s32, localPos.y / zoom)
 
         var xbu = 0
         var ybu = 0

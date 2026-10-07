@@ -94,7 +94,7 @@ using Swag, Core
     Swag.assert(f.capture.selection[0] == 0)
     Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormImage)
 
-    let imgForm = assume cast (*FormImage, f.capture.forms[0])
+    let imgForm = assume cast(*FormImage, f.capture.forms[0])
     Swag.assert(imgForm.kind == .Capture)
     Swag.assert(imgForm.image.isValid())
     Swag.assert(imgForm.image.width == 12)

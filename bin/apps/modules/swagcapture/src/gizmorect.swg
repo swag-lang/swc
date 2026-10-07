@@ -414,7 +414,7 @@ impl GizmoRect
 
     mtd apply(iform: IForm, first: bool, hitMove: u32)
     {
-        let form    = assume cast (*BaseForm, iform)
+        let form    = assume cast(*BaseForm, iform)
         let capture = form.capture!
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
@@ -442,8 +442,8 @@ impl GizmoRect
 
             undo.newPosX  = cast(s32, ((scx / zoom - newW * 0.5) - startX))
             undo.newPosY  = cast(s32, ((scy / zoom - newH * 0.5) - startY))
-            undo.newSizeX = cast(s32, (newW - startW))
-            undo.newSizeY = cast(s32, (newH - startH))
+            undo.newSizeX = cast(s32, newW - startW)
+            undo.newSizeY = cast(s32, newH - startH)
 
             capture.pushUndo(undo)
             capture.invalidateAfterMove(iform, oldRect)
@@ -500,7 +500,7 @@ impl GizmoRect
     // Rotate slider in the property window so undo/redo stays consistent.
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
-        let form    = assume cast (*BaseForm, iform)
+        let form    = assume cast(*BaseForm, iform)
         let capture = form.capture!
         if not first do
             capture.undo()

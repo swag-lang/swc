@@ -274,7 +274,7 @@ impl IAllocator for LibraryRejectAllocator
         Memory.delete(capture)
 
         g_Library.addFile(path)
-        discard testAddLibraryItem(view, path, size: 8, day: cast(u16, (idx + 1)))
+        discard testAddLibraryItem(view, path, size: 8, day: cast(u16, idx + 1))
         paths.add(path)
     }
 

@@ -47,7 +47,7 @@ impl IActionUI for ActionOptions
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
 
         switch cxt.id
         {
@@ -62,7 +62,7 @@ impl IActionUI for ActionOptions
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
         let view = main.editWnd.editView
 
         let dlg = Dialog.create(view.surface!, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)

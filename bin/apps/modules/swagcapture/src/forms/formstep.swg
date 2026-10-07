@@ -44,8 +44,8 @@ impl IForm for FormStep
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = assume cast (*FormStep, dst)
-        let srcf = assume cast (*FormStep, src)
+        let dstf = assume cast(*FormStep, dst)
+        let srcf = assume cast(*FormStep, src)
         dstf.kind      = srcf.kind
         dstf.typeIndex = srcf.typeIndex
         dstf.ws        = srcf.ws
@@ -54,8 +54,8 @@ impl IForm for FormStep
 
     mtd impl edit(?: *MouseEvent, movingStart: Math.Point, ?: Math.Point, zoom: f32)->bool
     {
-        var xa = cast(s32, (movingStart.x / zoom))
-        var ya = cast(s32, (movingStart.y / zoom))
+        var xa = cast(s32, movingStart.x / zoom)
+        var ya = cast(s32, movingStart.y / zoom)
         xa -= .ws / 2
         ya -= .hs / 2
         .setBaseForm(xa, ya, .ws, .hs)
@@ -82,10 +82,10 @@ impl IForm for FormStep
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32, (.x * scale))
-        .y = cast(s32, (.y * scale))
-        .w = cast(s32, (.w * scale))
-        .h = cast(s32, (.h * scale))
+        .x = cast(s32, .x * scale)
+        .y = cast(s32, .y * scale)
+        .w = cast(s32, .w * scale)
+        .h = cast(s32, .h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)

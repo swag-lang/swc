@@ -78,8 +78,8 @@ impl FormImage
     {
         let renderer = g_App.renderer
         let capture  = .capture!
-        let x1       = cast(s32, (.x - capture.backImagePos.x))
-        let y1       = cast(s32, (.y - capture.backImagePos.y))
+        let x1       = cast(s32, .x - capture.backImagePos.x)
+        let y1       = cast(s32, .y - capture.backImagePos.y)
 
         if .w > 1 and .h > 1 and .isReadyToCapture
         {
@@ -117,8 +117,8 @@ impl IForm for FormImage
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = assume cast (*FormImage, dst)
-        let srcf = assume cast (*FormImage, src)
+        let dstf = assume cast(*FormImage, dst)
+        let srcf = assume cast(*FormImage, src)
         dstf.kind     = srcf.kind
         dstf.strength = srcf.strength
         if srcf.image.isValid() do
@@ -127,10 +127,10 @@ impl IForm for FormImage
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        let xa = cast(s32, (movingStart.x / zoom))
-        let ya = cast(s32, (movingStart.y / zoom))
-        let xb = cast(s32, (localPos.x / zoom))
-        let yb = cast(s32, (localPos.y / zoom))
+        let xa = cast(s32, movingStart.x / zoom)
+        let ya = cast(s32, movingStart.y / zoom)
+        let xb = cast(s32, localPos.x / zoom)
+        let yb = cast(s32, localPos.y / zoom)
         .setBaseForm(xa, ya, xb - xa, yb - ya)
         if evt.kind == .Released and evt.button == .Left
         {
@@ -160,10 +160,10 @@ impl IForm for FormImage
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32, (.x * scale))
-        .y = cast(s32, (.y * scale))
-        .w = cast(s32, (.w * scale))
-        .h = cast(s32, (.h * scale))
+        .x = cast(s32, .x * scale)
+        .y = cast(s32, .y * scale)
+        .w = cast(s32, .w * scale)
+        .h = cast(s32, .h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
@@ -288,8 +288,8 @@ impl IForm for FormImage
         {
             let renderer = g_App.renderer
             let capture  = .capture!
-            let x1       = cast(s32, (.x - capture.backImagePos.x))
-            let y1       = cast(s32, (.y - capture.backImagePos.y))
+            let x1       = cast(s32, .x - capture.backImagePos.x)
+            let y1       = cast(s32, .y - capture.backImagePos.y)
 
             switch .kind
             {
@@ -337,8 +337,8 @@ impl IForm for FormImage
                         renderer.removeTexture(&.texture)
                         var img = capture.backImg.cropped(x1, y1, .w, .h)
                         let st  = Math.map(cast(f32, .strength), 0, 100, 1, 16)
-                        let nw  = Math.max(cast(s32, (img.width / st)), 4)
-                        let nh  = Math.max(cast(s32, (img.height / st)), 4)
+                        let nw  = Math.max(cast(s32, img.width / st), 4)
+                        let nh  = Math.max(cast(s32, img.height / st), 4)
                         img.resize(nw, nh, .Quadratic)
                         img.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
                         .texture = g_App.renderer.addImage(img)

@@ -39,8 +39,8 @@ impl IForm for FormDraw
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = assume cast (*FormDraw, dst)
-        let srcf = assume cast (*FormDraw, src)
+        let dstf = assume cast(*FormDraw, dst)
+        let srcf = assume cast(*FormDraw, src)
         dstf.outlineSize  = srcf.outlineSize
         dstf.outlineColor = srcf.outlineColor
     }

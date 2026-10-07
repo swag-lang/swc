@@ -22,7 +22,7 @@ impl IActionUI for ActionAlign
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = assume cast (*MainWnd, cxt.wnd)
+        let main = mainWndOf(cxt)
 
         if updateFromTable(cxt, evt, [
             {AlignLeft,   appStrings().act_AlignLeft,   .MultiSel, hideDisabled: false},
@@ -70,7 +70,7 @@ impl IActionUI for ActionAlign
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()!
 
         var undo: *Undo

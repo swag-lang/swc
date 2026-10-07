@@ -316,7 +316,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
         let image = testAddImage(capture, 8, 8, 40, 32)
         image.kind  = .Image
-        image.image = Gui.Testing.indexedImage(16 + cast(s32, (i % 7)), 12 + cast(s32, (i % 5)))
+        image.image = Gui.Testing.indexedImage(16 + cast(s32, i % 7), 12 + cast(s32, i % 5))
 
         f.editView.setCapture(capture)
         f.editView.setZoom(1)

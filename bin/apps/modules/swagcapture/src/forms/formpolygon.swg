@@ -38,8 +38,8 @@ impl IForm for FormPolygon
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = assume cast (*FormPolygon, dst)
-        let srcf = assume cast (*FormPolygon, src)
+        let dstf = assume cast(*FormPolygon, dst)
+        let srcf = assume cast(*FormPolygon, src)
         dstf.bezier = srcf.bezier
     }
 
@@ -52,13 +52,13 @@ impl IForm for FormPolygon
             return false
         }
 
-        let x0 = cast(s32, (localPos.x / zoom))
-        let y0 = cast(s32, (localPos.y / zoom))
+        let x0 = cast(s32, localPos.x / zoom)
+        let y0 = cast(s32, localPos.y / zoom)
 
         if .points.count < 2
         {
-            let xs = cast(s32, (movingStart.x / zoom))
-            let ys = cast(s32, (movingStart.y / zoom))
+            let xs = cast(s32, movingStart.x / zoom)
+            let ys = cast(s32, movingStart.y / zoom)
             .points.add({xs, ys})
             .points.add({x0, y0})
         }

@@ -36,7 +36,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()
 
         switch cxt.id
@@ -52,7 +52,7 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()!
 
         // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
@@ -163,7 +163,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let w = catch StrConv.toS32(edt.text())
-                let h = Math.max(1, cast(s32, (w / ratio)))
+                let h = Math.max(1, cast(s32, w / ratio))
                 edit1.edit.setText(Format.toString("%", h), notify: false)
             }
         }
@@ -173,7 +173,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let h = catch StrConv.toS32(edt.text())
-                let w = Math.max(1, cast(s32, (h * ratio)))
+                let w = Math.max(1, cast(s32, h * ratio))
                 edit0.edit.setText(Format.toString("%", w), notify: false)
             }
         }
@@ -251,7 +251,7 @@ impl MainWnd
             g_Width = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
-                g_Height = Math.max(1, cast(s32, (g_Width / ratio)))
+                g_Height = Math.max(1, cast(s32, g_Width / ratio))
                 edit1.edit.setText(Format.toString("%", g_Height), notify: false)
             }
         }
@@ -261,7 +261,7 @@ impl MainWnd
             g_Height = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
-                g_Width = Math.max(1, cast(s32, (g_Height * ratio)))
+                g_Width = Math.max(1, cast(s32, g_Height * ratio))
                 edit0.edit.setText(Format.toString("%", g_Width), notify: false)
             }
         }
@@ -278,7 +278,7 @@ impl MainWnd
         {
             if c.userData
             {
-                let btnc = assume cast (*CheckButton, c)
+                let btnc = assume cast(*CheckButton, c)
                 if btnc.state != .Unchecked
                 {
                     g_ResizeMode = cast(u64, btnc.userData)
@@ -488,8 +488,8 @@ impl MainWnd
                 .newSizeX -= cast(s32, minX)
                 .newPosY  -= cast(s32, minY)
                 .newSizeY -= cast(s32, minY)
-                .newSizeX -= cast(s32, (capture.width - maxX))
-                .newSizeY -= cast(s32, (capture.height - maxY))
+                .newSizeX -= cast(s32, capture.width - maxX)
+                .newSizeY -= cast(s32, capture.height - maxY)
             }
 
             capture.pushUndo(undo, serial)

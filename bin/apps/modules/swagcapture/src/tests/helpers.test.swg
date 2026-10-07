@@ -149,7 +149,7 @@ func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind 
 {
     let form = Memory.new'FormLine()
     form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(xa), cast(ya), cast(s32, (xb - xa)), cast(s32, (yb - ya)))
+    form.IForm.setBaseForm(cast(xa), cast(ya), cast(s32, xb - xa), cast(s32, yb - ya))
     form.subKind = subKind
     capture.forms.add(form)
     return form
@@ -159,7 +159,7 @@ func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind
 {
     let form = Memory.new'FormArrow()
     form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(xa), cast(ya), cast(s32, (xb - xa)), cast(s32, (yb - ya)))
+    form.IForm.setBaseForm(cast(xa), cast(ya), cast(s32, xb - xa), cast(s32, yb - ya))
     form.subKind = subKind
     capture.forms.add(form)
     return form

@@ -15,7 +15,7 @@ impl IActionUI for ActionEdit
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
@@ -50,7 +50,7 @@ impl IActionUI for ActionEdit
                     let itfForm = capture.forms[it]
                     if Swag.kindOf(itfForm) != FormImage do
                         continue
-                    let b = assume cast (*FormImage, itfForm)
+                    let b = assume cast(*FormImage, itfForm)
                     if b.kind != .Image do
                         continue
                     evt.hidden = false
@@ -75,7 +75,7 @@ impl IActionUI for ActionEdit
                     if not itfForm.canRotate() do
                         continue
                     evt.hidden = false
-                    let b = assume cast (*BaseForm, itfForm)
+                    let b = assume cast(*BaseForm, itfForm)
                     if not Math.isZeroEpsilon(b.rotate)
                     {
                         evt.disabled = false
@@ -90,7 +90,7 @@ impl IActionUI for ActionEdit
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()!
 
         switch cxt.id

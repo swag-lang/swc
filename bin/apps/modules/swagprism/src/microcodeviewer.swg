@@ -163,7 +163,7 @@ impl MicrocodeViewer
 
         // Options remain editable while this viewer compiles; another request replaces its pending input.
         .setStatus(.Working)
-        .job.timer = .app().addTimer(20'ms, me)
+        .job.timer = .addTimer(20'ms)
         .job.task.submit(func|viewer = me|() { viewer.runCompile() })
     }
 
@@ -182,8 +182,7 @@ impl MicrocodeViewer
     // Reports what the finished job produced, then starts whatever was asked for meanwhile.
     mtd finishCompile()
     {
-        .removeTimer(.job.timer!)
-        .job.timer   = null
+        .stopTimer(&.job.timer)
         .job.running = false
 
         if .job.queued
@@ -213,9 +212,7 @@ impl MicrocodeViewer
             .job.task.wait()
         }
 
-        if .job.timer and not .isPendingDestroy do
-            .removeTimer(.job.timer)
-        .job.timer   = null
+        .stopTimer(&.job.timer)
         .job.running = false
         .job.queued  = false
     }

@@ -17,7 +17,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
@@ -57,7 +57,7 @@ impl IActionUI for ActionCopyPaste
                     let itfForm = capture.forms[it]
                     if Swag.kindOf(itfForm) != FormImage do
                         continue
-                    let b = assume cast (*FormImage, itfForm)
+                    let b = assume cast(*FormImage, itfForm)
                     if b.kind != .Image do
                         continue
                     evt.hidden = false
@@ -80,7 +80,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = assume cast (*MainWnd, cxt.wnd)
+        let main    = mainWndOf(cxt)
         let capture = main.getCapture()!
 
         switch cxt.id

@@ -449,15 +449,13 @@ impl MainWnd
             return
         }
 
+        // A picture Swag Capture exported names the capture it came from: open that one instead.
         var done = false
-        for md in imgToLoad.metadata
+        for md in imgToLoad.metadata where md.isTag(CaptureFileMetadataTag)
         {
-            if md.isTag(CaptureFileMetadataTag)
-            {
-                catch { Memory.delete(try .recentWnd.addRecent(cast(string, md.toSlice()), true, true)) }
-                done = true
-                break
-            }
+            catch { Memory.delete(try .recentWnd.addRecent(cast(string, md.toSlice()), true, true)) }
+            done = true
+            break
         }
 
         if not done do
@@ -523,11 +521,8 @@ impl MainWnd
             capture.selectionHasChanged()
             .freezeSel = true
 
-            for it in capture.forms
-            {
-                let p = assume cast (*BaseForm, it)
-                p.freeze = true
-            }
+            for it in capture.forms do
+                (assume cast(*BaseForm, it)).freeze = true
         }
     }
 
@@ -569,10 +564,10 @@ impl MainWnd
     // theme family, so a value never changes the width of the control that holds it.
     mtd updateZoomDisplay()
     {
-        let z   = cast(s32, (.editWnd.editView.zoom * 100))
-        var txt = Format.toString("%", z)
-        txt += "%"
-        .zoomBtn.name = txt
+        // The percent sign is appended rather than formatted: '%' is the placeholder itself.
+        var label = Format.toString("%", cast(s32, .editWnd.editView.zoom * 100))
+        label         += "%"
+        .zoomBtn.name = label
         .zoomBtn.invalidate()
     }
 
@@ -614,7 +609,7 @@ impl MainWnd
         default:         break
         }
 
-        .toolTitle.setText(String.toUpper(name).toString())
+        .toolTitle.setText(String.toUpper(name))
     }
 
     mtd registerActions()
@@ -954,7 +949,7 @@ impl MainWnd
                     .addItem(ActionZoom.ZoomFit)
                 }
 
-                discard menu.doModal(assume cast (*IconButton, btn), autoDestroy: true)
+                discard menu.doModal(assume cast(*IconButton, btn), autoDestroy: true)
             }
         }
 
@@ -1105,28 +1100,30 @@ impl MainWnd
     // applies a choice itself; the application only persists it and refreshes what it caches.
     mtd createAppearanceButton()
     {
-        .appearanceButton = AppearanceButton.create(.surface!, "capture.appearance")
-        .appearanceButton.sigThemeChanged += func|main = me|(button)
+        with .appearanceButton = AppearanceButton.create(.surface!, "capture.appearance")
         {
-            main.editorOptions.theme = button.appearanceTheme
-            main.editWnd.getCapture()?.invalidateAllFormCaches()
-            main.saveAppState()
-        }
+            .sigThemeChanged += func|main = me|(button)
+            {
+                main.editorOptions.theme = button.appearanceTheme
+                main.editWnd.getCapture()?.invalidateAllFormCaches()
+                main.saveAppState()
+            }
 
-        .appearanceButton.sigLanguageChanged += func|main = me|(button)
-        {
-            if button.language.isEmpty() do
-                main.editorOptions.language = .System
-            elif button.language == "fr" do
-                main.editorOptions.language = .French
-            else do
-                main.editorOptions.language = .English
-            main.saveAppState()
-        }
+            .sigLanguageChanged += func|main = me|(button)
+            {
+                if button.language.isEmpty() do
+                    main.editorOptions.language = .System
+                elif button.language == "fr" do
+                    main.editorOptions.language = .French
+                else do
+                    main.editorOptions.language = .English
+                main.saveAppState()
+            }
 
-        .appearanceButton.sigAboutRequested += func|main = me|(?)
-        {
-            main.postCommandEvent(ActionAbout.About)
+            .sigAboutRequested += func|main = me|(?)
+            {
+                main.postCommandEvent(ActionAbout.About)
+            }
         }
     }
 
@@ -1223,11 +1220,7 @@ impl MainWnd
             .dockStyle = .Center
         }
 
-        with let quickItem = .quickStyleBar.addPane(quickPane)
-        {
-            .preserveSize = true
-        }
-
+        .quickStyleBar.addPane(quickPane).preserveSize = true
         discard .quickStyleBar.addPane(propPane)
         .quickStyleBar.setPaneSize(0, 168 + ToolTitleHeight)
     }

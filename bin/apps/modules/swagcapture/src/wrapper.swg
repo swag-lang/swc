@@ -123,7 +123,7 @@ impl MainWnd
 
     mtd updateModel(f: IForm)
     {
-        let form = assume cast (*BaseForm, f)
+        let form = assume cast(*BaseForm, f)
 
         if form.subKind == .Highlight do
             .mdlHighlight = f
@@ -149,7 +149,7 @@ impl MainWnd
             return
         }
 
-        let form = assume cast (*BaseForm, f)
+        let form = assume cast(*BaseForm, f)
         if form.subKind == .Highlight
         {
             .editMode = .Highlight
@@ -185,8 +185,8 @@ impl MainWnd
         let mdlType = Swag.kindOf(mdlItf)
         let storage = Memory.new(mdlType)!
         let result  = Swag.makeInterface(storage, mdlType, IForm)!
-        let mdl     = assume cast (*BaseForm, result)
-        mdlItf.copy(mdl, assume cast (*BaseForm, mdlItf))
+        let mdl     = assume cast(*BaseForm, result)
+        mdlItf.copy(mdl, assume cast(*BaseForm, mdlItf))
 
         // A new form starts without the model content, just its style
         if clear
@@ -194,19 +194,19 @@ impl MainWnd
             switch mdlType
             {
             case FormImage:
-                let f = assume cast (*FormImage, mdl)
+                let f = assume cast(*FormImage, mdl)
                 f.image.release()
 
             case FormPolygon:
-                let f = assume cast (*FormPolygon, mdl)
+                let f = assume cast(*FormPolygon, mdl)
                 f.points.clear()
 
             case FormDraw:
-                let f = assume cast (*FormDraw, mdl)
+                let f = assume cast(*FormDraw, mdl)
                 f.points.clear()
 
             case FormCallout:
-                let f = assume cast (*FormCallout, mdl)
+                let f = assume cast(*FormCallout, mdl)
                 f.text.clear()
             }
         }
@@ -219,8 +219,8 @@ impl MainWnd
         let type     = Swag.kindOf(it)
         let storage  = Memory.new(type)!
         let view     = Swag.makeInterface(storage, type, IForm)!
-        let mdlValue = assume cast (*BaseForm, view)
-        it.copy(mdlValue, assume cast (*BaseForm, it))
+        let mdlValue = assume cast(*BaseForm, view)
+        it.copy(mdlValue, assume cast(*BaseForm, it))
         return mdlValue
     }
 }

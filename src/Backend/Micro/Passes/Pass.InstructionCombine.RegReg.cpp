@@ -1789,12 +1789,12 @@ namespace InstructionCombine
             const bool    arithmetic = outer == MicroOp::Add || outer == MicroOp::Subtract;
             if (!ctx.ssa || (!arithmetic && outer != MicroOp::Xor && outer != MicroOp::Or && outer != MicroOp::And) || !ops[1].reg.isVirtualInt())
                 return false;
-            const MicroOp inner = arithmetic ? MicroOp::MultiplySigned : outer == MicroOp::And ? MicroOp::Or
-                                                                                               : MicroOp::And;
-            if (arithmetic && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
-                return false;
-            const MicroOpBits bits = ops[2].opBits;
+            const MicroOp     inner = arithmetic ? MicroOp::MultiplySigned : outer == MicroOp::And ? MicroOp::Or
+                                                                                                   : MicroOp::And;
+            const MicroOpBits bits  = ops[2].opBits;
             if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            if (arithmetic && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
 
             std::array    regs{ops[0].reg, ops[1].reg};

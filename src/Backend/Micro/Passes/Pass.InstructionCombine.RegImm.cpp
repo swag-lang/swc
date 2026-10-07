@@ -452,12 +452,6 @@ namespace InstructionCombine
         const MicroOp     op     = ops[2].microOp;
         const uint64_t    imm    = ops[3].valueU64;
 
-        // Dropping or rewriting the operation also drops its flag write, and a
-        // dead RESULT does not imply dead FLAGS: constant folding can rewrite
-        // every consumer of an unrolled accumulator to a constant while an
-        // overflow guard still reads the flags of the now value-dead add.
-        const bool flagsDeadAfter = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder);
-
         // An identity operation leaves a byte, word or full register as it
         // was; at 32 bits it also clears the upper half, which only matters
         // when that half may be set.
@@ -469,7 +463,10 @@ namespace InstructionCombine
             const MicroSsaState::ReachingDef input = ctx.ssa->reachingDef(dst, ref);
             return input.valid() && isValueZeroExtended32(ctx, input.valueId);
         };
-        if (isRightIdentity(op, opBits, imm) && flagsDeadAfter && identityKeepsValue())
+        // Query flags only after an operation matches. A dead result does not
+        // imply dead flags: an overflow guard may still read the discarded add.
+        if (isRightIdentity(op, opBits, imm) &&
+            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) && identityKeepsValue())
         {
             if (!ctx.claimAll({ref}))
                 return false;
@@ -478,7 +475,8 @@ namespace InstructionCombine
         }
 
         uint64_t absorbed = 0;
-        if (isRightAbsorbing(op, opBits, imm, absorbed) && flagsDeadAfter)
+        if (isRightAbsorbing(op, opBits, imm, absorbed) &&
+            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
         {
             if (absorbed == 0)
                 return emitClearReg(ctx, ref, dst, opBits);
@@ -529,14 +527,16 @@ namespace InstructionCombine
             }
         }
 
-        if (flagsDeadAfter && op == MicroOp::Add && imm == 1 && tryFoldComplementPlusOne(ctx, ref, inst))
+        if (op == MicroOp::Add && imm == 1 &&
+            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) && tryFoldComplementPlusOne(ctx, ref, inst))
             return true;
 
         // The low product by all-one bits is -x. Keep checked multiplies:
         // NEG has different overflow/carry behavior from signed/unsigned MUL.
-        if (flagsDeadAfter && (op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned) &&
+        if ((op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned) &&
             (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64) &&
-            (imm & getBitsMask(opBits)) == getBitsMask(opBits) && ctx.claimAll({ref}))
+            (imm & getBitsMask(opBits)) == getBitsMask(opBits) &&
+            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) && ctx.claimAll({ref}))
         {
             MicroInstrOperand negate[3];
             negate[0].reg     = dst;

@@ -1537,13 +1537,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<RematRecipe> remat(virtualCount);
     {
-        // Liveness already counted these definitions. The interval walk has
-        // not changed them, so record only their positions, directly in the recipes.
-        for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-        {
-            for (const uint32_t denseIndex : defVirtualIndices_[idx])
-                remat[denseIndex].defIndex = idx;
-        }
         std::optional<std::unordered_map<uint32_t, const MicroRelocation*>> relocationByInstruction;
         // Only relocation-backed rematerializations need this function-wide index.
         const auto findRelocation = [&](const MicroInstrRef ref) -> const MicroRelocation* {
@@ -1569,7 +1562,17 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // nor a dead-definition proof. No connector can read this node.
             if (last == first + 1 && !result.nodes[first].spilled && !result.nodes[first].usePositions.empty())
                 continue;
-            RematRecipe&             recipe = remat[denseIndex];
+            RematRecipe& recipe = remat[denseIndex];
+            // Index definitions only when a value needs a recipe. Every candidate has one
+            // definition, so filling the table once also clears every later candidate's sentinel.
+            if (recipe.defIndex == invalid)
+            {
+                for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+                {
+                    for (const uint32_t definedDenseIndex : defVirtualIndices_[idx])
+                        remat[definedDenseIndex].defIndex = idx;
+                }
+            }
             const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[recipe.defIndex];
             const MicroInstr*        inst   = instructions_->ptr(defRef);
             const MicroInstrOperand* ops    = inst ? inst->ops(*operands_) : nullptr;

@@ -1276,7 +1276,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-07 19:40 — Deferred candidate-only analyses; the measured pass share remains open.
+- Updated: 2026-10-07 19:48 — Deferred candidate-only analyses; the measured pass share remains open.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -1460,10 +1460,11 @@ new language syntax.
   shares layout with short-circuit return threading. Related backend work initializes combiner
   temporary indices once, defers boolean-merge facts and memory/flag proofs until a candidate
   needs them, sorts the initial interval queue once, and skips edge and rematerialization
-  analysis for unsplit values. The 293 native optimizer tests passed throughout; the combined
-  revision with the unused-binding syntax change also passed 3,651 native tests. A preceding
-  milestone passed 1,515 JIT tests. Static instruction comparisons retained the tested function
-  bodies; optional constant-call folding and the imported test-source edits changed some test
+  analysis for unsplit values. Definition indexing starts only when a rematerialization candidate
+  needs it. The 293 native optimizer tests passed throughout; the combined revision with the
+  unused-binding syntax change also passed 3,651 native and 1,515 JIT tests. Static instruction
+  comparisons retained the tested function bodies; optional constant-call folding and the
+  imported test-source edits changed some test
   wrappers. No elapsed-time, CPU or peak-memory measurements were taken. Reprofile before
   attributing a new pass share or claiming the threshold below.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject

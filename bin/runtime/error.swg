@@ -696,9 +696,8 @@ func __failedExpect(loc: SourceCodeLocation)
     str[len] = 0
     Swag.panic(Swag.makeString(&str[0], len), loc)
 
-    // A returning hook handled this failure; it did not turn the operand into a success.
-    // The following __popErr must release its message arena rather than merge it into the parent.
-    cxt.hasError = 1
+    // A hook may report or transfer control, but it cannot resume a failed 'expect'.
+    __exitError()
 }
 
 ////////////////////////////////////////////////////////////

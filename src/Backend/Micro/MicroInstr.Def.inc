@@ -65,6 +65,17 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+SWC_MICRO_INSTR_DEF(
+    Trap,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::TerminatorInstruction,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
 // Cache hint for the line holding [op0.reg]. It never faults and has no observable effect, so it
 // carries no memory flag: passes neither order it against stores nor read it as a load, and it
 // survives dead-code elimination only because it defines nothing.

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -4680,6 +4680,13 @@ void X64Encoder::encodeNopPadding(uint32_t numBytes)
             emitCpuOp(store_, NOPS[length - 1][i]);
         numBytes -= length;
     }
+}
+
+void X64Encoder::encodeTrap()
+{
+    // UD2 cannot return to a success path if a terminal runtime helper returns.
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0x0B);
 }
 
 void X64Encoder::encodeBreakpoint()

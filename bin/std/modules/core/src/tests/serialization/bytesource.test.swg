@@ -13,7 +13,7 @@ func sourceMatches(bytes: const [..] u8, start: u64)->bool
     return true
 }
 
-// A non-null slice has no fallback for `expect`, so a test peeks through this nullable adapter.
+// A captured failure needs a nullable fallback; successful peeks use the non-null API directly.
 func peekBytes(source: *ByteSource, count: u64)->const [..] u8? fail => try source.peek(count)
 
 // Writes a fixture of `count` pattern bytes and returns its path.
@@ -47,7 +47,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(pair[0] == 4 and pair[1] == 5)
     Swag.assert(source.position() == 5)
 
-    let rest = expect peekBytes(&source, 1)!
+    let rest = expect source.peek(1)
     Swag.assert(rest.count == 3 and rest[0] == 6 and rest[2] == 8)
     Swag.assert(source.position() == 5)
 
@@ -55,7 +55,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(source.isAtEnd() and not source.remaining())
 
     // At the end there is nothing to peek at, and asking for nothing is not an error.
-    discard expect peekBytes(&source, 0)
+    discard expect source.peek(0)
 
     discard catch source.readByte() as pastEnd
     Swag.assert(pastEnd is InvalidFormatError)
@@ -190,32 +190,32 @@ func writeSourceFixture(name: string, count: u64)->String
 
     var source = expect ByteSource.openFile(fileName.toString())
 
-    let head = expect peekBytes(&source, 16)!
+    let head = expect source.peek(16)
     Swag.assert(head.count == ByteSource.WindowSize)
     Swag.assert(sourceMatches(head, 0))
     Swag.assert(source.position() == 0)
 
     // A scanner that advances inside the window keeps reading the same fill.
     expect source.skip(1000)
-    let inside = expect peekBytes(&source, 16)!
+    let inside = expect source.peek(16)
     Swag.assert(inside.count == ByteSource.WindowSize - 1000)
     Swag.assert(sourceMatches(inside, 1000))
 
     // A request that leaves the window refills it from the read position.
     expect source.seek(ByteSource.WindowSize - 8)
-    let straddling = expect peekBytes(&source, 16)!
+    let straddling = expect source.peek(16)
     Swag.assert(straddling.count == ByteSource.WindowSize)
     Swag.assert(sourceMatches(straddling, ByteSource.WindowSize - 8))
 
     // A request larger than the window is honored whole.
     expect source.seek(5)
-    let grown = expect peekBytes(&source, ByteSource.WindowSize + 500)!
+    let grown = expect source.peek(ByteSource.WindowSize + 500)
     Swag.assert(grown.count >= ByteSource.WindowSize + 500)
     Swag.assert(sourceMatches(grown, 5))
 
     // The tail answers what remains, and nothing past it.
     expect source.seek(Count - 3)
-    let tail = expect peekBytes(&source, 3)!
+    let tail = expect source.peek(3)
     Swag.assert(tail.count == 3)
     Swag.assert(sourceMatches(tail, Count - 3))
     discard catch peekBytes(&source, 4) as pastEnd

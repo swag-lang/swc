@@ -243,24 +243,49 @@ impl IRenderer for PresentProbe
     }
 }
 
-var waitFailurePanicCount:     Swag.AtomicValue'u32
-var waitFailureBorrowLive:     Swag.AtomicValue'u32
-var waitFailureObservedBorrow: Swag.AtomicValue'u32
+// Fatal failures run in the already-prepared native test artifact. The child inherits
+// the tool's working directory and deployed resources, and selects this one test by tag.
+func waitFailureChild()->bool
+{
+    for arg in Swag.args() where arg == "render-failure-child" do
+        return true
+    return false
+}
+
+func verifyWaitFailureProcess(tag: string)
+{
+    let executable = expect Env.Process.currentExecutablePath()
+    let arguments  = Format.toString("swag.test swag.test-tag=% render-failure-child", tag)
+    var child      = expect Env.startProcess(Env.StartInfo{fileName: executable.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+    let finished   = expect child.tryWaitForExit(10's)
+    if not finished
+    {
+        expect child.kill()
+        discard expect child.waitForExit()
+    }
+
+    Swag.assert(finished, "the failed render request must terminate without hanging")
+    Swag.assert(child.exitCode() != 0)
+    let output = String.from(child.standardOutput())
+    Swag.assert(output.contains("render failure observed after retirement"))
+    Swag.assert(not output.contains("render failure resumed"))
+}
+
+var waitFailureBorrowLive: Swag.AtomicValue'u32
+var waitFailureWorker:     *RenderThread?
 
 func observeWaitFailurePanic(_message: string?, _location: Swag.SourceCodeLocation)
 {
-    waitFailurePanicCount.add(1)
-    if waitFailureBorrowLive.load() != 0 do
-        waitFailureObservedBorrow.store(1)
+    let worker = waitFailureWorker
+    if waitFailureBorrowLive.load() == 0 and worker != null and worker.isReady() do
+        Swag.print("render failure observed after retirement\n")
 }
 
 struct WaitFailureProbe
 {
-    backend:  RenderCpu
-    worker:   RenderThread
-    entered, allow, returned, next: Sync.Event
-    finished: Swag.AtomicValue'u32
-    cleared:  bool = true
+    backend:        RenderCpu
+    worker:         RenderThread
+    entered, allow: Sync.Event
 }
 
 internal impl RenderThread
@@ -272,29 +297,20 @@ internal impl RenderThread
         .requestSerial += #wrap 1
         .publishCompletion(.requestSerial, &invalid)
         .wait()
-        .wait()
     }
 
     mtd checkWaitFailure(probe: *WaitFailureProbe)
     {
-        // This invalid event is independent of the worker's real completion handle.
         var invalid: Sync.Event
-        for iteration in 2
+        waitFailureBorrowLive.store(1)
+        .execute(func|probe|()
         {
-            discard iteration
-            waitFailureBorrowLive.store(1)
-            .execute(func|probe|()
-            {
-                probe.entered.signal()
-                probe.allow.wait()
-                probe.finished.add(1)
-                waitFailureBorrowLive.store(0)
-            },
-                     &invalid)
-            probe.cleared = probe.cleared and .callback == null
-            probe.returned.signal()
-            probe.next.wait()
-        }
+            probe.entered.signal()
+            probe.allow.wait()
+            waitFailureBorrowLive.store(0)
+        },
+                 &invalid)
+        Swag.print("render failure resumed\n")
     }
 }
 
@@ -304,67 +320,51 @@ func runWaitFailure(thread: Threading.Thread)
     probe.worker.checkWaitFailure(probe)
 }
 
-// A failed native wait must still drain the current request before invoking a returning hook.
-// Two gated requests exercise the ticket boundary without closing a handle in a pending wait.
-// With Expect safety disabled, the same retirement is required without invoking the hook.
+// The worker releases its borrow before reporting a failed wait, even with safety disabled.
+#[Swag.TestTag("render.wait-failure")]
 #test
 {
-    const HooksPerFailure = #safety(Swag.SafetyWhat.Expect) ? 1'u32 : 0'u32
-    waitFailurePanicCount.store(0)
-    waitFailureBorrowLive.store(0)
-    waitFailureObservedBorrow.store(0)
+    if Swag.jit() do
+        return
+    if not waitFailureChild()
+    {
+        verifyWaitFailureProcess("render.wait-failure")
+        return
+    }
+
     let probe = Memory.new'WaitFailureProbe()
-    defer Memory.delete(probe)
     probe.entered.init()
     probe.allow.init()
-    probe.returned.init()
-    probe.next.init()
     probe.worker.start(&probe.backend)
-    defer probe.worker.close()
+    waitFailureWorker = &probe.worker
     var caller: Threading.Thread
     expect caller.init(&runWaitFailure, probe)
     caller.context.panic = &observeWaitFailurePanic
     expect caller.start()
-    for iteration in 2
-    {
-        probe.entered.wait()
-        Swag.assert(not probe.worker.isReady() and probe.finished.load() == iteration)
-        Swag.assert(waitFailurePanicCount.load() == iteration * HooksPerFailure)
-        probe.allow.signal()
-        probe.returned.wait()
-        Swag.assert(probe.worker.isReady() and probe.finished.load() == iteration + 1)
-        Swag.assert(waitFailurePanicCount.load() == (iteration + 1) * HooksPerFailure and waitFailureObservedBorrow.load() == 0)
-        probe.next.signal()
-    }
-
+    probe.entered.wait()
+    Swag.assert(not probe.worker.isReady() and waitFailureBorrowLive.load() == 1)
+    probe.allow.signal()
     caller.wait()
-    Swag.assert(probe.cleared)
+    Swag.print("render failure resumed\n")
 }
 
-// An already-published completion failure must survive the fast wait path and report only once.
-// Disabled Expect safety still consumes the status but does not invoke the panic hook.
+// An already-published completion failure is fatal on the fast wait path too.
+#[Swag.TestTag("render.signal-failure")]
 #test
 {
-    const HooksPerFailure = #safety(Swag.SafetyWhat.Expect) ? 1'u32 : 0'u32
-    waitFailurePanicCount.store(0)
+    if Swag.jit() do
+        return
+    if not waitFailureChild()
+    {
+        verifyWaitFailureProcess("render.signal-failure")
+        return
+    }
+
+    let probe = Memory.new'WaitFailureProbe()
+    probe.worker.start(&probe.backend)
+    waitFailureWorker = &probe.worker
     waitFailureBorrowLive.store(0)
-    waitFailureObservedBorrow.store(0)
-    var backend: RenderCpu
-    var worker:  RenderThread
-    worker.start(&backend)
-    defer worker.close()
-    let context       = Swag.getContext()
-    let previousPanic = context.panic
-    defer context.panic = previousPanic
-    context.panic = &observeWaitFailurePanic
-    worker.checkCompletionSignalFailure()
-    let firstCount = waitFailurePanicCount.load()
-    worker.checkCompletionSignalFailure()
-    let secondCount = waitFailurePanicCount.load()
-    worker.close()
-    worker.start(&backend)
-    worker.wait()
-    context.panic = previousPanic
-    Swag.assert(firstCount == HooksPerFailure and secondCount == 2 * HooksPerFailure and waitFailurePanicCount.load() == 2 * HooksPerFailure)
-    Swag.assert(worker.isReady() and waitFailureObservedBorrow.load() == 0)
+    Swag.getContext().panic = &observeWaitFailurePanic
+    probe.worker.checkCompletionSignalFailure()
+    Swag.print("render failure resumed\n")
 }

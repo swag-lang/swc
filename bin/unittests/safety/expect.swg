@@ -82,11 +82,10 @@ func expectSafetyEnabled()->bool
     #[Swag.Safety(.Expect, false)]
     func expectFailureDisabled()->s32
     {
-        return expect alwaysFailValue()
+        return expect alwaysFailValue()     // swc-expected-error {{sema_err_compiler_panic}}
     }
 
     const value = #run expectFailureDisabled()
-    #assert(value == 0)
 }
 
 struct ExpectAccessNode

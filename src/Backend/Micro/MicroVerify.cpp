@@ -190,6 +190,7 @@ namespace
         {
             case MicroInstrOpcode::End:
             case MicroInstrOpcode::Nop:
+            case MicroInstrOpcode::Trap:
             case MicroInstrOpcode::Breakpoint:
             case MicroInstrOpcode::Ret:
                 return 0;

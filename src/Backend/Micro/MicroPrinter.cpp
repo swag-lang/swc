@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -1067,6 +1067,8 @@ namespace
 
             case MicroInstrOpcode::Ret:
                 return tagInstructionToken("ret");
+            case MicroInstrOpcode::Trap:
+                return tagInstructionToken("trap");
             case MicroInstrOpcode::Breakpoint:
                 return tagInstructionToken("breakpoint");
             case MicroInstrOpcode::Prefetch:
@@ -1834,6 +1836,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::End:
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
+            case MicroInstrOpcode::Trap:
             case MicroInstrOpcode::Breakpoint:
                 break;
 

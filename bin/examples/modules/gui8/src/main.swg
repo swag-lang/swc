@@ -341,7 +341,7 @@ func createRootView()
 #main
 {
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-    let surface = (try app.createSurface(120, 90, W - 46, H - 31, flags))!
+    let surface = try app.createSurface(120, 90, W - 46, H - 31, flags)
     g_Surface = surface
     surface.setTitle("GUI8 list showcase")
     surface.setIcon(app.theme.icon(.Sort, 18))

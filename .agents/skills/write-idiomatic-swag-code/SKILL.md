@@ -419,10 +419,9 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
   first, then assert their saved results (for example, `files.test.swg` in Swag Capture).
 - Prefix `expect` or `catch` with `discard` when a non-`void` result is intentionally ignored;
   failure handling does not make an unused return value implicit.
-- `expect` needs a valid fallback value and therefore cannot directly materialize a non-null
-  pointer. A test-only adapter may return the same successful pointer as nullable; consume it as
-  `expect adapter()!` — a `!` after an error-management keyword asserts its result. Keep the
-  adapter value-returning rather than hiding the rule behind an output parameter.
+- `expect` returns the successful value or panics in every configuration. Use it directly for
+  non-null results; do not introduce nullable adapters or add `!` for failure handling.
+  A successful nullable result remains nullable and still needs its own presence check.
 - Remove redundant setup, casts, temporaries, comments, and wrappers. Keep boundary cases and
   intent-bearing names even when fewer lines are possible.
 - Do not modernize an error fixture or compiler feature test away from the construct it exists to

@@ -29,7 +29,7 @@ const SurfaceId   = "swag.prism"
         g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
     }
 
-    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, SurfaceFlags.StandardWindow, surfaceId: SurfaceId))!
+    let surface = try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     surface.setTitle(appStrings().ui_WindowTitle)

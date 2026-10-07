@@ -570,7 +570,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     var app: Gui.Application
     app.applyTestArgs()
 
-    let surface = (try app.createSurface(100, 100, 978, 993, flags: (.StandardWindow & ~.Resizable), hook: &onEvent))!
+    let surface = try app.createSurface(100, 100, 978, 993, flags: (.StandardWindow & ~.Resizable), hook: &onEvent)
     surface.setTitle("Chess")
 
     var dataPath: String = Path.directoryName(#curlocation.fileName)

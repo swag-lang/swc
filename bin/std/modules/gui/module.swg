@@ -16,7 +16,7 @@ var app: Application
 
 #main
 {
-    let surface = (try app.createSurface(100, 100, 640, 420))!
+    let surface = try app.createSurface(100, 100, 640, 420)
     surface.setTitle("My application")
 
     let button = PushButton.create(surface.view(), "Continue")

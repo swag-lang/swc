@@ -46,7 +46,7 @@ namespace
     // Control never runs past this instruction into the next one.
     bool endsControlFlow(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        return inst.op == MicroInstrOpcode::Ret || inst.op == MicroInstrOpcode::JumpReg ||
+        return inst.op == MicroInstrOpcode::Ret || inst.op == MicroInstrOpcode::Trap || inst.op == MicroInstrOpcode::JumpReg ||
                inst.op == MicroInstrOpcode::JumpTableData || isUnconditionalLabelJump(inst, ops);
     }
 

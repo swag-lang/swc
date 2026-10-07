@@ -670,7 +670,7 @@ func onFrame(_app: *Application)
     initDemoData()
 
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
-    let surface = (try app.createSurface(100, 100, W - 46, H - 31, flags))!
+    let surface = try app.createSurface(100, 100, W - 46, H - 31, flags)
     g_Surface = surface
     surface.setTitle("GUI4 property control inspector")
     surface.setIcon(app.theme.icon(ThemeIcons.Options, 18))

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -241,6 +241,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::SanityInvalidate:
         case MicroInstrOpcode::SanityRelease:
             // Sanitizer-only marker: encodes to nothing.
+            break;
+        case MicroInstrOpcode::Trap:
+            encoder.encodeTrap();
             break;
         case MicroInstrOpcode::Breakpoint:
             encoder.encodeBreakpoint();

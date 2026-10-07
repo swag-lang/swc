@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -309,6 +309,11 @@ void MicroBuilder::emitPop(MicroReg reg)
 void MicroBuilder::emitNop()
 {
     addInstruction(MicroInstrOpcode::Nop, 0);
+}
+
+void MicroBuilder::emitTrap()
+{
+    addInstruction(MicroInstrOpcode::Trap, 0);
 }
 
 void MicroBuilder::emitBreakpoint()

@@ -812,7 +812,7 @@ namespace
             if (!labelOrdinal)
                 return true;
             const MicroInstr* prev = storage.ptr(layout.order[labelOrdinal - 1]);
-            return !prev || !(prev->op == MicroInstrOpcode::Ret || prev->op == MicroInstrOpcode::JumpReg ||
+            return !prev || !(prev->op == MicroInstrOpcode::Ret || prev->op == MicroInstrOpcode::Trap || prev->op == MicroInstrOpcode::JumpReg ||
                               MicroInstrInfo::isUnconditionalJumpInstruction(*prev, prev->ops(operands)));
         };
 
@@ -901,7 +901,7 @@ namespace
                 }
                 else
                 {
-                    if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::JumpReg)
+                    if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::Trap || inst->op == MicroInstrOpcode::JumpReg)
                         break;
                     // Above a write of the register, the facts speak of an older value.
                     const MicroInstrUseDef* useDef = ssaState.instrUseDef(layout.order[current]);

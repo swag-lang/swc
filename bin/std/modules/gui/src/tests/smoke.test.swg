@@ -176,9 +176,9 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let surface            = expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | .TopMost | .NoShadow)!
-    let background         = expect host.app.createSurface(0, 0, 100, 80, .None)!
-    let disabledBackground = expect host.app.createSurface(100, 0, 100, 80, .None)!
+    let surface            = expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | .TopMost | .NoShadow)
+    let background         = expect host.app.createSurface(0, 0, 100, 80, .None)
+    let disabledBackground = expect host.app.createSurface(100, 0, 100, 80, .None)
     background.show()
     disabledBackground.show()
     disabledBackground.disable()

@@ -300,7 +300,7 @@ impl MainWnd
     // main window may be hidden when the tray icon is clicked.
     mtd popupTrayMenu()
     {
-        let sf        = (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))!
+        let sf        = expect .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost)
         with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
         {
             .addItem(ActionGlobal.ShowEditor)

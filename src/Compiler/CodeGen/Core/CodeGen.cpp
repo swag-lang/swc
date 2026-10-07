@@ -1744,7 +1744,7 @@ bool CodeGen::currentInstructionBlocksFallthrough() const
     if (inst->op == MicroInstrOpcode::Label)
         return false;
 
-    if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::JumpReg)
+    if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::Trap || inst->op == MicroInstrOpcode::JumpReg)
         return true;
 
     const MicroInstrOperand* ops = inst->ops(builder().operands());

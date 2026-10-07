@@ -58,7 +58,7 @@ impl PaintImage
     public mtd init(w, h: s32)
     {
         Swag.assert(w > 0 and h > 0, "paint image dimensions must be positive")
-        .surface = expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)!
+        .surface = expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)
         .surface.userData = me
         .w       = w
         .h       = h

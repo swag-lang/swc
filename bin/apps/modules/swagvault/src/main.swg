@@ -51,7 +51,7 @@ const SurfaceId   = "swag.vault"
     const WindowFlags = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
 
     // Start with a width for wrapping; MainWindow measures the final height before showing.
-    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowWidth, WindowFlags, surfaceId: SurfaceId))!
+    let surface = try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowWidth, WindowFlags, surfaceId: SurfaceId)
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
 

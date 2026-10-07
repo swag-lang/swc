@@ -96,7 +96,7 @@ impl Dialog
         // own it reads as part of the surface underneath it, so every dialog is outlined.
         let captionFlags = flags.has(.LargeCaption) ? SurfaceFlags.LargeCaption : SurfaceFlags.SmallCaption
         let surfaceFlags = captionFlags | SurfaceFlags.ToolWindow | SurfaceFlags.Border | (flags & ~(SurfaceFlags.CloseButton | SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption))
-        let srf = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
+        let srf = expect from.app.createSurface(x, y, width, height, surfaceFlags, me)
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .themeMetrics()

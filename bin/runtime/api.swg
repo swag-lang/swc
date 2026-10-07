@@ -349,7 +349,7 @@ namespace Swag
         Unreachable = 0x0080     // 'unreachable' being reached
         Null        = 0x0100     // Dereference of a null pointer
         Memory      = 0x0200     // Memory misuse, mostly found by the sanity pass
-        Expect      = 0x0400     // Panic when an 'expect' meets an error
+        Expect      = 0x0400     // Check presence for the postfix '!' assertion; 'expect' always panics on error
         Lifecycle   = 0x0800     // Use of moved-from values, and poisoning of abandoned or dropped storage
         Assert      = 0x1000     // Assertions; enabled by default in devmode and by the test command, including release
         None        = 0x0000     // No check

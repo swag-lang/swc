@@ -111,6 +111,7 @@ public:
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
+    void emitTrap();
     void emitPrefetch(MicroReg addrReg);
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);
     // Releases the pointer stored at [addrReg + offset], not the storage holding it.

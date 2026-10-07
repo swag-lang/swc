@@ -2605,6 +2605,26 @@ SWC_TEST_BEGIN(BranchSimplify_UnbalancedFloatRangeKept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_TrapEndsTheFailurePath)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef success = builder.createLabel();
+    builder.emitCmpRegImm(MicroReg::intReg(1), ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, success);
+    builder.emitTrap();
+    builder.emitBreakpoint();
+    builder.placeLabel(success);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Trap) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Breakpoint) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Ret) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

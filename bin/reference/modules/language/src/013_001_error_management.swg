@@ -224,15 +224,20 @@ func blockCatchElse(name: string?)->u64
 
 /**
 # Expect
-'expect' asserts that a fallible operation succeeds. An unexpected failure
-panics while the '.Expect' safety guard is enabled; when that guard is disabled,
-the result uses its type's default. Use it for an invariant, not for an ordinary
+'expect' returns the successful result or panics. This contract holds in every
+build configuration, including release and code with safety guards disabled.
+A panic hook may report the error or transfer control, but returning from the
+hook terminates the process. Use 'expect' for an invariant, not for an ordinary
 failure that the caller should recover from.
 
-Forms that need a default result, including 'catch' and 'expect', require a
-result type with a safe default. A non-null pointer has none; propagate such a
-result with 'try', or design the failure-handling boundary to return a type
-that can represent absence.
+A failed function produces no result. 'try' propagates its error without
+constructing a replacement, and 'expect' stops without one. Both accept result
+types with no default, including non-null pointers. A successful nullable result
+remains nullable: 'expect' checks success, not presence.
+
+'catch' resumes with a default result and therefore needs a result type with a
+safe default. A non-null pointer has none; propagate it with 'try' or require
+success with 'expect'.
 
 Inside '#test', 'try' is equivalent to 'expect', so both forms keep the
 success path concise when failure is not expected. An inlined function keeps
@@ -243,6 +248,17 @@ caller's handler.
 {
     let value = try count("swag")
     Swag.assert(value == 4)
+}
+
+var requiredValue: s32 = 42
+
+func loadRequiredValue()->*s32 fail => &requiredValue
+
+#test
+{
+    let value = expect loadRequiredValue()
+    #assert(#typeof(value) == *s32)
+    Swag.assert(value[] == 42)
 }
 
 #test

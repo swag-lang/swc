@@ -523,11 +523,9 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
 
 bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef, MicroBuilder* builder)
 {
-    for (MicroInstrRef scanRef = storage.findNextInstructionRef(afterRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
+    for (MicroStorage::ConstIterator it{&storage, storage.findNextInstructionRef(afterRef)}; it.current.isValid(); ++it)
     {
-        const MicroInstr* scanInst = storage.ptr(scanRef);
-        if (!scanInst)
-            return false;
+        const MicroInstr* scanInst = &*it;
 
         const MicroInstrDef&     info           = MicroInstr::info(scanInst->op);
         const bool               mayUseFlags    = info.flags.has(MicroInstrFlagsE::UsesCpuFlags);
@@ -539,7 +537,7 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
         // A jump preserves the flags. Its destination can read them even if
         // the jump itself is unconditional; only a CFG walk can prove otherwise.
         if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
-            return builder && areCpuFlagsDeadAfterInCfg(*builder, scanRef);
+            return builder && areCpuFlagsDeadAfterInCfg(*builder, it.current);
         if ((mayDefineFlags && instructionOverwritesCpuFlags(*scanInst, scanOps)) ||
             info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
             info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
@@ -553,11 +551,9 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
 
 bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef instRef)
 {
-    for (MicroInstrRef scanRef = storage.findNextInstructionRef(instRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
+    for (MicroStorage::ConstIterator it{&storage, storage.findNextInstructionRef(instRef)}; it.current.isValid(); ++it)
     {
-        const MicroInstr* scanInst = storage.ptr(scanRef);
-        if (!scanInst)
-            return false;
+        const MicroInstr* scanInst = &*it;
 
         const MicroInstrDef&     scanInfo       = MicroInstr::info(scanInst->op);
         const bool               mayUseFlags    = scanInfo.flags.has(MicroInstrFlagsE::UsesCpuFlags);

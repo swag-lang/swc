@@ -50,6 +50,14 @@ struct AppStrings
     ui_Stopped:            string = "Compilation stopped."                           // Status when the compilation failed.
     ui_Done:               string = "Compiled in % ms"                               // Status after a compilation that printed a stage, with how long the compiler took.
 
+    // What a compilation or a preview reports when it stops without compiler output of its own.
+    msg_BuildTimeout:   string = "Compilation exceeded 60 seconds."                        // The compiler ran past the watchdog.
+    msg_BuildFailed:    string = "The compiler could not complete the build."              // The compiler process could not finish.
+    msg_FormatTimeout:  string = "Formatting exceeded 60 seconds."                         // The formatter ran past the watchdog.
+    msg_PreviewNotRun:  string = "The preview could not be started."                       // The preview process could not be launched.
+    msg_PreviewStalled: string = "The preview did not produce a frame for 10 seconds."     // The running preview stopped drawing.
+    msg_PreviewExited:  string = "The preview exited with code %."                         // The preview process ended on its own, with its exit code.
+
     // What the empty output pane says before anything has been compiled into it.
     //
     // The pane never wraps — an instruction listing is a set of aligned columns — so this sentence

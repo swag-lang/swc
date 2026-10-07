@@ -38,7 +38,7 @@ impl PreviewProbe
             if error != null
             {
                 probe.failed      = true
-                probe.diagnostics = "The preview could not be started."
+                probe.diagnostics = appStrings().msg_PreviewNotRun
             }
         })
     }
@@ -87,7 +87,7 @@ impl PreviewProbe
             if watch.elapsedMilliseconds() > 10000
             {
                 .failed      = true
-                .diagnostics = "The preview did not produce a frame for 10 seconds."
+                .diagnostics = appStrings().msg_PreviewStalled
                 return
             }
         }
@@ -96,6 +96,6 @@ impl PreviewProbe
         .diagnostics = child.standardOutput()
         .diagnostics.append(child.standardError())
         if .diagnostics.isEmpty() do
-            .diagnostics.appendFormat("The preview exited with code %.", child.exitCode())
+            .diagnostics.appendFormat(appStrings().msg_PreviewExited, child.exitCode())
     }
 }

@@ -37,7 +37,7 @@ impl SourceFormatter
                 if Atomic.get(cancelled) do
                     return {}
                 if watch.elapsedMilliseconds() > 60000 do
-                    return {text: String.from("Formatting exceeded 60 seconds."), failed: true}
+                    return {text: String.from(appStrings().msg_FormatTimeout), failed: true}
             }
 
             if process.exitCode() != 0

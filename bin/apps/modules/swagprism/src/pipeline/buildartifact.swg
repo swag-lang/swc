@@ -48,7 +48,7 @@ impl BuildArtifact
                 return
             if watch.elapsedMilliseconds() > 60000
             {
-                .result = {text: String.from("Compilation exceeded 60 seconds."), failed: true}
+                .result = {text: String.from(appStrings().msg_BuildTimeout), failed: true}
                 return
             }
         }

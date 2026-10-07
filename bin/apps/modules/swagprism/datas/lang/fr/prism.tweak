@@ -74,3 +74,9 @@ ui_BuildPreset Configuration de base
 ui_ResetBuild Restaurer la configuration de compilation par défaut
 ui_ReusedBuild Compilation réutilisée (% ms)
 ui_ReusedStats Compilation réutilisée | Image % us
+msg_BuildTimeout La compilation a dépassé 60 secondes.
+msg_BuildFailed Le compilateur n'a pas pu terminer la compilation.
+msg_FormatTimeout La mise en forme a dépassé 60 secondes.
+msg_PreviewNotRun Impossible de lancer l'aperçu.
+msg_PreviewStalled L'aperçu n'a produit aucune image pendant 10 secondes.
+msg_PreviewExited L'aperçu s'est terminé avec le code %.

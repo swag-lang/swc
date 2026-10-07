@@ -165,13 +165,12 @@ impl IActionUI for ActionFile
 
             if main.editorOptions.confirmLinkedOverwrite
             {
-                var txt = Format.toString("This will overwrite the original image.\n")
-                txt += Format.toString("<i>%</i>", capture.linkedImage)
+                let txt = Format.toString("%\n<i>%</i>", appStrings().msg_OverwriteLinked, capture.linkedImage)
 
                 var opt: MessageDlgOptions
                 opt.onCreated = func|main|(dlg)
                 {
-                    let chk = CheckButton.create(dlg.surface!.view(), "Do not ask again", {0, 0, 100, 40})
+                    let chk = CheckButton.create(dlg.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
                     chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = not btn.isChecked() }
                     dlg.setExtension(chk)
                 }
@@ -228,7 +227,7 @@ impl IActionUI for ActionFile
 
             var editOptions: EditDlgOptions
             editOptions.title   = appStrings().dlg_TitleRenameCapture
-            editOptions.message = "Capture name"
+            editOptions.message = appStrings().ui_CaptureName
             editOptions.text    = capture.title
             let dlg = EditDlg.createSingleLine(main.surface!, editOptions)
             if dlg.doModal() == Dialog.BtnOk do

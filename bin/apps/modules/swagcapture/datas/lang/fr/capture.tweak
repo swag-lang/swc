@@ -56,6 +56,9 @@ dlg_BtnSave            Enregistrer
 dlg_BtnExport          Exporter
 msg_RemoveAssociation  L'association avec l'image sera supprimée.
 msg_DeleteCaptures     Le ou les fichiers de capture seront supprimés.
+msg_OverwriteLinked    L'image d'origine sera écrasée.
+ui_DoNotAskAgain       Ne plus demander
+ui_CaptureName         Nom de la capture
 msg_EraseTrash         Toutes les captures de la corbeille seront définitivement effacées.
 msg_EraseSelected      La ou les captures sélectionnées seront définitivement effacées.
 msg_FailedDuplicate    Impossible de dupliquer la capture

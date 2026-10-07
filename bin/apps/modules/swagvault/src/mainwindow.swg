@@ -723,7 +723,6 @@ impl MainWindow
         for edit in [.createPassword, .confirmPassword, .mountPassword] do
             edit.sigChanged += func|window = me|(?) { window.refreshActions() }
         .drive.sigChanged += func|window = me|(?, ?) { window.refreshActions() }
-
         .watchSubmit()
     }
 
@@ -900,7 +899,6 @@ impl MainWindow
         for check in [.unmountOnLock, .unmountOnSuspend, .unmountOnIdle] do
             check.sigChanged += func|window = me|(?) { window.readAutoUnmountControls() }
         .idleTimeout.sigChanged += func|window = me|(?, ?) { window.readAutoUnmountControls() }
-
         .applyPrivacyControl()
         .applyAutoUnmountControls()
         .optionsCard.endForm()
@@ -2313,6 +2311,7 @@ impl MainWindow
     mtd askStartupAccess(path: string)->bool
     {
         let title = Format.toString(appStrings().dlg_TitleUnlock, Path.fileName(path) orelse path)
+
         with var options: FormDlgOptions
         {
             .title             = title

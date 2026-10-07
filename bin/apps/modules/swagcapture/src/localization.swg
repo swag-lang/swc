@@ -68,6 +68,9 @@ struct AppStrings
     msg_DeleteCaptures:         string = "This will delete the capture file(s)."
     msg_EraseTrash:             string = "This will permanently erase every capture in the recycle bin."
     msg_EraseSelected:          string = "This will permanently erase the selected capture(s)."
+    msg_OverwriteLinked:        string = "This will overwrite the original image."     // Confirmation before updating a linked image.
+    ui_DoNotAskAgain:           string = "Do not ask again"                            // Option of a confirmation that turns it off.
+    ui_CaptureName:             string = "Capture name"                                // Field of the capture rename dialog.
     msg_FailedDuplicate:        string = "Failed to duplicate capture"
     msg_FailedLocateCapture:    string = "Failed to locate capture file"
     msg_FailedLocateLinked:     string = "Failed to locate linked image"

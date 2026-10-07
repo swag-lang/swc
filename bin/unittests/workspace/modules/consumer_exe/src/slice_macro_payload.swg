@@ -9,8 +9,7 @@ private func workspaceMarkdownAnchor(line: string)->String
     var start = 1'u64
     Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(value, charIndex, byteIndex)
     {
-        discard charIndex
-        discard byteIndex
+        discard charIndex, byteIndex
         result += value
     }
     return result

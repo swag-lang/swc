@@ -1444,8 +1444,7 @@ impl HexGridView
 
         scroll.sigScrollPositionChanged += func|view = result|(scrollWnd, oldPosition, newPosition)
         {
-            discard scrollWnd
-            discard oldPosition
+            discard scrollWnd, oldPosition
             view.adoptScrollPosition(newPosition.y)
         }
 

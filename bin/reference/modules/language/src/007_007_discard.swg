@@ -18,6 +18,21 @@ This prevents accidental omission of important results and ensures deliberate ha
 }
 
 /**
+# Discarding Several Variables
+A single 'discard' can list several variable names, which is how a callback acknowledges parameters it deliberately leaves unused.
+A list holds variable names only: any other expression is discarded with its own 'discard'.
+*/
+#test
+{
+    func onPressed(sender: string, index: s32)
+    {
+        discard sender, index
+    }
+
+    onPressed("ok", 0)
+}
+
+/**
 # `Swag.Discardable` Attribute
 Marking a function with '#[Swag.Discardable]' allows its return value to be safely ignored.
 Use this for utility functions whose results are optional.

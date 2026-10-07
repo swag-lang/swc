@@ -26,3 +26,9 @@ func semaTest003()
 {
     canDiscard()
 }
+
+func semaTest004(param: s32)
+{
+    let v = 0
+    discard param, v
+}

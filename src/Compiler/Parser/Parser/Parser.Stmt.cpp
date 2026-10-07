@@ -602,7 +602,27 @@ AstNodeRef Parser::parseErrorManagementStmt()
 AstNodeRef Parser::parseDiscard()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::DiscardExpr>(consume());
-    nodePtr->nodeExprRef    = parseExpression();
+
+    // 'discard' takes one expression, or a list of variable names: 'discard sender, index'.
+    SmallVector<AstNodeRef> nodeExpressions;
+    nodeExpressions.push_back(parseExpression());
+    while (consumeIf(TokenId::SymComma).isValid())
+        nodeExpressions.push_back(parseExpression());
+
+    if (nodeExpressions.size() > 1)
+    {
+        for (const AstNodeRef exprRef : nodeExpressions)
+        {
+            if (exprRef.isValid() && !ast_->node(exprRef).is(AstNodeId::Identifier))
+            {
+                const Diagnostic diag = reportError(DiagnosticId::parser_err_discard_list_not_variable, exprRef);
+                diag.report(*ctx_);
+                break;
+            }
+        }
+    }
+
+    nodePtr->spanExprRef = ast_->pushSpan(nodeExpressions.span());
     return nodeRef;
 }
 

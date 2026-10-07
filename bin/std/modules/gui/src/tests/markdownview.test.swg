@@ -1584,9 +1584,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     view.scroll.sigScrollSizeChanged += func|count = &extents|(scroll, before, after)
     {
-        discard scroll
-        discard before
-        discard after
+        discard scroll, before, after
         count[] += 1
     }
 

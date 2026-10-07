@@ -144,16 +144,13 @@ impl IRichEditLexer for CompilerOutput
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
     {
-        discard ed
-        discard ch
+        discard ed, ch
         return false
     }
 
     // Styles were supplied with the text and survive subsequent layout passes.
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
-        discard linePrev
-        discard line
-        discard lineNext
+        discard linePrev, line, lineNext
     }
 }

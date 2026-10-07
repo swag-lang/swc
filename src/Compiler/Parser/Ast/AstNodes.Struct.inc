@@ -1815,9 +1815,9 @@ struct AstFailExpr : AstNodeT<AstNodeId::FailExpr>
 // -----------------------------------------------------------------------------
 struct AstDiscardExpr : AstNodeT<AstNodeId::DiscardExpr>
 {
-    AstNodeRef nodeExprRef;
+    SpanRef spanExprRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstNode::collectChildren(out, ast, spanExprRef); }
     static Result semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

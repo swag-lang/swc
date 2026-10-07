@@ -51,4 +51,5 @@ SWC_DIAG_DEF(parser_err_empty_case, Error, "empty switch section; [help] add a s
 SWC_DIAG_DEF(parser_err_switch_expected_case, Error, "statement in switch body has no 'case' or 'default' section; [help] add a section label before the statement")
 SWC_DIAG_DEF(parser_err_switch_missing_case, Error, "switch body has no 'case' or 'default' section; [help] add at least one 'case' or 'default' section")
 SWC_DIAG_DEF(parser_err_mixed_destructuring, Error, "destructuring pattern mixes positional and named bindings; [help] use 'field: binding' for every entry, or remove every field name")
+SWC_DIAG_DEF(parser_err_discard_list_not_variable, Error, "a 'discard' list can only hold variable names; [help] discard this expression with its own 'discard'")
 SWC_DIAG_DEF(parser_err_simd_expected_array, Error, "'#simd' needs a fixed-size array type; [help] write the vector shape as '#simd [16] u8', '#simd [4] f32', or another 16-byte form")

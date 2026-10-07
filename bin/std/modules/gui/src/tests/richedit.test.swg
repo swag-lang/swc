@@ -134,8 +134,7 @@ using Swag, Core
     var notified: bool
     ed.sigScrollPositionChanged += func|&notified|(ctrl, oldPosition, newPosition)
     {
-        discard ctrl
-        discard oldPosition
+        discard ctrl, oldPosition
         notified = newPosition.y > 0
     }
 

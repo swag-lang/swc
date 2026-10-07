@@ -16,8 +16,7 @@ func firstNonAsciiRune(text: string)->rune
 {
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
-        discard charIndex
-        discard byteIndex
+        discard charIndex, byteIndex
         if c < 0x80 do
             continue
         return c

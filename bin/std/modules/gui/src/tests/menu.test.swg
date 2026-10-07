@@ -331,8 +331,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var hidTogether: bool
     sub.sigCommandSelected += func|popup, sub, hidTogether = &hidTogether|(menu, id)
     {
-        discard menu
-        discard id
+        discard menu, id
         hidTogether[] = popup.isHidden() and sub.isHidden()
     }
 

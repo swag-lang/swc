@@ -120,8 +120,7 @@ namespace WinFsp
     #[Swag.CallingConvention(.C)]
     func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, grantedAccess: u32, fileContext: *(*void?), info: *FileInfo)->s32
     {
-        discard createOptions
-        discard grantedAccess
+        discard createOptions, grantedAccess
         let value  = stringFromWide(path)
         var nodeId: u64
         let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, info)
@@ -144,8 +143,7 @@ namespace WinFsp
     #[Swag.CallingConvention(.C)]
     func fspClose(fileSystem: *FspFileSystem, fileContext: *void?)
     {
-        discard fileSystem
-        discard fileContext
+        discard fileSystem, fileContext
     }
 
     #[Swag.CallingConvention(.C)]

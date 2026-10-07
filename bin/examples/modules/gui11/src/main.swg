@@ -229,8 +229,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
     easing.setSelectedIndex(5, false)
     easing.sigChanged += func(box, index)
     {
-        discard box
-        discard index
+        discard box, index
         playEntrance()
     }
 

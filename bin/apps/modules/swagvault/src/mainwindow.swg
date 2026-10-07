@@ -764,8 +764,7 @@ impl MainWindow
 
         .drive.sigChanged += func|window = me|(combo, index)
         {
-            discard combo
-            discard index
+            discard combo, index
             window.refreshActions()
         }
 
@@ -987,8 +986,7 @@ impl MainWindow
 
         .idleTimeout.sigChanged += func|window = me|(combo, index)
         {
-            discard combo
-            discard index
+            discard combo, index
             window.readAutoUnmountControls()
         }
 

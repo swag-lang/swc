@@ -113,8 +113,7 @@ impl ViewerPanel
             .setSelectedIndex(cast(u32, me.defaultLevel), notify: false)
             .sigChanged += func|panel = me|(combo, index)
             {
-                discard combo
-                discard index
+                discard combo, index
                 panel.requestCompile()
             }
         }

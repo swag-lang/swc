@@ -2216,8 +2216,9 @@ AstNodeRef AstCountOfExpr::semaClone(Sema& sema, const CloneContext& cloneContex
 
 AstNodeRef AstDiscardExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::DiscardExpr>(tokRef());
-    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::DiscardExpr>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstDiscardExpr>();
+    cloned.spanExprRef      = cloneSpan(sema, spanExprRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

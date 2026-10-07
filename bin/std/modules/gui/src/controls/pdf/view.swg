@@ -1266,9 +1266,7 @@ impl PdfView
 
         result.scroll.sigScrollPositionChanged += func|target = result|(scroll, oldPosition, newPosition)
         {
-            discard scroll
-            discard oldPosition
-            discard newPosition
+            discard scroll, oldPosition, newPosition
             target.updateCurrentPage()
             target.canvas.invalidate()
         }

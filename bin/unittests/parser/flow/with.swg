@@ -58,8 +58,7 @@ func parser_with_examples()
     using ParserWithColor
     let a = Red
     let b = Blue
-    discard a
-    discard b
+    discard a, b
 
     discard ParserWithNs.bias(1)
     discard ParserWithNs.bias(2)

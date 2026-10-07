@@ -152,17 +152,14 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
 #[Swag.CallingConvention(.C)]
 func streamOnlyNotImpl(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
-    discard itf
-    discard fmt
-    discard med
+    discard itf, fmt, med
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
 func streamOnlyCanonical(itf: *IDataObject, fmtIn: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
 {
-    discard itf
-    discard fmtIn
+    discard itf, fmtIn
     fmtOut.ptd = null
     return DATA_S_SAMEFORMATETC
 }
@@ -170,18 +167,14 @@ func streamOnlyCanonical(itf: *IDataObject, fmtIn: const *FORMATETC, fmtOut: *FO
 #[Swag.CallingConvention(.C)]
 func streamOnlySetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
 {
-    discard itf
-    discard fmt
-    discard med
-    discard release
+    discard itf, fmt, med, release
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
 func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
 {
-    discard itf
-    discard direction
+    discard itf, direction
     ppenum[] = null
     return E_NOTIMPL
 }
@@ -189,19 +182,14 @@ func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESU
 #[Swag.CallingConvention(.C)]
 func streamOnlyAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: *void?, conn: *DWORD)->HRESULT
 {
-    discard itf
-    discard fmt
-    discard flags
-    discard sink
-    discard conn
+    discard itf, fmt, flags, sink, conn
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 #[Swag.CallingConvention(.C)]
 func streamOnlyUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
 {
-    discard itf
-    discard conn
+    discard itf, conn
     return OLE_E_ADVISENOTSUPPORTED
 }
 

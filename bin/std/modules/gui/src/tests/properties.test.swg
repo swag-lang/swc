@@ -273,8 +273,7 @@ struct PropHeadlessCancelData
         var changes: u32
         prop.sigValueChanged += func|changes = &changes|(grid, item)
         {
-            discard grid
-            discard item
+            discard grid, item
             changes[] += 1
         }
 

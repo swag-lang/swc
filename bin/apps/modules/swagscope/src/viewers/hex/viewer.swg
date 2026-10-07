@@ -580,8 +580,7 @@ impl HexViewer
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(combo, index)
             {
-                discard combo
-                discard index
+                discard combo, index
                 view.applyRowWidth()
             }
         }
@@ -598,8 +597,7 @@ impl HexViewer
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(combo, index)
             {
-                discard combo
-                discard index
+                discard combo, index
                 view.rebuildFormats()
             }
         }
@@ -615,8 +613,7 @@ impl HexViewer
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(combo, index)
             {
-                discard combo
-                discard index
+                discard combo, index
                 view.applyValueMode()
             }
         }
@@ -631,8 +628,7 @@ impl HexViewer
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(combo, index)
             {
-                discard combo
-                discard index
+                discard combo, index
                 view.applyByteOrder()
             }
         }

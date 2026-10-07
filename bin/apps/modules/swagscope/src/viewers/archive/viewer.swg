@@ -533,8 +533,7 @@ private impl ArchiveViewer
 
             .sigLeftDoubleClicked += func|viewer = me|(list, point)
             {
-                discard list
-                discard point
+                discard list, point
                 viewer.previewSelectedEntry()
             }
 

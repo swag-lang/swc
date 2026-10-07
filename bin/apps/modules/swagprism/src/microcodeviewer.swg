@@ -94,8 +94,7 @@ impl MicrocodeViewer
         result.fillStages()
         result.stageCombo.sigChanged += func|viewer = result|(combo, index)
         {
-            discard combo
-            discard index
+            discard combo, index
             viewer.optionsChanged()
         }
 

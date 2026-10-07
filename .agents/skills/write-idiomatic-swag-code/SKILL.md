@@ -397,6 +397,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
   control-flow pattern when the current compiler proves all cases.
 - Use expression-bodied functions for one direct expression, but keep blocks when validation,
   ownership, or failure behavior deserves to remain visible.
+- Discard several variables with one statement: `discard sender, index`, not one `discard` per line.
+  A list holds variable names only; discard any other expression with its own `discard`.
 
 ## Use Dynamic Type Patterns
 

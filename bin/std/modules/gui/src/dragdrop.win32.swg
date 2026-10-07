@@ -877,17 +877,14 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
 #[Swag.CallingConvention(.C)]
 private func srcGetDataHere(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
-    discard itf
-    discard fmt
-    discard med
+    discard itf, fmt, med
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
 private func srcGetCanonicalFormatEtc(itf: *IDataObject, fmtIn: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
 {
-    discard itf
-    discard fmtIn
+    discard itf, fmtIn
     fmtOut.ptd = null
     return DATA_S_SAMEFORMATETC
 }
@@ -942,19 +939,14 @@ private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVO
 #[Swag.CallingConvention(.C)]
 private func srcDAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: *void?, conn: *DWORD)->HRESULT
 {
-    discard itf
-    discard fmt
-    discard flags
-    discard sink
-    discard conn
+    discard itf, fmt, flags, sink, conn
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 #[Swag.CallingConvention(.C)]
 private func srcDUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
 {
-    discard itf
-    discard conn
+    discard itf, conn
     return OLE_E_ADVISENOTSUPPORTED
 }
 

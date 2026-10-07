@@ -41,8 +41,7 @@ using Swag, Core
     dlg.addButton("Ok", Dialog.BtnOk, true)
     dlg.validateResult = func(bdlg, id)->bool
     {
-        discard bdlg
-        discard id
+        discard bdlg, id
         return false
     }
 

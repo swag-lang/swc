@@ -54,8 +54,7 @@ impl BuildOptions
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|options = result|(combo, index)
             {
-                discard combo
-                discard index
+                discard combo, index
                 options.sigChanged.call(options)
             }
         }

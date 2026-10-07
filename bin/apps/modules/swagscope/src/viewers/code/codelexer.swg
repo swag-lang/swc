@@ -446,8 +446,7 @@ impl IRichEditLexer for GenericCodeLexer
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
     {
-        discard ed
-        discard ch
+        discard ed, ch
         return false
     }
 

@@ -11,16 +11,13 @@ var PopupListContentPaintFlags: PaintItemFlags
 
 func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 {
-    discard combo
-    discard idx
+    discard combo, idx
     PopupHeadlessChangedCount += 1
 }
 
 func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect: Math.Rectangle, flags: PaintItemFlags)
 {
-    discard item
-    discard cxt
-    discard rect
+    discard item, cxt, rect
     PopupListContentPaintCount += 1
     PopupListContentPaintFlags = flags
 }

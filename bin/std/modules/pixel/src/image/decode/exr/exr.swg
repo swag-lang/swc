@@ -196,8 +196,10 @@ impl Part
             if size > buffer.count - offset[] do
                 fail InvalidFormatError{"OpenEXR attribute exceeds the file"}
             let payload = buffer[offset[] until offset[] + size]
-            if name.toString() == "channels" and type.toString() == "chlist" do
+            if name.toString() == "channels" and type.toString() == "chlist"
+            {
                 result.channels = try parseChannels(payload)
+            }
             elif name.toString() == "compression" and type.toString() == "compression"
             {
                 if size != 1 do
@@ -221,10 +223,15 @@ impl Part
                 declaredChunks = readU32(payload.buffer)
                 hasChunkCount  = true
             }
-            elif name.toString() == "name" and type.toString() == "string" do
+            elif name.toString() == "name" and type.toString() == "string"
+            {
                 result.info.name = cast(string) payload
-            elif name.toString() == "type" and type.toString() == "string" do
+            }
+            elif name.toString() == "type" and type.toString() == "string"
+            {
                 partType = cast(string) payload
+            }
+
             offset[] += size
         }
 

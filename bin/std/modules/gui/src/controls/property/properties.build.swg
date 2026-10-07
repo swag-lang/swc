@@ -43,8 +43,10 @@ internal impl Properties
     {
         var rowWnd: *Wnd?
 
-        if .isGridLike() do
+        if .isGridLike()
+        {
             rowWnd = Wnd.create'Wnd(.edView, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
+        }
         else
         {
             let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
@@ -68,8 +70,10 @@ internal impl Properties
                 .margin.y = me.gridLineMargin * 0.5
                 .margin.w = me.gridLineMargin * 0.5
             }
-            else do
+            else
+            {
                 me.setListContentPadding(line)
+            }
         }
 
         // Panel rows keep the same vertical breathing room between rows as the grid ones

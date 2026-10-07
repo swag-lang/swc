@@ -24,10 +24,7 @@ impl AtomicValue
     mtd const load()->T => Swag.atomget(cast #unconst (*T) &.storage)
 
     // Replaces the value.
-    mtd store(value: T)
-    {
-        discard Swag.atomxchg(&.storage, value)
-    }
+    mtd store(value: T) { discard Swag.atomxchg(&.storage, value) }
 
     // Replaces the value and returns what it was.
     mtd exchange(value: T)->T => Swag.atomxchg(&.storage, value)

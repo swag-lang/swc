@@ -91,8 +91,10 @@ impl Json
                     .output.addNative(Hex[c >> 4])
                     .output.addNative(Hex[c & 0x0F])
                 }
-                else do
+                else
+                {
                     .output.addNative(c)
+                }
             }
         }
 

@@ -171,8 +171,10 @@ internal impl Properties
             {
                 .wndFlags.set(.BeforeChildrenPaint)
                 .focusPolicy = .None     // navigation lives on edView, edition on the checkbox
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .margin.z = me.rightMargin
+                }
                 else
                 {
                     .maxSize.x = me.listUsefulWidth()

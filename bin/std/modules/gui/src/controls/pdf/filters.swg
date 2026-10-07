@@ -35,8 +35,10 @@ internal func decodeAsciiHex(data: const [..] u8)->Array'u8 fail
         if not isHex(c) do
             fail InvalidFormatError{"ASCIIHexDecode stream contains a non-hexadecimal byte"}
         let value = hexValue(c)
-        if high == Swag.U8.Max do
+        if high == Swag.U8.Max
+        {
             high = value
+        }
         else
         {
             result.add(high * 16 + value)
@@ -253,15 +255,19 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
             continue
         }
 
-        if code < next do
+        if code < next
+        {
             dictionary.expand(code, &result)
+        }
         elif code == next
         {
             dictionary.expand(previous, &result)
             result.add(dictionary.firstByte(previous))
         }
-        else do
+        else
+        {
             fail InvalidFormatError{"LZWDecode stream uses an undefined code"}
+        }
 
         if next < LzwMaxCode
         {

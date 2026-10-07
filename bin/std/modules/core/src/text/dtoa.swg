@@ -177,8 +177,10 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
             m += 1
         }
     }
-    else do
+    else
+    {
         dst.addNative('0'u8)
+    }
 
     // fraction
     if prec > 0

@@ -905,8 +905,10 @@ impl Volume
             try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Camouflage refresh was canceled.")
             try .file.flush()
         }
-        elif progress and progress.isCanceled() do
+        elif progress and progress.isCanceled()
+        {
             try failWith("Camouflage refresh was canceled.", .Canceled)
+        }
 
         .physicalSize = targetPhysical
         .scalarsDirty = true

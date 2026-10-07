@@ -117,8 +117,10 @@ impl FontFamily
             else do
                 idx = cast(u64) FontFamilyStyle.Bold
         }
-        elif fa.lfItalic != 0 do
+        elif fa.lfItalic != 0
+        {
             idx = cast(u64) FontFamilyStyle.Italic
+        }
 
         ret.faces[idx].name = x
         ret.faces[idx].face = fa[]

@@ -128,12 +128,18 @@ private func parseBinaryOffset(text: string, current, fileSize: u64)->u64
     {
         let c      = text[index]
         var nibble = 16'u8
-        if c >= '0'u8 and c <= '9'u8 do
+        if c >= '0'u8 and c <= '9'u8
+        {
             nibble = c - '0'u8
-        elif c >= 'a'u8 and c <= 'f'u8 do
+        }
+        elif c >= 'a'u8 and c <= 'f'u8
+        {
             nibble = c - 'a'u8 + 10
-        elif c >= 'A'u8 and c <= 'F'u8 do
+        }
+        elif c >= 'A'u8 and c <= 'F'u8
+        {
             nibble = c - 'A'u8 + 10
+        }
         elif c == ' 'u8 or c == '_'u8
         {
             index += 1
@@ -232,8 +238,10 @@ impl BinaryViewer
                 let position = hexText(row.offset, 8)
                 line.setItem(cast(u32) BinaryColumn.Offset, position.toString())
             }
-            else do
+            else
+            {
                 line.setItem(cast(u32) BinaryColumn.Offset, "")
+            }
 
             .styleLine(index, line)
 
@@ -553,8 +561,10 @@ impl BinaryViewer
             .layoutColumns()
             .invalidate()
         }
-        elif not .loadTimer do
+        elif not .loadTimer
+        {
             .filterTimer = .addTimer(1'ms)
+        }
     }
 
     // Opens every group between the root and `line`, outermost first.
@@ -865,8 +875,10 @@ impl IWnd for BinaryViewer
                 .styleLine(index, line)
             .list.invalidate()
         }
-        else do
+        else
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -1215,7 +1227,11 @@ func createBinaryViewer(host: Viewer.Host)
                 presentation.filterToolTip     = binaryStrings().ui_FilterTip
             }
 
-            .filter         = func(wnd, text, options) { (cast #assume (*BinaryViewer) wnd).applyFilter(text, options) }
+            .filter = func(wnd, text, options)
+            {
+                (cast #assume (*BinaryViewer) wnd).applyFilter(text, options)
+            }
+
             .collectMatches = func(wnd, text, options, progress, matches)->bool
             {
                 discard progress
@@ -1235,7 +1251,10 @@ func createBinaryViewer(host: Viewer.Host)
                 return (cast #assume (*BinaryViewer) wnd).searchBounds(bounds)
             }
 
-            .clear = func(wnd) { (cast #assume (*BinaryViewer) wnd).clearSearch() }
+            .clear = func(wnd)
+            {
+                (cast #assume (*BinaryViewer) wnd).clearSearch()
+            }
         }
 
         host.setSearch(search)

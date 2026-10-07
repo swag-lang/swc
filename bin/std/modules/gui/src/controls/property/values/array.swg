@@ -189,10 +189,8 @@ internal impl Properties
             // docking would overlap the label — anchor the width instead.
             if me.isGridLike() do
                 .dockStyle = .Left
-            else
-            {
+            else do
                 .anchorStyle = .Right
-            }
 
             .setForm(.Transparent)
             .enable(false)

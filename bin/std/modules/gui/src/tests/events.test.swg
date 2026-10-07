@@ -40,14 +40,18 @@ impl OffsetOwnedEvent
         {
             id = expected
             let before = host.commandCount
-            if route == 0 do
+            if route == 0
+            {
                 host.root.postCommandEvent(id.toString())
+            }
             else
             {
                 let evt = Event.create'CommandEvent()
                 evt.id = id.toString()
-                if route == 1 do
+                if route == 1
+                {
                     host.root.postEvent(evt)
+                }
                 else
                 {
                     evt.target = &host.root

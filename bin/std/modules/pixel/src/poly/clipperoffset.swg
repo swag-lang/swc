@@ -99,8 +99,10 @@ impl Offset
 
         .polyNodes.addChild(newNode)
 
-        if .lowest.x < 0 do
+        if .lowest.x < 0
+        {
             .lowest = IntPoint{.polyNodes.childs.count - 1, lowestIdx}
+        }
         else
         {
             let ip = .polyNodes.childs[cast(s32) .lowest.x].contour[cast(s32) .lowest.y]
@@ -328,10 +330,14 @@ impl Offset
                 return
             }
         }
-        elif .sinaVal > 1.0 do
+        elif .sinaVal > 1.0
+        {
             .sinaVal = 1.0
-        elif .sinaVal < -1.0 do
+        }
+        elif .sinaVal < -1.0
+        {
             .sinaVal = -1.0
+        }
 
         if .sinaVal * .deltaVal < 0
         {

@@ -350,12 +350,35 @@ impl ColorPickerCtrl
                 v.sigColorChanged.call(v)
             }
 
-            .radioH.sigChanged += func|v|(bt) { v.setMode(.SaturationLightness) }
-            .radioS.sigChanged += func|v|(bt) { v.setMode(.HueLightness) }
-            .radioL.sigChanged += func|v|(bt) { v.setMode(.HueSaturation) }
-            .radioR.sigChanged += func|v|(bt) { v.setMode(.GreenBlue) }
-            .radioG.sigChanged += func|v|(bt) { v.setMode(.RedBlue) }
-            .radioB.sigChanged += func|v|(bt) { v.setMode(.RedGreen) }
+            .radioH.sigChanged += func|v|(bt)
+            {
+                v.setMode(.SaturationLightness)
+            }
+
+            .radioS.sigChanged += func|v|(bt)
+            {
+                v.setMode(.HueLightness)
+            }
+
+            .radioL.sigChanged += func|v|(bt)
+            {
+                v.setMode(.HueSaturation)
+            }
+
+            .radioR.sigChanged += func|v|(bt)
+            {
+                v.setMode(.GreenBlue)
+            }
+
+            .radioG.sigChanged += func|v|(bt)
+            {
+                v.setMode(.RedBlue)
+            }
+
+            .radioB.sigChanged += func|v|(bt)
+            {
+                v.setMode(.RedGreen)
+            }
 
             if not .flags.has(.AllowAlpha)
             {

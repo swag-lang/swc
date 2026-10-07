@@ -406,8 +406,10 @@ impl IWnd for EditBox
         case .Drop:
             .isHot = false
             .setFocus()
-            if takesFile do
+            if takesFile
+            {
                 .setText(evt.data.singleFile())
+            }
             else
             {
                 .moveCaretToDropPoint(evt.surfacePos)
@@ -443,8 +445,10 @@ impl IWnd for EditBox
         }
         elif evt.kind == .Character and not .flags.has(.ReadOnly)
         {
-            if evt.character < 32 do
+            if evt.character < 32
+            {
                 evt.accepted = false
+            }
             else
             {
                 .forceVisibleCaret()
@@ -755,8 +759,10 @@ private impl EditBox
             .setSelection(saveSelBeg, saveSelEnd)
             .countRunes = saveCount
         }
-        else do
+        else
+        {
             .notifyChanged()
+        }
     }
 
     #[Swag.Inline]
@@ -903,8 +909,10 @@ private impl EditBox
                 let sizeX = Painter.measureStringSnapped(.textStorage.toString(), font, deviceScale: .deviceScale())
                 result.x = clientRect.right() - sizeX + .posSelEnd - 2
             }
-            else do
+            else
+            {
                 result.x += .posSelEnd
+            }
         }
         elif .flags.has(.RightAligned)
         {
@@ -1238,8 +1246,10 @@ impl EditBox
         .countRunes      = 0
         .insertString(str)
         .sigTextChanged.enable()
-        if notify do
+        if notify
+        {
             .notifyChanged()
+        }
         else
         {
             .computeCaretPos()

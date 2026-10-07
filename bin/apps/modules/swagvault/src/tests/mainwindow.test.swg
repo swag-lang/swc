@@ -485,8 +485,10 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
             return
 
         frames[] += 1
-        if frames[] == 1 do
+        if frames[] == 1
+        {
             host.keyPress(Input.Key.Escape)
+        }
         elif frames[] > 30
         {
             forced[] = true

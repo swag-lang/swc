@@ -254,7 +254,6 @@ public impl Painter
             {
                 discard .pushTriangle(polygon.offsetPointAt(0, so), polygon.offsetPointAt(1, so), polygon.offsetPointAt(2, so), brush.color)
             }
-
             // Convex shape : 2 triangles
             elif count == 4
             {
@@ -265,7 +264,6 @@ public impl Painter
                 discard .pushTriangle(v0, v1, v2, brush.color)
                 discard .pushTriangle(v0, v2, v3, brush.color)
             }
-
             // Convex shape: add a triangle from the center of the shape to each pair of
             // vertices
             else
@@ -282,7 +280,6 @@ public impl Painter
             if .curState.paintParams & .Antialiased do
                 .fillContourAA(path, brush.color, -aa, aa)
         }
-
         // Non convex shape: complex painting (triangulation)
         else
         {

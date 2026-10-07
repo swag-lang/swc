@@ -663,8 +663,10 @@ private impl MathParser
             while mathIsAsciiLetter(.peek()) do
                 .pos += 1
         }
-        else do
+        else
+        {
             .pos += 1
+        }
 
         return mathOwnedSlice(.source, start, .pos)
     }
@@ -699,8 +701,10 @@ private impl MathParser
                 continue
             }
 
-            if c == '{' do
+            if c == '{'
+            {
                 depth += 1
+            }
             elif c == '}'
             {
                 depth -= 1
@@ -927,8 +931,10 @@ private impl MathParser
             left  = "{"
             right = "."
         }
-        else do
+        else
+        {
             return matrix
+        }
 
         with let delimited = .newNode(.Delimited)
         {

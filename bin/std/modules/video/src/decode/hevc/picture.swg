@@ -654,8 +654,10 @@ impl Decoder
                 return
             .cabac.restore(job.states! + row - 1)
         }
-        else do
+        else
+        {
             .cabac.initContexts(.header.initType, .header.sliceQp)
+        }
 
         for column in job.width
         {

@@ -817,24 +817,36 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     var hglob  = cast(HGLOBAL) null
     let format = cast(u32) fmt.cfFormat
 
-    if format == CF_HDROP do
+    if format == CF_HDROP
+    {
         hglob = buildHDrop(data)
-    elif format == CF_DIB do
+    }
+    elif format == CF_DIB
+    {
         hglob = buildDib(data)
-    elif format == CF_UNICODETEXT do
+    }
+    elif format == CF_UNICODETEXT
+    {
         hglob = buildUnicodeText(data)
+    }
     elif format == CF_TEXT
     {
         let ansi = NativeText.encodeAnsi(data.text.toString())
         if not ansi.isEmpty() do
             hglob = toGlobalBlock(ansi.toSlice())
     }
-    elif g_PngDragFormat and format == g_PngDragFormat do
+    elif g_PngDragFormat and format == g_PngDragFormat
+    {
         hglob = toGlobalBlock(data.encodedImage())
-    elif g_FileDescriptorFormat and format == g_FileDescriptorFormat do
+    }
+    elif g_FileDescriptorFormat and format == g_FileDescriptorFormat
+    {
         hglob = buildFileGroupDescriptor(data)
-    elif g_FileContentsFormat and format == g_FileContentsFormat do
+    }
+    elif g_FileContentsFormat and format == g_FileContentsFormat
+    {
         hglob = toGlobalBlock(data.contentData(cast(u64) fmt.lindex))
+    }
 
     if not hglob do
         return E_OUTOFMEMORY

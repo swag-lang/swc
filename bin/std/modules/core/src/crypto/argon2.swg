@@ -174,10 +174,14 @@ private func referenceIndex(random: u64, pass, slice, index, segmentLength, lane
         else do
             areaSize = slice * segmentLength - (index ? 0 : 1)
     }
-    elif sameLane do
+    elif sameLane
+    {
         areaSize = laneLength - segmentLength + index - 1
-    else do
+    }
+    else
+    {
         areaSize = laneLength - segmentLength - (index ? 0 : 1)
+    }
 
     // The squared scaling biases the choice towards recent blocks, which is what
     // keeps a low-memory attacker recomputing.
@@ -236,8 +240,10 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
                 nextAddresses(&addresses[0], &input[0], &zero[0])
             random = addresses[step % Argon2AddressCount]
         }
-        else do
+        else
+        {
             random = blocks[previous * Argon2Words]
+        }
 
         // The first slice of the first pass has nothing to reference
         // in another lane yet.

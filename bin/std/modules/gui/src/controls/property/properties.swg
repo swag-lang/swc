@@ -340,14 +340,22 @@ internal impl Properties
         let pointed = item.type orelse item.typeValue.pointedType
         if pointed
         {
-            if Reflection.isEnum(pointed) and Reflection.hasAttribute(pointed, Swag.EnumFlags) do
+            if Reflection.isEnum(pointed) and Reflection.hasAttribute(pointed, Swag.EnumFlags)
+            {
                 .refreshEnumFlags(item)
-            elif Reflection.isEnum(pointed) do
+            }
+            elif Reflection.isEnum(pointed)
+            {
                 .refreshEnum(item)
-            elif Reflection.isBool(pointed) do
+            }
+            elif Reflection.isBool(pointed)
+            {
                 .refreshBool(item)
-            elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed) do
+            }
+            elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed)
+            {
                 .refreshNative(item)
+            }
             elif Reflection.isString(pointed) and (item.editBox != null)
             {
                 item.editBox.setText((cast(const *string) item.data!)[])
@@ -358,8 +366,10 @@ internal impl Properties
                 item.editBox.setText((cast(const *String) item.data!)[])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and (item.comboBox != null) do
+            elif pointed == Core.String and (item.comboBox != null)
+            {
                 .refreshFontName(item)
+            }
             elif pointed is Swag.TypeInfoStruct as typeStruct
             {
                 if typeStruct.fromGeneric == Array do
@@ -558,7 +568,6 @@ impl Properties
             item.section = cast(u32) .sections.count
             .sections.add({item, 0})
         }
-
         // Creates an empty parent item. The placeholder row is invisible: it must not
         // consume any vertical room (addItem turns a zero height into gridLineHeight,
         // and gives Panel rows their inter-row margins).

@@ -18,10 +18,7 @@ private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8 => cast #bit
 
 // Writes back the four lines the quad above holds.
 #[Swag.Inline]
-private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8)
-{
-    (cast([*] u64) &line[offset])[0] = (cast #bit(Simd.U64x2) value)[0]
-}
+private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8) { (cast([*] u64) &line[offset])[0] = (cast #bit(Simd.U64x2) value)[0] }
 
 // Holds `value` within `limit` of what the sample was, which is what the strong filter is
 // allowed to move it by, clause 8.7.2.5.7.

@@ -164,8 +164,10 @@ impl PreviewViewer
                 .retired.removeAtOrdered(index)
                 Memory.delete(probe)
             }
-            else do
+            else
+            {
                 index += 1
+            }
         }
     }
 

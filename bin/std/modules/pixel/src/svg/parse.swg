@@ -1337,8 +1337,10 @@ private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
             result[result.count - 1].outDir = direction
             result.add(MarkerVertex{{x, y}, direction, {}})
         }
-        else do
+        else
+        {
             result.add(MarkerVertex{{x, y}, {}, {}})
+        }
     }
 
     return result
@@ -1439,8 +1441,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 continue
             }
         }
-        elif not isNumberStart(c) do
+        elif not isNumberStart(c)
+        {
             return
+        }
 
         if not path and cmd != 'M' and cmd != 'm' do
             return
@@ -1788,8 +1792,11 @@ private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx, ry:
         else do
             path.setRectRaw(origin.x, origin.y, w * sx, h * sy)
     }
-    else do
+    else
+    {
         appendRectContour(path, state, x, y, w, h, crx, cry)
+    }
+
     emitShape(drawing, list, state)
 }
 
@@ -2873,8 +2880,10 @@ private impl Parser
                 result.orientAuto         = true
                 result.orientStartReverse = true
             }
-            elif not Latin1.compare(text, "auto", ignoreCase: true) do
+            elif not Latin1.compare(text, "auto", ignoreCase: true)
+            {
                 result.orientAuto = true
+            }
             else
             {
                 var anglePos = 0'u64
@@ -2949,8 +2958,10 @@ private impl Parser
             let reference = placement.transformPoint({definition.refX, definition.refY})
             placement.multiply(Math.Transform2.createTranslation(-reference.x, -reference.y))
         }
-        else do
+        else
+        {
             placement = Math.Transform2.createTranslation(-definition.refX, -definition.refY)
+        }
 
         if definition.scaleWithWidth
         {
@@ -2996,8 +3007,10 @@ private impl Parser
             {
                 let previous = item.clipFirst
                 let found    = intersections.tryFind(previous)
-                if found do
+                if found
+                {
                     item.clipFirst = found.value
+                }
                 else
                 {
                     var inner = .clipGeometry(item.clipFirst, item.clipCount)
@@ -3269,10 +3282,14 @@ private impl Parser
                         shape.pathList.flatten(.Normal)
                         shape.fillBrush = .gradientBrush(&gradient.value, shape)
                     }
-                    elif .patterns.tryFind(shape.fillPaintId) do
+                    elif .patterns.tryFind(shape.fillPaintId)
+                    {
                         shape.fillBrush = Brush.createSolid(Color.fromArgb(Argb.White))
-                    else do
+                    }
+                    else
+                    {
                         shape.hasFill = false
+                    }
                 }
 
                 if shape.hasFill do
@@ -3293,8 +3310,10 @@ private impl Parser
                         shape.pathList.flatten(.Normal)
                         shape.strokeBrush = .gradientBrush(&gradient.value, shape)
                     }
-                    else do
+                    else
+                    {
                         shape.hasStroke = false
+                    }
                 }
 
                 if shape.hasStroke do
@@ -3752,8 +3771,10 @@ impl Drawing
                 inked    = runBox
                 hasInked = true
             }
-            else do
+            else
+            {
                 inked.expandToInclude(runBox)
+            }
 
             painter.drawShapedRun(origin.x + offset, origin.y - font.ascent, &shaped, font, Brush.createSolid(color))
             if rotated do
@@ -3795,8 +3816,11 @@ impl Drawing
             .paintPattern(painter, shape, &pattern.value)
             .paintShapeCore(painter, shape, false)
         }
-        else do
+        else
+        {
             .paintShapeCore(painter, shape)
+        }
+
         layer.end()
 
         var offsetX, offsetY: f32
@@ -3899,8 +3923,10 @@ impl Drawing
                     .paintPattern(painter, shape, &pattern.value)
                     .paintShapeCore(painter, shape, false)
                 }
-                else do
+                else
+                {
                     .paintShapeCore(painter, shape)
+                }
 
             case .Text:
                 let inked = .paintText(painter, &.texts[item.index])

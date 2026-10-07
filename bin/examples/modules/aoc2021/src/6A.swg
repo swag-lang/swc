@@ -71,8 +71,10 @@ func day6A()
                 values[f] = 6
                 values.add(8)
             }
-            else do
+            else
+            {
                 values[f] -= 1
+            }
         }
     }
 

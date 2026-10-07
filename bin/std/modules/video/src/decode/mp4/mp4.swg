@@ -277,8 +277,10 @@ private impl Layout
                     elif not .unsupportedCodec do
                         .unsupportedCodec = candidate.codec
                 }
-                elif candidate.handler == AudioHandlerId and candidate.hasDescription and candidate.isAac do
+                elif candidate.handler == AudioHandlerId and candidate.hasDescription and candidate.isAac
+                {
                     .audioTracks.add(#move candidate)
+                }
             }
 
             try source.seek(box.end)
@@ -912,8 +914,10 @@ impl IDecoder for Decoder
             for sample in order do
                 .presentationTimes.add(times[sample])
         }
-        else do
+        else
+        {
             .presentationTimes = #move times
+        }
 
         if not .presentationTimes.isEmpty()
         {

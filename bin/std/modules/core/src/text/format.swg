@@ -146,8 +146,10 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
                 if eatCount < spec.count and spec[eatCount] == ':'u8 do
                     strFormat = Swag.makeSlice(spec.buffer + eatCount + 1, spec.count - eatCount - 1)
             }
-            else do
+            else
+            {
                 paramIdx += 1
+            }
 
             // Deal with the parameter
             Swag.assert(useIdx < numParams, "not enough 'format' parameters")

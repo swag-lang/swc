@@ -974,8 +974,10 @@ impl VideoViewer
             .elapsed = position
             .clock.restart()
         }
-        elif .resumeAudioAfterSeek and coversRange do
+        elif .resumeAudioAfterSeek and coversRange
+        {
             .resumeAudio()
+        }
 
         .refreshDetails()
     }

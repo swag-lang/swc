@@ -78,8 +78,11 @@ impl MidiRollView
             let encoded = cast(u8) (.document.division >> 8)
             .beatTicks = cast(u64) (256'u32 - encoded) * cast(u64) (.document.division & 0xFF)
         }
-        else do
+        else
+        {
             .beatTicks = .document.division
+        }
+
         .beatTicks = Math.max(.beatTicks, 1)
 
         let viewport = Math.max(client.width - MidiKeyboardWidth - 2 * MidiContentInset, 1)
@@ -235,8 +238,10 @@ impl IWnd for MidiRollView
             .refreshFonts()
             .refreshLayout()
         }
-        else do
+        else
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -266,8 +271,10 @@ impl IWnd for MidiRollView
         painter.setParams(.Antialiased)
         .paintHeader(painter)
         .paintGrid(painter)
-        if not .document.notes.isEmpty() do
+        if not .document.notes.isEmpty()
+        {
             .paintNotes(painter)
+        }
         else
         {
             let colors = .themeColors()

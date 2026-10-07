@@ -282,7 +282,6 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         {
             (cast(*bool) addr)[] = true
         }
-
         // All types supported by 'Parse.pokeValue'
         elif typeField == #typeof(Core.String) or
              Reflection.isInteger(typeField) or
@@ -301,7 +300,6 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             if rest.count do
                 fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
         }
-
         // Dynamic array of values
         elif Reflection.isDynamicArray(typeField)
         {

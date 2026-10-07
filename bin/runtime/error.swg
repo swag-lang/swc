@@ -254,8 +254,10 @@ private func __releaseErrMessages(first: *ErrorMessageLink?)
         if link
         {
             let retired = link
-            if retired.references.sub(1) != 1 do
+            if retired.references.sub(1) != 1
+            {
                 link = null
+            }
             else
             {
                 let arena = retired.arena

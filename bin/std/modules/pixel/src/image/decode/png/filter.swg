@@ -405,7 +405,6 @@ impl Decoder
                 expand1Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
             }
         }
-
         // 2 bits => 8 bits
         elif .header.bitDepth == 2
         {
@@ -417,7 +416,6 @@ impl Decoder
                 expand2Row(dest + srcOffset, dest, rowStrideOut, cast(u8) mul)
             }
         }
-
         // 4 bits => 8 bits
         elif .header.bitDepth == 4
         {

@@ -151,10 +151,7 @@ impl Result
     public mtd triangleCount()->u64 => .vertices.count / 3
 
     // Removes all triangle vertices.
-    mtd clear()
-    {
-        .vertices.clear()
-    }
+    mtd clear() { .vertices.clear() }
 }
 
 impl Edge
@@ -970,8 +967,10 @@ impl Tessellate
                 dropPoint(me, Math.min(tip, end))
                 i = 0
             }
-            else do
+            else
+            {
                 i += 1
+            }
         }
 
         Swag.assert(.polyStart != .points.count, "no points !")
@@ -1174,8 +1173,10 @@ impl Tessellate
         let op = ot.oppositePoint(t, p)
         let p1 = flipTriangle.pointCCW(eq)
         let p2 = flipTriangle.pointCW(eq)
-        if inScanArea(eq, p1, p2, op) do
+        if inScanArea(eq, p1, p2, op)
+        {
             .flipEdgeEvent(eq, op, ot, op)
+        }
         else
         {
             let newP = nextFlipPoint(ep, eq, ot, op)
@@ -1220,8 +1221,10 @@ impl Tessellate
         if node.point.x < edge.p.x
         {
             let next = nnNode(node.next)
-            if orient2d(node.point, next.point, nnNode(next.next).point) == .CCW do
+            if orient2d(node.point, next.point, nnNode(next.next).point) == .CCW
+            {
                 .fillRightConcaveEdgeEvent(edge, node)
+            }
             else
             {
                 .fillRightConvexEdgeEvent(edge, node)
@@ -1276,8 +1279,10 @@ impl Tessellate
         if node.point.x > edge.p.x
         {
             let prev = nnNode(node.prev)
-            if orient2d(node.point, prev.point, nnNode(prev.prev).point) == .CW do
+            if orient2d(node.point, prev.point, nnNode(prev.prev).point) == .CW
+            {
                 .fillLeftConcaveEdgeEvent(edge, node)
+            }
             else
             {
                 .fillLeftConvexEdgeEvent(edge, node)
@@ -1290,8 +1295,10 @@ impl Tessellate
     {
         let prev     = nnNode(node.prev)
         let prevPrev = nnNode(prev.prev)
-        if orient2d(prev.point, prevPrev.point, nnNode(prevPrev.prev).point) == .CW do
+        if orient2d(prev.point, prevPrev.point, nnNode(prevPrev.prev).point) == .CW
+        {
             .fillLeftConcaveEdgeEvent(edge, prev)
+        }
         else
         {
             if orient2d(edge.q, prevPrev.point, edge.p) == .CW do

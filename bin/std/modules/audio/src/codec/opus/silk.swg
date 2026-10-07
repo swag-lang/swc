@@ -354,8 +354,10 @@ private impl Resampler
                 for i in ResamplerOrderFir12 do
                     buffer[i] = buffer[count * 2 + i]
             }
-            else do
+            else
+            {
                 break
+            }
         }
 
         for i in ResamplerOrderFir12 do
@@ -501,8 +503,10 @@ private impl SilkChannel
         .indices.signalType      = ix >> 1
         .indices.quantOffsetType = ix & 1
 
-        if condCoding == CodeConditionally do
+        if condCoding == CodeConditionally
+        {
             .indices.gainsIndices[0] = cast(s32) dec.decodeIcdf(SilkDeltaGainIcdf, 8)
+        }
         else
         {
             .indices.gainsIndices[0] = cast(s32) dec.decodeIcdf(SilkGainIcdf[cast(u32) .indices.signalType], 8) << 3
@@ -633,8 +637,10 @@ private impl SilkChannel
         // Gains are coded on a logarithmic scale, the first one absolutely or as a delta.
         for k in .nbSubfr
         {
-            if k == 0 and condCoding != CodeConditionally do
+            if k == 0 and condCoding != CodeConditionally
+            {
                 .lastGainIndex = Math.max(.indices.gainsIndices[k], .lastGainIndex - 16)
+            }
             else
             {
                 let delta     = .indices.gainsIndices[k] + MinDeltaGainQuant
@@ -923,8 +929,10 @@ private func decodeSilkPulses(dec: *RangeDecoder, pulses: [*] s32, signalType, q
     for i in iter
     {
         let base = i * ShellCodecFrameLength
-        if sumPulses[i] > 0 do
+        if sumPulses[i] > 0
+        {
             shellDecode(pulses + base, dec, sumPulses[i])
+        }
         else
         {
             for k in ShellCodecFrameLength do
@@ -1042,10 +1050,14 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
         if minDiff >= 0 do
             return
 
-        if worst == 0 do
+        if worst == 0
+        {
             nlsfQ15[0] = cast(s32) deltaMinQ15[0]
-        elif worst == order do
+        }
+        elif worst == order
+        {
             nlsfQ15[last] = (1 << 15) - cast(s32) deltaMinQ15[order]
+        }
         else
         {
             var minCenter = 0's32
@@ -1460,8 +1472,10 @@ internal impl SilkDecoder
                     channel.lbrrFlags[i] = false
                 if channel.lbrrFlag
                 {
-                    if channel.nFramesPerPacket == 1 do
+                    if channel.nFramesPerPacket == 1
+                    {
                         channel.lbrrFlags[0] = true
+                    }
                     else
                     {
                         let symbol = (channel.nFramesPerPacket == 2 ? dec.decodeIcdf(SilkLbrrFlags2Icdf, 8) : dec.decodeIcdf(SilkLbrrFlags3Icdf, 8)) + 1
@@ -1540,8 +1554,10 @@ internal impl SilkDecoder
 
         let left  = .scratch[0].storage()
         let right = .scratch[1].storage()
-        if .apiChannels == 2 and internalChannels == 2 do
+        if .apiChannels == 2 and internalChannels == 2
+        {
             .stereoToLeftRight(left, right, &predQ13[0], .channels[0].fsKHz, frameLength)
+        }
         else
         {
             left[0]  = .sMid[0]

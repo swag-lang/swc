@@ -203,8 +203,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             while blockIndex < result.count
             {
                 let kind = result[blockIndex].kind
-                if headingsOnly and (kind < .Heading1 or kind > .Heading6) do
+                if headingsOnly and (kind < .Heading1 or kind > .Heading6)
+                {
                     result.removeAtOrdered(blockIndex)
+                }
                 else
                 {
                     if not result[blockIndex].sourceOffset do
@@ -527,8 +529,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     // '1. 1. 1.' renders 1, 2, 3; a level popped by a shallower item restarts.
                     while counters.count and counters.back().indent > current.indent do
                         counters.removeBack()
-                    if counters.count and counters.back().indent == current.indent do
+                    if counters.count and counters.back().indent == current.indent
+                    {
                         counters.backPtr().value += 1
+                    }
                     else
                     {
                         let parsed = catch StrConv.parseU64(current.marker) as parseError

@@ -81,8 +81,10 @@ impl ViewerPluginRegistry
                 if selector == extension do
                     return true
             }
-            elif selector == baseName do
+            elif selector == baseName
+            {
                 return true
+            }
         }
 
         return false

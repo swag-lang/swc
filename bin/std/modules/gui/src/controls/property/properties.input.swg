@@ -133,7 +133,6 @@ internal impl Properties
                 prop.selItem.flags.toggle(.Expanded)
                 prop.updateStates()
             }
-
             // Toggle checkbox
             elif prop.selItem!.checkBox != null
             {

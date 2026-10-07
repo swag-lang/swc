@@ -201,8 +201,10 @@ func fileNameWithoutExtension(path: string?)->string?
     for index in reversed(path.count)
     {
         let c = path[index]
-        if c == '.' and extensionStart == path.count do
+        if c == '.' and extensionStart == path.count
+        {
             extensionStart = index
+        }
         elif endsDirectoryPart(c)
         {
             if index == path.count - 1 do

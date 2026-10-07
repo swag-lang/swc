@@ -490,17 +490,11 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
 impl Window
 {
-    mtd setNativeHandle(nativeHandle: HWND)
-    {
-        .nativeHandle = cast(const *void?) nativeHandle
-    }
+    mtd setNativeHandle(nativeHandle: HWND) { .nativeHandle = cast(const *void?) nativeHandle }
 
     private mtd const win32Handle()->HWND => cast(HWND) .nativeHandle
 
-    mtd rebindNative()
-    {
-        SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) me)
-    }
+    mtd rebindNative() { SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) me) }
 }
 
 internal func createWindowNative(result: *Window, options: WindowOptions) fail

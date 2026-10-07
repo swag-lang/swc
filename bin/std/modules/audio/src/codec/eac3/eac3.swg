@@ -144,8 +144,11 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
         if reader.read(1) do
             fail UnsupportedFormatError{"E-AC-3 adaptive hybrid transform is not supported"}
     }
-    else do
+    else
+    {
         result.expstre = true
+    }
+
     result.snrStrategy = reader.read(2)
     if reader.read(1) do
         fail UnsupportedFormatError{"E-AC-3 transient pre-noise processing is not supported"}

@@ -1449,8 +1449,10 @@ private impl RenderCpu
                 if v0.cov < 0.5 do
                     constColor.a = 0
             }
-            else do
+            else
+            {
                 constShade = false
+            }
         }
 
         // Writing a region shades nothing and takes the general loop below, which is the one that
@@ -1740,8 +1742,10 @@ private impl RenderCpu
                         if clip < 128 do
                             continue
                     }
-                    else do
+                    else
+                    {
                         src.a = cast(u8) ((cast(u32) src.a * clip) / 255)
+                    }
                 }
 
                 if fastAlpha
@@ -1762,8 +1766,10 @@ private impl RenderCpu
                         pixel[3] = src.a
                     continue
                 }
-                else do
+                else
+                {
                     .blendPixel(image, x, y, src)
+                }
             }
         }
     }

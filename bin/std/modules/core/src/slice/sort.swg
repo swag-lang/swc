@@ -92,12 +92,18 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 
             quickSort(Swag.makeSlice(buffer + first, (last - first) + 1), compare)
         }
-        elif set1 > 0 do
+        elif set1 > 0
+        {
             end = high - 1
-        elif set2 > 0 do
+        }
+        elif set2 > 0
+        {
             begin = high + 1
-        else do
+        }
+        else
+        {
             break
+        }
     }
 }
 

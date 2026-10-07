@@ -214,8 +214,10 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
                 result.lineIndex     += 1
                 result.charPosInLine = 0
             }
-            else do
+            else
+            {
                 result.charPosInLine += 1
+            }
         }
 
         return result

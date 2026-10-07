@@ -166,8 +166,10 @@ public impl IWnd for MenuCtrl
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
-            else do
+            else
+            {
                 theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)
+            }
 
             // Icon
             if it.icon.isValid()
@@ -463,7 +465,6 @@ public impl IWnd for MenuCtrl
             .removeTimer()
             .showHotPopup()
         }
-
         // On a popup menu, just react to press button
         elif evt.kind == .Released and evt.button == .Left
         {
@@ -661,8 +662,11 @@ impl MenuCtrl
             anchorBk.y      = bodyRect.bottom() - metrics.menuPopup_BarItemOverlap
             anchorBk.height = bottom - anchorBk.y
         }
-        else do
+        else
+        {
             anchorBk.setBottom(bodyRect.y + metrics.menuPopup_BarItemOverlap)
+        }
+
         .drawPopupBarAnchorRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
 
         // The outline stops on that line instead of following the fill down. Carried the whole
@@ -675,8 +679,11 @@ impl MenuCtrl
             anchorBorder.y      = bodyRect.bottom() - metrics.wnd_BorderSize
             anchorBorder.height = bottom - anchorBorder.y
         }
-        else do
+        else
+        {
             anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
+        }
+
         .drawPopupBarAnchorRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
         // The popup body's rounded corner leaves its outside edge transparent until the radius

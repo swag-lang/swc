@@ -395,8 +395,10 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
                     let third  = top[cast(u64) diag]
                     value = (cast(s32) first + 2 * cast(s32) second + cast(s32) third + 2) >> 2
                 }
-                elif diag == 0 do
+                elif diag == 0
+                {
                     value = (cast(s32) left[0] + 2 * cast(s32) corner + cast(s32) top[0] + 2) >> 2
+                }
                 else
                 {
                     let distance = cast(u64) -diag

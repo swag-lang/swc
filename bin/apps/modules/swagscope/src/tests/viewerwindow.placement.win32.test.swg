@@ -52,7 +52,7 @@ func observeViewerPlacement(app: *Application)
     let surface = expect app.createSurface(80, 50, ViewerMinWidth, 680, surfaceId: "scope-placement-test")
     app.theme.setSwagDark()
     app.notifyThemeChanged()
-    let window  = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
+    let window   = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
     var fileName = Env.variable("SWAG_SCOPE_PLACEMENT_DOCUMENT")
     if fileName.isEmpty() do
         fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
@@ -68,6 +68,7 @@ func observeViewerPlacement(app: *Application)
             break
         Threading.Thread.sleep(1'ms)
     }
+
     Swag.assert(window.currentView is Markdown.View)
     Swag.assert(not (cast #assume(*Markdown.View) window.currentView!).isLoading())
     let normal = surface.position
@@ -81,6 +82,7 @@ func observeViewerPlacement(app: *Application)
             surface.showMaximized()
             observeViewerPlacement(&app)
         }
+
         let previous = surface.position
         watch.restart()
         window.setFullScreen(true)

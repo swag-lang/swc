@@ -152,8 +152,10 @@ impl IForm for FormImage
             .freePos.width  += newSizeX
             .freePos.height += newSizeY
         }
-        else do
+        else
+        {
             .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
+        }
     }
 
     mtd impl scaleBaseForm(scale: f32)
@@ -190,8 +192,10 @@ impl IForm for FormImage
                 .freePos.height = newSizeY
             }
         }
-        else do
+        else
+        {
             .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
+        }
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
@@ -377,8 +381,10 @@ impl IForm for FormImage
         let iconColor = g_App.theme.colors.btnIcon_Icon
 
         // Both axes must use the same operator so degenerate rects render consistently.
-        if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize) do
+        if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize)
+        {
             painter.fillRect(pp, .borderColor)
+        }
         else
         {
             if cxt.quickMode

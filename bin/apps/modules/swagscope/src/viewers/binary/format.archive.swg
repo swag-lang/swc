@@ -62,10 +62,14 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         report.beginGroup(name.toString(), stored.toString(), "", offset: dataAt, length: size)
         reportArHeader(image, report, at, size)
 
-        if rawName == "/" or rawName == "/SYM64/" do
+        if rawName == "/" or rawName == "/SYM64/"
+        {
             reportArLinkerMember(image, report, dataAt, size, rawName == "/" and at == offsets[0])
-        elif rawName == "//" do
+        }
+        elif rawName == "//"
+        {
             report.derived(s.ar_LongNames, stored.toString())
+        }
         elif image.u16At(dataAt) == 0 and image.u16At(dataAt + 2) == 0xFFFF
         {
             reportArImportMember(image, report, dataAt)

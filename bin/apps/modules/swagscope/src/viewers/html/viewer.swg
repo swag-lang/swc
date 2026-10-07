@@ -167,14 +167,21 @@ func createHtmlViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text)
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            return (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text)
+        }
+
         .matchBounds = func(wnd, match, bounds)->bool
         {
             discard match
             return (cast #assume (*HtmlViewer) wnd).view.searchMatchRect(bounds)
         }
 
-        .clear = func(wnd) { (cast #assume (*HtmlViewer) wnd).view.clearSearch() }
+        .clear = func(wnd)
+        {
+            (cast #assume (*HtmlViewer) wnd).view.clearSearch()
+        }
     }
 
     host.setSearch(search)

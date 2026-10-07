@@ -228,8 +228,10 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
             if nibble <= 9
             {
                 let digit = cast(f64) nibble
-                if inExponent do
+                if inExponent
+                {
                     exponent = exponent * 10 + cast(s32) nibble
+                }
                 elif inFraction
                 {
                     mantissa += digit * fraction

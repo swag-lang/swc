@@ -70,15 +70,20 @@ impl CompilerOutput
             while index < bytes.count and (bytes[index] < '@' or bytes[index] > '~')
             {
                 let ch = bytes[index]
-                if ch >= '0' and ch <= '9' do
+                if ch >= '0' and ch <= '9'
+                {
                     value = Math.min(value * 10 + ch - '0', 65535)
+                }
                 elif ch == ';'
                 {
                     params.add(value)
                     value = 0
                 }
-                else do
+                else
+                {
                     valid = false
+                }
+
                 index += 1
             }
 
@@ -94,8 +99,10 @@ impl CompilerOutput
             while param < params.count
             {
                 let code = params[param]
-                if code == 0 or code == 39 do
+                if code == 0 or code == 39
+                {
                     style = 0
+                }
                 elif code == 38 and param + 4 < params.count and params[param + 1] == 2
                 {
                     if params[param + 2] <= 255 and params[param + 3] <= 255 and params[param + 4] <= 255 do

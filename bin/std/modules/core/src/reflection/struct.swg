@@ -166,8 +166,10 @@ func hasInterface(type: typeinfo?, itf: typeinfo)->bool
             if it.pointedType.crc == itf.crc do
                 return true
         }
-        elif it.name == itf.fullname do
+        elif it.name == itf.fullname
+        {
             return true
+        }
     }
 
     return false

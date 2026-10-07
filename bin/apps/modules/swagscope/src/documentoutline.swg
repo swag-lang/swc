@@ -138,8 +138,10 @@ impl DocumentOutline
         // A continuation byte can match Latin-1 whitespace inside a valid UTF-8 character.
         Utf8.visitRunes(title)
         {
-            if Unicode.isSpace(c) do
+            if Unicode.isSpace(c)
+            {
                 space = not label.isEmpty()
+            }
             else
             {
                 if space do

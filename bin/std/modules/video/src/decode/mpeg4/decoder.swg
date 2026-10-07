@@ -552,10 +552,14 @@ impl Decoder
             // The type is a run of zeros closed by a one: 1, 01, 001, 0001.
             if reader.read(1) == 0
             {
-                if reader.read(1) != 0 do
+                if reader.read(1) != 0
+                {
                     kind = TypeInterpolated
-                elif reader.read(1) != 0 do
+                }
+                elif reader.read(1) != 0
+                {
                     kind = TypeBackward
+                }
                 else
                 {
                     discard reader.read(1)

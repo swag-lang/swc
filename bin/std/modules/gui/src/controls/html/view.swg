@@ -553,8 +553,10 @@ internal impl HtmlView
             // keeping the rest of the look-behind makes the requested point land near the middle
             // of the resident window instead of immediately scheduling the same seek again.
             let anchor = .virtualPreformatted ? Utf8.indexOf(chunk.toString(), "\n<a ", 0, .Latin1NoCase) : Swag.U64.Max
-            if anchor != Swag.U64.Max do
+            if anchor != Swag.U64.Max
+            {
                 begin = anchor + 1
+            }
             else
             {
                 let line = Utf8.indexOf(chunk.toString(), '\n'rune)
@@ -1405,8 +1407,10 @@ internal impl HtmlView
 
                     target.scheduleMore()
                 }
-                else do
+                else
+                {
                     target.virtualPendingSeek = false
+                }
             }
 
             target.canvas.invalidate()

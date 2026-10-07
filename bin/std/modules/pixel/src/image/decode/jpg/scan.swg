@@ -53,8 +53,10 @@ impl Decoder
                 }
 
                 rowBlock += 1
-                if .compsInScan == 1 do
+                if .compsInScan == 1
+                {
                     blockMcuX[componentId] += 1
+                }
                 else
                 {
                     blockMcuOfsX += 1
@@ -72,8 +74,10 @@ impl Decoder
             }
         }
 
-        if .compsInScan == 1 do
+        if .compsInScan == 1
+        {
             .blockMcuY[.compList[0]] += 1
+        }
         else
         {
             for componentNum in .compsInScan
@@ -242,8 +246,10 @@ impl Decoder
                 .convertH2V2()
                 scanLineOfs[] = .scanLine0.buffer
             }
-            else do
+            else
+            {
                 scanLineOfs[] = .scanLine1.buffer
+            }
 
         case YH2V1:
             .convertH2V1()
@@ -255,8 +261,10 @@ impl Decoder
                 .convertH1V2()
                 scanLineOfs[] = .scanLine0.buffer
             }
-            else do
+            else
+            {
                 scanLineOfs[] = .scanLine1.buffer
+            }
 
         case YH1V1:
             .convertH1V1()
@@ -376,8 +384,10 @@ impl Decoder
             .maxMcuSizeX     = 8
             .maxMcuSizeY     = 8
         }
-        else do
+        else
+        {
             fail UnsupportedFormatError{"unsupported color space"}
+        }
 
         .maxMcusPerRow = (.imageSizeX + (.maxMcuSizeX - 1)) / .maxMcuSizeX
         .maxMcusPerCol = (.imageSizeY + (.maxMcuSizeY - 1)) / .maxMcuSizeY
@@ -557,8 +567,10 @@ impl Decoder
                         currentEntry  = nextFreeEntry
                         nextFreeEntry -= 2
                     }
-                    else do
+                    else
+                    {
                         currentEntry = hs.tree[-currentEntry - 1]
+                    }
 
                     cde <<= 1
                 }

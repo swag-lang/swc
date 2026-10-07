@@ -52,19 +52,27 @@ func day9A()
     var garbage, group, score = 0
     for var i = 0; i < line.count; i += 1
     {
-        if line[i] == '!' and garbage do
+        if line[i] == '!' and garbage
+        {
             i += 1
-        elif line[i] == '>' and garbage do
+        }
+        elif line[i] == '>' and garbage
+        {
             garbage -= 1
-        elif line[i] == '<' and not garbage do
+        }
+        elif line[i] == '<' and not garbage
+        {
             garbage += 1
+        }
         elif line[i] == '{' and not garbage
         {
             group += 1
             score += group
         }
-        elif line[i] == '}' and not garbage do
+        elif line[i] == '}' and not garbage
+        {
             group -= 1
+        }
     }
 
     Swag.assert(score == 11898)

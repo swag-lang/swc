@@ -24,10 +24,7 @@ impl ReflectionProbe
     mtd ping()->s32 => .x + 1
 
     #[Macro]
-    mtd visitMacro(stmt: #code)
-    {
-        #inject(stmt)
-    }
+    mtd visitMacro(stmt: #code) { #inject(stmt) }
 }
 
 alias ReflectionProbePingFn = func(*ReflectionProbe)->s32

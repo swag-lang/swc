@@ -513,8 +513,10 @@ func convertBool(buf: *ConcatBuffer, value: bool)
 func convertRune(buf: *ConcatBuffer, value: rune)
 {
     var arr: [4] u8
-    if not value do
+    if not value
+    {
         buf.addBytes("?")
+    }
     else
     {
         let count = Utf8.encodeRune(arr, value)

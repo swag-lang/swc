@@ -430,8 +430,10 @@ namespace WinFsp
                 return StatusSuccess
             child = volume.firstChild(nodeId)
         }
-        elif nodeId != 1 and sameName(markerName, "..") do
+        elif nodeId != 1 and sameName(markerName, "..")
+        {
             child = volume.firstChild(nodeId)
+        }
         else
         {
             let markerNode = volume.findChild(nodeId, markerName)

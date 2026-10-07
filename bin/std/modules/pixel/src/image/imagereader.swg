@@ -193,8 +193,10 @@ public impl ImageReader
         result.decoderType = found.type
         result.decoder     = Memory.new(found.type)
         let multiple = Swag.makeInterface(result.decoder, found.type, IImageSetDecoder)
-        if multiple do
+        if multiple
+        {
             result.info = try multiple.open(result.bytes.toSlice(), options)
+        }
         else
         {
             let single       = Swag.makeInterface(result.decoder, found.type, IImageDecoder)!

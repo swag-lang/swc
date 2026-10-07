@@ -123,7 +123,6 @@ impl Image
                     p -= koff     // Go to the row below
                 }
             }
-
             // Slowest case, near the borders
             else
             {

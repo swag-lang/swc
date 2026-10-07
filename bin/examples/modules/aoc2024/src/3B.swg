@@ -33,10 +33,14 @@ func day3B()
     for v in d
     {
         var cpy: String = v
-        if cpy == "do()" do
+        if cpy == "do()"
+        {
             enable = true
-        elif cpy == "don't()" do
+        }
+        elif cpy == "don't()"
+        {
             enable = false
+        }
         elif enable
         {
             cpy.replace("mul(", "")

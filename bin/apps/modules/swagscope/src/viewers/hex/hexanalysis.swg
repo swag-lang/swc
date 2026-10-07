@@ -92,8 +92,10 @@ private impl HexStringScanner
                     entry.text += "..."
                 result.strings.add(#move entry)
             }
-            else do
+            else
+            {
                 result.stringsTruncated = true
+            }
         }
 
         .reset()
@@ -114,8 +116,10 @@ private impl HexAnalysisResult
             .printableCount += 1
             ascii.append(offset, 1, value)
         }
-        else do
+        else
+        {
             ascii.flush(.Ascii, me)
+        }
     }
 
     // Extends or closes the UTF-16 runs with the byte pair `first`, `second` at `offset`.

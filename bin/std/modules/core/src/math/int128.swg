@@ -103,8 +103,10 @@ impl Int128
 
         if negate
         {
-            if result.lo == 0 do
+            if result.lo == 0
+            {
                 result.hi = -result.hi
+            }
             else
             {
                 result.hi = ~result.hi

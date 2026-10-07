@@ -398,14 +398,21 @@ func createMarkdownViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool => (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text)
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            return (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text)
+        }
+
         .matchBounds = func(wnd, match, bounds)->bool
         {
             discard match
             return (cast #assume (*Markdown.View) wnd).searchMatchRect(bounds)
         }
 
-        .clear = func(wnd) { (cast #assume (*Markdown.View) wnd).clearSearchHighlight() }
+        .clear = func(wnd)
+        {
+            (cast #assume (*Markdown.View) wnd).clearSearchHighlight()
+        }
     }
 
     host.setSearch(search)

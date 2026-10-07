@@ -637,7 +637,6 @@ impl TagBin
                 output.addNative(TagBinSignature.UnRaw)
             }
         }
-
         // Static array of raw serializable types
         else
         {

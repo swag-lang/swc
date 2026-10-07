@@ -815,8 +815,10 @@ internal impl PdfView
             // whole page's work, so the frame asks for what the page holds and lets a worker
             // catch up; the timer publishes the result.
             var flatten = wantedFlatten
-            if entry.preparedScale <= 0 do
+            if entry.preparedScale <= 0
+            {
                 entry.preparedScale = wantedFlatten
+            }
             elif entry.preparedScale < wantedFlatten
             {
                 .requestPrepare(entry, wantedFlatten)

@@ -1097,8 +1097,10 @@ impl Ast
                     second = rarest
                     rarest = score
                 }
-                elif score < second do
+                elif score < second
+                {
                     second = score
+                }
             }
         }
 

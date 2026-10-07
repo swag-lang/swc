@@ -66,8 +66,10 @@ func day7A0()
             for can in splitVal[1 to]
             {
                 let it = id.tryFind(split[0])
-                if it do
+                if it
+                {
                     it.value.add(can)
+                }
                 else
                 {
                     var tmp: Array'(string)

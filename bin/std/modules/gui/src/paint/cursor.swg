@@ -26,10 +26,7 @@ struct Cursor
 impl Cursor
 {
     // Activates the standard wait cursor.
-    func activateWait()
-    {
-        activate(Cursor.from(CursorShape.Wait))
-    }
+    func activateWait() { activate(Cursor.from(CursorShape.Wait)) }
 
     // Reports whether the descriptor refers to a system cursor.
     mtd isValid()->bool => .native.cursor != null

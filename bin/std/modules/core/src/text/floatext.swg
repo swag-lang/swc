@@ -293,8 +293,10 @@ impl FloatExt
             integer /= cast(u32) pow10
             rest    -= integer * cast(u32) pow10
         }
-        else do
+        else
+        {
             rest = 0
+        }
 
         // Write the digits of integer: the digits of rest are omitted.
         var buf: [32] u8
@@ -406,8 +408,11 @@ impl FloatExt
                 d.nd   = 1
                 d.dp   += 1
             }
-            else do
+            else
+            {
                 d.d[i] += 1
+            }
+
             return true
         }
 

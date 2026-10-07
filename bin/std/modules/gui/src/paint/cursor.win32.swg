@@ -37,14 +37,8 @@ public impl Cursor
     func from(shape: CursorShape)->Cursor => NativeCursor.defaultCursors[shape]
 
     // Restores an invalid cursor descriptor without destroying the shared system cursor.
-    mtd clear()
-    {
-        .cursor = null
-    }
+    mtd clear() { .cursor = null }
 
     // Activates the cursor for the current thread.
-    func activate(cursor: Cursor)
-    {
-        SetCursor(cursor.native.cursor)
-    }
+    func activate(cursor: Cursor) { SetCursor(cursor.native.cursor) }
 }

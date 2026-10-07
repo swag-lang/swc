@@ -144,8 +144,10 @@ private impl RenderThread
             if owner.stopping do
                 return
             let serial = owner.requestSerial
-            if owner.callback do
+            if owner.callback
+            {
                 owner.callback()
+            }
             else
             {
                 var watch: Time.Stopwatch

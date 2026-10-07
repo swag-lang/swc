@@ -490,8 +490,11 @@ impl IWnd for ListView
                             for l in .list.selModel do
                                 .list.checkModel.setSelected(l, checked)
                         }
-                        else do
+                        else
+                        {
                             .list.checkModel.setSelected(idxLine, checked)
+                        }
+
                         .list.sigCheckedChanged.call(.list)
                         .invalidate()
                         return
@@ -550,7 +553,6 @@ impl IWnd for ListView
                     .list.selModel.select(idxLine)
                 }
             }
-
             // Invert selection
             else
             {
@@ -716,8 +718,10 @@ private impl ListView
         result.icon = item.icon
         if .list.iconSize > 0
         {
-            if result.icon.isValid() do
+            if result.icon.isValid()
+            {
                 result.icon.sizeX, result.icon.sizeY = .list.iconSize
+            }
             else
             {
                 var iconMargin = .list.iconMarginFirstCol
@@ -800,19 +804,16 @@ private impl ListView
             let colorSel = .hasFocus() ? colors.listItem_FocusSelectedBk : colors.listItem_SelectedBk
             theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colorSel)
         }
-
         // Hot box
         elif idx == .list.hotIndex and .list.listFlags.has(.HotTrack) and canHotTrack
         {
             theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colors.listItem_HotBk)
         }
-
         // User background
         elif line.colorBk.a
         {
             painter.fillRect(rect, line.colorBk)
         }
-
         // Alternate lines
         elif .list.listFlags.has(.AlternateLines) and idx % 2 == 1
         {
@@ -1179,7 +1180,10 @@ impl ListCtrl
             .header                  = Header.create(fwnd, {})
             .header.dockStyle        = .Top
             .header.form             = .Round
-            .header.sigLayoutChanged += func|list|(header) { list.computeLayout() }
+            .header.sigLayoutChanged += func|list|(header)
+            {
+                list.computeLayout()
+            }
 
             .header.sigColumnClicked += func|list|(header, column)
             {
@@ -1387,8 +1391,11 @@ impl ListCtrl
             .onFillVirtualLine(me, &scratch, index)
             line = &scratch
         }
-        else do
+        else
+        {
             line = .lines[index]
+        }
+
         if not line do
             return result
 

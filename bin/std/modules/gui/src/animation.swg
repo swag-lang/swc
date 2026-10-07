@@ -646,8 +646,11 @@ private impl Animator
                     stepRemainder = Math.min(stepRemainder, Math.max(track.elapsedSeconds - totalSeconds(track), 0))
                     .completeTrack(track, .Completed)
                 }
-                else do
+                else
+                {
                     stepDone = false
+                }
+
                 if run.cancelRequested do
                     return false
             }

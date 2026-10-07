@@ -174,8 +174,10 @@ impl Encoder
         let diff = .du[0] - dC[]
         dC[] = .du[0]
 
-        if diff == 0 do
+        if diff == 0
+        {
             .writeBits(hTDC[0])
+        }
         else
         {
             let diffc    = cast #bit (u64) cast(s64) diff     // If negative

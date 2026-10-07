@@ -761,8 +761,10 @@ func paragraphLineEdges(view: *Markdown.View)->Array'f32
             line = atom.position.y
             result.add(atom.position.right())
         }
-        else do
+        else
+        {
             result[result.count - 1] = Math.max(result[result.count - 1], atom.position.right())
+        }
     }
 
     return result

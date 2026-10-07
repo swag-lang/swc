@@ -225,8 +225,10 @@ impl IWnd for ViewerPanel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
+        }
         elif evt.kind == .ThemeChanged
         {
             .optionsButton.setIcon(.theme().icon(.Options, 18))

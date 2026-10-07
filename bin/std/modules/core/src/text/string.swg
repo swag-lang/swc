@@ -206,8 +206,10 @@ impl String
         if not .buffer do
             return
 
-        if .capacity <= StringSmallSize do
+        if .capacity <= StringSmallSize
+        {
             .buffer = cast() &.padding[0]
+        }
         else
         {
             let oldBuffer = .buffer
@@ -588,7 +590,6 @@ impl String
             .capacity = StringSmallSize
             .buffer   = cast() &.padding[0]
         }
-
         // We were in small size mode, and we are no more
         elif .buffer == cast() &.padding[0]
         {
@@ -597,14 +598,12 @@ impl String
             Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
             .capacity = newCapacity
         }
-
         // First allocation directly to dynamic storage
         elif not .buffer
         {
             .buffer   = cast() Memory.alloc(newCapacity, .allocator)
             .capacity = newCapacity
         }
-
         // We were in dynamic mode, so just realloc memory
         else
         {

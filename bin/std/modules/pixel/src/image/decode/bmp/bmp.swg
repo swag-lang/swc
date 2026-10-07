@@ -242,8 +242,10 @@ internal impl IImageDecoder for Decoder
                 masks.b = readMask((cast(const *u32) (dataof + 8))[])
                 dataof  += 12
             }
-            else do
+            else
+            {
                 fail InvalidFormatError{"invalid source buffer"}
+            }
 
             if not masks.r.value or not masks.g.value or not masks.b.value do
                 fail InvalidFormatError{"invalid bit masks"}

@@ -144,8 +144,10 @@ func initialSpaceColor(space: const *ImageSpace)->Color
         for i in count do
             values[i] = 1
     }
-    elif space.kind == .Cmyk and count == 4 do
+    elif space.kind == .Cmyk and count == 4
+    {
         values[3] = 1
+    }
 
     return spaceColor(space, values[0 until count])
 }
@@ -448,8 +450,10 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
         highest[i] = 1
     }
 
-    if space.kind == .Indexed do
+    if space.kind == .Indexed
+    {
         highest[0] = maxValue
+    }
     elif space.kind == .Lab
     {
         highest[0] = 100
@@ -810,8 +814,10 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             }
         }
     }
-    else do
+    else
+    {
         plane = #move try readSamplePlane(parser, nodeId, resourcesId)
+    }
 
     if maskId != InvalidNode
     {

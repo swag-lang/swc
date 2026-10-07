@@ -353,10 +353,14 @@ impl IWnd for RichEditView
         // Scroll size
         edn.loadedContentHeight = cast(f32) (edn.countVisibleLines * size.y)
         y = Math.max(edn.residentContentOffset + edn.loadedContentHeight, edn.estimatedContentHeight)
-        if edn.flags.has(.WordWrap) do
+        if edn.flags.has(.WordWrap)
+        {
             maxx = 0
-        elif not edn.recomputeScroll do
+        }
+        elif not edn.recomputeScroll
+        {
             maxx = edn.scrollWnd.scrollSize.x
+        }
         else
         {
             let posCaret = edn.caretRect(edn.cursorPos)
@@ -452,8 +456,10 @@ impl RichEditView
             pChar  = line.chars.storage()
             pStyle = line.styles.storage()
         }
-        else do
+        else
+        {
             count = 1
+        }
 
         var str: String
         str.reserve(line.length())

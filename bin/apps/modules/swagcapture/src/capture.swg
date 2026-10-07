@@ -1076,8 +1076,10 @@ impl Capture
 
                 res.add(formImg)
             }
-            else do
+            else
+            {
                 return
+            }
         }
 
         // Pasted copies keep their internal grouping but must not re-join the originals
@@ -1300,8 +1302,10 @@ impl Capture
                 .cacheRefreshLeft -= 1
                 renderNow         = true
             }
-            else do
+            else
+            {
                 .cacheNeedsRefine = true
+            }
         }
 
         if renderNow
@@ -2248,15 +2252,20 @@ impl Capture
                 .snapX    = saveSnapX
                 u.newPosX = nx
             }
-            else do
+            else
+            {
                 u.newPosX = nx1
+            }
+
             if Math.abs(ny - newPosY) > Math.abs(ny1 - newPosY)
             {
                 .snapY    = saveSnapY
                 u.newPosY = ny
             }
-            else do
+            else
+            {
                 u.newPosY = ny1
+            }
 
             .pushUndo(u)
             .invalidateMovedRegion(oldMovedBound, .getSelectionBoundRect())

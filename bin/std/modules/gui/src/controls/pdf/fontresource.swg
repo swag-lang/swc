@@ -305,8 +305,10 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
                 if parser.name(parser.dict(cid, "Subtype")) == "CIDFontType2"
                 {
                     let mapping = parser.dict(cid, "CIDToGIDMap")
-                    if mapping == InvalidNode or (parser.nodes[mapping].kind == .Name and parser.nodes[mapping].text == "Identity") do
+                    if mapping == InvalidNode or (parser.nodes[mapping].kind == .Name and parser.nodes[mapping].text == "Identity")
+                    {
                         result.identityGlyphs = true
+                    }
                     elif parser.nodes[mapping].kind != .Name
                     {
                         let bytes = #move try parser.decodeStream(mapping)

@@ -29,10 +29,14 @@ func day7A()
 
         for i in l.count - 3
         {
-            if l[i] == '[' do
+            if l[i] == '['
+            {
                 cpt += 1
-            elif cpt and l[i] == ']' do
+            }
+            elif cpt and l[i] == ']'
+            {
                 cpt -= 1
+            }
             elif l[i] == l[i + 3] and l[i + 1] == l[i + 2] and l[i] != l[i + 1]
             {
                 if cpt

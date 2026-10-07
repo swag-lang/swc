@@ -623,8 +623,10 @@ impl IWnd for IconButton
                     icon.sizeX = pos.height * ratio
                     icon.sizeY = pos.height
                 }
-                else do
+                else
+                {
                     pos.height = icon.sizeY
+                }
             }
         }
 
@@ -751,8 +753,10 @@ private impl IconButton
             .postCommandEvent(.id)
             .sigCheckedChanged.call(me)
         }
-        elif not .flags.has(.Radio) and not .flags.has(.Toggle) do
+        elif not .flags.has(.Radio) and not .flags.has(.Toggle)
+        {
             .postCommandEvent(.id)
+        }
 
         if .flags.has(.Popup) and not .popup
         {

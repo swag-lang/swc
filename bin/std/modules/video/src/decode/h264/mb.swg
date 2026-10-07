@@ -532,8 +532,10 @@ impl Slice
         if not mb.extraJobs
         {
             let dec = .dec!
-            if dec.inlineRecon do
+            if dec.inlineRecon
+            {
                 mb.extraJobs = &.scratchExtraJobs
+            }
             else
             {
                 let entry = dec.parsedExtraJobs.count
@@ -1015,8 +1017,10 @@ impl Slice
             // Full macroblocks can leave uncoded blocks untouched while parsing, and intra
             // reconstruction reads those blocks later. Skipped inter macroblocks have no
             // residual by definition, so their zero bookkeeping keeps these arrays unreachable.
-            if dec.inlineRecon do
+            if dec.inlineRecon
+            {
                 mb.residual = &.scratchResidual
+            }
             else
             {
                 let entry = dec.parsedResiduals.count
@@ -1031,8 +1035,10 @@ impl Slice
 
             if dec.sps!.is444()
             {
-                if dec.inlineRecon do
+                if dec.inlineRecon
+                {
                     mb.residual444 = &.scratchResidual444
+                }
                 else
                 {
                     let entry = dec.parsedResiduals444.count
@@ -1275,8 +1281,10 @@ impl Slice
         if dec.sps!.is444() do
             return
 
-        if fromCabac do
+        if fromCabac
+        {
             mb.chromaMode = .chromaModeCabac(mb)
+        }
         else
         {
             mb.chromaMode = .bits.ue()
@@ -1307,8 +1315,10 @@ impl Slice
         }
         else
         {
-            if .bits.bit() do
+            if .bits.bit()
+            {
                 mode = cast(u32) predicted
+            }
             else
             {
                 let rem = .bits.read(3)
@@ -1700,8 +1710,10 @@ impl Slice
             var refs: [2] s8 = [-1, -1]
             refs[list] = cast(s8) refIdx
             var zero: [2] s16
-            if list == 0 do
+            if list == 0
+            {
                 .addJob(mb, x4, y4, w4, h4, refs, mv, zero)
+            }
             else
             {
                 var found = false

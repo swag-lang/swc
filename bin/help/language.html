@@ -7997,10 +7997,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">func</span> <span class="SFct">createResource</span>() =&gt; <span class="SKwd">true</span>
 
-    <span class="SKwd">func</span> <span class="SFct">releaseResource</span>(resource: *<span class="STpe">bool</span>)
-    {
-        resource[] = <span class="SKwd">false</span>
-    }
+    <span class="SKwd">func</span> <span class="SFct">releaseResource</span>(resource: *<span class="STpe">bool</span>) { resource[] = <span class="SKwd">false</span> }
 
     <span class="SKwd">func</span> <span class="SFct">isResourceCreated</span>(b: <span class="STpe">bool</span>) =&gt; b
 

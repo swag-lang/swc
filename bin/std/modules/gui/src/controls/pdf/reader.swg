@@ -154,16 +154,20 @@ impl Reader
                 let kind = .parser.nodes[destination].kind
                 if kind == .Array do
                     break
-                if kind == .Dictionary do
+                if kind == .Dictionary
+                {
                     destination = .parser.dict(destination, "D")
+                }
                 elif kind == .Name or kind == .String
                 {
                     let name  = .parser.nodes[destination].text
                     let found = names.tryFind(name)
                     destination = found ? .parser.resolve(found.value) : .parser.dict(.parser.dict(catalog, "Dests"), name.toString())
                 }
-                else do
+                else
+                {
                     destination = InvalidNode
+                }
             }
 
             if destination != InvalidNode and .parser.nodes[destination].kind == .Array

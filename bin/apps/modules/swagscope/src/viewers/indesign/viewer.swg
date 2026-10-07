@@ -333,8 +333,10 @@ private func indexIndesignPreviews(bytes: const [..] u8, start, end: u64)->Array
                 if fallbackPage != Swag.U32.Max do
                     fallbackPage += 1
             }
-            elif page >= fallbackPage and page < Swag.U32.Max do
+            elif page >= fallbackPage and page < Swag.U32.Max
+            {
                 fallbackPage = page + 1
+            }
 
             var existing = IndesignNoPreview
             for saved, index in result where saved.page == page
@@ -1352,14 +1354,21 @@ func createIndesignViewer(host: Viewer.Host)
             return true
         }
 
-        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*IndesignViewer) wnd).revealMatch(match, text)
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            return (cast #assume (*IndesignViewer) wnd).revealMatch(match, text)
+        }
+
         .matchBounds = func(wnd, match, bounds)->bool
         {
             discard match
             return (cast #assume (*IndesignViewer) wnd).searchBounds(bounds)
         }
 
-        .clear = func(wnd) { (cast #assume (*IndesignViewer) wnd).clearSearch() }
+        .clear = func(wnd)
+        {
+            (cast #assume (*IndesignViewer) wnd).clearSearch()
+        }
     }
 
     host.setSearch(search)

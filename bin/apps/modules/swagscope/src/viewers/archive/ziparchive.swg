@@ -378,8 +378,10 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
         fail Errors.InvalidFormatError{"ZIP entry payload is truncated"}
 
     var plain: retval
-    if entry.method == 0 do
+    if entry.method == 0
+    {
         plain = #move packed
+    }
     else
     {
         plain.reserve(entry.uncompressedSize)

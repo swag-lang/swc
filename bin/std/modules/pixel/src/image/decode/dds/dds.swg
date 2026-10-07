@@ -180,8 +180,10 @@ impl Decoder
             if not faces.count do
                 fail InvalidFormatError{"DDS cubemap declares no faces"}
         }
-        else do
+        else
+        {
             faces.add(0)
+        }
 
         if pfFlags & FourCcFlag
         {
@@ -208,8 +210,11 @@ impl Decoder
                     for face in 6'u32 do
                         faces.add(face)
                 }
-                else do
+                else
+                {
                     faces.add(0)
+                }
+
                 if not dxgiFormat(dxgi, &format, &blocks) do
                     fail UnsupportedFormatError{"DDS DXGI pixel format is not supported"}
                 let mode = readU32(buffer.buffer + 144) & 7
@@ -240,8 +245,10 @@ impl Decoder
                 fail UnsupportedFormatError{"DDS RGB depth is not supported"}
             format = .RGBA8
         }
-        else do
+        else
+        {
             fail UnsupportedFormatError{"DDS pixel format is not RGB, luminance, or block compressed"}
+        }
 
         if blocks != .None do
             format = .RGBA8

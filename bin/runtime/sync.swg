@@ -86,10 +86,7 @@ impl Condition
     //
     // A waiting thread does not run ready work, so the wake must come from something that is
     // already running rather than from work still queued behind this wait.
-    mtd wait(mutex: *Mutex)
-    {
-        discard __hostConditionWait(&.storage, &mutex.storage, InfiniteWait)
-    }
+    mtd wait(mutex: *Mutex) { discard __hostConditionWait(&.storage, &mutex.storage, InfiniteWait) }
 
     // Waits like [[Swag.Condition.wait]] but gives up after `milliseconds`.
     //

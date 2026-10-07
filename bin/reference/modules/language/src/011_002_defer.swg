@@ -83,10 +83,7 @@ release logic stay close together and cleanup always happens.
 {
     func createResource() => true
 
-    func releaseResource(resource: *bool)
-    {
-        resource[] = false
-    }
+    func releaseResource(resource: *bool) { resource[] = false }
 
     func isResourceCreated(b: bool) => b
 

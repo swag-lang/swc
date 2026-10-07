@@ -163,8 +163,10 @@ impl IForm for FormPolygon
                 painter.fillPath(&.linePath, backBrush)
             painter.fillPath(&.linePath, bk)
         }
-        else do
+        else
+        {
             painter.fillPolygon(&.linePath, bk)
+        }
 
         pen.joinStyle = .joinStyle
         painter.drawPath(&.linePath, pen)

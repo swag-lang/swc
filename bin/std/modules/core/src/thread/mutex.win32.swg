@@ -20,14 +20,8 @@ impl Mutex
     mtd tryLock()->bool => TryAcquireSRWLockExclusive(&.v) ? true : false
 
     // Acquires the mutex, waiting until it is free.
-    mtd lock()
-    {
-        AcquireSRWLockExclusive(&.v)
-    }
+    mtd lock() { AcquireSRWLockExclusive(&.v) }
 
     // Releases the mutex held by the calling thread.
-    mtd unlock()
-    {
-        ReleaseSRWLockExclusive(&.v)
-    }
+    mtd unlock() { ReleaseSRWLockExclusive(&.v) }
 }

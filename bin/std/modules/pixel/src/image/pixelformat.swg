@@ -228,10 +228,15 @@ internal func halfToFloat(value: u16)->f32
         mantissa &= 0x3FF
         bits     = sign | (cast(u32) (unbiased + 127) << 23) | (mantissa << 13)
     }
-    elif exponent == 0x1F do
+    elif exponent == 0x1F
+    {
         bits = sign | 0x7F800000 | (mantissa << 13)
-    else do
+    }
+    else
+    {
         bits = sign | ((exponent + 112) << 23) | (mantissa << 13)
+    }
+
     return cast #bit (f32) bits
 }
 

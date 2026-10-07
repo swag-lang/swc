@@ -145,9 +145,13 @@ func loadSccImagePreviews(fileName: string, previews: *Array'BinaryPreview)
             preview.label = binaryStrings().ui_Preview
             previews.add(#move preview)
         }
-        elif chunk.roleId == captureBackgroundRole() do
+        elif chunk.roleId == captureBackgroundRole()
+        {
             addTagBinImage(bytes.toSlice(), "Background", previews)
-        else do
+        }
+        else
+        {
             addTagBinImage(bytes.toSlice(), "Original", previews)
+        }
     }
 }

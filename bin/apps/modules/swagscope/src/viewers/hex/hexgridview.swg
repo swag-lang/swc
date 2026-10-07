@@ -179,8 +179,10 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
         for column in bytesPerRow
         {
             let index = row + column
-            if index < bytes.count do
+            if index < bytes.count
+            {
                 appendHexDigits(&line, bytes[index], 2)
+            }
             else
             {
                 line.add(' 'u8)
@@ -769,8 +771,10 @@ impl HexGridView
                 first = index + 1
                 count -= step + 1
             }
-            else do
+            else
+            {
                 count = step
+            }
         }
 
         return first
@@ -832,8 +836,10 @@ impl HexGridView
         if offset != Swag.U64.Max do
             .moveCaret(offset, true)
 
-        if (above or below) and not .selectionTimer do
+        if (above or below) and not .selectionTimer
+        {
             .selectionTimer = .addTimer(HexDragScrollRate)
+        }
         elif not above and not below and .selectionTimer
         {
             .removeTimer(.selectionTimer)

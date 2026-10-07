@@ -372,10 +372,14 @@ impl MainWindow
         .removeTimer(.formatTimer!)
         .formatTimer = null
         .commandBar.formatButton.enable()
-        if .formatResult.failed do
+        if .formatResult.failed
+        {
             .formatStatus = .Failed
-        elif .editor.text() != .formatSource do
+        }
+        elif .editor.text() != .formatSource
+        {
             .formatStatus = .Changed
+        }
         else
         {
             .formatStatus = .Done
@@ -427,10 +431,14 @@ impl MainWindow
 
         .spinner.show(running != 0 or .formatStatus == .Working)
         .status.toolTip = ""
-        if running > 1 do
+        if running > 1
+        {
             .status.setText(Format.toString(appStrings().ui_RunningViewers, running).toString())
-        elif running do
+        }
+        elif running
+        {
             .status.setText(appStrings().ui_Working)
+        }
         else
         {
             switch #complete .formatStatus
@@ -508,8 +516,10 @@ impl IWnd for MainWindow
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
+        }
         elif evt.kind == .ThemeChanged
         {
             .layoutButton.setIcon(.icon(.Layout))

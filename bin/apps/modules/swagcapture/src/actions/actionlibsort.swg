@@ -75,12 +75,18 @@ impl IActionUI for ActionLibSort
 
         case .Invert:
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked
-            if libWnd.sortMethod == .Recent or libWnd.sortMethod == .Modified do
+            if libWnd.sortMethod == .Recent or libWnd.sortMethod == .Modified
+            {
                 evt.name = appStrings().act_OldestFirst
-            elif libWnd.sortMethod == .FileSize do
+            }
+            elif libWnd.sortMethod == .FileSize
+            {
                 evt.name = appStrings().act_SmallerFirst
-            elif libWnd.sortMethod == .Dimensions do
+            }
+            elif libWnd.sortMethod == .Dimensions
+            {
                 evt.name = appStrings().act_SmallerImagesFirst
+            }
             elif libWnd.sortMethod == .Similar
             {
                 evt.updatedFields |= .Disabled

@@ -99,7 +99,10 @@ internal impl Properties
             }
         }
 
-        btn.sigPopupClosed += func|prop = me|(btn) { prop.editPopup = null }
+        btn.sigPopupClosed += func|prop = me|(btn)
+        {
+            prop.editPopup = null
+        }
 
         item.sigRefresh += func|prop = me, ed, btn, color, editAlpha|(item)
         {

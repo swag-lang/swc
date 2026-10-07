@@ -249,8 +249,10 @@ private impl FileBrowserCtrl
     mtd updateStatus()
     {
         var txt: String
-        if .shownFolders == 0 and .shownFiles == 0 do
+        if .shownFolders == 0 and .shownFiles == 0
+        {
             txt = strings().browser_StatusEmpty
+        }
         else
         {
             if .shownFolders
@@ -670,8 +672,10 @@ impl FileBrowserCtrl
                 .editFile.selectAll()
                 .editFile.setFocus()
             }
-            else do
+            else
+            {
                 .listCtrl.setFocus()
+            }
         }
 
         // Default to the first real location when nothing else selected a folder.
@@ -810,8 +814,10 @@ impl FileBrowserCtrl
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
             line.setItem(1, fi.lastWriteTime.toString(.DateTimeIsoHm))
-            if fi.isDirectory() do
+            if fi.isDirectory()
+            {
                 .shownFolders += 1
+            }
             else
             {
                 let sizeItem = line.setItem(2, Format.byteSize(fi.size).toString())

@@ -84,8 +84,10 @@ var g_Functions: Array'OneFunc
                 builderVars.appendString("_")
                 builderVars.appendString(p.name)
             }
-            else do
+            else
+            {
                 builderVars.appendString(p.pointedType.fullname)
+            }
         }
 
         let retType = etype.returnType

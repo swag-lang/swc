@@ -356,8 +356,10 @@ impl HashTable
                     if table[index].key == key do
                         return index
                 }
-                elif entryHash == HashTable.HASH_FREE do
+                elif entryHash == HashTable.HASH_FREE
+                {
                     return index
+                }
 
                 index = (index + 1) & mask
             }
@@ -558,8 +560,10 @@ impl HashTable
                 if table[index].key == key do
                     return table + index
             }
-            elif entryHash == HashTable.HASH_FREE do
+            elif entryHash == HashTable.HASH_FREE
+            {
                 return null
+            }
 
             index = (index + 1) & mask
         }

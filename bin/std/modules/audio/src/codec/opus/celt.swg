@@ -431,10 +431,14 @@ internal impl CeltDecoder
                     let raw = cast(s32) dec.decodeIcdf(SmallEnergyIcdf, 2)
                     qi = (raw >> 1) ^ -(raw & 1)
                 }
-                elif budget - tell >= 1 do
+                elif budget - tell >= 1
+                {
                     qi = dec.decodeBit(1) ? -1 : 0
-                else do
+                }
+                else
+                {
                     qi = -1
+                }
 
                 let q     = cast(f32) qi
                 let index = i + c * CeltBandCount
@@ -530,8 +534,10 @@ internal impl CeltDecoder
         if C == 2
         {
             intensityRsv = cast(s32) CeltLog2FracTable[end - start]
-            if intensityRsv > total do
+            if intensityRsv > total
+            {
                 intensityRsv = 0
+            }
             else
             {
                 total         -= intensityRsv
@@ -574,8 +580,10 @@ internal impl CeltDecoder
                     done = true
                     psum += Math.min(bitsj, cap[j])
                 }
-                elif bitsj >= C << BitRes do
+                elif bitsj >= C << BitRes
+                {
                     psum += C << BitRes
+                }
             }
 
             if psum > total do
@@ -627,8 +635,10 @@ internal impl CeltDecoder
                     done = true
                     psum += Math.min(tmp, cap[j])
                 }
-                elif tmp >= allocFloor do
+                elif tmp >= allocFloor
+                {
                     psum += allocFloor
+                }
             }
 
             if psum > total do
@@ -687,8 +697,11 @@ internal impl CeltDecoder
                 psum      += allocFloor
                 pulses[j] = allocFloor
             }
-            else do
+            else
+            {
                 pulses[j] = 0
+            }
+
             codedBands -= 1
         }
 
@@ -1053,8 +1066,10 @@ internal impl CeltDecoder
                 dec.update(cast(u32) low, cast(u32) high, ft)
                 itheta = x
             }
-            elif b0 > 1 or stereo do
+            elif b0 > 1 or stereo
+            {
                 itheta = cast(s32) dec.decodeUint(cast(u32) qn + 1)
+            }
             else
             {
                 let half = qn >> 1
@@ -1902,8 +1917,10 @@ internal impl CeltDecoder
                 for i in N do
                     freq[i] = 0.5 * (mono[i] + freq[i])
             }
-            else do
+            else
+            {
                 .denormaliseBands(source, energy, effEnd, M, silence)
+            }
 
             let freq = .frequency.storage()
             for b in blocks do

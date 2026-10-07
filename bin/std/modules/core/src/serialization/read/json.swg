@@ -46,8 +46,10 @@ public impl Json
                 result.line += 1
                 result.col  = 1
             }
-            else do
+            else
+            {
                 result.col += 1
+            }
         }
 
         return result
@@ -167,8 +169,10 @@ public impl Json
             while Latin1.isDigit(.stream.peekU8()) do
                 .stream.advance()
         }
-        else do
+        else
+        {
             fail .getError("JSON number is missing its integer part")
+        }
 
         if .stream.peekU8() == '.'
         {

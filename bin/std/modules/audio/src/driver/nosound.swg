@@ -24,20 +24,11 @@ struct NoSoundDriverNative
 
 impl NoSoundDriverNative
 {
-    mtd createNoSound() fail
-    {
-        .outputVolume = 1
-    }
+    mtd createNoSound() fail { .outputVolume = 1 }
 
-    mtd destroyNoSound()
-    {
-        .outputVolume = 1
-    }
+    mtd destroyNoSound() { .outputVolume = 1 }
 
-    mtd setOutputVolumeNoSound(volume: f32) fail
-    {
-        .outputVolume = volume
-    }
+    mtd setOutputVolumeNoSound(volume: f32) fail { .outputVolume = volume }
 
     mtd outputVolumeNoSound()->f32 => .outputVolume
 }

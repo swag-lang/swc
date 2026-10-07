@@ -233,8 +233,10 @@ impl Decoder
                             try .decodeBlockAcFirst(componentId, blkX, blkY)
                     }
 
-                    if .compsInScan == 1 do
+                    if .compsInScan == 1
+                    {
                         blockMcutX[componentId] += 1
+                    }
                     else
                     {
                         blockMcuOfsX += 1
@@ -254,8 +256,10 @@ impl Decoder
                 .restartsLeft -= 1
             }
 
-            if .compsInScan == 1 do
+            if .compsInScan == 1
+            {
                 blockMcutY[.compList[0]] += 1
+            }
             else
             {
                 for n in .compsInScan

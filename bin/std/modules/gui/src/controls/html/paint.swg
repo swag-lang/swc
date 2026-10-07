@@ -513,8 +513,11 @@ impl HtmlPainter
                 hyphenated += "-"
                 .paintTextRun(hyphenated.toString(), style, font, ink, x, y)
             }
-            else do
+            else
+            {
                 .paintTextRun(.layout.inlineText(item), style, font, ink, x, y)
+            }
+
             .paintDecorationLines(item, style, alpha, x, y)
         }
     }
@@ -528,8 +531,10 @@ impl HtmlPainter
             var shaped = Painter.shapeRun(text, font, DefaultTextTabSize, style.letterSpacing)
             .painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(ink))
         }
-        else do
+        else
+        {
             .painter.drawString(x, y, text, font, ink)
+        }
     }
 
     // Draws the longest UTF-8 prefix that leaves room for a visible truncation marker.
@@ -1422,8 +1427,10 @@ impl HtmlPainter
                 if start < end do
                     result[] += text[start until end]
             }
-            else do
+            else
+            {
                 result[] += text
+            }
 
             lastBox[] = box
             lastY[]   = item.y

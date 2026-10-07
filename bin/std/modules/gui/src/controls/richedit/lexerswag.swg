@@ -717,8 +717,10 @@ impl IRichEditLexer for RichEditLexerSwag
                     seek = saveSeek
                     let isSwagNamespace = word.startsWith("Swag.")
 
-                    if word == "opVisit" do
+                    if word == "opVisit"
+                    {
                         currentState = State.FunctionSpecOp
+                    }
                     elif not word.isEmpty()
                     {
                         let res = .mapWords.tryFind(word.toString())

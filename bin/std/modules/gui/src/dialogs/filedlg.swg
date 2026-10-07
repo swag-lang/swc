@@ -166,8 +166,10 @@ impl FileDlg
             .updateFlags(add: .Resizable)
             .minSize = {540, 420}
 
-            if opt.title.count do
+            if opt.title.count
+            {
                 .setTitle(opt.title)
+            }
             else
             {
                 switch #complete opt.mode
@@ -256,8 +258,10 @@ impl FileDlg
             srf.setPosition(pos)
             srf.constrainPositionToScreen(topLeft: true, margin: 10)
         }
-        else do
+        else
+        {
             srf.center(from)
+        }
 
         return dlg
     }

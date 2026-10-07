@@ -334,8 +334,10 @@ impl Slice
             let op = .bits.ue()
             if op == 0 or .bits.overran do
                 break
-            if op == 1 or op == 2 or op == 4 or op == 6 do
+            if op == 1 or op == 2 or op == 4 or op == 6
+            {
                 discard .bits.ue()
+            }
             elif op == 3
             {
                 discard .bits.ue()

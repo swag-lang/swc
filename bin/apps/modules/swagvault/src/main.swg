@@ -36,10 +36,8 @@ const SurfaceId   = "swag.vault"
     let stateFolder = Path.combine(stateRoot, "vault")
     if not Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder)
-    {
+    if Directory.exists(stateFolder) do
         g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
-    }
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)

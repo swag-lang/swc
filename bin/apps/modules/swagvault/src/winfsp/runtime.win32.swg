@@ -128,8 +128,11 @@ namespace WinFsp
                 g_WinFsp.dllPath = try stagePortableWinFsp()
                 traceWinFspStage("portable runtime staged")
             }
-            else do
+            else
+            {
                 try ensurePortableGuardian()
+            }
+
             g_WinFsp.module = loadLibrary(g_WinFsp.dllPath)
             traceWinFspStage("LoadLibraryW returned")
             g_WinFsp.portable = true

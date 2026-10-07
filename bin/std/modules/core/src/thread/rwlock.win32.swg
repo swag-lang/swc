@@ -16,44 +16,26 @@ struct RWLock
 impl RWLock
 {
     // Acquires the lock exclusively, like [[Core.Sync.RWLock.lockExclusive]].
-    mtd lock()
-    {
-        .lockExclusive()
-    }
+    mtd lock() { .lockExclusive() }
 
     // Releases an exclusive hold, like [[Core.Sync.RWLock.unlockExclusive]].
-    mtd unlock()
-    {
-        .unlockExclusive()
-    }
+    mtd unlock() { .unlockExclusive() }
 
     // Acquires the lock exclusively when it is free and returns whether it did, without waiting.
     mtd tryLockExclusive()->bool => TryAcquireSRWLockExclusive(&.v) ? true : false
 
     // Acquires the lock exclusively, waiting until no other thread holds it.
-    mtd lockExclusive()
-    {
-        AcquireSRWLockExclusive(&.v)
-    }
+    mtd lockExclusive() { AcquireSRWLockExclusive(&.v) }
 
     // Releases the exclusive hold of the calling thread.
-    mtd unlockExclusive()
-    {
-        ReleaseSRWLockExclusive(&.v)
-    }
+    mtd unlockExclusive() { ReleaseSRWLockExclusive(&.v) }
 
     // Acquires the lock for shared access when no writer holds it and returns whether it did, without waiting.
     mtd tryLockShared()->bool => TryAcquireSRWLockShared(&.v) ? true : false
 
     // Acquires the lock for shared access, waiting while a writer holds it.
-    mtd lockShared()
-    {
-        AcquireSRWLockShared(&.v)
-    }
+    mtd lockShared() { AcquireSRWLockShared(&.v) }
 
     // Releases a shared hold of the calling thread.
-    mtd unlockShared()
-    {
-        ReleaseSRWLockShared(&.v)
-    }
+    mtd unlockShared() { ReleaseSRWLockShared(&.v) }
 }

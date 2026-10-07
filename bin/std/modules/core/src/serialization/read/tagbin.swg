@@ -273,7 +273,6 @@ private impl TagBin
                     if .canConvertType(Reflection.dynamicArrayElementType(toStruct), fromArr.pointedType) do
                         return true
                 }
-
                 // Static array to single struct value
                 elif .canConvertType(dstType, fromArr.pointedType)
                 {
@@ -281,7 +280,6 @@ private impl TagBin
                     return true
                 }
             }
-
             // Static array to single value
             elif .canConvertType(dstType, fromArr.pointedType)
             {
@@ -301,14 +299,12 @@ private impl TagBin
                     if .canConvertType(toArr.pointedType, Reflection.dynamicArrayElementType(fromStruct)) do
                         return true
                 }
-
                 // Dynamic array to dynamic array
                 elif toStruct and Reflection.isDynamicArray(toStruct)
                 {
                     if .canConvertType(Reflection.dynamicArrayElementType(toStruct), Reflection.dynamicArrayElementType(fromStruct)) do
                         return true
                 }
-
                 // Dynamic array to single value
                 elif .canConvertType(dstType, Reflection.dynamicArrayElementType(fromStruct))
                 {
@@ -341,11 +337,12 @@ private impl TagBin
                     return true
                 }
             }
-
             // A statically requested structured payload is self-framed. Its source type
             // name is not part of the compatibility contract.
-            elif fromStruct and not Reflection.isDynamicArray(fromStruct) do
+            elif fromStruct and not Reflection.isDynamicArray(fromStruct)
+            {
                 return true
+            }
         }
 
         return false
@@ -646,8 +643,10 @@ private impl TagBin
             if streamSchema != wantedSchema do
                 fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]", streamSchema, wantedSchema))}
         }
-        elif not .schema.isEmpty() and streamSchema != .schema do
+        elif not .schema.isEmpty() and streamSchema != .schema
+        {
             fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the reader needs [[%]]", streamSchema, .schema))}
+        }
 
         let flags = try .stream.readNative'Write.TagBinHeaderFlags()
         let shapeDirOffset = try .stream.readNative'u64()
@@ -1088,7 +1087,6 @@ impl TagBin
                 return true
             }
         }
-
         // Static array
         else
         {

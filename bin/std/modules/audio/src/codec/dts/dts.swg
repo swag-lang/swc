@@ -69,8 +69,10 @@ private impl BitReader
         for count
         {
             result <<= 1
-            if .bitPosition >= .bitSize do
+            if .bitPosition >= .bitSize
+            {
                 .overrun = true
+            }
             else
             {
                 if .packed14

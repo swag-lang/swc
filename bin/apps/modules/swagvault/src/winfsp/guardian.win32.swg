@@ -153,8 +153,10 @@ namespace WinFsp
         {
             for entry in entries
             {
-                if entry.isDirectory() do
+                if entry.isDirectory()
+                {
                     removeRuntimeTree(entry.fullName)
+                }
                 else
                 {
                     discard catch File.delete(entry.fullName) as deleteError

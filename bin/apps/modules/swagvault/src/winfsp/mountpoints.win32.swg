@@ -22,8 +22,10 @@ namespace WinFsp
                 result |= 1'u32 << index
                 discard RegCloseKey(mapping)
             }
-            elif status != ERROR_FILE_NOT_FOUND do
+            elif status != ERROR_FILE_NOT_FOUND
+            {
                 return Swag.U32.Max
+            }
         }
 
         return result

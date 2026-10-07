@@ -24,8 +24,10 @@ internal impl Properties
     mtd validateBool(item: *PropertiesItem)
     {
         var data = cast(*bool) item.data!
-        if item.checkBox != null do
+        if item.checkBox != null
+        {
             data[] = item.checkBox.isChecked()
+        }
         elif item.comboBox != null
         {
             // A deselected combo means "mixed" was just shown: nothing to write.

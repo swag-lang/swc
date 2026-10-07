@@ -412,8 +412,10 @@ impl Dfa
         // reads such a byte is: what stands there may be a letter, and only the simulation
         // knows.
         var flags = FlagIsStart
-        if at == 0 do
+        if at == 0
+        {
             flags |= FlagFromStart
+        }
         else
         {
             let previous = hay[at - 1]
@@ -449,8 +451,10 @@ impl Dfa
     mtd startStateReverse(program: const *Program, hay: const [..] u8, at: u64)->u32
     {
         var flags = FlagIsStart
-        if at == hay.count do
+        if at == hay.count
+        {
             flags |= FlagFromStart
+        }
         else
         {
             let following = hay[at]

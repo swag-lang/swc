@@ -150,8 +150,10 @@ private impl ImageView
                 .app().renderer.removeTexture(&.uploadedTexture)
             .uploadedTexture = .app().renderer.addImage(frame[])
         }
-        else do
+        else
+        {
             .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+        }
     }
 
     mtd applyZoom(value: f32, anchor: const *Math.Point? = null)
@@ -277,8 +279,10 @@ impl IWnd for ImageView
             painter.drawTexture(sourceRect, .uploadedTexture, tint)
             painter.setTransform(base)
         }
-        else do
+        else
+        {
             painter.drawTexture(sourceRect, .uploadedTexture, tint)
+        }
 
         if .movie.isValid() and .movie.frameCount > 1 and not .movie.isPaused do
             .invalidate()

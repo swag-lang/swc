@@ -24,8 +24,10 @@ impl Decoder
             .bitBuf   = rol(.bitBuf, cast(u32) -.bitsLeft)
             .bitsLeft += 16
         }
-        else do
+        else
+        {
             .bitBuf = rol(.bitBuf, cast(u32) numBits)
+        }
 
         return i
     }
@@ -62,8 +64,10 @@ impl Decoder
             .bitBuf   = rol(.bitBuf, cast(u32) -.bitsLeft)
             .bitsLeft += 16
         }
-        else do
+        else
+        {
             .bitBuf = rol(.bitBuf, cast(u32) numBits)
+        }
 
         return i
     }

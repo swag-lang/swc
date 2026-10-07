@@ -63,8 +63,10 @@ private impl BitReader
         for count
         {
             value <<= 1
-            if .bitPos >= .bitSize do
+            if .bitPos >= .bitSize
+            {
                 .overrun = true
+            }
             else
             {
                 let byteIndex = .bitPos >> 3

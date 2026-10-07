@@ -213,8 +213,10 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 
     // Capture
     var capture: *Capture?
-    if not setGrabBounds(main, captureMode, monitorIndex) do
+    if not setGrabBounds(main, captureMode, monitorIndex)
+    {
         capture = try captureRect(main)
+    }
     else
     {
         let grabRect = getGrabRect()

@@ -61,8 +61,10 @@ private impl Movie
 
     mtd decodeFrame(index: s32)->bool
     {
-        if index < .cachedFrames.count do
+        if index < .cachedFrames.count
+        {
             .frame = .cachedFrames[index]
+        }
         else
         {
             var frame = catch .reader.read(cast(u32) index) as error

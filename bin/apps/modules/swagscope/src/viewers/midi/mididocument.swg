@@ -209,8 +209,10 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
             status = first
             scan   += 1
         }
-        else do
+        else
+        {
             status = running
+        }
 
         if status < 0x80 do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
@@ -233,8 +235,10 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 let channel = status & 0x0F
                 let key     = data1
                 let index   = cast(u64) channel * 128 + key
-                if kind == 0x8 or data2 == 0 do
+                if kind == 0x8 or data2 == 0
+                {
                     closeMidiNote(document, &active[index], tick)
+                }
                 else
                 {
                     closeMidiNote(document, &active[index], tick)
@@ -287,8 +291,10 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
             scan = length.next + length.value
         }
-        else do
+        else
+        {
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+        }
 
         track.eventCount += 1
     }

@@ -94,8 +94,10 @@ func __ftoa(result: [*] u8, value: f64)
         n[0] = '0'
         n    += 1
     }
-    else do
+    else
+    {
         n = __itoa(result, ipart)
+    }
 
     n[0] = '.'
     n    += 1

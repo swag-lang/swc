@@ -678,8 +678,10 @@ private func runAvcFrameThread(thread: Threading.Thread)
             frameThread.decoder.failPreparedAccessUnit()
             frameThread.errorText = Errors.message(decodeError)
         }
-        else do
+        else
+        {
             frameThread.frame = frame
+        }
 
         frameThread.done.signal()
     }

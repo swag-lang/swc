@@ -369,8 +369,10 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
                 if not bias do
                     bias = 1
             }
-            elif not ca and not cb do
+            elif not ca and not cb
+            {
                 return bias
+            }
 
             ai, bi     += 1
             csrc, cdst -= 1

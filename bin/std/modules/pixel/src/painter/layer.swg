@@ -311,8 +311,10 @@ impl Layer
             srcRect = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
             texture = .shadowTarget!.colorBuffer
         }
-        else do
+        else
+        {
             .resolve()
+        }
 
         with let painter = .painter!
         {

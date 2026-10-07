@@ -276,8 +276,10 @@ public impl Voice
             let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
             .streamCurSeek = Math.min(target * bytesPerFrame, file.dataSize)
         }
-        else do
+        else
+        {
             .streamPacketIdx = file.packets.count
+        }
 
         .nativeFrameOrigin = .playedFramesNative()
         if wasPlaying

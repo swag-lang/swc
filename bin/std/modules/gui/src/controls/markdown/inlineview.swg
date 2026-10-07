@@ -830,8 +830,10 @@ impl InlineView
                 continue
             }
 
-            if result.firstInk == Swag.U64.Max do
+            if result.firstInk == Swag.U64.Max
+            {
                 result.firstInk = index
+            }
             elif spaceAt != Swag.U64.Max
             {
                 gaps     += 1
@@ -1369,8 +1371,11 @@ impl IWnd for InlineView
             painter.fillRect(rect, .themeColors().edit_Bk)
             painter.drawRect(rect, .themeColors().edit_Border, 1)
         }
-        elif .kind == .Table or .kind == .Metadata or .kind == .TableOfContents do
+        elif .kind == .Table or .kind == .Metadata or .kind == .TableOfContents
+        {
             painter.fillRect(rect, .themeColors().edit_Bk)
+        }
+
         if .kind == .Quote or .kind >= .AlertNote and .kind <= .AlertCaution
         {
             var accent = .themeColors().richColor1

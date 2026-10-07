@@ -234,8 +234,10 @@ impl Driver
         if not .toRecycleVoices.isEmpty() do
             back = .toRecycleVoices.popBack()
         .mutexRecycleVoices.unlock()
-        if back do
+        if back
+        {
             back.recycle()
+        }
         else
         {
             back = Memory.new'Voice(.allocationAllocator)

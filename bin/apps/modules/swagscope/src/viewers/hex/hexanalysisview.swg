@@ -77,8 +77,10 @@ private impl IWnd for HexHistogramView
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         var next = Swag.U32.Max
-        if evt.kind == .Move or evt.kind == .Enter do
+        if evt.kind == .Move or evt.kind == .Enter
+        {
             next = .byteAt(.surfaceToLocal(evt.surfacePos))
+        }
         elif evt.kind != .Leave
         {
             evt.accepted = false
@@ -217,18 +219,24 @@ private impl HexAnalysisView
     mtd refreshResultText()
     {
         .scopeLabel.setText(.scopeText(.result.range).toString())
-        if not .result.failureReason.isEmpty() do
+        if not .result.failureReason.isEmpty()
+        {
             .metricsLabel.setText(.result.failureReason.toString())
-        elif .result.cancelled do
+        }
+        elif .result.cancelled
+        {
             .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisCancelled, StrConv.toDisplaySize(.result.scanned)))
+        }
         elif .result.scanned
         {
             let zero      = cast(f64) .result.zeroCount * 100 / cast(f64) .result.scanned
             let printable = cast(f64) .result.printableCount * 100 / cast(f64) .result.scanned
             .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisMetrics, .result.entropy, zero, printable))
         }
-        else do
+        else
+        {
             .metricsLabel.setText(hexStrings().ui_AnalysisNoBytes)
+        }
 
         if .result.stringsTruncated do
             .stringsLabel.setText(Format.toString(hexStrings().ui_AnalysisStringsLimited, .result.strings.count))

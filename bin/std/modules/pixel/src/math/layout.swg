@@ -469,8 +469,10 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     if node.text.toString() != "."
     {
         let top = axisY - left.height * 0.5
-        if left.usesPath do
+        if left.usesPath
+        {
             node.paths.add(MathDrawPath{kind: left.kind, rect: {0, top, left.width, left.height}, lineWidth: rule})
+        }
         else
         {
             let measured = Painter.measureString(node.text.toString(), delimiterFont)
@@ -487,8 +489,10 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     {
         x += pad
         let top = axisY - right.height * 0.5
-        if right.usesPath do
+        if right.usesPath
+        {
             node.paths.add(MathDrawPath{kind: right.kind, rect: {x, top, right.width, right.height}, lineWidth: rule})
+        }
         else
         {
             let measured = Painter.measureString(node.text2.toString(), delimiterFont)

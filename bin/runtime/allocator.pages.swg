@@ -175,10 +175,7 @@ var g_AllocatorOsReserveCount:  u64
 func atomicGet(addr: *u32)->u32 => Swag.atomget(addr)
 func atomicGet(addr: *u64)->u64 => Swag.atomget(addr)
 
-func atomicAddU64(addr: *u64, delta: u64)
-{
-    discard Swag.atomadd(addr, delta)
-}
+func atomicAddU64(addr: *u64, delta: u64) { discard Swag.atomadd(addr, delta) }
 
 // Two's complement wrap-around: the counters are unsigned and never underflow in a well-formed
 // sequence, so subtracting is adding the complement. The wrap is the mechanism, not an accident.
@@ -612,8 +609,10 @@ impl AllocatorSegment
 
             let start = .pageCommitStart(index)
             let end   = .pageCommitEnd(index)
-            if .takeIdleBit(bit) do
+            if .takeIdleBit(bit)
+            {
                 atomicSubU64(&g_AllocatorIdleBytes, end - start)
+            }
             elif not allocatorOsCommit(start, end - start)
             {
                 .clearPageBit(bit)

@@ -311,8 +311,10 @@ impl CodeViewer
                     .pendingSeek = false
                     .loadNextChunk()
                 }
-                else do
+                else
+                {
                     discard .revealOffset(.pendingSeekOffset, "")
+                }
             }
         }
 
@@ -534,14 +536,21 @@ func createCodeViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text)
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            return (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text)
+        }
+
         .matchBounds = func(wnd, match, bounds)->bool
         {
             discard match
             return Viewer.richEditMatchBounds((cast #assume (*CodeViewer) wnd).editor, bounds)
         }
 
-        .clear = func(wnd) { Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor) }
+        .clear = func(wnd)
+        {
+            Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor)
+        }
     }
 
     host.setSearch(search)

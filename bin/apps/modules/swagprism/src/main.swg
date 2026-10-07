@@ -24,10 +24,8 @@ const SurfaceId   = "swag.prism"
     let stateFolder = Path.combine(stateRoot, "prism")
     if not Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder)
-    {
+    if Directory.exists(stateFolder) do
         g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
-    }
 
     let surface = try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setSwagDark()

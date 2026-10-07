@@ -193,8 +193,10 @@ impl IForm for FormText
         if not .typeFace or .isDirtyFont
         {
             .isDirtyFont = false
-            if not .fontName.length do
+            if not .fontName.length
+            {
                 .typeFace = null
+            }
             else
             {
                 let en = FontFamily.findSystemFont(.fontName)

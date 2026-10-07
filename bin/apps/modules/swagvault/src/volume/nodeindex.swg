@@ -60,8 +60,11 @@ impl NodeIndex
                 Swag.assert(previous != null)
                 previous.value.nextId = node.id
             }
-            else do
+            else
+            {
                 children.value.firstId = node.id
+            }
+
             children.value.lastId = node.id
             .siblings.add(node.id, links)
         }
@@ -90,8 +93,10 @@ impl NodeIndex
             Swag.assert(previous != null)
             previous.value.nextId = nextId
         }
-        else do
+        else
+        {
             children.value.firstId = nextId
+        }
 
         if nextId
         {
@@ -99,8 +104,10 @@ impl NodeIndex
             Swag.assert(next != null)
             next.value.previousId = previousId
         }
-        else do
+        else
+        {
             children.value.lastId = previousId
+        }
 
         .siblings.remove(node.id)
         if not children.value.firstId do

@@ -220,8 +220,10 @@ private func delimiterCount(text: string, delimiter: u8)->u64
         let value = text[at]
         if value == '"'
         {
-            if quoted and at + 1 < text.count and text[at + 1] == '"' do
+            if quoted and at + 1 < text.count and text[at + 1] == '"'
+            {
                 at += 2
+            }
             else
             {
                 quoted = not quoted
@@ -579,7 +581,10 @@ func createTableViewer(host: Viewer.Host)
             return (cast #assume (*TableViewer) wnd).searchBounds(bounds)
         }
 
-        .clear = func(wnd) { (cast #assume (*TableViewer) wnd).clearSearch() }
+        .clear = func(wnd)
+        {
+            (cast #assume (*TableViewer) wnd).clearSearch()
+        }
     }
 
     host.setSearch(search)

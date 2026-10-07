@@ -1546,8 +1546,10 @@ impl Painter
         discard .newCommand(.UnbindRenderTarget, true)
         .popState()
 
-        if not .stackRT.isEmpty() do
+        if not .stackRT.isEmpty()
+        {
             .curRT = .stackRT.popBack()
+        }
         else
         {
             Swag.assert(.curRT != null)

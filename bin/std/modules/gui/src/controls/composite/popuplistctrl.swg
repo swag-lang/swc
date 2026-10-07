@@ -304,8 +304,10 @@ private impl PopupListView
             else do
                 idx = dir > 0 ? -1 : cast(s64) .list.items.count
         }
-        else do
+        else
+        {
             idx = cast(s64) .hotIdx
+        }
 
         for
         {

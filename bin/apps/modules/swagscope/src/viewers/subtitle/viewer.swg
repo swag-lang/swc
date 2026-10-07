@@ -291,7 +291,10 @@ func createSubtitleViewer(host: Viewer.Host)
                 return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
             }
 
-            .clear = func(wnd) { Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor) }
+            .clear = func(wnd)
+            {
+                Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor)
+            }
         }
 
         host.setSearch(search)

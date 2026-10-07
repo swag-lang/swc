@@ -293,7 +293,10 @@ func rebuildInspector()
     if not g_Filter.isEmpty() do
         ctrl.search.setText(g_Filter.toString())
 
-    ctrl.search.sigTextChanged += func(fil) { g_Filter = fil.text(); }
+    ctrl.search.sigTextChanged += func(fil)
+    {
+        g_Filter = fil.text()
+    }
 
     props.sigValueChanged += func(_list, item)
     {

@@ -210,8 +210,10 @@ namespace ResizeTools
             for var src = left; src <= right; src += 1
             {
                 var resf = getFilter(cscale * (src - center), rmode)
-                if resf > 0 do
+                if resf > 0
+                {
                     resf *= cscale
+                }
                 else
                 {
                     resf = 0

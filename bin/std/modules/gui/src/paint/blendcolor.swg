@@ -93,8 +93,10 @@ impl BlendColor
                                                                blend.destVec4 = blend.curVec4
                                                            blend.targetWnd = null
                                                        })
-        if wnd.app().animator.isActive(handle) do
+        if wnd.app().animator.isActive(handle)
+        {
             .targetWnd = wnd
+        }
         else
         {
             .curVec4   = vec4

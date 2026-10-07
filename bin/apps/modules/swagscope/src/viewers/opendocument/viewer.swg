@@ -149,10 +149,15 @@ private func openDocumentTagEnd(source: string, start: u64)->u64 fail
             if value == quoted do
                 quoted = 0
         }
-        elif value == '"' or value == OpenDocumentApostrophe do
+        elif value == '"' or value == OpenDocumentApostrophe
+        {
             quoted = value
-        elif value == '>' do
+        }
+        elif value == '>'
+        {
             return at
+        }
+
         at += 1
     }
 
@@ -451,8 +456,10 @@ private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fai
         let tag = parseOpenDocumentTag(source[at + 1 until end])
         if not tag.name.isEmpty()
         {
-            if tag.closing do
+            if tag.closing
+            {
                 reader.endTag(&tag)
+            }
             else
             {
                 reader.startTag(&tag)
@@ -1361,8 +1368,10 @@ private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) 
         let tag = parseOpenDocumentTag(source[at + 1 until end])
         if not tag.name.isEmpty()
         {
-            if tag.closing do
+            if tag.closing
+            {
                 try reader.endTag(&tag)
+            }
             else
             {
                 reader.startTag(&tag)
@@ -1922,8 +1931,10 @@ private impl OpenDocumentViewer
 
         if .outline
         {
-            if .document.kind == .Text do
+            if .document.kind == .Text
+            {
                 .outline.bindHtml(.html)
+            }
             else
             {
                 .outline.clear()
@@ -2136,14 +2147,21 @@ func createOpenDocumentViewer(host: Viewer.Host)
             return true
         }
 
-        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text)
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            return (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text)
+        }
+
         .matchBounds = func(wnd, match, bounds)->bool
         {
             discard match
             return (cast #assume (*OpenDocumentViewer) wnd).searchBounds(bounds)
         }
 
-        .clear = func(wnd) { (cast #assume (*OpenDocumentViewer) wnd).clearSearch() }
+        .clear = func(wnd)
+        {
+            (cast #assume (*OpenDocumentViewer) wnd).clearSearch()
+        }
     }
 
     host.setSearch(search)

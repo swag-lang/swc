@@ -767,8 +767,11 @@ private impl HtmlLayout
                     item.sourceEnd   = index + eat
                     pending.add(#move item)
                 }
-                else do
+                else
+                {
                     .appendSpace(pending, node, styleIndex, font, collapse, index, index + eat)
+                }
+
                 index += eat
                 continue
             }
@@ -1045,8 +1048,10 @@ impl HtmlLayout
                     width      = inner.max
                     result.min = Math.max(result.min, inner.min)
                 }
-                elif item.kind == .Text do
+                elif item.kind == .Text
+                {
                     result.min = Math.max(result.min, width)
+                }
 
                 if item.kind == .Break
                 {
@@ -1383,8 +1388,10 @@ impl HtmlLayout
             marginLeft  = (containingWidth - borderWidth) * 0.5
             marginRight = marginLeft
         }
-        elif style.margin.left.isAuto() and borderWidth < containingWidth do
+        elif style.margin.left.isAuto() and borderWidth < containingWidth
+        {
             marginLeft = containingWidth - borderWidth - marginRight
+        }
 
         let x            = originX + marginLeft
         let contentWidth = Math.max(borderWidth - extraX, 0)

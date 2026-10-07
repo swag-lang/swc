@@ -95,10 +95,7 @@ struct ViewerFolderHistory
 func viewerWindowFor(view: *Wnd)->*ViewerWindow => view.ancestorByType'ViewerWindow()!
 
 // Replaces a viewer that failed after creation with the standard error surface.
-func reportViewerFailure(view: *Wnd, reason: string)
-{
-    viewerWindowFor(view).replaceFailedViewer(view, reason)
-}
+func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).replaceFailedViewer(view, reason) }
 
 // The main window of Swag Scope: the command, information, and viewer bars around the document,
 // the file panel beside it, and every viewer session opened for the current file.
@@ -380,27 +377,43 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if evt.key == .F11 and evt.modifiers == .None do
+        if evt.key == .F11 and evt.modifiers == .None
+        {
             .setFullScreen(not .fullScreen)
-        elif evt.key == .Escape and evt.modifiers == .None and .fullScreen do
+        }
+        elif evt.key == .Escape and evt.modifiers == .None and .fullScreen
+        {
             .setFullScreen(false)
-        elif evt.key == .O and evt.modifiers.has(.Control) do
+        }
+        elif evt.key == .O and evt.modifiers.has(.Control)
+        {
             .chooseFile()
-        elif evt.key == .F and evt.modifiers.has(.Control) do
+        }
+        elif evt.key == .F and evt.modifiers.has(.Control)
+        {
             .showSearch()
-        elif evt.key == .F3 and evt.modifiers.has(.Shift) do
+        }
+        elif evt.key == .F3 and evt.modifiers.has(.Shift)
+        {
             .findPrevious()
-        elif evt.key == .F3 and evt.modifiers == .None do
+        }
+        elif evt.key == .F3 and evt.modifiers == .None
+        {
             .findNext()
+        }
         elif (evt.key == .Left or evt.key == .Right) and evt.modifiers == .None
         {
             if .forwardingViewerKey or not .forwardKeyToViewer(evt) do
                 evt.accepted = false
         }
-        elif evt.key == .F5 and not .currentFile.isEmpty() do
+        elif evt.key == .F5 and not .currentFile.isEmpty()
+        {
             .reloadCurrentFile()
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -469,8 +482,10 @@ impl IWnd for ViewerWindow
 
         .removeTimer(.startupTimer!)
         .startupTimer = null
-        if not .pendingFile.isEmpty() do
+        if not .pendingFile.isEmpty()
+        {
             .processQueuedFile()
+        }
         elif not .pendingEmpty.isEmpty()
         {
             let message = #move .pendingEmpty
@@ -1703,8 +1718,10 @@ impl ViewerWindow
                 instance.sidePanel       = null
                 instance.sidePanelButton = null
             }
-            else do
+            else
+            {
                 instance.destroyWindows()
+            }
         }
 
         .instances.clear()
@@ -1944,8 +1961,10 @@ impl ViewerWindow
         }
 
         let watching = loading or lingering
-        if watching and not .loadingTimer do
+        if watching and not .loadingTimer
+        {
             .loadingTimer = .addTimer(ViewerLoadingPollInterval)
+        }
         elif not watching and .loadingTimer
         {
             .removeTimer(.loadingTimer)
@@ -2484,8 +2503,10 @@ impl ViewerWindow
             else do
                 .searchOverlay.hide()
         }
-        else do
+        else
+        {
             .searchOverlay.hide()
+        }
 
         // Animation advances on the host timer, outside painting. Invalidating from inside a
         // translucent paint pass can enqueue another partial pass before the backing content has
@@ -2966,8 +2987,10 @@ impl ViewerWindow
             .refreshFileLists()
             .filePanelHost.show()
         }
-        else do
+        else
+        {
             .filePanelHost.hide()
+        }
 
         .applyLayout()
         .invalidate()

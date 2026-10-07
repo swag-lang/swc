@@ -42,13 +42,17 @@ impl Decoder
             try .read(.lct.colors, 3'u64 * .lct.size)
             .palette = &.lct
         }
-        else do
+        else
+        {
             .palette = &.gct
+        }
 
         if not .palette.size do
             fail InvalidFormatError{"GIF frame has no color table"}
-        if decodePixels do
+        if decodePixels
+        {
             try .readImageData(interlace)
+        }
         else
         {
             let codeSize = try .readU8()

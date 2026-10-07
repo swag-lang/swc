@@ -359,8 +359,10 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
         {
             let src = (sourceY * width + x) * image.bytesPerPixel
             let dst = (y * width + x) * components
-            if result.isGray do
+            if result.isGray
+            {
                 result.samples[dst] = image.pixels[src + 1]
+            }
             else
             {
                 result.samples[dst + 0] = image.pixels[src + (swapRedBlue ? 2 : 0)]
@@ -434,8 +436,10 @@ func encodeDocument(document: const *Document)->Array'u8 fail
                 objects.masks.add(nextObject)
                 nextObject += 1
             }
-            else do
+            else
+            {
                 objects.masks.add(0)
+            }
         }
 
         layout.add(#move objects)

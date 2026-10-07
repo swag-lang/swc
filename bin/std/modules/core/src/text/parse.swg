@@ -166,8 +166,10 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
             result.ovf = true
             value      = Swag.U64.Max
         }
-        else do
+        else
+        {
             value = value1
+        }
 
         if not result.ovf
         {
@@ -177,8 +179,10 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
                 result.ovf = true
                 value      = Swag.U64.Max
             }
-            else do
+            else
+            {
                 value += add
+            }
         }
 
         buffer, cpt += 1
@@ -276,8 +280,10 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
             result.ovf = true
             value      = Swag.U64.Max
         }
-        else do
+        else
+        {
             value = value1
+        }
 
         if not result.ovf
         {
@@ -287,8 +293,10 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
                 result.ovf = true
                 value      = maxValue
             }
-            else do
+            else
+            {
                 value += toAdd
+            }
         }
 
         buffer, cpt += 1
@@ -303,8 +311,10 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
             else do
                 result.value = -cast(s64) value
         }
-        else do
+        else
+        {
             result.value = cast(s64) value
+        }
     }
 
     result.eat = cpt
@@ -429,8 +439,10 @@ func parseString(result: *String, str: string)->u32 fail
             default:    result[] += str[cpt]
             }
         }
-        else do
+        else
+        {
             result[] += str[cpt]
+        }
 
         cpt += 1
     }

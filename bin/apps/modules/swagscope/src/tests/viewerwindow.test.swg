@@ -1687,8 +1687,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let loading = Wnd.create'RetiringTestView(window.documentPanel)
     window.instances[0].view      = loading
     window.instances[0].details   = "streamed"
-    window.instances[0].isLoading = func(wnd)->bool { discard wnd; return true }
-    window.instances[0].retire    = func(wnd)->bool
+    window.instances[0].isLoading = func(wnd)->bool
+    {
+        discard wnd
+        return true
+    }
+
+    window.instances[0].retire = func(wnd)->bool
     {
         let view = cast #assume(*RetiringTestView) wnd
         view.retired = true

@@ -465,10 +465,14 @@ private func htmlParseColorMix(value: string)->HtmlColorValue
         firstWeight  = 0.5
         secondWeight = 0.5
     }
-    elif firstWeight < 0 do
+    elif firstWeight < 0
+    {
         firstWeight = Math.max(1 - secondWeight, 0)
-    elif secondWeight < 0 do
+    }
+    elif secondWeight < 0
+    {
         secondWeight = Math.max(1 - firstWeight, 0)
+    }
 
     let total = firstWeight + secondWeight
     if total <= 0 do

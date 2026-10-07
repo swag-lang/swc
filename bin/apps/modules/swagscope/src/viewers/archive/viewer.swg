@@ -597,8 +597,15 @@ func createArchiveViewer(host: Viewer.Host)
             return (cast #assume (*ArchiveViewer) wnd).searchBounds(bounds)
         }
 
-        .clear    = func(wnd) { (cast #assume (*ArchiveViewer) wnd).clearSearch() }
-        .describe = func(wnd, presentation) { (cast #assume (*ArchiveViewer) wnd).describeSearch(presentation) }
+        .clear = func(wnd)
+        {
+            (cast #assume (*ArchiveViewer) wnd).clearSearch()
+        }
+
+        .describe = func(wnd, presentation)
+        {
+            (cast #assume (*ArchiveViewer) wnd).describeSearch(presentation)
+        }
     }
 
     host.setSearch(search)
@@ -611,8 +618,15 @@ func createArchiveViewer(host: Viewer.Host)
             return viewer.loadTimer != null or viewer.extract.started or viewer.embedded.isLoading()
         }
 
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*ArchiveViewer) wnd).loadTimer != null
-        .retire = func(wnd)->bool => (cast #assume (*ArchiveViewer) wnd).retire()
+        .needsLoadingOverlay = func(wnd)->bool
+        {
+            return (cast #assume (*ArchiveViewer) wnd).loadTimer != null
+        }
+
+        .retire = func(wnd)->bool
+        {
+            return (cast #assume (*ArchiveViewer) wnd).retire()
+        }
     }
 
     host.setLifecycle(lifecycle)

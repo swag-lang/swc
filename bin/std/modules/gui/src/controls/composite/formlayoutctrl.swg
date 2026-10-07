@@ -163,8 +163,10 @@ private impl FormLayoutCtrl
                 row.label.arrange({client.x, y, client.width, .options.labelHeight})
             cursor += .options.labelHeight + .options.labelSpacing
         }
-        elif place do
+        elif place
+        {
             row.label.arrange({client.x, y, client.width, 0})
+        }
 
         let height = .rowFieldHeight(row, {client.width, client.height})
 

@@ -187,8 +187,11 @@ impl MediaInfoData
                 if bytes.count > 4096 do
                     text += "…"
             }
-            else do
+            else
+            {
                 text = StrConv.toDisplaySize(bytes.count)
+            }
+
             .addText(tag.toString(), text.toString())
         }
     }

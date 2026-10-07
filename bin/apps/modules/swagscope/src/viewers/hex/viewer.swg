@@ -754,11 +754,30 @@ func createHexViewer(host: Viewer.Host)
             return (cast #assume (*HexViewer) wnd).grid.matchBounds(bounds)
         }
 
-        .clear              = func(wnd) { (cast #assume (*HexViewer) wnd).grid.clearSearchMatch() }
-        .describe           = func(wnd, presentation) { (cast #assume (*HexViewer) wnd).describeSearch(presentation) }
-        .prepare            = func(wnd, query, plan)->EditBoxCheckResult => (cast #assume (*HexViewer) wnd).prepareSearch(query, plan)
-        .collectFileMatches = func(wnd, source, baseOffset, matches) { (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) }
-        .useMatches         = func(wnd, matches) { (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches) }
+        .clear = func(wnd)
+        {
+            (cast #assume (*HexViewer) wnd).grid.clearSearchMatch()
+        }
+
+        .describe = func(wnd, presentation)
+        {
+            (cast #assume (*HexViewer) wnd).describeSearch(presentation)
+        }
+
+        .prepare = func(wnd, query, plan)->EditBoxCheckResult
+        {
+            return (cast #assume (*HexViewer) wnd).prepareSearch(query, plan)
+        }
+
+        .collectFileMatches = func(wnd, source, baseOffset, matches)
+        {
+            (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches)
+        }
+
+        .useMatches = func(wnd, matches)
+        {
+            (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches)
+        }
     }
 
     host.setSearch(search)

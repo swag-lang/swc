@@ -208,8 +208,10 @@ impl PdfParser
 
                         node.text += cast #bit (u8) value
                     }
-                    else do
+                    else
+                    {
                         node.text += c
+                    }
                 }
 
                 continue
@@ -254,8 +256,10 @@ impl PdfParser
             if not isHex(c) do
                 fail InvalidFormatError{"PDF hexadecimal string contains a non-hexadecimal byte"}
             let value = hexValue(c)
-            if high == Swag.U8.Max do
+            if high == Swag.U8.Max
+            {
                 high = value
+            }
             else
             {
                 node.text += high * 16 + value
@@ -347,10 +351,15 @@ impl PdfParser
             node.kind    = .Boolean
             node.boolean = true
         }
-        elif .consumeWord("false") do
+        elif .consumeWord("false")
+        {
             node.kind = .Boolean
-        elif not .consumeWord("null") do
+        }
+        elif not .consumeWord("null")
+        {
             fail InvalidFormatError{"PDF value uses an unknown token"}
+        }
+
         return .addNode(#move node)
     }
 

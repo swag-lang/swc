@@ -174,8 +174,10 @@ impl IForm for FormShape
         case .Rectangle:
 
             // Both axes must use the same operator so degenerate rects render consistently.
-            if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize) do
+            if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize)
+            {
                 painter.fillRect(pp, .borderColor)
+            }
             else
             {
                 if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do

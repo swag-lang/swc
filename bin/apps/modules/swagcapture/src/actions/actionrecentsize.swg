@@ -99,8 +99,10 @@ impl MainWnd
         case .Big:    height = 232
         }
 
-        if animated do
+        if animated
+        {
             discard .app().animator.animateLayoutHeight(.recentBar, height)
+        }
         else
         {
             .recentBar.resize(0, height)

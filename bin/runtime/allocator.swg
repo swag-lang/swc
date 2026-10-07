@@ -627,8 +627,10 @@ impl Allocator
                     let next = scan.nextPage
                     scan.inFull = 0
                     scan.collectRemote()
-                    if scan.used == 0 do
+                    if scan.used == 0
+                    {
                         allocatorSegmentOf(scan).releasePage(scan)
+                    }
                     else
                     {
                         scan.ownerHeap  = null
@@ -855,8 +857,10 @@ impl Allocator
                 if page.inFull do
                     .unparkFullPage(heap, page)
             }
-            elif page.ownerHeap and atomicGet(&page.inFull) do
+            elif page.ownerHeap and atomicGet(&page.inFull)
+            {
                 allocatorQueueRevisit(page)
+            }
         }
     }
 
@@ -1067,8 +1071,10 @@ impl Allocator
             else do
                 .firstUntracked = header.next
         }
-        else do
+        else
+        {
             header.prev.next = header.next
+        }
 
         if header.next do
             header.next.prev = header.prev
@@ -1286,8 +1292,10 @@ impl Allocator
                 base      = .popCachedBlock(allocSize, &allocSize, &commitSize)
                 if base and commitSize < needed
                 {
-                    if allocatorOsCommit(cast(u64) base + commitSize, needed - commitSize) do
+                    if allocatorOsCommit(cast(u64) base + commitSize, needed - commitSize)
+                    {
                         commitSize = needed
+                    }
                     else
                     {
                         .cacheFreedBlock(cast([*] void) base, allocSize, commitSize)
@@ -1302,8 +1310,10 @@ impl Allocator
                     base       = .osAllocPartial(allocSize, commitSize)
                 }
             }
-            else do
+            else
+            {
                 base = .osAlloc(allocSize)
+            }
 
             if base do
                 userAddr = memAlign(cast(u64) base + prefix, alignment)
@@ -1401,8 +1411,10 @@ impl Allocator
         if header.tracking do
             header.tracking.loc = callerLoc
 
-        if .diagnosticMode() do
+        if .diagnosticMode()
+        {
             .quarantine(header)
+        }
         else
         {
             .cacheFreedBlock(header.allocAddr, header.allocSize, header.commitSize)
@@ -1438,8 +1450,10 @@ impl Allocator
             if classIndex == 0 do
                 classIndex = 1
         }
-        elif alignment & (alignment - 1) do
+        elif alignment & (alignment - 1)
+        {
             return 0
+        }
 
         let heap = fastThreadHeap()
         if not heap do
@@ -1717,8 +1731,10 @@ impl Allocator
             if page.used == 0 do
                 .retirePage(heap!, page)
         }
-        else do
+        else
+        {
             page.pushRemote(address)
+        }
     }
 
     mtd assertIsAllocated(addr: *void?, callerLoc = #callerlocation)
@@ -1843,8 +1859,10 @@ impl Allocator
                     prevAbandoned.nextPage = next
                 allocatorSegmentOf(abandoned).releasePage(abandoned)
             }
-            else do
+            else
+            {
                 prevAbandoned = abandoned
+            }
 
             abandoned = next
         }

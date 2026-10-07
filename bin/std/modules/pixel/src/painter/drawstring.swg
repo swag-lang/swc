@@ -262,8 +262,10 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
     if desc.width != 0 and desc.height != 0
     {
         let bounds = Math.Rectangle{glyphX + desc.shiftX, glyph.offsetY - desc.shiftY, desc.width, desc.height}
-        if run.hasInk do
+        if run.hasInk
+        {
             run.inkBounds.combine(bounds)
+        }
         else
         {
             run.inkBounds = bounds
@@ -773,8 +775,10 @@ impl Painter
             let paintBounds = shaped.hasInk ? shaped.inkBounds : Math.Rectangle{0, -shaped.metrics.ascent, shaped.metrics.width, shaped.metrics.height}
             .setTexture0({drawLeft + paintBounds.x * zoom, y + paintBounds.y * zoom}, {drawLeft + paintBounds.right() * zoom, y + paintBounds.bottom() * zoom}, brush)
         }
-        else do
+        else
+        {
             .resetTexture0()
+        }
 
         if isMsdf do
             .setFontEffect(effect.faceParams())
@@ -1013,8 +1017,10 @@ impl Painter
                     line      = OneLine{}
 
                     // We: not want the new line to start with a space
-                    if c.isSpace do
+                    if c.isSpace
+                    {
                         startLine += 1
+                    }
                     else
                     {
                         line.measure.width   += ms.width
@@ -1039,8 +1045,11 @@ impl Painter
                 else do
                     line.whiteSpaces += ms.width
             }
-            else do
+            else
+            {
                 line.measure.width += ms.width
+            }
+
             line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
             line.measure.descent = Math.max(line.measure.descent, ms.descent)
             line.measure.height  = Math.max(line.measure.height, ms.height)
@@ -1233,8 +1242,10 @@ impl Painter
                         else do
                             x1 += c.boundRect.width
                     }
-                    else do
+                    else
+                    {
                         x1 += c.boundRect.width
+                    }
                 }
             }
 

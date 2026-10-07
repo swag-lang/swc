@@ -347,12 +347,18 @@ func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
         for i in 4
         {
             let probability = cast(u64) (decoder.upMb[mbX].predictor[i] * 10 + predictor) * 9
-            if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0]) do
+            if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0])
+            {
                 predictor = VP8_PRED_DC
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 1]) do
+            }
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 1])
+            {
                 predictor = VP8_PRED_TM
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 2]) do
+            }
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 2])
+            {
                 predictor = VP8_PRED_VE
+            }
             elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 3])
             {
                 if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 4]) do
@@ -362,14 +368,22 @@ func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
                 else do
                     predictor = VP8_PRED_VR
             }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 6]) do
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 6])
+            {
                 predictor = VP8_PRED_LD
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 7]) do
+            }
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 7])
+            {
                 predictor = VP8_PRED_VL
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 8]) do
+            }
+            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 8])
+            {
                 predictor = VP8_PRED_HD
-            else do
+            }
+            else
+            {
                 predictor = VP8_PRED_HU
+            }
 
             decoder.predY4[j][i] = predictor
             decoder.upMb[mbX].predictor[i] = predictor

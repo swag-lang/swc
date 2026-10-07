@@ -97,7 +97,6 @@ func updateLasers()
             if laser.y - LASER_LENGTH < 0 do
                 laser.dead = true
         }
-
         // Laser shot by an alien
         else
         {
@@ -175,7 +174,6 @@ func checkCollisions()
                 }
             }
         }
-
         // Alien laser against player
         else
         {

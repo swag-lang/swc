@@ -117,8 +117,10 @@ impl Backtracker
             switch insts[pc].kind
             {
             case .ByteRange:
-                if pos >= .limit or data[pos] < insts[pc].lo or data[pos] > insts[pc].hi do
+                if pos >= .limit or data[pos] < insts[pc].lo or data[pos] > insts[pc].hi
+                {
                     failed = true
+                }
                 else
                 {
                     pc  = insts[pc].next
@@ -126,8 +128,10 @@ impl Backtracker
                 }
 
             case .ByteSet:
-                if pos >= .limit or not byteSets![insts[pc].slot].contains(data[pos]) do
+                if pos >= .limit or not byteSets![insts[pc].slot].contains(data[pos])
+                {
                     failed = true
+                }
                 else
                 {
                     pc  = insts[pc].next
@@ -170,8 +174,10 @@ impl Backtracker
             case .Backref:
                 let opening = 2 * cast(u64) insts[pc].slot
                 let closing = opening + 1
-                if closing >= slotCount do
+                if closing >= slotCount
+                {
                     failed = true
+                }
                 elif slots![opening] == NoSlot or slots![closing] == NoSlot
                 {
                     // A group that did not take part in the match stands for the empty string,
@@ -182,8 +188,10 @@ impl Backtracker
                 {
                     let referenced = Swag.makeSlice(data + slots![opening], slots[closing] - slots[opening])
                     let eaten      = .matchReference(hay, referenced, pos)
-                    if eaten == NoSlot do
+                    if eaten == NoSlot
+                    {
                         failed = true
+                    }
                     else
                     {
                         pos += eaten

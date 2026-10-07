@@ -94,8 +94,10 @@ func initCells()
         let y = i / 12
 
         g_Board[i].piece = .None
-        if x < 2 or x >= 10 do
+        if x < 2 or x >= 10
+        {
             g_Board[i].content = .Invalid
+        }
         else
         {
             let xinfo = x - 2
@@ -538,8 +540,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             {
                 if cell != -1
                 {
-                    if g_Board[cell].content == .Empty do
+                    if g_Board[cell].content == .Empty
+                    {
                         cell = -1
+                    }
                     else
                     {
                         let isWhite = g_Board[cell].content == .White
@@ -551,8 +555,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 g_Game.selectedCell = cell == g_Game.selectedCell ? -1 : cell
             }
         }
-        elif mouseEvt.button == .Right do
+        elif mouseEvt.button == .Right
+        {
             g_Game.selectedCell = -1
+        }
 
         wnd.invalidate()
         return true

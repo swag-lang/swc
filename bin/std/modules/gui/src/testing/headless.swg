@@ -331,10 +331,14 @@ impl HeadlessHost
 
             if stage.kind == .ModalButton
             {
-                if not .autoSawModal do
+                if not .autoSawModal
+                {
                     .autoFailure = Format.toString("modal did not appear while waiting for button '%'", stage.button)
-                elif .autoSawButton do
+                }
+                elif .autoSawButton
+                {
                     .autoFailure = Format.toString("modal preparation did not complete for button '%'", stage.button)
+                }
                 else
                 {
                     .autoFailure = Format.toString("modal appeared without button '%'; observed button identifiers:", stage.button)
@@ -344,8 +348,10 @@ impl HeadlessHost
                         .autoFailure += Format.toString(" '%'", id)
                 }
             }
-            else do
+            else
+            {
                 .autoFailure = "popup action did not complete before the frame limit"
+            }
 
             Console.println("headless UI stage ", .autoStage + 1, ": ", .autoFailure)
 
@@ -1137,10 +1143,8 @@ impl HeadlessHost
         for it in copy
         {
             let evt = cast #assume (*Event) it
-            if it is InvalidateEvent
-            {
+            if it is InvalidateEvent do
                 evt.target?.invalidate()
-            }
             else do
                 .app.sendEvent(it)
 

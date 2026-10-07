@@ -419,8 +419,10 @@ private impl ColorPicker
                 .cursorY = 0
                 .cursorX = cast() (l2 * clientRect.width)
             }
-            else do
+            else
+            {
                 .cursorY = cast() (l2 * clientRect.height)
+            }
 
         case .HueSaturation:
             .cursorX = cast() (.hue * clientRect.width)

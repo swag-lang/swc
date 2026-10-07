@@ -263,8 +263,10 @@ private func streamBoundary(source: string)->u64
 
         if html
         {
-            if not trimmed.count and htmlParser.stack.count == 1 and not htmlParser.hasPendingSource() do
+            if not trimmed.count and htmlParser.stack.count == 1 and not htmlParser.hasPendingSource()
+            {
                 html = false
+            }
             else
             {
                 htmlParser.feed(line)
@@ -286,10 +288,14 @@ private func streamBoundary(source: string)->u64
             if not (rest.count >= 2 and Utf8.endsWith(rest, "$$")) do
                 displayMath = not displayMath
         }
-        elif not fenceMarker and Utf8.startsWith(trimmed, "\\[") do
+        elif not fenceMarker and Utf8.startsWith(trimmed, "\\[")
+        {
             bracketMath = true
-        elif not fenceMarker and Utf8.startsWith(trimmed, "\\]") do
+        }
+        elif not fenceMarker and Utf8.startsWith(trimmed, "\\]")
+        {
             bracketMath = false
+        }
 
         if not html and not fenceMarker and not displayMath and not bracketMath and not trimmed.count do
             result = index + 1
@@ -719,8 +725,10 @@ private impl View
                     .pendingImageSources.add(#move source)
                     index += image.eat
                 }
-                else do
+                else
+                {
                     index += 1
+                }
             }
         }
 
@@ -1163,8 +1171,10 @@ impl View
                     return
                 }
             }
-            else do
+            else
+            {
                 view.waitingScroll = false
+            }
 
             // A direct scrollbar gesture supersedes a target that is still being materialized.
             // Keeping the old target here lets its next timer pull the reader back after a
@@ -1199,8 +1209,10 @@ impl View
                     }
                 }
             }
-            else do
+            else
+            {
                 view.pendingSeek = false
+            }
 
             view.scheduleMore()
         }
@@ -1407,10 +1419,14 @@ impl View
                         if started do
                             result += "\n"
                     }
-                    elif cell.row != lastRow do
+                    elif cell.row != lastRow
+                    {
                         result += "\n"
-                    else do
+                    }
+                    else
+                    {
                         result += "\t"
+                    }
 
                     result  += cell.view.textSlice(piece.start, piece.end)
                     lastRow = cell.row

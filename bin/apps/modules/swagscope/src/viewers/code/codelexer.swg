@@ -606,8 +606,10 @@ impl IRichEditLexer for GenericCodeLexer
                     if .isCaseInsensitive() do
                         word = word.toLower()
                     let found = .keywords.tryFind(word.toString())
-                    if found do
+                    if found
+                    {
                         codePaint(line, first, seek, .Keyword)
+                    }
                     else
                     {
                         var next = seek

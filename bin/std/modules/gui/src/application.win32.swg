@@ -142,8 +142,10 @@ impl Application
         var msg: MSG
         while PeekMessageW(&msg, null, 0, 0, PM_REMOVE) != 0
         {
-            if msg.message == WM_HOTKEY do
+            if msg.message == WM_HOTKEY
+            {
                 .sendHotKey(msg)
+            }
             else
             {
                 TranslateMessage(&msg)
@@ -265,17 +267,23 @@ impl Application
         var ext = Path.extension(name)
 
         var extractFromFile = false
-        if isDirectory and name[name.count - 1] == Path.VolumeSeparator do
+        if isDirectory and name[name.count - 1] == Path.VolumeSeparator
+        {
             ext = "c:"
-        elif isDirectory do
+        }
+        elif isDirectory
+        {
             ext = "c:/temp"
+        }
         elif ext == ".exe" or ext == ".dll"
         {
             extractFromFile = true
             ext = name
         }
-        elif ext == null do
+        elif ext == null
+        {
             ext = ".txt"
+        }
 
         if small
         {

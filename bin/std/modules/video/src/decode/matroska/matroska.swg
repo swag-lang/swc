@@ -1810,8 +1810,11 @@ private impl Decoder
             .streamOpen         = true
             .presentationOrigin = .video.presentationTimeAtRank(0)
         }
-        else do
+        else
+        {
             try .video.appendFrames(added)
+        }
+
         .streamSampleCount = samples.count
     }
 
@@ -1823,8 +1826,11 @@ private impl Decoder
             try .video.open(track.pictureKind(), track.videoConfiguration(), samples, track.headerStrip.toSlice())
             .streamOpen = true
         }
-        else do
+        else
+        {
             try .video.replaceFrames(samples)
+        }
+
         .streamSampleCount = samples.count
     }
 

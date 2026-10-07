@@ -115,8 +115,11 @@ public impl Image
             let straight = .convertedAlphaTo(.Straight)
             try itf.encode(&result, straight, options)
         }
-        else do
+        else
+        {
             try itf.encode(&result, me, options)
+        }
+
         return result
     }
 

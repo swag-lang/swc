@@ -305,7 +305,6 @@ impl Decoder
                 pdest -= .imageSizeX * 3
             }
         }
-
         // 3 BPP
         else
         {

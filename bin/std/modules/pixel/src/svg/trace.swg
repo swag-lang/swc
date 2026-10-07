@@ -319,8 +319,10 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
                     path = result.newPath()
                     path.start(px, py)
                 }
-                else do
+                else
+                {
                     path.lineTo(px, py)
+                }
 
                 // Mark consumed top-edge crossings so no contour is traced twice.
                 if exitEdge == 0 do

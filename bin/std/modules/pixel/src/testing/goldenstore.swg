@@ -315,8 +315,10 @@ private
                 result.add(cur)
                 cur.clear()
             }
-            else do
+            else
+            {
                 cur.append(text[i])
+            }
         }
 
         if not cur.isEmpty() do

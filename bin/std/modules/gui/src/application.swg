@@ -360,8 +360,10 @@ private impl Application
             let curP  = .mouse.currentState.pressed[i]
             if not lastP and curP
             {
-                if .mouse.isButtonDoubleClick(cast(Input.MouseButton) i) do
+                if .mouse.isButtonDoubleClick(cast(Input.MouseButton) i)
+                {
                     evt.kind = .DoubleClick
+                }
                 else
                 {
                     evt.kind = .Pressed
@@ -502,10 +504,8 @@ private impl Application
         {
             let evt = cast #assume (*Event) it
 
-            if it is InvalidateEvent
-            {
+            if it is InvalidateEvent do
                 evt.target!.invalidate()
-            }
             else do
                 .sendEvent(it)
 
@@ -1350,8 +1350,10 @@ impl Application
                 fail Errors.InvalidFormatError{"GUI state file has no state chunk"}
             buf = try reader.readChunk(state.id)
         }
-        else do
+        else
+        {
             buf = try File.readAllBytes(.statePath)
+        }
 
         var load: Decoder'Read.TagBin
         load.serializer.schema = "gui.application-state"

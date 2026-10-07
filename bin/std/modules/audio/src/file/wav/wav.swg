@@ -216,8 +216,10 @@ private func parseFormat(bytes: const [..] u8)->Format fail
             extraStart = FormatExtensibleSize
         }
     }
-    elif tag == WAVE_FORMAT_EXTENSIBLE do
+    elif tag == WAVE_FORMAT_EXTENSIBLE
+    {
         fail InvalidFormatError{"invalid wav"}
+    }
 
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
     if extraEnd > extraStart do
@@ -298,8 +300,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                 result.factFrames = count
                 try stream.skip(header.chunkSize - 4)
             }
-            else do
+            else
+            {
                 try stream.skip(header.chunkSize)
+            }
 
         case .SND_WAV_FOURCC_data:
             if stage == .FindData

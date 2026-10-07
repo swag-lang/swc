@@ -364,8 +364,10 @@ impl Layer
                         let row = pixels.storage() + cast(u64) y * rowBytes
                         for x in range(1, result.width)
                         {
-                            if depth == 8 do
+                            if depth == 8
+                            {
                                 row[x] = cast(u8) ((cast(u32) row[x] + row[x - 1]) & 255)
+                            }
                             else
                             {
                                 let sample = (cast(u32) readU16(row + cast(u64) x * 2) + readU16(row + cast(u64) (x - 1) * 2)) & 65535
@@ -376,8 +378,11 @@ impl Layer
                     }
                 }
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"PSD layer compression is not supported"}
+            }
+
             for y in result.height do
                 storeChannel(&result, component, y, Swag.makeSlice(pixels.storage() + cast(u64) y * rowBytes, rowBytes), depth)
         }

@@ -116,16 +116,21 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
                 continue
             }
 
-            if value == '(' do
+            if value == '('
+            {
                 depth += 1
+            }
             elif value == ')'
             {
                 if not depth do
                     break
                 depth -= 1
             }
-            elif value == ' ' or value == '\t' do
+            elif value == ' ' or value == '\t'
+            {
                 break
+            }
+
             index += 1
         }
 

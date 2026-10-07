@@ -66,8 +66,10 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
             Swag.panic("too many thread-local globals for the platform", #curlocation)
 
         let previous = Swag.atomcmpxchg(idSlot, 0, slot)
-        if previous == 0 do
+        if previous == 0
+        {
             id = slot
+        }
         else
         {
             __hostThreadStorageFree(slot)

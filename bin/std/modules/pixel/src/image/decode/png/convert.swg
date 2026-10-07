@@ -364,19 +364,16 @@ impl Decoder
         {
             .convertPaletteRgb(result)
         }
-
         // Paletted, transparency
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
             .convertPaletteRgba(result)
         }
-
         // Grayscale without alpha channel, no transparency
         elif .inChannels == 1 and not .seenTRSN
         {
             .convertGrayscaleRgb(result)
         }
-
         // Grayscale without alpha channel, but transparency
         elif .inChannels == 1 and .seenTRSN
         {
@@ -385,13 +382,11 @@ impl Decoder
             key *= scale
             .convertGrayscaleTransparencyRgba(result, key)
         }
-
         // Grayscale with alpha channel
         elif .inChannels == 2
         {
             .convertGrayscaleAlphaRgba(result)
         }
-
         // Color without alpha but transparency
         elif .inChannels == 3 and .seenTRSN
         {

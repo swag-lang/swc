@@ -193,8 +193,11 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
         painter.drawString(x, 24 + font.ascent - fallback.ascent, "\u2192", fallback, Color.fromArgb(Argb.Black))
         painter.drawString(x + Painter.measureStringSnapped("\u2192", fallback), 24, "V", font, Color.fromArgb(Argb.Black))
     }
-    else do
+    else
+    {
         painter.drawString(8, 24, "A\u2192V", font, Color.fromArgb(Argb.Black))
+    }
+
     painter.unbindRenderTarget()
     painter.end()
     renderer.draw(&painter)

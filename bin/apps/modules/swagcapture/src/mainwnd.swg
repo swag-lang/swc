@@ -158,8 +158,10 @@ impl IWnd for MainWnd
                 srf.show()
                 srf.bringToFront()
             }
-            elif evt.trayAction == .ContextMenu do
+            elif evt.trayAction == .ContextMenu
+            {
                 .popupTrayMenu()
+            }
 
         case .CustomMessage:
             if evt.messageId == 1 and Clipboard.hasString() do

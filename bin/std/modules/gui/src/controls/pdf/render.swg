@@ -590,8 +590,10 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
                 maskBrush.setTint(item.fillColor)
                 painter.fillPath(&item.path, maskBrush, rule)
             }
-            elif item.hasFill do
+            elif item.hasFill
+            {
                 painter.fillPath(&item.path, item.fillColor, rule)
+            }
 
             if item.hasStroke
             {
@@ -692,8 +694,10 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
             bounds = {minX, minY, maxX - minX, maxY - minY}
         }
-        elif not item.hasMask do
+        elif not item.hasMask
+        {
             continue
+        }
 
         // A region render leaves the textures it cannot show on the CPU side.
         if not bounds.intersects(region)

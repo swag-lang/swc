@@ -406,8 +406,10 @@ impl Decimal
             elif '0' <= c and c <= '9'
             {
                 sawDigits = true
-                if c == '0' and .nd == 0 do
+                if c == '0' and .nd == 0
+                {
                     .dp -= 1
+                }
                 else
                 {
                     if .nd < (.d).count
@@ -421,15 +423,21 @@ impl Decimal
                             .mantissa += cast(u64) (c - '0')
                             ndMant    += 1
                         }
-                        elif c != '0' do
+                        elif c != '0'
+                        {
                             .trunc = true
+                        }
                     }
-                    elif c != '0' do
+                    elif c != '0'
+                    {
                         .bigtrunc = true
+                    }
                 }
             }
-            else do
+            else
+            {
                 break
+            }
 
             cpt, buffer += 1
         }

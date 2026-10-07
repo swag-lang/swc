@@ -190,8 +190,11 @@ impl ImageViewer
             else do
                 .zoomLabel.setText(Format.toString("% % · %°", zoom, "%", angle))
         }
-        else do
+        else
+        {
             .zoomLabel.setText(Format.toString("% %", zoom, "%"))
+        }
+
         if .reportChromeChanged do
             .reportChromeChanged(me)
     }
@@ -378,10 +381,14 @@ private impl IWnd for ImageViewer
             if .imageView.movie.frameCount > 1 do
                 .showPlayback()
         }
-        elif content.drawing.width > 0 and content.drawing.height > 0 do
+        elif content.drawing.width > 0 and content.drawing.height > 0
+        {
             .imageView.setDrawing(#move content.drawing)
-        else do
+        }
+        else
+        {
             .imageView.takeImage(&content.image)
+        }
 
         .facts   = #move content.facts
         .details = .facts.text()

@@ -692,8 +692,11 @@ impl MainWindow
                     tallest = Math.max(tallest, card.panel.itf.measureContent({pageWidth, 0}).y)
                 height += .tabs.itf.measureContent({room, 0}).y + Math.ceil(tallest)
             }
-            else do
+            else
+            {
                 height += Math.ceil(child.measure({room, 0}).preferred.y)
+            }
+
             height += margin.y + margin.w
         }
 
@@ -2070,8 +2073,10 @@ impl MainWindow
                 Memory.delete(mounted)
                 .operation.volume = null
             }
-            else do
+            else
+            {
                 .operation.volume = mounted
+            }
 
         case .Unmount:
             let mounted = .operation.volume
@@ -2177,8 +2182,10 @@ impl MainWindow
                     .protectHidden.setState(.Unchecked)
                     .showTab(1)
                 }
-                else do
+                else
+                {
                     .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
+                }
             }
 
         case .Mount:
@@ -2232,8 +2239,10 @@ impl MainWindow
             }
             else
             {
-                if .operation.camouflageOnly do
+                if .operation.camouflageOnly
+                {
                     .setStatus(.Camouflaged)
+                }
                 else
                 {
                     .statusDrive = capacityText(.operation.size)
@@ -2256,8 +2265,10 @@ impl MainWindow
                     .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
                     .setStatus(.KeyFilesChanged)
                 }
-                else do
+                else
+                {
                     .setStatus(.operation.removesPassword ? StatusMessage.PasswordRemoved : StatusMessage.PasswordChanged)
+                }
             }
         }
 

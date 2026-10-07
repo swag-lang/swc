@@ -329,8 +329,11 @@ impl IWnd for RecentWnd
                 .prepareLoadRecent = false
                 .loadRecent()
             }
-            else do
+            else
+            {
                 .loadNextRecent()
+            }
+
             return
         }
 
@@ -423,7 +426,6 @@ impl RecentWnd
                     if not .recentView.items.isEmpty() do
                         .recentView.select(Math.min(i, .recentView.items.count - 1))
                 }
-
                 // A removal before the selected item shifts everything after it
                 // down by one, so decrement the index to keep tracking the same item.
                 elif .recentView.selected != Swag.U64.Max and i < .recentView.selected

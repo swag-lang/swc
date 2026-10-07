@@ -166,8 +166,10 @@ private impl Codebook
                 .children[slot] = created
                 node = cast(u32) created
             }
-            else do
+            else
+            {
                 node = cast(u32) child
+            }
         }
     }
 
@@ -328,8 +330,11 @@ private impl Codebook
                     index   = (cast(u64) entry / divisor) % quantized
                     divisor *= quantized
                 }
-                else do
+                else
+                {
                     index = cast(u64) entry * .dimensions + dimension
+                }
+
                 let value = quant[index] * delta + minimum + last
                 if sequence do
                     last = value
@@ -866,8 +871,10 @@ private impl Codec
             headers[1].add(config[offset + sizes[0] until offset + sizes[0] + sizes[1]])
             headers[2].add(config[offset + sizes[0] + sizes[1] until config.count])
         }
-        else do
+        else
+        {
             fail InvalidFormatError{"Vorbis configuration is neither Ogg pages nor laced headers"}
+        }
 
         try .readIdentification(headers[0].toSlice())
         try .readSetup(headers[2].toSlice())
@@ -969,8 +976,10 @@ private impl Codec
                         return false
                     posts[][offset + dimension] = decoded
                 }
-                else do
+                else
+                {
                     posts[][offset + dimension] = 0
+                }
             }
 
             offset += dimensions
@@ -1569,8 +1578,11 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
             err -= adx
             y   += sy
         }
-        else do
+        else
+        {
             y += base
+        }
+
         target[x] *= Floor1InverseDb[cast(u32) Math.clamp(y, 0, 255)]
         x         += 1
     }

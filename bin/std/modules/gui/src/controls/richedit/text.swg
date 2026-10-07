@@ -197,16 +197,20 @@ impl RichEditCtrl
             // line further down; one on the split line follows the runes it sits among.
             // Leaving the first case out is what made a search reveal land on whatever
             // sentence happened to carry the same index once a line above it wrapped.
-            if .cursorPos.lineIndex > lineIndex do
+            if .cursorPos.lineIndex > lineIndex
+            {
                 .cursorPos.lineIndex += 1
+            }
             elif .cursorPos.lineIndex == lineIndex and .cursorPos.charPosInLine >= cut
             {
                 .cursorPos.lineIndex     += 1
                 .cursorPos.charPosInLine -= cut
             }
 
-            if .selBeg.lineIndex > lineIndex do
+            if .selBeg.lineIndex > lineIndex
+            {
                 .selBeg.lineIndex += 1
+            }
             elif .selBeg.lineIndex == lineIndex and .selBeg.charPosInLine >= cut
             {
                 .selBeg.lineIndex     += 1

@@ -45,10 +45,7 @@ struct ByteBitmap
 impl ByteBitmap
 {
     #[Swag.Inline]
-    mtd add(value: u8)
-    {
-        .words[value >> 6] |= 1'u64 << (value & 63)
-    }
+    mtd add(value: u8) { .words[value >> 6] |= 1'u64 << (value & 63) }
 
     #[Swag.Inline]
     mtd const contains(value: u8)->bool => (.words[value >> 6] & (1'u64 << (value & 63))) != 0
@@ -278,8 +275,10 @@ impl Program
 
         // One interval is a byte range, which every engine reads without a table.
         var ascii = NoNode
-        if singles == 1 and sequences.count == 1 do
+        if singles == 1 and sequences.count == 1
+        {
             ascii = .emitSequence(sequences[0], next)
+        }
         else
         {
             .byteSets.add(single)

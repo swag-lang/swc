@@ -94,11 +94,12 @@ impl MarkPen
             .path.start(px, py)
             .started = true
         }
-
         // Where a terminal cut and a notch meet, both ask for the same point: a free end
         // comes to a point, and the edge between them has no length to draw.
-        elif Math.abs(px - .lastX) > 0.0001 or Math.abs(py - .lastY) > 0.0001 do
+        elif Math.abs(px - .lastX) > 0.0001 or Math.abs(py - .lastY) > 0.0001
+        {
             .path.lineTo(px, py)
+        }
 
         .lastX = px
         .lastY = py

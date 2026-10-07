@@ -181,8 +181,10 @@ impl ConcatBuffer
             newBucket.next  = lastBucket.next
             lastBucket.next = newBucket
         }
-        else do
+        else
+        {
             .firstBucket = newBucket
+        }
 
         // Each bucket knows the total count before it
         if .firstBucket and .lastBucket == .firstBucket do
@@ -352,8 +354,10 @@ impl ConcatBuffer
             if not num do
                 return
 
-            if .isAtEnd do
+            if .isAtEnd
+            {
                 .grow(Math.max(.granularity, 1'u64))
+            }
             else
             {
                 .curBucket = bucket.next!

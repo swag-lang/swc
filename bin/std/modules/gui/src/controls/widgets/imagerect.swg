@@ -75,8 +75,10 @@ impl ImageRect
                 .app().renderer.removeTexture(&.uploadedTexture)
             .uploadedTexture = .app().renderer.addImage(frame[])
         }
-        else do
+        else
+        {
             .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+        }
     }
 
     // Creates an empty image window.

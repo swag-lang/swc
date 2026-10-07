@@ -357,8 +357,10 @@ private impl Ac3Codec
             block.dbPerBitCode  = reader.read(2)
             block.floorCode     = reader.read(3)
         }
-        elif not blockIndex do
+        elif not blockIndex
+        {
             fail InvalidFormatError{"first AC-3 block omits bit-allocation parameters"}
+        }
 
         if reader.read(1)
         {
@@ -381,8 +383,10 @@ private impl Ac3Codec
                 block.lfeFastGain = reader.read(3)
             }
         }
-        elif not blockIndex do
+        elif not blockIndex
+        {
             fail InvalidFormatError{"first AC-3 block omits signal-to-noise offsets"}
+        }
 
         if block.coupling and reader.read(1)
         {

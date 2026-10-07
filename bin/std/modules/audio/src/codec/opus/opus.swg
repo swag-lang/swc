@@ -50,8 +50,10 @@ internal func packetFrames(packet: const [..] u8)->u64
         frameSize = 120'u64 << (config & 3)
 
     var frames = 1'u64
-    if code == 1 or code == 2 do
+    if code == 1 or code == 2
+    {
         frames = 2
+    }
     elif code == 3
     {
         if packet.count < 2 do
@@ -204,8 +206,10 @@ private impl Decoder
             if completed < 2 do
                 fail InvalidFormatError{"Opus stream ends inside its header packets"}
         }
-        else do
+        else
+        {
             head.add(config)
+        }
 
         if head.count < 19 or head[0] != 'O' or head[1] != 'p' or head[2] != 'u' or head[3] != 's' or head[4] != 'H' or head[5] != 'e' or head[6] != 'a' or head[7] != 'd' do
             fail InvalidFormatError{"Opus identification header is missing"}
@@ -505,8 +509,10 @@ private impl Decoder
         // The first run starts at position zero and the later ones where the previous one ended;
         // a run decoded fresh after a seek knows neither, and keeps what it produced.
         var expected = produced
-        if firstSequence == .firstAudioSequence do
+        if firstSequence == .firstAudioSequence
+        {
             expected = Math.min(produced, lastGranule)
+        }
         elif .granuleKnown
         {
             if lastGranule < .granule do
@@ -514,8 +520,10 @@ private impl Decoder
             expected = lastGranule - .granule
         }
 
-        if produced > expected do
+        if produced > expected
+        {
             .output.resize(expected * .channels)
+        }
         elif produced < expected
         {
             .output.resize(expected * .channels)

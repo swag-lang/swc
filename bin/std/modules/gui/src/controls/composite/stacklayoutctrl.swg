@@ -238,12 +238,18 @@ private impl StackLayoutCtrl
             extra          = Math.max(availableMain - totalMinimum, 0)
             totalPreferred = totalMinimum
         }
-        elif .fitToContent do
+        elif .fitToContent
+        {
             shortage = 0
-        elif availableMain >= totalPreferred do
+        }
+        elif availableMain >= totalPreferred
+        {
             extra = availableMain - totalPreferred
-        else do
+        }
+        else
+        {
             shortage = totalPreferred - availableMain
+        }
 
         var cursor: f32
         if .isReverse() do
@@ -343,8 +349,10 @@ private impl StackLayoutCtrl
                     c.setPosition(pos, false)
                     cursor -= mainDelta
                 }
-                else do
+                else
+                {
                     cursor += mainDelta
+                }
             }
 
             if .isHorizontal() do

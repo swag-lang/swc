@@ -125,15 +125,19 @@ internal func decode(image: *Image, source: const [..] u8, format: Format, sourc
             var red:    [8] u8
             var green:  [8] u8
             var colorBlock = block
-            if format == .BC2 do
+            if format == .BC2
+            {
                 colorBlock += 8
+            }
             elif format == .BC3
             {
                 alphaPalette(&alpha, block)
                 colorBlock += 8
             }
-            elif format == .BC4 do
+            elif format == .BC4
+            {
                 alphaPalette(&red, block)
+            }
             elif format == .BC5
             {
                 alphaPalette(&red, block)

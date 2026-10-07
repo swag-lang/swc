@@ -35,10 +35,7 @@ impl Array
     mtd opData()->const *T? => .buffer
 
     // Drops every element and releases the buffer.
-    mtd opDrop()
-    {
-        .free()
-    }
+    mtd opDrop() { .free() }
 
     #static if Reflection.canCopy(T)
     {

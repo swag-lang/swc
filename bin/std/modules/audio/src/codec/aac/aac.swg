@@ -346,8 +346,10 @@ private impl AacCodec
             for window in 1 until 8
             {
                 let shares = (grouping >> cast(u32) (7 - window)) & 1
-                if shares do
+                if shares
+                {
                     value.groupLength[value.numWindowGroups - 1] += 1
+                }
                 else
                 {
                     value.groupLength[value.numWindowGroups] = 1
@@ -548,8 +550,10 @@ private impl AacCodec
                         else do
                             window = 1
                     }
-                    else do
+                    else
+                    {
                         window = g_LongWindows[previousShape, index]
+                    }
                 }
                 else
                 {
@@ -563,8 +567,10 @@ private impl AacCodec
                         else do
                             window = 0
                     }
-                    else do
+                    else
+                    {
                         window = g_LongWindows[currentShape, 2047 - index]
+                    }
                 }
 
                 time[index] = transformed[index] * window
@@ -721,8 +727,10 @@ private impl AacCodec
                 let scaleBand = band % value.maxSfb
                 width = cast(s32) (offsets[scaleBand + 1] - offsets[scaleBand]) * value.groupLength[group]
             }
-            else do
+            else
+            {
                 width = cast(s32) (offsets[band + 1] - offsets[band])
+            }
 
             if not book or book >= 12
             {
@@ -860,8 +868,10 @@ private impl AacCodec
                 let scaleBand = band % value.maxSfb
                 width = cast(s32) (offsets[scaleBand + 1] - offsets[scaleBand]) * value.groupLength[group]
             }
-            else do
+            else
+            {
                 width = cast(s32) (offsets[band + 1] - offsets[band])
+            }
 
             let rightBook = .books[right, band]
             let intensity = rightBook == 14 or rightBook == 15
@@ -1016,8 +1026,10 @@ private impl AacCodec
                 for count do
                     discard reader.get(8)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"AAC element is not supported by the Low Complexity decoder"}
+            }
         }
 
         if reader.overrun do

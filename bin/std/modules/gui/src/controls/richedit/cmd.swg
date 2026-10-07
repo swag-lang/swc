@@ -160,8 +160,11 @@ impl RichEditCtrl
                 .setCursorPos(.selectionStart())
                 .moveCursorUp(&.cursorPos, pt)
             }
-            else do
+            else
+            {
                 .moveCursorUp(&.cursorPos)
+            }
+
             .clearSelection()
 
         case .CursorDown:
@@ -171,8 +174,11 @@ impl RichEditCtrl
                 .setCursorPos(.selectionEnd())
                 .moveCursorDown(&.cursorPos, pt)
             }
-            else do
+            else
+            {
                 .moveCursorDown(&.cursorPos)
+            }
+
             .clearSelection()
 
         case .CursorStartLine:
@@ -337,8 +343,10 @@ impl RichEditCtrl
                 .insertText("\t")
                 .popUndo()
             }
-            else do
+            else
+            {
                 .insertBegLine("\t")
+            }
 
         case .EditBackTabulation:
             if .isReadOnly() do

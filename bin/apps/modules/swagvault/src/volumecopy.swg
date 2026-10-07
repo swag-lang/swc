@@ -17,8 +17,10 @@ impl VolumeCopy
         {
             let path = Format.toString("%\\%", prefix, node.name)
             let id   = try .target.createNode(path, node.isDirectory(), node.attributes & ~FileAttributeReadOnly, node.security.toSlice())
-            if node.isDirectory() do
+            if node.isDirectory()
+            {
                 try .copyDirectory(node.id, path.toString())
+            }
             else
             {
                 var buffer: Array'u8
@@ -62,8 +64,10 @@ impl VolumeCopy
             let copied = found!
             if copied.size != node.size or copied.attributes != node.attributes or copied.creationTime != node.creationTime or copied.lastAccessTime != node.lastAccessTime or copied.lastWriteTime != node.lastWriteTime or copied.changeTime != node.changeTime or not Core.Crypto.constantTimeEqual(copied.security.toSlice(), node.security.toSlice()) do
                 try failWith("Copied metadata differs from the source.", .Io)
-            if node.isDirectory() do
+            if node.isDirectory()
+            {
                 try .verifyDirectory(node.id, path.toString())
+            }
             else
             {
                 var original, restored: Array'u8

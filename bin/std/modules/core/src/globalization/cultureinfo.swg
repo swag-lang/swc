@@ -238,8 +238,11 @@ public impl CultureInfo
             if mod10 == 3 and mod100 != 13 do
                 return .Few
         }
-        elif .isLanguage("fr") and value == 1 do
+        elif .isLanguage("fr") and value == 1
+        {
             return .One
+        }
+
         return .Other
     }
 

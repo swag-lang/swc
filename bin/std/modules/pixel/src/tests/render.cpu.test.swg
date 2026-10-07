@@ -81,8 +81,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
             painter.end()
 
             var expected = Expected[index]
-            if mask == 0 do
+            if mask == 0
+            {
                 expected.a = Destinations[index].a
+            }
             elif mask == 2
             {
                 expected.g = Destinations[index].g

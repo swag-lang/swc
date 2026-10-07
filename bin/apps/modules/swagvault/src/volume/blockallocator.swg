@@ -188,8 +188,11 @@ impl BlockAllocator
             .free[index].first -= count
             .free[index].count += count
         }
-        else do
+        else
+        {
             .free.insertAt(index, {first, count})
+        }
+
         .freeBlocksCount += count
     }
 

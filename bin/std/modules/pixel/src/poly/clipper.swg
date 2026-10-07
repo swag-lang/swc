@@ -675,8 +675,10 @@ impl Transform
                 if eStart.bot.x != e.bot.x and eStart.top.x != e.bot.x do
                     reverseHorizontal(e)
             }
-            elif eStart.bot.x != e.bot.x do
+            elif eStart.bot.x != e.bot.x
+            {
                 reverseHorizontal(e)
+            }
         }
 
         eStart = e
@@ -1051,8 +1053,10 @@ impl Transform
                     .addJoin(nnOutPt(op1), op2, horzEdge.top)
                 }
             }
-            else do
+            else
+            {
                 horzEdge = .updateEdgeIntoAEL(horzEdge)
+            }
         }
         else
         {
@@ -1354,8 +1358,10 @@ impl Transform
                 ppNext.prev = pp.prev
                 pp          = ppPrev
             }
-            elif pp == lastOK do
+            elif pp == lastOK
+            {
                 break
+            }
             else
             {
                 if not lastOK do
@@ -1706,8 +1712,10 @@ impl Transform
             {
                 if op.pt.x >= pt.x
                 {
-                    if opNext.pt.x > pt.x do
+                    if opNext.pt.x > pt.x
+                    {
                         result = 1 - result
+                    }
                     else
                     {
                         let d = cast(f64) (op.pt.x - pt.x) * (opNext.pt.y - pt.y) - cast(f64) (opNext.pt.x - pt.x) * (op.pt.y - pt.y)
@@ -2107,8 +2115,10 @@ impl Transform
                     .swapPositionsInSEL(ec, eNext)
                     isModified = true
                 }
-                else do
+                else
+                {
                     ec = eNext
+                }
             }
 
             if not ec.prevInSEL do
@@ -2242,8 +2252,10 @@ impl Transform
         if edge1.dx == 0
         {
             ip.x = edge1.bot.x
-            if isHorizontal(edge2) do
+            if isHorizontal(edge2)
+            {
                 ip.y = edge2.bot.y
+            }
             else
             {
                 b2   = edge2.bot.y - (edge2.bot.x / edge2.dx)
@@ -2253,8 +2265,10 @@ impl Transform
         elif edge2.dx == 0
         {
             ip.x = edge2.bot.x
-            if isHorizontal(edge1) do
+            if isHorizontal(edge1)
+            {
                 ip.y = edge1.bot.y
+            }
             else
             {
                 b1   = edge1.bot.y - (edge1.bot.x / edge1.dx)
@@ -2318,8 +2332,10 @@ impl Transform
             else do
                 return e1.top.x > topX(e2, e1.top.y)
         }
-        else do
+        else
+        {
             return e2.curr.x < e1.curr.x
+        }
     }
 
     mtd insertEdgeIntoAEL(edge: *Edge, startE: *Edge?)
@@ -2382,8 +2398,11 @@ impl Transform
                 let pft = edge.polyType == .Subject ? .subjFillType : .clipFillType
                 edge.windCnt = (pft == .Negative ? -1 : 1)
             }
-            else do
+            else
+            {
                 edge.windCnt = edge.windDelta
+            }
+
             edge.windCnt2 = 0
             e = .activeEdges
         }
@@ -2410,8 +2429,11 @@ impl Transform
 
                 edge.windCnt = inside ? 0 : 1
             }
-            else do
+            else
+            {
                 edge.windCnt = edge.windDelta
+            }
+
             edge.windCnt2 = en.windCnt2
             e = en.nextInAEL
         }
@@ -2427,8 +2449,10 @@ impl Transform
                     else do
                         edge.windCnt = en.windCnt + edge.windDelta
                 }
-                else do
+                else
+                {
                     edge.windCnt = edge.windDelta == 0 ? 1 : edge.windDelta
+                }
             }
             else
             {
@@ -2953,10 +2977,14 @@ impl Transform
             e1.outIdx = Unassigned
             e2.outIdx = Unassigned
         }
-        elif e1.outIdx < e2.outIdx do
+        elif e1.outIdx < e2.outIdx
+        {
             .appendPolygon(e1, e2)
-        else do
+        }
+        else
+        {
             .appendPolygon(e2, e1)
+        }
     }
 
     func swapSides(edge1, edge2: *Edge)
@@ -3122,8 +3150,10 @@ impl Transform
                     .addLocalMinPoly(e1, e2, pt)
                 }
             }
-            else do
+            else
+            {
                 swapSides(e1, e2)
+            }
         }
     }
 
@@ -3172,8 +3202,10 @@ impl Transform
                     if rb.nextInLML do
                         .insertScanbeam(rb.nextInLML.top.y)
                 }
-                else do
+                else
+                {
                     .insertScanbeam(rb.top.y)
+                }
             }
 
             if not lb or not rb do

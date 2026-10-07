@@ -139,8 +139,10 @@ internal impl Properties
                 .selItem.flags.add(.Expanded)
                 .updateStates()
             }
-            else do
+            else
+            {
                 .activateSel()
+            }
 
         case .Left:
             if .selItem and (.selItem.sliderBox != null)

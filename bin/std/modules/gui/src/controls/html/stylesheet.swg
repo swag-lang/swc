@@ -1237,10 +1237,14 @@ impl HtmlStyleSheet
             {
                 let aPart = text[0 until n]
                 matched = true
-                if not aPart.count or aPart == "+" do
+                if not aPart.count or aPart == "+"
+                {
                     a = 1
-                elif aPart == "-" do
+                }
+                elif aPart == "-"
+                {
                     a = -1
+                }
                 else
                 {
                     let number = htmlParseNumber(aPart)

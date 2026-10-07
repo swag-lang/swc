@@ -190,8 +190,10 @@ impl Decoder
                 fail InvalidFormatError{"KTX2 ZLIB level has an invalid decoded size"}
             level = inflated.toSlice()
         }
-        elif levelLength != rawLength do
+        elif levelLength != rawLength
+        {
             fail InvalidFormatError{"uncompressed KTX2 level sizes disagree"}
+        }
 
         let imageOffset = imageIndex * oneImageLength
         level = level[imageOffset until imageOffset + oneImageLength]

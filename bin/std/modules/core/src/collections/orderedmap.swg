@@ -128,8 +128,10 @@ impl OrderedMap
                 first  = mid + 1
                 length -= half + 1
             }
-            else do
+            else
+            {
                 length = half
+            }
         }
 
         return first
@@ -149,8 +151,10 @@ impl OrderedMap
                 first  = mid + 1
                 length -= half + 1
             }
-            else do
+            else
+            {
                 length = half
+            }
         }
 
         return first

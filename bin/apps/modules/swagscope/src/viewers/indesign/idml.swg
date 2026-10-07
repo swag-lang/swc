@@ -142,8 +142,10 @@ impl IdmlPage
                                           imageBounds.height * factor,
                                           item.image)
             }
-            elif item.imageFrame do
+            elif item.imageFrame
+            {
                 result += "<span class=\"idml-missing-image\">×</span>"
+            }
 
             // Text is escaped while the IDML story is converted to local paragraph markup. It is
             // deliberately not a document-supplied HTML fragment.
@@ -1379,8 +1381,11 @@ private func idmlAppendItems(fileName, source: string, colors: const *HashTable'
                     item.bounds.height += 2 * padding
                     item.clipPath      = idmlLineClipPath(content, &transform, pages[pageIndex].bounds.left, pages[pageIndex].bounds.top, &item.bounds, item.strokeSize, item.lineStartArrow, item.lineEndArrow)
                 }
-                elif polygon do
+                elif polygon
+                {
                     item.clipPath = idmlPolygonClipPath(content, &transform)
+                }
+
                 if item.imageFrame
                 {
                     item.image = idmlLinkedGraphicSource(fileName, content, linkedGraphicBytes)

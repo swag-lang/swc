@@ -20,8 +20,10 @@ func compactMutationFor(text: string)->u64
     for ch, index in text
     {
         let runLength = ch - '0'
-        if index & 1 do
+        if index & 1
+        {
             map.add({MutationFreeSpanId, runLength})
+        }
         else
         {
             map.add({nextId, runLength})
@@ -52,8 +54,10 @@ func compactMutationFor(text: string)->u64
             map[last].what = MutationFreeSpanId
             map.insertAt(i + 1, {what: MutationFreeSpanId, num: rest})
         }
-        else do
+        else
+        {
             map[last].num -= map[i].num
+        }
     }
 
     var blockIndex, total: u64
@@ -78,8 +82,10 @@ func compactMutationWhile(text: string)->u64
     for ch, index in text
     {
         let runLength = ch - '0'
-        if index & 1 do
+        if index & 1
+        {
             map.add({MutationFreeSpanId, runLength})
+        }
         else
         {
             map.add({nextId, runLength})
@@ -116,8 +122,10 @@ func compactMutationWhile(text: string)->u64
             map[last].what = MutationFreeSpanId
             map.insertAt(i + 1, {what: MutationFreeSpanId, num: rest})
         }
-        else do
+        else
+        {
             map[last].num -= map[i].num
+        }
 
         i += 1
     }

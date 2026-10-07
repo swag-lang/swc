@@ -155,12 +155,17 @@ impl IWnd for ComboBox
                 theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
                 .focusRingGround = .aniBk.cur()
             }
-            else do
+            else
+            {
                 .focusRingGround = {}
+            }
+
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
         }
-        else do
+        else
+        {
             .focusRingGround = {}
+        }
 
         // Item
         if not .editBox and .selectedIndex < .items.count

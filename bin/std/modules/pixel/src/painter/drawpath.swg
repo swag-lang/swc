@@ -567,10 +567,11 @@ impl Painter
             flatBegin = false
             .drawDashCap(cxt, cxt.pen.dashBegCapStyle, cxt.prev, cxt.capNormal(), 1.0)
         }
-
         // The run starts flat here, so a border pass closes itself across that end.
-        elif cxt.outline > 0 and cxt.beginLine and outlineOpensRun(cxt) do
+        elif cxt.outline > 0 and cxt.beginLine and outlineOpensRun(cxt)
+        {
             .drawOutlineButt(cxt, cxt.prev, -n)
+        }
 
         // Joints
         if not cxt.beginLine do
@@ -1016,7 +1017,6 @@ impl Painter
         {
             .drawOutlineButt(cxt, cxt.prev, cxt.dir)
         }
-
         // Handle AA and closing as before...
         elif openEnd and (.curState.paintParams & .Antialiased)
         {

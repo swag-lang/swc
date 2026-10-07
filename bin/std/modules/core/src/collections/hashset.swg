@@ -316,8 +316,10 @@ impl HashSet
                     if table[index].key == key do
                         return index
                 }
-                elif entryHash == HashSet.HASH_FREE do
+                elif entryHash == HashSet.HASH_FREE
+                {
                     return index
+                }
 
                 index = (index + 1) & mask
             }

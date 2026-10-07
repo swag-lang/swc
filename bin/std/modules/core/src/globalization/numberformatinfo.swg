@@ -89,8 +89,11 @@ public impl NumberFormatInfo
             let magnitude = cast(u64) (-(value + 1)) + 1
             .appendUnsigned(&result, magnitude, grouped)
         }
-        else do
+        else
+        {
             .appendUnsigned(&result, cast(u64) value, grouped)
+        }
+
         return result
     }
 

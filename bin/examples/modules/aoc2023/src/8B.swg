@@ -60,8 +60,10 @@ func day8B()
 
     for l, i in lines
     {
-        if i == 0 do
+        if i == 0
+        {
             instructions = l.toString()
+        }
         elif i > 1
         {
             let name = l[0 to 2]

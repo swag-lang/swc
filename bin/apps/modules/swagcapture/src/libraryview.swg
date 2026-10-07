@@ -320,8 +320,10 @@ impl IWnd for LibraryView
                 // need the decoder first, and that is the part this frame rations.
                 if not capture.preview.isValid() and not capture.previewBytes.isEmpty()
                 {
-                    if decodeBudget == 0 do
+                    if decodeBudget == 0
+                    {
                         decodesRemain = true
+                    }
                     else
                     {
                         decodeBudget -= 1
@@ -342,8 +344,10 @@ impl IWnd for LibraryView
                         capture.preview = {}
                 }
             }
-            elif it.kind == .Image and not it.texture.isValid() and image.isValid() do
+            elif it.kind == .Image and not it.texture.isValid() and image.isValid()
+            {
                 it.texture = evt.paintContext.renderer.addImage(image)
+            }
 
             let selected = .selModel.isSelected(cast() i)
 

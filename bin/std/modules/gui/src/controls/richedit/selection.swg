@@ -339,8 +339,10 @@ impl RichEditCtrl
             let st = Clipboard.getTypedData(.clipFormat, null)
             .insertText(txt, st)
         }
-        else do
+        else
+        {
             .insertText(txt)
+        }
 
         .popUndo()
         .forceCaretVisible = true

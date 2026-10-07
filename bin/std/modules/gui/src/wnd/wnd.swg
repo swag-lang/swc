@@ -718,8 +718,10 @@ impl Wnd
             .assignSurface(who.surface)
 
             // Add the window at the back, or before the first topmost window
-            if who.children.isEmpty() do
+            if who.children.isEmpty()
+            {
                 who.children.add(me)
+            }
             else
             {
                 var idxToInsert = who.children.count
@@ -1852,7 +1854,6 @@ impl Wnd
                 pos.y      = pos.vertCenter() - c.position.height * 0.5
                 pos.height = c.position.height
             }
-
             // Fill the remaining room
             else
             {

@@ -81,8 +81,10 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
                 Memory.postMoveType(arr.buffer + (i * sizeValue), elementType)
             }
         }
-        else do
+        else
+        {
             Memory.copyOverlapping(removed, removed + sizeValue, countMove * sizeValue)
+        }
     }
 
     arr.count -= 1

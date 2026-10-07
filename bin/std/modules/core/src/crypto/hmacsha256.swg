@@ -51,8 +51,10 @@ impl HmacSha256
             Swag.memcpy(&normalized[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
-        elif key.count do
+        elif key.count
+        {
             Swag.memcpy(&normalized[0], key.buffer, key.count)
+        }
 
         var innerPad: [64] u8
         var outerPad: [64] u8

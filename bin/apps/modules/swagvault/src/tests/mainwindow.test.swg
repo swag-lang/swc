@@ -543,10 +543,10 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     window.statusDrive = "Z:"
     window.setStatus(.Mounted)
-    Swag.assert(Utf8.contains(window.statusText().toString(), "Z:"))
+    Swag.assert(Utf8.contains(window.statusText(), "Z:"))
 
     expect g_App.setLanguage("fr")
-    Swag.assert(Utf8.startsWith(window.statusText().toString(), "Lecteur chiffré monté sur Z:"))
+    Swag.assert(Utf8.startsWith(window.statusText(), "Lecteur chiffré monté sur Z:"))
 }
 
 // A failure says its sentence in the active language, not the diagnostic the layer wrote.
@@ -841,7 +841,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.chooseContainer(window.createPath, true)
 
     Swag.assert(host.autoHandled)
-    Swag.assert(window.createPath.text() == path.toString())
+    Swag.assert(path == window.createPath.text())
 }
 
 // Privacy keeps browse history off disk, but the open dialog still returns to its last folder
@@ -854,19 +854,19 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     let path = Testing.tempFilePath("vault-open-state-", ".vault")
     defer discard catch File.delete(path)
-    discard expect File.writeAllBytes(path.toString(), [1'u8])
+    discard expect File.writeAllBytes(path, [1'u8])
 
-    host.acceptModalFileDialog(path.toString())
+    host.acceptModalFileDialog(path)
     window.chooseContainer(window.mountPath, false)
 
     Swag.assert(host.autoHandled)
-    Swag.assert(window.mountPath.text() == path.toString())
-    Swag.assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
+    Swag.assert(path == window.mountPath.text())
+    Swag.assert(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.chooseContainer(window.mountPath, false)
     Swag.assert(host.autoHandled)
-    Swag.assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
+    Swag.assert(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
 }
 
 // The panel can add an existing key file, generate a cryptographically random one, and remove
@@ -879,9 +879,9 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     let existing = Testing.tempFilePath("vault-key-existing-", ".key")
     defer discard catch File.delete(existing)
-    discard expect File.writeAllBytes(existing.toString(), [1'u8, 2, 3])
+    discard expect File.writeAllBytes(existing, [1'u8, 2, 3])
 
-    host.acceptModalFileDialog(existing.toString())
+    host.acceptModalFileDialog(existing)
     window.createKeyFiles.add.sigPressed.call(cast(*Button, window.createKeyFiles.add))
     Swag.assert(host.autoHandled)
     Swag.assert(window.createKeyFiles.paths.count == 1)
@@ -889,11 +889,11 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     let generated = Testing.tempFilePath("vault-key-random-", ".key")
     defer discard catch File.delete(generated)
-    host.acceptModalFileDialog(generated.toString())
+    host.acceptModalFileDialog(generated)
     window.createKeyFiles.generate.sigPressed.call(cast(*Button, window.createKeyFiles.generate))
     Swag.assert(host.autoHandled)
     Swag.assert(window.createKeyFiles.paths.count == 2)
-    Swag.assert((expect File.info(generated.toString())).size == 64)
+    Swag.assert((expect File.info(generated)).size == 64)
 
     window.createKeyFiles.files.setSelectedIndex(0, notify: false)
     window.createKeyFiles.remove.sigPressed.call(cast(*Button, window.createKeyFiles.remove))
@@ -1078,7 +1078,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         window.fitToContent()
         Swag.assert(host.surface.position.height > before)
         Testing.assertContentFits(window)
-        window.mountCard.subtitle.setText(subtitle.toString())
+        window.mountCard.subtitle.setText(subtitle)
         window.fitToContent()
         Swag.assert(host.surface.position.height == before)
     }

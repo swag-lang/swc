@@ -307,3 +307,23 @@ impl IWnd for AncestorTestWnd {}
     host.pumpTimerQueues()
     host.app.removeTimer(timer)
 }
+
+// Stopping a timer through its field releases it and clears the field. An empty field, and a field
+// whose timer the pending destruction of the window has already retired, only get cleared.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 100)
+    defer host.shutdown()
+
+    let wnd = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
+    var timer: *Timer? = wnd.addTimer(1'ms)
+    wnd.stopTimer(&timer)
+    Swag.assert(timer == null)
+    wnd.stopTimer(&timer)
+
+    timer = wnd.addTimer(1'ms)
+    wnd.destroy()
+    wnd.stopTimer(&timer)
+    Swag.assert(timer == null)
+}

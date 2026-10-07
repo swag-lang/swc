@@ -40,14 +40,8 @@ struct VaultAccess
 private func updateAccessWord(hash: *Core.Hash.Blake2b, value: u64)
 {
     var bytes: [8] u8
-    bytes[0] = cast(u8, value)
-    bytes[1] = cast(u8, (value >> 8))
-    bytes[2] = cast(u8, (value >> 16))
-    bytes[3] = cast(u8, (value >> 24))
-    bytes[4] = cast(u8, (value >> 32))
-    bytes[5] = cast(u8, (value >> 40))
-    bytes[6] = cast(u8, (value >> 48))
-    bytes[7] = cast(u8, (value >> 56))
+    for i in 8 do
+        bytes[i] = cast(u8, value >> (i * 8))
     hash.update(bytes)
 }
 
@@ -59,7 +53,7 @@ impl VaultAccess
         .clear()
         .password.add(password)
         for &path in keyFiles do
-            .keyFiles.add(String.from(path.toString()))
+            .keyFiles.add(path[])
     }
 
     // Wipes the password bytes and forgets the key-file paths.

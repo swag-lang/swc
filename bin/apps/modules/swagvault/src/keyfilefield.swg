@@ -35,10 +35,7 @@ private func writeRandomKeyFile(path: string) fail
 
 impl IWnd for KeyFileField
 {
-    mtd impl measureContent(?: Math.Point)->Math.Point
-    {
-        return {0, .themeMetrics().comboBox_Height}
-    }
+    mtd impl measureContent(?: Math.Point)->Math.Point => {0, .themeMetrics().comboBox_Height}
 
     mtd impl onResizeEvent(?: *ResizeEvent)
     {
@@ -49,7 +46,7 @@ impl IWnd for KeyFileField
         let cell = room.height
 
         var right = room.right()
-        for button in [cast(*Wnd, .remove), cast(*Wnd, .generate), cast(*Wnd, .add)]
+        for button in [.remove, .generate, .add]
         {
             if not button.isVisible() do
                 continue
@@ -66,7 +63,7 @@ private impl KeyFileField
 {
     mtd hasPath(path: string)->bool
     {
-        for &one in .paths where Path.equals(one.toString(), path) do
+        for one in .paths where Path.equals(one.toString(), path) do
             return true
         return false
     }
@@ -83,23 +80,23 @@ private impl KeyFileField
             return
         }
 
-        for &path in .paths do
+        for path in .paths do
             .files.addItem(path.toString())
         .files.enable(true)
-        .files.setSelectedIndex(Math.min(selected, cast(u32, (.paths.count - 1))), notify: false)
+        .files.setSelectedIndex(Math.min(selected, cast(u32, .paths.count - 1)), notify: false)
         .remove.enable(true)
     }
 
     mtd addPaths(paths: Array'String)
     {
         var firstAdded = Swag.U32.Max
-        for &path in paths
+        for path in paths
         {
             if .hasPath(path.toString()) do
                 continue
             if firstAdded == Swag.U32.Max do
                 firstAdded = cast(u32, .paths.count)
-            .paths.add(String.from(path.toString()))
+            .paths.add(path[])
         }
 
         if firstAdded != Swag.U32.Max do
@@ -139,7 +136,7 @@ private impl KeyFileField
             return
 
         var path = dialog.selectedPath()
-        discard catch writeRandomKeyFile(path.toString()) as generationError
+        discard catch writeRandomKeyFile(path) as generationError
         if generationError != null
         {
             MessageDlg.error(.surface, appStrings().msg_KeyFileCreateFailed, generationError)
@@ -168,37 +165,29 @@ impl KeyFileField
     // key file, which only makes sense where a new access is being chosen.
     func create(parent: *Wnd, canGenerate = true)->*KeyFileField
     {
-        let result = Wnd.create'KeyFileField(parent)
-        result.backgroundStyle = .Transparent
+        with let result = Wnd.create'KeyFileField(parent)
+        {
+            .backgroundStyle = .Transparent
+        }
 
         result.files = ComboBox.create(result)
         setMachineFont(result.files)
 
-        with result.add = IconButton.create(result, result.theme().icon(.OpenFile, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
+        let iconSize = themeRowIconSize(result.themeMetrics())
+        with result.add = IconButton.create(result, result.theme().icon(.OpenFile, iconSize), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(?)
-            {
-                field.chooseExisting()
-            }
+            .sigPressed += func|field = result|(?) { field.chooseExisting() }
         }
 
-        with result.generate = IconButton.create(result, result.theme().icon(.SaveAs, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
+        with result.generate = IconButton.create(result, result.theme().icon(.SaveAs, iconSize), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(?)
-            {
-                field.generateRandom()
-            }
+            .show(canGenerate)
+            .sigPressed += func|field = result|(?) { field.generateRandom() }
         }
 
-        if not canGenerate do
-            result.generate.hide()
-
-        with result.remove = IconButton.create(result, result.theme().icon(.Remove, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
+        with result.remove = IconButton.create(result, result.theme().icon(.Remove, iconSize), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(?)
-            {
-                field.removeSelected()
-            }
+            .sigPressed += func|field = result|(?) { field.removeSelected() }
         }
 
         result.retranslate()
@@ -221,8 +210,8 @@ impl KeyFileField
     mtd setPaths(paths: const [..] String)
     {
         .paths.clear()
-        for &path in paths do
-            .paths.add(String.from(path.toString()))
+        for path in paths do
+            .paths.add(path[])
         .rebuild()
     }
 
@@ -230,8 +219,8 @@ impl KeyFileField
     mtd copyPaths(destination: *Array'String)
     {
         destination.clear()
-        for &path in .paths do
-            destination.add(String.from(path.toString()))
+        for path in .paths do
+            destination.add(path[])
     }
 
     // Returns whether the selection is exactly `paths`, in the same order.
@@ -239,7 +228,7 @@ impl KeyFileField
     {
         if .paths.count != paths.count do
             return false
-        for &path, index in .paths where path.toString() != paths[index].toString() do
+        for path, index in .paths where path[] != paths[index] do
             return false
         return true
     }

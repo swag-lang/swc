@@ -28,19 +28,9 @@ const SurfaceId   = "swag.vault"
         Env.exit(copyError == null ? 0 : 1)
     }
 
-    // Persisted non-sensitive preferences. A failure to prepare the folder only
-    // costs the memory between runs, never the application start.
-    let stateRoot = Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag")
-    if not Directory.exists(stateRoot) do
-        discard catch Directory.create(stateRoot)
-    let stateFolder = Path.combine(stateRoot, "vault")
-    if not Directory.exists(stateFolder) do
-        discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder) do
-        g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
-
-    let appIcon = expect Image.decode(".png", AppIcon)
-    g_App.setAppIcon(appIcon)
+    // Only non-sensitive preferences are persisted: no path is written while privacy mode is on.
+    g_App.setAppIcon(expect Image.decode(".png", AppIcon))
+    g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "vault", "settings.scc"))
     registerAppStrings(&g_App.resources)
 
     // Not a resizable window. The four pages hold a fixed number of fields, and the

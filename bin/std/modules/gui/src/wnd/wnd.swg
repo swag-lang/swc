@@ -2360,6 +2360,20 @@ impl Wnd
         .app().removeTimer(timer)
     }
 
+    // Removes the timer `timer` holds, if any, and clears it.
+    //
+    // A window that may stop a timer early keeps it in a nullable field. This releases the timer
+    // and forgets it in one step, so the field never names a timer that no longer runs. It is safe
+    // after the destruction of the window has already retired its timers.
+    mtd stopTimer(timer: *(*Timer?))
+    {
+        if let running = timer[]
+        {
+            .app().removeTimer(running)
+            timer[] = null
+        }
+    }
+
     // Posts a request to leave the application's event loop.
     mtd postQuitEvent()
     {

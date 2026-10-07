@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-internal enum AppState
+enum AppState
 {
     Ready
     Creating
@@ -10,7 +10,7 @@ internal enum AppState
     ChangingAccess
 }
 
-internal enum OperationKind
+enum OperationKind
 {
     None
     Create
@@ -20,14 +20,14 @@ internal enum OperationKind
     ChangeAccess
 }
 
-internal enum AccessChangeKind
+enum AccessChangeKind
 {
     Password
     KeyFiles
 }
 
 // Emphasis of the status line, from what the latest step left behind.
-internal enum StatusTone
+enum StatusTone
 {
     Idle        // Nothing is running and nothing has failed.
     Active      // Work is running, or a drive is mounted.
@@ -39,7 +39,7 @@ internal enum StatusTone
 // The line is named rather than written, so a language switch can say the same thing
 // again without the window having kept a copy of the sentence. Each value carries one
 // tone, which is why `setStatus` takes no second argument.
-internal enum StatusMessage
+enum StatusMessage
 {
     Ready                    // Nothing has run yet, or the last operation finished cleanly.
     Randomizing              // The container is being filled with random bytes; `statusProgress` says how far.
@@ -76,7 +76,7 @@ internal enum StatusMessage
 //
 // The form owns the labels it creates, so re-labelling one after a language switch names
 // its row. Keep these next to the builder: they are two halves of one decision.
-internal enum CreateRow
+enum CreateRow
 {
     Path         // Container file to create.
     Capacity     // Fixed size and its unit.
@@ -86,7 +86,7 @@ internal enum CreateRow
 }
 
 // Rows of the "open an existing vault" form, in the order `createOpenVaultCard` adds them.
-internal enum MountRow
+enum MountRow
 {
     Path             // Container file to open.
     Password         // Password unlocking the container, or empty when it has none.
@@ -96,7 +96,7 @@ internal enum MountRow
 }
 
 // Rows of the automatic-unmount form, in the order `createOptionsCard` adds them.
-internal enum OptionsRow
+enum OptionsRow
 {
     Privacy
     SessionLock
@@ -106,7 +106,7 @@ internal enum OptionsRow
 }
 
 // A Windows condition that can close protected drives without an explicit button press.
-internal enum AutoUnmountCause
+enum AutoUnmountCause
 {
     SessionLock
     Suspend
@@ -127,7 +127,7 @@ struct AutoUnmountSettings
 //
 // The form judges itself, so the reason is already the sentence a reader sees rather than a
 // kind the shell would have to translate.
-internal struct ContainerSize
+struct ContainerSize
 {
     bytes: u64        // Requested capacity in bytes, meaningful when `error` is empty.
     error: String     // Why the field cannot be used, in the active language; empty when it can.
@@ -326,7 +326,7 @@ struct MainWindow
 // Returns an owned string, not a view: one kind formats its sentence, and a view into
 // that temporary would dangle as soon as the statement building it ends. The constant
 // sentences are copied out of the string table for the same contract.
-internal func caughtMessage(err: any?)->String
+func caughtMessage(err: any?)->String
 {
     let s = appStrings()
 
@@ -334,59 +334,27 @@ internal func caughtMessage(err: any?)->String
     {
     case Error as volumeError:
         logDiagnostic(volumeError.message)
+
+        // The last three kinds name a shape the filesystem layer refuses, never a container a
+        // reader chose, so a reader can only be told the container is damaged.
         switch #complete volumeError.kind
         {
-        case .PasswordRequired:
-            return s.msg_PasswordRequired
-
-        case .SizeTooSmall:
-            return Format.toString(s.msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
-
-        case .PasswordOrDamaged:
-            return s.msg_ErrPasswordOrDamaged
-
-        case .Corrupted:
-            return s.msg_ErrDamaged
-
-        case .NotFound:
-            return s.msg_ErrNotFound
-
-        case .AlreadyExists:
-            return s.msg_ErrAlreadyExists
-
-        case .AccessDenied:
-            return s.msg_ErrAccessDenied
-
-        case .HiddenProtected:
-            return s.msg_HiddenProtected
-
-        case .WriteProtected:
-            return s.msg_ErrReadOnly
-
-        case .SparseContainer:
-            return s.msg_ErrSparse
-
-        case .DiskFull:
-            return s.msg_ErrDiskFull
-
-        case .Io:
-            return s.msg_ErrIo
-
-        case .Canceled:
-            return s.msg_OperationStopped
-
-        case .InvalidInput:
-            return s.msg_ErrInvalidRequest
-
-        case .General:
-            return s.msg_SystemError
-
-        // Kinds a reader cannot act on: they name a shape the filesystem layer refuses,
-        // never a container a reader chose.
-        case .NotDirectory,
-             .IsDirectory,
-             .DirectoryNotEmpty:
-            return s.msg_ErrDamaged
+        case .PasswordRequired:  return s.msg_PasswordRequired
+        case .SizeTooSmall:      return minimumSizeMessage()
+        case .PasswordOrDamaged: return s.msg_ErrPasswordOrDamaged
+        case .Corrupted:         return s.msg_ErrDamaged
+        case .NotFound:          return s.msg_ErrNotFound
+        case .AlreadyExists:     return s.msg_ErrAlreadyExists
+        case .AccessDenied:      return s.msg_ErrAccessDenied
+        case .HiddenProtected:   return s.msg_HiddenProtected
+        case .WriteProtected:    return s.msg_ErrReadOnly
+        case .SparseContainer:   return s.msg_ErrSparse
+        case .DiskFull:          return s.msg_ErrDiskFull
+        case .Io:                return s.msg_ErrIo
+        case .Canceled:          return s.msg_OperationStopped
+        case .InvalidInput:      return s.msg_ErrInvalidRequest
+        case .General:           return s.msg_SystemError
+        case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return s.msg_ErrDamaged
         }
 
     case Swag.SystemError as systemError:
@@ -395,6 +363,13 @@ internal func caughtMessage(err: any?)->String
     }
 
     return s.msg_OperationStopped
+}
+
+// Says the smallest capacity a container can have, in whole mebibytes.
+func minimumSizeMessage()->String
+{
+    const Mebibyte = 1024'u64 * 1024
+    return Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + Mebibyte - 1) / Mebibyte)
 }
 
 // Sends the English diagnostic of a failure to the debugger output.
@@ -408,13 +383,12 @@ private func logDiagnostic(message: string?)
 
     // Built as one owned string: it carries its terminator, which is what the debugger
     // output expects, and a view over a longer buffer would not.
-    let line = Format.toString("Swag Vault: %\n", message)
-    Debugger.log(line.toString())
+    Debugger.log(Format.toString("Swag Vault: %\n", message))
 }
 
 // Whether an operation stopped because the user asked it to, rather than because something
 // about the container or the system stopped it.
-internal func isCanceledError(err: any?)->bool
+func isCanceledError(err: any?)->bool
 {
     switch err
     {
@@ -428,7 +402,7 @@ internal func isCanceledError(err: any?)->bool
 //
 // A path, a capacity, a unit, and a drive letter are read by the system, not by a reader, so
 // they are set like the compiler sets a name it knows and never look like prose.
-internal func setMachineFont(wnd: *Wnd)
+func setMachineFont(wnd: *Wnd)
 {
     let theme = wnd.theme()
     wnd.style.setFont(theme.createDefaultFontFs(theme.metrics.defaultFixedFontSize), .Regular)
@@ -439,7 +413,7 @@ internal func setMachineFont(wnd: *Wnd)
 // Whole gibibytes when the size is one, mebibytes otherwise: every container Swag Vault creates or
 // grows is a round number of either, and a readout with three decimals says nothing a reader
 // can act on.
-internal func capacityText(bytes: u64)->String
+func capacityText(bytes: u64)->String
 {
     const Mebibyte = 1024'u64 * 1024
     const Gibibyte = Mebibyte * 1024
@@ -453,7 +427,7 @@ internal func capacityText(bytes: u64)->String
 // Only what the number itself makes impossible is judged here — an empty field, a value that
 // no longer fits, a zero. What is too small or too small *for this container* belongs to the
 // operation that asked, because the two do not refuse for the same reason.
-internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
+func parseCapacity(text: string, unitIndex: u32)->ContainerSize
 {
     var result: retval
 
@@ -476,14 +450,14 @@ internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
 }
 
 // What the change-password box asks for after the open card already states current access.
-internal struct PasswordChangeFields
+struct PasswordChangeFields
 {
     replacement: *PasswordEdit     // Password it opens with from now on, or empty to remove it.
     confirm:     *PasswordEdit     // `replacement`, entered again.
 }
 
 // What the resize box asks for.
-internal struct VaultResizeFields
+struct VaultResizeFields
 {
     capacity:     *EditBox         // Capacity the vault should hold from now on.
     unit:         *ComboBox        // Unit `capacity` is written in; `parseCapacity` reads this order.
@@ -494,7 +468,7 @@ internal struct VaultResizeFields
 //
 // Built apart from the gesture that opens the box so the shape of the form can be measured in
 // every language without running a modal loop.
-internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
+func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
 {
     let texts = appStrings()
     let form  = dialog.form
@@ -508,33 +482,32 @@ internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
 }
 
 // Fills `dialog` with the work-specific choices for resizing a vault, and returns its fields.
-//
-internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
+func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 {
     let texts = appStrings()
     let form  = dialog.form
     VaultForm.configure(form)
 
-    let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
-    capacity.setUnsignedIntegerRange(1, 1024 * 1024)
-    capacity.selectAll()
-    setMachineFont(capacity)
-
-    let unit = form.addRowChoice()
-    unit.addItem("MiB")
-    unit.addItem("GiB")
-    unit.setSelectedIndex(0, notify: false)
-    setMachineFont(unit)
-
-    let keepCapacity = form.addOptionField(texts.ui_KeepCapacity, help: texts.ui_KeepCapacityHelp)
-    keepCapacity.setState(.Checked)
-    capacity.enable(false)
-    unit.enable(false)
-    keepCapacity.sigChanged += func|capacity, unit|(button)
+    with let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
     {
-        let enabled = not button.isChecked()
-        capacity.enable(enabled)
-        unit.enable(enabled)
+        .setUnsignedIntegerRange(1, 1024 * 1024)
+        .selectAll()
+        .enable(false)
+        setMachineFont(capacity)
+    }
+
+    let unit = VaultForm.addCapacityUnit(form)
+    unit.enable(false)
+
+    with let keepCapacity = form.addOptionField(texts.ui_KeepCapacity, help: texts.ui_KeepCapacityHelp)
+    {
+        .setState(.Checked)
+        .sigChanged += func|capacity, unit|(button)
+        {
+            let enabled = not button.isChecked()
+            capacity.enable(enabled)
+            unit.enable(enabled)
+        }
     }
 
     VaultForm.finish(form)
@@ -543,7 +516,7 @@ internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 
 // Builds the complete replacement key-file set from the current selection. The current files
 // remain on the open card; the box contains only the list being changed.
-internal func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String)->*KeyFileField
+func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String)->*KeyFileField
 {
     VaultForm.configure(dialog.form)
     let result = KeyFileField.create(dialog.form)
@@ -558,6 +531,10 @@ impl MainWindow
     // Keep a stable wrapping width; fitToContent measures the tallest translated panel.
     const WindowWidth = 720's32
 
+    // Idle delays the automatic-unmount picker offers, in minutes, and the one it starts on.
+    const IdleChoices      = [5'u32, 15, 30, 60]
+    const IdleDefaultIndex = 1'u32
+
     // The page that opens a vault.
     const OpenTabIndex = 1'u32
 
@@ -570,51 +547,14 @@ impl MainWindow
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
-        result.appearanceButton = AppearanceButton.create(surface, "vault.appearance")
-        result.appearanceButton.sigThemeChanged += func|window = result|(button)
-        {
-            window.themeIndex = cast(u32, button.appearanceTheme)
-            catch g_App.saveState()
-        }
-
-        result.appearanceButton.sigLanguageChanged += func|window = result|(button)
-        {
-            window.language = button.language
-            catch g_App.saveState()
-        }
-
-        result.appearanceButton.sigAboutRequested += func|window = result|(?)
-        {
-            window.showAbout()
-        }
+        result.createAppearanceButton()
 
         // One accent rule across the top identifies every standard Swag application surface.
         Separator.create(result, .Top, .Accent)
 
         result.createHeader()
         result.createFooter()
-
-        // Four pages: the three stops in a vault's lifecycle, then the policy that can close a
-        // protected drive without an explicit button press.
-        let tabs = Tab.create(result)
-        result.tabs = tabs
-        with tabs
-        {
-            .dockStyle = .Center
-            .margin    = {32, 16, 32, 16}
-            .setForm(.Flat)
-            .setPageTransitions(true)
-            .addItem(appStrings().ui_CreateTab, view: result.createNewVaultCard(tabs))
-            .addItem(appStrings().ui_OpenTab, view: result.createOpenVaultCard(tabs))
-            .addItem(appStrings().ui_MountedTab, view: result.createMountedDrivesCard(tabs))
-            .addItem(appStrings().ui_OptionsTab, view: result.createOptionsCard(tabs))
-        }
-
-        tabs.sigSelectionChanged += func|window = result|(?)
-        {
-            window.arrangeCards()
-        }
-
+        result.createTabs()
         result.watchFormState()
         result.applyLanguage()
         result.applyLayout()
@@ -630,18 +570,64 @@ impl MainWindow
         return result
     }
 
-    // Opens the standard product identity and provenance dialog.
+    // Creates the caption's appearance action, which persists the palette and language it applies.
+    mtd createAppearanceButton()
+    {
+        with .appearanceButton = AppearanceButton.create(.surface!, "vault.appearance")
+        {
+            .sigThemeChanged += func|window = me|(button)
+            {
+                window.themeIndex = cast(u32, button.appearanceTheme)
+                catch g_App.saveState()
+            }
+
+            .sigLanguageChanged += func|window = me|(button)
+            {
+                window.language = button.language
+                catch g_App.saveState()
+            }
+
+            .sigAboutRequested += func|window = me|(?)
+            {
+                window.showAbout()
+            }
+        }
+    }
+
+    // Creates the four pages: the three stops in a vault's lifecycle, then the policy that can
+    // close a protected drive without an explicit button press.
+    mtd createTabs()
+    {
+        with .tabs = Tab.create(me)
+        {
+            .dockStyle = .Center
+            .margin    = {32, 16, 32, 16}
+            .setForm(.Flat)
+            .setPageTransitions(true)
+            .addItem(appStrings().ui_CreateTab, view: me.createNewVaultCard(me.tabs))
+            .addItem(appStrings().ui_OpenTab, view: me.createOpenVaultCard(me.tabs))
+            .addItem(appStrings().ui_MountedTab, view: me.createMountedDrivesCard(me.tabs))
+            .addItem(appStrings().ui_OptionsTab, view: me.createOptionsCard(me.tabs))
+            .sigSelectionChanged += func|window = me|(?) { window.arrangeCards() }
+        }
+    }
+
+    // Opens the standard About box, dated and versioned by the compilation of this executable.
     mtd showAbout()
     {
         const BuildDate = #run Time.DateTime.now()
         let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
-        let dlg     = AboutDlg.createApplication(.surface!, {
-            productName: ProductName,
-            version: version.toString(),
-            buildDate: BuildDate,
-            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagvault",
-            copyrightHolder: "Christophe Beaudet"})
-        discard dlg.doModal()
+
+        with var about: ApplicationAboutDlgParams
+        {
+            .productName     = ProductName
+            .version         = version
+            .buildDate       = BuildDate
+            .sourceUrl       = "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagvault"
+            .copyrightHolder = "Christophe Beaudet"
+        }
+
+        discard AboutDlg.createApplication(.surface!, about).doModal()
     }
 
     // The stop the window opens on: the first thing there is to fill in on the page that is up.
@@ -726,42 +712,17 @@ impl MainWindow
     // Nothing else: selecting is what arranges the page, through the signal below. A caller that
     // arranged the card itself would be running a pass a mouse click does not, which is exactly
     // how a card clipped in the shipped window went on passing its own containment test.
-    mtd showTab(index: u32)
-    {
-        .tabs.setSelectedIndex(index)
-    }
+    mtd showTab(index: u32) { .tabs.setSelectedIndex(index) }
 
     // Follows every field an action depends on, so no action is ever live on a form
     // that cannot answer for it.
     mtd watchFormState()
     {
-        mtd onEdit(edit: *EditBox)
-        {
-            edit.sigTextChanged += func|window = me|(?)
-            {
-                window.refreshActions()
-            }
-        }
-
-        mtd onPassword(edit: *PasswordEdit)
-        {
-            edit.sigChanged += func|window = me|(?)
-            {
-                window.refreshActions()
-            }
-        }
-
-        .onEdit(.createPath)
-        .onEdit(.createSize)
-        .onEdit(.mountPath)
-        .onPassword(.createPassword)
-        .onPassword(.confirmPassword)
-        .onPassword(.mountPassword)
-
-        .drive.sigChanged += func|window = me|(?, ?)
-        {
-            window.refreshActions()
-        }
+        for edit in [.createPath, .createSize, .mountPath] do
+            edit.sigTextChanged += func|window = me|(?) { window.refreshActions() }
+        for edit in [.createPassword, .confirmPassword, .mountPassword] do
+            edit.sigChanged += func|window = me|(?) { window.refreshActions() }
+        .drive.sigChanged += func|window = me|(?, ?) { window.refreshActions() }
 
         .watchSubmit()
     }
@@ -773,36 +734,12 @@ impl MainWindow
     // which of the two was meant.
     mtd watchSubmit()
     {
-        mtd onCreateEdit(edit: *EditBox)
-        {
-            edit.sigSubmitted += func|window = me|(?)
-            {
-                window.submitCreate()
-            }
-        }
-
-        mtd onCreatePassword(edit: *PasswordEdit)
-        {
-            edit.sigSubmitted += func|window = me|(?)
-            {
-                window.submitCreate()
-            }
-        }
-
-        .onCreateEdit(.createPath)
-        .onCreateEdit(.createSize)
-        .onCreatePassword(.createPassword)
-        .onCreatePassword(.confirmPassword)
-
-        .mountPath.sigSubmitted += func|window = me|(?)
-        {
-            window.submitMount()
-        }
-
-        .mountPassword.sigSubmitted += func|window = me|(?)
-        {
-            window.submitMount()
-        }
+        for edit in [.createPath, .createSize] do
+            edit.sigSubmitted += func|window = me|(?) { window.submitCreate() }
+        for edit in [.createPassword, .confirmPassword] do
+            edit.sigSubmitted += func|window = me|(?) { window.submitCreate() }
+        .mountPath.sigSubmitted     += func|window = me|(?) { window.submitMount() }
+        .mountPassword.sigSubmitted += func|window = me|(?) { window.submitMount() }
     }
 
     // Creates the container when the create form holds everything it needs.
@@ -824,79 +761,112 @@ impl MainWindow
         .mountContainer()
     }
 
+    // Creates the product name and the sentence under it.
     mtd createHeader()
     {
         // The header is as tall as the two rows it holds, so a wrapped explanation is not
         // cut off by a height calibrated on the shortest of the shipped languages.
-        let header = StackLayoutCtrl.create(me, .Top)
-        header.dockStyle = .Top
-        header.margin    = {32, 20, 32, 0}
-        header.spacing   = 4
+        with let header = StackLayoutCtrl.create(me, .Top)
+        {
+            .dockStyle = .Top
+            .margin    = {32, 20, 32, 0}
+            .spacing   = 4
+        }
 
-        let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
-        titleRow.dockStyle = .Top
+        with let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
+        {
+            .dockStyle = .Top
+        }
 
         let titleFont = .theme().createDefaultFont(34, .Bold)
-        let title     = Label.create(titleRow, ProductName)
-        title.dockStyle = .Center
-        title.setTextAlignment(.Left, .Center)
-        title.style.setFont(titleFont, .Regular)
+
+        with let title = Label.create(titleRow, ProductName)
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+            .style.setFont(titleFont, .Regular)
+        }
 
         // The row is as tall as the line box of the name. A hand-tuned height clips it, and by a
         // fraction of a pixel: enough to cut a descender, not enough to be noticed until the name
         // is set in another face.
         titleRow.resize(titleRow.position.width, Math.max(titleRow.position.height, titleFont.height))
 
-        .subtitle = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
-        .subtitle.dockStyle = .Top
-        .subtitle.setTextAlignment(.Left, .Top)
+        with .subtitle = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        {
+            .dockStyle = .Top
+            .setTextAlignment(.Left, .Top)
+        }
+
         titleRow.applyLayout()
         header.computeLayout()
     }
 
+    // Creates the attribution row and, above it, the status line.
     mtd createFooter()
     {
-        let footerRow = Wnd.create'Wnd(&.wnd, {0, 0, 0, 24})
-        footerRow.dockStyle = .Bottom
-        footerRow.margin    = {32, 0, 32, 12}
+        with let footerRow = Wnd.create'Wnd(&.wnd, {0, 0, 0, 24})
+        {
+            .dockStyle = .Bottom
+            .margin    = {32, 0, 32, 12}
+        }
 
         // The attribution keeps what it owes: the product, the holder, and where it comes from.
         // Expanding the acronym as well made the line the widest thing on the surface, and the
         // window is now one card wide.
-        let credit = Label.create(footerRow, "WinFsp — Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
-        credit.dockStyle = .Center
-        credit.setTextAlignment(.Left, .Center)
+        with let credit = Label.create(footerRow, "WinFsp — Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+        }
+
         footerRow.applyLayout()
 
         // The status line is raised off the ground by the same slight panel shape as the card. A
         // border around it would draw a third box on a surface that already reads without one.
-        .statusView                 = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
-        .statusView.dockStyle       = .Bottom
-        .statusView.margin          = {32, 0, 32, 12}
-        .statusView.backgroundStyle = .Panel
-        .statusView.padding         = {20, 8, 20, 8}
+        with .statusView = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
+        {
+            .dockStyle       = .Bottom
+            .margin          = {32, 0, 32, 12}
+            .backgroundStyle = .Panel
+            .padding         = {20, 8, 20, 8}
+        }
 
-        .statusIcon = Label.create(.statusView, "", {0, 0, 24})
-        .statusIcon.dockStyle = .Left
-        .statusIcon.margin.z  = 12
+        with .statusIcon = Label.create(.statusView, "", {0, 0, 24})
+        {
+            .dockStyle = .Left
+            .margin.z  = 12
+        }
 
         // The spinner takes the glyph's place rather than a slot of its own: it is the same
         // 24-pixel square, and a docked window that is hidden takes no room, so the status text
         // starts at the same column whether work is running or not.
-        .statusBusy = Spinner.create(.statusView, {0, 0, 24, 24})
-        .statusBusy.dockStyle = .Left
-        .statusBusy.margin.z  = 12
-        .statusBusy.hide()
+        with .statusBusy = Spinner.create(.statusView, {0, 0, 24, 24})
+        {
+            .dockStyle = .Left
+            .margin.z  = 12
+            .hide()
+        }
 
-        .status = Label.create(.statusView, "")
-        .status.dockStyle = .Center
-        .status.setTextAlignment(.Left, .Center)
+        with .status = Label.create(.statusView, "")
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+        }
+
         .statusView.applyLayout()
     }
 
+    // Creates the page listing the drives this window exposes.
     mtd createMountedDrivesCard(parent: *Wnd)->*Wnd
     {
-        .mountedDrives = MountedDrives.create(parent)
+        with .mountedDrives = MountedDrives.create(parent)
+        {
+            .unmountButton.sigPressed += func|window = me|(?) { window.unmountSelectedDrive() }
+            .list.sigSelectionChanged += func|window = me|(?) { window.refreshActions() }
+            .sigDrivesChanged         += func|window = me|(?) { window.refreshActions() }
+            .list.sigCheckedChanged   += func|window = me|(?) { window.applyStartupMarks() }
+        }
 
         // The semantic column shares are resolved again every time the table receives a new
         // width, so the header covers the complete logical client area at every surface size.
@@ -907,74 +877,34 @@ impl MainWindow
             return false
         }
 
-        .mountedDrives.unmountButton.sigPressed += func|window = me|(?)
-        {
-            window.unmountSelectedDrive()
-        }
-
-        .mountedDrives.list.sigSelectionChanged += func|window = me|(?)
-        {
-            window.refreshActions()
-        }
-
-        .mountedDrives.sigDrivesChanged += func|window = me|(?)
-        {
-            window.refreshActions()
-        }
-
-        .mountedDrives.list.sigCheckedChanged += func|window = me|(?)
-        {
-            window.applyStartupMarks()
-        }
-
         return .mountedDrives.card.panel
     }
 
+    // Creates the privacy and automatic-unmount page.
     mtd createOptionsCard(parent: *Wnd)->*Wnd
     {
-        let card = VaultCard.create(parent, appStrings().ui_OptionsCardTitle, appStrings().ui_OptionsCardHelp)
-        let form = card.form
-        .optionsCard = card
-        card.actions.hide()
+        .optionsCard = VaultCard.create(parent, appStrings().ui_OptionsCardTitle, appStrings().ui_OptionsCardHelp)
+        .optionsCard.actions.hide()
 
+        let form = .optionsCard.form
         .privacyModeControl = form.addOptionField(appStrings().ui_PrivacyMode, help: appStrings().ui_PrivacyModeHelp)
         .unmountOnLock      = form.addOptionField(appStrings().ui_UnmountOnLock, help: appStrings().ui_UnmountOnLockHelp)
         .unmountOnSuspend   = form.addOptionField(appStrings().ui_UnmountOnSuspend, help: appStrings().ui_UnmountOnSuspendHelp)
         .unmountOnIdle      = form.addOptionField(appStrings().ui_UnmountOnIdle, help: appStrings().ui_UnmountOnIdleHelp)
         .idleTimeout        = form.addChoiceField(appStrings().ui_IdleTimeout)
 
-        for minutes in [5'u32, 15, 30, 60] do
-            .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes).toString())
+        for minutes in IdleChoices do
+            .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes))
 
-        .privacyModeControl.sigChanged += func|window = me|(?)
-        {
-            window.readPrivacyControl()
-        }
-
-        .unmountOnLock.sigChanged += func|window = me|(?)
-        {
-            window.readAutoUnmountControls()
-        }
-
-        .unmountOnSuspend.sigChanged += func|window = me|(?)
-        {
-            window.readAutoUnmountControls()
-        }
-
-        .unmountOnIdle.sigChanged += func|window = me|(?)
-        {
-            window.readAutoUnmountControls()
-        }
-
-        .idleTimeout.sigChanged += func|window = me|(?, ?)
-        {
-            window.readAutoUnmountControls()
-        }
+        .privacyModeControl.sigChanged += func|window = me|(?) { window.readPrivacyControl() }
+        for check in [.unmountOnLock, .unmountOnSuspend, .unmountOnIdle] do
+            check.sigChanged += func|window = me|(?) { window.readAutoUnmountControls() }
+        .idleTimeout.sigChanged += func|window = me|(?, ?) { window.readAutoUnmountControls() }
 
         .applyPrivacyControl()
         .applyAutoUnmountControls()
-        card.endForm()
-        return card.panel
+        .optionsCard.endForm()
+        return .optionsCard.panel
     }
 
     // Applies privacy without firing the control's save callback.
@@ -1008,26 +938,15 @@ impl MainWindow
         catch g_App.saveState()
     }
 
-    mtd idleMinutesAt(index: u32)->u32
-    {
-        switch index
-        {
-        case 0:  return 5
-        case 2:  return 30
-        case 3:  return 60
-        default: return 15
-        }
-    }
+    // Returns the idle delay the picker entry at `index` offers, in minutes.
+    mtd idleMinutesAt(index: u32)->u32 => index < IdleChoices.count ? IdleChoices[index] : IdleChoices[IdleDefaultIndex]
 
+    // Returns the entry of the idle picker that offers `minutes`, or the default one.
     mtd idleIndexFor(minutes: u32)->u32
     {
-        switch minutes
-        {
-        case 5:  return 0
-        case 30: return 2
-        case 60: return 3
-        default: return 1
-        }
+        for choice, index in IdleChoices where choice == minutes do
+            return cast(u32, index)
+        return IdleDefaultIndex
     }
 
     // Applies persisted policy without firing the controls' save callbacks.
@@ -1187,31 +1106,32 @@ impl MainWindow
         }
     }
 
+    // Creates the page that makes a new container.
     mtd createNewVaultCard(parent: *Wnd)->*Wnd
     {
-        let card = VaultCard.create(parent, appStrings().ui_CreateCardTitle, appStrings().ui_CreateCardHelp)
-        let form = card.form
-        .createCard = card
+        .createCard = VaultCard.create(parent, appStrings().ui_CreateCardTitle, appStrings().ui_CreateCardHelp)
+        let card     = &.createCard
+        let form     = card.form
+        let fileIcon = .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics()))
 
-        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private", icon: .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
-        .createPath.updateFlags(.AcceptFileDrop)
-        setMachineFont(.createPath)
-        .browseCreate = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
-        .browseCreate.sigPressed += func|window = me|(?)
+        with .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private", icon: fileIcon)
         {
-            window.chooseContainer(window.createPath, true)
+            .updateFlags(.AcceptFileDrop)
+            setMachineFont(me.createPath)
         }
 
-        .createSize = form.addTextField(appStrings().ui_FixedCapacity, "256")
-        .createSize.setUnsignedIntegerRange(1, 1024 * 1024)
-        setMachineFont(.createSize)
+        with .browseCreate = form.addRowAction(appStrings().ui_Browse, fileIcon)
+        {
+            .sigPressed += func|window = me|(?) { window.chooseContainer(window.createPath, true) }
+        }
 
-        // The multiplier read by `parseCapacity` follows this order.
-        .createUnit = form.addRowChoice()
-        .createUnit.addItem("MiB")
-        .createUnit.addItem("GiB")
-        .createUnit.setSelectedIndex(0, notify: false)
-        setMachineFont(.createUnit)
+        with .createSize = form.addTextField(appStrings().ui_FixedCapacity, "256")
+        {
+            .setUnsignedIntegerRange(1, 1024 * 1024)
+            setMachineFont(me.createSize)
+        }
+
+        .createUnit = VaultForm.addCapacityUnit(form)
 
         // The password is optional, and the card explains that above rather than under the
         // field: it is a fact about what this card produces, not a note about one control.
@@ -1227,14 +1147,16 @@ impl MainWindow
         // It carries no width for that very reason: the caption changes with the state and
         // with the language, so the layout pass reads it from the button rather than from a
         // number tuned on one wording.
-        .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, form: .Strong)
-        .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, themeActionIconSize(.themeMetrics())))
-        .createButton.sigPressed += func|window = me|(?)
+        with .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, form: .Strong)
         {
-            if window.state == .Creating do
-                window.stopLongOperation()
-            else do
-                window.createContainer()
+            .setIcon(me.theme().icon(.SaveAs, themeActionIconSize(me.themeMetrics())))
+            .sigPressed += func|window = me|(?)
+            {
+                if window.state == .Creating do
+                    window.stopLongOperation()
+                else do
+                    window.createContainer()
+            }
         }
 
         card.actions.computeLayout()
@@ -1242,26 +1164,29 @@ impl MainWindow
         return card.panel
     }
 
+    // Creates the page that mounts, resizes, and re-keys an existing container.
     mtd createOpenVaultCard(parent: *Wnd)->*Wnd
     {
-        let card = VaultCard.create(parent, appStrings().ui_MountCardTitle, appStrings().ui_MountCardHelp)
-        let form = card.form
-        .mountCard = card
+        .mountCard = VaultCard.create(parent, appStrings().ui_MountCardTitle, appStrings().ui_MountCardHelp)
+        let card     = &.mountCard
+        let form     = card.form
+        let fileIcon = .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics()))
 
-        .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
-        .mountPath.updateFlags(.AcceptFileDrop)
-        setMachineFont(.mountPath)
-        .browseMount = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, themeRowIconSize(.themeMetrics())))
-        .browseMount.sigPressed += func|window = me|(?)
+        with .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: fileIcon)
         {
-            window.chooseContainer(window.mountPath, false)
+            .updateFlags(.AcceptFileDrop)
+            setMachineFont(me.mountPath)
+        }
+
+        with .browseMount = form.addRowAction(appStrings().ui_Browse, fileIcon)
+        {
+            .sigPressed += func|window = me|(?) { window.chooseContainer(window.mountPath, false) }
         }
 
         .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
-        .hiddenButton  = form.addRowAction(appStrings().ui_CreateHidden)
-        .hiddenButton.sigPressed += func|window = me|(?)
+        with .hiddenButton = form.addRowAction(appStrings().ui_CreateHidden)
         {
-            window.createHiddenContainer()
+            .sigPressed += func|window = me|(?) { window.createHiddenContainer() }
         }
 
         .mountKeyFiles = KeyFileField.create(form, canGenerate: false)
@@ -1275,16 +1200,15 @@ impl MainWindow
 
         // Under the letter rather than beside the password: it says what the drive will be, not
         // how the container is opened, and a reader deciding on a letter is already there.
-        let mountOptions = StackLayoutCtrl.create(form, .Left)
-        .mountOptions        = mountOptions
-        mountOptions.spacing = form.themeMetrics().dialog_BtnPadding * 3
-        discard form.addField("", mountOptions)
-        .readOnly            = CheckButton.create(mountOptions, appStrings().ui_ReadOnly)
-        .protectHidden       = CheckButton.create(mountOptions, appStrings().ui_ProtectHidden)
-        .readOnly.sigChanged += func|window = me|(button)
+        with .mountOptions = StackLayoutCtrl.create(form, .Left)
         {
-            window.protectHidden.enable(not button.isChecked())
+            .spacing = form.themeMetrics().dialog_BtnPadding * 3
         }
+
+        discard form.addField("", .mountOptions)
+        .readOnly            = CheckButton.create(.mountOptions, appStrings().ui_ReadOnly)
+        .protectHidden       = CheckButton.create(.mountOptions, appStrings().ui_ProtectHidden)
+        .readOnly.sigChanged += func|window = me|(button) { window.protectHidden.enable(not button.isChecked()) }
 
         // The action bar stacks from its right edge, so the dominant action is created first and
         // ends up under the reader's thumb, with the two secondary ones to its left.
@@ -1292,32 +1216,31 @@ impl MainWindow
         // The remaining actions are secondary on purpose: mounting is what a reader comes to this
         // card for. Each box asks only for the value it changes; the current password and key files
         // are stated once in this form and consumed from here.
-        .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, form: .Strong)
-        .mountButton.setIcon(.theme().icon(ThemeIcons.Play, themeActionIconSize(.themeMetrics())))
-        .mountButton.sigPressed += func|window = me|(?)
+        with .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, form: .Strong)
         {
-            window.mountContainer()
+            .setIcon(me.theme().icon(.Play, themeActionIconSize(me.themeMetrics())))
+            .sigPressed += func|window = me|(?) { window.mountContainer() }
         }
 
-        .resizeButton = PushButton.create(card.actions, appStrings().ui_Resize)
-        .resizeButton.sigPressed += func|window = me|(?)
+        with .resizeButton = PushButton.create(card.actions, appStrings().ui_Resize)
         {
-            if window.state == .Resizing do
-                window.stopLongOperation()
-            else do
-                window.resizeVault()
+            .sigPressed += func|window = me|(?)
+            {
+                if window.state == .Resizing do
+                    window.stopLongOperation()
+                else do
+                    window.resizeVault()
+            }
         }
 
-        .passwordButton = PushButton.create(card.actions, appStrings().ui_ChangePassword)
-        .passwordButton.sigPressed += func|window = me|(?)
+        with .passwordButton = PushButton.create(card.actions, appStrings().ui_ChangePassword)
         {
-            window.changeVaultPassword()
+            .sigPressed += func|window = me|(?) { window.changeVaultPassword() }
         }
 
-        .keyFilesButton = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
-        .keyFilesButton.sigPressed += func|window = me|(?)
+        with .keyFilesButton = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
         {
-            window.changeVaultKeyFiles()
+            .sigPressed += func|window = me|(?) { window.changeVaultKeyFiles() }
         }
 
         card.actions.computeLayout()
@@ -1338,13 +1261,8 @@ impl MainWindow
         for &destination in .mountDestinations do
             .drive.addItem(destination.label)
 
-        if not .drive.items.count do
-            return
-
-        if .selectMountPoint(previous) do
-            return
-
-        .drive.setSelectedIndex(0, notify: false)
+        if .drive.items.count and not .selectMountPoint(previous) do
+            .drive.setSelectedIndex(0, notify: false)
     }
 
     // Selects `mountPoint` when that backend destination is still available.
@@ -1365,16 +1283,17 @@ impl MainWindow
         if not .mountSettings.path.isEmpty() do
             .mountPath.setText(.mountSettings.path)
         if not .mountSettings.drive.isEmpty() do
-            discard .selectMountPoint(.mountSettings.drive.toString())
+            discard .selectMountPoint(.mountSettings.drive)
         .readOnly.setState(.mountSettings.readOnly ? .Checked : .Unchecked)
     }
 
+    // Opens an error box saying `message`, followed by the sentence for `err` when there is one.
     mtd showError(message: string, err: any? = null)
     {
-        var detail = String.from(message)
-        if err != null do
-            detail = Format.toString("%\n\n%", message, caughtMessage(err))
-        MessageDlg.error(.surface!, detail)
+        if err == null do
+            MessageDlg.error(.surface!, message)
+        else do
+            MessageDlg.error(.surface!, Format.toString("%\n\n%", message, caughtMessage(err)))
     }
 
     // Whether the create form holds everything a container needs.
@@ -1382,20 +1301,16 @@ impl MainWindow
     // Neither password is read here: an empty pair is a vault that opens without one, and a
     // mismatch is reported when the button is pressed, because a form that goes down as soon as
     // the two differ would go down on every keystroke of the second one.
-    mtd canCreate()->bool
-    {
-        return (.createPath.text()).count != 0 and
-               (.createSize.text()).count != 0
-    }
+    mtd canCreate()->bool => .createPath.text().count != 0 and .createSize.text().count != 0
 
     // Whether the open form holds everything a drive needs.
     //
     // The password is not read: a container that opens without one is answered by an empty
     // field, and a wrong password is reported by the container, not by the form.
-    mtd canMount()->bool => (.mountPath.text()).count != 0 and not .selectedMountPoint().isEmpty()
+    mtd canMount()->bool => .mountPath.text().count != 0 and not .selectedMountPoint().isEmpty()
 
     // Whether the open form names a container the two secondary actions can act on.
-    mtd canModifyVault()->bool => (.mountPath.text()).count != 0
+    mtd canModifyVault()->bool => .mountPath.text().count != 0
 
     // Puts each action in step with what its form holds.
     //
@@ -1429,7 +1344,7 @@ impl MainWindow
         // rather than walking to the far end of the surface.
         .createButton.enable(creating or (ready and .canCreate()))
         .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
-        .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, themeActionIconSize(.themeMetrics())))
+        .createButton.setIcon(.theme().icon(creating ? .Stop : .SaveAs, themeActionIconSize(.themeMetrics())))
 
         .resizeButton.enable(resizing or (ready and .canModifyVault()))
         .resizeButton.setText(resizing ? appStrings().ui_StopResizing : appStrings().ui_Resize)
@@ -1456,10 +1371,8 @@ impl MainWindow
 
         .subtitle.setText(texts.ui_Subtitle)
 
-        .tabs.setItemName(0, texts.ui_CreateTab)
-        .tabs.setItemName(1, texts.ui_OpenTab)
-        .tabs.setItemName(2, texts.ui_MountedTab)
-        .tabs.setItemName(3, texts.ui_OptionsTab)
+        for name, index in [texts.ui_CreateTab, texts.ui_OpenTab, texts.ui_MountedTab, texts.ui_OptionsTab] do
+            .tabs.setItemName(cast(u32, index), name)
 
         .createCard.setTexts(texts.ui_CreateCardTitle, texts.ui_CreateCardHelp)
         .createCard.form.setRowLabel(cast(u64, CreateRow.Path), texts.ui_ContainerFile)
@@ -1502,8 +1415,8 @@ impl MainWindow
         .unmountOnSuspend.setText(texts.ui_UnmountOnSuspend)
         .unmountOnIdle.setText(texts.ui_UnmountOnIdle)
         .idleTimeout.clear()
-        for minutes in [5'u32, 15, 30, 60] do
-            .idleTimeout.addItem(Format.toString(texts.ui_Minutes, minutes).toString())
+        for minutes in IdleChoices do
+            .idleTimeout.addItem(Format.toString(texts.ui_Minutes, minutes))
         .applyPrivacyControl()
         .applyAutoUnmountControls()
 
@@ -1524,29 +1437,32 @@ impl MainWindow
         .invalidate()
     }
 
+    // Lets the reader pick the container file `target` names, for creating it or for opening it.
     mtd chooseContainer(target: *EditBox, create: bool)
     {
-        var options: FileDlgOptions
-
         // Privacy controls persistence, not the convenience of returning to the last folder
         // during this run. Serialization below remains the only path from this state to disk.
-        options.state             = &.fileDlgState
-        options.mode              = create ? .CreateFile : .SelectFile
-        options.title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
-        options.confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
-        options.initialName       = create ? "volume" : ""
-        options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
-        options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+        with var options: FileDlgOptions
+        {
+            .state             = &me.fileDlgState
+            .mode              = create ? .CreateFile : .SelectFile
+            .title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
+            .confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
+            .initialName       = create ? "volume" : ""
+            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
+            .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+        }
 
         let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() == Dialog.BtnOk do
             target.setText(dialog.selectedPath())
     }
 
+    // Returns the backend identifier of the destination the picker selects, or an empty string.
     mtd selectedMountPoint()->String
     {
         let index = .drive.selectedIndex
-        return index < .mountDestinations.count ? String.from(.mountDestinations[index].id) : String.from("")
+        return String.from(index < .mountDestinations.count ? .mountDestinations[index].id : "")
     }
 
     // Returns the host-facing name for a backend destination identifier.
@@ -1633,21 +1549,20 @@ impl MainWindow
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
         .operation.error.reset()
-        .operation.timer = .app().addTimer(50'ms, me)
+        .operation.timer = .addTimer(50'ms)
 
         // Arming the tracker before the task starts is what clears the cancellation a previous
         // operation left behind.
         .operation.progress.begin(0)
         .showBusy(true)
 
-        let window = me
-        .operation.task.submit(func|window|() { window.runOperation() })
+        .operation.task.submit(func|window = me|() { window.runOperation() })
     }
 
     mtd createContainer()
     {
         let path = .createPath.text()
-        if not path.count
+        if path.count == 0
         {
             .showError(appStrings().msg_ChooseCreateFile)
             return
@@ -1668,13 +1583,13 @@ impl MainWindow
         let size = parseCapacity(.createSize.text(), .createUnit.selectedIndex)
         if not size.error.isEmpty()
         {
-            .showError(size.error.toString())
+            .showError(size.error)
             return
         }
 
         if size.bytes < MinimumSize
         {
-            .showError(Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)).toString())
+            .showError(minimumSizeMessage())
             return
         }
 
@@ -1695,18 +1610,16 @@ impl MainWindow
     // The open card identifies the outer container; this form owns only the new hidden access.
     mtd createHiddenContainer()
     {
-        if .state != .Ready or not .canModifyVault() do
+        if not .canChangeVault() do
             return
-        if .isMounted(.mountPath.text())
+
+        with var options: FormDlgOptions
         {
-            .showError(appStrings().msg_UnmountFirst)
-            return
+            .title = appStrings().ui_CreateHidden
+            .confirmButtonText = appStrings().ui_CreateVault
+            .width = 520
         }
 
-        var options: FormDlgOptions
-        options.title = appStrings().ui_CreateHidden
-        options.confirmButtonText = appStrings().ui_CreateVault
-        options.width = 520
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildHiddenCreateForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
@@ -1720,14 +1633,14 @@ impl MainWindow
         let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
         if not size.error.isEmpty()
         {
-            .showError(size.error.toString())
+            .showError(size.error)
             return
         }
 
         let reserve = parseCapacity(fields.reserve.text(), fields.reserveUnit.selectedIndex)
         if not reserve.error.isEmpty()
         {
-            .showError(reserve.error.toString())
+            .showError(reserve.error)
             return
         }
 
@@ -1753,12 +1666,16 @@ impl MainWindow
         .beginOperation(.Create)
     }
 
+    // Asks for the access of the hidden volume the outer drive must not write over.
     mtd askHiddenProtection()->bool
     {
-        var options: FormDlgOptions
-        options.title = appStrings().ui_ProtectHidden
-        options.confirmButtonText = appStrings().ui_MountDrive
-        options.width = 520
+        with var options: FormDlgOptions
+        {
+            .title = appStrings().ui_ProtectHidden
+            .confirmButtonText = appStrings().ui_MountDrive
+            .width = 520
+        }
+
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildHiddenProtectionForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
@@ -1791,7 +1708,7 @@ impl MainWindow
     mtd mountContainer()
     {
         let path = .mountPath.text()
-        if not path.count
+        if path.count == 0
         {
             .showError(appStrings().msg_ChooseExisting)
             return
@@ -1818,7 +1735,7 @@ impl MainWindow
             return
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
-        .startMount(String.from(path), mountPoint, false, .readOnly.state == .Checked)
+        .startMount(String.from(path), mountPoint, false, .readOnly.isChecked())
     }
 
     // Starts the mount the password already staged in the operation opens.
@@ -1826,7 +1743,7 @@ impl MainWindow
     {
         .operation.path           = path
         .operation.mount          = mountPoint
-        .operation.mountLabel     = .mountPointLabel(.operation.mount.toString())
+        .operation.mountLabel     = .mountPointLabel(.operation.mount)
         .operation.fromStartup    = fromStartup
         .operation.readOnly       = readOnly
         .operation.usedProtection = .operation.access.isProtected() or .operation.protectHidden
@@ -1853,25 +1770,37 @@ impl MainWindow
         .beginOperation(.Unmount)
     }
 
+    // Whether the open card names a container that can be changed now, saying why when it cannot.
+    //
+    // A mounted container is in use by Windows: changing its geometry or its key slots under the
+    // driver would corrupt what the drive is reading.
+    mtd canChangeVault()->bool
+    {
+        if .state != .Ready or not .canModifyVault() do
+            return false
+        if .isMounted(.mountPath.text())
+        {
+            .showError(appStrings().msg_UnmountFirst)
+            return false
+        }
+
+        return true
+    }
+
     // Changes only the password. Current access and the retained key-file set come from the open
     // card, so the box contains the new password and its confirmation alone.
     mtd changeVaultPassword()
     {
-        if .state != .Ready or not .canModifyVault() do
+        if not .canChangeVault() do
             return
 
-        let path = String.from(.mountPath.text())
-        if .isMounted(path.toString())
+        with var options: FormDlgOptions
         {
-            .showError(appStrings().msg_UnmountFirst)
-            return
+            .title  = appStrings().dlg_TitlePassword
+            .confirmButtonText = appStrings().dlg_BtnApply
+            .width  = 520
+            .height = 300
         }
-
-        var options: FormDlgOptions
-        options.title  = appStrings().dlg_TitlePassword
-        options.confirmButtonText = appStrings().dlg_BtnApply
-        options.width  = 520
-        options.height = 300
 
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildPasswordChangeForm(dialog)
@@ -1884,7 +1813,7 @@ impl MainWindow
             return
         }
 
-        .operation.path = path
+        .operation.path = .mountPath.text()
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .operation.replacement.setInputs(fields.replacement.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
@@ -1900,26 +1829,21 @@ impl MainWindow
     // open card, and current access is verified before the replacement slot is published.
     mtd changeVaultKeyFiles()
     {
-        if .state != .Ready or not .canModifyVault() do
+        if not .canChangeVault() do
             return
 
-        let path = String.from(.mountPath.text())
-        if .isMounted(path.toString())
+        with var options: FormDlgOptions
         {
-            .showError(appStrings().msg_UnmountFirst)
-            return
+            .title = appStrings().dlg_TitleChangeKeyFiles
+            .confirmButtonText = appStrings().dlg_BtnApply
         }
-
-        var options: FormDlgOptions
-        options.title = appStrings().dlg_TitleChangeKeyFiles
-        options.confirmButtonText = appStrings().dlg_BtnApply
 
         let dialog = FormDlg.create(.surface!, options)
         let files  = buildKeyFileChangeForm(dialog, .mountKeyFiles.paths.toSlice())
         if dialog.doModal() != Dialog.BtnOk or files.samePaths(.mountKeyFiles.paths.toSlice()) do
             return
 
-        .operation.path = path
+        .operation.path = .mountPath.text()
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .operation.replacement.setInputs(.mountPassword.bytes(), files.paths.toSlice())
         files.copyPaths(&.operation.resultKeyFiles)
@@ -1934,27 +1858,23 @@ impl MainWindow
     // Asks only for another capacity, then resizes with the access stated on the open card.
     mtd resizeVault()
     {
-        if .state != .Ready or not .canModifyVault() do
+        if not .canChangeVault() do
             return
 
-        let path = String.from(.mountPath.text())
-        if .isMounted(path.toString())
-        {
-            .showError(appStrings().msg_UnmountFirst)
-            return
-        }
-
-        if not File.exists(path.toString())
+        let path = .mountPath.text()
+        if not File.exists(path)
         {
             .showError(appStrings().msg_ChooseExisting)
             return
         }
 
-        var options: FormDlgOptions
-        options.title  = appStrings().dlg_TitleResize
-        options.confirmButtonText = appStrings().dlg_BtnApply
-        options.width  = 520
-        options.height = 240
+        with var options: FormDlgOptions
+        {
+            .title  = appStrings().dlg_TitleResize
+            .confirmButtonText = appStrings().dlg_BtnApply
+            .width  = 520
+            .height = 240
+        }
 
         let dialog = FormDlg.create(.surface!, options)
         let fields = buildVaultResizeForm(dialog)
@@ -1968,7 +1888,7 @@ impl MainWindow
             let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
             if not size.error.isEmpty()
             {
-                .showError(size.error.toString())
+                .showError(size.error)
                 return
             }
 
@@ -2022,14 +1942,14 @@ impl MainWindow
         case .Create:
             if .operation.createHidden
             {
-                var volume = catch Volume.createHidden(.operation.path.toString(), current.toSlice(), hiddenCredential.toSlice(), .operation.size, &.operation.progress, .operation.outerReserve) as createError
+                var volume = catch Volume.createHidden(.operation.path, current.toSlice(), hiddenCredential.toSlice(), .operation.size, &.operation.progress, .operation.outerReserve) as createError
                 .operation.error.capture(createError)
                 if createError == null do
                     volume.close()
             }
             else
             {
-                var volume = catch Volume.create(.operation.path.toString(), current.toSlice(), .operation.size, &.operation.progress) as createError
+                var volume = catch Volume.create(.operation.path, current.toSlice(), .operation.size, &.operation.progress) as createError
                 .operation.error.capture(createError)
                 if createError == null do
                     volume.close()
@@ -2037,7 +1957,7 @@ impl MainWindow
 
         case .Mount:
             let mounted = Memory.new'MountedVault()
-            discard catch mounted.open(.operation.path.toString(), current.toSlice(), .operation.mount.toString(), .operation.readOnly, hiddenCredential.toSlice()) as mountError
+            discard catch mounted.open(.operation.path, current.toSlice(), .operation.mount, .operation.readOnly, hiddenCredential.toSlice()) as mountError
             .operation.error.capture(mountError)
             if mountError != null
             {
@@ -2060,7 +1980,7 @@ impl MainWindow
             }
 
         case .Resize:
-            var volume = catch Volume.open(.operation.path.toString(), current.toSlice()) as openError
+            var volume = catch Volume.open(.operation.path, current.toSlice()) as openError
             .operation.error.capture(openError)
             if openError == null
             {
@@ -2084,7 +2004,7 @@ impl MainWindow
             if deriveError != null do
                 break
 
-            var volume = catch Volume.open(.operation.path.toString(), current.toSlice()) as openError
+            var volume = catch Volume.open(.operation.path, current.toSlice()) as openError
             .operation.error.capture(openError)
             if openError == null
             {
@@ -2110,7 +2030,7 @@ impl MainWindow
             return
         if .operation.progress.isCanceled() do
             return
-        .statusProgress = cast(s32, (.operation.progress.ratio() * 100))
+        .statusProgress = cast(s32, .operation.progress.ratio() * 100)
         .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : (.operation.camouflageOnly ? StatusMessage.Camouflaging : StatusMessage.Resizing))
     }
 
@@ -2118,12 +2038,7 @@ impl MainWindow
     {
         .operation.task.wait()
         catch .operation.error.raise() as operationError
-        if .operation.timer
-        {
-            .removeTimer(.operation.timer)
-            .operation.timer = null
-        }
-
+        .stopTimer(&.operation.timer)
         .showBusy(false)
 
         switch #complete .operation.kind
@@ -2208,17 +2123,14 @@ impl MainWindow
                 .showError(appStrings().msg_ResizeFailed, operationError)
                 .setStatus(.ResizeStopped)
             }
+            elif .operation.camouflageOnly
+            {
+                .setStatus(.Camouflaged)
+            }
             else
             {
-                if .operation.camouflageOnly
-                {
-                    .setStatus(.Camouflaged)
-                }
-                else
-                {
-                    .statusDrive = capacityText(.operation.size)
-                    .setStatus(.Resized)
-                }
+                .statusDrive = capacityText(.operation.size)
+                .setStatus(.Resized)
             }
 
         case .ChangeAccess:
@@ -2269,8 +2181,7 @@ impl MainWindow
     // Adds the drive the mount operation produced to the band.
     mtd rememberMountedDrive()
     {
-        let known = .startupIndex(.operation.path.toString())
-
+        let known = .startupIndex(.operation.path)
         if not .privacyMode
         {
             .mountSettings.path     = .operation.path
@@ -2316,7 +2227,7 @@ impl MainWindow
     {
         if .privacyMode do
             return
-        let index = .startupIndex(.operation.path.toString())
+        let index = .startupIndex(.operation.path)
         if index != Swag.U64.Max
         {
             .startupVaults[index].needsPassword = not .operation.leavesUnprotected
@@ -2347,7 +2258,7 @@ impl MainWindow
                 continue
             one.atStartup = checked
 
-            let known = .startupIndex(one.path.toString())
+            let known = .startupIndex(one.path)
             if not checked
             {
                 if known != Swag.U64.Max do
@@ -2374,11 +2285,11 @@ impl MainWindow
             let entry = .startupQueue[0]
             .startupQueue.removeAtOrdered(0)
 
-            if entry.drive.isEmpty() or not File.exists(entry.path.toString()) or .isMounted(entry.path.toString()) do
+            if entry.drive.isEmpty() or not File.exists(entry.path) or .isMounted(entry.path) do
                 continue
 
             .operation.access.clear()
-            if entry.needsPassword and not .askStartupAccess(entry.path.toString()) do
+            if entry.needsPassword and not .askStartupAccess(entry.path) do
                 continue
 
             .operation.protectHidden = entry.protectHidden and not entry.readOnly
@@ -2401,12 +2312,15 @@ impl MainWindow
     // and the mark it carries is left alone for the next start.
     mtd askStartupAccess(path: string)->bool
     {
-        var options: FormDlgOptions
-        options.title             = Format.toString(appStrings().dlg_TitleUnlock, Path.fileName(path) orelse path).toString()
-        options.confirmButtonText = appStrings().ui_MountDrive
-        options.cancelButtonText  = appStrings().dlg_BtnSkip
-        options.width             = 520
-        options.height            = 250
+        let title = Format.toString(appStrings().dlg_TitleUnlock, Path.fileName(path) orelse path)
+        with var options: FormDlgOptions
+        {
+            .title             = title
+            .confirmButtonText = appStrings().ui_MountDrive
+            .cancelButtonText  = appStrings().dlg_BtnSkip
+            .width             = 520
+            .height            = 250
+        }
 
         let dialog = FormDlg.create(.surface!, options)
         VaultForm.configure(dialog.form)
@@ -2428,24 +2342,9 @@ impl MainWindow
             return
         .shuttingDown = true
 
-        if .operation.timer
-        {
-            .removeTimer(.operation.timer)
-            .operation.timer = null
-        }
-
-        if .startupTimer
-        {
-            .removeTimer(.startupTimer)
-            .startupTimer = null
-        }
-
-        if .securityTimer
-        {
-            .removeTimer(.securityTimer)
-            .securityTimer = null
-        }
-
+        .stopTimer(&.operation.timer)
+        .stopTimer(&.startupTimer)
+        .stopTimer(&.securityTimer)
         .securityMonitor.stop()
 
         if .operation.kind != .None
@@ -2526,8 +2425,7 @@ impl IWnd for MainWindow
         {
             // One shot: the queue drains through the operations that finish, not through
             // this timer.
-            .removeTimer(.startupTimer!)
-            .startupTimer = null
+            .stopTimer(&.startupTimer)
             .pumpStartupQueue()
         }
         elif evt.timer == .securityTimer
@@ -2559,14 +2457,14 @@ impl IWnd for MainWindow
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
 
             .securityMonitor.start(me)
-            .securityTimer = .app().addTimer(1's, me)
+            .securityTimer = .addTimer(1's)
 
             // The startup mounts wait for a surface a reader can see: the first one may need
             // access input, and a box on a window that is not up yet has nothing to sit on.
             if not .privacyMode do
                 .startupQueue.add(.startupVaults.toSlice())
             if .startupQueue.count do
-                .startupTimer = .app().addTimer(200'ms, me)
+                .startupTimer = .addTimer(200'ms)
 
             evt.accepted = true
         }

@@ -5,7 +5,7 @@ using Core
 
 func accessTestPassword()->const [..] u8 => cast(const [..] u8, "panel password")
 
-func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("vault_access_%_%.bin", tag, Guid64.random()))
+func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("vault_access_%_%.bin", tag, Guid64.random()))
 
 // Password-only access uses the password bytes directly.
 #test
@@ -28,9 +28,9 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     let secondPath = accessTestPath("second")
     defer discard catch File.delete(secondPath)
 
-    discard expect File.writeAllBytes(firstPath.toString(), [1'u8, 2, 3, 4])
-    discard expect File.writeAllBytes(movedPath.toString(), [1'u8, 2, 3, 4])
-    discard expect File.writeAllBytes(secondPath.toString(), [5'u8, 6, 7])
+    discard expect File.writeAllBytes(firstPath, [1'u8, 2, 3, 4])
+    discard expect File.writeAllBytes(movedPath, [1'u8, 2, 3, 4])
+    discard expect File.writeAllBytes(secondPath, [5'u8, 6, 7])
 
     var firstFiles: Array'String
     firstFiles.add(String.from(firstPath))
@@ -71,8 +71,8 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     let vault = accessTestPath("vault")
     defer discard catch File.delete(vault)
 
-    discard expect File.writeAllBytes(oldKey.toString(), [10'u8, 11, 12])
-    discard expect File.writeAllBytes(newKey.toString(), [20'u8, 21, 22])
+    discard expect File.writeAllBytes(oldKey, [10'u8, 11, 12])
+    discard expect File.writeAllBytes(newKey, [20'u8, 21, 22])
 
     var oldFiles: Array'String
     oldFiles.add(String.from(oldKey))
@@ -90,31 +90,31 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     rawCredential.bytes.add(accessTestPassword())
 
     // Add the first key file to a password-only vault.
-    var volume = expect Volume.create(vault.toString(), rawCredential.toSlice(), MinimumSize)
+    var volume = expect Volume.create(vault, rawCredential.toSlice(), MinimumSize)
     expect volume.changePassword(rawCredential.toSlice(), oldCredential.toSlice())
     Swag.assert(volume.keySlotCount() == 1)
     volume.close()
 
-    discard catch Volume.open(vault.toString(), rawCredential.toSlice()) as rawAfterAddError
+    discard catch Volume.open(vault, rawCredential.toSlice()) as rawAfterAddError
     Swag.assert(rawAfterAddError != null)
-    volume = expect Volume.open(vault.toString(), oldCredential.toSlice())
+    volume = expect Volume.open(vault, oldCredential.toSlice())
 
     // Replace its key-file set.
     expect volume.changePassword(oldCredential.toSlice(), newCredential.toSlice())
     Swag.assert(volume.keySlotCount() == 1)
     volume.close()
 
-    discard catch Volume.open(vault.toString(), oldCredential.toSlice()) as oldError
+    discard catch Volume.open(vault, oldCredential.toSlice()) as oldError
     Swag.assert(oldError != null)
-    volume = expect Volume.open(vault.toString(), newCredential.toSlice())
+    volume = expect Volume.open(vault, newCredential.toSlice())
 
     // Remove every key file while preserving the panel password.
     expect volume.changePassword(newCredential.toSlice(), rawCredential.toSlice())
     Swag.assert(volume.keySlotCount() == 1)
     volume.close()
 
-    discard catch Volume.open(vault.toString(), newCredential.toSlice()) as newAfterRemoveError
+    discard catch Volume.open(vault, newCredential.toSlice()) as newAfterRemoveError
     Swag.assert(newAfterRemoveError != null)
-    var reopened = expect Volume.open(vault.toString(), rawCredential.toSlice())
+    var reopened = expect Volume.open(vault, rawCredential.toSlice())
     reopened.close()
 }

@@ -52,7 +52,7 @@ func statusForError(kind: ErrorKind)->s32
     Swag.assert(WinFsp.volumeSerialNumber(0x0123_4567_89AB_CDEF) == 0x89AB_CDEF)
 
     let temp = Env.getSpecialDirectory(.Temp)
-    let path = Path.combine(temp.toString(), Format.toString("vault_callbacks_%.bin", Guid64.random()))
+    let path = Path.combine(temp, Format.toString("vault_callbacks_%.bin", Guid64.random()))
     defer discard catch File.delete(path)
 
     let password = cast(const [..] u8, "callback password")
@@ -212,7 +212,7 @@ func statusForError(kind: ErrorKind)->s32
 #test
 {
     let temp = Env.getSpecialDirectory(.Temp)
-    let path = Path.combine(temp.toString(), Format.toString("vault_batch_rename_%.bin", Guid64.random()))
+    let path = Path.combine(temp, Format.toString("vault_batch_rename_%.bin", Guid64.random()))
     defer discard catch File.delete(path)
     let password: const [..] u8 = cast("batch rename password")
     let security: const [..] u8 = cast("")

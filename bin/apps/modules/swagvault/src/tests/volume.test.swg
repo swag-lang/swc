@@ -58,7 +58,7 @@ func emptyBytes()->const [..] u8 => cast(const [..] u8, "")
 func testContainerPath(tag: string)->String
 {
     let temp = Env.getSpecialDirectory(.Temp)
-    return Path.combine(temp.toString(), Format.toString("vault_%_%.bin", tag, Guid64.random()))
+    return Path.combine(temp, Format.toString("vault_%_%.bin", tag, Guid64.random()))
 }
 
 func rejectsPassword(path: string, password: const [..] u8)->bool
@@ -187,7 +187,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer discard catch File.delete(salvaged)
 
     const RunCount = 180'u64
-    var volume    = expect Volume.create(path, testPassword(), pagingContainerSize())
+    var volume = expect Volume.create(path, testPassword(), pagingContainerSize())
     discard expect volume.createNode("\\destination", true, FileAttributeDirectory, emptyBytes())
     let fileId = expect volume.createNode("\\fragmented.bin", false, FileAttributeNormal, emptyBytes())
     var block: [BlockSize] u8 = [0x5A]

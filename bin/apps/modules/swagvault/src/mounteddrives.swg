@@ -78,8 +78,11 @@ impl MountedDrives
     {
         let card = VaultCard.create(parent, appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
 
-        let unmount = PushButton.create(card.actions, appStrings().ui_Unmount)
-        unmount.setIcon(card.panel.theme().icon(ThemeIcons.Stop, themeActionIconSize(card.panel.themeMetrics())))
+        with let unmount = PushButton.create(card.actions, appStrings().ui_Unmount)
+        {
+            .setIcon(card.panel.theme().icon(.Stop, themeActionIconSize(card.panel.themeMetrics())))
+        }
+
         card.actions.computeLayout()
 
         // The card carries no fields, so its form collapses to nothing and the table takes the
@@ -89,24 +92,27 @@ impl MountedDrives
         // The table sits on the card's own fill, so it draws no ground of its own: a framed
         // list inside a raised panel is the second box the panel exists to avoid. Its heading
         // row keeps the one hairline that separates the headings from the rows.
-        let list = ListCtrl.createMultiColumns(card.body)
-        list.layoutSpec.policyY       = .Expand
-        list.preferredSize.y          = list.header.measure({}).preferred.y + 5 * list.lineHeight()
-        list.backgroundStyle          = .Transparent
-        list.listView.backgroundStyle = .Transparent
-        list.header.form              = .Transparent
-        list.setSelectionMode(.Single)
-        list.updateFlags(add: .HotTrack)
+        with let list = ListCtrl.createMultiColumns(card.body)
+        {
+            .layoutSpec.policyY       = .Expand
+            .preferredSize.y          = .header.measure({}).preferred.y + 5 * .lineHeight()
+            .backgroundStyle          = .Transparent
+            .listView.backgroundStyle = .Transparent
+            .header.form              = .Transparent
+            .setSelectionMode(.Single)
+            .updateFlags(add: .HotTrack)
 
-        // Sorting would put the rows in an order the drive list no longer matches, and a
-        // handful of drives have nothing to sort anyway.
-        list.header.updateFlags(remove: .Clickable)
+            // Sorting would put the rows in an order the drive list no longer matches, and a
+            // handful of drives have nothing to sort anyway.
+            .header.updateFlags(remove: .Clickable)
 
-        list.addColumn(appStrings().ui_ColStartup, StartupColumnWidth)
-        list.addColumn(appStrings().ui_ColDrive, DriveColumnWidth)
-        list.addColumn(appStrings().ui_ColSize, SizeColumnWidth)
-        list.addColumn(appStrings().ui_ColAvailable, AvailableColumnWidth)
-        list.addColumn(appStrings().ui_ColVault, MinimumVaultWidth)
+            // In the order of `MountedColumn`.
+            .addColumn(appStrings().ui_ColStartup, StartupColumnWidth)
+            .addColumn(appStrings().ui_ColDrive, DriveColumnWidth)
+            .addColumn(appStrings().ui_ColSize, SizeColumnWidth)
+            .addColumn(appStrings().ui_ColAvailable, AvailableColumnWidth)
+            .addColumn(appStrings().ui_ColVault, MinimumVaultWidth)
+        }
 
         // This compact status table has no user-defined layout to preserve. Its five semantic
         // lanes always follow the surface, so draggable separators would only create overflow.
@@ -122,9 +128,11 @@ impl MountedDrives
         // An empty table is a card with a heading and nothing under it, which reads as a table
         // that failed to load. One quiet line says the truth instead, and steps aside the
         // moment there is a row to show.
-        let empty = Label.create(card.body, appStrings().ui_NoDriveMounted, {}, null, .SecondaryText)
-        empty.layoutSpec.policyY = .Expand
-        empty.setTextAlignment(.Center, .Center)
+        with let empty = Label.create(card.body, appStrings().ui_NoDriveMounted, {}, null, .SecondaryText)
+        {
+            .layoutSpec.policyY = .Expand
+            .setTextAlignment(.Center, .Center)
+        }
 
         card.body.mode = .Top
         card.actions.bringToFront()
@@ -162,11 +170,11 @@ impl MountedDrives
             // and the file is exactly as writable as it ever was.
             var driveIcon: Icon
             if one.readOnly do
-                driveIcon = .list.theme().icon(ThemeIcons.Lock, themeRowIconSize(.list.themeMetrics()))
-            line.setItem(cast(u32, MountedColumn.Drive), one.mountLabel.toString(), driveIcon)
-            line.setItem(cast(u32, MountedColumn.Size), capacityText(one.totalBytes).toString())
-            line.setItem(cast(u32, MountedColumn.Available), capacityText(one.availableBytes).toString())
-            line.setItem(cast(u32, MountedColumn.Vault), Path.fileName(one.path.toString()) orelse one.path.toString())
+                driveIcon = .list.theme().icon(.Lock, themeRowIconSize(.list.themeMetrics()))
+            line.setItem(cast(u32, MountedColumn.Drive), one.mountLabel, driveIcon)
+            line.setItem(cast(u32, MountedColumn.Size), capacityText(one.totalBytes))
+            line.setItem(cast(u32, MountedColumn.Available), capacityText(one.availableBytes))
+            line.setItem(cast(u32, MountedColumn.Vault), Path.fileName(one.path) orelse one.path.toString())
         }
 
         for &one, index in .drives where .startupEnabled and one.atStartup do
@@ -203,11 +211,6 @@ impl MountedDrives
     // header width but not part of any lane.
     mtd layoutColumns()
     {
-        let startup   = cast(u32, MountedColumn.Startup)
-        let drive     = cast(u32, MountedColumn.Drive)
-        let size      = cast(u32, MountedColumn.Size)
-        let free      = cast(u32, MountedColumn.Available)
-        let vault     = cast(u32, MountedColumn.Vault)
         let available = .list.listView.paddedClientRect().width
 
         var currentItems = 0'f32
@@ -223,11 +226,9 @@ impl MountedDrives
         let freeWidth    = Math.max(AvailableColumnWidth, room * AvailableColumnShare)
         let vaultWidth   = Math.max(MinimumVaultWidth, room - startupWidth - driveWidth - sizeWidth - freeWidth)
 
-        .list.setColumnWidth(startup, startupWidth)
-        .list.setColumnWidth(drive, driveWidth)
-        .list.setColumnWidth(size, sizeWidth)
-        .list.setColumnWidth(free, freeWidth)
-        .list.setColumnWidth(vault, vaultWidth)
+        // In the order of `MountedColumn`.
+        for width, column in [startupWidth, driveWidth, sizeWidth, freeWidth, vaultWidth] do
+            .list.setColumnWidth(cast(u32, column), width)
         .list.computeLayout()
     }
 
@@ -239,7 +240,6 @@ impl MountedDrives
             return Swag.U64.Max
         for index in .drives.count where .list.lineAt(cast(u32, index)) == line do
             return index
-
         return Swag.U64.Max
     }
 
@@ -261,11 +261,11 @@ impl MountedDrives
     mtd retranslate()
     {
         .card.setTexts(appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
-        .list.header.itemAt(cast(u32, MountedColumn.Startup)).name   = appStrings().ui_ColStartup
-        .list.header.itemAt(cast(u32, MountedColumn.Drive)).name     = appStrings().ui_ColDrive
-        .list.header.itemAt(cast(u32, MountedColumn.Size)).name      = appStrings().ui_ColSize
-        .list.header.itemAt(cast(u32, MountedColumn.Available)).name = appStrings().ui_ColAvailable
-        .list.header.itemAt(cast(u32, MountedColumn.Vault)).name     = appStrings().ui_ColVault
+
+        // In the order of `MountedColumn`.
+        let texts = appStrings()
+        for name, column in [texts.ui_ColStartup, texts.ui_ColDrive, texts.ui_ColSize, texts.ui_ColAvailable, texts.ui_ColVault] do
+            .list.header.itemAt(cast(u32, column)).name = name
         .list.header.invalidate()
 
         .empty.setText(appStrings().ui_NoDriveMounted)

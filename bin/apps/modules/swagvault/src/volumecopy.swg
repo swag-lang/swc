@@ -1,5 +1,17 @@
 using Core
 
+// Whether `copied` carries the size, attributes, times, and security descriptor of `original`.
+private func sameMetadata(copied, original: const *Node)->bool
+{
+    return copied.size == original.size and
+           copied.attributes == original.attributes and
+           copied.creationTime == original.creationTime and
+           copied.lastAccessTime == original.lastAccessTime and
+           copied.lastWriteTime == original.lastWriteTime and
+           copied.changeTime == original.changeTime and
+           Core.Crypto.constantTimeEqual(copied.security.toSlice(), original.security.toSlice())
+}
+
 // Streams a namespace into another volume without writing plaintext to the host filesystem.
 struct VolumeCopy
 {
@@ -19,7 +31,7 @@ impl VolumeCopy
             let id   = try .target.createNode(path, node.isDirectory(), node.attributes & ~FileAttributeReadOnly, node.security.toSlice())
             if node.isDirectory()
             {
-                try .copyDirectory(node.id, path.toString())
+                try .copyDirectory(node.id, path)
             }
             else
             {
@@ -62,11 +74,12 @@ impl VolumeCopy
             if not found do
                 try failWith("A copied entry is missing.", .Io)
             let copied = found!
-            if copied.size != node.size or copied.attributes != node.attributes or copied.creationTime != node.creationTime or copied.lastAccessTime != node.lastAccessTime or copied.lastWriteTime != node.lastWriteTime or copied.changeTime != node.changeTime or not Core.Crypto.constantTimeEqual(copied.security.toSlice(), node.security.toSlice()) do
+            if not sameMetadata(copied, node) do
                 try failWith("Copied metadata differs from the source.", .Io)
+
             if node.isDirectory()
             {
-                try .verifyDirectory(node.id, path.toString())
+                try .verifyDirectory(node.id, path)
             }
             else
             {
@@ -104,6 +117,7 @@ impl VolumeCopy
         defer Core.Crypto.secureClear(hiddenPassword.toSlice())
         if sourcePath.isEmpty() or targetPath.isEmpty() or outerPassword.isEmpty() or hiddenPassword.isEmpty() do
             try failWith("The copy harness needs source, target, and both access variables.", .InvalidInput)
+
         Console.println("Opening source read only...")
         var source = try Volume.open(sourcePath, outerPassword.toSlice(), true)
         Console.println("Source entries: ", source.nodes.count, "; capacity: ", source.containerSize)
@@ -116,11 +130,13 @@ impl VolumeCopy
         var outer = try Volume.create(targetPath, outerPassword.toSlice(), outerSize)
         outer.close()
         var target = try Volume.createHidden(targetPath, outerPassword.toSlice(), hiddenPassword.toSlice(), hiddenSize, outerReserve: reserve)
+
         Console.println("Copying files into the hidden volume...")
         var copier = VolumeCopy{&source, &target}
         try copier.copyDirectory(RootNodeId, "")
         try target.checkpoint()
         target.close()
+
         Console.println("Reopening and comparing every copied byte...")
         var verified = try Volume.open(targetPath, hiddenPassword.toSlice(), true)
         copier.target = &verified
@@ -128,6 +144,7 @@ impl VolumeCopy
             try failWith("The copied namespace has a different number of entries.", .Io)
         try copier.verifyDirectory(RootNodeId, "")
         verified.close()
+
         Console.println("Checking ordinary writes with hidden protection enabled...")
         var protected = try Volume.open(targetPath, outerPassword.toSlice(), protectionPassword: hiddenPassword.toSlice())
         let marker    = try protected.createNode("\\readme.txt", false, FileAttributeNormal, "")
@@ -135,6 +152,7 @@ impl VolumeCopy
         discard try protected.writeNode(marker, 0, text, false, false)
         try protected.commit()
         protected.close()
+
         var finalCheck = try Volume.open(targetPath, hiddenPassword.toSlice(), true)
         copier.target = &finalCheck
         try copier.verifyDirectory(RootNodeId, "")

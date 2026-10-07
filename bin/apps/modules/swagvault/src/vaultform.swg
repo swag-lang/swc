@@ -32,8 +32,22 @@ impl VaultForm
     func finish(form: *FormLayoutCtrl)
     {
         for row in form.rows where row.help != null do
-            row.help.setLineGap(cast(s32, (form.themeMetrics().dialog_BtnPadding / 2)))
+            row.help.setLineGap(cast(s32, form.themeMetrics().dialog_BtnPadding / 2))
         form.computeLayout()
         form.invalidateLayout()
+    }
+
+    // Adds the unit choice that follows a capacity field, in the order `parseCapacity` reads.
+    func addCapacityUnit(form: *FormLayoutCtrl)->*ComboBox
+    {
+        with let result = form.addRowChoice()
+        {
+            for unit in ["MiB", "GiB"] do
+                .addItem(unit)
+            .setSelectedIndex(0, notify: false)
+            setMachineFont(result)
+        }
+
+        return result
     }
 }

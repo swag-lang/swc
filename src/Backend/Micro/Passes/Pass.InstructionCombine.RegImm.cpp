@@ -458,7 +458,7 @@ namespace InstructionCombine
         const auto identityKeepsValue = [&] {
             if (!ctx.ssa)
                 return false;
-            if (!ctx.ssa->isRegUsedAfter(dst, ref) || opBits != MicroOpBits::B32)
+            if (opBits != MicroOpBits::B32 || !ctx.ssa->isRegUsedAfter(dst, ref))
                 return true;
             const MicroSsaState::ReachingDef input = ctx.ssa->reachingDef(dst, ref);
             return input.valid() && isValueZeroExtended32(ctx, input.valueId);

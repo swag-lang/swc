@@ -847,12 +847,12 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         const bool     freeServesWhole = bestFree < poolCount && bestFreeUntil >= out.nodes[currentIndex].end();
         const bool     freeSplittable  = bestFree < poolCount && (bestFreeUntil & ~1u) > position;
         bool           freeEndsAtCall  = false;
-        if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty() &&
-            fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == bestFreeUntil)
+        if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty())
         {
             const uint32_t    blockIndex = bestFreeUntil / 2;
             const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
-            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction);
+            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+                             fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == bestFreeUntil;
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];

@@ -182,7 +182,7 @@ private impl SubtitleViewer
         {
             .backgroundStyle = .View
             .track           = try Subtitle.Track.loadOwned(host.fileName())
-            .duration        = .track!.durationInSeconds()
+            .duration        = .track.durationInSeconds()
             .buildTranscript()
         }
 

@@ -793,6 +793,37 @@ namespace InstructionCombine
         return true;
     }
 
+    bool Context::isBooleanMerge(MicroReg reg)
+    {
+        if (!booleanMergesReady)
+        {
+            SWC_ASSERT(ssa != nullptr);
+            // Only partial-width candidates need this scan. Queued rewrites leave
+            // its instruction and SSA snapshot intact until the pass finishes.
+            const auto view  = storage->view();
+            const auto endIt = view.end();
+            for (auto it = view.begin(); it != endIt; ++it)
+            {
+                if (it->op != MicroInstrOpcode::LoadRegReg)
+                    continue;
+                const MicroInstrOperand* ops = it->ops(*operands);
+                if (!ops || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isVirtualInt())
+                    continue;
+                MicroSsaState::ReachingDef source = ssa->reachingDef(ops[1].reg, it.current);
+                if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
+                {
+                    const MicroInstrOperand* extOps = source.inst->ops(*operands);
+                    if (extOps && extOps[0].reg == extOps[1].reg)
+                        source = ssa->reachingDef(extOps[1].reg, source.instRef);
+                }
+                if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::SetCondReg)
+                    booleanMerges.insert(ops[0].reg.index());
+            }
+            booleanMergesReady = true;
+        }
+        return booleanMerges.contains(reg.index());
+    }
+
     // A 32-bit copy whose readers never look above bit 31 moves the whole
     // register instead. The zero-extension it performed is unobservable, and
     // a full-width move is what copy elimination merges and what the
@@ -826,7 +857,7 @@ namespace InstructionCombine
         const MicroReg src = immediate ? MicroReg::invalid() : ops[1].reg;
         if (!dst.isVirtualInt() || (!immediate && (!src.isAnyInt() || dst == src)))
             return false;
-        if (partial && ctx.booleanMerges.contains(dst.index()))
+        if (partial && ctx.isBooleanMerge(dst))
             return false;
 
         uint32_t valueId = 0;

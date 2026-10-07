@@ -82,6 +82,8 @@ namespace InstructionCombine
         };
         std::array<FloatReadFit, 2> floatReadFits{};
         bool                        allFloatReadsFit(MicroOpBits bits);
+        bool                        booleanMergesReady = false;
+        bool                        isBooleanMerge(MicroReg reg);
 
         // Queues a new instruction to be inserted before `ref`, in queue
         // order with the other insertions before the same instruction.

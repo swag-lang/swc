@@ -253,6 +253,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.actions.clear();
     ctx.relocated.clear();
     ctx.booleanMerges.clear();
+    ctx.booleanMergesReady = false;
     ctx.pendingNarrowSelects.clear();
     ctx.narrowedSelects.clear();
     ctx.loopSlots.clear();
@@ -300,23 +301,6 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     {
         const auto view  = ctx.storage->view();
         const auto endIt = view.end();
-        for (auto it = view.begin(); it != endIt; ++it)
-        {
-            if (!ctx.ssa || it->op != MicroInstrOpcode::LoadRegReg)
-                continue;
-            const MicroInstrOperand* ops = it->ops(*ctx.operands);
-            if (!ops || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isVirtualInt())
-                continue;
-            MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ops[1].reg, it.current);
-            if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
-            {
-                const MicroInstrOperand* extOps = source.inst->ops(*ctx.operands);
-                if (extOps && extOps[0].reg == extOps[1].reg)
-                    source = ctx.ssa->reachingDef(extOps[1].reg, source.instRef);
-            }
-            if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::SetCondReg)
-                ctx.booleanMerges.insert(ops[0].reg.index());
-        }
         for (auto it = view.begin(); it != endIt; ++it)
         {
             const bool widenable = it->op == MicroInstrOpcode::LoadRegReg || it->op == MicroInstrOpcode::LoadRegImm;

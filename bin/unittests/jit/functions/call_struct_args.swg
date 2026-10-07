@@ -80,19 +80,19 @@ struct PackedImageLike
 
 func PackedPointerAfterHeader(result: *PackedPointerTarget, header: PackedHeader18, pixelIndex: u64)->u8
 {
-    let srcX = cast(s32) (pixelIndex % header.width)
+    let srcX = cast(s32, (pixelIndex % header.width))
     let dstX = header.descriptorByte & 0x10 ? result.width - srcX - 1 : srcX
-    let ofs  = cast(u64) dstX * result.bpp
+    let ofs  = cast(u64, dstX) * result.bpp
     return result.buffer[ofs] + header.imageTypeCode
 }
 
 func PackedImageDst(result: *PackedImageLike, header: PackedHeader18, pixelIndex: u64)->[*] u8
 {
-    let srcX = cast(s32) (pixelIndex % header.width)
-    let srcY = cast(s32) (pixelIndex / header.width)
+    let srcX = cast(s32, (pixelIndex % header.width))
+    let srcY = cast(s32, (pixelIndex / header.width))
     let dstX = header.descriptorByte & 0x10 ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & 0x20 ? result.height - srcY - 1 : srcY
-    return result.pixels.buffer + cast(u64) dstY * result.rowStride + cast(u64) dstX * result.bytesPerPixel
+    return result.pixels.buffer + cast(u64, dstY) * result.rowStride + cast(u64, dstX) * result.bytesPerPixel
 }
 
 func PackedImageWrite(result: *PackedImageLike, header: PackedHeader18, pixelIndex: u64, src: [*] u8)
@@ -112,16 +112,16 @@ func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
     result.bpp           = 0
     result.bytesPerPixel = 3
     result.rowStride     = 6
-    result.pixels        = {buffer: cast([*] u8) result.storage, count: 12, capacity: 16}
-    result.meta          = {buffer: cast([*] u8) result.storage, count: 0, capacity: 16}
+    result.pixels        = {buffer: cast([*] u8, result.storage), count: 12, capacity: 16}
+    result.meta          = {buffer: cast([*] u8, result.storage), count: 0, capacity: 16}
     result.work          = null
-    PackedImageWrite(&result, header, 1, cast([*] u8) result.storage + 3)
+    PackedImageWrite(&result, header, 1, cast([*] u8, result.storage) + 3)
     return result
 }
 
 func PackedForwardingCaller(result: *PackedPointerTarget, header: PackedHeader18, palette: PackedPaletteLike, pixelIndex: u64, src: const [*] u8)->u8
 {
-    return PackedPointerAfterHeader(result, header, pixelIndex) + src[0] - src[0] + cast(u8) palette.count - cast(u8) palette.count
+    return PackedPointerAfterHeader(result, header, pixelIndex) + src[0] - src[0] + cast(u8, palette.count) - cast(u8, palette.count)
 }
 
 func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget

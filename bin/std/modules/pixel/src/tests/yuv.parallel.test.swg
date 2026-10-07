@@ -30,7 +30,7 @@ using Core
     var storage: Array'u8
     storage.resize(LumaSize + ChromaSize * 2)
     for index in storage.count do
-        storage[index] = cast(u8) ((index * 37 + index / 97) & 255)
+        storage[index] = cast(u8, ((index * 37 + index / 97) & 255))
     var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage() + LumaSize, chromaR: storage.storage() + LumaSize + ChromaSize, lumaStride: LumaStride, chromaStride: ChromaStride, width: Width, height: Height}
     let matrices: [3] YuvMatrix = [.Bt601, .Bt709, .Bt2020]
     var image:    Image
@@ -47,8 +47,8 @@ using Core
                 {
                     for x in Width
                     {
-                        let chromaAt = cast(u64) (y / 2) * ChromaStride + cast(u64) (x / 2)
-                        let expected = expectedPlanarColor(view.luma[cast(u64) y * LumaStride + cast(u64) x], view.chromaB[chromaAt], view.chromaR[chromaAt], matrix, view.studioRange)
+                        let chromaAt = cast(u64, (y / 2)) * ChromaStride + cast(u64, (x / 2))
+                        let expected = expectedPlanarColor(view.luma[cast(u64, y) * LumaStride + cast(u64, x)], view.chromaB[chromaAt], view.chromaR[chromaAt], matrix, view.studioRange)
                         Swag.assert(image.pixelColor(x, y) == expected)
                     }
                 }

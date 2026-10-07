@@ -54,7 +54,7 @@ namespace WrapperNs
 }
 
 #[Swag.Inline]
-func inlineTypedVariadicCount(values: s32...)->s32 => cast(s32) values.count
+func inlineTypedVariadicCount(values: s32...)->s32 => cast(s32, values.count)
 
 #[Swag.Macro]
 func macroAdd(a: s32, b: s32)->s32 => a + b

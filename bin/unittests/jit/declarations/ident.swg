@@ -127,7 +127,7 @@ alias BigArray   = [5] s32
     func passAlias(x: PassAlias) => x
     const V = #run passAlias(77)
     #assert(#typeof(V) == PassAlias)
-    #assert(cast(s32) V == 77)
+    #assert(cast(s32, V) == 77)
 }
 
 #test
@@ -135,7 +135,7 @@ alias BigArray   = [5] s32
     func passEnum(x: PassEnum) => x
     const V = #run passEnum(PassEnum.B)
     #assert(#typeof(V) == PassEnum)
-    #assert(cast(u16) V == 513'u16)
+    #assert(cast(u16, V) == 513'u16)
 }
 
 #test
@@ -366,7 +366,7 @@ alias BigArray   = [5] s32
 {
     func passConstRef(x: SmallPair)->u64
     {
-        return cast(u64) x.a + cast(u64) x.b + x.c
+        return cast(u64, x.a) + cast(u64, x.b) + x.c
     }
 
     const P: SmallPair = {a: 1'u32, b: 2'u32, c: 39'u64}
@@ -379,7 +379,7 @@ alias BigArray   = [5] s32
 {
     func passMixed(a: s32, b: f64, c: string, d: SmallPair, e: PassEnum)->u64
     {
-        return cast(u64) a + cast(u64) b + cast(u64) c[0] + d.c + cast(u64) cast(u16) e
+        return cast(u64, a) + cast(u64, b) + cast(u64, c[0]) + d.c + cast(u64, cast(u16, e))
     }
 
     const V = #run passMixed(1, 2.0'f64, "A", {a: 3'u32, b: 4'u32, c: 5'u64}, PassEnum.A)
@@ -389,6 +389,6 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func passMixedErr(a: s32, b: SmallPair)->s32 { return a + cast(s32) b.a }
+    func passMixedErr(a: s32, b: SmallPair)->s32 { return a + cast(s32, b.a) }
     const V = #run passMixedErr(1)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

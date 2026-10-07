@@ -35,7 +35,7 @@ func day4B()
             set.add(str)
         }
 
-        total += cast(s32) (set.count == s.count)
+        total += cast(s32, (set.count == s.count))
     }
 
     Swag.assert(total == 186)

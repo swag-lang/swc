@@ -33,7 +33,7 @@ private func skipMetadata(source: *ByteSource)->u64 fail
     // The length is four groups of seven bits, most significant first, and excludes the header.
     var length = 0'u64
     for index in 4'u64 do
-        length = (length << 7) | cast(u64) (header[6 + index] & 0x7F)
+        length = (length << 7) | cast(u64, (header[6 + index] & 0x7F))
 
     // A footer, when the flags announce one, adds ten bytes more.
     if (header[5] & 0x10) != 0 do
@@ -69,7 +69,7 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
     let lame = at + 120
     if lame + 24 > frame.count do
         return result
-    let delay = (cast(u64) frame[lame + 0x15] << 4) | (cast(u64) frame[lame + 0x16] >> 4)
+    let delay = (cast(u64, frame[lame + 0x15]) << 4) | (cast(u64, frame[lame + 0x16]) >> 4)
     if delay do
         result.delayFrames = delay + DecoderDelay
     return result
@@ -123,8 +123,8 @@ private func readFrameIndex(source: *ByteSource, start: u64, packets: *Array'Sou
 
         if header.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"MP3 frame is larger than a packet may be"}
-        packets.add({at, cast(u32) header.frameBytes, header.frameSamples})
-        total += cast(u64) header.frameSamples
+        packets.add({at, cast(u32, header.frameBytes), header.frameSamples})
+        total += cast(u64, header.frameSamples)
         at    += header.frameBytes
     }
 

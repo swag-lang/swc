@@ -46,13 +46,13 @@ impl ReversedList
         #scope(Up)
         while node
         {
-            let current = node orelse cast(*ListEntry'T) 1'u64
+            let current = node orelse cast(*ListEntry'T, 1'u64)
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, item = cast(*T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*T, &current.value), node = current, index = index, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const *T) &current.value, node = current, index = index, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const *T, &current.value), node = current, index = index, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, item = current.value, node = current, index = index, break = break to Up, continue = break to Down)
             }
@@ -111,13 +111,13 @@ impl List
         #scope(Up)
         while n
         {
-            let node = n orelse cast(*ListEntry'(T)) 1'u64
+            let node = n orelse cast(*ListEntry'(T), 1'u64)
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, item = cast(*T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(*T, &node.value), node = node, index = ordinal, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const *T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const *T, &node.value), node = node, index = ordinal, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, item = node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
             }

@@ -29,8 +29,8 @@ func levelMax(inter: bool, last: u32, run: u32)->u32
     let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
 
     var result = 0'u32
-    for entry in lastOf.count where cast(u32) lastOf[entry] == last and cast(u32) runOf[entry] == run do
-        result = Math.max(result, cast(u32) levelOf[entry])
+    for entry in lastOf.count where cast(u32, lastOf[entry]) == last and cast(u32, runOf[entry]) == run do
+        result = Math.max(result, cast(u32, levelOf[entry]))
     return result
 }
 
@@ -44,9 +44,9 @@ func runMax(inter: bool, last: u32, level: u32)->u32
 
     var result = 0'u32
     var found  = false
-    for entry in lastOf.count where cast(u32) lastOf[entry] == last and cast(u32) levelOf[entry] == level
+    for entry in lastOf.count where cast(u32, lastOf[entry]) == last and cast(u32, levelOf[entry]) == level
     {
-        result = found ? Math.max(result, cast(u32) runOf[entry]) : cast(u32) runOf[entry]
+        result = found ? Math.max(result, cast(u32, runOf[entry])) : cast(u32, runOf[entry])
         found  = true
     }
 
@@ -62,7 +62,7 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
     let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
 
     // The escape code shares the code space of the table, so it is recognised before it.
-    if (reader.bitPos + cast(u64) TcoefEscapeLen) <= reader.bitEnd
+    if (reader.bitPos + cast(u64, TcoefEscapeLen)) <= reader.bitEnd
     {
         let mark = reader.bitPos
         if reader.read(TcoefEscapeLen) == TcoefEscapeCod do
@@ -74,14 +74,14 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
     if entry < 0 do
         return false
 
-    let at = cast(u64) entry
+    let at = cast(u64, entry)
     let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast
     let runOf:   const [..] u8  = inter ? TcoefInterRun : TcoefIntraRun
     let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
 
     result.last  = lastOf[at] != 0
-    result.run   = cast(u32) runOf[at]
-    result.level = cast(s32) levelOf[at]
+    result.run   = cast(u32, runOf[at])
+    result.level = cast(s32, levelOf[at])
     if reader.read(1) != 0 do
         result.level = -result.level
     return true
@@ -100,14 +100,14 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
         let entry = reader.decode(tree)
         if entry < 0 do
             return false
-        let at = cast(u64) entry
+        let at = cast(u64, entry)
         let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast
         let runOf:   const [..] u8  = inter ? TcoefInterRun : TcoefIntraRun
         let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
 
         result.last  = lastOf[at] != 0
-        result.run   = cast(u32) runOf[at]
-        result.level = cast(s32) (cast(u32) levelOf[at] + levelMax(inter, cast(u32) lastOf[at], cast(u32) runOf[at]))
+        result.run   = cast(u32, runOf[at])
+        result.level = cast(s32, (cast(u32, levelOf[at]) + levelMax(inter, cast(u32, lastOf[at]), cast(u32, runOf[at]))))
         if reader.read(1) != 0 do
             result.level = -result.level
         return true
@@ -118,14 +118,14 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
         let entry = reader.decode(tree)
         if entry < 0 do
             return false
-        let at = cast(u64) entry
+        let at = cast(u64, entry)
         let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast
         let runOf:   const [..] u8  = inter ? TcoefInterRun : TcoefIntraRun
         let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
 
         result.last  = lastOf[at] != 0
-        result.run   = cast(u32) runOf[at] + runMax(inter, cast(u32) lastOf[at], cast(u32) levelOf[at]) + 1
-        result.level = cast(s32) levelOf[at]
+        result.run   = cast(u32, runOf[at]) + runMax(inter, cast(u32, lastOf[at]), cast(u32, levelOf[at])) + 1
+        result.level = cast(s32, levelOf[at])
         if reader.read(1) != 0 do
             result.level = -result.level
         return true
@@ -136,7 +136,7 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
     result.last = reader.read(1) != 0
     result.run  = reader.read(6)
     reader.marker()
-    var level = cast(s32) reader.read(12)
+    var level = cast(s32, reader.read(12))
     reader.marker()
     if level >= 2048 do
         level -= 4096

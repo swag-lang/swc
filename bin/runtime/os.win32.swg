@@ -32,14 +32,14 @@ namespace __Win32RT
     const IDCONTINUE              = 11
     const FALSE: BOOL             = 0
     const TRUE:  BOOL             = 1
-    const SRWLOCK_INIT            = cast(SRWLOCK) null
-    const CONDITION_VARIABLE_INIT = cast(CONDITION_VARIABLE) null
+    const SRWLOCK_INIT            = cast(SRWLOCK, null)
+    const CONDITION_VARIABLE_INIT = cast(CONDITION_VARIABLE, null)
     const INFINITE                = 0xFFFF_FFFF'u32
     const WAIT_TIMEOUT            = 0x0000_0102'u32
     const ALL_PROCESSOR_GROUPS    = 0x0000_FFFF'u16
     const PAGE_READWRITE_MAP      = 0x0000_0004'u32
     const FILE_MAP_ALL_ACCESS     = 0x000F_001F'u32
-    const INVALID_HANDLE          = cast(HANDLE) -1
+    const INVALID_HANDLE          = cast(HANDLE, -1)
     const ERROR_ALREADY_EXISTS    = 183'u32
     const MEM_COMMIT              = 0x0000_1000'u32
     const MEM_RESERVE             = 0x0000_2000'u32
@@ -120,33 +120,33 @@ const AllocatorHostCommitGranularity = 4096'u64
 func __hostTlsAlloc()->u64
 {
     let slot = __Win32RT.TlsAlloc()
-    return slot == 0xFFFF_FFFF ? Swag.U64.Max : cast(u64) slot
+    return slot == 0xFFFF_FFFF ? Swag.U64.Max : cast(u64, slot)
 }
 
 func __hostTlsFree(id: u64)
 {
-    discard __Win32RT.TlsFree(cast(u32) id)
+    discard __Win32RT.TlsFree(cast(u32, id))
 }
 
 #[Swag.Inline]
-func __hostTlsGet(id: u64)->*void? => __Win32RT.TlsGetValue(cast(u32) id)
-func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
+func __hostTlsGet(id: u64)->*void? => __Win32RT.TlsGetValue(cast(u32, id))
+func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32, id), value) != 0
 
 func __hostThreadStorageAlloc(cleanup: __Win32RT.PFLS_CALLBACK_FUNCTION?)->u64
 {
     let slot = __Win32RT.FlsAlloc(cleanup)
-    return slot == 0xFFFF_FFFF ? 0 : cast(u64) slot + 1
+    return slot == 0xFFFF_FFFF ? 0 : cast(u64, slot) + 1
 }
 
 func __hostThreadStorageFree(id: u64)
 {
     if id do
-        discard __Win32RT.FlsFree(cast(u32) (id - 1))
+        discard __Win32RT.FlsFree(cast(u32, (id - 1)))
 }
 
-func __hostThreadStorageGet(id: u64)->*void? => id ? __Win32RT.FlsGetValue(cast(u32) (id - 1)) : null
+func __hostThreadStorageGet(id: u64)->*void? => id ? __Win32RT.FlsGetValue(cast(u32, (id - 1))) : null
 
-func __hostThreadStorageSet(id: u64, value: *void?)->bool => id != 0 and __Win32RT.FlsSetValue(cast(u32) (id - 1), value) != 0
+func __hostThreadStorageSet(id: u64, value: *void?)->bool => id != 0 and __Win32RT.FlsSetValue(cast(u32, (id - 1)), value) != 0
 
 func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
 
@@ -190,7 +190,7 @@ func __hostMonotonicTicks()->u64
 {
     var counter: s64
     discard __Win32RT.QueryPerformanceCounter(&counter)
-    return cast(u64) counter
+    return cast(u64, counter)
 }
 
 // Returns the number of monotonic host ticks per second.
@@ -198,7 +198,7 @@ func __hostMonotonicFrequency()->u64
 {
     var frequency: s64
     discard __Win32RT.QueryPerformanceFrequency(&frequency)
-    return cast(u64) frequency
+    return cast(u64, frequency)
 }
 
 ////////////////////////////////////////////////////////////
@@ -241,12 +241,12 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
 
     for c in Prefix
     {
-        name[length] = cast(__Win32RT.WCHAR) c
+        name[length] = cast(__Win32RT.WCHAR, c)
         length       += 1
     }
 
     __hostAppendHex(&name, &length, __Win32RT.GetCurrentProcessId())
-    name[length] = cast(__Win32RT.WCHAR) 46     // '.'
+    name[length] = cast(__Win32RT.WCHAR, 46)     // '.'
     length       += 1
     __hostAppendHex(&name, &length, key)
     name[length] = 0
@@ -261,9 +261,9 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
     if not view do
         return candidate
 
-    let slot     = cast(*u64) view
-    let previous = Swag.atomcmpxchg(slot, 0, cast(u64) candidate)
-    return previous == 0 ? candidate : cast(*void) previous
+    let slot     = cast(*u64, view)
+    let previous = Swag.atomcmpxchg(slot, 0, cast(u64, candidate))
+    return previous == 0 ? candidate : cast(*void, previous)
 }
 
 private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u32)
@@ -274,11 +274,11 @@ private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u
 
     while shift >= 0
     {
-        let digit = (value >> cast(u32) shift) & 0xF
+        let digit = (value >> cast(u32, shift)) & 0xF
         if digit != 0 or seen or shift == 0
         {
             seen             = true
-            name[][length[]] = cast(__Win32RT.WCHAR) Digits[digit]
+            name[][length[]] = cast(__Win32RT.WCHAR, Digits[digit])
             length[]         += 1
         }
 
@@ -286,7 +286,7 @@ private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u
     }
 }
 
-func __hostPageReserve(size: u64)->[*] u8? => cast([*] u8?) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+func __hostPageReserve(size: u64)->[*] u8? => cast([*] u8?, __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
 
 func __hostPageCommit(address: *void?, size: u64)->bool => __Win32RT.VirtualAlloc(address, size, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE) != null
 
@@ -433,16 +433,16 @@ func __osCommandLine()->string?
         let bytes = WideCharToMultiByte(CP_UTF8, 0, wide, -1, null, 0, null, null)
         if bytes > 1
         {
-            let buffer = cast([*] u8?) VirtualAlloc(null, cast(u64) bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
+            let buffer = cast([*] u8?, VirtualAlloc(null, cast(u64, bytes), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE))
             if buffer and WideCharToMultiByte(CP_UTF8, 0, wide, -1, buffer, bytes, null, null) == bytes do
-                return Swag.makeString(buffer, cast(u64) (bytes - 1))
+                return Swag.makeString(buffer, cast(u64, (bytes - 1)))
         }
     }
 
     let cmdLine = GetCommandLineA()
     if not cmdLine do
         return null
-    return Swag.makeString(cmdLine, (cast(const cstring) cmdLine).count)
+    return Swag.makeString(cmdLine, cast(const cstring, cmdLine).count)
 }
 
 // Windows answers this only once the operating system has enabled YMM state, which is exactly
@@ -455,7 +455,7 @@ func __printString(message: string?)
     if not message or not message.count do
         return
     using __Win32RT
-    let len = cast(u32) message.count
+    let len = cast(u32, message.count)
     discard WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.buffer, len, null, null)
 }
 
@@ -484,10 +484,10 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
 
     let cxt = Swag.getContext()
     cxt.exceptionLoc       = loc
-    cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
-    cxt.exceptionParams[1] = cast(const *void?) message.buffer
-    cxt.exceptionParams[2] = cast(const *void) cast(u64) message.count
-    cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
+    cxt.exceptionParams[0] = cast(const *void, &cxt.exceptionLoc)
+    cxt.exceptionParams[1] = cast(const *void?, message.buffer)
+    cxt.exceptionParams[2] = cast(const *void, cast(u64, message.count))
+    cxt.exceptionParams[3] = cast(const *void, cast(u64, kind))
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
@@ -502,7 +502,7 @@ func __exit()
 ////////////////////////////////////////////////////////////
 func __exitError()
 {
-    __Win32RT.ExitProcess(cast #bit (u32) -666)
+    __Win32RT.ExitProcess(cast #bit (u32, -666))
 }
 
 ////////////////////////////////////////////////////////////
@@ -513,8 +513,8 @@ private var g_TestContextBuf: [1360] u8
 private func __hostTestResumeContext()->*void
 {
     // RtlCaptureContext/RtlRestoreContext require a 16-byte aligned CONTEXT.
-    let addr = cast(u64) &g_TestContextBuf[0]
-    return cast(*void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
+    let addr = cast(u64, &g_TestContextBuf[0])
+    return cast(*void, ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0))
 }
 
 func __hostTestResume()
@@ -526,7 +526,7 @@ func __hostTestAbort()
 {
     // ExitProcess runs DLL detach hooks, which can wait for the very tasks whose owning frames
     // recovery would abandon. Stop all threads without callbacks or runtime shutdown instead.
-    discard __Win32RT.TerminateProcess(__Win32RT.GetCurrentProcess(), cast #bit (u32) -666)
+    discard __Win32RT.TerminateProcess(__Win32RT.GetCurrentProcess(), cast #bit (u32, -666))
     for do
         __Win32RT.Sleep(__Win32RT.INFINITE)
 }
@@ -540,7 +540,7 @@ func __hostTestCall(fn: *void)
     if g_TestFailed do
         return
 
-    let call = cast(func()) fn
+    let call = cast(func(), fn)
     call()
 }
 
@@ -567,7 +567,7 @@ private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
     if not g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
         return 0     // EXCEPTION_CONTINUE_SEARCH
 
-    let pointers = cast(const *__HostExceptionPointers) exceptionPointers
+    let pointers = cast(const *__HostExceptionPointers, exceptionPointers)
     let record   = pointers.record
     var accessKind, accessAddress: u64
     if record.parameterCount >= 2
@@ -576,11 +576,11 @@ private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
         accessAddress = record.information[1]
     }
 
-    __testHardwareException(record.code, cast(u64) record.address, accessKind, accessAddress)
+    __testHardwareException(record.code, cast(u64, record.address), accessKind, accessAddress)
     return 0
 }
 
-func __hostTestInstallHardwareFilter()->*void? => __Win32RT.SetUnhandledExceptionFilter(cast() &__hostTestUnhandledFilter)
+func __hostTestInstallHardwareFilter()->*void? => __Win32RT.SetUnhandledExceptionFilter(cast(&__hostTestUnhandledFilter))
 
 func __hostTestRestoreHardwareFilter(previous: *void?)
 {
@@ -590,35 +590,35 @@ func __hostTestRestoreHardwareFilter(previous: *void?)
 func __captureStack(skip: u32, wh: [..] (*void?))->u32
 {
     using __Win32RT
-    return RtlCaptureStackBackTrace(skip + 1, cast() wh.count, cast() wh.buffer, null)
+    return RtlCaptureStackBackTrace(skip + 1, cast(wh.count), cast(wh.buffer), null)
 }
 
 // Returns the image that owns an address without changing its loader reference count.
 func __hostImageBaseForAddress(address: *void)->*void?
 {
     var result: *void?
-    if __Win32RT.GetModuleHandleExA(6, cast(const *u8) address, &result) == 0 do
+    if __Win32RT.GetModuleHandleExA(6, cast(const *u8, address), &result) == 0 do
         return null
     return result
 }
 
-private func __peU16(p: [*] u8, off: u64)->u16 => (cast(const *u16) (&p[off]))[]
-private func __peU32(p: [*] u8, off: u64)->u32 => (cast(const *u32) (&p[off]))[]
+private func __peU16(p: [*] u8, off: u64)->u16 => cast(const *u16, (&p[off]))[]
+private func __peU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
 // Locates the linker-owned `.swagdbg` payload in one Windows PE image.
 func __hostDebugSection(base: *void)->[*] u8?
 {
-    let image   = cast([*] u8) base
-    let ntOff   = cast(u64) __peU32(image, 0x3C)
+    let image   = cast([*] u8, base)
+    let ntOff   = cast(u64, __peU32(image, 0x3C))
     let count   = __peU16(image, ntOff + 6)
     let optSize = __peU16(image, ntOff + 20)
-    var section = ntOff + 24 + cast(u64) optSize
+    var section = ntOff + 24 + cast(u64, optSize)
 
     let wanted = ".swagdbg"
     for index in count
     {
         var matches = true
-        for byte in 8 where image[section + cast(u64) byte] != cast(u8) wanted[byte]
+        for byte in 8 where image[section + cast(u64, byte)] != cast(u8, wanted[byte])
         {
             matches = false
             break
@@ -627,7 +627,7 @@ func __hostDebugSection(base: *void)->[*] u8?
         if matches
         {
             let rva = __peU32(image, section + 12)
-            return cast([*] u8) &image[cast(u64) rva]
+            return cast([*] u8, &image[cast(u64, rva)])
         }
 
         section += 40
@@ -660,9 +660,9 @@ func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
     let decompressAddress = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
     if not decompressAddress do
         return null
-    let decompress = cast(__Win32RT.RtlDecompressBufferFn) decompressAddress
+    let decompress = cast(__Win32RT.RtlDecompressBufferFn, decompressAddress)
 
-    let decoded = cast([*] u8?) __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+    let decoded = cast([*] u8?, __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
     if not decoded do
         return null
 

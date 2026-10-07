@@ -765,19 +765,19 @@ alias NativeLargeOutbound = func(NativeTripleCallback)->u64
 #[Swag.CallingConvention(.C)]
 func probePairReg(a: u64, p: Pair, b: u64)->u64
 {
-    return a * 1000000 + cast(u64) p.x * 1000 + cast(u64) p.y + b
+    return a * 1000000 + cast(u64, p.x) * 1000 + cast(u64, p.y) + b
 }
 
 #[Swag.CallingConvention(.C)]
 func probePairStack(a: u64, b: u64, c: u64, d: u64, p: Pair)->u64
 {
-    return a + b + c + d + cast(u64) p.x * 3 + cast(u64) p.y
+    return a + b + c + d + cast(u64, p.x) * 3 + cast(u64, p.y)
 }
 
 #[Swag.CallingConvention(.C)]
 func probeTinyReg(a: u64, t: Tiny)->u64
 {
-    return a + cast(u64) t.a * 100 + cast(u64) t.b
+    return a + cast(u64, t.a) * 100 + cast(u64, t.b)
 }
 
 // The exact shape of IDropTarget.DragEnter/Drop: the aggregate rides the fourth register
@@ -785,8 +785,8 @@ func probeTinyReg(a: u64, t: Tiny)->u64
 #[Swag.CallingConvention(.C)]
 func probeDragEnter(itf: u64, dataObj: u64, keyState: u32, pt: PtL, effect: *u32)->s32
 {
-    effect[] = cast(u32) (pt.x + pt.y) + keyState
-    return cast(s32) (itf + dataObj) + pt.x * 1000 + pt.y
+    effect[] = cast(u32, pt.x + pt.y) + keyState
+    return cast(s32, itf + dataObj) + pt.x * 1000 + pt.y
 }
 
 #[Swag.CallingConvention(.C)]

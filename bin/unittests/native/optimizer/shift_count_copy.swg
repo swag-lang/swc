@@ -23,9 +23,9 @@ func shifted32(a, b: u32)->u32 => a << (b & 31)
         {
             Swag.assert(liveCount(a, b) == (rotated(a, b) ^ b))
             Swag.assert(sharedCount(a, b) == (dynamicShift(a, b & 63) ^ b))
-            let lowA = cast(u32) (a & 0xFFFFFFFF)
-            let lowB = cast(u32) (b & 0xFFFFFFFF)
-            Swag.assert(shifted32(lowA, lowB) == cast(u32) (dynamicShift(lowA, b & 31) & 0xFFFFFFFF))
+            let lowA = cast(u32, (a & 0xFFFFFFFF))
+            let lowB = cast(u32, (b & 0xFFFFFFFF))
+            Swag.assert(shifted32(lowA, lowB) == cast(u32, (dynamicShift(lowA, b & 31) & 0xFFFFFFFF)))
         }
     }
 }

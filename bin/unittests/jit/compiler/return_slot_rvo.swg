@@ -148,7 +148,7 @@ func firstAbove(limit: f32)->Vec4
 {
     for i in 10
     {
-        let f = cast(f32) i
+        let f = cast(f32, i)
         if f > limit do
             return Vec4{f, f * 2, f * 3, f * 4}
     }
@@ -345,7 +345,7 @@ func aliasedReceiver()->Vec4
     var total: f32 = 0
     for i in 4
     {
-        let v = makeVec4(cast(f32) i).inlinedScaled(2)
+        let v = makeVec4(cast(f32, i)).inlinedScaled(2)
         total += v.x + v.y + v.z + v.w
     }
 

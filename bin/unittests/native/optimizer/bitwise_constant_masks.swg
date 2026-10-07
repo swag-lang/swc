@@ -45,7 +45,7 @@ func maskedBranch(a: u64)->s32
         Swag.assert(intersectMasks(a) == (a & 0xF0))
         Swag.assert(xorMasks(a) == (a & 0xF00F))
         Swag.assert(highMasks(a) == (a & 0xFFFF00000000FFFF))
-        let a32 = cast(u32) (a & 0xFFFFFFFF)
+        let a32 = cast(u32, (a & 0xFFFFFFFF))
         Swag.assert(unionMasks32(a32) == (a32 & 0xFFFF))
         Swag.assert(disjointMasks(a32) == 0)
         Swag.assert(reusedMask(a) == (((a & 0xFFFF) << 8) | (a & 0xFF)))

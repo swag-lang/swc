@@ -111,7 +111,7 @@ impl CurveWall
         path.start(plot.x, plotY(plot, easing.evaluate(0)))
         for step in CurveSamples
         {
-            let t = cast(f32) (step + 1) / cast(f32) CurveSamples
+            let t = cast(f32, (step + 1)) / cast(f32, CurveSamples)
             path.lineTo(plot.x + t * plot.width, plotY(plot, easing.evaluate(t)))
         }
 
@@ -141,19 +141,19 @@ impl IWnd for CurveWall
     {
         let painter = evt.paintContext.painter
         let rect    = .clientRect()
-        let count   = cast(s32) WallCurves.count
+        let count   = cast(s32, WallCurves.count)
 
-        let columns = Math.clamp(cast(s32) ((rect.width + CardGap) / (MinCardWidth + CardGap)), 1, 3)
+        let columns = Math.clamp(cast(s32, ((rect.width + CardGap) / (MinCardWidth + CardGap))), 1, 3)
         let rows    = (count + columns - 1) / columns
-        let cardW   = (rect.width - cast(f32) (columns - 1) * CardGap) / cast(f32) columns
-        let cardH   = (rect.height - cast(f32) (rows - 1) * CardGap) / cast(f32) rows
+        let cardW   = (rect.width - cast(f32, (columns - 1)) * CardGap) / cast(f32, columns)
+        let cardH   = (rect.height - cast(f32, (rows - 1)) * CardGap) / cast(f32, rows)
         if cardW < 60 or cardH < 60 do
             return
 
         for index in count
         {
-            let column = cast(f32) (index % columns)
-            let row    = cast(f32) (index / columns)
+            let column = cast(f32, (index % columns))
+            let row    = cast(f32, (index / columns))
             let card   = Math.Rectangle{rect.x + column * (cardW + CardGap), rect.y + row * (cardH + CardGap), cardW, cardH}
             .paintCard(painter, card, WallCurves[index])
         }

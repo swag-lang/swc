@@ -19,7 +19,7 @@ impl Encoder
         if not width do
             fail UnsupportedFormatError{"SPNG_EINTERNAL"}
 
-        var res = cast(u64) .numChannels() * .ihdr.bitDepth
+        var res = cast(u64, .numChannels()) * .ihdr.bitDepth
         if res > Swag.U64.Max / width do
             fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
         res = res * width
@@ -31,7 +31,7 @@ impl Encoder
         if res > Swag.U32.Max do
             fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
 
-        return cast(u32) res
+        return cast(u32, res)
     }
 
     mtd numChannels()->s32
@@ -110,12 +110,12 @@ impl Encoder
         if bitDepth < 8
         {
             let samplesPerByte = 8 / bitDepth
-            let mask           = cast(u8) ((1 << bitDepth) - 1)
+            let mask           = cast(u8, ((1 << bitDepth) - 1))
             let initialShift   = 8 - bitDepth
             var shiftAmount    = initialShift
 
             var scanline = .scanline!
-            Memory.clear(cast([*] u8) scanline, cast(u64) .subimage[pass].scanlineWidth)
+            Memory.clear(cast([*] u8, scanline), cast(u64, .subimage[pass].scanlineWidth))
 
             for k in .subimage[pass].width
             {
@@ -138,7 +138,7 @@ impl Encoder
                 }
             }
 
-            return try .encodeScanLine(cast([*] u8) scanline)
+            return try .encodeScanLine(cast([*] u8, scanline))
         }
 
         for k in .subimage[pass].width
@@ -168,7 +168,7 @@ impl Encoder
             }
         }
 
-        return try .encodeScanLine(cast([*] u8) .scanline!)
+        return try .encodeScanLine(cast([*] u8, .scanline!))
     }
 
     mtd encodeScanLine(sl: [*] u8)->bool fail
@@ -201,8 +201,8 @@ impl Encoder
             {
                 // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
                 // of a full-desktop capture costs seconds in unoptimized builds.
-                let src   = cast(const [*] u32) sl
-                let dst   = cast([*] u32) .scanline!
+                let src   = cast(const [*] u32, sl)
+                let dst   = cast([*] u32, .scanline!)
                 let count = (scanlineWidth - 1) / 4
                 for i in count
                 {
@@ -212,20 +212,20 @@ impl Encoder
             }
             else
             {
-                Memory.copy(.scanline, sl, cast(u64) scanlineWidth - 1)
+                Memory.copy(.scanline, sl, cast(u64, scanlineWidth) - 1)
             }
         }
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
         if not .rowInfo.scanlineIdx and requiresPrevious do
-            Memory.clear(cast([*] u8) .prevScanline!, cast(u64) scanlineWidth)
+            Memory.clear(cast([*] u8, .prevScanline!), cast(u64, scanlineWidth))
 
-        var filtered = cast([*] u8) .filteredScanline!
+        var filtered = cast([*] u8, .filteredScanline!)
         let filter   = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
-            filtered = cast([*] u8) .scanline!
+            filtered = cast([*] u8, .scanline!)
         filtered    -= 1
-        filtered[0] = cast(u8) filter
+        filtered[0] = cast(u8, filter)
         filtered    += 1
 
         if filter != .None do

@@ -24,7 +24,7 @@ struct Carrier { late target: *s32 }
 #[Swag.NoInline]
 func create(target: *s32)->*Carrier
 {
-    let carrier = cast(*Carrier) allocate(#sizeof(Carrier))
+    let carrier = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.target = target
     return carrier
 }
@@ -73,7 +73,7 @@ func carrierIdentity(carrier: *Carrier)->*Carrier => carrier
 func createThroughIdentity(target: *s32)->*Carrier => carrierIdentity(createWrapped(target))
 
 #[Swag.NoInline]
-func independent(target: *s32)->*s32 => cast(*s32) allocate(#sizeof(s32))
+func independent(target: *s32)->*s32 => cast(*s32, allocate(#sizeof(s32)))
 
 #[Swag.NoInline]
 func independentComposed(target: *s32)->*s32 => identity(independent(target))
@@ -108,7 +108,7 @@ impl Owner
     }
 
     #[Swag.NoInline]
-    mtd const view()->*s32 => cast(*s32) .data!
+    mtd const view()->*s32 => cast(*s32, .data!)
 
     #[Swag.NoInline]
     mtd const forwardedView()->*s32 => identity(.view())
@@ -161,7 +161,7 @@ func rejectEscapeComposedCarrier()->*Carrier
     storeInFreshCarrier(&stableValue, &value)
     Swag.assert(value == 31)
 
-    var owner = Owner{data: cast([*] s32) allocate(#sizeof(s32))}
+    var owner = Owner{data: cast([*] s32, allocate(#sizeof(s32)))}
     owner.data![0] = 17
     let before = owner.forwardedView()[]
     owner.clearThroughView()
@@ -191,7 +191,7 @@ func rejectEscapeComposedCarrier()->*Carrier
 #test
 {
     var value: s32 = 9
-    let carrier    = cast(*Carrier) allocate(#sizeof(Carrier))
+    let carrier    = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.target = &value
     release(carrier, #sizeof(Carrier))
     Swag.assert(value == 9)
@@ -240,7 +240,7 @@ func rejectEscapeNestedAlias()->*s32
 func rejectReleaseCarrierTarget()
 {
     var value: s32
-    let carrier = cast(*Carrier) allocate(#sizeof(Carrier))
+    let carrier = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.target = &value
     release(carrier.target, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
 }

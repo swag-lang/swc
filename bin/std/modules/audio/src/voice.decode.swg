@@ -27,7 +27,7 @@ impl Voice
         if file.usesPacketCodec()
         {
             for packet in file.packets do
-                largest = Math.max(largest, cast(u64) packet.sampleFrameCount)
+                largest = Math.max(largest, cast(u64, packet.sampleFrameCount))
         }
 
         .decodedCapacity = Math.max(DecodedBufferSize, largest * .decodedBytesPerFrame())
@@ -40,11 +40,11 @@ impl Voice
     mtd decodedFillSize()->u64
     {
         let file   = .file!
-        var target = Math.max(cast(u64) file.sampleRate / 10 * .decodedBytesPerFrame(), 1)
+        var target = Math.max(cast(u64, file.sampleRate) / 10 * .decodedBytesPerFrame(), 1)
         if file.usesPacketCodec()
         {
             let firstPacket = file.packets[Math.min(.streamPacketIdx, file.packets.count - 1)]
-            target = Math.max(target, cast(u64) firstPacket.sampleFrameCount * .decodedBytesPerFrame())
+            target = Math.max(target, cast(u64, firstPacket.sampleFrameCount) * .decodedBytesPerFrame())
         }
 
         return Math.min(target, .decodedBufferCapacity())
@@ -117,7 +117,7 @@ impl Voice
             fail UnsupportedFormatError{"unsupported encoding"}
         let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
         let decoderData = Memory.new(desc.type, allocator)!
-        let decoder     = cast(*Codec) decoderData
+        let decoder     = cast(*Codec, decoderData)
         decoder.configure(file.encoding, .requestedEncoding, desc.type, allocator)
         .codec = Swag.makeInterface(decoder, desc.type, ICodec)
     }
@@ -126,11 +126,11 @@ impl Voice
     {
         if not .codec do
             return
-        let decoder   = cast(*Codec) (.codec).buffer
+        let decoder   = cast(*Codec, (.codec).buffer)
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
-        Memory.free(decoder, cast(u64) decoder.type.sizeof, allocator)
+        Memory.free(decoder, cast(u64, decoder.type.sizeof), allocator)
         .codec = null
     }
 
@@ -142,7 +142,7 @@ impl Voice
             fail UnsupportedFormatError{"unsupported packetized encoding"}
         let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
         let decoderData = Memory.new(desc.type, allocator)!
-        let decoder     = cast(*Codec) decoderData
+        let decoder     = cast(*Codec, decoderData)
         decoder.configure(file.encoding, .Pcm16, desc.type, allocator)
         .packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)
         defer #fail .destroyPacketCodec()
@@ -153,11 +153,11 @@ impl Voice
     {
         if not .packetCodec do
             return
-        let decoder   = cast(*Codec) (.packetCodec).buffer
+        let decoder   = cast(*Codec, (.packetCodec).buffer)
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
-        Memory.free(decoder, cast(u64) decoder.type.sizeof, allocator)
+        Memory.free(decoder, cast(u64, decoder.type.sizeof), allocator)
         .packetCodec = null
     }
 
@@ -174,7 +174,7 @@ impl Voice
         while .streamPacketIdx < file.packets.count
         {
             let packet      = file.packets[.streamPacketIdx]
-            let decodedSize = cast(u64) packet.sampleFrameCount * file.channelCount * 2
+            let decodedSize = cast(u64, packet.sampleFrameCount) * file.channelCount * 2
             if decodedSize > destinationSize - written do
                 break
 
@@ -199,13 +199,13 @@ impl Voice
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 let missing       = decodedSize - produced
                 let discardFrames = Math.min(.seekDiscardFrames, packet.sampleFrameCount)
-                let discardBytes  = cast(u64) discardFrames * file.channelCount * 2
+                let discardBytes  = cast(u64, discardFrames) * file.channelCount * 2
                 if discardBytes < missing do
                     fail InvalidFormatError{"compressed sound packet decoded fewer frames than its index states"}
                 let kept = produced - (discardBytes - missing)
                 if kept
                 {
-                    Memory.copy(cast([*] u8) destination + written, .packetScratch.storage() + (discardBytes - missing), kept)
+                    Memory.copy(cast([*] u8, destination) + written, .packetScratch.storage() + (discardBytes - missing), kept)
                     written += kept
                 }
 
@@ -213,7 +213,7 @@ impl Voice
             }
             else
             {
-                let produced = try .packetCodec!.decodePacket(cast([*] u8) destination + written, decodedSize, .packetBuffer.toSlice())
+                let produced = try .packetCodec!.decodePacket(cast([*] u8, destination) + written, decodedSize, .packetBuffer.toSlice())
                 if produced != decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 written += produced
@@ -300,14 +300,14 @@ impl Voice
             return 0
         try .stream.seek(position)
         wantedLength = Math.min(wantedLength, file.dataSize - .streamCurSeek)
-        return try .stream.read(Swag.makeSlice(cast([*] u8) destBuffer, wantedLength))
+        return try .stream.read(Swag.makeSlice(cast([*] u8, destBuffer), wantedLength))
     }
 
     // Reads a logical byte range from PCM chunks that are scattered through a container.
     mtd readPacketBytes(destBuffer: [*] void, length: u64)->u64 fail
     {
         let file          = .file!
-        let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
+        let bytesPerFrame = cast(u64, file.channelCount) * cast(u64, (file.bitsPerSample / 8))
         var written       = 0'u64
         var logicalOffset = .streamCurSeek
         var low           = 0'u64
@@ -340,9 +340,9 @@ impl Voice
             }
 
             let packetSkip = logicalOffset - packetStart
-            let readSize   = Math.min(cast(u64) packet.byteSize - packetSkip, length - written)
+            let readSize   = Math.min(cast(u64, packet.byteSize) - packetSkip, length - written)
             try .stream.seek(packet.sourceOffset + packetSkip)
-            if try .stream.read(Swag.makeSlice(cast([*] u8) destBuffer + written, readSize)) != readSize do
+            if try .stream.read(Swag.makeSlice(cast([*] u8, destBuffer) + written, readSize)) != readSize do
                 fail InvalidFormatError{"PCM source chunk is truncated"}
             written       += readSize
             logicalOffset += readSize
@@ -357,7 +357,7 @@ impl Voice
     {
         .streamCurSeek     = 0
         .streamPacketIdx   = 0
-        .seekDiscardFrames = .file ? cast(u32) .file.leadingTrim : 0
+        .seekDiscardFrames = .file ? cast(u32, .file.leadingTrim) : 0
         .destroyCodec()
         .packetCodec?.reset()
     }

@@ -25,30 +25,30 @@ func previewWav()->Array'u8
     for value, index in TinyWav[0 until 44] do
         result[index] = value
 
-    writeU32(&result, 4, cast(u32) (36 + PayloadSize))
-    result[22] = 1                                        // One channel.
-    writeU32(&result, 24, cast(u32) SampleRate)           // Frames per second.
-    writeU32(&result, 28, cast(u32) (SampleRate * 2))     // Bytes per second.
-    result[32] = 2                                        // Bytes per frame.
-    result[34] = 16                                       // Bits per sample.
-    writeU32(&result, 40, cast(u32) PayloadSize)
+    writeU32(&result, 4, cast(u32, (36 + PayloadSize)))
+    result[22] = 1                                         // One channel.
+    writeU32(&result, 24, cast(u32, SampleRate))           // Frames per second.
+    writeU32(&result, 28, cast(u32, (SampleRate * 2)))     // Bytes per second.
+    result[32] = 2                                         // Bytes per frame.
+    result[34] = 16                                        // Bits per sample.
+    writeU32(&result, 40, cast(u32, PayloadSize))
 
     for frame in FrameCount
     {
-        let seconds  = cast(f32) frame / cast(f32) SampleRate
-        let burst    = cast(u64) (seconds * 4)
-        let inBurst  = seconds * 4 - cast(f32) burst
+        let seconds  = cast(f32, frame) / cast(f32, SampleRate)
+        let burst    = cast(u64, (seconds * 4))
+        let inBurst  = seconds * 4 - cast(f32, burst)
         var envelope = 0'f32
         if inBurst < 0.72 do
-            envelope = (1 - inBurst / 0.72) * (0.35 + 0.16 * cast(f32) (burst % 5))
+            envelope = (1 - inBurst / 0.72) * (0.35 + 0.16 * cast(f32, (burst % 5)))
 
         // The carrier alone would make peak and body the same reading. The click on the first
         // frames of a burst is what separates them, which is the whole point of the two weights.
-        let carrier   = Math.sin(seconds * (520 + 90 * cast(f32) burst) * 6.2831855)
+        let carrier   = Math.sin(seconds * (520 + 90 * cast(f32, burst)) * 6.2831855)
         let click     = inBurst < 0.01 ? (frame & 1 ? 0.9'f32 : -0.9) : 0
         let value     = Math.clamp(carrier * envelope + click * envelope, -1, 1)
-        let quantized = cast(s16) (value * 32_000)
-        writeU16(&result, 44 + frame * 2, cast #bit (u16) quantized)
+        let quantized = cast(s16, (value * 32_000))
+        writeU16(&result, 44 + frame * 2, cast #bit (u16, quantized))
     }
 
     return result
@@ -58,16 +58,16 @@ func waveformFixturePath()->String => Path.combine(Path.directoryName(#curlocati
 
 func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
-    bytes[offset]     = cast(u8) (value & 0xFF)
-    bytes[offset + 1] = cast(u8) (value >> 8)
+    bytes[offset]     = cast(u8, (value & 0xFF))
+    bytes[offset + 1] = cast(u8, (value >> 8))
 }
 
 func writeU32(bytes: *Array'u8, offset: u64, value: u32)
 {
-    bytes[offset]     = cast(u8) (value & 0xFF)
-    bytes[offset + 1] = cast(u8) ((value >> 8) & 0xFF)
-    bytes[offset + 2] = cast(u8) ((value >> 16) & 0xFF)
-    bytes[offset + 3] = cast(u8) ((value >> 24) & 0xFF)
+    bytes[offset]     = cast(u8, (value & 0xFF))
+    bytes[offset + 1] = cast(u8, ((value >> 8) & 0xFF))
+    bytes[offset + 2] = cast(u8, ((value >> 16) & 0xFF))
+    bytes[offset + 3] = cast(u8, ((value >> 24) & 0xFF))
 }
 
 func finishWaveform(view: *SoundViewer)
@@ -94,7 +94,7 @@ func waitForSoundOpen(host: *Testing.HeadlessHost, view: *SoundViewer)
 func markSoundOpenFailure(wnd: *Wnd, reason: string)
 {
     discard reason
-    let failed = cast(*bool) wnd.userData!
+    let failed = cast(*bool, wnd.userData!)
     failed[] = true
 }
 
@@ -133,9 +133,9 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     var result = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
     Swag.assert(result.view != null and result.commands != null)
     Swag.assert(result.isLoading != null and result.needsLoadingOverlay != null)
-    let view = cast #assume (*SoundViewer) result.view
+    let view = assume cast (*SoundViewer, result.view)
     view.userData = &failed
-    Swag.assert(result.isLoading(view) and result.needsLoadingOverlay(view))
+    Swag.assert(result.isLoading() and result.needsLoadingOverlay())
     waitForSoundOpen(&host, view)
     Swag.assert(failed and not view.openFailure.isEmpty())
 }
@@ -161,17 +161,17 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     Swag.assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
-    let view = cast #assume (*SoundViewer) result.view
-    Swag.assert(result.isLoading(view) and result.needsLoadingOverlay(view))
+    let view = assume cast (*SoundViewer, result.view)
+    Swag.assert(result.isLoading() and result.needsLoadingOverlay())
     waitForSoundOpen(&host, view)
-    Swag.assert(not result.needsLoadingOverlay(view))
+    Swag.assert(not result.needsLoadingOverlay())
     Swag.assert(view.engineReady and view.playButton.isEnabled())
     Swag.assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
     Swag.assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
     Swag.assert(not view.sound.isDataPreloaded())
     Swag.assert(view.waveform.samples.count == 4)
     finishWaveform(view)
-    Swag.assert(not result.isLoading(view))
+    Swag.assert(not result.isLoading())
     Swag.assert(view.waveform.readyCount == 4)
     Swag.assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
 
@@ -181,7 +181,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var replacementResult   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: replacementCommands)
     Swag.assert(replacementResult.view != null)
-    let replacement = cast #assume (*SoundViewer) replacementResult.view
+    let replacement = assume cast (*SoundViewer, replacementResult.view)
     waitForSoundOpen(&host, replacement)
     finishWaveform(replacement)
     Swag.assert(replacement.engineReady and replacement.playButton.isEnabled())
@@ -222,7 +222,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     reading.applySettings(&result)
     let restored = reading.restore(&result)
     Swag.assert(restored and not view.playing)
-    Swag.assert(Math.isEqualEpsilon(view.elapsed, cast(f32) reading.seconds, 0.00001))
+    Swag.assert(Math.isEqualEpsilon(view.elapsed, cast(f32, reading.seconds), 0.00001))
     Swag.assert(view.volume == 0.4 and not view.muted)
 }
 
@@ -251,7 +251,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     commandBar.padding         = {16, 8, 16, 8}
     var result = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commandBar)
     Swag.assert(result.view != null)
-    let view = cast #assume (*SoundViewer) result.view
+    let view = assume cast (*SoundViewer, result.view)
     waitForSoundOpen(&host, view)
     finishWaveform(view)
     view.dockStyle = .Center
@@ -341,7 +341,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(soundViewerPlugin(), &host.root, pacmanWav.toString(), commandParent: commands)
     Swag.assert(result.view != null)
-    let view = cast #assume (*SoundViewer) result.view
+    let view = assume cast (*SoundViewer, result.view)
     waitForSoundOpen(&host, view)
     Swag.assert(not view.sound.isDataPreloaded())
     finishWaveform(view)
@@ -355,7 +355,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 // Answers a sound that has been played through with the continuation stored on the view.
 func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 {
-    let answer = cast(*Viewer.Continuation) wnd.userData!
+    let answer = cast(*Viewer.Continuation, wnd.userData!)
     return answer[]
 }
 
@@ -378,7 +378,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})
     Swag.assert(result.view != null)
-    let view   = cast #assume (*SoundViewer) result.view
+    let view   = assume cast (*SoundViewer, result.view)
     var answer = Viewer.Continuation.Replay
     view.userData = &answer
     waitForSoundOpen(&host, view)

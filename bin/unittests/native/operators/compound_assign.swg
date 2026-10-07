@@ -120,54 +120,54 @@ func mulAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
 
 #test
 {
-    var i = cast(CompoundStrictS32) 100
-    i += cast(CompoundStrictS32) 10
-    Swag.assert(i == cast(CompoundStrictS32) 110)
-    i -= cast(CompoundStrictS32) 25
-    Swag.assert(i == cast(CompoundStrictS32) 85)
-    i *= cast(CompoundStrictS32) 2
-    Swag.assert(i == cast(CompoundStrictS32) 170)
-    i /= cast(CompoundStrictS32) 5
-    Swag.assert(i == cast(CompoundStrictS32) 34)
-    i %= cast(CompoundStrictS32) 10
-    Swag.assert(i == cast(CompoundStrictS32) 4)
+    var i = cast(CompoundStrictS32, 100)
+    i += cast(CompoundStrictS32, 10)
+    Swag.assert(i == cast(CompoundStrictS32, 110))
+    i -= cast(CompoundStrictS32, 25)
+    Swag.assert(i == cast(CompoundStrictS32, 85))
+    i *= cast(CompoundStrictS32, 2)
+    Swag.assert(i == cast(CompoundStrictS32, 170))
+    i /= cast(CompoundStrictS32, 5)
+    Swag.assert(i == cast(CompoundStrictS32, 34))
+    i %= cast(CompoundStrictS32, 10)
+    Swag.assert(i == cast(CompoundStrictS32, 4))
 
-    var f = cast(CompoundStrictF32) 10.0
-    f += cast(CompoundStrictF32) 2.5
-    f *= cast(CompoundStrictF32) 2.0
-    Swag.assert(f == cast(CompoundStrictF32) 25.0)
+    var f = cast(CompoundStrictF32, 10.0)
+    f += cast(CompoundStrictF32, 2.5)
+    f *= cast(CompoundStrictF32, 2.0)
+    Swag.assert(f == cast(CompoundStrictF32, 25.0))
 
-    var bits = cast(CompoundStrictU32) 0xFF'u32
-    bits &= cast(CompoundStrictU32) 0x0F'u32
-    bits |= cast(CompoundStrictU32) 0x30'u32
-    bits ^= cast(CompoundStrictU32) 0x15'u32
-    Swag.assert(bits == cast(CompoundStrictU32) 0x2A'u32)
+    var bits = cast(CompoundStrictU32, 0xFF'u32)
+    bits &= cast(CompoundStrictU32, 0x0F'u32)
+    bits |= cast(CompoundStrictU32, 0x30'u32)
+    bits ^= cast(CompoundStrictU32, 0x15'u32)
+    Swag.assert(bits == cast(CompoundStrictU32, 0x2A'u32))
 
-    var shift = cast(CompoundStrictU32) 1'u32
-    shift <<= cast(CompoundStrictS32) 5
-    shift >>= cast(CompoundStrictS32) 2
-    Swag.assert(shift == cast(CompoundStrictU32) 8'u32)
+    var shift = cast(CompoundStrictU32, 1'u32)
+    shift <<= cast(CompoundStrictS32, 5)
+    shift >>= cast(CompoundStrictS32, 2)
+    Swag.assert(shift == cast(CompoundStrictU32, 8'u32))
 
-    var throughRef = cast(CompoundStrictS32) 10
-    addAssignStrict(&throughRef, cast(CompoundStrictS32) 32)
-    mulAssignStrict(&throughRef, cast(CompoundStrictS32) 2)
-    Swag.assert(throughRef == cast(CompoundStrictS32) 84)
+    var throughRef = cast(CompoundStrictS32, 10)
+    addAssignStrict(&throughRef, cast(CompoundStrictS32, 32))
+    mulAssignStrict(&throughRef, cast(CompoundStrictS32, 2))
+    Swag.assert(throughRef == cast(CompoundStrictS32, 84))
 
-    var wrapped = cast(CompoundStrictS32) 0x7FFF_FFFF
-    wrapped += #wrap cast(CompoundStrictS32) 1
-    Swag.assert(wrapped == cast(CompoundStrictS32) -2147483648)
+    var wrapped = cast(CompoundStrictS32, 0x7FFF_FFFF)
+    wrapped += #wrap cast(CompoundStrictS32, 1)
+    Swag.assert(wrapped == cast(CompoundStrictS32, -2147483648))
 
-    var wrapShift = cast(CompoundStrictU32) 1'u32
-    wrapShift <<= #wrap cast(CompoundStrictS32) 31
-    Swag.assert(wrapShift == cast(CompoundStrictU32) 0x8000_0000'u32)
+    var wrapShift = cast(CompoundStrictU32, 1'u32)
+    wrapShift <<= #wrap cast(CompoundStrictS32, 31)
+    Swag.assert(wrapShift == cast(CompoundStrictU32, 0x8000_0000'u32))
 }
 
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    var ptr = cast(CompoundStrictS32Ptr) &data[0]
-    ptr += cast(CompoundStrictS32) 1
+    var ptr = cast(CompoundStrictS32Ptr, &data[0])
+    ptr += cast(CompoundStrictS32, 1)
     Swag.assert(ptr[] == 20)
-    ptr -= cast(CompoundStrictS32) 1
+    ptr -= cast(CompoundStrictS32, 1)
     Swag.assert(ptr[] == 10)
 }

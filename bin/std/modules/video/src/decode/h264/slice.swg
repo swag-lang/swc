@@ -356,7 +356,7 @@ impl Slice
         // Picture numbers of the short-term references, relative to this slice.
         for reference in dec.shortRefs
         {
-            reference.frameNumWrap = cast(s32) reference.frameNum > cast(s32) .header.frameNum ? cast(s32) reference.frameNum - maxFrameNum : cast(s32) reference.frameNum
+            reference.frameNumWrap = cast(s32, reference.frameNum) > cast(s32, .header.frameNum) ? cast(s32, reference.frameNum) - maxFrameNum : cast(s32, reference.frameNum)
             reference.picNum       = reference.frameNumWrap
         }
 
@@ -398,7 +398,7 @@ impl Slice
         {
             if list == 1 and .header.type != SliceTypeB do
                 break
-            try .applyListOps(&initial[list], .listOps[list], cast(u32) list)
+            try .applyListOps(&initial[list], .listOps[list], cast(u32, list))
 
             let wanted = .header.refCount[list]
             if not initial[list].count do
@@ -406,7 +406,7 @@ impl Slice
             .refCount[list] = wanted
             for index in wanted
             {
-                let frame = initial[list][Math.min(cast(u64) index, initial[list].count - 1)]
+                let frame = initial[list][Math.min(cast(u64, index), initial[list].count - 1)]
                 let entry = &.refs[list, index]
                 entry.frame    = frame
                 entry.poc      = frame.poc
@@ -473,7 +473,7 @@ impl Slice
                         weight1 = scale >> 2
                 }
 
-                .implicitW1[index0, index1] = cast(s16) weight1
+                .implicitW1[index0, index1] = cast(s16, weight1)
             }
         }
     }
@@ -489,17 +489,17 @@ impl Slice
         let wanted      = .header.refCount[listIndex]
 
         // The list is modified at its declared size; extend with repeats before inserting.
-        while list.count < cast(u64) wanted and list.count do
+        while list.count < cast(u64, wanted) and list.count do
             list.add(list.back())
 
         var insertPos  = 0'u64
-        var picNumPred = cast(s32) .header.frameNum
+        var picNumPred = cast(s32, .header.frameNum)
         for operation in ops
         {
             var target: *Frame?
             if operation.kind == 2
             {
-                for reference in dec.longRefs where reference.longTermIdx == cast(s32) operation.value
+                for reference in dec.longRefs where reference.longTermIdx == cast(s32, operation.value)
                 {
                     target = reference
                     break
@@ -507,14 +507,14 @@ impl Slice
             }
             else
             {
-                let delta  = cast(s32) operation.value + 1
+                let delta  = cast(s32, operation.value) + 1
                 var picNum = operation.kind == 0 ? picNumPred - delta : picNumPred + delta
                 if picNum < 0 do
                     picNum += maxFrameNum
                 elif picNum >= maxFrameNum do
                     picNum -= maxFrameNum
                 picNumPred = picNum
-                let wrapped = picNum > cast(s32) .header.frameNum ? picNum - maxFrameNum : picNum
+                let wrapped = picNum > cast(s32, .header.frameNum) ? picNum - maxFrameNum : picNum
                 for reference in dec.shortRefs where reference.picNum == wrapped
                 {
                     target = reference

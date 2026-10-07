@@ -68,11 +68,11 @@ func viewerFixturePath()->String
 func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 {
     let rect    = panel.surfaceRect()
-    let radius  = cast(s32) panel.themeRects().panel_Bk.radius
+    let radius  = cast(s32, panel.themeRects().panel_Bk.radius)
     let outside = panel.parent!.themeColors().toolBar_Bk.argb
     let inside  = panel.themeColors().view_Bk.argb
-    let left    = cast(s32) rect.x
-    let top     = cast(s32) rect.y
+    let left    = cast(s32, rect.x)
+    let top     = cast(s32, rect.y)
 
     Swag.assert(image.pixelColor(left, top).argb == outside)
     Swag.assert(image.pixelColor(left + radius, top + radius).argb == inside)
@@ -93,14 +93,14 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
 func markTestViewerRetired(wnd: *Wnd)->bool
 {
-    let retired = cast(*bool) wnd.userData!
+    let retired = cast(*bool, wnd.userData!)
     retired[] = true
     return true
 }
 
 func delayTestViewerRetirement(wnd: *Wnd)->bool
 {
-    let calls = cast(*u32) wnd.userData!
+    let calls = cast(*u32, wnd.userData!)
     calls[] += 1
     return calls[] >= 2
 }
@@ -112,7 +112,7 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
 // that band therefore has two possible answers unless it waits here.
 func completeViewerStatistics(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    let view = cast #assume (*TextViewer) window.currentView!
+    let view = assume cast (*TextViewer, window.currentView)
     while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
@@ -134,7 +134,7 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 
     Swag.assert(window.searchTimer == null)
     if window.currentView and window.activeChoiceIndex < window.choices.count and window.choices[window.activeChoiceIndex].key == TextViewerKey do
-        completeTextReads(host, cast #assume (*TextViewer) window.currentView)
+        completeTextReads(host, assume cast (*TextViewer, window.currentView))
 }
 
 func createSidePanelFixture(host: Viewer.Host)
@@ -233,7 +233,7 @@ func createSidePanelFixture(host: Viewer.Host)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     view.resize(800, 520)
     view.applyLayout()
 
@@ -267,7 +267,7 @@ func createSidePanelFixture(host: Viewer.Host)
 // available in the information summary without forcing the whole document into the editor.
 #test
 {
-    let fileName = writeTempFile("statistics.txt", cast(const [..] u8) "one two\nthree\n")
+    let fileName = writeTempFile("statistics.txt", cast(const [..] u8, "one two\nthree\n"))
     defer discard catch File.delete(fileName.toString())
 
     var host: Testing.HeadlessHost
@@ -275,7 +275,7 @@ func createSidePanelFixture(host: Viewer.Host)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName.toString(), commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
@@ -300,7 +300,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for name, index in names
     {
         Swag.assert(window.folderFiles[index] == name[] and window.siblings[index] == name[])
-        Swag.assert(window.folderList.lineAt(cast(u32) index)!.itemAt(0).name.raw == (Path.fileName(name[].toString()) orelse name[].toString()))
+        Swag.assert(window.folderList.lineAt(cast(u32, index))!.itemAt(0).name.raw == (Path.fileName(name[].toString()) orelse name[].toString()))
     }
 }
 
@@ -308,8 +308,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // classification has had a chance to replace the viewer.
 #test
 {
-    let first  = writeTempFile("search-first.txt", cast(const [..] u8) "needle in the first file\n")
-    let second = writeTempFile("search-second.txt", cast(const [..] u8) "second file\n")
+    let first  = writeTempFile("search-first.txt", cast(const [..] u8, "needle in the first file\n"))
+    let second = writeTempFile("search-second.txt", cast(const [..] u8, "second file\n"))
     defer discard catch File.delete(first.toString())
     defer discard catch File.delete(second.toString())
 
@@ -337,7 +337,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     utf16.add(0xFE)
     for c in "Hello, wide world"
     {
-        utf16.add(cast(u8) c)
+        utf16.add(cast(u8, c))
         utf16.add(0)
     }
 
@@ -353,7 +353,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, wideFile.toString(), commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     view.resize(800, 520)
     view.applyLayout()
 
@@ -378,7 +378,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, file.toString(), commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     view.resize(800, 520)
     view.applyLayout()
     Swag.assert(view.editor.text() == "café naïve\n")
@@ -408,7 +408,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, file.toString(), commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     view.resize(800, 520)
     view.applyLayout()
 
@@ -426,7 +426,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var binary: Array'u8
     for i in 512'u32 do
-        binary.add(cast(u8) ((i * 7) & 0xFF))
+        binary.add(cast(u8, ((i * 7) & 0xFF)))
     let file = writeTempFile("binary.bin", binary.toSlice())
     defer discard catch File.delete(file.toString())
     Swag.assert(not TextViewer.supports(file.toString()))
@@ -476,11 +476,11 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for i in window.folderList.lineCount()
     {
         let icon = window.folderList.lineAt(i)!.itemAt(0).icon
-        Swag.assert(icon.isValid() and icon.index == cast(s32) ViewerIcons.Text)
+        Swag.assert(icon.isValid() and icon.index == cast(s32, ViewerIcons.Text))
     }
 
     let recentIcon = window.recentList.lineAt(0)!.itemAt(0).icon
-    Swag.assert(recentIcon.isValid() and recentIcon.index == cast(s32) ViewerIcons.Text)
+    Swag.assert(recentIcon.isValid() and recentIcon.index == cast(s32, ViewerIcons.Text))
 
     // Choosing a sibling opens it, and the recent list grows by exactly that file.
     window.folderList.selectLine(2)
@@ -570,7 +570,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     {
         let fileName = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
         let content  = Format.toString("document text %\n", i)
-        discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) content.toString())
+        discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8, content.toString()))
         names.add(fileName)
     }
 
@@ -828,7 +828,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let names: [4] string = ["changelog.md", "notes.txt", "report-with-a-name-too-long-for-the-fixed-history-panel.txt", "sample.json"]
     for one in names do
-        discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8, "a readable line\n"))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -876,7 +876,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     view.resize(800, 520)
     view.applyLayout()
     discard host.render(view)
@@ -949,7 +949,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view          = cast #assume (*TextViewer) viewerSession.view!
+    let view          = assume cast (*TextViewer, viewerSession.view)
     view.resize(800, 520)
     view.applyLayout()
     discard host.render(view)
@@ -965,7 +965,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(view.pendingSeek and view.loadTimer != null)
     host.fireTimer(view.loadTimer)
     completeTextReads(&host, view)
-    let lowOffset = cast(u64) (0.2 * cast(f32) view.fileSize)
+    let lowOffset = cast(u64, (0.2 * cast(f32, view.fileSize)))
     Swag.assert(view.residentStart <= lowOffset and view.bytesRead >= lowOffset)
 
     let ratios = [0.8'f32, 0.1'f32, 0.65'f32, 0.3'f32, 0.9'f32, 0.05'f32]
@@ -976,7 +976,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         Swag.assert(view.pendingSeek and view.loadTimer != null)
         host.fireTimer(view.loadTimer)
         completeTextReads(&host, view)
-        let offset = cast(u64) (ratio * cast(f32) view.fileSize)
+        let offset = cast(u64, (ratio * cast(f32, view.fileSize)))
         Swag.assert(view.residentStart <= offset and view.bytesRead >= offset)
         Swag.assert(Math.abs(view.editor.scrollPosition().y - requestedY) <= 1)
         Swag.assert(not view.editor.text().isEmpty())
@@ -994,14 +994,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     Swag.assert(window.appearanceButton.appearanceTheme == .SwagDark)
 
-    window.applyTheme(cast(u32) AppearanceTheme.Dark)
+    window.applyTheme(cast(u32, AppearanceTheme.Dark))
     host.notify(.ThemeChanged)
-    Swag.assert(window.themeIndex == cast(u32) AppearanceTheme.Dark)
+    Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Dark))
     Swag.assert(host.app.theme.colors.view_Bk == ThemeColors.darkPalette().view)
 
-    window.applyTheme(cast(u32) AppearanceTheme.Light)
+    window.applyTheme(cast(u32, AppearanceTheme.Light))
     host.notify(.ThemeChanged)
-    Swag.assert(window.themeIndex == cast(u32) AppearanceTheme.Light)
+    Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Light))
     Swag.assert(host.app.theme.colors.view_Bk == 0xFFFFFFFF)
     Swag.assert(window.themeColors().view_Bk == 0xFFFFFFFF)
 
@@ -1010,7 +1010,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     loadViewerState(window, state.toSlice())
     window.applyTheme(window.themeIndex)
     host.notify(.ThemeChanged)
-    Swag.assert(window.themeIndex == cast(u32) AppearanceTheme.Light and host.app.theme.colors.view_Bk == 0xFFFFFFFF)
+    Swag.assert(window.themeIndex == cast(u32, AppearanceTheme.Light) and host.app.theme.colors.view_Bk == 0xFFFFFFFF)
     Swag.assert(window.themeColors().view_Bk == 0xFFFFFFFF)
 }
 
@@ -1055,7 +1055,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let surface  = dlg.surface!
     let rendered = host.render(dlg)
-    var image    = rendered.cropped(0, 0, cast(s32) surface.position.width, cast(s32) surface.position.height)
+    var image    = rendered.cropped(0, 0, cast(s32, surface.position.width), cast(s32, surface.position.height))
     Pixel.Testing.assertImageGolden(&image, "about")
     surface.destroy()
 }
@@ -1131,7 +1131,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchMatch == target)
     Swag.assert(window.searchMatches.count == 1 and window.searchIndex == 0)
     Swag.assert(window.searchCountLabel.text() == "1/1")
-    let textView = cast #assume (*TextViewer) window.currentView!
+    let textView = assume cast (*TextViewer, window.currentView)
     Swag.assert(textView.editor.selectedText() == query)
     Swag.assert(textView.bytesRead < textView.fileSize)
     discard host.render(textView)
@@ -1162,7 +1162,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
-    let view = cast #assume (*PdfViewer) window.currentView!
+    let view = assume cast (*PdfViewer, window.currentView)
     Swag.assert(view.loadTimer == null and view.pdfView.pageCount() == 2)
 
     window.searchBox.setFocus()
@@ -1205,10 +1205,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard host.render(window)
     host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
-    let basic = cast #assume (*TextViewer) window.currentView!
+    let basic = assume cast (*TextViewer, window.currentView)
     Swag.assert(basic.editor.selectedText() == "Cat")
     var matchBounds: Math.Rectangle
-    Swag.assert(textSearchBounds(basic, window.searchMatches[window.searchIndex], &matchBounds))
+    Swag.assert(basic.searchBounds(&matchBounds))
     Swag.assert(window.searchOverlay.position.width == Math.round(matchBounds.width + ViewerSearchOverlayInsetX * 2))
     Swag.assert(window.searchOverlay.position.height == Math.round(matchBounds.height + ViewerSearchOverlayInsetY * 2))
     window.searchOverlay.phase = 0.25
@@ -1257,7 +1257,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchBox.setText(null)
     Swag.assert(not (window.searchBox.text()).count)
     Swag.assert(not (window.searchCountLabel.text()).count and not window.searchOverlay.isLocallyVisible())
-    Swag.assert((cast #assume (*TextViewer) window.currentView).editor.isSelectionEmpty())
+    Swag.assert(assume cast (*TextViewer, window.currentView).editor.isSelectionEmpty())
 }
 
 // Search navigation over a streamed Markdown file materializes every distant occurrence in both
@@ -1291,7 +1291,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var markdownIndex = Swag.U32.Max
     for choice, choiceIndex in window.choices where choice.key == "markdown" do
-        markdownIndex = cast(u32) choiceIndex
+        markdownIndex = cast(u32, choiceIndex)
     Swag.assert(markdownIndex != Swag.U32.Max)
     window.selectViewer(markdownIndex)
     window.searchBox.setFocus()
@@ -1324,7 +1324,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
 
-    let markdown = cast #assume(*Markdown.View) window.currentView!
+    let markdown = assume cast(*Markdown.View, window.currentView)
     var bounds: Math.Rectangle
     Swag.assert(markdown.searchMatchRect(&bounds))
 
@@ -1647,7 +1647,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var retired: bool
     failed.userData = &retired
     window.choices.add(ViewerPluginChoice{pluginIndex: 0, key: "html"})
-    window.instances.add(ViewerSession{view: failed, commands: commands, retire: &markTestViewerRetired})
+    window.instances.add(ViewerSession{view: failed, commands: commands, retire: func|failed|()->bool => markTestViewerRetired(failed)})
     window.currentView       = failed
     window.currentCommands   = commands
     window.activeChoiceIndex = 0
@@ -1659,7 +1659,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentCommands == null)
     Swag.assert(window.currentView != null and window.currentView != failed)
     Swag.assert(window.instances[0].failureReason == "payload ends before its declared length")
-    let errorView = cast #assume(*ViewerErrorView) window.currentView
+    let errorView = assume cast(*ViewerErrorView, window.currentView)
     Swag.assert(errorView.reasonLabel.text() == window.instances[0].failureReason.toString())
 }
 
@@ -1672,7 +1672,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
 
-    let fileName = writeTempFile("html", cast(const [..] u8) "<p>ready</p>")
+    let fileName = writeTempFile("html", cast(const [..] u8, "<p>ready</p>"))
     defer discard catch File.delete(fileName.toString())
 
     let index  = createViewerPluginRegistry()
@@ -1687,16 +1687,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let loading = Wnd.create'RetiringTestView(window.documentPanel)
     window.instances[0].view      = loading
     window.instances[0].details   = "streamed"
-    window.instances[0].isLoading = func(wnd)->bool
+    window.instances[0].isLoading = func()->bool
     {
-        discard wnd
         return true
     }
 
-    window.instances[0].retire = func(wnd)->bool
+    window.instances[0].retire = func|loading|()->bool
     {
-        let view = cast #assume(*RetiringTestView) wnd
-        view.retired = true
+        loading.retired = true
         return true
     }
 
@@ -1709,7 +1707,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     // The mark waits before it appears: a wait that has just begun shows nothing, and the one
     // that has lasted the delay shows the mark, faded in over the preserved document.
-    window.instances[0].needsLoadingOverlay = func(wnd)->bool { discard wnd; return true }
+    window.instances[0].needsLoadingOverlay = func()->bool => true
     reportViewerLoadingChanged(loading)
     Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0 and window.loadingTimer != null)
     expireViewerLoadingDelay(window)
@@ -1774,7 +1772,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     old.setPosition({19, 73, 617, 389})
     var retireCalls: u32
     old.userData = &retireCalls
-    window.instances.add(ViewerSession{view: old, retire: &delayTestViewerRetirement})
+    window.instances.add(ViewerSession{view: old, retire: func|old|()->bool => delayTestViewerRetirement(old)})
     window.currentView       = old
     window.activeChoiceIndex = 0
 
@@ -1840,7 +1838,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
 
-    let textView = cast #assume (*TextViewer) window.currentView!
+    let textView = assume cast (*TextViewer, window.currentView)
     textView.setInitialFocus(textView.editor)
     Swag.assert(textView.editor.hasFocus())
     var comboPoint = window.viewerCombo.surfaceRect().center()
@@ -1890,7 +1888,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.choiceLoad.task.wait()
     host.fireTimer(window.startupTimer)
 
-    let discardedView  = cast #assume (*TextViewer) window.currentView!
+    let discardedView  = assume cast (*TextViewer, window.currentView)
     let discardedTimer = discardedView.loadTimer!
     window.openFile(secondFile)
     host.fireTimer(window.startupTimer)
@@ -2088,7 +2086,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Pixel.Testing.assertImageGolden(&searchDark, "search.dark")
     window.searchBox.setText("")
 
-    window.applyTheme(cast(u32) AppearanceTheme.Light)
+    window.applyTheme(cast(u32, AppearanceTheme.Light))
     host.notify(.ThemeChanged)
     host.settleAnimations(window, 4)
     var light = host.render(window)
@@ -2115,7 +2113,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let names: [5] string = ["pic1.png", "pic2.jpg", "notes.txt", "more.txt", "readme.md"]
     for one in names do
-        discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllBytes(Path.combine(folder.toString(), one).toString(), cast(const [..] u8, "a readable line\n"))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -2161,7 +2159,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchMatchCaseOption = false
     window.searchWholeWordOption = false
     window.searchRegexOption     = false
-    loadViewerState(window, cast(const [..] u8) state.toString())
+    loadViewerState(window, cast(const [..] u8, state.toString()))
     Swag.assert(window.folderSameKind and window.searchMatchCaseOption and window.searchWholeWordOption and window.searchRegexOption)
 }
 
@@ -2174,8 +2172,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     expect Directory.create(folder.toString())
     defer discard catch Directory.delete(folder.toString(), recurse: true)
 
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "t1.txt").toString(), cast(const [..] u8) "a readable line\n")
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "t2.txt").toString(), cast(const [..] u8) "a readable line\n")
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "t1.txt").toString(), cast(const [..] u8, "a readable line\n"))
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "t2.txt").toString(), cast(const [..] u8, "a readable line\n"))
     let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic1.svg").toString(), imageBytes)
@@ -2193,7 +2191,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // arrow reaches the editor instead of walking the folder, and the keyboard follows it.
     window.openFile(Path.combine(folder.toString(), "t1.txt").toString())
     completeQueuedViewerFile(&host, window)
-    let textView = cast #assume (*TextViewer) window.currentView!
+    let textView = assume cast (*TextViewer, window.currentView)
     window.openButton.setFocus()
     Swag.assert(not textView.editor.hasFocus())
     host.keyPress(Input.Key.Right)
@@ -2254,18 +2252,18 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(firstIndex > window.folderList.lastVisibleLineIndex())
 
     window.setPlayMode(.Folder)
-    Swag.assert(window.folderList.isLineSelected(cast(u32) firstIndex))
+    Swag.assert(window.folderList.isLineSelected(cast(u32, firstIndex)))
     Swag.assert(window.folderList.firstVisibleLineIndex() <= firstIndex and firstIndex <= window.folderList.lastVisibleLineIndex())
-    Swag.assert(window.folderList.lineAt(cast(u32) firstIndex)!.colorFg == window.themeColors().label_TextLight)
-    Swag.assert(window.folderList.lineAt(cast(u32) firstIndex - 1)!.colorFg.a == 0)
+    Swag.assert(window.folderList.lineAt(cast(u32, firstIndex))!.colorFg == window.themeColors().label_TextLight)
+    Swag.assert(window.folderList.lineAt(cast(u32, firstIndex) - 1)!.colorFg.a == 0)
 
     Swag.assert(window.continueFile(.Folder))
     completeQueuedViewerFile(&host, window)
     let secondIndex = window.siblingIndex
-    Swag.assert(secondIndex == firstIndex + 1 and window.folderList.isLineSelected(cast(u32) secondIndex))
+    Swag.assert(secondIndex == firstIndex + 1 and window.folderList.isLineSelected(cast(u32, secondIndex)))
     Swag.assert(window.folderList.firstVisibleLineIndex() <= secondIndex and secondIndex <= window.folderList.lastVisibleLineIndex())
-    Swag.assert(window.folderList.lineAt(cast(u32) firstIndex)!.colorFg == window.themeColors().label_TextLight)
-    Swag.assert(window.folderList.lineAt(cast(u32) secondIndex + 1)!.colorFg.a == 0)
+    Swag.assert(window.folderList.lineAt(cast(u32, firstIndex))!.colorFg == window.themeColors().label_TextLight)
+    Swag.assert(window.folderList.lineAt(cast(u32, secondIndex) + 1)!.colorFg.a == 0)
 
     window.setPlayMode(.Once)
     Swag.assert(window.folderReadingFiles.isEmpty())
@@ -2280,7 +2278,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 {
     let folder = createPictureFolder("scope_play", ["pic1.svg", "pic2.svg", "pic3.svg"])
     defer discard catch Directory.delete(folder.toString(), recurse: true)
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8, "a readable line\n"))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -2360,7 +2358,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 {
     let folder = createPictureFolder("scope_finish", ["pic1.svg", "pic2.svg"])
     defer discard catch Directory.delete(folder.toString(), recurse: true)
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8, "a readable line\n"))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -2418,21 +2416,21 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     Swag.assert(window.playMode == .Once)
-    Swag.assert(window.openDefaultButton.icon.index == cast(s32) ThemeIcons.OpenExternal)
+    Swag.assert(window.openDefaultButton.icon.index == cast(s32, ThemeIcons.OpenExternal))
     window.openFile(Path.combine(folder.toString(), "picture.svg").toString())
     completeQueuedViewerFile(&host, window)
-    let imageView = cast #assume (*ImageViewer) window.currentView!
+    let imageView = assume cast (*ImageViewer, window.currentView)
     let button    = imageView.playModeButton
     Swag.assert(button.parent == window.currentCommands and button.parent != window.commandBar)
     Swag.assert(button.isVisible())
 
     host.clickPopupMenuItemWhenShown("scope.play.shuffle")
     button.showMenu()
-    Swag.assert(window.playMode == .Shuffle and button.icon.index == cast(s32) ThemeIcons.Shuffle)
+    Swag.assert(window.playMode == .Shuffle and button.icon.index == cast(s32, ThemeIcons.Shuffle))
 
     host.clickPopupMenuItemWhenShown("scope.play.folder")
     button.showMenu()
-    Swag.assert(window.playMode == .Folder and button.icon.index == cast(s32) ThemeIcons.RepeatAll)
+    Swag.assert(window.playMode == .Folder and button.icon.index == cast(s32, ThemeIcons.RepeatAll))
 
     host.openPopupSubMenuWhenShown(appStrings().ui_PlaySlide)
     host.thenClickPopupMenuItem("scope.play.slide.2")
@@ -2448,17 +2446,17 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     for entry in 4'u32
     {
         Swag.assert(menu.itemAt(entry).rg == .ExclusiveGroup and menu.itemAt(entry).checked == (entry == 2))
-        Swag.assert(menu.itemAt(entry).icon.index == cast(s32) icons[entry])
+        Swag.assert(menu.itemAt(entry).icon.index == cast(s32, icons[entry]))
     }
 
     let slideMenu = menu.itemAt(5).popup
-    for entry in cast(u32) Viewer.SlideChoices.count do
+    for entry in cast(u32, Viewer.SlideChoices.count) do
         Swag.assert(slideMenu.itemAt(entry).rg == .ExclusiveGroup and slideMenu.itemAt(entry).checked == (entry == 2))
 
     // The same picture can be inspected as bytes; presentation follows the selected viewer.
     for choice, index in window.choices where choice.key == "hex"
     {
-        window.selectViewer(cast(u32) index)
+        window.selectViewer(cast(u32, index))
         break
     }
 

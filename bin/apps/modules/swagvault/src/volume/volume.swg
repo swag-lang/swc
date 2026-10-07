@@ -45,15 +45,15 @@ struct BlockMapBackup
 private func splitPath(path: string)->Array'string
 {
     var result: retval
-    let bytes = cast(const [..] u8) path
+    let bytes = cast(const [..] u8, path)
     var start = 0'u64
     for i in bytes.count + 1
     {
-        if i < bytes.count and bytes[i] != cast(u8) '\\' and bytes[i] != cast(u8) '/' do
+        if i < bytes.count and bytes[i] != cast(u8, '\\') and bytes[i] != cast(u8, '/') do
             continue
         if i > start
         {
-            let name: string = cast() Swag.makeSlice(bytes.buffer + start, i - start)
+            let name: string = cast(Swag.makeSlice(bytes.buffer + start, i - start))
             result.add(name)
         }
 
@@ -133,7 +133,7 @@ impl VolumeProgress
         let total = Atomic.get(&.total)
         if not total do
             return 0
-        return cast(f32) Atomic.get(&.done) / cast(f32) total
+        return cast(f32, Atomic.get(&.done)) / cast(f32, total)
     }
 }
 
@@ -205,7 +205,7 @@ func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
         try failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
 
     var random = 0'u64
-    try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
+    try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8, &random), #sizeof(random)))
     let range  = maximum - minimum + 1
     var result = logicalSize + minimum + random % range
     if result == avoidedSize do
@@ -1398,7 +1398,7 @@ impl Volume
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
         defer Core.Crypto.secureClear(locator)
         Swag.memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
-        Crypto.store32((record.buffer + HeaderLocatorCheckSize)!, cast(u32) plain.count ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
+        Crypto.store32((record.buffer + HeaderLocatorCheckSize)!, cast(u32, plain.count) ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
 
         let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
         let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + plain.count]
@@ -1782,10 +1782,10 @@ impl Volume
         }
 
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
-        parallel for |&batch| parIndex in cast(u64) count
+        parallel for |&batch| parIndex in cast(u64, count)
         {
-            let jobIndex     = cast(u32) parIndex
-            let index        = cast(u64) jobIndex
+            let jobIndex     = cast(u32, parIndex)
+            let index        = cast(u64, jobIndex)
             let recordOffset = index * BlockRecordSize
             let plainOffset  = index * BlockSize
             let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
@@ -1812,12 +1812,12 @@ impl Volume
         records.resize(count * BlockRecordSize)
         try Core.Crypto.randomBytes(records.toSlice())
 
-        var plain = Swag.makeSlice(cast #unconst ([*] u8) source.buffer, source.count)
+        var plain = Swag.makeSlice(cast #unconst ([*] u8, source.buffer), source.count)
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: plain}
-        parallel for |&batch| parIndex in cast(u64) count
+        parallel for |&batch| parIndex in cast(u64, count)
         {
-            let jobIndex     = cast(u32) parIndex
-            let index        = cast(u64) jobIndex
+            let jobIndex     = cast(u32, parIndex)
+            let index        = cast(u64, jobIndex)
             let recordOffset = index * BlockRecordSize
             let plainOffset  = index * BlockSize
             let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
@@ -2058,7 +2058,7 @@ impl Volume
             done += chunk
         }
 
-        return cast(u32) count
+        return cast(u32, count)
     }
 
     mtd writeNode(nodeId: u64, offset: u64, source: const [..] u8, writeToEnd, constrained: bool)->u32 fail
@@ -2128,7 +2128,7 @@ impl Volume
         updated.changeTime    = now
         updated.attributes    |= FileAttributeArchive
         .touch(nodeId)
-        return cast(u32) count
+        return cast(u32, count)
     }
 
     // Creates an in-memory node and leaves its journal commit to the caller.

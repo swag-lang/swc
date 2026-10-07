@@ -4,7 +4,7 @@
 #[Swag.CallingConvention(.C)]
 func readFreshThreadContext(parameter: *void?)->u32
 {
-    let result = cast(*bool) parameter!
+    let result = cast(*bool, parameter!)
     let first  = Swag.getContext()
     let second = Swag.getContext()
     result[] = first == second and first.allocator != null and first.runtimeTlsIdPlusOne != 0

@@ -54,7 +54,7 @@ func indirectReleaseClearAndRead(context: *IndirectReleaseContext)->s32
     Swag.getContext().allocator!.alloc(&request)
 
     var context: IndirectReleaseContext
-    context.slots[0].record = cast(*IndirectReleaseRecord) request.address!
+    context.slots[0].record = cast(*IndirectReleaseRecord, request.address!)
     let marker = indirectReleaseClearAndRead(&context)
     Swag.assert(marker == 37)
     Swag.assert(context.slots[0].record == null)

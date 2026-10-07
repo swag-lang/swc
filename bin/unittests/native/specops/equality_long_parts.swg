@@ -58,7 +58,7 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
     var a, b: LongBytes
     for i in 40
     {
-        a.words[i] = cast(u64) i * 0x0101_0101
+        a.words[i] = cast(u64, i) * 0x0101_0101
         b.words[i] = a.words[i]
     }
 
@@ -84,9 +84,9 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
     for i in 9
     {
         a.cells[i].name  = names[i]
-        a.cells[i].value = cast(s32) i
+        a.cells[i].value = cast(s32, i)
         b.cells[i].name  = names[i]
-        b.cells[i].value = cast(s32) i
+        b.cells[i].value = cast(s32, i)
     }
 
     Swag.assert(sameCellTable(&a, &b))
@@ -102,8 +102,8 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
     var a, b: CountingTable
     for i in 7
     {
-        a.items[i].value = cast(s32) i
-        b.items[i].value = cast(s32) i
+        a.items[i].value = cast(s32, i)
+        b.items[i].value = cast(s32, i)
     }
 
     g_CountingEqualCalls = 0

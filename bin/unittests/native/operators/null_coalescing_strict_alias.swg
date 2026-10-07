@@ -40,27 +40,27 @@ func choosePointer(primary: RequiredPointer?, fallback: RequiredPointer)->Requir
 {
     var first    = AliasValue{number: 17}
     var second   = AliasValue{number: 29}
-    let primary  = cast(RequiredInterface) cast(IAliasValue) &first
-    let fallback = cast(RequiredInterface) cast(IAliasValue) &second
-    Swag.assert((cast(IAliasValue) chooseInterface(primary, fallback)).value() == 17)
-    Swag.assert((cast(IAliasValue) chooseInterface(null, fallback)).value() == 29)
+    let primary  = cast(RequiredInterface, cast(IAliasValue, &first))
+    let fallback = cast(RequiredInterface, cast(IAliasValue, &second))
+    Swag.assert(cast(IAliasValue, chooseInterface(primary, fallback)).value() == 17)
+    Swag.assert(cast(IAliasValue, chooseInterface(null, fallback)).value() == 29)
 }
 
 #test
 {
     var first:  u32 = 17
     var second: u32 = 29
-    let primary     = cast(RequiredPointer) &first
-    let fallback    = cast(RequiredPointer) &second
+    let primary     = cast(RequiredPointer, &first)
+    let fallback    = cast(RequiredPointer, &second)
     Swag.assert(choosePointer(primary, fallback) == primary)
     Swag.assert(choosePointer(null, fallback) == fallback)
 }
 
-const PointerFallback = cast(RequiredPointer) 0x1234'u64
-const PointerResolved = cast(RequiredPointer?) null orelse PointerFallback
+const PointerFallback = cast(RequiredPointer, 0x1234'u64)
+const PointerResolved = cast(RequiredPointer?, null) orelse PointerFallback
 #assert(#typeof(PointerResolved) == RequiredPointer)
 #assert(PointerResolved == PointerFallback)
 
-const PointerPresent = cast(RequiredPointer?) 0x5678'u64 orelse PointerFallback
+const PointerPresent = cast(RequiredPointer?, 0x5678'u64) orelse PointerFallback
 #assert(#typeof(PointerPresent) == RequiredPointer)
-#assert(PointerPresent == cast(RequiredPointer) 0x5678'u64)
+#assert(PointerPresent == cast(RequiredPointer, 0x5678'u64))

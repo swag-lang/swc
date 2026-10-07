@@ -957,7 +957,7 @@ impl MenuCtrl
                 continue
 
             if .getBarItemRect(i).contains(pos) do
-                return cast(u32) idx
+                return cast(u32, idx)
         }
 
         return Swag.U32.Max
@@ -980,7 +980,7 @@ impl MenuCtrl
 
             let rect = Math.Rectangle{clientRect.x, it.pos - sl * 0.5, clientRect.width, it.size + sl}
             if rect.contains(pos) do
-                return cast(u32) idx
+                return cast(u32, idx)
 
             lastIsSeparator = it.separator
         }

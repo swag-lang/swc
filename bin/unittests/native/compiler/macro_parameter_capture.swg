@@ -37,7 +37,7 @@ func captureParallelParameter(pixelUserData: *void? = null)
     parallel for |pixelUserData| index in 8'u64
     {
         if pixelUserData != null do
-            (cast([*] u64) pixelUserData)[index] = index + 1
+            cast([*] u64, pixelUserData)[index] = index + 1
     }
 }
 

@@ -18,6 +18,6 @@ impl IGroupScorer for BadgeScorer
 func probe()->u32
 {
     var badgeScorer: BadgeScorer
-    let iBadge = cast(IGroupScorer) badgeScorer
+    let iBadge = cast(IGroupScorer, badgeScorer)
     return iBadge.score(1'u64, 2'u64)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

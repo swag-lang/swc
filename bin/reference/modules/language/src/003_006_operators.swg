@@ -36,11 +36,11 @@ bitwise AND, OR, XOR, and bit shifting.
 {
     var x: s32 = 10
 
-    x = x ^ 2                    // XOR
-    x = x & 0b0000_0001's32      // AND
-    x = x | cast(s32) 0b0001     // OR
-    x = x << 1                   // Shift left
-    x = x >> 1                   // Shift right
+    x = x ^ 2                     // XOR
+    x = x & 0b0000_0001's32       // AND
+    x = x | cast(s32, 0b0001)     // OR
+    x = x << 1                    // Shift left
+    x = x >> 1                    // Shift right
 }
 
 /**

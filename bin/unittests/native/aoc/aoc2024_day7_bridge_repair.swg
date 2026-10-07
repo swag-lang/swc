@@ -88,7 +88,7 @@ func initEquationList(initialCapacity: u32)->EquationList
 {
     var result: EquationList
     result.capacity = initialCapacity
-    result.data     = cast([*] Equation?) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
+    result.data     = cast([*] Equation?, testAlloc(cast(u64, initialCapacity) * cast(u64, #sizeof(Equation))))
     Swag.assert(result.data != null)
     return result
 }
@@ -106,7 +106,7 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast([*] Equation?) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
+        result.data = cast([*] Equation?, testRealloc(result.data, cast(u64, newCapacity) * cast(u64, #sizeof(Equation))))
         Swag.assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32
@@ -127,7 +127,7 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
     var value: u64
     while pos[] < bytes.count and isDigit(bytes[pos[]])
     {
-        value = value * 10 + cast(u64) (bytes[pos[]] - '0')
+        value = value * 10 + cast(u64, (bytes[pos[]] - '0'))
         pos[] += 1
     }
 
@@ -144,7 +144,7 @@ func skipSpaces(bytes: const [..] u8, pos: *u32)
 
 func parseEquations(text: string)->EquationList
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var list  = initEquationList(InitialEquationCapacity)
     var pos: u32
 
@@ -224,7 +224,7 @@ func calibrate(text: string)->CalibrationReport
     let data = list.data!
     for index in list.count
     {
-        let eq = data[cast(u32) index]
+        let eq = data[cast(u32, index)]
 
         if isEquationSolvable(eq, false) do
             result.twoOpTotal += eq.target

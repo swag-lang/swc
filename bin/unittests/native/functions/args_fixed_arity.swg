@@ -30,27 +30,27 @@ func callMixedNumeric(
     a4: s64, a5: f64, a6: u32, a7: f32,
     a8: u64, a9: f64)->s64
 {
-    return cast(s64) a0 + cast(s64) a1 + cast(s64) a2 + cast(s64) a3 + a4 + cast(s64) a5 + cast(s64) a6 + cast(s64) a7 + cast(s64) a8 + cast(s64) a9
+    return cast(s64, a0) + cast(s64, a1) + cast(s64, a2) + cast(s64, a3) + a4 + cast(s64, a5) + cast(s64, a6) + cast(s64, a7) + cast(s64, a8) + cast(s64, a9)
 }
 
 func callSmallInts(a: s8, b: s16, c: s32, d: s64, e: u8, f: u16, g: u32, h: u64)->s64
 {
-    return cast(s64) a + cast(s64) b + cast(s64) c + d + cast(s64) e + cast(s64) f + cast(s64) g + cast(s64) h
+    return cast(s64, a) + cast(s64, b) + cast(s64, c) + d + cast(s64, e) + cast(s64, f) + cast(s64, g) + cast(s64, h)
 }
 
 func callBoolRune(a: bool, b: rune, c: bool, d: rune, e: bool, f: rune)->s32
 {
-    return cast(s32) a + cast(s32) b + cast(s32) c + cast(s32) d + cast(s32) e + cast(s32) f
+    return cast(s32, a) + cast(s32, b) + cast(s32, c) + cast(s32, d) + cast(s32, e) + cast(s32, f)
 }
 
 func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
 {
-    return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
+    return a.a + a.b + b[0] + b[2] + cast(s32, c[1])
 }
 
 func callPointerEnum(a: *void?, b: FixedKind, c: s32)->u64
 {
-    return cast(u64) (a != null) + cast(u64) cast(u8) b + cast(u64) c
+    return cast(u64, (a != null)) + cast(u64, cast(u8, b)) + cast(u64, c)
 }
 
 func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bool
@@ -87,12 +87,12 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
     let sum0 = callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
     let sum1 = callAggregate({a: -2, b: 14}, [4, 5, 6], "By")
     let ptr0 = callPointerEnum(null, FixedKind.A, 3)
-    let ptr1 = callPointerEnum(cast(*void) 0x45'u64, FixedKind.B, 7)
+    let ptr1 = callPointerEnum(cast(*void, 0x45'u64), FixedKind.B, 7)
 
     #assert(#typeof(ptr0) == u64)
     Swag.assert(sum0 == 168)
     Swag.assert(sum1 == 143)
     Swag.assert(ptr0 == 8'u64)
     Swag.assert(ptr1 == 17'u64)
-    Swag.assert(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B))
+    Swag.assert(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10'u64), FixedKind.B))
 }

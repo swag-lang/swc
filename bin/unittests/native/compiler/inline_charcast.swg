@@ -17,7 +17,7 @@ func storeAt(vkey: u8)->u8
 #[Swag.Inline]
 func toByte(on: bool)->u8
 {
-    return cast(u8) on + 10
+    return cast(u8, on) + 10
 }
 
 // Unmarked twins: auto-inline candidates under `-bc release`.

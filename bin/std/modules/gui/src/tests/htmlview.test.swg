@@ -13,7 +13,7 @@ using Core, Pixel
     for 40_000 do
         source += "A source line keeps a continuous scroll covered while the next window is prepared.\n"
     source += "</code></pre></body></html>"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(640, 480)
     defer host.shutdown()
@@ -97,7 +97,7 @@ using Core, Pixel
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("html_svg_size_%.svg", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
     let source = "<svg width='120' height='60' viewBox='0 0 480 240'><rect width='480' height='240' fill='#285078'/></svg>"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var host: Testing.HeadlessHost
     host.setup(640, 480)
     defer host.shutdown()
@@ -116,23 +116,23 @@ using Core, Pixel
 
     // Both draws must survive: growing the texture during the second draw would retire the
     // smaller texture while the first draw still refers to it in the unsubmitted paint batch.
-    Swag.assert(image.pixelColor(cast(s32) natural.center().x, cast(s32) natural.center().y).argb == 0xFF285078)
-    Swag.assert(image.pixelColor(cast(s32) sized.center().x, cast(s32) sized.center().y).argb == 0xFF285078)
+    Swag.assert(image.pixelColor(cast(s32, natural.center().x), cast(s32, natural.center().y)).argb == 0xFF285078)
+    Swag.assert(image.pixelColor(cast(s32, sized.center().x), cast(s32, sized.center().y)).argb == 0xFF285078)
     let highDpi = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
     Swag.assert(highDpi != null and view.images.entries[0].image.width == 480)
-    let pixels  = cast(u64) view.images.entries[0].image.pixels.buffer
+    let pixels  = cast(u64, view.images.entries[0].image.pixels.buffer)
     let smaller = view.images.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(smaller != null and cast(u64) view.images.entries[0].image.pixels.buffer == pixels)
+    Swag.assert(smaller != null and cast(u64, view.images.entries[0].image.pixels.buffer) == pixels)
 
     // A full-screen figure can use the physical width of a 4K display without upscaling.
     let fullScreen = view.images.texture(host.app.renderer, fileName.toString(), 3840, 1920)
     Swag.assert(fullScreen != null and view.images.entries[0].image.width == 3840 and view.images.entries[0].image.height == 1920)
-    let fullScreenPixels = cast(u64) view.images.entries[0].image.pixels.buffer
+    let fullScreenPixels = cast(u64, view.images.entries[0].image.pixels.buffer)
     let windowed         = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
-    Swag.assert(windowed != null and cast(u64) view.images.entries[0].image.pixels.buffer == fullScreenPixels)
+    Swag.assert(windowed != null and cast(u64, view.images.entries[0].image.pixels.buffer) == fullScreenPixels)
     let oversized = view.images.texture(host.app.renderer, fileName.toString(), 16384, 8192)
     Swag.assert(oversized != null and view.images.entries[0].image.width <= 4096)
-    Swag.assert(cast(u64) view.images.entries[0].image.width * cast(u64) view.images.entries[0].image.height <= 8 * 1024 * 1024)
+    Swag.assert(cast(u64, view.images.entries[0].image.width) * cast(u64, view.images.entries[0].image.height) <= 8 * 1024 * 1024)
 }
 
 // Large square figures obey the area budget as well as the longest-side limit.
@@ -149,7 +149,7 @@ using Core, Pixel
     Swag.assert(texture != null)
     let image = &cache.entries[0].image
     Swag.assert(image.width > 2048 and image.width == image.height)
-    Swag.assert(cast(u64) image.width * cast(u64) image.height <= 8 * 1024 * 1024)
+    Swag.assert(cast(u64, image.width) * cast(u64, image.height) <= 8 * 1024 * 1024)
     Swag.assert(image.pixelColor(image.width / 2, image.height / 2).argb == 0xFF285078)
 }
 
@@ -190,16 +190,16 @@ func parseDocument(source: string)->HtmlDocument
 // Returns the first element of a document carrying a tag, so a test can name what it inspects.
 func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
 {
-    for index in document.nodes.count where document.constNode(cast(u32) index).tag == tag do
-        return cast(u32) index
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag do
+        return cast(u32, index)
     return HtmlNoNode
 }
 
 // Returns the first element carrying a class used to name fixture structure.
 func findClass(document: const *HtmlDocument, name: string)->u32
 {
-    for index in document.nodes.count where document.hasClass(cast(u32) index, name) do
-        return cast(u32) index
+    for index in document.nodes.count where document.hasClass(cast(u32, index), name) do
+        return cast(u32, index)
     return HtmlNoNode
 }
 
@@ -224,11 +224,11 @@ func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, fou
 func findNthTag(document: const *HtmlDocument, tag: HtmlTag, wanted: u32)->u32
 {
     var seen = 0'u32
-    for index in document.nodes.count where document.constNode(cast(u32) index).tag == tag
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag
     {
         seen += 1
         if seen == wanted do
-            return cast(u32) index
+            return cast(u32, index)
     }
 
     return HtmlNoNode
@@ -304,7 +304,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var items      = 0'u32
     for index in document.nodes.count
     {
-        let node = document.constNode(cast(u32) index)
+        let node = document.constNode(cast(u32, index))
         if node.tag == .P do
             paragraphs += 1
         if node.tag == .Li do
@@ -822,7 +822,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // A hidden container is parsed and then left out of the box tree entirely.
     for index in view.layout.boxes.count
     {
-        let node = view.layout.constBox(cast(u32) index).node
+        let node = view.layout.constBox(cast(u32, index)).node
         if node == HtmlNoNode do
             continue
         Swag.assert(view.document.constNode(node).tag != .Script)
@@ -1185,7 +1185,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.scroll.setScrollPos(0, view.virtualHeight * 0.15)
     Swag.assert(view.virtualPendingSeek and view.loadTimer != null)
     host.fireTimer(view.loadTimer)
-    let lowOffset = view.virtualContentStart + cast(u64) (0.15 * cast(f32) (view.fileSize - view.virtualContentStart))
+    let lowOffset = view.virtualContentStart + cast(u64, (0.15 * cast(f32, (view.fileSize - view.virtualContentStart))))
     Swag.assert(view.virtualWindowStart <= lowOffset and view.virtualWindowEnd >= lowOffset)
     Swag.assert(not view.virtualPendingSeek)
 
@@ -1588,7 +1588,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
         textBox = child
     Swag.assert(textBox != HtmlNoNode and view.layout.constBox(textBox).lines.front().top == heading.content.y)
     var image = host.render(view)
-    Swag.assert(image.pixelColor(cast(u32) decoration.rect.horzCenter(), cast(u32) decoration.rect.vertCenter()).argb == 0xFFFF8080)
+    Swag.assert(image.pixelColor(cast(u32, decoration.rect.horzCenter()), cast(u32, decoration.rect.vertCenter())).argb == 0xFFFF8080)
 }
 
 // Every checked-in HTML fixture is a complete document that the streaming parser accepts.
@@ -1824,7 +1824,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     Swag.assert(document.textContent(anchor).toString() == "link")
 
     var paragraphs = 0'u32
-    for index in document.nodes.count where document.constNode(cast(u32) index).tag == .P do
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == .P do
         paragraphs += 1
     Swag.assert(paragraphs == 2)
 
@@ -2148,8 +2148,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     Swag.assert(written.constNode(findTag(&written, .Html)).attributes.count == 1)
     let onlyBody = findTag(&written, .Body)
     Swag.assert(written.attribute(onlyBody, "class") == "page")
-    for index in written.nodes.count where index != cast(u64) onlyBody do
-        Swag.assert(written.constNode(cast(u32) index).tag != .Body)
+    for index in written.nodes.count where index != cast(u64, onlyBody) do
+        Swag.assert(written.constNode(cast(u32, index)).tag != .Body)
     Swag.assert(written.textContent(onlyBody).toString() == "onetwo")
 }
 
@@ -2533,10 +2533,10 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
         return false
 
     let expected = Pixel.Color.fromArgb(argb)
-    let dr       = Math.abs(cast(s32) value.color.r - cast(s32) expected.r)
-    let dg       = Math.abs(cast(s32) value.color.g - cast(s32) expected.g)
-    let db       = Math.abs(cast(s32) value.color.b - cast(s32) expected.b)
-    let da       = Math.abs(cast(s32) value.color.a - cast(s32) expected.a)
+    let dr       = Math.abs(cast(s32, value.color.r) - cast(s32, expected.r))
+    let dg       = Math.abs(cast(s32, value.color.g) - cast(s32, expected.g))
+    let db       = Math.abs(cast(s32, value.color.b) - cast(s32, expected.b))
+    let da       = Math.abs(cast(s32, value.color.a) - cast(s32, expected.a))
     return dr <= tolerance and dg <= tolerance and db <= tolerance and da <= tolerance
 }
 
@@ -2560,7 +2560,7 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 
     // Alpha rides behind the slash whatever the notation.
     let translucent = htmlParseColor("oklch(0.62796 0.25768 29.234 / 50%)")
-    Swag.assert(translucent.matched and Math.abs(cast(s32) translucent.color.a - 128) <= 1)
+    Swag.assert(translucent.matched and Math.abs(cast(s32, translucent.color.a) - 128) <= 1)
 
     // An out-of-gamut color clamps to the gamut edge instead of wrapping.
     let vivid = htmlParseColor("oklch(0.9 0.37 145)")
@@ -2624,7 +2624,7 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
     for index in document.nodes.count
     {
         var depth = 0'u64
-        var walk  = document.constNode(cast(u32) index).parent
+        var walk  = document.constNode(cast(u32, index)).parent
         while walk != HtmlNoNode
         {
             depth += 1
@@ -2654,7 +2654,7 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
 {
     for boxIndex in view.layout.boxes.count
     {
-        let box = view.layout.constBox(cast(u32) boxIndex)
+        let box = view.layout.constBox(cast(u32, boxIndex))
         for itemIndex in box.items.count
         {
             let item = &box.items[itemIndex]

@@ -25,8 +25,8 @@ struct(K, V) HashTable
 
 func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
 {
-    table.entries  = cast([*] HashEntry'(K, V)?) testAlloc(capacity * #sizeof(HashEntry'(K, V)))
-    table.states   = cast([*] u8?) testAlloc(capacity * #sizeof(u8))
+    table.entries  = cast([*] HashEntry'(K, V)?, testAlloc(capacity * #sizeof(HashEntry'(K, V))))
+    table.states   = cast([*] u8?, testAlloc(capacity * #sizeof(u8)))
     table.capacity = capacity
     table.count    = 0
 
@@ -166,17 +166,17 @@ func eqString(a: string, b: string)->bool => a == b
 
 func hashS32(value: s32)->u64
 {
-    return hashU64(cast(u64) cast(u32) value)
+    return hashU64(cast(u64, cast(u32, value)))
 }
 
 func hashString(text: string)->u64
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var hash  = 1469598103934665603'u64
 
     for byte in bytes
     {
-        hash ^= cast(u64) byte
+        hash ^= cast(u64, byte)
         hash = hash * #wrap 1099511628211'u64
     }
 

@@ -196,7 +196,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
             cx = 0
         if cx > width - 1 do
             cx = width - 1
-        var xf = xa - cast(f64) cx
+        var xf = xa - cast(f64, cx)
         if xf < 0.0 do
             xf = 0.0
         elif xf > 1.0 do
@@ -222,7 +222,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
 
     for cx in cxStart until cxEnd + 1
     {
-        let cxf = cast(f64) cx
+        let cxf = cast(f64, cx)
         let sx0 = Math.max(xL, cxf)
         let sx1 = Math.min(xR, cxf + 1.0)
         if sx1 <= sx0 do
@@ -271,20 +271,20 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     if not edges.count do
         return
 
-    faceData.bitmapPixels.resize(cast(u64) width * rows)
+    faceData.bitmapPixels.resize(cast(u64, width) * rows)
     let bitmapBuffer = faceData.bitmapPixels.storage()
     var dst = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
     var area:  Array'f64
     var cover: Array'f64
-    area.resize(cast(u64) width)
-    cover.resize(cast(u64) width)
+    area.resize(cast(u64, width))
+    cover.resize(cast(u64, width))
     let areaBuffer  = area.storage()
     let coverBuffer = cover.storage()
 
-    let leftF = cast(f64) left
-    let topF  = cast(f64) top
+    let leftF = cast(f64, left)
+    let topF  = cast(f64, top)
 
     for py in rows
     {
@@ -292,7 +292,7 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
         Memory.clear(coverBuffer, cover.count * #sizeof(f64))
 
         // Glyph-space y band for this row (y points up; row 0 is the top).
-        let bandHi = topF - cast(f64) py
+        let bandHi = topF - cast(f64, py)
         let bandLo = bandHi - 1.0
 
         for edge in edges
@@ -325,10 +325,10 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
             var c = Math.abs(val)
             if c > 1.0 do
                 c = 1.0
-            dst[] = cast(u8) (c * 255.0 + 0.5)
+            dst[] = cast(u8, (c * 255.0 + 0.5))
             dst   += 1
         }
     }
 
-    safeSlot.setBitmap(rows, width, cast(s32) width, bitmapBuffer, .Gray, left, top)
+    safeSlot.setBitmap(rows, width, cast(s32, width), bitmapBuffer, .Gray, left, top)
 }

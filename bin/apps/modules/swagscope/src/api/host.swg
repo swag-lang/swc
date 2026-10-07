@@ -152,8 +152,13 @@ interface Host
     mtd reject(reason: string)
 
     // Replaces the search callbacks for the attached view.
+    //
+    // Callbacks capture their concrete viewer pointer by value. The host copies the callbacks
+    // and keeps the attached view alive until retirement; no callback may outlive that view.
     mtd setSearch(api: SearchApi)
 
     // Replaces the progressive-loading and retirement callbacks for the attached view.
+    //
+    // Each callback borrows the attached view through its captured concrete pointer.
     mtd setLifecycle(api: LifecycleApi)
 }

@@ -23,10 +23,10 @@ var g_Functions: Array'OneFunc
     if msg.type.kind != TypeInfoKind.Func do
         return
 
-    let typeFunc = cast #assume(const *TypeInfoFunc) msg.type
+    let typeFunc = assume cast(const *TypeInfoFunc, msg.type)
     if not Reflection.hasAttribute(typeFunc, Extension) do
         return
-    g_Functions.add({type: typeFunc, name: cast(string) (msg.name)})
+    g_Functions.add({type: typeFunc, name: cast(string, (msg.name))})
 }
 
 #message(CompilerMsgMask.PassAfterSemantic)
@@ -121,12 +121,12 @@ var g_Functions: Array'OneFunc
         // Initialize the variable with the getExtensionAddress.
         builderInit.appendString("\text_")
         builderInit.appendString(e.name)
-        builderInit.appendString(" = cast((")
+        builderInit.appendString(" = cast(")
         builderInit.appendString("extType_")
         builderInit.appendString(e.name)
-        builderInit.appendString(")?) getExtensionAddress((\"")
+        builderInit.appendString("?, getExtensionAddress((\"")
         builderInit.appendString(e.name)
-        builderInit.appendString("\").buffer)\n")
+        builderInit.appendString("\").buffer))\n")
     }
 
     builderInit.appendString("}\n")

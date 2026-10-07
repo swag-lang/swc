@@ -29,7 +29,7 @@ struct Quad
 func makePair(x, y: u32)->Pair => Pair{y, x}
 
 #[Swag.NoInline]
-func usePair(p: Pair)->u64 => cast(u64) p.a * 1000 + cast(u64) p.b
+func usePair(p: Pair)->u64 => cast(u64, p.a) * 1000 + cast(u64, p.b)
 
 #[Swag.Optimize(true), Swag.NoInline]
 func passPair(x, y: u32)->u64 => usePair(Pair{x, y + 1})
@@ -59,7 +59,7 @@ func escaped(p, q: s16)->s32
     var v = Quad{p, q}
     touch(&v)
     let copy = v
-    return cast(s32) copy.p * 100 + cast(s32) copy.q
+    return cast(s32, copy.p) * 100 + cast(s32, copy.q)
 }
 
 #test

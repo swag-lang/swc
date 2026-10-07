@@ -3,7 +3,7 @@
 #[Swag.Inline]
 func rejectedDependency()
 {
-    discard cast(*void) true     // swc-expected-error {{sema_err_cannot_cast}}
+    discard cast(*void, true)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 struct(T) FwdErrorContainer {}

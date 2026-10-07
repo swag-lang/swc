@@ -1,9 +1,9 @@
 #global private
 
-func(T) extract(source: any)->T => cast #assume (T) source
+func(T) extract(source: any)->T => assume cast (T, source)
 
 #[Swag.Inline]
-func(T) extractInline(source: any)->T => cast #assume (T) source
+func(T) extractInline(source: any)->T => assume cast (T, source)
 
 #test
 {
@@ -20,7 +20,7 @@ func capturedPack(values: any...)->s32
 {
     let read = func|values|()->s32
     {
-        return cast #assume (s32) values[0] + cast #assume (s32) values[1]
+        return assume cast (s32, values[0]) + assume cast (s32, values[1])
     }
     return read()
 }

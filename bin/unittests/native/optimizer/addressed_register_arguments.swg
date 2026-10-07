@@ -15,10 +15,10 @@ struct Sample
 }
 
 #[Swag.NoInline]
-func mixFour(a: u8, b: s16, c: s32, d: u64)->s64 => cast(s64) a * 1000000 + cast(s64) b * 1000 + cast(s64) c + cast #wrap (s64) d
+func mixFour(a: u8, b: s16, c: s32, d: u64)->s64 => cast(s64, a) * 1000000 + cast(s64, b) * 1000 + cast(s64, c) + cast #wrap (s64, d)
 
 #[Swag.NoInline]
-func mixFloat(a: f32, b: u8, c: f32, d: s32)->f32 => a * 2 + cast(f32) b + c * 3 + cast(f32) d
+func mixFloat(a: f32, b: u8, c: f32, d: s32)->f32 => a * 2 + cast(f32, b) + c * 3 + cast(f32, d)
 
 #[Swag.NoInline]
 func pick(p: const [*] u8, index: u64)->u8 => p[index]
@@ -42,7 +42,7 @@ func sumPicked(p: const [*] u8, n: u64)->u32
 {
     var total = 0'u32
     for i in n do
-        total += cast(u32) pick(p, cast(u64) p[i])
+        total += cast(u32, pick(p, cast(u64, p[i])))
     return total
 }
 

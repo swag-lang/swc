@@ -102,7 +102,7 @@ struct Pair
 {
     var arr: [2] Pair = [{1, 2}, {3, 4}]
     for &v, i in arr do
-        v[] = Pair{cast(s32) i + 10, cast(s32) i + 20}
+        v[] = Pair{cast(s32, i) + 10, cast(s32, i) + 20}
     Swag.assert(arr[0].a == 10 and arr[0].b == 20)
     Swag.assert(arr[1].a == 11 and arr[1].b == 21)
 }
@@ -129,6 +129,6 @@ struct Pair
     var text: string = "AB"
     var sum = 0
     for &b in text do
-        sum += cast(s32) b[]
+        sum += cast(s32, b[])
     Swag.assert(sum == 65 + 66)
 }

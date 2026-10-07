@@ -47,7 +47,7 @@ func indexedAlias4(values, source: [*] u32, index: u64)
 func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
 {
     values[index] ^= mask
-    let bytes = cast([*] u8) values
+    let bytes = cast([*] u8, values)
     bytes[(index + 1) * 4] = 0xA7
     values[index + 1]      ^= mask
     values[index + 2]      ^= mask
@@ -61,7 +61,7 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
         for mask in [0'u32, 1, 0x8000_0000, 0xFFFF_FFFF]
         {
             var actual: [12] u32
-            for i in 12 do actual[i] = cast(u32) (i * 0x10001 + 17)
+            for i in 12 do actual[i] = cast(u32, (i * 0x10001 + 17))
             var expected = actual
             indexedXor4(&actual[0], offset, mask)
             for i in 4 do expected[offset + i] ^= mask
@@ -85,7 +85,7 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
     for displacement in 5'u64
     {
         var actual: [12] u32
-        for i in 12 do actual[i] = cast(u32) (i * 0x10001 + 17)
+        for i in 12 do actual[i] = cast(u32, (i * 0x10001 + 17))
         var expected = actual
         indexedAlias4(&actual[0], &actual[displacement], 2)
         for i in 4 do expected[2 + i] ^= expected[displacement + i]
@@ -100,7 +100,7 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
         for mask in [0'u32, 1, 0x8000_0000, 0xFFFF_FFFF]
         {
             var actual: [24] u32
-            for i in 24 do actual[i] = cast(u32) (i * 0x10001 + 17)
+            for i in 24 do actual[i] = cast(u32, (i * 0x10001 + 17))
             var expected = actual
             indexedXor16(&actual[0], offset, mask)
             for i in 16 do expected[offset + i] ^= mask
@@ -141,7 +141,7 @@ func indexedBorrow(values: [*] u32)->[*] u32 => values
 func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
 {
     var local: [8] u32
-    for i in 8 do local[i] = seed + cast(u32) i
+    for i in 8 do local[i] = seed + cast(u32, i)
     var values = source
     for iteration in 2
     {
@@ -159,7 +159,7 @@ func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
     for count in [0'u64, 16, 48]
     {
         var actual: [64] u32
-        for i in 64 do actual[i] = cast(u32) (i * 0x10001 + 17)
+        for i in 64 do actual[i] = cast(u32, (i * 0x10001 + 17))
         var expected = actual
         indexedXorBlocks(&actual[1], count, 0xAABB_CCDD)
         for i in count do expected[i + 1] ^= 0xAABB_CCDD
@@ -173,7 +173,7 @@ func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
         var source:   [4] u32 = [3, 9, 27, 81]
         var expectedSource    = source
         var expected: [8] u32
-        for i in 8 do expected[i] = seed + cast(u32) i
+        for i in 8 do expected[i] = seed + cast(u32, i)
         for i in 4 do expectedSource[i] ^= expected[i]
         for i in 4 do expected[i + 1] ^= expected[i]
         let actual = indexedEscapedFrame(&source[0], seed)
@@ -196,7 +196,7 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
     Swag.assert(count % 16 == 0)
     let values = indexedBorrow(input)
     var initial: [16] u32
-    for i in 16 do initial[i] = seed + cast(u32) i
+    for i in 16 do initial[i] = seed + cast(u32, i)
     var offset  = 0'u64
     var counter = 1'u32
     while offset < count
@@ -209,20 +209,20 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
         offset  += 16
         counter += 1
     }
-    return indexedSummary(seed, cast(u32) count)
+    return indexedSummary(seed, cast(u32, count))
 }
 
 #test
 {
     var actual: [64] u32
-    for i in 64 do actual[i] = cast(u32) (i * 0x10001 + 17)
+    for i in 64 do actual[i] = cast(u32, (i * 0x10001 + 17))
     var expected = actual
     Swag.assert(indexedCopiedState(&actual[0], 64, 37) == 101)
     for block in 4
     {
         for lane in 16
         {
-            let initial = lane == 12 ? cast(u32) (block + 1) : 37 + cast(u32) lane
+            let initial = lane == 12 ? cast(u32, (block + 1)) : 37 + cast(u32, lane)
             var state   = initial
             for 10 do state = (state + 1) ^ 0x10203
             expected[block * 16 + lane] ^= state + initial

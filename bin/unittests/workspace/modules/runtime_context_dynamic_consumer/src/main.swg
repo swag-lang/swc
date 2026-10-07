@@ -6,12 +6,12 @@ func verifyExpandedContextSlot(library: *NativeLibrary)
     let contextSymbol = library.symbol("ctx_dynamic_read_context")
     let failureSymbol = library.symbol("ctx_dynamic_catches_core_failure")
     Swag.assert(hookSymbol != null and contextSymbol != null and failureSymbol != null)
-    let hook           = cast(func(u64, u64, u64, const *(string?))) hookSymbol
-    let readContext    = cast(func()->*Swag.Context) contextSymbol
-    let catchesFailure = cast(func()->bool) failureSymbol
+    let hook           = cast(func(u64, u64, u64, const *(string?)), hookSymbol)
+    let readContext    = cast(func()->*Swag.Context, contextSymbol)
+    let catchesFailure = cast(func()->bool, failureSymbol)
     let previous       = Swag.getContext()
     let previousSlot   = previous.runtimeTlsIdPlusOne
-    let flags          = cast(u64) previous.runtimeFlags
+    let flags          = cast(u64, previous.runtimeFlags)
     let arguments      = &Swag.processInfos().args
 
     var slots: [65] u32
@@ -66,14 +66,14 @@ func verifyDynamicallyLoadedRuntimeContext()
 
     let symbol = library.symbol("ctx_dynamic_catches_core_failure")
     Swag.assert(symbol != null)
-    let catchesCoreFailure = cast(func()->bool) symbol
+    let catchesCoreFailure = cast(func()->bool, symbol)
     Swag.assert(catchesCoreFailure())
 
     verifyExpandedContextSlot(&library)
 
     let countsSymbol = library.symbol("ctx_dynamic_lifecycle_counts")
     Swag.assert(countsSymbol != null)
-    let lifecycleCounts = cast(func()->u64) countsSymbol
+    let lifecycleCounts = cast(func()->u64, countsSymbol)
     Swag.assert(lifecycleCounts() == 0x0000000100000001)
 
     var second = expect NativeLibrary.load(path)
@@ -82,7 +82,7 @@ func verifyDynamicallyLoadedRuntimeContext()
     var dropCount = 0'u32
     let setDropCounterSymbol = library.symbol("ctx_dynamic_set_drop_counter")
     Swag.assert(setDropCounterSymbol != null)
-    let setDropCounter = cast(func(*u32)) setDropCounterSymbol
+    let setDropCounter = cast(func(*u32), setDropCounterSymbol)
     setDropCounter(&dropCount)
 
     library.close()
@@ -93,12 +93,12 @@ func verifyDynamicallyLoadedRuntimeContext()
     var reloaded = expect NativeLibrary.load(path)
     let reloadedCountsSymbol = reloaded.symbol("ctx_dynamic_lifecycle_counts")
     Swag.assert(reloadedCountsSymbol != null)
-    let reloadedLifecycleCounts = cast(func()->u64) reloadedCountsSymbol
+    let reloadedLifecycleCounts = cast(func()->u64, reloadedCountsSymbol)
     Swag.assert(reloadedLifecycleCounts() == 0x0000000100000001)
 
     let reloadedSetDropCounterSymbol = reloaded.symbol("ctx_dynamic_set_drop_counter")
     Swag.assert(reloadedSetDropCounterSymbol != null)
-    let reloadedSetDropCounter = cast(func(*u32)) reloadedSetDropCounterSymbol
+    let reloadedSetDropCounter = cast(func(*u32), reloadedSetDropCounterSymbol)
     reloadedSetDropCounter(&dropCount)
     reloaded.close()
     Swag.assert(dropCount == 2)

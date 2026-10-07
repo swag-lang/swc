@@ -244,11 +244,11 @@ private func retireAllocatorThreadHeap(value: *void?)
 
     // The thread may still allocate after this callback, from a later destructor. Its fast slot must
     // not keep naming the heap that is about to be freed.
-    let heap = cast(*AllocatorThreadHeap) value
+    let heap = cast(*AllocatorThreadHeap, value)
     if fastThreadHeap() == heap do
         setFastThreadHeap(null)
 
-    let allocator = cast(*Allocator?) heap.allocator
+    let allocator = cast(*Allocator?, heap.allocator)
     if allocator and allocator.installed() do
         allocator.retireThreadHeap(heap)
 }
@@ -298,7 +298,7 @@ private func allocatorThreadHeapTlsId()->u64
 private func fastThreadHeap()->*AllocatorThreadHeap?
 {
     let id = atomicGet(&g_AllocatorThreadHeapTlsId)
-    return id != AllocatorInvalidTlsId ? cast(*AllocatorThreadHeap?) __tlsGetValue(id) : null
+    return id != AllocatorInvalidTlsId ? cast(*AllocatorThreadHeap?, __tlsGetValue(id)) : null
 }
 
 private func setFastThreadHeap(heap: *AllocatorThreadHeap?)
@@ -314,7 +314,7 @@ func currentAllocatorThreadHeap()->*AllocatorThreadHeap?
     let heap = fastThreadHeap()
     if heap do
         return heap
-    return cast(*AllocatorThreadHeap?) __hostThreadStorageGet(allocatorThreadHeapFlsId())
+    return cast(*AllocatorThreadHeap?, __hostThreadStorageGet(allocatorThreadHeapFlsId()))
 }
 
 private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
@@ -335,7 +335,7 @@ func allocatorQueueRevisit(page: *AllocatorPage)
     if Swag.atomcmpxchg(&page.revisitQueued, 0, 1) != 0 do
         return
 
-    let allocator = cast(*Allocator?) allocatorSegmentOf(page).allocator
+    let allocator = cast(*Allocator?, allocatorSegmentOf(page).allocator)
     if not allocator
     {
         discard Swag.atomxchg(&page.revisitQueued, 0)
@@ -347,7 +347,7 @@ func allocatorQueueRevisit(page: *AllocatorPage)
     while true
     {
         page.revisitNext = head
-        let seen = Swag.atomcmpxchg(stack, head, cast(u64) page)
+        let seen = Swag.atomcmpxchg(stack, head, cast(u64, page))
         if seen == head do
             return
         head = seen
@@ -371,11 +371,11 @@ impl Allocator
         if index == 0 do
             return 8
         if index <= 8 do
-            return cast(u64) index * 16
+            return cast(u64, index) * 16
 
         let bucket = 7 + (index - 9) / 4
         let step   = (index - 9) % 4
-        return cast(u64) (5 + step) << (bucket - 2)
+        return cast(u64, (5 + step)) << (bucket - 2)
     }
 
     // The inverse of 'classSize', in a handful of instructions and with no table walk.
@@ -384,13 +384,13 @@ impl Allocator
         if size <= 8 do
             return 0
         if size <= 128 do
-            return cast(u32) ((size + 15) >> 4)
+            return cast(u32, ((size + 15) >> 4))
         if size > AllocatorMaxClassSize do
             return AllocatorInvalidClass
 
         let value  = size - 1
-        let bucket = 63 - cast(u32) Swag.bitCountLz(value)
-        let step   = cast(u32) ((value >> (bucket - 2)) & 3)
+        let bucket = 63 - cast(u32, Swag.bitCountLz(value))
+        let step   = cast(u32, ((value >> (bucket - 2)) & 3))
         return 9 + (bucket - 7) * 4 + step
     }
 
@@ -403,7 +403,7 @@ impl Allocator
         var candidate = index
         while candidate < AllocatorClassCount
         {
-            if (classSize(candidate) & (cast(u64) alignment - 1)) == 0 do
+            if (classSize(candidate) & (cast(u64, alignment) - 1)) == 0 do
                 return candidate
             candidate += 1
         }
@@ -415,7 +415,7 @@ impl Allocator
 
     func memAlign(value: u64, alignment: u32)->u64
     {
-        let toAlign = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void)) - 1
+        let toAlign = cast(u64, (alignment != 0 ? alignment : cast(u32, #sizeof(*void)))) - 1
         if value > Swag.U64.Max - toAlign do
             return 0
         return (value + toAlign) & ~toAlign
@@ -497,7 +497,7 @@ impl Allocator
 
     mtd osAlloc(size: u64)->[*] u8?
     {
-        let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
+        let rounded = memAlign(size, cast(u32, AllocatorCommitGranularity))
         if rounded == 0 do
             return null
         let address = __hostPageReserve(rounded)
@@ -543,7 +543,7 @@ impl Allocator
             return
 
         // The host returns whole pages, including the unused tail of a thread-heap record.
-        let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
+        let rounded = memAlign(size, cast(u32, AllocatorCommitGranularity))
         __hostPageRelease(address, rounded)
 
         atomicSubU64(&g_AllocatorCommittedBytes, rounded)
@@ -561,7 +561,7 @@ impl Allocator
             return null
 
         Swag.memset(address, 0, #sizeof(AllocatorThreadHeap))
-        let heap = cast(*AllocatorThreadHeap) address
+        let heap = cast(*AllocatorThreadHeap, address)
         heap.allocator = me
         heap.threadId  = currentThreadId()
 
@@ -593,7 +593,7 @@ impl Allocator
         if heap
         {
             setCurrentAllocatorThreadHeap(null)
-            let oldAllocator = cast(*Allocator?) heap.allocator
+            let oldAllocator = cast(*Allocator?, heap.allocator)
             oldAllocator?.retireThreadHeap(heap)
         }
 
@@ -737,7 +737,7 @@ impl Allocator
     // The caller must not hold the segment mutex.
     mtd acquirePageForClass(heap: *AllocatorThreadHeap, classIndex: u32)->*AllocatorPage?
     {
-        let blockSize = cast(u32) classSize(classIndex)
+        let blockSize = cast(u32, classSize(classIndex))
         let unitShift = classUnitShift(classIndex)
 
         .segmentMutex.lock()
@@ -849,7 +849,7 @@ impl Allocator
         var list = Swag.atomxchg(&.revisitPages, 0)
         while list
         {
-            let page = cast(*AllocatorPage) list
+            let page = cast(*AllocatorPage, list)
             list = page.revisitNext
             discard Swag.atomxchg(&page.revisitQueued, 0)
             if page.ownerHeap == heap
@@ -916,7 +916,7 @@ impl Allocator
                 }
 
                 .removeCachedBlock(i)
-                .osFree(cast(*void) entry.address, entry.committed)
+                .osFree(cast(*void, entry.address), entry.committed)
             }
 
             .mutex.unlock()
@@ -1008,11 +1008,11 @@ impl Allocator
     // Header path
     // ###################################################################################
 
-    mtd headerOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader) (address - #sizeof(AllocatorHeader))
+    mtd headerOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader, (address - #sizeof(AllocatorHeader)))
 
-    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8) header + #sizeof(AllocatorHeader)
+    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8, header) + #sizeof(AllocatorHeader)
 
-    mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
+    mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter, (.userAddress(header) + header.userSize))
 
     // An electric block has no footer: only alignment slack separates its payload from the guard.
     mtd footerMagic(header: *AllocatorHeader)->u32 => header.isElectric ? header.magic : .footer(header).magic
@@ -1127,8 +1127,8 @@ impl Allocator
     {
         if size <= AllocatorLargeRoundMin do
             return size
-        let bucket = 63 - cast(u64) Swag.bitCountLz(size - 1)
-        let step   = Swag.max(1'u64 << (bucket - 3), cast(u64) AllocatorCommitGranularity)
+        let bucket = 63 - cast(u64, Swag.bitCountLz(size - 1))
+        let step   = Swag.max(1'u64 << (bucket - 3), cast(u64, AllocatorCommitGranularity))
         if size > Swag.U64.Max - step do
             return size
         return (size + step - 1) & ~(step - 1)
@@ -1170,7 +1170,7 @@ impl Allocator
         .removeCachedBlock(best)
         blockSize[]  = entry.reserved
         commitSize[] = entry.committed
-        return cast([*] u8) entry.address
+        return cast([*] u8, entry.address)
     }
 
     // Removes entry 'index' by moving the last entry into its place. The caller holds the mutex.
@@ -1204,7 +1204,7 @@ impl Allocator
         let budget = .blockCacheBudget()
         if committed > budget
         {
-            .osFree(cast(*void) address, committed)
+            .osFree(cast(*void, address), committed)
             return
         }
 
@@ -1224,12 +1224,12 @@ impl Allocator
 
             let evicted = .cachedBlocks[oldest]
             .removeCachedBlock(oldest)
-            .osFree(cast(*void) evicted.address, evicted.committed)
+            .osFree(cast(*void, evicted.address), evicted.committed)
         }
 
         .cachedBlockStamp += 1
         let entry = &.cachedBlocks[.cachedBlockCount]
-        entry.address     = cast(u64) address
+        entry.address     = cast(u64, address)
         entry.reserved    = size
         entry.committed   = committed
         entry.stamp       = .cachedBlockStamp
@@ -1243,7 +1243,7 @@ impl Allocator
     mtd drainBlockCache()
     {
         for i in .cachedBlockCount do
-            .osFree(cast(*void) .cachedBlocks[i].address, .cachedBlocks[i].committed)
+            .osFree(cast(*void, .cachedBlocks[i].address), .cachedBlocks[i].committed)
         .cachedBlockBytes = 0
         .cachedBlockCount = 0
     }
@@ -1251,18 +1251,18 @@ impl Allocator
     mtd allocateHeaderBlock(request: *AllocatorRequest, classIndex: u32)
     {
         let alignment    = Swag.max(request.alignment, AllocatorPagePathAlignment)
-        let trackingSize = .diagnosticMode() ? cast(u64) #sizeof(AllocatorTracking) : 0'u64
+        let trackingSize = .diagnosticMode() ? cast(u64, #sizeof(AllocatorTracking)) : 0'u64
         let prefix       = memAlign(trackingSize + #sizeof(AllocatorHeader), alignment)
         let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
         let payloadSize  = .electricMode ? request.size : blockSize
-        let overhead     = prefix + cast(u64) alignment + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
+        let overhead     = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
         if payloadSize > Swag.U64.Max - overhead
         {
             request.address = null
             return
         }
 
-        var allocSize = memAlign(overhead + payloadSize, cast(u32) AllocatorCommitGranularity)
+        var allocSize = memAlign(overhead + payloadSize, cast(u32, AllocatorCommitGranularity))
         if allocSize == 0
         {
             request.address = null
@@ -1278,7 +1278,7 @@ impl Allocator
             // Round the payload address down to preserve alignment without entering the guard.
             base = .osAllocGuarded(allocSize)
             if base do
-                userAddr = (cast(u64) base + allocSize - request.size) & ~(cast(u64) alignment - 1)
+                userAddr = (cast(u64, base) + allocSize - request.size) & ~(cast(u64, alignment) - 1)
         }
         else
         {
@@ -1292,13 +1292,13 @@ impl Allocator
                 base      = .popCachedBlock(allocSize, &allocSize, &commitSize)
                 if base and commitSize < needed
                 {
-                    if allocatorOsCommit(cast(u64) base + commitSize, needed - commitSize)
+                    if allocatorOsCommit(cast(u64, base) + commitSize, needed - commitSize)
                     {
                         commitSize = needed
                     }
                     else
                     {
-                        .cacheFreedBlock(cast([*] void) base, allocSize, commitSize)
+                        .cacheFreedBlock(cast([*] void, base), allocSize, commitSize)
                         base = null
                     }
                 }
@@ -1316,7 +1316,7 @@ impl Allocator
             }
 
             if base do
-                userAddr = memAlign(cast(u64) base + prefix, alignment)
+                userAddr = memAlign(cast(u64, base) + prefix, alignment)
         }
 
         if not base
@@ -1326,12 +1326,12 @@ impl Allocator
         }
 
         let header = .headerOf(userAddr)
-        header.allocAddr  = cast([*] void) base
+        header.allocAddr  = cast([*] void, base)
         header.allocSize  = allocSize
         header.commitSize = commitSize
         header.userSize   = request.size
         header.blockSize  = blockSize
-        header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking) base : null
+        header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking, base) : null
         header.alignment  = alignment
         header.isTracked  = .trackAllocations
         header.isElectric = .electricMode
@@ -1342,7 +1342,7 @@ impl Allocator
         .setFooterMagic(header, MagicAlloc)
 
         if .fillAlloc do
-            Swag.memset(cast(*void) userAddr, AllocByte, request.size)
+            Swag.memset(cast(*void, userAddr), AllocByte, request.size)
 
         let tracking = header.tracking
         if tracking
@@ -1358,13 +1358,13 @@ impl Allocator
         // Outside the diagnostic modes the whole committed block past the header is usable, so
         // a later reallocation that still fits only moves the footer.
         if not .diagnosticMode() and not .electricMode do
-            header.blockSize = cast(u64) base + commitSize - #sizeof(AllocatorFooter) - userAddr
+            header.blockSize = cast(u64, base) + commitSize - #sizeof(AllocatorFooter) - userAddr
 
         atomicAddU64(&.headerCount, 1)
         atomicAddU64(&.headerBytes, header.blockSize)
         .linkAllocated(header)
 
-        request.address = cast(*void) userAddr
+        request.address = cast(*void, userAddr)
     }
 
     // Commits enough of the block's reservation for 'size' bytes of payload, when it has room.
@@ -1372,13 +1372,13 @@ impl Allocator
     // On failure the block is left as it was and the caller moves the data.
     mtd growHeaderBlock(header: *AllocatorHeader, size: u64)
     {
-        let base     = cast(u64) header.allocAddr
-        let userAddr = cast(u64) .userAddress(header)
+        let base     = cast(u64, header.allocAddr)
+        let userAddr = cast(u64, .userAddress(header))
         let room     = base + header.allocSize - userAddr
         if size > room or room - size < #sizeof(AllocatorFooter) do
             return
 
-        let commitEnd = memAlign(userAddr + size + #sizeof(AllocatorFooter) - base, cast(u32) AllocatorCommitGranularity)
+        let commitEnd = memAlign(userAddr + size + #sizeof(AllocatorFooter) - base, cast(u32, AllocatorCommitGranularity))
         if commitEnd <= header.commitSize do
             return
         if not allocatorOsCommit(base + header.commitSize, commitEnd - header.commitSize) do
@@ -1404,7 +1404,7 @@ impl Allocator
         atomicSubU64(&.headerBytes, header.blockSize)
 
         if .fillFree do
-            Swag.memset(cast(*void) address, FreeByte, header.userSize)
+            Swag.memset(cast(*void, address), FreeByte, header.userSize)
 
         header.magic = MagicFree
         .setFooterMagic(header, MagicFree)
@@ -1578,9 +1578,9 @@ impl Allocator
         // Fill the whole block, not only the request: the page path keeps no user size, so a later
         // reallocation inside the same class must find the pattern everywhere it can now reach.
         if .fillAlloc do
-            Swag.memset(cast(*void) block, AllocByte, classSize(classIndex))
+            Swag.memset(cast(*void, block), AllocByte, classSize(classIndex))
 
-        request.address = cast(*void) block
+        request.address = cast(*void, block)
     }
 
     mtd reallocate(request: *AllocatorRequest)
@@ -1603,7 +1603,7 @@ impl Allocator
             return
         }
 
-        let oldAddress = cast(u64) request.address
+        let oldAddress = cast(u64, request.address)
         let oldPage    = allocatorPageOf(oldAddress)
 
         var oldBlockSize: u64
@@ -1651,9 +1651,9 @@ impl Allocator
 
         // A page block keeps its address whenever the request still fits its class, which is what
         // makes a growing buffer stop calling the operating system.
-        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPageAlignmentMax and (request.alignment == 0 or (oldAddress & (cast(u64) request.alignment - 1)) == 0) and not .diagnosticMode()
+        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPageAlignmentMax and (request.alignment == 0 or (oldAddress & (cast(u64, request.alignment) - 1)) == 0) and not .diagnosticMode()
         {
-            request.address = cast(*void) oldAddress
+            request.address = cast(*void, oldAddress)
             return
         }
 
@@ -1666,10 +1666,10 @@ impl Allocator
             return
         }
 
-        Swag.memcpy(allocReq.address, cast(*void) oldAddress, Swag.min(oldCopySize, request.size))
+        Swag.memcpy(allocReq.address, cast(*void, oldAddress), Swag.min(oldCopySize, request.size))
 
         var freeReq = request[]
-        freeReq.address = cast(*void) oldAddress
+        freeReq.address = cast(*void, oldAddress)
         .freeBlock(&freeReq)
 
         request.address = allocReq.address
@@ -1693,7 +1693,7 @@ impl Allocator
         if not request.address do
             return
 
-        let address = cast(u64) request.address
+        let address = cast(u64, request.address)
         request.address = null
 
         let page = allocatorPageOf(address)
@@ -1721,7 +1721,7 @@ impl Allocator
         }
 
         if .fillFree do
-            Swag.memset(cast(*void) address, FreeByte, page.blockSize)
+            Swag.memset(cast(*void, address), FreeByte, page.blockSize)
 
         if owned
         {
@@ -1742,7 +1742,7 @@ impl Allocator
         if not addr do
             return
 
-        let address = cast(u64) addr
+        let address = cast(u64, addr)
         let page    = allocatorPageOf(address)
         if page
         {
@@ -1787,7 +1787,7 @@ impl Allocator
                 // Page retirement can reset the carved extent while statistics are read.
                 // Bound one live sample by one carved sample before subtracting them.
                 let carved = (atomicGet(&page.carved) - page.areaStart) / page.blockSize
-                let live   = Swag.min(cast(u64) page.liveCount(), carved)
+                let live   = Swag.min(cast(u64, page.liveCount()), carved)
                 result.countPage  += 1
                 result.countAlloc += live
                 result.sizeAlloc  += live * page.blockSize
@@ -1931,7 +1931,7 @@ impl Allocator
         var revisit = Swag.atomxchg(&.revisitPages, 0)
         while revisit
         {
-            let page = cast(*AllocatorPage) revisit
+            let page = cast(*AllocatorPage, revisit)
             revisit = page.revisitNext
             discard Swag.atomxchg(&page.revisitQueued, 0)
         }
@@ -2116,7 +2116,7 @@ impl IAllocator for Allocator
         let block = .allocateFast(request.size, request.alignment)
         if block != 0
         {
-            request.address = cast(*void) block
+            request.address = cast(*void, block)
             return
         }
 
@@ -2141,7 +2141,7 @@ impl IAllocator for Allocator
 
     mtd impl free(request: *AllocatorRequest)
     {
-        if not .slowPath and .freeFast(cast(u64) request.address)
+        if not .slowPath and .freeFast(cast(u64, request.address))
         {
             request.address = null
             return
@@ -2185,7 +2185,7 @@ func releaseAllocatorThreadCache()
 
     setCurrentAllocatorThreadHeap(null)
 
-    let alloc = cast(*Allocator?) heap.allocator
+    let alloc = cast(*Allocator?, heap.allocator)
     alloc?.retireThreadHeap(heap)
 }
 

@@ -62,7 +62,7 @@ impl GenericIsolationStore
     #[Swag.NoInline]
     mtd const checksum(index: s32)->u64
     {
-        return .salt + cast(u64) .entries[index].leading[Pad - 1] + cast(u64) .entries[index].trailing[Pad]
+        return .salt + cast(u64, .entries[index].leading[Pad - 1]) + cast(u64, .entries[index].trailing[Pad])
     }
 }
 

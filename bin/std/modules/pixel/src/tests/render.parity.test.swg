@@ -57,9 +57,9 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
     {
         for x in image.width
         {
-            let color = colors[cast(u64) ((x + y) & 3)]
+            let color = colors[cast(u64, ((x + y) & 3))]
             let row   = image.height - y - 1
-            let pixel = image.pixels.storage() + cast(u64) (row * image.rowStride + x * image.bytesPerPixel)
+            let pixel = image.pixels.storage() + cast(u64, (row * image.rowStride + x * image.bytesPerPixel))
             pixel[0] = color.b
             pixel[1] = color.g
             pixel[2] = color.r
@@ -94,7 +94,7 @@ private func renderStrokeParityScene(renderer: IRenderer)->Image
     var width = 0.35'f32
     for i in 6
     {
-        let x = 8.0'f32 + cast(f32) i * 30
+        let x = 8.0'f32 + cast(f32, i) * 30
         painter.drawLine(x, 6, x + 22, 40, Color.fromArgb(Argb.White), width)
         width *= 1.9
     }
@@ -104,7 +104,7 @@ private func renderStrokeParityScene(renderer: IRenderer)->Image
     for j, i in joins
     {
         var path: LinePath
-        let x = 8.0'f32 + cast(f32) i * 46
+        let x = 8.0'f32 + cast(f32, i) * 46
         path.start(x, 78)
         path.lineTo(x + 18, 50)
         path.lineTo(x + 36, 78)
@@ -220,7 +220,7 @@ private func renderParityScene(renderer: IRenderer)->Image
     let modes: [7] BlendingMode = [.Copy, .Alpha, .Add, .Sub, .SubDst, .Min, .Max]
     for mode, idx in modes
     {
-        let x = 114 + cast(f32) idx * 11
+        let x = 114 + cast(f32, idx) * 11
         painter.setBlendingMode(.Copy)
         painter.fillRect({x, 100, 9, 18}, Color.fromArgb(190'u8, 35'u8, 90'u8, 145'u8))
         painter.setBlendingMode(mode)
@@ -331,10 +331,10 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 {
     const Tolerance = 3
     let got = image.pixelColor(x, y)
-    Swag.assert(Math.abs(cast(s32) got.a - cast(s32) expected.a) <= Tolerance)
-    Swag.assert(Math.abs(cast(s32) got.r - cast(s32) expected.r) <= Tolerance)
-    Swag.assert(Math.abs(cast(s32) got.g - cast(s32) expected.g) <= Tolerance)
-    Swag.assert(Math.abs(cast(s32) got.b - cast(s32) expected.b) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32, got.a) - cast(s32, expected.a)) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32, got.r) - cast(s32, expected.r)) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32, got.g) - cast(s32, expected.g)) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32, got.b) - cast(s32, expected.b)) <= Tolerance)
 }
 
 // The rasterized document keeps its authored colors and coverage, and leaves the pixels it
@@ -417,8 +417,8 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // mirrored, cannot reproduce it.
 private func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
 {
-    const Width        = cast(u64) RenderPlanarWidth
-    const Height       = cast(u64) RenderPlanarHeight
+    const Width        = cast(u64, RenderPlanarWidth)
+    const Height       = cast(u64, RenderPlanarHeight)
     const ChromaWidth  = (Width + 1) / 2
     const ChromaHeight = (Height + 1) / 2
 
@@ -430,7 +430,7 @@ private func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
     for y in Height
     {
         for x in Width do
-            luma[y * Width + x] = cast(u8) (16 + x * 110 / (Width - 1) + y * 109 / (Height - 1))
+            luma[y * Width + x] = cast(u8, (16 + x * 110 / (Width - 1) + y * 109 / (Height - 1)))
     }
 
     for y in ChromaHeight
@@ -487,12 +487,12 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *YuvPla
     {
         let x        = corner & 1 ? view.width - 1 : 0
         let y        = corner & 2 ? view.height - 1 : 0
-        let chromaAt = cast(u64) (y >> 1) * view.chromaStride + cast(u64) (x >> 1)
-        let expected = expectedPlanarColor(view.luma[cast(u64) y * view.lumaStride + cast(u64) x], view.chromaB[chromaAt], view.chromaR[chromaAt], view.matrix, view.studioRange)
+        let chromaAt = cast(u64, (y >> 1)) * view.chromaStride + cast(u64, (x >> 1))
+        let expected = expectedPlanarColor(view.luma[cast(u64, y) * view.lumaStride + cast(u64, x)], view.chromaB[chromaAt], view.chromaR[chromaAt], view.matrix, view.studioRange)
         let actual   = image.pixelColor(x, y)
-        Swag.assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
-        Swag.assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
-        Swag.assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
+        Swag.assert(Math.abs(cast(s32, actual.r) - cast(s32, expected.r)) <= 1)
+        Swag.assert(Math.abs(cast(s32, actual.g) - cast(s32, expected.g)) <= 1)
+        Swag.assert(Math.abs(cast(s32, actual.b) - cast(s32, expected.b)) <= 1)
     }
 }
 
@@ -600,7 +600,7 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
 
     for mode, idx in ArtisticBlendModes
     {
-        let x = cast(f32) idx * 12.0
+        let x = cast(f32, idx) * 12.0
         painter.setBlendingMode(mode)
         painter.fillRect(x, 0, 12, 24, Src)
         painter.fillRect(x, 24, 12, 24, Src)
@@ -619,12 +619,12 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
     let expected = renderCpu(&renderOpaqueBackdropParityScene)
     for idx in ArtisticBlendModes.count
     {
-        let x       = cast(s32) idx * 12 + 6
+        let x       = cast(s32, idx) * 12 + 6
         let scratch = expected.pixelColor(x, 12)
         let opaque  = expected.pixelColor(x, 36)
-        Swag.assert(Math.abs(cast(s32) scratch.r - cast(s32) opaque.r) <= 1)
-        Swag.assert(Math.abs(cast(s32) scratch.g - cast(s32) opaque.g) <= 1)
-        Swag.assert(Math.abs(cast(s32) scratch.b - cast(s32) opaque.b) <= 1)
+        Swag.assert(Math.abs(cast(s32, scratch.r) - cast(s32, opaque.r)) <= 1)
+        Swag.assert(Math.abs(cast(s32, scratch.g) - cast(s32, opaque.g)) <= 1)
+        Swag.assert(Math.abs(cast(s32, scratch.b) - cast(s32, opaque.b)) <= 1)
     }
 }
 

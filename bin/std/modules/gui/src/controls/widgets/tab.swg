@@ -115,8 +115,8 @@ impl IWnd for Tab
         var width = 0'f32
         switch .layout
         {
-        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32) .items.count
-        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32) .items.count
+        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32, .items.count)
+        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32, .items.count)
         case .Content: width = .contentWidth()
         }
 
@@ -327,14 +327,14 @@ impl IWnd for Tab
         if not .items.isEmpty()
         {
             clientRect = .itemBarRect()
-            for idx in .firstVisibleIndex until cast(u32) .items.count
+            for idx in .firstVisibleIndex until cast(u32, .items.count)
             {
                 if idx == .selectedIndex do
                     continue
                 let v = .items[idx]!
                 if v.pos + v.width > clientRect.right() do
                     break
-                .paintItem(painter, v, cast(u32) idx)
+                .paintItem(painter, v, cast(u32, idx))
             }
 
             // Paint selected item
@@ -428,7 +428,7 @@ impl IWnd for Tab
             index = 0
 
         case .End:
-            index = cast(u32) .items.count - 1
+            index = cast(u32, .items.count) - 1
 
         default:
             return
@@ -491,13 +491,13 @@ private impl Tab
             return Swag.U32.Max
 
         let rect = .itemBarRect()
-        for idx in .firstVisibleIndex until cast(u32) .items.count
+        for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
             let v = .items[idx]!
             if v.pos + v.width > rect.right() do
                 break
             if pos.x >= v.pos and pos.x < v.pos + v.width do
-                return cast() idx
+                return cast(idx)
         }
 
         return Swag.U32.Max
@@ -530,7 +530,7 @@ private impl Tab
         switch .layout
         {
         case .Equal:
-            var w = cast(f32) (rect.width / .items.count)
+            var w = cast(f32, (rect.width / .items.count))
             w = Math.max(w, .minimumItemWidth)
             for vIt in .items
             {
@@ -557,7 +557,7 @@ private impl Tab
 
         var x = rect.x
         .mostRightPos = Math.round(rect.x)
-        for idx in .firstVisibleIndex until cast(u32) .items.count
+        for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
             let v    = .items[idx]!
             let left = Math.round(x)
@@ -778,7 +778,7 @@ impl Tab
         }
         elif wasSelected
         {
-            .selectedIndex = Math.min(index, cast(u32) .items.count - 1)
+            .selectedIndex = Math.min(index, cast(u32, .items.count) - 1)
             let selectedView = .items[.selectedIndex]!.view
             if selectedView do
                 selectedView.wndFlags &= ~.Hidden

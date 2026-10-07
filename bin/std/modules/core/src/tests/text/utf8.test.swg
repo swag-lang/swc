@@ -124,8 +124,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     for index in runes.count
     {
         let value = 0x80 + (index * 37 % 0x780)
-        runes[index] = cast(rune) value
-        utf16[index] = cast(u16) value
+        runes[index] = cast(rune, value)
+        utf16[index] = cast(u16, value)
     }
 
     for length in 66'u64
@@ -165,8 +165,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     for index in runes.count
     {
         let value = index % 2 ? 0x0800 + index * 997 % 0xD000 : 0xE000 + index * 613 % 0x2000
-        runes[index] = cast(rune) value
-        utf16[index] = cast(u16) value
+        runes[index] = cast(rune, value)
+        utf16[index] = cast(u16, value)
     }
 
     for length in 66'u64
@@ -208,10 +208,10 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     for index in runes.count
     {
         let value = 0x10000 + index * 7919 % 0x100000
-        runes[index] = cast(rune) value
+        runes[index] = cast(rune, value)
         let surrogate = value - 0x10000
-        utf16[2 * index]     = cast(u16) (0xD800 + (surrogate >> 10))
-        utf16[2 * index + 1] = cast(u16) (0xDC00 + (surrogate & 0x3FF))
+        utf16[2 * index]     = cast(u16, (0xD800 + (surrogate >> 10)))
+        utf16[2 * index + 1] = cast(u16, (0xDC00 + (surrogate & 0x3FF)))
     }
 
     for length in 66'u64
@@ -280,7 +280,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     var actual:   [320] u8
     var expected: [320] u8
     for index in source.count do
-        source[index] = cast(u16) ('a' + index % 26)
+        source[index] = cast(u16, ('a' + index % 26))
 
     for idx in 66
     {
@@ -300,7 +300,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     for index in 48
     {
         for idx in source.count do
-            source[idx] = cast(u16) ('a' + idx % 26)
+            source[idx] = cast(u16, ('a' + idx % 26))
         source[index] = 0x20AC
         for idx in actual.count
         {
@@ -435,10 +435,10 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
     let text = "one fish two fish"
 
-    Swag.assert(Utf8.contains(text, cast(string) "fish"))
+    Swag.assert(Utf8.contains(text, cast(string, "fish")))
     Swag.assert(Utf8.contains(text, 'f'u8))
     Swag.assert(Utf8.contains(text, 'o'rune))
-    Swag.assert(not Utf8.contains(text, cast(string) "bird"))
+    Swag.assert(not Utf8.contains(text, cast(string, "bird")))
 
     Swag.assert(Utf8.lastIndexOf(text, "fish") == 13)
     Swag.assert(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)
@@ -491,12 +491,12 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
-        runeSum      += cast(u32) c
+        runeSum      += cast(u32, c)
         charIndexSum += charIndex
         byteIndexSum += byteIndex
     }
 
-    Swag.assert(runeSum == cast(u32) 'A'rune + cast(u32) '\u00E9'rune + cast(u32) '\U0001F642'rune)
+    Swag.assert(runeSum == cast(u32, 'A'rune) + cast(u32, '\u00E9'rune) + cast(u32, '\U0001F642'rune))
     Swag.assert(charIndexSum == 3)
     Swag.assert(byteIndexSum == 4)
 }

@@ -21,14 +21,14 @@ using Swag, Core, Win32
 internal func testDragSource(session: *DragSession, data: *DragData)->*IDataObject
 {
     session.setup(data)
-    return cast(*IDataObject) cast(*void) &session.dataObj
+    return cast(*IDataObject, cast(*void, &session.dataObj))
 }
 
 // Hands `source` to the surface's own drop target and returns the payload it read back.
 internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->*DragData
 {
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
+    let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect = DROPEFFECT_COPY
     let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
@@ -45,7 +45,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
 internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObject)
 {
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
+    let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect     = DROPEFFECT_COPY
     let dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
@@ -55,9 +55,9 @@ internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObjec
 // Copies `text` into a movable block, which is what a `TYMED_HGLOBAL` medium transfers.
 internal func testGlobalBlock(text: string)->HGLOBAL
 {
-    let size  = cast(u64) text.count
+    let size  = cast(u64, text.count)
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    let buf   = cast([*] u8) GlobalLock(hglob)!
+    let buf   = cast([*] u8, GlobalLock(hglob)!)
     Memory.copy(buf, text.buffer, size)
     discard GlobalUnlock(hglob)
     return hglob
@@ -86,13 +86,13 @@ internal impl StreamOnlySource
     }
 }
 
-func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource) cast(*void) itf
+func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource, cast(*void, itf))
 
 #[Swag.CallingConvention(.C)]
 func streamOnlyQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     discard riid
-    ppv[] = cast([*] void) itf
+    ppv[] = cast([*] void, itf)
     return S_OK
 }
 
@@ -116,7 +116,7 @@ func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
     if not (fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
-    let inner = cast(*IDataObject) cast(*void) streamOnlyOf(itf).inner!
+    let inner = cast(*IDataObject, cast(*void, streamOnlyOf(itf).inner!))
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
     return inner.lpVtbl.QueryGetData(inner, &ask)
@@ -128,7 +128,7 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
     if not (fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
-    let inner = cast(*IDataObject) cast(*void) streamOnlyOf(itf).inner!
+    let inner = cast(*IDataObject, cast(*void, streamOnlyOf(itf).inner!))
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
 
@@ -144,7 +144,7 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
     }
 
     med.tymed = TYMED_ISTREAM
-    med.pstm  = cast(*IStream) raw!
+    med.pstm  = cast(*IStream, raw!)
     med.pUnkForRelease = null
     return S_OK
 }
@@ -307,7 +307,7 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
+    let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect = DROPEFFECT_COPY
     let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
@@ -439,7 +439,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) cast(*void) raw!
+    let formats = cast(*IEnumFORMATETC, cast(*void, raw!))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -447,9 +447,9 @@ impl IWnd for PlatformCatcher
     var nextResult = formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
     Swag.assert(nextResult == S_FALSE)
     Swag.assert(fetched == 3)
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_HDROP)
-    Swag.assert(entries[1].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
-    Swag.assert(entries[2].cfFormat == cast(CLIPFORMAT) CF_TEXT)
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, CF_HDROP))
+    Swag.assert(entries[1].cfFormat == cast(CLIPFORMAT, CF_UNICODETEXT))
+    Swag.assert(entries[2].cfFormat == cast(CLIPFORMAT, CF_TEXT))
     Swag.assert(entries[0].tymed == TYMED_HGLOBAL)
     Swag.assert(entries[0].dwAspect == DVASPECT_CONTENT)
 
@@ -462,13 +462,13 @@ impl IWnd for PlatformCatcher
     var rawClone: LPVOID
     let cloneResult = formats.lpVtbl.Clone(formats, &rawClone)
     Swag.assert(cloneResult == S_OK)
-    let clone = cast(*IEnumFORMATETC) cast(*void) rawClone!
+    let clone = cast(*IEnumFORMATETC, cast(*void, rawClone!))
     defer discard clone.lpVtbl.Release(clone)
 
     nextResult = clone.lpVtbl.Next(clone, 1, &entries[0], &fetched)
     Swag.assert(nextResult == S_OK)
     Swag.assert(fetched == 1)
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, CF_UNICODETEXT))
 
     // Asking past the end is a clean stop, not a failure.
     skipResult = formats.lpVtbl.Skip(formats, 99)
@@ -492,7 +492,7 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var fmt: FORMATETC
-    fmt.cfFormat = cast(CLIPFORMAT) CF_HDROP
+    fmt.cfFormat = cast(CLIPFORMAT, CF_HDROP)
     fmt.dwAspect = DVASPECT_CONTENT
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
@@ -504,7 +504,7 @@ impl IWnd for PlatformCatcher
     Swag.assert(getDataResult == DV_E_FORMATETC)
 
     // A format it does offer, but through a medium it cannot produce, is refused too.
-    fmt.cfFormat       = cast(CLIPFORMAT) CF_UNICODETEXT
+    fmt.cfFormat       = cast(CLIPFORMAT, CF_UNICODETEXT)
     fmt.tymed          = TYMED_ISTREAM
     queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
     Swag.assert(queryGetDataResult == DV_E_FORMATETC)
@@ -518,13 +518,13 @@ impl IWnd for PlatformCatcher
     defer host.shutdown()
 
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
+    let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var out: LPVOID
     var iid = IID_IDropTarget
     var queryInterfaceResult = target.lpVtbl.QueryInterface(target, &iid, &out)
     Swag.assert(queryInterfaceResult == S_OK)
-    Swag.assert(cast(*void?) out == cast(*void?) target)
+    Swag.assert(cast(*void?, out) == cast(*void?, target))
 
     // An interface the object does not implement is refused, and clears the output.
     var otherIid = IID_IDataObject
@@ -548,7 +548,7 @@ impl IWnd for PlatformCatcher
     queryInterfaceResult = source.lpVtbl.QueryInterface(source, &iid, &out)
     Swag.assert(queryInterfaceResult == E_NOINTERFACE)
 
-    let dropSrc   = cast(*IDropSource) cast(*void) &session.dropSrc
+    let dropSrc   = cast(*IDropSource, cast(*void, &session.dropSrc))
     var srcSrcIid = IID_IDropSource
     queryInterfaceResult = dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out)
     Swag.assert(queryInterfaceResult == S_OK)
@@ -578,7 +578,7 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) cast(*void) &host.surface.dropTarget
+    let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect = DROPEFFECT_COPY
     discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
@@ -606,7 +606,7 @@ impl IWnd for PlatformCatcher
     var produced = 0'u32
 
     var data: DragData
-    data.addContent("report.txt", cast(const [..] u8) "already here")
+    data.addContent("report.txt", cast(const [..] u8, "already here"))
     data.addContent("late.bin", func|&produced|()
     {
         produced += 1
@@ -670,8 +670,8 @@ impl IWnd for PlatformCatcher
     defer host.shutdown()
 
     var data: DragData
-    data.addContent("a.txt", cast(const [..] u8) "a")
-    data.addContent("b.txt", cast(const [..] u8) "b")
+    data.addContent("a.txt", cast(const [..] u8, "a"))
+    data.addContent("b.txt", cast(const [..] u8, "b"))
 
     var session: DragSession
     let source = testDragSource(&session, &data)
@@ -679,7 +679,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) cast(*void) raw!
+    let formats = cast(*IEnumFORMATETC, cast(*void, raw!))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -688,10 +688,10 @@ impl IWnd for PlatformCatcher
     Swag.assert(nextResult == S_FALSE)
     Swag.assert(fetched == 3)
 
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer))
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)))
     Swag.assert(entries[0].lindex == -1)
 
-    let contents = cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)
+    let contents = cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer))
     Swag.assert(entries[1].cfFormat == contents and entries[1].lindex == 0)
     Swag.assert(entries[2].cfFormat == contents and entries[2].lindex == 1)
     Swag.assert(entries[1].tymed & TYMED_ISTREAM)
@@ -724,7 +724,7 @@ impl IWnd for PlatformCatcher
     var streamOnly: StreamOnlySource
     streamOnly.setup(&session.dataObj)
 
-    let payload = testRoundTrip(&host, cast(*IDataObject) cast(*void) &streamOnly)
+    let payload = testRoundTrip(&host, cast(*IDataObject, cast(*void, &streamOnly)))
     Swag.assert(payload.text == "carried by a stream")
 }
 
@@ -744,7 +744,7 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let source = testDragSource(&session, &data)
 
-    let format = cast(CLIPFORMAT) catch RegisterClipboardFormatA(("SwagDragPrivate").buffer)
+    let format = cast(CLIPFORMAT, catch RegisterClipboardFormatA(("SwagDragPrivate").buffer))
 
     var fmt: FORMATETC
     fmt.cfFormat = format
@@ -773,7 +773,7 @@ impl IWnd for PlatformCatcher
     let unlockError     = GetLastError()
     Swag.assert(not alreadyUnlocked and unlockError == 158)
 
-    let buf = cast([*] u8) GlobalLock(out.hGlobal)!
+    let buf = cast([*] u8, GlobalLock(out.hGlobal)!)
     Swag.assert(Swag.makeString(buf, 12) == "private bits")
     discard GlobalUnlock(out.hGlobal)
 
@@ -781,7 +781,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) cast(*void) raw!
+    let formats = cast(*IEnumFORMATETC, cast(*void, raw!))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -804,14 +804,14 @@ impl IWnd for PlatformCatcher
     var img = Pixel.Image.create(3, 2, .BGRA8)
     img.clear()
     data.setImage(img)
-    data.addContent("memory.txt", cast(const [..] u8) "content")
+    data.addContent("memory.txt", cast(const [..] u8, "content"))
 
     var session: DragSession
     let source = testDragSource(&session, &data)
     var raw:     LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC) raw!
+    let formats = cast(*IEnumFORMATETC, raw!)
     defer discard formats.lpVtbl.Release(formats)
 
     var fmt:     FORMATETC
@@ -820,7 +820,7 @@ impl IWnd for PlatformCatcher
     while formats.lpVtbl.Next(formats, 1, &fmt, &fetched) == S_OK
     {
         fmt.tymed = TYMED_HGLOBAL
-        if fmt.cfFormat == cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer) do
+        if fmt.cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)) do
             fmt.lindex = 0
         var medium: STGMEDIUM
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)
@@ -846,7 +846,7 @@ impl IWnd for PlatformCatcher
     {
         var image = Pixel.Image.create(3, 2, pixelFormat)
         for i in image.pixels.count do
-            image.pixels[i] = cast(u8) (17 + i * 3)
+            image.pixels[i] = cast(u8, (17 + i * 3))
         if image.bytesPerPixel == 4
         {
             for i in 6 do
@@ -866,7 +866,7 @@ impl IWnd for PlatformCatcher
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)
         Swag.assert(getDataResult == S_OK)
         defer ReleaseStgMedium(&medium)
-        let bytes = cast([*] u8) GlobalLock(medium.hGlobal)!
+        let bytes = cast([*] u8, GlobalLock(medium.hGlobal)!)
         defer discard GlobalUnlock(medium.hGlobal)
         let decoded = expect Pixel.Image.decode("drag.bmp", Swag.makeSlice(bytes, GlobalSize(medium.hGlobal)))
         Swag.assert(decoded.width == image.width and decoded.height == image.height)

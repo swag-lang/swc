@@ -8,10 +8,10 @@ impl Image
         var f = {x: x, y: .height - y - h, self: self}
         dstImage.visitPixels(&f, stride: w)
         {
-            let params = cast(*#decltype(f)) userData!
+            let params = cast(*#decltype(f), userData!)
             var srcPix = params.self.pixels.buffer + (y + params.y) * params.self.rowStride
-            srcPix += cast(u64) (params.x * image.bytesPerPixel)
-            Memory.copy(pix, srcPix, cast(u64) image.rowStride)
+            srcPix += cast(u64, (params.x * image.bytesPerPixel))
+            Memory.copy(pix, srcPix, cast(u64, image.rowStride))
         }
     }
 
@@ -35,7 +35,7 @@ impl Image
     // Crops the image in place to `cropRect`, clamped as by the pixel-coordinate overload.
     public mtd crop(cropRect: Math.Rectangle)
     {
-        .crop(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
+        .crop(cast(cropRect.x), cast(cropRect.y), cast(cropRect.width), cast(cropRect.height))
     }
 
     // Returns a copy cropped to a rectangle given in top-left pixel coordinates.
@@ -54,5 +54,5 @@ impl Image
         return result
     }
 
-    public mtd const cropped(cropRect: Math.Rectangle)->Image => .cropped(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
+    public mtd const cropped(cropRect: Math.Rectangle)->Image => .cropped(cast(cropRect.x), cast(cropRect.y), cast(cropRect.width), cast(cropRect.height))
 }

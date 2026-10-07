@@ -26,9 +26,9 @@ func semaTest001()
     var v2: Point2
     var v3: Point3
 
-    let i2 = cast(ITest) v2
+    let i2 = cast(ITest, v2)
     Swag.assert(i2.isImplemented())
 
-    let i3 = cast(ITest) v3
+    let i3 = cast(ITest, v3)
     Swag.assert(not i3.isImplemented())
 }

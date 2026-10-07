@@ -9,7 +9,7 @@ func byteChecksum(values: const [..] u8)->u32
 {
     var result: u32
     for value in values do
-        result += cast(u32) value
+        result += cast(u32, value)
     return result
 }
 
@@ -70,7 +70,7 @@ func totalQty(lines: const [..] ProductLine)->s32
 #test
 {
     let text: string = "const"
-    let bytes        = cast(const [..] u8) text
+    let bytes        = cast(const [..] u8, text)
     let head         = bytes[until 3]
     let tail         = bytes[2 to]
 
@@ -85,7 +85,7 @@ func totalQty(lines: const [..] ProductLine)->s32
 #test
 {
     const emptyText  = ""
-    const emptyBytes = cast(const [..] u8) emptyText
+    const emptyBytes = cast(const [..] u8, emptyText)
 
     Swag.assert(emptyBytes.count == 0)
     Swag.assert(byteChecksum(emptyBytes) == 0'u32)

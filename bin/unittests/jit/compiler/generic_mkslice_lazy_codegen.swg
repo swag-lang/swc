@@ -56,7 +56,7 @@ namespace GenericMkSliceLazyCodegen
             if newCapacity <= .capacity do
                 return
 
-            .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
         }
 
@@ -148,7 +148,7 @@ namespace GenericMkSliceLazyCodegen
     func(T, N: s32) directCount(items: [N] T)->u64
     {
         var values: BufferBox'T
-        values.reserve(cast(u64) N)
+        values.reserve(cast(u64, N))
         for item in items do
             values.add(item)
 
@@ -161,7 +161,7 @@ namespace GenericMkSliceLazyCodegen
     func(T, N: s32) nestedCount(items: [N] T)->u64
     {
         var nested: Nested'T
-        nested.box.values.reserve(cast(u64) N)
+        nested.box.values.reserve(cast(u64, N))
         for item in items do
             nested.box.values.add(item)
 

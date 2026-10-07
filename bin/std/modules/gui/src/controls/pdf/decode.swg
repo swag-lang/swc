@@ -137,7 +137,7 @@ private func parseContentNumber(content: *PdfParser)->f32
     var value = 0.0'f32
     while pos < bytes.count and isDigit(bytes[pos])
     {
-        value = value * 10 + cast(f32) (bytes[pos] - '0')
+        value = value * 10 + cast(f32, (bytes[pos] - '0'))
         pos   += 1
     }
 
@@ -147,7 +147,7 @@ private func parseContentNumber(content: *PdfParser)->f32
         var scale = 0.1'f32
         while pos < bytes.count and isDigit(bytes[pos])
         {
-            value += scale * cast(f32) (bytes[pos] - '0')
+            value += scale * cast(f32, (bytes[pos] - '0'))
             scale *= 0.1
             pos   += 1
         }
@@ -165,7 +165,7 @@ private func operandNumber(parser: *PdfParser, operands: const [..] ContentOpera
     if operand.node == InvalidNode do
         return operand.number
     let value = parser.number(operand.node)
-    return value < 0 ? -cast(f32) (-value) : cast(f32) value
+    return value < 0 ? -cast(f32, (-value)) : cast(f32, value)
 }
 
 // Returns the node of one operand, for the few operators that need more than a number.
@@ -188,7 +188,7 @@ private func operandInteger(parser: *PdfParser, operands: const [..] ContentOper
     {
         if operand.number != Math.trunc(operand.number) or not Math.isFinite(operand.number) do
             return result
-        result.value = cast(s64) operand.number
+        result.value = cast(s64, operand.number)
         result.found = true
         return result
     }
@@ -204,7 +204,7 @@ private func operandInteger(parser: *PdfParser, operands: const [..] ContentOper
 private func nodeNumber(parser: *PdfParser, nodeId: u32)->f32
 {
     let value = parser.number(nodeId)
-    return value < 0 ? -cast(f32) (-value) : cast(f32) value
+    return value < 0 ? -cast(f32, (-value)) : cast(f32, value)
 }
 
 // Collects the trailing numeric operands of a color operator.
@@ -226,7 +226,7 @@ private func colorComponents(parser: *PdfParser, operands: const [..] ContentOpe
 
     for i in count do
         target[i] = operandNumber(parser, operands, operands.count - count + i)
-    return cast(u32) count
+    return cast(u32, count)
 }
 
 private func currentPath(path: *LinePathList, current: *(*LinePath?), start: Vector2)->*LinePath
@@ -375,11 +375,11 @@ private func fontIndex(parser: *PdfParser, page: const *Page, resourcesId: u32, 
     if id != InvalidNode
     {
         for font, index in page.fonts where font.objectId == id do
-            return cast(u32) index
+            return cast(u32, index)
     }
 
     for font, index in page.fonts where font.name == name do
-        return cast(u32) index
+        return cast(u32, index)
     return Swag.U32.Max
 }
 
@@ -409,12 +409,12 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
     if font do
         advance = font.runAdvance(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
     else do
-        advance = cast(f32) bytes.count * state.fontSize * 0.5
+        advance = cast(f32, bytes.count) * state.fontSize * 0.5
 
     // Render modes 3 and 7 add no marks, but their text and geometry still belong to search
     // and selection. Keep the same runs in complete pages and text-only decoding.
     let invisible = state.renderMode == 3 or state.renderMode == 7
-    let text      = #move (font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8) bytes, .Windows1252))
+    let text      = #move (font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8, bytes), .Windows1252))
     if not text.isEmpty()
     {
         var combined = Transform2{state.horizScale, 0, 0, 1, 0, state.rise}
@@ -619,14 +619,14 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
         let height  = parser.integer(parser.dict(imageId, "Height"))
         let bits    = parser.boolean(parser.dict(imageId, "ImageMask")) ? 1's64 : parser.integer(parser.dict(imageId, "BitsPerComponent"), 8)
         let space   = #move try resolveImageSpace(parser, parser.dictRaw(imageId, "ColorSpace"), resourcesId, 0)
-        let rowBits = cast(s64) space.components * bits * width
+        let rowBits = cast(s64, space.components) * bits * width
         if width > 0 and height > 0 and bits > 0 do
             length = (rowBits + 7) / 8 * height
     }
 
     var end = Swag.U64.Max
-    if length >= 0 and start + cast(u64) length <= content.bytes.count do
-        end = start + cast(u64) length
+    if length >= 0 and start + cast(u64, length) <= content.bytes.count do
+        end = start + cast(u64, length)
     else do
         end = findInlineImageEnd(content.bytes, start)
     if end == Swag.U64.Max do
@@ -786,26 +786,26 @@ private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *S
 //
 // The alpha is rounded the way a sample is, so a half-transparent black is the same 128 a
 // document that stated it as a byte would have produced.
-private func dimmed(color: Color, alpha: f32)->Color => color.withAlpha(componentByte(cast(f32) color.a / 255.0 * alpha))
+private func dimmed(color: Color, alpha: f32)->Color => color.withAlpha(componentByte(cast(f32, color.a) / 255.0 * alpha))
 
 // Returns the mean coverage of an image whose alpha carries it.
 private func meanCoverage(coverage: const *Image)->f32
 {
     var total = 0'u64
-    for y in cast(u64) coverage.height
+    for y in cast(u64, coverage.height)
     {
-        var source = coverage.pixels.storage() + y * cast(u64) coverage.rowStride
-        for cast(u64) coverage.width
+        var source = coverage.pixels.storage() + y * cast(u64, coverage.rowStride)
+        for cast(u64, coverage.width)
         {
             total  += source[3]
             source += 4
         }
     }
 
-    let count = cast(u64) coverage.width * cast(u64) coverage.height
+    let count = cast(u64, coverage.width) * cast(u64, coverage.height)
     if not count do
         return 1
-    return cast(f32) total / (cast(f32) count * 255.0)
+    return cast(f32, total) / (cast(f32, count) * 255.0)
 }
 
 // Multiplies a soft mask's coverage into an image item's own alpha channel.
@@ -824,21 +824,21 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
         item.image = #move opaque
     }
 
-    let width  = cast(u64) item.image.width
-    let height = cast(u64) item.image.height
+    let width  = cast(u64, item.image.width)
+    let height = cast(u64, item.image.height)
     for row in height
     {
         // An image stores its rows bottom-up while its unit square runs top-down.
-        let v      = (cast(f32) (height - row - 1) + 0.5) / cast(f32) height
-        var pixels = item.image.pixels.storage() + row * cast(u64) item.image.rowStride
+        let v      = (cast(f32, (height - row - 1)) + 0.5) / cast(f32, height)
+        var pixels = item.image.pixels.storage() + row * cast(u64, item.image.rowStride)
         for column in width
         {
-            let u     = (cast(f32) column + 0.5) / cast(f32) width
+            let u     = (cast(f32, column) + 0.5) / cast(f32, width)
             let point = item.transform.transformPoint({u, v})
-            let x     = cast(s32) ((point.x - region.x) / region.width * cast(f32) coverage.width)
-            let y     = cast(s32) ((point.y - region.y) / region.height * cast(f32) coverage.height)
+            let x     = cast(s32, ((point.x - region.x) / region.width * cast(f32, coverage.width)))
+            let y     = cast(s32, ((point.y - region.y) / region.height * cast(f32, coverage.height)))
             let alpha = coverage.pixelColor(x, y).a
-            pixels[3] = cast(u8) ((cast(u32) pixels[3] * alpha) / 255)
+            pixels[3] = cast(u8, ((cast(u32, pixels[3]) * alpha) / 255))
             pixels    += 4
         }
     }
@@ -963,7 +963,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             continue
         }
 
-        let op  = cast(string) Swag.makeSlice(bytes.buffer + start, content.pos - start)
+        let op  = cast(string, Swag.makeSlice(bytes.buffer + start, content.pos - start))
         let ops = operands.toSlice()
         switch op
         {
@@ -1362,7 +1362,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                         if id != InvalidNode and content.nodes[id].kind == .String do
                             appendText(parser, page, resourcesId, &state, content.nodes[id].text.toString(), depth, decode)
                         elif id != InvalidNode do
-                            advanceText(&state, -cast(f32) content.number(id) * state.fontSize * state.horizScale / 1000.0)
+                            advanceText(&state, -cast(f32, content.number(id)) * state.fontSize * state.horizScale / 1000.0)
                     }
                 }
             }
@@ -1566,8 +1566,8 @@ private func metadataString(parser: *PdfParser, dictId: u32, key: string)->Strin
 {
     let raw = parser.stringValue(parser.dict(dictId, key))
     if raw.count >= 2 and raw[0] == 0xFE and raw[1] == 0xFF do
-        return Text.decode(cast(const [..] u8) raw[2 until], .Utf16Be)
-    return Text.decode(cast(const [..] u8) raw, .Windows1252)
+        return Text.decode(cast(const [..] u8, raw[2 until]), .Utf16Be)
+    return Text.decode(cast(const [..] u8, raw), .Windows1252)
 }
 
 // Returns the catalog a trailer named, once the whole chain has been read.

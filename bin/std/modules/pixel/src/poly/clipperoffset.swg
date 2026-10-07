@@ -105,7 +105,7 @@ impl Offset
         }
         else
         {
-            let ip = .polyNodes.childs[cast(s32) .lowest.x].contour[cast(s32) .lowest.y]
+            let ip = .polyNodes.childs[cast(s32, .lowest.x)].contour[cast(s32, .lowest.y)]
             if newNode.contour[lowestIdx].y > ip.y or (newNode.contour[lowestIdx].y == ip.y and newNode.contour[lowestIdx].x < ip.x) do
                 .lowest = IntPoint{.polyNodes.childs.count - 1, lowestIdx}
         }
@@ -148,7 +148,7 @@ impl Offset
     // Returns positive area for counter-clockwise polygons, negative for clockwise.
     func area(poly: ClipperPath)->f64
     {
-        let size = cast(s32) poly.count
+        let size = cast(s32, poly.count)
         if size < 3 do
             return 0
 
@@ -158,7 +158,7 @@ impl Offset
         for i in size
         {
             let pI = poly[i]
-            a  += (cast(f64) pJ.x + pI.x) * (cast(f64) pJ.y - pI.y)
+            a  += (cast(f64, pJ.x) + pI.x) * (cast(f64, pJ.y) - pI.y)
             j  = i
             pJ = pI
         }
@@ -190,8 +190,8 @@ impl Offset
         if pt2.x == pt1.x and pt2.y == pt1.y do
             return result
 
-        var dx = cast(f64) (pt2.x - pt1.x)
-        var dy = cast(f64) (pt2.y - pt1.y)
+        var dx = cast(f64, (pt2.x - pt1.x))
+        var dy = cast(f64, (pt2.y - pt1.y))
         let f  = 1.0 / Math.sqrt(dx * dx + dy * dy)
         dx       *= f
         dy       *= f
@@ -203,7 +203,7 @@ impl Offset
     // Round a floating-point value to the nearest integer for coordinate conversion.
     // Used to convert double precision calculations back to integer coordinates.
     #[Swag.Inline]
-    func cround(val: f64) => cast(CInt) Math.round(val)
+    func cround(val: f64) => cast(CInt, Math.round(val))
 
     // Perform the actual offset operation on all added polygons.
     // Calculates offset parameters and processes each polygon with appropriate join handling.
@@ -251,7 +251,7 @@ impl Offset
         {
             .srcPoly = node.contour
 
-            let len = cast(s32) .srcPoly.count
+            let len = cast(s32, .srcPoly.count)
             if len == 0 or (delta <= 0 and len < 3) do
                 continue
 
@@ -296,7 +296,7 @@ impl Offset
 
             // Build normals
             .normals.clear()
-            .normals.reserve(cast(u64) len)
+            .normals.reserve(cast(u64, len))
             for j in len - 1 do
                 .normals.add(getUnitNormal(.srcPoly[j], .srcPoly[j + 1]))
             .normals.add(getUnitNormal(.srcPoly[len - 1], .srcPoly[0]))
@@ -412,7 +412,7 @@ impl Offset
         let jP = .srcPoly[j]
 
         let a     = Math.atan2(.sinaVal, kN.x * jN.x + kN.y * jN.y)
-        let steps = Math.max(cast(s32) cround(.stepsPerRad * Math.abs(a)), 1)
+        let steps = Math.max(cast(s32, cround(.stepsPerRad * Math.abs(a))), 1)
 
         var x = kN.x
         var y = kN.y

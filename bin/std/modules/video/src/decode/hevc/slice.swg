@@ -408,7 +408,7 @@ impl SliceHeader
                 if .numEntryPointOffsets > 1 << 20 do
                     fail InvalidFormatError{"HEVC slice declares too many entry points"}
                 .entryPointOffsets.clear()
-                .entryPointOffsets.reserve(cast(u64) .numEntryPointOffsets)
+                .entryPointOffsets.reserve(cast(u64, .numEntryPointOffsets))
                 for index in .numEntryPointOffsets do
                     .entryPointOffsets.add(reader.read(offsetBits) + 1)
             }
@@ -443,10 +443,10 @@ impl SliceHeader
             fail InvalidFormatError{"HEVC luma weight denominator is out of range"}
         if sps.chromaArrayType != 0
         {
-            let delta = reader.se() + cast(s32) .lumaLog2WeightDenom
+            let delta = reader.se() + cast(s32, .lumaLog2WeightDenom)
             if delta < 0 or delta > 7 do
                 fail InvalidFormatError{"HEVC chroma weight denominator is out of range"}
-            .chromaLog2WeightDenom = cast(u32) delta
+            .chromaLog2WeightDenom = cast(u32, delta)
         }
 
         let lists = .sliceType == SliceTypeB ? 2'u32 : 1'u32

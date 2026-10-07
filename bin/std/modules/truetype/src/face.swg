@@ -131,7 +131,7 @@ public impl Face
     {
         .ascender        = ascender
         .descender       = descender
-        .height          = cast(s16) (ascender - descender + lineGap)
+        .height          = cast(s16, (ascender - descender + lineGap))
         .maxAdvanceWidth = maxAdvanceWidth
     }
 
@@ -253,7 +253,7 @@ public impl Face
     // invalid immediately. Call this method exactly once.
     mtd destroy()
     {
-        let faceData  = cast(*FaceImpl) cast(*void) me
+        let faceData  = cast(*FaceImpl, cast(*void, me))
         let allocator = faceData.allocationAllocator
         Memory.delete(faceData, allocator)
     }
@@ -289,7 +289,7 @@ public impl Face
     // inexpensive check to skip pair lookups for faces carrying neither.
     mtd const hasKerning()->bool
     {
-        let faceData = cast(const *FaceImpl) cast(const *void) me
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
         return not faceData.gposPairSubtables.isEmpty() or not faceData.kernPairs.isEmpty()
     }
 
@@ -307,7 +307,7 @@ public impl Face
     // same rules, were discarded along with the rest.
     mtd const getKerning(leftGlyph, rightGlyph: u32)->Vector
     {
-        let faceData = cast(const *FaceImpl) cast(const *void) me
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
         var result: retval
         if not leftGlyph or not rightGlyph or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
             return result
@@ -315,7 +315,7 @@ public impl Face
         var units = 0's16
         if not faceData.gposPairSubtables.isEmpty()
         {
-            units = lookupGposKerning(faceData, cast(u16) leftGlyph, cast(u16) rightGlyph)
+            units = lookupGposKerning(faceData, cast(u16, leftGlyph), cast(u16, rightGlyph))
         }
 
         if not units do
@@ -324,7 +324,7 @@ public impl Face
         if not units do
             return result
 
-        result.x = roundDiv(cast(s64) units * .size.metrics.xScale, 65536)
+        result.x = roundDiv(cast(s64, units) * .size.metrics.xScale, 65536)
         return result
     }
 
@@ -334,8 +334,8 @@ public impl Face
     // be read; zero also identifies the font's conventional missing-glyph entry.
     mtd glyphIndex(charCode: rune)->u32
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
-        let idx      = catch lookupGlyphIndex(faceData, cast(u32) charCode) as err
+        let faceData = cast(*FaceImpl, cast(*void, me))
+        let idx      = catch lookupGlyphIndex(faceData, cast(u32, charCode)) as err
         return err != null ? 0 : idx
     }
 
@@ -356,7 +356,7 @@ public impl Face
     // ```
     mtd glyphIndexByName(name: string)->u32
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
+        let faceData = cast(*FaceImpl, cast(*void, me))
         return faceData.glyphIndexByName(name)
     }
 
@@ -367,7 +367,7 @@ public impl Face
     // returned for a face that declares none, and for an unused code.
     mtd glyphIndexByCode(code: u32)->u32
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
+        let faceData = cast(*FaceImpl, cast(*void, me))
         return faceData.glyphIndexByCode(code)
     }
 
@@ -378,14 +378,14 @@ public impl Face
     // any face that is not CID-keyed.
     mtd glyphIndexByCid(cid: u32)->u32
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
+        let faceData = cast(*FaceImpl, cast(*void, me))
         return faceData.glyphIndexByCid(cid)
     }
 
     // Returns whether this face stores its outlines as PostScript charstrings.
     mtd const isPostScript()->bool
     {
-        let faceData = cast(const *FaceImpl) cast(const *void) me
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
         return faceData.outlineSource != .Glyf
     }
 
@@ -398,8 +398,8 @@ public impl Face
     // [[TrueType.Face.glyphIndex]] gives for `charCode` alone.
     mtd glyphIndexVariant(charCode, selector: rune)->u32
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
-        let variant  = catch lookupVariationGlyph(faceData, cast(u32) charCode, cast(u32) selector) as err
+        let faceData = cast(*FaceImpl, cast(*void, me))
+        let variant  = catch lookupVariationGlyph(faceData, cast(u32, charCode), cast(u32, selector)) as err
         if err == null and variant != 0 do
             return variant
         return .glyphIndex(charCode)
@@ -412,8 +412,8 @@ public impl Face
     // all when it ships no `cmap` format-14 subtable.
     mtd hasVariant(charCode, selector: rune)->bool
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
-        let found    = catch hasVariationSequence(faceData, cast(u32) charCode, cast(u32) selector) as err
+        let faceData = cast(*FaceImpl, cast(*void, me))
+        let found    = catch hasVariationSequence(faceData, cast(u32, charCode), cast(u32, selector)) as err
         return err == null and found
     }
 
@@ -436,7 +436,7 @@ public impl Face
     mtd loadChar(charCode: rune, loadFlags = LoadFlag.Default) fail
     {
         let faceData = try getFaceImpl(me)
-        let idx      = try lookupGlyphIndex(faceData, cast(u32) charCode)
+        let idx      = try lookupGlyphIndex(faceData, cast(u32, charCode))
         try .loadGlyph(idx, loadFlags)
     }
 
@@ -461,7 +461,7 @@ public impl Face
             return
 
         let yScale = .size.metrics.yScale
-        let xh     = roundDiv(cast(s64) faceData.xHeight * yScale, 65536)
+        let xh     = roundDiv(cast(s64, faceData.xHeight) * yScale, 65536)
         if xh <= 0 do
             return
         let xhS = roundDiv(xh, 64) * 64
@@ -472,7 +472,7 @@ public impl Face
         var chS = 0
         if faceData.capHeight > 0
         {
-            ch  = roundDiv(cast(s64) faceData.capHeight * yScale, 65536)
+            ch  = roundDiv(cast(s64, faceData.capHeight) * yScale, 65536)
             chS = roundDiv(ch, 64) * 64
         }
 
@@ -481,7 +481,7 @@ public impl Face
             return
 
         let points = o.points!
-        for index in cast(u32) o.pointCount do
+        for index in cast(u32, o.pointCount) do
             points[index].y = hintMapY(points[index].y, xh, xhS, ch, chS)
     }
 
@@ -506,13 +506,13 @@ func hintMapY(y, xh, xhS, ch, chS: s32)->s32
 {
     // No usable cap-height: single zone, uniform scale about the baseline.
     if ch <= xh or chS <= 0 do
-        return roundDiv(cast(s64) y * xhS, xh)
+        return roundDiv(cast(s64, y) * xhS, xh)
 
     if y <= xh do
-        return roundDiv(cast(s64) y * xhS, xh)
+        return roundDiv(cast(s64, y) * xhS, xh)
     if y <= ch
     {
-        let num = cast(s64) xhS * (ch - y) + cast(s64) chS * (y - xh)
+        let num = cast(s64, xhS) * (ch - y) + cast(s64, chS) * (y - xh)
         return roundDiv(num, ch - xh)
     }
 

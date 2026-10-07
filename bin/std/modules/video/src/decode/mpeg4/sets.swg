@@ -47,7 +47,7 @@ impl BitReader
             if .bitPos < .bitEnd
             {
                 let byte = .data![.bitPos >> 3]
-                result |= cast(u32) (byte >> (7 - cast(u32) (.bitPos & 7))) & 1
+                result |= cast(u32, (byte >> (7 - cast(u32, (.bitPos & 7))))) & 1
             }
 
             .bitPos += 1
@@ -72,7 +72,7 @@ impl BitReader
         var node = 0's32
         for 24'u32
         {
-            let slot = cast(u64) (node * 2) + cast(u64) .read(1)
+            let slot = cast(u64, (node * 2)) + cast(u64, .read(1))
             if slot >= tree.count do
                 return -1
 
@@ -80,8 +80,8 @@ impl BitReader
             if not next do
                 return -1
             if next < 0 do
-                return cast(s32) (-next - 1)
-            node = cast(s32) next
+                return cast(s32, (-next - 1))
+            node = cast(s32, next)
         }
 
         return -1
@@ -141,14 +141,14 @@ impl Layer
             if not value do
                 break
             last  = value
-            target[][cast(u64) ScanZigzag[index]] = cast(u8) value
+            target[][cast(u64, ScanZigzag[index])] = cast(u8, value)
             index += 1
         }
 
         // Everything the stream did not state repeats the last weight it did.
         while index < 64
         {
-            target[][cast(u64) ScanZigzag[index]] = cast(u8) last
+            target[][cast(u64, ScanZigzag[index])] = cast(u8, last)
             index += 1
         }
     }

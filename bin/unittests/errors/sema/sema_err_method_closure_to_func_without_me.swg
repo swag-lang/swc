@@ -27,13 +27,13 @@ impl CallbackOwner
     {
         var dlgStorage: CallbackDialog
         let dlg = &dlgStorage
-        dlg.sigPressed = mtd|dlg|(dialog, buttonId)
+        dlg.sigPressed = mtd|dlg|(dialog, buttonId)     // swc-expected-error {{sema_err_cannot_cast}}
         {
             .accepted = buttonId == "ok"
             return .accepted
         }
 
-        return dlg.doModal()     // swc-expected-error {{sema_err_cannot_cast}}
+        return dlg.doModal()
     }
 }
 

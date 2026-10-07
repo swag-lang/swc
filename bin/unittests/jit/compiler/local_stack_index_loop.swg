@@ -11,7 +11,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     var result: u32
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -20,7 +20,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
 #test
 {
-    let bytes = cast(const [..] u8) "3-5\n"
+    let bytes = cast(const [..] u8, "3-5\n")
 
     var boxes: [16] Box
     var slot:  u32
@@ -49,21 +49,21 @@ func bumpForIndex(index: *u32)
 
 func parseForDigit(bytes: const [..] u8, index: *u64)->u32
 {
-    let value = cast(u32) (bytes[index[]] - '0'u8)
+    let value = cast(u32, (bytes[index[]] - '0'u8))
     index[] += 2'u64
     return value
 }
 
 func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 {
-    let value = cast(u32) (bytes[index[]] - '0'u8)
+    let value = cast(u32, (bytes[index[]] - '0'u8))
     index[] += 2'u32
     return value
 }
 
 #test
 {
-    let bytes = cast(const [..] u8) "01234"
+    let bytes = cast(const [..] u8, "01234")
     var seen: u8
     for i in bytes.count
     {
@@ -80,7 +80,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 
 #test
 {
-    let bytes = cast(const [..] u8) "01234"
+    let bytes = cast(const [..] u8, "01234")
     var seen: u8
     for i in bytes.count
     {
@@ -97,7 +97,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 
 #test
 {
-    let bytes = cast(const [..] u8) "2a4b"
+    let bytes = cast(const [..] u8, "2a4b")
     for i in bytes.count
     {
         let a = parseForDigit32(bytes, &i), b = parseForDigit32(bytes, &i)
@@ -111,7 +111,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 {
     func solveDigits(bytes: const [..] u8)->u32
     {
-        for i in cast(u64) bytes.count
+        for i in cast(u64, bytes.count)
         {
             let a = parseForDigit(bytes, &i), b = parseForDigit(bytes, &i)
             return a * 10'u32 + b
@@ -120,6 +120,6 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
         return 0'u32
     }
 
-    let bytes = cast(const [..] u8) "2a4b"
+    let bytes = cast(const [..] u8, "2a4b")
     Swag.assert(solveDigits(bytes) == 24'u32)
 }

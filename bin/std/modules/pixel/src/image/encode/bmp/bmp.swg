@@ -27,7 +27,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            userOptions = (cast(const *EncodeOptions) options.buffer!)[]
+            userOptions = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
@@ -37,10 +37,10 @@ internal impl IImageEncoder for Encoder
         if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width do
             fail UnsupportedFormatError{"image is too big"}
 
-        let rowBytes  = cast(u64) image.width * image.bytesPerPixel
+        let rowBytes  = cast(u64, image.width) * image.bytesPerPixel
         let stride    = rowStride(image.width, image.bitsPerPixel)
-        let imageSize = stride * cast(u64) image.height
-        let fileSize  = (userOptions.fileHeader ? cast(u64) #sizeof(FileHeader) : 0) + #sizeof(Header) + imageSize
+        let imageSize = stride * cast(u64, image.height)
+        let fileSize  = (userOptions.fileHeader ? cast(u64, #sizeof(FileHeader)) : 0) + #sizeof(Header) + imageSize
         if fileSize > Swag.U32.Max do
             fail UnsupportedFormatError{"image is too big"}
 
@@ -49,7 +49,7 @@ internal impl IImageEncoder for Encoder
             with var fileHeader: FileHeader
             {
                 .bfType    = 0x4D42
-                .bfSize    = cast(u32) fileSize
+                .bfSize    = cast(u32, fileSize)
                 .bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
             }
 
@@ -64,7 +64,7 @@ internal impl IImageEncoder for Encoder
             .biPlanes      = 1
             .biBitCount    = image.bitsPerPixel
             .biCompression = BI_RGB
-            .biSizeImage   = cast(u32) imageSize
+            .biSizeImage   = cast(u32, imageSize)
         }
 
         result.addStruct(header)
@@ -76,8 +76,8 @@ internal impl IImageEncoder for Encoder
             let src = image.pixels.storage()
             for y in image.height
             {
-                let srcRow = src + cast(u64) y * rowBytes
-                let dstRow = converted.storage() + cast(u64) y * stride
+                let srcRow = src + cast(u64, y) * rowBytes
+                let dstRow = converted.storage() + cast(u64, y) * stride
                 if image.pixelFormat == .RGB8 do
                     PackedPixel.swapRedBlue24Row(srcRow, dstRow, image.width)
                 else do

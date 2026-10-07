@@ -40,7 +40,7 @@ func visitStructStaticArray(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))
         if index == 0 do
             continue
 
-        return value.value + cast(s32) index
+        return value.value + cast(s32, index)
     }
 
     return 0
@@ -51,7 +51,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     var score = 0
     for value, index in values.reversed()
     {
-        score += value.value + cast(s32) index
+        score += value.value + cast(s32, index)
         if value.value == 12 do
             return score
     }

@@ -19,7 +19,7 @@ func literals32(count: s32)->f32
     var total = 0.0'f32
     for index in count
     {
-        let x = cast(f32) index
+        let x = cast(f32, index)
         total += combine32(x * 0.5 + 1.25, x * 0.5 - 1.25, x * 0.5 + 0.75, x * 0.5 - 0.75)
     }
     return total
@@ -31,7 +31,7 @@ func literals64(count: s32)->f64
     var total = 0.0'f64
     for index in count
     {
-        let x = cast(f64) index
+        let x = cast(f64, index)
         total += combine64(x * 0.5 + 1.25, x * 0.5 - 1.25, x * 0.5 + 0.75, x * 0.5 - 0.75)
     }
     return total

@@ -25,7 +25,7 @@ private func addNativeData(fmt: UINT, bytes: const [..] u8)
             discard GlobalFree(hglob)
     }
 
-    let buffer = cast([*] u8?) GlobalLock(hglob)
+    let buffer = cast([*] u8?, GlobalLock(hglob))
     if not buffer do
         return
     Memory.copy(buffer, bytes.buffer, bytes.count)
@@ -49,7 +49,7 @@ func hasFormat(fmt: ValueFormat)->bool
         return false
     defer discard CloseClipboard()
 
-    return IsClipboardFormatAvailable(cast(UINT) fmt) != 0
+    return IsClipboardFormatAvailable(cast(UINT, fmt)) != 0
 }
 
 // Reports whether the clipboard holds a payload under `fmt` that matches `type`.
@@ -70,13 +70,13 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
         return false
     defer discard CloseClipboard()
 
-    if not IsClipboardFormatAvailable(cast(UINT) fmt) do
+    if not IsClipboardFormatAvailable(cast(UINT, fmt)) do
         return false
     if not type do
         return true
 
-    let hglob = GetClipboardData(cast(UINT) fmt)
-    let data  = cast([*] u8?) GlobalLock(hglob)
+    let hglob = GetClipboardData(cast(UINT, fmt))
+    let data  = cast([*] u8?, GlobalLock(hglob))
     if not data do
         return false
     defer discard GlobalUnlock(hglob)
@@ -103,7 +103,7 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     defer discard CloseClipboard()
     let payload = TypedPayload{crc: type ? type.crc : 0, data: data}
     let bytes   = payload.encode()
-    addNativeData(cast(UINT) fmt, bytes.toSlice())
+    addNativeData(cast(UINT, fmt), bytes.toSlice())
 }
 
 // Returns a copy of the payload stored under `fmt`, or an empty array when none matches `type`.
@@ -121,10 +121,10 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
         return result
     defer discard CloseClipboard()
 
-    if not IsClipboardFormatAvailable(cast(UINT) fmt) do
+    if not IsClipboardFormatAvailable(cast(UINT, fmt)) do
         return result
-    let hglob = GetClipboardData(cast(UINT) fmt)
-    let data  = cast([*] u8?) GlobalLock(hglob)
+    let hglob = GetClipboardData(cast(UINT, fmt))
+    let data  = cast([*] u8?, GlobalLock(hglob))
     if not data do
         return result
     defer discard GlobalUnlock(hglob)
@@ -211,7 +211,7 @@ func getImage()->Image
         if hglob
         {
             let size = GlobalSize(hglob)
-            let pz   = cast([*] u8?) GlobalLock(hglob)
+            let pz   = cast([*] u8?, GlobalLock(hglob))
             if not pz do
                 return result
             defer discard GlobalUnlock(hglob)
@@ -226,7 +226,7 @@ func getImage()->Image
         if hglob
         {
             let size = GlobalSize(hglob)
-            let pz   = cast([*] u8?) GlobalLock(hglob)
+            let pz   = cast([*] u8?, GlobalLock(hglob))
             if not pz do
                 return result
             defer discard GlobalUnlock(hglob)
@@ -291,7 +291,7 @@ private func writeString(str: string, replace: bool)
     if not ansi.isEmpty() do
         addNativeData(CF_TEXT, ansi.toSlice())
     let wide = Utf16.toZeroTerminated(str)
-    addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8) wide.storage(), wide.count * 2))
+    addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8, wide.storage()), wide.count * 2))
 }
 
 // Returns the clipboard text converted to UTF-8, or an empty string when there is none.
@@ -317,7 +317,7 @@ func getString()->String
         if not IsClipboardFormatAvailable(format) do
             continue
         let hglob = GetClipboardData(format)
-        let data  = cast([*] u8?) GlobalLock(hglob)
+        let data  = cast([*] u8?, GlobalLock(hglob))
         if not data do
             continue
         defer discard GlobalUnlock(hglob)

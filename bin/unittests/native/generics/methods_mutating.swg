@@ -55,7 +55,7 @@ impl Accum
 
     mtd getTotal()->T   => .total
     mtd getCount()->s32 => .count
-    mtd getAverage()->T => .total / cast(T) .count
+    mtd getAverage()->T => .total / cast(T, .count)
 }
 
 // Generic with method returning new generic struct instance

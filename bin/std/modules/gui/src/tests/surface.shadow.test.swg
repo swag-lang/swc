@@ -59,12 +59,12 @@ using Swag, Core, Pixel
         host.surface.isMaximized = true
         let maximized = host.render()
         let body      = host.surfaceWnd.surfaceRect()
-        for y in cast(s32) (body.height * scale)
+        for y in cast(s32, (body.height * scale))
         {
-            for x in cast(s32) (body.width * scale)
+            for x in cast(s32, (body.width * scale))
             {
-                let px = x + cast(s32) (body.x * scale)
-                let py = y + cast(s32) (body.y * scale)
+                let px = x + cast(s32, (body.x * scale))
+                let py = y + cast(s32, (body.y * scale))
                 Swag.assert(maximized.pixelColor(px, py).argb == restored.pixelColor(px, py).argb)
                 Swag.assert(maximized.pixelColor(px, py).a == 255)
             }

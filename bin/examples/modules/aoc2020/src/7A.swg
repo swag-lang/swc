@@ -99,7 +99,7 @@ func day7A0()
 
     var total: u32
     for v in id do
-        total += cast(s32) contains(&id, v)
+        total += cast(s32, contains(&id, v))
 
     Swag.assert(total == 296)
 }
@@ -141,7 +141,7 @@ func day7A1()
 
     var total: u32
     for v in id do
-        total += cast(s32) contains(&id, v)
+        total += cast(s32, contains(&id, v))
 
     Swag.assert(total == 296)
 }

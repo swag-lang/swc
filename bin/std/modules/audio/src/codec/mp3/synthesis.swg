@@ -30,8 +30,8 @@ impl ChannelState
     // Restores the state a decode starts from, which is what a seek needs.
     mtd reset()
     {
-        Memory.set(cast(*void) &.overlap[0, 0], 0, #sizeof(f32) * 32 * 18)
-        Memory.set(cast(*void) &.filter[0], 0, #sizeof(f32) * 1024)
+        Memory.set(cast(*void, &.overlap[0, 0]), 0, #sizeof(f32) * 32 * 18)
+        Memory.set(cast(*void, &.filter[0]), 0, #sizeof(f32) * 1024)
         .filterAt = 0
     }
 }
@@ -46,12 +46,12 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
 {
     var scratch: Granule576
     var source  = firstLine
-    var band    = cast(u64) firstBand
+    var band    = cast(u64, firstBand)
     var written = 0'u64
 
     while band < bands.count
     {
-        let width = cast(u32) bands[band]
+        let width = cast(u32, bands[band])
         if not width do
             break
         band += 3
@@ -61,15 +61,15 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
         for index in width
         {
             for window in 3'u32 do
-                scratch[written + cast(u64) (index * 3 + window)] = lines[][source + window * width + index]
+                scratch[written + cast(u64, (index * 3 + window))] = lines[][source + window * width + index]
         }
 
-        written += cast(u64) width * 3
+        written += cast(u64, width) * 3
         source  += width * 3
     }
 
     for index in written do
-        lines[][cast(u64) firstLine + index] = scratch[index]
+        lines[][cast(u64, firstLine) + index] = scratch[index]
 }
 
 // Undoes the aliasing the encoder's polyphase analysis left between neighbouring subbands.
@@ -81,7 +81,7 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
 {
     for subband in 1 until subbandCount
     {
-        let boundary = cast(u64) subband * 18
+        let boundary = cast(u64, subband) * 18
         for index in 8'u64
         {
             let below = boundary - 1 - index
@@ -101,7 +101,7 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
 // thirty-six sample result, before the result overlaps its predecessor.
 func inverseTransform(lines: *Granule576, overlap: *[32, 18] f32, subband: u32, blockType: u32)
 {
-    let base = cast(u64) subband * 18
+    let base = cast(u64, subband) * 18
     var input: [18] f32
     for index in 18'u64 do
         input[index] = lines[][base + index]
@@ -173,7 +173,7 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
     for block in 18'u64
     {
         state.filterAt = (state.filterAt + 1024 - 64) & 1023
-        let at = cast(u64) state.filterAt
+        let at = cast(u64, state.filterAt)
 
         for i in 64'u64
         {

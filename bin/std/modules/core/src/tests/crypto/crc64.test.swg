@@ -14,7 +14,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
         const Poly = 0x42F0_E1EB_A9EA_3693'u64
         for value in buffer
         {
-            crc ^= cast(u64) value << 56
+            crc ^= cast(u64, value) << 56
             for bit in 8
             {
                 if crc & 0x8000_0000_0000_0000'u64 do
@@ -89,7 +89,7 @@ func fillCrc64Pattern(buffer: [..] u8)
     var i = 0'u64
     while i < buffer.count
     {
-        buffer[i] = cast(u8) ((i * 109 + 41) & 0xFF)
+        buffer[i] = cast(u8, ((i * 109 + 41) & 0xFF))
         i         += 1
     }
 }

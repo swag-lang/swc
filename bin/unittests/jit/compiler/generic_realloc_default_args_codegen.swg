@@ -111,7 +111,7 @@ namespace GenericReallocDefaultArgsCodegen
                 return
             }
 
-            .buffer   = cast([*] T?) LocalMemory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast([*] T?, LocalMemory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
         }
 
@@ -130,7 +130,7 @@ namespace GenericReallocDefaultArgsCodegen
             if .allocator == null do
                 .allocator = Swag.getContext().allocator
 
-            .buffer   = cast([*] T?) LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator)
+            .buffer   = cast([*] T?, LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator))
             .capacity = newCapacity
         }
 
@@ -210,7 +210,7 @@ namespace GenericReallocDefaultArgsCodegen
         for item in items do
             values.append(item)
 
-        let count = cast(u64) N
+        let count = cast(u64, N)
         let ok    = values.count == count and
                     (values.toSlice()).count == count and
                     values.capacity == expectedCapacity(2, count) and
@@ -229,7 +229,7 @@ namespace GenericReallocDefaultArgsCodegen
         for item in items do
             values.appendNamed(item)
 
-        let count = cast(u64) N
+        let count = cast(u64, N)
         let ok    = values.count == count and
                     (values.toSlice()).count == count and
                     values.capacity == expectedCapacity(3, count) and

@@ -211,7 +211,6 @@ namespace
         schema.add("space-around-range-operator", &options.spaceAroundRangeOperator, "Insert spaces around the `..` range operator; keyword ranges always keep their spaces");
         schema.add("space-after-comma", &options.spaceAfterComma, "Insert a space after `,`");
         schema.add("space-before-comma", &options.spaceBeforeComma, "Insert a space before `,`");
-        schema.add("space-after-cast", &options.spaceAfterCast, "Insert a space after a `cast(...)` expression");
         schema.add("space-after-keyword", &options.spaceAfterKeyword, "Insert a space after control keywords such as `if`, `while`, and `for`");
         schema.add("space-after-unary-operator", &options.spaceAfterUnaryOperator, "Insert a space after unary operators such as `-` or `!`");
         schema.add("space-inside-parentheses", &options.spaceInsideParentheses, "Insert spaces just inside `(` and `)`");

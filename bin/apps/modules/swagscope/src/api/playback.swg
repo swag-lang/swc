@@ -81,7 +81,7 @@ impl PlaybackApi
         let disabled = not .isAvailable()
         for label, index in labels
         {
-            let mode = cast(PlayMode) index
+            let mode = cast(PlayMode, index)
             menu.addRadioItem(label, PlayIds[index], checked: state.mode == mode, disabled: disabled).icon = menu.theme().icon(playModeIcon(mode), themeRowIconSize(menu.themeMetrics()))
         }
 
@@ -90,7 +90,7 @@ impl PlaybackApi
             menu.addSeparator()
             let slideMenu = MenuCtrl.createPopup(menu, owner: view)
             for seconds, index in SlideChoices do
-                slideMenu.addRadioItem(Format.toString("% s", cast(u32) seconds).toString(), SlideIds[index], checked: state.slideSeconds == seconds, disabled: disabled)
+                slideMenu.addRadioItem(Format.toString("% s", cast(u32, seconds)).toString(), SlideIds[index], checked: state.slideSeconds == seconds, disabled: disabled)
             menu.addPopup(texts.ui_PlaySlide, slideMenu)
         }
     }
@@ -106,7 +106,7 @@ impl PlaybackApi
         var state = .settings(view)
         for id, index in PlayIds where chosen == id
         {
-            state.mode = cast(PlayMode) index
+            state.mode = cast(PlayMode, index)
             .writeSettings!(view, state)
             return true
         }

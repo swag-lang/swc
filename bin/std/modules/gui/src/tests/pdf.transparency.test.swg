@@ -3,7 +3,7 @@
 using Core, Core.Math, Pixel, Pdf
 
 // Builds a one-page document over a 200 by 100 page and returns it.
-private func transparencyDocument(resources, content: string, extra: const [..] u8)->Document => expect Document.decode(singlePagePdf(resources, cast(const [..] u8) content, extra).toSlice())
+private func transparencyDocument(resources, content: string, extra: const [..] u8)->Document => expect Document.decode(singlePagePdf(resources, cast(const [..] u8, content), extra).toSlice())
 
 // A luminosity mask whose group paints white over the lower-left quarter of a 100 by 100 box.
 //
@@ -14,7 +14,7 @@ private func luminosityMaskObjects()->Array'u8
 {
     var result: retval
     addObject(&result, 5, "<< /Type /ExtGState /SMask << /S /Luminosity /G 6 0 R >> >>")
-    addStreamObject(&result, 6, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency /CS /DeviceGray >>", cast(const [..] u8) "1 g 0 0 50 50 re f")
+    addStreamObject(&result, 6, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency /CS /DeviceGray >>", cast(const [..] u8, "1 g 0 0 50 50 re f"))
     return result
 }
 
@@ -46,7 +46,7 @@ private func markedPixels(frame: const *Image)->u64
     defer discard catch File.delete(fileName)
     let objects = luminosityMaskObjects()
     let content = "/GS0 gs BT /F0 24 Tf 10 40 Td (Masked words) Tj ET 1 0 0 rg 0 0 50 50 re f"
-    let bytes   = singlePagePdf("/ExtGState << /GS0 5 0 R >> /Font << /F0 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>", cast(const [..] u8) content, objects.toSlice())
+    let bytes   = singlePagePdf("/ExtGState << /GS0 5 0 R >> /Font << /F0 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>", cast(const [..] u8, content), objects.toSlice())
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var reader = expect Reader.open(fileName.toString())
@@ -115,7 +115,7 @@ private func markedPixels(frame: const *Image)->u64
 #test
 {
     var objects = #move luminosityMaskObjects()
-    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", cast(const [..] u8) "\xFF\xFF\xFF\xFF")
+    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", cast(const [..] u8, "\xFF\xFF\xFF\xFF"))
 
     let resources = "/ExtGState << /GS0 5 0 R >> /XObject << /Im0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs q 100 0 0 100 0 0 cm /Im0 Do Q", objects.toSlice())
@@ -137,7 +137,7 @@ private func markedPixels(frame: const *Image)->u64
 {
     var objects = #move luminosityMaskObjects()
     addObject(&objects, 7, "<< /Type /ExtGState /SMask /None /ca 0.5 >>")
-    addStreamObject(&objects, 8, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >>", cast(const [..] u8) "/GS1 gs 0 g 0 0 100 100 re f")
+    addStreamObject(&objects, 8, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >>", cast(const [..] u8, "/GS1 gs 0 g 0 0 100 100 re f"))
 
     let resources = "/ExtGState << /GS0 5 0 R /GS1 7 0 R >> /XObject << /Fm0 8 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /Fm0 Do", objects.toSlice())
@@ -156,7 +156,7 @@ private func markedPixels(frame: const *Image)->u64
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /ExtGState /ca 0.5 >>")
     addObject(&objects, 6, "<< /Type /ExtGState /ca 0.5 >>")
-    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >>", cast(const [..] u8) "/GS1 gs 0 0 100 100 re f")
+    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >>", cast(const [..] u8, "/GS1 gs 0 0 100 100 re f"))
 
     let resources = "/ExtGState << /GS0 5 0 R /GS1 6 0 R >> /XObject << /Fm0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /Fm0 Do", objects.toSlice())
@@ -185,7 +185,7 @@ private func markedPixels(frame: const *Image)->u64
     let objects  = luminosityMaskObjects()
     let fileName = Testing.tempFilePath("gui-pdf-softmask-", ".pdf")
     defer discard catch File.delete(fileName)
-    expect File.writeAllBytes(fileName, singlePagePdf("/ExtGState << /GS0 5 0 R >>", cast(const [..] u8) "/GS0 gs 1 0 0 rg 0 0 100 100 re f", objects.toSlice()).toSlice())
+    expect File.writeAllBytes(fileName, singlePagePdf("/ExtGState << /GS0 5 0 R >>", cast(const [..] u8, "/GS0 gs 1 0 0 rg 0 0 100 100 re f"), objects.toSlice()).toSlice())
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
@@ -205,8 +205,8 @@ private func markedPixels(frame: const *Image)->u64
     settlePdfView(&host, view)
     let doubledFrame = host.render()
     Swag.assert(not view.reportedPaintError)
-    Swag.assert(Math.isEqualEpsilon(cast(f32) markedPixels(&singleFrame), 2500.0, 400.0))
-    Swag.assert(Math.isEqualEpsilon(cast(f32) markedPixels(&doubledFrame), 10_000.0, 1_000.0))
+    Swag.assert(Math.isEqualEpsilon(cast(f32, markedPixels(&singleFrame)), 2500.0, 400.0))
+    Swag.assert(Math.isEqualEpsilon(cast(f32, markedPixels(&doubledFrame)), 10_000.0, 1_000.0))
 }
 
 // A form with no transparency group passes the mask down to the marks it holds, and a mask
@@ -214,7 +214,7 @@ private func markedPixels(frame: const *Image)->u64
 #test
 {
     var objects = #move luminosityMaskObjects()
-    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]", cast(const [..] u8) "0 0 100 100 re f")
+    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]", cast(const [..] u8, "0 0 100 100 re f"))
 
     let resources = "/ExtGState << /GS0 5 0 R >> /XObject << /Fm0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /Fm0 Do", objects.toSlice())

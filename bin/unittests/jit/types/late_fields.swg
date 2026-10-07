@@ -100,7 +100,7 @@ func jitLateDirtyMemoryInit()->bool
     let raw = testAlloc(#sizeof(JitLateDirty))!
     Swag.memset(raw, 0xD0, #sizeof(JitLateDirty))
 
-    let box = cast(*JitLateDirty) raw
+    let box = cast(*JitLateDirty, raw)
     Swag.init(box, 1)
 
     let ok = box.tag == 5 and box.ratio == 1.5 and not (box.item != null)

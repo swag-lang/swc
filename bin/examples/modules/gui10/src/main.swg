@@ -93,7 +93,7 @@ func applyVariant(theme: *Theme, variant: ThemeVariant)
         // A sheet is a delta, so the theme is put back on a known palette before the sheet
         // is read: applied twice in a row, a partial sheet would otherwise compound.
         theme.setLight()
-        expect theme.applySheet(cast(string) SheetTheme)
+        expect theme.applySheet(cast(string, SheetTheme))
     }
 }
 
@@ -118,7 +118,7 @@ func variantColors(variant: ThemeVariant)->ThemeColors
     case .Sheet:
         var theme: Theme
         theme.setLight()
-        expect theme.applySheet(cast(string) SheetTheme)
+        expect theme.applySheet(cast(string, SheetTheme))
         result = theme.colors
     }
 
@@ -153,9 +153,9 @@ func readStartupSelection()
     for arg in Env.arguments()
     {
         for name, i in VariantArgs where arg == name do
-            g_Variant = cast(ThemeVariant) cast(s32) i
+            g_Variant = cast(ThemeVariant, cast(s32, i))
         for name, i in PageArgs where arg == name do
-            g_Page = cast(s32) i
+            g_Page = cast(s32, i)
     }
 }
 
@@ -204,13 +204,13 @@ func updateSelectors()
 {
     for btn, idx in g_ThemeButtons
     {
-        btn.setForm(cast(s32) idx == cast(s32) g_Variant ? .Default : .Flat)
+        btn.setForm(cast(s32, idx) == cast(s32, g_Variant) ? .Default : .Flat)
         btn.invalidate()
     }
 
     for btn, idx in g_PageButtons
     {
-        btn.setForm(cast(s32) idx == g_Page ? .Default : .Flat)
+        btn.setForm(cast(s32, idx) == g_Page ? .Default : .Flat)
         btn.invalidate()
     }
 }
@@ -342,14 +342,14 @@ func updateTestMode()
         return
     }
 
-    if cast(s32) g_Variant + 1 >= ThemeVariantCount
+    if cast(s32, g_Variant) + 1 >= ThemeVariantCount
     {
         Env.exit(0)
         return
     }
 
     showPage(0)
-    setVariant(cast(ThemeVariant) (cast(s32) g_Variant + 1))
+    setVariant(cast(ThemeVariant, (cast(s32, g_Variant) + 1)))
 }
 
 func onFrame(app: *Application)
@@ -360,7 +360,7 @@ func onFrame(app: *Application)
     if app.keyboard.isKeyJustPressed(.F1) do
         nextPage()
     if app.keyboard.isKeyJustPressed(.F2) do
-        setVariant(cast(ThemeVariant) ((cast(s32) g_Variant + 1) % ThemeVariantCount))
+        setVariant(cast(ThemeVariant, ((cast(s32, g_Variant) + 1) % ThemeVariantCount)))
 
     updateTestMode()
 }
@@ -382,7 +382,7 @@ func createRootView()
 
     for i in ThemeVariantCount
     {
-        let variant = cast(ThemeVariant) cast(s32) i
+        let variant = cast(ThemeVariant, cast(s32, i))
         let btn     = PushButton.create(view, variantName(variant), {})
         btn.sigPressed += func|variant|(btn) { setVariant(variant) }
         g_ThemeButtons.add(btn)
@@ -390,7 +390,7 @@ func createRootView()
 
     for i in MaxPages
     {
-        let page = cast(s32) i
+        let page = cast(s32, i)
         let btn  = PushButton.create(view, pageTitle(page), {})
         btn.sigPressed += func|page|(btn) { showPage(page) }
         g_PageButtons.add(btn)
@@ -437,7 +437,7 @@ func createRootView()
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
-        app.maxRunFrame = cast(u32) (MaxPages * ThemeVariantCount * TestFramesPerPage + 10)
+        app.maxRunFrame = cast(u32, (MaxPages * ThemeVariantCount * TestFramesPerPage + 10))
     surface.show()
     applyTheme()
     app.run()

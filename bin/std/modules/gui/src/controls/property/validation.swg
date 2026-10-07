@@ -97,14 +97,14 @@ internal impl Properties
             result  = .hostNtfy.validateItem(me, item)
         }
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf
             {
                 hasNtfy = true
                 let r = scan.ntfyItf.validateItem(me, item)
-                if cast(s32) r.state > cast(s32) result.state do
+                if cast(s32, r.state) > cast(s32, result.state) do
                     result = r
             }
 

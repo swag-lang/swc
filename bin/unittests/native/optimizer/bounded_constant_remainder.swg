@@ -26,11 +26,11 @@ func hashQuotient(a: const [*] u8, n: u64)->u64
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
-func byteSumRemainder(a, b: u8)->u64 => (cast(u64) a * 1000 + cast(u64) b) % 7
+func byteSumRemainder(a, b: u8)->u64 => (cast(u64, a) * 1000 + cast(u64, b)) % 7
 #[Swag.Optimize(true), Swag.NoInline]
-func wordProductRemainder(a, b: u16)->u64 => (cast(u64) a * cast(u64) b) % 1000003
+func wordProductRemainder(a, b: u16)->u64 => (cast(u64, a) * cast(u64, b)) % 1000003
 #[Swag.Optimize(true), Swag.NoInline]
-func wordRemainder(a: u16)->u32 => cast(u32) a % 10
+func wordRemainder(a: u16)->u32 => cast(u32, a) % 10
 #[Swag.Optimize(true), Swag.NoInline]
 func maskedRemainder(x: u32)->u32 => (x & 0xFFFFFF) % 1000
 #[Swag.Optimize(true), Swag.NoInline]
@@ -65,21 +65,21 @@ func hashQuotientByVariable(a: const [*] u8, n: u64, d: u64)->u64
 {
     for i in 0 until 256
     {
-        let a = cast(u8) i
+        let a = cast(u8, i)
         for j in 0 until 256
         {
-            let b = cast(u8) j
-            Swag.assert(byteSumRemainder(a, b) == rem64(cast(u64) a * 1000 + cast(u64) b, 7))
+            let b = cast(u8, j)
+            Swag.assert(byteSumRemainder(a, b) == rem64(cast(u64, a) * 1000 + cast(u64, b), 7))
         }
     }
 
     for i in 0 until 65536
     {
-        let a = cast(u16) i
-        Swag.assert(wordRemainder(a) == rem32(cast(u32) a, 10))
-        let b = cast(u16) (65535 - i)
-        Swag.assert(wordProductRemainder(a, b) == rem64(cast(u64) a * cast(u64) b, 1000003))
-        Swag.assert(wordProductRemainder(a, a) == rem64(cast(u64) a * cast(u64) a, 1000003))
+        let a = cast(u16, i)
+        Swag.assert(wordRemainder(a) == rem32(cast(u32, a), 10))
+        let b = cast(u16, (65535 - i))
+        Swag.assert(wordProductRemainder(a, b) == rem64(cast(u64, a) * cast(u64, b), 1000003))
+        Swag.assert(wordProductRemainder(a, a) == rem64(cast(u64, a) * cast(u64, a), 1000003))
     }
     Swag.assert(wordProductRemainder(65535, 65535) == 4294836225'u64 % 1000003)
 
@@ -96,7 +96,7 @@ func hashQuotientByVariable(a: const [*] u8, n: u64, d: u64)->u64
     Swag.assert(hashBytes(&bytes[0], 512) == hashBytesByVariable(&bytes[0], 512, 1000003))
     Swag.assert(hashQuotient(&bytes[0], 512) == hashQuotientByVariable(&bytes[0], 512, 7))
     for i in 512 do
-        bytes[i] = cast(u8) ((i * 131 + 7) % 256)
+        bytes[i] = cast(u8, ((i * 131 + 7) % 256))
     for n in [0'u64, 1, 2, 3, 17, 255, 511, 512]
     {
         Swag.assert(hashBytes(&bytes[0], n) == hashBytesByVariable(&bytes[0], n, 1000003))

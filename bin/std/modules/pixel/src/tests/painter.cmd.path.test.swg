@@ -235,7 +235,7 @@ using Swag, Core
     var target:  RenderTarget
     var painter: Painter
 
-    target.attach(cast(RenderTargetHandle) 1, cast(TextureHandle) 11, .BGRA8, 128, 64)
+    target.attach(cast(RenderTargetHandle, 1), cast(TextureHandle, 11), .BGRA8, 128, 64)
 
     painter.begin()
     painter.setBlendingMode(.Add)
@@ -265,7 +265,7 @@ private func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
     painter.end()
 
     var renderer: RenderCpu
-    renderer.begin(cast(s32) (cast(f32) Side * contentScale), cast(s32) (cast(f32) Side * contentScale))
+    renderer.begin(cast(s32, (cast(f32, Side) * contentScale)), cast(s32, (cast(f32, Side) * contentScale)))
     let render: IRenderer = &renderer
     render.draw(&painter)
     render.end()
@@ -275,7 +275,7 @@ private func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
     for y in image.height
     {
         for x in image.width do
-            result += cast(u64) (255 - image.pixelColor(x, y).r)
+            result += cast(u64, (255 - image.pixelColor(x, y).r))
     }
 
     return result
@@ -293,12 +293,12 @@ private func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
     let half    = strokeDarkness(0.5)
     let quarter = strokeDarkness(0.25)
     Swag.assert(half > 0 and quarter > 0)
-    Swag.assert(Math.abs(cast(f32) half - cast(f32) quarter * 2) < cast(f32) quarter * 0.2)
+    Swag.assert(Math.abs(cast(f32, half) - cast(f32, quarter) * 2) < cast(f32, quarter) * 0.2)
 
     // The measure is device pixels, so a hairline on a display that scales up is a whole pixel
     // and keeps its full weight.
     let scaledUp = strokeDarkness(0.5, 2)
-    Swag.assert(cast(f32) scaledUp > cast(f32) half * 3)
+    Swag.assert(cast(f32, scaledUp) > cast(f32, half) * 3)
 
     // A pen with no width at all still draws nothing.
     Swag.assert(strokeDarkness(0) == 0)

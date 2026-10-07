@@ -11,7 +11,7 @@
     #[Swag.NoInline]
     func sqrtRuntimeF32(v: f32)->s32
     {
-        return cast(s32) Swag.sqrt(v)
+        return cast(s32, Swag.sqrt(v))
     }
 
     const R0 = #run sqrtRuntimeF64(9.0)

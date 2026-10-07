@@ -37,7 +37,7 @@ internal func appendAllocationFailure(message: *ConcatBuffer, operation: string,
     if includeOldAllocation
     {
         message.addBytes(", address 0x")
-        Format.append(message, "%{X}", cast(u64) request.address)
+        Format.append(message, "%{X}", cast(u64, request.address))
     }
 
     let hintLength = request.hint.count
@@ -62,7 +62,7 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
     message.allocator = stackAllocatorItf
     message.setFirstBucket(storage)
     appendAllocationFailure(&message, operation, request[], includeOldAllocation)
-    Swag.panic(cast(string) message.toSlice()!, request.callerLoc)
+    Swag.panic(cast(string, message.toSlice()!), request.callerLoc)
 }
 
 // Asserts that the `size` bytes at `buffer` were allocated by `allocator`.
@@ -155,14 +155,14 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
         // equivalent copies from a shared library, keep the interface's normal dispatch.
         selected = (selected orelse Swag.getContext().allocator)!
         let expected: typeinfo = Swag.Allocator
-        if cast(const *void) Swag.kindOf(selected) == cast(const *void) expected
+        if cast(const *void, Swag.kindOf(selected)) == cast(const *void, expected)
         {
-            let runtime = cast(*Swag.Allocator?) selected.buffer
+            let runtime = cast(*Swag.Allocator?, selected.buffer)
             if runtime
             {
                 let address = runtime.allocateFast(size, alignment)
                 if address != 0 do
-                    return cast([*] void) address
+                    return cast([*] void, address)
             }
         }
     }

@@ -57,7 +57,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u64
     var result: u64
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u64 + cast(u64) (bytes[index[]] - '0')
+        result  = result * 10'u64 + cast(u64, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -66,7 +66,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u64
 
 func auditProductRanges(sheet: string)->GiftShopAudit
 {
-    let bytes = cast(const [..] u8) sheet
+    let bytes = cast(const [..] u8, sheet)
 
     var result: GiftShopAudit
     var index:  u32

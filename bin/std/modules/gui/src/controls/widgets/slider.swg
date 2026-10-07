@@ -398,7 +398,7 @@ private impl Slider
         let normalized = Math.clamp(f, 0, 1)
         if .steps > 0
         {
-            let r = cast(s32) ((normalized / .steps) + 0.5)
+            let r = cast(s32, ((normalized / .steps) + 0.5))
             return Math.clamp(r * .steps, 0, 1)
         }
 

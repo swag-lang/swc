@@ -18,8 +18,8 @@ private const LimbMask = 0x3FF_FFFF'u64
 #[Swag.Inline]
 private func load32Le(data: const [*] u8)->u64
 {
-    return cast(u64) data[0] | (cast(u64) data[1] << 8) |
-           (cast(u64) data[2] << 16) | (cast(u64) data[3] << 24)
+    return cast(u64, data[0]) | (cast(u64, data[1]) << 8) |
+           (cast(u64, data[2]) << 16) | (cast(u64, data[3]) << 24)
 }
 
 // Authenticates a message under a one-time key, following RFC 8439.
@@ -162,7 +162,7 @@ public impl Poly1305
         {
             sum = packed[i] + .pad[i] + (sum >> 32)
             for b in 4 do
-                result[i * 4 + b] = cast(u8) ((sum >> cast(u32) (b * 8)) & 0xFF)
+                result[i * 4 + b] = cast(u8, ((sum >> cast(u32, (b * 8))) & 0xFF))
         }
 
         secureClear(h)

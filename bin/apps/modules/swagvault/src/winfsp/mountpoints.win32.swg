@@ -14,7 +14,7 @@ namespace WinFsp
         var result = 0'u32
         for index in 26
         {
-            let subkey        = Utf16.toZeroTerminated(Format.toString("Network\\%", cast(rune) ('A' + index)))
+            let subkey        = Utf16.toZeroTerminated(Format.toString("Network\\%", cast(rune, ('A' + index))))
             var mapping: HKEY = null
             let status        = RegOpenKeyExW(currentUser, subkey.storage(), 0, KEY_READ, &mapping)
             if status == 0
@@ -44,7 +44,7 @@ namespace WinFsp
         let unavailable = logical | rememberedNetworkDriveMask()
         result.reserve(26)
         for index in 26 where (unavailable & (1'u32 << index)) == 0 do
-            result.add(cast(rune) ('A' + index))
+            result.add(cast(rune, ('A' + index)))
         return result
     }
 }

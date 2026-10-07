@@ -11,7 +11,7 @@ func updateCopiedLanes(seed: u32, count, rounds: u64)->u64
         var state = initial
         for rounds do
             for lane in 4 do state[lane] = (state[lane] + 17) ^ 0x10203
-        result  += cast(u64) state[1] + state[3]
+        result  += cast(u64, state[1]) + state[3]
         initial = state
     }
     return result
@@ -50,7 +50,7 @@ func updateCopiedWideLanes(seed: u64, count, rounds: u64)->u64
                 b    = (b + 17) ^ 0x10203
                 wide = (wide + 17) ^ 0x10203
             }
-            expected     += cast(u64) a + b
+            expected     += cast(u64, a) + b
             expectedWide += wide
         }
         Swag.assert(updateCopiedLanes(42, count, 10) == expected)

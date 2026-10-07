@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     var source  = Image.create(3, 2, .RGBF16)
-    let samples = cast([*] u16) source.pixels.storage()
+    let samples = cast([*] u16, source.pixels.storage())
     const Values: [6] u16 = [0x0000, 0x3C00, 0x4000, 0x3800, 0xC000, 0x7BFF]
     for i in 18 do
         samples[i] = Values[i % Values.count]
@@ -24,14 +24,14 @@ using Swag, Core
         var source = Image.create(3, 2, format)
         if format.bitDepth() == 16
         {
-            let samples = cast([*] u16) source.pixels.storage()
+            let samples = cast([*] u16, source.pixels.storage())
             const Values: [6] u16 = [0x0000, 0x3400, 0x3800, 0x3C00, 0x4000, 0xC000]
             for i in source.byteCount / 2 do
                 samples[i] = Values[i % Values.count]
         }
         else
         {
-            let samples = cast([*] f32) source.pixels.storage()
+            let samples = cast([*] f32, source.pixels.storage())
             const Values: [6] f32 = [-2.0, -0.25, 0.0, 0.5, 1.0, 8.0]
             for i in source.byteCount / 4 do
                 samples[i] = Values[i % Values.count]
@@ -47,7 +47,7 @@ using Swag, Core
 #test
 {
     var source  = Image.create(2, 2, .RGBAF32)
-    let samples = cast([*] f32) source.pixels.storage()
+    let samples = cast([*] f32, source.pixels.storage())
     const Values: [8] f32 = [-2.0, -0.25, 0.0, 0.125, 0.5, 1.0, 4.0, 65504.0]
     for i in 16 do
         samples[i] = Values[i % Values.count]
@@ -87,11 +87,11 @@ using Swag, Core
 {
     var original: [257] u8
     for i in original.count do
-        original[i] = cast(u8) ((i * 73 + 19) & 0xFF)
+        original[i] = cast(u8, ((i * 73 + 19) & 0xFF))
     var predicted: [257] u8
     predicted[0] = original[0]
     for i in rangeTo(1'u64, original.count - 1) do
-        predicted[i] = cast(u8) ((cast(s32) original[i] - original[i - 1] + 128) & 0xFF)
+        predicted[i] = cast(u8, ((cast(s32, original[i]) - original[i - 1] + 128) & 0xFF))
     var packed: [257] u8
     var even = 0'u64
     var odd  = (original.count + 1) / 2

@@ -336,7 +336,7 @@ impl Triangle
         if idx == 2 do
             return .points[1]
         Swag.assert(false)
-        return cast(*Point) 1'u64
+        return cast(*Point, 1'u64)
     }
 
     mtd pointCCW(point: *Point)->*Point
@@ -349,7 +349,7 @@ impl Triangle
         if idx == 2 do
             return .points[0]
         Swag.assert(false)
-        return cast(*Point) 1'u64
+        return cast(*Point, 1'u64)
     }
 
     mtd getDelaunayEdgeCCW(p: *Point)->bool
@@ -704,7 +704,7 @@ impl Tessellate
             if .freeTriangles.count do
                 target = .freeTriangles.popBack()
             else do
-                target = cast(*Triangle) Memory.alloc(#sizeof(Triangle))
+                target = cast(*Triangle, Memory.alloc(#sizeof(Triangle)))
 
             target[] = Triangle{points: [a, b, c]}
             return target
@@ -817,10 +817,10 @@ impl Tessellate
     // from converting to an out-of-range integer; two such points landing in the same clamped
     // cell only costs an extra exact comparison.
     #[Swag.Inline]
-    private func dupCellCoord(value: f32)->s32 => cast(s32) Math.floor(Math.clamp(value / CoincidentDistance, -1.0e9, 1.0e9))
+    private func dupCellCoord(value: f32)->s32 => cast(s32, Math.floor(Math.clamp(value / CoincidentDistance, -1.0e9, 1.0e9)))
 
     #[Swag.Inline]
-    private func dupCellKey(cx, cy: s32)->u64 => (cast(u64) cast #bit (u32) cx << 32) | cast(u64) cast #bit (u32) cy
+    private func dupCellKey(cx, cy: s32)->u64 => (cast(u64, cast #bit (u32, cx)) << 32) | cast(u64, cast #bit (u32, cy))
 
     // Files one registered point in its cell.
     //
@@ -831,7 +831,7 @@ impl Tessellate
         let entry = .dupCells.findOrAdd(dupCellKey(dupCellCoord(p.x), dupCellCoord(p.y)))
         .dupPoint.add(p)
         .dupNext.add(entry.value)
-        entry.value = cast(u32) .dupPoint.count
+        entry.value = cast(u32, .dupPoint.count)
     }
 
     // Drops one point from its cell, so a point the ring cleanup removed stops matching.
@@ -992,7 +992,7 @@ impl Tessellate
         for i in count do
             center += poly.points[i]
         if count do
-            center /= cast(f32) count
+            center /= cast(f32, count)
 
         .startPolyLine()
         for i in count

@@ -18,7 +18,7 @@ private func assertMathSyntaxError(source: string, contains: string, seek: u64)
     discard catch MathExpression.parse(source) as err
     Swag.assert(err != null)
     Swag.assert((err is Errors.SyntaxError))
-    let syntax = cast #assume (*Errors.SyntaxError) err
+    let syntax = assume cast (*Errors.SyntaxError, err)
     Swag.assert(syntax.seek == seek)
     Swag.assert(syntax.message != null)
     Swag.assert(Utf8.indexOf(syntax.message, contains) != Swag.U64.Max)
@@ -33,7 +33,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     Swag.assert(delimiters.paths.count == 2)
     Swag.assert(delimiters.paths[0].kind == leftKind)
     Swag.assert(delimiters.paths[1].kind == rightKind)
-    Swag.assert(delimiters.paths[0].rect.height > cast(f32) font.size)
+    Swag.assert(delimiters.paths[0].rect.height > cast(f32, font.size))
     Swag.assert(delimiters.paths[1].rect.height == delimiters.paths[0].rect.height)
 }
 
@@ -162,7 +162,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     Swag.assert(delimiters.paths[0].kind == .LeftParenthesis)
     Swag.assert(delimiters.paths[1].kind == .RightParenthesis)
     Swag.assert(stretchyMetrics.height() > fixedMetrics.height())
-    Swag.assert(delimiters.paths[0].rect.height > cast(f32) font.size)
+    Swag.assert(delimiters.paths[0].rect.height > cast(f32, font.size))
 }
 
 #test
@@ -216,7 +216,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let negativeWidth = negative.measure(font).width
     Swag.assert(binaryWidth > tightWidth)
     Swag.assert(relationWidth > binaryWidth)
-    Swag.assert(spacedWidth > tightWidth + cast(f32) font.size * 0.9)
+    Swag.assert(spacedWidth > tightWidth + cast(f32, font.size) * 0.9)
     Swag.assert(negativeWidth < tightWidth)
 }
 
@@ -374,7 +374,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     {
         var expression     = expect MathExpression.parse(source)
         let oldVertexCount = painter.vertexBuffer.count
-        painter.drawMath(0, cast(f32) idx * 48, &expression, font, Argb.Black)
+        painter.drawMath(0, cast(f32, idx) * 48, &expression, font, Argb.Black)
         Swag.assert(painter.vertexBuffer.count > oldVertexCount)
     }
 

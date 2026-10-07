@@ -54,7 +54,7 @@ func strided(seed: u32)->u32
     var last = 0'u32
     for var i = 5's32; i < 197; i += 3
     {
-        let value = cast(u32) i
+        let value = cast(u32, i)
         let x     = (a << 5) ^ (a >> 17) ^ b
         let y     = c + value * 17
         c    = b
@@ -74,7 +74,7 @@ func stridedReference(seed: u32)->u32
     var last = 0'u32
     for var i = 5's32; i < 197; i += 3
     {
-        let value = cast(u32) i
+        let value = cast(u32, i)
         let x     = (a << 5) ^ (a >> 17) ^ b
         let y     = c + value * 17
         c    = b

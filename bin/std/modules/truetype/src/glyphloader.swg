@@ -19,13 +19,13 @@ const CMP_WE_HAVE_INSTRUCTIONS  = 0x0100'u16
 
 func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
 {
-    faceData.outlinePoints.add(Vector{x: cast(s32) Math.round(x), y: cast(s32) Math.round(y)})
+    faceData.outlinePoints.add(Vector{x: cast(s32, Math.round(x)), y: cast(s32, Math.round(y))})
     faceData.outlineTags.add(onCurve ? CURVE_TAG_ON : 0)
 }
 
 func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32)
 {
-    let contourCount = cast(u32) peekS16(glyphData, 0)
+    let contourCount = cast(u32, peekS16(glyphData, 0))
     var offset       = 10'u64
     var contourEnds: Array'u16
     contourEnds.resize(contourCount)
@@ -68,7 +68,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         let flag = flags[index]
         if (flag & 0x02) != 0
         {
-            let dx = cast(s32) peekU8(glyphData, offset)
+            let dx = cast(s32, peekU8(glyphData, offset))
             offset += 1
             x      += (flag & 0x10) != 0 ? dx : -dx
         }
@@ -89,7 +89,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         let flag = flags[index]
         if (flag & 0x04) != 0
         {
-            let dy = cast(s32) peekU8(glyphData, offset)
+            let dy = cast(s32, peekU8(glyphData, offset))
             offset += 1
             y      += (flag & 0x20) != 0 ? dy : -dy
         }
@@ -111,7 +111,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     }
 
     for index in contourCount do
-        faceData.outlineContours.add(cast(s16) (startPoint + contourEnds[index]))
+        faceData.outlineContours.add(cast(s16, (startPoint + contourEnds[index])))
 }
 
 func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32, depth: u32) fail
@@ -137,8 +137,8 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
         }
         else
         {
-            arg1   = cast #bit (s8) peekU8(glyphData, offset + 0)
-            arg2   = cast #bit (s8) peekU8(glyphData, offset + 1)
+            arg1   = cast #bit (s8, peekU8(glyphData, offset + 0))
+            arg2   = cast #bit (s8, peekU8(glyphData, offset + 1))
             offset += 2
         }
 
@@ -185,15 +185,15 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
 
             for index in addedPointCount
             {
-                let idx = basePointCount + cast(u32) index
+                let idx = basePointCount + cast(u32, index)
                 let src = faceData.outlinePoints[idx]
-                let tx  = cast(f64) src.x
-                let ty  = cast(f64) src.y
-                faceData.outlinePoints[idx].x = cast(s32) Math.round(tx * xx + ty * xy)
-                faceData.outlinePoints[idx].y = cast(s32) Math.round(tx * yx + ty * yy)
+                let tx  = cast(f64, src.x)
+                let ty  = cast(f64, src.y)
+                faceData.outlinePoints[idx].x = cast(s32, Math.round(tx * xx + ty * xy))
+                faceData.outlinePoints[idx].y = cast(s32, Math.round(tx * yx + ty * yy))
             }
 
-            if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and arg1 >= 0 and arg2 >= 0 and cast(u32) arg1 < basePointCount and cast(u32) arg2 < addedPointCount
+            if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and arg1 >= 0 and arg2 >= 0 and cast(u32, arg1) < basePointCount and cast(u32, arg2) < addedPointCount
             {
                 let anchorParent = faceData.outlinePoints[arg1]
                 let anchorChild  = faceData.outlinePoints[basePointCount + arg2]
@@ -203,14 +203,14 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
 
             for index in addedPointCount
             {
-                let idx = basePointCount + cast(u32) index
-                faceData.outlinePoints[idx].x = cast(s32) Math.round(faceData.outlinePoints[idx].x + dx)
-                faceData.outlinePoints[idx].y = cast(s32) Math.round(faceData.outlinePoints[idx].y + dy)
+                let idx = basePointCount + cast(u32, index)
+                faceData.outlinePoints[idx].x = cast(s32, Math.round(faceData.outlinePoints[idx].x + dx))
+                faceData.outlinePoints[idx].y = cast(s32, Math.round(faceData.outlinePoints[idx].y + dy))
             }
         }
 
         for index in faceData.outlineContours.count - baseContourCount do
-            faceData.outlineContours[baseContourCount + index] = cast(s16) faceData.outlineContours[baseContourCount + index]
+            faceData.outlineContours[baseContourCount + index] = cast(s16, faceData.outlineContours[baseContourCount + index])
 
         hasMore = (flags & CMP_MORE_COMPONENTS) != 0
     }
@@ -273,8 +273,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
     slot.outline.setView(faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null,
                          faceData.outlineTags.count ? faceData.outlineTags.buffer : null,
                          faceData.outlineContours.count ? faceData.outlineContours.buffer : null,
-                         cast(s16) faceData.outlinePoints.count,
-                         cast(s16) faceData.outlineContours.count)
+                         cast(s16, faceData.outlinePoints.count),
+                         cast(s16, faceData.outlineContours.count))
 
     let metric = faceData.glyphMetrics[glyphIndex]
     slot.setAdvance(scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm))

@@ -59,15 +59,15 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 {
     let surfaceWidth  = Math.max(width, 1)
     let surfaceHeight = Math.max(height, 1)
-    let scaleX        = cast(f32) surfaceWidth / cast(f32) W
-    let scaleY        = cast(f32) surfaceHeight / cast(f32) H
+    let scaleX        = cast(f32, surfaceWidth) / cast(f32, W)
+    let scaleY        = cast(f32, surfaceHeight) / cast(f32, H)
 
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
-        .rect.x = Math.round((cast(f32) surfaceWidth - .rect.width) * 0.5)
-        .rect.y = Math.round((cast(f32) surfaceHeight - .rect.height) * 0.5)
+        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
+        .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
 
     return result
@@ -94,7 +94,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     var y = 46.0
     for size in Sizes
     {
-        let usize = cast(u32) size
+        let usize = cast(u32, size)
         let fonts = fontsFor(usize)
 
         painter.drawString(ColPx, y, Format.toString("%", size), g_HeaderFont, Argb.DimGray)
@@ -102,7 +102,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
         painter.drawString(ColMsdf, y, Sample, fonts.msdf, Argb.Black)
         painter.drawString(ColAuto, y, Sample, fonts.auto, Argb.Black)
 
-        y += cast(f32) size + 12
+        y += cast(f32, size) + 12
     }
 
     painter.popTransform()
@@ -114,7 +114,7 @@ func display()
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
     let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32) Math.round(g_RC.width / scale), cast(s32) Math.round(g_RC.height / scale))
+    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)), cast(s32, Math.round(g_RC.height / scale)))
     g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter, layout)

@@ -32,7 +32,7 @@ internal func day2ParseNumber(line: string, cursorPtr: *u64)->u32
     while cursor < line.count and line[cursor] >= '0' and line[cursor] <= '9'
     {
         result *= 10
-        result += cast(u32) line[cursor] - '0'
+        result += cast(u32, line[cursor]) - '0'
         cursor += 1
     }
 

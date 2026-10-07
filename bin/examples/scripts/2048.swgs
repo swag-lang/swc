@@ -134,7 +134,7 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
         // Paint cell value
         let str  = Format.toString("%", c.val)
         var zoom = c.z
-        zoom -= (cast(f32) str.length * 0.08)
+        zoom -= (cast(f32, str.length) * 0.08)
         painter.drawStringCenter(xi + (cellW * 0.5), yi + (cellW * 0.5), str, g_Font, Argb.Black, zoom: zoom * layout.zoom)
     }
 }
@@ -180,7 +180,7 @@ func animate(wnd: *Wnd)
             if Math.isEqualEpsilon(c.x, c.xd, 0.1) and Math.isEqualEpsilon(c.y, c.yd, 0.1)
             {
                 c.moving = false
-                let dest = cellAt(cast(s32) c.xd, cast(s32) c.yd, c)
+                let dest = cellAt(cast(s32, c.xd), cast(s32, c.yd), c)
                 if dest and dest.val
                 {
                     c.moving    = true
@@ -268,10 +268,10 @@ func keyboard(wnd: *Wnd)
             {
                 if g_MoveDirX != 0
                 {
-                    let nx = cast(s32) (c.xd + i * g_MoveDirX)
+                    let nx = cast(s32, (c.xd + i * g_MoveDirX))
                     if nx < 0 or nx >= CellCount do
                         break
-                    if c.xd == nx or canMoveTo(c.val, nx, cast(s32) c.y)
+                    if c.xd == nx or canMoveTo(c.val, nx, cast(s32, c.y))
                     {
                         c.moving = true
                         c.nxd    = nx
@@ -281,10 +281,10 @@ func keyboard(wnd: *Wnd)
                 }
                 elif g_MoveDirY != 0
                 {
-                    let ny = cast(s32) (c.yd + i * g_MoveDirY)
+                    let ny = cast(s32, (c.yd + i * g_MoveDirY))
                     if ny < 0 or ny >= CellCount do
                         break
-                    if c.yd == ny or canMoveTo(c.val, cast(s32) c.x, ny)
+                    if c.yd == ny or canMoveTo(c.val, cast(s32, c.x), ny)
                     {
                         c.moving = true
                         c.nyd    = ny

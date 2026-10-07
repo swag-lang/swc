@@ -1,22 +1,22 @@
 #global private
 
 #[Swag.NoInline]
-func byteZero(a: u64)->u64 => cast(u64) ((a & 255) == 0)
+func byteZero(a: u64)->u64 => cast(u64, ((a & 255) == 0))
 
 #[Swag.NoInline]
-func byteNotZero(a: u64)->u64 => cast(u64) ((a & 255) != 0)
+func byteNotZero(a: u64)->u64 => cast(u64, ((a & 255) != 0))
 
 #[Swag.NoInline]
-func byteEqual(a: u64)->u32 => cast(u32) ((a & 255) == 127)
+func byteEqual(a: u64)->u32 => cast(u32, ((a & 255) == 127))
 
 #[Swag.NoInline]
-func byteLess(a: u64)->u64 => cast(u64) ((a & 255) < 128)
+func byteLess(a: u64)->u64 => cast(u64, ((a & 255) < 128))
 
 #[Swag.NoInline]
-func wordAtLeast(a: u64)->u64 => cast(u64) ((a & 65535) >= 32768)
+func wordAtLeast(a: u64)->u64 => cast(u64, ((a & 65535) >= 32768))
 
 #[Swag.NoInline]
-func wideImmediate(a: u64)->u64 => cast(u64) ((a & 255) < 256)
+func wideImmediate(a: u64)->u64 => cast(u64, ((a & 255) < 256))
 
 #[Swag.NoInline]
 func preserveInput(a: u64)->u64 => a ^ byteZero(a)

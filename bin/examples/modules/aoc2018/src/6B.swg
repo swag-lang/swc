@@ -61,7 +61,7 @@ func day6B()
 
     var total = 0
     for v in arr do
-        total += cast(s32) (v < 10000)
+        total += cast(s32, (v < 10000))
 
     Swag.assert(total == 43852)
 }

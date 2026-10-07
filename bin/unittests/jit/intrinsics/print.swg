@@ -10,7 +10,7 @@
         var b: any = Swag.makeAny(&y, s32)
         b = a
         // Swag.print("boxed", b)
-        let p = cast(*s32) b.buffer
+        let p = cast(*s32, b.buffer)
         return p[]
     }
 

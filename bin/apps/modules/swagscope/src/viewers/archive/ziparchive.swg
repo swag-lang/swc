@@ -63,20 +63,20 @@ private func zipU16(bytes: const [..] u8, at: u64)->u16 fail
 {
     if at > bytes.count or 2 > bytes.count - at do
         fail Errors.InvalidFormatError{"ZIP record ends before a 16-bit field"}
-    return cast(u16) bytes[at] | (cast(u16) bytes[at + 1] << 8)
+    return cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8)
 }
 
 private func zipU32(bytes: const [..] u8, at: u64)->u32 fail
 {
     if at > bytes.count or 4 > bytes.count - at do
         fail Errors.InvalidFormatError{"ZIP record ends before a 32-bit field"}
-    return cast(u32) bytes[at] | (cast(u32) bytes[at + 1] << 8) | (cast(u32) bytes[at + 2] << 16) | (cast(u32) bytes[at + 3] << 24)
+    return cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) | (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24)
 }
 
 private func zipU64(bytes: const [..] u8, at: u64)->u64 fail
 {
-    let low  = cast(u64) try zipU32(bytes, at)
-    let high = cast(u64) try zipU32(bytes, at + 4)
+    let low  = cast(u64, try zipU32(bytes, at))
+    let high = cast(u64, try zipU32(bytes, at + 4))
     return low | (high << 32)
 }
 
@@ -86,7 +86,7 @@ func zipText(bytes: const [..] u8, utf8: bool)->String
     if not bytes.count do
         return {}
     if utf8 and Utf8.isValid(bytes) do
-        return String.from(cast(string) bytes)
+        return String.from(cast(string, bytes))
 
     var result: retval
     for value in bytes
@@ -120,7 +120,7 @@ private func cleanZipPath(path: string)->String
         }
 
         if value < 32 do
-            result += cast(rune) 0xFFFD
+            result += cast(rune, 0xFFFD)
         else do
             result += value
         previousSlash = false
@@ -138,7 +138,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
     while at + 4 <= extra.count
     {
         let kind   = try zipU16(extra, at)
-        let length = cast(u64) try zipU16(extra, at + 2)
+        let length = cast(u64, try zipU16(extra, at + 2))
         at += 4
         if length > extra.count - at do
             fail Errors.InvalidFormatError{"ZIP extra field extends past its directory entry"}
@@ -174,7 +174,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
             {
                 if valueAt + 4 > end do
                     fail Errors.InvalidFormatError{"ZIP64 entry is missing its disk number"}
-                disk[] = cast(u64) try zipU32(extra, valueAt)
+                disk[] = cast(u64, try zipU32(extra, valueAt))
             }
 
             return
@@ -191,9 +191,9 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
 private func zipDirectoryLocation(file: *File.MappedFile, tailOffset: u64, tail: const [..] u8, endAt: u64)->{ offset, size, count: u64 } fail
 {
     var result: retval
-    result.count  = cast(u64) try zipU16(tail, endAt + 10)
-    result.size   = cast(u64) try zipU32(tail, endAt + 12)
-    result.offset = cast(u64) try zipU32(tail, endAt + 16)
+    result.count  = cast(u64, try zipU16(tail, endAt + 10))
+    result.size   = cast(u64, try zipU32(tail, endAt + 12))
+    result.offset = cast(u64, try zipU32(tail, endAt + 16))
 
     if result.count != ZipValue16Overflow and result.size != ZipValue32Overflow and result.offset != ZipValue32Overflow do
         return result
@@ -245,7 +245,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     {
         if try zipU32(bytes, scan) != ZipEndSignature do
             continue
-        let commentLength = cast(u64) try zipU16(bytes, scan + 20)
+        let commentLength = cast(u64, try zipU16(bytes, scan + 20))
         if scan + 22 + commentLength == tailSize
         {
             endAt = scan
@@ -265,7 +265,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     if diskEntries != allEntries do
         fail Errors.UnsupportedFormatError{"multi-disk ZIP archives are not supported"}
 
-    let commentLength = cast(u64) try zipU16(bytes, endAt + 20)
+    let commentLength = cast(u64, try zipU16(bytes, endAt + 20))
     if commentLength do
         result.comment = zipText(bytes[endAt + 22 until endAt + 22 + commentLength], true)
 
@@ -287,9 +287,9 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         if try zipU32(data, at) != ZipDirectorySignature do
             fail Errors.InvalidFormatError{"ZIP central-directory entry has the wrong signature"}
 
-        let nameLength    = cast(u64) try zipU16(data, at + 28)
-        let extraLength   = cast(u64) try zipU16(data, at + 30)
-        let commentLength = cast(u64) try zipU16(data, at + 32)
+        let nameLength    = cast(u64, try zipU16(data, at + 28))
+        let extraLength   = cast(u64, try zipU16(data, at + 30))
+        let commentLength = cast(u64, try zipU16(data, at + 32))
         let totalLength   = 46 + nameLength + extraLength + commentLength
         if totalLength > data.count - at do
             fail Errors.InvalidFormatError{"ZIP central-directory entry extends past the directory"}
@@ -298,10 +298,10 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         entry.flags            = try zipU16(data, at + 8)
         entry.method           = try zipU16(data, at + 10)
         entry.crc32            = try zipU32(data, at + 16)
-        entry.compressedSize   = cast(u64) try zipU32(data, at + 20)
-        entry.uncompressedSize = cast(u64) try zipU32(data, at + 24)
-        var diskNumber = cast(u64) try zipU16(data, at + 34)
-        entry.localOffset = cast(u64) try zipU32(data, at + 42)
+        entry.compressedSize   = cast(u64, try zipU32(data, at + 20))
+        entry.uncompressedSize = cast(u64, try zipU32(data, at + 24))
+        var diskNumber = cast(u64, try zipU16(data, at + 34))
+        entry.localOffset = cast(u64, try zipU32(data, at + 42))
 
         let nameBytes  = data[at + 46 until at + 46 + nameLength]
         let extraBytes = data[at + 46 + nameLength until at + 46 + nameLength + extraLength]
@@ -309,7 +309,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         if diskNumber do
             fail Errors.UnsupportedFormatError{"multi-disk ZIP entries are not supported"}
 
-        let decoded = zipText(nameBytes, cast(bool) (entry.flags & ZipFlagUtf8))
+        let decoded = zipText(nameBytes, cast(bool, (entry.flags & ZipFlagUtf8)))
         entry.path = cleanZipPath(decoded.toString())
         if entry.path.isEmpty()
         {
@@ -318,7 +318,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         }
 
         let external = try zipU32(data, at + 38)
-        entry.isDirectory = (nameBytes.count and (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)) or cast(bool) (external & 0x10)
+        entry.isDirectory = (nameBytes.count and (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)) or cast(bool, (external & 0x10))
         if not entry.isDirectory
         {
             if entry.compressedSize > Swag.U64.Max - result.compressedSize or entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
@@ -363,8 +363,8 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
     if try zipU32(header, 0) != ZipLocalSignature do
         fail Errors.InvalidFormatError{"ZIP local header has the wrong signature"}
 
-    let nameLength  = cast(u64) try zipU16(header, 26)
-    let extraLength = cast(u64) try zipU16(header, 28)
+    let nameLength  = cast(u64, try zipU16(header, 26))
+    let extraLength = cast(u64, try zipU16(header, 28))
     let headerEnd   = entry.localOffset + 30
     if nameLength > fileSize - headerEnd or extraLength > fileSize - headerEnd - nameLength do
         fail Errors.InvalidFormatError{"ZIP local header fields lie outside the file"}

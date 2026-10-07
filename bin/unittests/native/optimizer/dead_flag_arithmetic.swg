@@ -37,7 +37,7 @@ func carryAfter(a, b: u64)->u64
         let r = remainder(a, 3)
         Swag.assert(combined3(a) == q + r)
         Swag.assert(combined7(a) == quotient(a, 7) + remainder(a, 7))
-        let signed = cast #bit (s64) a
+        let signed = cast #bit (s64, a)
         Swag.assert(combinedSigned(signed) == signedQuotient(signed, 3) + signedRemainder(signed, 3))
         Swag.assert(acrossBranch(a, true) == q + r)
         Swag.assert(acrossBranch(a, false) == (q ^ r))

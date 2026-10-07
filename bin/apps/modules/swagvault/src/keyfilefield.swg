@@ -51,7 +51,7 @@ impl IWnd for KeyFileField
         let cell = room.height
 
         var right = room.right()
-        for button in [cast(*Wnd) .remove, cast(*Wnd) .generate, cast(*Wnd) .add]
+        for button in [cast(*Wnd, .remove), cast(*Wnd, .generate), cast(*Wnd, .add)]
         {
             if not button.isVisible() do
                 continue
@@ -88,7 +88,7 @@ private impl KeyFileField
         for &path in .paths do
             .files.addItem(path.toString())
         .files.enable(true)
-        .files.setSelectedIndex(Math.min(selected, cast(u32) (.paths.count - 1)), notify: false)
+        .files.setSelectedIndex(Math.min(selected, cast(u32, (.paths.count - 1))), notify: false)
         .remove.enable(true)
     }
 
@@ -100,7 +100,7 @@ private impl KeyFileField
             if .hasPath(path.toString()) do
                 continue
             if firstAdded == Swag.U32.Max do
-                firstAdded = cast(u32) .paths.count
+                firstAdded = cast(u32, .paths.count)
             .paths.add(String.from(path.toString()))
         }
 

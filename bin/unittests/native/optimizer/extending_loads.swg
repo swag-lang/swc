@@ -18,19 +18,19 @@ struct Record
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
-func weighted(r: const *Record)->s64 => cast(s64) r.value * cast(s64) r.delta
+func weighted(r: const *Record)->s64 => cast(s64, r.value) * cast(s64, r.delta)
 
 #[Swag.Optimize(true), Swag.NoInline]
-func unsignedSum(r: const *Record)->u64 => cast(u64) r.tag + cast(u64) r.count + cast(u64) r.size
+func unsignedSum(r: const *Record)->u64 => cast(u64, r.tag) + cast(u64, r.count) + cast(u64, r.size)
 
 #[Swag.Optimize(true), Swag.NoInline]
-func signedByte(r: const *Record)->s32 => cast(s32) r.kind * 3
+func signedByte(r: const *Record)->s32 => cast(s32, r.kind) * 3
 
 #[Swag.Optimize(true), Swag.NoInline]
 func sharedLoad(r: const *Record)->s64
 {
     let v = r.value
-    return cast(s64) v + cast(s64) (v & 0xFF)
+    return cast(s64, v) + cast(s64, (v & 0xFF))
 }
 
 #test

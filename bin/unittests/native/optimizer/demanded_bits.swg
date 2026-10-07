@@ -23,7 +23,7 @@ func widenLater(a: u32, b: u64)->u64
 {
     let x = a
     let y = x + 1
-    return cast(u64) y + b
+    return cast(u64, y) + b
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
@@ -31,7 +31,7 @@ func signLater(a: s32)->s64
 {
     let x = a
     let y = x - 1
-    return cast(s64) y * 3
+    return cast(s64, y) * 3
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
@@ -39,14 +39,14 @@ func byteLater(a: u8, b: u64)->u64
 {
     var x = a
     x += 1
-    return cast(u64) x + b
+    return cast(u64, x) + b
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func affine(b: bool)->u32 => b ? 7 : 3
 
 #[Swag.Optimize(true), Swag.NoInline]
-func widened(b: bool, x: u64)->u64 => cast(u64) affine(b) + x
+func widened(b: bool, x: u64)->u64 => cast(u64, affine(b)) + x
 
 #test
 {

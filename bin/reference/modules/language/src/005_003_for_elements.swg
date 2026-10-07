@@ -98,7 +98,7 @@ down; a loop that needs the position within the view keeps its own counter.
 */
 #test
 {
-    let text = cast(const cstring) ("ABC").buffer
+    let text = cast(const cstring, ("ABC").buffer)
     var cpt  = 0
     for value, index in text.reversed()
     {
@@ -218,7 +218,7 @@ The same '&' binding replaces a struct element in one write.
     var points: [2] Point = [{1, 2}, {3, 4}]
 
     for &p, index in points do
-        p[] = Point{cast(s32) index, cast(s32) index}
+        p[] = Point{cast(s32, index), cast(s32, index)}
 
     Swag.assert(points[0].x == 0 and points[0].y == 0)
     Swag.assert(points[1].x == 1 and points[1].y == 1)

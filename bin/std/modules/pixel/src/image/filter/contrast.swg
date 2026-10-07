@@ -17,7 +17,7 @@ public impl Image
             var context = level
             .transformLogicalPixels(&context)
             {
-                let adjustment = (cast(const *f32) userData!)[]
+                let adjustment = cast(const *f32, userData!)[]
                 value.r = (value.r - 0.5) * adjustment + 0.5
                 value.g = (value.g - 0.5) * adjustment + 0.5
                 value.b = (value.b - 0.5) * adjustment + 0.5
@@ -28,9 +28,9 @@ public impl Image
 
         var convArr: [256] u8
         for i in 256 do
-            convArr[i] = cast(u8) Math.clamp(((cast(f32) i - 128.0) * level) + 128.0, 0.0, 255.0)
+            convArr[i] = cast(u8, Math.clamp(((cast(f32, i) - 128.0) * level) + 128.0, 0.0, 255.0))
 
-        let table = cast(const [*] u8) &convArr[0]
+        let table = cast(const [*] u8, &convArr[0])
         .applyColorLuts(table, table, table)
     }
 }

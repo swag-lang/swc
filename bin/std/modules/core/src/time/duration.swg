@@ -29,7 +29,7 @@ impl Duration
     #[Inline]
     {
         // Returns the duration rounded to the nearest whole millisecond.
-        mtd const milliseconds()->u64 => cast(u64) Math.round(.seconds * 1000)
+        mtd const milliseconds()->u64 => cast(u64, Math.round(.seconds * 1000))
 
         // Creates a duration from seconds.
         func fromSeconds(value: f64)->Duration

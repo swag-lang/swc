@@ -36,7 +36,7 @@ impl Decoder
         let size = 1'u32 << log2TrafoSize
 
         var result: retval
-        Memory.set(&.coefficients, 0, cast(u64) (size * size) * #sizeof(s16))
+        Memory.set(&.coefficients, 0, cast(u64, (size * size)) * #sizeof(s16))
         Memory.set(&.coefficientRows, 0, #sizeof(.coefficientRows))
         .coefficientColumns = 0
 
@@ -82,8 +82,8 @@ impl Decoder
         // The scan is a permutation of the block, so its inverse says that outright.
         let subBlockLog2 = log2TrafoSize - 2
         let subSide      = 1'u32 << subBlockLog2
-        let lastSubBlock = cast(u32) ScanIndex[subBlockLog2, scanIdx, (lastY >> 2) * subSide + (lastX >> 2)]
-        let lastScanPos  = cast(u32) ScanIndex[2, scanIdx, (lastY & 3) * 4 + (lastX & 3)]
+        let lastSubBlock = cast(u32, ScanIndex[subBlockLog2, scanIdx, (lastY >> 2) * subSide + (lastX >> 2)])
+        let lastScanPos  = cast(u32, ScanIndex[2, scanIdx, (lastY & 3) * 4 + (lastX & 3)])
 
         var codedSubBlock: [64] bool
         var maxX, maxY = 0'u32
@@ -94,12 +94,12 @@ impl Decoder
         var previousGreater1Ctx  = 0'u32
         var previousGreater1Flag = false
 
-        var subBlock = cast(s32) lastSubBlock
+        var subBlock = cast(s32, lastSubBlock)
         while subBlock >= 0
         {
-            let index = cast(u32) subBlock
-            let xS    = cast(u32) ScanX[subBlockLog2, scanIdx, index]
-            let yS    = cast(u32) ScanY[subBlockLog2, scanIdx, index]
+            let index = cast(u32, subBlock)
+            let xS    = cast(u32, ScanX[subBlockLog2, scanIdx, index])
+            let yS    = cast(u32, ScanY[subBlockLog2, scanIdx, index])
 
             var inferDcSignificant = false
             var coded = true
@@ -119,7 +119,7 @@ impl Decoder
             // Significance of every coefficient of the sub-block, walked backwards.
             var significant: [16] bool
             var significantCount = 0'u32
-            var first = index == lastSubBlock ? cast(s32) lastScanPos - 1 : 15's32
+            var first = index == lastSubBlock ? cast(s32, lastScanPos) - 1 : 15's32
             if index == lastSubBlock
             {
                 significant[lastScanPos] = true
@@ -139,11 +139,11 @@ impl Decoder
             var position = first
             while position >= 0
             {
-                let scanPos = cast(u32) position
+                let scanPos = cast(u32, position)
                 if position > 0 or not inferDcSignificant
                 {
-                    let inner   = (cast(u32) ScanY[2, scanIdx, scanPos] << 2) + cast(u32) ScanX[2, scanIdx, scanPos]
-                    var context = mapped ? cast(u32) SigCtxMap4x4[inner] + dcContext : cast(u32) SigCtxPattern[pattern, inner] + base
+                    let inner   = (cast(u32, ScanY[2, scanIdx, scanPos]) << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
+                    var context = mapped ? cast(u32, SigCtxMap4x4[inner]) + dcContext : cast(u32, SigCtxPattern[pattern, inner]) + base
                     if not inner and dcBlock do
                         context = dcContext
                     if .cabac.decision(CtxSigCoeffFlag + context) != 0
@@ -196,7 +196,7 @@ impl Decoder
             position = 15
             while position >= 0
             {
-                let scanPos = cast(u32) position
+                let scanPos = cast(u32, position)
                 if significant[scanPos]
                 {
                     if greater1Count < 8
@@ -247,7 +247,7 @@ impl Decoder
             position = 15
             while position >= 0
             {
-                let scanPos = cast(u32) position
+                let scanPos = cast(u32, position)
                 if significant[scanPos] and (not pps.signDataHiding or not signHidden or position != firstSigScanPos)
                 {
                     signs     = (signs << 1) | .cabac.bypass()
@@ -268,7 +268,7 @@ impl Decoder
             position = 15
             while position >= 0
             {
-                let scanPos = cast(u32) position
+                let scanPos = cast(u32, position)
                 if not significant[scanPos]
                 {
                     position -= 1
@@ -310,10 +310,10 @@ impl Decoder
                         sumAbsLevel += level
                 }
 
-                let xC    = (xS << 2) + cast(u32) ScanX[2, scanIdx, scanPos]
-                let yC    = (yS << 2) + cast(u32) ScanY[2, scanIdx, scanPos]
-                let value = cast(s32) Math.min(level, 32767'u32)
-                .coefficients[yC * size + xC] = cast(s16) (sign ? -value : value)
+                let xC    = (xS << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
+                let yC    = (yS << 2) + cast(u32, ScanY[2, scanIdx, scanPos])
+                let value = cast(s32, Math.min(level, 32767'u32))
+                .coefficients[yC * size + xC] = cast(s16, (sign ? -value : value))
                 .coefficientRows[xC] |= 1'u32 << yC
                 .coefficientColumns  |= 1'u32 << xC
                 maxX                 = Math.max(maxX, xC)

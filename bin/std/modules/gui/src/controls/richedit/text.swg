@@ -345,7 +345,7 @@ impl RichEditCtrl
             let {c, eat} = Utf8.decodeRune(str)
             if not eat do
                 break
-            str = Tokenize.eatCount(str, cast(u64) eat)
+            str = Tokenize.eatCount(str, cast(u64, eat))
             .insertRunePrivate(cp, c, txtStyle)
         }
 
@@ -732,7 +732,7 @@ public impl RichEditCtrl
     mtd insertBegLine(txt: string)
     {
         var first       = true
-        let insertedLen = Utf8.countRunes(cast(const [..] u8) txt)
+        let insertedLen = Utf8.countRunes(cast(const [..] u8, txt))
 
         var beg = .selectionStart()
         let end = .selectionEnd()
@@ -834,7 +834,7 @@ public impl RichEditCtrl
                 {
                     // X is the request position
                     var charPt = .cursorDisplayPosition(beg)
-                    var x      = cast(f32) .tabAdvance(cast(s32) charPt.x)
+                    var x      = cast(f32, .tabAdvance(cast(s32, charPt.x)))
                     x = (.tabSize * size.x) - x
                     if x == 0 do
                         x = .tabSize * size.x
@@ -898,7 +898,7 @@ public impl RichEditCtrl
 
         let x = .xGlyphSize()
 
-        result.h = cast(f32) (.lines.count * x.y)
+        result.h = cast(f32, (.lines.count * x.y))
 
         let fontR = .font().getFont(.styles[0].fontMode)
         if fontR

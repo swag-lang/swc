@@ -11,7 +11,7 @@ func adler32Reference(buffer: const [..] u8)->u32
 
     for value in buffer
     {
-        s1 = (s1 + cast(u32) value) % Base
+        s1 = (s1 + cast(u32, value)) % Base
         s2 = (s2 + s1) % Base
     }
 
@@ -40,7 +40,7 @@ func fillAdlerPattern(buffer: [..] u8)
     var i = 0'u64
     while i < buffer.count
     {
-        buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+        buffer[i] = cast(u8, ((i * 37 + 11) & 0xFF))
         i         += 1
     }
 }

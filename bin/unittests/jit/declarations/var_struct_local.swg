@@ -158,7 +158,7 @@ struct LocalVarKeyEvent
             b = 100
         }
 
-        return v.a + cast(s32) v.c + b
+        return v.a + cast(s32, v.c) + b
     }
 
     const V = #run structNoInitVar()

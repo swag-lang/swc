@@ -68,7 +68,7 @@ struct BuyerList
 func parseBuyers(text: string)->BuyerList
 {
     var result: BuyerList
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos:    u32
     var inNum = false
     var acc:    u64
@@ -78,7 +78,7 @@ func parseBuyers(text: string)->BuyerList
         let ch = bytes[index]
         if ch >= '0' and ch <= '9'
         {
-            acc   = acc * 10 + cast(u64) (ch - '0')
+            acc   = acc * 10 + cast(u64, (ch - '0'))
             inNum = true
         }
         elif inNum
@@ -128,10 +128,10 @@ const SeqCount = SeqBase * SeqBase * SeqBase * SeqBase     // 130321
 #[Swag.Inline]
 func encodeSeq(d0: s32, d1: s32, d2: s32, d3: s32)->u32
 {
-    let a = cast(u32) (d0 + 9)
-    let b = cast(u32) (d1 + 9)
-    let c = cast(u32) (d2 + 9)
-    let d = cast(u32) (d3 + 9)
+    let a = cast(u32, (d0 + 9))
+    let b = cast(u32, (d1 + 9))
+    let c = cast(u32, (d2 + 9))
+    let d = cast(u32, (d3 + 9))
     return ((a * SeqBase + b) * SeqBase + c) * SeqBase + d
 }
 
@@ -152,12 +152,12 @@ func makeSeqResult(val: u64)->SeqResult
 func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
 {
     // Global totals for each possible 4-change sequence
-    let totals = cast([*] u64) (testAlloc(cast(u64) SeqCount * #sizeof(u64)))!
+    let totals = cast([*] u64, (testAlloc(cast(u64, SeqCount) * #sizeof(u64)))!)
     defer testFree(totals)
     for index in SeqCount { totals[index] = 0 }
 
     // Per-buyer seen flags
-    let seen = cast([*] bool) (testAlloc(cast(u64) SeqCount * #sizeof(bool)))!
+    let seen = cast([*] bool, (testAlloc(cast(u64, SeqCount) * #sizeof(bool)))!)
     defer testFree(seen)
 
     for bi in buyers.count
@@ -166,14 +166,14 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
         for index in SeqCount { seen[index] = false }
 
         var s         = buyers.secrets[bi]
-        var prevPrice = cast(s32) (s % 10)
+        var prevPrice = cast(s32, (s % 10))
 
         // Collect changes
         var ch: [4] s32
         for step in steps
         {
             s = evolve(s)
-            let price  = cast(s32) (s % 10)
+            let price  = cast(s32, (s % 10))
             let change = price - prevPrice
             prevPrice = price
 
@@ -192,7 +192,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
                 if not seen[idx]
                 {
                     seen[idx]   = true
-                    totals[idx] += cast(u64) price
+                    totals[idx] += cast(u64, price)
                 }
             }
         }
@@ -340,7 +340,7 @@ impl SliceBuf
     #[Swag.Inline]
     mtd asSlice()->const [..] u8
     {
-        return Swag.makeSlice(&me.data[0], cast(u64) me.len)
+        return Swag.makeSlice(&me.data[0], cast(u64, me.len))
     }
 }
 

@@ -21,7 +21,7 @@ private func flacDecodeAll(sound: const *SoundFile)->Array'u8 fail
 
     var result: retval
     var block:  Array'u8
-    block.resize(MaxBlockSize * cast(u64) sound.numChannels() * #sizeof(s16))
+    block.resize(MaxBlockSize * cast(u64, sound.numChannels()) * #sizeof(s16))
     for index in sound.packetCount()
     {
         let packet   = try sound.packet(index)
@@ -45,7 +45,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 
     let decoded = expect flacDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
-    Swag.assert(sound.sampleFrameCount() * cast(u64) channels * #sizeof(s16) == wanted.count)
+    Swag.assert(sound.sampleFrameCount() * cast(u64, channels) * #sizeof(s16) == wanted.count)
     Swag.assert(decoded.count == wanted.count)
 
     var mismatches = 0'u64
@@ -111,8 +111,8 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     Swag.assert(decoded.size != 0)
 
     let wanted = expect File.readAllBytes(audioGetTestDataPath("flac-5.1-48000.pcm").toString())
-    let bytes  = cast(const [*] u8) decoded.buffer!
-    let count  = Math.min(cast(u64) decoded.size, wanted.count)
+    let bytes  = cast(const [*] u8, decoded.buffer!)
+    let count  = Math.min(cast(u64, decoded.size), wanted.count)
     for index in count do
         Swag.assert(bytes[index] == wanted[index])
 }

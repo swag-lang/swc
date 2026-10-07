@@ -531,7 +531,7 @@ using Swag
 
     let prefix = digits.partialMatch("123abc")
     Swag.assert(prefix != null)
-    Swag.assert(cast(string?) prefix == "123")
+    Swag.assert(cast(string?, prefix) == "123")
     Swag.assert(digits.partialMatch("abc123") == null)
 }
 
@@ -541,12 +541,12 @@ using Swag
 
     let first = anchored.partialMatch("123abc")
     Swag.assert(first != null)
-    Swag.assert(cast(string?) first == "123")
+    Swag.assert(cast(string?, first) == "123")
     Swag.assert(anchored.getCapture(1) == "123")
 
     let second = anchored.partialMatch("456def")
     Swag.assert(second != null)
-    Swag.assert(cast(string?) second == "456")
+    Swag.assert(cast(string?, second) == "456")
     Swag.assert(anchored.getCapture(1) == "456")
 
     Swag.assert(anchored.partialMatch("abc") == null)
@@ -561,7 +561,7 @@ using Swag
     {
         let prefix = anchored.partialMatch("789xyz")
         Swag.assert(prefix != null)
-        Swag.assert(cast(string?) prefix == "789")
+        Swag.assert(cast(string?, prefix) == "789")
         Swag.assert(anchored.getCapture(1) == "789")
     }
 }
@@ -595,7 +595,7 @@ using Swag
     {
         let first = captures.grep("a12")
         Swag.assert(first != null)
-        Swag.assert(cast(string?) first == "12")
+        Swag.assert(cast(string?, first) == "12")
         Swag.assert(captures.getCapture(1) == "12")
 
         Swag.assert(captures.grep("abc") == null)
@@ -603,7 +603,7 @@ using Swag
 
         let second = captures.grep("34x")
         Swag.assert(second != null)
-        Swag.assert(cast(string?) second == "34")
+        Swag.assert(cast(string?, second) == "34")
         Swag.assert(captures.getCapture(1) == "34")
     }
 }
@@ -614,7 +614,7 @@ using Swag
 
     let match = endOfBuffer.grep("abc")
     Swag.assert(match != null)
-    Swag.assert(cast(string?) match == "")
+    Swag.assert(cast(string?, match) == "")
 
     let all = endOfBuffer.grepAll("abc")
     Swag.assert(all.count == 1)
@@ -627,7 +627,7 @@ using Swag
 
     let match = empty.grep("")
     Swag.assert(match != null)
-    Swag.assert(cast(string?) match == "")
+    Swag.assert(cast(string?, match) == "")
 
     let all = empty.grepAll("")
     Swag.assert(all.count == 1)
@@ -641,9 +641,9 @@ using Swag
     let second = words.grep("\u00E9 scatter cat")
 
     Swag.assert(first != null)
-    Swag.assert(cast(string?) first == "cat")
+    Swag.assert(cast(string?, first) == "cat")
     Swag.assert(second != null)
-    Swag.assert(cast(string?) second == "cat")
+    Swag.assert(cast(string?, second) == "cat")
     Swag.assert(words.grep("\u00E9 scatter catnap") == null)
 }
 
@@ -653,7 +653,7 @@ using Swag
 
     let word = boundary.grep("cat")
     Swag.assert(word != null)
-    Swag.assert(cast(string?) word == "")
+    Swag.assert(cast(string?, word) == "")
 
     Swag.assert(boundary.grep("!?") == null)
     Swag.assert(boundary.grep("") == null)
@@ -679,7 +679,7 @@ using Swag
 
     let atStart = anchored.grep("12 34")
     Swag.assert(atStart != null)
-    Swag.assert(cast(string?) atStart == "12")
+    Swag.assert(cast(string?, atStart) == "12")
     Swag.assert(anchored.grep("aa12") == null)
 
     let all = anchored.grepAll("12 34")
@@ -695,7 +695,7 @@ using Swag
 
     let match = words.grep("\u00E9 cat")
     Swag.assert(match != null)
-    Swag.assert(cast(string?) match == "cat")
+    Swag.assert(cast(string?, match) == "cat")
 
     let all = words.grepAll("\u00E9 cat catnap cat")
     Swag.assert(all.count == 2)
@@ -956,10 +956,10 @@ using Swag
     Swag.assert(not innerEmptyAlt.match("bc"))
     let emptyPrefix = emptyExactZero.partialMatch("abc")
     Swag.assert(emptyPrefix != null)
-    Swag.assert(cast(string?) emptyPrefix == "")
+    Swag.assert(cast(string?, emptyPrefix) == "")
     let emptyFirst = emptyDigitZero.grep("abc")
     Swag.assert(emptyFirst != null)
-    Swag.assert(cast(string?) emptyFirst == "")
+    Swag.assert(cast(string?, emptyFirst) == "")
     let emptyAll = emptyGroupZero.grepAll("ab")
     Swag.assert(emptyAll.count == 3)
     Swag.assert(emptyAll[0] == "")
@@ -1177,14 +1177,14 @@ using Swag
 
     let tag = lazyStar.grep("<one><two>")
     Swag.assert(tag != null)
-    Swag.assert(cast(string?) tag == "<one>")
+    Swag.assert(cast(string?, tag) == "<one>")
     Swag.assert(lazyStar.getCapture(1) == "one")
 
     Swag.assert(lazyPlus.match("aab"))
 
     let shortest = lazyOpt.grep("ab")
     Swag.assert(shortest != null)
-    Swag.assert(cast(string?) shortest == "a")
+    Swag.assert(cast(string?, shortest) == "a")
 
     Swag.assert(lazyCount.match("aab"))
     Swag.assert(not lazyCount.match("aaaab"))
@@ -1206,7 +1206,7 @@ using Swag
 
     let line = lines.grep("a\nb\nc")
     Swag.assert(line != null)
-    Swag.assert(cast(string?) line == "b")
+    Swag.assert(cast(string?, line) == "b")
 
     Swag.assert(noDotAll.match("axb"))
     Swag.assert(not noDotAll.match("a\nb"))
@@ -1224,7 +1224,7 @@ using Swag
 
     let inside = insideWord.grep("scatter")
     Swag.assert(inside != null)
-    Swag.assert(cast(string?) inside == "cat")
+    Swag.assert(cast(string?, inside) == "cat")
     Swag.assert(insideWord.grep("a cat") == null)
 }
 
@@ -1529,7 +1529,7 @@ func buildPattern(rng: *Rng, depth: u32)->String
         switch rng.below(depth == 0 ? 10 : 13)
         {
         case 0:
-            piece.append(cast(u8) (cast(u64) 'a' + rng.below(3)))
+            piece.append(cast(u8, (cast(u64, 'a') + rng.below(3))))
 
         case 1:
             piece.append("[ab]")

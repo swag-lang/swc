@@ -148,7 +148,7 @@ func defaultPair()->{ x: s32, y: s32 }
 {
     var arr: [8] s32
     for i in 8 do
-        arr[i] = cast(s32) i
+        arr[i] = cast(s32, i)
     var sum = 0's32
     for i in 8 do
         sum += arr[i]

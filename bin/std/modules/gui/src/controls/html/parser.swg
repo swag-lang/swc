@@ -228,7 +228,7 @@ impl HtmlParser
     mtd readSectionAttributes(element: u32, source: string)
     {
         let range = .document.constNode(element).attributes
-        if range.start + range.count != cast(u32) .document.attributePool.count do
+        if range.start + range.count != cast(u32, .document.attributePool.count) do
             return
         .flushAttributes(element, source)
     }
@@ -440,7 +440,7 @@ impl HtmlParser
         let count = source.count
         var index = start
 
-        result.nameStart = cast(u32) index
+        result.nameStart = cast(u32, index)
         while index < count
         {
             let character = source[index]
@@ -451,7 +451,7 @@ impl HtmlParser
             index += 1
         }
 
-        result.nameEnd = cast(u32) index
+        result.nameEnd = cast(u32, index)
 
         while index < count
         {
@@ -493,7 +493,7 @@ impl HtmlParser
                 index += 1
             }
 
-            attribute.name = {cast(u32) nameStart, cast(u32) (index - nameStart)}
+            attribute.name = {cast(u32, nameStart), cast(u32, (index - nameStart))}
 
             while index < count and Latin1.isSpace(source[index]) do
                 index += 1
@@ -532,7 +532,7 @@ impl HtmlParser
                     closing = next + 1
                 }
 
-                attribute.value = {cast(u32) valueStart, cast(u32) (closing - valueStart)}
+                attribute.value = {cast(u32, valueStart), cast(u32, (closing - valueStart))}
                 index = closing + 1
             }
             else
@@ -545,7 +545,7 @@ impl HtmlParser
                     index += 1
                 }
 
-                attribute.value = {cast(u32) valueStart, cast(u32) (index - valueStart)}
+                attribute.value = {cast(u32, valueStart), cast(u32, (index - valueStart))}
             }
 
             attribute.hasValue = true
@@ -849,7 +849,7 @@ impl HtmlParser
     //
     // Every run the parser hands the document is a stretch of the very bytes the document keeps,
     // so its offset is the difference between the two pointers.
-    mtd const sourceStart(text: string)->u64 => cast(u64) (text.buffer - .document.source().buffer)
+    mtd const sourceStart(text: string)->u64 => cast(u64, (text.buffer - .document.source().buffer))
 
     // Returns the run `text` occupies, decoding it only when it carries a character reference.
     //

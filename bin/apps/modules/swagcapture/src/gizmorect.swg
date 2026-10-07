@@ -253,7 +253,7 @@ impl GizmoRect
                 .hotAnchor = Swag.U32.Max
                 for c, i in .anchors where c.contains(lp)
                 {
-                    .hotAnchor = cast(u32) i
+                    .hotAnchor = cast(u32, i)
                     break
                 }
 
@@ -414,7 +414,7 @@ impl GizmoRect
 
     mtd apply(iform: IForm, first: bool, hitMove: u32)
     {
-        let form    = cast #assume (*BaseForm) iform
+        let form    = assume cast (*BaseForm, iform)
         let capture = form.capture!
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
@@ -440,18 +440,18 @@ impl GizmoRect
             let startX = (.gizmoCenter.x - .startRect.width * 0.5) / zoom
             let startY = (.gizmoCenter.y - .startRect.height * 0.5) / zoom
 
-            undo.newPosX  = cast(s32) ((scx / zoom - newW * 0.5) - startX)
-            undo.newPosY  = cast(s32) ((scy / zoom - newH * 0.5) - startY)
-            undo.newSizeX = cast(s32) (newW - startW)
-            undo.newSizeY = cast(s32) (newH - startH)
+            undo.newPosX  = cast(s32, ((scx / zoom - newW * 0.5) - startX))
+            undo.newPosY  = cast(s32, ((scy / zoom - newH * 0.5) - startY))
+            undo.newSizeX = cast(s32, (newW - startW))
+            undo.newSizeY = cast(s32, (newH - startH))
 
             capture.pushUndo(undo)
             capture.invalidateAfterMove(iform, oldRect)
             return
         }
 
-        let dx = cast(s32) ((.movingRect.x - .startRect.x) / zoom)
-        let dy = cast(s32) ((.movingRect.y - .startRect.y) / zoom)
+        let dx = cast(s32, ((.movingRect.x - .startRect.x) / zoom))
+        let dy = cast(s32, ((.movingRect.y - .startRect.y) / zoom))
         undo.newPosX = dx
         undo.newPosY = dy
         if hitMove & 1 do
@@ -459,8 +459,8 @@ impl GizmoRect
         if hitMove & 2 do
             capture.snap(null, &undo.newPosY, false, false)
 
-        let dsx = cast(s32) ((.movingRect.width - .startRect.width) / zoom)
-        let dsy = cast(s32) ((.movingRect.height - .startRect.height) / zoom)
+        let dsx = cast(s32, ((.movingRect.width - .startRect.width) / zoom))
+        let dsy = cast(s32, ((.movingRect.height - .startRect.height) / zoom))
         undo.newSizeX = dsx
         undo.newSizeY = dsy
         if hitMove & 4 do
@@ -500,13 +500,13 @@ impl GizmoRect
     // Rotate slider in the property window so undo/redo stays consistent.
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
-        let form    = cast #assume (*BaseForm) iform
+        let form    = assume cast (*BaseForm, iform)
         let capture = form.capture!
         if not first do
             capture.undo()
 
         let undo = capture.newUndo(.SetTypedValue)
-        undo.valU32 = cast #bit (u32) angle
+        undo.valU32 = cast #bit (u32, angle)
         undo.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
         capture.pushUndo(undo)
 

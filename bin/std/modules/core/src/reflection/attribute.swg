@@ -40,7 +40,7 @@ func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value
     let attribVal = attributeValue(attrib, value)
     if attribVal == null do
         return defaultValue
-    return cast #assume (T) attribVal
+    return assume cast (T, attribVal)
 }
 
 // Returns the parameter named `value` of the `attribute` attached to a function, struct, or enum type, or null.
@@ -104,17 +104,17 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
     switch type.kind
     {
     case .Func:
-        let typeFunc = cast #assume(const *TypeInfoFunc) type
+        let typeFunc = assume cast(const *TypeInfoFunc, type)
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case .Struct:
-        let typeStruct = cast #assume(const *TypeInfoStruct) type
+        let typeStruct = assume cast(const *TypeInfoStruct, type)
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) type
+        let typeEnum = assume cast(const *TypeInfoEnum, type)
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
     }
@@ -134,17 +134,17 @@ func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
     switch type.kind
     {
     case .Func:
-        let typeFunc = cast #assume(const *TypeInfoFunc) type
+        let typeFunc = assume cast(const *TypeInfoFunc, type)
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case .Struct:
-        let typeStruct = cast #assume(const *TypeInfoStruct) type
+        let typeStruct = assume cast(const *TypeInfoStruct, type)
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) type
+        let typeEnum = assume cast(const *TypeInfoEnum, type)
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
     }

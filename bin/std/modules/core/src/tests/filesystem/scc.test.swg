@@ -53,7 +53,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var large: Array'u8
     large.resize(256 * 1024)
     for &value, index in large do
-        value[] = cast(u8) (index & 0xFF)
+        value[] = cast(u8, (index & 0xFF))
     let imageId = expect writer.addChunk(large.toSlice(), {typeId: bytesType, roleId: imageRole, codecId: deflate})
     expect writer.saveAtomic(path)
 

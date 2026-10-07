@@ -30,7 +30,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -39,7 +39,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
 func parsePoint(text: string)->Point2
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
 
     var index:  u32
     var result: Point2
@@ -63,19 +63,19 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
         points[index] = parsePoint(line)
     }
 
-    result.pointCount = cast(u32) pointLines.count
+    result.pointCount = cast(u32, pointLines.count)
 
     for lhs in pointLines.count
     {
-        if cast(u32) lhs + 1 >= pointLines.count do
+        if cast(u32, lhs) + 1 >= pointLines.count do
             continue
 
-        for rhs in cast(u32) lhs + 1 to pointLines.count - 1
+        for rhs in cast(u32, lhs) + 1 to pointLines.count - 1
         {
             let a      = points[lhs]
             let b      = points[rhs]
-            let width  = cast(u64) absDiff(a.x, b.x) + 1'u64
-            let height = cast(u64) absDiff(a.y, b.y) + 1'u64
+            let width  = cast(u64, absDiff(a.x, b.x)) + 1'u64
+            let height = cast(u64, absDiff(a.y, b.y)) + 1'u64
             let area   = width * height
 
             if area > result.bestArea

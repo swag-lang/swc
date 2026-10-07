@@ -31,7 +31,7 @@ func reverse8(x: u8)->u8
 
 func reverse16(x: u16)->u16
 {
-    return cast(u16) Rev8Arr[x >> 8] | cast(u16) Rev8Arr[x & 0xFF] << 8
+    return cast(u16, Rev8Arr[x >> 8]) | cast(u16, Rev8Arr[x & 0xFF]) << 8
 }
 
 #[Swag.Safety(.Overflow, false)]
@@ -57,12 +57,12 @@ func reverse32(x: u32)->u32
 #[Swag.Safety(.Overflow, false)]
 func hasZeroByte(v: u32)->bool
 {
-    return cast(bool) ((v - 0x01010101'u32) & ~v & 0x80808080'u32)
+    return cast(bool, ((v - 0x01010101'u32) & ~v & 0x80808080'u32))
 }
 
 func makeRepeat32(v: u8)->u32
 {
-    return (~0'u32 / 255 * cast(u32) v)
+    return (~0'u32 / 255 * cast(u32, v))
 }
 
 func hasByte(value: u32, byte: u8)->bool
@@ -93,8 +93,8 @@ func lcm(a, b: s64)->s64
 }
 
 {
-    func sign(x: s32) => cast(s32) (x > 0) - cast(s32) (x < 0)
-    func sign(x: s64) => cast(s64) (x > 0) - cast(s64) (x < 0)
+    func sign(x: s32) => cast(s32, (x > 0)) - cast(s32, (x < 0))
+    func sign(x: s64) => cast(s64, (x > 0)) - cast(s64, (x < 0))
 }
 
 // ---- Adler-32 checksum (from std/core crypto/adler32.swg) ------------------
@@ -126,7 +126,7 @@ impl Adler32
         let input = buffer.buffer
         if count == 1
         {
-            s1 += cast(u32) input[0]
+            s1 += cast(u32, input[0])
             if s1 >= Base do
                 s1 -= Base
             s2 += s1
@@ -137,7 +137,7 @@ impl Adler32
         {
             for b in buffer
             {
-                s1 += cast(u32) b
+                s1 += cast(u32, b)
                 s2 += s1
             }
 
@@ -156,7 +156,7 @@ impl Adler32
                 {
                     for j in 16'u64
                     {
-                        s1 += cast(u32) input[i + j]
+                        s1 += cast(u32, input[i + j])
                         s2 += s1
                     }
 
@@ -173,7 +173,7 @@ impl Adler32
                 {
                     for j in 16'u64
                     {
-                        s1 += cast(u32) input[i + j]
+                        s1 += cast(u32, input[i + j])
                         s2 += s1
                     }
 
@@ -182,7 +182,7 @@ impl Adler32
 
                 while i < count
                 {
-                    s1 += cast(u32) input[i]
+                    s1 += cast(u32, input[i])
                     s2 += s1
                     i  += 1
                 }
@@ -233,17 +233,17 @@ func analyze(data: const [..] u8)->IntegrityReport
     var i = 0'u64
     while i + 4 <= report.byteCount
     {
-        let word = cast(u32) ptr[i] |
-                   cast(u32) ptr[i + 1] << 8 |
-                   cast(u32) ptr[i + 2] << 16 |
-                   cast(u32) ptr[i + 3] << 24
+        let word = cast(u32, ptr[i]) |
+                   cast(u32, ptr[i + 1]) << 8 |
+                   cast(u32, ptr[i + 2]) << 16 |
+                   cast(u32, ptr[i + 3]) << 24
         if hasZeroByte(word) do
             report.zeroBytesFound += 1
         i += 4
     }
 
     for b in data do
-        report.bitEntropy += cast(u32) Swag.bitCountNz(b)
+        report.bitEntropy += cast(u32, Swag.bitCountNz(b))
 
     return report
 }
@@ -299,7 +299,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     // Double-reverse is identity
     for i in 256
     {
-        let b = cast(u8) i
+        let b = cast(u8, i)
         Swag.assert(reverse8(reverse8(b)) == b)
     }
 
@@ -405,15 +405,15 @@ func analyze(data: const [..] u8)->IntegrityReport
     const message = "Swag-lang integrity check: 2024-03-15T08:30:00Z"
     let report = analyze(message)
 
-    let bytes = cast(const [..] u8) message
+    let bytes = cast(const [..] u8, message)
     Swag.assert(report.byteCount == bytes.count)
     Swag.assert(report.checksum == Adler32.compute(message))
-    Swag.assert(report.reversedFirst == reverse8(cast(u8) 'S'))
-    Swag.assert(report.reversedLast == reverse8(cast(u8) 'Z'))
+    Swag.assert(report.reversedFirst == reverse8(cast(u8, 'S')))
+    Swag.assert(report.reversedLast == reverse8(cast(u8, 'Z')))
     Swag.assert(report.bitEntropy > 0)
 
     // Entropy of all-zero bytes would be 0; printable ASCII is always nonzero
-    let avgBitsPerByte = report.bitEntropy / cast(u32) report.byteCount
+    let avgBitsPerByte = report.bitEntropy / cast(u32, report.byteCount)
     Swag.assert(avgBitsPerByte >= 3 and avgBitsPerByte <= 6)
 
     // Empty analysis
@@ -427,7 +427,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     Swag.assert(report.checksum != report2.checksum)
 
     // Verify the relationship: popcount of reversed byte == popcount of original
-    let testBytes = cast(const [..] u8) message
+    let testBytes = cast(const [..] u8, message)
     for b in testBytes
     {
         Swag.assert(Swag.bitCountNz(b) == Swag.bitCountNz(reverse8(b)))

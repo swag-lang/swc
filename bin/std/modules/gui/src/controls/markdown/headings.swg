@@ -17,7 +17,7 @@ func parseHeadings(source: string)->Array'DocumentHeading
         var heading: DocumentHeading
         inline.parse(block.text.toString())
         heading.title        = inline.text()
-        heading.level        = cast(u32) block.kind - cast(u32) BlockKind.Heading1 + 1
+        heading.level        = cast(u32, block.kind) - cast(u32, BlockKind.Heading1) + 1
         heading.sourceOffset = block.sourceOffset
         result.add(#move heading)
     }

@@ -26,7 +26,7 @@ func sumScaledAbove(values: const [*] s32, count: u64, limit: s32)->s64
     var total = 0's64
     for i in count
     {
-        let value = cast(s64) values[i]
+        let value = cast(s64, values[i])
         if value > limit do
             total += value * 3 + 1
     }

@@ -103,7 +103,7 @@ public impl Image
         {
             if encoderType.opDrop do
                 encoderType.opDrop(ptrEncoder)
-            Memory.free(ptrEncoder, cast(u64) encoderType.sizeof)
+            Memory.free(ptrEncoder, cast(u64, encoderType.sizeof))
         }
 
         // Encode

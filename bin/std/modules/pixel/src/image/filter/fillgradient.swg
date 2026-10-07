@@ -19,8 +19,8 @@ public impl Image
             var context = {color0: color0, color1: color1}
             .transformLogicalPixels(&context)
             {
-                let params = (cast(const *#decltype(context)) userData!)[]
-                let factor = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
+                let params = cast(const *#decltype(context), userData!)[]
+                let factor = image.width > 1 ? x / cast(f32, (image.width - 1)) : 0
                 let first  = colorPixelValue(params.color0)
                 let second = colorPixelValue(params.color1)
                 value = {
@@ -39,14 +39,14 @@ public impl Image
             var pix = .pixels.buffer
             for x in .width
             {
-                let factor0 = .width > 1 ? x / cast(f32) (.width - 1) : 0
-                let b       = cast(u8) Math.lerp(cast(f32) color0.b, cast(f32) color1.b, factor0)
-                let g       = cast(u8) Math.lerp(cast(f32) color0.g, cast(f32) color1.g, factor0)
-                let r       = cast(u8) Math.lerp(cast(f32) color0.r, cast(f32) color1.r, factor0)
+                let factor0 = .width > 1 ? x / cast(f32, (.width - 1)) : 0
+                let b       = cast(u8, Math.lerp(cast(f32, color0.b), cast(f32, color1.b), factor0))
+                let g       = cast(u8, Math.lerp(cast(f32, color0.g), cast(f32, color1.g), factor0))
+                let r       = cast(u8, Math.lerp(cast(f32, color0.r), cast(f32, color1.r), factor0))
                 var a       = 255'u8
                 if PF.bitsPerPixel() == 32 do
-                    a = cast(u8) Math.lerp(cast(f32) color0.a, cast(f32) color1.a, factor0)
-                convertToRGBA8'PF(cast([*] u8) pix!, r, g, b, a)
+                    a = cast(u8, Math.lerp(cast(f32, color0.a), cast(f32, color1.a), factor0))
+                convertToRGBA8'PF(cast([*] u8, pix!), r, g, b, a)
                 pix += .bytesPerPixel
             }
         }
@@ -62,7 +62,7 @@ public impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
+            Memory.copy(pix, cast([*] u8, image.pixels.storage()), cast(u64, image.width) * image.bytesPerPixel)
         }
     }
 
@@ -78,9 +78,9 @@ public impl Image
         {
             .transformLogicalPixels(&ctx)
             {
-                let colors      = (cast(const *FillGradient4Context) userData!)[]
-                let factor0     = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
-                let factor1     = image.height > 1 ? y / cast(f32) (image.height - 1) : 0
+                let colors      = cast(const *FillGradient4Context, userData!)[]
+                let factor0     = image.width > 1 ? x / cast(f32, (image.width - 1)) : 0
+                let factor1     = image.height > 1 ? y / cast(f32, (image.height - 1)) : 0
                 let topLeft     = colorPixelValue(colors.topLeft)
                 let topRight    = colorPixelValue(colors.topRight)
                 let bottomLeft  = colorPixelValue(colors.bottomLeft)
@@ -104,9 +104,9 @@ public impl Image
         {
             .visitPixels(&ctx)
             {
-                let colors  = cast(*FillGradient4Context) userData!
-                let factor0 = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
-                let factor1 = image.height > 1 ? y / cast(f32) (image.height - 1) : 0
+                let colors  = cast(*FillGradient4Context, userData!)
+                let factor0 = image.width > 1 ? x / cast(f32, (image.width - 1)) : 0
+                let factor1 = image.height > 1 ? y / cast(f32, (image.height - 1)) : 0
                 let colH1   = Color.lerp(colors.topLeft, colors.topRight, factor0)
                 let colH0   = Color.lerp(colors.bottomLeft, colors.bottomRight, factor0)
                 let col     = Color.lerp(colH0, colH1, factor1)

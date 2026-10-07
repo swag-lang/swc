@@ -66,7 +66,7 @@ struct Node
 
 func buildTree(depth: s32)->*Node
 {
-    let node = cast(*Node) Memory.alloc(#sizeof(Node))
+    let node = cast(*Node, Memory.alloc(#sizeof(Node)))
     node.left  = depth > 0 ? buildTree(depth - 1) : null
     node.right = depth > 0 ? buildTree(depth - 1) : null
     return node
@@ -86,12 +86,12 @@ func freeTree(node: *Node)
 // A table of live blocks replaced at random, sized by 'nextSize'.
 func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorshift)->u64, touchEveryPage: bool)
 {
-    let addresses = cast([*] u64) Memory.alloc(slots * #sizeof(u64))
-    let sizes     = cast([*] u64) Memory.alloc(slots * #sizeof(u64))
+    let addresses = cast([*] u64, Memory.alloc(slots * #sizeof(u64)))
+    let sizes     = cast([*] u64, Memory.alloc(slots * #sizeof(u64)))
     defer
     {
         for i in slots do
-            Memory.free(cast([*] void) addresses[i], sizes[i])
+            Memory.free(cast([*] void, addresses[i]), sizes[i])
         Memory.free(addresses, slots * #sizeof(u64))
         Memory.free(sizes, slots * #sizeof(u64))
     }
@@ -99,15 +99,15 @@ func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorsh
     for i in slots
     {
         sizes[i]     = nextSize(random)
-        addresses[i] = cast(u64) Memory.alloc(sizes[i])
+        addresses[i] = cast(u64, Memory.alloc(sizes[i]))
     }
 
     for operations
     {
         let i = random.next() % slots
-        Memory.free(cast([*] void) addresses[i], sizes[i])
+        Memory.free(cast([*] void, addresses[i]), sizes[i])
         sizes[i] = nextSize(random)
-        let block = cast([*] u8) Memory.alloc(sizes[i])
+        let block = cast([*] u8, Memory.alloc(sizes[i]))
         block[0] = 1
         block[sizes[i] - 1] = 1
         if touchEveryPage
@@ -116,7 +116,7 @@ func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorsh
                 block[page * 4096] = 1
         }
 
-        addresses[i] = cast(u64) block
+        addresses[i] = cast(u64, block)
     }
 }
 
@@ -133,7 +133,7 @@ func run(workload: Workload, seed: u64)->u64
     case .Pair:
         for 20_000_000
         {
-            let block = cast([*] u8) Memory.alloc(32)
+            let block = cast([*] u8, Memory.alloc(32))
             block[0] = 1
             Memory.free(block, 32)
         }
@@ -162,10 +162,10 @@ func run(workload: Workload, seed: u64)->u64
         for 2000
         {
             var size  = 16'u64
-            var block = cast([*] u8) Memory.alloc(size)
+            var block = cast([*] u8, Memory.alloc(size))
             while size < 4 * 1024 * 1024
             {
-                block           = cast([*] u8) Memory.realloc(block, size * 2, size)
+                block           = cast([*] u8, Memory.realloc(block, size * 2, size))
                 size            *= 2
                 block[size - 1] = 1
                 operations      += 1
@@ -178,16 +178,16 @@ func run(workload: Workload, seed: u64)->u64
 
     case .Grow:
         const Count = 4_000_000'u64
-        let addresses = cast([*] u64) Memory.alloc(Count * #sizeof(u64))
+        let addresses = cast([*] u64, Memory.alloc(Count * #sizeof(u64)))
         for i in Count
         {
-            let block = cast([*] u8) Memory.alloc(32)
+            let block = cast([*] u8, Memory.alloc(32))
             block[0]     = 1
-            addresses[i] = cast(u64) block
+            addresses[i] = cast(u64, block)
         }
 
         for i in Count do
-            Memory.free(cast([*] void) addresses[i], 32)
+            Memory.free(cast([*] void, addresses[i]), 32)
         Memory.free(addresses, Count * #sizeof(u64))
         return Count * 2
 
@@ -195,13 +195,13 @@ func run(workload: Workload, seed: u64)->u64
         var addresses: [SpreadSizes.count * 10] u64
         for i in addresses.count
         {
-            let block = cast([*] u8) Memory.alloc(SpreadSizes[i / 10])
+            let block = cast([*] u8, Memory.alloc(SpreadSizes[i / 10]))
             block[0]     = 1
-            addresses[i] = cast(u64) block
+            addresses[i] = cast(u64, block)
         }
 
         for i in addresses.count do
-            Memory.free(cast([*] void) addresses[i], SpreadSizes[i / 10])
+            Memory.free(cast([*] void, addresses[i]), SpreadSizes[i / 10])
         return addresses.count
     }
 
@@ -231,10 +231,10 @@ func produce(ring: *Ring, seed: u64)
     var random = Xorshift{seed}
     for XferCount
     {
-        let block = cast([*] u8) Memory.alloc(random.smallSize())
+        let block = cast([*] u8, Memory.alloc(random.smallSize()))
         block[0] = 1
         while Swag.atomget(&ring.head) - Swag.atomget(&ring.tail) >= XferRing {}
-        ring.slots[ring.head % XferRing] = cast(u64) block
+        ring.slots[ring.head % XferRing] = cast(u64, block)
         discard Swag.atomxchg(&ring.head, ring.head + 1)
     }
 }
@@ -245,7 +245,7 @@ func consume(ring: *Ring)
     for XferCount
     {
         while Swag.atomget(&ring.head) == ring.tail {}
-        Memory.free(cast([*] void) ring.slots[ring.tail % XferRing], 0)
+        Memory.free(cast([*] void, ring.slots[ring.tail % XferRing]), 0)
         discard Swag.atomxchg(&ring.tail, ring.tail + 1)
     }
 }
@@ -294,7 +294,7 @@ func parseWorkload(name: string)->Workload fail
         jobs[i].producer = i % 2 == 0
         try pool[i].init(func||(thread: Threading.Thread)
         {
-            let job = cast(*Job) thread.userParam!
+            let job = cast(*Job, thread.userParam!)
             if job.workload != .Xfer do
                 job.operations = run(job.workload, job.seed)
             elif job.producer do
@@ -317,6 +317,6 @@ func parseWorkload(name: string)->Workload fail
     }
 
     watch.stop()
-    let ns = cast(f64) watch.elapsedMicroseconds() * 1000.0 / cast(f64) operations
+    let ns = cast(f64, watch.elapsedMicroseconds()) * 1000.0 / cast(f64, operations)
     Console.println("allocbench workload=", args[1], " threads=", threads, " operations=", operations, " ns/op=", ns)
 }

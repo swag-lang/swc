@@ -35,6 +35,6 @@ using Core
     Swag.assert(glGetError() == GL_NO_ERROR)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, buffers[1])
     var pixel: u32
-    glReadPixels(16, 16, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, cast([*] u8) &pixel)
+    glReadPixels(16, 16, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, cast([*] u8, &pixel))
     Swag.assert(pixel == 0xFF0000FF)
 }

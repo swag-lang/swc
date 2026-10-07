@@ -38,7 +38,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -47,7 +47,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
 func parsePoint(text: string)->Point3
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
 
     var index:  u32
     var result: Point3
@@ -62,9 +62,9 @@ func parsePoint(text: string)->Point3
 
 func squaredDistance(lhs, rhs: Point3)->u64
 {
-    let dx = cast(u64) absDiff(lhs.x, rhs.x)
-    let dy = cast(u64) absDiff(lhs.y, rhs.y)
-    let dz = cast(u64) absDiff(lhs.z, rhs.z)
+    let dx = cast(u64, absDiff(lhs.x, rhs.x))
+    let dy = cast(u64, absDiff(lhs.y, rhs.y))
+    let dz = cast(u64, absDiff(lhs.z, rhs.z))
     return dx * dx + dy * dy + dz * dz
 }
 
@@ -113,18 +113,18 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     for line, index in pointLines
     {
         points[index]  = parsePoint(line)
-        parents[index] = cast(u32) index
+        parents[index] = cast(u32, index)
     }
 
     for lhs in pointLines.count
     {
-        if cast(u32) lhs + 1 >= pointLines.count do
+        if cast(u32, lhs) + 1 >= pointLines.count do
             continue
 
-        for rhs in cast(u32) lhs + 1 to pointLines.count - 1
+        for rhs in cast(u32, lhs) + 1 to pointLines.count - 1
         {
-            edges[edgeCount].a     = cast(u32) lhs
-            edges[edgeCount].b     = cast(u32) rhs
+            edges[edgeCount].a     = cast(u32, lhs)
+            edges[edgeCount].b     = cast(u32, rhs)
             edges[edgeCount].dist2 = squaredDistance(points[lhs], points[rhs])
             edgeCount += 1
         }
@@ -169,12 +169,12 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     for pointIndex in pointLines.count
     {
-        let root = findRoot(parents[0 to pointLines.count], cast(u32) pointIndex)
+        let root = findRoot(parents[0 to pointLines.count], cast(u32, pointIndex))
         sizes[root] += 1
     }
 
     var result: CablePlan
-    result.pointCount     = cast(u32) pointLines.count
+    result.pointCount     = cast(u32, pointLines.count)
     result.attemptedLinks = requestedLinks
 
     for clusterIndex in pointLines.count
@@ -186,7 +186,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         }
     }
 
-    result.topThreeProduct = cast(u64) result.largestCluster * cast(u64) result.secondCluster * cast(u64) result.thirdCluster
+    result.topThreeProduct = cast(u64, result.largestCluster) * cast(u64, result.secondCluster) * cast(u64, result.thirdCluster)
     return result
 }
 

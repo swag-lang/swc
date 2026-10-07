@@ -6,10 +6,10 @@
 #[Swag.Optimize(true)]
 func readNetworkWord(bytes: const [*] u8, offset: u64)->u32
 {
-    return (cast(u32) bytes[offset] << 24) |
-           (cast(u32) bytes[offset + 1] << 16) |
-           (cast(u32) bytes[offset + 2] << 8) |
-           cast(u32) bytes[offset + 3]
+    return (cast(u32, bytes[offset]) << 24) |
+           (cast(u32, bytes[offset + 1]) << 16) |
+           (cast(u32, bytes[offset + 2]) << 8) |
+           cast(u32, bytes[offset + 3])
 }
 
 #test

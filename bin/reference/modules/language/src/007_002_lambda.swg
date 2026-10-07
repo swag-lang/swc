@@ -73,7 +73,7 @@ Anonymous functions can be passed directly as arguments.
 
     Swag.assert(toDo(4, func(x: s32) => x * x) == 16)
     Swag.assert(toDo(4, func(x: s32) => x + x) == 8)
-    Swag.assert(toDo(4, func(x: s32)->s32 { return x - x; }) == 0)
+    Swag.assert(toDo(4, func(x: s32)->s32 { return x - x ; }) == 0)
 }
 
 /**
@@ -88,7 +88,7 @@ If the type is clear from context, lambda parameters can omit explicit types.
 
     Swag.assert(toDo(4, func(x) => x * x) == 16)
     Swag.assert(toDo(4, func(x) => x + x) == 8)
-    Swag.assert(toDo(4, func(x) { return x - x; }) == 0)
+    Swag.assert(toDo(4, func(x) { return x - x ; }) == 0)
 }
 
 /**

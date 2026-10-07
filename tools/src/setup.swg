@@ -80,7 +80,7 @@ private func checkRegistry(status: LSTATUS, operation: string) fail
     if status == ERROR_SUCCESS do
         return
     let message = Format.toString("cannot % (Windows error %)", operation, status)
-    fail Swag.SystemError{Errors.mkString(message.toString()), errorID: cast(u32) status}
+    fail Swag.SystemError{Errors.mkString(message.toString()), errorID: cast(u32, status)}
 }
 
 private func writeUserEnvironment(name, value: string, kind: DWORD) fail
@@ -92,8 +92,8 @@ private func writeUserEnvironment(name, value: string, kind: DWORD) fail
 
     let nativeName  = Utf16.toZeroTerminated(name)
     let nativeValue = Utf16.toZeroTerminated(value)
-    let bytes       = cast(u32) (nativeValue.count * #sizeof(u16))
-    try checkRegistry(RegSetValueExW(key, nativeName.buffer, 0, kind, cast(const *u8?) nativeValue.buffer, bytes), Format.toString("write user environment variable '%'", name).toString())
+    let bytes       = cast(u32, (nativeValue.count * #sizeof(u16)))
+    try checkRegistry(RegSetValueExW(key, nativeName.buffer, 0, kind, cast(const *u8?, nativeValue.buffer), bytes), Format.toString("write user environment variable '%'", name).toString())
 }
 
 impl IEnvironmentStore for WindowsEnvironmentStore
@@ -120,8 +120,8 @@ impl IEnvironmentStore for WindowsEnvironmentStore
             try checkRegistry(queried, "read the size of user PATH")
 
             var data: Array'u16
-            data.resize(cast(u64) bytes / #sizeof(u16) + 1)
-            let read = RegQueryValueExW(key, name.buffer, null, &kind, cast(*u8?) data.buffer, &bytes)
+            data.resize(cast(u64, bytes) / #sizeof(u16) + 1)
+            let read = RegQueryValueExW(key, name.buffer, null, &kind, cast(*u8?, data.buffer), &bytes)
             if read == ERROR_MORE_DATA do
                 continue
             if read == ERROR_FILE_NOT_FOUND do
@@ -133,7 +133,7 @@ impl IEnvironmentStore for WindowsEnvironmentStore
                 fail Swag.SystemError{"user PATH has an incomplete UTF-16 code unit"}
 
             // RegQueryValueExW does not promise a terminator, even for a registry string.
-            let units = cast(u64) bytes / #sizeof(u16)
+            let units = cast(u64, bytes) / #sizeof(u16)
             data[units] = 0
             let length = Utf16.lengthUntilZero(data.toSlice()[0 until units])
             return {Utf8.fromUtf16(data.toSlice()[0 until length]), kind == REG_EXPAND_SZ}
@@ -155,6 +155,6 @@ impl IEnvironmentStore for WindowsEnvironmentStore
     mtd impl notifyChanges()
     {
         let name = Utf16.toZeroTerminated("Environment")
-        discard SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, cast #bit (LPARAM) cast(u64) name.buffer, SMTO_ABORTIFHUNG, 1000, null)
+        discard SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, cast #bit (LPARAM, cast(u64, name.buffer)), SMTO_ABORTIFHUNG, 1000, null)
     }
 }

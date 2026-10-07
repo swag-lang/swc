@@ -39,7 +39,7 @@ func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 #[Swag.Compiler]
 func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
 {
-    let typeStruct = cast #assume(const *Swag.TypeInfoStruct) type
+    let typeStruct = assume cast(const *Swag.TypeInfoStruct, type)
     var len        = start
 
     for field in typeStruct.fields
@@ -66,7 +66,7 @@ struct(T) ApiPatch
         var len = appendPatchFields(&buffer[0], 0, #typeof(T))
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
@@ -76,7 +76,7 @@ func(T) clearPatch(patch: *ApiPatch'T)
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
@@ -85,7 +85,7 @@ func(T) clearPatch(patch: *ApiPatch'T)
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
@@ -95,7 +95,7 @@ func(T) capturePatch(patch: *ApiPatch'T, value: T)
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
@@ -109,7 +109,7 @@ func(T) capturePatch(patch: *ApiPatch'T, value: T)
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
@@ -120,7 +120,7 @@ func(T) patchChangedCount(patch: ApiPatch'T)->s32
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
@@ -130,7 +130,7 @@ func(T) patchChangedCount(patch: ApiPatch'T)->s32
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return count
 }
@@ -143,7 +143,7 @@ func(T) patchChangedMask(patch: ApiPatch'T)->u64
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
@@ -154,7 +154,7 @@ func(T) patchChangedMask(patch: ApiPatch'T)->u64
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return mask
 }
@@ -166,7 +166,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
@@ -184,7 +184,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return result
 }

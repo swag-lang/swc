@@ -30,7 +30,7 @@ impl TypeFace
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)
 
-        let previousObject = SelectObject(hdc, cast() hfont)
+        let previousObject = SelectObject(hdc, cast(hfont))
         defer SelectObject(hdc, previousObject)
 
         var table  = 0'u32
@@ -47,8 +47,8 @@ impl TypeFace
         if length == GDI_ERROR do
             length = 0
 
-        result.resize(cast() length)
-        discard try GetFontData(hdc, table, 0, result.buffer, cast(DWORD) result.count)
+        result.resize(cast(length))
+        discard try GetFontData(hdc, table, 0, result.buffer, cast(DWORD, result.count))
         return result
     }
 
@@ -59,7 +59,7 @@ impl TypeFace
     func readHfontFamily(hfont: HFONT)->String fail
     {
         var logFont: LOGFONTW
-        try GetObjectW(cast() hfont, #sizeof(LOGFONTW), cast(LPVOID) &logFont)
+        try GetObjectW(cast(hfont), #sizeof(LOGFONTW), cast(LPVOID, &logFont))
 
         let length = Utf16.lengthUntilZero(logFont.lfFaceName)
         if not length do

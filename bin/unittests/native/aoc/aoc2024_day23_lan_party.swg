@@ -53,7 +53,7 @@ struct Graph
 func graphInit()->Graph
 {
     var g: Graph
-    g.adj = cast([*] bool?) testAlloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
+    g.adj = cast([*] bool?, testAlloc(cast(u64, MaxNodes) * MaxNodes * #sizeof(bool)))
     let adj = g.adj!
     for index in MaxNodes * MaxNodes { adj[index] = false }
     return g
@@ -65,7 +65,7 @@ func graphFree(g: *Graph) { if g.adj do testFree(g.adj) }
 #[Swag.Inline]
 func nameToIdx(a: u8, b: u8)->u32
 {
-    return cast(u32) (a - 'a') * 26 + cast(u32) (b - 'a')
+    return cast(u32, (a - 'a')) * 26 + cast(u32, (b - 'a'))
 }
 
 impl Graph
@@ -81,15 +81,15 @@ impl Graph
         if not me.nodeUsed[a]
         {
             me.nodeUsed[a]        = true
-            me.names[me.count][0] = cast(u8) (a / 26) + 'a'
-            me.names[me.count][1] = cast(u8) (a % 26) + 'a'
+            me.names[me.count][0] = cast(u8, (a / 26)) + 'a'
+            me.names[me.count][1] = cast(u8, (a % 26)) + 'a'
             me.count              += 1
         }
         if not me.nodeUsed[b]
         {
             me.nodeUsed[b]        = true
-            me.names[me.count][0] = cast(u8) (b / 26) + 'a'
-            me.names[me.count][1] = cast(u8) (b % 26) + 'a'
+            me.names[me.count][0] = cast(u8, (b / 26)) + 'a'
+            me.names[me.count][1] = cast(u8, (b % 26)) + 'a'
             me.count              += 1
         }
     }
@@ -107,7 +107,7 @@ impl Graph
 func parseGraph(text: string)->Graph
 {
     var g     = graphInit()
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos: u32
 
     for
@@ -218,7 +218,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
     if candCount == 0 do return
 
     // Copy candidates for iteration (we modify the set)
-    let iterBuf = cast([*] u32) (testAlloc(cast(u64) candCount * #sizeof(u32)))!
+    let iterBuf = cast([*] u32, (testAlloc(cast(u64, candCount) * #sizeof(u32)))!)
     defer testFree(iterBuf)
     for i in candCount { iterBuf[i] = candidates[i] }
 
@@ -231,7 +231,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         state.curSize += 1
 
         // New candidates = candidates ∩ neighbors(v)
-        let newCand = cast([*] u32) (testAlloc(cast(u64) candCount * #sizeof(u32)))!
+        let newCand = cast([*] u32, (testAlloc(cast(u64, candCount) * #sizeof(u32)))!)
         var newCandCount: u32
         for i in candCount
         {
@@ -243,7 +243,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         }
 
         // New excluded = excluded ∩ neighbors(v)
-        let newExcl = cast([*] u32) (testAlloc(cast(u64) (exclCount + 1) * #sizeof(u32)))!
+        let newExcl = cast([*] u32, (testAlloc(cast(u64, (exclCount + 1)) * #sizeof(u32)))!)
         var newExclCount: u32
         for i in exclCount
         {
@@ -318,12 +318,12 @@ func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
         let idx = state.best[i]
         if pos < bufLen
         {
-            buf[pos] = cast(u8) (idx / 26) + 'a'
+            buf[pos] = cast(u8, (idx / 26)) + 'a'
             pos      += 1
         }
         if pos < bufLen
         {
-            buf[pos] = cast(u8) (idx % 26) + 'a'
+            buf[pos] = cast(u8, (idx % 26)) + 'a'
             pos      += 1
         }
     }
@@ -511,7 +511,7 @@ impl NameBuf
     #[Swag.Inline]
     mtd asSlice()->const [..] u8
     {
-        return Swag.makeSlice(&me.data[0], cast(u64) me.len)
+        return Swag.makeSlice(&me.data[0], cast(u64, me.len))
     }
 }
 

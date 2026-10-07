@@ -97,7 +97,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     paragraphText.compute()
     Painter.computeLayout({0, 0, 300, 300}, &paragraphText, paragraphFormat)
-    Swag.assert(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32) paragraphFormat.lineGap + cast(f32) paragraphFormat.paragraphGap)
+    Swag.assert(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32, paragraphFormat.lineGap) + cast(f32, paragraphFormat.paragraphGap))
 
     var visibleChunks = 0
     for &chunk in paragraphText.chunks

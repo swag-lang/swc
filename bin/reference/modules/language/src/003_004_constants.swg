@@ -37,7 +37,7 @@ three elements of type 's32' (signed 32-bit integers).
 #test
 {
     const a: [3] s32 = [0, 1, 2]
-    let ptr = cast(const [*] s32) &a[0]
+    let ptr = cast(const [*] s32, &a[0])
     Swag.assert(ptr[0] == 0)
     Swag.assert(ptr[2] == 2)
 

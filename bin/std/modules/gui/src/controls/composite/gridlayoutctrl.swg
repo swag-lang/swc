@@ -71,8 +71,8 @@ private impl GridLayoutCtrl
     {
         Swag.assert(.numColumns > 0 and .numRows > 0)
 
-        let cols  = cast(u64) .numColumns
-        let rows  = cast(u64) .numRows
+        let cols  = cast(u64, .numColumns)
+        let rows  = cast(u64, .numRows)
         let cells = cols * rows
 
         if .layout.count != cells do
@@ -191,10 +191,10 @@ private impl GridLayoutCtrl
         if not count do
             return result
 
-        let spacingTotal = cast(f32) (count - 1) * spacing
+        let spacingTotal = cast(f32, (count - 1)) * spacing
         if forceEqual
         {
-            let size = Math.max(available - spacingTotal, 0) / cast(f32) count
+            let size = Math.max(available - spacingTotal, 0) / cast(f32, count)
             for count do
                 result.add(size)
             return result

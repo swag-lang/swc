@@ -9,7 +9,7 @@ func touch(params: ...)->u32
 {
     var count: s32 = 0
     for i in 1 to 5 do
-        count += cast(s32) touch(i, " ")
+        count += cast(s32, touch(i, " "))
 
     Swag.assert(count == 5)
 }

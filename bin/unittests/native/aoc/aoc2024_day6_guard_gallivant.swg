@@ -69,7 +69,7 @@ func cellIndex(x, y, width: u32)->u32
 
 func allocBytes(size: u32)->[*] u8
 {
-    let ptr = cast([*] u8?) testAlloc(cast(u64) size)
+    let ptr = cast([*] u8?, testAlloc(cast(u64, size)))
     Swag.assert(ptr != null)
     return ptr
 }
@@ -78,7 +78,7 @@ func zeroBytes(ptr: [*] u8, count: u32)
 {
     for index in count
     {
-        ptr[cast(u32) index] = 0'u8
+        ptr[cast(u32, index)] = 0'u8
     }
 }
 
@@ -98,7 +98,7 @@ func initIndexBuffer(initialCapacity: u32)->IndexBuffer
 {
     var result: IndexBuffer
     result.capacity = initialCapacity
-    result.data     = cast([*] u32?) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
+    result.data     = cast([*] u32?, testAlloc(cast(u64, initialCapacity) * cast(u64, #sizeof(u32))))
     Swag.assert(result.data != null)
     return result
 }
@@ -110,7 +110,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast([*] u32?) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
+        result.data = cast([*] u32?, testRealloc(result.data, cast(u64, newCapacity) * cast(u64, #sizeof(u32))))
         Swag.assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32
@@ -163,12 +163,12 @@ func directionDelta(outDx: *s32, outDy: *s32, dir: Direction)
 
 func inBounds(x, y: s32, grid: GridMap)->bool
 {
-    return x >= 0 and y >= 0 and cast(u32) x < grid.width and cast(u32) y < grid.height
+    return x >= 0 and y >= 0 and cast(u32, x) < grid.width and cast(u32, y) < grid.height
 }
 
 func parseGrid(outGrid: *GridMap, text: string)
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
 
     var width: u32
     while width < bytes.count and not isLineBreak(bytes[width])
@@ -251,8 +251,8 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
     var trace = initIndexBuffer(InitialTraceCapacity)
 
-    var x   = cast(s32) grid.startX
-    var y   = cast(s32) grid.startY
+    var x   = cast(s32, grid.startX)
+    var y   = cast(s32, grid.startY)
     var dir = Direction.Up
 
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
@@ -262,7 +262,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
     while true
     {
-        let stateIndex = cellIndex(cast(u32) x, cast(u32) y, grid.width) * 4'u32 + cast(u32) dir
+        let stateIndex = cellIndex(cast(u32, x), cast(u32, y), grid.width) * 4'u32 + cast(u32, dir)
         Swag.assert(seenStates[stateIndex] == 0'u8)
         seenStates[stateIndex] = 1'u8
 
@@ -274,7 +274,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
         if not inBounds(nextX, nextY, grid) do
             break
 
-        let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, grid.width)
+        let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), grid.width)
         let cells     = grid.cells!
         if cells[nextIndex] == '#'u8
         {
@@ -302,13 +302,13 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
     defer testFree(seenStates)
     zeroBytes(seenStates, cellCount * 4'u32)
 
-    var x   = cast(s32) grid.startX
-    var y   = cast(s32) grid.startY
+    var x   = cast(s32, grid.startX)
+    var y   = cast(s32, grid.startY)
     var dir = Direction.Up
 
     while true
     {
-        let stateIndex = cellIndex(cast(u32) x, cast(u32) y, grid.width) * 4'u32 + cast(u32) dir
+        let stateIndex = cellIndex(cast(u32, x), cast(u32, y), grid.width) * 4'u32 + cast(u32, dir)
         if seenStates[stateIndex] != 0'u8 do
             return true
 
@@ -322,7 +322,7 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
         if not inBounds(nextX, nextY, grid) do
             return false
 
-        let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, grid.width)
+        let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), grid.width)
         let cells     = grid.cells!
         if nextIndex == obstacleIndex or cells[nextIndex] == '#'u8
         {
@@ -345,7 +345,7 @@ func countLoopObstacles(grid: GridMap, trace: IndexBuffer)->u32
 
     for index in trace.count
     {
-        let obstacleIndex = data[cast(u32) index]
+        let obstacleIndex = data[cast(u32, index)]
         if obstacleIndex == startIndex do
             continue
 

@@ -139,7 +139,7 @@ impl Writer
     // var frame  = Pixel.Image.create(640, 480, .RGB8)
     // for index in 90'u64
     // {
-    //     frame.fill(Pixel.Color.fromRgb(cast(u8) index, 64, 128))
+    //     frame.fill(Pixel.Color.fromRgb(cast(u8, index), 64, 128))
     //     try writer.addFrame(frame)
     // }
     //
@@ -258,7 +258,7 @@ impl Writer
         let instance = (.encoder).buffer
         if type.opDrop do
             type.opDrop(instance)
-        Memory.free(instance, cast(u64) type.sizeof)
+        Memory.free(instance, cast(u64, type.sizeof))
         .encoder     = null
         .encoderType = null
     }

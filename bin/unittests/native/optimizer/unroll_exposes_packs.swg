@@ -65,13 +65,13 @@ func prefixSums(lanes: *WordLanes)
     var lanes: WordLanes
     for i in 8
     {
-        lanes.left[i]  = cast(u32) i * 0x0101_0101
-        lanes.right[i] = 0xFFFF_0000 + cast(u32) i
+        lanes.left[i]  = cast(u32, i) * 0x0101_0101
+        lanes.right[i] = 0xFFFF_0000 + cast(u32, i)
     }
 
     xorWords(&lanes)
     for i in 8 do
-        Swag.assert(lanes.result[i] == ((cast(u32) i * 0x0101_0101) ^ (0xFFFF_0000 + cast(u32) i)))
+        Swag.assert(lanes.result[i] == ((cast(u32, i) * 0x0101_0101) ^ (0xFFFF_0000 + cast(u32, i))))
 }
 
 #test
@@ -79,13 +79,13 @@ func prefixSums(lanes: *WordLanes)
     var lanes: FloatLanes
     for i in 8
     {
-        lanes.left[i]  = cast(f32) i - 3.0'f32
+        lanes.left[i]  = cast(f32, i) - 3.0'f32
         lanes.right[i] = 2.0'f32
     }
 
     scaleAndBias(&lanes)
     for i in 8 do
-        Swag.assert(lanes.result[i] == (cast(f32) i - 3.0'f32) * 2.0'f32 + 1.5'f32)
+        Swag.assert(lanes.result[i] == (cast(f32, i) - 3.0'f32) * 2.0'f32 + 1.5'f32)
 
     magnitudes(&lanes)
     Swag.assert(lanes.result[0] == 3.0'f32 and lanes.result[1] == 2.0'f32 and lanes.result[2] == 1.0'f32 and lanes.result[3] == 0.0'f32)
@@ -97,14 +97,14 @@ func prefixSums(lanes: *WordLanes)
     var lanes: WordLanes
     for i in 8
     {
-        lanes.left[i]   = cast(u32) i * 3
-        lanes.right[i]  = cast(u32) i
+        lanes.left[i]   = cast(u32, i) * 3
+        lanes.right[i]  = cast(u32, i)
         lanes.result[i] = 99
     }
 
     addSixWords(&lanes)
     for i in 6 do
-        Swag.assert(lanes.result[i] == cast(u32) i * 4 + 0x8000_0001)
+        Swag.assert(lanes.result[i] == cast(u32, i) * 4 + 0x8000_0001)
     Swag.assert(lanes.result[6] == 99 and lanes.result[7] == 99)
 }
 
@@ -112,13 +112,13 @@ func prefixSums(lanes: *WordLanes)
 {
     var lanes: WordLanes
     for i in 8 do
-        lanes.left[i] = cast(u32) i + 1
+        lanes.left[i] = cast(u32, i) + 1
 
     prefixSums(&lanes)
     var expected = 0'u32
     for i in 8
     {
-        expected += cast(u32) i + 1
+        expected += cast(u32, i) + 1
         Swag.assert(lanes.result[i] == expected)
     }
 }

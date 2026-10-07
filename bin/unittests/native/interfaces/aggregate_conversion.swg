@@ -90,9 +90,9 @@ struct Message { using base: MessageBase }
     var holder                = BoxHolder{value: number}
     var array: [1] any        = [number]
     let slice: const [..] any = [number]
-    Swag.assert(cast #assume(u32) holder.value == 51)
-    Swag.assert(cast #assume(u32) array[0] == 51)
-    Swag.assert(cast #assume(u32) slice[0] == 51)
+    Swag.assert(assume cast(u32, holder.value) == 51)
+    Swag.assert(assume cast(u32, array[0]) == 51)
+    Swag.assert(assume cast(u32, slice[0]) == 51)
     Swag.assert(holder.tail == 0)
 
     let callback = CallbackHolder{callback: &runtimeNumber}

@@ -65,8 +65,8 @@ func checkCoreBound() fail
 // Run the public audit in a child so expected rejection diagnostics stay captured.
 func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiagnostic = "", readme = SampleReadme, domain = "repo.sample.md") fail
 {
-    discard try File.writeAllBytes(Path.combine(root, "backlog", "README.md").toString(), cast(const [..] u8) readme)
-    discard try File.writeAllBytes(Path.combine(root, "backlog", domain).toString(), cast(const [..] u8) content)
+    discard try File.writeAllBytes(Path.combine(root, "backlog", "README.md").toString(), cast(const [..] u8, readme))
+    discard try File.writeAllBytes(Path.combine(root, "backlog", domain).toString(), cast(const [..] u8, content))
 
     var arguments: Tool.Arguments
     arguments.add(["--num-cores", "6", #curlocation.fileName!, root])
@@ -198,7 +198,7 @@ func checkBacklogRenameAmbiguity(parentRoot: string) fail
     var other = first
     other.replace("repo.sample", "repo.other")
     let otherPath = Path.combine(root.toString(), "backlog", "repo.other.md")
-    discard try File.writeAllBytes(otherPath.toString(), cast(const [..] u8) other.toString())
+    discard try File.writeAllBytes(otherPath.toString(), cast(const [..] u8, other.toString()))
     try runBacklogGit(root.toString(), ["add", "backlog"])
     try runBacklogGit(root.toString(), ["commit", "-m", "Retire the maximum and add an identical source"])
 
@@ -212,7 +212,7 @@ func checkBacklogRenameAmbiguity(parentRoot: string) fail
     readme.replace("repo.sample", "repo.destination")
     let destinationPath = Path.combine(root.toString(), "backlog", "repo.destination.md")
     let entries         = Format.toString("%\n%", destination.toString(), fifth.toString())
-    discard try File.writeAllBytes(destinationPath.toString(), cast(const [..] u8) entries.toString())
+    discard try File.writeAllBytes(destinationPath.toString(), cast(const [..] u8, entries.toString()))
     try runBacklogGit(root.toString(), ["add", "backlog"])
     try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
 
@@ -221,7 +221,7 @@ func checkBacklogRenameAmbiguity(parentRoot: string) fail
     var duplicate = entries
     duplicate.replace("repo.destination", "repo.duplicate")
     let duplicatePath = Path.combine(root.toString(), "backlog", "repo.duplicate.md")
-    discard try File.writeAllBytes(duplicatePath.toString(), cast(const [..] u8) duplicate.toString())
+    discard try File.writeAllBytes(duplicatePath.toString(), cast(const [..] u8, duplicate.toString()))
     readme += Format.toString("| [repo.other.md](repo.other.md) | Other | % |\n| [repo.duplicate.md](repo.duplicate.md) | Duplicate | % |\n", SampleStamp, SampleStamp)
     try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
     try runBacklogGit(root.toString(), ["add", "backlog"])
@@ -251,10 +251,10 @@ func checkBacklogAllocationHistory(root: string) fail
     let childReadme = Format.toString("%| [repo.sample.child.md](repo.sample.child.md) | Child | % |\n", SampleReadme, SampleStamp)
     var child       = first
     child.replace("repo.sample.001", "repo.sample.child.001")
-    discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8) child.toString())
+    discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8, child.toString()))
     try checkBacklog(root, first.toString(), 0, "", childReadme.toString())
     child.replace("repo.sample.child.001", "repo.sample.child.003")
-    discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8) child.toString())
+    discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8, child.toString()))
     try checkBacklog(root, first.toString(), 1, "repo.sample.child.003' must use suffix 1", childReadme.toString())
     try File.delete(childPath.toString())
 

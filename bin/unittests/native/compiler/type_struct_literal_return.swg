@@ -9,8 +9,8 @@ func makeTypeStructLiteralPayloads() => [{first: #type [2] TypeStructLiteralNati
 #test
 {
     let payload    = makeTypeStructLiteralPayload()
-    let firstInfo  = cast(const *Swag.TypeInfoArray) payload.first
-    let secondInfo = cast(const *Swag.TypeInfoArray) payload.second
+    let firstInfo  = cast(const *Swag.TypeInfoArray, payload.first)
+    let secondInfo = cast(const *Swag.TypeInfoArray, payload.second)
 
     Swag.assert(payload.first == #type [2] TypeStructLiteralNativePoint)
     Swag.assert(payload.second == #type [3] TypeStructLiteralNativePoint)
@@ -21,8 +21,8 @@ func makeTypeStructLiteralPayloads() => [{first: #type [2] TypeStructLiteralNati
 #test
 {
     let payloads   = makeTypeStructLiteralPayloads()
-    let firstInfo  = cast(const *Swag.TypeInfoArray) payloads[0].first
-    let secondInfo = cast(const *Swag.TypeInfoArray) payloads[1].first
+    let firstInfo  = cast(const *Swag.TypeInfoArray, payloads[0].first)
+    let secondInfo = cast(const *Swag.TypeInfoArray, payloads[1].first)
     let index      = 1
 
     Swag.assert(payloads[0].first == #type [2] TypeStructLiteralNativePoint)

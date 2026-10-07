@@ -76,7 +76,7 @@ struct TagBinDuplicateHolder
 func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 {
     for it in holder.things do
-        Memory.delete(cast(*TagBinArrayThing) it.buffer)
+        Memory.delete(cast(*TagBinArrayThing, it.buffer))
     holder.things.clear()
 }
 
@@ -88,7 +88,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     for i in 3
     {
         let t = Memory.new'TagBinArrayThing()
-        t.v = cast(s32) (10 + i)
+        t.v = cast(s32, (10 + i))
         holder.things.add(t)
     }
 
@@ -105,7 +105,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 
     Swag.assert(loaded.things.count == 3)
     for it, i in loaded.things do
-        Swag.assert(it.value() == cast(s32) (10 + i))
+        Swag.assert(it.value() == cast(s32, (10 + i)))
 }
 
 // A dynamic object cannot fall back to its Swag type name.
@@ -115,7 +115,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     defer Memory.delete(thing)
 
     Reflection.registerType(#typeof(TagBinUnkeyedThing))
-    var holder = TagBinUnkeyedHolder{thing: cast(ITagBinArrayThing) thing[]}
+    var holder = TagBinUnkeyedHolder{thing: cast(ITagBinArrayThing, thing[])}
 
     var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
@@ -132,7 +132,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 
     Reflection.registerType(#typeof(TagBinDuplicateThingA))
     Reflection.registerType(#typeof(TagBinDuplicateThingB))
-    var holder = TagBinDuplicateHolder{thing: cast(ITagBinArrayThing) thing[]}
+    var holder = TagBinDuplicateHolder{thing: cast(ITagBinArrayThing, thing[])}
 
     var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin

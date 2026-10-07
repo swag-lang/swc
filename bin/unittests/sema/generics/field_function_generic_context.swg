@@ -112,7 +112,7 @@ func(U) functionLocalRenamedExplicitPrefixValue()->bool
 
 func(T) functionReturnOnlyFactory(value: s32)->T
 {
-    return cast(T) value
+    return cast(T, value)
 }
 
 func(T) functionReturnOnlyForward(value: s32)->bool

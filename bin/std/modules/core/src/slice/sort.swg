@@ -19,7 +19,7 @@ private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
 // Sorts in place with a median-of-three quick sort that recurses only into the smaller partition.
 private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 {
-    let count = cast(s64) values.count
+    let count = cast(s64, values.count)
     if count == 0 do
         return
 

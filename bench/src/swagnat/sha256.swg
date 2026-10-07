@@ -16,16 +16,16 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 #main
 {
     // ---- data generation (not timed) ----
-    let msg = cast([*] u8) benchAlloc(SIZE)!
+    let msg = cast([*] u8, benchAlloc(SIZE)!)
     for i in SIZE do
-        msg[i] = cast(u8) (rnd() % 256)
+        msg[i] = cast(u8, (rnd() % 256))
 
     // ---- timed work ----
     let t0 = now()
 
     let totalBits = SIZE * 8
     var nb        = SIZE
-    let buf       = cast([*] u8) (benchAlloc(SIZE + 128))!
+    let buf       = cast([*] u8, (benchAlloc(SIZE + 128))!)
     Swag.memcpy(buf, msg, SIZE)
     buf[nb] = 0x80
     nb      += 1
@@ -37,7 +37,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 
     for s in 8'u64
     {
-        buf[nb] = cast(u8) ((totalBits >> (56 - 8 * s)) & 0xFF)
+        buf[nb] = cast(u8, ((totalBits >> (56 - 8 * s)) & 0xFF))
         nb      += 1
     }
 
@@ -59,7 +59,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
         for t in 16'u64
         {
             let p = o + t * 4
-            w[t] = (cast(u64) buf[p] << 24) | (cast(u64) buf[p + 1] << 16) | (cast(u64) buf[p + 2] << 8) | cast(u64) buf[p + 3]
+            w[t] = (cast(u64, buf[p]) << 24) | (cast(u64, buf[p + 1]) << 16) | (cast(u64, buf[p + 2]) << 8) | cast(u64, buf[p + 3])
         }
 
         var t = 16'u64

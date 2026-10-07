@@ -24,7 +24,7 @@ func fontViewerPlugin()->Viewer.Plugin
         .staticName   = "Font"
         .attach       = &registerFontStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Font
+        .iconIndex    = cast(s32, ViewerIcons.Font)
         .create       = &createFontViewer
         .probe        = &fontPluginProbe
         .smokeFixture = "segoeui.ttf"
@@ -287,9 +287,9 @@ func createFontViewer(host: Viewer.Host)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*FontViewer) wnd).loadTimer != null
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*FontViewer) wnd).loadTimer != null
-        .retire    = func(wnd)->bool => (cast #assume (*FontViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

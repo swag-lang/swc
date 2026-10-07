@@ -18,7 +18,7 @@ func semaTest002()
 func semaTest003()
 {
     var x: f32
-    var a: any = Swag.makeAny(cast(*void) &x, f32)
+    var a: any = Swag.makeAny(cast(*void, &x), f32)
     var b      = Swag.kindOf(a)
     Swag.assert(b == f32)
 }

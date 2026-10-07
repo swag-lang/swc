@@ -51,7 +51,7 @@ private struct Header
 }
 
 // Clamps one converted channel into the byte range.
-func clampByte(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
+func clampByte(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 private func parsePositiveU32(value, field: string)->u32 fail
 {
@@ -80,16 +80,16 @@ private func parseHeader(line: string)->Header fail
         {
         case 'W':
             let width = try parsePositiveU32(value, "width")
-            if width > cast(u32) (Swag.S32.Max / 4) do
+            if width > cast(u32, (Swag.S32.Max / 4)) do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame width exceeds Pixel image storage"}
-            result.info.width = cast(s32) width
+            result.info.width = cast(s32, width)
             hasWidth = true
 
         case 'H':
             let height = try parsePositiveU32(value, "height")
             if height > Swag.S32.Max do
                 fail UnsupportedFormatError{"YUV4MPEG2 frame height exceeds Pixel image storage"}
-            result.info.height = cast(s32) height
+            result.info.height = cast(s32, height)
             hasHeight = true
 
         case 'F':
@@ -140,15 +140,15 @@ private func parseHeader(line: string)->Header fail
 
 private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
 {
-    let lumaSize = cast(u64) width * cast(u64) height
+    let lumaSize = cast(u64, width) * cast(u64, height)
     switch #complete chromaMode
     {
     case .Yuv420:
-        let chromaSize = (cast(u64) width + 1) / 2 * ((cast(u64) height + 1) / 2)
+        let chromaSize = (cast(u64, width) + 1) / 2 * ((cast(u64, height) + 1) / 2)
         return lumaSize + chromaSize * 2
 
     case .Yuv422:
-        let chromaSize = (cast(u64) width + 1) / 2 * cast(u64) height
+        let chromaSize = (cast(u64, width) + 1) / 2 * cast(u64, height)
         return lumaSize + chromaSize * 2
 
     case .Yuv444:
@@ -164,9 +164,9 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
     let width          = header.info.width
     let height         = header.info.height
     let chromaMode     = header.chromaMode
-    let lumaSize       = cast(u64) width * cast(u64) height
-    let chromaWidth    = chromaMode == .Yuv444 ? cast(u64) width : (cast(u64) width + 1) / 2
-    let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64) height + 1) / 2 : cast(u64) height
+    let lumaSize       = cast(u64, width) * cast(u64, height)
+    let chromaWidth    = chromaMode == .Yuv444 ? cast(u64, width) : (cast(u64, width) + 1) / 2
+    let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64, height) + 1) / 2 : cast(u64, height)
     let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
     let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
     let chromaColShift = chromaMode == .Yuv444 ? 0 : 1
@@ -178,15 +178,15 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
 
     for y in height
     {
-        let destinationRow = cast(u64) (height - y - 1) * cast(u64) target.rowStride
+        let destinationRow = cast(u64, (height - y - 1)) * cast(u64, target.rowStride)
         for x in width
         {
-            let source       = cast(u64) y * cast(u64) width + cast(u64) x
-            let chromaSource = cast(u64) (y >> chromaRowShift) * chromaWidth + cast(u64) (x >> chromaColShift)
-            let luma         = cast(s32) payload[source]
-            let d            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSource] - 128
-            let e            = chromaMode == .Mono ? 0 : cast(s32) payload[lumaSize + chromaSize + chromaSource] - 128
-            let destination  = target.pixels.storage() + destinationRow + cast(u64) x * 3
+            let source       = cast(u64, y) * cast(u64, width) + cast(u64, x)
+            let chromaSource = cast(u64, (y >> chromaRowShift)) * chromaWidth + cast(u64, (x >> chromaColShift))
+            let luma         = cast(s32, payload[source])
+            let d            = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSource]) - 128
+            let e            = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSize + chromaSource]) - 128
+            let destination  = target.pixels.storage() + destinationRow + cast(u64, x) * 3
             if header.colorRange == .Full
             {
                 destination[0] = clampByte(luma + ((359 * e + 128) >> 8))

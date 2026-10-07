@@ -47,7 +47,7 @@ impl Decoder
         if .streamLen < 2 do
             fail InvalidFormatError{"read error"}
         let stream = .safeStream()
-        let res    = cast(u16) (stream[0] + (cast(u16) stream[1] << 8))
+        let res    = cast(u16, (stream[0] + (cast(u16, stream[1]) << 8)))
         .stream    += 2
         .streamLen -= 2
         return res
@@ -60,7 +60,7 @@ impl Decoder
             let size = try .readU8()
             if not size do
                 break
-            try .seek(cast() size)
+            try .seek(cast(size))
         }
     }
 

@@ -21,7 +21,7 @@ struct(T) AtomicValue
 impl AtomicValue
 {
     // Returns the current value.
-    mtd const load()->T => Swag.atomget(cast #unconst (*T) &.storage)
+    mtd const load()->T => Swag.atomget(cast #unconst (*T, &.storage))
 
     // Replaces the value.
     mtd store(value: T) { discard Swag.atomxchg(&.storage, value) }
@@ -41,7 +41,7 @@ impl AtomicValue
 
     // Subtracts `value` and returns the value held before the subtraction.
     #[Swag.Discardable]
-    mtd sub(value: T)->T => Swag.atomadd(&.storage, cast #wrap (T) (~value + #wrap 1))
+    mtd sub(value: T)->T => Swag.atomadd(&.storage, cast #wrap (T, (~value + #wrap 1)))
 
     // Applies a bitwise and, and returns the value held before it.
     #[Swag.Discardable]

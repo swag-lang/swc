@@ -32,7 +32,7 @@ namespace NF
 #assert(NF.NF_Inner.Y == 200)
 
 namespace NG { const VAL = 'A' }
-#assert(cast(rune) NG.VAL == 'A')
+#assert(cast(rune, NG.VAL) == 'A')
 
 namespace NH
 {

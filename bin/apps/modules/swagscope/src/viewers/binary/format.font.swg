@@ -38,7 +38,7 @@ func reportSfntFont(image: *BinaryImage, report: *BinaryReport)
 private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 {
     let s     = binaryStrings()
-    let count = cast(u64) image.u32At(8)
+    let count = cast(u64, image.u32At(8))
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
@@ -49,7 +49,7 @@ private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 
     for index in shown
     {
-        let at = cast(u64) image.u32At(12 + index * 4)
+        let at = cast(u64, image.u32At(12 + index * 4))
         discard reportFontTables(image, report, at, open: false)
     }
 
@@ -64,7 +64,7 @@ private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u64, open: bool)->String
 {
     let s     = binaryStrings()
-    let count = cast(u64) image.u16At(at + 4)
+    let count = cast(u64, image.u16At(at + 4))
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
@@ -78,8 +78,8 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
     {
         let entryAt = at + 12 + index * FontRecordSize
         let tag     = image.fixedTextAt(entryAt, 4)
-        let tableAt = cast(u64) image.u32At(entryAt + 8)
-        let size    = cast(u64) image.u32At(entryAt + 12)
+        let tableAt = cast(u64, image.u32At(entryAt + 8))
+        let size    = cast(u64, image.u32At(entryAt + 12))
         let stored  = StrConv.toDisplaySize(size)
 
         if tag == "head" do
@@ -90,7 +90,7 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
             nameAt = tableAt
 
         report.beginGroup(tag.toString(), stored.toString(), "", offset: tableAt, length: size)
-        report.hexField(entryAt + 4, 4, "checkSum", cast(u64) image.u32At(entryAt + 4))
+        report.hexField(entryAt + 4, 4, "checkSum", cast(u64, image.u32At(entryAt + 4)))
         report.hexField(entryAt + 8, 4, "offset", tableAt)
         report.sizeField(entryAt + 12, 4, "length", size)
         report.endGroup()
@@ -101,12 +101,12 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
 
     if headAt != Swag.U64.Max and image.has(headAt, 54)
     {
-        report.numField(headAt + 18, 2, s.font_UnitsPerEm, cast(u64) image.u16At(headAt + 18))
-        report.hexField(headAt + 44, 2, "macStyle", cast(u64) image.u16At(headAt + 44))
+        report.numField(headAt + 18, 2, s.font_UnitsPerEm, cast(u64, image.u16At(headAt + 18)))
+        report.hexField(headAt + 44, 2, "macStyle", cast(u64, image.u16At(headAt + 44)))
     }
 
     if maxpAt != Swag.U64.Max and image.has(maxpAt, 6) do
-        report.numField(maxpAt + 4, 2, s.font_Glyphs, cast(u64) image.u16At(maxpAt + 4))
+        report.numField(maxpAt + 4, 2, s.font_Glyphs, cast(u64, image.u16At(maxpAt + 4)))
 
     if nameAt == Swag.U64.Max do
         return {}
@@ -119,8 +119,8 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
     var result: retval
 
     let s         = binaryStrings()
-    let count     = cast(u64) image.u16At(at + 2)
-    let stringsAt = at + cast(u64) image.u16At(at + 4)
+    let count     = cast(u64, image.u16At(at + 2))
+    let stringsAt = at + cast(u64, image.u16At(at + 4))
     let shown     = Math.min(count, BinaryListLimit)
     let total     = countText(count, s.word_Entry, s.word_Entries)
 
@@ -131,8 +131,8 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
         let entryAt  = at + 6 + index * 12
         let platform = image.u16At(entryAt)
         let nameId   = image.u16At(entryAt + 6)
-        let length   = cast(u64) image.u16At(entryAt + 8)
-        let valueAt  = stringsAt + cast(u64) image.u16At(entryAt + 10)
+        let length   = cast(u64, image.u16At(entryAt + 8))
+        let valueAt  = stringsAt + cast(u64, image.u16At(entryAt + 10))
 
         let label = fontNameLabel(nameId)
         if not label.count do

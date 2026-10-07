@@ -16,15 +16,15 @@ func dynamicDivide(a, b: s32)->s32 => a / b
 #[Swag.NoInline]
 func retainSource(a: u64, b: u32)->u64
 {
-    let low = cast(u32) (a & 0xFFFFFFFF)
-    return a ^ cast(u64) ((low + b) * (low - b))
+    let low = cast(u32, (a & 0xFFFFFFFF))
+    return a ^ cast(u64, ((low + b) * (low - b)))
 }
 
 #[Swag.NoInline]
 func shift(a: u64, count: u32)->u64
 {
-    let low = cast(u32) (a & 0xFFFFFFFF)
-    return a ^ cast(u64) (low >> count)
+    let low = cast(u32, (a & 0xFFFFFFFF))
+    return a ^ cast(u64, (low >> count))
 }
 
 #[Swag.NoInline]
@@ -32,7 +32,7 @@ func branch(a: u64, b: u32)->u64
 {
     if b == 0 do
         return a
-    return cast(u64) (cast(u32) (a & 0xFFFFFFFF) + b)
+    return cast(u64, (cast(u32, (a & 0xFFFFFFFF)) + b))
 }
 
 #[Swag.NoInline]
@@ -55,8 +55,8 @@ func minimumAdd(a, b, c: u32)->u32 => Swag.min(a, b) + c
         let low = a & 0xFFFFFFFF
         for b in [0'u32, 1, 7, 0x80000000, 0xFFFFFFFF]
         {
-            let sum        = (low + cast(u64) b) & 0xFFFFFFFF
-            let difference = (low - cast(u64) b) & 0xFFFFFFFF
+            let sum        = (low + cast(u64, b)) & 0xFFFFFFFF
+            let difference = (low - cast(u64, b)) & 0xFFFFFFFF
             Swag.assert(retainSource(a, b) == (a ^ ((sum * difference) & 0xFFFFFFFF)))
             Swag.assert(branch(a, b) == (b == 0 ? a : sum))
         }

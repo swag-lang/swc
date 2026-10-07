@@ -25,12 +25,12 @@ enum ForeachIndexedSlot: u8
     func foreachStrictArrayAlias()->s32
     {
         var raw: [3] s32 = [4, 5, 6]
-        var arr: ForeachStrictArray = cast(ForeachStrictArray) raw
+        var arr: ForeachStrictArray = cast(ForeachStrictArray, raw)
         var acc: s32     = 0
 
         for v, i in arr
         {
-            acc += v * cast(s32) (i + 1)
+            acc += v * cast(s32, (i + 1))
         }
 
         return acc
@@ -45,13 +45,13 @@ enum ForeachIndexedSlot: u8
     func foreachStrictSliceAlias()->s32
     {
         var arr: [3] s32 = [7, 8, 9]
-        var rawSl        = cast([..] s32) arr
-        var sl:  ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
+        var rawSl        = cast([..] s32, arr)
+        var sl:  ForeachStrictSlice = cast(ForeachStrictSlice, rawSl)
         var acc: s32     = 0
 
         for v, i in sl
         {
-            acc += v + cast(s32) i
+            acc += v + cast(s32, i)
         }
 
         return acc
@@ -70,7 +70,7 @@ enum ForeachIndexedSlot: u8
 
         for v, i in arr
         {
-            acc += v + cast(s32) i
+            acc += v + cast(s32, i)
         }
 
         return acc
@@ -116,7 +116,7 @@ enum ForeachIndexedSlot: u8
 
         for &v, i in arr
         {
-            sum += v[] + cast(s32) i
+            sum += v[] + cast(s32, i)
         }
 
         return sum
@@ -154,7 +154,7 @@ enum ForeachIndexedSlot: u8
 
         for v, i in text
         {
-            acc += cast(u32) v + cast(u32) i
+            acc += cast(u32, v) + cast(u32, i)
         }
 
         return acc
@@ -185,12 +185,12 @@ enum ForeachIndexedSlot: u8
     func foreachSliceValueIndex()->s32
     {
         var arr: [4] s32 = [5, 6, 7, 8]
-        var sl           = cast([..] s32) arr
+        var sl           = cast([..] s32, arr)
         var acc: s32     = 0
 
         for v, i in sl
         {
-            acc += v + cast(s32) i
+            acc += v + cast(s32, i)
         }
 
         return acc
@@ -205,11 +205,11 @@ enum ForeachIndexedSlot: u8
     func foreachSliceWeighted()->s32
     {
         var arr: [4] s32 = [5, 6, 7, 8]
-        var sl           = cast([..] s32) arr
+        var sl           = cast([..] s32, arr)
         var acc: s32     = 0
         for v, i in sl
         {
-            acc += v * cast(s32) (i + 1)
+            acc += v * cast(s32, (i + 1))
         }
 
         return acc
@@ -227,8 +227,8 @@ enum ForeachIndexedSlot: u8
 
         for v, i in values
         {
-            let p = cast(*s32) v.buffer
-            acc += p[] + cast(s32) i
+            let p = cast(*s32, v.buffer)
+            acc += p[] + cast(s32, i)
         }
 
         return acc
@@ -246,7 +246,7 @@ enum ForeachIndexedSlot: u8
 
         for v, i in values
         {
-            acc += v * cast(s32) (i + 1)
+            acc += v * cast(s32, (i + 1))
         }
 
         return acc
@@ -264,7 +264,7 @@ enum ForeachIndexedSlot: u8
 
         for v, i in values
         {
-            acc += cast(u64) v.arr[0] + cast(u64) v.arr[2] + cast(u64) v.flag + cast(u64) v.tag + i
+            acc += cast(u64, v.arr[0]) + cast(u64, v.arr[2]) + cast(u64, v.flag) + cast(u64, v.tag) + i
         }
 
         return acc
@@ -288,7 +288,7 @@ enum ForeachIndexedSlot: u8
             {
                 if j == i do
                     continue
-                acc += v + w + cast(s32) i + cast(s32) j
+                acc += v + w + cast(s32, i) + cast(s32, j)
             }
         }
 
@@ -309,29 +309,29 @@ enum ForeachIndexedSlot: u8
         {
             if Swag.kindOf(v) == s32
             {
-                let p = cast(*s32) v.buffer
-                acc += p[] * cast(s32) (i + 1)
+                let p = cast(*s32, v.buffer)
+                acc += p[] * cast(s32, (i + 1))
                 continue
             }
 
             if Swag.kindOf(v) == bool
             {
-                let p = cast(*bool) v.buffer
-                acc += cast(s32) p[] * 10
+                let p = cast(*bool, v.buffer)
+                acc += cast(s32, p[]) * 10
                 continue
             }
 
             if Swag.kindOf(v) == rune
             {
-                let p = cast(*rune) v.buffer
-                acc += cast(s32) p[]
+                let p = cast(*rune, v.buffer)
+                acc += cast(s32, p[])
             }
         }
 
         return acc
     }
 
-    const V = #run foreachUntypedMixed(2's32, true, cast(rune) 'A', 4's32, false)
+    const V = #run foreachUntypedMixed(2's32, true, cast(rune, 'A'), 4's32, false)
     #assert(V == 93)
 }
 
@@ -345,11 +345,11 @@ enum ForeachIndexedSlot: u8
         {
             if (i & 1) == 0
             {
-                acc += v * cast(s32) (i + 1)
+                acc += v * cast(s32, (i + 1))
             }
             else
             {
-                acc -= v * cast(s32) (i + 1)
+                acc -= v * cast(s32, (i + 1))
             }
         }
 

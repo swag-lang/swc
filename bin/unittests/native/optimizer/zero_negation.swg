@@ -27,12 +27,12 @@ func isZero(a: u64)->bool => (0 - a) == 0
     {
         let expected = ~a + 1
         Swag.assert(negate(a) == expected)
-        Swag.assert(cast #bit (u64) signedNegate(cast #bit (s64) a) == expected)
-        if a != 0x8000000000000000 do Swag.assert(cast #bit (u64) checkedNegate(cast #bit (s64) a) == expected)
+        Swag.assert(cast #bit (u64, signedNegate(cast #bit (s64, a))) == expected)
+        if a != 0x8000000000000000 do Swag.assert(cast #bit (u64, checkedNegate(cast #bit (s64, a))) == expected)
         Swag.assert(nonzero(a) == 7'u64 + expected)
         Swag.assert(isolated(a) == (a & expected))
         Swag.assert(isZero(a) == (a == 0))
-        let lowA = cast(u32) (a & 0xFFFFFFFF)
+        let lowA = cast(u32, (a & 0xFFFFFFFF))
         Swag.assert(negate32(lowA) == ~lowA + 1)
         for b in values
         {

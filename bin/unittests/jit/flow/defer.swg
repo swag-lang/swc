@@ -96,7 +96,7 @@ func deferParameterDropInfo()->DeferDropInfo
     {
         var x: DeferDropTracker
         consumeDropTracker(x)
-        result.count = cast(s32) DropCount
+        result.count = cast(s32, DropCount)
     }
 
     result.drops = DropCount
@@ -115,7 +115,7 @@ func deferEmbeddedParameterDropInfo()->DeferDropInfo
     {
         var x: DeferDropHolder
         consumeDropHolder(x)
-        result.count = cast(s32) DropCount
+        result.count = cast(s32, DropCount)
     }
 
     result.drops = DropCount
@@ -260,7 +260,7 @@ func deferReturnDropInfo()->DeferDropInfo
         while i < 4
         {
             i += 1
-            defer appendDeferTrace(cast(s64) i)
+            defer appendDeferTrace(cast(s64, i))
 
             if i == 2 do
                 continue
@@ -294,7 +294,7 @@ func deferReturnDropInfo()->DeferDropInfo
         while i < 4
         {
             i += 1
-            defer appendDeferTrace(cast(s64) i)
+            defer appendDeferTrace(cast(s64, i))
 
             if i == 2
             {
@@ -341,7 +341,7 @@ func deferReturnDropInfo()->DeferDropInfo
         resetDeferTrace()
         for var i = 0; i < 4; i += 1
         {
-            defer appendDeferTrace(cast(s64) i + 1)
+            defer appendDeferTrace(cast(s64, i) + 1)
 
             if i == 1 do
                 continue
@@ -365,7 +365,7 @@ func deferReturnDropInfo()->DeferDropInfo
         resetDeferTrace()
         for i in 1 to 4
         {
-            defer appendDeferTrace(cast(s64) i)
+            defer appendDeferTrace(cast(s64, i))
 
             if i == 2 do
                 continue
@@ -391,7 +391,7 @@ func deferReturnDropInfo()->DeferDropInfo
 
         for v in arr
         {
-            defer appendDeferTrace(cast(s64) v)
+            defer appendDeferTrace(cast(s64, v))
 
             if v == 2 do
                 continue
@@ -648,17 +648,17 @@ func deferReturnDropInfo()->DeferDropInfo
 {
     func deferStackAddressAfterSkippedBranch()->*u8
     {
-        var value = cast(*u8) 0x1234'u64
+        var value = cast(*u8, 0x1234'u64)
         defer
         {
             if deferSkippedAddressBranch() do
                 consumePointerForDefer(value)
-            Swag.assert(value == cast(*u8) 0x1234'u64)
+            Swag.assert(value == cast(*u8, 0x1234'u64))
         }
 
         return value
     }
 
     const V = #run deferStackAddressAfterSkippedBranch()
-    #assert(V == cast(*u8) 0x1234'u64)
+    #assert(V == cast(*u8, 0x1234'u64))
 }

@@ -43,7 +43,7 @@ impl JitBufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = idx)
+                #inject(stmt, item = cast(*s32, &(me.values[idx])), index = idx)
             }
         }
         else
@@ -123,9 +123,9 @@ impl JitFieldPointerVisits
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(*s32, &(me.first)), index = 0'u64)
+            #inject(stmt, item = cast(*s32, &(me.second)), index = 1'u64)
+            #inject(stmt, item = cast(*s32, &(me.third)), index = 2'u64)
         }
         else
         {
@@ -159,7 +159,7 @@ impl JitConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = idx)
+                #inject(stmt, item = cast(const *s32, &(me.values[idx])), index = idx)
             }
         }
         else
@@ -213,7 +213,7 @@ impl JitCallSourceVisits
         for idx in .count
         {
             #static if ptr do
-                #inject(stmt, item = cast(const *s32) &me.values[idx], index = idx)
+                #inject(stmt, item = cast(const *s32, &me.values[idx]), index = idx)
             else do
                 #inject(stmt, item = me.values[idx], index = idx)
         }
@@ -235,7 +235,7 @@ func jitForeachVisitCallSource()->s32
     var sum = 0
 
     for &value, ordinal in jitCallSource() do
-        sum += value[] + cast(s32) ordinal
+        sum += value[] + cast(s32, ordinal)
 
     // The source expression belongs to the loop, not to the visit body: exactly one evaluation.
     return g_JitCallSourceCalls == 1 ? sum : -1
@@ -247,7 +247,7 @@ func jitForeachVisitForward()->s32
     var acc: s32
 
     for value, index in values do
-        acc += value + cast(s32) index
+        acc += value + cast(s32, index)
 
     return acc
 }
@@ -262,7 +262,7 @@ func jitForeachVisitWhere()->s32
         if ordinal == 0 do
             continue
 
-        acc += value + cast(s32) ordinal
+        acc += value + cast(s32, ordinal)
         break
     }
 
@@ -274,7 +274,7 @@ func jitForeachVisitByAddress()->s32
     var values = JitBufferVisits{}
 
     for &value, ordinal in values do
-        value[] += cast(s32) (ordinal + 1)
+        value[] += cast(s32, (ordinal + 1))
 
     return values.values[0] + values.values[1] + values.values[2]
 }
@@ -330,7 +330,7 @@ func jitForeachVisitSkipMiddle()->s32
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == u64)
-        signature = signature * 100 + value + cast(s32) index
+        signature = signature * 100 + value + cast(s32, index)
     }
 
     return signature

@@ -36,7 +36,7 @@ internal func packetFrames(packet: const [..] u8)->u64
 {
     if not packet.count do
         return 0
-    let toc    = cast(u32) packet[0]
+    let toc    = cast(u32, packet[0])
     let config = toc >> 3
     let code   = toc & 3
 
@@ -58,7 +58,7 @@ internal func packetFrames(packet: const [..] u8)->u64
     {
         if packet.count < 2 do
             return 0
-        frames = cast(u64) packet[1] & 63
+        frames = cast(u64, packet[1]) & 63
         if not frames do
             return 0
     }
@@ -79,7 +79,7 @@ private struct FrameInfo
 private func frameInfo(toc: u8)->FrameInfo
 {
     var result: retval
-    let value  = cast(u32) toc
+    let value  = cast(u32, toc)
     let config = value >> 3
     if value & 0x80
     {
@@ -184,7 +184,7 @@ private impl Decoder
                     var at = 0'u64
                     for index in page.segments
                     {
-                        let size = cast(u64) page.lacing[index]
+                        let size = cast(u64, page.lacing[index])
                         if completed == 0 do
                             head.add(body[at until at + size])
                         at += size
@@ -215,10 +215,10 @@ private impl Decoder
             fail InvalidFormatError{"Opus identification header is missing"}
         if (head[8] >> 4) != 0 do
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}
-        .channels = cast(u32) head[9]
+        .channels = cast(u32, head[9])
         if not .channels or .channels > 2 do
             fail UnsupportedFormatError{"Opus stream needs one or two channels"}
-        .gainQ8 = cast(s32) cast #bit (s16) (cast(u16) head[16] | (cast(u16) head[17] << 8))
+        .gainQ8 = cast(s32, cast #bit (s16, (cast(u16, head[16]) | (cast(u16, head[17]) << 8))))
         if head[18] != 0 do
             fail UnsupportedFormatError{"Opus stream uses a multistream channel mapping"}
     }
@@ -230,7 +230,7 @@ private impl Decoder
         let frameSize = info.frameSize
         let mode      = info.mode
         let base      = .output.count
-        .output.resize(base + cast(u64) frameSize * CC)
+        .output.resize(base + cast(u64, frameSize) * CC)
         let pcm = .pcm.storage()
         for i in frameSize * CC do
             pcm[i] = 0
@@ -245,7 +245,7 @@ private impl Decoder
         }
 
         var dec = RangeDecoder.create(data)
-        var len = cast(s32) data.count
+        var len = cast(s32, data.count)
 
         if mode != ModeCelt
         {
@@ -282,7 +282,7 @@ private impl Decoder
             if redundancy
             {
                 celtToSilk      = dec.decodeBit(1)
-                redundancyBytes = mode == ModeHybrid ? cast(s32) dec.decodeUint(256) + 2 : len - ((dec.tell() + 7) >> 3)
+                redundancyBytes = mode == ModeHybrid ? cast(s32, dec.decodeUint(256)) + 2 : len - ((dec.tell() + 7) >> 3)
                 len             -= redundancyBytes
                 if len * 8 < dec.tell()
                 {
@@ -291,7 +291,7 @@ private impl Decoder
                     redundancy      = false
                 }
 
-                dec.storage -= cast(u32) redundancyBytes
+                dec.storage -= cast(u32, redundancyBytes)
             }
         }
 
@@ -308,12 +308,12 @@ private impl Decoder
 
         .celt.streamChannels = info.streamChannels
         .celt.endBand        = endBand
-        let usable    = cast(u64) len
+        let usable    = cast(u64, len)
         let redundant = .redundant.storage()
         if redundancy and celtToSilk
         {
             .celt.startBand = 0
-            let bytes = data[usable until usable + cast(u64) redundancyBytes]
+            let bytes = data[usable until usable + cast(u64, redundancyBytes)]
             var rdec  = RangeDecoder.create(bytes)
             try .celt.decodeFrame(bytes, &rdec, Frame5Ms, redundant)
         }
@@ -338,14 +338,14 @@ private impl Decoder
         {
             let silkOut = .silkPcm.storage()
             for i in frameSize * CC do
-                pcm[i] += cast(f32) silkOut[i] * (1.0 / 32768.0)
+                pcm[i] += cast(f32, silkOut[i]) * (1.0 / 32768.0)
         }
 
         if redundancy and not celtToSilk
         {
             .celt.reset()
             .celt.startBand = 0
-            let bytes = data[usable until usable + cast(u64) redundancyBytes]
+            let bytes = data[usable until usable + cast(u64, redundancyBytes)]
             var rdec  = RangeDecoder.create(bytes)
             try .celt.decodeFrame(bytes, &rdec, Frame5Ms, redundant)
             let tail = pcm + (frameSize - Frame2Ms5) * CC
@@ -361,7 +361,7 @@ private impl Decoder
 
         if .gainQ8
         {
-            let gain = cast(f32) Math.exp(0.6931471805599453 * 6.48814081e-4 * cast(f64) .gainQ8)
+            let gain = cast(f32, Math.exp(0.6931471805599453 * 6.48814081e-4 * cast(f64, .gainQ8)))
             for i in frameSize * CC do
                 pcm[i] *= gain
         }
@@ -369,7 +369,7 @@ private impl Decoder
         .prevMode       = mode
         .prevRedundancy = redundancy and not celtToSilk
         for i in frameSize * CC do
-            .output[base + i] = cast(s16) Math.clamp(Math.round(cast(f64) pcm[i] * 32768.0), -32768.0, 32767.0)
+            .output[base + i] = cast(s16, Math.clamp(Math.round(cast(f64, pcm[i]) * 32768.0), -32768.0, 32767.0))
     }
 
     // Splits a packet into its frames, RFC 6716 clause 3.2, and decodes each of them.
@@ -381,33 +381,33 @@ private impl Decoder
         var sizes: [MaxFramesPerPacket] u32
         var count = 1'u32
         var pos   = 1'u64
-        var len   = cast(s64) packet.count - 1
-        switch cast(u32) packet[0] & 3
+        var len   = cast(s64, packet.count) - 1
+        switch cast(u32, packet[0]) & 3
         {
         case 0:
-            sizes[0] = cast(u32) len
+            sizes[0] = cast(u32, len)
 
         case 1:
             if len & 1 do
                 fail InvalidFormatError{"Opus packet splits an odd length into two equal frames"}
             count    = 2
-            sizes[0] = cast(u32) (len / 2)
+            sizes[0] = cast(u32, (len / 2))
             sizes[1] = sizes[0]
 
         case 2:
             count = 2
             let first = try parseFrameSize(packet, &pos, &len)
             sizes[0] = first
-            sizes[1] = cast(u32) len - first
+            sizes[1] = cast(u32, len) - first
 
         default:
             if len < 1 do
                 fail InvalidFormatError{"Opus packet is truncated"}
-            let flags = cast(u32) packet[pos]
+            let flags = cast(u32, packet[pos])
             pos   += 1
             len   -= 1
             count = flags & 63
-            if not count or cast(u64) info.frameSize * count > MaxPacketFrames do
+            if not count or cast(u64, info.frameSize) * count > MaxPacketFrames do
                 fail InvalidFormatError{"Opus packet states an invalid frame count"}
             if flags & 0x40
             {
@@ -415,7 +415,7 @@ private impl Decoder
                 {
                     if len <= 0 do
                         fail InvalidFormatError{"Opus packet padding is truncated"}
-                    let p = cast(s64) packet[pos]
+                    let p = cast(s64, packet[pos])
                     pos += 1
                     len -= 1
                     len -= p == 255 ? 254 : p
@@ -434,12 +434,12 @@ private impl Decoder
                 {
                     let before = len
                     sizes[i] = try parseFrameSize(packet, &pos, &len)
-                    last     -= (before - len) + cast(s64) sizes[i]
+                    last     -= (before - len) + cast(s64, sizes[i])
                 }
 
                 if last < 0 do
                     fail InvalidFormatError{"Opus packet frame sizes exceed the packet"}
-                sizes[count - 1] = cast(u32) last
+                sizes[count - 1] = cast(u32, last)
             }
             else
             {
@@ -447,7 +447,7 @@ private impl Decoder
                 if each * count != len do
                     fail InvalidFormatError{"Opus packet length is not a multiple of its frame count"}
                 for i in count do
-                    sizes[i] = cast(u32) each
+                    sizes[i] = cast(u32, each)
             }
         }
 
@@ -461,7 +461,7 @@ private impl Decoder
             pos += sizes[i]
         }
 
-        return cast(u64) info.frameSize * count
+        return cast(u64, info.frameSize) * count
     }
 
     // Decodes every packet of one run of pages and returns the frames the run completes, after
@@ -488,7 +488,7 @@ private impl Decoder
                 var at   = 0'u64
                 for index in page.segments
                 {
-                    let size = cast(u64) page.lacing[index]
+                    let size = cast(u64, page.lacing[index])
                     .packet.add(body[at until at + size])
                     at += size
                     if size < 255
@@ -548,9 +548,9 @@ impl IPacketCodec for Decoder
             fail InvalidFormatError{"Opus stream shape differs from its container track"}
         .silk = SilkDecoder.create(.channels)
         .celt = CeltDecoder.create(.channels)
-        .pcm.resize(cast(u64) Frame20Ms * 3 * .channels)
-        .silkPcm.resize(cast(u64) Frame20Ms * 3 * .channels)
-        .redundant.resize(cast(u64) Frame5Ms * .channels)
+        .pcm.resize(cast(u64, Frame20Ms) * 3 * .channels)
+        .silkPcm.resize(cast(u64, Frame20Ms) * 3 * .channels)
+        .redundant.resize(cast(u64, Frame5Ms) * .channels)
         .resetState()
     }
 
@@ -579,22 +579,22 @@ private func parseFrameSize(packet: const [..] u8, pos: *u64, len: *s64)->u32 fa
 {
     if len[] < 1 do
         fail InvalidFormatError{"Opus packet frame size is truncated"}
-    let first = cast(u32) packet[pos[]]
+    let first = cast(u32, packet[pos[]])
     if first < 252
     {
         pos[] += 1
         len[] -= 1
-        if cast(s64) first > len[] do
+        if cast(s64, first) > len[] do
             fail InvalidFormatError{"Opus frame size exceeds the packet"}
         return first
     }
 
     if len[] < 2 do
         fail InvalidFormatError{"Opus packet frame size is truncated"}
-    let size = 4 * cast(u32) packet[pos[] + 1] + first
+    let size = 4 * cast(u32, packet[pos[] + 1]) + first
     pos[] += 2
     len[] -= 2
-    if cast(s64) size > len[] do
+    if cast(s64, size) > len[] do
         fail InvalidFormatError{"Opus frame size exceeds the packet"}
     return size
 }

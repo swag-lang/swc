@@ -307,5 +307,5 @@ func equals(path1, path2: string)->bool
 func normalize(path: *String)
 {
     if AltDirectorySeparator do
-        path.replace(cast(rune) AltDirectorySeparator, "/")
+        path.replace(cast(rune, AltDirectorySeparator), "/")
 }

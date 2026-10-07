@@ -41,7 +41,7 @@ func digitCount(n: u64)->u32
     for i in 1 until MaxPow
     {
         if n < Pow10[i] do
-            return cast(u32) i
+            return cast(u32, i)
     }
     return 1
 }
@@ -75,9 +75,9 @@ struct StoneMap
 func mapInit()->StoneMap
 {
     var result: retval
-    result.keys   = cast([*] u64?) testAlloc(cast(u64) MapCap * #sizeof(u64))
-    result.counts = cast([*] u64?) testAlloc(cast(u64) MapCap * #sizeof(u64))
-    result.alive  = cast([*] bool?) testAlloc(cast(u64) MapCap * #sizeof(bool))
+    result.keys   = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
+    result.counts = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
+    result.alive  = cast([*] bool?, testAlloc(cast(u64, MapCap) * #sizeof(bool)))
     result.used   = 0
     let alive  = result.alive!
     let counts = result.counts!
@@ -106,7 +106,7 @@ func mapProbe(m: *StoneMap, key: u64)->u32
     var h = key ^ (key >> 16)
     h *= 0x45D9F3B
     h ^= h >> 16
-    var idx   = cast(u32) (h % cast(u64) MapCap)
+    var idx   = cast(u32, (h % cast(u64, MapCap)))
     let alive = m.alive!
     let keys  = m.keys!
     for MapCap
@@ -246,7 +246,7 @@ func mapFromValues(values: u64...)->StoneMap
 func parseInput(text: string)->StoneMap
 {
     var result: retval = mapInit()
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var acc:    u64
     var inNum = false
 
@@ -255,7 +255,7 @@ func parseInput(text: string)->StoneMap
         let ch = bytes[index]
         if ch >= '0' and ch <= '9'
         {
-            acc   = acc * 10 + cast(u64) (ch - '0')
+            acc   = acc * 10 + cast(u64, (ch - '0'))
             inNum = true
         }
         elif inNum
@@ -297,7 +297,7 @@ func solve(text: string)->BlinkResult
 
     for i in 75
     {
-        let cur = currentMap(&a, &b, cast(u32) i)
+        let cur = currentMap(&a, &b, cast(u32, i))
         if i == 6 do result.after6 = mapTotal(cur)
         if i == 25 do result.after25 = mapTotal(cur)
 

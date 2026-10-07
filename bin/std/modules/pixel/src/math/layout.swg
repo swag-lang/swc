@@ -6,7 +6,7 @@ private func mathIsSingleLetter(text: string)->bool
 {
     if text.count == 0 do
         return false
-    let {c, eat} = Utf8.decodeRune(cast(const [..] u8) text)
+    let {c, eat} = Utf8.decodeRune(cast(const [..] u8, text))
     return eat == text.count and Unicode.isLetter(c)
 }
 
@@ -43,7 +43,7 @@ private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: st
     return baseFont.owner.createFont(baseFont.cache.typeFace, baseFont.size, baseFont.renderMode(), bold, italic)
 }
 
-private func mathRuleThickness(font: *Font, options: MathLayoutOptions, scale: f32)->f32 => Math.max(options.minRuleThickness, cast(f32) font.size * options.ruleThicknessEm * scale)
+private func mathRuleThickness(font: *Font, options: MathLayoutOptions, scale: f32)->f32 => Math.max(options.minRuleThickness, cast(f32, font.size) * options.ruleThicknessEm * scale)
 
 private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
 {
@@ -58,10 +58,10 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
     var next = MathAtomClass.Close
     var hasPrev, hasNext: bool
 
-    var p = cast(s64) index - 1
+    var p = cast(s64, index) - 1
     while p >= 0
     {
-        let candidate = row.children[cast(u64) p]
+        let candidate = row.children[cast(u64, p)]
         if candidate.kind != .Space
         {
             prev    = candidate.atomClass
@@ -154,7 +154,7 @@ private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, va
 
 private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
-    let em            = cast(f32) font.size * mathStyleScale(style, options)
+    let em            = cast(f32, font.size) * mathStyleScale(style, options)
     var x             = 0.0'f32
     var previousClass = MathAtomClass.Ord
     var hasPrevious   = false
@@ -191,7 +191,7 @@ private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, 
 {
     let childStyle = mathCrampedStyle(style)
     let scale      = mathStyleScale(style, options)
-    let em         = cast(f32) font.size * scale
+    let em         = cast(f32, font.size) * scale
     let rule       = node.flag ? mathRuleThickness(font, options, scale) : 0.0'f32
     let gap        = (node.flag ? 0.19'f32 : 0.13'f32) * em
     let pad        = 0.12'f32 * em
@@ -220,7 +220,7 @@ private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, 
 private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let scale = mathStyleScale(style, options)
-    let em    = cast(f32) font.size * scale
+    let em    = cast(f32, font.size) * scale
     let rule  = mathRuleThickness(font, options, scale)
     let gap   = 0.10'f32 * em
 
@@ -284,7 +284,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
     }
 
     let scale      = mathStyleScale(style, options)
-    let em         = cast(f32) font.size * scale
+    let em         = cast(f32, font.size) * scale
     var limitsMode = node.limitsMode
     if limitsMode == .Automatic do
         limitsMode = base.limitsMode
@@ -456,7 +456,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     mathLayoutNode(body, font, style, variant, options)
 
     let scale         = mathStyleScale(style, options)
-    let em            = cast(f32) font.size * scale
+    let em            = cast(f32, font.size) * scale
     let targetHeight  = Math.max(em, body.metrics.height() + 0.16 * em)
     let delimiterFont = mathResolveFont(font, .Roman, "")
     let left          = mathMeasureDelimiter(node.text.toString(), delimiterFont, scale, targetHeight, em)
@@ -526,7 +526,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     mathLayoutNode(base, font, style, variant, options)
 
     let scale = mathStyleScale(style, options)
-    let em    = cast(f32) font.size * scale
+    let em    = cast(f32, font.size) * scale
     let gap   = 0.06'f32 * em
     let rule  = mathRuleThickness(font, options, scale)
 
@@ -647,7 +647,7 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
     }
 
     let scale     = mathStyleScale(style, options)
-    let em        = cast(f32) font.size * scale
+    let em        = cast(f32, font.size) * scale
     let columnGap = options.columnGapEm * em
     let rowGap    = options.rowGapEm * em
     var totalWidth, totalHeight: f32
@@ -698,7 +698,7 @@ private func mathLayoutNode(node: *MathNode, font: *Font, style: MathStyle, vari
         mathLayoutSymbol(node, font, style, variant, options)
 
     case .Space:
-        node.metrics.width = node.spaceEm * cast(f32) font.size * mathStyleScale(style, options)
+        node.metrics.width = node.spaceEm * cast(f32, font.size) * mathStyleScale(style, options)
 
     case .Row:
         mathLayoutRow(node, font, style, variant, options)

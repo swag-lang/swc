@@ -9,7 +9,7 @@ using Swag
 {
     var directory: [1024] u8
     var fileName:  [1024] u8
-    let length = expect GetTempPathA(cast(u32) directory.count, directory.buffer)
+    let length = expect GetTempPathA(cast(u32, directory.count), directory.buffer)
     Swag.assert(length > 0 and length < directory.count)
     Swag.assert(GetTempFileNameA(directory.buffer, "swc".buffer, 0, fileName.buffer) != 0)
     defer catch DeleteFileA(fileName.buffer)

@@ -60,7 +60,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
     let version = image.u32At(4)
 
     report.beginGroup(s.wasm_Module, WasmMagic[1 until 4], "", offset: 0, length: 8, open: true)
-    report.numField(4, 4, "version", cast(u64) version)
+    report.numField(4, 4, "version", cast(u64, version))
     report.endGroup()
 
     var scan     = 8'u64
@@ -85,7 +85,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
 
         let stored = StrConv.toDisplaySize(size)
         report.beginGroup(wasmSectionName(kind), stored.toString(), "", offset: bodyAt, length: size)
-        report.numField(scan, 1, "id", cast(u64) kind, wasmSectionName(kind))
+        report.numField(scan, 1, "id", cast(u64, kind), wasmSectionName(kind))
         report.sizeField(scan + 1, bodyAt - scan - 1, "size", size)
 
         switch kind
@@ -250,7 +250,7 @@ private func wasmLeb(image: *BinaryImage, at: u64)->WasmNumber
 
         let value = image.u8At(result.next)
         result.next  += 1
-        result.value |= cast(u64) (value & 0x7F) << shift
+        result.value |= cast(u64, (value & 0x7F)) << shift
         if not (value & 0x80)
         {
             result.valid = true

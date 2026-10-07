@@ -190,7 +190,7 @@ impl IWnd for SplitterCtrl
             if visibleIndex == .numVisiblePanes do
                 break
 
-            let rect  = .barRectAt(cast(u32) idx)
+            let rect  = .barRectAt(cast(u32, idx))
             let isHot = .hotIdx == idx
             if isHot or not .flags.has(.HideDividers)
             {
@@ -238,18 +238,18 @@ private impl SplitterCtrl
                 countNotPreserve += it.preserveSize ? 0 : 1
             }
 
-            totalSize += cast(f32) ((.numVisiblePanes - 1) * barSize)
+            totalSize += cast(f32, ((.numVisiblePanes - 1) * barSize))
 
             // Compute the size to adapt
             if .isVertical() do
-                dispatch = cast(f32) (rect.height - totalSize)
+                dispatch = cast(f32, (rect.height - totalSize))
             else do
-                dispatch = cast(f32) (rect.width - totalSize)
+                dispatch = cast(f32, (rect.width - totalSize))
 
             // Dispatch the size change first to all panes not marked as 'tryPreserveSize'
             if countNotPreserve
             {
-                let diff = cast(f32) Math.round(dispatch / countNotPreserve)
+                let diff = cast(f32, Math.round(dispatch / countNotPreserve))
                 for item, idx in .items
                 {
                     let it = item!
@@ -274,7 +274,7 @@ private impl SplitterCtrl
             // Dispatch the rest between panes that try to preserved their size
             if countPreserve
             {
-                let diff = cast(f32) Math.round(dispatch / countPreserve)
+                let diff = cast(f32, Math.round(dispatch / countPreserve))
                 for item, idx in .items
                 {
                     let it = item!
@@ -303,7 +303,7 @@ private impl SplitterCtrl
             if not it.visible do
                 continue
 
-            .setPaneSizePrivate(cast(u32) idx, it.size)
+            .setPaneSizePrivate(cast(u32, idx), it.size)
         }
     }
 
@@ -331,7 +331,7 @@ private impl SplitterCtrl
                 rect.y      = y + it.size
                 rect.height = barSize
                 if rect.contains(local) do
-                    return cast(u32) idx
+                    return cast(u32, idx)
                 y = rect.bottom()
             }
             else
@@ -339,7 +339,7 @@ private impl SplitterCtrl
                 rect.x     = x + it.size
                 rect.width = barSize
                 if rect.contains(local) do
-                    return cast(u32) idx
+                    return cast(u32, idx)
                 x = rect.right()
             }
         }
@@ -399,7 +399,7 @@ private impl SplitterCtrl
         }
 
         var hasVisibleRight = false
-        var scan = cast(u64) idx + 1
+        var scan = cast(u64, idx) + 1
         while scan < .items.count
         {
             if .items[scan]!.visible
@@ -412,7 +412,7 @@ private impl SplitterCtrl
         }
 
         let direction = hasVisibleRight ? 1 : -1
-        var i         = cast(s32) idx
+        var i         = cast(s32, idx)
         var remaining = requestedChange
 
         for
@@ -509,7 +509,7 @@ impl SplitterCtrl
                 }
             }
 
-            .setPaneSize(cast(u32) .items.count - 1, paneSize)
+            .setPaneSize(cast(u32, .items.count) - 1, paneSize)
         }
 
         return item

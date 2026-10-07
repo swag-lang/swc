@@ -93,7 +93,7 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     StrConv.convertAny(&direct, " ", fmt, null)
     StrConv.convertAny(&direct, true, fmt, null)
     StrConv.convertAny(&direct, " ", fmt, null)
-    StrConv.convertAny(&direct, cast(rune) 'A', fmt, null)
+    StrConv.convertAny(&direct, cast(rune, 'A'), fmt, null)
 
     Swag.assert(assertFormatString(direct.toString(), "literal variable true A"))
 }

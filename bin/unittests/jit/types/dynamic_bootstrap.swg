@@ -21,7 +21,7 @@ impl IDynamicBootstrapReader for DynamicBootstrapReader
 func dynamicBootstrapValue()->s32
 {
     var boxed: any = 42's32
-    return (cast #try (*s32) boxed)![]
+    return (catch cast(*s32?, boxed))![]
 }
 
 const dynamicBootstrapResult = #run dynamicBootstrapValue()

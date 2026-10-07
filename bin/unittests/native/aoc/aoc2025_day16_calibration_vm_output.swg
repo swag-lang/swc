@@ -24,7 +24,7 @@ func comboOperand(state: VmState, operand: u8)->u64
     switch operand
     {
     case 0, 1, 2, 3:
-        return cast(u64) operand
+        return cast(u64, operand)
 
     case 4:
         return state.regA
@@ -56,11 +56,11 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
         switch opcode
         {
         case 0:
-            state.regA >>= cast(u32) comboOperand(state, operand)
+            state.regA >>= cast(u32, comboOperand(state, operand))
             break
 
         case 1:
-            state.regB ^= cast(u64) operand
+            state.regB ^= cast(u64, operand)
             break
 
         case 2:
@@ -70,7 +70,7 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
         case 3:
             if state.regA != 0'u64
             {
-                ip     = cast(u32) operand
+                ip     = cast(u32, operand)
                 jumped = true
             }
             break
@@ -85,11 +85,11 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
             break
 
         case 6:
-            state.regB = state.regA >> cast(u32) comboOperand(state, operand)
+            state.regB = state.regA >> cast(u32, comboOperand(state, operand))
             break
 
         case 7:
-            state.regC = state.regA >> cast(u32) comboOperand(state, operand)
+            state.regC = state.regA >> cast(u32, comboOperand(state, operand))
             break
 
         default:

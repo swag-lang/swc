@@ -9,7 +9,7 @@ using Swag
 {
     var original: [4000] u8
     for i in 4000 do
-        original[i] = cast #bit (u8) (i * 7 + (i >> 2) + (i & 13))
+        original[i] = cast #bit (u8, (i * 7 + (i >> 2) + (i & 13)))
 
     var zl:  Compress.ZLib
     let compressed   = expect zl.compress(original)
@@ -48,7 +48,7 @@ using Swag
     {
         input.clear()
         for i in distance do
-            input.add(cast(u8) ((i * 19 + distance) & 0xFF))
+            input.add(cast(u8, ((i * 19 + distance) & 0xFF)))
         for 300
         {
             for i in distance do
@@ -82,7 +82,7 @@ func nextSeed(seed: *u32)->u32
     var payload: Array'u8
     payload.reserve(Block * Copies)
     for index in Block do
-        payload.add(cast #bit (u8) nextSeed(&seed))
+        payload.add(cast #bit (u8, nextSeed(&seed)))
 
     for copy in 1 until Copies
     {
@@ -91,7 +91,7 @@ func nextSeed(seed: *u32)->u32
             // A literal every two hundred bytes keeps each match well short of the longest one,
             // so its length code still carries extra bits.
             if index % 200 == 199 do
-                payload.add(cast #bit (u8) nextSeed(&seed))
+                payload.add(cast #bit (u8, nextSeed(&seed)))
             else do
                 payload.add(payload[index])
         }
@@ -141,7 +141,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var buffer: [80] u8
     for i in 80 do
-        buffer[i] = cast #bit (u8) (i * 29 + (i >> 1))
+        buffer[i] = cast #bit (u8, (i * 29 + (i >> 1)))
 
     for n in 80
     {
@@ -160,7 +160,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     {
         var buffer: Array'u8
         for i in 64 do
-            buffer.add(cast #bit (u8) (i * 13))
+            buffer.add(cast #bit (u8, (i * 13)))
         for i in 512 do
             buffer.add(buffer[buffer.count - distance])
 
@@ -181,7 +181,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
         seed ^= seed << #wrap 13
         seed ^= seed >> 17
         seed ^= seed << #wrap 5
-        noisy.add(cast #bit (u8) seed)
+        noisy.add(cast #bit (u8, seed))
     }
 
     roundTrip(noisy.toSlice(), .BestSpeed)
@@ -199,7 +199,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var original: [4000] u8
     for i in 4000 do
-        original[i] = cast #bit (u8) ((i * 7919 + i * i * 31) >> 3)
+        original[i] = cast #bit (u8, ((i * 7919 + i * i * 31) >> 3))
 
     var deflater: Compress.Deflate
     deflater.init(.Default, flags: .Zero)

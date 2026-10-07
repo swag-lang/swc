@@ -355,7 +355,7 @@ func createRootView()
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
-        app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
+        app.maxRunFrame = cast(u32, MaxPages) * cast(u32, TestFramesPerPage) + 10
 
     surface.show()
     applyTheme()

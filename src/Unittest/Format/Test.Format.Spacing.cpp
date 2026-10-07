@@ -333,25 +333,25 @@ SWC_TEST_BEGIN(FormatSpacing_InsideBrackets)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatSpacing_AfterCast)
+SWC_TEST_BEGIN(FormatSpacing_CastArguments)
 {
     static constexpr std::string_view SOURCE =
         "func bar()\n"
         "{\n"
-        "    var x = cast(s64) 12\n"
+        "    var x = cast(s64,12)\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
         "func bar()\n"
         "{\n"
-        "    var x = cast(s64)12\n"
+        "    var x = cast(s64, 12)\n"
         "}\n";
 
     FormatOptions options;
-    options.spaceAfterCast = false;
+    options.spaceAfterComma = true;
     SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
-    options.spaceAfterCast = true;
+    options.spaceAfterComma = false;
     return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
@@ -415,7 +415,7 @@ SWC_TEST_BEGIN(FormatSpacing_PostfixDereference)
         "{\n"
         "    var x = p[]\n"
         "    p[] = 1\n"
-        "    var y = (cast(*u32) p)[]\n"
+        "    var y = cast(*u32, p)[]\n"
         "}\n";
 
     FormatOptions options;

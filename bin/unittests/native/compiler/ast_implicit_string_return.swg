@@ -39,12 +39,12 @@ impl AstGeneratedBuilder
         if not .buffer
         {
             .capacity = 128
-            .buffer   = cast([*] u8?) testAlloc(.capacity)
+            .buffer   = cast([*] u8?, testAlloc(.capacity))
         }
 
-        Swag.assert(.length + cast(u64) value.count <= .capacity)
-        Swag.memcpy(.buffer + .length, value.buffer, cast(u64) value.count)
-        .length += cast(u64) value.count
+        Swag.assert(.length + cast(u64, value.count) <= .capacity)
+        Swag.memcpy(.buffer + .length, value.buffer, cast(u64, value.count))
+        .length += cast(u64, value.count)
     }
 
     mtd const toString()->AstGeneratedString

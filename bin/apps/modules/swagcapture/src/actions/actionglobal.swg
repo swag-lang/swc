@@ -16,7 +16,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast #assume (*MainWnd) cxt.wnd!
+        let main = assume cast (*MainWnd, cxt.wnd)
 
         switch cxt.id
         {
@@ -45,7 +45,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast #assume (*MainWnd) cxt.wnd!
+        let main = assume cast (*MainWnd, cxt.wnd)
 
         switch cxt.id
         {
@@ -97,8 +97,8 @@ impl MainWnd
         if .libraryMode do
             .libWnd.fill()
 
-        let outgoing = .libraryMode ? cast(*Wnd) .editWnd : cast(*Wnd) .libWnd
-        let incoming = .libraryMode ? cast(*Wnd) .libWnd : cast(*Wnd) .editWnd
+        let outgoing = .libraryMode ? cast(*Wnd, .editWnd) : cast(*Wnd, .libWnd)
+        let incoming = .libraryMode ? cast(*Wnd, .libWnd) : cast(*Wnd, .editWnd)
 
         // This change replaces nearly the whole client area. Fading both pages records two
         // full-size subtrees into off-screen layers on every frame, which is disproportionately

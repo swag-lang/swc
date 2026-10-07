@@ -65,13 +65,13 @@ func loadFonts() fail
 
 func normalizeSource(image: Image)->Image
 {
-    let maxSide = cast(f32) Math.max(image.width, image.height)
+    let maxSide = cast(f32, Math.max(image.width, image.height))
     if maxSide <= MaxSourceSide do
         return Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
 
     let scale     = MaxSourceSide / maxSide
-    let newWidth  = Math.max(cast(s32) Math.round(cast(f32) image.width * scale), 1)
-    let newHeight = Math.max(cast(s32) Math.round(cast(f32) image.height * scale), 1)
+    let newWidth  = Math.max(cast(s32, Math.round(cast(f32, image.width) * scale)), 1)
+    let newHeight = Math.max(cast(s32, Math.round(cast(f32, image.height) * scale)), 1)
     return image.resized(newWidth, newHeight, .Quadratic)
 }
 
@@ -95,8 +95,8 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
         for x in result.width
         {
             let edgeDistance = Math.min(x, result.width - x - 1, y, result.height - y - 1)
-            let borderAlpha  = cast(u8) Math.min(edgeDistance * AlphaFadeStep, 255)
-            pixel[3] = cast(u8) ((cast(u16) pixel[3] * borderAlpha + 127) / 255)
+            let borderAlpha  = cast(u8, Math.min(edgeDistance * AlphaFadeStep, 255))
+            pixel[3] = cast(u8, ((cast(u16, pixel[3]) * borderAlpha + 127) / 255))
             pixel    += 4
         }
     }
@@ -133,7 +133,7 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
 func nonNullBytes(bytes: [..] u8?)->const [..] u8
 {
     Swag.assert(bytes != null)
-    return Swag.makeSlice(cast([*] u8) bytes.buffer, bytes.count)
+    return Swag.makeSlice(cast([*] u8, bytes.buffer), bytes.count)
 }
 
 func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedSize: u64)
@@ -216,15 +216,15 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 {
     let surfaceWidth  = Math.max(width, 1)
     let surfaceHeight = Math.max(height, 1)
-    let scaleX        = cast(f32) surfaceWidth / cast(f32) W
-    let scaleY        = cast(f32) surfaceHeight / cast(f32) H
+    let scaleX        = cast(f32, surfaceWidth) / cast(f32, W)
+    let scaleY        = cast(f32, surfaceHeight) / cast(f32, H)
 
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
-        .rect.x = Math.round((cast(f32) surfaceWidth - .rect.width) * 0.5)
-        .rect.y = Math.round((cast(f32) surfaceHeight - .rect.height) * 0.5)
+        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
+        .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
 
     return result
@@ -235,8 +235,8 @@ func getCardRect(index: s32)->Math.Rectangle
     let gap         = 18.0
     let top         = 118.0
     let bottomInset = 42.0
-    let cardWidth   = (W - 56.0 - (GalleryCols - 1) * gap) / cast(f32) GalleryCols
-    let cardHeight  = (H - top - bottomInset - (GalleryRows - 1) * gap) / cast(f32) GalleryRows
+    let cardWidth   = (W - 56.0 - (GalleryCols - 1) * gap) / cast(f32, GalleryCols)
+    let cardHeight  = (H - top - bottomInset - (GalleryRows - 1) * gap) / cast(f32, GalleryRows)
     let col         = index % GalleryCols
     let row         = index / GalleryCols
     return {28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
@@ -244,9 +244,9 @@ func getCardRect(index: s32)->Math.Rectangle
 
 func fitTextureRect(bounds: Math.Rectangle, texture: Texture)->Math.Rectangle
 {
-    let scale  = Math.min(bounds.width / cast(f32) texture.width, bounds.height / cast(f32) texture.height)
-    let width  = cast(f32) texture.width * scale
-    let height = cast(f32) texture.height * scale
+    let scale  = Math.min(bounds.width / cast(f32, texture.width), bounds.height / cast(f32, texture.height))
+    let width  = cast(f32, texture.width) * scale
+    let height = cast(f32, texture.height) * scale
     return {bounds.horzCenter() - width * 0.5, bounds.vertCenter() - height * 0.5, width, height}
 }
 
@@ -290,7 +290,7 @@ func display()
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
     let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32) Math.round(g_RC.width / scale), cast(s32) Math.round(g_RC.height / scale))
+    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)), cast(s32, Math.round(g_RC.height / scale)))
 
     g_Render.begin(g_RC)
     g_Painter.begin()
@@ -362,7 +362,7 @@ func updateTestMode()
 
     var loop: Env.WindowLoop
     if Env.isSmokeRun() do
-        loop.smokeFrames = cast(u32) PageCount * cast(u32) TestFramesPerPage
+        loop.smokeFrames = cast(u32, PageCount) * cast(u32, TestFramesPerPage)
     while loop.next()
     {
         updateShortcuts()

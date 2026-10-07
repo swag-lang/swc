@@ -31,7 +31,7 @@ func release(address: *void?, size: u64)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let value = cast(*u32) allocate(4)
+    let value = cast(*u32, allocate(4))
     let same  = value
     release(value, 4)            // swc-expected-note {{sanity_note_pointer_released_here}}
     Swag.assert(same[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
@@ -48,9 +48,9 @@ func release(address: *void?, size: u64)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    var value = cast(*u32) allocate(4)
+    var value = cast(*u32, allocate(4))
     release(value, 4)
-    value   = cast(*u32) allocate(4)
+    value   = cast(*u32, allocate(4))
     value[] = 7
     Swag.assert(value[] == 7)
     release(value, 4)
@@ -65,7 +65,7 @@ func releaseParameter(value: *u32)
 
 #test
 {
-    releaseParameter(cast(*u32) allocate(4))
+    releaseParameter(cast(*u32, allocate(4)))
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -73,7 +73,7 @@ func releaseParameter(value: *u32)
 {
     var holder = Holder{allocate(4)}
     release(holder.buffer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    let buffer = cast(*u32) holder.buffer
+    let buffer = cast(*u32, holder.buffer)
     Swag.assert(buffer[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
@@ -83,7 +83,7 @@ func releaseParameter(value: *u32)
     var local  = Holder{allocate(4)}
     let holder = opaqueHolder(&local)
     release(holder.buffer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    let buffer = cast(*u32) holder.buffer
+    let buffer = cast(*u32, holder.buffer)
     Swag.assert(buffer[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
@@ -130,7 +130,7 @@ func releaseAndReplaceIndexed(holder: *Holder, replacement: *void, index: u64)
     var request: AllocatorRequest
     request.address = holder.buffer
     request.size    = 4
-    (cast([*] *void) holder)[index] = replacement
+    cast([*] *void, holder)[index] = replacement
     Swag.getContext().allocator!.free(&request)
 }
 
@@ -153,15 +153,15 @@ func releaseAndReplace(holder: *Holder, replacement: *void, indirect: bool)
     var local  = Holder{allocate(4)}
     let holder = opaqueHolder(&local)
     releaseAndReplace(holder, allocate(4), false)
-    let first = cast(*u32) holder.buffer
+    let first = cast(*u32, holder.buffer)
     first[] = 7
     Swag.assert(first[] == 7)
     releaseAndReplace(holder, allocate(4), true)
-    let second = cast(*u32) holder.buffer
+    let second = cast(*u32, holder.buffer)
     second[] = 8
     Swag.assert(second[] == 8)
     releaseAndReplaceIndexed(holder, allocate(4), opaqueIndex())
-    let third = cast(*u32) holder.buffer
+    let third = cast(*u32, holder.buffer)
     third[] = 9
     Swag.assert(third[] == 9)
     release(third, 4)

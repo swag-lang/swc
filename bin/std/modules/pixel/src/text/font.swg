@@ -221,14 +221,14 @@ public struct FontCache
 // Layout controls and non-scalars have no fallback ink, regardless of the font provider.
 internal func isFontFallbackRune(c: rune)->bool
 {
-    let code = cast(u32) c
+    let code = cast(u32, c)
     return code >= 0x20 and not (code >= 0x7F and code <= 0x9F) and code <= 0x10FFFF and not (code >= 0xD800 and code <= 0xDFFF) and not (code >= 0xFDD0 and code <= 0xFDEF) and (code & 0xFFFF) < 0xFFFE
 }
 
 private func mulFix(a, b: s32)->s32
 {
-    let ab = cast(s64) a * cast(s64) b
-    return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
+    let ab = cast(s64, a) * cast(s64, b)
+    return cast(s32, ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16))
 }
 
 public impl FontCache
@@ -307,8 +307,8 @@ public impl FontCache
         cache.ascent        = metrics.ascender / 64.0
         cache.descent       = metrics.descender / 64.0
         cache.height        = cache.ascent - cache.descent
-        cache.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
-        cache.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
+        cache.underlinePos  = mulFix(cast(s32, typeFace.face.underlinePosition), metrics.yScale) / 64.0
+        cache.underlineSize = mulFix(cast(s32, typeFace.face.underlineThickness), metrics.yScale) / 64.0
 
         // A face older than OS/2 version 2 declares no cap height. Reading a capital out of
         // the outlines would settle it exactly, but a face that old is a fallback anyway, so
@@ -354,7 +354,7 @@ public impl FontCache
         font.forceBold   = forceBold
         font.forceItalic = forceItalic
 
-        let s = cast(f32) size / cast(f32) refSize
+        let s = cast(f32, size) / cast(f32, refSize)
         font.ascent        = cache.ascent * s
         font.descent       = cache.descent * s
         font.height        = cache.height * s
@@ -405,7 +405,7 @@ public impl FontCache
 public impl Font
 {
     // Returns the factor that scales reference-size glyph metrics to this font's draw size.
-    mtd const scale()->f32 => cast(f32) .size / cast(f32) .cache.refSize
+    mtd const scale()->f32 => cast(f32, .size) / cast(f32, .cache.refSize)
 
     // Returns the distance from the middle of a line box to the middle of the text a reader sees in it.
     //
@@ -524,10 +524,10 @@ public impl Font
     {
         if font.mode == .Bitmap
         {
-            let px = cast(s32) Math.max(Math.round(effectivePx), 1.0)
+            let px = cast(s32, Math.max(Math.round(effectivePx), 1.0))
             if px == font.cache.refSize do
                 return font
-            return font.owner.createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
+            return font.owner.createView(font.cache.typeFace, font.size, cast(u32, px), 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
         }
 
         if font.mode != .Auto do
@@ -535,9 +535,9 @@ public impl Font
         if effectivePx >= AutoMsdfMinPx do
             return font
 
-        var px = cast(s32) Math.round(effectivePx)
-        px = Math.clamp(px, 1, cast(s32) AutoMsdfMinPx)
-        return font.owner.createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
+        var px = cast(s32, Math.round(effectivePx))
+        px = Math.clamp(px, 1, cast(s32, AutoMsdfMinPx))
+        return font.owner.createView(font.cache.typeFace, font.size, cast(u32, px), 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
     }
 }
 
@@ -561,7 +561,7 @@ impl GlyphCache
         if not .hasKerning or not leftIndex or not rightIndex do
             return 0
 
-        let key = (cast(u64) leftIndex << 32) | cast(u64) rightIndex
+        let key = (cast(u64, leftIndex) << 32) | cast(u64, rightIndex)
         if let here = .kernRef.tryFind(key) do
             return here.value
 
@@ -594,7 +594,7 @@ impl GlyphCache
     {
         let entry = .glyphRef.tryFind(glyphIndex)
         if entry do
-            return cast(const *GlyphDesc) entry.value
+            return cast(const *GlyphDesc, entry.value)
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
@@ -630,7 +630,7 @@ impl GlyphCache
             let atlasSide = Math.roundUpToPowerOf2(Math.max(.refSize * 4, Math.max(bmpRef.width, bmpRef.rows) * 2))
             newAtlas.width  = atlasSide * newAtlas.bytesPerPixel
             newAtlas.height = atlasSide
-            newAtlas.data.resize(cast(u64) newAtlas.width * newAtlas.height)
+            newAtlas.data.resize(cast(u64, newAtlas.width) * newAtlas.height)
             let data = newAtlas.data.storage()
             Memory.clear(data, newAtlas.data.count)
             .atlases.add(newAtlas)
@@ -649,7 +649,7 @@ impl GlyphCache
         var src = bmpRef.buffer
         for j in bmpRef.rows
         {
-            Memory.copy(buffer, src, cast(u64) rowBytes)
+            Memory.copy(buffer, src, cast(u64, rowBytes))
             src    += bmpRef.pitch
             buffer -= ca.width
         }
@@ -671,16 +671,16 @@ impl GlyphCache
 
         // 'x' and the atlas width are measured in bytes; both numerator and
         // denominator carry the bpp factor, so the resulting uv stays correct.
-        let widthf  = cast(f32) ca.width
-        let heightf = cast(f32) ca.height
+        let widthf  = cast(f32, ca.width)
+        let heightf = cast(f32, ca.height)
         refr.uv.x      = x / widthf
         refr.uv.y      = y / heightf
-        refr.uv.width  = cast(f32) rowBytes / widthf
+        refr.uv.width  = cast(f32, rowBytes) / widthf
         refr.uv.height = refr.height / heightf
 
-        refr.atlasIndex = cast(u32) (.atlases.count - 1)
+        refr.atlasIndex = cast(u32, (.atlases.count - 1))
 
-        ca.markDirty(cast(u32) x / bpp, ca.height - cast(u32) y - bmpRef.rows, bmpRef.width, bmpRef.rows)
+        ca.markDirty(cast(u32, x) / bpp, ca.height - cast(u32, y) - bmpRef.rows, bmpRef.width, bmpRef.rows)
         .dirty = .dirty or ca.dirty
 
         return refr

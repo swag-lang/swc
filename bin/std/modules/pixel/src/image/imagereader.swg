@@ -87,7 +87,7 @@ public interface IImageSetDecoder
 // var reader = try ImageReader.load("animation.webp")
 // for index in reader.info.frames.count
 // {
-//     var image = try reader.read(cast(u32) index)
+//     var image = try reader.read(cast(u32, index))
 // }
 // ```
 public struct ImageReader
@@ -111,7 +111,7 @@ impl ImageReader
             let type = .decoderType!
             if type.opDrop do
                 type.opDrop(.decoder)
-            Memory.free(.decoder, cast(u64) type.sizeof)
+            Memory.free(.decoder, cast(u64, type.sizeof))
             .decoder = null
         }
     }
@@ -124,7 +124,7 @@ impl ImageReader
             let row = .canvas.height - frame.y - y - 1
             for x in frame.width
             {
-                let target = .canvas.pixels.storage() + cast(u64) row * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
+                let target = .canvas.pixels.storage() + cast(u64, row) * .canvas.rowStride + cast(u64, (frame.x + x)) * .canvas.bytesPerPixel
                 writePixelValue(target, .canvas.pixelFormat, value)
             }
         }
@@ -140,8 +140,8 @@ impl ImageReader
             let targetRow = .canvas.height - frame.y - y - 1
             for x in frame.width
             {
-                let source = image.pixels.storage() + cast(u64) sourceRow * image.rowStride + cast(u64) x * image.bytesPerPixel
-                let target = .canvas.pixels.storage() + cast(u64) targetRow * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
+                let source = image.pixels.storage() + cast(u64, sourceRow) * image.rowStride + cast(u64, x) * image.bytesPerPixel
+                let target = .canvas.pixels.storage() + cast(u64, targetRow) * .canvas.rowStride + cast(u64, (frame.x + x)) * .canvas.bytesPerPixel
                 var value  = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
                 if frame.blend == .Over and value.a < 1
                 {
@@ -259,7 +259,7 @@ public impl ImageReader
         var succeeded = false
         defer if not succeeded do
             .lastIndex = -1
-        if .lastIndex < 0 or cast(s32) index < .lastIndex
+        if .lastIndex < 0 or cast(s32, index) < .lastIndex
         {
             let format: PixelFormat = .info.frames[0].pixelFormat.bitDepth() > 8 ? .RGBA16 : .RGBA8
             .canvas = Image.create(.info.canvasWidth, .info.canvasHeight, format)
@@ -267,11 +267,11 @@ public impl ImageReader
             .lastIndex = -1
         }
 
-        while .lastIndex < cast(s32) index
+        while .lastIndex < cast(s32, index)
         {
             if .lastIndex >= 0
             {
-                let prior = &.info.frames[cast(u32) .lastIndex]
+                let prior = &.info.frames[cast(u32, .lastIndex)]
                 switch prior.disposal
                 {
                 case .Background: .clearRectangle(prior[])
@@ -279,7 +279,7 @@ public impl ImageReader
                 }
             }
 
-            let current    = cast(u32) (.lastIndex + 1)
+            let current    = cast(u32, (.lastIndex + 1))
             let descriptor = &.info.frames[current]
             if descriptor.disposal == .Previous do
                 .previous = .canvas

@@ -9,7 +9,7 @@ func zeroFallbackU32(x: u32)->u32
 
 func zeroFallbackRune(x: rune)->rune
 {
-    return x != cast(rune) 0'u32 ? x : 'A'rune
+    return x != cast(rune, 0'u32) ? x : 'A'rune
 }
 
 func zeroFallbackF32(x: f32)->f32
@@ -24,7 +24,7 @@ func nullStringFallback(value: string?)->string
 
 func nullPointerFallback(ptr: *s32?)->s32
 {
-    let fallback = cast(*s32) &GNullOrelse
+    let fallback = cast(*s32, &GNullOrelse)
     let resolved = ptr orelse fallback
     return resolved[]
 }
@@ -33,8 +33,8 @@ func nonNullPointerWins()->bool
 {
     var x: u8    = 0
     var y: u8    = 0
-    let ptr      = cast(*void) &x
-    let fallback = cast(*void) &y
+    let ptr      = cast(*void, &x)
+    let fallback = cast(*void, &y)
     let resolved = ptr orelse fallback
     return resolved == ptr and resolved != fallback
 }
@@ -43,7 +43,7 @@ func nonNullPointerWins()->bool
 {
     Swag.assert(zeroFallbackU32(0'u32) == 7'u32)
     Swag.assert(zeroFallbackU32(9'u32) == 9'u32)
-    Swag.assert(zeroFallbackRune(cast(rune) 0'u32) == 'A'rune)
+    Swag.assert(zeroFallbackRune(cast(rune, 0'u32)) == 'A'rune)
     Swag.assert(zeroFallbackRune('B'rune) == 'B'rune)
     Swag.assert(zeroFallbackF32(0.0'f32) == 3.5'f32)
     Swag.assert(zeroFallbackF32(2.25'f32) == 2.25'f32)

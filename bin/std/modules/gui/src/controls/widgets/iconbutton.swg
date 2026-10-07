@@ -682,7 +682,7 @@ impl IWnd for IconButton
             }
 
             // Animate the alpha in/out for a smooth fade (aniBk is unused in overlay mode).
-            .aniBk.apply(me, colorText.withAlpha(cast(u8) (a * 255)))
+            .aniBk.apply(me, colorText.withAlpha(cast(u8, (a * 255))))
             let cur = .aniBk.cur()
             if cur.a
             {
@@ -706,7 +706,7 @@ impl IWnd for IconButton
         if evt.kind != .Pressed or (evt.key != .Space and evt.key != .Return) do
             return
 
-        .sigPressed.call(cast(*Button) me)
+        .sigPressed.call(cast(*Button, me))
         .activateFromUser()
         evt.accepted = true
     }

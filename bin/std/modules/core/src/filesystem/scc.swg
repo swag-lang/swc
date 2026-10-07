@@ -212,29 +212,29 @@ struct Reader
 
 private func writeU16(buffer: *Array'u8, value: u16)
 {
-    buffer.add(cast(u8) (value & 0xFF))
-    buffer.add(cast(u8) ((value >> 8) & 0xFF))
+    buffer.add(cast(u8, (value & 0xFF)))
+    buffer.add(cast(u8, ((value >> 8) & 0xFF)))
 }
 
 private func writeU32(buffer: *Array'u8, value: u32)
 {
     for i in 4 do
-        buffer.add(cast(u8) ((value >> (i * 8)) & 0xFF))
+        buffer.add(cast(u8, ((value >> (i * 8)) & 0xFF)))
 }
 
 private func writeU64(buffer: *Array'u8, value: u64)
 {
     for i in 8 do
-        buffer.add(cast(u8) ((value >> (i * 8)) & 0xFF))
+        buffer.add(cast(u8, ((value >> (i * 8)) & 0xFF)))
 }
 
-private func readU16(buffer: const [..] u8, offset: u64)->u16 => cast(u16) buffer[offset] | cast(u16) buffer[offset + 1] << 8
+private func readU16(buffer: const [..] u8, offset: u64)->u16 => cast(u16, buffer[offset]) | cast(u16, buffer[offset + 1]) << 8
 
 private func readU32(buffer: const [..] u8, offset: u64)->u32
 {
     var result: u32
     for i in 4 do
-        result |= cast(u32) buffer[offset + i] << (i * 8)
+        result |= cast(u32, buffer[offset + i]) << (i * 8)
     return result
 }
 
@@ -242,13 +242,13 @@ private func readU64(buffer: const [..] u8, offset: u64)->u64
 {
     var result: u64
     for i in 8 do
-        result |= cast(u64) buffer[offset + i] << (i * 8)
+        result |= cast(u64, buffer[offset + i]) << (i * 8)
     return result
 }
 
 private func alignUp(value: u64, alignment: u32)->u64
 {
-    let effective = alignment ? cast(u64) alignment : 1
+    let effective = alignment ? cast(u64, alignment) : 1
     let remainder = value % effective
     return remainder ? value + effective - remainder : value
 }
@@ -459,7 +459,7 @@ impl Writer
             fail OverflowError{"SCC header grew after chunk offsets were assigned"}
 
         var prefix: Array'u8
-        prefix.add(cast(const [..] u8) Magic)
+        prefix.add(cast(const [..] u8, Magic))
         writeU16(&prefix, FormatMajor)
         writeU16(&prefix, FormatMinor)
         writeU32(&prefix, 0)

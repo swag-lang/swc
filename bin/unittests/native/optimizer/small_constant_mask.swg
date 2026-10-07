@@ -39,11 +39,11 @@ func below(a, b: u64)->bool => a < b
                 Swag.assert(reverse(a, b) == 127)
             }
             Swag.assert(equal(a, b) == (a == b ? 11'u64 : 0))
-            let sa = cast #bit (s64) a
-            let sb = cast #bit (s64) b
+            let sa = cast #bit (s64, a)
+            let sb = cast #bit (s64, b)
             Swag.assert(signed(sa, sb) == (sa < sb ? 15's64 : 0))
-            let na = cast(u32) (a & 0xFFFFFFFF)
-            let nb = cast(u32) (b & 0xFFFFFFFF)
+            let na = cast(u32, (a & 0xFFFFFFFF))
+            let nb = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(narrow(na, nb) == (below(na, nb) ? 7'u32 : 0))
         }
     }

@@ -72,9 +72,9 @@ impl ReversedHashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &table[tableIndex].key), break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
@@ -99,10 +99,10 @@ impl HashSet
     }
 
     #[Swag.NoDoc]
-    mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K)) 1'u64
+    mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K), 1'u64)
 
     #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashSetEntry => cast(const [*] HashSetEntry'(K)) (.table orelse cast([*] HashSetEntry'(K)) 1'u64)
+    mtd const constTablePtr()->const [*] HashSetEntry => cast(const [*] HashSetEntry'(K), (.table orelse cast([*] HashSetEntry'(K), 1'u64)))
 
     // Returns the number of elements in the set.
     #[Inline]
@@ -136,7 +136,7 @@ impl HashSet
             .allocator = Swag.getContext().allocator
 
         let oldTable = .tablePtr()
-        let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
+        let newTable = cast([*] HashSetEntry'(K), Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator))
         #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
             Swag.init(newTable, .capacity)
         else do
@@ -182,9 +182,9 @@ impl HashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &table[tableIndex].key), break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
@@ -263,7 +263,7 @@ impl HashSet
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashSetEntry'(K), Memory.alloc(newCapacityBytes, .allocator))
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.
@@ -275,7 +275,7 @@ impl HashSet
         // Relocate the live keys into the new slots and drop the deleted ones.
         let oldCapacity = .capacity
         .capacity = reqCapacity
-        let oldTablePtr = oldTable orelse cast([*] HashSetEntry'(K)) 1'u64
+        let oldTablePtr = oldTable orelse cast([*] HashSetEntry'(K), 1'u64)
         for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
@@ -368,7 +368,7 @@ impl HashSet
         }
 
         let hashVal = hashKey(key)
-        var index   = cast(u64) hashVal & (.capacity - 1)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
         let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
@@ -398,7 +398,7 @@ impl HashSet
     {
         .grow()
 
-        var index = cast(u64) hashVal & (.capacity - 1)
+        var index = cast(u64, hashVal) & (.capacity - 1)
         let table = .tablePtr()
 
         index = .getNewIndex(key[], index, hashVal)
@@ -446,7 +446,7 @@ impl HashSet
         let hashVal      = hashKey(key)
         let mask         = .capacity - 1
         var firstDeleted = Swag.U64.Max
-        var index        = cast(u64) hashVal & mask
+        var index        = cast(u64, hashVal) & mask
         let table        = .tablePtr()
 
         for
@@ -497,7 +497,7 @@ impl HashSet
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
+        var index   = cast(u64, hashVal) & mask
         let table   = .tablePtr()
 
         while table[index].hash
@@ -522,7 +522,7 @@ impl HashSet
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
+        var index   = cast(u64, hashVal) & mask
         let table   = .constTablePtr()
 
         while table[index].hash

@@ -11,7 +11,7 @@ const Folded   = 2 + 3
 const Negative = -10
 
 #assert(#stringof(GlobalZero) == "0")
-#assert(#stringof(cast(u32) Mode.A) == "1")
+#assert(#stringof(cast(u32, Mode.A)) == "1")
 #assert(#stringof(5 * 5) == "25")
 #assert(#stringof(1 + 2 * 3) == "7")
 #assert(#stringof("foo", "bar") == "foobar")

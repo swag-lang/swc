@@ -126,7 +126,7 @@ func semaTestContinueFromSwitchCaseInLoop()
         case 2, 4:
             continue
         }
-        total += cast(s32) i
+        total += cast(s32, i)
     }
 }
 

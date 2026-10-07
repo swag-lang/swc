@@ -59,7 +59,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast #assume(const *TypeInfoNative) t!
+        let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind != .Any and tt.nativeKind != .String
     }
 
@@ -69,7 +69,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast #assume(const *TypeInfoNative) t!
+        let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .Rune
     }
 
@@ -79,7 +79,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast #assume(const *TypeInfoNative) t!
+        let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .Any
     }
 
@@ -89,7 +89,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast #assume(const *TypeInfoNative) t!
+        let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .Bool
     }
 
@@ -99,7 +99,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast #assume(const *TypeInfoNative) t!
+        let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .String
     }
 }
@@ -112,7 +112,7 @@ using Swag
         var result = type
         while isTypeAlias(result)
         {
-            let typeAlias = cast #assume(const *TypeInfoAlias) result
+            let typeAlias = assume cast(const *TypeInfoAlias, result)
             result = typeAlias.rawType
         }
 
@@ -124,7 +124,7 @@ using Swag
     {
         var result = 0'u64
         for type in types do
-            result = Swag.max(result, cast(u64) type.sizeof)
+            result = Swag.max(result, cast(u64, type.sizeof))
         return result
     }
 
@@ -210,7 +210,7 @@ private func registerStableTypeKeyNoLock(type: typeinfo)
     if key == null do
         return
 
-    let stableKey = cast #assume (string) key
+    let stableKey = assume cast (string, key)
     let existing  = g_HashKeyToType.tryFind(stableKey)
     if not existing
     {
@@ -276,27 +276,27 @@ private func registerTypeGraphNoLock(type: typeinfo?)
     switch nnType.kind
     {
     case .Alias:
-        let typeAlias = cast #assume(const *TypeInfoAlias) nnType
+        let typeAlias = assume cast(const *TypeInfoAlias, nnType)
         registerTypeGraphNoLock(typeAlias.rawType)
 
     case .Array:
-        let typeArray = cast #assume(const *TypeInfoArray) nnType
+        let typeArray = assume cast(const *TypeInfoArray, nnType)
         registerTypeGraphNoLock(typeArray.pointedType)
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) nnType
+        let typeEnum = assume cast(const *TypeInfoEnum, nnType)
         registerTypeGraphNoLock(typeEnum.rawType)
 
     case .Pointer:
-        let typePointer = cast #assume(const *TypeInfoPointer) nnType
+        let typePointer = assume cast(const *TypeInfoPointer, nnType)
         registerTypeGraphNoLock(typePointer.pointedType)
 
     case .Slice:
-        let typeSlice = cast #assume(const *TypeInfoSlice) nnType
+        let typeSlice = assume cast(const *TypeInfoSlice, nnType)
         registerTypeGraphNoLock(typeSlice.pointedType)
 
     case .Struct:
-        let typeStruct = cast #assume(const *TypeInfoStruct) nnType
+        let typeStruct = assume cast(const *TypeInfoStruct, nnType)
         for &field in typeStruct.fields do
             registerTypeGraphNoLock(field.pointedType)
         for &generic in typeStruct.generics do

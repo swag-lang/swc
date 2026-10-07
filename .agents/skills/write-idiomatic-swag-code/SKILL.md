@@ -357,8 +357,8 @@ with let rail = Wnd.create'Wnd(view, {0, 0, 4})
 
 with var search: Viewer.SearchApi
 {
-    .revealMatch = func(wnd, match, text)->bool => (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text)
-    .clear       = func(wnd) { Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor) }
+    .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
+    .clear       = func|view|() { Viewer.clearRichEditMatch(view.editor) }
 }
 
 host.setSearch(search)
@@ -380,11 +380,14 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 
 ## Use Direct Control and Data Flow
 
-- Mark every fallible call explicitly with `try`, `catch`, or `expect`, including calls inside
+- Mark every fallible call explicitly with `try`, `catch`, `expect`, or `assume`, including calls inside
   a fallible function or an error-handling block. A function's `fail` declaration does not make
   propagation implicit. Choose the keyword for the intended failure path.
+- Use `assume operation()` only when the caller guarantees success. `.Assume` safety checks
+  that invariant; disabling it removes the caller's error check. Use `expect` when failure
+  must terminate in every configuration. Neither form constructs a default result.
 - Preserve expression grouping when inserting `try`: after a cast or another operator, use
-  parentheses such as `cast(u16) (try readByte()) << 8` so the conversion still precedes the shift.
+  parentheses such as `cast(u16, (try readByte())) << 8` so the conversion still precedes the shift.
 - Prefer early exits over nested success paths.
 - Use `orelse`, the postfix `!`, optional chaining, and `with` when they express absence or
   structured initialization more directly than temporary variables and repeated checks.
@@ -402,12 +405,13 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 - Use `switch value` with `case T` or `case T as name`, optionally guarded by `where`,
   for dynamic dispatch over `any`, interfaces, or pointers to dynamic structs. Concrete
   bindings are pointers; interface bindings are views. Both preserve source constness.
-- Direct `cast #try` conditional bindings, boolean conversions, and comparisons with
-  `null` are rejected. Use `is` or a typed case for those forms.
-- Use `cast #try (*T) value` when the nullable conversion result is itself needed.
-  It shares type compatibility, pointer adjustment, and borrowing rules with patterns.
-- Use `cast #assume (T) boxed` or `cast #assume (*T) value` only when the concrete type
-  is an established invariant. `.DynCast` safety checks that assertion; disabling it
+- Use `try cast(T, value)` to propagate a conversion error, or `expect cast(T, value)`
+  to panic on failure in every build configuration. Keep statically resolved conversions
+  as `cast(T, value)`; a contextual conversion is `cast(value)`.
+- Use `catch cast(*T?, value)` when the nullable conversion result is itself needed.
+  Prefer type patterns when the purpose is testing compatibility or selecting a branch.
+- Use `assume cast(T, boxed)` or `assume cast(*T, value)` only when the concrete type
+  is an established invariant. `.Assume` safety checks that assertion; disabling it
   does not make a wrong assumption valid.
 - Write `where T is IFoo` for a generic compatibility constraint and `T == U` for exact
   type equality. Expression `as`, `Swag.typeAs`, and `Swag.typeIs` remain retired;

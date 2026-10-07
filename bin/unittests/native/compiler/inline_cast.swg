@@ -24,13 +24,13 @@ alias StrictTestFlags = TestFlags
 func boxStrictTestFlags(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return Swag.kindOf(boxed) == StrictTestFlags and cast #assume(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and assume cast(StrictTestFlags, boxed) == value
 }
 
 #[Swag.Inline]
 func widen(value: u32)->u64
 {
-    return cast(u64) value + 1
+    return cast(u64, value) + 1
 }
 
 // Unmarked twin: an auto-inline candidate under `-bc release` (Auto mode). A preceding
@@ -38,16 +38,16 @@ func widen(value: u32)->u64
 func boxStrictTestFlagsAuto(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return Swag.kindOf(boxed) == StrictTestFlags and cast #assume(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and assume cast(StrictTestFlags, boxed) == value
 }
 
 #test
 {
-    Swag.assert(boxStrictTestFlags(cast(StrictTestFlags) TestFlags.C))
+    Swag.assert(boxStrictTestFlags(cast(StrictTestFlags, TestFlags.C)))
     Swag.assert(widen(41) == 42)
 
-    const seed: any = cast(StrictTestFlags) TestFlags.B
+    const seed: any = cast(StrictTestFlags, TestFlags.B)
     Swag.assert(Swag.kindOf(seed) == StrictTestFlags)
-    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags) TestFlags.C))
-    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags) TestFlags.A))
+    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags, TestFlags.C)))
+    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags, TestFlags.A)))
 }

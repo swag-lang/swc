@@ -63,7 +63,7 @@ impl ConformanceRun
                 continue
 
             let unit    = data[first until last]
-            let nalType = cast(u32) (unit[0] >> 1) & 0x3F
+            let nalType = cast(u32, (unit[0] >> 1)) & 0x3F
             if nalType == PrefixSeiNal or nalType == SuffixSeiNal
             {
                 .readHashMessages(unit)
@@ -102,7 +102,7 @@ impl ConformanceRun
 
             if offset >= bytes.count do
                 return
-            payloadType += cast(u32) bytes[offset]
+            payloadType += cast(u32, bytes[offset])
             offset      += 1
 
             var payloadSize = 0'u64
@@ -114,7 +114,7 @@ impl ConformanceRun
 
             if offset >= bytes.count do
                 return
-            payloadSize += cast(u64) bytes[offset]
+            payloadSize += cast(u64, bytes[offset])
             offset      += 1
 
             if offset + payloadSize > bytes.count do
@@ -159,32 +159,32 @@ impl ConformanceRun
             let height   = component == 0 ? sps.height : sps.height / sps.subHeightC
             let stride   = component == 0 ? frame.strideLuma : frame.strideChroma
             let plane    = component == 0 ? frame.luma.storage() : (component == 1 ? frame.chromaB.storage() : frame.chromaR.storage())
-            let origin   = cast(u64) Hevc.FramePadding * stride + cast(u64) Hevc.FramePadding
+            let origin   = cast(u64, Hevc.FramePadding) * stride + cast(u64, Hevc.FramePadding)
 
             var digest: Hash.Md5
             digest.reset()
 
             // A sample wider than eight bits contributes two bytes, least significant first.
             var row: Array'u8
-            row.resize(cast(u64) width * (bitDepth > 8 ? 2 : 1))
+            row.resize(cast(u64, width) * (bitDepth > 8 ? 2 : 1))
             let output = row.storage()
 
             for y in height
             {
-                let line = origin + cast(u64) y * stride
+                let line = origin + cast(u64, y) * stride
                 if bitDepth > 8
                 {
                     for x in width
                     {
-                        let value = plane[line + cast(u64) x]
-                        output[cast(u64) x * 2]     = cast(u8) (value & 0xFF)
-                        output[cast(u64) x * 2 + 1] = cast(u8) (value >> 8)
+                        let value = plane[line + cast(u64, x)]
+                        output[cast(u64, x) * 2]     = cast(u8, (value & 0xFF))
+                        output[cast(u64, x) * 2 + 1] = cast(u8, (value >> 8))
                     }
                 }
                 else
                 {
                     for x in width do
-                        output[x] = cast(u8) plane[line + cast(u64) x]
+                        output[x] = cast(u8, plane[line + cast(u64, x)])
                 }
 
                 digest.update(row.toSlice())
@@ -203,7 +203,7 @@ impl ConformanceRun
         for index in count
         {
             if .expected[index] != .produced[index] do
-                return cast(s32) index
+                return cast(s32, index)
         }
 
         return -1
@@ -214,8 +214,8 @@ impl ConformanceRun
 func appendHexByte(text: *String, value: u8)
 {
     const Digits = "0123456789ABCDEF"
-    text.append(Digits[cast(u64) (value >> 4)])
-    text.append(Digits[cast(u64) (value & 15)])
+    text.append(Digits[cast(u64, (value >> 4))])
+    text.append(Digits[cast(u64, (value & 15))])
 }
 
 // Decodes one conformance bitstream and requires every picture to match its own digest.

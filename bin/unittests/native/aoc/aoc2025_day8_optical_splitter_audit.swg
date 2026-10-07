@@ -26,12 +26,12 @@ func countActive(flags: const [..] bool)->u32
 
 func findStartColumn(plan: const [..] string)->u32
 {
-    let firstRow = cast(const [..] u8) plan[0]
+    let firstRow = cast(const [..] u8, plan[0])
 
     for column in firstRow.count
     {
         if firstRow[column] == 'S' do
-            return cast(u32) column
+            return cast(u32, column)
     }
 
     Swag.assert(false)
@@ -42,27 +42,27 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 {
     Swag.assert(plan.count > 0)
 
-    let firstRow = cast(const [..] u8) plan[0]
-    let width    = cast(u32) firstRow.count
+    let firstRow = cast(const [..] u8, plan[0])
+    let width    = cast(u32, firstRow.count)
 
     Swag.assert(width <= 96)
 
     for line in plan
     {
-        Swag.assert((cast(const [..] u8) line).count == width)
+        Swag.assert(cast(const [..] u8, line).count == width)
     }
 
     var current: [96] bool
     var next:    [96] bool
     var result:  SplitterAudit
 
-    result.rowCount    = cast(u32) plan.count
+    result.rowCount    = cast(u32, plan.count)
     result.columnCount = width
     current[findStartColumn(plan)] = true
 
     for row in 1 to plan.count - 1
     {
-        let bytes = cast(const [..] u8) plan[row]
+        let bytes = cast(const [..] u8, plan[row])
 
         for column in width
         {

@@ -9,14 +9,14 @@ enum NarrowPointerKind: u32 { First }
 {
     var storage: [4] u8
     let p   = storage.buffer
-    let bad = cast(u32) p     // swc-expected-error {{sema_err_cannot_cast_pointer_narrowing}}
+    let bad = cast(u32, p)     // swc-expected-error {{sema_err_cannot_cast_pointer_narrowing}}
 }
 
 #test
 {
     var storage: [4] u8
     let p   = storage.buffer
-    let bad = cast(s32) p     // swc-expected-error {{sema_err_cannot_cast_pointer_narrowing}}
+    let bad = cast(s32, p)     // swc-expected-error {{sema_err_cannot_cast_pointer_narrowing}}
 }
 
 #test
@@ -24,5 +24,5 @@ enum NarrowPointerKind: u32 { First }
     // An enum destination is judged on its underlying type.
     var storage: [4] u8
     let p   = storage.buffer
-    let bad = cast(NarrowPointerKind) p     // swc-expected-error {{sema_err_cannot_cast_pointer_narrowing}}
+    let bad = cast(NarrowPointerKind, p)     // swc-expected-error {{sema_err_cannot_cast_pointer_narrowing}}
 }

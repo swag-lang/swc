@@ -106,7 +106,7 @@ impl HtmlPainter
         if alpha >= 1 do
             return color
         var result = color
-        result.a = cast(u8) Math.clamp(cast(f32) color.a * alpha, 0, 255)
+        result.a = cast(u8, Math.clamp(cast(f32, color.a) * alpha, 0, 255))
         return result
     }
 

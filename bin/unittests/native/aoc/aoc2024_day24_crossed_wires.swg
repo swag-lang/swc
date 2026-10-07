@@ -93,8 +93,8 @@ const MaxWireIdx = 46656'u32     // 36^3: max possible encodeWire result + 1
 #[Swag.Inline]
 func charVal(c: u8)->u32
 {
-    if c >= '0' and c <= '9' do return cast(u32) (c - '0')
-    return cast(u32) (c - 'a') + 10
+    if c >= '0' and c <= '9' do return cast(u32, (c - '0'))
+    return cast(u32, (c - 'a')) + 10
 }
 
 #[Swag.Inline]
@@ -145,7 +145,7 @@ struct Circuit
 func circuitInit()->Circuit
 {
     var c: Circuit
-    c.wireVal = cast([*] u8?) testAlloc(cast(u64) MaxWireIdx * #sizeof(u8))
+    c.wireVal = cast([*] u8?, testAlloc(cast(u64, MaxWireIdx) * #sizeof(u8)))
     let total   = MaxWireIdx
     let wireVal = c.wireVal!
     for index in total { wireVal[index] = 255 }
@@ -210,7 +210,7 @@ func skipToNewline(bytes: const [..] u8, pos: *u32)
 
 func parseInitialWires(c: *Circuit, text: string)
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos: u32
 
     for
@@ -238,7 +238,7 @@ func parseInitialWires(c: *Circuit, text: string)
 
 func parseGates(c: *Circuit, text: string)
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos: u32
 
     for
@@ -310,7 +310,7 @@ func parseGates(c: *Circuit, text: string)
         // Track max z-bit
         if o0 == 'z'
         {
-            let bitNum = cast(u32) (o1 - '0') * 10 + cast(u32) (o2 - '0')
+            let bitNum = cast(u32, (o1 - '0')) * 10 + cast(u32, (o2 - '0'))
             if bitNum > c.maxZBit do c.maxZBit = bitNum
         }
 
@@ -360,15 +360,15 @@ func readZValue(c: *Circuit)->u64
     var result: u64
     for bit in c.maxZBit + 1
     {
-        let d0  = cast(u8) (bit / 10) + '0'
-        let d1  = cast(u8) (bit % 10) + '0'
+        let d0  = cast(u8, (bit / 10)) + '0'
+        let d1  = cast(u8, (bit % 10)) + '0'
         let idx = encodeWire('z', d0, d1)
         if c.isSet(idx)
         {
             let val = c.getWire(idx)
             if val == 1
             {
-                result = result | (1'u64 << cast(u64) bit)
+                result = result | (1'u64 << cast(u64, bit))
             }
         }
     }
@@ -453,7 +453,7 @@ func findSwapped(c: *Circuit)->SwappedResult
         let inputsAreXY = isXY(g.nameA0) and isXY(g.nameB0)
 
         // Highest z-bit is the carry-out, skip it for rule 1
-        let isHighestZ = outIsZ and g.nameOut1 == cast(u8) (c.maxZBit / 10) + '0' and g.nameOut2 == cast(u8) (c.maxZBit % 10) + '0'
+        let isHighestZ = outIsZ and g.nameOut1 == cast(u8, (c.maxZBit / 10)) + '0' and g.nameOut2 == cast(u8, (c.maxZBit % 10)) + '0'
 
         // Rule 1: z-output gates must be XOR (except highest)
         if outIsZ and not isHighestZ and g.op != GateOp.OpXor
@@ -472,9 +472,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         if g.op == GateOp.OpXor and inputsAreXY
         {
             let isFirstBit = (g.nameA0 == 'x' and g.nameA0 + 0 == 'x' and
-                              encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
+                              encodeWire(g.nameA0, cast(u8, '0'), cast(u8, '0')) == g.inA) or
                              (g.nameB0 == 'x' and
-                              encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
+                              encodeWire(g.nameB0, cast(u8, '0'), cast(u8, '0')) == g.inB)
 
             if not isFirstBit and not hasDownstream(c, g.out, GateOp.OpXor)
             {
@@ -486,9 +486,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         if g.op == GateOp.OpAnd and inputsAreXY
         {
             let isFirstBit = (g.nameA0 == 'x' and
-                              encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
+                              encodeWire(g.nameA0, cast(u8, '0'), cast(u8, '0')) == g.inA) or
                              (g.nameB0 == 'x' and
-                              encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
+                              encodeWire(g.nameB0, cast(u8, '0'), cast(u8, '0')) == g.inB)
 
             if not isFirstBit and not hasDownstream(c, g.out, GateOp.OpOr)
             {

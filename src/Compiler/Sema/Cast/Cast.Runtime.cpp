@@ -1158,7 +1158,9 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
                 castRequest.failure.codeRef = castRequest.errorCodeRef;
                 return constraints;
             }
-            if ((srcType.isConst() || objectStructType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource)) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            const bool constObject = srcType.isConst() || objectStructType.isConst() ||
+                                     (!srcType.isAnyPointer() && castRequest.flags.has(CastFlagsE::ConstSource));
+            if (constObject && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
             if (castRequest.isConstantFolding())

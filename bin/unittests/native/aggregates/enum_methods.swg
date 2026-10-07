@@ -108,19 +108,19 @@ enum Permissions: u32
 #test
 {
     let rw = Permissions.Read | Permissions.Write
-    Swag.assert((cast(u32) rw & cast(u32) Permissions.Read) != 0)
-    Swag.assert((cast(u32) rw & cast(u32) Permissions.Write) != 0)
-    Swag.assert((cast(u32) rw & cast(u32) Permissions.Execute) == 0)
+    Swag.assert((cast(u32, rw) & cast(u32, Permissions.Read)) != 0)
+    Swag.assert((cast(u32, rw) & cast(u32, Permissions.Write)) != 0)
+    Swag.assert((cast(u32, rw) & cast(u32, Permissions.Execute)) == 0)
 }
 
 #test
 {
     let all = Permissions.Read | Permissions.Write | Permissions.Execute
-    Swag.assert(cast(u32) all == 7)
+    Swag.assert(cast(u32, all) == 7)
     let toggled = all ^ Permissions.Write
-    Swag.assert((cast(u32) toggled & cast(u32) Permissions.Read) != 0)
-    Swag.assert((cast(u32) toggled & cast(u32) Permissions.Write) == 0)
-    Swag.assert((cast(u32) toggled & cast(u32) Permissions.Execute) != 0)
+    Swag.assert((cast(u32, toggled) & cast(u32, Permissions.Read)) != 0)
+    Swag.assert((cast(u32, toggled) & cast(u32, Permissions.Write)) == 0)
+    Swag.assert((cast(u32, toggled) & cast(u32, Permissions.Execute)) != 0)
 }
 
 // Enum used as array index.
@@ -129,9 +129,9 @@ enum Slot: u8 { A, B, C }
 #test
 {
     var values: [3] s32 = [10, 20, 30]
-    Swag.assert(values[cast(u8) Slot.A] == 10)
-    Swag.assert(values[cast(u8) Slot.B] == 20)
-    Swag.assert(values[cast(u8) Slot.C] == 30)
+    Swag.assert(values[cast(u8, Slot.A)] == 10)
+    Swag.assert(values[cast(u8, Slot.B)] == 20)
+    Swag.assert(values[cast(u8, Slot.C)] == 30)
 }
 
 enum ImportedAliasErrors { FailedToLoad, FailedToSave }

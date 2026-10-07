@@ -82,8 +82,8 @@ func countedSortCompares(values: [..] s32)->u64
     var equal:     Core.Array's32
     for i in Count
     {
-        ascending.add(cast(s32) i)
-        reversed.add(cast(s32) (Count - i))
+        ascending.add(cast(s32, i))
+        reversed.add(cast(s32, (Count - i)))
         equal.add(7)
     }
 

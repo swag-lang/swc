@@ -61,30 +61,30 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
     var dir: IconDir
     dir.reserved = 0
     dir.type     = 1
-    dir.count    = cast(u16) images.count
+    dir.count    = cast(u16, images.count)
     result.addStruct(dir)
 
     // Every entry points at its own DIB, so the offsets are known before any pixel is written.
-    var offset = cast(u32) (#sizeof(IconDir) + images.count * #sizeof(IconDirEntry))
+    var offset = cast(u32, (#sizeof(IconDir) + images.count * #sizeof(IconDirEntry)))
     for &image in images
     {
         let dibBytes = dibSizeOf(image)
 
         with var entry: IconDirEntry
         {
-            .width       = cast(u8) (image.width == 256 ? 0 : image.width)
-            .height      = cast(u8) (image.height == 256 ? 0 : image.height)
+            .width       = cast(u8, (image.width == 256 ? 0 : image.width))
+            .height      = cast(u8, (image.height == 256 ? 0 : image.height))
             .colorCount  = 0
             .reserved    = 0
             .planes      = 1
             .bitCount    = 32
-            .bytesInRes  = cast(u32) dibBytes
+            .bytesInRes  = cast(u32, dibBytes)
             .imageOffset = offset
         }
 
         result.addStruct(entry)
 
-        offset += cast(u32) dibBytes
+        offset += cast(u32, dibBytes)
     }
 
     for &image in images do
@@ -101,9 +101,9 @@ public func save(fileName: string, images: const [..] Image) fail
 // Total size of the DIB written for one image.
 private func dibSizeOf(image: Image)->u64
 {
-    let xorStride = cast(u64) image.width * 4
-    let andStride = (((cast(u64) image.width) + 31) / 32) * 4
-    return cast(u64) #sizeof(DibHeader) + xorStride * cast(u64) image.height + andStride * cast(u64) image.height
+    let xorStride = cast(u64, image.width) * 4
+    let andStride = ((cast(u64, image.width) + 31) / 32) * 4
+    return cast(u64, #sizeof(DibHeader)) + xorStride * cast(u64, image.height) + andStride * cast(u64, image.height)
 }
 
 private func appendDib(result: *ConcatBuffer, image: Image)
@@ -111,10 +111,10 @@ private func appendDib(result: *ConcatBuffer, image: Image)
     let width  = image.width
     let height = image.height
 
-    let xorStride = cast(u64) width * 4
-    let andStride = (((cast(u64) width) + 31) / 32) * 4
-    let xorBytes  = xorStride * cast(u64) height
-    let andBytes  = andStride * cast(u64) height
+    let xorStride = cast(u64, width) * 4
+    let andStride = ((cast(u64, width) + 31) / 32) * 4
+    let xorBytes  = xorStride * cast(u64, height)
+    let andBytes  = andStride * cast(u64, height)
 
     // BITMAPINFOHEADER (height is doubled to account for the AND mask)
     var dib: DibHeader
@@ -123,13 +123,13 @@ private func appendDib(result: *ConcatBuffer, image: Image)
     dib.height    = height * 2
     dib.planes    = 1
     dib.bitCount  = 32
-    dib.sizeImage = cast(u32) xorBytes
+    dib.sizeImage = cast(u32, xorBytes)
     result.addStruct(dib)
 
     // XOR (color) data, bottom-up BGRA - matches the internal buffer convention
     for y in height
     {
-        var psrc = image.pixels.storage() + cast(u64) y * image.rowStride
+        var psrc = image.pixels.storage() + cast(u64, y) * image.rowStride
 
         switch image.pixelFormat
         {

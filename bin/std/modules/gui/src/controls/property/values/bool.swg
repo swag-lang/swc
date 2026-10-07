@@ -8,7 +8,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.setState(.Indeterminate)
             else do
-                item.checkBox.setState((cast(const *bool) item.data!)[] ? .Checked : .Unchecked)
+                item.checkBox.setState(cast(const *bool, item.data!)[] ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
         elif item.comboBox != null
@@ -17,13 +17,13 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.clearSelection(notify: false)
             else do
-                item.comboBox.setSelectedIndex((cast(const *bool) item.data!)[] ? 1 : 0, notify: false)
+                item.comboBox.setSelectedIndex(cast(const *bool, item.data!)[] ? 1 : 0, notify: false)
         }
     }
 
     mtd validateBool(item: *PropertiesItem)
     {
-        var data = cast(*bool) item.data!
+        var data = cast(*bool, item.data!)
         if item.checkBox != null
         {
             data[] = item.checkBox.isChecked()
@@ -53,14 +53,14 @@ internal impl Properties
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
-                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
+                .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
             }
 
             item.assignComboBox(ctrl.combo)
         }
         else
         {
-            var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
+            var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
             if not .isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
             with let ed = ComboBox.create(item.line)
@@ -114,7 +114,7 @@ internal impl Properties
         let dispDesc = Reflection.attributeValue(value, Properties.Description, "desc")
         let item     = .addItem(value, data, parentItem, flags: PropertiesAddItemFlags.Name)
 
-        var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
+        var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
         if not .isGridLike() do
             editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().btnPush_Height

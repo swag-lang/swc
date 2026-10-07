@@ -7,7 +7,7 @@ func createModesPage(parent: *Wnd)
     let left = createPanel(parent, "RichEditCtrl form", "Code-oriented chrome using gui3's own mode page source for a very different visual rhythm.", layout.left)
     {
         let rect = left.clientRect()
-        discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(string) SourcePageModes, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
+        discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(string, SourcePageModes), .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     }
 
     let right = createPanel(parent, "Edit form", "A softer document presentation for wrapped notes, review summaries and scratch prose.", layout.right)

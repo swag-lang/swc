@@ -43,7 +43,7 @@ impl RichEditCtrl
         if not line do
             return x
         if line.chars[i] == '\t' do
-            return x + .tabAdvance(cast(s32) x)
+            return x + .tabAdvance(cast(s32, x))
 
         let styleIdx   = line.styles[i]
         let info       = .computeTextDrawInfo(styleIdx)
@@ -148,16 +148,16 @@ impl RichEditCtrl
     // When `numBlanks` is not null, it receives how many space advances `x` lies past the previous stop.
     mtd tabAdvance(x: s32, numBlanks: *s32? = null)->s32
     {
-        let of        = cast(s32) (x - .leftMargin())
+        let of        = cast(s32, (x - .leftMargin()))
         let fontR     = .font().getFont(.styles[0].fontMode)
         let font      = nnFont(fontR)
         let sizeBlank = Painter.measureRune(' ', font)
-        let sx        = cast(s32) (sizeBlank.x * .tabSize)
+        let sx        = cast(s32, (sizeBlank.x * .tabSize))
 
         var tab = (of / sx) * sx
         tab = of - tab
         if numBlanks do
-            numBlanks[] = cast(s32) (tab / sizeBlank.x)
+            numBlanks[] = cast(s32, (tab / sizeBlank.x))
 
         tab = sx - tab
         return tab
@@ -468,7 +468,7 @@ impl RichEditCtrl
     mtd moveCursorStartLine(cp: *RichEditCursor)
     {
         let line = .lines[cp.lineIndex]!
-        var i    = cast(s32) cp.charPosInLine
+        var i    = cast(s32, cp.charPosInLine)
 
         var firstBlank: bool
         if not i
@@ -529,7 +529,7 @@ impl RichEditCtrl
     mtd moveCursorPageUp(cp: *RichEditCursor)
     {
         let client = .edView.clientRect()
-        var count  = cast(s64) (client.height / .xGlyphSize().y)
+        var count  = cast(s64, (client.height / .xGlyphSize().y))
         while count
         {
             if cp.lineIndex == 0 do
@@ -543,7 +543,7 @@ impl RichEditCtrl
     mtd moveCursorPageDown(cp: *RichEditCursor)
     {
         let client = .edView.clientRect()
-        var count  = cast(s64) (client.height / .xGlyphSize().y)
+        var count  = cast(s64, (client.height / .xGlyphSize().y))
         while count
         {
             if cp.lineIndex == .lines.count - 1 do

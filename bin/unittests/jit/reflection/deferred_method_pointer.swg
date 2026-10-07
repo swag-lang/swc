@@ -11,7 +11,7 @@ var MethodReads: s32
 func reflectedMethod()->const *void?
 {
     MethodReads += 1
-    let info = cast(const *Swag.TypeInfoStruct) #type DeferredMethodProbe's32
+    let info = cast(const *Swag.TypeInfoStruct, #type DeferredMethodProbe's32)
     return info.methods![0].value
 }
 
@@ -37,7 +37,7 @@ func callDeferredMethod()->bool
     let pointer = reflectedMethod()
     if pointer == null do
         return false
-    let method = cast(func(const *DeferredMethodProbe's32)->s32) pointer
+    let method = cast(func(const *DeferredMethodProbe's32)->s32, pointer)
     return method(&probe) == 42
 }
 

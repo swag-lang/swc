@@ -129,7 +129,7 @@ impl DepOpaqueGenericBox
 
     mtd(T) addSeed(value: T)->T
     {
-        return value + cast(T) .seed
+        return value + cast(T, .seed)
     }
 }
 
@@ -154,7 +154,7 @@ namespace DepTools
     {
         mtd const impl compute()->u32
         {
-            return cast(u32) .value + 0x100'u32
+            return cast(u32, .value) + 0x100'u32
         }
     }
 

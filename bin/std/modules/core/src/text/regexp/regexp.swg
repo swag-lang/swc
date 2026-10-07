@@ -282,7 +282,7 @@ public impl RegExp
     mtd getCapture(name: string)->string
     {
         for captureName, rank in .captureNames where captureName.toString() == name do
-            return .getCapture(cast(u32) rank)
+            return .getCapture(cast(u32, rank))
         return ""
     }
 
@@ -302,7 +302,7 @@ public impl RegExp
             return result
         }
 
-        let opening = 2 * cast(u64) rank
+        let opening = 2 * cast(u64, rank)
         if opening + 1 >= .slots.count do
             return result
 
@@ -328,7 +328,7 @@ public impl RegExp
     }
 
     // Returns what capture group `idx` matched, the same as [[Core.Parser.RegExp.getCapture]].
-    mtd opIndex(idx: u64)->string => .getCapture(cast(u32) idx)
+    mtd opIndex(idx: u64)->string => .getCapture(cast(u32, idx))
 
     //
     // Rewriting.
@@ -437,7 +437,7 @@ private impl RegExp
         if not .compiled do
             return false
 
-        let hay   = cast(const [..] u8) subject
+        let hay   = cast(const [..] u8, subject)
         let limit = subject.count
 
         // Only the backtracker can run a backreference; every other pattern goes to an engine
@@ -727,7 +727,7 @@ private impl RegExp
         .matched = false
         .subject = subject
 
-        let hay   = cast(const [..] u8) subject
+        let hay   = cast(const [..] u8, subject)
         let limit = subject.count
 
         // Occurrences are collected in batches: appending one at a time would put a container
@@ -832,7 +832,7 @@ private impl RegExp
             held += 1
             if held == BatchSize
             {
-                out.add(Swag.makeSlice(cast(const [*] Span) &batch[0], held))
+                out.add(Swag.makeSlice(cast(const [*] Span, &batch[0]), held))
                 held = 0
             }
 
@@ -854,7 +854,7 @@ private impl RegExp
         }
 
         if held != 0 do
-            out.add(Swag.makeSlice(cast(const [*] Span) &batch[0], held))
+            out.add(Swag.makeSlice(cast(const [*] Span, &batch[0]), held))
         return quit ? at : limit + 1
     }
 
@@ -966,7 +966,7 @@ private impl RegExp
 
             if next >= '0' and next <= '9'
             {
-                dest.append(.getCapture(cast(u32) (next - '0')))
+                dest.append(.getCapture(cast(u32, (next - '0'))))
                 i += 2
                 continue
             }

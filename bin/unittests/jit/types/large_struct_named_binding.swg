@@ -30,7 +30,7 @@ func wideScore(value: Wide)->u32
 {
     #assert(#typeof(value.field32) == FirstKind)
     #assert(#typeof(value.last) == SecondKind)
-    return cast(u32) value.f00 + cast(u32) value.f16 * 10 + cast(u32) value.field32 * 100 + cast(u32) value.last * 1000
+    return cast(u32, value.f00) + cast(u32, value.f16) * 10 + cast(u32, value.field32) * 100 + cast(u32, value.last) * 1000
 }
 
 #test

@@ -5,22 +5,22 @@
 // sum that can reach the sign bit must stay negative when it does.
 
 #[Swag.Optimize(true), Swag.NoInline]
-func countTrue(a, b, c: bool)->s32 => cast(s32) a + cast(s32) b + cast(s32) c
+func countTrue(a, b, c: bool)->s32 => cast(s32, a) + cast(s32, b) + cast(s32, c)
 
 #[Swag.Optimize(true), Swag.NoInline]
-func byteSum(a, b: u8)->s32 => cast(s32) a + cast(s32) b
+func byteSum(a, b: u8)->s32 => cast(s32, a) + cast(s32, b)
 
 #[Swag.Optimize(true), Swag.NoInline]
-func topBits(x: u32)->s32 => cast(s32) (x >> 20)
+func topBits(x: u32)->s32 => cast(s32, (x >> 20))
 
 #[Swag.Optimize(true), Swag.NoInline]
-func lowPart(x: s32)->s64 => cast(s64) (x & 0x7FFF)
+func lowPart(x: s32)->s64 => cast(s64, (x & 0x7FFF))
 
 #[Swag.Optimize(true), Swag.NoInline, Swag.Safety(.Overflow, false)]
-func wideSum(a, b: s32)->s64 => cast(s64) (a + b)
+func wideSum(a, b: s32)->s64 => cast(s64, (a + b))
 
 #[Swag.Optimize(true), Swag.NoInline]
-func pick(flag: bool, a, b: u8)->s32 => flag ? cast(s32) a : cast(s32) b * 3
+func pick(flag: bool, a, b: u8)->s32 => flag ? cast(s32, a) : cast(s32, b) * 3
 
 #test
 {

@@ -3,11 +3,11 @@
 // Closure created in a loop captures by value correctly
 #test
 {
-    var closures: [5] ((func||()->s32)?) = cast((func||()->s32)?) null
+    var closures: [5] ((func||()->s32)?) = cast((func||()->s32)?, null)
 
     for i in 5
     {
-        let idx = cast(s32) i
+        let idx = cast(s32, i)
         closures[i] = func|idx|()->s32 { return idx }
     }
 
@@ -21,11 +21,11 @@
 // Closure captures computed value in loop
 #test
 {
-    var closures: [4] ((func||()->s32)?) = cast((func||()->s32)?) null
+    var closures: [4] ((func||()->s32)?) = cast((func||()->s32)?, null)
 
     for i in 4
     {
-        let squared = cast(s32) (i * i)
+        let squared = cast(s32, (i * i))
         closures[i] = func|squared|()->s32 { return squared }
     }
 
@@ -38,12 +38,12 @@
 // Multiple closures from same iteration capture different values
 #test
 {
-    var adders:   [3] ((func||()->s32)?) = cast((func||()->s32)?) null
-    var doublers: [3] ((func||()->s32)?) = cast((func||()->s32)?) null
+    var adders:   [3] ((func||()->s32)?) = cast((func||()->s32)?, null)
+    var doublers: [3] ((func||()->s32)?) = cast((func||()->s32)?, null)
 
     for i in 3
     {
-        let val = cast(s32) i
+        let val = cast(s32, i)
         adders[i]   = func|val|()->s32 { return val + 10 }
         doublers[i] = func|val|()->s32 { return val * 2 }
     }
@@ -59,7 +59,7 @@
 // Closure in while loop
 #test
 {
-    var closures: [3] ((func||()->s32)?) = cast((func||()->s32)?) null
+    var closures: [3] ((func||()->s32)?) = cast((func||()->s32)?, null)
     var i = 0
     while i < 3
     {

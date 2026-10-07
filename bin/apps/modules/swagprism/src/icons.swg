@@ -18,7 +18,7 @@ func prismIcons()->*IconAtlas
 {
     if not g_PrismIconsParsed
     {
-        expect g_PrismIcons.setup(cast(string) IconsSvg)
+        expect g_PrismIcons.setup(cast(string, IconsSvg))
         g_PrismIconsParsed = true
     }
 

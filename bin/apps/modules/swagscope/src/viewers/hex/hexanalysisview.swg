@@ -47,7 +47,7 @@ private impl HexHistogramView
         let y        = point.y - geometry.origin.y
         if x < 0 or y < 0 or x >= geometry.pitch * 16 or y >= geometry.pitch * 16 do
             return Swag.U32.Max
-        return cast(u32) (y / geometry.pitch) * 16 + cast(u32) (x / geometry.pitch)
+        return cast(u32, (y / geometry.pitch)) * 16 + cast(u32, (x / geometry.pitch))
     }
 }
 
@@ -65,9 +65,9 @@ private impl IWnd for HexHistogramView
             let row      = value / 16
             let column   = value % 16
             let count    = .histogram[value]
-            let strength = count and .maximum ? 0.12'f32 + 0.80'f32 * Math.sqrt(cast(f32) count / cast(f32) .maximum) : 0
+            let strength = count and .maximum ? 0.12'f32 + 0.80'f32 * Math.sqrt(cast(f32, count) / cast(f32, .maximum)) : 0
             let color    = Color.lerp(colors.wnd_Bk, alternate, strength)
-            let box      = Math.Rectangle{geometry.origin.x + cast(f32) column * geometry.pitch, geometry.origin.y + cast(f32) row * geometry.pitch, geometry.cell, geometry.cell}
+            let box      = Math.Rectangle{geometry.origin.x + cast(f32, column) * geometry.pitch, geometry.origin.y + cast(f32, row) * geometry.pitch, geometry.cell, geometry.cell}
             painter.fillRoundRect(box, corner, corner, color)
             if value == .hovered do
                 painter.drawRoundRect(box, corner, corner, colors.hilight, 1)
@@ -190,7 +190,7 @@ private impl HexAnalysisView
         }
 
         let count = .result.histogram[value]
-        let share = cast(f64) count * 100 / cast(f64) .result.scanned
+        let share = cast(f64, count) * 100 / cast(f64, .result.scanned)
         .byteLabel.setText(Format.toString(hexStrings().ui_AnalysisByte, value, count, share))
     }
 
@@ -229,8 +229,8 @@ private impl HexAnalysisView
         }
         elif .result.scanned
         {
-            let zero      = cast(f64) .result.zeroCount * 100 / cast(f64) .result.scanned
-            let printable = cast(f64) .result.printableCount * 100 / cast(f64) .result.scanned
+            let zero      = cast(f64, .result.zeroCount) * 100 / cast(f64, .result.scanned)
+            let printable = cast(f64, .result.printableCount) * 100 / cast(f64, .result.scanned)
             .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisMetrics, .result.entropy, zero, printable))
         }
         else
@@ -346,7 +346,7 @@ impl HexAnalysisView
     // Shows the share of the range `processed` bytes represent.
     mtd setProgress(processed: u64)
     {
-        let percent = .result.range.length ? cast(f64) processed * 100 / cast(f64) .result.range.length : 100
+        let percent = .result.range.length ? cast(f64, processed) * 100 / cast(f64, .result.range.length) : 100
         .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisProgress, percent))
     }
 
@@ -357,7 +357,7 @@ impl HexAnalysisView
         .refreshResultText()
         .histogram.setResult(&.result)
         .updateByteDetail(Swag.U32.Max)
-        .stringsList.setVirtualCount(cast(u32) .result.strings.count)
+        .stringsList.setVirtualCount(cast(u32, .result.strings.count))
         .cancelButton.hide()
         .analyzeButton.show()
         .invalidate()
@@ -437,5 +437,5 @@ impl HexAnalysisView
 private func fillHexAnalysisStringLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line do
-        (cast #assume(*HexAnalysisView) list.parent!).fillStringLine(line, index)
+        assume cast(*HexAnalysisView, list.parent).fillStringLine(line, index)
 }

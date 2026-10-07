@@ -58,7 +58,7 @@ using Swag, Core, Pixel
     for row in Rows
     {
         for column in Columns do
-            discard PushButton.create(&host.root, "grid", {cast(f32) (column * 78 + 4), cast(f32) (row * 46 + 4), 70, 38})
+            discard PushButton.create(&host.root, "grid", {cast(f32, (column * 78 + 4)), cast(f32, (row * 46 + 4)), 70, 38})
     }
 
     host.pump()

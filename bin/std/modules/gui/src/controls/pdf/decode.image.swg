@@ -36,11 +36,11 @@ struct ImageSpace
     unsupported: bool
 }
 
-private const GrayExpand0 = cast(Math.Simd.U8x16) [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5]
-private const GrayExpand1 = cast(Math.Simd.U8x16) [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10]
-private const GrayExpand2 = cast(Math.Simd.U8x16) [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15]
-private const CmykGather  = cast(Math.Simd.U8x16) [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
-private const CmykSpreadK = cast(Math.Simd.U8x16) [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80]
+private const GrayExpand0 = cast(Math.Simd.U8x16, [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5])
+private const GrayExpand1 = cast(Math.Simd.U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10])
+private const GrayExpand2 = cast(Math.Simd.U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
+private const CmykGather  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
+private const CmykSpreadK = cast(Math.Simd.U8x16, [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
 {
@@ -79,7 +79,7 @@ private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
         let k      = Math.Simd.shuffle(values, CmykSpreadK)
         let rgb    = Math.Simd.splat(255'u8) - Math.Simd.addSaturating(cmy, k)
         Math.Simd.storeLow8(dst, rgb)
-        (cast([*] u32) (dst + 8))[0] = (cast #bit(Math.Simd.U32x4) rgb)[2]
+        cast([*] u32, (dst + 8))[0] = cast #bit(Math.Simd.U32x4, rgb)[2]
         src  += 16
         dst  += 12
         left -= 4
@@ -88,7 +88,7 @@ private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
     var target: [3] u8
     while left
     {
-        cmykToRgb(cast(f32) src[0] / 255.0, cast(f32) src[1] / 255.0, cast(f32) src[2] / 255.0, cast(f32) src[3] / 255.0, target)
+        cmykToRgb(cast(f32, src[0]) / 255.0, cast(f32, src[1]) / 255.0, cast(f32, src[2]) / 255.0, cast(f32, src[3]) / 255.0, target)
         dst[0] = target[0]
         dst[1] = target[1]
         dst[2] = target[2]
@@ -107,20 +107,20 @@ private struct SamplePlane
     height: s32
 }
 
-func componentByte(value: f32)->u8 => cast(u8) Math.clamp(Math.round(value * 255.0), 0, 255)
+func componentByte(value: f32)->u8 => cast(u8, Math.clamp(Math.round(value * 255.0), 0, 255))
 
 func grayColor(value: f64)->Color
 {
-    let level = componentByte(cast(f32) value)
+    let level = componentByte(cast(f32, value))
     return Color.fromRgb(level, level, level)
 }
 
-func rgbColor(r, g, b: f64)->Color => Color.fromRgb(componentByte(cast(f32) r), componentByte(cast(f32) g), componentByte(cast(f32) b))
+func rgbColor(r, g, b: f64)->Color => Color.fromRgb(componentByte(cast(f32, r)), componentByte(cast(f32, g)), componentByte(cast(f32, b)))
 
 func cmykColor(c, m, y, k: f64)->Color
 {
     var target: [3] u8
-    cmykToRgb(cast(f32) c, cast(f32) m, cast(f32) y, cast(f32) k, target)
+    cmykToRgb(cast(f32, c), cast(f32, m), cast(f32, y), cast(f32, k), target)
     return Color.fromRgb(target[0], target[1], target[2])
 }
 
@@ -171,11 +171,11 @@ func spaceColor(space: const *ImageSpace, values: const [..] f32)->Color
 
     if not values.count or not space.palette.count do
         return Color.fromArgb(Argb.Black)
-    let index = cast(u64) Math.clamp(cast(s32) Math.round(operands[0]), 0, cast(s32) space.hival)
-    let entry = index * cast(u64) space.baseComponents
+    let index = cast(u64, Math.clamp(cast(s32, Math.round(operands[0])), 0, cast(s32, space.hival)))
+    let entry = index * cast(u64, space.baseComponents)
     var base: [8] f32
     for i in Math.min(space.baseComponents, 8'u32) do
-        base[i] = cast(f32) space.palette[entry + i] / 255.0
+        base[i] = cast(f32, space.palette[entry + i]) / 255.0
 
     var palette = space[]
     palette.components = space.baseComponents
@@ -193,13 +193,13 @@ private func sampleAt(data: const [..] u8, rowBase: u64, index: u64, bits: u32)-
 
     case 16:
         let offset = rowBase + index * 2
-        return cast(u32) data[offset] << 8 | data[offset + 1]
+        return cast(u32, data[offset]) << 8 | data[offset + 1]
     }
 
     let bit   = index * bits
     let byte  = data[rowBase + bit / 8]
-    let shift = 8 - bits - cast(u32) (bit % 8)
-    return (cast(u32) byte >> shift) & ((1'u32 << bits) - 1)
+    let shift = 8 - bits - cast(u32, (bit % 8))
+    return (cast(u32, byte) >> shift) & ((1'u32 << bits) - 1)
 }
 
 // Reduces a color space named by a `cs`, `CS`, or `/ColorSpace` entry.
@@ -288,7 +288,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         if rangeId != InvalidNode and parser.nodes[rangeId].kind == .Array and parser.nodes[rangeId].values.count >= 4
         {
             for i in 4'u64 do
-                result.range[i] = cast(f32) parser.number(parser.nodes[rangeId].values[i])
+                result.range[i] = cast(f32, parser.number(parser.nodes[rangeId].values[i]))
         }
 
         return result
@@ -308,17 +308,17 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         result.baseKind       = base.kind
         result.baseComponents = base.components
         result.range          = base.range
-        result.hival          = cast(u32) hival
+        result.hival          = cast(u32, hival)
 
         let lookup = parser.resolve(values[3])
         if lookup == InvalidNode do
             fail InvalidFormatError{"PDF indexed color space has no lookup table"}
         if parser.nodes[lookup].kind == .String do
-            result.palette = cast(const [..] u8) parser.nodes[lookup].text.toString()
+            result.palette = cast(const [..] u8, parser.nodes[lookup].text.toString())
         else do
             result.palette = #move try parser.decodeStream(lookup)
 
-        let needed = cast(u64) (result.hival + 1) * cast(u64) base.components
+        let needed = cast(u64, (result.hival + 1)) * cast(u64, base.components)
         if result.palette.count < needed do
             fail InvalidFormatError{"PDF indexed color space lookup table is truncated"}
         return result
@@ -333,7 +333,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         if names == InvalidNode or parser.nodes[names].kind != .Array or not parser.nodes[names].values.count do
             fail InvalidFormatError{"PDF DeviceN color space names no colorants"}
         result.kind       = .Subtractive
-        result.components = cast(u32) parser.nodes[names].values.count
+        result.components = cast(u32, parser.nodes[names].values.count)
         return result
     }
 
@@ -423,24 +423,24 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     let height = parser.integer(parser.dict(nodeId, "Height"))
     if width <= 0 or height <= 0 or width > Swag.S32.Max or height > Swag.S32.Max do
         fail InvalidFormatError{"PDF image has invalid dimensions"}
-    result.width  = cast(s32) width
-    result.height = cast(s32) height
+    result.width  = cast(s32, width)
+    result.height = cast(s32, height)
 
     let bits = parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8)
     if bits != 1 and bits != 2 and bits != 4 and bits != 8 and bits != 16 do
         fail UnsupportedFormatError{"PDF image bit depth is not supported"}
-    let depth = cast(u32) bits
+    let depth = cast(u32, bits)
 
     let space      = #move try resolveImageSpace(parser, parser.dictRaw(nodeId, "ColorSpace"), resourcesId, 0)
     let bytes      = #move try parser.decodeStream(nodeId)
-    let pixelCount = cast(u64) width * cast(u64) height
-    let rowBytes   = (cast(u64) space.components * cast(u64) depth * cast(u64) width + 7) / 8
-    if bytes.count < rowBytes * cast(u64) height do
+    let pixelCount = cast(u64, width) * cast(u64, height)
+    let rowBytes   = (cast(u64, space.components) * cast(u64, depth) * cast(u64, width) + 7) / 8
+    if bytes.count < rowBytes * cast(u64, height) do
         fail InvalidFormatError{"PDF image stream is truncated"}
 
     // `/Decode` remaps each raw sample onto the range the color space expects; every space
     // but Indexed and Lab defaults to zero through one.
-    let maxValue = cast(f32) ((1'u64 << depth) - 1)
+    let maxValue = cast(f32, ((1'u64 << depth) - 1))
     var lowest:  [8] f32
     var highest: [8] f32
     let count    = Math.min(space.components, 8'u32)
@@ -464,12 +464,12 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     }
 
     let decodeId = parser.dict(nodeId, "Decode")
-    if decodeId != InvalidNode and parser.nodes[decodeId].kind == .Array and parser.nodes[decodeId].values.count >= cast(u64) count * 2
+    if decodeId != InvalidNode and parser.nodes[decodeId].kind == .Array and parser.nodes[decodeId].values.count >= cast(u64, count) * 2
     {
         for i in count
         {
-            lowest[i]  = cast(f32) parser.number(parser.nodes[decodeId].values[i * 2])
-            highest[i] = cast(f32) parser.number(parser.nodes[decodeId].values[i * 2 + 1])
+            lowest[i]  = cast(f32, parser.number(parser.nodes[decodeId].values[i * 2]))
+            highest[i] = cast(f32, parser.number(parser.nodes[decodeId].values[i * 2 + 1]))
         }
     }
 
@@ -497,18 +497,18 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
 
     var components: [8] f32
     var target:     [3] u8
-    for y in cast(u64) height
+    for y in cast(u64, height)
     {
         let rowBase = y * rowBytes
-        for x in cast(u64) width
+        for x in cast(u64, width)
         {
             for i in count
             {
-                let raw = sampleAt(bytes.toSlice(), rowBase, x * cast(u64) space.components + i, depth)
-                components[i] = lowest[i] + cast(f32) raw * (highest[i] - lowest[i]) / maxValue
+                let raw = sampleAt(bytes.toSlice(), rowBase, x * cast(u64, space.components) + i, depth)
+                components[i] = lowest[i] + cast(f32, raw) * (highest[i] - lowest[i]) / maxValue
             }
 
-            let pixel = (y * cast(u64) width + x) * 3
+            let pixel = (y * cast(u64, width) + x) * 3
             if space.kind != .Indexed
             {
                 writeColor(&space, space.kind, components, target)
@@ -518,12 +518,12 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
                 continue
             }
 
-            let index     = cast(u32) Math.clamp(cast(s32) Math.round(components[0]), 0, cast(s32) space.hival)
+            let index     = cast(u32, Math.clamp(cast(s32, Math.round(components[0])), 0, cast(s32, space.hival)))
             let baseCount = Math.min(space.baseComponents, 8'u32)
-            let entry     = cast(u64) index * cast(u64) space.baseComponents
+            let entry     = cast(u64, index) * cast(u64, space.baseComponents)
             var base: [8] f32
             for i in baseCount do
-                base[i] = cast(f32) space.palette[entry + i] / 255.0
+                base[i] = cast(f32, space.palette[entry + i]) / 255.0
 
             // A palette entry is always eight bits wide, so a Lab base needs its own ranges
             // restored before the entry becomes a color.
@@ -554,21 +554,21 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
     if maskId == InvalidNode or parser.nodes[maskId].kind != .Array do
         return
     let ranges = parser.nodes[maskId].values
-    if ranges.count < cast(u64) space.components * 2 do
+    if ranges.count < cast(u64, space.components) * 2 do
         fail InvalidFormatError{"PDF color key mask does not cover every component"}
 
-    plane.alpha.resize(cast(u64) plane.width * cast(u64) plane.height)
+    plane.alpha.resize(cast(u64, plane.width) * cast(u64, plane.height))
     for i in plane.alpha.count do
         plane.alpha[i] = 0xFF
-    for y in cast(u64) plane.height
+    for y in cast(u64, plane.height)
     {
         let rowBase = y * rowBytes
-        for x in cast(u64) plane.width
+        for x in cast(u64, plane.width)
         {
             var masked = true
             for i in space.components
             {
-                let raw   = cast(s64) sampleAt(bytes, rowBase, x * cast(u64) space.components + i, depth)
+                let raw   = cast(s64, sampleAt(bytes, rowBase, x * cast(u64, space.components) + i, depth))
                 let lower = parser.integer(ranges[i * 2])
                 let upper = parser.integer(ranges[i * 2 + 1])
                 if raw < lower or raw > upper
@@ -579,7 +579,7 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
             }
 
             if masked do
-                plane.alpha[y * cast(u64) plane.width + x] = 0
+                plane.alpha[y * cast(u64, plane.width) + x] = 0
         }
     }
 }
@@ -594,13 +594,13 @@ private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil
         let decoded = #move try Image.decode(".jpg", raw.toSlice())
         result.width  = decoded.width
         result.height = decoded.height
-        result.alpha.resize(cast(u64) decoded.width * cast(u64) decoded.height)
-        for y in cast(u64) decoded.height
+        result.alpha.resize(cast(u64, decoded.width) * cast(u64, decoded.height))
+        for y in cast(u64, decoded.height)
         {
-            for x in cast(u64) decoded.width
+            for x in cast(u64, decoded.width)
             {
-                let source = ((cast(u64) decoded.height - y - 1) * cast(u64) decoded.width + x) * decoded.bytesPerPixel
-                result.alpha[y * cast(u64) decoded.width + x] = decoded.pixels[source]
+                let source = ((cast(u64, decoded.height) - y - 1) * cast(u64, decoded.width) + x) * decoded.bytesPerPixel
+                result.alpha[y * cast(u64, decoded.width) + x] = decoded.pixels[source]
             }
         }
 
@@ -615,10 +615,10 @@ private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil
     if bits != 1 and bits != 2 and bits != 4 and bits != 8 and bits != 16 do
         fail UnsupportedFormatError{"PDF image mask bit depth is not supported"}
 
-    let depth    = cast(u32) bits
+    let depth    = cast(u32, bits)
     let bytes    = #move try parser.decodeStream(nodeId)
-    let rowBytes = (cast(u64) depth * cast(u64) width + 7) / 8
-    if bytes.count < rowBytes * cast(u64) height do
+    let rowBytes = (cast(u64, depth) * cast(u64, width) + 7) / 8
+    if bytes.count < rowBytes * cast(u64, height) do
         fail InvalidFormatError{"PDF image mask stream is truncated"}
 
     // A stencil mask paints where the sample is zero, so its default decode inverts the
@@ -628,23 +628,23 @@ private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil
     let decodeId = parser.dict(nodeId, "Decode")
     if decodeId != InvalidNode and parser.nodes[decodeId].kind == .Array and parser.nodes[decodeId].values.count >= 2
     {
-        let first  = cast(f32) parser.number(parser.nodes[decodeId].values[0])
-        let second = cast(f32) parser.number(parser.nodes[decodeId].values[1])
+        let first  = cast(f32, parser.number(parser.nodes[decodeId].values[0]))
+        let second = cast(f32, parser.number(parser.nodes[decodeId].values[1]))
         lowest  = stencil ? 1.0 - first : first
         highest = stencil ? 1.0 - second : second
     }
 
-    let maxValue = cast(f32) ((1'u64 << depth) - 1)
-    result.width  = cast(s32) width
-    result.height = cast(s32) height
-    result.alpha.resize(cast(u64) width * cast(u64) height)
-    for y in cast(u64) height
+    let maxValue = cast(f32, ((1'u64 << depth) - 1))
+    result.width  = cast(s32, width)
+    result.height = cast(s32, height)
+    result.alpha.resize(cast(u64, width) * cast(u64, height))
+    for y in cast(u64, height)
     {
         let rowBase = y * rowBytes
-        for x in cast(u64) width
+        for x in cast(u64, width)
         {
             let raw = sampleAt(bytes.toSlice(), rowBase, x, depth)
-            result.alpha[y * cast(u64) width + x] = componentByte(lowest + cast(f32) raw * (highest - lowest) / maxValue)
+            result.alpha[y * cast(u64, width) + x] = componentByte(lowest + cast(f32, raw) * (highest - lowest) / maxValue)
         }
     }
 
@@ -654,16 +654,16 @@ private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil
 // Samples a coverage plane at the resolution of the image it masks.
 private func sampleAlpha(mask: const *SamplePlane, x, y: u64, width, height: u64)->u8
 {
-    let sourceX = Math.min(cast(u64) mask.width - 1, x * cast(u64) mask.width / width)
-    let sourceY = Math.min(cast(u64) mask.height - 1, y * cast(u64) mask.height / height)
-    return mask.alpha[sourceY * cast(u64) mask.width + sourceX]
+    let sourceX = Math.min(cast(u64, mask.width) - 1, x * cast(u64, mask.width) / width)
+    let sourceY = Math.min(cast(u64, mask.height) - 1, y * cast(u64, mask.height) / height)
+    return mask.alpha[sourceY * cast(u64, mask.width) + sourceX]
 }
 
 // Turns a top-down plane into a Pixel image, whose rows run bottom-up.
 private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
 {
-    let width  = cast(u64) plane.width
-    let height = cast(u64) plane.height
+    let width  = cast(u64, plane.width)
+    let height = cast(u64, plane.height)
 
     // A plane is stored top-down and an image bottom-up, so the rows are reversed on the way
     // out. Building a second buffer to hand to `create` would walk every pixel one more time
@@ -675,7 +675,7 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
         let source = plane.rgb.storage()
         let stride = width * 3
         for row in height do
-            Memory.copy(target + row * cast(u64) result.rowStride, source + (height - row - 1) * stride, stride)
+            Memory.copy(target + row * cast(u64, result.rowStride), source + (height - row - 1) * stride, stride)
         return #move result
     }
 
@@ -689,7 +689,7 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     {
         for y in height
         {
-            var out      = pixels + (height - y - 1) * cast(u64) result.rowStride
+            var out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
             var coverage = alpha + y * width
             for width
             {
@@ -708,7 +708,7 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
     let source = plane.rgb.storage()
     for y in height
     {
-        var out       = pixels + (height - y - 1) * cast(u64) result.rowStride
+        var out       = pixels + (height - y - 1) * cast(u64, result.rowStride)
         var component = source + y * width * 3
         var coverage  = alpha + y * width
         for width
@@ -795,16 +795,16 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
         plane.width  = decoded.width
         plane.height = decoded.height
-        plane.rgb.resize(cast(u64) decoded.width * cast(u64) decoded.height * 3)
+        plane.rgb.resize(cast(u64, decoded.width) * cast(u64, decoded.height) * 3)
 
         // Pixel hands back a bottom-up image; the plane is top-down until it is flipped back.
         let swapRedBlue = decoded.pixelFormat == .BGR8 or decoded.pixelFormat == .BGRA8
-        let step        = cast(u64) decoded.bytesPerPixel
-        for y in cast(u64) decoded.height
+        let step        = cast(u64, decoded.bytesPerPixel)
+        for y in cast(u64, decoded.height)
         {
-            var out    = plane.rgb.storage() + y * cast(u64) decoded.width * 3
-            var sample = decoded.pixels.storage() + (cast(u64) decoded.height - y - 1) * cast(u64) decoded.width * step
-            for cast(u64) decoded.width
+            var out    = plane.rgb.storage() + y * cast(u64, decoded.width) * 3
+            var sample = decoded.pixels.storage() + (cast(u64, decoded.height) - y - 1) * cast(u64, decoded.width) * step
+            for cast(u64, decoded.width)
             {
                 out[0] = sample[swapRedBlue ? 2 : 0]
                 out[1] = sample[1]
@@ -824,8 +824,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         let mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
         if mask.alpha.count
         {
-            let width  = cast(u64) plane.width
-            let height = cast(u64) plane.height
+            let width  = cast(u64, plane.width)
+            let height = cast(u64, plane.height)
             plane.alpha.resize(width * height)
             for y in height
             {

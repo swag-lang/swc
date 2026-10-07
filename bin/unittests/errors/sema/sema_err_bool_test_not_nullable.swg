@@ -104,13 +104,13 @@ func nonNullConditionErrTernary(item: *NonNullConditionItem)->s32
 
 func nonNullConditionErrExplicitCast(item: *NonNullConditionItem)->bool
 {
-    return cast(bool) item     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    return cast(bool, item)     // swc-expected-error {{sema_err_bool_test_not_nullable}}
 }
 
 func nonNullConditionErrBlockPointer(bytes: [*] u8)->s32
 {
     if bytes do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
-        return cast(s32) bytes[0]
+        return cast(s32, bytes[0])
     return 0
 }
 

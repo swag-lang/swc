@@ -78,9 +78,9 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         elif isCoffObject(image) or image.has(dataAt, PeFileHeaderSize)
         {
             let machine = image.u16At(dataAt)
-            report.hexField(dataAt, 2, "Machine", cast(u64) machine, peMachineName(machine))
-            report.numField(dataAt + 2, 2, "NumberOfSections", cast(u64) image.u16At(dataAt + 2))
-            report.numField(dataAt + 12, 4, "NumberOfSymbols", cast(u64) image.u32At(dataAt + 12))
+            report.hexField(dataAt, 2, "Machine", cast(u64, machine), peMachineName(machine))
+            report.numField(dataAt + 2, 2, "NumberOfSections", cast(u64, image.u16At(dataAt + 2)))
+            report.numField(dataAt + 12, 4, "NumberOfSymbols", cast(u64, image.u32At(dataAt + 12)))
             objects += 1
         }
 
@@ -123,14 +123,14 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
     image.bigEndian = first
     defer image.bigEndian = false
 
-    var count    = cast(u64) image.u32At(at)
+    var count    = cast(u64, image.u32At(at))
     var namesAt  = at + 4 + count * 4
     var offsetAt = at + 4
 
     if not first
     {
-        let memberCount = cast(u64) image.u32At(at)
-        count    = cast(u64) image.u32At(at + 4 + memberCount * 4)
+        let memberCount = cast(u64, image.u32At(at))
+        count    = cast(u64, image.u32At(at + 4 + memberCount * 4))
         offsetAt = at + 4 + memberCount * 4 + 4
         namesAt  = offsetAt + count * 2
         report.numField(at, 4, "NumberOfMembers", memberCount)
@@ -146,7 +146,7 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
         let name = image.cstringAt(nameAt)
         if name.isEmpty() do
             break
-        let target = first ? cast(u64) image.u32At(offsetAt + index * 4) : cast(u64) image.u16At(offsetAt + index * 2)
+        let target = first ? cast(u64, image.u32At(offsetAt + index * 4)) : cast(u64, image.u16At(offsetAt + index * 2))
         let value  = first ? hexText(target, 8) : Format.toString("%", target)
         report.field(nameAt, name.length + 1, name.toString(), value.toString())
         nameAt += name.length + 1
@@ -165,15 +165,15 @@ private func reportArImportMember(image: *BinaryImage, report: *BinaryReport, at
     let flags   = image.u16At(at + 18)
     let symbol  = image.cstringAt(at + 20)
     let library = image.cstringAt(at + 20 + symbol.length + 1)
-    let stamp   = epochText(cast(u64) image.u32At(at + 8))
+    let stamp   = epochText(cast(u64, image.u32At(at + 8)))
     let origin  = Format.toString(s.ar_ImportDll, library)
 
     report.beginGroup(s.ar_Import, symbol.toString(), origin.toString(), offset: at, length: 20)
-    report.hexField(at + 6, 2, "Machine", cast(u64) machine, peMachineName(machine))
+    report.hexField(at + 6, 2, "Machine", cast(u64, machine), peMachineName(machine))
     report.field(at + 8, 4, "TimeDateStamp", stamp.toString())
-    report.sizeField(at + 12, 4, "SizeOfData", cast(u64) image.u32At(at + 12))
-    report.numField(at + 16, 2, "OrdinalOrHint", cast(u64) ordinal)
-    report.hexField(at + 18, 2, "Type", cast(u64) flags, arImportTypeName(flags))
+    report.sizeField(at + 12, 4, "SizeOfData", cast(u64, image.u32At(at + 12)))
+    report.numField(at + 16, 2, "OrdinalOrHint", cast(u64, ordinal))
+    report.hexField(at + 18, 2, "Type", cast(u64, flags), arImportTypeName(flags))
     report.field(at + 20, symbol.length + 1, "Symbol", symbol.toString())
     report.field(at + 20 + symbol.length + 1, library.length + 1, "Library", library.toString())
     report.endGroup()
@@ -220,7 +220,7 @@ private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->S
         {
             if raw[index] < '0'u8 or raw[index] > '9'u8 do
                 break
-            offset = offset * 10 + cast(u64) (raw[index] - '0'u8)
+            offset = offset * 10 + cast(u64, (raw[index] - '0'u8))
         }
 
         let name = image.cstringAt(longNamesAt + offset)
@@ -244,7 +244,7 @@ private func arDecimalAt(image: *BinaryImage, at, length: u64)->u64
             continue
         if value < '0'u8 or value > '9'u8 do
             break
-        result = result * 10 + cast(u64) (value - '0'u8)
+        result = result * 10 + cast(u64, (value - '0'u8))
     }
 
     return result

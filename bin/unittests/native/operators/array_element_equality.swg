@@ -42,7 +42,7 @@ struct Holder
 }
 
 #[Swag.Optimize(false)]
-func viewText(buffer: const [*] u8, count: u64)->string => cast(string) Swag.makeSlice(buffer, count)
+func viewText(buffer: const [*] u8, count: u64)->string => cast(string, Swag.makeSlice(buffer, count))
 
 #[Swag.Optimize(false)]
 func viewBytes(buffer: const [*] u8, count: u64)->const [..] u8 => Swag.makeSlice(buffer, count)
@@ -73,10 +73,10 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 // A 'string' element compares the content it views, like a bare 'string' does.
 #test
 {
-    let left  = viewText(cast(const [*] u8) &g_left[0], 3)
-    let right = viewText(cast(const [*] u8) &g_right[0], 3)
-    let other = viewText(cast(const [*] u8) &g_other[0], 3)
-    let short = viewText(cast(const [*] u8) &g_left[0], 2)
+    let left  = viewText(cast(const [*] u8, &g_left[0]), 3)
+    let right = viewText(cast(const [*] u8, &g_right[0]), 3)
+    let other = viewText(cast(const [*] u8, &g_other[0]), 3)
+    let short = viewText(cast(const [*] u8, &g_left[0]), 2)
 
     Swag.assert(left == right)
     Swag.assert(eqNames([left, left], [right, right]))
@@ -89,9 +89,9 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 // A second dimension keeps the element comparison.
 #test
 {
-    let left  = viewText(cast(const [*] u8) &g_left[0], 3)
-    let right = viewText(cast(const [*] u8) &g_right[0], 3)
-    let other = viewText(cast(const [*] u8) &g_other[0], 3)
+    let left  = viewText(cast(const [*] u8, &g_left[0]), 3)
+    let right = viewText(cast(const [*] u8, &g_right[0]), 3)
+    let other = viewText(cast(const [*] u8, &g_other[0]), 3)
 
     var same:      [2, 2] string = [[left, left], [left, left]]
     var equal:     [2, 2] string = [[right, right], [right, right]]
@@ -104,9 +104,9 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 // A slice element compares its content, like a bare slice does.
 #test
 {
-    let left  = viewBytes(cast(const [*] u8) &g_left[0], 3)
-    let right = viewBytes(cast(const [*] u8) &g_right[0], 3)
-    let other = viewBytes(cast(const [*] u8) &g_other[0], 3)
+    let left  = viewBytes(cast(const [*] u8, &g_left[0]), 3)
+    let right = viewBytes(cast(const [*] u8, &g_right[0]), 3)
+    let other = viewBytes(cast(const [*] u8, &g_other[0]), 3)
 
     Swag.assert(left == right)
     Swag.assert(eqViews([left, left], [right, right]))
@@ -131,9 +131,9 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 // A struct holding such an array asks the array, which asks its elements.
 #test
 {
-    let left  = viewText(cast(const [*] u8) &g_left[0], 3)
-    let right = viewText(cast(const [*] u8) &g_right[0], 3)
-    let other = viewText(cast(const [*] u8) &g_other[0], 3)
+    let left  = viewText(cast(const [*] u8, &g_left[0]), 3)
+    let right = viewText(cast(const [*] u8, &g_right[0]), 3)
+    let other = viewText(cast(const [*] u8, &g_other[0]), 3)
 
     Swag.assert(eqHolder(Holder{[left, left], 7}, Holder{[right, right], 7}))
     Swag.assert(not eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))

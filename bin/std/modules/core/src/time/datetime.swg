@@ -131,7 +131,7 @@ impl DateTime
         let y: u32 = .year - m / 10
         var dn     = 365 * y + #wrap y / 4 + #wrap y / 400 + #wrap (m * 306 + 5) / 10 + #wrap .day - 1 - #wrap y / 100
         dn += 3
-        return cast(DayOfWeek) (dn % 7)
+        return cast(DayOfWeek, (dn % 7))
     }
 
     // Returns the English name of `month`, numbered from 1 to 12.
@@ -142,7 +142,7 @@ impl DateTime
     }
 
     // Returns the English name of `day`.
-    func dayOfWeekName(day: DayOfWeek)->string => DayOfWeekNames[cast(u32) day]
+    func dayOfWeekName(day: DayOfWeek)->string => DayOfWeekNames[cast(u32, day)]
 
     // Parses an 8-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
@@ -151,7 +151,7 @@ impl DateTime
         if ovf do
             fail SyntaxError{}
         eat[] += eat0
-        buf[] = Tokenize.eatCount(buf[], cast(u64) eat0)
+        buf[] = Tokenize.eatCount(buf[], cast(u64, eat0))
         return value
     }
 
@@ -162,7 +162,7 @@ impl DateTime
         if ovf do
             fail SyntaxError{}
         eat[] += eat0
-        buf[] = Tokenize.eatCount(buf[], cast(u64) eat0)
+        buf[] = Tokenize.eatCount(buf[], cast(u64, eat0))
         return value
     }
 
@@ -202,9 +202,9 @@ impl DateTime
                 let len = dow.count
                 if buf[until Math.min(buf.count, len)] == dow
                 {
-                    dayOfWeek  = cast() idx
-                    buf        = Tokenize.eatCount(buf, cast(u64) len)
-                    result.eat += cast(u32) len
+                    dayOfWeek  = cast(idx)
+                    buf        = Tokenize.eatCount(buf, cast(u64, len))
+                    result.eat += cast(u32, len)
                     done       = true
                     break
                 }
@@ -222,9 +222,9 @@ impl DateTime
                 let len = name.count
                 if buf[until Math.min(buf.count, len)] == name
                 {
-                    result.value.month = cast(u16) idx + 1
-                    buf                = Tokenize.eatCount(buf, cast(u64) len)
-                    result.eat         += cast(u32) len
+                    result.value.month = cast(u16, idx) + 1
+                    buf                = Tokenize.eatCount(buf, cast(u64, len))
+                    result.eat         += cast(u32, len)
                     done               = true
                     break
                 }
@@ -300,7 +300,7 @@ impl DateTime
             {
                 try parseSep(&buf, '.', &result.eat)
                 let start    = result.eat
-                var fraction = cast(u32) (try parseU16(&buf, &result.eat))
+                var fraction = cast(u32, (try parseU16(&buf, &result.eat)))
                 var digits   = result.eat - start
                 while digits < 3
                 {
@@ -314,7 +314,7 @@ impl DateTime
                     digits   -= 1
                 }
 
-                result.value.millisecond = cast(u16) fraction
+                result.value.millisecond = cast(u16, fraction)
             }
         }
 

@@ -12,17 +12,17 @@ internal struct Encoder {}
 #[Swag.Inline]
 func writeU32(result: *ConcatBuffer, value: u32)
 {
-    result.addNative(cast(u8) (value & 0xFF))
-    result.addNative(cast(u8) ((value >> 8) & 0xFF))
-    result.addNative(cast(u8) ((value >> 16) & 0xFF))
-    result.addNative(cast(u8) ((value >> 24) & 0xFF))
+    result.addNative(cast(u8, (value & 0xFF)))
+    result.addNative(cast(u8, ((value >> 8) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 16) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 24) & 0xFF)))
 }
 
 #[Swag.Inline]
 func writeU64(result: *ConcatBuffer, value: u64)
 {
-    writeU32(result, cast(u32) (value & 0xFFFF_FFFF))
-    writeU32(result, cast(u32) (value >> 32))
+    writeU32(result, cast(u32, (value & 0xFFFF_FFFF)))
+    writeU32(result, cast(u32, (value >> 32)))
 }
 
 func writeText(result: *ConcatBuffer, value: string)
@@ -35,7 +35,7 @@ func writeAttribute(result: *ConcatBuffer, name, type: string, payload: const [.
 {
     writeText(result, name)
     writeText(result, type)
-    writeU32(result, cast(u32) payload.count)
+    writeU32(result, cast(u32, payload.count))
     result.addBytes(payload)
 }
 
@@ -112,8 +112,8 @@ internal impl IImageEncoder for Encoder
         var box: ConcatBuffer
         writeU32(&box, 0)
         writeU32(&box, 0)
-        writeU32(&box, cast(u32) source.width - 1)
-        writeU32(&box, cast(u32) source.height - 1)
+        writeU32(&box, cast(u32, source.width) - 1)
+        writeU32(&box, cast(u32, source.height) - 1)
         writeAttribute(result, "dataWindow", "box2i", box.toSlice()!)
         writeAttribute(result, "displayWindow", "box2i", box.toSlice()!)
         const IncreasingY: [1] u8 = [0]
@@ -125,8 +125,8 @@ internal impl IImageEncoder for Encoder
         writeAttribute(result, "screenWindowWidth", "float", One)
         result.addNative(0'u8)
 
-        let rowBytes    = cast(u64) source.width * sampleBytes * names.count
-        var chunkOffset = result.count() + cast(u64) source.height * 8
+        let rowBytes    = cast(u64, source.width) * sampleBytes * names.count
+        var chunkOffset = result.count() + cast(u64, source.height) * 8
         for source.height
         {
             writeU64(result, chunkOffset)
@@ -135,15 +135,15 @@ internal impl IImageEncoder for Encoder
 
         for y in source.height
         {
-            writeU32(result, cast(u32) y)
-            writeU32(result, cast(u32) rowBytes)
+            writeU32(result, cast(u32, y))
+            writeU32(result, cast(u32, rowBytes))
             let storageY = source.height - y - 1
             for name in names
             {
                 let component = channelOffset(name, grayscale)
                 for x in source.width
                 {
-                    let pixel  = source.pixels.storage() + cast(u64) storageY * source.rowStride + cast(u64) x * source.bytesPerPixel
+                    let pixel  = source.pixels.storage() + cast(u64, storageY) * source.rowStride + cast(u64, x) * source.bytesPerPixel
                     let sample = pixel + component * sampleBytes
                     result.addBytes(Swag.makeSlice(sample, sampleBytes))
                 }

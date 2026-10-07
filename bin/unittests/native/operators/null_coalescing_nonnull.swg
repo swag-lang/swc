@@ -53,7 +53,7 @@ func selectedValue(value: IValue?)->u32 => (value orelse fallbackValue())!.value
     Swag.assert(resolved[] == 42)
     Swag.assert((present orelse null)[] == 42)
 
-    let aliasPointer  = cast(RequiredPointer) present
+    let aliasPointer  = cast(RequiredPointer, present)
     let resolvedAlias = aliasPointer orelse fallback
     #assert(#typeof(resolvedAlias) == RequiredPointer)
     Swag.assert(resolvedAlias[] == 42)

@@ -11,8 +11,8 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
     var offset = 0'u64
     while size - offset >= 4 * MemoryVectorSize
     {
-        let targetVectors = cast([*] MemoryVector) (target + offset)
-        let sourceVectors = cast(const [*] MemoryVector) (source + offset)
+        let targetVectors = cast([*] MemoryVector, (target + offset))
+        let sourceVectors = cast(const [*] MemoryVector, (source + offset))
         let source0       = sourceVectors[0]
         let source1       = sourceVectors[1]
         let source2       = sourceVectors[2]
@@ -26,14 +26,14 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
 
     while size - offset >= MemoryVectorSize
     {
-        let sourceVector = (cast(const *MemoryVector) (source + offset))[]
-        (cast(*MemoryVector) (target + offset))[] = sourceVector
+        let sourceVector = cast(const *MemoryVector, (source + offset))[]
+        cast(*MemoryVector, (target + offset))[] = sourceVector
         offset += MemoryVectorSize
     }
 
     while size - offset >= MemoryWordSize
     {
-        (cast(*u64) (target + offset))[] = (cast(const *u64) (source + offset))[]
+        cast(*u64, (target + offset))[] = cast(const *u64, (source + offset))[]
         offset += MemoryWordSize
     }
 
@@ -50,8 +50,8 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
     while offset >= 4 * MemoryVectorSize
     {
         offset -= 4 * MemoryVectorSize
-        let targetVectors = cast([*] MemoryVector) (target + offset)
-        let sourceVectors = cast(const [*] MemoryVector) (source + offset)
+        let targetVectors = cast([*] MemoryVector, (target + offset))
+        let sourceVectors = cast(const [*] MemoryVector, (source + offset))
         let source0       = sourceVectors[0]
         let source1       = sourceVectors[1]
         let source2       = sourceVectors[2]
@@ -65,14 +65,14 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
     while offset >= MemoryVectorSize
     {
         offset -= MemoryVectorSize
-        let sourceVector = (cast(const *MemoryVector) (source + offset))[]
-        (cast(*MemoryVector) (target + offset))[] = sourceVector
+        let sourceVector = cast(const *MemoryVector, (source + offset))[]
+        cast(*MemoryVector, (target + offset))[] = sourceVector
     }
 
     while offset >= MemoryWordSize
     {
         offset -= MemoryWordSize
-        (cast(*u64) (target + offset))[] = (cast(const *u64) (source + offset))[]
+        cast(*u64, (target + offset))[] = cast(const *u64, (source + offset))[]
     }
 
     while offset
@@ -87,14 +87,14 @@ func memset(dst: [*] void?, value: u8, size: u64)
     if not size do
         return
 
-    let target = cast([*] u8) dst!
+    let target = cast([*] u8, dst!)
     var offset = 0'u64
 
-    let word   = cast(u64) value * 0x0101_0101_0101_0101
+    let word   = cast(u64, value) * 0x0101_0101_0101_0101
     let vector = Swag.vecsplat(word)
     while size - offset >= 4 * MemoryVectorSize
     {
-        let targetVectors = cast([*] MemoryFillVector) (target + offset)
+        let targetVectors = cast([*] MemoryFillVector, (target + offset))
         targetVectors[0] = vector
         targetVectors[1] = vector
         targetVectors[2] = vector
@@ -104,13 +104,13 @@ func memset(dst: [*] void?, value: u8, size: u64)
 
     while size - offset >= MemoryVectorSize
     {
-        (cast(*MemoryFillVector) (target + offset))[] = vector
+        cast(*MemoryFillVector, (target + offset))[] = vector
         offset += MemoryVectorSize
     }
 
     while size - offset >= MemoryWordSize
     {
-        (cast(*u64) (target + offset))[] = word
+        cast(*u64, (target + offset))[] = word
         offset += MemoryWordSize
     }
 
@@ -124,7 +124,7 @@ func memset(dst: [*] void?, value: u8, size: u64)
 func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
 {
     if size do
-        __memoryCopyForward(cast([*] u8) dst!, cast(const [*] u8) src!, size)
+        __memoryCopyForward(cast([*] u8, dst!), cast(const [*] u8, src!), size)
 }
 
 func memmove(dst: [*] void?, src: const [*] void?, size: u64)
@@ -132,10 +132,10 @@ func memmove(dst: [*] void?, src: const [*] void?, size: u64)
     if not size or dst == src do
         return
 
-    let target        = cast([*] u8) dst!
-    let source        = cast(const [*] u8) src!
-    let targetAddress = cast(u64) target
-    let sourceAddress = cast(u64) source
+    let target        = cast([*] u8, dst!)
+    let source        = cast(const [*] u8, src!)
+    let targetAddress = cast(u64, target)
+    let sourceAddress = cast(u64, source)
     if targetAddress < sourceAddress or targetAddress - sourceAddress >= size do
         __memoryCopyForward(target, source, size)
     else do
@@ -148,19 +148,19 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
     if not size do
         return 0
 
-    let leftBytes  = cast(const [*] u8) left!
-    let rightBytes = cast(const [*] u8) right!
+    let leftBytes  = cast(const [*] u8, left!)
+    let rightBytes = cast(const [*] u8, right!)
     var offset     = 0'u64
     while size - offset >= MemoryVectorSize
     {
-        let leftVector  = (cast(const *MemoryVector) (leftBytes + offset))[]
-        let rightVector = (cast(const *MemoryVector) (rightBytes + offset))[]
+        let leftVector  = cast(const *MemoryVector, (leftBytes + offset))[]
+        let rightVector = cast(const *MemoryVector, (rightBytes + offset))[]
         let equalMask   = Swag.vecmask(leftVector == rightVector)
         if equalMask != 0xFFFF
         {
             // The lowest clear mask bit is the first byte that differs.
-            let index = cast(u64) Swag.bitCountTz((~equalMask) & 0xFFFF)
-            return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
+            let index = cast(u64, Swag.bitCountTz((~equalMask) & 0xFFFF))
+            return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
         offset += MemoryVectorSize
@@ -168,14 +168,14 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
 
     while size - offset >= MemoryWordSize
     {
-        let leftWord   = (cast(const *u64) (leftBytes + offset))[]
-        let rightWord  = (cast(const *u64) (rightBytes + offset))[]
+        let leftWord   = cast(const *u64, (leftBytes + offset))[]
+        let rightWord  = cast(const *u64, (rightBytes + offset))[]
         let difference = leftWord ^ rightWord
         if difference
         {
             // On the supported little-endian target, the lowest set bit names the first byte.
             let index = Swag.bitCountTz(difference) / 8
-            return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
+            return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
         offset += MemoryWordSize
@@ -183,13 +183,13 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
 
     if size - offset >= 4
     {
-        let leftPart   = (cast(const *u32) (leftBytes + offset))[]
-        let rightPart  = (cast(const *u32) (rightBytes + offset))[]
+        let leftPart   = cast(const *u32, (leftBytes + offset))[]
+        let rightPart  = cast(const *u32, (rightBytes + offset))[]
         let difference = leftPart ^ rightPart
         if difference
         {
-            let index = cast(u64) Swag.bitCountTz(difference) / 8
-            return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
+            let index = cast(u64, Swag.bitCountTz(difference)) / 8
+            return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
         offset += 4
@@ -197,13 +197,13 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
 
     if size - offset >= 2
     {
-        let leftPart   = (cast(const *u16) (leftBytes + offset))[]
-        let rightPart  = (cast(const *u16) (rightBytes + offset))[]
+        let leftPart   = cast(const *u16, (leftBytes + offset))[]
+        let rightPart  = cast(const *u16, (rightBytes + offset))[]
         let difference = leftPart ^ rightPart
         if difference
         {
-            let index = cast(u64) Swag.bitCountTz(difference) / 8
-            return cast(s32) leftBytes[offset + index] - cast(s32) rightBytes[offset + index]
+            let index = cast(u64, Swag.bitCountTz(difference)) / 8
+            return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
         offset += 2
@@ -212,7 +212,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
     if offset < size
     {
         if leftBytes[offset] != rightBytes[offset] do
-            return cast(s32) leftBytes[offset] - cast(s32) rightBytes[offset]
+            return cast(s32, leftBytes[offset]) - cast(s32, rightBytes[offset])
     }
 
     return 0

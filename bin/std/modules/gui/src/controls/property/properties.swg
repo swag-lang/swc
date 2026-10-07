@@ -269,7 +269,7 @@ impl IWnd for Properties
         if not item do
             return
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item, evt.id)
@@ -303,7 +303,7 @@ internal impl Properties
                 result.enable = false
         }
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf
@@ -358,12 +358,12 @@ internal impl Properties
             }
             elif Reflection.isString(pointed) and (item.editBox != null)
             {
-                item.editBox.setText((cast(const *string) item.data!)[])
+                item.editBox.setText(cast(const *string, item.data!)[])
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and (item.editBox != null)
             {
-                item.editBox.setText((cast(const *String) item.data!)[])
+                item.editBox.setText(cast(const *String, item.data!)[])
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and (item.comboBox != null)
@@ -535,7 +535,7 @@ impl Properties
         Swag.assert(typeof.kind == .Struct)
 
         var bases: Array'(*u8)
-        bases.add(cast(*u8) val.buffer)
+        bases.add(cast(*u8, val.buffer))
         .addStructMulti(typeof, bases.toSlice(), section)
     }
 
@@ -565,7 +565,7 @@ impl Properties
             item = .addItem(v, null, null)
             item.flags.add(.Section | .NoSeparator | .Expanded | .NoFocus)
             item.label.style.setFont(&.fontSection)
-            item.section = cast(u32) .sections.count
+            item.section = cast(u32, .sections.count)
             .sections.add({item, 0})
         }
         // Creates an empty parent item. The placeholder row is invisible: it must not
@@ -582,13 +582,13 @@ impl Properties
             item.line.margin.y, item.line.margin.w = 0
         }
 
-        let typeStruct = cast #assume(const *Swag.TypeInfoStruct) typeof
-        .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
+        let typeStruct = assume cast(const *Swag.TypeInfoStruct, typeof)
+        .addStructInternal(typeStruct, cast([*] u8, bases[0]), item)
 
-        item.numChilds = cast(u32) (.items.count - numItemsBefore)
+        item.numChilds = cast(u32, (.items.count - numItemsBefore))
 
         .assignInstances(firstItemIdx, bases)
-        .assignDefaults(firstItemIdx, typeof, cast([*] u8) bases[0])
+        .assignDefaults(firstItemIdx, typeof, cast([*] u8, bases[0]))
         .assignUndoSnapshots(firstItemIdx)
 
         // Editors were first filled from instance 0 before the instance addresses existed;
@@ -609,7 +609,7 @@ impl Properties
         if bases.count <= 1 do
             return
 
-        let base0 = cast([*] u8) bases[0]
+        let base0 = cast([*] u8, bases[0])
         for i in fromIdx until .items.count
         {
             let it = .items[i]!
@@ -623,9 +623,9 @@ impl Properties
                 continue
             }
 
-            let off = cast([*] u8?) it.data - base0
+            let off = cast([*] u8?, it.data) - base0
             for b in bases do
-                it.dataInstances.add(cast(*u8) (cast([*] u8) b + off))
+                it.dataInstances.add(cast(*u8, (cast([*] u8, b) + off)))
         }
     }
 
@@ -687,7 +687,7 @@ impl Properties
         // Notify the host, then all the hierarchy
         .hostNtfy?.itemHasChanged(me, item)
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             scan.ntfyItf?.itemHasChanged(me, item)
@@ -797,7 +797,7 @@ impl Properties
         if .hostNtfy and .hostNtfy.isItemReadOnly(me, item) do
             return true
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf and scan.ntfyItf.isItemReadOnly(me, item) do
@@ -817,7 +817,7 @@ impl Properties
         if .isItemReadOnly(item) do
             return false
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.line != null and scan.line.isDisabled() do
@@ -870,12 +870,12 @@ impl Properties
                 continue
             if item.validationLabel != null and c == item.validationLabel do
                 continue
-            if item.editBox != null and c == cast(*Wnd?) item.editBox do
+            if item.editBox != null and c == cast(*Wnd?, item.editBox) do
                 continue
 
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if item.revertButton != null and c == cast(*Wnd?) item.revertButton do
+            if item.revertButton != null and c == cast(*Wnd?, item.revertButton) do
                 continue
             c.enable(not readOnly)
         }

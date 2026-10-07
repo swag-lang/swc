@@ -73,8 +73,8 @@ func negate64(a: f64)->f64 => -a
 
     Swag.assert(negate32(1.25) == -1.25)
     Swag.assert(negate64(-3.5) == 3.5)
-    Swag.assert(cast #bit (u32) negate32(0.0) == 0x80000000)
-    Swag.assert(cast #bit (u64) negate64(0.0) == 0x8000000000000000)
+    Swag.assert(cast #bit (u32, negate32(0.0)) == 0x80000000)
+    Swag.assert(cast #bit (u64, negate64(0.0)) == 0x8000000000000000)
     const negatedNaN = negate32(Swag.F32.NaN)
     Swag.assert(negatedNaN != negatedNaN)
 }

@@ -61,7 +61,7 @@ public impl Options
             let text = values[i].toString()
             if (text == "--num-cores" or text == "-j") and i + 1 < values.count do
                 return values[i + 1].toString()
-            if Utf8.startsWith(cast(const [..] u8) text, "--num-cores=") do
+            if Utf8.startsWith(cast(const [..] u8, text), "--num-cores=") do
                 return text["--num-cores=".count to]
         }
 
@@ -251,5 +251,5 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
 // Reports whether a positional spells the command `accepted`, whatever its case.
 private func isCommand(token: string, accepted: string)->bool
 {
-    return Utf8.compare(cast(const [..] u8) token, cast(const [..] u8) accepted, .Latin1NoCase) == 0
+    return Utf8.compare(cast(const [..] u8, token), cast(const [..] u8, accepted), .Latin1NoCase) == 0
 }

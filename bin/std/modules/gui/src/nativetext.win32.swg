@@ -12,11 +12,11 @@ func encodeAnsi(text: string, codePage: u32 = 0)->Array'u8
     let wide = Utf16.toZeroTerminated(text)
     if wide.count > Swag.S32.Max do
         return result
-    let length = cast(s32) wide.count
+    let length = cast(s32, wide.count)
     let count  = WideCharToMultiByte(codePage, 0, wide.buffer, length, null, 0, null, null)
     if count <= 0 do
         return result
-    result.resize(cast(u64) count)
+    result.resize(cast(u64, count))
     if WideCharToMultiByte(codePage, 0, wide.buffer, length, result.buffer, count, null, null) != count do
         result.clear()
     return result
@@ -30,7 +30,7 @@ func decodeUnicode(bytes: const [..] u8)->String
     var result: retval
     if bytes.count < 2 or bytes.count % 2 do
         return result
-    let wide  = Swag.makeSlice(cast(const [*] u16) bytes.buffer, bytes.count / 2)
+    let wide  = Swag.makeSlice(cast(const [*] u16, bytes.buffer), bytes.count / 2)
     let count = Utf16.lengthUntilZero(wide)
     if count == wide.count do
         return result
@@ -46,12 +46,12 @@ func decodeAnsi(bytes: const [..] u8, codePage: u32 = 0)->String
         length += 1
     if length == bytes.count or length == 0 or length > Swag.S32.Max do
         return result
-    let count = MultiByteToWideChar(codePage, 0, bytes.buffer, cast(s32) length, null, 0)
+    let count = MultiByteToWideChar(codePage, 0, bytes.buffer, cast(s32, length), null, 0)
     if count <= 0 do
         return result
     var wide: Array'u16
-    wide.resize(cast(u64) count)
-    if MultiByteToWideChar(codePage, 0, bytes.buffer, cast(s32) length, wide.buffer, count) != count do
+    wide.resize(cast(u64, count))
+    if MultiByteToWideChar(codePage, 0, bytes.buffer, cast(s32, length), wide.buffer, count) != count do
         return result
     return Utf8.fromUtf16(wide.toSlice())
 }

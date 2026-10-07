@@ -11,7 +11,7 @@ public impl Image
         {
             .transformLogicalPixels(generator)
             {
-                let params = cast(*Noise.FastNoise) userData!
+                let params = cast(*Noise.FastNoise, userData!)
                 let light  = Math.map(params.sample(x, y), -1.0, 1.0, 0.0, 1.0)
                 value.r = light
                 value.g = light
@@ -23,9 +23,9 @@ public impl Image
 
         .visitPixels(generator)
         {
-            let params = cast(*Noise.FastNoise) userData!
+            let params = cast(*Noise.FastNoise, userData!)
             let v      = params.sample(x, y)
-            let light  = cast(u8) Math.map(v, -1.0, 1.0, 0, 255.0)
+            let light  = cast(u8, Math.map(v, -1.0, 1.0, 0, 255.0))
             pix[0] = light
             pix[1] = light
             pix[2] = light

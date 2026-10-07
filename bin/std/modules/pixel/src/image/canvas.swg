@@ -117,7 +117,7 @@ impl ImageCanvas
         if .hasSource
         {
             .painter.setBlendingMode(.Copy)
-            .painter.drawTexture({0, 0, cast(f32) .width, cast(f32) .height}, .source)
+            .painter.drawTexture({0, 0, cast(f32, .width), cast(f32, .height)}, .source)
             .painter.setBlendingMode(.Alpha)
         }
     }
@@ -153,7 +153,7 @@ impl ImageCanvas
         result.hasSource = true
 
         result.painter.setBlendingMode(.Copy)
-        result.painter.drawTexture({0, 0, cast(f32) result.width, cast(f32) result.height}, result.source)
+        result.painter.drawTexture({0, 0, cast(f32, result.width), cast(f32, result.height)}, result.source)
         result.painter.setBlendingMode(.Alpha)
         return result
     }
@@ -188,7 +188,7 @@ impl ImageCanvas
         {
             .painter.setBlendingMode(.Copy)
             .painter.setColorMaskAlpha()
-            .painter.fillRect({0, 0, cast(f32) .width, cast(f32) .height}, .background)
+            .painter.fillRect({0, 0, cast(f32, .width), cast(f32, .height)}, .background)
             .painter.setColorMaskColor()
             .painter.setBlendingMode(.Alpha)
         }

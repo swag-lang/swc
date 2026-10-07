@@ -75,8 +75,8 @@ impl HashNs.IHash32 for QualifiedInterfacesA
 func semaTest001()
 {
     var value = QualifiedInterfacesA{}
-    let conv  = cast(ConvertNs.IConvert) value
-    let hash  = cast(HashNs.IHash32) value
+    let conv  = cast(ConvertNs.IConvert, value)
+    let hash  = cast(HashNs.IHash32, value)
 
     let converted  = conv.convert()
     let hashValue  = hash.hash()

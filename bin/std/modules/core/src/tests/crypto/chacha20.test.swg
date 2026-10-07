@@ -7,7 +7,7 @@ func testKey()->[Crypto.ChaCha20KeySize] u8
 {
     var result: retval
     for i in Crypto.ChaCha20KeySize do
-        result[i] = cast(u8) i
+        result[i] = cast(u8, i)
     return result
 }
 
@@ -59,7 +59,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     const Count = 137
     var data: [Count] u8
     for i in Count do
-        data[i] = cast(u8) ((i * 29 + 7) & 0xFF)
+        data[i] = cast(u8, ((i * 29 + 7) & 0xFF))
 
     let original = data
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
@@ -69,7 +69,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     // counter advances by exactly one block and never repeats one.
     for index in 3
     {
-        let block = expect Crypto.chacha20Block(key, cast(u32) (1 + index), nonce)
+        let block = expect Crypto.chacha20Block(key, cast(u32, (1 + index)), nonce)
         let start = index * Crypto.ChaCha20BlockSize
         let count = Math.min(Count - start, Crypto.ChaCha20BlockSize)
         for i in count do
@@ -90,7 +90,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var actual:   [1025] u8
     var expected: [1025] u8
     for index in source.count do
-        source[index] = cast(u8) ((cast(u64) index * 47 + 13) & 0xFF)
+        source[index] = cast(u8, ((cast(u64, index) * 47 + 13) & 0xFF))
 
     let lengths: [15] u64 = [0, 1, 63, 64, 65, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
     for length in lengths
@@ -133,7 +133,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     actual.resize(Capacity)
     expected.resize(Capacity)
     for index in source.count do
-        source[index] = cast(u8) ((index * 47 + 13) & 0xFF)
+        source[index] = cast(u8, ((index * 47 + 13) & 0xFF))
 
     let lengths: [8] u64 = [65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
     for length in lengths
@@ -144,7 +144,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         let output    = actual.toSlice()[1 until length + 1]
         let reference = expected.toSlice()[1 until length + 1]
         let blocks    = (length + Crypto.ChaCha20BlockSize - 1) / Crypto.ChaCha20BlockSize
-        let first     = Swag.U32.Max - cast(u32) (blocks - 1)
+        let first     = Swag.U32.Max - cast(u32, (blocks - 1))
         scalarChaCha20Xor(key, nonce, input, reference, first)
         expect Crypto.chacha20Xor(key, nonce, input, output, first)
         Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
@@ -169,7 +169,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     // must complete, and each invocation keeps its own destination and stream scratch.
     let input     = source.toSlice()[1 until Capacity - 1]
     let reference = expected.toSlice()[1 until Capacity - 1]
-    let first     = Swag.U32.Max - cast(u32) ((input.count - 1) / Crypto.ChaCha20BlockSize)
+    let first     = Swag.U32.Max - cast(u32, ((input.count - 1) / Crypto.ChaCha20BlockSize))
     let keyPtr    = &key
     let noncePtr  = &nonce
     parallel for |keyPtr, noncePtr, input, reference, first| record in 3

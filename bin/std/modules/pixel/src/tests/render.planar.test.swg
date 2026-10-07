@@ -5,9 +5,9 @@ using Swag, Core
 // Builds a planar 4:2:0 picture of one flat colour, in the studio range a codec produces.
 func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, chromaR: u8)->YuvPlanarView
 {
-    let chromaWidth  = cast(u64) ((width + 1) / 2)
-    let chromaHeight = cast(u64) ((height + 1) / 2)
-    let lumaSize     = cast(u64) width * cast(u64) height
+    let chromaWidth  = cast(u64, ((width + 1) / 2))
+    let chromaHeight = cast(u64, ((height + 1) / 2))
+    let lumaSize     = cast(u64, width) * cast(u64, height)
     let chromaSize   = chromaWidth * chromaHeight
 
     storage.resize(lumaSize + chromaSize * 2)
@@ -19,7 +19,7 @@ func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, ch
         luma: storage.storage(),
         chromaB: storage.storage() + lumaSize,
         chromaR: storage.storage() + lumaSize + chromaSize,
-        lumaStride: cast(u64) width,
+        lumaStride: cast(u64, width),
         chromaStride: chromaWidth,
         width: width,
         height: height}
@@ -28,9 +28,9 @@ func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, ch
 // Returns what the conversion answers for one sample, which is what a drawn picture must show.
 func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, studioRange = true)->Color
 {
-    let c = Math.max(cast(s32) luma - (studioRange ? 16 : 0), 0) * (studioRange ? 298 : 256)
-    let d = cast(s32) chromaB - 128
-    let e = cast(s32) chromaR - 128
+    let c = Math.max(cast(s32, luma) - (studioRange ? 16 : 0), 0) * (studioRange ? 298 : 256)
+    let d = cast(s32, chromaB) - 128
+    let e = cast(s32, chromaR) - 128
     var redCr, greenCb, greenCr, blueCb: s32
     switch #complete matrix
     {
@@ -83,9 +83,9 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
         }
     }
 
-    return Color.fromRgb(cast(u8) Math.clamp((c + redCr * e + 128) >> 8, 0, 255),
-                         cast(u8) Math.clamp((c + greenCb * d + greenCr * e + 128) >> 8, 0, 255),
-                         cast(u8) Math.clamp((c + blueCb * d + 128) >> 8, 0, 255))
+    return Color.fromRgb(cast(u8, Math.clamp((c + redCr * e + 128) >> 8, 0, 255)),
+                         cast(u8, Math.clamp((c + greenCb * d + greenCr * e + 128) >> 8, 0, 255)),
+                         cast(u8, Math.clamp((c + blueCb * d + 128) >> 8, 0, 255)))
 }
 
 // A planar format is a pixel format like any other: it names a channel set and a storage class,
@@ -164,9 +164,9 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
         for x in 8's32
         {
             let actual = image.pixelColor(x, y)
-            Swag.assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
-            Swag.assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
-            Swag.assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
+            Swag.assert(Math.abs(cast(s32, actual.r) - cast(s32, expected.r)) <= 1)
+            Swag.assert(Math.abs(cast(s32, actual.g) - cast(s32, expected.g)) <= 1)
+            Swag.assert(Math.abs(cast(s32, actual.b) - cast(s32, expected.b)) <= 1)
         }
     }
 }

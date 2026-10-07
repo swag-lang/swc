@@ -231,7 +231,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
                 return true
             defer #nofail try decoder.endField(type)
 
-            (cast(*s32) data!)[] = try decoder.readS32() - 6
+            cast(*s32, data!)[] = try decoder.readS32() - 6
             return true
         }
 
@@ -244,8 +244,8 @@ public impl Serialization.ISerialize for TagBinHookPayload
             let raw = try decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
 
-            let values = cast(*Array'u8) data!
-            let rawPtr = cast([*] u8) raw!
+            let values = cast(*Array'u8, data!)
+            let rawPtr = cast([*] u8, raw!)
             values.clear()
             for i in 4 do
                 values.add(rawPtr[3 - i])
@@ -262,7 +262,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             try encoder.beginField(type)
             defer #nofail try encoder.endField(type)
 
-            encoder.writeS32((cast(const *s32) data!)[] + 10)
+            encoder.writeS32(cast(const *s32, data!)[] + 10)
             return true
         }
 
@@ -271,7 +271,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             try encoder.beginField(type)
             defer #nofail try encoder.endField(type)
 
-            let values = cast(const *Array'u8) data!
+            let values = cast(const *Array'u8, data!)
             try encoder.writeBufferU8(values.buffer, values.count)
             return true
         }
@@ -281,7 +281,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
     mtd impl postRead(data: *void?, _decoder: Serialization.IDecoder) fail
     {
-        let value = cast(*TagBinHookPayload) data!
+        let value = cast(*TagBinHookPayload, data!)
         value.postReadSeen = true
         value.direct       += 1
     }
@@ -312,7 +312,7 @@ public impl Serialization.ISerialize for TagBinVersionProbe
 
     mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail
     {
-        let value = cast(*TagBinVersionProbe) data!
+        let value = cast(*TagBinVersionProbe, data!)
         value.seenVersion = decoder.version()
     }
 }
@@ -333,7 +333,7 @@ func makeTagBinPayload()->TagBinPayload
 
     for i in 512
     {
-        result.blob.add(cast(u8) (i % 4))
+        result.blob.add(cast(u8, (i % 4)))
     }
 
     return result
@@ -364,7 +364,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
     var result: retval
     var stream = ByteStream.openRead(bytes)
     Swag.assert((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Root)
-    Swag.assert((expect stream.readNative'u32()) == cast(u32) Serialization.Write.TagBinVersion1)
+    Swag.assert((expect stream.readNative'u32()) == cast(u32, Serialization.Write.TagBinVersion1))
     let schemaLength = expect stream.readVarint()
     Swag.assert(schemaLength == 0)
     Swag.assert((expect stream.readNative'u32()) == 0)
@@ -443,7 +443,7 @@ func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: stri
 
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(reader.position())
-    writer.writeBytes(cast(const [..] u8) replacement)
+    writer.writeBytes(cast(const [..] u8, replacement))
     return result
 }
 
@@ -467,7 +467,7 @@ func assertCompressedBlob(values: Array'u8)->bool
 
     for index in values.count
     {
-        if values[index] != cast(u8) (index % 4) do
+        if values[index] != cast(u8, (index % 4)) do
             return false
     }
 
@@ -476,7 +476,7 @@ func assertCompressedBlob(values: Array'u8)->bool
 
 func releaseTagBinInterface(value: *(ITagBinScore?))
 {
-    let runtime = cast(*Swag.Interface) value
+    let runtime = cast(*Swag.Interface, value)
     if runtime.obj
     {
         Memory.delete(runtime.obj, #typeof(TagBinInterfaceProbe))
@@ -680,7 +680,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     concrete.label = "iface"
 
     let payload = TagBinInterfacePayload{
-        score: cast(ITagBinScore) concrete,
+        score: cast(ITagBinScore, concrete),
         other: -11}
 
     Reflection.registerType(#typeof(TagBinInterfaceProbe))
@@ -710,7 +710,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     concrete.label = "inferred"
 
     let payload = TagBinInterfacePayload{
-        score: cast(ITagBinScore) concrete,
+        score: cast(ITagBinScore, concrete),
         other: 12}
 
     let bytes   = encodeTagBin(payload)
@@ -732,7 +732,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     defer Memory.delete(decoded)
     Swag.assert(decoded.other == 19)
 
-    let runtime = cast(*Swag.Interface) &decoded.score
+    let runtime = cast(*Swag.Interface, &decoded.score)
     Swag.assert(runtime.obj == null)
     Swag.assert(runtime.itable == null)
 }
@@ -859,7 +859,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var stream = ByteStream.openRead(bytes.toSlice())
     discard expect stream.readNative'u32()
-    Swag.assert((expect stream.readNative'u32()) == cast(u32) Serialization.Write.TagBinVersion1)
+    Swag.assert((expect stream.readNative'u32()) == cast(u32, Serialization.Write.TagBinVersion1))
     Swag.assert((expect stream.readVarint()) == 0)
     Swag.assert((expect stream.readNative'u32()) == 1)
 
@@ -877,11 +877,11 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 #test
 {
     Swag.assert(#sizeof(Serialization.Write.TagBinValueFlags) == 1)
-    Swag.assert(cast(u8) Serialization.Write.TagBinValueFlags.None == 1)
-    Swag.assert(cast(u8) Serialization.Write.TagBinValueFlags.Compressed == 2)
+    Swag.assert(cast(u8, Serialization.Write.TagBinValueFlags.None) == 1)
+    Swag.assert(cast(u8, Serialization.Write.TagBinValueFlags.Compressed) == 2)
     Swag.assert(#sizeof(Serialization.Write.TagBinShapeFlags) == 1)
-    Swag.assert(cast(u8) Serialization.Write.TagBinShapeFlags.Zero == 0)
-    Swag.assert(cast(u8) Serialization.Write.TagBinShapeFlags.Compressed == 1)
+    Swag.assert(cast(u8, Serialization.Write.TagBinShapeFlags.Zero) == 0)
+    Swag.assert(cast(u8, Serialization.Write.TagBinShapeFlags.Compressed) == 1)
 
     let payload = makeTagBinPayload()
     let bytes   = encodeTagBin(payload)

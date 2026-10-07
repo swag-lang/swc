@@ -5,11 +5,11 @@ func recordScene(painter: *Painter, size: s32, region: u32)
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Black))
-    painter.fillRect(0, 0, cast(f32) size, cast(f32) size, Color.fromArgb(Argb.White))
-    let top    = region == 2 ? cast(f32) size * 0.75 : 0.0
-    let height = region == 0 ? cast(f32) size : cast(f32) size * 0.25
+    painter.fillRect(0, 0, cast(f32, size), cast(f32, size), Color.fromArgb(Argb.White))
+    let top    = region == 2 ? cast(f32, size) * 0.75 : 0.0
+    let height = region == 0 ? cast(f32, size) : cast(f32, size) * 0.25
     for layer in 16 do
-        painter.fillRect(0, top, cast(f32) size, height, Color.fromArgb(64'u8, 210'u8, 60'u8, 30'u8))
+        painter.fillRect(0, top, cast(f32, size), height, Color.fromArgb(64'u8, 210'u8, 60'u8, 30'u8))
     painter.end()
 }
 

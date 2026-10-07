@@ -16,9 +16,9 @@ var GInitLines: CacheLineFields = {head: 1, hot: 2, tail: 3}
 
 #test
 {
-    Swag.assert(cast(u64) &GZeroLines % 64 == 0)
-    Swag.assert(cast(u64) &GInitLines % 64 == 0)
-    Swag.assert(cast(u64) &GInitLines.hot % 64 == 0)
+    Swag.assert(cast(u64, &GZeroLines) % 64 == 0)
+    Swag.assert(cast(u64, &GInitLines) % 64 == 0)
+    Swag.assert(cast(u64, &GInitLines.hot) % 64 == 0)
 
     Swag.assert(GZeroLines.head == 0 and GZeroLines.hot == 0 and GZeroLines.tail == 0)
     Swag.assert(GInitLines.head == 1 and GInitLines.hot == 2 and GInitLines.tail == 3)

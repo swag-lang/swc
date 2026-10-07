@@ -38,8 +38,8 @@ func slowShift(x: u64, k: u32)->u64 => x << k
         Swag.assert(timesFourPlus(x) == slowShift(x, 2) + x)
         Swag.assert(timesEightMinus(x) == slowShift(x, 3) - x)
         Swag.assert(inPlace(x) == slowShift(x, 3))
-        let x32 = cast #wrap (u32) x
-        Swag.assert(narrow(x32) == (cast #wrap (u32) slowShift(cast(u64) x32, 3) ^ x32))
+        let x32 = cast #wrap (u32, x)
+        Swag.assert(narrow(x32) == (cast #wrap (u32, slowShift(cast(u64, x32), 3)) ^ x32))
     }
 
     var values: [3] u64 = [1, 0xFFFFFFFFFFFFFFFF, 0x8000000000000001]

@@ -4,7 +4,7 @@
 # Explicit Cast with 'cast'
 
 Explicit casting converts a value from one type to another using the syntax
-'cast(type) value'. This transformation changes the type of 'value' to the
+'cast(type, value)'. This transformation changes the type of 'value' to the
 specified 'type'.
 */
 #test
@@ -12,14 +12,14 @@ specified 'type'.
     let x = 1.0     // Defaults to 'f32'
     #assert(#typeof(x) == f32)
 
-    let y = cast(s32) x     // Explicit cast to 's32'
+    let y = cast(s32, x)     // Explicit cast to 's32'
     #assert(#typeof(y) == s32)
     Swag.assert(y == 1)
 }
 
 /**
 # Interface Conversion
-`cast(IFoo) value` produces an 'IFoo' interface value when the source type
+`cast(IFoo, value)` produces an 'IFoo' interface value when the source type
 implements that interface. The compiler establishes this conversion statically.
 Pass a pointer when borrowing an existing object. A type alias for an interface
 works as the target too.
@@ -40,23 +40,36 @@ impl ICount for Counter
 #test
 {
     var counter = Counter{42}
-    let view    = cast(ICount) &counter
+    let view    = cast(ICount, &counter)
     Swag.assert(view.count() == 42)
     #assert(#typeof(view) == ICount)
 }
 
 /**
 # Dynamic Casts
-Use `cast #try (*T) value` when the concrete type is known only at runtime.
-It returns a nullable pointer: a compatible object produces a view of that object,
-and a type mismatch or null source produces `null`. It never copies the object or
-extends its lifetime. Test compatibility by comparing the result with `null`;
-save the result when the same branch needs to use it.
 
-Use `cast #assume (*T) value` when the concrete type is an invariant established
-by the caller. With `.DynCast` safety enabled, a failed assertion panics. With
-that safety disabled, the type assertion is unchecked. Pointer adjustments
-required by the destination representation still apply.
+The conversion stays `cast(Type, value)`. Its prefix states how to handle a
+validity condition that the compiler cannot establish statically:
+
+- `try cast(*T, value)` checks compatibility and propagates a conversion error.
+- `expect cast(*T, value)` checks compatibility and panics on failure in every build configuration.
+- `assume cast(*T, value)` asserts an invariant established by the caller. The '.Assume'
+  safety flag checks the assertion; disabling that safety removes the check.
+
+An ordinary dynamic cast needs one of these policies, or a surrounding `catch`.
+A numeric conversion or a statically known conversion to an embedded parent does
+not gain a dynamic type lookup. An assumed downcast along a known by-value `using`
+path needs only its fixed address adjustment when '.Assume' safety is disabled.
+Other representations can still require work to locate their borrowed view.
+
+The destination also states the presence contract. `*T` requires a present value;
+`*T?` accepts null. There is no separate trailing `!` to add to the operand.
+When only nullability changes, the checked conversion tests presence without a
+dynamic type lookup. An assumed presence conversion follows `.Assume` safety.
+
+Use `catch cast(*T?, value)` when a nullable result is useful after a failed
+conversion. `catch ... as error` also preserves its error. Like other caught
+expressions, the destination needs an implicit default value.
 
 These forms apply to `any`, interfaces, and pointers to dynamic structs. A plain
 struct pointer can expose a concrete enclosing type only when its struct is marked
@@ -65,9 +78,8 @@ The attribute adds a compiler-managed metadata pointer to object storage; pointe
 to the object retain their ordinary size. A pointer-valued `using` field does not
 make its pointee part of the enclosing object's storage.
 
-Converting towards a known embedded parent remains a static conversion. A plain
-`cast` cannot perform a downcast. Use `value is T` for a boolean compatibility
-test, or `if value is T as name` to test and borrow the matching value.
+Use `value is T` for a boolean compatibility test, or `if value is T as name`
+to test and borrow the matching value without constructing a conversion error.
 Expression `as` is not a conversion operator; it introduces a binding in a type
 pattern or a caught error.
 */
@@ -85,11 +97,12 @@ struct CastButton
 {
     var button: CastButton
     let node:   *CastNode = &button
-    let found = cast #try (*CastButton) node
+    let found = (catch cast(*CastButton?, node))
     if found != null do
         Swag.assert(found.label == "Apply")
     Swag.assert(found != null)
-    Swag.assert(cast #assume (*CastButton) node == &button)
+    Swag.assert(assume cast(*CastButton, node) == &button)
+    Swag.assert(expect cast(*CastButton, node) == &button)
 }
 
 /**
@@ -101,14 +114,14 @@ Constness follows the source. The source is evaluated once; the name belongs onl
 to the successful branch and its optional `where` guard. A false guard continues
 to `elif` or `else`. No pattern copies the object or extends its lifetime.
 
-A `cast #try` cannot be used directly as a conditional binding, a boolean, or a
-comparison with `null`. Use `is` for compatibility and a pattern for binding.
-Store or return `cast #try` when the nullable conversion result itself is useful.
+Prefer `is` when the purpose is selecting a branch by type. Use a checked cast
+when failure belongs to the operation's error contract, and `assume cast` when
+the caller already guarantees compatibility.
 */
 #test
 {
     var counter = Counter{42}
-    let view    = cast(ICount) &counter
+    let view    = cast(ICount, &counter)
     if view is Counter as found do
         Swag.assert(found.value == 42)
 
@@ -122,11 +135,11 @@ Store or return `cast #try` when the nullable conversion result itself is useful
 /**
 ## Values Stored in `any`
 
-`cast #try (*T) boxed` borrows a stored value of type `T`. Dereference the result
+`try cast(*T, boxed)` borrows a stored value of type `T`. Dereference the result
 to read or update that value. A stored pointer can also expose the object it
-points to. A mismatching type produces `null` in either case.
+points to. A mismatching type raises a conversion error in either case.
 
-`cast #assume (T) boxed` extracts a value when its type is an invariant. For a
+`assume cast(T, boxed)` extracts a value when its type is an invariant. For a
 pointer or interface destination, it produces the corresponding borrowed view.
 Neither mode extends the lifetime of the boxed value or its pointee.
 */
@@ -136,7 +149,7 @@ Neither mode extends the lifetime of the boxed value or its pointee.
     if boxed is s32 as value do
         Swag.assert(value[] == 42)
     Swag.assert(not (boxed is s64))
-    Swag.assert(cast #assume (s32) boxed == 42)
+    Swag.assert(assume cast (s32, boxed) == 42)
 }
 
 /**
@@ -165,16 +178,15 @@ func supportsCounterType(source: typeinfo)->bool
 ## Targets Chosen at Runtime
 
 Both `value is target` and explicit dynamic casts accept a 'typeinfo' target,
-including a function result. With a
-type-information operand, 'cast #try' returns the source descriptor when the
-types are compatible, or 'null'. With a value operand, it borrows a value of the
-requested type and returns an 'any?'. The target must be a descriptor emitted
+including a function result. With a type-information operand, a successful cast
+returns the source descriptor. With a value operand, it borrows a value of the
+requested type and returns an 'any'. The target must be a descriptor emitted
 by the compiler; constructing or copying a descriptor does not create a type.
 
 The value result borrows its source and can also refer to an interface view in
 the current function. It does not allocate and must not escape that function.
-'cast #assume' uses the same conversion and checks failure when dynamic cast
-safety is enabled.
+`assume cast` checks compatibility when dynamic cast safety is enabled. `try` and
+`expect` keep their checks even when that safety is disabled.
 */
 func supportsRuntimeType(target, source: typeinfo)->bool
 {
@@ -190,22 +202,22 @@ func supportsRuntimeType(target, source: typeinfo)->bool
 
     var value = 42's32
     let target: typeinfo = s32
-    let view  = cast #try(target) &value
+    let view  = expect cast(target, &value)
     if view is s32 as number do
         Swag.assert(number[] == 42)
     Swag.assert(view != null)
 }
 
 /**
-# Automatic Cast with 'cast()'
+# Contextual Cast with 'cast(value)'
 
-A 'cast()' without a type performs an **automatic cast**, allowing the compiler
+A 'cast(value)' without an explicit type performs a **contextual cast**, allowing the compiler
 to infer the target type based on the left-hand side of the assignment.
 */
 #test
 {
     let x: f32 = 1.0
-    let y: s32 = cast() x
+    let y: s32 = cast(x)
     #assert(#typeof(y) == s32)
     Swag.assert(y == 1)
 }
@@ -220,7 +232,7 @@ func testAutoCast(x: s32)
 
 #test
 {
-    testAutoCast(cast() 1.4)     // Automatically cast to 's32'
+    testAutoCast(cast(1.4))     // Automatically cast to 's32'
 }
 
 /**
@@ -233,8 +245,8 @@ struct CastCount { value: u16 }
 #test
 {
     var count:  u64     = 42
-    let field           = CastCount{value: cast() count}
-    let values: [2] u16 = [cast() count, cast() count]
+    let field           = CastCount{value: cast(count)}
+    let values: [2] u16 = [cast(count), cast(count)]
     Swag.assert(field.value == 42)
     Swag.assert(values == [42'u16, 42'u16])
 }
@@ -249,11 +261,11 @@ must have the same size.
 #test
 {
     let x: f32 = 1.0
-    let y: u32 = cast #bit (u32) x
+    let y: u32 = cast #bit (u32, x)
     Swag.assert(y == 0x3F800000)     // 1.0 in IEEE 754 format
 
-    #assert(cast #bit (u32) 1.0 == 0x3F800000)
-    #assert(cast #bit (f32) 0x3F800000 == 1.0)
+    #assert(cast #bit (u32, 1.0) == 0x3F800000)
+    #assert(cast #bit (f32, 0x3F800000) == 1.0)
 }
 
 /**
@@ -263,10 +275,10 @@ value, or vice versa.
 #test
 {
     let rawBits: u32 = 0x40490FDB
-    let pi:      f32 = cast #bit (f32) rawBits
+    let pi:      f32 = cast #bit (f32, rawBits)
     Swag.assert(pi == 3.1415927)
 
-    let backToBits: u32 = cast #bit (u32) pi
+    let backToBits: u32 = cast #bit (u32, pi)
     Swag.assert(backToBits == 0x40490FDB)
 }
 
@@ -312,17 +324,17 @@ acknowledge potential data loss.
 {
     // Explicit cast from 's16' to 's8' required
     let z0: s16 = 256
-    let z1: s8  = cast #wrap (s8) z0
+    let z1: s8  = cast #wrap (s8, z0)
     Swag.assert(z1 == 0)
 
     // Explicit cast from 'u16' to 's16' required
     let u_val: u16 = 65535
-    let s_val: s16 = cast #wrap (s16) u_val
+    let s_val: s16 = cast #wrap (s16, u_val)
     Swag.assert(s_val == -1)
 
     // Explicit cast from 'f64' to 'f32' required
     let large_float:   f64 = 1.23456789012345611111
-    let smaller_float: f32 = cast(f32) large_float
+    let smaller_float: f32 = cast(f32, large_float)
 }
 
 /**
@@ -334,7 +346,7 @@ zero-extended; an enum crosses through its underlying type. Towards an integer, 
 destination has to be able to hold an address: 'u64' and 's64' do, and a narrower type
 is refused rather than silently losing the high half of the address.
 
-Naming the destination is part of it. A 'cast()' takes its destination from the context,
+Naming the destination is part of it. A 'cast(value)' takes its destination from the context,
 and only 'u64' reaches a pointer that way: an integer that could bind any pointer
 parameter would let overload resolution pick a call nobody wrote.
 */
@@ -349,20 +361,20 @@ enum CastPointerTag: u64
     var storage: [16] u8
     let base = storage.buffer
 
-    let address = cast(u64) base
-    Swag.assert(cast([*] u8) address == base)
-    Swag.assert(cast(s64) base == cast(s64) address)
+    let address = cast(u64, base)
+    Swag.assert(cast([*] u8, address) == base)
+    Swag.assert(cast(s64, base) == cast(s64, address))
 
     // A narrower integer needs no second step towards a pointer.
-    Swag.assert(cast(*void) 0xBEEF'u16 == cast(*void) 0xBEEF'u64)
-    Swag.assert(cast(*void) CastPointerTag.First == cast(*void) 7'u64)
-    Swag.assert(cast(CastPointerTag) cast(*void) 9'u64 == CastPointerTag.Second)
+    Swag.assert(cast(*void, 0xBEEF'u16) == cast(*void, 0xBEEF'u64))
+    Swag.assert(cast(*void, CastPointerTag.First) == cast(*void, 7'u64))
+    Swag.assert(cast(CastPointerTag, cast(*void, 9'u64)) == CastPointerTag.Second)
 
-    // 'cast(u32) base' is refused. Widen the address first, then narrow that value with
+    // 'cast(u32, base)' is refused. Widen the address first, then narrow that value with
     // '#wrap' to say that dropping its high half is intended.
-    Swag.assert(cast #wrap (u32) address == cast #wrap (u32) cast(u64) base)
+    Swag.assert(cast #wrap (u32, address) == cast #wrap (u32, cast(u64, base)))
 
     // A deduced destination reaches a pointer from 'u64' only.
-    let deduced: [*] u8 = cast() address
+    let deduced: [*] u8 = cast(address)
     Swag.assert(deduced == base)
 }

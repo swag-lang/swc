@@ -59,7 +59,7 @@ impl Tracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 
     mtd opPostCopy()
@@ -121,7 +121,7 @@ impl DropOnlyTracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 }
 
@@ -154,7 +154,7 @@ impl CompactDropTracked
     mtd opDrop()
     {
         DropCount        += 1
-        DropCompactTrace = DropCompactTrace * 10 + cast(s64) .value
+        DropCompactTrace = DropCompactTrace * 10 + cast(s64, .value)
     }
 }
 
@@ -186,7 +186,7 @@ impl ReceiverLifecycleTracked
     mtd opDrop()
     {
         DropCount += 1
-        DropTrace = DropTrace * 100 + cast(s64) .value
+        DropTrace = DropTrace * 100 + cast(s64, .value)
     }
 
     mtd opPostCopy()
@@ -302,7 +302,7 @@ func intrinsicInitInfo()->InitInfo
     Swag.init(rgbArr)(50, 60, 70)
     let rgbArrayWholeTrace = rgbArr[3].r * 10000 + rgbArr[3].g * 100 + rgbArr[3].b
 
-    return {x, cast(s32) (y * 100), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
+    return {x, cast(s32, (y * 100)), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
 }
 
 func intrinsicDropThenInitArrayInfo()->s32
@@ -418,7 +418,7 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
     catch intrinsicAutoDropErrorImpl() as errc
     if errc != null
     {
-        let err = cast #assume(IntrinsicLifecycleErr) errc
+        let err = assume cast(IntrinsicLifecycleErr, errc)
         result.first  = err.code
         result.second = 1
     }
@@ -444,11 +444,11 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
     }
 
     {
-        defer result.first = cast(s32) DropCount
+        defer result.first = cast(s32, DropCount)
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
 
         {
-            defer result.second = cast(s32) DropCount
+            defer result.second = cast(s32, DropCount)
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             result.third = nested.tail.value
         }
@@ -470,7 +470,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
         var outer = DropOnlyTracked{9}
         for i in 2
         {
-            var pair = AutoDropPair{DropOnlyTracked{cast(s32) (i * 2 + 1)}, DropOnlyTracked{cast(s32) (i * 2 + 2)}}
+            var pair = AutoDropPair{DropOnlyTracked{cast(s32, (i * 2 + 1))}, DropOnlyTracked{cast(s32, (i * 2 + 2))}}
             first += pair.first.value
             if i == 0 do
                 continue
@@ -501,7 +501,7 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
             for i in 3
             {
                 var current = AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}
-                second = current.second.value + cast(s32) i
+                second = current.second.value + cast(s32, i)
                 break to Exit
             }
         }
@@ -571,7 +571,7 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
         catch intrinsicAutoDropCatchResumeImpl(55) as errc
         if errc != null
         {
-            let err = cast #assume(IntrinsicLifecycleErr) errc
+            let err = assume cast(IntrinsicLifecycleErr, errc)
             first  = err.code
             second = outer.second.value
             third  = 1
@@ -600,7 +600,7 @@ func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
         var outer = CompactDropTracked{9}
         for i in 2
         {
-            let base       = cast(s32) (i * 3 + 1)
+            let base       = cast(s32, (i * 3 + 1))
             let value: s32 = catch intrinsicAutoDropCatchLoopStep(base)
             if value == 0
             {

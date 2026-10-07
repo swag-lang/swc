@@ -8,7 +8,7 @@ func fillCity32Pattern(buffer: [..] u8)
     var i = 0'u64
     while i < buffer.count
     {
-        buffer[i] = cast(u8) ((i * 73 + 19) & 0xFF)
+        buffer[i] = cast(u8, ((i * 73 + 19) & 0xFF))
         i         += 1
     }
 }

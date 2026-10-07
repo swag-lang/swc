@@ -21,7 +21,7 @@ struct AttributeUsingRecord
     direct: s32
 }
 
-const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeUsingRecord)
+const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct, #typeof(AttributeUsingRecord))
 
 #test
 {
@@ -44,13 +44,13 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeU
             if field.name == "grouped"
             {
                 foundGrouped = true
-                Swag.assert(cast #assume(string?) params[0].value == "grouped")
+                Swag.assert(assume cast(string?, params[0].value) == "grouped")
             }
 
             if field.name == "direct"
             {
                 foundDirect = true
-                Swag.assert(cast #assume(string?) params[0].value == "direct")
+                Swag.assert(assume cast(string?, params[0].value) == "direct")
             }
         }
     }

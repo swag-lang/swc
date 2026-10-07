@@ -149,7 +149,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    var payload = JsonFloatPayload{value: cast #bit (f64) 0x7FF8000000000000'u64}
+    var payload = JsonFloatPayload{value: cast #bit (f64, 0x7FF8000000000000'u64)}
     var encoder: Serialization.Encoder'Serialization.Write.Json
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
@@ -195,7 +195,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     for input in InvalidJson
     {
         var decoder: Serialization.Decoder'Serialization.Read.Json
-        catch CoreTests.readAndDelete'(JsonPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8) input) as err
+        catch CoreTests.readAndDelete'(JsonPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as err
         Swag.assert(err != null)
     }
 }

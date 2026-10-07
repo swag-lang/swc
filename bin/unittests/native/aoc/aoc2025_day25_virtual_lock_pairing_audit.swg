@@ -21,23 +21,23 @@ struct PairingAudit
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) (cast(const [..] u8) line).count
+    return cast(u32, cast(const [..] u8, line).count)
 }
 
 func filledAt(schematic: const [..] string, row, column: u32)->bool
 {
-    let bytes = cast(const [..] u8) schematic[row]
+    let bytes = cast(const [..] u8, schematic[row])
     return bytes[column] == '#'u8
 }
 
 func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
 {
-    let bytes = cast(const [..] u8) schematic[row]
+    let bytes = cast(const [..] u8, schematic[row])
     Swag.assert(bytes.count == SchematicWidth)
 
     for index in SchematicWidth
     {
-        let column = cast(u32) index
+        let column = cast(u32, index)
         if bytes[column] != ch do
             return false
     }
@@ -68,12 +68,12 @@ func profileFromSchematic(schematic: const [..] string)->PinProfile
 
     for index in SchematicWidth
     {
-        let column = cast(u32) index
+        let column = cast(u32, index)
         var filledCount: u32
 
         for idx in SchematicHeight
         {
-            let row = cast(u32) idx
+            let row = cast(u32, idx)
             if filledAt(schematic, row, column) do
                 filledCount += 1
         }
@@ -90,7 +90,7 @@ func fits(lockProfile, keyProfile: PinProfile)->bool
 {
     for index in SchematicWidth
     {
-        let column = cast(u32) index
+        let column = cast(u32, index)
         if lockProfile.heights[column] + keyProfile.heights[column] > MaxColumnHeight do
             return false
     }
@@ -101,8 +101,8 @@ func fits(lockProfile, keyProfile: PinProfile)->bool
 func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] PinProfile)->PairingAudit
 {
     var result: PairingAudit
-    result.lockCount = cast(u32) lockProfiles.count
-    result.keyCount  = cast(u32) keyProfiles.count
+    result.lockCount = cast(u32, lockProfiles.count)
+    result.keyCount  = cast(u32, keyProfiles.count)
 
     for lockProfile in lockProfiles
     {

@@ -52,7 +52,7 @@ internal func day6ParseNumber(line: string, cursorPtr: *u64)->u16
     while cursor < line.count and line[cursor] >= '0' and line[cursor] <= '9'
     {
         result *= 10
-        result += cast(u16) line[cursor] - '0'
+        result += cast(u16, line[cursor]) - '0'
         cursor += 1
     }
 
@@ -109,10 +109,10 @@ func day6A0()
 
     for instruction in day6Instructions
     {
-        let x0         = cast(u32) instruction.x0
-        let y0         = cast(u32) instruction.y0
-        let y1         = cast(u32) instruction.y1
-        let writeCount = cast(u32) instruction.x1 - x0 + 1
+        let x0         = cast(u32, instruction.x0)
+        let y0         = cast(u32, instruction.y0)
+        let y1         = cast(u32, instruction.y1)
+        let writeCount = cast(u32, instruction.x1) - x0 + 1
 
         switch instruction.action
         {
@@ -167,10 +167,10 @@ func day6A1()
 
     for instruction in day6Instructions
     {
-        let x0         = cast(u64) instruction.x0
-        let y0         = cast(u64) instruction.y0
-        let y1         = cast(u64) instruction.y1
-        let writeCount = cast(u64) instruction.x1 - x0 + 1
+        let x0         = cast(u64, instruction.x0)
+        let y0         = cast(u64, instruction.y0)
+        let y1         = cast(u64, instruction.y1)
+        let writeCount = cast(u64, instruction.x1) - x0 + 1
 
         switch instruction.action
         {
@@ -211,7 +211,7 @@ func day6A1()
 
     var total: u64
     for v in lights do
-        total += cast(s32) v
+        total += cast(s32, v)
 
     Swag.assert(total == 377891)
 }
@@ -228,10 +228,10 @@ func day6A2()
 
     for instruction in day6Instructions
     {
-        let x0         = cast(u64) instruction.x0
-        let y0         = cast(u64) instruction.y0
-        let y1         = cast(u64) instruction.y1
-        let writeCount = cast(u64) instruction.x1 - x0 + 1
+        let x0         = cast(u64, instruction.x0)
+        let y0         = cast(u64, instruction.y0)
+        let y1         = cast(u64, instruction.y1)
+        let writeCount = cast(u64, instruction.x1) - x0 + 1
 
         switch instruction.action
         {
@@ -272,7 +272,7 @@ func day6A2()
 
     var total: u64
     for v in lights do
-        total += cast(s32) v
+        total += cast(s32, v)
 
     Swag.assert(total == 377891)
 }

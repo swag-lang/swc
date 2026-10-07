@@ -181,7 +181,7 @@ private const ManyStopSvg = """\
     var apart = 0'u64
     for value, index in tiled.pixels
     {
-        let delta = Math.abs(cast(s32) value - cast(s32) untiled.pixels[index])
+        let delta = Math.abs(cast(s32, value) - cast(s32, untiled.pixels[index]))
         Swag.assert(delta <= 1)
         if delta != 0 do
             apart += 1
@@ -198,7 +198,7 @@ private func gradientBand(source: string)->[5] Color
     let image   = drawing.rasterize(40, 8, 1)
     let columns = [2, 12, 20, 28, 37]
     for column, index in columns do
-        result[index] = image.pixelColor(cast(s32) column, 4)
+        result[index] = image.pixelColor(cast(s32, column), 4)
 
     return result
 }

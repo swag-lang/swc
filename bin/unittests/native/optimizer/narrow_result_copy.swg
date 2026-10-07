@@ -1,19 +1,19 @@
 #global private
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func added(a, b: u32)->u64 => cast(u64) (a + b)
+func added(a, b: u32)->u64 => cast(u64, (a + b))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func product(a, b: u32)->u64 => cast(u64) (a * b)
+func product(a, b: u32)->u64 => cast(u64, (a * b))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func rotated(a, b: u32)->u64 => cast(u64) ((a << 7) | (a >> 25))
+func rotated(a, b: u32)->u64 => cast(u64, ((a << 7) | (a >> 25)))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func shifted(a, b: u32)->u64 => cast(u64) (a << 3)
+func shifted(a, b: u32)->u64 => cast(u64, (a << 3))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func inverted(a, b: u32)->u64 => cast(u64) (~a)
+func inverted(a, b: u32)->u64 => cast(u64, (~a))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func square(a, b: u32)->u64 => cast(u64) ((a + b) * (a + b))
+func square(a, b: u32)->u64 => cast(u64, ((a + b) * (a + b)))
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func preserved(a, b: u32)->u64 => cast(u64) ((a + b) ^ a)
+func preserved(a, b: u32)->u64 => cast(u64, ((a + b) ^ a))
 #[Swag.NoInline]
 func wide(a, b: u64)->u64 => a ^ b
 
@@ -34,11 +34,11 @@ func wide(a, b: u64)->u64 => a ^ b
             Swag.assert(product(a, b) == multiplied)
             Swag.assert(rotated(a, b) == rotation)
             Swag.assert(shifted(a, b) == shift)
-            Swag.assert(inverted(a, b) == cast(u64) ~a)
+            Swag.assert(inverted(a, b) == cast(u64, ~a))
             Swag.assert(square(a, b) == squared)
             Swag.assert(preserved(a, b) == (sum ^ a))
-            let high = 0x8000000000000000 | cast(u64) a
-            Swag.assert(wide(high, b) == (high ^ cast(u64) b))
+            let high = 0x8000000000000000 | cast(u64, a)
+            Swag.assert(wide(high, b) == (high ^ cast(u64, b)))
         }
     }
 }

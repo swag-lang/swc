@@ -200,7 +200,7 @@
         painter.<span class="SFct">translateTransform</span>(g_Bird.pos.x + trf.tx, g_Bird.pos.y + trf.ty)
 
         <span class="SCmt">// Select one of the three wing animation frames.</span>
-        <span class="SKwd">let</span> frame = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) g_Bird.frame % <span class="SNum">3</span>
+        <span class="SKwd">let</span> frame = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, g_Bird.frame) % <span class="SNum">3</span>
 
         <span class="SCmt">// Both fields are assigned before use, so skip their default initialization.</span>
         <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span>
@@ -225,8 +225,8 @@
     }
 
     <span class="SCmt">// Scroll two ground copies to form a seamless strip.</span>
-    painter.<span class="SFct">drawTexture</span>(-g_BasePos, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>) g_BaseTexture.width, <span class="SCst">GroundHeight</span>, g_BaseTexture)
-    painter.<span class="SFct">drawTexture</span>(-g_BasePos + g_BaseTexture.width, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>) g_BaseTexture.width, <span class="SCst">GroundHeight</span>, g_BaseTexture)
+    painter.<span class="SFct">drawTexture</span>(-g_BasePos, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>, g_BaseTexture.width), <span class="SCst">GroundHeight</span>, g_BaseTexture)
+    painter.<span class="SFct">drawTexture</span>(-g_BasePos + g_BaseTexture.width, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>, g_BaseTexture.width), <span class="SCst">GroundHeight</span>, g_BaseTexture)
     <span class="SLgc">if</span> <span class="SLgc">not</span> g_GameOver <span class="SLgc">do</span>
         g_BasePos += <span class="SCst">SpeedHorz</span> * g_Dt
     <span class="SLgc">if</span> g_BasePos &gt;= g_BaseTexture.width <span class="SLgc">do</span>

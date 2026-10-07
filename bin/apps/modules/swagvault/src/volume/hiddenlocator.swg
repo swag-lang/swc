@@ -6,7 +6,7 @@ using Core
 const HiddenLocatorSize    = 128'u64
 const HiddenLocatorKind    = 9'u32
 const HiddenGeometrySize   = 16'u64
-const HiddenNonceOffset    = cast(u64) Crypto.SaltSize
+const HiddenNonceOffset    = cast(u64, Crypto.SaltSize)
 const HiddenGeometryOffset = HiddenNonceOffset + Crypto.NonceSize
 const HiddenTagOffset      = HiddenGeometryOffset + HiddenGeometrySize
 const HiddenPayloadEnd     = HiddenTagOffset + Crypto.TagSize

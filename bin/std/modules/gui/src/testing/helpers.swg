@@ -105,7 +105,7 @@ func tempFilePath(prefix, extension: string)->String
 func textBytes(text: string)->Array'u8
 {
     var result: retval
-    result.add(cast(const [..] u8) text)
+    result.add(cast(const [..] u8, text))
     return result
 }
 
@@ -113,7 +113,7 @@ func textBytes(text: string)->Array'u8
 //
 // Slices compare over their content, but bytes and text are different types, so the
 // reinterpretation is spelled once here instead of at every call site.
-func bytesAre(bytes: const [..] u8, text: string)->bool => bytes == cast(const [..] u8) text
+func bytesAre(bytes: const [..] u8, text: string)->bool => bytes == cast(const [..] u8, text)
 
 // Returns an owned snapshot of the image sources successfully decoded by an HTML view.
 //
@@ -136,10 +136,10 @@ func indexedImage(w, h: s32)->Image
     var result = Image.create(w, h, .BGRA8)
     result.visitPixels()
     {
-        let value = cast(u8) ((1 + x + y * 17) % 251)
-        let green = cast(u8) ((cast(u32) value + 3) % 251)
-        let blue  = cast(u8) ((cast(u32) value + 7) % 251)
-        (cast(*u32) pix)[] = Color.fromArgb(255'u8, value, green, blue).argb
+        let value = cast(u8, ((1 + x + y * 17) % 251))
+        let green = cast(u8, ((cast(u32, value) + 3) % 251))
+        let blue  = cast(u8, ((cast(u32, value) + 7) % 251))
+        cast(*u32, pix)[] = Color.fromArgb(255'u8, value, green, blue).argb
     }
 
     return result

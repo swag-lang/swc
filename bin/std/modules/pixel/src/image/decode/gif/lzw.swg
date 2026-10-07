@@ -20,7 +20,7 @@ impl Decoder
         .table.nentries = (1 << keySize) + 2
         .table.entries.resize(.table.bulk)
         for key in 1 << keySize do
-            .table.entries[key] = {1, 0xFFF, cast(u8) key}
+            .table.entries[key] = {1, 0xFFF, cast(u8, key)}
     }
 
     mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 fail
@@ -44,14 +44,14 @@ impl Decoder
                 subLen[] -= 1
             }
 
-            fragSize = Math.min(cast(s32) (keySize - bitsRead), cast(s32) (8 - rpad))
-            key      |= (cast(u32) byte[] >> rpad) << bitsRead
+            fragSize = Math.min(cast(s32, (keySize - bitsRead)), cast(s32, (8 - rpad)))
+            key      |= (cast(u32, byte[]) >> rpad) << bitsRead
         }
 
         // Clear extra bits to the left
         key     &= (1'u32 << keySize) - 1
-        shift[] = cast(u8) ((shift[] + keySize) % 8)
-        return cast(u16) key
+        shift[] = cast(u8, ((shift[] + keySize) % 8))
+        return cast(u16, key)
     }
 
     mtd addEntry(length: u16, prefix: u16, suffix: u8)->s32
@@ -59,7 +59,7 @@ impl Decoder
         if .table.nentries == .table.bulk
         {
             .table.bulk *= 2
-            .table.entries.resize(cast(u64) .table.bulk)
+            .table.entries.resize(cast(u64, .table.bulk))
         }
 
         .table.entries[.table.nentries] = {length, prefix, suffix}
@@ -93,14 +93,14 @@ impl Decoder
     mtd readImageData(interlace: u8) fail
     {
         var byte    = try .readU8()
-        var keySize = cast(s32) byte
+        var keySize = cast(s32, byte)
         if keySize < 2 or keySize > 8 do
             fail InvalidFormatError{"invalid frame"}
 
-        let start       = cast(u64) (.stream - .streamStart)
+        let start       = cast(u64, (.stream - .streamStart))
         let remainStart = .streamLen
         try .discardSubBlocks()
-        let end       = cast(u64) (.stream - .streamStart)
+        let end       = cast(u64, (.stream - .streamStart))
         let remainEnd = .streamLen
         .stream    = .streamStart + start
         .streamLen = remainStart
@@ -114,7 +114,7 @@ impl Decoder
         var key           = try .getKey(keySize, &subLen, &shift, &byte)     // clear code
         var frmOff        = 0
         var ret           = 0
-        let frmSize       = cast(u32) .fw * .fh
+        let frmSize       = cast(u32, .fw) * .fh
         var tableIsFull   = 0
         var strLen        = 0'u16
 
@@ -129,7 +129,7 @@ impl Decoder
             }
             elif not tableIsFull
             {
-                ret = .addEntry(cast(u16) (strLen + 1), key, entry.suffix)
+                ret = .addEntry(cast(u16, (strLen + 1)), key, entry.suffix)
                 if .table.nentries == 0x1000
                 {
                     ret         = 0
@@ -156,7 +156,7 @@ impl Decoder
                 let x = p % .fw
                 var y = p / .fw
                 if interlace do
-                    y = interlacedLineIndex(cast(s32) .fh, y)
+                    y = interlacedLineIndex(cast(s32, .fh), y)
                 .frame[(.fy + y) * .width + .fx + x] = entry.suffix
                 if entry.prefix == 0xFFF do
                     break

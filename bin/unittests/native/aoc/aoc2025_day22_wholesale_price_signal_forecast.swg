@@ -28,13 +28,13 @@ func nextSecret(secret: u32)->u32
 
 func priceDigit(secret: u32)->s32
 {
-    return cast(s32) (secret % 10'u32)
+    return cast(s32, (secret % 10'u32))
 }
 
 func encodeChange(change: s32)->u32
 {
     Swag.assert(change >= -9 and change <= 9)
-    return cast(u32) (change + 9)
+    return cast(u32, (change + 9))
 }
 
 func sequenceIndex(change0, change1, change2, change3: s32)->u32
@@ -61,11 +61,11 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
         var secret     = initialSecret
         var lastPrice  = priceDigit(secret)
         var changes: [ForecastRounds] s32
-        let buyerStamp = cast(u32) buyerIndex + 1
+        let buyerStamp = cast(u32, buyerIndex) + 1
 
         for idx in ForecastRounds
         {
-            let roundIndex = cast(u32) idx
+            let roundIndex = cast(u32, idx)
             secret = nextSecret(secret)
             let currentPrice = priceDigit(secret)
             changes[roundIndex] = currentPrice - lastPrice
@@ -82,7 +82,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
                 if SequenceSeenStamp[index] != buyerStamp
                 {
                     SequenceSeenStamp[index] = buyerStamp
-                    SequenceTotals[index]    += cast(u32) currentPrice
+                    SequenceTotals[index]    += cast(u32, currentPrice)
                     if SequenceTotals[index] > result.bestBananaTotal do
                         result.bestBananaTotal = SequenceTotals[index]
                 }
@@ -91,7 +91,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
             lastPrice = currentPrice
         }
 
-        result.sumAfterForecast += cast(u64) secret
+        result.sumAfterForecast += cast(u64, secret)
     }
 
     return result

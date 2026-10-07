@@ -6,13 +6,13 @@ using Swag, ExportApi
 // value rides one float register through the foreign call.
 #test
 {
-    let a = cast(#simd [4] s32) [1, 2, 3, 4]
-    let b = cast(#simd [4] s32) [10, 20, 30, 40]
-    let r = cast([4] s32) depAddVectors(a, b)
+    let a = cast(#simd [4] s32, [1, 2, 3, 4])
+    let b = cast(#simd [4] s32, [10, 20, 30, 40])
+    let r = cast([4] s32, depAddVectors(a, b))
     Swag.assert(r[0] == 11 and r[1] == 22 and r[2] == 33 and r[3] == 44)
 
     let x = Swag.vecsplat(200'u8)
-    let s = cast([16] u8) depSatAddVectors(x, x)
+    let s = cast([16] u8, depSatAddVectors(x, x))
     Swag.assert(s[0] == 255 and s[15] == 255)
 
     // Non-constant operands: this call cannot fold at compile time, so the
@@ -22,7 +22,7 @@ using Swag, ExportApi
     lanes[1] = 2
     lanes[2] = 3
     lanes[3] = 4
-    let av = cast(#simd [4] s32) lanes
-    let rv = cast([4] s32) depAddVectors(av, av)
+    let av = cast(#simd [4] s32, lanes)
+    let rv = cast([4] s32, depAddVectors(av, av))
     Swag.assert(rv[0] == 2 and rv[1] == 4 and rv[2] == 6 and rv[3] == 8)
 }

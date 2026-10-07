@@ -71,13 +71,13 @@ func day7A()
         first = Swag.U8.Max
         for k, v in steps
         {
-            if Utf8.contains(result.toSlice(), cast(rune) k) do
+            if Utf8.contains(result.toSlice(), cast(rune, k)) do
                 continue
 
             var bad = false
             for c in v.prev
             {
-                if not Utf8.contains(result.toSlice(), cast(rune) c)
+                if not Utf8.contains(result.toSlice(), cast(rune, c))
                 {
                     bad = true
                     break

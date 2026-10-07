@@ -16,14 +16,14 @@ func pushAllocatorMacro(allocator: IAllocator?, stmt: #code)
 
 func allocatorObject(allocator: IAllocator?)->*void?
 {
-    let runtimeItf = cast(const *Swag.Interface) &allocator
+    let runtimeItf = cast(const *Swag.Interface, &allocator)
     return runtimeItf.obj
 }
 
 func allocatorITable(allocator: IAllocator?)->const *void?
 {
-    let runtimeItf = cast(const *Swag.Interface) &allocator
-    return cast(const *void?) runtimeItf.itable
+    let runtimeItf = cast(const *Swag.Interface, &allocator)
+    return cast(const *void?, runtimeItf.itable)
 }
 
 func pushAllocatorWithNull()->bool

@@ -8,7 +8,7 @@ using Swag, Core
 {
     var painter: Painter
     var texture: Texture
-    texture.attach(cast(TextureHandle) 7, .BGRA8, 64, 32)
+    texture.attach(cast(TextureHandle, 7), .BGRA8, 64, 32)
     painter.begin()
     painter.setBlendingMode(.Copy)
     painter.drawTexture({0, 0, 64, 32}, texture)
@@ -40,7 +40,7 @@ using Swag, Core
     {
         var painter: Painter
         var texture: Texture
-        texture.attach(cast(TextureHandle) 7, .BGRA8, 64, 32)
+        texture.attach(cast(TextureHandle, 7), .BGRA8, 64, 32)
         painter.begin()
         painter.setBlendingMode(.Copy)
         switch mode
@@ -65,7 +65,7 @@ using Swag, Core
 {
     var painter: Painter
     var texture: Texture
-    texture.attach(cast(TextureHandle) 7, .BGRA8, 64, 32)
+    texture.attach(cast(TextureHandle, 7), .BGRA8, 64, 32)
     painter.begin()
     painter.setDefaultShader(.Simple)
     painter.setBlendingMode(.Copy)

@@ -7,7 +7,7 @@ func hashBytes(data: const [*] u8, len: u64)->u64
     var hash = 2166136261'u64
     for i in len
     {
-        hash ^= cast(u64) data[i]
+        hash ^= cast(u64, data[i])
         hash = (hash * 16777619) & 0xFFFFFFFF
     }
     return hash
@@ -19,7 +19,7 @@ func hashBytesStrided(data: const [*] u8, len, stride: u64)->u64
     var hash = 2166136261'u64
     for i in len
     {
-        hash ^= cast(u64) data[i * stride]
+        hash ^= cast(u64, data[i * stride])
         hash = (hash * 16777619) & 0xFFFFFFFF
     }
     return hash

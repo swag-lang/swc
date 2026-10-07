@@ -39,16 +39,16 @@ alias ValueAlias   = IValue
 func(T) readValue(value: *T)->s32
     where (T is IValue)
 {
-    let view = cast(IValue) value
+    let view = cast(IValue, value)
     return view.value()
 }
 
 func(T) readAndReset(value: *T)->s32
     where (T is IValue) and (T is IReset)
 {
-    let view     = cast(IValue) value
+    let view     = cast(IValue, value)
     let result   = view.value()
-    let resetter = cast(IReset) value
+    let resetter = cast(IReset, value)
     resetter.reset()
     return result
 }
@@ -78,15 +78,15 @@ struct(T) Holder where (T is IValue)
     Swag.assert(classify(value) == 1)
     Swag.assert(classify(Missing{}) == 2)
 
-    let direct   = cast(IValue) value
-    let pointer  = cast(IValue) &value
-    let explicit = cast(IValue) &value
+    let direct   = cast(IValue, value)
+    let pointer  = cast(IValue, &value)
+    let explicit = cast(IValue, &value)
     Swag.assert(direct.value() == explicit.value())
     Swag.assert(pointer.value() == explicit.value())
     #assert(#typeof(pointer) == IValue)
 
     var wrapper = Wrapper{prefix: 10, counter: {21}}
-    let wrapped = cast(ValueAlias) &wrapper
+    let wrapped = cast(ValueAlias, &wrapper)
     Swag.assert(wrapped.value() == 21)
     Swag.assert(readValue(&wrapper) == 21)
     Swag.assert(readAndReset(&wrapper) == 21)
@@ -95,9 +95,9 @@ struct(T) Holder where (T is IValue)
     var holder: Holder'Counter = {value: {12}}
     Swag.assert(readValue(&holder.value) == 12)
 
-    let same = cast(IValue) pointer
+    let same = cast(IValue, pointer)
     Swag.assert(same.value() == 42)
-    let concrete = cast #try (*Counter) pointer
+    let concrete = (catch cast(*Counter?, pointer))
     Swag.assert(concrete!.count == 42)
     Swag.assert((pointer is Counter))
 }

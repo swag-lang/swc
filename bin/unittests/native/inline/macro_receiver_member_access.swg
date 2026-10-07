@@ -36,7 +36,7 @@ impl VisitBag
             let visitIdx = idx
 
             #static if ptr do
-                #inject(stmt, item = cast(*T) scan, index = visitIdx)
+                #inject(stmt, item = cast(*T, scan), index = visitIdx)
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }

@@ -59,16 +59,16 @@ func verifyImportedImplicitStructDefaults()
 func verifyImportedInterfaceTablePreparation()
 {
     let objectType    = #typeof(DepTableScore{})
-    let objectInfo    = cast(const *Swag.TypeInfoStruct) objectType
+    let objectInfo    = cast(const *Swag.TypeInfoStruct, objectType)
     let interfaceInfo = #typeof(IDepTableScore)
     let table         = Swag.tableOf(objectInfo, interfaceInfo)
     Swag.assert(table != null)
 
     var dynamicScore = Swag.makeInterface(null, objectType, IDepTableScore)
-    let runtimeScore = cast(*Swag.Interface) &dynamicScore
+    let runtimeScore = cast(*Swag.Interface, &dynamicScore)
     Swag.assert(runtimeScore != null)
     Swag.assert(runtimeScore.itable == table)
-    Swag.assert(cast(const *Swag.TypeInfoStruct?) runtimeScore.itable![] == objectInfo)
+    Swag.assert(cast(const *Swag.TypeInfoStruct?, runtimeScore.itable![]) == objectInfo)
 
     var concreteScore = DepTableScore{value: 32}
     var castScore: IDepTableScore = concreteScore
@@ -225,8 +225,8 @@ func verifyExportAndStaticModules()
     Swag.assert(depTriple(14) == 42)
     Swag.assert(depStringLength("workspace") == 9)
     Swag.assert(depMacroTwicePlus(20, 2) == 42)
-    Swag.assert(depScale(cast(s32) 10) == 40)
-    Swag.assert(depScale(cast(f32) 2) == cast(f32) 8)
+    Swag.assert(depScale(cast(s32, 10)) == 40)
+    Swag.assert(depScale(cast(f32, 2)) == cast(f32, 8))
 
     var total = 0
     depMixinAccumulateTwice(21)
@@ -235,8 +235,8 @@ func verifyExportAndStaticModules()
     var calc = DepCalculator.make(5)
     Swag.assert(DepCalculator.resolve(6) == 106)
     Swag.assert(calc.resolve(6) == 1011)
-    Swag.assert(calc.add(cast(s32) 7) == 12)
-    Swag.assert(calc.add(cast(f32) 2) == cast(f32) 7)
+    Swag.assert(calc.add(cast(s32, 7)) == 12)
+    Swag.assert(calc.add(cast(f32, 2)) == cast(f32, 7))
     Swag.assert(calc.addTwice(7) == 19)
     Swag.assert(calc.sub(2) == 3)
 }
@@ -283,11 +283,11 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassOffsets(offsets0) == 10'u64)
 
     let p0 = ctxSharedPassPointer(null)
-    let p1 = ctxSharedPassPointer(cast(*void?) 0x1234'u64)
+    let p1 = ctxSharedPassPointer(cast(*void?, 0x1234'u64))
     Swag.assert(p0 == null)
-    Swag.assert(p1 == cast(*void?) 0x1234'u64)
+    Swag.assert(p1 == cast(*void?, 0x1234'u64))
     Swag.assert(ctxSharedPassMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void?) 0x4567'u64) == 330)
+    Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void?, 0x4567'u64)) == 330)
 
     const pairRef: CtxAbiPair = {a: 6, b: 7}
     Swag.assert(ctxSharedPassConstRef(pairRef) == 13)
@@ -296,9 +296,9 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
     Swag.assert(ctxSharedPassBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)
     Swag.assert(ctxSharedPassBoolRunePositions(true, -3, 'Q', 7, false, 'W') == 173)
-    Swag.assert(ctxSharedPassAliasEnum(1, cast(CtxAbiAlias) 2, CtxAbiEnum.A, 3) == 23)
-    Swag.assert(ctxSharedPassAliasEnum(10, cast(CtxAbiAlias) 20, CtxAbiEnum.B, 30) == 183)
-    Swag.assert(ctxSharedPassAliasEnum(-10, cast(CtxAbiAlias) 20, CtxAbiEnum.A, -30) == -3)
+    Swag.assert(ctxSharedPassAliasEnum(1, cast(CtxAbiAlias, 2), CtxAbiEnum.A, 3) == 23)
+    Swag.assert(ctxSharedPassAliasEnum(10, cast(CtxAbiAlias, 20), CtxAbiEnum.B, 30) == 183)
+    Swag.assert(ctxSharedPassAliasEnum(-10, cast(CtxAbiAlias, 20), CtxAbiEnum.A, -30) == -3)
     Swag.assert(CtxAbiEnum.A.score() == 7)
     Swag.assert(CtxAbiEnum.B.score() == 11)
 
@@ -308,7 +308,7 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassSlice(values0, 2) == 33)
     Swag.assert(ctxSharedPassSlice(values1, 3) == 404)
     Swag.assert(ctxSharedPassSlice(values2, 0) == -1)
-    Swag.assert(ctxSharedPassAggregatePositions(cast(*void?) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
+    Swag.assert(ctxSharedPassAggregatePositions(cast(*void?, 0x10'u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
     Swag.assert(ctxSharedPassAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
     Swag.assert(ctxSharedPassNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
     Swag.assert(ctxSharedPassKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], CtxAbiEnum.A))
@@ -322,25 +322,25 @@ func verifyDllAbiCalls()
 
     let floatPair0 = ctxSharedMakeFloatPair(733, 366)
     let floatPair1 = ctxSharedPassFloatPair({x: -1.5, y: 2.25})
-    Swag.assert(floatPair0.x == cast(f32) 733)
-    Swag.assert(floatPair0.y == cast(f32) 366)
-    Swag.assert(floatPair1.x == cast(f32) -1.5)
-    Swag.assert(floatPair1.y == cast(f32) 2.25)
-    Swag.assert(ctxSharedFloatPairSum({x: 1.5, y: 2.5}) == cast(f32) 4)
+    Swag.assert(floatPair0.x == cast(f32, 733))
+    Swag.assert(floatPair0.y == cast(f32, 366))
+    Swag.assert(floatPair1.x == cast(f32, -1.5))
+    Swag.assert(floatPair1.y == cast(f32, 2.25))
+    Swag.assert(ctxSharedFloatPairSum({x: 1.5, y: 2.5}) == cast(f32, 4))
 
     let floatPair2 = ctxSharedMakeFloatPairViaLocal(733, 366)
-    Swag.assert(floatPair2.x == cast(f32) 733)
-    Swag.assert(floatPair2.y == cast(f32) 366)
+    Swag.assert(floatPair2.x == cast(f32, 733))
+    Swag.assert(floatPair2.y == cast(f32, 366))
 
     // A method and a free function whose flattened names would collide must stay two
     // distinct exports: calling one has to run its own body, not the other's.
     let cursor = CtxAbiCursor{pos: {x: 12, y: 34}}
     let viaMtd = cursor.position()
     let viaFn  = ctxAbiCursorPosition()
-    Swag.assert(viaMtd.x == cast(f32) 12)
-    Swag.assert(viaMtd.y == cast(f32) 34)
-    Swag.assert(viaFn.x == cast(f32) 91)
-    Swag.assert(viaFn.y == cast(f32) 82)
+    Swag.assert(viaMtd.x == cast(f32, 12))
+    Swag.assert(viaMtd.y == cast(f32, 34))
+    Swag.assert(viaFn.x == cast(f32, 91))
+    Swag.assert(viaFn.y == cast(f32, 82))
 
     let float0 = ctxSharedMakeFloatPack(0.5)
     let float1 = ctxSharedCloneFloatPack(ctxSharedMakeFloatPack(1.5))
@@ -363,14 +363,14 @@ func verifyDllAbiCalls()
     Swag.assert(writtenPayload.a2 == 33'u64)
     Swag.assert(writtenPayload.a3 == 34'u64)
 
-    Swag.assert(ctxSharedScale(cast(s32) 10) == 40)
-    Swag.assert(ctxSharedScale(cast(f32) 2) == cast(f32) 8)
+    Swag.assert(ctxSharedScale(cast(s32, 10)) == 40)
+    Swag.assert(ctxSharedScale(cast(f32, 2)) == cast(f32, 8))
 
     var calc = CtxAbiCalculator.make(5)
     Swag.assert(CtxAbiCalculator.resolve(6) == 106)
     Swag.assert(calc.resolve(6) == 1011)
-    Swag.assert(calc.add(cast(s32) 7) == 12)
-    Swag.assert(calc.add(cast(f32) 2) == cast(f32) 7)
+    Swag.assert(calc.add(cast(s32, 7)) == 12)
+    Swag.assert(calc.add(cast(f32, 2)) == cast(f32, 7))
     Swag.assert(calc.sub(2) == 3)
 
     let calcPair = calc.makePair(2)
@@ -393,7 +393,7 @@ func verifyRuntimeContext()
 {
     gPatchedContext       = Swag.getContext()[]
     gPatchedContext.user0 = 42
-    gPatchedContext.user2 = cast(u64) Swag.getContext()
+    gPatchedContext.user2 = cast(u64, Swag.getContext())
     Swag.setContext(gPatchedContext)
 
     let expectedContext = Swag.getContext().user2
@@ -513,7 +513,7 @@ func verifyRuntimeTypeCrossDllIdentity()
     }
     Swag.assert(hit == 2)
 
-    let sysErr = cast #try (*Swag.SystemError) raised
+    let sysErr = (catch cast(*Swag.SystemError?, raised))
     Swag.assert(sysErr != null)
     Swag.assert(sysErr.message == "raised across the boundary")
 }

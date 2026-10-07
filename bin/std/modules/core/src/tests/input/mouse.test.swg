@@ -9,7 +9,7 @@ using Swag
 
     for i in Input.MouseButton.count
     {
-        let button = cast(Input.MouseButton) i
+        let button = cast(Input.MouseButton, i)
         Swag.assert(not mouse.isButtonPressed(button))
         Swag.assert(mouse.isButtonReleased(button))
         Swag.assert(not mouse.isButtonJustPressed(button))
@@ -28,7 +28,7 @@ using Swag
 
     for i in Input.MouseButton.count
     {
-        let button = cast(Input.MouseButton) i
+        let button = cast(Input.MouseButton, i)
 
         mouse.setButtonStates(button, false, true, true)
 

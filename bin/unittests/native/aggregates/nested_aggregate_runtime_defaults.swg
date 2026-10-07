@@ -49,7 +49,7 @@ struct NestedRuntimeBatch
     {
         var artifact = NestedRuntimeArtifact{request: {
             source: nestedRuntimeValue("source"), stage: nestedRuntimeValue("stage"),
-            kind: 2, settings: {optimization: cast(u8) level}}}
+            kind: 2, settings: {optimization: cast(u8, level)}}}
         Swag.assert(artifact.request.source.text == "source")
         Swag.assert(artifact.request.stage.text == "stage")
         Swag.assert(artifact.request.kind == 2)
@@ -59,7 +59,7 @@ struct NestedRuntimeBatch
         for item in artifact.request.settings.configuration.padding do
             Swag.assert(item == 0)
 
-        var batch = NestedRuntimeBatch{items: [{optimization: cast(u8) level}, {preset: 7}]}
+        var batch = NestedRuntimeBatch{items: [{optimization: cast(u8, level)}, {preset: 7}]}
         Swag.assert(batch.items[0].preset == 0)
         Swag.assert(batch.items[0].optimization == level)
         Swag.assert(batch.items[0].configuration.text.count == 0)

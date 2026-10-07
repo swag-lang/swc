@@ -63,7 +63,7 @@ namespace WinFsp
 
             traceWinFspStage("initializing FSP_FSCTL_VOLUME_PARAMS")
             var params: FspVolumeParams
-            params.version                  = cast(u16) #sizeof(params)
+            params.version                  = cast(u16, #sizeof(params))
             params.sectorSize               = 512
             params.sectorsPerAllocationUnit = 8
             params.maxComponentLength       = 255

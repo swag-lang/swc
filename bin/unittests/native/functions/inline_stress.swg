@@ -16,7 +16,7 @@ func firstAboveIndex(arr: [*] u8, count: u32, limit: u8)->s32
 {
     for i in count
     {
-        if arr[i] > limit do return cast(s32) i
+        if arr[i] > limit do return cast(s32, i)
     }
 
     return -1
@@ -34,7 +34,7 @@ func runInlineScanStress(arr: [*] u8, count: u32)->u32
 
         let index = firstAboveIndex(arr, count, limits[i])
         if index >= 0
-            do total += cast(u32) index
+            do total += cast(u32, index)
     }
 
     return total
@@ -75,7 +75,7 @@ func runNestedInlineStress(count: u32)->s32
 
     for i in count
     {
-        total += bumpThenDouble(cast(s32) i)
+        total += bumpThenDouble(cast(s32, i))
     }
 
     return total

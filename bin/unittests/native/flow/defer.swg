@@ -141,7 +141,7 @@ func deferWhileControl()->s64
     while i < 4
     {
         i += 1
-        defer appendDeferTrace(cast(s64) i)
+        defer appendDeferTrace(cast(s64, i))
 
         if i == 2 do
             continue
@@ -169,7 +169,7 @@ func deferWhileReturnTrace()->DeferReturnInfo
     while i < 4
     {
         i += 1
-        defer appendDeferTrace(cast(s64) i)
+        defer appendDeferTrace(cast(s64, i))
 
         if i == 2
         {
@@ -218,7 +218,7 @@ func deferForCStyle()->s64
     resetDeferTrace()
     for var i = 0; i < 4; i += 1
     {
-        defer appendDeferTrace(cast(s64) i + 1)
+        defer appendDeferTrace(cast(s64, i) + 1)
 
         if i == 1 do
             continue
@@ -236,7 +236,7 @@ func deferForRange()->s64
     resetDeferTrace()
     for i in 1 to 4
     {
-        defer appendDeferTrace(cast(s64) i)
+        defer appendDeferTrace(cast(s64, i))
 
         if i == 2 do
             continue
@@ -256,7 +256,7 @@ func deferForeach()->s64
 
     for v in arr
     {
-        defer appendDeferTrace(cast(s64) v)
+        defer appendDeferTrace(cast(s64, v))
 
         if v == 2 do
             continue
@@ -349,7 +349,7 @@ func deferParameterDropInfo()->DeferDropInfo
     {
         var x: DeferDropTracker
         consumeDropTracker(x)
-        result.count = cast(s32) DropCount
+        result.count = cast(s32, DropCount)
     }
 
     result.drops = DropCount
@@ -368,7 +368,7 @@ func deferEmbeddedParameterDropInfo()->DeferDropInfo
     {
         var x: DeferDropHolder
         consumeDropHolder(x)
-        result.count = cast(s32) DropCount
+        result.count = cast(s32, DropCount)
     }
 
     result.drops = DropCount
@@ -392,12 +392,12 @@ func deferReturnDropInfo()->DeferDropInfo
 
 func deferStackAddressAfterSkippedBranch()->*u8
 {
-    var value = cast(*u8) 0x1234'u64
+    var value = cast(*u8, 0x1234'u64)
     defer
     {
         if deferSkippedAddressBranch() do
             consumePointerForDefer(value)
-        Swag.assert(value == cast(*u8) 0x1234'u64)
+        Swag.assert(value == cast(*u8, 0x1234'u64))
     }
 
     return value
@@ -673,5 +673,5 @@ var G = 0
 
 #test
 {
-    Swag.assert(deferStackAddressAfterSkippedBranch() == cast(*u8) 0x1234'u64)
+    Swag.assert(deferStackAddressAfterSkippedBranch() == cast(*u8, 0x1234'u64))
 }

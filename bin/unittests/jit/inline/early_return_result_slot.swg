@@ -13,7 +13,7 @@ impl Registers
     #[Swag.Inline]
     mtd pick(operand: u8)->u64
     {
-        if operand <= 3 do return cast(u64) operand
+        if operand <= 3 do return cast(u64, operand)
         return me.values[operand - 4]
     }
 }

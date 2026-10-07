@@ -52,10 +52,10 @@ alias LPTHREAD_START_ROUTINE = func(*void?)->DWORD
 #[Swag.CallingConvention(.C)]
 alias WAITORTIMERCALLBACK    = func(*void?, BOOL)
 
-const STD_INPUT_HANDLE      = cast #bit (DWORD) -10
-const STD_OUTPUT_HANDLE     = cast #bit (DWORD) -11
-const STD_ERROR_HANDLE      = cast #bit (DWORD) -12
-const ATTACH_PARENT_PROCESS = cast #bit (DWORD) -1
+const STD_INPUT_HANDLE      = cast #bit (DWORD, -10)
+const STD_OUTPUT_HANDLE     = cast #bit (DWORD, -11)
+const STD_ERROR_HANDLE      = cast #bit (DWORD, -12)
+const ATTACH_PARENT_PROCESS = cast #bit (DWORD, -1)
 
 const FALSE = 0
 const TRUE  = 1
@@ -142,9 +142,9 @@ const FILE_ACTION_RENAMED_NEW_NAME = 0x00000005
 const FILE_BEGIN               = 0'u32
 const FILE_CURRENT             = 1'u32
 const FILE_END                 = 2'u32
-const INVALID_FILE_SIZE        = cast #bit (DWORD) -1
-const INVALID_SET_FILE_POINTER = cast #bit (DWORD) -1
-const INVALID_FILE_ATTRIBUTES  = cast #bit (DWORD) -1
+const INVALID_FILE_SIZE        = cast #bit (DWORD, -1)
+const INVALID_SET_FILE_POINTER = cast #bit (DWORD, -1)
+const INVALID_FILE_ATTRIBUTES  = cast #bit (DWORD, -1)
 
 const CREATE_NEW        = 1'u32
 const CREATE_ALWAYS     = 2'u32
@@ -152,7 +152,7 @@ const OPEN_EXISTING     = 3'u32
 const OPEN_ALWAYS       = 4'u32
 const TRUNCATE_EXISTING = 5'u32
 
-const INVALID_HANDLE_VALUE    = cast(HANDLE) cast #bit (u64) -1's64
+const INVALID_HANDLE_VALUE    = cast(HANDLE, cast #bit (u64, -1's64))
 const CONSOLE_TEXTMODE_BUFFER = 1'u32
 const MAX_PATH                = 260
 const LOCALE_NAME_MAX_LENGTH  = 85
@@ -200,11 +200,11 @@ const THREAD_PRIORITY_ABOVE_NORMAL = 1
 const THREAD_PRIORITY_HIGHEST      = 2
 const THREAD_PRIORITY_ERROR_RETURN = 0x7FFFFFFF
 
-func LOWORD(l: u64) => cast(u32) (l & 0xFFFF)
-func HIWORD(l: u64) => cast(u32) ((l >> 16) & 0xFFFF)
+func LOWORD(l: u64) => cast(u32, (l & 0xFFFF))
+func HIWORD(l: u64) => cast(u32, ((l >> 16) & 0xFFFF))
 
 alias SRWLOCK = *void?
-const SRWLOCK_INIT = cast(SRWLOCK) null
+const SRWLOCK_INIT = cast(SRWLOCK, null)
 
 const GMEM_FIXED          = 0x0000
 const GMEM_MOVEABLE       = 0x0002
@@ -819,7 +819,7 @@ internal namespace Win32Priv
     func ResumeThread(hThread: HANDLE)->DWORD fail
     {
         let res = Win32Priv.ResumeThread(hThread)
-        if res == cast #bit (DWORD) -1 do
+        if res == cast #bit (DWORD, -1) do
             try failWinError(GetLastError())
         return res
     }

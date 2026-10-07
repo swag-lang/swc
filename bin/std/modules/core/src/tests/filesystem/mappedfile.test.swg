@@ -8,7 +8,7 @@
     defer discard catch File.delete(fileName)
     var source: [130 * 1024] u8
     for &value, index in source do
-        value[] = cast(u8) (index % 251)
+        value[] = cast(u8, (index % 251))
     discard expect File.writeAllBytes(fileName, source)
     var mapped = expect File.MappedFile.openSnapshot(fileName)
     var region = expect mapped.mapAll()
@@ -36,7 +36,7 @@
 
     var source: [96 * 1024] u8
     for &value, index in source do
-        value[] = cast(u8) (index % 251)
+        value[] = cast(u8, (index % 251))
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
@@ -115,7 +115,7 @@
 
     var source: [96 * 1024] u8
     for &value, index in source do
-        value[] = cast(u8) (index % 239)
+        value[] = cast(u8, (index % 239))
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName)

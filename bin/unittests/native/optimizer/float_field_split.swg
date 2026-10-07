@@ -35,7 +35,7 @@ func longer(a: Vec2)->bool => a.y > a.x
 func unwrap(w: Wrapper)->f64 => w.v * 2
 
 #[Swag.Optimize(true), Swag.NoInline]
-func score(t: Tagged)->f32 => t.weight * cast(f32) t.id
+func score(t: Tagged)->f32 => t.weight * cast(f32, t.id)
 
 #test
 {

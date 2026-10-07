@@ -7,7 +7,7 @@
     {
         var data: [64] u8
         for i in 0 until data.count do
-            data[i] = cast(u8) i
+            data[i] = cast(u8, i)
 
         Swag.prefetch(&data[0])
         Swag.prefetch(&data[32])

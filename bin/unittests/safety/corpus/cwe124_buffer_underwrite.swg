@@ -22,7 +22,7 @@ using Corpus
 func negativeIndex(offset: s64)->s32
 {
     var values = [10, 20, 30]
-    return values[cast(u64) offset]     // swc-expected-error {{safety_err_runtime}}
+    return values[cast(u64, offset)]     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test
@@ -35,7 +35,7 @@ func negativeIndex(offset: s64)->s32
 func wrappedNegativeIndex(offset: s64)->s32
 {
     var values = [10, 20, 30]
-    return values[cast #wrap (u64) offset]     // swc-expected-error {{safety_err_runtime}}
+    return values[cast #wrap (u64, offset)]     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test

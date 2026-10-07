@@ -15,7 +15,7 @@ func reportRiffContainer(image: *BinaryImage, report: *BinaryReport)
     image.bigEndian = image.matches(0, "RIFX")
 
     let s      = binaryStrings()
-    let size   = cast(u64) image.u32At(4)
+    let size   = cast(u64, image.u32At(4))
     let form   = image.fixedTextAt(8, 4)
     let stored = StrConv.toDisplaySize(size)
 
@@ -45,7 +45,7 @@ private func reportRiffChunks(image: *BinaryImage, report: *BinaryReport, at, en
     while scan + 8 <= end and count < BinaryListLimit
     {
         let id     = image.fixedTextAt(scan, 4)
-        let size   = cast(u64) image.u32At(scan + 4)
+        let size   = cast(u64, image.u32At(scan + 4))
         let bodyAt = scan + 8
         let stored = StrConv.toDisplaySize(size)
         if size > end - bodyAt do
@@ -88,22 +88,22 @@ private func reportRiffKnownChunk(image: *BinaryImage, report: *BinaryReport, id
     {
         let format   = image.u16At(at)
         let channels = image.u16At(at + 2)
-        report.numField(at, 2, "wFormatTag", cast(u64) format, riffWaveFormatName(format))
-        report.numField(at + 2, 2, "nChannels", cast(u64) channels)
-        report.numField(at + 4, 4, "nSamplesPerSec", cast(u64) image.u32At(at + 4))
-        report.numField(at + 8, 4, "nAvgBytesPerSec", cast(u64) image.u32At(at + 8))
-        report.numField(at + 12, 2, "nBlockAlign", cast(u64) image.u16At(at + 12))
-        report.numField(at + 14, 2, "wBitsPerSample", cast(u64) image.u16At(at + 14))
+        report.numField(at, 2, "wFormatTag", cast(u64, format), riffWaveFormatName(format))
+        report.numField(at + 2, 2, "nChannels", cast(u64, channels))
+        report.numField(at + 4, 4, "nSamplesPerSec", cast(u64, image.u32At(at + 4)))
+        report.numField(at + 8, 4, "nAvgBytesPerSec", cast(u64, image.u32At(at + 8)))
+        report.numField(at + 12, 2, "nBlockAlign", cast(u64, image.u16At(at + 12)))
+        report.numField(at + 14, 2, "wBitsPerSample", cast(u64, image.u16At(at + 14)))
         return
     }
 
     if id == "avih" and size >= 40
     {
-        report.numField(at, 4, "dwMicroSecPerFrame", cast(u64) image.u32At(at))
-        report.numField(at + 16, 4, "dwTotalFrames", cast(u64) image.u32At(at + 16))
-        report.numField(at + 24, 4, "dwStreams", cast(u64) image.u32At(at + 24))
-        report.numField(at + 32, 4, "dwWidth", cast(u64) image.u32At(at + 32))
-        report.numField(at + 36, 4, "dwHeight", cast(u64) image.u32At(at + 36))
+        report.numField(at, 4, "dwMicroSecPerFrame", cast(u64, image.u32At(at)))
+        report.numField(at + 16, 4, "dwTotalFrames", cast(u64, image.u32At(at + 16)))
+        report.numField(at + 24, 4, "dwStreams", cast(u64, image.u32At(at + 24)))
+        report.numField(at + 32, 4, "dwWidth", cast(u64, image.u32At(at + 32)))
+        report.numField(at + 36, 4, "dwHeight", cast(u64, image.u32At(at + 36)))
         return
     }
 

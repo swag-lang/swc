@@ -5,7 +5,7 @@
 using Win32
 
 // Returns whether a debugger is attached to the current process.
-func isAttached()->bool => cast(bool) IsDebuggerPresent()
+func isAttached()->bool => cast(bool, IsDebuggerPresent())
 
 // Raises a breakpoint exception, which stops the process in an attached debugger.
 func debugBreak() => DebugBreak()

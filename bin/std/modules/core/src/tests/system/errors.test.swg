@@ -213,7 +213,7 @@ struct OwnedThreadError
 
 func publishOwnedThreadError(thread: Threading.Thread)
 {
-    let state = cast(*OwnedThreadError) thread.userParam!
+    let state = cast(*OwnedThreadError, thread.userParam!)
 
     // The text is allocated in the producer's root storage, before its catch frame begins.
     let message = Errors.mkString("the public error owner retains text beyond producer exit")

@@ -99,11 +99,11 @@ func hexSignedScalar(raw: u64, size: u64)->s64
 {
     let bits = size * 8
     if bits >= 64 do
-        return cast #bit (s64) raw
+        return cast #bit (s64, raw)
     let sign = 1'u64 << (bits - 1)
     if raw & sign do
-        return cast #bit (s64) (raw | ~((1'u64 << bits) - 1))
-    return cast(s64) raw
+        return cast #bit (s64, (raw | ~((1'u64 << bits) - 1)))
+    return cast(s64, raw)
 }
 
 // Formats one complete scalar in the spelling selected by the value combo.
@@ -116,8 +116,8 @@ func formatHexScalar(grouping: HexGrouping, raw: u64)->String
     case .Hex16:   return Format.toString("0x%{X04}", raw)
     case .Hex32:   return Format.toString("0x%{X08}", raw)
     case .Hex64:   return Format.toString("0x%{X016}", raw)
-    case .Float32: return Format.toString("%{g9}", cast #bit (f32) (cast(u32) raw))
-    case .Float64: return Format.toString("%{g15}", cast #bit (f64) raw)
+    case .Float32: return Format.toString("%{g9}", cast #bit (f32, cast(u32, raw)))
+    case .Float64: return Format.toString("%{g15}", cast #bit (f64, raw))
     default:       return Format.toString("%", raw)
     }
 }
@@ -128,7 +128,7 @@ func appendHexDigits(buffer: *Array'u8, value: u64, digits: u64)
     for index in digits
     {
         let shift  = (digits - 1 - index) * 4
-        let nibble = cast(u8) ((value >> shift) & 0xF)
+        let nibble = cast(u8, ((value >> shift) & 0xF))
         buffer.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 }
@@ -138,7 +138,7 @@ func formatHexDigits(value: u64, digits: u64)->String
 {
     var bytes: Array'u8
     appendHexDigits(&bytes, value, digits)
-    return String.from(cast(string) bytes.toSlice())
+    return String.from(cast(string, bytes.toSlice()))
 }
 
 // Returns the value of the hexadecimal digit `value`, or 16 when `value` is not one.
@@ -204,7 +204,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
             line.add(isHexPrintable(value) ? value : '.'u8)
         }
 
-        result += cast(string) line.toSlice()
+        result += cast(string, line.toSlice())
         result += "\n"
         row    += bytesPerRow
     }
@@ -235,7 +235,7 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
     if index >= count do
         return Swag.U64.Max
 
-    let valueText = cast(string) trimmed[index to]
+    let valueText = cast(string, trimmed[index to])
     if not relative and Utf8.compare(valueText, "caret", .Latin1NoCase) == 0 do
         return caret
     if not relative and Utf8.compare(valueText, "filesize", .Latin1NoCase) == 0 do
@@ -374,7 +374,7 @@ impl HexGridView
         let height = .clientRect().height - .headerHeight()
         if height <= 0 or .rowHeight <= 0 do
             return 1
-        return Math.max(cast(u64) Math.floor(height / .rowHeight), 1)
+        return Math.max(cast(u64, Math.floor(height / .rowHeight)), 1)
     }
 
     mtd maxTopRow()->u64
@@ -384,7 +384,7 @@ impl HexGridView
         return rows > visible ? rows - visible : 0
     }
 
-    mtd gutterWidth()->f32 => cast(f32) .offsetDigits * .charWidth + HexColumnGap
+    mtd gutterWidth()->f32 => cast(f32, .offsetDigits) * .charWidth + HexColumnGap
 
     mtd valueSize()->u64 => hexGroupingSize(.grouping)
 
@@ -397,8 +397,8 @@ impl HexGridView
     mtd hexCellX(column: u64)->f32
     {
         if .grouping == .Bytes do
-            return HexViewInset + .gutterWidth() + cast(f32) (column * 3 + column / HexDefaultGroupSize) * .charWidth
-        return HexViewInset + .gutterWidth() + cast(f32) (column / .valueSize() * (.valueCellChars() + 1)) * .charWidth
+            return HexViewInset + .gutterWidth() + cast(f32, (column * 3 + column / HexDefaultGroupSize)) * .charWidth
+        return HexViewInset + .gutterWidth() + cast(f32, (column / .valueSize() * (.valueCellChars() + 1))) * .charWidth
     }
 
     mtd hexColumnWidth(bytesPerRow: u64)->f32
@@ -406,18 +406,18 @@ impl HexGridView
         if .grouping == .Bytes
         {
             let last = bytesPerRow ? bytesPerRow - 1 : 0
-            return cast(f32) (last * 3 + last / HexDefaultGroupSize + 2) * .charWidth
+            return cast(f32, (last * 3 + last / HexDefaultGroupSize + 2)) * .charWidth
         }
 
         let values = bytesPerRow ? (bytesPerRow + .valueSize() - 1) / .valueSize() : 0
-        return values ? cast(f32) (values * (.valueCellChars() + 1) - 1) * .charWidth : 0
+        return values ? cast(f32, (values * (.valueCellChars() + 1) - 1)) * .charWidth : 0
     }
 
     mtd textColumnLeft()->f32 => HexViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + HexColumnGap
 
-    mtd textCellX(column: u64)->f32 => .textColumnLeft() + cast(f32) column * .charWidth
+    mtd textCellX(column: u64)->f32 => .textColumnLeft() + cast(f32, column) * .charWidth
 
-    mtd contentWidthFor(bytesPerRow: u64)->f32 => HexViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + HexColumnGap + cast(f32) bytesPerRow * .charWidth + HexViewInset
+    mtd contentWidthFor(bytesPerRow: u64)->f32 => HexViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + HexColumnGap + cast(f32, bytesPerRow) * .charWidth + HexViewInset
 
     mtd contentWidth()->f32 => .contentWidthFor(.bytesPerRow)
 
@@ -434,8 +434,8 @@ impl HexGridView
 
     mtd adjustFontSize(delta: s32)
     {
-        let next = Math.clamp(cast(s32) .fontSize + delta, cast(s32) HexMinFontSize, cast(s32) HexMaxFontSize)
-        .setFontSize(cast(u32) next)
+        let next = Math.clamp(cast(s32, .fontSize) + delta, cast(s32, HexMinFontSize), cast(s32, HexMaxFontSize))
+        .setFontSize(cast(u32, next))
     }
 
     mtd resetFontSize()
@@ -451,7 +451,7 @@ impl HexGridView
         for index in size
         {
             let position = .bigEndian ? index : size - 1 - index
-            raw = (raw << 8) | cast(u64) .doc.byteAt(offset + position)
+            raw = (raw << 8) | cast(u64, .doc.byteAt(offset + position))
         }
 
         return raw
@@ -461,7 +461,7 @@ impl HexGridView
     //
     // The difference is taken in signed arithmetic because a row above the viewport is a
     // legitimate question, whose unsigned answer would wrap around 2^64.
-    mtd rowTop(row: u64)->f32 => .headerHeight() + cast(f32) (cast(s64) row - cast(s64) .topRow) * .rowHeight
+    mtd rowTop(row: u64)->f32 => .headerHeight() + cast(f32, (cast(s64, row) - cast(s64, .topRow))) * .rowHeight
 
     mtd selectionStart()->u64 => Math.min(.caret, .anchor)
 
@@ -494,12 +494,12 @@ impl HexGridView
         if firstRow == lastRow
         {
             let column = first % .bytesPerRow
-            local = {.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32) (last - first + 1) * .charWidth, .rowHeight}
+            local = {.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32, (last - first + 1)) * .charWidth, .rowHeight}
         }
         else
         {
-            local = {.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32) .bytesPerRow * .charWidth,
-                     cast(f32) (lastRow - firstRow + 1) * .rowHeight}
+            local = {.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32, .bytesPerRow) * .charWidth,
+                     cast(f32, (lastRow - firstRow + 1)) * .rowHeight}
         }
 
         result[] = .localToSurface(local)
@@ -576,10 +576,10 @@ impl HexGridView
         if .scroll == null do
             return
 
-        let span   = Math.min(cast(f32) .rowCount() * .rowHeight, HexScrollSpan)
+        let span   = Math.min(cast(f32, .rowCount()) * .rowHeight, HexScrollSpan)
         let usable = Math.max(span - .clientRect().height, 0)
         let maxTop = .maxTopRow()
-        let y      = maxTop ? usable * cast(f32) .topRow / cast(f32) maxTop : 0
+        let y      = maxTop ? usable * cast(f32, .topRow) / cast(f32, maxTop) : 0
 
         .syncing = true
         defer .syncing = false
@@ -598,7 +598,7 @@ impl HexGridView
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let maxTop = .maxTopRow()
-        let row    = position <= 0 ? 0 : position >= usable ? maxTop : Math.min(cast(u64) Math.round(position / usable * cast(f32) maxTop), maxTop)
+        let row    = position <= 0 ? 0 : position >= usable ? maxTop : Math.min(cast(u64, Math.round(position / usable * cast(f32, maxTop))), maxTop)
         if row == .topRow do
             return
         .topRow = row
@@ -617,8 +617,8 @@ impl HexGridView
 
     mtd scrollByRows(delta: s64)
     {
-        let target = cast(s64) .topRow + delta
-        .setTopRow(target < 0 ? 0 : cast(u64) target)
+        let target = cast(s64, .topRow) + delta
+        .setTopRow(target < 0 ? 0 : cast(u64, target))
     }
 
     mtd ensureCaretVisible(center: bool)
@@ -658,11 +658,11 @@ impl HexGridView
     {
         if not .doc.fileSize do
             return
-        let target = cast(s64) .caret + delta
+        let target = cast(s64, .caret) + delta
         if target < 0 do
             .moveCaret(0, extend)
         else do
-            .moveCaret(cast(u64) target, extend)
+            .moveCaret(cast(u64, target), extend)
     }
 
     mtd selectAll()
@@ -686,7 +686,7 @@ impl HexGridView
         if y < 0 do
             return Swag.U64.Max
 
-        let row = .topRow + cast(u64) Math.floor(y / .rowHeight)
+        let row = .topRow + cast(u64, Math.floor(y / .rowHeight))
         if row >= .rowCount() do
             return Swag.U64.Max
 
@@ -694,7 +694,7 @@ impl HexGridView
         if x >= .textColumnLeft()
         {
             let cell = Math.floor((x - .textColumnLeft()) / .charWidth)
-            column = cell <= 0 ? 0 : Math.min(cast(u64) cell, .bytesPerRow - 1)
+            column = cell <= 0 ? 0 : Math.min(cast(u64, cell), .bytesPerRow - 1)
         }
         elif x >= HexViewInset + .gutterWidth()
         {
@@ -710,7 +710,7 @@ impl HexGridView
             else
             {
                 let left  = HexViewInset + .gutterWidth()
-                let group = cast(u64) Math.max(Math.floor((x - left) / (cast(f32) (.valueCellChars() + 1) * .charWidth)), 0)
+                let group = cast(u64, Math.max(Math.floor((x - left) / (cast(f32, (.valueCellChars() + 1)) * .charWidth)), 0))
                 column = Math.min(group * .valueSize(), .bytesPerRow - 1)
             }
         }
@@ -884,14 +884,14 @@ impl HexGridView
                 appendHexDigits(&text, value, 2)
             }
 
-            Clipboard.addString(cast(string) text.toSlice())
+            Clipboard.addString(cast(string, text.toSlice()))
 
         case .Text:
             var text: Array'u8
             text.reserve(bytes.count)
             for value in bytes do
                 text.add(isHexPrintable(value) ? value : '.'u8)
-            Clipboard.addString(cast(string) text.toSlice())
+            Clipboard.addString(cast(string, text.toSlice()))
         }
     }
 
@@ -1060,7 +1060,7 @@ impl HexGridView
     {
         if buffer.isEmpty() do
             return
-        painter.drawString(x, y, cast(string) buffer.toSlice(), font, color)
+        painter.drawString(x, y, cast(string, buffer.toSlice()), font, color)
     }
 
     // Fills the cells of `[first, last]` in both columns.
@@ -1069,11 +1069,11 @@ impl HexGridView
         let firstColumn = first % .bytesPerRow
         let lastColumn  = last % .bytesPerRow
         let hexLeft     = originX + .hexCellX(firstColumn)
-        let hexRight    = originX + .hexCellX(lastColumn) + cast(f32) .valueCellChars() * .charWidth
+        let hexRight    = originX + .hexCellX(lastColumn) + cast(f32, .valueCellChars()) * .charWidth
         painter.fillRect(hexLeft - 1, y, hexRight - hexLeft + 2, .rowHeight, color)
 
         let textLeft = originX + .textCellX(firstColumn)
-        painter.fillRect(textLeft, y, cast(f32) (lastColumn - firstColumn + 1) * .charWidth, .rowHeight, color)
+        painter.fillRect(textLeft, y, cast(f32, (lastColumn - firstColumn + 1)) * .charWidth, .rowHeight, color)
     }
 }
 
@@ -1103,7 +1103,7 @@ impl IActionUI for ActionHex
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let grid    = cast #assume(*HexGridView) cxt.wnd!
+        let grid    = assume cast(*HexGridView, cxt.wnd)
         let bounded = grid.selectionLength() > HexCopyLimit
         let limit   = StrConv.toDisplaySize(HexCopyLimit)
 
@@ -1138,7 +1138,7 @@ impl IActionUI for ActionHex
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let grid = cast #assume(*HexGridView) cxt.wnd!
+        let grid = assume cast(*HexGridView, cxt.wnd)
         switch cxt.id
         {
         case ActionHex.CopyBytes: grid.copySelection(.Bytes)
@@ -1216,9 +1216,9 @@ impl IWnd for HexGridView
 
         case .Wheel:
             if evt.delta.y > 0 do
-                .scrollByRows(-cast(s64) HexWheelRows)
+                .scrollByRows(-cast(s64, HexWheelRows))
             elif evt.delta.y < 0 do
-                .scrollByRows(cast(s64) HexWheelRows)
+                .scrollByRows(cast(s64, HexWheelRows))
 
         case .Pressed where evt.button == .Right:
             let offset = .offsetAt(local)
@@ -1262,8 +1262,8 @@ impl IWnd for HexGridView
         let extend  = evt.modifiers.has(.Shift)
         let control = evt.modifiers.has(.Control)
         let unit    = 1's64
-        let stride  = cast(s64) .bytesPerRow
-        let page    = cast(s64) (.visibleRows() * .bytesPerRow)
+        let stride  = cast(s64, .bytesPerRow)
+        let page    = cast(s64, (.visibleRows() * .bytesPerRow))
 
         switch evt.key
         {
@@ -1414,7 +1414,7 @@ impl IWnd for HexGridView
                 let column      = valueOffset % .bytesPerRow
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
                 let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
-                painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32) .valueCellChars() * .charWidth + 2, .rowHeight, caretBk)
+                painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32, .valueCellChars()) * .charWidth + 2, .rowHeight, caretBk)
                 painter.drawString(originX + .hexCellX(column), y, text.toString(), font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
             }

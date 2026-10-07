@@ -91,5 +91,5 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
     let winPath = Utf16.toZeroTerminated(fullName)
     let hFile   = catch CreateFileW(winPath.buffer, wAccess, wShare, securityPtr, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
     try Errors.transformWinErrors(err, fullName)
-    return cast(FileHandle) hFile
+    return cast(FileHandle, hFile)
 }

@@ -58,8 +58,8 @@ internal impl Properties
         let def = Memory.new(rootType)
         .defaultRoots.add({def, rootType})
 
-        let defBase  = cast([*] u8) def!
-        let rootSize = cast(u64) rootType.sizeof
+        let defBase  = cast([*] u8, def!)
+        let rootSize = cast(u64, rootType.sizeof)
 
         for i in fromIdx until .items.count
         {
@@ -77,11 +77,11 @@ internal impl Properties
             if not canHaveDefault(it.type) do
                 continue
 
-            let off = cast([*] u8?) it.data - base0
-            if off < 0 or cast(u64) off >= rootSize do
+            let off = cast([*] u8?, it.data) - base0
+            if off < 0 or cast(u64, off) >= rootSize do
                 continue
 
-            it.defaultData = cast(*u8) (defBase + off)
+            it.defaultData = cast(*u8, (defBase + off))
         }
     }
 
@@ -112,7 +112,7 @@ internal impl Properties
         if not .canReset(item) do
             return false
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf
@@ -130,10 +130,10 @@ internal impl Properties
 
         if item.type == Core.String
         {
-            let d = cast(*String) item.defaultData!
+            let d = cast(*String, item.defaultData!)
             for k in n
             {
-                if (cast(const *String) .instanceAddr(item, k)!)[] != d[] do
+                if cast(const *String, .instanceAddr(item, k)!)[] != d[] do
                     return true
             }
 
@@ -146,7 +146,7 @@ internal impl Properties
 
         for k in n
         {
-            if Memory.compare(cast(const [*] void?) .instanceAddr(item, k), cast(const [*] void?) item.defaultData, sz) != 0 do
+            if Memory.compare(cast(const [*] void?, .instanceAddr(item, k)), cast(const [*] void?, item.defaultData), sz) != 0 do
                 return true
         }
 
@@ -157,7 +157,7 @@ internal impl Properties
     // chain) may take over; otherwise the declared default is written into every edited instance.
     mtd resetItemDefault(item: *PropertiesItem)
     {
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf and scan.ntfyItf.resetItemToDefault(me, item)
@@ -179,13 +179,13 @@ internal impl Properties
         if item.type == Core.String
         {
             for k in n do
-                (cast(*String) .instanceAddr(item, k)!)[] = (cast(const *String) item.defaultData!)[]
+                cast(*String, .instanceAddr(item, k)!)[] = cast(const *String, item.defaultData!)[]
         }
         else
         {
             let sz = .fieldSize(item)
             for k in n do
-                Memory.copy(cast([*] void?) .instanceAddr(item, k), cast(const [*] void?) item.defaultData, sz)
+                Memory.copy(cast([*] void?, .instanceAddr(item, k)), cast(const [*] void?, item.defaultData), sz)
         }
 
         .refreshItem(item)

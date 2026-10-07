@@ -57,10 +57,10 @@ func compute()
 {
     g_Noise.seed       = g_NoiseParams.seed
     g_Noise.kind       = g_NoiseParams.kind
-    g_Noise.frequency  = cast(f32) g_NoiseParams.frequency
+    g_Noise.frequency  = cast(f32, g_NoiseParams.frequency)
     g_Noise.octaves    = g_NoiseParams.octaves
-    g_Noise.lacunarity = cast(f32) g_NoiseParams.lacunarity
-    g_Noise.gain       = cast(f32) g_NoiseParams.gain
+    g_Noise.lacunarity = cast(f32, g_NoiseParams.lacunarity)
+    g_Noise.gain       = cast(f32, g_NoiseParams.gain)
     g_Image.fillNoise(&g_Noise)
 }
 
@@ -95,7 +95,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         paintEvt.paintContext.renderer.updateTexture(g_Texture, g_Image.pixels.storage())
-        painter.drawTexture(cast() UX, 0, cast() W, cast() H, g_Texture)
+        painter.drawTexture(cast(UX), 0, cast(W), cast(H), g_Texture)
     }
 
     return false

@@ -80,7 +80,7 @@ impl Design
     #[Swag.Inline]
     mtd asSlice()->const [..] u8
     {
-        return Swag.makeSlice(&me.bytes[0], cast(u64) me.len)
+        return Swag.makeSlice(&me.bytes[0], cast(u64, me.len))
     }
 }
 
@@ -91,7 +91,7 @@ impl Design
 func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
 {
     var result: retval
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var pos:    u32
 
     // Parse patterns (comma-separated first line)

@@ -43,9 +43,9 @@ func mixedRef(a, b, c: u32)->bool => (a < b and b < c) or c == 0
             {
                 for d in values do
                     Swag.assert(anyEdge(a, b, c, d) == anyEdgeRef(a, b, c, d))
-                let ua = cast #bit (u32) cast #wrap (s32) a
-                let ub = cast #bit (u32) cast #wrap (s32) b
-                let uc = cast #bit (u32) cast #wrap (s32) c
+                let ua = cast #bit (u32, cast #wrap (s32, a))
+                let ub = cast #bit (u32, cast #wrap (s32, b))
+                let uc = cast #bit (u32, cast #wrap (s32, c))
                 Swag.assert(mixed(ua, ub, uc) == mixedRef(ua, ub, uc))
             }
         }

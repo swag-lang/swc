@@ -10,7 +10,7 @@ func hexBytes(text: string)->Array'u8
     var index = 0'u64
     while index + 1 < text.count
     {
-        result.add(cast(u8) ((hexDigit(text[index]) << 4) | hexDigit(text[index + 1])))
+        result.add(cast(u8, ((hexDigit(text[index]) << 4) | hexDigit(text[index + 1]))))
         index += 2
     }
 
@@ -86,7 +86,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     // RFC 7693 appendix E keyed vector: key 00..3f, input 00, 64-byte digest.
     var fullKey: [64] u8
     for i in 64 do
-        fullKey[i] = cast(u8) i
+        fullKey[i] = cast(u8, i)
     let input:  [1] u8 = [0]
     var digest: [64] u8
     expect Hash.Blake2b.computeKeyed(fullKey, input, digest)
@@ -119,7 +119,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
 {
     var data: [256] u8
     for index in data.count do
-        data[index] = cast(u8) index
+        data[index] = cast(u8, index)
     assertBlake2b(data[0 until 128], "2319e3789c47e2daa5fe807f61bec2a1a6537fa03f19ff32e87eecbfd64b7e0e8ccff439ac333b040f19b0c4ddd11a61e24ac1fe0f10a039806c5dcc0da3d115")
     assertBlake2b(data[0 until 256], "1ecc896f34d3f9cac484c73f75f6a5fb58ee6784be41b35f46067b9c65c63a6794d3d744112c653f73dd7deb6666204c5a9bfa5b46081fc10fdbe7884fa5cbf8")
 }

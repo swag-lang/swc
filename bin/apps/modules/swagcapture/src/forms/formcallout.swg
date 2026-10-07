@@ -110,7 +110,7 @@ impl FormCallout
         const Seg = 8
         for k in Seg + 1
         {
-            let ang = Math.toRadians(a0Deg + (a1Deg - a0Deg) * (cast(f32) k / Seg))
+            let ang = Math.toRadians(a0Deg + (a1Deg - a0Deg) * (cast(f32, k) / Seg))
             path.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang))
         }
     }
@@ -180,7 +180,7 @@ impl IForm for FormCallout
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast #try (*FormCallout) ptr
+        let other = (catch cast(*FormCallout?, ptr))
         if not other do
             return false
         return .isSameBase(ptr) and
@@ -197,8 +197,8 @@ impl IForm for FormCallout
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let d = cast #assume (*FormCallout) dst
-        let s = cast #assume (*FormCallout) src
+        let d = assume cast (*FormCallout, dst)
+        let s = assume cast (*FormCallout, src)
         d.roundSize = s.roundSize
         d.fontSize  = s.fontSize
         d.boldSize  = s.boldSize
@@ -212,16 +212,16 @@ impl IForm for FormCallout
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        let xa = cast(s32) (movingStart.x / zoom)
-        let ya = cast(s32) (movingStart.y / zoom)
-        let xb = cast(s32) (localPos.x / zoom)
-        let yb = cast(s32) (localPos.y / zoom)
+        let xa = cast(s32, (movingStart.x / zoom))
+        let ya = cast(s32, (movingStart.y / zoom))
+        let xb = cast(s32, (localPos.x / zoom))
+        let yb = cast(s32, (localPos.y / zoom))
         .setRectForm(xa, ya, xb - xa, yb - ya)
 
         // Until the user drags the tip, default the tail below the bubble, offset
         // left of center so it reads as a classic speech bubble.
-        .tailX = cast(f32) .x + cast(f32) .w * 0.3
-        .tailY = cast(f32) (.y + .h) + Math.max(cast(f32) .h * 0.6, 36)
+        .tailX = cast(f32, .x) + cast(f32, .w) * 0.3
+        .tailY = cast(f32, (.y + .h)) + Math.max(cast(f32, .h) * 0.6, 36)
 
         if evt.kind == .Released and evt.button == .Left do
             return false
@@ -235,10 +235,10 @@ impl IForm for FormCallout
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x     = cast(s32) (.x * scale)
-        .y     = cast(s32) (.y * scale)
-        .w     = cast(s32) (.w * scale)
-        .h     = cast(s32) (.h * scale)
+        .x     = cast(s32, (.x * scale))
+        .y     = cast(s32, (.y * scale))
+        .w     = cast(s32, (.w * scale))
+        .h     = cast(s32, (.h * scale))
         .tailX *= scale
         .tailY *= scale
     }
@@ -252,16 +252,16 @@ impl IForm for FormCallout
     {
         .x     += newPosX
         .y     += newPosY
-        .tailX += cast(f32) newPosX
-        .tailY += cast(f32) newPosY
+        .tailX += cast(f32, newPosX)
+        .tailY += cast(f32, newPosY)
     }
 
     mtd impl movePoint(pt: u32, newPosX, newPosY: s32)
     {
         if pt == 0
         {
-            .tailX += cast(f32) newPosX
-            .tailY += cast(f32) newPosY
+            .tailX += cast(f32, newPosX)
+            .tailY += cast(f32, newPosY)
         }
     }
 
@@ -381,10 +381,10 @@ impl IForm for FormCallout
                 .render.isDirtyFont = true
             }
 
-            .render.x           = cast(s32) inner.x
-            .render.y           = cast(s32) inner.y
-            .render.w           = cast(s32) inner.width
-            .render.h           = cast(s32) inner.height
+            .render.x           = cast(s32, inner.x)
+            .render.y           = cast(s32, inner.y)
+            .render.w           = cast(s32, inner.width)
+            .render.h           = cast(s32, inner.height)
             .render.backColor   = .textColor
             .render.borderColor = Color.fromArgb(0, Argb.Black)
             .render.borderSize  = 0

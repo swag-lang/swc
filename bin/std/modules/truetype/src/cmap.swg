@@ -25,7 +25,7 @@ func lookupCMap0(cmap: const [..] u8, charCode: u32)->u32
 {
     if charCode > 0xFF do
         return 0
-    return peekU8(cmap, 6 + cast(u64) charCode)
+    return peekU8(cmap, 6 + cast(u64, charCode))
 }
 
 func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
@@ -35,28 +35,28 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
 
     let segCount      = peekU16(cmap, 6) / 2
     let endCodesOff   = 14'u64
-    let startCodesOff = endCodesOff + cast(u64) segCount * 2 + 2
-    let deltasOff     = startCodesOff + cast(u64) segCount * 2
-    let rangesOff     = deltasOff + cast(u64) segCount * 2
+    let startCodesOff = endCodesOff + cast(u64, segCount) * 2 + 2
+    let deltasOff     = startCodesOff + cast(u64, segCount) * 2
+    let rangesOff     = deltasOff + cast(u64, segCount) * 2
 
     // endCodes are sorted ascending: binary-search the first segment whose endCode
     // covers charCode, instead of scanning every segment (fonts have 100s of them).
     var lo = 0'u32
-    var hi = cast(u32) segCount
+    var hi = cast(u32, segCount)
     while lo < hi
     {
         let mid     = lo + (hi - lo) / 2
-        let endCode = peekU16(cmap, endCodesOff + cast(u64) mid * 2)
+        let endCode = peekU16(cmap, endCodesOff + cast(u64, mid) * 2)
         if charCode > endCode do
             lo = mid + 1
         else do
             hi = mid
     }
 
-    if lo >= cast(u32) segCount do
+    if lo >= cast(u32, segCount) do
         return 0
 
-    let idx       = cast(u64) lo
+    let idx       = cast(u64, lo)
     let startCode = peekU16(cmap, startCodesOff + idx * 2)
     if charCode < startCode do
         return 0
@@ -64,16 +64,16 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
     let delta = peekS16(cmap, deltasOff + idx * 2)
     let range = peekU16(cmap, rangesOff + idx * 2)
     if not range do
-        return cast(u32) ((cast(s32) charCode + delta) & 0xFFFF)
+        return cast(u32, ((cast(s32, charCode) + delta) & 0xFFFF))
 
     let rangePos = rangesOff + idx * 2
-    let glyphPos = rangePos + range + cast(u64) (charCode - startCode) * 2
+    let glyphPos = rangePos + range + cast(u64, (charCode - startCode)) * 2
     if glyphPos + 2 > cmap.count do
         return 0
 
     var glyph = peekU16(cmap, glyphPos)
     if glyph do
-        glyph = cast(u16) ((cast(s32) glyph + delta) & 0xFFFF)
+        glyph = cast(u16, ((cast(s32, glyph) + delta) & 0xFFFF))
     return glyph
 }
 
@@ -81,11 +81,11 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
 // script block stays small.
 func lookupCMap6(cmap: const [..] u8, charCode: u32)->u32
 {
-    let firstCode  = cast(u32) peekU16(cmap, 6)
-    let entryCount = cast(u32) peekU16(cmap, 8)
+    let firstCode  = cast(u32, peekU16(cmap, 6))
+    let entryCount = cast(u32, peekU16(cmap, 8))
     if charCode < firstCode or charCode - firstCode >= entryCount do
         return 0
-    return peekU16(cmap, 10 + cast(u64) (charCode - firstCode) * 2)
+    return peekU16(cmap, 10 + cast(u64, (charCode - firstCode)) * 2)
 }
 
 func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32
@@ -97,7 +97,7 @@ func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32
     while left < right
     {
         let mid       = left + (right - left) / 2
-        let base      = 16'u64 + cast(u64) mid * 12
+        let base      = 16'u64 + cast(u64, mid) * 12
         let startCode = peekU32(cmap, base + 0)
         let endCode   = peekU32(cmap, base + 4)
         if charCode < startCode
@@ -129,7 +129,7 @@ func lookupCMap13(cmap: const [..] u8, charCode: u32)->u32
     while left < right
     {
         let mid       = left + (right - left) / 2
-        let base      = 16'u64 + cast(u64) mid * 12
+        let base      = 16'u64 + cast(u64, mid) * 12
         let startCode = peekU32(cmap, base + 0)
         let endCode   = peekU32(cmap, base + 4)
         if charCode < startCode
@@ -161,7 +161,7 @@ func findVariationSelector(cmap: const [..] u8, selector: u32)->u64
     while left < right
     {
         let mid   = left + (right - left) / 2
-        let base  = 10'u64 + cast(u64) mid * 11
+        let base  = 10'u64 + cast(u64, mid) * 11
         let value = peekU24(cmap, base)
         if selector < value
         {
@@ -185,14 +185,14 @@ func findVariationSelector(cmap: const [..] u8, selector: u32)->u64
 // resolves through the ordinary map, so the selector only confirms the default glyph.
 func isDefaultVariation(cmap: const [..] u8, listOffset, charCode: u32)->bool
 {
-    let rangeCount = peekU32(cmap, cast(u64) listOffset)
+    let rangeCount = peekU32(cmap, cast(u64, listOffset))
     var left       = 0'u32
     var right      = rangeCount
 
     while left < right
     {
         let mid   = left + (right - left) / 2
-        let base  = cast(u64) listOffset + 4 + cast(u64) mid * 4
+        let base  = cast(u64, listOffset) + 4 + cast(u64, mid) * 4
         let start = peekU24(cmap, base)
         if charCode < start
         {
@@ -217,14 +217,14 @@ func isDefaultVariation(cmap: const [..] u8, listOffset, charCode: u32)->bool
 // Returns the glyph the non-default-UVS list assigns to 'charCode', or zero.
 func lookupNonDefaultVariation(cmap: const [..] u8, listOffset, charCode: u32)->u32
 {
-    let mappingCount = peekU32(cmap, cast(u64) listOffset)
+    let mappingCount = peekU32(cmap, cast(u64, listOffset))
     var left         = 0'u32
     var right        = mappingCount
 
     while left < right
     {
         let mid   = left + (right - left) / 2
-        let base  = cast(u64) listOffset + 4 + cast(u64) mid * 5
+        let base  = cast(u64, listOffset) + 4 + cast(u64, mid) * 5
         let value = peekU24(cmap, base)
         if charCode < value
         {

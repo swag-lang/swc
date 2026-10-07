@@ -117,7 +117,7 @@ impl MountedDrives
         // row whatever the state: sized to its content, the column would put the letters of two
         // drives at two different places and the reader would read the difference as a typo.
         list.setIconSize(themeRowIconSize(list.themeMetrics()))
-        list.header.itemAt(cast(u32) MountedColumn.Drive).reservesIconSpace = true
+        list.header.itemAt(cast(u32, MountedColumn.Drive)).reservesIconSpace = true
 
         // An empty table is a card with a heading and nothing under it, which reads as a table
         // that failed to load. One quiet line says the truth instead, and steps aside the
@@ -163,14 +163,14 @@ impl MountedDrives
             var driveIcon: Icon
             if one.readOnly do
                 driveIcon = .list.theme().icon(ThemeIcons.Lock, themeRowIconSize(.list.themeMetrics()))
-            line.setItem(cast(u32) MountedColumn.Drive, one.mountLabel.toString(), driveIcon)
-            line.setItem(cast(u32) MountedColumn.Size, capacityText(one.totalBytes).toString())
-            line.setItem(cast(u32) MountedColumn.Available, capacityText(one.availableBytes).toString())
-            line.setItem(cast(u32) MountedColumn.Vault, Path.fileName(one.path.toString()) orelse one.path.toString())
+            line.setItem(cast(u32, MountedColumn.Drive), one.mountLabel.toString(), driveIcon)
+            line.setItem(cast(u32, MountedColumn.Size), capacityText(one.totalBytes).toString())
+            line.setItem(cast(u32, MountedColumn.Available), capacityText(one.availableBytes).toString())
+            line.setItem(cast(u32, MountedColumn.Vault), Path.fileName(one.path.toString()) orelse one.path.toString())
         }
 
         for &one, index in .drives where .startupEnabled and one.atStartup do
-            .list.setLineChecked(cast(u32) index, true, notify: false)
+            .list.setLineChecked(cast(u32, index), true, notify: false)
 
         let filled = not .drives.isEmpty()
         .list.show(filled)
@@ -203,16 +203,16 @@ impl MountedDrives
     // header width but not part of any lane.
     mtd layoutColumns()
     {
-        let startup   = cast(u32) MountedColumn.Startup
-        let drive     = cast(u32) MountedColumn.Drive
-        let size      = cast(u32) MountedColumn.Size
-        let free      = cast(u32) MountedColumn.Available
-        let vault     = cast(u32) MountedColumn.Vault
+        let startup   = cast(u32, MountedColumn.Startup)
+        let drive     = cast(u32, MountedColumn.Drive)
+        let size      = cast(u32, MountedColumn.Size)
+        let free      = cast(u32, MountedColumn.Available)
+        let vault     = cast(u32, MountedColumn.Vault)
         let available = .list.listView.paddedClientRect().width
 
         var currentItems = 0'f32
         for index in .list.header.items.count do
-            currentItems += .list.header.itemWidthAt(cast(u32) index)
+            currentItems += .list.header.itemWidthAt(cast(u32, index))
 
         let chrome = .list.header.contentWidth() - currentItems
         let room   = Math.max(available - chrome, 0)
@@ -237,7 +237,7 @@ impl MountedDrives
         let line = .list.selectedLine()
         if not line do
             return Swag.U64.Max
-        for index in .drives.count where .list.lineAt(cast(u32) index) == line do
+        for index in .drives.count where .list.lineAt(cast(u32, index)) == line do
             return index
 
         return Swag.U64.Max
@@ -261,11 +261,11 @@ impl MountedDrives
     mtd retranslate()
     {
         .card.setTexts(appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
-        .list.header.itemAt(cast(u32) MountedColumn.Startup).name   = appStrings().ui_ColStartup
-        .list.header.itemAt(cast(u32) MountedColumn.Drive).name     = appStrings().ui_ColDrive
-        .list.header.itemAt(cast(u32) MountedColumn.Size).name      = appStrings().ui_ColSize
-        .list.header.itemAt(cast(u32) MountedColumn.Available).name = appStrings().ui_ColAvailable
-        .list.header.itemAt(cast(u32) MountedColumn.Vault).name     = appStrings().ui_ColVault
+        .list.header.itemAt(cast(u32, MountedColumn.Startup)).name   = appStrings().ui_ColStartup
+        .list.header.itemAt(cast(u32, MountedColumn.Drive)).name     = appStrings().ui_ColDrive
+        .list.header.itemAt(cast(u32, MountedColumn.Size)).name      = appStrings().ui_ColSize
+        .list.header.itemAt(cast(u32, MountedColumn.Available)).name = appStrings().ui_ColAvailable
+        .list.header.itemAt(cast(u32, MountedColumn.Vault)).name     = appStrings().ui_ColVault
         .list.header.invalidate()
 
         .empty.setText(appStrings().ui_NoDriveMounted)

@@ -30,21 +30,21 @@ func qsort(lowIn, highIn: s64)
 
     while low < high
     {
-        let p = g_Idx[cast(u64) ((low + high) / 2)]
+        let p = g_Idx[cast(u64, ((low + high) / 2))]
         var i = low
         var j = high
 
         while i <= j
         {
-            while less(g_Idx[cast(u64) i], p) do
+            while less(g_Idx[cast(u64, i)], p) do
                 i += 1
-            while less(p, g_Idx[cast(u64) j]) do
+            while less(p, g_Idx[cast(u64, j)]) do
                 j -= 1
             if i <= j
             {
-                let t = g_Idx[cast(u64) i]
-                g_Idx[cast(u64) i] = g_Idx[cast(u64) j]
-                g_Idx[cast(u64) j] = t
+                let t = g_Idx[cast(u64, i)]
+                g_Idx[cast(u64, i)] = g_Idx[cast(u64, j)]
+                g_Idx[cast(u64, j)] = t
                 i                  += 1
                 j                  -= 1
             }
@@ -58,9 +58,9 @@ func qsort(lowIn, highIn: s64)
 #main
 {
     // ---- data generation (not timed) ----
-    let vocabBytes = cast([*] u8) (benchAlloc(VOCAB * 16))!
-    let vocabOff   = cast([*] u64) (benchAlloc(VOCAB * #sizeof(u64)))!
-    let vocabLen   = cast([*] u64) (benchAlloc(VOCAB * #sizeof(u64)))!
+    let vocabBytes = cast([*] u8, (benchAlloc(VOCAB * 16))!)
+    let vocabOff   = cast([*] u64, (benchAlloc(VOCAB * #sizeof(u64)))!)
+    let vocabLen   = cast([*] u64, (benchAlloc(VOCAB * #sizeof(u64)))!)
 
     var vp = 0'u64
     for i in VOCAB
@@ -71,13 +71,13 @@ func qsort(lowIn, highIn: s64)
         vocabLen[i] = l
         for k in l
         {
-            vocabBytes[vp] = cast(u8) (97 + (nn % 26))
+            vocabBytes[vp] = cast(u8, (97 + (nn % 26)))
             vp += 1
             nn = nn / 26 + 7 * k
         }
     }
 
-    g_Text = cast([*] u8) (benchAlloc(WORDS * 12))!
+    g_Text = cast([*] u8, (benchAlloc(WORDS * 12))!)
     var n = 0'u64
     for j in WORDS
     {
@@ -141,10 +141,10 @@ func qsort(lowIn, highIn: s64)
     }
 
     let distinct = counts.count
-    g_Cnt = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
-    g_Off = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
-    g_Len = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
-    g_Idx = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
+    g_Cnt = cast([*] u64, (benchAlloc(distinct * #sizeof(u64)))!)
+    g_Off = cast([*] u64, (benchAlloc(distinct * #sizeof(u64)))!)
+    g_Len = cast([*] u64, (benchAlloc(distinct * #sizeof(u64)))!)
+    g_Idx = cast([*] u64, (benchAlloc(distinct * #sizeof(u64)))!)
 
     var ni = 0'u64
     for s in CAP
@@ -158,7 +158,7 @@ func qsort(lowIn, highIn: s64)
         ni        += 1
     }
 
-    qsort(0, cast(s64) distinct - 1)
+    qsort(0, cast(s64, distinct) - 1)
 
     var check = distinct * 7
     for k in 20'u64 do

@@ -29,7 +29,7 @@ func distance(p, q: Pair32)->s32
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
-func mixedSum(m: Mixed)->s64 => cast(s64) m.a + cast(s64) m.b * 256 + cast(s64) m.c * 65536 + cast(s64) m.d
+func mixedSum(m: Mixed)->s64 => cast(s64, m.a) + cast(s64, m.b) * 256 + cast(s64, m.c) * 65536 + cast(s64, m.d)
 
 #[Swag.Optimize(true), Swag.NoInline]
 func highIsBigger(p: Pair32)->bool => p.y > p.x

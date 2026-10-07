@@ -9,8 +9,8 @@ func isDynamicArray(t: typeinfo?)->bool
     if not t or not isStruct(t) do
         return false
 
-    let tt = cast #assume(const *TypeInfoStruct) t
-    let arrayGeneric = (cast #assume(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
+    let tt = assume cast(const *TypeInfoStruct, t)
+    let arrayGeneric = assume cast(const *TypeInfoStruct, #typeof(Array'u8)).fromGeneric
     if not tt.fromGeneric do
         return false
     return tt.fromGeneric.fullname == arrayGeneric.fullname
@@ -22,7 +22,7 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
     if not isDynamicArray(t) do
         return null
 
-    let tt       = cast #assume(const *TypeInfoStruct) t!
+    let tt       = assume cast(const *TypeInfoStruct, t)
     let generics = tt.generics!
     return generics[0].pointedType
 }
@@ -35,7 +35,7 @@ func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
     if not arrayPointer or not elementType do
         return
 
-    let arr = cast(*Array'u8) arrayPointer
+    let arr = cast(*Array'u8, arrayPointer)
     if hasDrop(elementType)
     {
         var scan = arr.buffer
@@ -58,7 +58,7 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
     if not arrayPointer or not elementType do
         return
 
-    let arr       = cast(*Array'u8) arrayPointer
+    let arr       = cast(*Array'u8, arrayPointer)
     let sizeValue = elementType.sizeof
 
     if index >= arr.count
@@ -101,12 +101,12 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
         return
 
     let size = valueType.sizeof
-    let base = cast([*] u8) basePointer
+    let base = cast([*] u8, basePointer)
     let pa   = base + indexA * size
     let pb   = base + indexB * size
 
     let allocator = Swag.getContext().allocator
-    let tmp       = cast([*] u8) Memory.alloc(size, allocator)
+    let tmp       = cast([*] u8, Memory.alloc(size, allocator))
     defer Memory.free(tmp, size, allocator)
 
     Memory.copy(tmp, pa, size)
@@ -143,7 +143,7 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
     }
 
     // Views the array as a buffer of bytes to reach its fields without the element type.
-    let arr       = cast(*Array'u8) arrayPointer
+    let arr       = cast(*Array'u8, arrayPointer)
     let sizeValue = elementType.sizeof
 
     // Growing relocates every value, so values with a post-move hook are fixed up afterwards.
@@ -155,7 +155,7 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         let oldBuffer   = arr.buffer
         let oldCapacity = arr.capacity
         let newCapacity = Math.max(arr.count + 1, arr.capacity * 2)
-        let newBuffer   = cast([*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
+        let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * sizeValue, arr.allocator))
         Memory.clear(newBuffer, newCapacity * sizeValue)
 
         Memory.copy(newBuffer, oldBuffer, arr.count * sizeValue)

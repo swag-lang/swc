@@ -132,20 +132,20 @@ impl Decoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast #assume(const *TypeInfoNative) type
+            let typeNative = assume cast(const *TypeInfoNative, type)
             switch typeNative.nativeKind
             {
-            case .Bool:       (cast(*bool) data)[] = try .serializer.readNative'bool()
-            case .U8:         (cast(*u8) data)[] = try .serializer.readNative'u8()
-            case .U16:        (cast(*u16) data)[] = try .serializer.readNative'u16()
-            case .U32, .Rune: (cast(*u32) data)[] = try .serializer.readNative'u32()
-            case .U64:        (cast(*u64) data)[] = try .serializer.readNative'u64()
-            case .S8:         (cast(*s8) data)[] = try .serializer.readNative's8()
-            case .S16:        (cast(*s16) data)[] = try .serializer.readNative's16()
-            case .S32:        (cast(*s32) data)[] = try .serializer.readNative's32()
-            case .S64:        (cast(*s64) data)[] = try .serializer.readNative's64()
-            case .F32:        (cast(*f32) data)[] = try .serializer.readNative'f32()
-            case .F64:        (cast(*f64) data)[] = try .serializer.readNative'f64()
+            case .Bool:       cast(*bool, data)[] = try .serializer.readNative'bool()
+            case .U8:         cast(*u8, data)[] = try .serializer.readNative'u8()
+            case .U16:        cast(*u16, data)[] = try .serializer.readNative'u16()
+            case .U32, .Rune: cast(*u32, data)[] = try .serializer.readNative'u32()
+            case .U64:        cast(*u64, data)[] = try .serializer.readNative'u64()
+            case .S8:         cast(*s8, data)[] = try .serializer.readNative's8()
+            case .S16:        cast(*s16, data)[] = try .serializer.readNative's16()
+            case .S32:        cast(*s32, data)[] = try .serializer.readNative's32()
+            case .S64:        cast(*s64, data)[] = try .serializer.readNative's64()
+            case .F32:        cast(*f32, data)[] = try .serializer.readNative'f32()
+            case .F64:        cast(*f64, data)[] = try .serializer.readNative'f64()
             }
 
             return
@@ -155,13 +155,13 @@ impl Decoder
         {
             let crc      = try .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
-            (cast(*(typeinfo?)) data)[] = typeType
+            cast(*(typeinfo?), data)[] = typeType
             return
         }
 
         if Reflection.isInterface(type)
         {
-            let itf = cast(*Swag.Interface) data
+            let itf = cast(*Swag.Interface, data)
 
             try .serializer.beginSection(.Raw)
             defer #nofail try .serializer.endSection()
@@ -203,7 +203,7 @@ impl Decoder
             // Core.String
             if type == String
             {
-                let strBuf = cast(*String) data
+                let strBuf = cast(*String, data)
                 strBuf[] = #nodrop try .serializer.readNative'String()
                 strBuf.opPostMove()
                 return
@@ -241,7 +241,7 @@ impl Decoder
             }
 
             // Generic struct load, driven by the shared per-type plan.
-            let structType = cast #assume(const *TypeInfoStruct) type
+            let structType = assume cast(const *TypeInfoStruct, type)
             let treated    = try .serializer.beginStruct(structType, data)
             defer #nofail try .serializer.endStruct()
             if treated do
@@ -251,9 +251,9 @@ impl Decoder
             for &pf in plan.fields
             {
                 let fieldType = pf.value.pointedType
-                if not itf or not (try itf.readElement(pf.value, cast([*] u8) data + pf.value.offset, idecoder))
+                if not itf or not (try itf.readElement(pf.value, cast([*] u8, data) + pf.value.offset, idecoder))
                 {
-                    let fieldData = cast([*] u8) data + pf.value.offset
+                    let fieldData = cast([*] u8, data) + pf.value.offset
                     let doIt      = catch .serializer.beginElement(pf.value) as beginErr
 
                     // A failed 'beginElement' has already unwound itself, so there is
@@ -295,7 +295,7 @@ impl Decoder
         // Static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr  = cast #assume(const *TypeInfoArray) type
+            let typeArr  = assume cast(const *TypeInfoArray, type)
             let elemType = typeArr.pointedType
             var count    = typeArr.count
             let treated  = try .serializer.beginSequence(elemType, data, &count)
@@ -303,7 +303,7 @@ impl Decoder
             if treated do
                 return
 
-            var bufArr = cast([*] u8) data
+            var bufArr = cast([*] u8, data)
             for count
             {
                 try .readTypedContent(bufArr, elemType)
@@ -417,7 +417,7 @@ impl IDecoder for Decoder
         if not count do
             return null
 
-        let safeData = cast([*] u8) Memory.alloc(count)
+        let safeData = cast([*] u8, Memory.alloc(count))
         Memory.clear(safeData, count)
         var decoded = false
         defer if not decoded do

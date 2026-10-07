@@ -36,15 +36,15 @@ func outlineTestSpan(img: Image, x: s32, whiteOnly: bool)->{ top, bottom: s32 }
     var result: retval = {-1, -1}
     for y in OutlineTestHeight
     {
-        let c = img.pixelColor(x, cast(s32) y)
+        let c = img.pixelColor(x, cast(s32, y))
         if c.r <= 60 and c.b >= 150 do
             continue
         if whiteOnly and c.r < 200 do
             continue
 
         if result.top < 0 do
-            result.top = cast(s32) y
-        result.bottom = cast(s32) y
+            result.top = cast(s32, y)
+        result.bottom = cast(s32, y)
     }
 
     return result
@@ -57,11 +57,11 @@ func outlineTestRuns(img: Image, y: s32)->Array's32
     var inside = false
     for x in OutlineTestWidth
     {
-        let c  = img.pixelColor(cast(s32) x, y)
+        let c  = img.pixelColor(cast(s32, x), y)
         let on = c.r >= 200
         if on != inside
         {
-            result.add(cast(s32) x)
+            result.add(cast(s32, x))
             inside = on
         }
     }
@@ -164,7 +164,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     for y in 58 to 62
     {
         for x in 38 to 42 do
-            Swag.assert(img.pixelColor(cast(s32) x, cast(s32) y).r == 255)
+            Swag.assert(img.pixelColor(cast(s32, x), cast(s32, y)).r == 255)
     }
 }
 

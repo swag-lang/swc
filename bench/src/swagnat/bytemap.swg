@@ -17,10 +17,10 @@ struct ByteMap
 
 func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
 {
-    m.keyOff = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
-    m.keyLen = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
-    m.val    = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
-    m.used   = cast([*] u8) benchAlloc(capacity)!
+    m.keyOff = cast([*] u64, (benchAlloc(capacity * #sizeof(u64)))!)
+    m.keyLen = cast([*] u64, (benchAlloc(capacity * #sizeof(u64)))!)
+    m.val    = cast([*] u64, (benchAlloc(capacity * #sizeof(u64)))!)
+    m.used   = cast([*] u8, benchAlloc(capacity)!)
     Swag.memset(m.used, 0'u8, capacity)
     m.base  = base
     m.mask  = capacity - 1
@@ -41,7 +41,7 @@ func mapProbe(m: *ByteMap, off, len: u64)->u64
     var h = 2166136261'u64
     for i in len
     {
-        h ^= cast(u64) m.base[off + i]
+        h ^= cast(u64, m.base[off + i])
         h = (h * 16777619) & 0xFFFFFFFF
     }
 

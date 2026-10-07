@@ -25,7 +25,7 @@ using Corpus
 // {
 //     var frame: [4096] u8
 //     frame[0] = 1
-//     return recurseForever(depth + 1) + cast(s32) frame[0]
+//     return recurseForever(depth + 1) + cast(s32, frame[0])
 // }
 
 // --- Sound ---

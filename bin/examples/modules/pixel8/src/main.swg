@@ -70,15 +70,15 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 {
     let surfaceWidth  = Math.max(width, 1)
     let surfaceHeight = Math.max(height, 1)
-    let scaleX        = cast(f32) surfaceWidth / cast(f32) W
-    let scaleY        = cast(f32) surfaceHeight / cast(f32) H
+    let scaleX        = cast(f32, surfaceWidth) / cast(f32, W)
+    let scaleY        = cast(f32, surfaceHeight) / cast(f32, H)
 
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
-        .rect.x = Math.round((cast(f32) surfaceWidth - .rect.width) * 0.5)
-        .rect.y = Math.round((cast(f32) surfaceHeight - .rect.height) * 0.5)
+        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
+        .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
 
     return result
@@ -119,12 +119,12 @@ func drawScene(painter: *Pixel.Painter)
 
     let top   = 104.0
     let gap   = 18.0
-    let cardW = (cast(f32) W - Margin * 2 - gap) * 0.5
-    let cardH = (cast(f32) H - top - Margin - gap * 2) / 3
+    let cardW = (cast(f32, W) - Margin * 2 - gap) * 0.5
+    let cardH = (cast(f32, H) - top - Margin - gap * 2) / 3
     for idx in FormulaCount
     {
-        let column = cast(f32) (idx % 2)
-        let row    = cast(f32) (idx / 2)
+        let column = cast(f32, (idx % 2))
+        let row    = cast(f32, (idx / 2))
         let rect   = Math.Rectangle{Margin + column * (cardW + gap), top + row * (cardH + gap), cardW, cardH}
         drawCard(painter, rect, idx)
     }
@@ -135,7 +135,7 @@ func display()
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
     let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32) Math.round(g_RC.width / scale), cast(s32) Math.round(g_RC.height / scale))
+    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)), cast(s32, Math.round(g_RC.height / scale)))
     g_Render.begin(g_RC)
     g_Painter.begin()
 

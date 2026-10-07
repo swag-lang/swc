@@ -9,12 +9,12 @@ func pair64(value: u64)->u64 => (value << 13) | (value >> 51)
 #[Swag.NoInline]
 func widenedPair(value: u32)->u32
 {
-    let wide = cast(u64) value
-    return cast(u32) (((wide >> 6) | (wide << 26)) & 0xFFFFFFFF)
+    let wide = cast(u64, value)
+    return cast(u32, (((wide >> 6) | (wide << 26)) & 0xFFFFFFFF))
 }
 
 #[Swag.NoInline]
-func unknownWidePair(value: u64)->u32 => cast(u32) (((value >> 6) | (value << 26)) & 0xFFFFFFFF)
+func unknownWidePair(value: u64)->u32 => cast(u32, (((value >> 6) | (value << 26)) & 0xFFFFFFFF))
 
 #test
 {

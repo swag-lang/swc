@@ -56,7 +56,7 @@ using Swag, Core, Gui
 // Builds the real main window inside the same measured frame as the shipped surface.
 func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32)->*MainWindow
 {
-    host.setup(cast(f32) MainWindow.WindowWidth, cast(f32) MainWindow.WindowWidth, scale)
+    host.setup(cast(f32, MainWindow.WindowWidth), cast(f32, MainWindow.WindowWidth), scale)
     host.surface.updateFlags(.LargeCaption | .Border | .NoShadow)
     host.bindApplication(&g_App)
 
@@ -126,13 +126,13 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     Swag.assert(window.appearanceButton.parent == &host.surfaceWnd)
     Swag.assert(window.appearanceButton.focusPolicy == .None)
 
-    window.themeIndex = cast(u32) AppearanceTheme.Dark
+    window.themeIndex = cast(u32, AppearanceTheme.Dark)
     window.applyTheme()
     Swag.assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
-    window.themeIndex = cast(u32) AppearanceTheme.Light
+    window.themeIndex = cast(u32, AppearanceTheme.Light)
     window.applyTheme()
     Swag.assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
-    window.themeIndex = cast(u32) AppearanceTheme.SwagDark
+    window.themeIndex = cast(u32, AppearanceTheme.SwagDark)
     window.applyTheme()
     Swag.assert(window.appearanceButton.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
 }
@@ -153,9 +153,9 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     window.startupVaults.add({String.from("C:\\private\\startup"), String.from("mount-x"), true, false})
     window.fileDlgState.currentFolder = String.from("C:\\private\\browse-private")
     var state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8) "unlisted"))
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8) "startup"))
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8) "browse-private"))
+    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "unlisted")))
+    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "startup")))
+    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "browse-private")))
 
     window.clearPrivateState()
     Swag.assert(window.mountSettings.path.isEmpty())
@@ -244,9 +244,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(window.createKeyFiles.generate.toolTip == "Créer un fichier clé aléatoire")
 
     // The third card follows too, headings and all.
-    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
-    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Size).name.raw == "TAILLE")
-    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Available).name.raw == "DISPONIBLE")
+    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32, MountedColumn.Startup)).name.raw == "AU DÉMARRAGE")
+    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32, MountedColumn.Size)).name.raw == "TAILLE")
+    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32, MountedColumn.Available)).name.raw == "DISPONIBLE")
     Swag.assert(window.mountedDrives.empty.text() == "Aucun lecteur monté.")
 
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
@@ -300,12 +300,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.mountPassword.byteCount = secret.count
 
     var state       = saveMainWindowState(window)
-    let secretBytes = cast(const [..] u8) secret
+    let secretBytes = cast(const [..] u8, secret)
     Swag.assert(not containsStateBytes(state.toSlice(), secretBytes))
 
     window.mountKeyFiles.paths.add(String.from("C:\\private\\access.key"))
     state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8) "access.key"))
+    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "access.key")))
 
     window.mountSettings = {}
     window.mountPath.setText("")
@@ -399,8 +399,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // nothing filled in, the action of the create page is out of the ring. So is every control
     // of the two pages that are not on show.
     Swag.assert(order.stops.count == 9)
-    Swag.assert(order.stops[0] == cast(*Wnd) window.tabs)
-    Swag.assert(order.stops[1] == cast(*Wnd) window.createPath)
+    Swag.assert(order.stops[0] == cast(*Wnd, window.tabs))
+    Swag.assert(order.stops[1] == cast(*Wnd, window.createPath))
 
     // Live, each action takes its place after the card it answers for, and the dominant one
     // comes last on its card because the bar stacks from its right edge.
@@ -413,44 +413,44 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     let full = Gui.FocusOrder.collect(window)
     Swag.assert(full.stops.count == 10)
-    Swag.assert(full.stops[0] == cast(*Wnd) window.tabs)
-    Swag.assert(full.stops[1] == cast(*Wnd) window.createPath)
-    Swag.assert(full.stops[2] == cast(*Wnd) window.browseCreate)
-    Swag.assert(full.stops[3] == cast(*Wnd) window.createSize)
-    Swag.assert(full.stops[4] == cast(*Wnd) window.createUnit)
-    Swag.assert(full.stops[5] == cast(*Wnd) window.createPassword)
-    Swag.assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
-    Swag.assert(full.stops[7] == cast(*Wnd) window.createKeyFiles.add)
-    Swag.assert(full.stops[8] == cast(*Wnd) window.createKeyFiles.generate)
-    Swag.assert(full.stops[9] == cast(*Wnd) window.createButton)
+    Swag.assert(full.stops[0] == cast(*Wnd, window.tabs))
+    Swag.assert(full.stops[1] == cast(*Wnd, window.createPath))
+    Swag.assert(full.stops[2] == cast(*Wnd, window.browseCreate))
+    Swag.assert(full.stops[3] == cast(*Wnd, window.createSize))
+    Swag.assert(full.stops[4] == cast(*Wnd, window.createUnit))
+    Swag.assert(full.stops[5] == cast(*Wnd, window.createPassword))
+    Swag.assert(full.stops[6] == cast(*Wnd, window.confirmPassword))
+    Swag.assert(full.stops[7] == cast(*Wnd, window.createKeyFiles.add))
+    Swag.assert(full.stops[8] == cast(*Wnd, window.createKeyFiles.generate))
+    Swag.assert(full.stops[9] == cast(*Wnd, window.createButton))
 
     // Bringing up another page swaps the whole middle of the ring for that page's controls, and
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
     Swag.assert(opened.stops.count == 13)
-    Swag.assert(opened.stops[0] == cast(*Wnd) window.tabs)
-    Swag.assert(opened.stops[1] == cast(*Wnd) window.mountPath)
-    Swag.assert(opened.stops[2] == cast(*Wnd) window.browseMount)
-    Swag.assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
-    Swag.assert(opened.stops[4] == cast(*Wnd) window.hiddenButton)
-    Swag.assert(opened.stops[5] == cast(*Wnd) window.mountKeyFiles.add)
+    Swag.assert(opened.stops[0] == cast(*Wnd, window.tabs))
+    Swag.assert(opened.stops[1] == cast(*Wnd, window.mountPath))
+    Swag.assert(opened.stops[2] == cast(*Wnd, window.browseMount))
+    Swag.assert(opened.stops[3] == cast(*Wnd, window.mountPassword))
+    Swag.assert(opened.stops[4] == cast(*Wnd, window.hiddenButton))
+    Swag.assert(opened.stops[5] == cast(*Wnd, window.mountKeyFiles.add))
     Swag.assert(not window.mountKeyFiles.generate.isVisible())
-    Swag.assert(opened.stops[6] == cast(*Wnd) window.drive)
-    Swag.assert(opened.stops[7] == cast(*Wnd) window.readOnly)
-    Swag.assert(opened.stops[8] == cast(*Wnd) window.protectHidden)
-    Swag.assert(opened.stops[9] == cast(*Wnd) window.keyFilesButton)
-    Swag.assert(opened.stops[10] == cast(*Wnd) window.passwordButton)
-    Swag.assert(opened.stops[11] == cast(*Wnd) window.resizeButton)
-    Swag.assert(opened.stops[12] == cast(*Wnd) window.mountButton)
+    Swag.assert(opened.stops[6] == cast(*Wnd, window.drive))
+    Swag.assert(opened.stops[7] == cast(*Wnd, window.readOnly))
+    Swag.assert(opened.stops[8] == cast(*Wnd, window.protectHidden))
+    Swag.assert(opened.stops[9] == cast(*Wnd, window.keyFilesButton))
+    Swag.assert(opened.stops[10] == cast(*Wnd, window.passwordButton))
+    Swag.assert(opened.stops[11] == cast(*Wnd, window.resizeButton))
+    Swag.assert(opened.stops[12] == cast(*Wnd, window.mountButton))
 
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
-    Swag.assert(options.stops[0] == cast(*Wnd) window.tabs)
-    Swag.assert(options.stops[1] == cast(*Wnd) window.privacyModeControl)
-    Swag.assert(options.stops[2] == cast(*Wnd) window.unmountOnLock)
-    Swag.assert(options.stops[3] == cast(*Wnd) window.unmountOnSuspend)
-    Swag.assert(options.stops[4] == cast(*Wnd) window.unmountOnIdle)
+    Swag.assert(options.stops[0] == cast(*Wnd, window.tabs))
+    Swag.assert(options.stops[1] == cast(*Wnd, window.privacyModeControl))
+    Swag.assert(options.stops[2] == cast(*Wnd, window.unmountOnLock))
+    Swag.assert(options.stops[3] == cast(*Wnd, window.unmountOnSuspend))
+    Swag.assert(options.stops[4] == cast(*Wnd, window.unmountOnIdle))
 
     window.showTab(0)
 }
@@ -638,16 +638,16 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let fields = buildPasswordChangeForm(change)
 
     Swag.assert(change.form.rows.count == 2)
-    Swag.assert(change.form.rows[0].field == cast(*Wnd) fields.replacement)
+    Swag.assert(change.form.rows[0].field == cast(*Wnd, fields.replacement))
     Swag.assert(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
-    Swag.assert(change.form.rows[1].field == cast(*Wnd) fields.confirm)
+    Swag.assert(change.form.rows[1].field == cast(*Wnd, fields.confirm))
     openAndDismiss(&host, change)
 
     let resize       = FormDlg.create(&host.surface, options)
     let resizeFields = buildVaultResizeForm(resize)
 
     Swag.assert(resize.form.rows.count == 2)
-    Swag.assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.capacity)
+    Swag.assert(resize.form.rows[0].field == cast(*Wnd, resizeFields.capacity))
     Swag.assert(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
     Swag.assert(resizeFields.capacity.text() == "256")
     Swag.assert(resizeFields.unit.selectedIndex == 0)
@@ -664,7 +664,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let keyFiles      = FormDlg.create(&host.surface, options)
     let keyFileFields = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
     Swag.assert(keyFiles.form.rows.count == 1)
-    Swag.assert(keyFiles.form.rows[0].field == cast(*Wnd) keyFileFields)
+    Swag.assert(keyFiles.form.rows[0].field == cast(*Wnd, keyFileFields))
     Swag.assert(keyFileFields.samePaths(currentFiles.toSlice()))
     openAndDismiss(&host, keyFiles)
 }
@@ -761,10 +761,10 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     // travels with it. A row names the vault, not the folder it happens to sit in.
     Swag.assert(not window.mountedDrives.list.isLineChecked(0))
     Swag.assert(window.mountedDrives.list.isLineChecked(1))
-    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
-    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Size).name.raw == "2 GiB")
-    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Available).name.raw == "1536 MiB")
-    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32, MountedColumn.Drive)).name.raw == "Y:")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32, MountedColumn.Size)).name.raw == "2 GiB")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32, MountedColumn.Available)).name.raw == "1536 MiB")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32, MountedColumn.Vault)).name.raw == "two")
 
     // The list opens on its first row, so the one action of the card is live straight away.
     window.setState(.Ready)
@@ -882,7 +882,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     discard expect File.writeAllBytes(existing.toString(), [1'u8, 2, 3])
 
     host.acceptModalFileDialog(existing.toString())
-    window.createKeyFiles.add.sigPressed.call(cast(*Button) window.createKeyFiles.add)
+    window.createKeyFiles.add.sigPressed.call(cast(*Button, window.createKeyFiles.add))
     Swag.assert(host.autoHandled)
     Swag.assert(window.createKeyFiles.paths.count == 1)
     Swag.assert(window.createKeyFiles.paths[0] == existing)
@@ -890,13 +890,13 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let generated = Testing.tempFilePath("vault-key-random-", ".key")
     defer discard catch File.delete(generated)
     host.acceptModalFileDialog(generated.toString())
-    window.createKeyFiles.generate.sigPressed.call(cast(*Button) window.createKeyFiles.generate)
+    window.createKeyFiles.generate.sigPressed.call(cast(*Button, window.createKeyFiles.generate))
     Swag.assert(host.autoHandled)
     Swag.assert(window.createKeyFiles.paths.count == 2)
     Swag.assert((expect File.info(generated.toString())).size == 64)
 
     window.createKeyFiles.files.setSelectedIndex(0, notify: false)
-    window.createKeyFiles.remove.sigPressed.call(cast(*Button) window.createKeyFiles.remove)
+    window.createKeyFiles.remove.sigPressed.call(cast(*Button, window.createKeyFiles.remove))
     Swag.assert(window.createKeyFiles.paths.count == 1)
     Swag.assert(window.createKeyFiles.paths[0] == generated)
 }
@@ -1058,7 +1058,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
             var available = 0'f32
             for card, index in [&window.createCard, &window.mountCard, &window.mountedDrives.card, &window.optionsCard]
             {
-                window.showTab(cast(u32) index)
+                window.showTab(cast(u32, index))
                 Testing.assertContentFits(window)
                 available = card.panel.position.height
                 tallest   = Math.max(tallest, card.panel.itf.measureContent({card.panel.position.width, 0}).y)

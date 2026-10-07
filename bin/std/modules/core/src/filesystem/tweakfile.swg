@@ -93,7 +93,7 @@ impl TweakFile
     mtd parseFile(fileName: string) fail
     {
         let bytes = try File.readAllBytes(fileName)
-        try .parse(Tokenize.splitLines(cast(string) bytes.toSlice()))
+        try .parse(Tokenize.splitLines(cast(string, bytes.toSlice())))
     }
 
     // Fills the registered folders from the tweak text `content`.
@@ -146,7 +146,7 @@ impl TweakFile
                     // A folder line names the struct without its namespace, so a tweak
                     // written for 'Gui.ThemeColors' simply says '/ThemeColors'. The full
                     // name keeps working for files that spelled it out.
-                    let structType = cast #assume(const *Swag.TypeInfoStruct) folder.type
+                    let structType = assume cast(const *Swag.TypeInfoStruct, folder.type)
                     if folder.type.name == folderName or structType.structName == folderName
                     {
                         currentFolder = folder
@@ -200,7 +200,7 @@ impl TweakFile
             }
 
             // Parse and assign value to field
-            catch { one = try StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type, one) } as valueErr
+            catch { one = try StrConv.parseValue(cast([*] u8, currentFolder.data) + path.offset, path.type, one) } as valueErr
             if valueErr != null do
                 fail SyntaxError{"invalid value", line: idx + 1}
 
@@ -243,8 +243,8 @@ impl TweakFile
                     break
             }
 
-            let ptrDst = cast([*] u8) refr.folder.data + refr.dst.offset
-            let ptrSrc = cast([*] u8) refr.folder.data + refr.src.offset
+            let ptrDst = cast([*] u8, refr.folder.data) + refr.dst.offset
+            let ptrSrc = cast([*] u8, refr.folder.data) + refr.src.offset
             Reflection.assign(ptrDst, ptrSrc, refr.dst.type)
 
             refs.removeAt(toDo)

@@ -34,7 +34,7 @@ impl SelModel
             if index < range.start do
                 break
             if index <= range.end do
-                return cast(u32) rangeIndex
+                return cast(u32, rangeIndex)
         }
 
         return Swag.U32.Max
@@ -54,7 +54,7 @@ impl SelModel
     {
         var result: u64
         for &range in .rangesStorage do
-            result += cast(u64) range.end - range.start + 1
+            result += cast(u64, range.end) - range.start + 1
         return result
     }
 
@@ -95,7 +95,7 @@ impl SelModel
         while insertAt < .rangesStorage.count
         {
             let range = .rangesStorage[insertAt]
-            if cast(u64) range.end + 1 >= rangeStart do
+            if cast(u64, range.end) + 1 >= rangeStart do
                 break
             insertAt += 1
         }
@@ -104,7 +104,7 @@ impl SelModel
         while mergeEnd < .rangesStorage.count
         {
             let range = .rangesStorage[mergeEnd]
-            if cast(u64) range.start > cast(u64) rangeEnd + 1 do
+            if cast(u64, range.start) > cast(u64, rangeEnd) + 1 do
                 break
             rangeStart = Math.min(rangeStart, range.start)
             rangeEnd   = Math.max(rangeEnd, range.end)

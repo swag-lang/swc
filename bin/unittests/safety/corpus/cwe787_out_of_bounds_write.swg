@@ -59,7 +59,7 @@ func fillExactly()->s32
 {
     var storage: [4] s32
     for index in storage.count do
-        storage[index] = cast(s32) index
+        storage[index] = cast(s32, index)
     return storage[3]
 }
 

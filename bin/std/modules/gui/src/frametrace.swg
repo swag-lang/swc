@@ -95,7 +95,7 @@ internal impl FrameTrace
         let side  = Math.min(.boxSide, size.x, size.y)
         let spanX = Math.max(size.x - side, 1.0'f32)
         let spanY = Math.max(size.y - side, 1.0'f32)
-        let step  = cast(f32) (.frames + .warmedUp)
+        let step  = cast(f32, (.frames + .warmedUp))
         let x     = step * 7 - Math.floor(step * 7 / spanX) * spanX
         let y     = step * 5 - Math.floor(step * 5 / spanY) * spanY
         return {x, y, side, side}
@@ -171,22 +171,22 @@ internal impl FrameTrace
         if not .enabled or not .frames do
             return
 
-        let frames = cast(f64) .frames
-        let avgMs  = cast(f64) .totalUs / frames / 1000.0
+        let frames = cast(f64, .frames)
+        let avgMs  = cast(f64, .totalUs) / frames / 1000.0
 
         var text: StrConv.StringBuilder
         text.appendFormat("frames      %\n", .frames)
         text.appendFormat("average     % ms\n", round2(avgMs))
         text.appendFormat("fps         %\n", round2(1000.0 / avgMs))
-        text.appendFormat("worst       % ms\n", round2(cast(f64) .worstUs / 1000.0))
-        text.appendFormat("record      % ms\n", round2(cast(f64) .recordUs / frames / 1000.0))
-        text.appendFormat("target      % ms\n", round2(cast(f64) .targetUs / frames / 1000.0))
-        text.appendFormat("present     % ms\n", round2(cast(f64) .presentUs / frames / 1000.0))
-        text.appendFormat("swap        % ms\n", round2(cast(f64) .swapUs / frames / 1000.0))
-        text.appendFormat("megapixels  %\n", round2(cast(f64) .pixels / frames / 1000000.0))
-        text.appendFormat("kvertices   %\n", round2(cast(f64) .vertices / frames / 1000.0))
-        text.appendFormat("scratch Mpx % of %\n", round2(cast(f64) .scratchPixels / frames / 1000000.0), round2(cast(f64) .scratchFull / frames / 1000000.0))
-        text.appendFormat("batches     %\n", round2(cast(f64) .batches / frames))
+        text.appendFormat("worst       % ms\n", round2(cast(f64, .worstUs) / 1000.0))
+        text.appendFormat("record      % ms\n", round2(cast(f64, .recordUs) / frames / 1000.0))
+        text.appendFormat("target      % ms\n", round2(cast(f64, .targetUs) / frames / 1000.0))
+        text.appendFormat("present     % ms\n", round2(cast(f64, .presentUs) / frames / 1000.0))
+        text.appendFormat("swap        % ms\n", round2(cast(f64, .swapUs) / frames / 1000.0))
+        text.appendFormat("megapixels  %\n", round2(cast(f64, .pixels) / frames / 1000000.0))
+        text.appendFormat("kvertices   %\n", round2(cast(f64, .vertices) / frames / 1000.0))
+        text.appendFormat("scratch Mpx % of %\n", round2(cast(f64, .scratchPixels) / frames / 1000000.0), round2(cast(f64, .scratchFull) / frames / 1000000.0))
+        text.appendFormat("batches     %\n", round2(cast(f64, .batches) / frames))
 
         let content = text.toString()
         if .path.isEmpty()

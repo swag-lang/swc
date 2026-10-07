@@ -37,7 +37,7 @@ internal impl Properties
     // True when the item (or an ancestor) is a dynamic array.
     mtd isUnderDynamicArray(item: *PropertiesItem)->bool
     {
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if isDynamicArrayType(scan.type) do
@@ -58,10 +58,10 @@ internal impl Properties
         // Dynamic strings own a heap buffer, so compare by content not by bytes.
         if item.type == Core.String
         {
-            let s0 = cast(*String) item.dataInstances[0]
+            let s0 = cast(*String, item.dataInstances[0])
             for i in 1 until n
             {
-                if (cast(const *String) item.dataInstances[i])[] != s0[] do
+                if cast(const *String, item.dataInstances[i])[] != s0[] do
                     return true
             }
 
@@ -72,10 +72,10 @@ internal impl Properties
         if sz == 0 do
             return false
 
-        let a0 = cast(const [*] void?) item.dataInstances[0]
+        let a0 = cast(const [*] void?, item.dataInstances[0])
         for i in 1 until n
         {
-            if Memory.compare(a0, cast(const [*] void?) item.dataInstances[i], sz) != 0 do
+            if Memory.compare(a0, cast(const [*] void?, item.dataInstances[i]), sz) != 0 do
                 return true
         }
 
@@ -92,7 +92,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for i in 1 until n do
-                (cast(*String) item.dataInstances[i])[] = (cast(const *String) item.dataInstances[0])[]
+                cast(*String, item.dataInstances[i])[] = cast(const *String, item.dataInstances[0])[]
             return
         }
 
@@ -101,7 +101,7 @@ internal impl Properties
             return
 
         for i in 1 until n do
-            Memory.copy(cast([*] void?) item.dataInstances[i], cast(const [*] void?) item.dataInstances[0], sz)
+            Memory.copy(cast([*] void?, item.dataInstances[i]), cast(const [*] void?, item.dataInstances[0]), sz)
     }
 
     // Show the value box as "mixed" when the instances disagree (blank text + dash note),
@@ -129,10 +129,10 @@ internal impl Properties
         if n <= 1 or sz == 0 do
             return false
 
-        let a0 = cast(const [*] void?) (cast([*] u8?) item.dataInstances[0] + byteOffset)
+        let a0 = cast(const [*] void?, (cast([*] u8?, item.dataInstances[0]) + byteOffset))
         for i in 1 until n
         {
-            let ai = cast(const [*] void?) (cast([*] u8?) item.dataInstances[i] + byteOffset)
+            let ai = cast(const [*] void?, (cast([*] u8?, item.dataInstances[i]) + byteOffset))
             if Memory.compare(a0, ai, sz) != 0 do
                 return true
         }
@@ -161,7 +161,7 @@ internal impl Properties
     {
         let n = .instanceCount(item)
         for k in n do
-            (cast(*f32) (cast([*] u8?) .instanceAddr(item, k) + byteOffset)!)[] = val
+            cast(*f32, (cast([*] u8?, .instanceAddr(item, k)) + byteOffset)!)[] = val
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -210,10 +210,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: return cast(u64) (cast(const *u8) addr)[]
-        case 2: return cast(u64) (cast(const *u16) addr)[]
-        case 4: return cast(u64) (cast(const *u32) addr)[]
-        case 8: return (cast(const *u64) addr)[]
+        case 1: return cast(u64, cast(const *u8, addr)[])
+        case 2: return cast(u64, cast(const *u16, addr)[])
+        case 4: return cast(u64, cast(const *u32, addr)[])
+        case 8: return cast(const *u64, addr)[]
         }
 
         return 0
@@ -223,10 +223,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: (cast(*u8) addr)[] = cast(u8) val
-        case 2: (cast(*u16) addr)[] = cast(u16) val
-        case 4: (cast(*u32) addr)[] = cast(u32) val
-        case 8: (cast(*u64) addr)[] = val
+        case 1: cast(*u8, addr)[] = cast(u8, val)
+        case 2: cast(*u16, addr)[] = cast(u16, val)
+        case 4: cast(*u32, addr)[] = cast(u32, val)
+        case 8: cast(*u64, addr)[] = val
         }
     }
 }

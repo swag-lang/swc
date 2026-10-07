@@ -59,8 +59,8 @@ impl Mpeg4Stream
         .config.clear()
         .config.add(config)
         try .decoder.configure(.config.toSlice())
-        .width  = cast(s32) .decoder.layer.width
-        .height = cast(s32) .decoder.layer.height
+        .width  = cast(s32, .decoder.layer.width)
+        .height = cast(s32, .decoder.layer.height)
         .installFrames(#move frames)
     }
 
@@ -79,9 +79,9 @@ impl Mpeg4Stream
         for index in .frames.count
         {
             var at = .sampleAtRank.count
-            while at > 0 and .frames[cast(u64) .sampleAtRank[at - 1]].presentationTime > .frames[index].presentationTime do
+            while at > 0 and .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime do
                 at -= 1
-            .sampleAtRank.insertAt(at, cast(u32) index)
+            .sampleAtRank.insertAt(at, cast(u32, index))
         }
     }
 
@@ -119,7 +119,7 @@ impl Mpeg4Stream
     {
         if rank >= .sampleAtRank.count do
             return 0
-        return .frames[cast(u64) .sampleAtRank[rank]].presentationTime
+        return .frames[cast(u64, .sampleAtRank[rank])].presentationTime
     }
 
     // Returns the first display rank at or before `rank` whose sample starts a clean decode.
@@ -128,7 +128,7 @@ impl Mpeg4Stream
         var scan = Math.min(rank, .sampleAtRank.count)
         while scan > 0
         {
-            let sample = cast(u64) .sampleAtRank[scan]
+            let sample = cast(u64, .sampleAtRank[scan])
             if sample < .frames.count and .frames[sample].isSync do
                 return scan
             scan -= 1
@@ -202,7 +202,7 @@ impl Mpeg4Stream
             .decoder.reset()
             .queued     = 0
             .emitRank   = .syncRankAt(.nextRank)
-            .nextDecode = cast(u64) .sampleAtRank[.emitRank]
+            .nextDecode = cast(u64, .sampleAtRank[.emitRank])
             .started    = true
         }
 

@@ -11,7 +11,7 @@ impl IConstrainedDynamicValue for ConstrainedDynamicValue
 {
     mtd(T) value(input: T)->s32 where #sizeof(T) == 4
     {
-        return cast(s32) input
+        return cast(s32, input)
     }
 
     mtd value()->s32 where #sizeof(s32) == 4
@@ -52,7 +52,7 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
 {
     mtd value()->s32 where #sizeof(T) == 4
     {
-        return cast(s32) .number
+        return cast(s32, .number)
     }
 }
 
@@ -60,7 +60,7 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
 {
     var accepted  = GenericConstrainedDynamicValue's32{42}
     let boxedAccepted: any = &accepted
-    let converted = cast #try(IConstrainedDynamicValue) boxedAccepted
+    let converted = (catch cast(IConstrainedDynamicValue?, boxedAccepted))
     Swag.assert(converted != null)
     Swag.assert(converted.value() == 42)
 
@@ -75,7 +75,7 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
     var value:  ConstrainedDynamicValue
     let direct: IConstrainedDynamicValue = &value
     let boxed:  any = &value
-    let converted   = cast #try (IConstrainedDynamicValue) boxed
+    let converted   = (catch cast(IConstrainedDynamicValue?, boxed))
     Swag.assert(converted != null)
     if let view = converted
     {

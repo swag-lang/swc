@@ -44,7 +44,7 @@ func afterMask(value: s64)->s64
 #[Swag.Optimize(true)]
 func afterWidening(value: u32)->s64
 {
-    let wide = cast(s64) value
+    let wide = cast(s64, value)
     return wide % 1000 + wide / 8
 }
 

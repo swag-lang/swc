@@ -28,7 +28,7 @@ func fallbackString()->string
     {
         GNullCoercCounter = 0
         let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
-        return cast(s32) value + GNullCoercCounter * 100
+        return cast(s32, value) + GNullCoercCounter * 100
     }
 
     const V = #run intSkipsFallback()

@@ -104,7 +104,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(OpaqueLifecycleOwner)
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueLifecycleOwner))
     Swag.assert(info.opInit != null)
     Swag.assert(info.opDrop != null)
     Swag.assert(info.opPostCopy != null)

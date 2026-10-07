@@ -160,7 +160,7 @@ public impl AboutDlg
         // introducing another caption or a decorative color outside the active theme.
         with dlg.labelMessageTitle = Label.create(identityContent, params.contentTitle)
         {
-            let fontSize = cast(u32) (metrics.defaultFontSize * 1.5)
+            let fontSize = cast(u32, (metrics.defaultFontSize * 1.5))
             .style.setFont(dlg.theme().createDefaultFont(fontSize, .Bold), .Regular)
             .dockStyle = .Center
             .setTextAlignment(.Left, .Center)
@@ -170,7 +170,7 @@ public impl AboutDlg
         let titleHeight    = dlg.labelMessageTitle.measure({w, 0}).preferred.y
         var identityHeight = titleHeight
         if params.contentIcon.isValid() do
-            identityHeight = Math.max(identityHeight, cast(f32) params.contentIcon.sizeY)
+            identityHeight = Math.max(identityHeight, cast(f32, params.contentIcon.sizeY))
         dlg.identityView.position.height = identityHeight + 2 * identityInset + dlg.identityAccent.position.height
 
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)

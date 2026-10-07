@@ -25,25 +25,25 @@ internal struct Decoder {}
 #[Swag.Inline]
 func readU32BigEndian(source: const [*] u8)->u32
 {
-    return (cast(u32) source[0] << 24) |
-           (cast(u32) source[1] << 16) |
-           (cast(u32) source[2] << 8) |
-           cast(u32) source[3]
+    return (cast(u32, source[0]) << 24) |
+           (cast(u32, source[1]) << 16) |
+           (cast(u32, source[2]) << 8) |
+           cast(u32, source[3])
 }
 
 #[Swag.Inline]
-func hash(pixel: Pixel)->u8 => cast(u8) ((cast(u32) pixel.r * 3 + cast(u32) pixel.g * 5 + cast(u32) pixel.b * 7 + cast(u32) pixel.a * 11) & 63)
+func hash(pixel: Pixel)->u8 => cast(u8, ((cast(u32, pixel.r) * 3 + cast(u32, pixel.g) * 5 + cast(u32, pixel.b) * 7 + cast(u32, pixel.a) * 11) & 63))
 
 #[Swag.Inline]
-func addWrapped(value: u8, delta: s32)->u8 => cast(u8) ((cast(s32) value + delta) & 0xFF)
+func addWrapped(value: u8, delta: s32)->u8 => cast(u8, ((cast(s32, value) + delta) & 0xFF))
 
 #[Swag.Inline]
 func writePixel(image: *Image, sourceIndex: u64, pixel: Pixel)
 {
-    let sourceY = cast(s32) (sourceIndex / cast(u64) image.width)
-    let sourceX = cast(s32) (sourceIndex % cast(u64) image.width)
+    let sourceY = cast(s32, (sourceIndex / cast(u64, image.width)))
+    let sourceX = cast(s32, (sourceIndex % cast(u64, image.width)))
     let targetY = image.height - sourceY - 1
-    let target  = image.pixels.storage() + cast(u64) targetY * image.rowStride + cast(u64) sourceX * image.bytesPerPixel
+    let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride + cast(u64, sourceX) * image.bytesPerPixel
     target[0] = pixel.r
     target[1] = pixel.g
     target[2] = pixel.b
@@ -70,17 +70,17 @@ internal impl IImageDecoder for Decoder
         let colorSpace = source[13]
         if width == 0 or height == 0 do
             fail InvalidFormatError{"QOI dimensions must be positive"}
-        if width > cast(u32) Swag.S32.Max or height > cast(u32) Swag.S32.Max do
+        if width > cast(u32, Swag.S32.Max) or height > cast(u32, Swag.S32.Max) do
             fail UnsupportedFormatError{"QOI dimensions exceed the image limits"}
         if channels != 3 and channels != 4 do
             fail InvalidFormatError{"QOI channel count must be 3 or 4"}
         if colorSpace > 1 do
             fail InvalidFormatError{"QOI color-space value must be 0 or 1"}
-        if cast(u64) width * cast(u64) height > Swag.U64.Max / channels do
+        if cast(u64, width) * cast(u64, height) > Swag.U64.Max / channels do
             fail UnsupportedFormatError{"QOI image is too large"}
 
         var result: retval
-        result.init(cast(s32) width, cast(s32) height, channels == 4 ? .RGBA8 : .RGB8)
+        result.init(cast(s32, width), cast(s32, height), channels == 4 ? .RGBA8 : .RGB8)
         if not options.decodePixels do
             return result
 
@@ -89,7 +89,7 @@ internal impl IImageDecoder for Decoder
         var previous   = Pixel{0, 0, 0, 255}
         var input      = HeaderSize
         var output     = 0'u64
-        let pixelCount = cast(u64) width * cast(u64) height
+        let pixelCount = cast(u64, width) * cast(u64, height)
         let chunkLimit = buffer.count - EndMarkerSize
 
         while output < pixelCount
@@ -126,22 +126,22 @@ internal impl IImageDecoder for Decoder
                     previous = index[tag & 63]
 
                 case 0x40:
-                    previous.r = addWrapped(previous.r, cast(s32) ((tag >> 4) & 3) - 2)
-                    previous.g = addWrapped(previous.g, cast(s32) ((tag >> 2) & 3) - 2)
-                    previous.b = addWrapped(previous.b, cast(s32) (tag & 3) - 2)
+                    previous.r = addWrapped(previous.r, cast(s32, ((tag >> 4) & 3)) - 2)
+                    previous.g = addWrapped(previous.g, cast(s32, ((tag >> 2) & 3)) - 2)
+                    previous.b = addWrapped(previous.b, cast(s32, (tag & 3)) - 2)
 
                 case 0x80:
                     if input >= chunkLimit do
                         fail InvalidFormatError{"QOI luma chunk is truncated"}
                     let next = source[input]
                     input += 1
-                    let greenDelta = cast(s32) (tag & 63) - 32
-                    previous.r = addWrapped(previous.r, greenDelta + cast(s32) ((next >> 4) & 15) - 8)
+                    let greenDelta = cast(s32, (tag & 63)) - 32
+                    previous.r = addWrapped(previous.r, greenDelta + cast(s32, ((next >> 4) & 15)) - 8)
                     previous.g = addWrapped(previous.g, greenDelta)
-                    previous.b = addWrapped(previous.b, greenDelta + cast(s32) (next & 15) - 8)
+                    previous.b = addWrapped(previous.b, greenDelta + cast(s32, (next & 15)) - 8)
 
                 case 0xC0:
-                    let run = cast(u64) (tag & 63) + 1
+                    let run = cast(u64, (tag & 63)) + 1
                     if run > pixelCount - output do
                         fail InvalidFormatError{"QOI run exceeds the image dimensions"}
                     for run

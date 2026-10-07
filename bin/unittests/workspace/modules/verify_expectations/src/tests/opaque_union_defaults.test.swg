@@ -64,8 +64,8 @@ var opaqueSparseUnionGlobal: StaticApi.OpaqueSparseUnion
 
 #test
 {
-    let sparseInfo = cast(const *Swag.TypeInfoStruct) #typeof(StaticApi.OpaqueSparseUnion)
-    let textInfo   = cast(const *Swag.TypeInfoStruct) #typeof(StaticApi.OpaqueTextUnion)
+    let sparseInfo = cast(const *Swag.TypeInfoStruct, #typeof(StaticApi.OpaqueSparseUnion))
+    let textInfo   = cast(const *Swag.TypeInfoStruct, #typeof(StaticApi.OpaqueTextUnion))
     Swag.assert(sparseInfo.opInit != null)
     Swag.assert(textInfo.opInit != null)
     var sparse: StaticApi.OpaqueSparseUnion

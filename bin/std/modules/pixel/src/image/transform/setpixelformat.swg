@@ -14,18 +14,18 @@ impl Image
         if not srcLegacy or not dstLegacy or .alphaMode != dstImage.alphaMode
         {
             var genericContext = {src: me, dst: dstImage}
-            parallel for |&genericContext| parIndex in cast(u64) .height
+            parallel for |&genericContext| parIndex in cast(u64, .height)
             {
-                let row    = cast(u32) parIndex
+                let row    = cast(u32, parIndex)
                 let params = &genericContext
-                let src    = cast(const *Image) params.src
-                let dst    = cast(*Image) params.dst
-                let srcRow = src.pixels.storage() + cast(u64) row * src.rowStride
-                let dstRow = dst.pixels.storage() + cast(u64) row * dst.rowStride
+                let src    = cast(const *Image, params.src)
+                let dst    = cast(*Image, params.dst)
+                let srcRow = src.pixels.storage() + cast(u64, row) * src.rowStride
+                let dstRow = dst.pixels.storage() + cast(u64, row) * dst.rowStride
                 for x in src.width
                 {
-                    let source = srcRow + cast(u64) x * src.bytesPerPixel
-                    let target = dstRow + cast(u64) x * dst.bytesPerPixel
+                    let source = srcRow + cast(u64, x) * src.bytesPerPixel
+                    let target = dstRow + cast(u64, x) * dst.bytesPerPixel
                     writeLogicalPixelValue(target, dst.pixelFormat, dst.alphaMode, readLogicalPixelValue(source, src.pixelFormat, src.alphaMode))
                 }
             }
@@ -34,14 +34,14 @@ impl Image
         }
 
         var context = {src: me, dst: dstImage}
-        parallel for |&context| parIndex in cast(u64) .height
+        parallel for |&context| parIndex in cast(u64, .height)
         {
-            let row          = cast(u32) parIndex
+            let row          = cast(u32, parIndex)
             let params       = &context
-            let src          = cast(const *Image) params.src
-            let dst          = cast(*Image) params.dst
-            let srcRow       = src.pixels.storage() + cast(u64) row * src.rowStride
-            let dstRow       = dst.pixels.storage() + cast(u64) row * dst.rowStride
+            let src          = cast(const *Image, params.src)
+            let dst          = cast(*Image, params.dst)
+            let srcRow       = src.pixels.storage() + cast(u64, row) * src.rowStride
+            let dstRow       = dst.pixels.storage() + cast(u64, row) * dst.rowStride
             let srcBlueFirst = src.pixelFormat == .BGR8 or src.pixelFormat == .BGRA8
             let dstBlueFirst = dst.pixelFormat == .BGR8 or dst.pixelFormat == .BGRA8
             let swapColors   = srcBlueFirst != dstBlueFirst
@@ -58,8 +58,8 @@ impl Image
                 let shuffle = Math.Simd.load(table)
                 while src.width - x >= 4
                 {
-                    let source = srcRow + cast(u64) x * 4
-                    let target = dstRow + cast(u64) x * 3
+                    let source = srcRow + cast(u64, x) * 4
+                    let target = dstRow + cast(u64, x) * 3
                     Image.storeLow12(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle))
                     x += 4
                 }
@@ -68,11 +68,11 @@ impl Image
             {
                 let table     = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
                 let shuffle   = Math.Simd.load(table)
-                let alphaMask = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
+                let alphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 while src.width - x >= 6
                 {
-                    let source = srcRow + cast(u64) x * 3
-                    let target = dstRow + cast(u64) x * 4
+                    let source = srcRow + cast(u64, x) * 3
+                    let target = dstRow + cast(u64, x) * 4
                     Math.Simd.store(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle) | alphaMask)
                     x += 4
                 }
@@ -85,8 +85,8 @@ impl Image
 
             while x < src.width
             {
-                let source = srcRow + cast(u64) x * src.bytesPerPixel
-                let target = dstRow + cast(u64) x * dst.bytesPerPixel
+                let source = srcRow + cast(u64, x) * src.bytesPerPixel
+                let target = dstRow + cast(u64, x) * dst.bytesPerPixel
                 let red    = srcBlueFirst ? source[2] : source[0]
                 let green  = source[1]
                 let blue   = srcBlueFirst ? source[0] : source[2]

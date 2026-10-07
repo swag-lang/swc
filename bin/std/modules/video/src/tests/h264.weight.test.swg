@@ -12,22 +12,22 @@ const WeightStride  = 19'u64
 
 func referenceWeightUni(dst: [*] u8, src: [*] u8, width, height, logDenom, weight, offset: s32)
 {
-    let rounding = logDenom > 0 ? 1's32 << cast(u32) (logDenom - 1) : 0's32
-    for row in cast(u64) height
+    let rounding = logDenom > 0 ? 1's32 << cast(u32, (logDenom - 1)) : 0's32
+    for row in cast(u64, height)
     {
-        for column in cast(u64) width do
-            dst[row * WeightStride + column] = H264.clampPixel(((cast(s32) src[row * 16 + column] * weight + rounding) >> cast(u32) logDenom) + offset)
+        for column in cast(u64, width) do
+            dst[row * WeightStride + column] = H264.clampPixel(((cast(s32, src[row * 16 + column]) * weight + rounding) >> cast(u32, logDenom)) + offset)
     }
 }
 
 func referenceWeightBi(dst: [*] u8, src0, src1: [*] u8, width, height, logDenom, weight0, weight1, offset0, offset1: s32)
 {
-    let rounding = 1's32 << cast(u32) logDenom
+    let rounding = 1's32 << cast(u32, logDenom)
     let offset   = (offset0 + offset1 + 1) >> 1
-    for row in cast(u64) height
+    for row in cast(u64, height)
     {
-        for column in cast(u64) width do
-            dst[row * WeightStride + column] = H264.clampPixel(((cast(s32) src0[row * 16 + column] * weight0 + cast(s32) src1[row * 16 + column] * weight1 + rounding) >> cast(u32) (logDenom + 1)) + offset)
+        for column in cast(u64, width) do
+            dst[row * WeightStride + column] = H264.clampPixel(((cast(s32, src0[row * 16 + column]) * weight0 + cast(s32, src1[row * 16 + column]) * weight1 + rounding) >> cast(u32, (logDenom + 1))) + offset)
     }
 }
 
@@ -67,8 +67,8 @@ func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight
     var src1: [256] u8
     for index in 256
     {
-        src0[index] = cast(u8) ((index * 37 + 11) & 255)
-        src1[index] = cast(u8) ((index * 19 + 73) & 255)
+        src0[index] = cast(u8, ((index * 37 + 11) & 255))
+        src1[index] = cast(u8, ((index * 19 + 73) & 255))
     }
 
     for width in WeightWidths

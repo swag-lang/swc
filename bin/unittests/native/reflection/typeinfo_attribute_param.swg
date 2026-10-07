@@ -18,14 +18,14 @@ struct ReflectedStoredDefaultType
     value: s32
 }
 
-const REFLECTED_STORED_DEFAULT_INFO = cast(const *TypeInfoStruct) #typeof(ReflectedStoredDefaultType)
+const REFLECTED_STORED_DEFAULT_INFO = cast(const *TypeInfoStruct, #typeof(ReflectedStoredDefaultType))
 
 #test
 {
     Swag.assert(REFLECTED_STORED_DEFAULT_INFO.attributes.count == 1)
 
     let attribute = REFLECTED_STORED_DEFAULT_INFO.attributes[0]
-    let value     = cast #assume(typeinfo?) attribute.params[0].value
+    let value     = assume cast(typeinfo?, attribute.params[0].value)
 
     Swag.assert(attribute.params[0].name == "t")
     Swag.assert(value == StoredDefaultPair)

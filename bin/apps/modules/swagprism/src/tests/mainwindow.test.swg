@@ -3,18 +3,18 @@
 
 using Core, Gui
 
-func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32) MainWindow.WindowWidth, height = cast(f32) MainWindow.WindowHeight)->*MainWindow
+func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32, MainWindow.WindowWidth), height = cast(f32, MainWindow.WindowHeight))->*MainWindow
 {
     let window = testSetupMainWindow(host, width, height)
     window.selectedExample = .Dot
-    window.commandBar.exampleCombo.setSelectedIndex(cast(u32) ExampleKind.Dot, notify: false)
+    window.commandBar.exampleCombo.setSelectedIndex(cast(u32, ExampleKind.Dot), notify: false)
     window.commandBar.liveEdit.setState(.Unchecked)
     window.editor.setText(exampleSource(.Dot))
     window.panels[0].selectViewer(.Microcode)
     return window
 }
 
-func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast #assume(*MicrocodeViewer) window.panels[panel].viewer!.window()
+func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast(*MicrocodeViewer, window.panels[panel].viewer!.window())
 
 // One viewer is visible by default; the optional comparison has independent defaults.
 #test
@@ -133,7 +133,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast #assum
         Swag.assert(not viewer.job.stopped and not viewer.job.result.failed)
         Swag.assert(not viewer.outputIsHint and not viewer.outputText.colors.isEmpty())
         let plain    = viewer.output.text()
-        let expected = Format.toString("  optimize : O%", cast(u8) viewer.job.request.settings.optimization)
+        let expected = Format.toString("  optimize : O%", cast(u8, viewer.job.request.settings.optimization))
         Swag.assert(plain.contains(expected.toString()))
         Swag.assert(not plain.contains("\x1B"))
     }

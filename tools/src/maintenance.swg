@@ -200,7 +200,7 @@ private func actualSnapshots(context: *Context)->Array'String
         for entry in entries
         {
             let full = entry.fullName.toString()
-            if Utf8.endsWith(cast(const [..] u8) full, suffix) do
+            if Utf8.endsWith(cast(const [..] u8, full), suffix) do
                 result.add(entry.fullName)
         }
     }
@@ -224,7 +224,7 @@ private func goldenSnapshots(context: *Context)->Array'String fail
             for entry in entries
             {
                 let full = entry.fullName.toString()
-                if not Utf8.endsWith(cast(const [..] u8) full, ".actual.txt") and not Utf8.endsWith(cast(const [..] u8) full, ".actual.png") do
+                if not Utf8.endsWith(cast(const [..] u8, full), ".actual.txt") and not Utf8.endsWith(cast(const [..] u8, full), ".actual.png") do
                     result.add(entry.fullName)
             }
         }

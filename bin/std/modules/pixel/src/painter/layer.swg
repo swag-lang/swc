@@ -117,10 +117,10 @@ impl Layer
     }
 
     // Returns the allocation width of the resolved layer content, in whole device texels.
-    private mtd const deviceWidth()->s32 => cast(s32) Math.ceil(.width * .deviceScale)
+    private mtd const deviceWidth()->s32 => cast(s32, Math.ceil(.width * .deviceScale))
 
     // Returns the allocation height of the resolved layer content, in whole device texels.
-    private mtd const deviceHeight()->s32 => cast(s32) Math.ceil(.height * .deviceScale)
+    private mtd const deviceHeight()->s32 => cast(s32, Math.ceil(.height * .deviceScale))
 
     // Content extents in device texels, kept exact: rendering fills width x deviceScale
     // texels, so a ceil'ed source rectangle would minify the content into its logical
@@ -234,8 +234,8 @@ impl Layer
         let margin       = Math.max(info.margin, 0)
         let shadowWidth  = .width + 2 * margin
         let shadowHeight = .height + 2 * margin
-        let devShadowW   = cast(s32) Math.ceil(shadowWidth * .deviceScale)
-        let devShadowH   = cast(s32) Math.ceil(shadowHeight * .deviceScale)
+        let devShadowW   = cast(s32, Math.ceil(shadowWidth * .deviceScale))
+        let devShadowH   = cast(s32, Math.ceil(shadowHeight * .deviceScale))
         let sourceRect   = Math.Rectangle{0, 0, .contentDeviceWidth(), .contentDeviceHeight()}
         let targetRect   = Math.Rectangle{margin, margin, .width, .height}
         let fullDstRect  = Math.Rectangle{0, 0, shadowWidth, shadowHeight}
@@ -306,8 +306,8 @@ impl Layer
         {
             .buildShadow(info.shadow)
             let margin = Math.max(info.shadow.margin, 0)
-            dstRect.offset(info.shadow.offsetX - cast(f32) margin, info.shadow.offsetY - cast(f32) margin)
-            dstRect.width, dstRect.height += cast(f32) (2 * margin)
+            dstRect.offset(info.shadow.offsetX - cast(f32, margin), info.shadow.offsetY - cast(f32, margin))
+            dstRect.width, dstRect.height += cast(f32, (2 * margin))
             srcRect = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
             texture = .shadowTarget!.colorBuffer
         }

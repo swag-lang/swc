@@ -8,7 +8,7 @@ using Core, RuntimeCtxDll
 {
     gPatchedContext       = Swag.getContext()[]
     gPatchedContext.user0 = 42
-    gPatchedContext.user2 = cast(u64) Swag.getContext()
+    gPatchedContext.user2 = cast(u64, Swag.getContext())
     Swag.setContext(gPatchedContext)
 
     Swag.assert(ctxSharedReadContext() == 42)

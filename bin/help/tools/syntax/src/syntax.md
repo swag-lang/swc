@@ -20,7 +20,7 @@ struct(T) IsSet
     {
         var table: [4] s32
         for i in table.count do
-            table[i] = 1 << cast(u32) i
+            table[i] = 1 << cast(u32, i)
         return table
     }
 

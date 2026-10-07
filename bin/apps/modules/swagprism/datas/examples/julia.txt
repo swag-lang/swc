@@ -16,9 +16,9 @@ func shade(x, y, time: f32)->u32
         steps += 1
     }
     if steps == 64 do return 0xFF101522
-    let light = cast(f32) steps * 0.18
-    let r = cast(u32) (128 + 127 * Math.cos(light))
-    let g = cast(u32) (128 + 127 * Math.cos(light + 1.8))
-    let b = cast(u32) (128 + 127 * Math.cos(light + 3.8))
+    let light = cast(f32, steps) * 0.18
+    let r = cast(u32, 128 + 127 * Math.cos(light))
+    let g = cast(u32, 128 + 127 * Math.cos(light + 1.8))
+    let b = cast(u32, 128 + 127 * Math.cos(light + 3.8))
     return 0xFF000000 | (r << 16) | (g << 8) | b
 }

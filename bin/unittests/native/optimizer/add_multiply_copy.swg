@@ -34,15 +34,15 @@ func pressure(a, b, c, d, e, f: u64)->u64 => (a + b) * c + (d + e) * f
         {
             let sum = a + b
             Swag.assert(square(a, b) == sum * sum)
-            let lowA   = cast(u32) (a & 0xFFFFFFFF)
-            let lowB   = cast(u32) (b & 0xFFFFFFFF)
+            let lowA   = cast(u32, (a & 0xFFFFFFFF))
+            let lowB   = cast(u32, (b & 0xFFFFFFFF))
             let lowSum = lowA + lowB
             Swag.assert(square32(lowA, lowB) == lowSum * lowSum)
             for c in values
             {
                 let expected = sum * c
                 Swag.assert(product(a, b, c) == expected)
-                Swag.assert(product32(lowA, lowB, cast(u32) (c & 0xFFFFFFFF)) == cast(u32) (expected & 0xFFFFFFFF))
+                Swag.assert(product32(lowA, lowB, cast(u32, (c & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
                 Swag.assert(preserve(a, b, c) == (expected ^ sum))
                 Swag.assert(branch(a, b, c) == (expected == 0 ? a : expected))
                 Swag.assert(pressure(a, b, c, ~a, ~b, ~c) == expected + (~a + ~b) * ~c)

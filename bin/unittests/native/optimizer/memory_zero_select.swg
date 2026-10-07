@@ -23,14 +23,14 @@ func bit(a, value: u64)->u64 => (a & 7) != 0 ? value : 0
     for a in values
     {
         var stored = a
-        var narrow = cast(u32) (a & 0xFFFFFFFF)
+        var narrow = cast(u32, (a & 0xFFFFFFFF))
         for b in values
         {
             let expected = a < b ? 91'u64 : 0
             Swag.assert(below(&stored, b, 91) == expected)
             Swag.assert(equal(&stored, b, 91) == (a == b ? 91 : 0))
             Swag.assert(live(&stored, b, 91) == (expected ^ 91 ^ a))
-            let limit = cast(u32) (b & 0xFFFFFFFF)
+            let limit = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(above32(&narrow, limit, 91) == (narrow > limit ? 91 : 0))
         }
         Swag.assert(constant(&stored, 91) == (a == 17 ? 91 : 0))

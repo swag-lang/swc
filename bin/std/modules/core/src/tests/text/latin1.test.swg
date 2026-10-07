@@ -186,9 +186,9 @@ using Swag
                 expectedLower += "a"
             }
 
-            original      += cast(rune) code
-            expectedUpper += cast(rune) expectedUpperCode
-            expectedLower += cast(rune) expectedLowerCode
+            original      += cast(rune, code)
+            expectedUpper += cast(rune, expectedUpperCode)
+            expectedLower += cast(rune, expectedLowerCode)
             original      += "zABCDEFGHIJKLMNOPQRSTUVWXYZ"
             expectedUpper += "ZABCDEFGHIJKLMNOPQRSTUVWXYZ"
             expectedLower += "zabcdefghijklmnopqrstuvwxyz"

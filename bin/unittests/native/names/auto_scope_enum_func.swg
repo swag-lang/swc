@@ -12,7 +12,7 @@ func overloadStrictAlias(x: s32, e: OverA)->s32 { return 30 }
 func overloadStrictAlias(x: f32, e: StrictOverB)->f32 { return 40.0 }
 func strictAliasEnumArg(e: StrictOverB)->s32
 {
-    if e == cast(StrictOverB) OverB.A do
+    if e == cast(StrictOverB, OverB.A) do
         return 1
     return 2
 }

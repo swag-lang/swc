@@ -11,7 +11,7 @@ using Core, Pixel, Gui
     var bytes    = expect File.readAllBytes(source.toString())
     let preview  = &document.previews[0]
     for index in preview.payloadStart until preview.payloadEnd do
-        bytes[index] = cast(u8) '!'
+        bytes[index] = cast(u8, '!')
 
     let path = Testing.tempFilePath("scope-indesign-failure-", ".indd")
     defer discard catch File.delete(path)
@@ -22,7 +22,7 @@ using Core, Pixel, Gui
     defer host.shutdown()
     var result = openTestViewer(indesignViewerPlugin(), &host.root, path, commandParent: &host.root)
     Swag.assert(result.view != null)
-    let viewer = cast #assume (*IndesignViewer) result.view
+    let viewer = assume cast (*IndesignViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
     Swag.assert(viewer.failureReason == indesignStrings().err_Preview)
@@ -79,7 +79,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     Swag.assert(document.header.offset == IndesignFixtureHeaderSize)
     Swag.assert(not document.header.bigEndian and document.header.formatVersion == 7)
     Swag.assert(document.header.sequence == 2)
-    Swag.assert(document.declaredBytes == document.fileSize and document.declaredBytes == cast(u64) document.header.storagePages * IndesignFixtureHeaderSize)
+    Swag.assert(document.declaredBytes == document.fileSize and document.declaredBytes == cast(u64, document.header.storagePages) * IndesignFixtureHeaderSize)
     Swag.assert(document.xmpObjectStreams == 0)
     Swag.assert(document.previews.count == 2)
     Swag.assert(document.previews[0].page == 1 and document.previews[0].payloadStart < document.previews[0].payloadEnd)
@@ -175,7 +175,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     defer host.shutdown()
 
     var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: &host.root)
-    let viewer = cast #assume (*IndesignViewer) result.view!
+    let viewer = assume cast (*IndesignViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
@@ -243,7 +243,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: commandBar, infoParent: infoBar)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let viewer = cast #assume (*IndesignViewer) result.view!
+    let viewer = assume cast (*IndesignViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
@@ -319,7 +319,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast #assume (*IndesignViewer) result.view
+    let viewer = assume cast (*IndesignViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and not viewer.imageView.isVisible())
     Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
@@ -391,7 +391,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast #assume (*IndesignViewer) result.view
+    let viewer = assume cast (*IndesignViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
     viewer.dockStyle          = .Center
@@ -456,7 +456,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     defer host.shutdown()
     var result = openTestViewer(indesignViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = cast #assume (*IndesignViewer) result.view
+    let viewer = assume cast (*IndesignViewer, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

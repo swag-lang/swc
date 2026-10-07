@@ -60,10 +60,10 @@ private impl BitReader
         var need   = count
         while need
         {
-            let bitOffset = cast(u32) (.bitPos & 7)
+            let bitOffset = cast(u32, (.bitPos & 7))
             let available = 8 - bitOffset
             let take      = Math.min(available, need)
-            let value     = (cast(u32) .data![.bitPos >> 3] >> (available - take)) & ((1'u32 << take) - 1)
+            let value     = (cast(u32, .data![.bitPos >> 3]) >> (available - take)) & ((1'u32 << take) - 1)
             result  = (result << take) | value
             .bitPos += take
             need    -= take
@@ -77,15 +77,15 @@ private impl BitReader
     {
         let value = .read(count)
         if count == 32 do
-            return cast(s32) value
+            return cast(s32, value)
 
         // A negative value is `value - 2^count`. Subtracting the sign bit twice reaches it without
         // ever leaving the range of either type: the usual `(value ^ sign) - sign` is one unsigned
         // subtraction below zero, which is a fault here rather than a wrap.
         let sign = 1'u32 << (count - 1)
         if not (value & sign) do
-            return cast(s32) value
-        return cast(s32) (value - sign) - cast(s32) sign
+            return cast(s32, value)
+        return cast(s32, (value - sign)) - cast(s32, sign)
     }
 
     // Counts the zero bits before the next set bit, and consumes that set bit.
@@ -97,14 +97,14 @@ private impl BitReader
         var zeros = 0'u32
         while .bitPos < .size * 8
         {
-            let bitOffset = cast(u32) (.bitPos & 7)
-            let masked    = cast(u32) .data![.bitPos >> 3] & (0xFF'u32 >> bitOffset)
+            let bitOffset = cast(u32, (.bitPos & 7))
+            let masked    = cast(u32, .data![.bitPos >> 3]) & (0xFF'u32 >> bitOffset)
             if masked
             {
-                let highest = 31 - cast(u32) Swag.bitCountLz(masked)
+                let highest = 31 - cast(u32, Swag.bitCountLz(masked))
                 let found   = 7 - highest
                 zeros   += found - bitOffset
-                .bitPos += cast(u64) (found - bitOffset) + 1
+                .bitPos += cast(u64, (found - bitOffset)) + 1
                 return zeros
             }
 
@@ -188,7 +188,7 @@ private impl Codec
         // A metadata block header may precede the payload: skip its type and length. Its type
         // alone does not identify it — a stream information block whose smallest block is under
         // 256 samples starts with a zero byte too — so the length it states has to agree.
-        let headerLength = (cast(u64) config[offset + 1] << 16) | (cast(u64) config[offset + 2] << 8) | cast(u64) config[offset + 3]
+        let headerLength = (cast(u64, config[offset + 1]) << 16) | (cast(u64, config[offset + 2]) << 8) | cast(u64, config[offset + 3])
         if (config[offset] & 0x7F) == 0 and headerLength == StreamInfoSize do
             offset += 4
 
@@ -206,7 +206,7 @@ private impl Codec
             .sampleRate    = reader.read(20)
             .channels      = reader.read(3) + 1
             .bitsPerSample = reader.read(5) + 1
-            .totalSamples  = (cast(u64) reader.read(4) << 32) | cast(u64) reader.read(32)
+            .totalSamples  = (cast(u64, reader.read(4)) << 32) | cast(u64, reader.read(32))
         }
 
         if not .info.sampleRate do
@@ -225,8 +225,8 @@ private impl Codec
         if blockSize <= .capacity do
             return
         for index in MaxChannels do
-            .channels[index].resize(cast(u64) blockSize)
-        .residual.resize(cast(u64) blockSize)
+            .channels[index].resize(cast(u64, blockSize))
+        .residual.resize(cast(u64, blockSize))
         .capacity = blockSize
     }
 
@@ -349,7 +349,7 @@ private impl Codec
                     let value    = (quotient << param) | reader.read(param)
 
                     // Residuals are zig-zag coded: the low bit is the sign.
-                    output[index] = cast(s32) (value >> 1) ^ -cast(s32) (value & 1)
+                    output[index] = cast(s32, (value >> 1)) ^ -cast(s32, (value & 1))
                     index         += 1
                 }
             }
@@ -416,7 +416,7 @@ private impl Codec
                 coefficients[index] = reader.readSigned(precision)
 
             try .readResidual(reader, blockSize, order)
-            .predictLinear(target, &coefficients[0], order, blockSize, cast(u32) shift)
+            .predictLinear(target, &coefficients[0], order, blockSize, cast(u32, shift))
         }
         else
         {
@@ -478,8 +478,8 @@ private impl Codec
         {
             var sum = 0's64
             for tap in order do
-                sum += cast(s64) coefficients[tap] * cast(s64) target[index - 1 - tap]
-            target[index] = source[index] + cast(s32) (sum >> shift)
+                sum += cast(s64, coefficients[tap]) * cast(s64, target[index - 1 - tap])
+            target[index] = source[index] + cast(s32, (sum >> shift))
         }
     }
 
@@ -550,16 +550,16 @@ private impl Codec
     // Writes the decoded block as interleaved 16-bit PCM.
     mtd writePcm16(destination: [*] s16, header: FrameHeader)
     {
-        let shift = cast(s32) header.bitsPerSample - 16
+        let shift = cast(s32, header.bitsPerSample) - 16
         var index = 0'u64
         for sample in header.blockSize
         {
             for channel in header.channels
             {
                 let value  = .channels[channel][sample]
-                var scaled = shift > 0 ? value >> cast(u32) shift : value << cast(u32) -shift
+                var scaled = shift > 0 ? value >> cast(u32, shift) : value << cast(u32, -shift)
                 scaled = Math.clamp(scaled, -32768, 32767)
-                destination[index] = cast(s16) scaled
+                destination[index] = cast(s16, scaled)
                 index  += 1
             }
         }
@@ -583,10 +583,10 @@ impl IPacketCodec for Codec
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let header   = try .decodeFrame(packet)
-        let produced = cast(u64) header.blockSize * cast(u64) header.channels * #sizeof(s16)
+        let produced = cast(u64, header.blockSize) * cast(u64, header.channels) * #sizeof(s16)
         if destinationSize < produced do
             fail BadParameterError{"FLAC destination buffer is too small"}
-        .writePcm16(cast([*] s16) destination, header)
+        .writePcm16(cast([*] s16, destination), header)
         return produced
     }
 }
@@ -602,7 +602,7 @@ internal func packetFrameCount(packet: const [..] u8)->u32 fail
     if packet[0] != 0xFF or (packet[1] & 0xFC) != 0xF8 do
         fail InvalidFormatError{"FLAC frame has no sync code"}
 
-    let blockSizeCode = cast(u32) (packet[2] >> 4)
+    let blockSizeCode = cast(u32, (packet[2] >> 4))
     switch blockSizeCode
     {
     case 0:          fail InvalidFormatError{"FLAC frame uses the reserved block size code"}

@@ -62,8 +62,8 @@ private func buildRunTable(codes: const [..] CcittCode)->CcittRunTable
 
     for one in codes
     {
-        let shift = CcittLookupBits - cast(u32) one.bits
-        let base  = cast(u64) one.code << shift
+        let shift = CcittLookupBits - cast(u32, one.bits)
+        let base  = cast(u64, one.code) << shift
         for i in 1'u64 << shift
         {
             result.length[base + i] = one.bits
@@ -92,16 +92,16 @@ private impl CcittBits
     mtd const peek(count: u32)->u32
     {
         let index = .pos >> 3
-        let shift = cast(u32) (.pos & 7)
+        let shift = cast(u32, (.pos & 7))
 
         var window = 0'u64
         for i in 5'u64
         {
             let at = index + i
-            window = window << 8 | (at < .data.count ? cast(u64) .data[at] : 0)
+            window = window << 8 | (at < .data.count ? cast(u64, .data[at]) : 0)
         }
 
-        return cast(u32) ((window >> (40 - shift - count)) & ((1'u64 << count) - 1))
+        return cast(u32, ((window >> (40 - shift - count)) & ((1'u64 << count) - 1)))
     }
 
     mtd skip(count: u32)
@@ -135,7 +135,7 @@ private func readCcittRun(bits: *CcittBits, table: const *CcittRunTable)->s32 fa
             fail InvalidFormatError{"CCITTFaxDecode stream contains an undefined run code"}
 
         bits.skip(length)
-        let run = cast(s32) table.run[index]
+        let run = cast(s32, table.run[index])
         result += run
         if run < 64 do
             return result
@@ -226,7 +226,7 @@ private func decodeCcittLine1D(bits: *CcittBits, current: *Array's32, columns: s
 
     // A zero-length run is legal and says the line opens with the other colour, so the loop needs
     // a bound of its own rather than trusting the position to advance.
-    for 2 * cast(u64) columns + 64
+    for 2 * cast(u64, columns) + 64
     {
         if at >= columns do
             return
@@ -245,7 +245,7 @@ private func decodeCcittLine2D(bits: *CcittBits, reference: const [..] s32, curr
     var a0    = -1's32
     var color = 0'u32
 
-    for 2 * cast(u64) columns + 64
+    for 2 * cast(u64, columns) + 64
     {
         if a0 >= columns do
             return
@@ -295,8 +295,8 @@ private func writeCcittBlackRun(result: *Array'u8, base: u64, first, last: s32, 
 {
     for x in first until last
     {
-        let index = base + cast(u64) (x >> 3)
-        let mask  = 0x80'u8 >> cast(u32) (x & 7)
+        let index = base + cast(u64, (x >> 3))
+        let mask  = 0x80'u8 >> cast(u32, (x & 7))
         if blackIs1 do
             result[index] |= mask
         else do
@@ -307,7 +307,7 @@ private func writeCcittBlackRun(result: *Array'u8, base: u64, first, last: s32, 
 // Writes one decoded line as packed samples: black runs stamped over a white line.
 private func writeCcittRow(result: *Array'u8, changes: const [..] s32, columns: s32, blackIs1: bool)
 {
-    let rowBytes = (cast(u64) columns + 7) / 8
+    let rowBytes = (cast(u64, columns) + 7) / 8
     let base     = result.count
     result.resize(base + rowBytes)
     for i in rowBytes do
@@ -339,8 +339,8 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
     if params.columns <= 0 or params.columns > CcittMaxColumns do
         fail InvalidFormatError{"CCITTFaxDecode stream declares an invalid column count"}
 
-    let columns  = cast(s32) params.columns
-    let rowBytes = (cast(u64) columns + 7) / 8
+    let columns  = cast(s32, params.columns)
+    let rowBytes = (cast(u64, columns) + 7) / 8
     let white    = buildRunTable(CcittWhiteCodes)
     let black    = buildRunTable(CcittBlackCodes)
 

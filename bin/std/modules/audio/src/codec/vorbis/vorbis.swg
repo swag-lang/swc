@@ -34,15 +34,15 @@ private const ChannelSlots: [9, 8] u32 = [
 internal func speakerMask(channels: u32)->u32 => channels <= 8 ? SpeakerMasks[channels] : 0
 
 // Returns the number of bits needed to hold `value`, which is what the format calls `ilog`.
-private func ilog(value: u32)->u32 => value ? 32 - cast(u32) Swag.bitCountLz(value) : 0
+private func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.bitCountLz(value)) : 0
 
 // Unpacks the 32-bit floating-point representation the format uses for codebook scales.
 private func unpackFloat(raw: u32)->f32
 {
-    let mantissa = cast(f64) (raw & 0x1FFFFF)
-    let exponent = cast(f64) ((raw & 0x7FE00000) >> 21) - 788.0
+    let mantissa = cast(f64, (raw & 0x1FFFFF))
+    let exponent = cast(f64, ((raw & 0x7FE00000) >> 21)) - 788.0
     let value    = mantissa * Math.pow(2.0, exponent)
-    return cast(f32) (raw & 0x80000000 ? -value : value)
+    return cast(f32, (raw & 0x80000000 ? -value : value))
 }
 
 // Reads the bits of a Vorbis packet, least significant bit first.
@@ -78,10 +78,10 @@ private impl BitReader
         var got    = 0'u32
         while got < count
         {
-            let bitOffset = cast(u32) (.bitPos & 7)
+            let bitOffset = cast(u32, (.bitPos & 7))
             let available = 8 - bitOffset
             let take      = Math.min(available, count - got)
-            let value     = (cast(u32) .data![.bitPos >> 3] >> bitOffset) & ((1'u32 << take) - 1)
+            let value     = (cast(u32, .data![.bitPos >> 3]) >> bitOffset) & ((1'u32 << take) - 1)
             result  |= value << got
             got     += take
             .bitPos += take
@@ -114,7 +114,7 @@ private impl Codebook
     {
         if not .entries do
             return 0
-        var count = cast(u32) Math.floor(Math.pow(cast(f64) .entries, 1.0 / cast(f64) .dimensions))
+        var count = cast(u32, Math.floor(Math.pow(cast(f64, .entries), 1.0 / cast(f64, .dimensions))))
         if not count do
             count = 1
         while count > 1 and not .powerFits(count) do
@@ -146,13 +146,13 @@ private impl Codebook
         while bit
         {
             bit -= 1
-            let slot  = cast(u64) node * 2 + ((codeword >> bit) & 1)
+            let slot  = cast(u64, node) * 2 + ((codeword >> bit) & 1)
             let child = .children[slot]
             if not bit
             {
                 if child do
                     fail InvalidFormatError{"Vorbis codebook assigns one codeword twice"}
-                .children[slot] = -cast(s32) entry - 1
+                .children[slot] = -cast(s32, entry) - 1
                 return
             }
 
@@ -162,13 +162,13 @@ private impl Codebook
             {
                 .children.add(0)
                 .children.add(0)
-                let created = cast(s32) (.children.count / 2 - 1)
+                let created = cast(s32, (.children.count / 2 - 1))
                 .children[slot] = created
-                node = cast(u32) created
+                node = cast(u32, created)
             }
             else
             {
-                node = cast(u32) child
+                node = cast(u32, child)
             }
         }
     }
@@ -185,11 +185,11 @@ private impl Codebook
         var marker: [33] u32
         for length, index in .lengths where length
         {
-            let bits  = cast(u32) length
+            let bits  = cast(u32, length)
             var entry = marker[bits]
             if bits < 32 and (entry >> bits) do
                 fail InvalidFormatError{"Vorbis codebook lengths overpopulate the tree"}
-            try .insert(entry, bits, cast(u32) index)
+            try .insert(entry, bits, cast(u32, index))
             .usedEntries += 1
 
             // Advance the marker of this length, carrying into the shorter ones that shared the branch.
@@ -242,12 +242,12 @@ private impl Codebook
             let bit = reader.read(1)
             if reader.overran do
                 return -1
-            let child = .children[cast(u64) node * 2 + bit]
+            let child = .children[cast(u64, node) * 2 + bit]
             if child < 0 do
                 return -child - 1
             if not child do
                 return -1
-            node = cast(u32) child
+            node = cast(u32, child)
         }
 
         return -1
@@ -271,7 +271,7 @@ private impl Codebook
                 if sparse and not reader.readFlag() do
                     .lengths[index] = 0
                 else do
-                    .lengths[index] = cast(u8) (reader.read(5) + 1)
+                    .lengths[index] = cast(u8, (reader.read(5) + 1))
             }
         }
         else
@@ -285,7 +285,7 @@ private impl Codebook
                     fail InvalidFormatError{"Vorbis codebook length runs exceed its entries"}
                 for count
                 {
-                    .lengths[index] = cast(u8) current
+                    .lengths[index] = cast(u8, current)
                     index += 1
                 }
 
@@ -313,11 +313,11 @@ private impl Codebook
         var quant: Array'f32
         quant.resize(quantized)
         for index in quantized do
-            quant[index] = cast(f32) reader.read(valueBits)
+            quant[index] = cast(f32, reader.read(valueBits))
         if reader.overran do
             fail InvalidFormatError{"Vorbis setup header is truncated"}
 
-        .values.resize(cast(u64) .entries * .dimensions)
+        .values.resize(cast(u64, .entries) * .dimensions)
         for entry in .entries
         {
             var last    = 0.0'f32
@@ -327,18 +327,18 @@ private impl Codebook
                 var index: u64
                 if .lookupType == 1
                 {
-                    index   = (cast(u64) entry / divisor) % quantized
+                    index   = (cast(u64, entry) / divisor) % quantized
                     divisor *= quantized
                 }
                 else
                 {
-                    index = cast(u64) entry * .dimensions + dimension
+                    index = cast(u64, entry) * .dimensions + dimension
                 }
 
                 let value = quant[index] * delta + minimum + last
                 if sequence do
                     last = value
-                .values[cast(u64) entry * .dimensions + dimension] = value
+                .values[cast(u64, entry) * .dimensions + dimension] = value
             }
         }
     }
@@ -428,8 +428,8 @@ private impl Floor
 
             for sub in 1'u32 << .classSubclasses[cls]
             {
-                let book = cast(s32) reader.read(8) - 1
-                if book >= cast(s32) codebooks do
+                let book = cast(s32, reader.read(8)) - 1
+                if book >= cast(s32, codebooks) do
                     fail InvalidFormatError{"Vorbis floor names a codebook that does not exist"}
                 .subclassBooks[cls, sub] = book
             }
@@ -451,7 +451,7 @@ private impl Floor
 
         // The posts are rendered in increasing X, and every post after the first two predicts
         // itself from the nearest earlier posts on either side.
-        let count = cast(u32) .posts.count
+        let count = cast(u32, .posts.count)
         .sortedPosts.resize(count)
         for index in count do
             .sortedPosts[index] = index
@@ -499,16 +499,16 @@ private impl Floor
         func bark(frequency: f64)->f64 => 13.1 * Math.atan(0.00074 * frequency) + 2.24 * Math.atan(1.85e-8 * frequency * frequency) + 1e-4 * frequency
 
         let map = &.barkMap[which]
-        map.resize(cast(u64) half + 1)
-        let scale = cast(f64) .barkMapSize / bark(cast(f64) .rate / 2.0)
+        map.resize(cast(u64, half) + 1)
+        let scale = cast(f64, .barkMapSize) / bark(cast(f64, .rate) / 2.0)
         for line in half
         {
-            var value = cast(s64) Math.floor(bark(cast(f64) .rate / 2.0 / cast(f64) half * cast(f64) line) * scale)
+            var value = cast(s64, Math.floor(bark(cast(f64, .rate) / 2.0 / cast(f64, half) * cast(f64, line)) * scale))
             if value < 0 do
                 value = 0
-            if value >= cast(s64) .barkMapSize do
-                value = cast(s64) .barkMapSize - 1
-            map[][line] = cast(u32) value
+            if value >= cast(s64, .barkMapSize) do
+                value = cast(s64, .barkMapSize) - 1
+            map[][line] = cast(u32, value)
         }
 
         map[][half] = Swag.U32.Max
@@ -565,7 +565,7 @@ private impl Residue
                         fail InvalidFormatError{"Vorbis residue names a codebook that does not exist"}
                     if not codebooks[book].lookupType do
                         fail InvalidFormatError{"Vorbis residue names a codebook that carries no vectors"}
-                    .books[cls, stage] = cast(s32) book
+                    .books[cls, stage] = cast(s32, book)
                 }
             }
         }
@@ -728,8 +728,8 @@ private impl Codec
             .slopes[which].resize(half)
             for index in half
             {
-                let inner = Math.sin((cast(f64) index + 0.5) / cast(f64) half * Math.ConstF64.Pi / 2.0)
-                .slopes[which][index] = cast(f32) Math.sin(Math.ConstF64.Pi / 2.0 * inner * inner)
+                let inner = Math.sin((cast(f64, index) + 0.5) / cast(f64, half) * Math.ConstF64.Pi / 2.0)
+                .slopes[which][index] = cast(f32, Math.sin(Math.ConstF64.Pi / 2.0 * inner * inner))
             }
 
             .transforms[which] = Mdct.create(.blockSizes[which])
@@ -825,7 +825,7 @@ private impl Codec
                     var at = 0'u64
                     for index in page.segments
                     {
-                        let size = cast(u64) page.lacing[index]
+                        let size = cast(u64, page.lacing[index])
                         headers[completed].add(body[at until at + size])
                         at += size
                         if size < 255
@@ -893,7 +893,7 @@ private impl Codec
         let amplitude = reader.read(floor.amplitudeBits)
         if not amplitude or reader.overran do
             return false
-        let bookNumber = reader.read(ilog(cast(u32) floor.books.count))
+        let bookNumber = reader.read(ilog(cast(u32, floor.books.count)))
         if bookNumber >= floor.books.count do
             return false
         let book = &.codebooks[floor.books[bookNumber]]
@@ -901,7 +901,7 @@ private impl Codec
             fail InvalidFormatError{"Vorbis floor 0 names a codebook that carries no vectors"}
 
         let curve = &.floorCurve[channel]
-        curve.resize(cast(u64) floor.order + 1)
+        curve.resize(cast(u64, floor.order) + 1)
         var index = 0'u32
         while index < floor.order
         {
@@ -910,7 +910,7 @@ private impl Codec
                 return false
             for dimension in book.dimensions where index < floor.order
             {
-                curve[][index] = book.values[cast(u64) entry * book.dimensions + dimension]
+                curve[][index] = book.values[cast(u64, entry) * book.dimensions + dimension]
                 index += 1
             }
         }
@@ -929,8 +929,8 @@ private impl Codec
             last = curve[][index - 1]
         }
 
-        let maximum = cast(f64) ((1'u32 << floor.amplitudeBits) - 1)
-        curve[][floor.order] = cast(f32) (cast(f64) amplitude / maximum * cast(f64) floor.amplitudeOffset)
+        let maximum = cast(f64, ((1'u32 << floor.amplitudeBits) - 1))
+        curve[][floor.order] = cast(f32, (cast(f64, amplitude) / maximum * cast(f64, floor.amplitudeOffset)))
         return true
     }
 
@@ -946,8 +946,8 @@ private impl Codec
         let used  = &.floorUsed[channel]
         posts.resize(count)
         used.resize(count)
-        posts[][0] = cast(s32) reader.read(bits)
-        posts[][1] = cast(s32) reader.read(bits)
+        posts[][0] = cast(s32, reader.read(bits))
+        posts[][1] = cast(s32, reader.read(bits))
 
         var offset = 2'u64
         for partition in floor.partitions
@@ -962,7 +962,7 @@ private impl Codec
                 let decoded = .codebooks[floor.classMasterbook[cls]].decode(reader)
                 if decoded < 0 do
                     return false
-                value = cast(u32) decoded
+                value = cast(u32, decoded)
             }
 
             for dimension in dimensions
@@ -971,7 +971,7 @@ private impl Codec
                 value >>= subBits
                 if book >= 0
                 {
-                    let decoded = .codebooks[cast(u32) book].decode(reader)
+                    let decoded = .codebooks[cast(u32, book)].decode(reader)
                     if decoded < 0 do
                         return false
                     posts[][offset + dimension] = decoded
@@ -993,8 +993,8 @@ private impl Codec
         {
             let low       = floor.lowNeighbor[index]
             let high      = floor.highNeighbor[index]
-            let predicted = renderPoint(cast(s32) floor.posts[low], cast(s32) floor.posts[high], posts[][low], posts[][high], cast(s32) floor.posts[index])
-            let highRoom  = cast(s32) range - predicted
+            let predicted = renderPoint(cast(s32, floor.posts[low]), cast(s32, floor.posts[high]), posts[][low], posts[][high], cast(s32, floor.posts[index]))
+            let highRoom  = cast(s32, range) - predicted
             let lowRoom   = predicted
             let room      = Math.min(highRoom, lowRoom) * 2
             var value     = posts[][index]
@@ -1024,26 +1024,26 @@ private impl Codec
     // Multiplies the spectrum of a channel by the curve its floor 0 describes.
     mtd applyFloor0(floor: *Floor, which: u32, channel: u32, half: u32)
     {
-        if floor.barkMap[which].count != cast(u64) half + 1 do
+        if floor.barkMap[which].count != cast(u64, half) + 1 do
             floor.buildBarkMap(which, half)
         let map       = floor.barkMap[which].storage()
         let curve     = .floorCurve[channel].storage()
         let spectrum  = .spectrum[channel].storage()
         let order     = floor.order
-        let amplitude = cast(f64) curve[order]
-        let offset    = cast(f64) floor.amplitudeOffset
-        let maximum   = cast(f64) ((1'u32 << floor.amplitudeBits) - 1)
+        let amplitude = cast(f64, curve[order])
+        let offset    = cast(f64, floor.amplitudeOffset)
+        let maximum   = cast(f64, ((1'u32 << floor.amplitudeBits) - 1))
 
         var cosines: Array'f64
         cosines.resize(order)
         for index in order do
-            cosines[index] = Math.cos(cast(f64) curve[index])
+            cosines[index] = Math.cos(cast(f64, curve[index]))
 
         var line = 0'u32
         while line < half
         {
             let bin   = map[line]
-            let omega = Math.ConstF64.Pi * cast(f64) bin / cast(f64) floor.barkMapSize
+            let omega = Math.ConstF64.Pi * cast(f64, bin) / cast(f64, floor.barkMapSize)
             let cosw  = Math.cos(omega)
             var p     = 1.0'f64
             var q     = 1.0'f64
@@ -1076,7 +1076,7 @@ private impl Codec
                 q *= (1.0 + cosw) / 2.0
             }
 
-            let value = cast(f32) Math.exp(0.11512925 * (amplitude * offset / (maximum * Math.sqrt(p + q)) - offset))
+            let value = cast(f32, Math.exp(0.11512925 * (amplitude * offset / (maximum * Math.sqrt(p + q)) - offset)))
             while line < half and map[line] == bin
             {
                 spectrum[line] *= value
@@ -1093,21 +1093,21 @@ private impl Codec
         let spectrum = .spectrum[channel].storage()
         var lowX     = 0'u32
         var highX    = 0'u32
-        var lowY     = Math.clamp(posts[0] * cast(s32) floor.multiplier, 0, 255)
+        var lowY     = Math.clamp(posts[0] * cast(s32, floor.multiplier), 0, 255)
         for index in 1'u64 until floor.sortedPosts.count
         {
             let current = floor.sortedPosts[index]
             if not used[current] do
                 continue
             highX = floor.posts[current]
-            let highY = Math.clamp(posts[current] * cast(s32) floor.multiplier, 0, 255)
+            let highY = Math.clamp(posts[current] * cast(s32, floor.multiplier), 0, 255)
             renderLine(half, lowX, highX, lowY, highY, spectrum)
             lowX = highX
             lowY = highY
         }
 
         for line in highX until half do
-            spectrum[line] *= Floor1InverseDb[cast(u32) lowY]
+            spectrum[line] *= Floor1InverseDb[cast(u32, lowY)]
     }
 
     // Decodes a residue into the channels of `list`, whose nonzero flags select what is coded.
@@ -1134,15 +1134,15 @@ private impl Codec
             vectors = 1
         }
 
-        let width      = residue.kind == 2 ? cast(u64) list.count : 1
-        let actualSize = cast(u64) half * width
-        let limitBegin = Math.min(cast(u64) residue.begin, actualSize)
-        let limitEnd   = Math.min(cast(u64) residue.end, actualSize)
+        let width      = residue.kind == 2 ? cast(u64, list.count) : 1
+        let actualSize = cast(u64, half) * width
+        let limitBegin = Math.min(cast(u64, residue.begin), actualSize)
+        let limitEnd   = Math.min(cast(u64, residue.end), actualSize)
         if limitEnd <= limitBegin do
             return
         let partitions      = (limitEnd - limitBegin) / residue.partitionSize
         let classbook       = &.codebooks[residue.classbook]
-        let wordSize        = cast(u64) classbook.dimensions
+        let wordSize        = cast(u64, classbook.dimensions)
         let words           = (partitions + wordSize - 1) / wordSize
         var partitionValues = 1'u64
         for wordSize
@@ -1164,13 +1164,13 @@ private impl Codec
                     for vector in vectors
                     {
                         let decoded = classbook.decode(reader)
-                        if decoded < 0 or cast(u64) decoded >= partitionValues do
+                        if decoded < 0 or cast(u64, decoded) >= partitionValues do
                             return
-                        var value   = cast(u64) decoded
+                        var value   = cast(u64, decoded)
                         var divisor = partitionValues / residue.classifications
                         for digit in wordSize
                         {
-                            .classes[(vector * words + word) * wordSize + digit] = cast(u32) (value / divisor)
+                            .classes[(vector * words + word) * wordSize + digit] = cast(u32, (value / divisor))
                             value   %= divisor
                             divisor /= residue.classifications
                             if not divisor do
@@ -1188,14 +1188,14 @@ private impl Codec
                         if (residue.cascade[cls] & (1'u32 << pass)) and book >= 0
                         {
                             let offset   = limitBegin + partition * residue.partitionSize
-                            let codebook = &.codebooks[cast(u32) book]
+                            let codebook = &.codebooks[cast(u32, book)]
                             var complete: bool
                             if residue.kind == 0 do
                                 complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             elif residue.kind == 1 do
                                 complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             else do
-                                complete = .decodeAcrossChannels(codebook, reader, active, cast(u32) list.count, offset, residue.partitionSize)
+                                complete = .decodeAcrossChannels(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
                             if not complete do
                                 return
                         }
@@ -1228,7 +1228,7 @@ private impl Codec
             {
                 let position = dimension * step + index
                 if position < count do
-                    target[position] += book.values[cast(u64) .entries[index] * book.dimensions + dimension]
+                    target[position] += book.values[cast(u64, .entries[index]) * book.dimensions + dimension]
             }
         }
 
@@ -1246,7 +1246,7 @@ private impl Codec
                 return false
             for dimension in book.dimensions where index < count
             {
-                target[index] += book.values[cast(u64) entry * book.dimensions + dimension]
+                target[index] += book.values[cast(u64, entry) * book.dimensions + dimension]
                 index         += 1
             }
         }
@@ -1267,7 +1267,7 @@ private impl Codec
                 return false
             for dimension in book.dimensions where index < limit
             {
-                .spectrum[active[channel]][index] += book.values[cast(u64) entry * book.dimensions + dimension]
+                .spectrum[active[channel]][index] += book.values[cast(u64, entry) * book.dimensions + dimension]
                 channel += 1
                 if channel == width
                 {
@@ -1308,7 +1308,7 @@ private impl Codec
 
         for channel in .channels
         {
-            Memory.set(.spectrum[channel].storage(), 0, cast(u64) half * #sizeof(f32))
+            Memory.set(.spectrum[channel].storage(), 0, cast(u64, half) * #sizeof(f32))
             let floor = &.floors[mapping.submapFloor[mapping.mux[channel]]]
             .floorPresent[channel] = try .decodeFloor(floor, &reader, channel)
             .nonzero[channel]      = .floorPresent[channel]
@@ -1377,7 +1377,7 @@ private impl Codec
         {
             if not .floorPresent[channel]
             {
-                Memory.set(.spectrum[channel].storage(), 0, cast(u64) half * #sizeof(f32))
+                Memory.set(.spectrum[channel].storage(), 0, cast(u64, half) * #sizeof(f32))
                 continue
             }
 
@@ -1410,7 +1410,7 @@ private impl Codec
             rightSlope = 0
         }
 
-        let outputFrames = .previousSize ? cast(u64) .previousSize / 4 + n / 4 : 0
+        let outputFrames = .previousSize ? cast(u64, .previousSize) / 4 + n / 4 : 0
         let base         = .output.count / .channels
         .output.resize((base + outputFrames) * .channels)
         let time = .timeDomain.storage()
@@ -1431,22 +1431,22 @@ private impl Codec
             {
                 let saved    = .saved[channel].storage()
                 let slot     = ChannelSlots[.channels, channel]
-                let previous = cast(u64) .previousSize
-                let shift    = cast(s64) n / 4 - cast(s64) previous / 4
+                let previous = cast(u64, .previousSize)
+                let shift    = cast(s64, n) / 4 - cast(s64, previous) / 4
                 for frame in outputFrames
                 {
                     var value         = 0.0'f32
                     let previousIndex = previous / 2 + frame
                     if previousIndex < previous do
                         value += saved[previousIndex - previous / 2]
-                    let current = cast(s64) frame + shift
-                    if current >= 0 and current < cast(s64) n do
-                        value += time[cast(u64) current]
-                    .output[(base + frame) * .channels + slot] = cast(s16) Math.clamp(Math.round(cast(f64) value * 32767.0), -32768.0, 32767.0)
+                    let current = cast(s64, frame) + shift
+                    if current >= 0 and current < cast(s64, n) do
+                        value += time[cast(u64, current)]
+                    .output[(base + frame) * .channels + slot] = cast(s16, Math.clamp(Math.round(cast(f64, value) * 32767.0), -32768.0, 32767.0))
                 }
             }
 
-            Memory.copy(.saved[channel].storage(), time + half, cast(u64) half * #sizeof(f32))
+            Memory.copy(.saved[channel].storage(), time + half, cast(u64, half) * #sizeof(f32))
         }
 
         .previousSize = n
@@ -1477,7 +1477,7 @@ private impl Codec
                 var at   = 0'u64
                 for index in page.segments
                 {
-                    let size = cast(u64) page.lacing[index]
+                    let size = cast(u64, page.lacing[index])
                     .packet.add(body[at until at + size])
                     at += size
                     if size < 255
@@ -1557,7 +1557,7 @@ private func renderPoint(x0, x1, y0, y1, x: s32)->s32
 private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 {
     let dy   = y1 - y0
-    let adx  = cast(s32) (x1 - x0)
+    let adx  = cast(s32, (x1 - x0))
     var ady  = Math.abs(dy)
     let base = dy / adx
     let sy   = dy < 0 ? base - 1 : base + 1
@@ -1568,7 +1568,7 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 
     let end = Math.min(limit, x1)
     if x < end do
-        target[x] *= Floor1InverseDb[cast(u32) Math.clamp(y, 0, 255)]
+        target[x] *= Floor1InverseDb[cast(u32, Math.clamp(y, 0, 255))]
     x += 1
     while x < end
     {
@@ -1583,7 +1583,7 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
             y += base
         }
 
-        target[x] *= Floor1InverseDb[cast(u32) Math.clamp(y, 0, 255)]
+        target[x] *= Floor1InverseDb[cast(u32, Math.clamp(y, 0, 255))]
         x         += 1
     }
 }

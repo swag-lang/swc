@@ -1,16 +1,16 @@
 #global private
 
 #[Swag.NoInline]
-func unsignedCompare(a, b: u64)->u64 => cast(u64) (a < b)
+func unsignedCompare(a, b: u64)->u64 => cast(u64, (a < b))
 
 #[Swag.NoInline]
-func signedCompare(a, b: s64)->u32 => cast(u32) (a >= b)
+func signedCompare(a, b: s64)->u32 => cast(u32, (a >= b))
 
 #[Swag.NoInline]
-func liveInputs(a, b: u64)->u64 => a ^ b ^ cast(u64) (a == b)
+func liveInputs(a, b: u64)->u64 => a ^ b ^ cast(u64, (a == b))
 
 #[Swag.NoInline]
-func computedInput(a, b: u64)->u64 => cast(u64) ((a ^ b) != b)
+func computedInput(a, b: u64)->u64 => cast(u64, ((a ^ b) != b))
 
 #test
 {

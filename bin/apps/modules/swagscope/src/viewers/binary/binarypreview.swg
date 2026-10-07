@@ -15,10 +15,10 @@ struct BinaryPreview
 // Writes `value` as four little-endian bytes at `offset`.
 private func writePreviewU32(bytes: *Array'u8, offset: u64, value: u32)
 {
-    bytes[offset]     = cast(u8) value
-    bytes[offset + 1] = cast(u8) (value >> 8)
-    bytes[offset + 2] = cast(u8) (value >> 16)
-    bytes[offset + 3] = cast(u8) (value >> 24)
+    bytes[offset]     = cast(u8, value)
+    bytes[offset + 1] = cast(u8, (value >> 8))
+    bytes[offset + 2] = cast(u8, (value >> 16))
+    bytes[offset + 3] = cast(u8, (value >> 24))
 }
 
 // Returns whether the file begins with the directory of a Windows icon or cursor.
@@ -37,14 +37,14 @@ func isIconContainer(image: *BinaryImage)->bool
 func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *Array'BinaryPreview)
 {
     image.bigEndian = false
-    let count      = cast(u64) image.u16At(4)
+    let count      = cast(u64, image.u16At(4))
     let kind       = image.u16At(2)
     let formatName = kind == 1 ? "Windows icon" : "Windows cursor"
     report.formatName = formatName
     report.summary    = Format.toString("% · % image%", formatName, count, count == 1 ? "" : "s")
     report.beginGroup("ICONDIR", "", "", offset: 0, length: 6 + count * 16, open: true)
     report.numField(0, 2, "Reserved", 0)
-    report.numField(2, 2, "Type", cast(u64) kind, kind == 1 ? "Icon" : "Cursor")
+    report.numField(2, 2, "Type", cast(u64, kind), kind == 1 ? "Icon" : "Cursor")
     report.numField(4, 2, "ImageCount", count)
 
     let shown = Math.min(count, BinaryPreviewLimit)
@@ -53,11 +53,11 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
         let at = 6 + index * 16
         if not image.has(at, 16) do
             break
-        let width  = image.u8At(at) ? cast(u32) image.u8At(at) : 256
-        let height = image.u8At(at + 1) ? cast(u32) image.u8At(at + 1) : 256
+        let width  = image.u8At(at) ? cast(u32, image.u8At(at)) : 256
+        let height = image.u8At(at + 1) ? cast(u32, image.u8At(at + 1)) : 256
         let bits   = image.u16At(at + 6)
-        let size   = cast(u64) image.u32At(at + 8)
-        let offset = cast(u64) image.u32At(at + 12)
+        let size   = cast(u64, image.u32At(at + 8))
+        let offset = cast(u64, image.u32At(at + 12))
         let label  = Format.toString("%×% · %b", width, height, bits)
 
         report.beginGroup(Format.toString("Image %", index + 1).toString(), label.toString(), "", offset: offset, length: size)
@@ -69,7 +69,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
             continue
         var one: Array'u8
         one.resize(22 + size)
-        one[2] = cast(u8) kind
+        one[2] = cast(u8, kind)
         one[4] = 1
         Memory.copy(one.buffer + 6, image.bytes.buffer + at, 16)
         writePreviewU32(&one, 18, 22)

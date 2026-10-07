@@ -13,8 +13,8 @@ private func callSwagRuntimeHook(handle: const *void, stage: u64)
     if not runtimeHook do
         return
 
-    let hook = cast(func(u64, u64, u64, const *(string?))) runtimeHook
-    hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64) Swag.getContext().runtimeFlags, &Swag.processInfos().args)
+    let hook = cast(func(u64, u64, u64, const *(string?)), runtimeHook)
+    hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64, Swag.getContext().runtimeFlags), &Swag.processInfos().args)
 }
 
 // Owns one dynamically loaded native library.

@@ -115,7 +115,7 @@ public impl MessageDlg
         for btn in .buttons do
             w += btn.position.width
         if .buttons.count > 1 do
-            w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
+            w += cast(f32, ((.buttons.count - 1) * metrics.dialog_BtnPadding))
         w += chrome
         w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x + iconRoom + chrome)
 
@@ -169,10 +169,10 @@ public impl MessageDlg
                 .messageScroll     = scroll
                 scroll.hookOnEvent = func(wnd, evt)
                 {
-                    let key = cast #try (*KeyEvent) evt
+                    let key = (catch cast(*KeyEvent?, evt))
                     if not key or key.kind != .Pressed or key.modifiers != .None do
                         return false
-                    let scroll = cast #assume (*ScrollWnd) wnd
+                    let scroll = assume cast (*ScrollWnd, wnd)
                     var y      = scroll.scrollPosition().y
                     switch key.key
                     {

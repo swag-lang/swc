@@ -17,7 +17,7 @@ func day4B()
         // Time.Stopwatch.scopeMeasure()
         // One lane per worker, each striding by the lane count so the whole search space is
         // covered exactly once. A lane stops as soon as another one has published a lower hit.
-        let lanes = Math.max(1'u64, cast(u64) Swag.workerCount())
+        let lanes = Math.max(1'u64, cast(u64, Swag.workerCount()))
 
         var results: Array'u64
         results.resize(lanes)

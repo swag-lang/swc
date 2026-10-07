@@ -11,7 +11,7 @@ func subtitleViewerPlugin()->Viewer.Plugin
         .staticName   = "Subtitles"
         .attach       = &registerSubtitleStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Subtitle
+        .iconIndex    = cast(s32, ViewerIcons.Subtitle)
         .create       = &createSubtitleViewer
         .textual      = true
         .smokeFixture = "viewer.srt"
@@ -49,7 +49,7 @@ struct SubtitleViewer
 // Formats a cue time as HH:MM:SS.mmm, a form the go-to-time dialog also accepts.
 private func subtitleClockText(seconds: f64)->String
 {
-    let millis   = cast(u64) Math.max(Math.round(seconds * 1_000), 0.0)
+    let millis   = cast(u64, Math.max(Math.round(seconds * 1_000), 0.0))
     let hours    = millis / 3_600_000
     let minutes  = millis / 60_000 % 60
     let rest     = millis / 1_000 % 60
@@ -272,28 +272,28 @@ func createSubtitleViewer(host: Viewer.Host)
 
         with var search: Viewer.SearchApi
         {
-            .collectMatches = func(wnd, text, options, progress, matches)->bool
+            .collectMatches = func|view|(text, options, progress, matches)->bool
             {
                 discard progress
-                (cast #assume (*SubtitleViewer) wnd).collectMatches(text, options, matches)
+                view.collectMatches(text, options, matches)
                 return true
             }
 
-            .revealMatch = func(wnd, match, text)->bool
+            .revealMatch = func|view|(match, text)->bool
             {
                 discard text
-                return (cast #assume (*SubtitleViewer) wnd).revealMatch(match)
+                return view.revealMatch(match)
             }
 
-            .matchBounds = func(wnd, match, bounds)->bool
+            .matchBounds = func|view|(match, bounds)->bool
             {
                 discard match
-                return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
+                return Viewer.richEditMatchBounds(view.editor, bounds)
             }
 
-            .clear = func(wnd)
+            .clear = func|view|()
             {
-                Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor)
+                Viewer.clearRichEditMatch(view.editor)
             }
         }
 

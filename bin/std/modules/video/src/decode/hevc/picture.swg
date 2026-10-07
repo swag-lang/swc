@@ -49,8 +49,8 @@ impl Decoder
         if (payload[0] & 0x80) != 0 do
             fail InvalidFormatError{"HEVC network abstraction layer unit sets the forbidden bit"}
 
-        let nalType    = cast(u32) (payload[0] >> 1) & 0x3F
-        let temporalId = cast(u32) (payload[1] & 7) - 1
+        let nalType    = cast(u32, (payload[0] >> 1)) & 0x3F
+        let temporalId = cast(u32, (payload[1] & 7)) - 1
         let body       = payload[2 until payload.count]
 
         switch nalType
@@ -117,8 +117,8 @@ impl Decoder
         {
             .previousHeader = header
             .sliceAddrRs    = header.segmentAddress
-            .sliceIndex     = cast(u32) .sliceParams.count
-            .sliceParams.add({header.deblockingDisabled, header.loopFilterAcrossSlices, cast(s8) header.betaOffsetDiv2, cast(s8) header.tcOffsetDiv2})
+            .sliceIndex     = cast(u32, .sliceParams.count)
+            .sliceParams.add({header.deblockingDisabled, header.loopFilterAcrossSlices, cast(s8, header.betaOffsetDiv2), cast(s8, header.tcOffsetDiv2)})
         }
 
         .header = header
@@ -244,7 +244,7 @@ impl Decoder
         .saoUsed      = false
         .firstPicture = false
 
-        let blocks = cast(u64) .gridWidth * cast(u64) .gridHeight
+        let blocks = cast(u64, .gridWidth) * cast(u64, .gridHeight)
         Memory.set(.predMode.storage(), ModeInter, blocks)
         Memory.set(.intraModeY.storage(), IntraDc, blocks)
         Memory.set(.ctDepth.storage(), 0, blocks)
@@ -257,14 +257,14 @@ impl Decoder
 
         if sps.saoEnabled
         {
-            .sao.resize(cast(u64) sps.sizeInCtbs)
-            for index in cast(u64) sps.sizeInCtbs do
+            .sao.resize(cast(u64, sps.sizeInCtbs))
+            for index in cast(u64, sps.sizeInCtbs) do
                 .sao[index] = SaoParameters{}
         }
 
-        .ctbSliceIndex.resize(cast(u64) sps.sizeInCtbs)
-        Memory.set(.ctbSliceAddr.storage(), 0, cast(u64) sps.sizeInCtbs * #sizeof(u32))
-        Memory.set(.ctbSliceIndex.storage(), 0, cast(u64) sps.sizeInCtbs * #sizeof(u16))
+        .ctbSliceIndex.resize(cast(u64, sps.sizeInCtbs))
+        Memory.set(.ctbSliceAddr.storage(), 0, cast(u64, sps.sizeInCtbs) * #sizeof(u32))
+        Memory.set(.ctbSliceIndex.storage(), 0, cast(u64, sps.sizeInCtbs) * #sizeof(u16))
     }
 
     // Finishes the open picture: loop filters, edge extension, and publication.
@@ -297,27 +297,27 @@ impl Decoder
         {
             for column in frame.colWidth
             {
-                let source = &.motion[cast(u64) (row * step) * cast(u64) .gridWidth + cast(u64) (column * step)]
+                let source = &.motion[cast(u64, (row * step)) * cast(u64, .gridWidth) + cast(u64, (column * step))]
 
                 var record: ColMotion
                 record.predFlags = source.predFlags
                 for list in ListCount
                 {
-                    if (cast(u32) source.predFlags & (1'u32 << list)) == 0 do
+                    if (cast(u32, source.predFlags) & (1'u32 << list)) == 0 do
                         continue
                     record.mv[list, 0] = source.mv[list, 0]
                     record.mv[list, 1] = source.mv[list, 1]
 
-                    let index = cast(u32) source.refIdx[list]
+                    let index = cast(u32, source.refIdx[list])
                     if index < .refList.count[list]
                     {
                         record.refPoc[list] = .refList.poc[list, index]
                         if .refList.longTerm[list, index] do
-                            record.longTermRef |= cast(u8) (1'u32 << list)
+                            record.longTermRef |= cast(u8, (1'u32 << list))
                     }
                 }
 
-                frame.colMotion[cast(u64) row * cast(u64) frame.colWidth + cast(u64) column] = record
+                frame.colMotion[cast(u64, row) * cast(u64, frame.colWidth) + cast(u64, column)] = record
             }
         }
     }
@@ -339,7 +339,7 @@ impl Decoder
         var running = 0'u64
         for offset in .header.entryPointOffsets
         {
-            running += cast(u64) offset
+            running += cast(u64, offset)
             if running >= data.count do
                 fail InvalidFormatError{"HEVC slice entry point runs past the end of its segment"}
             escapedBounds.add(running)
@@ -352,7 +352,7 @@ impl Decoder
         // A complete untiled WPP picture has one independently coded substream per coding tree
         // block row. Decode those rows concurrently; less regular slice layouts keep the exact
         // sequential path below.
-        if pps.entropyCodingSync and not pps.tilesEnabled and not .header.dependent and not .header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64) sps.heightInCtbs + 1 and Swag.workerCount() > 1
+        if pps.entropyCodingSync and not pps.tilesEnabled and not .header.dependent and not .header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64, sps.heightInCtbs) + 1 and Swag.workerCount() > 1
         {
             try .decodeWavefrontRows(&bounds, sps)
             return
@@ -449,7 +449,7 @@ impl Decoder
     {
         .ctbAddrRs = .ctbTsToRs[.ctbAddrTs]
         .ctbSliceAddr[.ctbAddrRs]  = .sliceAddrRs
-        .ctbSliceIndex[.ctbAddrRs] = cast(u16) .sliceIndex
+        .ctbSliceIndex[.ctbAddrRs] = cast(u16, .sliceIndex)
     }
 
     // Reports whether the block above and to the right of a coding tree block was decoded, which
@@ -461,9 +461,9 @@ impl Decoder
         if not ctbY or ctbX + 1 >= sps.widthInCtbs do
             return false
 
-        let x = cast(s32) ((ctbX + 1) << sps.ctbLog2Size)
-        let y = cast(s32) ((ctbY - 1) << sps.ctbLog2Size)
-        return .isAvailable(cast(s32) (ctbX << sps.ctbLog2Size), cast(s32) (ctbY << sps.ctbLog2Size), x, y)
+        let x = cast(s32, ((ctbX + 1) << sps.ctbLog2Size))
+        let y = cast(s32, ((ctbY - 1) << sps.ctbLog2Size))
+        return .isAvailable(cast(s32, (ctbX << sps.ctbLog2Size)), cast(s32, (ctbY << sps.ctbLog2Size)), x, y)
     }
 
     // Points the arithmetic decoder at the next substream of the slice segment.
@@ -497,11 +497,11 @@ impl Decoder
         progress.resize(rowCount)
         states.resize(rowCount)
 
-        let workersSize = cast(u64) rowCount * #sizeof(Decoder)
-        let workers     = cast([*] Decoder) Memory.alloc(workersSize)
+        let workersSize = cast(u64, rowCount) * #sizeof(Decoder)
+        let workers     = cast([*] Decoder, Memory.alloc(workersSize))
         Swag.init(workers, rowCount)
-        let eventsSize = cast(u64) rowCount * #sizeof(Sync.Event)
-        let events     = cast([*] Sync.Event) Memory.alloc(eventsSize)
+        let eventsSize = cast(u64, rowCount) * #sizeof(Sync.Event)
+        let events     = cast([*] Sync.Event, Memory.alloc(eventsSize))
         Swag.init(events, rowCount)
         for row in rowCount do
             events[row].init(manual: true)

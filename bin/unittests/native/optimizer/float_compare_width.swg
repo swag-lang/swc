@@ -44,22 +44,22 @@ func signedGreater(i: s32, f: f32)->bool => i > f
 func signedEqual(i: s32, f: f32)->bool => i == f
 
 #[Swag.Optimize(false), Swag.NoInline]
-func wideLess(a, b: f32)->bool => cast(f64) a < cast(f64) b
+func wideLess(a, b: f32)->bool => cast(f64, a) < cast(f64, b)
 #[Swag.Optimize(false), Swag.NoInline]
-func wideLessEqual(a, b: f32)->bool => cast(f64) a <= cast(f64) b
+func wideLessEqual(a, b: f32)->bool => cast(f64, a) <= cast(f64, b)
 #[Swag.Optimize(false), Swag.NoInline]
-func wideEqual(a, b: f32)->bool => cast(f64) a == cast(f64) b
+func wideEqual(a, b: f32)->bool => cast(f64, a) == cast(f64, b)
 #[Swag.Optimize(false), Swag.NoInline]
-func wideOrder(a, b: f32)->s32 => cast(f64) a <=> cast(f64) b
+func wideOrder(a, b: f32)->s32 => cast(f64, a) <=> cast(f64, b)
 
 #[Swag.Safety(.All, false)]
 #test
 {
-    let nan     = cast #bit (f32) 0x7FC00000'u32
-    let negZero = cast #bit (f32) 0x80000000'u32
-    let inf     = cast #bit (f32) 0x7F800000'u32
-    let tiny    = cast #bit (f32) 0x00000001'u32
-    let largest = cast #bit (f32) 0x7F7FFFFF'u32
+    let nan     = cast #bit (f32, 0x7FC00000'u32)
+    let negZero = cast #bit (f32, 0x80000000'u32)
+    let inf     = cast #bit (f32, 0x7F800000'u32)
+    let tiny    = cast #bit (f32, 0x00000001'u32)
+    let largest = cast #bit (f32, 0x7F7FFFFF'u32)
     let values: [12] f32 = [0.0, negZero, 1.0, -1.0, 0.5, nan, inf, -inf, tiny, -tiny, largest, -largest]
 
     for a in values
@@ -75,9 +75,9 @@ func wideOrder(a, b: f32)->s32 => cast(f64) a <=> cast(f64) b
             Swag.assert(order(a, b) == wideOrder(a, b))
 
             let bigger = maxOf(a, b)
-            Swag.assert(cast #bit (u32) bigger == cast #bit (u32) (wideLess(b, a) ? a : b))
+            Swag.assert(cast #bit (u32, bigger) == cast #bit (u32, (wideLess(b, a) ? a : b)))
             let clamped = clampOf(a, -1.0, 1.0)
-            Swag.assert(cast #bit (u32) clamped == cast #bit (u32) (wideLess(a, -1.0) ? -1.0'f32 : (wideLess(1.0, a) ? 1.0'f32 : a)))
+            Swag.assert(cast #bit (u32, clamped) == cast #bit (u32, (wideLess(a, -1.0) ? -1.0'f32 : (wideLess(1.0, a) ? 1.0'f32 : a))))
         }
     }
 

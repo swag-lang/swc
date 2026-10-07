@@ -146,7 +146,7 @@ func writeVecRef(target: *Vec2, value: Vec2)
         return 0'u8
     }
 
-    let bytes = cast(const [..] u8) "42"
+    let bytes = cast(const [..] u8, "42")
     var index: u64
     Swag.assert(nextDigit(bytes, &index) == '4'u8)
     Swag.assert(nextDigit(bytes, &index) == '2'u8)
@@ -268,7 +268,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 {
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
-    let copied               = cast(f32) valueRef[]
+    let copied               = cast(f32, valueRef[])
     let sum                  = valueRef[] + 2.5'f32
 
     #assert(#typeof(copied) == f32)

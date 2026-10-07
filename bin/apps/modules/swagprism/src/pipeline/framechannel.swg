@@ -28,7 +28,7 @@ impl FrameChannel
 {
     const Width     = 640's32
     const Height    = 400's32
-    const ByteCount = cast(u64) (Width * Height * 4)
+    const ByteCount = cast(u64, (Width * Height * 4))
 
     mtd open(path: string, create = false) fail
     {
@@ -45,7 +45,7 @@ impl FrameChannel
         try .consumedEvent.initNamed(name)
     }
 
-    mtd header()->*FrameHeader => cast(*FrameHeader) .region.writableBytes().buffer
+    mtd header()->*FrameHeader => cast(*FrameHeader, .region.writableBytes().buffer)
     mtd pixels()->[*] u8       => .region.writableBytes().buffer + #sizeof(FrameHeader)
 
     mtd acknowledge(frame: u32)

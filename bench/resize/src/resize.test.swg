@@ -16,7 +16,7 @@ using Core, Pixel
         {
             var source = Image.create(size * 2 + 1, size * 2 - 1, .RGBA8)
             for index in source.byteCount do
-                source.pixels[index] = cast(u8) ((index * 47 + 13) & 0xFF)
+                source.pixels[index] = cast(u8, ((index * 47 + 13) & 0xFF))
             let iterations = Math.max(2, 131072 / (size * size))
             let reference  = source.resized(size, size, .Bicubic)
             for sample in 3

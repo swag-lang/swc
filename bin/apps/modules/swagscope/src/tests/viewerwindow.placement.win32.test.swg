@@ -41,13 +41,13 @@ func observeViewerPlacement(app: *Application)
     while watch.elapsedMicroseconds() < 10_000_000
     {
         app.runFrame()
-        if window.currentView is Markdown.View and not (cast #assume(*Markdown.View) window.currentView!).isLoading() do
+        if window.currentView is Markdown.View and not assume cast(*Markdown.View, window.currentView).isLoading() do
             break
         Threading.Thread.sleep(1'ms)
     }
 
     Swag.assert(window.currentView is Markdown.View)
-    Swag.assert(not (cast #assume(*Markdown.View) window.currentView!).isLoading())
+    Swag.assert(not assume cast(*Markdown.View, window.currentView).isLoading())
     let normal = surface.position
     Swag.assert(not surface.isMaximized)
     observeViewerPlacement(&app)

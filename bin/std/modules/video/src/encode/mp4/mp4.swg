@@ -44,14 +44,14 @@ private func writeU64(sink: *ByteSink, value: u64) fail => try sink.writeBigEndi
 private func patchU32(sink: *ByteSink, offset: u64, value: u32) fail
 {
     let stored = Math.nativeToBigEndian(value)
-    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(u32)))
+    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8, &stored), #sizeof(u32)))
 }
 
 // Rewrites a big-endian 64-bit integer.
 private func patchU64(sink: *ByteSink, offset: u64, value: u64) fail
 {
     let stored = Math.nativeToBigEndian(value)
-    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(u64)))
+    try sink.patch(offset, Swag.makeSlice(cast(const [*] u8, &stored), #sizeof(u64)))
 }
 
 // Starts a compact box and returns its stream offset.
@@ -69,16 +69,16 @@ private func endBox(sink: *ByteSink, start: u64) fail
     let size = sink.position() - start
     if size > Swag.U32.Max do
         fail UnsupportedFormatError{"MP4 metadata box exceeds the four gigabytes its compact size can describe"}
-    try patchU32(sink, start, cast(u32) size)
+    try patchU32(sink, start, cast(u32, size))
 }
 
 // Writes the version and 24-bit flags of a full box.
 private func writeFullBox(sink: *ByteSink, version: u8, flags: u32) fail
 {
     try writeU8(sink, version)
-    try writeU8(sink, cast(u8) ((flags >> 16) & 0xFF))
-    try writeU8(sink, cast(u8) ((flags >> 8) & 0xFF))
-    try writeU8(sink, cast(u8) (flags & 0xFF))
+    try writeU8(sink, cast(u8, ((flags >> 16) & 0xFF)))
+    try writeU8(sink, cast(u8, ((flags >> 8) & 0xFF)))
+    try writeU8(sink, cast(u8, (flags & 0xFF)))
 }
 
 // Writes the identity transform used by movie and track headers.
@@ -119,7 +119,7 @@ impl IEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .options = (cast(const *EncodeOptions) options.buffer!)[]
+            .options = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         try .writeFileType(sink)
@@ -143,7 +143,7 @@ impl IEncoder for Encoder
         if payload.count > Swag.U32.Max do
             fail UnsupportedFormatError{"MP4 JPEG sample exceeds the four gigabytes its sample table can describe"}
 
-        .frames.add({sink.position(), cast(u32) payload.count})
+        .frames.add({sink.position(), cast(u32, payload.count)})
         try sink.write(payload)
     }
 
@@ -160,7 +160,7 @@ private impl Encoder
 {
     mtd const duration()->u64 fail
     {
-        let delta = cast(u64) .info.frameRate.denominator()
+        let delta = cast(u64, .info.frameRate.denominator())
         if .frames.count > Swag.U64.Max / delta do
             fail UnsupportedFormatError{"MP4 stream duration exceeds the 64-bit media timeline"}
         return .frames.count * delta
@@ -229,8 +229,8 @@ private impl Encoder
         try writeU16(sink, 0)
         try writeU16(sink, 0)
         try writeIdentityMatrix(sink)
-        try writeU32(sink, cast(u32) .info.width << 16)
-        try writeU32(sink, cast(u32) .info.height << 16)
+        try writeU32(sink, cast(u32, .info.width) << 16)
+        try writeU32(sink, cast(u32, .info.height) << 16)
         try endBox(sink, box)
     }
 
@@ -328,15 +328,15 @@ private impl Encoder
         try writeU32(sink, 0)
         try writeU32(sink, 0)
         try writeU32(sink, 0)
-        try writeU16(sink, cast(u16) .info.width)
-        try writeU16(sink, cast(u16) .info.height)
+        try writeU16(sink, cast(u16, .info.width))
+        try writeU16(sink, cast(u16, .info.height))
         try writeU32(sink, 72 << 16)
         try writeU32(sink, 72 << 16)
         try writeU32(sink, 0)
         try writeU16(sink, 1)
 
         const Compressor = "Swag Motion JPEG"
-        try writeU8(sink, cast(u8) Compressor.count)
+        try writeU8(sink, cast(u8, Compressor.count))
         try sink.writeText(Compressor)
         for 31 - Compressor.count do
             try writeU8(sink, 0)
@@ -379,7 +379,7 @@ private impl Encoder
         let box = try beginBox(sink, TimeToSampleId)
         try writeFullBox(sink, 0, 0)
         try writeU32(sink, 1)
-        try writeU32(sink, cast(u32) .frames.count)
+        try writeU32(sink, cast(u32, .frames.count))
         try writeU32(sink, .info.frameRate.denominator())
         try endBox(sink, box)
     }
@@ -400,7 +400,7 @@ private impl Encoder
         let box = try beginBox(sink, SampleSizeId)
         try writeFullBox(sink, 0, 0)
         try writeU32(sink, 0)
-        try writeU32(sink, cast(u32) .frames.count)
+        try writeU32(sink, cast(u32, .frames.count))
         for frame in .frames do
             try writeU32(sink, frame.size)
         try endBox(sink, box)
@@ -410,7 +410,7 @@ private impl Encoder
     {
         let box = try beginBox(sink, ChunkOffset64Id)
         try writeFullBox(sink, 0, 0)
-        try writeU32(sink, cast(u32) .frames.count)
+        try writeU32(sink, cast(u32, .frames.count))
         for frame in .frames do
             try writeU64(sink, frame.offset)
         try endBox(sink, box)

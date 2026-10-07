@@ -14,7 +14,7 @@ func videoViewerPlugin()->Viewer.Plugin
         .staticName   = "Video"
         .attach       = &registerVideoStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Video
+        .iconIndex    = cast(s32, ViewerIcons.Video)
         .create       = &createVideoViewer
         .smokeFixture = "glint-aac-mjpeg.mp4"
     }
@@ -110,7 +110,7 @@ private func drawStringKeyline(painter: *Painter, x, y: f32, text: string, font:
     for row in 3
     {
         for column in 3 where row != 1 or column != 1 do
-            painter.drawString(x + (cast(f32) column - 1) * offset, y + (cast(f32) row - 1) * offset, text, font, color)
+            painter.drawString(x + (cast(f32, column) - 1) * offset, y + (cast(f32, row) - 1) * offset, text, font, color)
     }
 }
 
@@ -146,7 +146,7 @@ private impl IWnd for VideoSubtitleOverlay
             return
 
         let lineGap = 4'f32
-        let height  = cast(f32) lines.count * font.height + cast(f32) (lines.count - 1) * lineGap
+        let height  = cast(f32, lines.count) * font.height + cast(f32, (lines.count - 1)) * lineGap
         let inset   = Math.max(24'f32, rect.height * 0.06)
         var y: f32
         switch g_VideoSubtitleSettings.position
@@ -298,7 +298,7 @@ impl VideoSeekOverlay
             .removeTimer(.timer)
 
         .direction = seconds < 0 ? -1 : 1
-        .text      = Format.toString(seconds < 0 ? "-%" : "+%", cast(u64) Math.round(Math.abs(seconds)))
+        .text      = Format.toString(seconds < 0 ? "-%" : "+%", cast(u64, Math.round(Math.abs(seconds))))
         if not .fontReady
         {
             .style.setFont(.theme().createDefaultFont(24, .Bold), .Regular)
@@ -319,7 +319,7 @@ impl VideoSeekOverlay
         if .app().isReducedMotion() do
             return
 
-        let direction = cast(f32) .direction
+        let direction = cast(f32, .direction)
         .setPresentationOffset({-10 * direction, 0})
         .setPresentationScale({0.9, 0.9})
 
@@ -375,13 +375,13 @@ private const VideoNoSlot = Swag.U32.Max
 // Returns the decoded-picture count that fits the run-ahead budget.
 func videoPrefetchSlotCount(width, height: s32, planar: bool)->u32
 {
-    let bytes = cast(u64) width * cast(u64) height * (planar ? 3 : 6) / 2
+    let bytes = cast(u64, width) * cast(u64, height) * (planar ? 3 : 6) / 2
     let count = bytes ? VideoPrefetchBytes / bytes : VideoPrefetchMax
-    return cast(u32) Math.clamp(count, VideoPrefetchMin, VideoPrefetchMax)
+    return cast(u32, Math.clamp(count, VideoPrefetchMin, VideoPrefetchMax))
 }
 
 // Returns the queue depth required after a seek without exceeding the available slots.
-func videoRebufferPictureCount(slotCount: u32)->u64 => Math.min(VideoRebufferPictures, cast(u64) slotCount)
+func videoRebufferPictureCount(slotCount: u32)->u64 => Math.min(VideoRebufferPictures, cast(u64, slotCount))
 
 // Reports whether the samples indexed so far reach the movie time `seconds`.
 func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
@@ -389,7 +389,7 @@ func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
     let local = seconds - sound.timelineStartSeconds()
     if local < 0 do
         return false
-    let wanted = cast(u64) Math.ceil(local * cast(f64) sound.sampleRateHz())
+    let wanted = cast(u64, Math.ceil(local * cast(f64, sound.sampleRateHz())))
     return wanted < sound.sampleFrameCount()
 }
 
@@ -397,7 +397,7 @@ func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
 func videoSoundSample(sound: const *SoundFile, seconds: f64)->u64
 {
     let local = Math.max(seconds - sound.timelineStartSeconds(), 0)
-    return cast(u64) Math.round(local * cast(f64) sound.sampleRateHz())
+    return cast(u64, Math.round(local * cast(f64, sound.sampleRateHz())))
 }
 
 private func videoAudioTrackCommand(index: u32)->String => Format.toString("scope.video.audioTrack.%", index)
@@ -744,7 +744,7 @@ impl VideoViewer
     {
         if not .playing do
             return .elapsed
-        return .elapsed + cast(f64) .clock.elapsedMicroseconds() / 1_000_000.0 * .playbackRate
+        return .elapsed + cast(f64, .clock.elapsedMicroseconds()) / 1_000_000.0 * .playbackRate
     }
 
     // Changes the playback rate while keeping the current position and time labels in source time.
@@ -766,7 +766,7 @@ impl VideoViewer
         // A backend that refuses the ratio keeps playing at 1x, and the audio clock then simply
         // keeps correcting the picture back onto the sound.
         if .voice do
-            catch .voice.setFrequencyRatio(cast(f32) rate)
+            catch .voice.setFrequencyRatio(cast(f32, rate))
         .refreshDetails()
     }
 
@@ -854,7 +854,7 @@ impl VideoViewer
 
     mtd refreshTime()
     {
-        let duration = cast(f64) .video.durationInSeconds()
+        let duration = cast(f64, .video.durationInSeconds())
         let seconds  = Math.clamp(.currentSeconds(), 0, duration)
 
         // Push the thumb only where it would actually move. A timeline is a couple of thousand
@@ -868,15 +868,15 @@ impl VideoViewer
             let width = .timeline.position.width
             if duration <= 0 or width <= 0
             {
-                .timeline.setValueWithoutGesture(cast(f32) seconds)
+                .timeline.setValueWithoutGesture(cast(f32, seconds))
             }
             else
             {
-                let pixel = cast(s32) (seconds / duration * cast(f64) width)
+                let pixel = cast(s32, (seconds / duration * cast(f64, width)))
                 if pixel != .timelinePixel
                 {
                     .timelinePixel = pixel
-                    .timeline.setValueWithoutGesture(cast(f32) seconds)
+                    .timeline.setValueWithoutGesture(cast(f32, seconds))
                 }
             }
         }
@@ -886,7 +886,7 @@ impl VideoViewer
 
     mtd seekSeconds(seconds: f64)
     {
-        let duration = cast(f64) .video.durationInSeconds()
+        let duration = cast(f64, .video.durationInSeconds())
         let target   = Math.clamp(seconds, 0, duration)
         .seekFrame(.video.frameAtTime(target))
     }
@@ -949,7 +949,7 @@ impl VideoViewer
 
         try newVoice.setVolume(.muted ? 0 : .volume)
         if .playbackRate != 1 do
-            catch newVoice.setFrequencyRatio(cast(f32) .playbackRate)
+            catch newVoice.setFrequencyRatio(cast(f32, .playbackRate))
         if coversRange do
             try newVoice.seekSampleFrame(videoSoundSample(sound, position))
         if oldVoice do
@@ -1017,7 +1017,7 @@ impl VideoViewer
         commands.reserve(VideoPlaybackRates.count)
         for rate, index in VideoPlaybackRates
         {
-            commands.add(videoPlaybackRateCommand(cast(u32) index))
+            commands.add(videoPlaybackRateCommand(cast(u32, index)))
             menu.addRadioItem(videoPlaybackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
         }
 
@@ -1130,8 +1130,8 @@ impl VideoViewer
 
         for track, index in .subtitleOverlay.sidecars
         {
-            sidecarCommands.add(videoSubtitleTrackCommand(true, cast(u32) index))
-            menu.addRadioItem(videoSubtitleTrackText(cast(u32) index, track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
+            sidecarCommands.add(videoSubtitleTrackCommand(true, cast(u32, index)))
+            menu.addRadioItem(videoSubtitleTrackText(cast(u32, index), track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
         }
 
         menu.addSeparator()
@@ -1210,7 +1210,7 @@ impl VideoViewer
 
         for index in .subtitleOverlay.sidecars.count where chosen == sidecarCommands[index].toString()
         {
-            .selectSubtitle(.Sidecar, cast(u32) index)
+            .selectSubtitle(.Sidecar, cast(u32, index))
             return
         }
     }
@@ -1228,7 +1228,7 @@ impl VideoViewer
         .slots.resize(.slotCount)
         .freeSlots.clear()
         for index in .slotCount do
-            .freeSlots.add(cast(u32) index)
+            .freeSlots.add(cast(u32, index))
     }
 
     // Aims the producer at `index`, dropping everything it had already decoded past it.
@@ -1296,11 +1296,11 @@ impl VideoViewer
     {
         if .planar
         {
-            try .video.decodeFramePlanesInto(&.slots[cast(u64) slot].planes, index)
+            try .video.decodeFramePlanesInto(&.slots[cast(u64, slot)].planes, index)
             return
         }
 
-        try .video.decodeFrameInto(&.slots[cast(u64) slot].image, index)
+        try .video.decodeFrameInto(&.slots[cast(u64, slot)].image, index)
     }
 
     // Decodes one queued picture, and reports whether the producer can immediately do more.
@@ -1346,7 +1346,7 @@ impl VideoViewer
             return false
         }
 
-        .slots[cast(u64) slot].index = index
+        .slots[cast(u64, slot)].index = index
         .ready.add(slot)
         return true
     }
@@ -1372,7 +1372,7 @@ impl VideoViewer
             Sync.scopedLock(&.queueLock)
             if not .ready.isEmpty()
             {
-                while catchUp and .ready.count > 1 and .slots[cast(u64) .ready[1]].index <= catchUpTo
+                while catchUp and .ready.count > 1 and .slots[cast(u64, .ready[1])].index <= catchUpTo
                 {
                     .freeSlots.add(.ready[0])
                     .ready.removeAtOrdered(0)
@@ -1409,7 +1409,7 @@ impl VideoViewer
             return false
 
         let notifyLoading = .awaitingFrame
-        .frameIndex    = .slots[cast(u64) chosen].index
+        .frameIndex    = .slots[cast(u64, chosen)].index
         .hasFrame      = true
         .awaitingFrame = false
         catch .finishMetadata() as metadataError
@@ -1442,12 +1442,12 @@ impl VideoViewer
 
         if .planar
         {
-            let picture = .slots[cast(u64) chosen].planes.view()
+            let picture = .slots[cast(u64, chosen)].planes.view()
             .imageView.updateVideoFrame(&picture)
         }
         else
         {
-            .imageView.exchangeImage(&.slots[cast(u64) chosen].image)
+            .imageView.exchangeImage(&.slots[cast(u64, chosen)].image)
         }
 
         {
@@ -1679,7 +1679,7 @@ impl VideoViewer
             Sync.scopedLock(&.queueLock)
             if not .ready.isEmpty()
             {
-                head  = .slots[cast(u64) .ready[0]].index
+                head  = .slots[cast(u64, .ready[0])].index
                 empty = false
             }
         }
@@ -1727,12 +1727,12 @@ impl VideoViewer
         // The queue is empty: the decoder is behind. Past the resync bound, skip to the next
         // sync frame instead of walking pictures the viewer will never catch up with.
         let rate      = .video.frameRate()
-        let resyncLag = cast(u64) (rate.framesPerSecond() * VideoResyncSeconds)
+        let resyncLag = cast(u64, (rate.framesPerSecond() * VideoResyncSeconds))
         if clock < .frameIndex + resyncLag do
             return
 
         let sync = .video.syncFrameAt(clock)
-        let cap  = cast(u64) (rate.framesPerSecond() * VideoResyncMaxJumpSeconds)
+        let cap  = cast(u64, (rate.framesPerSecond() * VideoResyncMaxJumpSeconds))
         if (count and sync >= count) or sync - clock > cap do
             return
 
@@ -1923,7 +1923,7 @@ private impl VideoViewer
         if not .timelineReady
         {
             if duration > 0 do
-                .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
+                .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
             .timeline.enable(duration > 0 and (not count or count > 1))
             .timelineReady = true
         }
@@ -1932,7 +1932,7 @@ private impl VideoViewer
         {
             .metadataReady = true
             if duration > 0 do
-                .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
+                .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
             .timeline.enable(duration > 0 and count > 1)
             .refreshDetails()
         }
@@ -2180,7 +2180,7 @@ private impl VideoViewer
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
 private func runVideoViewerDecode(thread: Threading.Thread)
 {
-    let view  = cast(*VideoViewer) thread.userParam!
+    let view  = cast(*VideoViewer, thread.userParam!)
     var video = catch Reader.open(view.openFileName.toString()) as openError
     if openError != null
     {
@@ -2225,9 +2225,9 @@ func createVideoViewer(host: Viewer.Host)
 
         with var lifecycle: Viewer.LifecycleApi
         {
-            .retire    = func(wnd)->bool => (cast #assume (*VideoViewer) wnd).retire()
-            .isLoading = func(wnd)->bool => (cast #assume (*VideoViewer) wnd).isLoading()
-            .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*VideoViewer) wnd).needsLoadingOverlay()
+            .retire    = func|view|()->bool => view.retire()
+            .isLoading = func|view|()->bool => view.isLoading()
+            .needsLoadingOverlay = func|view|()->bool => view.needsLoadingOverlay()
         }
 
         host.setLifecycle(lifecycle)

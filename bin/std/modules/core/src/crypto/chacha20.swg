@@ -11,17 +11,17 @@ const ChaCha20NonceSize = 12
 const ChaCha20BlockSize = 64
 
 #[Swag.Inline]
-private func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & 0xFFFF_FFFF)
+private func add32(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) & 0xFFFF_FFFF))
 
 // The wire format is little-endian, which is the target's byte order: one
 // unaligned word access replaces the byte-at-a-time assembly.
 #[Swag.Inline]
-private func load32(data: const [*] u8)->u32 => (cast(const *u32) data)[]
+private func load32(data: const [*] u8)->u32 => cast(const *u32, data)[]
 
 #[Swag.Inline]
 private func store32(data: [*] u8, value: u32)
 {
-    (cast(*u32) data)[] = value
+    cast(*u32, data)[] = value
 }
 
 #[Swag.Inline]
@@ -70,7 +70,7 @@ private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: co
     initial[3] = Math.Simd.splat(0x6B206574'u32)
     for i in 8 do
         initial[4 + i] = Math.Simd.splat(load32(key.buffer + i * 4))
-    initial[12] = cast(Math.Simd.U32x4) [counter, counter + 1, counter + 2, counter + 3]
+    initial[12] = cast(Math.Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
     initial[13] = Math.Simd.splat(load32(nonce.buffer))
     initial[14] = Math.Simd.splat(load32(nonce.buffer + 4))
     initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
@@ -183,7 +183,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
     parallel for |&key, &nonce, &source, &destination, initialCounter| batch in batches
     {
         let start = batch * 4 * ChaCha20BlockSize
-        let first = initialCounter + cast(u32) (batch * 4)
+        let first = initialCounter + cast(u32, (batch * 4))
         chacha20XorFour(key, nonce, first, source.buffer + start, destination.buffer + start)
     }
 
@@ -192,7 +192,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
 
     // The last legal counter need not have a successor when there is no tail.
     if offset < source.count do
-        counter += cast(u32) (batches * 4)
+        counter += cast(u32, (batches * 4))
 
     while offset < source.count
     {
@@ -206,7 +206,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         var i   = 0'u64
         while i + 8 <= count
         {
-            (cast(*u64) (dst + i))[] = (cast(const *u64) (src + i))[] ^ (cast(const *u64) (&block[i]))[]
+            cast(*u64, (dst + i))[] = cast(const *u64, (src + i))[] ^ cast(const *u64, (&block[i]))[]
             i += 8
         }
 

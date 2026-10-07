@@ -27,23 +27,23 @@ struct Metadata
 }
 
 // Compile-time field count checks.
-#assert(((cast(const *Swag.TypeInfoStruct) #typeof(Config)).fields).count == 4)
-#assert(((cast(const *Swag.TypeInfoStruct) #typeof(Vertex)).fields).count == 3)
-#assert(((cast(const *Swag.TypeInfoStruct) #typeof(Metadata)).fields).count == 3)
+#assert((cast(const *Swag.TypeInfoStruct, #typeof(Config)).fields).count == 4)
+#assert((cast(const *Swag.TypeInfoStruct, #typeof(Vertex)).fields).count == 3)
+#assert((cast(const *Swag.TypeInfoStruct, #typeof(Metadata)).fields).count == 3)
 
 // Compute a simple checksum over s32 fields of Config by reading field
 // offsets from typeinfo and accessing memory through a raw pointer.
 func checksumConfig(cfg: Config)->s32
 {
-    let info     = cast(const *Swag.TypeInfoStruct) #typeof(Config)
-    let base     = cast(const [*] u8) &cfg
+    let info     = cast(const *Swag.TypeInfoStruct, #typeof(Config))
+    let base     = cast(const [*] u8, &cfg)
     var sum: s32 = 0
     for i in info.fields.count
     {
         let field = info.fields[i]
         if field.pointedType == s32
         {
-            let ptr = cast(const *s32) (base + field.offset)
+            let ptr = cast(const *s32, (base + field.offset))
             sum += ptr[]
         }
     }
@@ -77,9 +77,9 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
 
 #test
 {
-    let configInfo = cast(const *Swag.TypeInfoStruct) #typeof(Config)
-    let vertexInfo = cast(const *Swag.TypeInfoStruct) #typeof(Vertex)
-    let metaInfo   = cast(const *Swag.TypeInfoStruct) #typeof(Metadata)
+    let configInfo = cast(const *Swag.TypeInfoStruct, #typeof(Config))
+    let vertexInfo = cast(const *Swag.TypeInfoStruct, #typeof(Vertex))
+    let metaInfo   = cast(const *Swag.TypeInfoStruct, #typeof(Metadata))
 
     Swag.assert(countFieldsOfType(configInfo, #typeof(s32)) == 3)
     Swag.assert(countFieldsOfType(configInfo, #typeof(u32)) == 1)
@@ -97,21 +97,21 @@ func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
     {
         let name = fields[i].name
         if name.count > 0 do
-            fp += cast(s32) name![0]
+            fp += cast(s32, name![0])
     }
     return fp
 }
 
 #test
 {
-    let configInfo = cast(const *Swag.TypeInfoStruct) #typeof(Config)
+    let configInfo = cast(const *Swag.TypeInfoStruct, #typeof(Config))
     // 'w'=119, 'h'=104, 'd'=100, 'f'=102 -> 425
     Swag.assert(nameFingerprint(configInfo) == 425)
 }
 
 #test
 {
-    let vertexInfo = cast(const *Swag.TypeInfoStruct) #typeof(Vertex)
+    let vertexInfo = cast(const *Swag.TypeInfoStruct, #typeof(Vertex))
     // 'x'=120, 'y'=121, 'z'=122 -> 363
     Swag.assert(nameFingerprint(vertexInfo) == 363)
 }
@@ -119,7 +119,7 @@ func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
 // Verify total sizeof through reflection matches sum of known field sizes.
 #test
 {
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(Vertex)
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(Vertex))
     Swag.assert(info.sizeof == #sizeof(Vertex))
     Swag.assert(info.sizeof == 12)
 }
@@ -136,10 +136,10 @@ enum LogLevel: u8
 
 func levelName(level: LogLevel)->string
 {
-    let info = cast(const *Swag.TypeInfoEnum) #typeof(LogLevel)
+    let info = cast(const *Swag.TypeInfoEnum, #typeof(LogLevel))
     for i in info.values.count
     {
-        let stored = cast(const *LogLevel) info.values[i].value!
+        let stored = cast(const *LogLevel, info.values[i].value!)
         if stored[] == level do
             return info.values[i].name!
     }
@@ -156,7 +156,7 @@ func levelName(level: LogLevel)->string
 // Count enum values at runtime.
 #test
 {
-    let info = cast(const *Swag.TypeInfoEnum) #typeof(LogLevel)
+    let info = cast(const *Swag.TypeInfoEnum, #typeof(LogLevel))
     Swag.assert(info.values.count == 5)
     Swag.assert(info.rawType == u8)
 }

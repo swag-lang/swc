@@ -77,7 +77,7 @@ impl Node
         writer.writeLittleEndian(.lastAccessTime)
         writer.writeLittleEndian(.lastWriteTime)
         writer.writeLittleEndian(.changeTime)
-        writer.writeLittleEndian(cast(u32) .security.count)
+        writer.writeLittleEndian(cast(u32, .security.count))
         writer.writeBytes(.security.toSlice())
 
         writer.writeLittleEndian(.blocks.count)

@@ -265,10 +265,10 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
         if trimmed.count == 0 do
             continue
 
-        if Utf8.startsWith(cast(const [..] u8) trimmed, "#global public") do
+        if Utf8.startsWith(cast(const [..] u8, trimmed), "#global public") do
             state.globalPublic = true
 
-        if Utf8.startsWith(cast(const [..] u8) rawTrimmed, "#import(")
+        if Utf8.startsWith(cast(const [..] u8, rawTrimmed), "#import(")
         {
             if hasNativeImport(rawTrimmed) and not importPoint
             {
@@ -383,12 +383,12 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     {
         if state.pendingPublic
         {
-            state.publicDepth  = cast(s32) opens - cast(s32) closes
+            state.publicDepth  = cast(s32, opens) - cast(s32, closes)
             state.publicStruct = false
             state.publicOpaque = false
         }
         else do
-            state.privateDepth = cast(s32) opens - cast(s32) closes
+            state.privateDepth = cast(s32, opens) - cast(s32, closes)
 
         state.pendingScope  = false
         state.pendingPublic = false
@@ -397,7 +397,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
 
     if state.privateDepth != 0
     {
-        state.privateDepth += cast(s32) opens - cast(s32) closes
+        state.privateDepth += cast(s32, opens) - cast(s32, closes)
         if state.privateDepth <= 0 do
             state.privateDepth = 0
         return
@@ -406,13 +406,13 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     if state.pendingPrivate and opens > closes
     {
         state.pendingPrivate = false
-        state.privateDepth   = cast(s32) opens - cast(s32) closes
+        state.privateDepth   = cast(s32, opens) - cast(s32, closes)
         return
     }
 
     if state.publicDepth != 0
     {
-        state.publicDepth += cast(s32) opens - cast(s32) closes
+        state.publicDepth += cast(s32, opens) - cast(s32, closes)
         if state.publicDepth <= 0
         {
             state.publicDepth  = 0
@@ -433,7 +433,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     if privateLine and containsText(line, "#[")
     {
         if opens > closes do
-            state.privateDepth = cast(s32) opens - cast(s32) closes
+            state.privateDepth = cast(s32, opens) - cast(s32, closes)
         else do
             state.pendingPrivate = true
         state.pendingOpaque = false
@@ -449,12 +449,12 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
         {
             if publicLine
             {
-                state.publicDepth  = cast(s32) opens - cast(s32) closes
+                state.publicDepth  = cast(s32, opens) - cast(s32, closes)
                 state.publicStruct = isStruct
                 state.publicOpaque = isStruct and state.pendingOpaque
             }
             else do
-                state.privateDepth = cast(s32) opens - cast(s32) closes
+                state.privateDepth = cast(s32, opens) - cast(s32, closes)
         }
         else
         {
@@ -464,12 +464,12 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     }
     elif publicLine and isStruct and opens > closes
     {
-        state.publicDepth  = cast(s32) opens - cast(s32) closes
+        state.publicDepth  = cast(s32, opens) - cast(s32, closes)
         state.publicStruct = true
         state.publicOpaque = state.pendingOpaque
     }
 
-    if not Utf8.startsWith(cast(const [..] u8) line, "#[") do
+    if not Utf8.startsWith(cast(const [..] u8, line), "#[") do
         state.pendingOpaque = false
 }
 
@@ -572,7 +572,7 @@ private func hasNativeImport(line: string)->bool
 
 private func nativeNamespaceOnLine(line: string)->string
 {
-    let usingLine = Utf8.startsWith(cast(const [..] u8) line, "using ")
+    let usingLine = Utf8.startsWith(cast(const [..] u8, line), "using ")
     for name in NativeNamespaces
     {
         let qualified = Format.toString("%.", name)
@@ -605,7 +605,7 @@ private func containsIdentifier(text: string, identifier: string)->bool
     var offset = 0'u64
     while offset < text.count
     {
-        let found = Utf8.indexOf(cast(const [..] u8) text[offset until text.count], identifier)
+        let found = Utf8.indexOf(cast(const [..] u8, text[offset until text.count]), identifier)
         if found == Swag.U64.Max do
             return false
 
@@ -626,7 +626,7 @@ private func containsIdentifierPrefix(text: string, prefix: string)->bool
     var offset = 0'u64
     while offset < text.count
     {
-        let found = Utf8.indexOf(cast(const [..] u8) text[offset until text.count], prefix)
+        let found = Utf8.indexOf(cast(const [..] u8, text[offset until text.count]), prefix)
         if found == Swag.U64.Max do
             return false
 
@@ -671,7 +671,7 @@ private func isUnderAny(path: string, roots: const [..] string)->bool
 {
     for root in roots
     {
-        if Utf8.startsWith(cast(const [..] u8) path, root, .Latin1NoCase) do
+        if Utf8.startsWith(cast(const [..] u8, path), root, .Latin1NoCase) do
             return true
     }
 
@@ -685,13 +685,13 @@ private func samePath(left: string, right: string)->bool
 
 private func containsText(text: string, value: string)->bool
 {
-    return Utf8.indexOf(cast(const [..] u8) text, value) != Swag.U64.Max
+    return Utf8.indexOf(cast(const [..] u8, text), value) != Swag.U64.Max
 }
 
 private func startsWithAccess(line: string, access: string)->bool
 {
     let marker = Format.toString("% ", access)
-    return Utf8.startsWith(cast(const [..] u8) line, marker.toString())
+    return Utf8.startsWith(cast(const [..] u8, line), marker.toString())
 }
 
 private func declarationStartsWith(line: string, kind: string)->bool
@@ -700,7 +700,7 @@ private func declarationStartsWith(line: string, kind: string)->bool
     for access in ["public", "private", "internal"]
     {
         let marker = Format.toString("% ", access)
-        if Utf8.startsWith(cast(const [..] u8) declaration, marker.toString())
+        if Utf8.startsWith(cast(const [..] u8, declaration), marker.toString())
         {
             declaration = Latin1.trim(declaration[(marker.toString()).count until declaration.count])
             break
@@ -708,7 +708,7 @@ private func declarationStartsWith(line: string, kind: string)->bool
     }
 
     let marker = Format.toString("% ", kind)
-    return Utf8.startsWith(cast(const [..] u8) declaration, marker.toString())
+    return Utf8.startsWith(cast(const [..] u8, declaration), marker.toString())
 }
 
 private func isCallableDeclaration(line: string)->bool

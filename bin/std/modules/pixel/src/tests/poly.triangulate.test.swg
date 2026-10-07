@@ -78,7 +78,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
     var result: retval
     for i in count
     {
-        let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) count)
+        let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, count))
         result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
     }
 
@@ -91,7 +91,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
     for n in 3 until 13
     {
         let poly = makeNgon(100, 100, 60, n)
-        Swag.assert(triCount(poly[to]) == cast(u64) (n - 2))
+        Swag.assert(triCount(poly[to]) == cast(u64, (n - 2)))
     }
 }
 
@@ -141,12 +141,12 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
             var r = 25'f32
             if (i & 1) == 0 do
                 r = 60
-            let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) total)
+            let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, total))
             pts.add(Vector2{100 + Math.cos(a) * r, 100 + Math.sin(a) * r})
         }
 
         // A 2b-vertex simple star ring -> 2b-2 triangles.
-        Swag.assert(triCount(pts[to]) == cast(u64) (total - 2))
+        Swag.assert(triCount(pts[to]) == cast(u64, (total - 2)))
     }
 }
 
@@ -209,7 +209,7 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
         var result: retval
         for i in count
         {
-            let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) count)
+            let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, count))
             result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
         }
 

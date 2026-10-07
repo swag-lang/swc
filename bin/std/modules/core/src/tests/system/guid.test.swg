@@ -17,7 +17,7 @@ using Swag
     Swag.assert(not Guid64.tryParse("A1zz", &guid))
     Swag.assert(not Guid64.tryParse("0123456789ABCDE", &guid))
     Swag.assert(not Guid64.tryParse("0123456789ABCDEG", &guid))
-    Swag.assert(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8) &guid.value, #sizeof(u64))))
+    Swag.assert(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8, &guid.value), #sizeof(u64))))
 
     guid.clear()
     Swag.assert(guid.isNull())

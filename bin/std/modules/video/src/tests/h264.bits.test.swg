@@ -42,7 +42,7 @@ func assertRbspUnescape(data: const [..] u8)
             storage.resize(alignment + length + 1)
             let data = storage.toSlice()[alignment until alignment + length]
             for index in length do
-                data[index] = cast(u8) ((index * 37 + 11) & 255)
+                data[index] = cast(u8, ((index * 37 + 11) & 255))
             assertRbspUnescape(data)
 
             for escape in 2'u64 until length

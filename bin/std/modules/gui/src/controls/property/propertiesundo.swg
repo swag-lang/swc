@@ -81,7 +81,7 @@ internal impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for k in .n do
-                .strings.add((cast(const *String) .addrs[k]!)[])
+                .strings.add(cast(const *String, .addrs[k]!)[])
         }
         else
         {
@@ -90,7 +90,7 @@ internal impl PropFieldValue
                 return
             .bytes.resize(.n * .sz)
             for k in .n do
-                Memory.copy(cast([*] void?) (.bytes.buffer + k * .sz), cast(const [*] void?) .addrs[k], .sz)
+                Memory.copy(cast([*] void?, (.bytes.buffer + k * .sz)), cast(const [*] void?, .addrs[k]), .sz)
         }
 
         .valid = true
@@ -107,12 +107,12 @@ internal impl PropFieldValue
         if .isString
         {
             for k in .n do
-                (cast(*String) .addrs[k]!)[] = .strings[k]
+                cast(*String, .addrs[k]!)[] = .strings[k]
         }
         else
         {
             for k in .n do
-                Memory.copy(cast([*] void?) .addrs[k], cast(const [*] void?) (.bytes.buffer + k * .sz), .sz)
+                Memory.copy(cast([*] void?, .addrs[k]), cast(const [*] void?, (.bytes.buffer + k * .sz)), .sz)
         }
     }
 

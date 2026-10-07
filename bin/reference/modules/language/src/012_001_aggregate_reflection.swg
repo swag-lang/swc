@@ -4,7 +4,7 @@
 # Struct and Enum Reflection
 
 Every 'typeinfo' begins with 'Swag.TypeInfo'. Use an 'is' pattern to borrow a
-specialized descriptor in a branch, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields,
+specialized descriptor in a branch, or 'assume cast' when its type is known. A struct descriptor exposes layout, fields,
 interfaces, lifecycle hooks, generic arguments, and any methods requested with
 'Swag.ExportType'.
 */
@@ -33,7 +33,7 @@ enum ReflectedState: u8
     let base = #typeof(ReflectedPoint)
     Swag.assert(base.kind == .Struct)
 
-    let type   = cast #assume(const *Swag.TypeInfoStruct) base
+    let type   = assume cast(const *Swag.TypeInfoStruct, base)
     let fields = type.fields!
 
     Swag.assert(type.structName == "ReflectedPoint")
@@ -62,7 +62,7 @@ typed reflection helper before reading it in general-purpose code.
     let base = #typeof(ReflectedState)
     Swag.assert(base.kind == .Enum)
 
-    let type   = cast #assume(const *Swag.TypeInfoEnum) base
+    let type   = assume cast(const *Swag.TypeInfoEnum, base)
     let values = type.values!
 
     Swag.assert(type.rawType == u8)

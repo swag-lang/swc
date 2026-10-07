@@ -49,7 +49,7 @@ const MotionJpegIds: [4] u32 = [
 // `BI_RGB` is the value the bitmap header itself defines, and is what ffmpeg writes; the three
 // tags are what other writers put there instead when they want the field to read as a name.
 private const UncompressedIds: [4] u32 = [
-    cast(u32) Bmp.BI_RGB,
+    cast(u32, Bmp.BI_RGB),
     fourCc('D'u32, 'I'u32, 'B'u32, ' 'u32),
     fourCc('R'u32, 'A'u32, 'W'u32, ' 'u32),
     fourCc('R'u32, 'G'u32, 'B'u32, ' 'u32)]
@@ -188,7 +188,7 @@ private func readChunk(source: *ByteSource, end: u64)->Chunk fail
 {
     var result: retval
     result.id   = try source.readLittleEndian'u32()
-    result.size = cast(u64) (try source.readLittleEndian'u32())
+    result.size = cast(u64, (try source.readLittleEndian'u32()))
     result.data = source.position()
     if result.data > end or result.size > end - result.data do
         fail InvalidFormatError{"AVI chunk runs past the end of the stream"}
@@ -207,8 +207,8 @@ private func describeId(id: u32)->String
     var result: retval
     for shift in 4
     {
-        let value = cast(u8) ((id >> cast(u32) (shift * 8)) & 0xFF)
-        result.append(value >= 0x20 and value < 0x7F ? cast(rune) value : '?'rune)
+        let value = cast(u8, ((id >> cast(u32, (shift * 8))) & 0xFF))
+        result.append(value >= 0x20 and value < 0x7F ? cast(rune, value) : '?'rune)
     }
 
     return result
@@ -224,7 +224,7 @@ private impl Layout
 
         // A capture interrupted before its header was patched leaves a size of zero behind, and a
         // size larger than the file means the same thing: the file itself is the bound.
-        let declared = cast(u64) (try source.readLittleEndian'u32())
+        let declared = cast(u64, (try source.readLittleEndian'u32()))
         let end      = declared < FourCcSize ? source.size() : Math.min(source.size(), source.position() + declared)
         if try source.readLittleEndian'u32() != AviId do
             fail InvalidFormatError{"RIFF stream does not hold an AVI file"}
@@ -343,7 +343,7 @@ private impl AudioFormat
         if .bitsPerSample != 8 and .bitsPerSample != 16 and .bitsPerSample != 24 and .bitsPerSample != 32 do
             return false
 
-        let bytesPerFrame = cast(u32) .channels * cast(u32) (.bitsPerSample / 8)
+        let bytesPerFrame = cast(u32, .channels) * cast(u32, (.bitsPerSample / 8))
         return bytesPerFrame <= Swag.U16.Max and .blockAlign == bytesPerFrame
     }
 
@@ -487,7 +487,7 @@ impl IPlanarDecoder for Decoder
 
 impl IAudioDecoder for Decoder
 {
-    mtd impl audioTrackCount()->u32 => cast(u32) .soundTracks.count
+    mtd impl audioTrackCount()->u32 => cast(u32, .soundTracks.count)
 
     mtd impl audioTrack(index: u32)->const *SoundFile?
     {
@@ -537,7 +537,7 @@ private impl Decoder
                 {
                     if chunk.size % track.format.blockAlign do
                         fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
-                    packets.add({chunk.data, cast(u32) chunk.size, cast(u32) (chunk.size / track.format.blockAlign)})
+                    packets.add({chunk.data, cast(u32, chunk.size), cast(u32, (chunk.size / track.format.blockAlign))})
                 }
 
                 position = chunk.next
@@ -585,8 +585,8 @@ private impl Decoder
 
         // Uncompressed frames follow the bitmap rules: rows are padded to a multiple of four
         // bytes, and only a negative height stores the top row first.
-        .bytesPerPixel = cast(u64) bitCount / 8
-        .rowBytes      = (cast(u64) width * cast(u64) bitCount + 31) / 32 * 4
+        .bytesPerPixel = cast(u64, bitCount) / 8
+        .rowBytes      = (cast(u64, width) * cast(u64, bitCount) + 31) / 32 * 4
         .isTopDown     = layout.format.biHeight < 0
     }
 
@@ -637,8 +637,8 @@ private impl Decoder
             }
 
             let flags  = try source.readLittleEndian'u32()
-            let offset = cast(u64) (try source.readLittleEndian'u32())
-            let size   = cast(u64) (try source.readLittleEndian'u32())
+            let offset = cast(u64, (try source.readLittleEndian'u32()))
+            let size   = cast(u64, (try source.readLittleEndian'u32()))
             if base == Swag.U64.Max do
                 base = try probeIndexBase(source, layout, id, offset)
 
@@ -692,11 +692,11 @@ private impl Decoder
         // is reduced once rather than per frame, because a writer is free to state a rate as two
         // large numbers and multiplying by a frame number before dividing overflows on a long file.
         let rate = .info.frameRate
-        let step = 1_000_000_000'u64 * cast(u64) rate.denominator() / cast(u64) rate.numerator()
+        let step = 1_000_000_000'u64 * cast(u64, rate.denominator()) / cast(u64, rate.numerator())
         for index in .frames.count
         {
             let entry = .frames[index]
-            samples.add({entry.offset, entry.size, cast(s64) (index * step), entry.isSync})
+            samples.add({entry.offset, entry.size, cast(s64, (index * step)), entry.isSync})
         }
 
         // The setup headers of such a file live at the front of its first frame, never in the
@@ -747,7 +747,7 @@ private impl Decoder
     // Decodes one uncompressed frame, whose rows are bitmap rows.
     mtd decodeBitmapFrame(target: *Image) fail
     {
-        if .rowBytes * cast(u64) .info.height > .payload.count do
+        if .rowBytes * cast(u64, .info.height) > .payload.count do
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
 
         .prepareTarget(target)
@@ -756,12 +756,12 @@ private impl Decoder
         {
             // Pixel storage is bottom-up and so is a bitmap frame of positive height, so only a
             // top-down frame is turned over here.
-            let sourceRow = cast(u64) (.isTopDown ? .info.height - y - 1 : y) * .rowBytes
-            let targetRow = cast(u64) y * cast(u64) target.rowStride
+            let sourceRow = cast(u64, (.isTopDown ? .info.height - y - 1 : y)) * .rowBytes
+            let targetRow = cast(u64, y) * cast(u64, target.rowStride)
             for x in .info.width
             {
-                let source      = payload + sourceRow + cast(u64) x * .bytesPerPixel
-                let destination = target.pixels.storage() + targetRow + cast(u64) x * 3
+                let source      = payload + sourceRow + cast(u64, x) * .bytesPerPixel
+                let destination = target.pixels.storage() + targetRow + cast(u64, x) * 3
                 destination[0] = source[2]
                 destination[1] = source[1]
                 destination[2] = source[0]

@@ -2,15 +2,15 @@ using Core, Pixel
 
 func buildFaceSourceRect()->Math.Rectangle
 {
-    let width  = cast(f32) g_SourceTexture.width
-    let height = cast(f32) g_SourceTexture.height
+    let width  = cast(f32, g_SourceTexture.width)
+    let height = cast(f32, g_SourceTexture.height)
     return {width * 0.24, height * 0.18, width * 0.34, height * 0.40}
 }
 
 func buildWideSourceRect()->Math.Rectangle
 {
-    let width  = cast(f32) g_SourceTexture.width
-    let height = cast(f32) g_SourceTexture.height
+    let width  = cast(f32, g_SourceTexture.width)
+    let height = cast(f32, g_SourceTexture.height)
     return {width * 0.12, height * 0.24, width * 0.68, height * 0.34}
 }
 

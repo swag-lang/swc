@@ -55,7 +55,7 @@ func isMpeg4FourCc(code: u32)->bool
     // The case an encoder chose says who wrote the file, not what its frames hold.
     var upper = 0'u32
     for shift in 4'u32 do
-        upper |= cast(u32) Latin1.toUpper(cast(u8) ((code >> (shift * 8)) & 0xFF)) << (shift * 8)
+        upper |= cast(u32, Latin1.toUpper(cast(u8, ((code >> (shift * 8)) & 0xFF)))) << (shift * 8)
     return Slice.contains(Mpeg4FourCcs, upper)
 }
 
@@ -66,7 +66,7 @@ func bitmapCompression(header: const [..] u8)->u32
         return 0
     var code = 0'u32
     for shift in 4'u64 do
-        code |= cast(u32) header[BitmapCompressionOffset + shift] << cast(u32) (shift * 8)
+        code |= cast(u32, header[BitmapCompressionOffset + shift]) << cast(u32, (shift * 8))
     return code
 }
 
@@ -78,7 +78,7 @@ func inlineSetupHeaders(sample: const [..] u8)->const [..] u8
 {
     if sample.count < 4 do
         return sample
-    for at in sample.count - 3 where not sample[at] and not sample[at + 1] and sample[at + 2] == 1 and cast(u32) sample[at + 3] == Mpeg4.CodeVop do
+    for at in sample.count - 3 where not sample[at] and not sample[at + 1] and sample[at + 2] == 1 and cast(u32, sample[at + 3]) == Mpeg4.CodeVop do
         return sample[0 until at]
     return sample
 }

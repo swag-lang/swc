@@ -28,7 +28,7 @@ namespace InlineDeferReemission
     func release(handle: u64)->u64 fail
     {
         let native = nativeHandle(handle)
-        if native == cast #bit (u64) -1 do
+        if native == cast #bit (u64, -1) do
             try raiseCleanupError()
         return native
     }

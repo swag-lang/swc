@@ -57,7 +57,7 @@
     var total = 0'u64
 
     parallel for |&total, count| index in count do
-        total += index * cast(u64) count
+        total += index * cast(u64, count)
 
     Swag.assert(total == 90)
 }

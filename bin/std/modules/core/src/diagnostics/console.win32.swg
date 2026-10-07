@@ -64,7 +64,7 @@ public func setTextColor(color: Color)
 // Sets the background color of later console output.
 public func setBackColor(color: Color)
 {
-    let attributes = cast(u16) (g_ColorToWin[color] << 4)
+    let attributes = cast(u16, (g_ColorToWin[color] << 4))
     g_StdOutputCurAttr &= FOREGROUND_MASK
     g_StdOutputCurAttr |= attributes
     catch SetConsoleTextAttribute(g_StdOutputHandle, g_StdOutputCurAttr)
@@ -78,7 +78,7 @@ public func resetColor()
 
 internal func writeNative(message: string)
 {
-    let length = cast(u32) message.count
+    let length = cast(u32, message.count)
     catch WriteFile(g_StdOutputHandle, message.buffer, length, null, null)
 }
 
@@ -96,7 +96,7 @@ public func prompt()->String
     {
         if not ReadFile(h, &buffer[0], BufSize, &dwRead, null) do
             break
-        result.append(cast(string) buffer[until dwRead])
+        result.append(cast(string, buffer[until dwRead]))
         if dwRead < BufSize do
             break
         if buffer[BufSize - 1] == '\n' do

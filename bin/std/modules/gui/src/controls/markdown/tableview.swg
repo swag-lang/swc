@@ -224,7 +224,7 @@ impl TableView
 
         let headers    = parseTableCells(lines[0])
         let separators = parseTableCells(lines[1])
-        result.columnCount = cast(u32) Math.max(headers.count, separators.count)
+        result.columnCount = cast(u32, Math.max(headers.count, separators.count))
         for column in result.columnCount
         {
             let separator = column < separators.count ? Latin1.trim(separators[column].toString()) : ""

@@ -91,7 +91,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 {
     var source: ConcatBuffer
     source.setBucketSize(4)
-    source.setFirstBucket(Swag.makeSlice(cast([*] u8) Memory.alloc(4), 4))
+    source.setFirstBucket(Swag.makeSlice(cast([*] u8, Memory.alloc(4)), 4))
     source.addBytes("abcd")
     source.addBytes("efgh")
     source.setPosition({})
@@ -131,10 +131,10 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 
 #test
 {
-    let storage = cast([*] u8) Memory.alloc(8)
+    let storage = cast([*] u8, Memory.alloc(8))
     var buffer: ConcatBuffer
     buffer.setFirstBucket(Swag.makeSlice(storage, 8))
-    buffer.addBytes(cast(const [..] u8) "abc")
+    buffer.addBytes(cast(const [..] u8, "abc"))
 
     let text = buffer.moveToString()
     storage[0] = 'z'u8
@@ -293,7 +293,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 
 #test
 {
-    let storage = cast([*] u8) Memory.alloc(8)
+    let storage = cast([*] u8, Memory.alloc(8))
     var source: ConcatBuffer
     source.setFirstBucket(Swag.makeSlice(storage, 8))
     source.addBytes("abc")
@@ -379,7 +379,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
         let original = context.allocator
         context.allocator = backing
         defer context.allocator = original
-        buffer.setFirstBucket(Swag.makeSlice(cast([*] u8) Memory.alloc(8), 8))
+        buffer.setFirstBucket(Swag.makeSlice(cast([*] u8, Memory.alloc(8)), 8))
     }
 
     let captured = buffer.allocator == backing

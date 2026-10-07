@@ -97,7 +97,7 @@ internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
             value = value * 85 + digit
         if value > Swag.U32.Max do
             fail InvalidFormatError{"ASCII85Decode group exceeds 32 bits"}
-        result.add([cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)])
+        result.add([cast(u8, ((value >> 24) & 0xFF)), cast(u8, ((value >> 16) & 0xFF)), cast(u8, ((value >> 8) & 0xFF)), cast(u8, (value & 0xFF))])
         groupCount = 0
     }
 
@@ -113,7 +113,7 @@ internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
             value = value * 85 + digit
         if value > Swag.U32.Max do
             fail InvalidFormatError{"ASCII85Decode group exceeds 32 bits"}
-        let decoded: [4] u8 = [cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)]
+        let decoded: [4] u8 = [cast(u8, ((value >> 24) & 0xFF)), cast(u8, ((value >> 16) & 0xFF)), cast(u8, ((value >> 8) & 0xFF)), cast(u8, (value & 0xFF))]
         for i in outputCount do
             result.add(decoded[i])
     }
@@ -133,7 +133,7 @@ internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
             break
         if length <= 127
         {
-            let count = cast(u64) length + 1
+            let count = cast(u64, length) + 1
             if pos + count > data.count do
                 fail InvalidFormatError{"RunLengthDecode literal run is truncated"}
             result.add(data[pos until pos + count])
@@ -145,7 +145,7 @@ internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
             fail InvalidFormatError{"RunLengthDecode repeated run is truncated"}
         let value = data[pos]
         pos += 1
-        for cast(u64) (257 - cast(u32) length) do
+        for cast(u64, (257 - cast(u32, length))) do
             result.add(value)
     }
 
@@ -173,7 +173,7 @@ private impl LzwDictionary
     {
         for i in LzwClearCode
         {
-            .suffix[i] = cast(u8) i
+            .suffix[i] = cast(u8, i)
             .length[i] = 1
         }
     }
@@ -200,7 +200,7 @@ private impl LzwDictionary
         var walk = code
         while walk >= LzwClearCode do
             walk = .prefix[walk]
-        return cast(u8) walk
+        return cast(u8, walk)
     }
 }
 

@@ -13,7 +13,7 @@ struct WarehouseReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) (cast(const [..] u8) line).count
+    return cast(u32, cast(const [..] u8, line).count)
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -53,7 +53,7 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
 
 func simulateWarehouse(layout: const [..] string, instructions: string)->WarehouseReport
 {
-    let height     = cast(u32) layout.count
+    let height     = cast(u32, layout.count)
     let width      = lineWidth(layout[0])
     let totalCells = width * height
 
@@ -67,17 +67,17 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
     {
         Swag.assert(lineWidth(layout[rowIndex]) == width)
 
-        let row = cast(const [..] u8) layout[rowIndex]
+        let row = cast(const [..] u8, layout[rowIndex])
         for idx in width
         {
-            let x     = cast(u32) idx
+            let x     = cast(u32, idx)
             let src   = row[x]
-            let index = cellIndex(x, cast(u32) rowIndex, width)
+            let index = cellIndex(x, cast(u32, rowIndex), width)
 
             if src == '@'u8
             {
-                robotX       = cast(s32) x
-                robotY       = cast(s32) rowIndex
+                robotX       = cast(s32, x)
+                robotY       = cast(s32, rowIndex)
                 cells[index] = '.'u8
             }
             else
@@ -87,7 +87,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         }
     }
 
-    let moveBytes = cast(const [..] u8) instructions
+    let moveBytes = cast(const [..] u8, instructions)
     var result: WarehouseReport
 
     for instruction in moveBytes
@@ -98,7 +98,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
         let nextX     = robotX + dx
         let nextY     = robotY + dy
-        let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, width)
+        let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), width)
         let nextCell  = cells[nextIndex]
 
         if nextCell == '#'u8 do
@@ -121,7 +121,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         {
             scanX     += dx
             scanY     += dy
-            scanIndex = cellIndex(cast(u32) scanX, cast(u32) scanY, width)
+            scanIndex = cellIndex(cast(u32, scanX), cast(u32, scanY), width)
         }
 
         if cells[scanIndex] == '#'u8 do
@@ -131,7 +131,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         {
             let prevX     = scanX - dx
             let prevY     = scanY - dy
-            let prevIndex = cellIndex(cast(u32) prevX, cast(u32) prevY, width)
+            let prevIndex = cellIndex(cast(u32, prevX), cast(u32, prevY), width)
 
             cells[scanIndex] = cells[prevIndex]
             scanX            = prevX
@@ -149,8 +149,8 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
     {
         if cells[idx] == 'O'u8
         {
-            let x = cast(u64) (idx % width)
-            let y = cast(u64) (idx / width)
+            let x = cast(u64, (idx % width))
+            let y = cast(u64, (idx / width))
             result.gpsSum += y * 100'u64 + x
         }
     }

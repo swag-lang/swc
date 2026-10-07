@@ -42,7 +42,7 @@ impl PdfParser
 
     mtd addNode(node: #move Node)->u32
     {
-        let result = cast(u32) .nodes.count
+        let result = cast(u32, .nodes.count)
         .nodes.add(#move node)
         return result
     }
@@ -55,7 +55,7 @@ impl PdfParser
         var result = 0'u64
         while .pos < .bytes.count and isDigit(.bytes[.pos])
         {
-            let digit = cast(u64) (.bytes[.pos] - '0')
+            let digit = cast(u64, (.bytes[.pos] - '0'))
             if result > (Swag.U64.Max - digit) / 10 do
                 return false
             result = result * 10 + digit
@@ -97,7 +97,7 @@ impl PdfParser
         if not hasDigit do
             fail InvalidFormatError{"PDF number has no digits"}
 
-        let spelling = cast(string) Swag.makeSlice(.bytes.buffer + start, .pos - start)
+        let spelling = cast(string, Swag.makeSlice(.bytes.buffer + start, .pos - start))
         if not hasDot
         {
             let first      = try StrConv.toS64(spelling)
@@ -105,13 +105,13 @@ impl PdfParser
             var generation = 0'u64
             if first >= 0 and .parseUnsigned(&generation) and .consumeWord("R")
             {
-                if cast(u64) first > Swag.U32.Max do
+                if cast(u64, first) > Swag.U32.Max do
                     fail UnsupportedFormatError{"PDF object number exceeds 32 bits"}
                 with var reference: Node
                 {
                     .kind      = .Reference
-                    .reference = cast(u32) first
-                    .referenceGeneration = generation <= Swag.U16.Max ? cast(u16) generation : 0
+                    .reference = cast(u32, first)
+                    .referenceGeneration = generation <= Swag.U16.Max ? cast(u16, generation) : 0
                 }
 
                 return .addNode(#move reference)
@@ -199,14 +199,14 @@ impl PdfParser
                 default:
                     if c >= '0' and c <= '7'
                     {
-                        var value = cast(u32) (c - '0')
+                        var value = cast(u32, (c - '0'))
                         for 2 where .pos < .bytes.count and .bytes[.pos] >= '0' and .bytes[.pos] <= '7'
                         {
                             value = value * 8 + .bytes[.pos] - '0'
                             .pos  += 1
                         }
 
-                        node.text += cast #bit (u8) value
+                        node.text += cast #bit (u8, value)
                     }
                     else
                     {
@@ -430,7 +430,7 @@ impl PdfParser
         let declaredLength = .declaredStreamLength(nodeId)
         if declaredLength >= 0
         {
-            let length = cast(u64) declaredLength
+            let length = cast(u64, declaredLength)
             if length > .bytes.count - start do
                 fail InvalidFormatError{"PDF stream exceeds its declared length"}
             .nodes[nodeId].stream = Swag.makeSlice(.bytes.buffer + start, length)
@@ -514,8 +514,8 @@ impl PdfParser
             if .nodes[nodeId].kind == .Dictionary do
                 try .attachStream(nodeId)
 
-            if not indexed.tryFind(cast(u32) objectNumber) do
-                .objects[cast(u32) objectNumber] = nodeId
+            if not indexed.tryFind(cast(u32, objectNumber)) do
+                .objects[cast(u32, objectNumber)] = nodeId
             discard .consumeWord("endobj")
         }
 
@@ -645,14 +645,14 @@ impl PdfParser
                     continue
 
                 var entry: XrefEntry
-                entry.generation = generation <= Swag.U16.Max ? cast(u16) generation : 0
+                entry.generation = generation <= Swag.U16.Max ? cast(u16, generation) : 0
                 if kind == 'n'
                 {
                     entry.kind   = .Offset
                     entry.offset = position
                 }
 
-                .recordXrefEntry(cast(u32) number, entry)
+                .recordXrefEntry(cast(u32, number), entry)
             }
         }
 
@@ -674,7 +674,7 @@ impl PdfParser
         if hybrid != InvalidNode and .nodes[hybrid].kind == .Integer and .nodes[hybrid].integer >= 0
         {
             let savedPos = .pos
-            discard .readXrefSection(cast(u64) .nodes[hybrid].integer)
+            discard .readXrefSection(cast(u64, .nodes[hybrid].integer))
             .pos = savedPos
         }
 
@@ -710,7 +710,7 @@ impl PdfParser
             let width = .integer(.nodes[widthsId].values[i], -1)
             if width < 0 or width > 8 do
                 return result
-            widths[i] = cast(u64) width
+            widths[i] = cast(u64, width)
         }
 
         let entryBytes = widths[0] + widths[1] + widths[2]
@@ -727,12 +727,12 @@ impl PdfParser
         if indexId != InvalidNode and .nodes[indexId].kind == .Array
         {
             for value in .nodes[indexId].values do
-                ranges.add(cast(u64) Math.max(0's64, .integer(value)))
+                ranges.add(cast(u64, Math.max(0's64, .integer(value))))
         }
         else
         {
             ranges.add(0)
-            ranges.add(cast(u64) Math.max(0's64, .integer(.dict(nodeId, "Size"))))
+            ranges.add(cast(u64, Math.max(0's64, .integer(.dict(nodeId, "Size")))))
         }
 
         var cursor = 0'u64
@@ -753,7 +753,7 @@ impl PdfParser
                     var value = 0'u64
                     for widths[k]
                     {
-                        value  = (value << 8) | cast(u64) data[cursor]
+                        value  = (value << 8) | cast(u64, data[cursor])
                         cursor += 1
                     }
 
@@ -772,18 +772,18 @@ impl PdfParser
                 {
                     entry.kind       = .Offset
                     entry.offset     = fields[1]
-                    entry.generation = fields[2] <= Swag.U16.Max ? cast(u16) fields[2] : 0
+                    entry.generation = fields[2] <= Swag.U16.Max ? cast(u16, fields[2]) : 0
                 }
                 elif kind == 2
                 {
                     if fields[1] > Swag.U32.Max or fields[2] > Swag.U32.Max do
                         continue
                     entry.kind          = .InStream
-                    entry.container     = cast(u32) fields[1]
-                    entry.indexInStream = cast(u32) fields[2]
+                    entry.container     = cast(u32, fields[1])
+                    entry.indexInStream = cast(u32, fields[2])
                 }
 
-                .recordXrefEntry(cast(u32) number, entry)
+                .recordXrefEntry(cast(u32, number), entry)
             }
         }
 
@@ -800,7 +800,7 @@ impl PdfParser
         if previous != InvalidNode and .nodes[previous].kind == .Integer and .nodes[previous].integer >= 0
         {
             result.hasPrev = true
-            result.prev    = cast(u64) .nodes[previous].integer
+            result.prev    = cast(u64, .nodes[previous].integer)
         }
 
         return result
@@ -875,25 +875,25 @@ impl PdfParser
             if count < 0 or first < 0 do
                 fail InvalidFormatError{"PDF object stream has invalid bounds"}
             let decoded = #move try .decodeStream(streamId)
-            if cast(u64) first > decoded.count do
+            if cast(u64, first) > decoded.count do
                 fail InvalidFormatError{"PDF object stream header exceeds its data"}
 
             var embedded = PdfParser{bytes: decoded.toSlice()}
             var numbers: Array'u32
             var offsets: Array'u64
-            for cast(u64) count
+            for cast(u64, count)
             {
                 var number = 0'u64
                 var offset = 0'u64
                 if not embedded.parseUnsigned(&number) or not embedded.parseUnsigned(&offset) or number > Swag.U32.Max do
                     fail InvalidFormatError{"PDF object stream header is malformed"}
-                numbers.add(cast(u32) number)
+                numbers.add(cast(u32, number))
                 offsets.add(offset)
             }
 
             for number, index in numbers
             {
-                let position = cast(u64) first + offsets[index]
+                let position = cast(u64, first) + offsets[index]
                 if position >= decoded.count do
                     fail InvalidFormatError{"PDF object stream entry exceeds its data"}
                 embedded.pos = position
@@ -1043,7 +1043,7 @@ impl PdfParser
         var found, generation: u64
         if not .parseUnsigned(&found) or not .parseUnsigned(&generation) or not .consumeWord("obj") do
             return InvalidNode
-        if found != cast(u64) number do
+        if found != cast(u64, number) do
             return InvalidNode
 
         let nodeId = catch .parseValue() as parseError
@@ -1103,22 +1103,22 @@ impl PdfParser
             return null
 
         let decoded = catch .decodeStream(streamId) as decodeError
-        if decodeError != null or cast(u64) first > decoded.count do
+        if decodeError != null or cast(u64, first) > decoded.count do
             return null
 
         let result = .objectStreams.addNew()
-        .objectStreamIndex[container] = cast(u32) (.objectStreams.count - 1)
+        .objectStreamIndex[container] = cast(u32, (.objectStreams.count - 1))
         result.data  = decoded
-        result.first = cast(u64) first
+        result.first = cast(u64, first)
 
         var header = PdfParser{bytes: result.data.toSlice()}
-        for cast(u64) count
+        for cast(u64, count)
         {
             var objectNumber = 0'u64
             var objectOffset = 0'u64
             if not header.parseUnsigned(&objectNumber) or not header.parseUnsigned(&objectOffset) or objectNumber > Swag.U32.Max do
                 break
-            result.numbers.add(cast(u32) objectNumber)
+            result.numbers.add(cast(u32, objectNumber))
             result.offsets.add(objectOffset)
         }
 
@@ -1331,9 +1331,9 @@ impl PdfParser
             fail InvalidFormatError{"PDF predictor has invalid dimensions"}
         if bits != 1 and bits != 2 and bits != 4 and bits != 8 and bits != 16 do
             fail UnsupportedFormatError{"PDF predictor bit depth is not supported"}
-        let sampleBits    = cast(u64) colors * cast(u64) bits
+        let sampleBits    = cast(u64, colors) * cast(u64, bits)
         let bytesPerPixel = Math.max(1'u64, (sampleBits + 7) / 8)
-        let rowBytes      = (sampleBits * cast(u64) columns + 7) / 8
+        let rowBytes      = (sampleBits * cast(u64, columns) + 7) / 8
 
         if predictor == 2
         {
@@ -1344,7 +1344,7 @@ impl PdfParser
             if data.count % rowBytes do
                 fail InvalidFormatError{"PDF TIFF predictor rows are truncated"}
             var result: retval = data
-            let stride         = cast(u64) colors * cast(u64) (bits / 8)
+            let stride         = cast(u64, colors) * cast(u64, (bits / 8))
             for row in data.count / rowBytes
             {
                 let base = row * rowBytes
@@ -1382,21 +1382,21 @@ impl PdfParser
                     result[target + x] = raw
 
                 case 1:
-                    result[target + x] = cast #bit (u8) (raw + #wrap left)
+                    result[target + x] = cast #bit (u8, (raw + #wrap left))
 
                 case 2:
-                    result[target + x] = cast #bit (u8) (raw + #wrap up)
+                    result[target + x] = cast #bit (u8, (raw + #wrap up))
 
                 case 3:
-                    result[target + x] = cast #bit (u8) (raw + #wrap cast(u8) ((cast(u32) left + up) / 2))
+                    result[target + x] = cast #bit (u8, (raw + #wrap cast(u8, ((cast(u32, left) + up) / 2))))
 
                 case 4:
-                    let p       = cast(s32) left + cast(s32) up - cast(s32) ul
-                    let pa      = Math.abs(p - cast(s32) left)
-                    let pb      = Math.abs(p - cast(s32) up)
-                    let pc      = Math.abs(p - cast(s32) ul)
+                    let p       = cast(s32, left) + cast(s32, up) - cast(s32, ul)
+                    let pa      = Math.abs(p - cast(s32, left))
+                    let pb      = Math.abs(p - cast(s32, up))
+                    let pc      = Math.abs(p - cast(s32, ul))
                     let predict = pa <= pb and pa <= pc ? left : (pb <= pc ? up : ul)
-                    result[target + x] = cast #bit (u8) (raw + #wrap predict)
+                    result[target + x] = cast #bit (u8, (raw + #wrap predict))
                 }
             }
         }

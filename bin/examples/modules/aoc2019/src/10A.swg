@@ -110,7 +110,7 @@ func day10A()
     for l, y in lines do
         for c, x in l do
             if c == '#' do
-                arr.add({cast(f32) x + 0.5, cast(f32) y + 0.5})
+                arr.add({cast(f32, x) + 0.5, cast(f32, y) + 0.5})
     tot.resize(arr.count)
 
     if arr.count > 1

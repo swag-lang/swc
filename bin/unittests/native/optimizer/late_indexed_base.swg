@@ -12,17 +12,17 @@ struct Table
 func update(table: *Table, index: u32, value: u64)->u64
 {
     let previous = table.wide[index]
-    table.bytes[index] = cast #bit (u8) value
-    table.words[index] = cast(s32) value
+    table.bytes[index] = cast #bit (u8, value)
+    table.words[index] = cast(s32, value)
     table.wide[index]  = value + previous
-    return table.wide[index] + table.bytes[index] + cast(u64) table.words[index]
+    return table.wide[index] + table.bytes[index] + cast(u64, table.words[index])
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func localArray(index: u32)->u64
 {
     var table: Table
-    for i in 32 do table.wide[i] = cast(u64) i * 7
+    for i in 32 do table.wide[i] = cast(u64, i) * 7
     return table.wide[index] + table.wide[(index + 1) & 31]
 }
 
@@ -32,7 +32,7 @@ func localArray(index: u32)->u64
 func redirected(first, second: *Table, index: u32)->u64
 {
     var table = first
-    let saved = cast([*] u64) &table.wide[0]
+    let saved = cast([*] u64, &table.wide[0])
     table = second
     return saved[index] + table.wide[index]
 }
@@ -52,13 +52,13 @@ func acrossJoin(first, second: *Table, index: u32, redirect: bool)->u64
     var table: Table
     for i in 32
     {
-        let value = cast(u64) i * 13
+        let value = cast(u64, i) * 13
         table.wide[i] = 100 + i
-        Swag.assert(update(&table, i, value) == 100 + i + value * 2 + cast #bit (u8) value)
-        Swag.assert(table.bytes[i] == cast #bit (u8) value)
-        Swag.assert(table.words[i] == cast(s32) value)
+        Swag.assert(update(&table, i, value) == 100 + i + value * 2 + cast #bit (u8, value))
+        Swag.assert(table.bytes[i] == cast #bit (u8, value))
+        Swag.assert(table.words[i] == cast(s32, value))
         Swag.assert(table.wide[i] == 100 + i + value)
-        Swag.assert(localArray(i) == cast(u64) (i + ((i + 1) & 31)) * 7)
+        Swag.assert(localArray(i) == cast(u64, (i + ((i + 1) & 31))) * 7)
     }
     var other: Table
     for i in 32

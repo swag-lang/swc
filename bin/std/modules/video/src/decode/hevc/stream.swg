@@ -112,12 +112,12 @@ impl HevcStream
             try .configure(&.decoders[lane])
 
         .laneCount = Math.max(1'u32, Math.min(Swag.workerCount(), HevcMaxFrameThreads))
-        let pixels = cast(u64) .width * cast(u64) .height
-        let wanted = cast(u32) Math.min((pixels + HevcPixelsPerLane - 1) / HevcPixelsPerLane, cast(u64) HevcMaxFrameThreads)
+        let pixels = cast(u64, .width) * cast(u64, .height)
+        let wanted = cast(u32, Math.min((pixels + HevcPixelsPerLane - 1) / HevcPixelsPerLane, cast(u64, HevcMaxFrameThreads)))
         .laneCount = Math.min(.laneCount, Math.max(wanted, HevcMinFrameThreads))
         let laneBytes = pixels * HevcBytesPerLanePixel
         if laneBytes do
-            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(HevcLaneMemoryBudget / laneBytes, 1'u64)))
+            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32, Math.max(HevcLaneMemoryBudget / laneBytes, 1'u64))))
         if .hasWavefrontConfiguration() do
             .laneCount = Math.min(.laneCount, 4'u32)
         .installFrames(#move frames)
@@ -162,22 +162,22 @@ impl HevcStream
         if config[0] != 1 do
             fail UnsupportedFormatError{"H.265 decoder configuration uses an unknown version"}
 
-        .lengthSize = cast(u32) (config[21] & 3) + 1
-        let arrays = cast(u32) config[22]
+        .lengthSize = cast(u32, (config[21] & 3)) + 1
+        let arrays = cast(u32, config[22])
 
         var offset = 23'u64
         for arrays
         {
             if offset + 3 > config.count do
                 fail InvalidFormatError{"H.265 decoder configuration is truncated"}
-            let count = (cast(u32) config[offset + 1] << 8) | cast(u32) config[offset + 2]
+            let count = (cast(u32, config[offset + 1]) << 8) | cast(u32, config[offset + 2])
             offset += 3
 
             for count
             {
                 if offset + 2 > config.count do
                     fail InvalidFormatError{"H.265 decoder configuration is truncated"}
-                let length = (cast(u64) config[offset] << 8) | cast(u64) config[offset + 1]
+                let length = (cast(u64, config[offset]) << 8) | cast(u64, config[offset + 1])
                 offset += 2
                 if offset + length > config.count do
                     fail InvalidFormatError{"H.265 decoder configuration is truncated"}
@@ -196,8 +196,8 @@ impl HevcStream
 
         if not sequence do
             fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
-        .width  = cast(s32) sequence.visibleWidth()
-        .height = cast(s32) sequence.visibleHeight()
+        .width  = cast(s32, sequence.visibleWidth())
+        .height = cast(s32, sequence.visibleHeight())
     }
 
     // Builds the display order of the installed samples from their presentation times.
@@ -213,9 +213,9 @@ impl HevcStream
         for index in count
         {
             var position = order.count
-            while position > 0 and .frames[cast(u64) order[position - 1]].presentationTime > .frames[index].presentationTime do
+            while position > 0 and .frames[cast(u64, order[position - 1])].presentationTime > .frames[index].presentationTime do
                 position -= 1
-            order.insertAt(position, cast(u32) index)
+            order.insertAt(position, cast(u32, index))
         }
 
         .rankOfSample.clear()
@@ -225,7 +225,7 @@ impl HevcStream
         for rank in order.count
         {
             .sampleAtRank[rank] = order[rank]
-            .rankOfSample[cast(u64) order[rank]] = cast(u32) rank
+            .rankOfSample[cast(u64, order[rank])] = cast(u32, rank)
         }
 
         .syncFlags.clear()
@@ -274,7 +274,7 @@ impl HevcStream
         var scan = rank
         while scan < .frames.count
         {
-            if .syncFlags[cast(u64) .sampleAtRank[scan]] != 0 do
+            if .syncFlags[cast(u64, .sampleAtRank[scan])] != 0 do
                 return scan
             scan += 1
         }
@@ -286,7 +286,7 @@ impl HevcStream
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
         Swag.assert(rank < .sampleAtRank.count)
-        return .frames[cast(u64) .sampleAtRank[rank]].presentationTime
+        return .frames[cast(u64, .sampleAtRank[rank])].presentationTime
     }
 
     // Positions the stream so the next decoded frame has display rank `rank`.
@@ -296,7 +296,7 @@ impl HevcStream
             return
 
         .stopFrameThreads()
-        let sample = cast(u64) .sampleAtRank[rank]
+        let sample = cast(u64, .sampleAtRank[rank])
         var sync   = sample
         while sync > 0 and .syncFlags[sync] == 0 do
             sync -= 1
@@ -554,7 +554,7 @@ impl HevcStream
         frameThread.done.reset()
 
         let codedUnits = try .codedUnitCount(payload.toSlice())
-        let rank       = cast(u64) .rankOfSample[sample]
+        let rank       = cast(u64, .rankOfSample[sample])
         if rank < .skipBefore and not try .isReferenceAccessUnit(payload.toSlice())
         {
             try .readAuxiliaryUnits(decoder, payload.toSlice())
@@ -625,12 +625,12 @@ impl HevcStream
     {
         var count  = 0'u32
         var offset = 0'u64
-        while offset + cast(u64) .lengthSize <= data.count
+        while offset + cast(u64, .lengthSize) <= data.count
         {
             let length = try .unitLength(data, &offset)
             if length < 2 do
                 fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
-            let nalType = cast(u32) (data[offset] >> 1) & 0x3F
+            let nalType = cast(u32, (data[offset] >> 1)) & 0x3F
             if isVideoCodingNal(nalType) do
                 count += 1
             offset += length
@@ -644,12 +644,12 @@ impl HevcStream
     {
         var hasPicture = false
         var offset     = 0'u64
-        while offset + cast(u64) .lengthSize <= data.count
+        while offset + cast(u64, .lengthSize) <= data.count
         {
             let length = try .unitLength(data, &offset)
             if length < 2 do
                 fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
-            let nalType = cast(u32) (data[offset] >> 1) & 0x3F
+            let nalType = cast(u32, (data[offset] >> 1)) & 0x3F
             if isVideoCodingNal(nalType)
             {
                 hasPicture = true
@@ -669,10 +669,10 @@ impl HevcStream
     private mtd readAuxiliaryUnits(decoder: *Decoder, data: const [..] u8) fail
     {
         var offset = 0'u64
-        while offset + cast(u64) .lengthSize <= data.count
+        while offset + cast(u64, .lengthSize) <= data.count
         {
             let length  = try .unitLength(data, &offset)
-            let nalType = cast(u32) (data[offset] >> 1) & 0x3F
+            let nalType = cast(u32, (data[offset] >> 1)) & 0x3F
             if not isVideoCodingNal(nalType) do
                 discard try decoder.readNalUnit(data[offset until offset + length])
             offset += length
@@ -683,7 +683,7 @@ impl HevcStream
     {
         var picture = false
         var offset  = 0'u64
-        while offset + cast(u64) .lengthSize <= data.count
+        while offset + cast(u64, .lengthSize) <= data.count
         {
             let length = try .unitLength(data, &offset)
             if try decoder.prepareNalUnit(data[offset until offset + length]) do
@@ -710,7 +710,7 @@ impl HevcStream
     private mtd decodeAccessUnit(decoder: *Decoder, data: const [..] u8)->*Frame? fail
     {
         var offset = 0'u64
-        while offset + cast(u64) .lengthSize <= data.count
+        while offset + cast(u64, .lengthSize) <= data.count
         {
             let length = try .unitLength(data, &offset)
             discard try decoder.readNalUnit(data[offset until offset + length])
@@ -724,8 +724,8 @@ impl HevcStream
     {
         var length = 0'u64
         for index in .lengthSize do
-            length = (length << 8) | cast(u64) data[offset[] + cast(u64) index]
-        offset[] += cast(u64) .lengthSize
+            length = (length << 8) | cast(u64, data[offset[] + cast(u64, index)])
+        offset[] += cast(u64, .lengthSize)
         if not length or offset[] + length > data.count do
             fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
         return length
@@ -734,7 +734,7 @@ impl HevcStream
 
 private func runHevcFrameThread(thread: Threading.Thread)
 {
-    let frameThread = cast(*HevcFrameThread) thread.userParam!
+    let frameThread = cast(*HevcFrameThread, thread.userParam!)
     while not thread.requestEnd
     {
         frameThread.wake.wait()

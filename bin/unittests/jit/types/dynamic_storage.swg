@@ -17,7 +17,7 @@ func copyEmptyDynamicStorage(value: EmptyDynamicStorage)->EmptyDynamicStorage =>
     var base = copyEmptyDynamicStorage(owner.base)
     Swag.assert(not (&base is EmptyDynamicChild))
     let embedded = &owner.base
-    Swag.assert(cast #try (*EmptyDynamicChild) embedded == &owner)
+    Swag.assert((catch cast(*EmptyDynamicChild?, embedded)) == &owner)
 }
 
 #[Swag.DynCast, Swag.Pack(1)]
@@ -31,7 +31,7 @@ struct PackedDynamicStorage
     var value: PackedDynamicStorage
     Swag.assert(#sizeof(PackedDynamicStorage) == 9)
     Swag.assert(#alignof(PackedDynamicStorage) == 1)
-    Swag.assert(cast #try (*PackedDynamicStorage) &value == &value)
+    Swag.assert(cast(*PackedDynamicStorage?, &value) == &value)
 }
 
 #[Swag.DynCast]
@@ -54,12 +54,12 @@ struct StorageContainer
 
 func checkStorage(value: *void, type: typeinfo)
 {
-    let info  = cast(const *Swag.TypeInfoStruct) cast(const *void) type
+    let info  = cast(const *Swag.TypeInfoStruct, cast(const *void, type))
     let slots = info.dynamicSlots!
     Swag.assert(slots.count == 1)
-    let slot   = cast([*] u8) value + slots[0].offset
-    let stored = (cast(*u64) cast(*void) slot)[]
-    Swag.assert(stored == cast(u64) &slots[0])
+    let slot   = cast([*] u8, value) + slots[0].offset
+    let stored = cast(*u64, cast(*void, slot))[]
+    Swag.assert(stored == cast(u64, &slots[0]))
 }
 
 #test

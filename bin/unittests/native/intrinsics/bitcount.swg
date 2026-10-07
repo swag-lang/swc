@@ -312,30 +312,30 @@ func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountLz
 // Strict aliases
 #test
 {
-    const nz = Swag.bitCountNz(cast(BitCountStrictU32) 0xF0F00000'u32)
-    const tz = Swag.bitCountTz(cast(BitCountStrictU32) 0x00008000'u32)
-    const lz = Swag.bitCountLz(cast(BitCountStrictU32) 0x00008000'u32)
+    const nz = Swag.bitCountNz(cast(BitCountStrictU32, 0xF0F00000'u32))
+    const tz = Swag.bitCountTz(cast(BitCountStrictU32, 0x00008000'u32))
+    const lz = Swag.bitCountLz(cast(BitCountStrictU32, 0x00008000'u32))
 
     #assert(#typeof(nz) == BitCountStrictU32)
     #assert(#typeof(tz) == BitCountStrictU32)
     #assert(#typeof(lz) == BitCountStrictU32)
 
-    Swag.assert(nz == cast(BitCountStrictU32) 8)
-    Swag.assert(tz == cast(BitCountStrictU32) 15)
-    Swag.assert(lz == cast(BitCountStrictU32) 16)
+    Swag.assert(nz == cast(BitCountStrictU32, 8))
+    Swag.assert(tz == cast(BitCountStrictU32, 15))
+    Swag.assert(lz == cast(BitCountStrictU32, 16))
 }
 
 #test
 {
-    let nz = nzStrictU32(cast(BitCountStrictU32) 0x55555555'u32)
-    let tz = tzStrictU32(cast(BitCountStrictU32) 0x00010000'u32)
-    let lz = lzStrictU32(cast(BitCountStrictU32) 0x00010000'u32)
+    let nz = nzStrictU32(cast(BitCountStrictU32, 0x55555555'u32))
+    let tz = tzStrictU32(cast(BitCountStrictU32, 0x00010000'u32))
+    let lz = lzStrictU32(cast(BitCountStrictU32, 0x00010000'u32))
 
     #assert(#typeof(nz) == BitCountStrictU32)
     #assert(#typeof(tz) == BitCountStrictU32)
     #assert(#typeof(lz) == BitCountStrictU32)
 
-    Swag.assert(nz == cast(BitCountStrictU32) 16)
-    Swag.assert(tz == cast(BitCountStrictU32) 16)
-    Swag.assert(lz == cast(BitCountStrictU32) 15)
+    Swag.assert(nz == cast(BitCountStrictU32, 16))
+    Swag.assert(tz == cast(BitCountStrictU32, 16))
+    Swag.assert(lz == cast(BitCountStrictU32, 15))
 }

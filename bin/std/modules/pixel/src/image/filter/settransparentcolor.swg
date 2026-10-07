@@ -25,7 +25,7 @@ public impl Image
             var context = colorPixelValue(color)
             .transformLogicalPixels(&context)
             {
-                let replacement = (cast(const *PixelValue) userData!)[]
+                let replacement = cast(const *PixelValue, userData!)[]
                 if value.a == 0
                 {
                     value.r = replacement.r
@@ -37,17 +37,17 @@ public impl Image
             return
         }
 
-        var replacement = .pixelFormat == .BGRA8 ? cast(u32) color.b | (cast(u32) color.g << 8) | (cast(u32) color.r << 16) : cast(u32) color.r | (cast(u32) color.g << 8) | (cast(u32) color.b << 16)
+        var replacement = .pixelFormat == .BGRA8 ? cast(u32, color.b) | (cast(u32, color.g) << 8) | (cast(u32, color.r) << 16) : cast(u32, color.r) | (cast(u32, color.g) << 8) | (cast(u32, color.b) << 16)
         .visitVectorBytes(&replacement) #code(block, data)
         {
-            let replacementWord = cast(*u32) data!
-            let pixels          = Math.Simd.load(cast([*] u32) block)
+            let replacementWord = cast(*u32, data!)
+            let pixels          = Math.Simd.load(cast([*] u32, block))
             let replaceMask     = (pixels & Math.Simd.splat(0xFF00_0000'u32)) == Math.Simd.splat(0'u32)
             let result          = (pixels & ~replaceMask) | (Math.Simd.splat(replacementWord[]) & replaceMask)
-            Math.Simd.store(cast([*] u32) block, result)
+            Math.Simd.store(cast([*] u32, block), result)
         }
 
-        let pixels = cast([*] u32) .pixels.storage()
+        let pixels = cast([*] u32, .pixels.storage())
         let count  = .byteCount / 4
         var offset = (.byteCount - .byteCount % 16) / 4
         while offset < count

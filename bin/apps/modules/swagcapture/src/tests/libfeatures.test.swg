@@ -120,7 +120,7 @@ using Swag, Core
     let lib = f.setupLibraryWnd()
 
     // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), {0, 0, 600, 32})
 
     // Default (empty) current folder falls back to the library folder.
     Swag.assert(lib.currentFolder() == Library.getFolder())
@@ -152,7 +152,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     let lib = f.setupLibraryWnd()
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), {0, 0, 600, 32})
 
     expect Library.init()
     lib.curFolder = Library.getFolder()
@@ -160,7 +160,7 @@ using Swag, Core
 
     // Fill the drop-down for the Swag Capture level (the last one).
     let idx  = lib.breadcrumb.items.count - 1
-    let menu = MenuCtrl.createPopup(cast(*Wnd) lib)
+    let menu = MenuCtrl.createPopup(cast(*Wnd, lib))
     lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
 
     // Its recycle bin sub-folder is listed, with its path preserved in owned storage.

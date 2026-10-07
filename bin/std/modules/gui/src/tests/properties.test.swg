@@ -211,7 +211,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNavigation()
     Swag.assert(prop.selItem == prop.items[1])     // section row is skipped
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 
     host.keyPress(Input.Key.Down)
     Swag.assert(prop.selItem == prop.items[2])
@@ -241,10 +241,10 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNavigation()     // selItem = count row
     host.keyPress(Input.Key.Return)
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.items[1]!.editBox)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[1]!.editBox))
 
     host.keyPress(Input.Key.Escape)
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
 
 struct PropHeadlessCancelData
@@ -315,11 +315,11 @@ struct PropHeadlessCancelData
 
     prop.focusNavigation()              // count row
     host.keyPress(Input.Key.Return)     // edit count
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.items[1]!.editBox)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[1]!.editBox))
 
     host.keyPress(Input.Key.Down)     // commit + move to label row
     Swag.assert(prop.selItem == prop.items[2])
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
 
 // Tab commits the current edit and starts editing the next editable row.
@@ -336,7 +336,7 @@ struct PropHeadlessCancelData
     host.keyPress(Input.Key.Return)     // edit count
     host.keyPress(Input.Key.Tab)        // -> edit label row
     Swag.assert(prop.selItem == prop.items[2])
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.items[2]!.editBox)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[2]!.editBox))
 }
 
 struct PropHeadlessActionData
@@ -375,7 +375,7 @@ struct PropHeadlessArrayData
         let labelBottom = item.label.position.bottom()
         for c in item.line.children
         {
-            if c == cast(*Wnd?) item.label do
+            if c == cast(*Wnd?, item.label) do
                 continue
             Swag.assert(c.position.y >= labelBottom)
         }
@@ -388,12 +388,12 @@ struct PropHeadlessArrayData
     // Rows and labels span the whole control (the value editors keep their own cap)
     let originItem = prop.items[1]!
     let rowWidth   = originItem.line.position.width
-    Swag.assert(rowWidth > cast(f32) prop.editorWidth)
-    Swag.assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32) prop.leftMargin, 0.01))
+    Swag.assert(rowWidth > cast(f32, prop.editorWidth))
+    Swag.assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32, prop.leftMargin), 0.01))
     Swag.assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
 
     let actionsItem = prop.items[2]!
-    let actionRight = cast(f32) prop.editorWidth - prop.rightMargin - PropRevertGap
+    let actionRight = cast(f32, prop.editorWidth) - prop.rightMargin - PropRevertGap
     Swag.assert((actionsItem.arrayAddButton != null))
     Swag.assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
@@ -403,8 +403,8 @@ struct PropHeadlessArrayData
     let chkRow = chk.parent!
     var desc: *Label?
     for c in chkRow.children do
-        if c != cast(*Wnd?) chk do
-            desc = cast #assume (*Label) c
+        if c != cast(*Wnd?, chk) do
+            desc = assume cast (*Label, c)
     let descLbl = desc!
     Swag.assert(descLbl.textPadding.y > 0)
     Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
@@ -541,7 +541,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     let volumeSlider = prop.items[1]!.sliderBox
     Swag.assert(volumeSlider.value() > 50)
     Swag.assert(data.volume > 50)
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) volumeSlider.slider)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, volumeSlider.slider))
 
     // A further Right keeps stepping (now in edit mode on the focused slider).
     let v1 = volumeSlider.value()
@@ -551,7 +551,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     // Down auto-commits and moves to the next row, back in navigation mode.
     host.keyPress(Input.Key.Down)
     Swag.assert(prop.selItem == prop.items[2])
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
 
 // Enter on a slider row edits its value box like a plain editbox row: it focuses the
@@ -573,7 +573,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 
     // Enter focuses the value box (not the slider track) and selects its whole text.
     host.keyPress(Input.Key.Return)
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) edit)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, edit))
     Swag.assert(edit.selBeg == 0 and edit.selEnd == (edit.text()).count)
     Swag.assert((edit.text()).count > 0)
 }
@@ -599,9 +599,9 @@ func findIconButton(w: *Wnd)->*IconButton?
     // the keys to the popup (so they never leak to page navigation outside the grid).
     host.keyPress(Input.Key.Return)
     Swag.assert(combo.popup != null)
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 
-    let pview = cast #assume (*PopupListView) combo.popup.scrollWnd.view
+    let pview = assume cast (*PopupListView, combo.popup.scrollWnd.view)
     Swag.assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
@@ -611,7 +611,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
-    host.sendMouseEvent(cast(*Wnd) pview, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
+    host.sendMouseEvent(cast(*Wnd, pview), MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
     Swag.assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
@@ -620,7 +620,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(combo.selectedIndex == 2)
     Swag.assert(data.choice == .High)
     Swag.assert(combo.popup == null)
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
 
 // A row with a custom/composite editor (e.g. a Math.Point) is navigable and can be
@@ -644,7 +644,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
     Swag.assert(prop.selItem == prop.items[2])
-    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
 
 // focusNavigation keeps the already-selected row (so clicking a header/custom row does not
@@ -811,7 +811,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     host.pump()
 
     let option      = findFieldItem(prop, #nameof(MultiBadges.Star))!
-    let optionLabel = cast #assume (*Label) option.line.children[1]
+    let optionLabel = assume cast (*Label, option.line.children[1])
     Swag.assert(option.checkBox.dockStyle == .Left)
     Swag.assert(option.line.position.height == prop.gridLineHeight)
     Swag.assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
@@ -828,9 +828,9 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
 
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
-    bases.add(cast(*u8) &t2)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    bases.add(cast(*u8, &t2))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -869,8 +869,8 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -900,7 +900,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     t0.count = 3
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8, &t0))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -937,8 +937,8 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 
     let prop = Properties.create(&host.root, {0, 0, 300, 360}, .List)
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -978,12 +978,12 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 
     var item: PropertiesItem
     item.type = MultiBadges
-    item.dataInstances.add(cast(*u8) &b0)
-    item.dataInstances.add(cast(*u8) &b1)
+    item.dataInstances.add(cast(*u8, &b0))
+    item.dataInstances.add(cast(*u8, &b1))
 
-    let starMask = cast(u64) cast(s32) MultiBadges.Star
-    let lockMask = cast(u64) cast(s32) MultiBadges.Lock
-    let pinMask  = cast(u64) cast(s32) MultiBadges.Pin
+    let starMask = cast(u64, cast(s32, MultiBadges.Star))
+    let lockMask = cast(u64, cast(s32, MultiBadges.Lock))
+    let pinMask  = cast(u64, cast(s32, MultiBadges.Pin))
 
     Swag.assert(not prop.flagBitIsMixed(&item, starMask))     // shared -> uniform
     Swag.assert(prop.flagBitIsMixed(&item, lockMask))         // disagrees -> mixed
@@ -991,14 +991,14 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 
     // Set Pin on every instance: Lock stays only on b1, Star stays on both.
     prop.writeEnumBit(&item, pinMask, true)
-    Swag.assert(cast(bool) (b0 & MultiBadges.Pin) and cast(bool) (b1 & MultiBadges.Pin))
-    Swag.assert(not cast(bool) (b0 & MultiBadges.Lock))
-    Swag.assert(cast(bool) (b1 & MultiBadges.Lock))
-    Swag.assert(cast(bool) (b0 & MultiBadges.Star) and cast(bool) (b1 & MultiBadges.Star))
+    Swag.assert(cast(bool, (b0 & MultiBadges.Pin)) and cast(bool, (b1 & MultiBadges.Pin)))
+    Swag.assert(not cast(bool, (b0 & MultiBadges.Lock)))
+    Swag.assert(cast(bool, (b1 & MultiBadges.Lock)))
+    Swag.assert(cast(bool, (b0 & MultiBadges.Star)) and cast(bool, (b1 & MultiBadges.Star)))
 
     // Clearing a shared bit clears it everywhere.
     prop.writeEnumBit(&item, starMask, false)
-    Swag.assert(not cast(bool) (b0 & MultiBadges.Star) and not cast(bool) (b1 & MultiBadges.Star))
+    Swag.assert(not cast(bool, (b0 & MultiBadges.Star)) and not cast(bool, (b1 & MultiBadges.Star)))
 }
 
 // Dynamic strings are compared and propagated by content (they own a heap buffer).
@@ -1013,8 +1013,8 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -1045,8 +1045,8 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -1306,7 +1306,7 @@ impl IPropertyEditor for PropAngleEditor
         g_PropAngleEditorCalls += 1
 
         let item  = list.addItem(value, data, parent)
-        let angle = cast(*PropHeadlessAngle) data!
+        let angle = cast(*PropHeadlessAngle, data!)
 
         with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
         {
@@ -1314,7 +1314,7 @@ impl IPropertyEditor for PropAngleEditor
             // writer parses the leading number out of the free text.
             .sigCommitted += func|list, item, angle|(ed)
             {
-                angle.deg = cast(s32) (expect StrConv.toNum's64(ed.text()))
+                angle.deg = cast(s32, (expect StrConv.toNum's64(ed.text())))
                 list.commitItemChange(item)
             }
         }
@@ -1419,7 +1419,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     // The default value comes from a real default-constructed instance of the struct.
     Swag.assert(countItem.defaultData != null)
-    Swag.assert((cast(const *s32) countItem.defaultData)[] == 42)
+    Swag.assert(cast(const *s32, countItem.defaultData)[] == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     Swag.assert(not countItem.isModified)
@@ -1440,7 +1440,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.updateStates()
     Swag.assert(enabledItem.isModified)
     Swag.assert(enabledItem.revertButton == null)
-    let contentWidth = cast(f32) prop.editorWidth - prop.leftMargin - prop.rightMargin
+    let contentWidth = cast(f32, prop.editorWidth) - prop.leftMargin - prop.rightMargin
     Swag.assert(enabledItem.checkBox.parent!.position.width > contentWidth)
 
     // Edit the value away from its default: the row becomes modified (no button either).
@@ -1502,7 +1502,7 @@ impl IPropertyNotify for PropDefaultCustom
     let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
 
     // Value equals the declared default (5), but the override forces "modified".
-    Swag.assert((cast(const *s32) valItem.data!)[] == 5)
+    Swag.assert(cast(const *s32, valItem.data!)[] == 5)
     Swag.assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
@@ -1603,8 +1603,8 @@ impl IPropertyNotify for PropDefaultCustom
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
     prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
@@ -1631,16 +1631,16 @@ impl IPropertyNotify for PropDefaultCustom
     Swag.assert(not prop.canUndo() and not prop.canRedo())
 
     // Writing the same value back records nothing.
-    (cast(*s32) it.data!)[] = 42
+    cast(*s32, it.data!)[] = 42
     prop.commitItemChange(it)
     Swag.assert(not prop.canUndo())
 
     // Two real edits.
-    (cast(*s32) it.data)[] = 100
+    cast(*s32, it.data)[] = 100
     prop.commitItemChange(it)
     Swag.assert(data.count == 100 and prop.canUndo() and not prop.canRedo())
 
-    (cast(*s32) it.data)[] = 7
+    cast(*s32, it.data)[] = 7
     prop.commitItemChange(it)
     Swag.assert(data.count == 7)
 
@@ -1657,7 +1657,7 @@ impl IPropertyNotify for PropDefaultCustom
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
-    (cast(*s32) it.data)[] = 55
+    cast(*s32, it.data)[] = 55
     prop.commitItemChange(it)
     Swag.assert(data.count == 55 and not prop.canRedo())
     prop.undo()
@@ -1677,7 +1677,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(MultiTile.name))!
 
-    (cast(*String) it.data!)[] = "beta"
+    cast(*String, it.data!)[] = "beta"
     prop.commitItemChange(it)
     Swag.assert(data.name == "beta")
 
@@ -1696,13 +1696,13 @@ impl IPropertyNotify for PropDefaultCustom
     var t0, t1: PropHeadlessData     // both count = 42
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases:  Array'(*u8)
-    bases.add(cast(*u8) &t0)
-    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
     prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
 
-    (cast(*s32) it.data!)[] = 100     // edit instance 0; hasChanged propagates
+    cast(*s32, it.data!)[] = 100     // edit instance 0; hasChanged propagates
     prop.commitItemChange(it)
     Swag.assert(t0.count == 100 and t1.count == 100)
 
@@ -1724,7 +1724,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.focusNavigation()
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    (cast(*s32) it.data!)[] = 100
+    cast(*s32, it.data!)[] = 100
     prop.commitItemChange(it)
     Swag.assert(data.count == 100)
 
@@ -1843,8 +1843,8 @@ struct PropHeadlessPanelStringData
 
     let dynamic     = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.dynamic))!
     let fixed       = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))!
-    let dynamicCtrl = cast #assume (*EditCtrl) dynamic.line.children[1]
-    let fixedCtrl   = cast #assume (*EditCtrl) fixed.line.children[1]
+    let dynamicCtrl = assume cast (*EditCtrl, dynamic.line.children[1])
+    let fixedCtrl   = assume cast (*EditCtrl, fixed.line.children[1])
     Swag.assert(not dynamic.label.isVisible() and not fixed.label.isVisible())
     Swag.assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
     Swag.assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
@@ -1871,8 +1871,8 @@ struct PropHeadlessPanelStringData
     // first child, followed by the sub-line that stacks the B and I buttons.
     let item      = prop.items[1]!
     let stack     = item.line.children[1]
-    let btnBold   = cast #assume (*IconButton) stack.children[0]
-    let btnItalic = cast #assume (*IconButton) stack.children[1]
+    let btnBold   = assume cast (*IconButton, stack.children[0])
+    let btnItalic = assume cast (*IconButton, stack.children[1])
 
     host.clickWnd(btnBold)
     Swag.assert(data.style == .Bold)
@@ -2061,7 +2061,7 @@ struct PropSameCategData
 
     let descIt = descItem!
     Swag.assert((descIt.checkBox != null))
-    Swag.assert(descIt.checkBox.parent!.position.width > cast(f32) opt.properties.editorWidth)
+    Swag.assert(descIt.checkBox.parent!.position.width > cast(f32, opt.properties.editorWidth))
 }
 
 enum PropAlignChoice { A, B, C }

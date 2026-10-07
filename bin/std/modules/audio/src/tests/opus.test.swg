@@ -31,13 +31,13 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
     Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
-    let wantedAt = cast(const [*] s16) wanted.storage()
+    let wantedAt = cast(const [*] s16, wanted.storage())
     var energy   = 0.0'f64
     var worst    = 0.0'f64
     var worstAt  = 0'u64
     for index in decoded.count
     {
-        let difference = cast(f64) decoded[index] - cast(f64) wantedAt[index]
+        let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
         energy += difference * difference
         if Math.abs(difference) > worst
         {
@@ -46,7 +46,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
         }
     }
 
-    let rms = Math.sqrt(energy / cast(f64) decoded.count) / 32768.0'f64
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
     if rms > tolerance do
         Swag.print("opus ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, " at ", worstAt, "\n")
     Swag.assert(rms <= tolerance)
@@ -110,7 +110,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer
+    let samples = cast(const [*] s16, decoded.buffer)
     for index in 32 * 2 do
         Swag.assert(samples[index] == wanted[Target * 2 + index])
 }
@@ -133,7 +133,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     let table     = Ogg.buildChecksumTable()
     let checksum  = Ogg.pageChecksum(bytes.toSlice()[0 until firstPage.totalBytes()], table)
     for i in 4 do
-        bytes[22 + i] = cast(u8) ((checksum >> cast(u32) (8 * i)) & 0xFF)
+        bytes[22 + i] = cast(u8, ((checksum >> cast(u32, (8 * i))) & 0xFF))
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var sound = catch SoundFile.load(path.toString()) as err
     discard sound

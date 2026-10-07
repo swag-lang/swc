@@ -5,7 +5,7 @@ func pickAbove(arr: [*] u8, count: u32, limit: u8)->s32
 {
     for i in count
     {
-        if arr[i] > limit do return cast(s32) i
+        if arr[i] > limit do return cast(s32, i)
     }
 
     return -1

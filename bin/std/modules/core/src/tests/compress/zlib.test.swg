@@ -8,7 +8,7 @@ func fillCompressPattern(buffer: [..] u8)
     for i in buffer.count
     {
         let repeated = (i / 17) & 0xFF
-        buffer[i] = cast(u8) ((i * 31 + repeated + (i >> 3)) & 0xFF)
+        buffer[i] = cast(u8, ((i * 31 + repeated + (i >> 3)) & 0xFF))
     }
 }
 
@@ -57,7 +57,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 {
     var repeated: [2048] u8
     for i in repeated.count do
-        repeated[i] = cast(u8) ((i / 8) & 7)
+        repeated[i] = cast(u8, ((i / 8) & 7))
 
     assertDeflateRoundTrip(repeated, .NoCompression, .Default)
     assertDeflateRoundTrip(repeated, .BestSpeed, .Fixed)

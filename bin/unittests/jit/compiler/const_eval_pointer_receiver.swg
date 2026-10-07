@@ -35,7 +35,7 @@ impl Channels
     #[Swag.ConstExpr]
     mtd const packed()->u32
     {
-        return (cast(u32) .red << 16) | (cast(u32) .green << 8) | .blue
+        return (cast(u32, .red) << 16) | (cast(u32, .green) << 8) | .blue
     }
 }
 

@@ -79,8 +79,8 @@ private impl BitReader
                 {
                     let wordIndex = .bitPosition / 14
                     let byteIndex = wordIndex * 2
-                    let word      = .littleEndianWords ? cast(u32) .data[byteIndex] | (cast(u32) .data[byteIndex + 1] << 8) : (cast(u32) .data[byteIndex] << 8) | cast(u32) .data[byteIndex + 1]
-                    result |= (word >> cast(u32) (13 - .bitPosition % 14)) & 1
+                    let word      = .littleEndianWords ? cast(u32, .data[byteIndex]) | (cast(u32, .data[byteIndex + 1]) << 8) : (cast(u32, .data[byteIndex]) << 8) | cast(u32, .data[byteIndex + 1])
+                    result |= (word >> cast(u32, (13 - .bitPosition % 14))) & 1
                 }
                 else
                 {
@@ -88,7 +88,7 @@ private impl BitReader
                     if .littleEndianWords do
                         byteIndex ^= 1
                     let bitIndex = 7 - (.bitPosition & 7)
-                    result |= (cast(u32) .data[byteIndex] >> cast(u32) bitIndex) & 1
+                    result |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
                 }
             }
 
@@ -105,8 +105,8 @@ private impl BitReader
             return 0
         let sign = 1'u32 << (count - 1)
         if raw & sign do
-            return cast #bit (s32) (raw | (~0'u32 << count))
-        return cast(s32) raw
+            return cast #bit (s32, (raw | (~0'u32 << count)))
+        return cast(s32, raw)
     }
 
     mtd skip(count: u64)
@@ -322,7 +322,7 @@ private impl Codec
                     var sum: f64
                     for band in 32
                     {
-                        let angle = Math.ConstF64.Pi * (cast(f64) band + 0.5) * (cast(f64) output + 0.5) / 32.0
+                        let angle = Math.ConstF64.Pi * (cast(f64, band) + 0.5) * (cast(f64, output) + 0.5) / 32.0
                         sum += subbands[][channel, band, sample] * Math.cos(angle)
                     }
 
@@ -356,8 +356,8 @@ private impl Codec
                         tap    += 64
                     }
 
-                    destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16) Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0)
-                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0)
+                    destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16, Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0))
+                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0))
                 }
 
                 var index = 512'u64
@@ -373,10 +373,10 @@ private impl Codec
         {
             for frame in header.frames
             {
-                let left  = cast(s32) destination[frame * header.channels]
-                let right = cast(s32) destination[frame * header.channels + 1]
-                destination[frame * header.channels]     = cast(s16) Math.clamp(left + right, -32_768, 32_767)
-                destination[frame * header.channels + 1] = cast(s16) Math.clamp(left - right, -32_768, 32_767)
+                let left  = cast(s32, destination[frame * header.channels])
+                let right = cast(s32, destination[frame * header.channels + 1])
+                destination[frame * header.channels]     = cast(s16, Math.clamp(left + right, -32_768, 32_767))
+                destination[frame * header.channels + 1] = cast(s16, Math.clamp(left - right, -32_768, 32_767))
             }
         }
 
@@ -386,10 +386,10 @@ private impl Codec
             let rightChannel = leftChannel + 1
             for frame in header.frames
             {
-                let left  = cast(s32) destination[frame * header.channels + leftChannel]
-                let right = cast(s32) destination[frame * header.channels + rightChannel]
-                destination[frame * header.channels + leftChannel]  = cast(s16) Math.clamp(left + right, -32_768, 32_767)
-                destination[frame * header.channels + rightChannel] = cast(s16) Math.clamp(left - right, -32_768, 32_767)
+                let left  = cast(s32, destination[frame * header.channels + leftChannel])
+                let right = cast(s32, destination[frame * header.channels + rightChannel])
+                destination[frame * header.channels + leftChannel]  = cast(s16, Math.clamp(left + right, -32_768, 32_767))
+                destination[frame * header.channels + rightChannel] = cast(s16, Math.clamp(left - right, -32_768, 32_767))
             }
         }
     }
@@ -409,21 +409,21 @@ private impl Codec
                 var first, second: f64
                 for tap in coefficientCount
                 {
-                    let source = cast(s32) sample - cast(s32) tap
+                    let source = cast(s32, sample) - cast(s32, tap)
                     let value  = source < 0 ? .lfeHistory[8 + source] : samples[source]
                     first  += coefficients[half * coefficientCount + tap] * value
                     second += coefficients[255 - half * coefficientCount - tap] * value
                 }
 
                 let frame = sample * factor
-                destination[(frame + half) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0)
-                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0)
+                destination[(frame + half) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0))
+                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0))
             }
         }
 
         for index in 8
         {
-            let source = cast(s32) sampleCount - 8 + cast(s32) index
+            let source = cast(s32, sampleCount) - 8 + cast(s32, index)
             .lfeHistory[index] = source < 0 ? .lfeHistory[8 + source] : samples[source]
         }
     }
@@ -594,7 +594,7 @@ private impl Codec
                 if lfePosition + count > lfeSamples.count do
                     fail InvalidFormatError{"DTS LFE sample table exceeds the frame"}
                 for index in count do
-                    lfeSamples[lfePosition + index] = cast(f64) reader.readSigned(8)
+                    lfeSamples[lfePosition + index] = cast(f64, reader.readSigned(8))
                 let scaleIndex = reader.read(8)
                 if scaleIndex >= ScaleFactors.count do
                     fail InvalidFormatError{"DTS LFE scale-factor index exceeds its table"}
@@ -620,14 +620,14 @@ private impl Codec
                         elif bits <= 7
                         {
                             let levels = QuantLevels[bits]
-                            let offset = cast(s32) ((levels - 1) / 2)
+                            let offset = cast(s32, ((levels - 1) / 2))
                             var first  = reader.read(BlockCodeBits[bits])
                             var second = reader.read(BlockCodeBits[bits])
                             for index in 4
                             {
-                                audio[index]     = cast(s32) (first % levels) - offset
+                                audio[index]     = cast(s32, (first % levels)) - offset
                                 first            /= levels
-                                audio[4 + index] = cast(s32) (second % levels) - offset
+                                audio[4 + index] = cast(s32, (second % levels)) - offset
                                 second           /= levels
                             }
 
@@ -644,7 +644,7 @@ private impl Codec
                         let step   = header.bitRateIndex == 31 ? StepSizeLossless[bits] : StepSizeLossy[bits]
                         let factor = step * scale / 4_194_304.0
                         for index in SamplesPerSubband do
-                            subbands[channel, band, subbandPosition + subsubframe * SamplesPerSubband + index] = cast(f64) audio[index] * factor
+                            subbands[channel, band, subbandPosition + subsubframe * SamplesPerSubband + index] = cast(f64, audio[index]) * factor
                     }
                 }
 
@@ -666,9 +666,9 @@ private impl Codec
                         var predicted: f64
                         for tap in 4
                         {
-                            let source = cast(s32) position - 1 - cast(s32) tap
+                            let source = cast(s32, position) - 1 - cast(s32, tap)
                             let value  = source < 0 ? (header.predictorHistory ? .predictionHistory[channel, band, 4 + source] : 0.0) : subbands[channel, band, source]
-                            predicted += value * cast(f64) AdpcmCoefficients[vector, tap]
+                            predicted += value * cast(f64, AdpcmCoefficients[vector, tap])
                         }
 
                         subbands[channel, band, position] = Math.clamp(subbands[channel, band, position] + predicted / 8_192.0, -8_388_608.0, 8_388_607.0)
@@ -719,7 +719,7 @@ impl IPacketCodec for Codec
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let info     = try frameInfo(packet)
-        let required = cast(u64) info.frames * .channels * #sizeof(s16)
+        let required = cast(u64, info.frames) * .channels * #sizeof(s16)
         if info.frameBytes > packet.count do
             fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
         if destinationSize < required do
@@ -727,7 +727,7 @@ impl IPacketCodec for Codec
 
         // A DTS-HD access unit starts with a complete backward-compatible core. This decoder
         // consumes that core and leaves the extension substream to codecs that implement it.
-        discard try .decodeFrame(cast([*] s16) destination, packet[0 until info.frameBytes])
+        discard try .decodeFrame(cast([*] s16, destination), packet[0 until info.frameBytes])
         return required
     }
 }

@@ -49,13 +49,13 @@ impl ReversedOrderedMap
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &entry.key, value = cast(*V) &entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &entry.key), value = cast(*V, &entry.value), index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K) &entry.key, value = cast(const *V) &entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &entry.key), value = cast(const *V, &entry.value), index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &entry.key, value = entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &entry.key), value = entry.value, index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = entry.key, value = cast(const *V) &entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = entry.key, value = cast(const *V, &entry.value), index = offset, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = entry.key, value = entry.value, index = offset, break = break to Up, continue = break to Down)
             }
@@ -80,7 +80,7 @@ impl OrderedMap
     {
         Swag.assert(comparator != null)
         Swag.assert(.isEmpty(), "ordered map is not empty")
-        .comparator = cast(*void) comparator
+        .comparator = cast(*void, comparator)
     }
 
     // Returns the number of entries in the map.
@@ -108,7 +108,7 @@ impl OrderedMap
     private mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
-            return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)
+            return cast(func(const *K, const *K)->s32, .comparator!)(&left, &right)
 
         Swag.assert(false, "ordered map has not been initialized with a comparator")
         return 0
@@ -168,7 +168,7 @@ impl OrderedMap
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return Swag.makeSlice(cast(const [*] OrderedMapEntry'(K, V)) 1'u64, 0)
+            return Swag.makeSlice(cast(const [*] OrderedMapEntry'(K, V), 1'u64), 0)
         return Swag.makeSlice(.entries.storage() + first, last - first)
     }
 
@@ -279,13 +279,13 @@ impl OrderedMap
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &entry.key, value = cast(*V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &entry.key), value = cast(*V, &entry.value), index = entryIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K) &entry.key, value = cast(const *V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &entry.key), value = cast(const *V, &entry.value), index = entryIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &entry.key, value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &entry.key), value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = entry.key, value = cast(const *V) &entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = entry.key, value = cast(const *V, &entry.value), index = entryIndex, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = entry.key, value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
             }

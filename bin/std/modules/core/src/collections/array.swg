@@ -184,9 +184,9 @@ impl Array
             scan += 1
 
             #static if ptr do
-                #inject(stmt, item = cast(*T) scan, index = visitIdx)
+                #inject(stmt, item = cast(*T, scan), index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const *T) scan, index = visitIdx)
+                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
             else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
@@ -236,7 +236,7 @@ impl Array
             return
         }
 
-        let newBuffer = cast([*] T) Memory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        let newBuffer = cast([*] T, Memory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
 
         // Elements that moved to a new block must be told so through 'opPostMove'.
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
@@ -298,7 +298,7 @@ impl Array
     // The pointer is mutable whatever the receiver, exactly like reading the field was: a
     // container that hands out its storage hands out the storage itself.
     #[Inline]
-    mtd const storage()->[*] T => .buffer orelse cast([*] T) cast(u64) #alignof(T)
+    mtd const storage()->[*] T => .buffer orelse cast([*] T, cast(u64, #alignof(T)))
 
     #[Inline]
     #[Swag.NoDoc]

@@ -44,7 +44,7 @@ impl VaultCard
         {
             .margin = {0, 4, 0, 0}
             .setTextAlignment(.Left, .Top)
-            .setLineGap(cast(s32) (metrics.dialog_BtnPadding / 2))
+            .setLineGap(cast(s32, (metrics.dialog_BtnPadding / 2)))
         }
 
         // Center shorter forms and their actions together within the shared page height.

@@ -9,7 +9,7 @@ func sinkLargePayload()->Array'u8
     var result: retval
     result.resize(ByteSink.WindowSize + 321)
     for index in result.count do
-        result[index] = cast(u8) ((index * 13 + 5) & 0xFF)
+        result[index] = cast(u8, ((index * 13 + 5) & 0xFF))
     return result
 }
 
@@ -23,7 +23,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     var expected: retval
 
     expect sink.writeText("RIFF")
-    expected.add(cast(const [..] u8) "RIFF")
+    expected.add(cast(const [..] u8, "RIFF"))
     let sizeField = sink.position()
     expect sink.writeLittleEndian(0'u32)
     expected.add([0'u8, 0, 0, 0])
@@ -54,7 +54,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     for value, index in SecondPatch do
         expected[sizeField + index] = value
     expect sink.writeText("END")
-    expected.add(cast(const [..] u8) "END")
+    expected.add(cast(const [..] u8, "END"))
     Swag.assert(sink.position() == expected.count)
 
     // A patch cannot reach past what was written, and an empty one changes nothing.
@@ -87,7 +87,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
 #test
 {
     var buffer: ConcatBuffer
-    buffer.addBytes(cast(const [..] u8) "prefix")
+    buffer.addBytes(cast(const [..] u8, "prefix"))
 
     var sink = ByteSink.createMemory(&buffer)
     Swag.assert(not (sink.path()).count)
@@ -96,7 +96,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
 
     let actual = buffer.toArray()
     Swag.assert(actual.count == 6 + expected.count)
-    Swag.assert(Slice.equals(actual.toSlice()[0 until 6], cast(const [..] u8) "prefix"))
+    Swag.assert(Slice.equals(actual.toSlice()[0 until 6], cast(const [..] u8, "prefix")))
     Swag.assert(Slice.equals(actual.toSlice()[6 until actual.count], expected.toSlice()))
 }
 
@@ -136,7 +136,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
 
     var sink = ByteSink.createMemory(&buffer)
     expect sink.writeText("data")
-    expect sink.patch(1, cast(const [..] u8) "XY")
+    expect sink.patch(1, cast(const [..] u8, "XY"))
     expect sink.writeByte('!'u8)
     expect sink.close()
     Swag.assert(buffer.toString() == "prefix keptdXYa!")

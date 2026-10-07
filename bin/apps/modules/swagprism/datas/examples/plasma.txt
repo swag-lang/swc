@@ -9,8 +9,8 @@ func shade(x, y, time: f32)->u32
              + Math.sin(y * 7 - time * 1.3)
              + Math.sin(radius * 12 - time * 2)
     let phase = wave * 1.4 + time * 0.4
-    let r = cast(u32) (128 + 127 * Math.cos(phase))
-    let g = cast(u32) (128 + 127 * Math.cos(phase + 2.1))
-    let b = cast(u32) (128 + 127 * Math.cos(phase + 4.2))
+    let r = cast(u32, 128 + 127 * Math.cos(phase))
+    let g = cast(u32, 128 + 127 * Math.cos(phase + 2.1))
+    let b = cast(u32, 128 + 127 * Math.cos(phase + 4.2))
     return 0xFF000000 | (r << 16) | (g << 8) | b
 }

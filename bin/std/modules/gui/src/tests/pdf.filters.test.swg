@@ -43,7 +43,7 @@ using Core, Pdf
 
     let partial = expect decodeAscii85("88/~>")
     Swag.assert(partial.count == 2)
-    Swag.assert(cast(string) partial.toSlice() == "Hi")
+    Swag.assert(cast(string, partial.toSlice()) == "Hi")
 
     discard catch decodeAscii85("!~") as terminatorError
     Swag.assert(terminatorError != null)
@@ -56,7 +56,7 @@ using Core, Pdf
     let encoded: [7] u8 = [2, 'A', 'B', 'C', 254, 'Z', 128]
     let runLength       = expect decodeRunLength(encoded)
     Swag.assert(runLength.count == 6)
-    Swag.assert(cast(string) runLength.toSlice() == "ABCZZZ")
+    Swag.assert(cast(string, runLength.toSlice()) == "ABCZZZ")
 
     let truncated: [3] u8 = [4, 'A', 'B']
     discard catch decodeRunLength(truncated) as truncatedError
@@ -66,7 +66,7 @@ using Core, Pdf
 #test
 {
     let hex = expect decodeAsciiHex("48 65 6C 6c 6F>ignored")
-    Swag.assert(cast(string) hex.toSlice() == "Hello")
+    Swag.assert(cast(string, hex.toSlice()) == "Hello")
 
     // An odd trailing digit is completed with a zero.
     let odd = expect decodeAsciiHex("4>")
@@ -84,7 +84,7 @@ using Core, Pdf
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /LZWDecode", encoded)
 
     let content  = "q 5 0 0 2 0 0 cm /Im0 Do Q"
-    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = onlyItem(document.pages[0], .Image).imageValue()!
     Swag.assert(image.width == 5 and image.height == 2)
 
@@ -112,7 +112,7 @@ using Core, Pdf
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 4 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors 1 /Columns 4 >>", packed.toSlice())
 
     let content  = "q 4 0 0 3 0 0 cm /Im0 Do Q"
-    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = onlyItem(document.pages[0], .Image).imageValue()!
     Swag.assert(image.width == 4 and image.height == 3)
 

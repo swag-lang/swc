@@ -20,7 +20,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
         return result
 
     var exp = exponent
-    var f   = cast(f64) mantissa
+    var f   = cast(f64, mantissa)
     if neg do
         f = -f
 
@@ -771,7 +771,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     if man == 0
     {
         if neg do
-            result.f = cast #bit (f64) 0x8000000000000000     // Negative zero.
+            result.f = cast #bit (f64, 0x8000000000000000)     // Negative zero.
         return result
     }
 
@@ -780,10 +780,10 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
 
     // Normalization.
     let clz = Swag.bitCountLz(man)
-    man <<= cast(u32) clz
+    man <<= cast(u32, clz)
 
     const ExponentBias = 1023
-    var retExp2 = cast(u64) (((217706's64 * exp10) >> 16) + 64 + ExponentBias) - clz
+    var retExp2 = cast(u64, (((217706's64 * exp10) >> 16) + 64 + ExponentBias)) - clz
 
     // Multiplication.
     var v = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]
@@ -810,7 +810,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
 
     // Shifting to 54 Bits.
     let msb         = (xHi >> 63)
-    var retMantissa = xHi >> cast(u32) (msb + 9)
+    var retMantissa = xHi >> cast(u32, (msb + 9))
     retExp2 -= 1'u64 ^ msb
 
     // Half-way Ambiguity.
@@ -836,7 +836,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     var retBits = (retExp2 << 52) | (retMantissa & 0x000FFFFFFFFFFFFF)
     if neg do
         retBits |= 0x8000000000000000
-    result.f  = cast #bit (f64) retBits
+    result.f  = cast #bit (f64, retBits)
     result.ok = true
     return result
 }
@@ -922,6 +922,6 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
     read.trunc = read.bigtrunc
     let {b, ovf} = read.floatBits()
     result.ovf   = ovf
-    result.value = cast #bit (f64) b
+    result.value = cast #bit (f64, b)
     return result
 }

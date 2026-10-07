@@ -18,7 +18,7 @@ impl IRuntimeContentsBorrow for RuntimeContentsBorrowValue
 #[Swag.NoInline]
 func runtimeContentsBorrowObject(value: IRuntimeContentsBorrow)->*void?
 {
-    let runtimeValue = cast(*Swag.Interface) &value
+    let runtimeValue = cast(*Swag.Interface, &value)
     return runtimeValue.obj
 }
 

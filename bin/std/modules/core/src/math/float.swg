@@ -17,10 +17,10 @@ struct(T) Const
     const ThreePiBy4: T = 3 * Pi / 4                                // Three times Pi divided by 4
     const OneByPi:    T = 1 / Pi                                    // Reciprocal of Pi
     const TwoByPi:    T = 2 / Pi                                    // Two divided by Pi
-    const Sqrt2:      T = sqrt(cast(T) 2)                           // Square root of 2
+    const Sqrt2:      T = sqrt(cast(T, 2))                          // Square root of 2
     const OneBySqrt2: T = 1 / Sqrt2                                 // Reciprocal of the square root of 2
-    const Ln2:        T = log(cast(T) 2)                            // Natural logarithm of 2
-    const Ln10:       T = log(cast(T) 10)                           // Natural logarithm of 10
+    const Ln2:        T = log(cast(T, 2))                           // Natural logarithm of 2
+    const Ln10:       T = log(cast(T, 10))                          // Natural logarithm of 10
     const Log2E:      T = log2(E)                                   // Base-two logarithm of Euler's number
     const Log10E:     T = log10(E)                                  // Base-ten logarithm of Euler's number
     const Epsilon:    T = 1e-06                                     // Default absolute tolerance of the epsilon comparisons
@@ -35,14 +35,14 @@ alias ConstF64 = Const'f64
 #[Swag.ConstExpr, Swag.Inline]
 {
     // Returns the sign of `x`: -1 when negative, 1 when positive, and 0 for zero.
-    func sign(x: f32) => cast(f32) (x > 0) - cast(f32) (x < 0)
-    func sign(x: f64) => cast(f64) (x > 0) - cast(f64) (x < 0)
+    func sign(x: f32) => cast(f32, (x > 0)) - cast(f32, (x < 0))
+    func sign(x: f64) => cast(f64, (x > 0)) - cast(f64, (x < 0))
 
     // Returns the magnitude of `x` carrying the sign of `y`.
     //
     // Only the sign bit moves, so a NaN keeps its payload and a zero takes the sign it is given.
-    func copysign(x, y: f32)->f32 => cast #bit (f32) ((cast #bit (u32) x & 0x7FFF_FFFF) | (cast #bit (u32) y & 0x8000_0000))
-    func copysign(x, y: f64)->f64 => cast #bit (f64) ((cast #bit (u64) x & 0x7FFF_FFFF_FFFF_FFFF) | (cast #bit (u64) y & 0x8000_0000_0000_0000))
+    func copysign(x, y: f32)->f32 => cast #bit (f32, ((cast #bit (u32, x) & 0x7FFF_FFFF) | (cast #bit (u32, y) & 0x8000_0000)))
+    func copysign(x, y: f64)->f64 => cast #bit (f64, ((cast #bit (u64, x) & 0x7FFF_FFFF_FFFF_FFFF) | (cast #bit (u64, y) & 0x8000_0000_0000_0000)))
 
     // Returns `x` clamped to the range [0, 1].
     func saturate(x: f32) => clamp(x, 0'f32, 1'f32)
@@ -163,13 +163,13 @@ alias ConstF64 = Const'f64
     // Returns whether `value` is finite, neither infinite nor NaN.
     func isFinite(value: f32)->bool
     {
-        let bits = cast #bit (u32) value
+        let bits = cast #bit (u32, value)
         return (bits & 0x7F800000'u32) != 0x7F800000'u32
     }
 
     func isFinite(value: f64)->bool
     {
-        let bits = cast #bit (u64) value
+        let bits = cast #bit (u64, value)
         return (bits & 0x7FF0000000000000'u64) != 0x7FF0000000000000'u64
     }
 
@@ -297,28 +297,28 @@ alias ConstF64 = Const'f64
     func round(x: f64) => Swag.round(x)
 
     // Returns `x` rounded down and converted to `s32`.
-    func floorS32(x: f32) => cast(s32) Swag.floor(x)
+    func floorS32(x: f32) => cast(s32, Swag.floor(x))
 
     // Returns `x` rounded down and converted to `s64`.
-    func floorS64(x: f64) => cast(s64) Swag.floor(x)
+    func floorS64(x: f64) => cast(s64, Swag.floor(x))
 
     // Returns `x` rounded up and converted to `s32`.
-    func ceilS32(x: f32) => cast(s32) Swag.ceil(x)
+    func ceilS32(x: f32) => cast(s32, Swag.ceil(x))
 
     // Returns `x` rounded up and converted to `s64`.
-    func ceilS64(x: f64) => cast(s64) Swag.ceil(x)
+    func ceilS64(x: f64) => cast(s64, Swag.ceil(x))
 
     // Returns `x` rounded toward zero and converted to `s32`.
-    func truncS32(x: f32) => cast(s32) Swag.trunc(x)
+    func truncS32(x: f32) => cast(s32, Swag.trunc(x))
 
     // Returns `x` rounded toward zero and converted to `s64`.
-    func truncS64(x: f64) => cast(s64) Swag.trunc(x)
+    func truncS64(x: f64) => cast(s64, Swag.trunc(x))
 
     // Returns `x` rounded to the nearest integer, halfway cases away from zero, and converted to `s32`.
-    func roundS32(x: f32) => cast(s32) Swag.round(x)
+    func roundS32(x: f32) => cast(s32, Swag.round(x))
 
     // Returns `x` rounded to the nearest integer, halfway cases away from zero, and converted to `s64`.
-    func roundS64(x: f64) => cast(s64) Swag.round(x)
+    func roundS64(x: f64) => cast(s64, Swag.round(x))
 
     // Returns the absolute value of `x`.
     func abs(x: f32) => Swag.abs(x)

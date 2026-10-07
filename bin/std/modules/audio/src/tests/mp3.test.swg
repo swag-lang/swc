@@ -16,14 +16,14 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     try itf.initialize(sound.decoderConfig.toSlice(), sound.sampleRateHz(), sound.numChannels())
 
     var block: Array'u8
-    block.resize(1152 * cast(u64) sound.numChannels() * #sizeof(s16))
+    block.resize(1152 * cast(u64, sound.numChannels()) * #sizeof(s16))
 
     var result: retval
     for index in sound.packetCount()
     {
         let packet  = try sound.packet(index)
         let written = try itf.decodePacket(block.storage(), block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
-        let samples = cast(const [*] s16) block.storage()
+        let samples = cast(const [*] s16, block.storage())
         for sample in written / #sizeof(s16) do
             result.add(samples[sample])
     }
@@ -45,7 +45,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
 
     Swag.assert(decoded.count == sound.sampleFrameCount() * sound.numChannels())
     var visible: bool
-    for sample in decoded where Math.abs(cast(s32) sample) > 256
+    for sample in decoded where Math.abs(cast(s32, sample)) > 256
     {
         visible = true
         break
@@ -85,22 +85,22 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
 
     // The reader states the priming the encoder added; what a player hears starts after it.
-    let skip     = sound.leadingTrim * cast(u64) channels
-    let wantedAt = cast(const [*] s16) wanted.storage()
+    let skip     = sound.leadingTrim * cast(u64, channels)
+    let wantedAt = cast(const [*] s16, wanted.storage())
     Swag.assert(decoded.count > skip)
     let count = Math.min(decoded.count - skip, wanted.count / #sizeof(s16))
-    Swag.assert(count > cast(u64) sampleRate / 8)
+    Swag.assert(count > cast(u64, sampleRate) / 8)
 
     var energy = 0.0'f64
     var worst  = 0.0'f64
     for index in count
     {
-        let difference = cast(f64) decoded[skip + index] - cast(f64) wantedAt[index]
+        let difference = cast(f64, decoded[skip + index]) - cast(f64, wantedAt[index])
         energy += difference * difference
         worst  = Math.max(worst, Math.abs(difference))
     }
 
-    let rms = Math.sqrt(energy / cast(f64) count) / 32768.0'f64
+    let rms = Math.sqrt(energy / cast(f64, count)) / 32768.0'f64
     if rms > 0.001'f64 do
         Swag.print("mp3 ", name, ": rms ", rms, " over ", count, " samples, worst ", worst, "\n")
     Swag.assert(rms <= 0.001'f64)

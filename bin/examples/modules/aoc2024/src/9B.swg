@@ -106,7 +106,7 @@ func day9BB()
 {
     func fileSum(a, n, block_id: s64)->u64
     {
-        let s = cast(u64) ((((2 * a) + n - 1) * n) / 2)
+        let s = cast(u64, ((((2 * a) + n - 1) * n) / 2))
         return s * block_id
     }
 
@@ -119,7 +119,7 @@ func day9BB()
     var moved:       HashTable'(s32, u8)
 
     for i in line.length where i % 2 == 0 do
-        filesBySize[line[i] - '0'].add(cast(s32) i)
+        filesBySize[line[i] - '0'].add(cast(s32, i))
 
     var total         = 0'u64
     var idx, blockIdx = 0

@@ -11,7 +11,7 @@ func fillRandom(buffer: [..] u8, seed: u32)
         x         ^= x << 13
         x         ^= x >> 17
         x         ^= x << 5
-        buffer[i] = cast(u8) (x & 0xFF)
+        buffer[i] = cast(u8, (x & 0xFF))
     }
 }
 

@@ -18,40 +18,40 @@ using Swag
     //
     // Besides the decimal digits, Latin-1 counts the superscripts U+00B2, U+00B3 and U+00B9 and
     // the fractions U+00BC to U+00BE, which have no decimal value.
-    func isNumber(c: u8) => cast(bool) (CharProperties[c] & .Digit)
+    func isNumber(c: u8) => cast(bool, (CharProperties[c] & .Digit))
 
     // Returns whether `c` is a binary digit, '0' or '1'.
-    func isBinDigit(c: u8) => cast(bool) (CharProperties[c] & .BinDigit)
+    func isBinDigit(c: u8) => cast(bool, (CharProperties[c] & .BinDigit))
 
     // Returns whether `c` is a hexadecimal digit: '0' to '9', 'a' to 'f' or 'A' to 'F'.
-    func isHexDigit(c: u8) => cast(bool) (CharProperties[c] & .HexDigit)
+    func isHexDigit(c: u8) => cast(bool, (CharProperties[c] & .HexDigit))
 
     // Returns whether `c` is a Latin-1 upper-case letter.
-    func isUpper(c: u8) => cast(bool) (CharProperties[c] & .Upper)
+    func isUpper(c: u8) => cast(bool, (CharProperties[c] & .Upper))
 
     // Returns whether `c` is a Latin-1 lower-case letter.
-    func isLower(c: u8) => cast(bool) (CharProperties[c] & .Lower)
+    func isLower(c: u8) => cast(bool, (CharProperties[c] & .Lower))
 
     // Returns whether `c` is a Latin-1 punctuation character.
-    func isPunctuation(c: u8) => cast(bool) (CharProperties[c] & .Punctuation)
+    func isPunctuation(c: u8) => cast(bool, (CharProperties[c] & .Punctuation))
 
     // Returns whether `c` is a Latin-1 letter.
-    func isLetter(c: u8) => cast(bool) (CharProperties[c] & .Letter)
+    func isLetter(c: u8) => cast(bool, (CharProperties[c] & .Letter))
 
     // Returns whether `c` is a Latin-1 letter or digit.
-    func isLetterOrDigit(c: u8) => cast(bool) (CharProperties[c] & (.Letter | .Digit))
+    func isLetterOrDigit(c: u8) => cast(bool, (CharProperties[c] & (.Letter | .Digit)))
 
     // Returns whether `c` is Latin-1 white space.
     //
     // That is a tab, a line feed, a vertical tab, a form feed, a carriage return, a space,
     // U+0085 or U+00A0.
-    func isSpace(c: u8) => cast(bool) (CharProperties[c] & .Spacing)
+    func isSpace(c: u8) => cast(bool, (CharProperties[c] & .Spacing))
 
     // Returns whether `c` is a Latin-1 control character.
-    func isControl(c: u8) => cast(bool) (CharProperties[c] & .Control)
+    func isControl(c: u8) => cast(bool, (CharProperties[c] & .Control))
 
     // Returns whether `c` is a Latin-1 symbol, such as a currency or mathematical sign.
-    func isSymbol(c: u8) => cast(bool) (CharProperties[c] & .Symbol)
+    func isSymbol(c: u8) => cast(bool, (CharProperties[c] & .Symbol))
 
     // Returns whether `c` is a word character: a Latin-1 letter or digit, or '_'.
     func isWord(c: u8) => isLetter(c) or isDigit(c) or c == '_'
@@ -68,7 +68,7 @@ private func isLowerUtf8(c: u8)->bool
 {
     if isAscii(c) and isLower(c) do
         return true
-    return cast(bool) (CharProperties[c] & .LowerUtf8)
+    return cast(bool, (CharProperties[c] & .LowerUtf8))
 }
 
 #[Inline, ConstExpr]
@@ -76,7 +76,7 @@ private func isUpperUtf8(c: u8)->bool
 {
     if isAscii(c) and isUpper(c) do
         return true
-    return cast(bool) (CharProperties[c] & .UpperUtf8)
+    return cast(bool, (CharProperties[c] & .UpperUtf8))
 }
 
 private func spaceMaskAt(data: const [*] u8)->u32
@@ -268,7 +268,7 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
             if equalMask != 0xFFFF
             {
                 let lane = Math.trailingZeros((~equalMask) & 0xFFFF)
-                return Math.sign(cast(s32) c1[lane] - cast(s32) c2[lane])
+                return Math.sign(cast(s32, c1[lane]) - cast(s32, c2[lane]))
             }
 
             offset += VectorSize
@@ -279,7 +279,7 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
         {
             let c1 = lowerUtf8Byte(src, i)
             let c2 = lowerUtf8Byte(dst, i)
-            result = cast(s32) c1 - cast(s32) c2
+            result = cast(s32, c1) - cast(s32, c2)
             if result != 0 do
                 return Math.sign(result)
         }
@@ -424,7 +424,7 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 // whitespace is preserved; the returned view remains valid while `str` does.
 func trim(str: string)->string
 {
-    let bytes = cast(const [..] u8) str
+    let bytes = cast(const [..] u8, str)
     let first = firstNonSpace(bytes)
     if first == str.count do
         return ""

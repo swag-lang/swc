@@ -8,18 +8,18 @@ impl Image
         if not legacy
         {
             var context = {src: me, dst: dstImage}
-            parallel for |&context| parIndex in cast(u64) dstImage.height
+            parallel for |&context| parIndex in cast(u64, dstImage.height)
             {
-                let row        = cast(u32) parIndex
-                let src        = cast(const *Image) context.src
-                let dst        = cast(*Image) context.dst
-                let y0         = cast(s32) row * 2
-                let sourceRow0 = src.pixels.storage() + cast(u64) y0 * src.rowStride
+                let row        = cast(u32, parIndex)
+                let src        = cast(const *Image, context.src)
+                let dst        = cast(*Image, context.dst)
+                let y0         = cast(s32, row) * 2
+                let sourceRow0 = src.pixels.storage() + cast(u64, y0) * src.rowStride
                 let sourceRow1 = sourceRow0 + src.rowStride
-                let targetRow  = dst.pixels.storage() + cast(u64) row * dst.rowStride
+                let targetRow  = dst.pixels.storage() + cast(u64, row) * dst.rowStride
                 for x in dst.width
                 {
-                    let x0      = cast(u64) x * 2 * src.bytesPerPixel
+                    let x0      = cast(u64, x) * 2 * src.bytesPerPixel
                     let p0      = readPixelValue(sourceRow0 + x0, src.pixelFormat)
                     let p1      = readPixelValue(sourceRow0 + x0 + src.bytesPerPixel, src.pixelFormat)
                     let p2      = readPixelValue(sourceRow1 + x0, src.pixelFormat)
@@ -29,7 +29,7 @@ impl Image
                         (p0.g + p1.g + p2.g + p3.g) * 0.25,
                         (p0.b + p1.b + p2.b + p3.b) * 0.25,
                         (p0.a + p1.a + p2.a + p3.a) * 0.25}
-                    writePixelValue(targetRow + cast(u64) x * dst.bytesPerPixel, dst.pixelFormat, average)
+                    writePixelValue(targetRow + cast(u64, x) * dst.bytesPerPixel, dst.pixelFormat, average)
                 }
             }
 
@@ -39,19 +39,19 @@ impl Image
         var f = {img: me}
         dstImage.visitPixels(&f)
         {
-            let data       = cast(*#decltype(f)) userData!
-            let srcImage   = cast(const *Image) data.img
+            let data       = cast(*#decltype(f), userData!)
+            let srcImage   = cast(const *Image, data.img)
             let b8         = srcImage.bytesPerPixel
             let w8         = srcImage.width * b8
             let pixSrc     = srcImage.pixels.storage() + (x * 2 * b8) + (y * 2 * w8)
             let pixSrcb8   = pixSrc + b8
             let pixSrcw8   = pixSrc + w8
             let pixSrcw8b8 = pixSrcw8 + b8
-            pix[0] = cast(u8) ((pixSrc[0] + #prom pixSrcb8[0] + #prom pixSrcw8[0] + #prom pixSrcw8b8[0]) >> 2)
-            pix[1] = cast(u8) ((pixSrc[1] + #prom pixSrcb8[1] + #prom pixSrcw8[1] + #prom pixSrcw8b8[1]) >> 2)
-            pix[2] = cast(u8) ((pixSrc[2] + #prom pixSrcb8[2] + #prom pixSrcw8[2] + #prom pixSrcw8b8[2]) >> 2)
+            pix[0] = cast(u8, ((pixSrc[0] + #prom pixSrcb8[0] + #prom pixSrcw8[0] + #prom pixSrcw8b8[0]) >> 2))
+            pix[1] = cast(u8, ((pixSrc[1] + #prom pixSrcb8[1] + #prom pixSrcw8[1] + #prom pixSrcw8b8[1]) >> 2))
+            pix[2] = cast(u8, ((pixSrc[2] + #prom pixSrcb8[2] + #prom pixSrcw8[2] + #prom pixSrcw8b8[2]) >> 2))
             if image.bitsPerPixel == 32 do
-                pix[3] = cast(u8) ((pixSrc[3] + #prom pixSrcb8[3] + #prom pixSrcw8[3] + #prom pixSrcw8b8[3]) >> 2)
+                pix[3] = cast(u8, ((pixSrc[3] + #prom pixSrcb8[3] + #prom pixSrcw8[3] + #prom pixSrcw8b8[3]) >> 2))
         }
     }
 

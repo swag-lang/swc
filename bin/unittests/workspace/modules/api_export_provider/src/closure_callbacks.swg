@@ -33,33 +33,33 @@ impl DepSelfBufferSet
     mtd opPostMove()
     {
         if buffer do
-            buffer = cast([*] u8) &storage[0]
+            buffer = cast([*] u8, &storage[0])
     }
 
     mtd opPostCopy()
     {
         if buffer do
-            buffer = cast([*] u8) &storage[0]
+            buffer = cast([*] u8, &storage[0])
     }
 
     #[Swag.NoInline]
     mtd const toSlice()->const [..] u8
     {
-        Swag.assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8, &storage[0]))
         return Swag.makeSlice(buffer, count)
     }
 
     #[Swag.NoInline]
     mtd const contains(value: u8)->bool
     {
-        Swag.assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8, &storage[0]))
         return depContains(.toSlice(), count, value)
     }
 
     #[Swag.NoInline]
     mtd const containsViaGeneric(value: u8)->bool
     {
-        Swag.assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8, &storage[0]))
         return depContainsGeneric(.toSlice(), count, value)
     }
 }
@@ -69,7 +69,7 @@ func depMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->DepSelfBuffer
 {
     var result: retval
     result.storage = [a, b, c, d]
-    result.buffer  = cast([*] u8) &result.storage[0]
+    result.buffer  = cast([*] u8, &result.storage[0])
     result.count   = count
     return result
 }

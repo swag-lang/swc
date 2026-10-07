@@ -33,7 +33,7 @@ impl IForm for FormStep
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast #try (*FormStep) ptr
+        let other = (catch cast(*FormStep?, ptr))
         if not other do
             return false
         return .isSameBase(ptr) and
@@ -44,8 +44,8 @@ impl IForm for FormStep
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast #assume (*FormStep) dst
-        let srcf = cast #assume (*FormStep) src
+        let dstf = assume cast (*FormStep, dst)
+        let srcf = assume cast (*FormStep, src)
         dstf.kind      = srcf.kind
         dstf.typeIndex = srcf.typeIndex
         dstf.ws        = srcf.ws
@@ -54,8 +54,8 @@ impl IForm for FormStep
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        var xa = cast(s32) (movingStart.x / zoom)
-        var ya = cast(s32) (movingStart.y / zoom)
+        var xa = cast(s32, (movingStart.x / zoom))
+        var ya = cast(s32, (movingStart.y / zoom))
         xa -= .ws / 2
         ya -= .hs / 2
         .setBaseForm(xa, ya, .ws, .hs)
@@ -82,10 +82,10 @@ impl IForm for FormStep
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * scale)
-        .y = cast(s32) (.y * scale)
-        .w = cast(s32) (.w * scale)
-        .h = cast(s32) (.h * scale)
+        .x = cast(s32, (.x * scale))
+        .y = cast(s32, (.y * scale))
+        .w = cast(s32, (.w * scale))
+        .h = cast(s32, (.h * scale))
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
@@ -149,13 +149,13 @@ impl IForm for FormStep
 
                 // Wrap with modulo 26 so indices past 26 cycle back through A..Z
                 // instead of spilling past 'Z' into punctuation glyphs.
-                t = Format.toString("%", cast(rune) ('A'rune + (curIndex - 1) % 26))
+                t = Format.toString("%", cast(rune, ('A'rune + (curIndex - 1) % 26)))
 
             case .LetterDown:
-                t = Format.toString("%", cast(rune) ('a'rune + (curIndex - 1) % 26))
+                t = Format.toString("%", cast(rune, ('a'rune + (curIndex - 1) % 26)))
             }
 
-            .pathl = expect face.buildStringOutline(t, cast() fSize)
+            .pathl = expect face.buildStringOutline(t, cast(fSize))
             .pathl.flatten(painter.quality())
             .pathl.offset(1, JoinStyle.Round, 0.5)
             .pathl.clean()
@@ -182,7 +182,7 @@ impl IForm for FormStep
             painter.fillRect(pp, bk)
 
         case .RoundRectangle:
-            var round = cast(f32) Math.min(.w, .h)
+            var round = cast(f32, Math.min(.w, .h))
             round /= 3
             if cxt.quickMode and .alpha != 100 do
                 painter.fillRoundRect(pp, round, round, backBrush)

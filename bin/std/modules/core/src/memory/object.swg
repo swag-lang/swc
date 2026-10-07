@@ -16,7 +16,7 @@ func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint
         return null
     }
 
-    let ptr = alloc(cast(u64) type.sizeof, allocator, alignment, userHint, loc)
+    let ptr = alloc(cast(u64, type.sizeof), allocator, alignment, userHint, loc)
     defaultInit(ptr, type)
     return ptr
 }
@@ -25,7 +25,7 @@ func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint
 func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
-    let ptr      = cast(*T) alloc(#sizeof(T), allocator, alignment, userHint, loc)
+    let ptr      = cast(*T, alloc(#sizeof(T), allocator, alignment, userHint, loc))
     Swag.init(ptr, 1)
     return ptr
 }
@@ -54,11 +54,11 @@ func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: st
 
     Swag.assert(type != null)
     let userHint = hint orelse type.name
-    assertIsAllocated(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
+    assertIsAllocated(ptr, cast(u64, type.sizeof), allocator, userHint, loc)
 
     dropType(ptr, type)
 
-    free(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
+    free(ptr, cast(u64, type.sizeof), allocator, userHint, loc)
 }
 
 // Allocates `num` contiguous values of `T` and default-initializes them.
@@ -69,7 +69,7 @@ func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     Swag.assert(num > 0)
 
     let userHint = hint orelse #stringof(T)
-    let ptr      = cast([*] T) alloc(#sizeof(T) * num, allocator, alignment, userHint, loc)
+    let ptr      = cast([*] T, alloc(#sizeof(T) * num, allocator, alignment, userHint, loc))
     Swag.init(ptr, num)
     return ptr
 }

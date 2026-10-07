@@ -116,8 +116,8 @@ func valCoord(seed: s32, xPrimed, yPrimed, zPrimed: s32)->f32
 // Returns 2D Perlin noise at (`x`, `y`) for `seed`, in the range -1 to 1.
 public func perlin(x, y: f32, seed: s32 = 1337)->f32
 {
-    var x0 = cast(s32) Math.floor(x)
-    var y0 = cast(s32) Math.floor(y)
+    var x0 = cast(s32, Math.floor(x))
+    var y0 = cast(s32, Math.floor(y))
 
     let xd0 = x - x0
     let yd0 = y - y0
@@ -129,8 +129,8 @@ public func perlin(x, y: f32, seed: s32 = 1337)->f32
 
     x0 *= PrimeX
     y0 *= PrimeY
-    let x1 = cast(s32) (x0 + PrimeX)
-    let y1 = cast(s32) (y0 + PrimeY)
+    let x1 = cast(s32, (x0 + PrimeX))
+    let y1 = cast(s32, (y0 + PrimeY))
 
     let xf0 = Math.lerp(gradCoord(seed, x0, y0, xd0, yd0), gradCoord(seed, x1, y0, xd1, yd0), xs)
     let xf1 = Math.lerp(gradCoord(seed, x0, y1, xd0, yd1), gradCoord(seed, x1, y1, xd1, yd1), xs)
@@ -141,9 +141,9 @@ public func perlin(x, y: f32, seed: s32 = 1337)->f32
 // Returns 3D Perlin noise at (`x`, `y`, `z`) for `seed`, in the range -1 to 1.
 public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
 {
-    var x0 = cast(s32) Math.floor(x)
-    var y0 = cast(s32) Math.floor(y)
-    var z0 = cast(s32) Math.floor(z)
+    var x0 = cast(s32, Math.floor(x))
+    var y0 = cast(s32, Math.floor(y))
+    var z0 = cast(s32, Math.floor(z))
 
     let xd0 = x - x0
     let yd0 = y - y0
@@ -159,9 +159,9 @@ public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
     x0 *= PrimeX
     y0 *= PrimeY
     z0 *= PrimeZ
-    let x1 = cast(s32) (x0 + PrimeX)
-    let y1 = cast(s32) (y0 + PrimeY)
-    let z1 = cast(s32) (z0 + PrimeZ)
+    let x1 = cast(s32, (x0 + PrimeX))
+    let y1 = cast(s32, (y0 + PrimeY))
+    let z1 = cast(s32, (z0 + PrimeZ))
 
     let xf00 = Math.lerp(gradCoord(seed, x0, y0, z0, xd0, yd0, zd0), gradCoord(seed, x1, y0, z0, xd1, yd0, zd0), xs)
     let xf10 = Math.lerp(gradCoord(seed, x0, y1, z0, xd0, yd1, zd0), gradCoord(seed, x1, y1, z0, xd1, yd1, zd0), xs)
@@ -177,8 +177,8 @@ public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
 // Returns 2D value noise at (`x`, `y`) for `seed`, in the range -1 to 1.
 public func value(x, y: f32, seed: s32 = 1337)->f32
 {
-    var x0 = cast(s32) Math.floor(x)
-    var y0 = cast(s32) Math.floor(y)
+    var x0 = cast(s32, Math.floor(x))
+    var y0 = cast(s32, Math.floor(y))
 
     let xs = Math.interpHermite(x - x0)
     let ys = Math.interpHermite(y - y0)
@@ -197,9 +197,9 @@ public func value(x, y: f32, seed: s32 = 1337)->f32
 // Returns 3D value noise at (`x`, `y`, `z`) for `seed`, in the range -1 to 1.
 public func value(x, y, z: f32, seed: s32 = 1337)->f32
 {
-    var x0 = cast(s32) Math.floor(x)
-    var y0 = cast(s32) Math.floor(y)
-    var z0 = cast(s32) Math.floor(z)
+    var x0 = cast(s32, Math.floor(x))
+    var y0 = cast(s32, Math.floor(y))
+    var z0 = cast(s32, Math.floor(z))
 
     let xs = Math.interpHermite(x - x0)
     let ys = Math.interpHermite(y - y0)

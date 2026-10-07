@@ -9,7 +9,7 @@
         return [50'u16, 60, 70, 80]
     }
 
-    let view = cast(const [..] u16) cb(false)
+    let view = cast(const [..] u16, cb(false))
     Swag.assert(view.count == 4)
     Swag.assert(view[0] == 50'u16)
     Swag.assert(view[3] == 80'u16)

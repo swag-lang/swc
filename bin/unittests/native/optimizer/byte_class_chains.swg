@@ -25,8 +25,8 @@ func table(c: u32, lo, hi: u32)->bool => c >= lo and c <= hi
 {
     for v in 0 until 256
     {
-        let c = cast(u8) v
-        let u = cast(u32) v
+        let c = cast(u8, v)
+        let u = cast(u32, v)
         Swag.assert(isHex(c) == (table(u, 48, 57) or table(u, 97, 102) or table(u, 65, 70)))
         Swag.assert(isAlnum(c) == (table(u, 97, 122) or table(u, 65, 90) or table(u, 48, 57)))
         Swag.assert(isIdentStart(c) == (table(u, 97, 122) or table(u, 65, 90) or u == 95))

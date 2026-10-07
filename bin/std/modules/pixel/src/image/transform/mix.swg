@@ -32,24 +32,24 @@ impl Image
             width: right - left,
             mode: mode}
 
-        parallel for |&context| parIndex in cast(u64) (bottom - top)
+        parallel for |&context| parIndex in cast(u64, (bottom - top))
         {
-            let row    = cast(u32) parIndex
-            let dst    = cast(*Image) context.dst
-            let src    = cast(const *Image) context.src
-            let dstRow = dst.pixels.storage() + cast(u64) (context.dstY + row) * dst.rowStride + cast(u64) context.dstX * dst.bytesPerPixel
-            let srcRow = src.pixels.storage() + cast(u64) (context.srcY + row) * src.rowStride + cast(u64) context.srcX * src.bytesPerPixel
+            let row    = cast(u32, parIndex)
+            let dst    = cast(*Image, context.dst)
+            let src    = cast(const *Image, context.src)
+            let dstRow = dst.pixels.storage() + cast(u64, (context.dstY + row)) * dst.rowStride + cast(u64, context.dstX) * dst.bytesPerPixel
+            let srcRow = src.pixels.storage() + cast(u64, (context.srcY + row)) * src.rowStride + cast(u64, context.srcX) * src.bytesPerPixel
 
             if context.mode == .Copy and dst.pixelFormat == src.pixelFormat and dst.alphaMode == src.alphaMode
             {
-                Memory.copy(dstRow, srcRow, cast(u64) context.width * dst.bytesPerPixel)
+                Memory.copy(dstRow, srcRow, cast(u64, context.width) * dst.bytesPerPixel)
             }
             else
             {
                 for column in context.width
                 {
-                    let pixDst = dstRow + cast(u64) column * dst.bytesPerPixel
-                    let pixSrc = srcRow + cast(u64) column * src.bytesPerPixel
+                    let pixDst = dstRow + cast(u64, column) * dst.bytesPerPixel
+                    let pixSrc = srcRow + cast(u64, column) * src.bytesPerPixel
                     let source = readLogicalPixelValue(pixSrc, src.pixelFormat, src.alphaMode)
                     var output = source
                     if context.mode == .SourceOver

@@ -48,5 +48,5 @@ func registerSoundStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'SoundStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'SoundStrings(cast(string, FrenchStrings))
 }

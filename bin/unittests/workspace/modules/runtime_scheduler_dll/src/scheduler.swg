@@ -3,7 +3,7 @@
 #[Swag.Foreign("kernel32", "Sleep", callconv: Swag.CallConv.C)]
 private func sleep(milliseconds: u32)
 
-public func schedulerAddress()->u64 => cast(u64) Swag.schedulerInstance()
+public func schedulerAddress()->u64 => cast(u64, Swag.schedulerInstance())
 
 // The entry and completion publisher belong to this DLL; the observer belongs to its importer.
 public func submitObserved(task: *Swag.Task, started: *Swag.AtomicFlag, parked: *bool)

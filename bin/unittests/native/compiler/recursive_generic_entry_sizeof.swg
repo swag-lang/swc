@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable    = .table
         let oldCapacity = .capacity
-        let newTable    = cast([*] RecursiveAssocEntry'(K, V)) (testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
+        let newTable    = cast([*] RecursiveAssocEntry'(K, V), (testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!)
         .table = newTable
 
         for i in oldCapacity
@@ -95,7 +95,7 @@ impl RecursiveAssocTable
         let oldTable    = .table
         let oldCapacity = .capacity
 
-        let newTable = cast([*] RecursiveAssocEntry'(K, V)) (testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
+        let newTable = cast([*] RecursiveAssocEntry'(K, V), (testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!)
         .table    = newTable
         .count    = 0
         .deleted  = 0
@@ -146,7 +146,7 @@ impl RecursiveAssocTable
     #[Discardable]
     mtd add(key: K, value: V)->*RecursiveAssocEntry'(K, V)?
     {
-        let hashVal = recursiveHash(cast(u32) key)
+        let hashVal = recursiveHash(cast(u32, key))
         return .emplaceInternal(hashVal, &key, &value)
     }
 
@@ -160,7 +160,7 @@ impl RecursiveAssocTable
         if .table == null do
             return null
 
-        let hashVal = recursiveHash(cast(u32) key)
+        let hashVal = recursiveHash(cast(u32, key))
         var index   = hashVal % .capacity
         while .table[index].hash
         {

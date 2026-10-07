@@ -19,7 +19,7 @@ struct AutoScopeFileInfo
 
 func(T) has(flags, value: T)->bool
 {
-    return (flags & value) != cast(T) 0
+    return (flags & value) != cast(T, 0)
 }
 
 impl Counter

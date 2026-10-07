@@ -18,7 +18,7 @@ using StaticApi.OpaqueAttributeCollision
 {
     let value    = Value{}
     let scalar   = Scalar{}
-    let required = cast(Required) "ready"
+    let required = cast(Required, "ready")
     let tagged   = Tagged{37}
     Swag.assert(value.isDefault())
     Swag.assert(scalar.isDefault())

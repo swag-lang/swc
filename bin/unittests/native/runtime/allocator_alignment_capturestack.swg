@@ -19,7 +19,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     req.alignment = 128
     itf.alloc(&req)
     Swag.assert(req.address != null)
-    Swag.assert(cast(u64) req.address % 128 == 0)
+    Swag.assert(cast(u64, req.address) % 128 == 0)
 
     itf.free(&req)
     Swag.assert(req.address == null)
@@ -36,7 +36,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     aligned.alignment = 128
     alignedItf.alloc(&aligned)
     Swag.assert(aligned.address != null)
-    Swag.assert(cast(u64) aligned.address % 128 == 0)
+    Swag.assert(cast(u64, aligned.address) % 128 == 0)
 
     alignedItf.free(&aligned)
     Swag.assert(aligned.address == null)
@@ -51,7 +51,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     captureItf.alloc(&captured)
     Swag.assert(captured.address != null)
 
-    let header   = cast(*AllocatorHeader) (cast([*] u8) captured.address - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader, (cast([*] u8, captured.address) - #sizeof(AllocatorHeader)))
     let tracking = header.tracking!
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
@@ -69,11 +69,11 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     var reqs: [6] AllocatorRequest
     for i in 6
     {
-        reqs[i].size      = 64 + cast(u64) i * 41
+        reqs[i].size      = 64 + cast(u64, i) * 41
         reqs[i].alignment = 128
         itf.alloc(&reqs[i])
         Swag.assert(reqs[i].address != null)
-        Swag.assert(cast(u64) reqs[i].address % 128 == 0)
+        Swag.assert(cast(u64, reqs[i].address) % 128 == 0)
     }
 
     for i in 6

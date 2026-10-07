@@ -143,8 +143,8 @@ func makeNested(base: s32)->func||()->s32
     fct = func(n: s32)->s32
     {
         var total = 0
-        for i in cast(u32) n do
-            total += cast(s32) i
+        for i in cast(u32, n) do
+            total += cast(s32, i)
         return total
     }
     Swag.assert(fct(5) == 0 + 1 + 2 + 3 + 4)

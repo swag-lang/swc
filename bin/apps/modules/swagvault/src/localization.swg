@@ -183,5 +183,5 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
 // file is a compile error with its line number, not a runtime fallback.
 #run
 {
-    expect Gui.validateStrings'AppStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'AppStrings(cast(string, FrenchStrings))
 }

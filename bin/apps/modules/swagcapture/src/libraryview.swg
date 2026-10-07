@@ -125,7 +125,7 @@ impl IWnd for LibraryView
         {
             if it.rect.contains(pos)
             {
-                ht = cast(u32) idx
+                ht = cast(u32, idx)
                 break
             }
         }
@@ -349,7 +349,7 @@ impl IWnd for LibraryView
                 it.texture = evt.paintContext.renderer.addImage(image)
             }
 
-            let selected = .selModel.isSelected(cast() i)
+            let selected = .selModel.isSelected(cast(i))
 
             with var infos: RecentInfos
             {
@@ -406,7 +406,7 @@ impl IWnd for LibraryView
             if capture and capture.rating and .libWnd.showRatingOverlay
             {
                 let star  = .mainWnd.icon(.RatingStar, RatingGlyphSize)
-                let width = cast(f32) capture.rating * RatingGlyphSize + cast(f32) (capture.rating - 1) * RatingGlyphGap
+                let width = cast(f32, capture.rating) * RatingGlyphSize + cast(f32, (capture.rating - 1)) * RatingGlyphGap
                 var sx    = it.rect.right() - width - 8
                 let sy    = it.rect.y + (capture.favorite ? 24 : 8)
                 for capture.rating
@@ -512,7 +512,7 @@ impl LibraryView
     mtd const numImagesPerLine()->u32
     {
         let {w, ?} = .getPreviewSize()
-        return cast(u32) (.paddedClientRect().width / (w + ItemMargin))
+        return cast(u32, (.paddedClientRect().width / (w + ItemMargin)))
     }
 
     // Returns the size of one grid cell. Every preview has the 4:3 frame of a capture thumbnail.
@@ -588,7 +588,7 @@ impl LibraryView
         var result: retval
         for item, i in .items
         {
-            if .selModel.isSelected(cast() i) do
+            if .selModel.isSelected(cast(i)) do
                 result.files.add(item.fi.fullName)
             if i == .focusItem do
                 result.focused = item.fi.fullName
@@ -606,9 +606,9 @@ impl LibraryView
         for item, i in .items
         {
             if selection.files.contains(item.fi.fullName) do
-                .selModel.select(cast() i)
+                .selModel.select(cast(i))
             if item.fi.fullName == selection.focused do
-                .focusItem = cast(u32) i
+                .focusItem = cast(u32, i)
         }
     }
 
@@ -887,7 +887,7 @@ impl LibraryView
                 value = Utf8.compare(windowA, windowB, .Latin1NoCase)
 
             case .Dimensions:
-                value = cast(u64) b.width * cast(u64) b.height <=> cast(u64) a.width * cast(u64) a.height
+                value = cast(u64, b.width) * cast(u64, b.height) <=> cast(u64, a.width) * cast(u64, a.height)
 
             case .FileSize:
                 value = b.fi.size <=> a.fi.size

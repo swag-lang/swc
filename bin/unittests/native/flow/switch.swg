@@ -197,7 +197,7 @@ alias StrictSwitchF32       = f32
 
 #test
 {
-    var v   = cast(StrictSwitchAliasEnum) SwitchStrictAliasEnum.B
+    var v   = cast(StrictSwitchAliasEnum, SwitchStrictAliasEnum.B)
     var hit = 0
     switch v
     {
@@ -271,14 +271,14 @@ alias StrictSwitchF32       = f32
 
 #test
 {
-    var v   = cast(StrictSwitchS32) 3
+    var v   = cast(StrictSwitchS32, 3)
     var hit = 0
     switch v
     {
-    case cast(StrictSwitchS32) 1:
+    case cast(StrictSwitchS32, 1):
         hit = 1
         break
-    case cast(StrictSwitchS32) 3:
+    case cast(StrictSwitchS32, 3):
         hit = 3
         break
     default:
@@ -290,11 +290,11 @@ alias StrictSwitchF32       = f32
 
 #test
 {
-    var v   = cast(StrictSwitchF32) 1.5
+    var v   = cast(StrictSwitchF32, 1.5)
     var hit = 0
     switch v
     {
-    case cast(StrictSwitchF32) 1.5:
+    case cast(StrictSwitchF32, 1.5):
         hit = 1
         break
     default:
@@ -457,7 +457,7 @@ func switchStringAtRuntime(buffer: [*] u8, text: string)->string
     for text, index in expected
     {
         let value = switchStringAtRuntime(&buffer[0], text)
-        Swag.assert(switchStringName(value) == cast(s32) index + 1)
+        Swag.assert(switchStringName(value) == cast(s32, index) + 1)
     }
 
     // Nothing else matches, including the prefixes and suffixes of what does.

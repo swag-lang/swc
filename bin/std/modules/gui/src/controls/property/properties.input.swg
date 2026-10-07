@@ -17,7 +17,7 @@ internal impl Properties
     {
         if not target or .edView == null do
             return false
-        let view = cast(*Wnd) .edView
+        let view = cast(*Wnd, .edView)
         return target == view or view.isAncestorOf(target)
     }
 
@@ -38,7 +38,7 @@ internal impl Properties
 
     func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
     {
-        let prop = cast #assume (*Properties) wnd
+        let prop = assume cast (*Properties, wnd)
         if prop.editPopup
         {
             // While an editor popup (e.g. the color picker) is open the popup is anchored
@@ -108,7 +108,7 @@ internal impl Properties
             if prop.isGridLike() and
                prop.selItem and
                prop.selItem.numChilds and
-               pt.x < cast(f32) prop.leftMargin + prop.itemIndent(prop.selItem)
+               pt.x < cast(f32, prop.leftMargin) + prop.itemIndent(prop.selItem)
             {
                 prop.selItem.flags.toggle(.Expanded)
                 prop.updateStates()
@@ -153,7 +153,7 @@ internal impl Properties
             // Resize of the grid column
             if prop.resizingColumn
             {
-                prop.setNameColumnWidth(cast() (pt.x - prop.gridMarginColumn * 0.5))
+                prop.setNameColumnWidth(cast((pt.x - prop.gridMarginColumn * 0.5)))
                 return true
             }
 

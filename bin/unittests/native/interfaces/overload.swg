@@ -35,7 +35,7 @@ impl IOverloaded for Overloaded
 #test
 {
     var object: Overloaded
-    let renderer = cast(IOverloaded) &object
+    let renderer = cast(IOverloaded, &object)
     var value:  s32
 
     Swag.assert(renderer.select("value") == 1)

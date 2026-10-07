@@ -30,11 +30,11 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
         return result
     }
 
-    let r = cast(u32) buffer[0]
+    let r = cast(u32, buffer[0])
     switch
     {
     case r < Surr1, r >= Surr3:
-        result.c   = cast(rune) r
+        result.c   = cast(rune, r)
         result.eat = 1
         return result
 
@@ -60,17 +60,17 @@ func encodeRune(dest: [..] u16, src: rune)->u32
     switch
     {
     case 0 <= src and src < Surr1, Surr3 <= src and src < SurrSelf:
-        dest[0] = cast(u16) src
+        dest[0] = cast(u16, src)
         return 1
 
     case SurrSelf <= src and src <= 0x10FFFF:
         let r = src - SurrSelf
-        dest[0] = cast(u16) (Surr1 + ((r >> 10) & 0x3FF))
-        dest[1] = cast(u16) (Surr2 + (r & 0x3FF))
+        dest[0] = cast(u16, (Surr1 + ((r >> 10) & 0x3FF)))
+        dest[1] = cast(u16, (Surr2 + (r & 0x3FF)))
         return 2
 
     default:
-        dest[0] = cast(u16) RuneError
+        dest[0] = cast(u16, RuneError)
         return 1
     }
 }
@@ -142,7 +142,7 @@ func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
         remain -= cpt
     }
 
-    return cast(u64) (dataof - dest.buffer)
+    return cast(u64, (dataof - dest.buffer))
 }
 
 // Returns the UTF-16 encoding of the runes of `src`.

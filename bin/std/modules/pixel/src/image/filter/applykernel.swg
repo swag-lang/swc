@@ -44,10 +44,10 @@ impl Image
         let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
         if not legacy
         {
-            var context = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
+            var context = {kernel: cast(const [..] s32, kernel), dstImage: dstImage}
             .visitPixels(&context)
             {
-                let params       = (cast(const *#decltype(context)) userData!)[]
+                let params       = cast(const *#decltype(context), userData!)[]
                 let radius       = params.kernel[0] / 2
                 var coefficients = params.kernel.buffer + 2
                 var sum          = PixelValue{0, 0, 0, 0}
@@ -56,13 +56,13 @@ impl Image
                 for var dy = -radius; dy <= radius; dy += 1
                 {
                     let sourceY   = Math.clamp(y - dy, 0, image.height - 1)
-                    let sourceRow = image.pixels.storage() + cast(u64) sourceY * image.rowStride
+                    let sourceRow = image.pixels.storage() + cast(u64, sourceY) * image.rowStride
                     for var dx = -radius; dx <= radius; dx += 1
                     {
                         let sourceX     = Math.clamp(x + dx, 0, image.width - 1)
-                        let source      = sourceRow + cast(u64) sourceX * image.bytesPerPixel
+                        let source      = sourceRow + cast(u64, sourceX) * image.bytesPerPixel
                         let sample      = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
-                        let coefficient = cast(f32) coefficients[]
+                        let coefficient = cast(f32, coefficients[])
                         sum.r        += sample.r * coefficient
                         sum.g        += sample.g * coefficient
                         sum.b        += sample.b * coefficient
@@ -73,7 +73,7 @@ impl Image
                 let divisor = params.kernel[1]
                 if divisor > 1
                 {
-                    let scale = cast(f32) divisor
+                    let scale = cast(f32, divisor)
                     sum.r /= scale
                     sum.g /= scale
                     sum.b /= scale
@@ -81,23 +81,23 @@ impl Image
 
                 let current = readLogicalPixelValue(pix, image.pixelFormat, image.alphaMode)
                 sum.a = current.a
-                let destination = params.dstImage.pixels.storage() + cast(u64) y * params.dstImage.rowStride + cast(u64) x * params.dstImage.bytesPerPixel
+                let destination = params.dstImage.pixels.storage() + cast(u64, y) * params.dstImage.rowStride + cast(u64, x) * params.dstImage.bytesPerPixel
                 writeLogicalPixelValue(destination, params.dstImage.pixelFormat, params.dstImage.alphaMode, sum)
             }
 
             return
         }
 
-        var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
+        var f = {kernel: cast(const [..] s32, kernel), dstImage: dstImage}
         .visitPixels(&f)
         {
-            let params     = cast(*#decltype(f)) userData!
+            let params     = cast(*#decltype(f), userData!)
             let kernelSize = params.kernel[0] / 2
             let b8         = image.bytesPerPixel
             let w8         = image.rowStride
             let w          = image.width
             let h          = image.height
-            let px         = cast([*] u8) image.pixels.storage()
+            let px         = cast([*] u8, image.pixels.storage())
             var ks         = params.kernel.buffer + 2
 
             var bs, gs, rs: s32
@@ -107,15 +107,15 @@ impl Image
             {
                 var p     = px + ((x - kernelSize) * b8) + ((y + kernelSize) * w8)
                 let kfull = (kernelSize * 2) + 1
-                let koff  = cast(u64) (w8 + (kfull * b8))
+                let koff  = cast(u64, (w8 + (kfull * b8)))
                 for kfull
                 {
                     for kfull
                     {
                         let ks0 = ks[]
-                        bs += cast(s32) p[0] * ks0
-                        gs += cast(s32) p[1] * ks0
-                        rs += cast(s32) p[2] * ks0
+                        bs += cast(s32, p[0]) * ks0
+                        gs += cast(s32, p[1]) * ks0
+                        rs += cast(s32, p[2]) * ks0
                         ks += 1
                         p  += b8
                     }
@@ -134,9 +134,9 @@ impl Image
                         let nx  = Math.clamp(x + dx, 0, w - 1)
                         let p   = px + (nx * b8) + (ny * w8)
                         let ks0 = ks[]
-                        bs += cast(s32) p[0] * ks0
-                        gs += cast(s32) p[1] * ks0
-                        rs += cast(s32) p[2] * ks0
+                        bs += cast(s32, p[0]) * ks0
+                        gs += cast(s32, p[1]) * ks0
+                        rs += cast(s32, p[2]) * ks0
                         ks += 1
                     }
                 }
@@ -147,9 +147,9 @@ impl Image
                 bs, gs, rs /= ksum
 
             var dpix = params.dstImage.pixels.storage() + (x * b8) + (y * w8)
-            dpix[0] = cast(u8) Math.clamp(bs, 0, 255)
-            dpix[1] = cast(u8) Math.clamp(gs, 0, 255)
-            dpix[2] = cast(u8) Math.clamp(rs, 0, 255)
+            dpix[0] = cast(u8, Math.clamp(bs, 0, 255))
+            dpix[1] = cast(u8, Math.clamp(gs, 0, 255))
+            dpix[2] = cast(u8, Math.clamp(rs, 0, 255))
             if image.bitsPerPixel == 32 do
                 dpix[3] = pix[3]
         }

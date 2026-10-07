@@ -27,7 +27,7 @@ struct DereferenceStrictAA
 #test
 {
     var st = DereferenceStrictAA{x: 12}
-    let v  = cast(DereferenceStrictAAPtr) &st
+    let v  = cast(DereferenceStrictAAPtr, &st)
     var v1 = v[]
     #assert(#typeof(v1) == DereferenceStrictAA)
     Swag.assert(v1.x == 12)
@@ -37,7 +37,7 @@ struct DereferenceStrictAA
 #test
 {
     var st = DereferenceStrictAA{x: 19}
-    let v  = cast(DereferenceStrictAAPtr) &st
+    let v  = cast(DereferenceStrictAAPtr, &st)
     Swag.assert(v.x == 19)
 }
 
@@ -45,7 +45,7 @@ struct DereferenceStrictAA
 #test
 {
     var st = DereferenceStrictAA{x: 23}
-    let v  = cast(DereferenceStrictAAPtr) &st
+    let v  = cast(DereferenceStrictAAPtr, &st)
     v.x = 31
     Swag.assert(st.x == 31)
 }

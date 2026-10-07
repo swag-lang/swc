@@ -7,18 +7,21 @@ using Core, Gui
 const BackgroundPollInterval: Time.Duration = 16'ms
 
 // Reports whether a view is still doing work whose result has not reached the screen.
-alias IsLoading = func(*Wnd)->bool
+alias IsLoading = func||()->bool
 
 // Reports whether unfinished work has left the viewer with no useful content to present.
-alias NeedsLoadingOverlay = func(*Wnd)->bool
+alias NeedsLoadingOverlay = func||()->bool
 
 // Requests release of a viewer's external resources without blocking the GUI thread.
 //
 // A false result asks the host to poll again. The host destroys the document and its contributed
 // chrome only after this callback returns true.
-alias Retire = func(*Wnd)->bool
+alias Retire = func||()->bool
 
 // Configures optional progressive-loading and retirement behavior.
+//
+// Capture the concrete viewer pointer by value in each callback. The capture borrows the
+// attached view; the host stops invoking these callbacks before destroying that view.
 struct LifecycleApi
 {
     public

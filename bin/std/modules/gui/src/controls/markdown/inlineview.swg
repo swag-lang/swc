@@ -198,8 +198,8 @@ impl InlineView
             .dstRect = {
                 x: rect.x - me.renderCachePhase.x,
                 y: rect.y - me.renderCachePhase.y,
-                width: cast(f32) me.renderLayer.width,
-                height: cast(f32) me.renderLayer.height}
+                width: cast(f32, me.renderLayer.width),
+                height: cast(f32, me.renderLayer.height)}
             .interpolationMode = .Pixel
             .blendingMode      = .Copy
             .writeAlpha        = false
@@ -672,7 +672,7 @@ impl InlineView
 
     mtd fontStyle(flags: InlineFlags)->FontFamilyStyle
     {
-        let base   = .kind >= .Heading1 and .kind <= .Heading6 ? .owner.documentStyle.headingFontStyles[cast(u32) .kind - cast(u32) BlockKind.Heading1] : FontFamilyStyle.Regular
+        let base   = .kind >= .Heading1 and .kind <= .Heading6 ? .owner.documentStyle.headingFontStyles[cast(u32, .kind) - cast(u32, BlockKind.Heading1)] : FontFamilyStyle.Regular
         let bold   = flags.has(.Bold) or base == .Bold or base == .BoldItalic
         let italic = flags.has(.Italic) or .kind == .Quote or base == .Italic or base == .BoldItalic
         if bold and italic do
@@ -848,7 +848,7 @@ impl InlineView
         if not gaps do
             return result
 
-        let step = Math.max(right - inkEnd, 0) / cast(f32) gaps
+        let step = Math.max(right - inkEnd, 0) / cast(f32, gaps)
         if gapWidth + step < line * JustifyLimit do
             result.step = step
         return result
@@ -990,7 +990,7 @@ impl InlineView
                 batch.firstAtom   = index
                 batch.origin      = {atom.position.x, top}
                 batch.color       = color
-                current           = cast(u32) .textBatches.count
+                current           = cast(u32, .textBatches.count)
                 .textBatches.add(#move batch)
                 right = Painter.advanceTextX(atom.position.x, 0, 0, info, true).rightX
             }
@@ -1326,13 +1326,13 @@ impl IWnd for InlineView
         discard .layout(rect.width)
 
         let transform   = painter.transform()
-        let width       = cast(s32) Math.ceil(rect.width)
-        let height      = cast(s32) Math.ceil(rect.height)
+        let width       = cast(s32, Math.ceil(rect.width))
+        let height      = cast(s32, Math.ceil(rect.height))
         let scale       = painter.contentScale()
-        let padding     = cast(s32) Math.ceil(1 / scale)
+        let padding     = cast(s32, Math.ceil(1 / scale))
         let layerWidth  = width + padding
         let layerHeight = height + padding
-        let canCache    = .kind == .Paragraph and .images.entries.isEmpty() and width > 0 and height > 0 and transform.isTranslationOnly() and cast(f32) layerWidth * scale <= MaxRenderCacheDim and cast(f32) layerHeight * scale <= MaxRenderCacheDim
+        let canCache    = .kind == .Paragraph and .images.entries.isEmpty() and width > 0 and height > 0 and transform.isTranslationOnly() and cast(f32, layerWidth) * scale <= MaxRenderCacheDim and cast(f32, layerHeight) * scale <= MaxRenderCacheDim
         let cacheReady  = canCache and .renderLayer.contentTarget != null and .renderLayer.width == layerWidth and .renderLayer.height == layerHeight and .renderLayer.deviceScale == scale
         if cacheReady
         {
@@ -1540,7 +1540,7 @@ impl IWnd for InlineView
             }
 
             .owner.endSelection()
-            if .mouseCapture() == cast(*Wnd) me do
+            if .mouseCapture() == cast(*Wnd, me) do
                 .releaseMouse()
 
         case .DoubleClick where evt.button == .Left:

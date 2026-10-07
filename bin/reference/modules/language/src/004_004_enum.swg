@@ -107,7 +107,7 @@ Non-integer enums require explicit assignments.
         C = 6.0
     }
 
-    #assert(Swag.abs(cast(f32) Value2.B - 3.14) < 0.001)
+    #assert(Swag.abs(cast(f32, Value2.B) - 3.14) < 0.001)
 }
 
 /**
@@ -179,8 +179,8 @@ Enums can also store slices.
 #test
 {
     enum Value: const [..] s32 { A = [1, 2], B = [10, 20, 30] }
-    let a = cast(const [..] s32) Value.A
-    let b = cast(const [..] s32) Value.B
+    let a = cast(const [..] s32, Value.A)
+    let b = cast(const [..] s32, Value.B)
     #assert(a.count == 2)
     #assert(b.count == 3)
     Swag.assert(b[2] == 30)

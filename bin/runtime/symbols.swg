@@ -16,7 +16,7 @@ var __dbgCacheDecoded: [*] u8? = null
 var __dbgCacheCount:   u32     = 0
 var __dbgCacheValid:   bool    = false
 
-func __dbgU32(p: [*] u8, off: u64)->u32 => (cast(const *u32) (&p[off]))[]
+func __dbgU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
 func __dbgFindSection(base: *void?)
 {
@@ -50,8 +50,8 @@ func __dbgStr(off: u32)->string
         return ""
 
     let sec = __dbgCacheSection!
-    let p   = cast([*] u8) &sec[cast(u64) off]
-    return Swag.makeString(p, (cast(cstring) p).count)
+    let p   = cast([*] u8, &sec[cast(u64, off)])
+    return Swag.makeString(p, cast(cstring, p).count)
 }
 
 func __symbolize(addr: *void)->__SwagSym
@@ -66,11 +66,11 @@ func __symbolize(addr: *void)->__SwagSym
     if not __dbgCacheValid do
         return result
 
-    let rva = cast(u32) (cast(u64) addr - cast(u64) imageBase)
+    let rva = cast(u32, (cast(u64, addr) - cast(u64, imageBase)))
     let sec = __dbgCacheSection!
     for i in __dbgCacheCount
     {
-        let entry = 16 + cast(u64) i * 20
+        let entry = 16 + cast(u64, i) * 20
         let start = __dbgU32(sec, entry)
         let size  = __dbgU32(sec, entry + 4)
         if rva >= start and rva < start + size

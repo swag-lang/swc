@@ -89,10 +89,10 @@ func unpremultiplyChannel(value, alpha: u8)->u8
     if alpha == 255 do
         return value
 
-    let result = (cast(u32) value * 255 + cast(u32) alpha / 2) / cast(u32) alpha
+    let result = (cast(u32, value) * 255 + cast(u32, alpha) / 2) / cast(u32, alpha)
     if result > 255 do
         return 255
-    return cast(u8) result
+    return cast(u8, result)
 }
 
 func unpremultiplyImage(image: *Image)
@@ -111,15 +111,15 @@ func unpremultiplyImage(image: *Image)
 func flipImageVertical(image: *Image)
 {
     var row = Array'u8{}
-    row.resize(cast(u64) image.rowStride)
+    row.resize(cast(u64, image.rowStride))
 
     var top = image.pixels.buffer
     var bot = image.pixels.buffer + image.rowStride * (image.height - 1)
     for image.height / 2
     {
-        Memory.copy(row.buffer, top, cast(u64) image.rowStride)
-        Memory.copy(top, bot, cast(u64) image.rowStride)
-        Memory.copy(bot, row.buffer, cast(u64) image.rowStride)
+        Memory.copy(row.buffer, top, cast(u64, image.rowStride))
+        Memory.copy(top, bot, cast(u64, image.rowStride))
+        Memory.copy(bot, row.buffer, cast(u64, image.rowStride))
         top += image.rowStride
         bot -= image.rowStride
     }
@@ -131,11 +131,11 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
 {
     initGdiPlus()
 
-    let emSize  = cast(f32) OutlineFontSize * scale * density
+    let emSize  = cast(f32, OutlineFontSize) * scale * density
     let border  = OutlineBorder * scale * density
     let text16  = Utf16.toZeroTerminated(text)
     let face16  = Utf16.toZeroTerminated("Segoe UI")
-    let count16 = cast(s32) (text16.count - 1)
+    let count16 = cast(s32, (text16.count - 1))
 
     var family: *GpFontFamily?
     var format: *GpStringFormat?
@@ -152,9 +152,9 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     gdipCheck(GdipGetPathWorldBounds(measurePath, &bounds, null, null))
     gdipCheck(GdipDeletePath(measurePath))
 
-    let margin = cast(f32) OutlineShadowMargin * density
-    let localW = Math.max(cast(s32) Math.ceil(bounds.width + border * 2 + margin * 2), 1)
-    let localH = Math.max(cast(s32) Math.ceil(bounds.height + border * 2 + margin * 2), 1)
+    let margin = cast(f32, OutlineShadowMargin) * density
+    let localW = Math.max(cast(s32, Math.ceil(bounds.width + border * 2 + margin * 2)), 1)
+    let localH = Math.max(cast(s32, Math.ceil(bounds.height + border * 2 + margin * 2)), 1)
 
     var image = Image.create(localW, localH, .BGRA8)
     image.clear()
@@ -163,7 +163,7 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     var graphics: *GpGraphics?
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
     Swag.assert(bitmap != null)
-    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) bitmap, &graphics))
+    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage, bitmap), &graphics))
     Swag.assert(graphics != null)
     gdipCheck(GdipSetSmoothingMode(graphics, GdipSmoothingModeHighQuality))
     gdipCheck(GdipSetPixelOffsetMode(graphics, GdipPixelOffsetModeHighQuality))
@@ -177,21 +177,21 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
 
     var pen:   *GpPen?
     var brush: *GpSolidFill?
-    gdipCheck(GdipCreatePen1(cast(u32) Argb.Crimson, border * 2, GdipUnitPixel, &pen))
+    gdipCheck(GdipCreatePen1(cast(u32, Argb.Crimson), border * 2, GdipUnitPixel, &pen))
     Swag.assert(pen != null)
     gdipCheck(GdipSetPenLineJoin(pen, GdipLineJoinRound))
-    gdipCheck(GdipCreateSolidFill(cast(u32) Argb.White, &brush))
+    gdipCheck(GdipCreateSolidFill(cast(u32, Argb.White), &brush))
     gdipCheck(GdipDrawPath(graphics, pen, path))
     Swag.assert(brush != null)
-    gdipCheck(GdipFillPath(graphics, cast(*GpBrush) brush, path))
+    gdipCheck(GdipFillPath(graphics, cast(*GpBrush, brush), path))
 
     gdipCheck(GdipDeletePen(pen))
-    gdipCheck(GdipDeleteBrush(cast(*GpBrush) brush))
+    gdipCheck(GdipDeleteBrush(cast(*GpBrush, brush)))
     gdipCheck(GdipDeletePath(path))
     gdipCheck(GdipDeleteStringFormat(format))
     gdipCheck(GdipDeleteFontFamily(family))
     gdipCheck(GdipDeleteGraphics(graphics))
-    gdipCheck(GdipDisposeImage(cast(*GpImage) bitmap))
+    gdipCheck(GdipDisposeImage(cast(*GpImage, bitmap)))
 
     flipImageVertical(&image)
     unpremultiplyImage(&image)
@@ -291,18 +291,18 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     var outline    = makeOutline(text, OutlineFontSize, Bold)
     let textWidth  = ((outline.maxBounds.x - outline.minBounds.x) + 2 * OutlineBorder) * scale
     let textHeight = ((outline.maxBounds.y - outline.minBounds.y) + 2 * OutlineBorder) * scale
-    let localW     = cast(s32) Math.ceil(textWidth + OutlineShadowMargin * 2)
-    let localH     = cast(s32) Math.ceil(textHeight + OutlineShadowMargin * 2)
-    let textX      = cast(f32) OutlineShadowMargin
-    let textY      = cast(f32) OutlineShadowMargin
+    let localW     = cast(s32, Math.ceil(textWidth + OutlineShadowMargin * 2))
+    let localH     = cast(s32, Math.ceil(textHeight + OutlineShadowMargin * 2))
+    let textX      = cast(f32, OutlineShadowMargin)
+    let textY      = cast(f32, OutlineShadowMargin)
 
     // The targets store device texels while every drawing call stays in logical
     // units: destination rectangles are logical, source rectangles address texels,
     // and the painter maps logical to device at its content scale (like Pixel.Layer).
     let density = painter.contentScale()
-    let devW    = cast(s32) Math.ceil(localW * density)
-    let devH    = cast(s32) Math.ceil(localH * density)
-    let dstRect = Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}
+    let devW    = cast(s32, Math.ceil(localW * density))
+    let devH    = cast(s32, Math.ceil(localH * density))
+    let dstRect = Math.Rectangle{0, 0, cast(f32, localW), cast(f32, localH)}
     let srcRect = Math.Rectangle{0, 0, localW * density, localH * density}
 
     let rtText   = g_Render.acquireRenderTarget(devW, devH)
@@ -315,7 +315,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     }
     else
     {
-        let ss      = cast(f32) superSample
+        let ss      = cast(f32, superSample)
         let rtSuper = g_Render.acquireRenderTarget(devW * superSample, devH * superSample)
         renderOutlineToTarget(painter, rtSuper, &outline, textX * ss, textY * ss, scale * ss, mode)
 
@@ -363,7 +363,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
         .unbindRenderTarget()
     }
 
-    let dst = Math.Rectangle{area.horzCenter() - localW * 0.5, area.vertCenter() - localH * 0.5, cast(f32) localW, cast(f32) localH}
+    let dst = Math.Rectangle{area.horzCenter() - localW * 0.5, area.vertCenter() - localH * 0.5, cast(f32, localW), cast(f32, localH)}
 
     painter.setAntialiased(false)
     painter.drawTexture(Math.Rectangle{dst.x + 5, dst.y + 5, dst.width, dst.height}, srcRect, rtShadow.colorBuffer)
@@ -386,7 +386,7 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
     let logicalH = devH / density
     let rtText   = g_Render.acquireRenderTarget(devW, devH)
     let rtBlur   = g_Render.acquireRenderTarget(devW, devH)
-    let src      = Math.Rectangle{0, 0, cast(f32) devW, cast(f32) devH}
+    let src      = Math.Rectangle{0, 0, cast(f32, devW), cast(f32, devH)}
     let dstFull  = Math.Rectangle{0, 0, logicalW, logicalH}
 
     with painter
@@ -443,7 +443,7 @@ func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: str
     let cellW = (body.width - gap * 3) / 4
     for sample, idx in Samples
     {
-        let x    = body.x + cast(f32) idx * (cellW + gap)
+        let x    = body.x + cast(f32, idx) * (cellW + gap)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
@@ -462,7 +462,7 @@ func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
     let cellW = (body.width - gap * 3) / 4
     for sample, idx in Samples
     {
-        let x    = body.x + cast(f32) idx * (cellW + gap)
+        let x    = body.x + cast(f32, idx) * (cellW + gap)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)

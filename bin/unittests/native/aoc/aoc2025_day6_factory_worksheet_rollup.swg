@@ -27,7 +27,7 @@ func hasVisibleChar(sheet: const [..] string, column: u32)->bool
 {
     for line in sheet
     {
-        let bytes = cast(const [..] u8) line
+        let bytes = cast(const [..] u8, line)
         Swag.assert(column < bytes.count)
 
         if bytes[column] != ' ' do
@@ -39,7 +39,7 @@ func hasVisibleChar(sheet: const [..] string, column: u32)->bool
 
 func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)->bool
 {
-    let bytes = cast(const [..] u8) line
+    let bytes = cast(const [..] u8, line)
 
     var foundDigit = false
     var result: u64
@@ -50,7 +50,7 @@ func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)
         if c >= '0' and c <= '9'
         {
             foundDigit = true
-            result     = result * 10'u64 + cast(u64) (c - '0')
+            result     = result * 10'u64 + cast(u64, (c - '0'))
         }
     }
 
@@ -63,7 +63,7 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
 {
     Swag.assert(sheet.count >= 2)
 
-    let operatorLine = cast(const [..] u8) sheet[sheet.count - 1]
+    let operatorLine = cast(const [..] u8, sheet[sheet.count - 1])
 
     var op: u8
     for column in firstColumn to lastColumn
@@ -113,12 +113,12 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 {
     Swag.assert(sheet.count >= 2)
 
-    let firstLine = cast(const [..] u8) sheet[0]
-    let width     = cast(u32) firstLine.count
+    let firstLine = cast(const [..] u8, sheet[0])
+    let width     = cast(u32, firstLine.count)
 
     for line in sheet
     {
-        Swag.assert((cast(const [..] u8) line).count == width)
+        Swag.assert(cast(const [..] u8, line).count == width)
     }
 
     var result: WorksheetRollup

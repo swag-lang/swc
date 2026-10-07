@@ -48,10 +48,10 @@ using Swag, Core
     f.capture.backImg = Image.create(24, 24, .BGRA8)
     f.capture.backImg.visitPixels()
     {
-        let r = cast(u8) ((x * 17 + y * 3) % 255)
-        let g = cast(u8) ((x * 5 + y * 19) % 255)
-        let b = cast(u8) ((x * 29 + y * 7) % 255)
-        (cast(*u32) pix)[] = Color.fromArgb(255'u8, r, g, b).argb
+        let r = cast(u8, ((x * 17 + y * 3) % 255))
+        let g = cast(u8, ((x * 5 + y * 19) % 255))
+        let b = cast(u8, ((x * 29 + y * 7) % 255))
+        cast(*u32, pix)[] = Color.fromArgb(255'u8, r, g, b).argb
     }
 
     let before = f.capture.backImg.pixelColor(12, 12)
@@ -94,7 +94,7 @@ using Swag, Core
     Swag.assert(f.capture.selection[0] == 0)
     Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormImage)
 
-    let imgForm = cast #assume (*FormImage) f.capture.forms[0]
+    let imgForm = assume cast (*FormImage, f.capture.forms[0])
     Swag.assert(imgForm.kind == .Capture)
     Swag.assert(imgForm.image.isValid())
     Swag.assert(imgForm.image.width == 12)

@@ -6,7 +6,7 @@ var Calls: [4] u32
 func nextValue(slot: u32)->s32
 {
     Calls[slot] += 1
-    return cast(s32) (slot + 1) * 10
+    return cast(s32, (slot + 1)) * 10
 }
 
 #[Swag.Inline]
@@ -42,7 +42,7 @@ func sumPack(values: s32...)->s32
     var total: s32
     for value in values do
         total += value
-    return total + cast(s32) values.count
+    return total + cast(s32, values.count)
 }
 
 #[Swag.Inline]

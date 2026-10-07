@@ -4,23 +4,23 @@
 // Safety flag configuration
 // =============================================
 
-#[Swag.Safety(.DynCast, false)]
+#[Swag.Safety(.Assume, false)]
 func dynCastSafetyDisabled()->bool
 {
-    return #safety(Swag.SafetyWhat.DynCast)
+    return #safety(Swag.SafetyWhat.Assume)
 }
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func dynCastSafetyEnabled()->bool
 {
-    return #safety(Swag.SafetyWhat.DynCast)
+    return #safety(Swag.SafetyWhat.Assume)
 }
 
 #test
 {
     const cfg      = #run Swag.compiler().getBuildCfg()![]
-    const expected = cfg.safetyGuards & Swag.SafetyWhat.DynCast ? true : false
-    #assert(#safety(Swag.SafetyWhat.DynCast) == expected)
+    const expected = cfg.safetyGuards & Swag.SafetyWhat.Assume ? true : false
+    #assert(#safety(Swag.SafetyWhat.Assume) == expected)
 }
 
 #test
@@ -41,10 +41,10 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyToS32(a: any)->s32
     {
-        return cast #assume(s32) a
+        return assume cast(s32, a)
     }
 
     const value = #run castAnyToS32(42)
@@ -53,10 +53,10 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyToString(a: any)->string
     {
-        return cast #assume(string) a
+        return assume cast(string, a)
     }
 
     const value = #run castAnyToString("hello")
@@ -65,10 +65,10 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyToBool(a: any)->bool
     {
-        return cast #assume(bool) a
+        return assume cast(bool, a)
     }
 
     const value = #run castAnyToBool(true)
@@ -81,10 +81,10 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyMismatch(a: any)->s32
     {
-        return cast #assume(s32) a     // swc-expected-error {{safety_err_runtime}}
+        return assume cast(s32, a)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyMismatch("not an int")
@@ -92,10 +92,10 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyBoolMismatch(a: any)->bool
     {
-        return cast #assume(bool) a     // swc-expected-error {{safety_err_runtime}}
+        return assume cast(bool, a)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyBoolMismatch(42)
@@ -107,10 +107,10 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.DynCast, false)]
+    #[Swag.Safety(.Assume, false)]
     func castAnyNoSafety(a: any)->s32
     {
-        return cast #assume(s32) a
+        return assume cast(s32, a)
     }
 
     const value = #run castAnyNoSafety("not an int")
@@ -140,10 +140,10 @@ struct Derived
 // Cast any to struct: exact type match
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyToBase(a: any)->Base
     {
-        return cast #assume(Base) a
+        return assume cast(Base, a)
     }
 
     const value = #run castAnyToBase(Base{value: 77})
@@ -153,10 +153,10 @@ struct Derived
 // Cast any to struct: using-field resolution (Derived contains Base via using)
 #test
 {
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyToBase2(a: any)->Base
     {
-        return cast #assume(Base) a
+        return assume cast(Base, a)
     }
 
     const value = #run castAnyToBase2(Derived{mid: {base: {value: 99}, midValue: 50}, derivedValue: 60})
@@ -171,10 +171,10 @@ struct Derived
         x: s32 = 0
     }
 
-    #[Swag.Safety(.DynCast, true)]
+    #[Swag.Safety(.Assume, true)]
     func castAnyToUnrelated(a: any)->Unrelated
     {
-        return cast #assume(Unrelated) a     // swc-expected-error {{safety_err_runtime}}
+        return assume cast(Unrelated, a)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyToUnrelated(Base{value: 10})

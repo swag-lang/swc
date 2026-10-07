@@ -17,7 +17,7 @@ func computeCrc32(bytes: const [..] u8)->u32
     var crc = 0xFFFF_FFFF'u32
     for ch in bytes
     {
-        crc ^= cast(u32) ch
+        crc ^= cast(u32, ch)
         for 8
         {
             if (crc & 1'u32) != 0'u32 do
@@ -38,7 +38,7 @@ func computeCrc64(bytes: const [..] u8)->u64
     var crc: u64
     for ch in bytes
     {
-        crc ^= cast(u64) ch << 56
+        crc ^= cast(u64, ch) << 56
         for 8
         {
             if (crc & 0x8000_0000_0000_0000'u64) != 0'u64 do
@@ -53,10 +53,10 @@ func computeCrc64(bytes: const [..] u8)->u64
 
 func buildDigest(payload: string, expectedCrc32: u32, expectedCrc64: u64)->ArtifactDigest
 {
-    let bytes = cast(const [..] u8) payload
+    let bytes = cast(const [..] u8, payload)
 
     var result: ArtifactDigest
-    result.byteCount    = cast(u32) bytes.count
+    result.byteCount    = cast(u32, bytes.count)
     result.crc32        = computeCrc32(bytes)
     result.crc64        = computeCrc64(bytes)
     result.matchesCrc32 = result.crc32 == expectedCrc32
@@ -67,7 +67,7 @@ func buildDigest(payload: string, expectedCrc32: u32, expectedCrc64: u64)->Artif
 #test
 {
     const manifest = "name,size,mtime\ntexture.png,24576,1712661000\nshader.bin,4096,1712662000"
-    let manifestBytes = cast(const [..] u8) manifest
+    let manifestBytes = cast(const [..] u8, manifest)
 
     Swag.assert(manifestBytes.count == 71)
     Swag.assert(computeCrc32("") == 0x0000_0000'u32)

@@ -13,7 +13,7 @@ func hexViewerPlugin()->Viewer.Plugin
         .staticName   = "Hexadecimal"
         .attach       = &registerHexStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Hex
+        .iconIndex    = cast(s32, ViewerIcons.Hex)
         .create       = &createHexViewer
         .smokeFixture = "viewer.hex"
         .addSelectors("*")
@@ -40,7 +40,7 @@ private func formatHexBinaryScalar(value, bits: u64)->String
         text.add(value & (1'u64 << shift) ? '1'u8 : '0'u8)
     }
 
-    return String.from(cast(string) text.toSlice())
+    return String.from(cast(string, text.toSlice()))
 }
 
 // Returns `value`, a `bits`-bit scalar, as `0o` and its octal digits, as the inspector spells it.
@@ -54,10 +54,10 @@ private func formatHexOctalScalar(value, bits: u64)->String
     for index in digits
     {
         let shift = (digits - 1 - index) * 3
-        text.add('0'u8 + cast(u8) ((value >> shift) & 7))
+        text.add('0'u8 + cast(u8, ((value >> shift) & 7)))
     }
 
-    return String.from(cast(string) text.toSlice())
+    return String.from(cast(string, text.toSlice()))
 }
 
 // Opens `fileName` and makes its first window resident, outside the GUI thread.
@@ -151,7 +151,7 @@ private impl IWnd for HexViewer
         if .reportFailure
         {
             let report: Viewer.ReportFailure = .reportFailure
-            .grid.doc.reportFailure = func|view = me, report|(reason) { report(cast(*Wnd) view, reason) }
+            .grid.doc.reportFailure = func|view = me, report|(reason) { report(cast(*Wnd, view), reason) }
         }
 
         .applyLayout()
@@ -326,7 +326,7 @@ impl HexViewer
         if .widthCombo.selectedIndex >= 2 do
             .formatCombo.addItem(hexStrings().ui_FormatFloat)
         let next = previous < .formatCombo.items.count ? previous : 0
-        .formatCombo.setSelectedIndex(cast(u32) next, notify: false)
+        .formatCombo.setSelectedIndex(cast(u32, next), notify: false)
         .applyValueMode()
     }
 
@@ -374,7 +374,7 @@ impl HexViewer
     private mtd refreshZoom()
     {
         let base    = .themeMetrics().defaultFixedFontSize
-        let percent = cast(u32) Math.round(cast(f32) .grid.fontSize * 100 / cast(f32) base)
+        let percent = cast(u32, Math.round(cast(f32, .grid.fontSize) * 100 / cast(f32, base)))
         .zoomLabel?.setText(Format.toString("% %", percent, "%"))
     }
 
@@ -394,10 +394,10 @@ impl HexViewer
 
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
-        case "scope.hex.zoom75":  .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 0.75), 1))
+        case "scope.hex.zoom75":  .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * 0.75), 1)))
         case "scope.hex.zoom100": .grid.resetFontSize()
-        case "scope.hex.zoom125": .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 1.25), 1))
-        case "scope.hex.zoom150": .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 1.5), 1))
+        case "scope.hex.zoom125": .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * 1.25), 1)))
+        case "scope.hex.zoom150": .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * 1.5), 1)))
         case "scope.hex.zoom200": .grid.setFontSize(base * 2)
         }
     }
@@ -462,14 +462,14 @@ impl HexViewer
         let offset  = .offsetText(.grid.caret)
         let size    = .grid.valueSize()
         let active  = size <= bytes.count ? formatHexScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
-        let percent = .grid.doc.fileSize > 1 ? cast(f64) .grid.caret * 100 / cast(f64) (.grid.doc.fileSize - 1) : 0
+        let percent = .grid.doc.fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, (.grid.doc.fileSize - 1)) : 0
         label.setText(Format.toString("@% · %{f1}%% · % B · % %", offset, percent, .grid.selectionLength(), .activeValueTag(), active))
 
         var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%", offset, .grid.caret, percent, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
         let raw8    = .inspectorScalar(bytes.toSlice(), 1)
         details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %", raw8, hexSignedScalar(raw8, 1), raw8, formatHexBinaryScalar(raw8, 8), formatHexOctalScalar(raw8, 8), raw8 ? "true" : "false")
-        if isHexPrintable(cast(u8) raw8) do
-            details += Format.toString(" · ASCII '%'", cast(u8) raw8)
+        if isHexPrintable(cast(u8, raw8)) do
+            details += Format.toString(" · ASCII '%'", cast(u8, raw8))
         if bytes.count >= 2
         {
             let raw = .inspectorScalar(bytes.toSlice(), 2)
@@ -479,13 +479,13 @@ impl HexViewer
         if bytes.count >= 4
         {
             let raw = .inspectorScalar(bytes.toSlice(), 4)
-            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}", raw, hexSignedScalar(raw, 4), raw, formatHexBinaryScalar(raw, 32), formatHexOctalScalar(raw, 32), cast #bit (f32) (cast(u32) raw))
+            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}", raw, hexSignedScalar(raw, 4), raw, formatHexBinaryScalar(raw, 32), formatHexOctalScalar(raw, 32), cast #bit (f32, cast(u32, raw)))
         }
 
         if bytes.count >= 8
         {
             let raw = .inspectorScalar(bytes.toSlice(), 8)
-            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}", raw, hexSignedScalar(raw, 8), raw, formatHexBinaryScalar(raw, 64), formatHexOctalScalar(raw, 64), cast #bit (f64) raw)
+            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}", raw, hexSignedScalar(raw, 8), raw, formatHexBinaryScalar(raw, 64), formatHexOctalScalar(raw, 64), cast #bit (f64, raw))
         }
 
         label.toolTip = #move details
@@ -742,51 +742,39 @@ func createHexViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
             discard text
-            return (cast #assume (*HexViewer) wnd).revealOffset(match.offset, match.length)
+            return view.revealOffset(match.offset, match.length)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*HexViewer) wnd).grid.matchBounds(bounds)
+            return view.grid.matchBounds(bounds)
         }
 
-        .clear = func(wnd)
+        .clear = func|view|() => view.grid.clearSearchMatch()
+
+        .describe = func|view|(presentation) => view.describeSearch(presentation)
+
+        .prepare = func|view|(query, plan)->EditBoxCheckResult
         {
-            (cast #assume (*HexViewer) wnd).grid.clearSearchMatch()
+            return view.prepareSearch(query, plan)
         }
 
-        .describe = func(wnd, presentation)
-        {
-            (cast #assume (*HexViewer) wnd).describeSearch(presentation)
-        }
+        .collectFileMatches = func|view|(source, baseOffset, matches) => view.collectSearchMatches(source, baseOffset, matches)
 
-        .prepare = func(wnd, query, plan)->EditBoxCheckResult
-        {
-            return (cast #assume (*HexViewer) wnd).prepareSearch(query, plan)
-        }
-
-        .collectFileMatches = func(wnd, source, baseOffset, matches)
-        {
-            (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches)
-        }
-
-        .useMatches = func(wnd, matches)
-        {
-            (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches)
-        }
+        .useMatches = func|view|(matches) => view.grid.setSearchMatches(matches)
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null
-        .retire    = func(wnd)->bool => (cast #assume (*HexViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

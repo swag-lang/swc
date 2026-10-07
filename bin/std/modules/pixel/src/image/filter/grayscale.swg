@@ -28,7 +28,7 @@ public impl Image
             var context = f
             .transformLogicalPixels(&context)
             {
-                let blend = (cast(const *f32) userData!)[]
+                let blend = cast(const *f32, userData!)[]
                 let gray  = value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
                 value.r = Math.lerp(value.r, gray, blend)
                 value.g = Math.lerp(value.g, gray, blend)
@@ -41,11 +41,11 @@ public impl Image
         if f == 1
         {
             var context = {image: me}
-            parallel for |&context| parIndex in cast(u64) .height
+            parallel for |&context| parIndex in cast(u64, .height)
             {
-                let row       = cast(u32) parIndex
-                let image     = cast(*Image) context.image
-                let rowPixels = image.pixels.storage() + cast(u64) row * image.rowStride
+                let row       = cast(u32, parIndex)
+                let image     = cast(*Image, context.image)
+                let rowPixels = image.pixels.storage() + cast(u64, row) * image.rowStride
                 let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
                 let weight0   = blueFirst ? 19'u16 : 54'u16
                 let weight2   = blueFirst ? 54'u16 : 19'u16
@@ -61,17 +61,17 @@ public impl Image
                     let shuffle1  = Math.Simd.load(GrayChannel1_32.buffer)
                     let shuffle2  = Math.Simd.load(GrayChannel2_32.buffer)
                     let output    = Math.Simd.load(GrayOutput32.buffer)
-                    let alphaMask = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
+                    let alphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                     while image.width - x >= 4
                     {
-                        let block    = rowPixels + cast(u64) x * 4
+                        let block    = rowPixels + cast(u64, x) * 4
                         let pixels   = Math.Simd.load(block)
                         let channel0 = Math.Simd.widenLow(Math.Simd.shuffle(pixels, shuffle0))
                         let channel1 = Math.Simd.widenLow(Math.Simd.shuffle(pixels, shuffle1))
                         let channel2 = Math.Simd.widenLow(Math.Simd.shuffle(pixels, shuffle2))
                         let weighted = channel0 * weights0 + channel1 * weights1 + channel2 * weights2
                         let gray16   = weighted >> 8
-                        let gray8    = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) gray16, zeros)
+                        let gray8    = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, gray16), zeros)
                         let result   = Math.Simd.shuffle(gray8, output)
                         Math.Simd.store(block, result | (pixels & alphaMask))
                         x += 4
@@ -85,14 +85,14 @@ public impl Image
                     let output   = Math.Simd.load(GrayOutput24.buffer)
                     while image.width - x >= 6
                     {
-                        let block    = rowPixels + cast(u64) x * 3
+                        let block    = rowPixels + cast(u64, x) * 3
                         let pixels   = Math.Simd.load(block)
                         let channel0 = Math.Simd.widenLow(Math.Simd.shuffle(pixels, shuffle0))
                         let channel1 = Math.Simd.widenLow(Math.Simd.shuffle(pixels, shuffle1))
                         let channel2 = Math.Simd.widenLow(Math.Simd.shuffle(pixels, shuffle2))
                         let weighted = channel0 * weights0 + channel1 * weights1 + channel2 * weights2
                         let gray16   = weighted >> 8
-                        let gray8    = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) gray16, zeros)
+                        let gray8    = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, gray16), zeros)
                         let result   = Math.Simd.shuffle(gray8, output)
                         Image.storeLow12(block, result)
                         x += 4
@@ -101,8 +101,8 @@ public impl Image
 
                 while x < image.width
                 {
-                    let pixel = rowPixels + cast(u64) x * image.bytesPerPixel
-                    let gray  = cast(u8) (((pixel[0] * cast(s32) weight0 + pixel[1] * 183's32 + pixel[2] * cast(s32) weight2) >> 8) & 0xFF)
+                    let pixel = rowPixels + cast(u64, x) * image.bytesPerPixel
+                    let gray  = cast(u8, (((pixel[0] * cast(s32, weight0) + pixel[1] * 183's32 + pixel[2] * cast(s32, weight2)) >> 8) & 0xFF))
                     pixel[0] = gray
                     pixel[1] = gray
                     pixel[2] = gray
@@ -117,13 +117,13 @@ public impl Image
         .visitPixels(&context)
         {
             let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
-            let blend     = (cast(const *f32) userData!)[]
+            let blend     = cast(const *f32, userData!)[]
             let weight0   = blueFirst ? 19's32 : 54's32
             let weight2   = blueFirst ? 54's32 : 19's32
-            let gray      = cast(f32) ((((pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)) >> 8) & 0xFF)
-            pix[0] = cast(u8) Math.lerp(cast(f32) pix[0], gray, blend)
-            pix[1] = cast(u8) Math.lerp(cast(f32) pix[1], gray, blend)
-            pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], gray, blend)
+            let gray      = cast(f32, ((((pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)) >> 8) & 0xFF))
+            pix[0] = cast(u8, Math.lerp(cast(f32, pix[0]), gray, blend))
+            pix[1] = cast(u8, Math.lerp(cast(f32, pix[1]), gray, blend))
+            pix[2] = cast(u8, Math.lerp(cast(f32, pix[2]), gray, blend))
         }
     }
 }

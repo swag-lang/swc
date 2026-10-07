@@ -66,7 +66,7 @@ struct OuterAnonymousUnion
     var inner: Inner
     inner.x = 8
     var a: OuterStrictPtr
-    a.p = cast(StructUsingStrictInnerPtr) &inner
+    a.p = cast(StructUsingStrictInnerPtr, &inner)
     let x = a.x
     #assert(#typeof(x) == s32)
     Swag.assert(x == 8)

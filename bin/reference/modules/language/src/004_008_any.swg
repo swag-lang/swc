@@ -18,27 +18,28 @@
 
     // Store an s32 literal value in the 'any'
     a = 6
-    Swag.assert(cast #assume(s32) a == 6)
+    Swag.assert(assume cast(s32, a) == 6)
 
     // Now store a string
     a = "string"
-    Swag.assert(cast #assume (string) a! == "string")
+    Swag.assert(assume cast (string, a!) == "string")
 
     // Now store a bool
     a = true
-    Swag.assert(cast #assume (bool) a == true)
+    Swag.assert(assume cast (bool, a) == true)
 }
 
 /**
 # Working with 'any' and Pointers
 
-Use `cast #try (*T)` to borrow the stored value after checking its type.
+Use `try cast(*T, boxed)` to borrow the stored value after checking its type.
+Use `catch cast(*T?, boxed)` when a failed conversion should produce null.
 */
 
 #test
 {
     let a: any = 6
-    let ptr    = cast #try (const *s32) a
+    let ptr    = (catch cast(const *s32?, a))
     Swag.assert(ptr != null)
     Swag.assert(ptr[] == 6)
 }
@@ -72,10 +73,10 @@ You can retrieve the stored value directly or through a constant pointer.
     #assert(#typeof(a) == any)
     Swag.assert(Swag.kindOf(a) == s32)
 
-    let b = cast #assume(s32) a     // Get the value itself
+    let b = assume cast(s32, a)     // Get the value itself
     Swag.assert(b == 42)
 
-    let d = cast #assume (const *s32) a     // Get a constant pointer to the value
+    let d = assume cast (const *s32, a)     // Get a constant pointer to the value
     Swag.assert(d[] == 42)
 }
 
@@ -94,10 +95,10 @@ You can create heterogeneous arrays where each element holds a different type.
     Swag.assert(Swag.kindOf(array[2]) == f32)
     Swag.assert(Swag.kindOf(array[3]) == string)
 
-    Swag.assert(cast #assume(bool) array[0] == true)
-    Swag.assert(cast #assume (s32) array[1] == 2)
-    Swag.assert(cast #assume (f32) array[2] == 3.0)
-    Swag.assert(cast #assume (string) array[3] == "4")
+    Swag.assert(assume cast(bool, array[0]) == true)
+    Swag.assert(assume cast (s32, array[1]) == 2)
+    Swag.assert(assume cast (f32, array[2]) == 3.0)
+    Swag.assert(assume cast (string, array[3]) == "4")
 }
 
 /**
@@ -115,11 +116,11 @@ value, just as for pointers and other nullable types.
 
     x = 6
     Swag.assert(x != null)
-    Swag.assert(cast #assume(s32) x == 6)
+    Swag.assert(assume cast(s32, x) == 6)
 
     x = "string"
     Swag.assert(x != null)
-    Swag.assert(cast #assume (string) x == "string")
+    Swag.assert(assume cast (string, x) == "string")
 
     x = null
     Swag.assert(x == null)

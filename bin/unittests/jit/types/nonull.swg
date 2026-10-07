@@ -116,10 +116,10 @@ func jitNonNullConstruction()->bool
     var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *JitNonNullItem              = &first
-    let block:                     [*] JitNonNullItem           = cast([*] JitNonNullItem) &blockStorage[0]
+    let block:                     [*] JitNonNullItem           = cast([*] JitNonNullItem, &blockStorage[0])
     let slice:                     [..] JitNonNullItem          = blockStorage
     let text:                      string                       = "nonull"
-    let ctext:                     cstring                      = cast(cstring) &cstringStorage[0]
+    let ctext:                     cstring                      = cast(cstring, &cstringStorage[0])
     let boxed:                     any                          = 123
     let reflectedType:             typeinfo                     = JitNonNullItem
     var nullableValuePointer:      *JitNonNullItem?             = null
@@ -168,13 +168,13 @@ func jitNonNullConstruction()->bool
     Swag.assert(aliasRequiredType.flags & Swag.TypeInfoFlags.Const)
     Swag.assert(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
 
-    let holderType           = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullHolder)
+    let holderType           = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullHolder))
     let nestedType           = #typeof(JitNonNullNested)
     let holderArrayType      = #typeof([2] JitNonNullHolder)
     let pointerArrayType     = #typeof([2] *JitNonNullItem)
     let defaultContainerType = #typeof(JitNonNullDefaultContainer)
-    let genericRequiredType  = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'(*JitNonNullItem))
-    let genericDefaultType   = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'JitNonNullStringDefault)
+    let genericRequiredType  = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullGenericBox'(*JitNonNullItem)))
+    let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullGenericBox'JitNonNullStringDefault))
     if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
@@ -255,7 +255,7 @@ func jitNonNullConstruction()->bool
         return false
     if families.text != "nonull" or families.ctext[0] != 'a'u8 do
         return false
-    if cast #assume(s32) families.boxed != 123 or families.reflectedType.name != "JitNonNullItem" do
+    if assume cast(s32, families.boxed) != 123 or families.reflectedType.name != "JitNonNullItem" do
         return false
     if boxedNullableValuePointer == null or
        boxedNullableBlockPointer == null or

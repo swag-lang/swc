@@ -14,7 +14,7 @@ impl Image
         var result: retval
 
         var bitmap: BITMAP
-        discard Gdi32Priv.GetObjectA(cast(HANDLE) hbitmap, #sizeof(BITMAP), &bitmap)
+        discard Gdi32Priv.GetObjectA(cast(HANDLE, hbitmap), #sizeof(BITMAP), &bitmap)
 
         switch bitmap.bmBitsPixel
         {
@@ -36,7 +36,7 @@ impl Image
             .bmiHeader.biCompression = BI_RGB
         }
 
-        try GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) result.pixels.storage(), &infos, cast() DIB_RGB_COLORS)
+        try GetDIBits(dc, hbitmap, 0, cast(bitmap.bmHeight), cast([*] u8, result.pixels.storage()), &infos, cast(DIB_RGB_COLORS))
 
         return result
     }
@@ -55,8 +55,8 @@ impl Image
         bi.bmiHeader.biCompression = BI_RGB
 
         var ppvBits: *u8?
-        let hbmp = try CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
-        defer #nofail try DeleteObject(cast() hbmp)
+        let hbmp = try CreateDIBSection(null, &bi, cast(DIB_RGB_COLORS), &ppvBits, null, 0)
+        defer #nofail try DeleteObject(cast(hbmp))
 
         Memory.copy(ppvBits!, dib.pixels.buffer, dib.byteCount)
 
@@ -81,9 +81,9 @@ impl Image
         result = try fromBitmapHandle(ii.hbmColor)
 
         if ii.hbmMask != null do
-            try DeleteObject(cast() ii.hbmMask)
+            try DeleteObject(cast(ii.hbmMask))
         if ii.hbmColor != null do
-            try DeleteObject(cast() ii.hbmColor)
+            try DeleteObject(cast(ii.hbmColor))
 
         return result
     }

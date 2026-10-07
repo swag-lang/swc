@@ -34,12 +34,12 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
     var outputOffset = 0'u64
     for block in 1 to blockCount
     {
-        let blockIndex = cast(u32) block
+        let blockIndex = cast(u32, block)
         let suffix     = input.count - 4
-        input[suffix + 0] = cast(u8) ((blockIndex >> 24) & 0xFF)
-        input[suffix + 1] = cast(u8) ((blockIndex >> 16) & 0xFF)
-        input[suffix + 2] = cast(u8) ((blockIndex >> 8) & 0xFF)
-        input[suffix + 3] = cast(u8) (blockIndex & 0xFF)
+        input[suffix + 0] = cast(u8, ((blockIndex >> 24) & 0xFF))
+        input[suffix + 1] = cast(u8, ((blockIndex >> 16) & 0xFF))
+        input[suffix + 2] = cast(u8, ((blockIndex >> 8) & 0xFF))
+        input[suffix + 3] = cast(u8, (blockIndex & 0xFF))
 
         var current = HmacSha256.compute(password, input.toSlice())
         var result  = current

@@ -40,7 +40,7 @@ func bestMatch(data: const [*] u8, cands: const [*] s64, count: s64, at, limit: 
     var bytes: [34] u8
     for i in text.count do
         bytes[i] = text[i]
-    let data = cast(const [*] u8) &bytes[0]
+    let data = cast(const [*] u8, &bytes[0])
     Swag.assert(matchLength(data, 0, 3, 6) == 5)
     Swag.assert(matchLength(data, 0, 9, 10) == 8)
     Swag.assert(matchLength(data, 9, 21, 12) == 9)

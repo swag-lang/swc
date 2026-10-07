@@ -13,7 +13,7 @@ using Swag, Core
     discard expect face.loadGlyph(glyphIndex, .Render)
     Swag.assert(face.glyph.bitmap.width > 0)
     Swag.assert(face.glyph.bitmap.rows > 0)
-    Swag.assert(face.glyph.bitmap.pitch == cast(s32) face.glyph.bitmap.width)
+    Swag.assert(face.glyph.bitmap.pitch == cast(s32, face.glyph.bitmap.width))
     Swag.assert(face.glyph.bitmap.pixelMode.bytesPerPixel() == 1)
     Swag.assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 
@@ -39,14 +39,14 @@ using Swag, Core
     let sdf = &face.glyph.bitmap
     Swag.assert(sdf.width > normal.width)
     Swag.assert(sdf.rows > normal.rows)
-    Swag.assert(sdf.pitch == cast(s32) sdf.width)
+    Swag.assert(sdf.pitch == cast(s32, sdf.width))
     Swag.assert(face.glyph.bitmapLeft < normalLeft)
     Swag.assert(face.glyph.bitmapTop > normalTop)
 
     var hasOutside = false
     var hasInside  = false
     let sdfBuf     = sdf.buffer!
-    for index in cast(u64) sdf.width * sdf.rows
+    for index in cast(u64, sdf.width) * sdf.rows
     {
         let value = sdfBuf[index]
         if value < 128 do
@@ -84,7 +84,7 @@ using Swag, Core
             let width  = Math.max(0, right - left)
             let rows   = Math.max(0, top - bottom)
             let edges  = buildEdges(&face.glyph.outline)
-            let scale  = 127.0 / cast(f64) spread
+            let scale  = 127.0 / cast(f64, spread)
 
             discard expect face.renderGlyphSdf(spread)
             let bitmap = &face.glyph.bitmap
@@ -97,13 +97,13 @@ using Swag, Core
             {
                 for px in width
                 {
-                    let sampleX        = left + cast(f64) px + 0.5
-                    let sampleY        = top - (cast(f64) py + 0.5)
+                    let sampleX        = left + cast(f64, px) + 0.5
+                    let sampleY        = top - (cast(f64, py) + 0.5)
                     let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
                     let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
                     let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
-                    let expected       = cast(u8) Math.round(value)
-                    Swag.assert(bitmap.buffer![cast(u64) py * bitmap.width + px] == expected)
+                    let expected       = cast(u8, Math.round(value))
+                    Swag.assert(bitmap.buffer![cast(u64, py) * bitmap.width + px] == expected)
                 }
             }
         }
@@ -131,7 +131,7 @@ using Swag, Core
     var hasFull    = false
     var hasPartial = false
     let bmpBuf     = bmp.buffer!
-    for index in cast(u64) bmp.width * bmp.rows
+    for index in cast(u64, bmp.width) * bmp.rows
     {
         let v = bmpBuf[index]
         if v == 0 do
@@ -185,10 +185,10 @@ using Swag, Core
     Swag.assert(msdf.rows > normalRows)
 
     // MTSDF: 4 bytes per pixel (RGB multi-channel field + true SDF in alpha).
-    Swag.assert(msdf.pitch == cast(s32) msdf.width * 4)
+    Swag.assert(msdf.pitch == cast(s32, msdf.width) * 4)
     Swag.assert(msdf.pixelMode.bytesPerPixel() == 4)
-    Swag.assert(face.glyph.bitmapLeft == normalLeft - cast(s32) spread)
-    Swag.assert(face.glyph.bitmapTop == normalTop + cast(s32) spread)
+    Swag.assert(face.glyph.bitmapLeft == normalLeft - cast(s32, spread))
+    Swag.assert(face.glyph.bitmapTop == normalTop + cast(s32, spread))
 
     // The padded border must be fully outside (median < 128), the glyph body must
     // contain inside pixels (median > 128), and channels must actually differ
@@ -204,7 +204,7 @@ using Swag, Core
     {
         for x in msdf.width
         {
-            let p = (cast(u64) y * msdf.width + x) * 4
+            let p = (cast(u64, y) * msdf.width + x) * 4
             let r = msdfBuf[p + 0]
             let g = msdfBuf[p + 1]
             let b = msdfBuf[p + 2]

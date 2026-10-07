@@ -21,7 +21,7 @@ func signedReference(value, divisor: s64)->s64 => value / divisor
     for value in [0'u64, 1, 6, 7, 8, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF,
                   0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     {
-        let narrow = cast #wrap (u32) value
+        let narrow = cast #wrap (u32, value)
         Swag.assert(quotient32(narrow) == unsignedReference(narrow, 7))
         Swag.assert(quotient64(value) == unsignedReference(value, 7))
         let second   = value ^ 0x123456789ABCDEF0

@@ -67,7 +67,7 @@ impl Thread
             remaining -= Swag.U32.Max - 1
         }
 
-        sleepNative(cast(u32) remaining)
+        sleepNative(cast(u32, remaining))
     }
 
     // Yields the remainder of the current thread's time slice.
@@ -101,7 +101,7 @@ impl Thread
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(inheritedCapacity, allocator)
         elif tempAllocSize != 0 do
-            .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, allocator)
+            .context.tempAllocator.setCapacity(cast(u64, tempAllocSize), allocator)
         .handle     = try createSuspendedNative(&threadEntry, me, &.id)
         .userLambda = lambda
         .userParam  = userParam
@@ -146,7 +146,7 @@ impl Thread
 #[Swag.CallingConvention(.C)]
 private func threadEntry(param: *void?)->u32
 {
-    let thread = cast(*Thread) param!
+    let thread = cast(*Thread, param!)
     Swag.setContext(thread.context)
     let lambda = thread.userLambda
     if lambda do
@@ -165,10 +165,10 @@ func wait(threads: *Thread...)
     var start = 0'u64
     while start < threads.count
     {
-        let count = Math.min(MaxThreadWaitCount, cast(u32) (threads.count - start))
+        let count = Math.min(MaxThreadWaitCount, cast(u32, (threads.count - start)))
         for i in count
         {
-            let thread = threads[start + cast(u64) i]
+            let thread = threads[start + cast(u64, i)]
             Swag.assert(thread.isValid())
             handles[i] = thread.handle
         }

@@ -78,9 +78,9 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
-    let src           = cast(const [*] u8) image.pixels.storage()
-    let bytesPerPixel = cast(u64) image.bytesPerPixel
-    let pixelCount    = cast(u64) image.width * cast(u64) image.height
+    let src           = cast(const [*] u8, image.pixels.storage())
+    let bytesPerPixel = cast(u64, image.bytesPerPixel)
+    let pixelCount    = cast(u64, image.width) * cast(u64, image.height)
     var converted: [512] u8
 
     var index: u64
@@ -89,7 +89,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         let runLength = tgaRunLength(src, index, pixelCount, bytesPerPixel)
         if runLength >= 2
         {
-            result.addNative(cast(u8) (0x80 | (runLength - 1)))
+            result.addNative(cast(u8, (0x80 | (runLength - 1))))
             writeTgaPixel(result, src + index * bytesPerPixel, image.pixelFormat)
             index += runLength
             continue
@@ -105,7 +105,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         }
 
         let rawCount = index - rawStart
-        result.addNative(cast(u8) (rawCount - 1))
+        result.addNative(cast(u8, (rawCount - 1)))
         let rawSource = src + rawStart * bytesPerPixel
         switch image.pixelFormat
         {
@@ -133,7 +133,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            userOptions = (cast(const *EncodeOptions) options.buffer!)[]
+            userOptions = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
@@ -147,9 +147,9 @@ internal impl IImageEncoder for Encoder
 
         with var header: Header
         {
-            .imageTypeCode  = cast(u8) (userOptions.rle ? TYPE_RLE_RGB : TYPE_RGB)
-            .width          = cast(u16) image.width
-            .height         = cast(u16) image.height
+            .imageTypeCode  = cast(u8, (userOptions.rle ? TYPE_RLE_RGB : TYPE_RGB))
+            .width          = cast(u16, image.width)
+            .height         = cast(u16, image.height)
             .bitsPerPixel   = image.bitsPerPixel
             .descriptorByte = image.pixelFormat.hasAlpha() ? 8'u8 : 0'u8
         }
@@ -162,9 +162,9 @@ internal impl IImageEncoder for Encoder
             return
         }
 
-        let src           = cast(const [*] u8) image.pixels.storage()
-        let bytesPerPixel = cast(u64) image.bytesPerPixel
-        let pixelCount    = cast(u64) image.width * cast(u64) image.height
+        let src           = cast(const [*] u8, image.pixels.storage())
+        let bytesPerPixel = cast(u64, image.bytesPerPixel)
+        let pixelCount    = cast(u64, image.width) * cast(u64, image.height)
 
         if image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
         {

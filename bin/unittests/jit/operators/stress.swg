@@ -42,7 +42,7 @@ enum StressKind: u16
         f -= 1.0'f32
 
         var g: f64 = 10.0'f64
-        g += cast(f64) f
+        g += cast(f64, f)
         g -= 1.0'f64
         g *= 2.0'f64
         g /= 3.0'f64
@@ -50,7 +50,7 @@ enum StressKind: u16
         var p: *void? = null
         if p == null
         {
-            p = cast(*void) 0x10'u64
+            p = cast(*void, 0x10'u64)
         }
 
         if p != null and a > 0
@@ -58,14 +58,14 @@ enum StressKind: u16
             a += 5
         }
 
-        var h: u32 = cast(u32) a
+        var h: u32 = cast(u32, a)
         h <<= 1'u32
         h >>= 2'u32
         h |= 0x20'u32
         h ^= 0x03'u32
         h &= 0x3F'u32
 
-        return cast(s32) h + cast(s32) g + b
+        return cast(s32, h) + cast(s32, g) + b
     }
 
     const V = #run stressMixed()
@@ -82,7 +82,7 @@ enum StressKind: u16
 
         var a: s8  = -10's8
         var b: u16 = 300'u16
-        var c: s64 = cast(s64) a + cast(s64) b + cast(s64) cast(u16) k
+        var c: s64 = cast(s64, a) + cast(s64, b) + cast(s64, cast(u16, k))
 
         c <<= 1
         c >>= 2
@@ -92,7 +92,7 @@ enum StressKind: u16
         d |= 40'u64
         d ^= 5'u64
 
-        c += cast(s64) d
+        c += cast(s64, d)
         return c
     }
 
@@ -156,12 +156,12 @@ enum StressKind: u16
         acc += stressBlend(arr[0], arr[1], arr[2])
         acc += stressBlend(arr[3], arr[4], arr[0])
         acc -= stressBlend(arr[1], arr[2], arr[3])
-        acc += cast(s32) cast(u16) StressKind.B
+        acc += cast(s32, cast(u16, StressKind.B))
 
         var neg: s32 = -arr[0]
         acc += neg
-        var plusVal: u32 = +cast(u32) arr[1]
-        acc += cast(s32) plusVal
+        var plusVal: u32 = +cast(u32, arr[1])
+        acc += cast(s32, plusVal)
         var mask: s32 = ~0x3's32
         acc -= mask
 
@@ -175,7 +175,7 @@ enum StressKind: u16
             acc -= 1
         }
 
-        var bits: u32 = cast(u32) acc
+        var bits: u32 = cast(u32, acc)
         bits = (bits << 3'u32) ^ 0x55'u32
         bits = (bits >> 2'u32) | 0x11'u32
         bits &= 0x7F'u32
@@ -188,7 +188,7 @@ enum StressKind: u16
         var p: *void? = null
         if (bits & 1'u32) != 0'u32
         {
-            p = cast(*void) 0x111'u64
+            p = cast(*void, 0x111'u64)
         }
 
         if p != null and acc > 0
@@ -200,8 +200,8 @@ enum StressKind: u16
             acc -= 4
         }
 
-        acc += cast(s32) bits
-        acc += cast(s32) f
+        acc += cast(s32, bits)
+        acc += cast(s32, f)
         return acc
     }
 

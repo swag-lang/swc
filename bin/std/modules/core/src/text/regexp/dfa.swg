@@ -59,9 +59,9 @@ func hashState(flags: u32, pcs: const [..] u32)->u64
     const Offset = 0xCBF2_9CE4_8422_2325'u64
     const Prime  = 0x0000_0100_0000_01B3'u64
 
-    var hash = (Offset ^ cast(u64) flags) * Prime
+    var hash = (Offset ^ cast(u64, flags)) * Prime
     for pc in pcs do
-        hash = (hash ^ cast(u64) pc) * Prime
+        hash = (hash ^ cast(u64, pc)) * Prime
     return hash
 }
 
@@ -128,7 +128,7 @@ impl Dfa
         // whole search is made of.
         .strideShift = 0
         .stride      = 1
-        while .stride < cast(u64) program.byteClassCount + 1
+        while .stride < cast(u64, program.byteClassCount) + 1
         {
             .stride      *= 2
             .strideShift += 1
@@ -199,10 +199,10 @@ impl Dfa
             return QuitState
         }
 
-        let stateId = cast(u32) .stateOffset.count
+        let stateId = cast(u32, .stateOffset.count)
         .stateOffset.add(.stateData.count)
         .stateFlags.add(flags)
-        .stateData.add(cast(u32) pcs.count)
+        .stateData.add(cast(u32, pcs.count))
         .stateData.add(pcs)
 
         let base = .trans.count
@@ -219,10 +219,10 @@ impl Dfa
 
     // The identifier a search carries for one state: its index, multiplied by the stride so
     // that a transition is an addition away.
-    mtd const identifierOf(index: u32)->u32 => cast(u32) (cast(u64) index << .strideShift)
+    mtd const identifierOf(index: u32)->u32 => cast(u32, (cast(u64, index) << .strideShift))
 
     // The index behind an identifier, tags stripped.
-    mtd const indexOf(identifier: u32)->u64 => cast(u64) (identifier & StateIndexMask) >> .strideShift
+    mtd const indexOf(identifier: u32)->u64 => cast(u64, (identifier & StateIndexMask)) >> .strideShift
 
     mtd const sameState(stateId: u32, pcs: const [..] u32, flags: u32)->bool
     {
@@ -230,7 +230,7 @@ impl Dfa
             return false
 
         let offset = .stateOffset[stateId]
-        if .stateData[offset] != cast(u32) pcs.count do
+        if .stateData[offset] != cast(u32, pcs.count) do
             return false
 
         for var i = 0'u64; i < pcs.count; i += 1
@@ -254,12 +254,12 @@ impl Dfa
         {
             let offset = .stateOffset[stateId]
             let count  = .stateData[offset]
-            let pcs    = Swag.makeSlice(cast(const [*] u32) &.stateData[offset + 1], cast(u64) count)
+            let pcs    = Swag.makeSlice(cast(const [*] u32, &.stateData[offset + 1]), cast(u64, count))
 
             var slot = hashState(.stateFlags[stateId], pcs) & .hashMask
             while .hashSlots[slot] != 0 do
                 slot = (slot + 1) & .hashMask
-            .hashSlots[slot] = cast(u32) stateId + 1
+            .hashSlots[slot] = cast(u32, stateId) + 1
         }
     }
 
@@ -427,7 +427,7 @@ impl Dfa
                 flags |= FlagFromNewline
         }
 
-        let index  = cast(u64) ((flags >> 1) & 0x0F) | (anchored ? 16'u64 : 0'u64)
+        let index  = cast(u64, ((flags >> 1) & 0x0F)) | (anchored ? 16'u64 : 0'u64)
         let cached = .startCache[index]
         if cached != UnknownState do
             return cached
@@ -466,7 +466,7 @@ impl Dfa
                 flags |= FlagFromNewline
         }
 
-        let index  = cast(u64) ((flags >> 1) & 0x0F) | 16'u64
+        let index  = cast(u64, ((flags >> 1) & 0x0F)) | 16'u64
         let cached = .startCache[index]
         if cached != UnknownState do
             return cached
@@ -520,7 +520,7 @@ impl Dfa
         // into a local: the tables as raw pointers, and the two settings it tests. Everything
         // that happens rarely is a call, to keep this function — and its stack frame — small.
         let usePrefilter = not anchored and prefilter.isEnabled()
-        let classes      = cast(const [*] u8) &program.byteClass[0]
+        let classes      = cast(const [*] u8, &program.byteClass[0])
         let data         = hay.buffer
         let quitHigh     = .quitHigh
         var transitions  = .trans.storage()
@@ -536,11 +536,11 @@ impl Dfa
                 return result
             }
 
-            let slot = cast(u64) (stateId & StateIndexMask) + cast(u64) classes[byte]
+            let slot = cast(u64, (stateId & StateIndexMask)) + cast(u64, classes[byte])
             var next = transitions[slot]
             if next == UnknownState
             {
-                next = .computeTransition(program, stateId, cast(u64) classes[byte])
+                next = .computeTransition(program, stateId, cast(u64, classes[byte]))
                 if next == QuitState
                 {
                     result.quit = true
@@ -634,7 +634,7 @@ impl Dfa
         if stateId == QuitState do
             return QuitOffset
 
-        let classes     = cast(const [*] u8) &program.byteClass[0]
+        let classes     = cast(const [*] u8, &program.byteClass[0])
         let data        = hay.buffer
         let quitHigh    = .quitHigh
         var transitions = .trans.storage()
@@ -647,11 +647,11 @@ impl Dfa
             if quitHigh and byte >= 0x80 do
                 return QuitOffset
 
-            let slot = cast(u64) (stateId & StateIndexMask) + cast(u64) classes[byte]
+            let slot = cast(u64, (stateId & StateIndexMask)) + cast(u64, classes[byte])
             var next = transitions[slot]
             if next == UnknownState
             {
-                next = .computeTransition(program, stateId, cast(u64) classes[byte])
+                next = .computeTransition(program, stateId, cast(u64, classes[byte]))
                 if next == QuitState do
                     return QuitOffset
 
@@ -701,7 +701,7 @@ impl Dfa
             return result
         }
 
-        let classes     = cast(const [*] u8) &program.byteClass[0]
+        let classes     = cast(const [*] u8, &program.byteClass[0])
         let data        = hay.buffer
         let quitHigh    = .quitHigh
         var transitions = .trans.storage()
@@ -721,8 +721,8 @@ impl Dfa
                 return result
             }
 
-            let symbol = cast(u64) classes[byte]
-            let slot   = cast(u64) (stateId & StateIndexMask) + symbol
+            let symbol = cast(u64, classes[byte])
+            let slot   = cast(u64, (stateId & StateIndexMask)) + symbol
             var next   = transitions[slot]
             if next == UnknownState
             {
@@ -774,7 +774,7 @@ impl Dfa
     // not on the hot path.
     mtd transition(program: const *Program, stateId: u32, symbol: u64)->u32
     {
-        let slot   = cast(u64) (stateId & StateIndexMask) + symbol
+        let slot   = cast(u64, (stateId & StateIndexMask)) + symbol
         let cached = .trans[slot]
         if cached != UnknownState do
             return cached

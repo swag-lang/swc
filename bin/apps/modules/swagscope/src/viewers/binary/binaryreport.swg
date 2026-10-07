@@ -263,11 +263,11 @@ func hexText(value: u64, digits: u64)->String
     text.add('x'u8)
     for index in digits
     {
-        let nibble = cast(u8) ((value >> ((digits - 1 - index) * 4)) & 0xF)
+        let nibble = cast(u8, ((value >> ((digits - 1 - index) * 4)) & 0xF))
         text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(cast(string) text.toSlice())
+    return String.from(cast(string, text.toSlice()))
 }
 
 // Returns a value in the two readings a size or an address is always wanted in at once.

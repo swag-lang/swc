@@ -75,7 +75,7 @@ func depBorrowCreateCarrier(target: *s32)->*DepBorrowCarrier
     var req: Swag.AllocatorRequest
     req.size = #sizeof(DepBorrowCarrier)
     Swag.getContext().allocator!.alloc(&req)
-    let carrier = cast(*DepBorrowCarrier) req.address!
+    let carrier = cast(*DepBorrowCarrier, req.address!)
     carrier.target = target
     return carrier
 }

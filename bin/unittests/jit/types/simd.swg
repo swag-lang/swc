@@ -21,30 +21,30 @@ func sumEight(a, b, c, d, e, f, g, h: #simd [4] s32)->s32
 #[Swag.NoInline]
 func wideMath()->s64
 {
-    let a = cast(#simd [2] s64) [JitS64Min, -9_000_000_000]
-    let b = cast(#simd [2] s64) [-7, 10_000_000_000]
+    let a = cast(#simd [2] s64, [JitS64Min, -9_000_000_000])
+    let b = cast(#simd [2] s64, [-7, 10_000_000_000])
     return Swag.min(a, b)[0] + Swag.max(a, b)[1] + Swag.abs(a)[1] + (a >> 64)[1]
 }
 
 #[Swag.NoInline]
 func byteShift()->u8
 {
-    let bytes = cast(#simd [16] u8) [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8]
+    let bytes = cast(#simd [16] u8, [0x81, 0x7F, 1, 0, 255, 128, 64, 3, 1, 2, 3, 4, 5, 6, 7, 8])
     return (bytes << 1)[0] + (bytes >> 1)[1]
 }
 
 #[Swag.NoInline]
 func wideMultiply()->u64
 {
-    let a = cast(#simd [2] u64) [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001]
-    let b = cast(#simd [2] u64) [2, 0x1_0000_0001]
+    let a = cast(#simd [2] u64, [0xFFFF_FFFF_FFFF_FFFF, 0x1_0000_0001])
+    let b = cast(#simd [2] u64, [2, 0x1_0000_0001])
     return (a * b)[1]
 }
 
 #[Swag.NoInline]
 func compute()->s32
 {
-    let a = cast(#simd [4] s32) [1, 2, 3, 4]
+    let a = cast(#simd [4] s32, [1, 2, 3, 4])
     let b = +a * a + a - 1
     return horizontalSum(b << 1)
 }
@@ -66,27 +66,27 @@ const FoldedWideMultiply = #run wideMultiply()
 
 #test
 {
-    let a = cast(#simd [8] s16) [1, 2, 3, 4, 5, 6, 7, 8]
-    let m = cast([8] u16) (a > Swag.vecsplat(4's16))
+    let a = cast(#simd [8] s16, [1, 2, 3, 4, 5, 6, 7, 8])
+    let m = cast([8] u16, (a > Swag.vecsplat(4's16)))
     Swag.assert(m[0] == 0 and m[3] == 0 and m[4] == 0xFFFF and m[7] == 0xFFFF)
 
-    let f = cast(#simd [4] f32) [2.0, 4.0, 8.0, 16.0]
-    let h = cast([4] f32) (f / Swag.vecsplat(2.0'f32))
+    let f = cast(#simd [4] f32, [2.0, 4.0, 8.0, 16.0])
+    let h = cast([4] f32, (f / Swag.vecsplat(2.0'f32)))
     Swag.assert(h[0] == 1.0 and h[3] == 8.0)
 }
 
 #[Swag.NoInline]
 func bitVocabulary()->u64
 {
-    let bytes = cast(#simd [16] u8) [0, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18]
-    let quads = cast(#simd [4] u32) [0, 1, 0x1234_5678, 0xFFFF_FFFF]
-    let pairs = cast(#simd [2] u64) [0, 0x0102_0304_0506_0708]
+    let bytes = cast(#simd [16] u8, [0, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18])
+    let quads = cast(#simd [4] u32, [0, 1, 0x1234_5678, 0xFFFF_FFFF])
+    let pairs = cast(#simd [2] u64, [0, 0x0102_0304_0506_0708])
 
-    var total = cast(u64) Swag.rol(bytes, 3)[8]
-    total += cast(u64) Swag.ror(bytes, 3)[1]
-    total += cast(u64) Swag.bitCountNz(quads)[3]
-    total += cast(u64) Swag.bitCountTz(quads)[0]
-    total += cast(u64) Swag.bitCountLz(quads)[1]
+    var total = cast(u64, Swag.rol(bytes, 3)[8])
+    total += cast(u64, Swag.ror(bytes, 3)[1])
+    total += cast(u64, Swag.bitCountNz(quads)[3])
+    total += cast(u64, Swag.bitCountTz(quads)[0])
+    total += cast(u64, Swag.bitCountLz(quads)[1])
     total += Swag.byteSwap(pairs)[1] >> 56
     return total
 }
@@ -124,13 +124,13 @@ func jitRotateFourWords()->bool
 
 func jitRotateByteLanes()->bool
 {
-    let words        = cast(#simd [8] u16) [0x1234, 0xABCD, 0x0102, 0xFEED, 0x8001, 0x00FF, 0x5500, 0x7F80]
-    let quads        = cast(#simd [4] u32) [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC]
-    let pairs        = cast(#simd [2] u64) [0x0123456789ABCDEF, 0xFFEEDDCCBBAA9988]
-    let rotatedWords = cast([8] u16) Swag.rol(words, 8)
-    let rotatedQuads = cast([4] u32) Swag.rol(quads, 16)
-    let rotatedPairs = cast([2] u64) Swag.ror(pairs, 16)
-    let halfPairs    = cast([2] u64) Swag.rol(pairs, 32)
+    let words        = cast(#simd [8] u16, [0x1234, 0xABCD, 0x0102, 0xFEED, 0x8001, 0x00FF, 0x5500, 0x7F80])
+    let quads        = cast(#simd [4] u32, [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC])
+    let pairs        = cast(#simd [2] u64, [0x0123456789ABCDEF, 0xFFEEDDCCBBAA9988])
+    let rotatedWords = cast([8] u16, Swag.rol(words, 8))
+    let rotatedQuads = cast([4] u32, Swag.rol(quads, 16))
+    let rotatedPairs = cast([2] u64, Swag.ror(pairs, 16))
+    let halfPairs    = cast([2] u64, Swag.rol(pairs, 32))
     return rotatedWords[0] == 0x3412 and rotatedWords[1] == 0xCDAB and
            rotatedQuads[0] == 0x45670123 and rotatedQuads[1] == 0xCDEF89AB and
            rotatedPairs[0] == 0xCDEF0123456789AB and rotatedPairs[1] == 0x9988FFEEDDCCBBAA and
@@ -169,7 +169,7 @@ func jitGroupedXor()->bool
 #[Swag.NoInline]
 func floatMagnitude()->f32
 {
-    let values = cast(#simd [4] f32) [-1.5, 2.5, -0.0, -8.25]
+    let values = cast(#simd [4] f32, [-1.5, 2.5, -0.0, -8.25])
     let result = Swag.abs(values)
     return result[0] + result[1] + result[2] + result[3]
 }

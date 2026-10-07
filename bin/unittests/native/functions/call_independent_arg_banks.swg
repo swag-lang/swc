@@ -6,7 +6,7 @@ func sumRegisterBanks(
     i2: s64, f2: f64, i3: s64, f3: f64,
     i4: s64, f4: f64, i5: s64, f5: f64)->s64
 {
-    return i0 + i1 + i2 + i3 + i4 + i5 + cast(s64) (f0 + f1 + f2 + f3 + f4 + f5)
+    return i0 + i1 + i2 + i3 + i4 + i5 + cast(s64, (f0 + f1 + f2 + f3 + f4 + f5))
 }
 
 #[Swag.NoInline]
@@ -16,7 +16,7 @@ func sumSpilledBanks(
     i4: s64, f4: f64, i5: s64, f5: f64,
     i6: s64, f6: f64)->s64
 {
-    return sumRegisterBanks(i0, f0, i1, f1, i2, f2, i3, f3, i4, f4, i5, f5) + i6 + cast(s64) f6
+    return sumRegisterBanks(i0, f0, i1, f1, i2, f2, i3, f3, i4, f4, i5, f5) + i6 + cast(s64, f6)
 }
 
 alias RegisterBankFn = func(s64, f64, s64, f64, s64, f64, s64, f64, s64, f64, s64, f64)->s64
@@ -28,7 +28,7 @@ func sumEightBanks(
     i4: s64, f4: f64, i5: s64, f5: f64,
     i6: s64, f6: f64, i7: s64, f7: f64)->s64
 {
-    return i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + cast(s64) (f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7)
+    return i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + cast(s64, (f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7))
 }
 
 #[Swag.NoInline]
@@ -37,7 +37,7 @@ func repeatEightBanks(count: u32)->s64
     var total = 0's64
     for i in count
     {
-        let value = cast(s64) i
+        let value = cast(s64, i)
         total += sumEightBanks(value, 1, value, 2, value, 3, value, 4, value, 5, value, 6, value, 7, value, 8)
     }
     return total
@@ -56,8 +56,8 @@ func repeatEightBanks(count: u32)->s64
     var changing = 0's64
     for i in 8
     {
-        let value = cast(s64) i
-        changing += sumRegisterBanks(value, cast(f64) value, value, 2, value, 3, value, 4, value, 5, value, 6)
+        let value = cast(s64, i)
+        changing += sumRegisterBanks(value, cast(f64, value), value, 2, value, 3, value, 4, value, 5, value, 6)
     }
     Swag.assert(changing == 356)
 }

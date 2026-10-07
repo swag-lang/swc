@@ -88,7 +88,7 @@ private impl ImageView
         if source.isValid() do
             return {source.width, source.height}
         if .hasDrawing() do
-            return {cast(s32) Math.max(Math.round(.drawing.width), 1.0'f32), cast(s32) Math.max(Math.round(.drawing.height), 1.0'f32)}
+            return {cast(s32, Math.max(Math.round(.drawing.width), 1.0'f32)), cast(s32, Math.max(Math.round(.drawing.height), 1.0'f32))}
         return {.planarWidth, .planarHeight}
     }
 
@@ -136,7 +136,7 @@ private impl ImageView
         if .isMirrored do
             result.multiply(Math.Transform2.createScale(-1, 1, center.x, center.y))
         if .rotationQuarterTurns do
-            result.multiply(Math.Transform2.createRotation(Math.toRadians(cast(f32) .rotationQuarterTurns * 90), center.x, center.y))
+            result.multiply(Math.Transform2.createRotation(Math.toRadians(cast(f32, .rotationQuarterTurns) * 90), center.x, center.y))
         result.multiply(base)
         return result
     }

@@ -18,7 +18,7 @@ impl DynArray
     {
         var result: DynArray'T
         result.capacity = DefaultCapacity
-        result.data     = cast([*] T?) testAlloc(DefaultCapacity * #sizeof(T))
+        result.data     = cast([*] T?, testAlloc(DefaultCapacity * #sizeof(T)))
         return result
     }
 
@@ -36,7 +36,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data     = cast([*] T?) testRealloc(me.data, newCapacity * #sizeof(T))
+            me.data     = cast([*] T?, testRealloc(me.data, newCapacity * #sizeof(T)))
             me.capacity = newCapacity
         }
 
@@ -109,7 +109,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data     = cast([*] T?) testRealloc(me.data, newCapacity * #sizeof(T))
+            me.data     = cast([*] T?, testRealloc(me.data, newCapacity * #sizeof(T)))
             me.capacity = newCapacity
         }
 

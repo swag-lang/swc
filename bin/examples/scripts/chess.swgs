@@ -172,7 +172,7 @@ func computeMoves()
 
         var moves: Array's8
 
-        let i = cast(s8) index
+        let i = cast(s8, index)
         switch cell.piece
         {
         case .Pawn:
@@ -206,8 +206,8 @@ func computeMoves()
 
     // castle special case
     let ki           = g_Game.whiteTurn ? 6's8 : 90's8
-    let littleCastle = g_Game.castle[cast(u64) contentToTreat, 0]
-    let bigCastle    = g_Game.castle[cast(u64) contentToTreat, 1]
+    let littleCastle = g_Game.castle[cast(u64, contentToTreat), 0]
+    let bigCastle    = g_Game.castle[cast(u64, contentToTreat), 1]
 
     if littleCastle and
        moveIsPossible(ki, ki + 1) and
@@ -328,8 +328,8 @@ func doMove(fromP, toP: s8)
 
     // castle update and params
     let ki = content == .White ? 6's8 : 90's8
-    g_Game.castle[cast(u64) content, 0] = g_Game.castle[cast(u64) content, 0] and (fromP != ki) and (fromP != ki + 3)
-    g_Game.castle[cast(u64) content, 1] = g_Game.castle[cast(u64) content, 1] and (fromP != ki) and (fromP != ki - 4)
+    g_Game.castle[cast(u64, content), 0] = g_Game.castle[cast(u64, content), 0] and (fromP != ki) and (fromP != ki + 3)
+    g_Game.castle[cast(u64, content), 1] = g_Game.castle[cast(u64, content), 1] and (fromP != ki) and (fromP != ki - 4)
 
     g_Board[toP].piece     = g_Board[fromP].piece
     g_Board[toP].content   = g_Board[fromP].content
@@ -345,13 +345,13 @@ func doMove(fromP, toP: s8)
     // prise en passant
     if toP == g_Game.priseEnPassant
     {
-        let otherTo = toP - 12 * Math.sign(cast(s8) (toP - fromP))
+        let otherTo = toP - 12 * Math.sign(cast(s8, (toP - fromP)))
         g_Board[otherTo].piece   = .None
         g_Board[otherTo].content = .Empty
     }
 
-    if g_Board[toP].piece == .Pawn and Math.abs(cast(s8) (fromP - toP)) == 24 do
-        g_Game.priseEnPassant = cast(s8) ((fromP + #prom toP) / 2)
+    if g_Board[toP].piece == .Pawn and Math.abs(cast(s8, (fromP - toP))) == 24 do
+        g_Game.priseEnPassant = cast(s8, ((fromP + #prom toP) / 2))
     else do
         g_Game.priseEnPassant = -1
 
@@ -386,9 +386,9 @@ func paintCell(painter: *Pixel.Painter, index: s8)
 
     var texture: Texture
     if cell.content == .White do
-        texture = Res.piecesTexture[0, cast(u8) cell.piece - 1]
+        texture = Res.piecesTexture[0, cast(u8, cell.piece) - 1]
     elif cell.content == .Black do
-        texture = Res.piecesTexture[1, cast(u8) cell.piece - 1]
+        texture = Res.piecesTexture[1, cast(u8, cell.piece) - 1]
     else do
         return
     painter.drawTexture(cellInfo.rect, texture)
@@ -419,7 +419,7 @@ func paintBoard(paintEvt: *PaintEvent)
 
     for column in 8
     {
-        buf[0] = cast(u8) (65 + column)
+        buf[0] = cast(u8, (65 + column))
         rs.set(str)
         painter.drawRichString(rect, &rs, rsf)
         rect.x += CellSize
@@ -428,7 +428,7 @@ func paintBoard(paintEvt: *PaintEvent)
     rect = Math.Rectangle{0, b, b, CellSize}
     for row in 8
     {
-        buf[0] = cast(u8) (56 - row)
+        buf[0] = cast(u8, (56 - row))
         rs.set(str)
         painter.drawRichString(rect, &rs, rsf)
         rect.y += CellSize
@@ -500,9 +500,9 @@ func pickCell(pos: Math.Point)->s8
     if ypix < 0 or ypix >= BoardSize do
         return -1
 
-    let x = cast(s32) (xpix / CellSize)
-    let y = 7 - cast(s32) (ypix / CellSize)
-    return cast(s8) (y * 12 + x + 2)
+    let x = cast(s32, (xpix / CellSize))
+    let y = 7 - cast(s32, (ypix / CellSize))
+    return cast(s8, (y * 12 + x + 2))
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
@@ -590,12 +590,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     for i in 2
     {
         using Res
-        piecesTexture[i, cast(s8) PiecesEnum.King - 1]   = rdr.addImage(img.cropped(0, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Queen - 1]  = rdr.addImage(img.cropped(128, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Bishop - 1] = rdr.addImage(img.cropped(256, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Knight - 1] = rdr.addImage(img.cropped(384, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Rook - 1]   = rdr.addImage(img.cropped(512, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Pawn - 1]   = rdr.addImage(img.cropped(640, y, 128, 128))
+        piecesTexture[i, cast(s8, PiecesEnum.King) - 1]   = rdr.addImage(img.cropped(0, y, 128, 128))
+        piecesTexture[i, cast(s8, PiecesEnum.Queen) - 1]  = rdr.addImage(img.cropped(128, y, 128, 128))
+        piecesTexture[i, cast(s8, PiecesEnum.Bishop) - 1] = rdr.addImage(img.cropped(256, y, 128, 128))
+        piecesTexture[i, cast(s8, PiecesEnum.Knight) - 1] = rdr.addImage(img.cropped(384, y, 128, 128))
+        piecesTexture[i, cast(s8, PiecesEnum.Rook) - 1]   = rdr.addImage(img.cropped(512, y, 128, 128))
+        piecesTexture[i, cast(s8, PiecesEnum.Pawn) - 1]   = rdr.addImage(img.cropped(640, y, 128, 128))
         y = 128
     }
 

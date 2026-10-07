@@ -4,13 +4,13 @@
 #assert(s32 != u32)
 #assert(not (s8 == s32))
 
-#assert((cast(const *Swag.TypeInfo) #typeof(f32)).name == "f32")
-#assert((cast(typeinfo) #typeof(f32)).name == "f32")
+#assert(cast(const *Swag.TypeInfo, #typeof(f32)).name == "f32")
+#assert(cast(typeinfo, #typeof(f32)).name == "f32")
 
-#assert((cast(const *Swag.TypeInfoPointer) #typeof(*f32)).pointedType.name == "f32")
+#assert(cast(const *Swag.TypeInfoPointer, #typeof(*f32)).pointedType.name == "f32")
 
 struct A { R, G, B: s32 }
-#assert(((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields).count == 3)
+#assert((cast(const *Swag.TypeInfoStruct, #typeof(A)).fields).count == 3)
 
 namespace Scoped
 {
@@ -62,7 +62,7 @@ func getDeclaredType(useString: bool)->typeinfo
     Swag.assert(y == "hello")
 }
 
-const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
+const PA = cast(const *Swag.TypeInfoStruct, #typeof(A))
 #assert(PA.fields[0].name == "R")
 #assert(PA.fields[1].name == "G")
 #assert(PA.fields[2].name == "B")
@@ -71,8 +71,8 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 #assert(PA.fields[1].offset == 4)
 #assert(PA.fields[2].offset == 8)
 
-const PScopedBox     = cast(const *Swag.TypeInfo) #typeof(Scoped.Box)
-const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped.Box))
+const PScopedBox     = cast(const *Swag.TypeInfo, #typeof(Scoped.Box))
+const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped.Box)))
 #assert(PScopedBox.name == "Box")
 #assert(PScopedBox.fullname == "Scoped.Box")
 #assert(PScopedWrapper.fullname == "Scoped.Wrapper'(Scoped.Box)")
@@ -99,8 +99,8 @@ const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped
 #test
 {
     const p = #typeof(*s32)
-    #assert((cast(const *Swag.TypeInfoPointer) p).pointedType == s32)
-    Swag.assert((cast(const *Swag.TypeInfoPointer) p).pointedType == s32)
+    #assert(cast(const *Swag.TypeInfoPointer, p).pointedType == s32)
+    Swag.assert(cast(const *Swag.TypeInfoPointer, p).pointedType == s32)
 }
 
 #test
@@ -140,16 +140,16 @@ const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped
 #test
 {
     const t = #typeof(A)
-    #assert((cast(const *Swag.TypeInfo) t).name == "A")
-    Swag.assert((cast(const *Swag.TypeInfo) t).name == "A")
+    #assert(cast(const *Swag.TypeInfo, t).name == "A")
+    Swag.assert(cast(const *Swag.TypeInfo, t).name == "A")
 }
 
 #test
 {
     const boxType     = #typeof(Scoped.Box)
     const wrapperType = #typeof(Scoped.Wrapper'(Scoped.Box))
-    #assert((cast(const *Swag.TypeInfo) boxType).fullname == "Scoped.Box")
-    #assert((cast(const *Swag.TypeInfo) wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
-    Swag.assert((cast(const *Swag.TypeInfo) boxType).fullname == "Scoped.Box")
-    Swag.assert((cast(const *Swag.TypeInfo) wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
+    #assert(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
+    #assert(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
+    Swag.assert(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
+    Swag.assert(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
 }

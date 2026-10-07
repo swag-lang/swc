@@ -49,18 +49,18 @@ const ResidualOrder: [112] u8 = [
 // The product is formed at 64 bits, where no level a stream can code overflows it, so the level
 // needs no clamp of its own before the one the result takes into sixteen bits.
 #[Swag.Inline]
-func dequantLevel(level: s32, scale: u32, shift: u32)->s16 => cast(s16) Math.clamp((cast(s64) level * cast(s64) scale + (1's64 << (shift - 1))) >> shift, -32768, 32767)
+func dequantLevel(level: s32, scale: u32, shift: u32)->s16 => cast(s16, Math.clamp((cast(s64, level) * cast(s64, scale) + (1's64 << (shift - 1))) >> shift, -32768, 32767))
 
 // Stores the levels of one block, decoded in scan order, at their raster positions, dequantized
 // with one row of the scaling table.
 func storeLevels(levels: const [*] s16, count: u32, coeffs: [*] s16, order: u64, scale: [*] u32, shift: u32)
 {
-    for index in cast(u64) count
+    for index in cast(u64, count)
     {
-        let level = cast(s32) levels[index]
+        let level = cast(s32, levels[index])
         if level == 0 do
             continue
-        let raster = cast(u64) ResidualOrder[order + index]
+        let raster = cast(u64, ResidualOrder[order + index])
         coeffs[raster] = dequantLevel(level, scale[raster], shift)
     }
 }
@@ -142,8 +142,8 @@ private func parseScalingList(bits: *BitReader, list: [..] u8)->bool
                 useDefault = true
         }
 
-        list[index] = cast(u8) (nextScale == 0 ? lastScale : nextScale)
-        lastScale   = cast(s32) list[index]
+        list[index] = cast(u8, (nextScale == 0 ? lastScale : nextScale))
+        lastScale   = cast(s32, list[index])
     }
 
     return useDefault
@@ -222,7 +222,7 @@ impl Sps
         var bits: BitReader
         bits.init(payload)
 
-        .profile = cast(u8) bits.read(8)
+        .profile = cast(u8, bits.read(8))
         bits.skip(8)          // Constraint flags and reserved bits.
         bits.skip(8)          // level_idc.
         discard bits.ue()     // seq_parameter_set_id, checked by the caller.
@@ -260,10 +260,10 @@ impl Sps
                 parseScalingMatrices(&bits, me, .scaling4, .scaling8, fromSps: true, listCount: chromaFormat == 3 ? 12 : 8)
         }
 
-        .chromaFormat = cast(u8) chromaFormat
+        .chromaFormat = cast(u8, chromaFormat)
 
         .log2MaxFrameNum = bits.ue() + 4
-        .pocType         = cast(u8) bits.ue()
+        .pocType         = cast(u8, bits.ue())
         switch .pocType
         {
         case 0:
@@ -301,8 +301,8 @@ impl Sps
             fail UnsupportedFormatError{"video decoder does not support interlaced H.264 streams"}
         if widthInMbs > 1024 or heightInMapUnits > 1024 do
             fail UnsupportedFormatError{"H.264 frame size exceeds the decoder's limits"}
-        .mbWidth  = cast(s32) widthInMbs
-        .mbHeight = cast(s32) heightInMapUnits
+        .mbWidth  = cast(s32, widthInMbs)
+        .mbHeight = cast(s32, heightInMapUnits)
 
         .direct8x8Inference = bits.bit() != 0
         if bits.bit()
@@ -311,10 +311,10 @@ impl Sps
             // samples on both axes in 4:2:0 and one in 4:4:4, whose chroma planes are the size
             // of luma. Keep luma pixels.
             let unit = 1's32 << .chromaShift()
-            .cropLeft   = cast(s32) bits.ue() * unit
-            .cropRight  = cast(s32) bits.ue() * unit
-            .cropTop    = cast(s32) bits.ue() * unit
-            .cropBottom = cast(s32) bits.ue() * unit
+            .cropLeft   = cast(s32, bits.ue()) * unit
+            .cropRight  = cast(s32, bits.ue()) * unit
+            .cropTop    = cast(s32, bits.ue()) * unit
+            .cropBottom = cast(s32, bits.ue()) * unit
         }
 
         // The VUI that may follow carries nothing this decoder uses.
@@ -416,15 +416,15 @@ impl Pps
         {
             for qp in 52'u64
             {
-                let shift = cast(u32) (qp / 6)
+                let shift = cast(u32, (qp / 6))
                 let mod6  = qp % 6
                 for scan in 16'u64
                 {
-                    let raster   = cast(u64) Zigzag4[scan]
+                    let raster   = cast(u64, Zigzag4[scan])
                     let x        = raster & 3
                     let y        = raster >> 2
                     let posClass = (x & 1) + (y & 1)
-                    .dequant4[list, qp, x * 4 + y] = (cast(u32) scaling4[list * 16 + scan] * cast(u32) Dequant4Scale[mod6 * 3 + posClass]) << shift
+                    .dequant4[list, qp, x * 4 + y] = (cast(u32, scaling4[list * 16 + scan]) * cast(u32, Dequant4Scale[mod6 * 3 + posClass])) << shift
                 }
             }
         }
@@ -433,15 +433,15 @@ impl Pps
         {
             for qp in 52'u64
             {
-                let shift = cast(u32) (qp / 6)
+                let shift = cast(u32, (qp / 6))
                 let mod6  = qp % 6
                 for scan in 64'u64
                 {
-                    let raster   = cast(u64) Zigzag8[scan]
+                    let raster   = cast(u64, Zigzag8[scan])
                     let x        = raster & 7
                     let y        = raster >> 3
-                    let posClass = cast(u64) Dequant8ScaleClass[(x & 3) + (y & 3) * 4]
-                    .dequant8[list, qp, x * 8 + y] = (cast(u32) scaling8[list * 64 + scan] * cast(u32) Dequant8Scale[mod6 * 6 + posClass]) << shift
+                    let posClass = cast(u64, Dequant8ScaleClass[(x & 3) + (y & 3) * 4])
+                    .dequant8[list, qp, x * 8 + y] = (cast(u32, scaling8[list * 64 + scan]) * cast(u32, Dequant8Scale[mod6 * 6 + posClass])) << shift
                 }
             }
         }

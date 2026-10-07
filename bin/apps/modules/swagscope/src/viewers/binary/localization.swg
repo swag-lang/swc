@@ -298,5 +298,5 @@ func countText(count: u64, singular, plural: string)->String => Format.toString(
 
 #run
 {
-    expect Gui.validateStrings'BinaryStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'BinaryStrings(cast(string, FrenchStrings))
 }

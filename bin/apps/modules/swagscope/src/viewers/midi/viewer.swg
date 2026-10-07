@@ -14,7 +14,7 @@ func midiViewerPlugin()->Viewer.Plugin
         .staticName   = "MIDI"
         .attach       = &registerMidiStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Midi
+        .iconIndex    = cast(s32, ViewerIcons.Midi)
         .create       = &createMidiViewer
         .probe        = &midiPluginProbe
         .smokeFixture = "viewer.mid"
@@ -53,7 +53,7 @@ private impl MidiViewer
 {
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Format.toString("% %%", cast(u32) Math.round(.roll.zoom * 100)))
+        .zoomLabel.setText(Format.toString("% %%", cast(u32, Math.round(.roll.zoom * 100))))
     }
 
     mtd fillTracks()
@@ -235,13 +235,14 @@ impl MidiViewer
 // Creates the integrated MIDI score view and connects it to the host.
 func createMidiViewer(host: Viewer.Host)
 {
-    host.attachView(MidiViewer.create(host))
+    let view = MidiViewer.create(host)
+    host.attachView(view)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading()
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading()
-        .retire    = func(wnd)->bool => (cast #assume (*MidiViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.isLoading()
+        .needsLoadingOverlay = func|view|()->bool => view.isLoading()
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

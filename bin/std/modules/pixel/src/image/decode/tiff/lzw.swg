@@ -31,7 +31,7 @@ impl LzwBitReader
         {
             let byteIndex = .bitPosition >> 3
             let bitIndex  = 7 - (.bitPosition & 7)
-            result       = (result << 1) | ((cast(u32) .data[byteIndex] >> bitIndex) & 1)
+            result       = (result << 1) | ((cast(u32, .data[byteIndex]) >> bitIndex) & 1)
             .bitPosition += 1
         }
 
@@ -53,7 +53,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
     var stack:    [4096] u8
 
     for index in 256 do
-        suffixes[index] = cast(u8) index
+        suffixes[index] = cast(u8, index)
 
     var output: u64
     var width    = 9'u32
@@ -79,7 +79,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
             if code > 255 do
                 fail InvalidFormatError{"invalid lzw stream"}
 
-            dst[output] = cast(u8) code
+            dst[output] = cast(u8, code)
             output      += 1
             oldCode     = code
             continue
@@ -102,7 +102,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
             current           = prefixes[current]
         }
 
-        let first = cast(u8) current
+        let first = cast(u8, current)
         stack[stackCount] = first
         stackCount        += 1
 
@@ -126,7 +126,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
 
         if nextCode <= LZW_MAX_CODE
         {
-            prefixes[nextCode] = cast(u16) oldCode
+            prefixes[nextCode] = cast(u16, oldCode)
             suffixes[nextCode] = first
             nextCode += 1
 

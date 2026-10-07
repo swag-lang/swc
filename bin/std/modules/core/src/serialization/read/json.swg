@@ -137,7 +137,7 @@ public impl Json
             case 'n':  result.append('\n'u8)
             case 'r':  result.append('\r'u8)
             case 't':  result.append('\t'u8)
-            case 'u':  result.append(cast(rune) (try .readUnicodeEscape()))
+            case 'u':  result.append(cast(rune, (try .readUnicodeEscape())))
             default:   fail .getError("JSON string contains an unknown escape sequence")
             }
         }

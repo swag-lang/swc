@@ -26,7 +26,7 @@ func initC(i: s32)
 {
     g_RD[i].length = g_Rng.nextS32(MinTrailSize, MaxTrailSize - 1)
     for j in g_RD[i].length do
-        g_RD[i].c[j] = cast(rune) g_Rng.nextS32(FirstRune, LastRune)
+        g_RD[i].c[j] = cast(rune, g_Rng.nextS32(FirstRune, LastRune))
     g_RD[i].speed = g_Rng.nextF32(400, 800)
     g_RD[i].y     = 0
 }
@@ -49,12 +49,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         var str: String
         for i in MaxColumns
         {
-            let x = cast(f32) i * FontSize
+            let x = cast(f32, i) * FontSize
             for j in g_RD[i].length
             {
                 // Once in a while, change the rune in the trail
                 if g_Rng.nextU32(0, 300) < 2 do
-                    g_RD[i].c[j] = cast(rune) g_Rng.nextS32(FirstRune, LastRune)
+                    g_RD[i].c[j] = cast(rune, g_Rng.nextS32(FirstRune, LastRune))
                 let c = g_RD[i].c[j]
 
                 var y = g_RD[i].y
@@ -69,12 +69,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 // If the move is equivalent to one fontsize, then insert a new rune
                 // at the start of the trail
                 y /= FontSize
-                let yi = cast(s32) y
+                let yi = cast(s32, y)
                 if j == 0 and yi != g_RD[i].lastYI
                 {
                     g_RD[i].lastYI = yi
-                    Memory.copyOverlapping(&g_RD[i].c[1], &g_RD[i].c[0], (cast(u64) g_RD[i].length - 1) * #sizeof(rune))
-                    g_RD[i].c[0] = cast(rune) g_Rng.nextS32(FirstRune, LastRune)
+                    Memory.copyOverlapping(&g_RD[i].c[1], &g_RD[i].c[0], (cast(u64, g_RD[i].length) - 1) * #sizeof(rune))
+                    g_RD[i].c[0] = cast(rune, g_Rng.nextS32(FirstRune, LastRune))
                 }
 
                 // First rune is white, the rest blends to black
@@ -82,7 +82,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 if j == 0 do
                     color = Color.lerp(Argb.Green, Argb.White, 0.5)
                 else do
-                    color = Color.lerp(Argb.Green, Argb.Black, j / cast(f32) g_RD[i].length)
+                    color = Color.lerp(Argb.Green, Argb.Black, j / cast(f32, g_RD[i].length))
 
                 y = yi * FontSize
 

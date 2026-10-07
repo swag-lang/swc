@@ -47,7 +47,7 @@
         {
             var second: u16 = 20'u16
             {
-                var third: s32 = cast(s32) first + cast(s32) second
+                var third: s32 = cast(s32, first) + cast(s32, second)
                 return third
             }
         }

@@ -57,7 +57,7 @@ func dispatch(base: *Base)->s32
 {
     var undo:    UndoAction
     var redo:    RedoAction
-    let actions: [2] IAction = [cast(IAction) undo, cast(IAction) redo]
+    let actions: [2] IAction = [cast(IAction, undo), cast(IAction, redo)]
 
     Swag.assert(actions[0].accept(1))
     Swag.assert(not actions[0].accept(2))
@@ -70,10 +70,10 @@ func dispatch(base: *Base)->s32
 #test
 {
     var base: Base
-    base.itf = cast(IDispatch) base
+    base.itf = cast(IDispatch, base)
     Swag.assert(dispatch(&base) == 10)
 
     var child: Child
-    child.itf = cast(IDispatch) child
+    child.itf = cast(IDispatch, child)
     Swag.assert(dispatch(&child.base) == 20)
 }

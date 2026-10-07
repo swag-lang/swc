@@ -36,8 +36,8 @@ impl IOrelseProbe for OrelseProbe
     func strictHandleFallback()->bool
     {
         var storage: s32 = 1
-        let fallback     = cast(OrelseStrictHandle) &storage
-        let resolved     = cast(OrelseStrictHandle) null orelse fallback
+        let fallback     = cast(OrelseStrictHandle, &storage)
+        let resolved     = cast(OrelseStrictHandle, null) orelse fallback
         #assert(#typeof(resolved) == OrelseStrictHandle)
         return resolved == fallback and resolved != null
     }
@@ -65,7 +65,7 @@ impl IOrelseProbe for OrelseProbe
     func cstringFallback()->bool
     {
         var data: [3] u8 = ['o'u8, 'k'u8, 0]
-        let resolved     = cast(cstring?) null orelse cast(cstring) &data[0]
+        let resolved     = cast(cstring?, null) orelse cast(cstring, &data[0])
         return resolved != null and resolved.count == 2
     }
 
@@ -98,8 +98,8 @@ impl IOrelseProbe for OrelseProbe
         return missing == null and
                boolTrue != null and
                boolFalse != null and
-               cast #assume(bool) boolTrue and
-               not cast #assume(bool) boolFalse
+               assume cast(bool, boolTrue) and
+               not assume cast(bool, boolFalse)
     }
 
     const V = #run explicitAnyChecks()

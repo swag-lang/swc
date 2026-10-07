@@ -20,6 +20,6 @@ func semaTest001()
 func semaTest002()
 {
     var buf4: [100] u8
-    let str4 = cast(string) Swag.makeSlice(&buf4[0], buf4.count)
+    let str4 = cast(string, Swag.makeSlice(&buf4[0], buf4.count))
     #assert(#typeof(str4) == string)
 }

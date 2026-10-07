@@ -42,8 +42,8 @@ func updateCollisions()->bool
     // Outside
     if head.x < 1 or
        head.y < 1 or
-       head.x > cast(s32) (g_Rect.width / ElemSize) or
-       head.y > cast(s32) (g_Rect.height / ElemSize)
+       head.x > cast(s32, (g_Rect.width / ElemSize)) or
+       head.y > cast(s32, (g_Rect.height / ElemSize))
     {
         startGame()
         return true
@@ -123,8 +123,8 @@ func generateApplePos()
     while error
     {
         error        = false
-        g_ApplePos.x = Random.shared().nextS32(1, cast(s32) (g_Rect.width / ElemSize))
-        g_ApplePos.y = Random.shared().nextS32(1, cast(s32) (g_Rect.height / ElemSize))
+        g_ApplePos.x = Random.shared().nextS32(1, cast(s32, (g_Rect.width / ElemSize)))
+        g_ApplePos.y = Random.shared().nextS32(1, cast(s32, (g_Rect.height / ElemSize)))
         for p in g_Snake
         {
             if p.x == g_ApplePos.x and p.y == g_ApplePos.y

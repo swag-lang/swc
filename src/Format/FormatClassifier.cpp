@@ -1415,27 +1415,28 @@ namespace
                 }
 
                 case AstNodeId::CastExpr:
+                case AstNodeId::AutoCastExpr:
                 {
-                    addRole(span.minPiece, FormatRoleE::CastKeyword);
                     if (span.valid())
                     {
-                        uint32_t open = nextCodeIf(span.minPiece, TokenId::SymLeftParen);
+                        const uint32_t keyword = model_->piece(span.minPiece).id == TokenId::KwdAssume ? nextCode(span.minPiece) : span.minPiece;
+                        addRole(keyword, FormatRoleE::CastKeyword);
+                        uint32_t open = nextCodeIf(keyword, TokenId::SymLeftParen);
                         if (open == INVALID_PIECE)
                         {
-                            // Modifiers may sit between `cast` and the type list.
-                            const uint32_t after = nextCode(span.minPiece);
-                            if (after != INVALID_PIECE)
+                            // Low-level modifiers precede the conversion arguments.
+                            for (uint32_t after = nextCode(keyword); after != INVALID_PIECE && after <= span.maxPiece; after = nextCode(after))
+                            {
                                 open = nextCodeIf(after, TokenId::SymLeftParen);
+                                if (open != INVALID_PIECE)
+                                    break;
+                            }
                         }
                         if (open != INVALID_PIECE && model_->piece(open).match != INVALID_PIECE)
-                            addRole(model_->piece(open).match, FormatRoleE::CastCloseParen);
+                            addRole(open, FormatRoleE::CallOpenParen);
                     }
                     break;
                 }
-
-                case AstNodeId::AutoCastExpr:
-                    addRole(span.minPiece, FormatRoleE::CastKeyword);
-                    break;
 
                 case AstNodeId::CallExpr:
                 case AstNodeId::IntrinsicCallExpr:

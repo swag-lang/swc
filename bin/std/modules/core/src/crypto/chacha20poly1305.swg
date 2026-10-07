@@ -41,8 +41,8 @@ private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)
     var lengths: [16] u8
     for i in 8
     {
-        lengths[i]     = cast(u8) ((associatedData.count >> cast(u32) (i * 8)) & 0xFF)
-        lengths[8 + i] = cast(u8) ((ciphertext.count >> cast(u32) (i * 8)) & 0xFF)
+        lengths[i]     = cast(u8, ((associatedData.count >> cast(u32, (i * 8))) & 0xFF))
+        lengths[8 + i] = cast(u8, ((ciphertext.count >> cast(u32, (i * 8))) & 0xFF))
     }
 
     mac.update(lengths)

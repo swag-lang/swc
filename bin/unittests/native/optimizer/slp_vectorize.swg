@@ -9,7 +9,7 @@ using Swag
 // the diagonal rounds that exercise the lane-permutation path.
 
 #[Swag.Inline]
-func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & 0xFFFF_FFFF)
+func add32(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) & 0xFFFF_FFFF))
 
 #[Swag.Inline]
 func quarterRound(state: *[16] u32, a, b, c, d: u32)
@@ -52,7 +52,7 @@ func chachaRoundsLocal()->u32
 {
     var state: [16] u32
     for i in 16 do
-        state[i] = cast(u32) (i * 0x01010101)
+        state[i] = cast(u32, (i * 0x01010101))
 
     for 10
     {
@@ -196,7 +196,7 @@ func threeLanes(values: *[8] u32)
 {
     var state: [16] u32
     for i in 16 do
-        state[i] = cast(u32) (i * 0x01010101)
+        state[i] = cast(u32, (i * 0x01010101))
     chachaRounds(&state)
 
     // Reference values from an independent scalar implementation of the same
@@ -265,7 +265,7 @@ func threeLanes(values: *[8] u32)
     Swag.assert(output == [100 ^ 18, 200 ^ 27, 300 ^ 37, 400 ^ 47])
 
     var overlapping: [5] u32 = [1, 2, 3, 4, 5]
-    lanesXorOverlappingOutput(cast([*] u32) &overlapping[1], cast([*] u32) &overlapping[0])
+    lanesXorOverlappingOutput(cast([*] u32, &overlapping[1]), cast([*] u32, &overlapping[0]))
     Swag.assert(overlapping == [1, 10, 18, 29, 33])
 }
 
@@ -350,10 +350,10 @@ struct FloatToIntLanes
 #[Swag.Optimize(true)]
 func lanesTruncFloatToS32(values: *FloatToIntLanes)
 {
-    values.output[0] = cast(s32) values.input[0]
-    values.output[1] = cast(s32) values.input[1]
-    values.output[2] = cast(s32) values.input[2]
-    values.output[3] = cast(s32) values.input[3]
+    values.output[0] = cast(s32, values.input[0])
+    values.output[1] = cast(s32, values.input[1])
+    values.output[2] = cast(s32, values.input[2])
+    values.output[3] = cast(s32, values.input[3])
 }
 
 #[Swag.Optimize(true)]

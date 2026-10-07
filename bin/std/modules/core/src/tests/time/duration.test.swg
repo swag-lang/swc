@@ -66,10 +66,10 @@ using Swag
 {
     for value in 1000
     {
-        let expectedMilliseconds = cast(u64) value
+        let expectedMilliseconds = cast(u64, value)
         let duration = Time.Duration.fromMilliseconds(expectedMilliseconds)
         Swag.assert(duration.milliseconds() == expectedMilliseconds)
-        Swag.assert(Math.isEqualEpsilon(duration.seconds, cast(f64) value / 1000.0, 0.00001))
+        Swag.assert(Math.isEqualEpsilon(duration.seconds, cast(f64, value) / 1000.0, 0.00001))
     }
 
     let exactlyOneSecond = Time.Duration.fromSeconds(1)

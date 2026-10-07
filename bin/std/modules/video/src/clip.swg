@@ -62,7 +62,7 @@ impl Clip
     {
         if not .rate.isValid() do
             return 0
-        return cast(f64) .frameCount() * cast(f64) .rate.denominator() / cast(f64) .rate.numerator()
+        return cast(f64, .frameCount()) * cast(f64, .rate.denominator()) / cast(f64, .rate.numerator())
     }
 
     // Adds an owned copy of one frame to the clip.

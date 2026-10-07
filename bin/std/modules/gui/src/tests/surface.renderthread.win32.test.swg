@@ -15,10 +15,10 @@ struct PlacementObservation
 #[Swag.CallingConvention(.C)]
 func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, subclassId: UINT_PTR, data: DWORD_PTR)->LRESULT
 {
-    let observation = cast(*PlacementObservation) data
+    let observation = cast(*PlacementObservation, data)
     if msg == WM_WINDOWPOSCHANGING
     {
-        let next = cast(*WINDOWPOS) cast #bit (u64) lParam
+        let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
         if next.flags & SWP_HIDEWINDOW do
             observation.hides += 1
     }
@@ -26,7 +26,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
     {
         var rect: RECT
         Swag.assert(GetWindowRect(hWnd, &rect))
-        if rect.left != cast(s32) observation.expected.x or rect.top != cast(s32) observation.expected.y or rect.right != cast(s32) observation.expected.right() or rect.bottom != cast(s32) observation.expected.bottom() do
+        if rect.left != cast(s32, observation.expected.x) or rect.top != cast(s32, observation.expected.y) or rect.right != cast(s32, observation.expected.right()) or rect.bottom != cast(s32, observation.expected.bottom()) do
             observation.intermediateBounds += 1
     }
 
@@ -41,7 +41,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
     let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-placement-transaction-test")
     surface.show()
     var observation: PlacementObservation
-    Swag.assert(SetWindowSubclass(surface.win32Handle(), &observePlacement, 1, cast(u64) &observation))
+    Swag.assert(SetWindowSubclass(surface.win32Handle(), &observePlacement, 1, cast(u64, &observation)))
     defer discard RemoveWindowSubclass(surface.win32Handle(), &observePlacement, 1)
 
     var normal: WINDOWPLACEMENT
@@ -87,7 +87,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
 
     for step in 4
     {
-        surface.setPosition({40, 40, cast(f32) (320 + step * 2), 180})
+        surface.setPosition({40, 40, cast(f32, (320 + step * 2)), 180})
         surface.paint()
         Swag.assert(Ogl.wglGetCurrentContext() == context)
         Swag.assert(surface.rt.colorBuffer.isValid())
@@ -140,7 +140,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
 
         var client: RECT
         Swag.assert(GetClientRect(surface.win32Handle(), &client))
-        let style = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+        let style = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
         Swag.assert(not surface.isMaximized and not (style & WS_MAXIMIZE))
         Swag.assert(IsWindowVisible(surface.win32Handle()))
         Swag.assert(surface.position == target)
@@ -169,7 +169,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
 
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_RESTORE, 0)
     app.runFrame()
-    let maximizedStyle = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+    let maximizedStyle = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
     Swag.assert(not surface.isMinimized and surface.isMaximized)
     Swag.assert(maximizedStyle & WS_MAXIMIZE and not (maximizedStyle & WS_MINIMIZE))
     Swag.assert(IsWindowVisible(surface.win32Handle()))
@@ -180,7 +180,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
     app.runFrame()
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_RESTORE, 0)
     app.runFrame()
-    let normalStyle = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+    let normalStyle = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
     Swag.assert(not surface.isMinimized and not surface.isMaximized)
     Swag.assert(not (normalStyle & WS_MINIMIZE) and not (normalStyle & WS_MAXIMIZE))
     Swag.assert(IsWindowVisible(surface.win32Handle()))
@@ -190,7 +190,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
     app.runFrame()
     surface.showNormal()
-    let restoredStyle = cast(u32) GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE)
+    let restoredStyle = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
     Swag.assert(not surface.isMinimized and not surface.isMaximized)
     Swag.assert(not (restoredStyle & WS_MINIMIZE) and not (restoredStyle & WS_MAXIMIZE))
     Swag.assert(IsWindowVisible(surface.win32Handle()))

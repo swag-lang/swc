@@ -25,7 +25,7 @@ func runActionRegistry()->bool
 {
     var undo:    UndoAction
     var redo:    RedoAction
-    let actions: [2] IAction = [cast(IAction) undo, cast(IAction) redo]
+    let actions: [2] IAction = [cast(IAction, undo), cast(IAction, redo)]
 
     return actions[0].accept(1) and
            not actions[0].accept(2) and
@@ -70,10 +70,10 @@ func dispatch(base: *Base)->s32
 func runEmbeddedDispatch()->bool
 {
     var base: Base
-    base.itf = cast(IDispatch) base
+    base.itf = cast(IDispatch, base)
 
     var child: Child
-    child.itf = cast(IDispatch) child
+    child.itf = cast(IDispatch, child)
 
     return dispatch(&base) == 10 and dispatch(&child.base) == 20
 }

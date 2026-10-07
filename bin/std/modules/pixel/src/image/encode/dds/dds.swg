@@ -12,10 +12,10 @@ internal struct Encoder {}
 #[Swag.Inline]
 func writeU32(result: *ConcatBuffer, value: u32)
 {
-    result.addNative(cast(u8) (value & 0xFF))
-    result.addNative(cast(u8) ((value >> 8) & 0xFF))
-    result.addNative(cast(u8) ((value >> 16) & 0xFF))
-    result.addNative(cast(u8) ((value >> 24) & 0xFF))
+    result.addNative(cast(u8, (value & 0xFF)))
+    result.addNative(cast(u8, ((value >> 8) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 16) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 24) & 0xFF)))
 }
 
 func writeHeader(result: *ConcatBuffer, image: Image, dxgi: u32, flags, bits, redMask, greenMask, blueMask, alphaMask: u32)
@@ -23,9 +23,9 @@ func writeHeader(result: *ConcatBuffer, image: Image, dxgi: u32, flags, bits, re
     writeU32(result, Magic)
     writeU32(result, 124)
     writeU32(result, 0x0000100F)     // CAPS, HEIGHT, WIDTH, PITCH, PIXELFORMAT.
-    writeU32(result, cast(u32) image.height)
-    writeU32(result, cast(u32) image.width)
-    writeU32(result, cast(u32) image.rowStride)
+    writeU32(result, cast(u32, image.height))
+    writeU32(result, cast(u32, image.width))
+    writeU32(result, cast(u32, image.rowStride))
     writeU32(result, 0)
     writeU32(result, 0)
     for 11 do
@@ -66,7 +66,7 @@ internal impl IImageEncoder for Encoder
         var source:    const *Image = &image
         var dxgi  = 0'u32
         var flags = RgbFlag
-        var bits  = cast(u32) image.bitsPerPixel
+        var bits  = cast(u32, image.bitsPerPixel)
         var redMask, greenMask, blueMask, alphaMask: u32
         switch #complete image.pixelFormat
         {
@@ -154,7 +154,7 @@ internal impl IImageEncoder for Encoder
         for y in source.height
         {
             let storageY = source.height - y - 1
-            result.addBytes(Swag.makeSlice(source.pixels.storage() + cast(u64) storageY * source.rowStride, cast(u64) source.rowStride))
+            result.addBytes(Swag.makeSlice(source.pixels.storage() + cast(u64, storageY) * source.rowStride, cast(u64, source.rowStride)))
         }
     }
 }

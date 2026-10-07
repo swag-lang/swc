@@ -116,7 +116,7 @@ func loopUntilUnsigned(low, high: u32)->u32
 func countElements(values: const [..] s32)->s32
 {
     var acc: s32 = 0
-    for i in 0 until cast(s32) values.count do
+    for i in 0 until cast(s32, values.count) do
         acc += values[i]
     return acc
 }

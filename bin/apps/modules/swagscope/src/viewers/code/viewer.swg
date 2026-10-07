@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private func codePluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and codeShebang(cast(string) content.head).found
+private func codePluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and codeShebang(cast(string, content.head)).found
 
 // Describes the source-code viewer to the host.
 //
@@ -16,7 +16,7 @@ func codeViewerPlugin()->Viewer.Plugin
         .staticName   = "Code"
         .attach       = &registerCodeStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Code
+        .iconIndex    = cast(s32, ViewerIcons.Code)
         .create       = &createCodeViewer
         .probe        = &codePluginProbe
         .textual      = true
@@ -95,15 +95,15 @@ impl CodeViewer
         if loadedHeight <= 0
         {
             if .repositioning or not .residentStart do
-                .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+                .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
             if .virtualHeight > 0 do
                 .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
             return
         }
 
-        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
+        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
         if .repositioning or not .residentStart do
-            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
@@ -225,7 +225,7 @@ impl CodeViewer
     {
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         let base = .themeMetrics().defaultFixedFontSize
-        let size = cast(u32) Math.max(Math.round(cast(f32) base * cast(f32) .zoomPercent / 100), 1)
+        let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
         .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
         .editor.setFlags(.editor.flags)
         .zoomLabel?.setText(Format.toString("% %", .zoomPercent, "%"))
@@ -291,7 +291,7 @@ impl CodeViewer
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32) (.bytesRead - .residentStart) / cast(f32) .fileSize : 0)
+        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, (.bytesRead - .residentStart)) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
         let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * CodeStreamLookAhead
         let after          = .hasMore() and .bytesRead - .residentStart >= CodeResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * CodeStreamLookAhead > residentEnd
@@ -300,7 +300,7 @@ impl CodeViewer
         if .pendingSeek
         {
             let ratio = Math.clamp(newPosition.y / .virtualHeight, 0, 1)
-            .pendingSeekOffset = cast(u64) (ratio * cast(f32) .fileSize)
+            .pendingSeekOffset = cast(u64, (ratio * cast(f32, .fileSize)))
 
             // A continuous gesture must have its bytes before the next paint, even when
             // the timer was delayed. Ordinary prefetch still runs on the short timer.
@@ -536,24 +536,24 @@ func createCodeViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
-            return (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text)
+            return view.revealOffset(match.offset, text)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return Viewer.richEditMatchBounds((cast #assume (*CodeViewer) wnd).editor, bounds)
+            return Viewer.richEditMatchBounds(view.editor, bounds)
         }
 
-        .clear = func(wnd)
+        .clear = func|view|()
         {
-            Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor)
+            Viewer.clearRichEditMatch(view.editor)
         }
     }
 
     host.setSearch(search)
 
-    host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*CodeViewer) wnd).loadTimer != null})
+    host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null})
 }

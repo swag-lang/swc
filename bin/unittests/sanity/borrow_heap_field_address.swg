@@ -31,7 +31,7 @@ var heapFieldAddressSaved: *s32?
     defer allocator.free(&request)
 
     var table: HeapFieldAddressTable
-    table.entries          = cast([*] HeapFieldAddressEntry) request.address!
+    table.entries          = cast([*] HeapFieldAddressEntry, request.address!)
     table.entries[0].value = 41
     heapFieldAddressSaved  = table.valueAddr()
     Swag.assert(heapFieldAddressSaved![] == 41)
@@ -43,6 +43,6 @@ func heapFieldAddressRejectLocal()
 {
     var entry: HeapFieldAddressEntry
     var table: HeapFieldAddressTable
-    table.entries         = cast([*] HeapFieldAddressEntry) &entry
+    table.entries         = cast([*] HeapFieldAddressEntry, &entry)
     heapFieldAddressSaved = table.valueAddr()     // swc-expected-error {{sanity_err_borrow_escape}}
 }

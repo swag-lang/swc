@@ -116,7 +116,7 @@ struct S
 
 #test
 {
-    const V = #run cast(s64) (40 + 2)
+    const V = #run cast(s64, (40 + 2))
     #assert(#typeof(V) == s64)
     #assert(V == 42's64)
 }

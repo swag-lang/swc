@@ -51,7 +51,7 @@ impl SoftMaskRef
     // of the page, and they are not the same coverage.
     mtd const cacheKey()->u64
     {
-        var hash = cast(u64) .groupId
+        var hash = cast(u64, .groupId)
         hash = mixHash(hash, .ctm.m11)
         hash = mixHash(hash, .ctm.m12)
         hash = mixHash(hash, .ctm.m21)
@@ -63,7 +63,7 @@ impl SoftMaskRef
 }
 
 // Folds one transform component into a hash, by its exact representation rather than its value.
-private func mixHash(hash: u64, value: f32)->u64 => (hash << 7 | hash >> 57) ^ cast(u64) cast #bit(u32) value
+private func mixHash(hash: u64, value: f32)->u64 => (hash << 7 | hash >> 57) ^ cast(u64, cast #bit(u32, value))
 
 // One soft mask group after its content stream has been read.
 //
@@ -117,7 +117,7 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
     var values: [8] f32
     let count = Math.min(parser.nodes[backdropId].values.count, 8'u64)
     for i in count do
-        values[i] = cast(f32) parser.number(parser.nodes[backdropId].values[i])
+        values[i] = cast(f32, parser.number(parser.nodes[backdropId].values[i]))
     if spaceError == null do
         result.backdrop = spaceColor(&space, values[0 until count])
     elif count >= 1 do
@@ -149,8 +149,8 @@ internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->I
     // that at full density would cost more than the mark itself, so the density drops until the
     // raster fits.
     let longest = Math.max(region.width, region.height)
-    if longest * options.scale > cast(f32) SoftMaskMaxDimension do
-        options.scale = cast(f32) SoftMaskMaxDimension / longest
+    if longest * options.scale > cast(f32, SoftMaskMaxDimension) do
+        options.scale = cast(f32, SoftMaskMaxDimension) / longest
 
     let rendered = #move try renderPage(&group.page, options)
     result = #move coverageImage(&rendered, group.kind)
@@ -164,12 +164,12 @@ internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->I
 private func coverageImage(rendered: const *Image, kind: SoftMaskKind)->Image
 {
     var result = #move Image.create(rendered.width, rendered.height, .RGBA8)
-    let width  = cast(u64) rendered.width
-    for y in cast(u64) rendered.height
+    let width  = cast(u64, rendered.width)
+    for y in cast(u64, rendered.height)
     {
-        var out    = result.pixels.storage() + y * cast(u64) result.rowStride
-        var source = rendered.pixels.storage() + y * cast(u64) rendered.rowStride
-        let step   = cast(u64) rendered.bytesPerPixel
+        var out    = result.pixels.storage() + y * cast(u64, result.rowStride)
+        var source = rendered.pixels.storage() + y * cast(u64, rendered.rowStride)
+        let step   = cast(u64, rendered.bytesPerPixel)
         for width
         {
             out[0], out[1], out[2] = 0xFF
@@ -177,7 +177,7 @@ private func coverageImage(rendered: const *Image, kind: SoftMaskKind)->Image
             // Luminosity is the brightness of the composited group, weighted the way the format
             // states it; an alpha mask reads the coverage the group itself accumulated.
             if kind == .Luminosity do
-                out[3] = cast(u8) ((cast(u32) source[0] * 77 + cast(u32) source[1] * 151 + cast(u32) source[2] * 28) >> 8)
+                out[3] = cast(u8, ((cast(u32, source[0]) * 77 + cast(u32, source[1]) * 151 + cast(u32, source[2]) * 28) >> 8))
             else do
                 out[3] = step >= 4 ? source[3] : 0xFF
             out    += 4

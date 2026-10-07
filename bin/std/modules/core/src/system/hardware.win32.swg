@@ -5,7 +5,7 @@
 using Win32
 
 // Returns the number of logical processors available to the process.
-func processorCount()->u32 => cast(u32) Env.g_SysInfo.dwNumberOfProcessors
+func processorCount()->u32 => cast(u32, Env.g_SysInfo.dwNumberOfProcessors)
 
 // Returns the first adapter MAC address packed into the low bytes, or zero when unavailable.
 func macAddress()->u64
@@ -14,5 +14,5 @@ func macAddress()->u64
     var length: DWORD = #sizeof(info)
     if GetAdaptersInfo(&info, &length) != 0 do
         return 0
-    return (cast(const *u64) (&info[0].address[0]))[]
+    return cast(const *u64, (&info[0].address[0]))[]
 }

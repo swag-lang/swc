@@ -119,7 +119,7 @@ private func htmlNumericReplacement(value: u64)->rune
     case 0x9F: return 'Ÿ'
     }
 
-    return cast(rune) value
+    return cast(rune, value)
 }
 
 // Decodes the character reference starting at `start`, which must address an `&`.

@@ -42,7 +42,7 @@ func maskedBranch(a: u64)->s32
         Swag.assert(wordShift(a) == ((a & 65535) << 8))
         Swag.assert(topByte(a) == ((a & 255) << 56))
         Swag.assert(middleDword(a) == ((a & 0xFFFFFFFF) << 16))
-        let a32 = cast(u32) (a & 0xFFFFFFFF)
+        let a32 = cast(u32, (a & 0xFFFFFFFF))
         Swag.assert(byteShift32(a32) == ((a32 & 255) << 8))
         Swag.assert(extraLowBits(a) == ((a & 255) << 8))
         Swag.assert(reusedShift(a) == (((a & 255) << 8) ^ ((a & 0xFFFFFFFFFFFFFF) >> 24)))

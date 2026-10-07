@@ -118,7 +118,7 @@ const FrenchStrings = #include("lang/fr/myapp.tweak")
 
 #run
 {
-    expect Gui.validateStrings'AppStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'AppStrings(cast(string, FrenchStrings))
 }
 ```
 

@@ -21,7 +21,7 @@ func indexedWord(values: [*]u16, index: u64)->u64 => values[index]
 #[Swag.NoInline]
 func keepNarrowArguments(a, b, c, d, e, f: u16)->u64
 {
-    return cast(u64) a + cast(u64) b + cast(u64) c + cast(u64) d + cast(u64) e + cast(u64) f
+    return cast(u64, a) + cast(u64, b) + cast(u64, c) + cast(u64, d) + cast(u64, e) + cast(u64, f)
 }
 
 #test

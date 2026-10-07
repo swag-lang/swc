@@ -36,20 +36,20 @@ var FooBarStorage: Multi
 
 func makeFoo()->IFoo
 {
-    return cast(IFoo) FooBarStorage
+    return cast(IFoo, FooBarStorage)
 }
 
 func makeBar()->IBar
 {
-    return cast(IBar) FooBarStorage
+    return cast(IBar, FooBarStorage)
 }
 
 // Multiple interfaces on the same struct.
 #test
 {
     var m: Multi
-    var f = cast(IFoo) m
-    var b = cast(IBar) m
+    var f = cast(IFoo, m)
+    var b = cast(IBar, m)
     Swag.assert(f.foo() == 5)
     Swag.assert(b.bar() == 7)
 }
@@ -69,9 +69,9 @@ impl IFoo for Other
 {
     var m: Multi
     var o: Other
-    var f: IFoo = cast(IFoo) m
+    var f: IFoo = cast(IFoo, m)
     Swag.assert(f.foo() == 5)
-    f = cast(IFoo) o
+    f = cast(IFoo, o)
     Swag.assert(f.foo() == 99)
 }
 
@@ -93,8 +93,8 @@ func callFoo(f: IFoo)->s32
 #test
 {
     var m: Multi
-    Swag.assert(callFoo(cast(IFoo) m) == 5)
+    Swag.assert(callFoo(cast(IFoo, m)) == 5)
 
     var o: Other
-    Swag.assert(callFoo(cast(IFoo) o) == 99)
+    Swag.assert(callFoo(cast(IFoo, o)) == 99)
 }

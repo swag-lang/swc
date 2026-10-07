@@ -90,10 +90,10 @@ func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
 func ticksToTime(ticks: Ticks)->{ hour: u16, minute: u16, second: u16, millisecond: u16 }
 {
     var result: retval
-    result.hour        = cast() ((ticks / TicksPerHour) % 24)
-    result.minute      = cast() ((ticks / TicksPerMinute) % 60)
-    result.second      = cast() ((ticks / TicksPerSecond) % 60)
-    result.millisecond = cast() ((ticks / TicksPerMillisecond) % 1000)
+    result.hour        = cast(((ticks / TicksPerHour) % 24))
+    result.minute      = cast(((ticks / TicksPerMinute) % 60))
+    result.second      = cast(((ticks / TicksPerSecond) % 60))
+    result.millisecond = cast(((ticks / TicksPerMillisecond) % 1000))
     return result
 }
 
@@ -105,7 +105,7 @@ func dateToTicks(year, month, day: u16)->Ticks
     Swag.assert(1 <= day and day <= daysInMonth(year, month))
 
     let days = isLeapYear(year) ? DaysToMonth366.buffer : DaysToMonth365.buffer
-    let y    = cast(u64) (year - 1)
+    let y    = cast(u64, (year - 1))
     let n    = y * 365 + #wrap y / 4 + #wrap y / 400 + #wrap days[month - 1] + #wrap day - 1 - #wrap y / 100
     return n * TicksPerDay
 }
@@ -163,9 +163,9 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
         m += 1
 
     var result: retval
-    result.year  = cast() (y400 * 400 + y100 * 100 + y4 * 4 + y1 + 1)
-    result.month = cast() m
-    result.day   = cast() (n - days[m - 1] + 1)
+    result.year  = cast((y400 * 400 + y100 * 100 + y4 * 4 + y1 + 1))
+    result.month = cast(m)
+    result.day   = cast((n - days[m - 1] + 1))
     return result
 }
 
@@ -177,6 +177,6 @@ func daysInMonth(year, month: u16)->u16
 {
     Swag.assert(1 <= month and month <= 12)
     if isLeapYear(year) do
-        return cast() (DaysToMonth366[month] - DaysToMonth366[month - 1])
-    return cast() (DaysToMonth365[month] - DaysToMonth365[month - 1])
+        return cast((DaysToMonth366[month] - DaysToMonth366[month - 1]))
+    return cast((DaysToMonth365[month] - DaysToMonth365[month - 1]))
 }

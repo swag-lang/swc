@@ -16,7 +16,7 @@ using Core
     output.resize(source.count)
     expected.resize(source.count)
     for index in source.count do
-        source[index] = cast(u8) ((index * 47 + 13) & 0xFF)
+        source[index] = cast(u8, ((index * 47 + 13) & 0xFF))
 
     Swag.setWorkerCount(1)
     Swag.startWorkers()

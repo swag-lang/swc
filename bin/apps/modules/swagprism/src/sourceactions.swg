@@ -27,7 +27,7 @@ impl SourceActions
         .exampleCombo.clear()
         for label in [appStrings().ui_Plasma, appStrings().ui_Julia, appStrings().ui_GuiExample, appStrings().ui_Dot] do
             .exampleCombo.addItem(label)
-        .exampleCombo.setSelectedIndex(cast(u32) selected, notify: false)
+        .exampleCombo.setSelectedIndex(cast(u32, selected), notify: false)
         .exampleCombo.toolTip = appStrings().ui_Examples
         .liveEdit.toolTip     = appStrings().ui_LiveEdit
         .formatButton.toolTip = appStrings().ui_FormatHint

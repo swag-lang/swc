@@ -48,8 +48,8 @@ func assertJenkins(value: u64)
 
     for value in 65536
     {
-        assertJenkins(cast(u32) value)
-        assertJenkins(cast(u64) value)
+        assertJenkins(cast(u32, value))
+        assertJenkins(cast(u64, value))
     }
 
     assertJenkins(0x0001_0000'u32)

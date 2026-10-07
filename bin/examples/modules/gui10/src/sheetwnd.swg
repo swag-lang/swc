@@ -131,7 +131,7 @@ impl SheetView
     private mtd buildColors()
     {
         let colors = &app.theme.colors
-        let type   = cast #assume(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
+        let type   = assume cast(const *Swag.TypeInfoStruct, #typeof(ThemeColors))
 
         for field in type.fields
         {
@@ -140,7 +140,7 @@ impl SheetView
                 continue
             .openFamily(familyOf(name))
 
-            let value = (cast(const *Color) (cast([*] u8) colors + field.offset))[]
+            let value = cast(const *Color, (cast([*] u8, colors) + field.offset))[]
 
             with var row: SheetRow
             {
@@ -158,11 +158,11 @@ impl SheetView
         var palettes: [4] ThemeColors
         for i in ThemeVariantCount
         {
-            palettes[i] = variantColors(cast(ThemeVariant) cast(s32) i)
+            palettes[i] = variantColors(cast(ThemeVariant, cast(s32, i)))
             .grounds[i] = palettes[i].bk
         }
 
-        let type = cast #assume(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
+        let type = assume cast(const *Swag.TypeInfoStruct, #typeof(ThemeColors))
         for field in type.fields
         {
             let name = field.name!
@@ -172,7 +172,7 @@ impl SheetView
             var row: SheetRow
             row.name = name
             for i in ThemeVariantCount do
-                row.colors[i] = (cast(const *Color) (cast([*] u8) &palettes[i] + field.offset))[]
+                row.colors[i] = cast(const *Color, (cast([*] u8, &palettes[i]) + field.offset))[]
 
             .openFamily(familyOf(name))
             .rows.add(row)
@@ -182,7 +182,7 @@ impl SheetView
     private mtd buildMetrics()
     {
         let metrics = &app.theme.metrics
-        let type    = cast #assume(const *Swag.TypeInfoStruct) #typeof(ThemeMetrics)
+        let type    = assume cast(const *Swag.TypeInfoStruct, #typeof(ThemeMetrics))
 
         for field in type.fields
         {
@@ -191,18 +191,18 @@ impl SheetView
                 continue
             .openFamily(familyOf(name))
 
-            let raw = cast([*] u8) metrics + field.offset
+            let raw = cast([*] u8, metrics) + field.offset
 
             with var row: SheetRow
             {
                 .name = name
                 if field.pointedType == #typeof(f32) do
-                    .text = Format.toString("%", (cast(const *f32) raw)[])
+                    .text = Format.toString("%", cast(const *f32, raw)[])
                 elif field.pointedType == #typeof(u32) do
-                    .text = Format.toString("%", (cast(const *u32) raw)[])
+                    .text = Format.toString("%", cast(const *u32, raw)[])
                 else
                 {
-                    let vec = (cast(const *Math.Vector4) raw)[]
+                    let vec = cast(const *Math.Vector4, raw)[]
                     .text = Format.toString("% % % %", vec.x, vec.y, vec.z, vec.w)
                 }
             }
@@ -277,7 +277,7 @@ impl IWnd for SheetView
                     var captionX = rect.x + NameWidth
                     for i in ThemeVariantCount
                     {
-                        drawCell(painter, {captionX + 2, head.y, SwatchWidth, head.height}, variantName(cast(ThemeVariant) cast(s32) i), .fontName!, colors.label_TextFaint)
+                        drawCell(painter, {captionX + 2, head.y, SwatchWidth, head.height}, variantName(cast(ThemeVariant, cast(s32, i))), .fontName!, colors.label_TextFaint)
                         captionX += SwatchWidth + SwatchGap
                     }
                 }

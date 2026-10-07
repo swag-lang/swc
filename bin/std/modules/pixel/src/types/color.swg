@@ -44,14 +44,14 @@ impl Color
     #[FullInit, Inline, Implicit, ConstExpr]
     mtd opSet(argb: Argb)
     {
-        .argb = cast(u32) argb
+        .argb = cast(u32, argb)
     }
 
     // Assigns the named color spelled by `name`, or black when no name matches.
     #[FullInit, Inline, ConstExpr]
     mtd opSet(name: string)
     {
-        .argb = cast(u32) Argb.fromName(name)
+        .argb = cast(u32, Argb.fromName(name))
     }
 
     // Returns whether the packed value equals `argb`.
@@ -60,7 +60,7 @@ impl Color
 
     // Returns whether the color equals a named color.
     #[Inline]
-    mtd const opEquals(argb: Argb) => .argb == cast(u32) argb
+    mtd const opEquals(argb: Argb) => .argb == cast(u32, argb)
 
     // Returns whether both colors have the same four components.
     #[Inline]
@@ -84,10 +84,10 @@ impl Color
     #[Inline]
     mtd setArgbF32(a, r, g, b: f32)
     {
-        .a = cast() (Math.saturate(a) * 255)
-        .r = cast() (Math.saturate(r) * 255)
-        .g = cast() (Math.saturate(g) * 255)
-        .b = cast() (Math.saturate(b) * 255)
+        .a = cast((Math.saturate(a) * 255))
+        .r = cast((Math.saturate(r) * 255))
+        .g = cast((Math.saturate(g) * 255))
+        .b = cast((Math.saturate(b) * 255))
     }
 
     // Sets the color components from bytes and makes the color opaque.
@@ -114,9 +114,9 @@ impl Color
     mtd setRgbF32(r, g, b: f32)
     {
         .a = 255
-        .r = cast() (Math.saturate(r) * 255)
-        .g = cast() (Math.saturate(g) * 255)
-        .b = cast() (Math.saturate(b) * 255)
+        .r = cast((Math.saturate(r) * 255))
+        .g = cast((Math.saturate(g) * 255))
+        .b = cast((Math.saturate(b) * 255))
     }
 
     // Returns the four components normalized to [0, 1].
@@ -211,10 +211,10 @@ impl Color
     func fromAbgr(abgr: u32)->Color
     {
         var result: retval
-        result.a = cast() (abgr >> 24)
-        result.b = cast() ((abgr >> 16) & 0xFF)
-        result.g = cast() ((abgr >> 8) & 0xFF)
-        result.r = cast() (abgr & 0xFF)
+        result.a = cast((abgr >> 24))
+        result.b = cast(((abgr >> 16) & 0xFF))
+        result.g = cast(((abgr >> 8) & 0xFF))
+        result.r = cast((abgr & 0xFF))
         return result
     }
 
@@ -270,7 +270,7 @@ impl Color
             else do
                 v = m1
 
-            return cast(u8) (v * 255)
+            return cast(u8, (v * 255))
         }
 
         var _h = Math.saturate(h)
@@ -279,7 +279,7 @@ impl Color
 
         if _s == 0
         {
-            .r = cast(u8) (255 * _l)
+            .r = cast(u8, (255 * _l))
             .g = .r
             .b = .r
         }
@@ -365,10 +365,10 @@ impl Color
         func linearToSrgb(c: f32)->f32 => c <= 0.0031308 ? (c * 12.92) : (1.055 * Math.pow(c, 1.0 / 2.4) - 0.055)
 
         var result: retval
-        result.a = cast(u8) Math.round(Math.saturate(vec.w) * 255.0)
-        result.r = cast(u8) Math.round(Math.saturate(linearToSrgb(vec.x)) * 255.0)
-        result.g = cast(u8) Math.round(Math.saturate(linearToSrgb(vec.y)) * 255.0)
-        result.b = cast(u8) Math.round(Math.saturate(linearToSrgb(vec.z)) * 255.0)
+        result.a = cast(u8, Math.round(Math.saturate(vec.w) * 255.0))
+        result.r = cast(u8, Math.round(Math.saturate(linearToSrgb(vec.x)) * 255.0))
+        result.g = cast(u8, Math.round(Math.saturate(linearToSrgb(vec.y)) * 255.0))
+        result.b = cast(u8, Math.round(Math.saturate(linearToSrgb(vec.z)) * 255.0))
         return result
     }
 
@@ -391,9 +391,9 @@ impl Color
         var result: retval
         let t = Math.saturate(factor)
         result.a = start.a
-        result.r = cast(u8) Math.lerp(cast(f32) start.r, cast(f32) end.r, t)
-        result.g = cast(u8) Math.lerp(cast(f32) start.g, cast(f32) end.g, t)
-        result.b = cast(u8) Math.lerp(cast(f32) start.b, cast(f32) end.b, t)
+        result.r = cast(u8, Math.lerp(cast(f32, start.r), cast(f32, end.r), t))
+        result.g = cast(u8, Math.lerp(cast(f32, start.g), cast(f32, end.g), t))
+        result.b = cast(u8, Math.lerp(cast(f32, start.b), cast(f32, end.b), t))
         return result
     }
 
@@ -405,10 +405,10 @@ impl Color
     {
         var result: retval
         let t = Math.saturate(factor)
-        result.a = cast(u8) Math.lerp(cast(f32) start.a, cast(f32) end.a, t)
-        result.r = cast(u8) Math.lerp(cast(f32) start.r, cast(f32) end.r, t)
-        result.g = cast(u8) Math.lerp(cast(f32) start.g, cast(f32) end.g, t)
-        result.b = cast(u8) Math.lerp(cast(f32) start.b, cast(f32) end.b, t)
+        result.a = cast(u8, Math.lerp(cast(f32, start.a), cast(f32, end.a), t))
+        result.r = cast(u8, Math.lerp(cast(f32, start.r), cast(f32, end.r), t))
+        result.g = cast(u8, Math.lerp(cast(f32, start.g), cast(f32, end.g), t))
+        result.b = cast(u8, Math.lerp(cast(f32, start.b), cast(f32, end.b), t))
         return result
     }
 
@@ -423,11 +423,11 @@ impl Color
     // Returns the Euclidean distance between the color components of two colors, normalized to [0, 1].
     mtd const rgbDistanceTo(other: Color)->f32
     {
-        let x1   = cast(f32) .r - other.r
-        let x2   = cast(f32) .g - other.g
-        let x3   = cast(f32) .b - other.b
+        let x1   = cast(f32, .r) - other.r
+        let x2   = cast(f32, .g) - other.g
+        let x3   = cast(f32, .b) - other.b
         var dist = Math.sqrt((x1 * x1) + (x2 * x2) + (x3 * x3))
-        dist /= Math.sqrt(cast(f32) (255.0 * 255.0 * 3.0))     // Normalize to [0, 1]
+        dist /= Math.sqrt(cast(f32, (255.0 * 255.0 * 3.0)))     // Normalize to [0, 1]
         return dist
     }
 
@@ -445,13 +445,13 @@ impl Color
 
     // Returns the perceived brightness in [0, 1], using BT.601 luma weights on the gamma-encoded components.
     #[Inline, ConstExpr]
-    mtd const grayscaleValue()->f32 => (cast(f32) .r * 0.299 + cast(f32) .g * 0.587 + cast(f32) .b * 0.114) / 255.0
+    mtd const grayscaleValue()->f32 => (cast(f32, .r) * 0.299 + cast(f32, .g) * 0.587 + cast(f32, .b) * 0.114) / 255.0
 
     // Returns the gray of the same perceived brightness, keeping alpha.
     #[Inline, ConstExpr]
     mtd const grayscale()->Color
     {
-        let gray = cast(u8) Math.round(.grayscaleValue() * 255)
+        let gray = cast(u8, Math.round(.grayscaleValue() * 255))
         return Color.fromArgb(.a, gray, gray, gray)
     }
 
@@ -549,7 +549,7 @@ impl Color
 
     // Returns the color with its alpha replaced by a normalized value, clamped to [0, 1].
     #[Inline, ConstExpr]
-    mtd const withAlphaF32(alpha: f32)->Color => fromArgb(cast(u8) (Math.clamp(alpha, 0.0, 1.0) * 255), .r, .g, .b)
+    mtd const withAlphaF32(alpha: f32)->Color => fromArgb(cast(u8, (Math.clamp(alpha, 0.0, 1.0) * 255)), .r, .g, .b)
 
     // Returns the color on the opposite side of the color wheel, keeping alpha.
     #[ConstExpr]
@@ -560,10 +560,10 @@ impl Color
     func multiply(col0, col1: Color)->Color
     {
         var result: retval
-        result.a = cast(u8) ((cast(u16) col0.a * col1.a) / 255)
-        result.r = cast(u8) ((cast(u16) col0.r * col1.r) / 255)
-        result.g = cast(u8) ((cast(u16) col0.g * col1.g) / 255)
-        result.b = cast(u8) ((cast(u16) col0.b * col1.b) / 255)
+        result.a = cast(u8, ((cast(u16, col0.a) * col1.a) / 255))
+        result.r = cast(u8, ((cast(u16, col0.r) * col1.r) / 255))
+        result.g = cast(u8, ((cast(u16, col0.g) * col1.g) / 255))
+        result.b = cast(u8, ((cast(u16, col0.b) * col1.b) / 255))
         return result
     }
 
@@ -572,10 +572,10 @@ impl Color
     func add(col0, col1: Color)->Color
     {
         var result: retval
-        result.a = cast(u8) Math.min(cast(u16) col0.a + col1.a, 255)
-        result.r = cast(u8) Math.min(cast(u16) col0.r + col1.r, 255)
-        result.g = cast(u8) Math.min(cast(u16) col0.g + col1.g, 255)
-        result.b = cast(u8) Math.min(cast(u16) col0.b + col1.b, 255)
+        result.a = cast(u8, Math.min(cast(u16, col0.a) + col1.a, 255))
+        result.r = cast(u8, Math.min(cast(u16, col0.r) + col1.r, 255))
+        result.g = cast(u8, Math.min(cast(u16, col0.g) + col1.g, 255))
+        result.b = cast(u8, Math.min(cast(u16, col0.b) + col1.b, 255))
         return result
     }
 
@@ -596,7 +596,7 @@ impl Color
         for i in n
         {
             // Evenly jump around the hue circle with the golden angle
-            let h = Math.fract(startHue + cast(f32) i * G)
+            let h = Math.fract(startHue + cast(f32, i) * G)
 
             // Slight alternating lightness to enhance contrast between adjacent colors
             let l = lum + ((i & 1) == 0 ? -LVAR : LVAR)
@@ -660,7 +660,7 @@ impl Core.StrConv.IPokeValue for Color
         {
             let id = try parseIdentifier(one)
             one   = Tokenize.eatCount(one, id.count)
-            .argb = cast(u32) Argb.fromName(id)
+            .argb = cast(u32, Argb.fromName(id))
         }
 
         return one

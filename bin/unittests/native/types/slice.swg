@@ -108,7 +108,7 @@ var A: [..] s32?
 
 #test
 {
-    let cstr: const cstring = cast(const cstring) ("slice").buffer
+    let cstr: const cstring = cast(const cstring, ("slice").buffer)
     let a    = cstr[1 to 3]
     let b    = cstr[2 to]
     let c    = cstr[until 2]

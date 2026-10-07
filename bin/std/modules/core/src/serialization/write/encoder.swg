@@ -169,10 +169,10 @@ impl Encoder
         {
             if Reflection.isInterface(type)
             {
-                let itf = cast(const *Swag.Interface) data
+                let itf = cast(const *Swag.Interface, data)
                 if not itf.itable and type.flags & .Nullable == 0 do
                     fail SerializationError{"non-null interface value is missing"}
-                let objType = itf.itable ? cast(const *Swag.TypeInfo?) itf.itable[] : null
+                let objType = itf.itable ? cast(const *Swag.TypeInfo?, itf.itable[]) : null
                 discard try .serializer.interfaceTypeKey(objType)
             }
         }
@@ -183,20 +183,20 @@ impl Encoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast #assume(const *TypeInfoNative) type
+            let typeNative = assume cast(const *TypeInfoNative, type)
             switch typeNative.nativeKind
             {
-            case .Bool:       .serializer.writeNative((cast(const *bool) data)[])
-            case .U8:         .serializer.writeNative((cast(const *u8) data)[])
-            case .U16:        .serializer.writeNative((cast(const *u16) data)[])
-            case .U32, .Rune: .serializer.writeNative((cast(const *u32) data)[])
-            case .U64:        .serializer.writeNative((cast(const *u64) data)[])
-            case .S8:         .serializer.writeNative((cast(const *s8) data)[])
-            case .S16:        .serializer.writeNative((cast(const *s16) data)[])
-            case .S32:        .serializer.writeNative((cast(const *s32) data)[])
-            case .S64:        .serializer.writeNative((cast(const *s64) data)[])
-            case .F32:        .serializer.writeNative((cast(const *f32) data)[])
-            case .F64:        .serializer.writeNative((cast(const *f64) data)[])
+            case .Bool:       .serializer.writeNative(cast(const *bool, data)[])
+            case .U8:         .serializer.writeNative(cast(const *u8, data)[])
+            case .U16:        .serializer.writeNative(cast(const *u16, data)[])
+            case .U32, .Rune: .serializer.writeNative(cast(const *u32, data)[])
+            case .U64:        .serializer.writeNative(cast(const *u64, data)[])
+            case .S8:         .serializer.writeNative(cast(const *s8, data)[])
+            case .S16:        .serializer.writeNative(cast(const *s16, data)[])
+            case .S32:        .serializer.writeNative(cast(const *s32, data)[])
+            case .S64:        .serializer.writeNative(cast(const *s64, data)[])
+            case .F32:        .serializer.writeNative(cast(const *f32, data)[])
+            case .F64:        .serializer.writeNative(cast(const *f64, data)[])
             }
 
             return
@@ -204,14 +204,14 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = (cast(const *(typeinfo?)) data!)[]
+            let typeType = cast(const *(typeinfo?), data!)[]
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
 
         if Reflection.isInterface(type)
         {
-            let itf = cast(const *Swag.Interface) data
+            let itf = cast(const *Swag.Interface, data)
 
             .serializer.beginSection(.Raw)
             defer #nofail .serializer.endSection()
@@ -219,7 +219,7 @@ impl Encoder
             var objType, itfType: typeinfo?
             if itf.itable
             {
-                objType = cast(const *Swag.TypeInfo?) itf.itable![]
+                objType = cast(const *Swag.TypeInfo?, itf.itable![])
                 itfType = type
             }
 
@@ -266,7 +266,7 @@ impl Encoder
             // Core.String
             if type == Core.String
             {
-                let strBuf = cast(const *String) data
+                let strBuf = cast(const *String, data)
                 .serializer.writeNative(strBuf.toString())
                 return
             }
@@ -276,13 +276,13 @@ impl Encoder
             if valueType
             {
                 let safeValueType = valueType
-                let ptrArr        = cast(const *Array'u8) data
+                let ptrArr        = cast(const *Array'u8, data)
                 let treated       = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
                 if not treated
                 {
-                    var bufArr = cast(const [*] u8?) ptrArr.buffer
+                    var bufArr = cast(const [*] u8?, ptrArr.buffer)
                     for ptrArr.count
                     {
                         try .writeValue(bufArr!, safeValueType)
@@ -302,7 +302,7 @@ impl Encoder
             }
 
             // Start a fields section
-            let structType = cast #assume(const *TypeInfoStruct) type
+            let structType = assume cast(const *TypeInfoStruct, type)
             var treated: bool
             #static if T == Write.TagBin do
                 treated = try .serializer.beginStruct(structType, data)
@@ -318,9 +318,9 @@ impl Encoder
             let plan = try planFor(structType)
             for &pf in plan.fields
             {
-                if not itf or not (try itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, me))
+                if not itf or not (try itf.writeElement(pf.value, cast(const [*] u8?, data) + pf.value.offset, me))
                 {
-                    try .writeTypeValue(pf.value, cast(const [*] u8?) data + pf.value.offset)
+                    try .writeTypeValue(pf.value, cast(const [*] u8?, data) + pf.value.offset)
                 }
             }
 
@@ -330,14 +330,14 @@ impl Encoder
         // A static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr  = cast #assume(const *TypeInfoArray) type
+            let typeArr  = assume cast(const *TypeInfoArray, type)
             let elemType = typeArr.pointedType
             let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()
             if treated do
                 return
 
-            var bufArr = cast(const [*] u8) data
+            var bufArr = cast(const [*] u8, data)
             for typeArr.count
             {
                 try .writeValue(bufArr, elemType)

@@ -25,8 +25,8 @@ impl SizeMetrics
 {
     mtd set(face: const *Face, pixelWidth, pixelHeight: u32)
     {
-        .xPpem      = cast(u16) pixelWidth
-        .yPpem      = cast(u16) pixelHeight
+        .xPpem      = cast(u16, pixelWidth)
+        .yPpem      = cast(u16, pixelHeight)
         .xScale     = scaleFixed(pixelWidth, face.unitsPerEm)
         .yScale     = scaleFixed(pixelHeight, face.unitsPerEm)
         .ascender   = scale26_6(face.ascender, pixelHeight, face.unitsPerEm)

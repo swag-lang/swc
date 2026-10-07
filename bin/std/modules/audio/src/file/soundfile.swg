@@ -223,7 +223,7 @@ impl SoundFile
                 if logicalOffset < logicalEnd and written < wanted
                 {
                     let packetSkip = logicalOffset > logicalStart ? logicalOffset - logicalStart : 0
-                    let available  = cast(u64) packet.byteSize - packetSkip
+                    let available  = cast(u64, packet.byteSize) - packetSkip
                     let readSize   = Math.min(available, wanted - written)
                     try source.seek(packet.sourceOffset + packetSkip)
                     try source.readExact(result.toSlice()[written until written + readSize])
@@ -288,10 +288,10 @@ impl SoundFile
     mtd const timelineStartSeconds()->f64 => .timelineStart
 
     // Returns the human-readable track name supplied by the containing media, or an empty string.
-    mtd const displayName()->string => cast(string) .mediaName.toSlice()
+    mtd const displayName()->string => cast(string, .mediaName.toSlice())
 
     // Returns the language code supplied by the containing media, or an empty string.
-    mtd const language()->string => cast(string) .mediaLanguage.toSlice()
+    mtd const language()->string => cast(string, .mediaLanguage.toSlice())
 
     // Returns whether the loader validated the requested property.
     mtd const hasField(field: SoundFileFields)->bool => .availableFields.has(field)
@@ -353,8 +353,8 @@ impl SoundFile
             .validBitsPerSample = 16
             .waveSpeakerMask    = options.speakerMask
             .timelineStart      = options.timelineStartSeconds
-            .mediaName.add(cast(const [..] u8) options.displayName)
-            .mediaLanguage.add(cast(const [..] u8) options.language)
+            .mediaName.add(cast(const [..] u8, options.displayName))
+            .mediaLanguage.add(cast(const [..] u8, options.language))
         }
 
         if not Math.isFinite(result.timelineStart) or result.timelineStart < 0 do
@@ -387,7 +387,7 @@ impl SoundFile
             // primes the overlap of the next one.
             if not packet.byteSize do
                 fail BadParameterError{"sound packets need non-zero byte counts"}
-            if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
+            if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"sound packet runs past the end of its source file"}
             if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or payloadBytes > Swag.U64.Max - packet.byteSize do
                 fail OverflowError{"sound packet table is too large"}
@@ -407,7 +407,7 @@ impl SoundFile
 
         result.frameCount      = frameCount - result.leadingTrim
         result.dataSize        = payloadBytes
-        result.durationSeconds = cast(f32) result.frameCount / cast(f32) sampleRateHz
+        result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
         result.availableFields = .Format | .SampleRate | .ChannelCount | .SpeakerMask | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
         return result
     }
@@ -433,7 +433,7 @@ impl SoundFile
             fail BadParameterError{"packetized PCM needs channels and a non-zero sample rate"}
         if not packets.count do
             fail BadParameterError{"packetized PCM needs source chunks"}
-        let bytesPerFrame = cast(u64) channels * cast(u64) (bitsPerSample / 8)
+        let bytesPerFrame = cast(u64, channels) * cast(u64, (bitsPerSample / 8))
         var stream        = try File.openRead(path)
         let sourceSize    = try stream.size()
 
@@ -444,7 +444,7 @@ impl SoundFile
             .sampleRate         = sampleRateHz
             .channelCount       = channels
             .bitsPerSample      = bitsPerSample
-            .validBitsPerSample = cast(u16) bitsPerSample
+            .validBitsPerSample = cast(u16, bitsPerSample)
         }
 
         if channels == 1 do
@@ -458,9 +458,9 @@ impl SoundFile
         {
             if not packet.byteSize or not packet.sampleFrameCount do
                 fail BadParameterError{"PCM source chunks need non-zero byte and sample-frame counts"}
-            if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
+            if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"PCM source chunk runs past the end of its source file"}
-            if cast(u64) packet.sampleFrameCount > Swag.U64.Max / bytesPerFrame or cast(u64) packet.sampleFrameCount * bytesPerFrame != packet.byteSize do
+            if cast(u64, packet.sampleFrameCount) > Swag.U64.Max / bytesPerFrame or cast(u64, packet.sampleFrameCount) * bytesPerFrame != packet.byteSize do
                 fail InvalidFormatError{"PCM source chunk size does not match its sample-frame count"}
             if result.frameCount > Swag.U64.Max - packet.sampleFrameCount or result.dataSize > Swag.U64.Max - packet.byteSize do
                 fail OverflowError{"packetized PCM stream exceeds the supported size"}
@@ -471,7 +471,7 @@ impl SoundFile
             result.dataSize   += packet.byteSize
         }
 
-        result.durationSeconds = cast(f32) result.frameCount / cast(f32) sampleRateHz
+        result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
         result.availableFields = .Format | .SampleRate | .ChannelCount | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
         if result.waveSpeakerMask do
             result.availableFields |= .SpeakerMask

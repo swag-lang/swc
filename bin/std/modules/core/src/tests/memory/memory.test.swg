@@ -40,13 +40,13 @@ func pushAllocatorAcceptsNull()->bool
     Swag.assert(Memory.align(13, 0) == #sizeof(*void) * 2)
 
     var buffer: [32] u8
-    let misaligned = cast([*] u8) buffer.buffer + 1
-    Swag.assert(cast(u64) misaligned == cast(u64) buffer.buffer + 1)
-    let alignedValue = Memory.align(cast(u64) misaligned, 8)
+    let misaligned = cast([*] u8, buffer.buffer) + 1
+    Swag.assert(cast(u64, misaligned) == cast(u64, buffer.buffer) + 1)
+    let alignedValue = Memory.align(cast(u64, misaligned), 8)
     let aligned      = Memory.align(misaligned, 8)
-    Swag.assert(cast(u64) aligned % 8 == 0)
-    Swag.assert(cast(u64) aligned == alignedValue)
-    Swag.assert(cast(u64) aligned >= cast(u64) misaligned)
+    Swag.assert(cast(u64, aligned) % 8 == 0)
+    Swag.assert(cast(u64, aligned) == alignedValue)
+    Swag.assert(cast(u64, aligned) >= cast(u64, misaligned))
 }
 
 #test

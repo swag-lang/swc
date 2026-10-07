@@ -46,10 +46,10 @@ private
 
     // Fixed-point chroma-to-colour coefficients, in 16.16. The rounding of each one is part of
     // the decoded value, so the scalar and vector paths must read them from here.
-    const FixCrToR = cast(s32) ((1.40200 / 2) * (1 << 16) + 0.5)
-    const FixCbToB = cast(s32) ((1.77200 / 2) * (1 << 16) + 0.5)
-    const FixCrToG = cast(s32) -((0.71414 / 2) * (1 << 16) + 0.5)
-    const FixCbToG = cast(s32) -((0.34414 / 2) * (1 << 16) + 0.5)
+    const FixCrToR = cast(s32, ((1.40200 / 2) * (1 << 16) + 0.5))
+    const FixCbToB = cast(s32, ((1.77200 / 2) * (1 << 16) + 0.5))
+    const FixCrToG = cast(s32, -((0.71414 / 2) * (1 << 16) + 0.5))
+    const FixCbToG = cast(s32, -((0.34414 / 2) * (1 << 16) + 0.5))
 
     // One decoding table of a scan.
     //
@@ -136,12 +136,12 @@ private
 
     #[Inline]
     {
-        func descale(x: s32, n: u32)->s32 => cast(s32) ((x + (1's32 << (n - 1))) >> n)
-        func clamp(i: s32)->u8 => cast(u8) ((i & cast #bit (s32) 0xFFFFFF00) ? ((~i >> 31) & 0xFF) : i)
+        func descale(x: s32, n: u32)->s32 => cast(s32, ((x + (1's32 << (n - 1))) >> n))
+        func clamp(i: s32)->u8 => cast(u8, ((i & cast #bit (s32, 0xFFFFFF00)) ? ((~i >> 31) & 0xFF) : i))
 
         func extendSign(r: u32, s: s32)->s32
         {
-            let value = cast(s32) r
+            let value = cast(s32, r)
             return value < ExtendTest[s] ? value + ExtendOff[s] : value
         }
 
@@ -150,7 +150,7 @@ private
             let shift = j & 31
             if not shift do
                 return i
-            return cast(u32) ((i << #wrap shift) | (i >> (32 - shift)))
+            return cast(u32, ((i << #wrap shift) | (i >> (32 - shift))))
         }
     }
 }
@@ -257,7 +257,7 @@ impl Decoder
         Swag.init(me, 1)
         .decOptions = options
         .stream     = buffer.buffer
-        .streamLen  = cast(s32) buffer.count
+        .streamLen  = cast(s32, buffer.count)
 
         .inBufOfs = .inBuf
         .prepareInBuffer()
@@ -292,7 +292,7 @@ impl Decoder
                     break
 
                 var pdest1 = pdest
-                var psrc   = cast([*] u8) scanLineOfs!
+                var psrc   = cast([*] u8, scanLineOfs!)
                 for .imageSizeX
                 {
                     pdest1[0] = psrc[]
@@ -314,7 +314,7 @@ impl Decoder
             {
                 if try .decode(&scanLineOfs, &scanLineLen) do
                     break
-                Memory.copy(pdest, cast(*void) scanLineOfs!, cast(u64) .imageSizeX * 3)
+                Memory.copy(pdest, cast(*void, scanLineOfs!), cast(u64, .imageSizeX) * 3)
                 pdest -= .imageSizeX * 3
             }
         }
@@ -341,7 +341,7 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
 
-        try .doit(cast([*] u8) result.pixels.storage())
+        try .doit(cast([*] u8, result.pixels.storage()))
         result.metadata = #move .metadata
 
         return result

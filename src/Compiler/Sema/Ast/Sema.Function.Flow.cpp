@@ -132,8 +132,9 @@ namespace
 
     struct ErrorManagementPayload
     {
-        bool containsFallible = false;
-        bool isFallibleResult = false;
+        bool containsFallible    = false;
+        bool containsAssumedCast = false;
+        bool isFallibleResult    = false;
 
         // A '!' records the proof it makes. Sema re-enters a node after a dependency yield,
         // and the proof recorded on the first pass is this node's own: reading it back on the
@@ -179,6 +180,7 @@ namespace
         {
             case TokenId::KwdCatch:
             case TokenId::KwdExpect:
+            case TokenId::KwdAssume:
                 break;
             default:
                 return;
@@ -198,6 +200,7 @@ namespace
             case TokenId::KwdCatch:
                 return SemaFrame::ErrorContextMode::Catch;
             case TokenId::KwdExpect:
+            case TokenId::KwdAssume:
                 return SemaFrame::ErrorContextMode::Expect;
             default:
                 return SemaFrame::ErrorContextMode::None;
@@ -641,6 +644,9 @@ namespace
             return Result::Error;
         }
 
+        // Cast invariants use their own lowering; a cast-only assumption needs no error frame.
+        if (tokenId == TokenId::KwdAssume && payload.containsAssumedCast && !payload.containsFallible)
+            return Result::Continue;
         if (!payload.containsFallible)
             return reportErrorManagementOperandNotFallible(sema, sema.curNodeRef(), managedChildRef);
 
@@ -658,6 +664,11 @@ namespace
                 break;
             }
 
+            case TokenId::KwdAssume:
+                if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Assume))
+                    break;
+                SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).addRuntimeSafety(Runtime::SafetyWhat::Assume);
+                [[fallthrough]];
             case TokenId::KwdExpect:
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
                 SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedExpect, sema.curNode().codeRef()));
@@ -1630,6 +1641,27 @@ namespace
     }
 }
 
+bool SemaHelpers::isAssumedCast(Sema& sema)
+{
+    const AstNodeRef scopeRef = sema.frame().currentErrorScope();
+    if (scopeRef.isInvalid() || sema.token(sema.node(scopeRef).codeRef()).id != TokenId::KwdAssume)
+        return false;
+    ensureErrorManagementPayload(sema, scopeRef).containsAssumedCast = true;
+    return true;
+}
+
+Result SemaHelpers::prepareFallibleCast(Sema& sema)
+{
+    markCurrentErrorScopeFallible(sema);
+    if (!hasExplicitCallErrorHandler(sema))
+        return SemaError::raise(sema, DiagnosticId::sema_err_fallible_cast_requires_handler, sema.curNodeRef());
+    auto& lowering               = ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+    lowering.fallibleDynamicCast = true;
+    // This is a language error, independent of optional runtime safety guards.
+    lowering.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
+    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedCast, sema.curNode().codeRef());
+}
+
 Result AstCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     return semaCallExprPreNodeChildCommon(sema, *this, childRef);
@@ -1688,6 +1720,13 @@ Result AstErrorManagementExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaErrorManagementPostNodeCommon(sema, nodeExprRef));
+
+    const auto& errorPayload = ensureErrorManagementPayload(sema, sema.curNodeRef());
+    if (errorPayload.containsAssumedCast && !errorPayload.containsFallible && sema.node(nodeExprRef).is(AstNodeId::AutoCastExpr))
+    {
+        sema.setSubstitute(sema.curNodeRef(), nodeExprRef);
+        return Result::Continue;
+    }
 
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(nodeExprRef);
     const AstNodeRef   resolvedExprRef = exprView.nodeRef();

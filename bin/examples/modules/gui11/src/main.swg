@@ -257,7 +257,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
     }
 
     for index in StageCardCount do
-        g_Cards.add(MotionCard.create(page, cast(s32) index + 1, StageTitles[index], StageDetails[index]))
+        g_Cards.add(MotionCard.create(page, cast(s32, index) + 1, StageTitles[index], StageDetails[index]))
 
     g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", {}, null, .SecondaryText)
 
@@ -277,8 +277,8 @@ func updateStageReadout()
 {
     let duration = g_StageDuration!.value()
     let stagger  = g_StageStagger!.value()
-    let last     = duration + stagger * cast(f32) (StageCardCount - 1)
-    g_StageReadout!.setText(Format.toString("% ms each, % ms apart, % ms until the last tile lands", cast(s32) duration, cast(s32) stagger, cast(s32) last))
+    let last     = duration + stagger * cast(f32, (StageCardCount - 1))
+    g_StageReadout!.setText(Format.toString("% ms each, % ms apart, % ms until the last tile lands", cast(s32, duration), cast(s32, stagger), cast(s32, last)))
 }
 
 // Replays the whole entrance from wherever the tiles currently are.
@@ -289,14 +289,14 @@ func updateStageReadout()
 func playEntrance()
 {
     let curve    = WallCurves[g_StageEasing!.selectedIndex]
-    let duration = Time.Duration.fromSeconds(cast(f64) g_StageDuration!.value() / 1000)
-    let stagger  = cast(f64) g_StageStagger!.value() / 1000
+    let duration = Time.Duration.fromSeconds(cast(f64, g_StageDuration!.value()) / 1000)
+    let stagger  = cast(f64, g_StageStagger!.value()) / 1000
 
     var group = AnimationGroup.concurrent()
     for card, index in g_Cards
     {
         let wnd   = card
-        let delay = Time.Duration.fromSeconds(stagger * cast(f64) index)
+        let delay = Time.Duration.fromSeconds(stagger * cast(f64, index))
 
         var motion: AnimationOptions
         motion.delay    = delay
@@ -367,10 +367,10 @@ func layoutStagePage()
 
     let stripY = controlsY + PanelHeight + RowGap
     let cardH  = Math.clamp(rect.height - stripY - PagePad - 30, 90.0, MaxCardH)
-    let cardW  = (width - cast(f32) (StageCardCount - 1) * RowGap) / cast(f32) StageCardCount
+    let cardW  = (width - cast(f32, (StageCardCount - 1)) * RowGap) / cast(f32, StageCardCount)
 
     for card, index in g_Cards do
-        card.setPosition({PagePad + cast(f32) index * (cardW + RowGap), stripY, cardW, cardH})
+        card.setPosition({PagePad + cast(f32, index) * (cardW + RowGap), stripY, cardW, cardH})
     g_StageHint!.setPosition({PagePad, stripY + cardH + 10, width, 22})
 }
 
@@ -416,7 +416,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
     duration.setValue(900)
     duration.sigChanged += func(slider)
     {
-        g_Field!.travelTime = Time.Duration.fromSeconds(cast(f64) slider.value() / 1000)
+        g_Field!.travelTime = Time.Duration.fromSeconds(cast(f64, slider.value()) / 1000)
         updateFieldReadout()
     }
 
@@ -447,7 +447,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 
 func updateFieldReadout()
 {
-    g_FieldReadout!.setText(Format.toString("Gui11.Field.Puck, % ms per trip", cast(s32) g_FieldDuration!.value()))
+    g_FieldReadout!.setText(Format.toString("Gui11.Field.Puck, % ms per trip", cast(s32, g_FieldDuration!.value())))
 }
 
 func layoutFieldPage()

@@ -107,7 +107,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
                 var adopted = false
                 for attempt in MaxDefaultRootNames
                 {
-                    root    = defaultSandboxRoot(cast(u32) attempt)
+                    root    = defaultSandboxRoot(cast(u32, attempt))
                     adopted = true
                     catch clearLeftoverDefaultRoot(root.toString()) else
                     {

@@ -32,7 +32,7 @@ impl SmallVec
 
     mtd init()
     {
-        .ptr      = cast([*] s32) &.inline[0]
+        .ptr      = cast([*] s32, &.inline[0])
         .count    = 0
         .capacity = InlineCap
     }
@@ -46,7 +46,7 @@ impl SmallVec
         while newCap < want do
             newCap *= 2
 
-        let newBuf = cast([*] s32) (testAlloc(newCap * #sizeof(s32)))!
+        let newBuf = cast([*] s32, (testAlloc(newCap * #sizeof(s32)))!)
         let oldPtr = .ptr!
         for i in .count do
             newBuf[i] = oldPtr[i]
@@ -93,13 +93,13 @@ impl SmallVec
         if .isInline()
         {
             // Data fits inline -- just redirect ptr to our own buffer.
-            .ptr = cast([*] s32) &.inline[0]
+            .ptr = cast([*] s32, &.inline[0])
         }
         else
         {
             // Heap path: allocate a fresh buffer and copy the elements.
             let oldPtr = .ptr!
-            let newPtr = cast([*] s32) (testAlloc(.capacity * #sizeof(s32)))!
+            let newPtr = cast([*] s32, (testAlloc(.capacity * #sizeof(s32)))!)
             for i in .count do
                 newPtr[i] = oldPtr[i]
             .ptr = newPtr
@@ -111,7 +111,7 @@ impl SmallVec
         // After the bytewise move, the source is dead. If data was inline,
         // .ptr still references the source's inline storage -- fix it.
         if .isInline() do
-            .ptr = cast([*] s32) &.inline[0]
+            .ptr = cast([*] s32, &.inline[0])
         // Heap: ptr already points at the heap buffer, nothing to fix.
     }
 
@@ -154,7 +154,7 @@ impl SmallVec
     v.init()
 
     for i in 8'u64 do
-        v.push(cast(s32) i * 7)
+        v.push(cast(s32, i) * 7)
 
     Swag.assert(v.count == 8)
     Swag.assert(not v.isInline())
@@ -200,7 +200,7 @@ impl SmallVec
     var src: SmallVec
     src.init()
     for i in 6'u64 do
-        src.push(cast(s32) i + 100)
+        src.push(cast(s32, i) + 100)
 
     Swag.assert(not src.isInline())
 
@@ -260,7 +260,7 @@ impl SmallVec
     var src: SmallVec
     src.init()
     for i in 6'u64 do
-        src.push(cast(s32) i)
+        src.push(cast(s32, i))
 
     Swag.assert(not src.isInline())
     let heapPtr = src.ptr
@@ -401,7 +401,7 @@ impl SmallVec
     var dst: SmallVec
     dst.init()
     for i in 6'u64 do
-        dst.push(cast(s32) i)
+        dst.push(cast(s32, i))
     Swag.assert(not dst.isInline())
 
     // Copy a small vec into dst. The old heap buffer must be freed (opDrop)
@@ -426,7 +426,7 @@ impl SmallVec
     var dst: SmallVec
     dst.init()
     for i in 8'u64 do
-        dst.push(cast(s32) i * 3)
+        dst.push(cast(s32, i) * 3)
     Swag.assert(not dst.isInline())
 
     var src: SmallVec
@@ -461,7 +461,7 @@ struct Pair
     p.left.push(1)
     p.left.push(2)
     for i in 6'u64 do
-        p.right.push(cast(s32) i)
+        p.right.push(cast(s32, i))
 
     Swag.assert(p.left.isInline())
     Swag.assert(not p.right.isInline())

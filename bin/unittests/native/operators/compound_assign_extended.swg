@@ -34,7 +34,7 @@
     var total: s32 = 0
     for i in 10
     {
-        total += cast(s32) i
+        total += cast(s32, i)
     }
     Swag.assert(total == 45)
 }
@@ -45,7 +45,7 @@
     var result: s64 = 1
     for i in 1 to 10
     {
-        result *= cast(s64) i
+        result *= cast(s64, i)
     }
     Swag.assert(result == 3628800)     // 10!
 }

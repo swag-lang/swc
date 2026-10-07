@@ -32,7 +32,7 @@ func nnBytes(bytes: const [..] u8?)->const [..] u8 => bytes!
 
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {
-    let expectedSize = cast(u64) (width * height * cast(s32) (pf.bitsPerPixel() >> 3))
+    let expectedSize = cast(u64, (width * height * cast(s32, (pf.bitsPerPixel() >> 3))))
     Swag.assert(buffer.count == expectedSize)
     return Image.create(width, height, pf, buffer)
 }
@@ -71,7 +71,7 @@ func contourArea(contour: Pixel.Clipper.ClipperPath)->f64
     var prev  = count - 1
     for i in count
     {
-        total += cast(f64) (contour[prev].x + contour[i].x) * cast(f64) (contour[prev].y - contour[i].y)
+        total += cast(f64, (contour[prev].x + contour[i].x)) * cast(f64, (contour[prev].y - contour[i].y))
         prev  = i
     }
 

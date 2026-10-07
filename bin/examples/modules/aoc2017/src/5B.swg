@@ -22,7 +22,7 @@ func day5B()
     {
         let jit = jumps.ptr1(it)
         it    += jit[]
-        jit[] += -1 + 2 * cast(s64) (jit[] < 3)
+        jit[] += -1 + 2 * cast(s64, (jit[] < 3))
         step  += 1
     }
 

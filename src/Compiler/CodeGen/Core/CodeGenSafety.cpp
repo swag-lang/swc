@@ -537,7 +537,7 @@ Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, As
 Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, bool valueIsAddress, TypeRef resultTypeRef)
 {
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
-    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
+    if (!nodePayload || (!nodePayload->fallibleDynamicCast && !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null) && !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume)))
         return Result::Continue;
 
     const TypeInfo& originalType    = codeGen.typeMgr().get(resultTypeRef);
@@ -563,11 +563,16 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
     builder.emitCmpRegImm(presenceReg, ApInt(0, 64), bits);
     builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
 
-    const IdentifierRef panicIdRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
-    SWC_ASSERT(panicIdRef.isValid());
-    SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(panicIdRef);
-    SWC_ASSERT(panicFunction != nullptr);
-    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "null value cast into a non-null type"));
+    if (nodePayload->fallibleDynamicCast)
+        SWC_RESULT(CodeGenCallHelpers::emitFallibleCastFailure(codeGen));
+    else
+    {
+        const IdentifierRef panicIdRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
+        SWC_ASSERT(panicIdRef.isValid());
+        SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(panicIdRef);
+        SWC_ASSERT(panicFunction != nullptr);
+        SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "null value cast into a non-null type"));
+    }
     builder.placeLabel(presentLabel);
     return Result::Continue;
 }

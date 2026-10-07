@@ -43,7 +43,7 @@ namespace GenericForeachLazyCodegen
             if newCapacity <= .capacity do
                 return
 
-            .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
         }
 
@@ -147,7 +147,7 @@ namespace GenericForeachLazyCodegen
 
     func allocS32(value: s32)->*s32
     {
-        let ptr = cast(*s32) testAlloc(#sizeof(s32))!
+        let ptr = cast(*s32, testAlloc(#sizeof(s32))!)
         ptr[] = value
         return ptr
     }

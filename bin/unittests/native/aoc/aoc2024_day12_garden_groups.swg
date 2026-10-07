@@ -67,19 +67,19 @@ impl Grid
 {
     mtd const at(r, c: u32)->u8         => .cells![r * MaxDim + c]
     mtd const cellCount()->u32          => .width * .height
-    mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
+    mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32, r) < .height and cast(u32, c) < .width
 }
 
 func parseGrid(text: string)->Grid
 {
     var g: Grid
-    g.cells = cast([*] u8?) testAlloc(cast(u64) MaxDim * MaxDim)
+    g.cells = cast([*] u8?, testAlloc(cast(u64, MaxDim) * MaxDim))
     let cells = g.cells!
     for index in MaxDim * MaxDim
     {
         cells[index] = 0
     }
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var col: u32
 
     for index in bytes.count
@@ -135,18 +135,18 @@ func getNeighbors(g: *Grid, r, c: u32)->Neighbors
     // Cardinals
     for d in 4
     {
-        let nr = cast(s32) r + DR[d]
-        let nc = cast(s32) c + DC[d]
-        if g.inBounds(nr, nc) and g.at(cast(u32) nr, cast(u32) nc) == plant do
+        let nr = cast(s32, r) + DR[d]
+        let nc = cast(s32, c) + DC[d]
+        if g.inBounds(nr, nc) and g.at(cast(u32, nr), cast(u32, nc)) == plant do
             nb.card[d] = true
     }
 
     // Diagonals
     for d in 4
     {
-        let nr = cast(s32) r + DiagDR[d]
-        let nc = cast(s32) c + DiagDC[d]
-        if g.inBounds(nr, nc) and g.at(cast(u32) nr, cast(u32) nc) == plant do
+        let nr = cast(s32, r) + DiagDR[d]
+        let nc = cast(s32, c) + DiagDC[d]
+        if g.inBounds(nr, nc) and g.at(cast(u32, nr), cast(u32, nc)) == plant do
             nb.diag[d] = true
     }
 
@@ -186,7 +186,7 @@ func cornersOf(nb: Neighbors)->u32
 }
 
 // Bitwise helper: count set bits in a u8 (exercises Swag.bitCountNz)
-func popcount8(v: u8)->u32 => cast(u32) Swag.bitCountNz(v)
+func popcount8(v: u8)->u32 => cast(u32, Swag.bitCountNz(v))
 
 // ---------------------------------------------------------------------------
 // BFS flood-fill — defer, #scope/break-to-label
@@ -207,7 +207,7 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
     let plant = g.at(startR, startC)
 
     // Heap-allocated BFS queue with defer cleanup
-    let queue = cast([*] u32) (testAlloc(cast(u64) MaxQueue * #sizeof(u32)))!
+    let queue = cast([*] u32, (testAlloc(cast(u64, MaxQueue) * #sizeof(u32)))!)
     defer testFree(queue)
     var head: u32
     var tail: u32
@@ -234,12 +234,12 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
         // Enqueue unvisited same-plant cardinal neighbours
         for d in 4
         {
-            let nr = cast(s32) r + DR[d]
-            let nc = cast(s32) c + DC[d]
+            let nr = cast(s32, r) + DR[d]
+            let nc = cast(s32, c) + DC[d]
             if not g.inBounds(nr, nc) do
                 continue
-            let ur  = cast(u32) nr
-            let uc  = cast(u32) nc
+            let ur  = cast(u32, nr)
+            let uc  = cast(u32, nc)
             let idx = ur * MaxDim + uc
             if visited[idx] or g.at(ur, uc) != plant do
                 continue
@@ -265,7 +265,7 @@ struct FenceCost
 // Solve from a parsed grid (takes pointer, no ownership)
 func solveGrid(g: *Grid)->FenceCost
 {
-    let visited = cast([*] bool) (testAlloc(cast(u64) MaxDim * MaxDim * #sizeof(bool)))!
+    let visited = cast([*] bool, (testAlloc(cast(u64, MaxDim) * MaxDim * #sizeof(bool)))!)
     defer testFree(visited)
     for index in MaxDim * MaxDim
     {
@@ -280,8 +280,8 @@ func solveGrid(g: *Grid)->FenceCost
             if visited[r * MaxDim + c] do
                 continue
             let region = floodFill(g, r, c, visited)
-            result.part1 += cast(u64) region.area * cast(u64) region.perimeter
-            result.part2 += cast(u64) region.area * cast(u64) region.sides
+            result.part1 += cast(u64, region.area) * cast(u64, region.perimeter)
+            result.part2 += cast(u64, region.area) * cast(u64, region.sides)
         }
     }
 
@@ -303,10 +303,10 @@ func solve(text: string)->FenceCost
 // Direction enum values
 #test
 {
-    Swag.assert(cast(u8) Dir.N == 0)
-    Swag.assert(cast(u8) Dir.E == 1)
-    Swag.assert(cast(u8) Dir.S == 2)
-    Swag.assert(cast(u8) Dir.W == 3)
+    Swag.assert(cast(u8, Dir.N) == 0)
+    Swag.assert(cast(u8, Dir.E) == 1)
+    Swag.assert(cast(u8, Dir.S) == 2)
+    Swag.assert(cast(u8, Dir.W) == 3)
 }
 
 // Short helper pack/unpack
@@ -328,9 +328,9 @@ func solve(text: string)->FenceCost
     Swag.assert(g.width == 4'u32)
     Swag.assert(g.height == 4'u32)
     Swag.assert(g.cellCount() == 16'u32)
-    Swag.assert(g.at(0, 0) == cast(u8) 'A')
-    Swag.assert(g.at(1, 2) == cast(u8) 'C')
-    Swag.assert(g.at(3, 3) == cast(u8) 'C')
+    Swag.assert(g.at(0, 0) == cast(u8, 'A'))
+    Swag.assert(g.at(1, 2) == cast(u8, 'C'))
+    Swag.assert(g.at(3, 3) == cast(u8, 'C'))
     Swag.assert(g.inBounds(0, 0))
     Swag.assert(g.inBounds(3, 3))
     Swag.assert(not g.inBounds(-1, 0))
@@ -362,8 +362,8 @@ func solve(text: string)->FenceCost
 
     // Horizontal strip interior: E and W same → 0 corners
     var strip: Neighbors
-    strip.card[cast(u32) Dir.E] = true
-    strip.card[cast(u32) Dir.W] = true
+    strip.card[cast(u32, Dir.E)] = true
+    strip.card[cast(u32, Dir.W)] = true
     Swag.assert(cornersOf(strip) == 0'u32)
 }
 
@@ -419,8 +419,8 @@ func solve(text: string)->FenceCost
     defer freeGrid(&g)
     Swag.assert(g.width == 10'u32)
     Swag.assert(g.height == 10'u32)
-    Swag.assert(g.at(0, 0) == cast(u8) 'R')
-    Swag.assert(g.at(9, 9) == cast(u8) 'E')
+    Swag.assert(g.at(0, 0) == cast(u8, 'R'))
+    Swag.assert(g.at(9, 9) == cast(u8, 'E'))
 }
 
 // Large sample: Part1=1930, Part2=1206

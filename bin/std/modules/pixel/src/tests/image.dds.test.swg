@@ -5,10 +5,10 @@ using Swag, Core
 
 func ddsAddU32(result: *ConcatBuffer, value: u32)
 {
-    result.addNative(cast(u8) (value & 0xFF))
-    result.addNative(cast(u8) ((value >> 8) & 0xFF))
-    result.addNative(cast(u8) ((value >> 16) & 0xFF))
-    result.addNative(cast(u8) ((value >> 24) & 0xFF))
+    result.addNative(cast(u8, (value & 0xFF)))
+    result.addNative(cast(u8, ((value >> 8) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 16) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 24) & 0xFF)))
 }
 
 func ddsBc1Fixture()->ConcatBuffer
@@ -51,14 +51,14 @@ func ddsRoundtrip(source: Image)->Image
 {
     var rgba = Image.create(2, 2, .RGBA8)
     for i in rgba.byteCount do
-        rgba.pixels.storage()[i] = cast(u8) (i * 13)
+        rgba.pixels.storage()[i] = cast(u8, (i * 13))
     let decoded = ddsRoundtrip(rgba)
     assertImage(decoded, 2, 2, .RGBA8)
     Swag.assert(Memory.compare(rgba.pixels.buffer, decoded.pixels.buffer, rgba.byteCount) == 0)
 
     var grayAlpha = Image.create(3, 2, .GrayAlpha8)
     for i in grayAlpha.byteCount do
-        grayAlpha.pixels.storage()[i] = cast(u8) (i * 17)
+        grayAlpha.pixels.storage()[i] = cast(u8, (i * 17))
     let decodedGray = ddsRoundtrip(grayAlpha)
     assertImage(decodedGray, 3, 2, .GrayAlpha8)
     Swag.assert(Memory.compare(grayAlpha.pixels.buffer, decodedGray.pixels.buffer, grayAlpha.byteCount) == 0)
@@ -67,15 +67,15 @@ func ddsRoundtrip(source: Image)->Image
 #test
 {
     var deep    = Image.create(2, 2, .RGBA16)
-    let samples = cast([*] u16) deep.pixels.storage()
+    let samples = cast([*] u16, deep.pixels.storage())
     for i in 16 do
-        samples[i] = cast(u16) (i * 4001)
+        samples[i] = cast(u16, (i * 4001))
     let decoded = ddsRoundtrip(deep)
     assertImage(decoded, 2, 2, .RGBA16)
     Swag.assert(Memory.compare(deep.pixels.buffer, decoded.pixels.buffer, deep.byteCount) == 0)
 
     var hdr    = Image.create(2, 1, .RGBAF32)
-    let values = cast([*] f32) hdr.pixels.storage()
+    let values = cast([*] f32, hdr.pixels.storage())
     values[0] = -0.25
     values[1] = 0.5
     values[2] = 4.0
@@ -93,7 +93,7 @@ func ddsRoundtrip(source: Image)->Image
     {
         var gray = Image.create(3, 2, format)
         for i in gray.byteCount do
-            gray.pixels.storage()[i] = cast(u8) ((i * 31 + 9) & 0xFF)
+            gray.pixels.storage()[i] = cast(u8, ((i * 31 + 9) & 0xFF))
         let decodedGray = ddsRoundtrip(gray)
         assertImage(decodedGray, 3, 2, format)
         Swag.assert(Memory.compare(gray.pixels.buffer, decodedGray.pixels.buffer, gray.byteCount) == 0)

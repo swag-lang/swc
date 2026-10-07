@@ -59,7 +59,7 @@ func day4A()
         {
             let res1 = Tokenize.split(r, ':'u8)
             let idx  = Slice.findLinear(["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"], res1[0])
-            pass |= 1 << cast(u32) idx
+            pass |= 1 << cast(u32, idx)
         }
 
         if index == lines.count - 1 or lines[index + 1].isEmpty()

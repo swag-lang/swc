@@ -10,7 +10,7 @@ private func clipDocument(content: string)->Document
 {
     var objects: Array'u8
     addStreamObject(&objects, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8", RedSamples)
-    return expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    return expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
 }
 
 // Renders the first page at one pixel per point over white.

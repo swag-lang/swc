@@ -37,8 +37,8 @@ func acrossBranch(a, b, mask: u64)->u64
 #[Swag.NoInline]
 func narrowSnapshot(a: u32, b: u64)->u64
 {
-    let byte = cast(u8) (a & 255)
-    return (cast(u64) byte << 32) ^ b
+    let byte = cast(u8, (a & 255))
+    return (cast(u64, byte) << 32) ^ b
 }
 
 #test
@@ -49,7 +49,7 @@ func narrowSnapshot(a: u32, b: u64)->u64
         for b in values
         {
             Swag.assert(changeSource(a, b) == ((a ^ b) & (b ^ 0x55)))
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
             Swag.assert(narrowSnapshot(a32, b) == (((a & 255) << 32) ^ b))
             for mask in values
             {

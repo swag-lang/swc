@@ -20,7 +20,7 @@ struct OffPair
         #assert(#offsetof(c) == 4)
         #assert(#offsetof(d) == 8)
 
-        return cast(u64) #offsetof(a) + cast(u64) #offsetof(b) + cast(u64) #offsetof(c) + cast(u64) #offsetof(d)
+        return cast(u64, #offsetof(a)) + cast(u64, #offsetof(b)) + cast(u64, #offsetof(c)) + cast(u64, #offsetof(d))
     }
 
     const V = #run scalarLayout()
@@ -40,7 +40,7 @@ struct OffPair
         let tail: u16 = 7
         #assert(#offsetof(tail) == 24)
 
-        return cast(u64) #offsetof(head) + cast(u64) #offsetof(tail)
+        return cast(u64, #offsetof(head)) + cast(u64, #offsetof(tail))
     }
 
     const V = #run stringAndNested()
@@ -54,7 +54,7 @@ struct OffPair
         var a, b: s32 = 1
         #assert(#offsetof(a) == 0)
         #assert(#offsetof(b) == 4)
-        return cast(u64) #offsetof(b)
+        return cast(u64, #offsetof(b))
     }
 
     const V = #run multiDecl()
@@ -73,7 +73,7 @@ struct OffPair
         #assert(#offsetof(pair) == 8)
         #assert(#offsetof(tail) == 24)
 
-        return cast(u64) #offsetof(tail)
+        return cast(u64, #offsetof(tail))
     }
 
     const V = #run aggregateLayout()
@@ -90,7 +90,7 @@ struct OffPair
     func bad()->u64
     {
         let a: s32 = 0
-        return cast(u64) a
+        return cast(u64, a)
     }
 
     const V = #offsetof(bad())     // swc-expected-error {{sema_err_invalid_offsetof}}

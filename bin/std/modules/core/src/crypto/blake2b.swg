@@ -33,17 +33,17 @@ private const Sigma: [192] u8 = [
 #[Swag.Inline]
 private func load64(data: const [*] u8)->u64
 {
-    return cast(u64) data[0] | (cast(u64) data[1] << 8) |
-           (cast(u64) data[2] << 16) | (cast(u64) data[3] << 24) |
-           (cast(u64) data[4] << 32) | (cast(u64) data[5] << 40) |
-           (cast(u64) data[6] << 48) | (cast(u64) data[7] << 56)
+    return cast(u64, data[0]) | (cast(u64, data[1]) << 8) |
+           (cast(u64, data[2]) << 16) | (cast(u64, data[3]) << 24) |
+           (cast(u64, data[4]) << 32) | (cast(u64, data[5]) << 40) |
+           (cast(u64, data[6]) << 48) | (cast(u64, data[7]) << 56)
 }
 
 #[Swag.Inline]
 private func store64(data: [*] u8, value: u64)
 {
     for i in 8 do
-        data[i] = cast(u8) ((value >> cast(u32) (i * 8)) & 0xFF)
+        data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
 }
 
 #[Swag.Inline]

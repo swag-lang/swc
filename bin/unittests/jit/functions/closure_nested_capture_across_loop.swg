@@ -52,7 +52,7 @@ impl Owner
                 flag |= 1
             if keepAlpha do
                 flag |= 2
-            item.a = cast(u8) flag
+            item.a = cast(u8, flag)
 
             // Keep the captures live across a loop with calls.
             var acc: [9] u32
@@ -62,7 +62,7 @@ impl Owner
                 a      = blend(a, b)
                 b      = blend(b, c)
                 c      = blend(c, d)
-                d      = blend(d, cast(u32) i)
+                d      = blend(d, cast(u32, i))
                 acc[i] = a ^ b ^ c ^ d ^ flag
             }
             var s = 0'u32

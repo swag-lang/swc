@@ -101,12 +101,12 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     // Associate pointer to surface with 'hWnd'
     if msg == WM_CREATE
     {
-        let lpcs = cast(*CREATESTRUCTW) cast #bit (u64) lParam
-        SetWindowLongPtrW(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) lpcs.lpCreateParams)
+        let lpcs = cast(*CREATESTRUCTW, cast #bit (u64, lParam))
+        SetWindowLongPtrW(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR, cast(u64, lpcs.lpCreateParams)))
     }
 
     // Get 'Surface' pointer
-    let surface = cast(*Surface?) cast #bit (u64) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
+    let surface = cast(*Surface?, cast #bit (u64, GetWindowLongPtrW(hWnd, GWLP_USERDATA)))
     if surface
     {
         if msg == WM_USER
@@ -166,11 +166,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             surface.lastDeadChar = 0
 
-            let scanCode = cast(UINT) (lParam & 0xFF0000) >> 16
+            let scanCode = cast(UINT, (lParam & 0xFF0000)) >> 16
             let x        = MapVirtualKeyW(scanCode, MAPVK_VSC_TO_VK_EX)
             let y        = Input.Keyboard.virtualKeyToKey(x)
 
-            surface.app.sendRuneEvent(y, cast(rune) wParam)
+            surface.app.sendRuneEvent(y, cast(rune, wParam))
             return 0
 
         case WM_MOUSEWHEEL:
@@ -259,7 +259,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 return 0
             }
 
-            surface.invalidatePhysicalRect({cast(f32) ps.rcPaint.left, cast(f32) ps.rcPaint.top, cast(f32) (ps.rcPaint.right - ps.rcPaint.left), cast(f32) (ps.rcPaint.bottom - ps.rcPaint.top)})
+            surface.invalidatePhysicalRect({cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
 
             // The application loop is suspended during a native border drag. Paint on this
             // window-owning thread before EndPaint validates the native update region.
@@ -290,7 +290,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         case WM_WINDOWPOSCHANGING:
             if surface.inDiscretePlacement and not surface.preparingFrame and surface.canPresentNow()
             {
-                let next = cast(*WINDOWPOS) cast #bit (u64) lParam
+                let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
                 if (next.flags & SWP_NOSIZE) == 0 and next.cx > 0 and next.cy > 0
                 {
                     if surface.preparedFrame and surface.preparedWidth == next.cx and surface.preparedHeight == next.cy and not surface.isDirty do
@@ -301,11 +301,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                     surface.preparingFrame = true
                     if (next.flags & SWP_NOMOVE) == 0
                     {
-                        surface.position.x = cast(f32) next.x
-                        surface.position.y = cast(f32) next.y
+                        surface.position.x = cast(f32, next.x)
+                        surface.position.y = cast(f32, next.y)
                     }
 
-                    surface.sendResizeEvent(cast(f32) next.cx, cast(f32) next.cy)
+                    surface.sendResizeEvent(cast(f32, next.cx), cast(f32, next.cy))
                     surface.preparedFrame  = surface.prepareResizeFrame(surface.wnd)
                     surface.preparingFrame = false
                     if surface.preparedFrame
@@ -319,29 +319,29 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_GETMINMAXINFO:
-            let mm = cast(*MINMAXINFO) cast #bit (u64) lParam
+            let mm = cast(*MINMAXINFO, cast #bit (u64, lParam))
 
             // Enforce the surface min/max size during interactive (border-drag) resizing,
             // which is handled by the OS sizing loop and only honours the track sizes.
             // Track sizes are physical pixels; the surface limits are logical.
             if surface.minSize.x > 0 do
-                mm.ptMinTrackSize.x = cast(s32) (surface.minSize.x * surface.dpiScale)
+                mm.ptMinTrackSize.x = cast(s32, (surface.minSize.x * surface.dpiScale))
             if surface.minSize.y > 0 do
-                mm.ptMinTrackSize.y = cast(s32) (surface.minSize.y * surface.dpiScale)
+                mm.ptMinTrackSize.y = cast(s32, (surface.minSize.y * surface.dpiScale))
             if surface.maxSize.x > 0 do
-                mm.ptMaxTrackSize.x = cast(s32) (surface.maxSize.x * surface.dpiScale)
+                mm.ptMaxTrackSize.x = cast(s32, (surface.maxSize.x * surface.dpiScale))
             if surface.maxSize.y > 0 do
-                mm.ptMaxTrackSize.y = cast(s32) (surface.maxSize.y * surface.dpiScale)
+                mm.ptMaxTrackSize.y = cast(s32, (surface.maxSize.y * surface.dpiScale))
 
             var pt: POINT
-            pt.x = cast(s32) surface.position.x
-            pt.y = cast(s32) surface.position.y
+            pt.x = cast(s32, surface.position.x)
+            pt.y = cast(s32, surface.position.y)
             let hm = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST)
             if hm != null
             {
                 var info: MONITORINFO
                 catch GetMonitorInfoA(hm, &info)
-                let sdw = cast(s32) (surface.app.theme.metrics.surfaceWnd_ShadowSize * surface.dpiScale)
+                let sdw = cast(s32, (surface.app.theme.metrics.surfaceWnd_ShadowSize * surface.dpiScale))
 
                 mm.ptMaxPosition.x = (info.rcWork.left - info.rcMonitor.left) - sdw
                 mm.ptMaxPosition.y = (info.rcWork.top - info.rcMonitor.top) - sdw
@@ -355,7 +355,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             // The window reached a monitor with another scale, or the user changed
             // the display scale.
-            surface.setDpiScaleRaw(cast(f32) LOWORD(wParam) / cast(f32) USER_DEFAULT_SCREEN_DPI)
+            surface.setDpiScaleRaw(cast(f32, LOWORD(wParam)) / cast(f32, USER_DEFAULT_SCREEN_DPI))
 
             // An application-initiated placement is already sized in the target
             // monitor's physical pixels: adopting the OS suggestion (which scales
@@ -371,7 +371,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // An interactive move: adopt the suggested physical rectangle, whose
             // WM_SIZE recomputes the logical size and relayouts the tree with the
             // new scale; per-draw font resolution follows on the next paint.
-            let suggested = cast(const *RECT) cast #bit (u64) lParam
+            let suggested = cast(const *RECT, cast #bit (u64, lParam))
             catch SetWindowPos(hWnd, null, suggested.left, suggested.top, suggested.right - suggested.left, suggested.bottom - suggested.top, SWP_NOZORDER | SWP_NOACTIVATE)
             surface.invalidate()
             return 0
@@ -400,12 +400,12 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 return 0
             }
 
-            let width    = cast(s32) LOWORD(lParam)
-            let height   = cast(s32) HIWORD(lParam)
+            let width    = cast(s32, LOWORD(lParam))
+            let height   = cast(s32, HIWORD(lParam))
             let prepared = surface.preparedFrame and surface.preparedWidth == width and surface.preparedHeight == height and not surface.isDirty
             surface.preparedFrame = prepared
             if not prepared do
-                surface.sendResizeEvent(cast(f32) width, cast(f32) height)
+                surface.sendResizeEvent(cast(f32, width), cast(f32, height))
             if surface.inDiscretePlacement do
                 return 0
             surface.preparedFrame = false
@@ -483,7 +483,7 @@ private impl Surface
             wc.hInstance     = GetModuleHandleW(null)
             wc.cbWndExtra    = #sizeof(*void?)
             wc.style         = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
-            wc.lpfnWndProc   = cast() &winProc
+            wc.lpfnWndProc   = cast(&winProc)
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
             wc.hIcon         = hIcon
             wc.lpszClassName = className
@@ -503,17 +503,17 @@ private impl Surface
         }
 
         // Create window
-        result.hWnd = cast(const *void?) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
+        result.hWnd = cast(const *void?, CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result))
         if not result.hWnd do
             try failWinError(GetLastError())
 
         // The window now knows its monitor: resolve the scale and resize the still
         // hidden window from logical units to physical pixels.
-        result.dpiScale = cast(f32) GetDpiForWindow(result.hWnd) / cast(f32) USER_DEFAULT_SCREEN_DPI
+        result.dpiScale = cast(f32, GetDpiForWindow(result.hWnd)) / cast(f32, USER_DEFAULT_SCREEN_DPI)
         if result.dpiScale != 1
         {
-            let physWidth  = cast(s32) Math.round(width * result.dpiScale)
-            let physHeight = cast(s32) Math.round(height * result.dpiScale)
+            let physWidth  = cast(s32, Math.round(width * result.dpiScale))
+            let physHeight = cast(s32, Math.round(height * result.dpiScale))
             result.inAppPlacement = true
             defer result.inAppPlacement = false
             catch SetWindowPos(result.hWnd, null, 0, 0, physWidth, physHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING)
@@ -580,10 +580,10 @@ impl Surface
         discard GetWindowPlacement(.hWnd, &result)
         result.flags   = 0
         result.showCmd = showCmd
-        result.rcNormalPosition = {cast(s32) pos.x, cast(s32) pos.y, cast(s32) pos.right(), cast(s32) pos.bottom()}
+        result.rcNormalPosition = {cast(s32, pos.x), cast(s32, pos.y), cast(s32, pos.right()), cast(s32, pos.bottom())}
         if not .flags.has(.ToolWindow)
         {
-            let point   = POINT{cast(s32) pos.x, cast(s32) pos.y}
+            let point   = POINT{cast(s32, pos.x), cast(s32, pos.y)}
             let monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST)
             var info: MONITORINFO
             catch GetMonitorInfoA(monitor, &info)
@@ -598,7 +598,7 @@ impl Surface
         return result
     }
 
-    internal mtd const nativeRenderHandle()->const *void? => cast(const *void?) .hWnd
+    internal mtd const nativeRenderHandle()->const *void? => cast(const *void?, .hWnd)
 
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
@@ -608,7 +608,7 @@ impl Surface
         if .presentationDC do
             catch DeleteDC(.presentationDC)
         if .presentationBitmap do
-            catch DeleteObject(cast(Gdi32.HGDIOBJ) .presentationBitmap)
+            catch DeleteObject(cast(Gdi32.HGDIOBJ, .presentationBitmap))
         .presentationDC     = null
         .presentationBitmap = null
         .presentationPixels = null
@@ -643,8 +643,8 @@ impl Surface
             info.bmiHeader.biPlanes      = 1
             info.bmiHeader.biBitCount    = 32
             info.bmiHeader.biCompression = BI_RGB
-            .presentationBitmap          = expect CreateDIBSection(null, &info, cast() DIB_RGB_COLORS, &.presentationPixels, null, 0)
-            SelectObject(.presentationDC, cast(Gdi32.HGDIOBJ) .presentationBitmap)
+            .presentationBitmap          = expect CreateDIBSection(null, &info, cast(DIB_RGB_COLORS), &.presentationPixels, null, 0)
+            SelectObject(.presentationDC, cast(Gdi32.HGDIOBJ, .presentationBitmap))
             .presentationWidth  = .rc.width
             .presentationHeight = .rc.height
         }
@@ -655,7 +655,7 @@ impl Surface
 
     internal mtd publishNativePresentation()
     {
-        let destination = POINT{cast(s32) .position.x, cast(s32) .position.y}
+        let destination = POINT{cast(s32, .position.x), cast(s32, .position.y)}
         let size        = SIZE{.presentationWidth, .presentationHeight}
         let source      = POINT{}
         let blend       = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
@@ -670,17 +670,17 @@ impl Surface
         // displaced frame during maximize and restore; an immediate placement keeps every frame
         // internally consistent.
         var transitionsForcedDisabled = TRUE
-        discard DwmSetWindowAttribute(.hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, cast(LPCVOID) &transitionsForcedDisabled, #sizeof(transitionsForcedDisabled))
+        discard DwmSetWindowAttribute(.hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, cast(LPCVOID, &transitionsForcedDisabled), #sizeof(transitionsForcedDisabled))
 
         // The corner belongs to the theme, which stamps it into the alpha channel the compositor
         // reads. Letting the platform round the window rectangle on top of that cut the corner
         // twice: the transparent margin the drop shadow is cast into is part of that rectangle,
         // so the system arc sliced through the shadow instead of following the body.
         var cornerPreference = DWMWCP_DONOTROUND
-        discard DwmSetWindowAttribute(.hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, cast(LPCVOID) &cornerPreference, #sizeof(cornerPreference))
+        discard DwmSetWindowAttribute(.hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, cast(LPCVOID, &cornerPreference), #sizeof(cornerPreference))
 
         var borderColor = DWMWA_COLOR_NONE
-        discard DwmSetWindowAttribute(.hWnd, DWMWA_BORDER_COLOR, cast(LPCVOID) &borderColor, #sizeof(borderColor))
+        discard DwmSetWindowAttribute(.hWnd, DWMWA_BORDER_COLOR, cast(LPCVOID, &borderColor), #sizeof(borderColor))
     }
 
     // Shows `icon` for this surface in the notification area, with an optional tooltip.
@@ -800,7 +800,7 @@ impl Surface
         if not .app.renderer.needsNativeWindow() or not .hWnd do
             return
 
-        var exStyle = cast #bit (u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
+        var exStyle = cast #bit (u64, GetWindowLongPtrA(.hWnd, GWL_EXSTYLE))
         if .flags & .ToolWindow do
             exStyle |= WS_EX_TOOLWINDOW
         else do
@@ -809,7 +809,7 @@ impl Surface
             exStyle |= WS_EX_TOPMOST
         else do
             exStyle &= ~WS_EX_TOPMOST
-        SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast #bit (LONG_PTR) exStyle)
+        SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast #bit (LONG_PTR, exStyle))
         if topMostChanged do
             catch SetWindowPos(.hWnd, shouldBeTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
         .applyNativeDwmStyle()
@@ -867,7 +867,7 @@ impl Surface
         // Discard the previous client pixels, but let Windows invalidate the new
         // client area. Suppressing redraw here left the compositor presenting an
         // empty or stale framebuffer until another input message happened to paint.
-        catch SetWindowPos(.hWnd, null, cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, SWP_NOCOPYBITS | SWP_NOSENDCHANGING)
+        catch SetWindowPos(.hWnd, null, cast(s32, clampPos.x), cast(s32, clampPos.y), cast(s32, clampPos.width), cast(s32, clampPos.height), SWP_NOCOPYBITS | SWP_NOSENDCHANGING)
     }
 
     // Enables or disables placement above all non-topmost windows.
@@ -1108,7 +1108,7 @@ impl Surface
             return
         }
 
-        var wpt = POINT{cast(s32) pt.x, cast(s32) pt.y}
+        var wpt = POINT{cast(s32, pt.x), cast(s32, pt.y)}
         ScreenToClient(.hWnd, &wpt)
         pt.x = wpt.x / .dpiScale
         pt.y = wpt.y / .dpiScale
@@ -1124,7 +1124,7 @@ impl Surface
             return
         }
 
-        var wpt = POINT{cast(s32) (pt.x * .dpiScale), cast(s32) (pt.y * .dpiScale)}
+        var wpt = POINT{cast(s32, (pt.x * .dpiScale)), cast(s32, (pt.y * .dpiScale))}
         ClientToScreen(.hWnd, &wpt)
         pt.x = wpt.x
         pt.y = wpt.y

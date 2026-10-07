@@ -36,7 +36,7 @@ func countLetters(text: const [*] u8, count: u64)->u64
 {
     for c in 256
     {
-        let b = cast(u8) c
+        let b = cast(u8, c)
         Swag.assert(isDigit(b) == (c >= 48 and c <= 57))
         let lowered = (c >= 65 and c <= 90) ? b + 32 : b
         Swag.assert(toLower(b) == lowered)
@@ -44,7 +44,7 @@ func countLetters(text: const [*] u8, count: u64)->u64
 
     for x in -40 to 40
     {
-        let v = cast(s32) x
+        let v = cast(s32, x)
         Swag.assert(inSignedRange(v) == (x >= -5 and x <= 20))
     }
     Swag.assert(not inSignedRange(-0x7FFFFFFF - 1))

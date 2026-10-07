@@ -48,7 +48,7 @@ impl BitReader
             return 0
         }
 
-        let value = (.data![.bitPos >> 3] >> cast(u32) (7 - (.bitPos & 7))) & 1
+        let value = (.data![.bitPos >> 3] >> cast(u32, (7 - (.bitPos & 7)))) & 1
         .bitPos += 1
         return value
     }
@@ -71,10 +71,10 @@ impl BitReader
         {
             result <<= 8
             if byteIndex + offset < .size do
-                result |= cast(u32) .data![byteIndex + offset]
+                result |= cast(u32, .data![byteIndex + offset])
         }
 
-        return (result >> cast(u32) (8 - (.bitPos & 7))) & 0xFFFF
+        return (result >> cast(u32, (8 - (.bitPos & 7)))) & 0xFFFF
     }
 
     // Advances the read position by `count` bits.
@@ -111,7 +111,7 @@ impl BitReader
     mtd se()->s32
     {
         let code      = .ue()
-        let magnitude = cast(s32) ((code + 1) >> 1)
+        let magnitude = cast(s32, ((code + 1) >> 1))
         return code & 1 ? magnitude : -magnitude
     }
 
@@ -127,7 +127,7 @@ impl BitReader
         while lastSet > .bitPos
         {
             lastSet -= 1
-            let value = (.data![lastSet >> 3] >> cast(u32) (7 - (lastSet & 7))) & 1
+            let value = (.data![lastSet >> 3] >> cast(u32, (7 - (lastSet & 7)))) & 1
             if value do
                 break
         }

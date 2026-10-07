@@ -76,7 +76,7 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 
 #test
 {
-    let value = cast(NonNullRequiresInitSetTarget) 1     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = cast(NonNullRequiresInitSetTarget, 1)     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test

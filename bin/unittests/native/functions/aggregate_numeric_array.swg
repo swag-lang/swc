@@ -9,7 +9,7 @@ func wideNumericArraySum()->u64
     var total: u64 = 0
     for value in values
     {
-        total += cast(u64) value
+        total += cast(u64, value)
     }
 
     return total
@@ -18,7 +18,7 @@ func wideNumericArraySum()->u64
 func wideNumericArrayMiddle()->u64
 {
     let values = [7, 5_000_000_000, 11]
-    return cast(u64) values[1]
+    return cast(u64, values[1])
 }
 
 #test

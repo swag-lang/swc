@@ -67,7 +67,7 @@ public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 
     var h = seed ^ (len * m)
 
-    let data    = cast(const [*] u64) key
+    let data    = cast(const [*] u64, key)
     let nblocks = len / 8
 
     for i in nblocks
@@ -80,35 +80,35 @@ public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
         h *= m
     }
 
-    let data2 = cast(const [*] u8) &data[nblocks]
+    let data2 = cast(const [*] u8, &data[nblocks])
     switch len & 7
     {
     case 7:
-        h ^= cast(u64) data2[6] << 48
+        h ^= cast(u64, data2[6]) << 48
         fallthrough
 
     case 6:
-        h ^= cast(u64) data2[5] << 40
+        h ^= cast(u64, data2[5]) << 40
         fallthrough
 
     case 5:
-        h ^= cast(u64) data2[4] << 32
+        h ^= cast(u64, data2[4]) << 32
         fallthrough
 
     case 4:
-        h ^= cast(u64) data2[3] << 24
+        h ^= cast(u64, data2[3]) << 24
         fallthrough
 
     case 3:
-        h ^= cast(u64) data2[2] << 16
+        h ^= cast(u64, data2[2]) << 16
         fallthrough
 
     case 2:
-        h ^= cast(u64) data2[1] << 8
+        h ^= cast(u64, data2[1]) << 8
         fallthrough
 
     case 1:
-        h ^= cast(u64) data2[0]
+        h ^= cast(u64, data2[0])
         h *= m
     }
 

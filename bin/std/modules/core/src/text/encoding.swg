@@ -166,13 +166,13 @@ func windows1252Rune(value: u8)->rune
 {
     if value >= 0x80 and value <= 0x9F do
         return Windows1252Supplement[value - 0x80]
-    return cast(rune) value
+    return cast(rune, value)
 }
 
 // Reorders complete big-endian UTF-16 units into native little-endian storage.
 private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
 {
-    const SwapBytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
+    const SwapBytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
     var result: retval
     result.resize(bytes.count / 2)
     let source      = bytes.buffer
@@ -181,13 +181,13 @@ private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
 
     while offset + 8 <= result.count
     {
-        Math.Simd.store(destination + offset, cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes))
+        Math.Simd.store(destination + offset, cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
         offset += 8
     }
 
     while offset < result.count
     {
-        destination[offset] = (cast(u16) source[2 * offset] << 8) | cast(u16) source[2 * offset + 1]
+        destination[offset] = (cast(u16, source[2 * offset]) << 8) | cast(u16, source[2 * offset + 1])
         offset += 1
     }
 
@@ -197,7 +197,7 @@ private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
 // Reorders complete big-endian UTF-32 units into native little-endian rune storage.
 private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 {
-    const SwapBytes = cast(Math.Simd.U8x16) [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12]
+    const SwapBytes = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
     var result: retval
     result.resize(bytes.count / 4)
     let source      = bytes.buffer
@@ -206,13 +206,13 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 
     while offset + 4 <= result.count
     {
-        Math.Simd.store(cast([*] u8) (destination + offset), Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
+        Math.Simd.store(cast([*] u8, (destination + offset)), Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
         offset += 4
     }
 
     while offset < result.count
     {
-        destination[offset] = cast(rune) ((cast(u32) source[4 * offset] << 24) | (cast(u32) source[4 * offset + 1] << 16) | (cast(u32) source[4 * offset + 2] << 8) | cast(u32) source[4 * offset + 3])
+        destination[offset] = cast(rune, ((cast(u32, source[4 * offset]) << 24) | (cast(u32, source[4 * offset + 1]) << 16) | (cast(u32, source[4 * offset + 2]) << 8) | cast(u32, source[4 * offset + 3])))
         offset += 1
     }
 
@@ -236,7 +236,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     switch #complete encoding
     {
     case .Utf8:
-        return String.from(cast(string) bytes)
+        return String.from(cast(string, bytes))
 
     case .Windows1252:
         var runes: Array'rune
@@ -246,14 +246,14 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         return Utf8.fromUnicode(runes.toSlice())
 
     case .Utf16Le:
-        return Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16) bytes.buffer, bytes.count / 2))
+        return Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16, bytes.buffer), bytes.count / 2))
 
     case .Utf16Be:
         let units = decodeUtf16BeUnits(bytes)
         return Utf8.fromUtf16(units.toSlice())
 
     case .Utf32Le:
-        return Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune) bytes.buffer, bytes.count / 4))
+        return Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune, bytes.buffer), bytes.count / 4))
 
     case .Utf32Be:
         let runes = decodeUtf32BeRunes(bytes)

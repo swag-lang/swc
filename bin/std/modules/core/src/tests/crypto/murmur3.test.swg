@@ -53,7 +53,7 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
     const R = 47
 
     var h       = seed ^ (len * M)
-    let data    = cast(const [*] u64) key
+    let data    = cast(const [*] u64, key)
     let nblocks = len / 8
 
     for i in nblocks
@@ -66,35 +66,35 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
         h *= M
     }
 
-    let data2 = cast(const [*] u8) &data[nblocks]
+    let data2 = cast(const [*] u8, &data[nblocks])
     switch len & 7
     {
     case 7:
-        h ^= cast(u64) data2[6] << 48
+        h ^= cast(u64, data2[6]) << 48
         fallthrough
 
     case 6:
-        h ^= cast(u64) data2[5] << 40
+        h ^= cast(u64, data2[5]) << 40
         fallthrough
 
     case 5:
-        h ^= cast(u64) data2[4] << 32
+        h ^= cast(u64, data2[4]) << 32
         fallthrough
 
     case 4:
-        h ^= cast(u64) data2[3] << 24
+        h ^= cast(u64, data2[3]) << 24
         fallthrough
 
     case 3:
-        h ^= cast(u64) data2[2] << 16
+        h ^= cast(u64, data2[2]) << 16
         fallthrough
 
     case 2:
-        h ^= cast(u64) data2[1] << 8
+        h ^= cast(u64, data2[1]) << 8
         fallthrough
 
     case 1:
-        h ^= cast(u64) data2[0]
+        h ^= cast(u64, data2[0])
         h *= M
     }
 
@@ -129,7 +129,7 @@ func fillMurmur3Pattern(buffer: [..] u8)
     var i = 0'u64
     while i < buffer.count
     {
-        buffer[i] = cast(u8) ((i * 151 + 7) & 0xFF)
+        buffer[i] = cast(u8, ((i * 151 + 7) & 0xFF))
         i         += 1
     }
 }
@@ -140,8 +140,8 @@ func fillMurmur3Pattern(buffer: [..] u8)
 
     for value in 65536
     {
-        let value32 = cast(u32) value
-        let value64 = cast(u64) value
+        let value32 = cast(u32, value)
+        let value64 = cast(u64, value)
         assertMurmur3(value32)
         assertMurmur3(value64)
         assertMurmur3Pair(value32, value32 ^ 0xA5A5_A5A5'u32)
@@ -160,7 +160,7 @@ func fillMurmur3Pattern(buffer: [..] u8)
 
     for length in 34
     {
-        let ptr = cast(const [*] u8) data.buffer
+        let ptr = cast(const [*] u8, data.buffer)
         Swag.assert(Hash.murmur3(ptr, length, 0) == murmur3Reference(ptr, length, 0))
         Swag.assert(Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64) == murmur3Reference(ptr, length, 0x1234_5678_9ABC_DEF0'u64))
     }

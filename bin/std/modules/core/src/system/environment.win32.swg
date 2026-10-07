@@ -35,7 +35,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
         if err != null or len >= MAX_PATH do
             return ""
 
-        var result: retval = cast(string) a[until len]
+        var result: retval = cast(string, a[until len])
         Path.normalize(&result)
         return result
     }
@@ -63,7 +63,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE) as err
     if err == null
     {
-        result = cast(string) Swag.makeSlice(&a[0], (cast(cstring) &a[0]).count)
+        result = cast(string, Swag.makeSlice(&a[0], cast(cstring, &a[0]).count))
         Path.normalize(&result)
     }
 
@@ -91,7 +91,7 @@ public func getMonitors()->Array'Monitor
         }
 
         var m: Monitor
-        let ptr = cast(*Array'Monitor) cast #bit (u64) lParam
+        let ptr = cast(*Array'Monitor, cast #bit (u64, lParam))
 
         m.bounds.x      = mi.rcMonitor.left
         m.bounds.y      = mi.rcMonitor.top
@@ -123,7 +123,7 @@ public func getMonitors()->Array'Monitor
         return TRUE
     }
 
-    EnumDisplayMonitors(null, null, cast() &proc, cast #bit (LPARAM) cast(u64) &result)
+    EnumDisplayMonitors(null, null, cast(&proc), cast #bit (LPARAM, cast(u64, &result)))
     result.sort(func||(a, b) => a.bounds.x <=> b.bounds.x)
 
     return result
@@ -213,7 +213,7 @@ public func userLocaleName()->String
         return ""
 
     // The returned length includes the terminating zero.
-    return Utf8.fromUtf16(Swag.makeSlice(&name16[0], cast(u64) (len - 1)))
+    return Utf8.fromUtf16(Swag.makeSlice(&name16[0], cast(u64, (len - 1))))
 }
 
 var g_SysInfo: SYSTEM_INFO
@@ -238,8 +238,8 @@ public func registerApplication(appName, appFriendly: string)
     let commandKey = Format.toString("Software\\Classes\\Applications\\%", appName)
     if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
-        RegSetValueExA(hKey, null, 0, REG_SZ, friendly.buffer, cast(u32) (friendly.length + 1))
-        RegSetValueExA(hKey, ("FriendlyAppName").buffer, 0, REG_SZ, friendly.buffer, cast(u32) (friendly.length + 1))
+        RegSetValueExA(hKey, null, 0, REG_SZ, friendly.buffer, cast(u32, (friendly.length + 1)))
+        RegSetValueExA(hKey, ("FriendlyAppName").buffer, 0, REG_SZ, friendly.buffer, cast(u32, (friendly.length + 1)))
         RegCloseKey(hKey)
     }
 
@@ -247,7 +247,7 @@ public func registerApplication(appName, appFriendly: string)
     if RegCreateKeyExA(HKEY_CURRENT_USER, ("Software\\RegisteredApplications").buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
         let capabilitiesPath = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
-        RegSetValueExA(hKey, friendly.buffer, 0, REG_SZ, capabilitiesPath.buffer, cast(u32) (capabilitiesPath.length + 1))
+        RegSetValueExA(hKey, friendly.buffer, 0, REG_SZ, capabilitiesPath.buffer, cast(u32, (capabilitiesPath.length + 1)))
         RegCloseKey(hKey)
     }
 
@@ -255,7 +255,7 @@ public func registerApplication(appName, appFriendly: string)
     let capKey = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
     if RegCreateKeyExA(HKEY_CURRENT_USER, capKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
-        RegSetValueExA(hKey, ("ApplicationName").buffer, 0, REG_SZ, friendly.buffer, cast(u32) (friendly.length + 1))
+        RegSetValueExA(hKey, ("ApplicationName").buffer, 0, REG_SZ, friendly.buffer, cast(u32, (friendly.length + 1)))
         RegCloseKey(hKey)
     }
 }
@@ -279,7 +279,7 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
         return false
 
     let valApp = Format.toString("%", appName)
-    if RegSetValueExA(hKey, null, 0, REG_SZ, valApp.buffer, cast(u32) (valApp.length + 1)) != ERROR_SUCCESS
+    if RegSetValueExA(hKey, null, 0, REG_SZ, valApp.buffer, cast(u32, (valApp.length + 1))) != ERROR_SUCCESS
     {
         RegCloseKey(hKey)
         return false
@@ -306,7 +306,7 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 
     var command = Format.toString("\"%\" \"%%1\"", appPath)
     command.replace("/", "\\")
-    if RegSetValueExA(hKey, null, 0, REG_SZ, command.buffer, cast(u32) (command.length + 1)) != ERROR_SUCCESS
+    if RegSetValueExA(hKey, null, 0, REG_SZ, command.buffer, cast(u32, (command.length + 1))) != ERROR_SUCCESS
     {
         RegCloseKey(hKey)
         return false
@@ -371,13 +371,13 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     defer RegCloseKey(hKey)
 
     let nativeValue = Utf16.toZeroTerminated(value)
-    let bytes       = cast(u32) (nativeValue.count * #sizeof(u16))
+    let bytes       = cast(u32, (nativeValue.count * #sizeof(u16)))
 
     if valueName.count == 0 do
-        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(const *u8?) nativeValue.buffer, bytes) == ERROR_SUCCESS
+        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(const *u8?, nativeValue.buffer), bytes) == ERROR_SUCCESS
 
     let nativeName = Utf16.toZeroTerminated(valueName)
-    return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(const *u8?) nativeValue.buffer, bytes) == ERROR_SUCCESS
+    return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(const *u8?, nativeValue.buffer), bytes) == ERROR_SUCCESS
 }
 
 var g_StoreArgs: String
@@ -405,7 +405,7 @@ public func getDpiScale()->f32
     // the process itself opted into awareness.
     let prev = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE)
     defer discard SetThreadDpiAwarenessContext(prev)
-    return cast(f32) GetDpiForSystem() / cast(f32) USER_DEFAULT_SCREEN_DPI
+    return cast(f32, GetDpiForSystem()) / cast(f32, USER_DEFAULT_SCREEN_DPI)
 }
 
 var g_DpiAware: bool
@@ -425,18 +425,18 @@ public func enableDpiAwareness()
     discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
 
-private func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
+private func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?, cast #bit (u64, GetWindowLongPtrA(hWnd, GWLP_USERDATA)))
 
 #[Swag.CallingConvention(.C)]
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     if msg == WM_CREATE
     {
-        let createStruct = cast(*CREATESTRUCTA) cast #bit (u64) lParam
+        let createStruct = cast(*CREATESTRUCTA, cast #bit (u64, lParam))
         let createParam  = createStruct.lpCreateParams!
-        SetWindowLongPtrA(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) createParam)
+        SetWindowLongPtrA(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR, cast(u64, createParam)))
 
-        let window = cast(*Window) createParam
+        let window = cast(*Window, createParam)
         window.setNativeHandle(hWnd)
     }
 
@@ -471,7 +471,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
             // Adopt the physical rectangle the system suggests for the new monitor
             // scale; the ensuing WM_SIZE reports the new physical client size.
-            let suggested = cast(const *RECT) cast #bit (u64) lParam
+            let suggested = cast(const *RECT, cast #bit (u64, lParam))
             discard catch SetWindowPos(hWnd, null, suggested.left, suggested.top, suggested.right - suggested.left, suggested.bottom - suggested.top, SWP_NOZORDER | SWP_NOACTIVATE)
             return 0
 
@@ -490,11 +490,11 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
 impl Window
 {
-    mtd setNativeHandle(nativeHandle: HWND) { .nativeHandle = cast(const *void?) nativeHandle }
+    mtd setNativeHandle(nativeHandle: HWND) { .nativeHandle = cast(const *void?, nativeHandle) }
 
-    private mtd const win32Handle()->HWND => cast(HWND) .nativeHandle
+    private mtd const win32Handle()->HWND => cast(HWND, .nativeHandle)
 
-    mtd rebindNative() { SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) me) }
+    mtd rebindNative() { SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR, cast(u64, me))) }
 }
 
 internal func createWindowNative(result: *Window, options: WindowOptions) fail
@@ -504,7 +504,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
 
     var wc: WNDCLASSA
     wc.style       = CS_OWNDC
-    wc.lpfnWndProc = cast() &envWindowProc
+    wc.lpfnWndProc = cast(&envWindowProc)
     wc.hInstance   = GetModuleHandleA(null)
 
     // Both names are read up to their terminator, which a 'string' view does not guarantee.
@@ -573,7 +573,7 @@ public impl Window
     {
         if not .nativeHandle do
             return 1
-        return cast(f32) GetDpiForWindow(.win32Handle()) / cast(f32) USER_DEFAULT_SCREEN_DPI
+        return cast(f32, GetDpiForWindow(.win32Handle())) / cast(f32, USER_DEFAULT_SCREEN_DPI)
     }
 
     internal mtd setClientSizeNative(width, height: s32) fail

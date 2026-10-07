@@ -28,12 +28,12 @@ func tags(v: u32)->bool => v == 100 or v == 101 or v == 140 or v == 163
 {
     for i in 256
     {
-        let c = cast(u8) i
+        let c = cast(u8, i)
         Swag.assert(isSpace(c) == (c == 32 or c == 9 or c == 10 or c == 13))
         Swag.assert(isVowel(c) == (c == 97 or c == 101 or c == 105 or c == 111 or c == 117))
         Swag.assert(notDelimiter(c) == not (c == 44 or c == 59 or c == 58))
-        Swag.assert(wideSpan(cast(u32) i) == (i == 1 or i == 40 or i == 200))
-        Swag.assert(tags(cast(u32) i) == (i == 100 or i == 101 or i == 140 or i == 163))
+        Swag.assert(wideSpan(cast(u32, i)) == (i == 1 or i == 40 or i == 200))
+        Swag.assert(tags(cast(u32, i)) == (i == 100 or i == 101 or i == 140 or i == 163))
     }
     Swag.assert(smallSigned(-1) and smallSigned(0) and smallSigned(3))
     Swag.assert(not smallSigned(1) and not smallSigned(-2) and not smallSigned(0x7FFFFFFF))

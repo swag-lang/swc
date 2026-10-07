@@ -42,7 +42,7 @@ func(U, M: s32) functionLocalImplicitRenamedBuffer()->U
     }
 
     var data: Local
-    data.item.values[0] = cast(U) M
+    data.item.values[0] = cast(U, M)
     return data.item.values[0]
 }
 
@@ -65,13 +65,13 @@ func(U) functionLocalRenamedExplicitPrefixValue()->U
     }
 
     var data: Local
-    data.item.values[2] = cast(U) 21
+    data.item.values[2] = cast(U, 21)
     return data.item.values[2]
 }
 
 func(T) functionReturnOnlyFactory(value: s32)->T
 {
-    return cast(T) value
+    return cast(T, value)
 }
 
 func(T) functionReturnOnlyForward(value: s32)->T

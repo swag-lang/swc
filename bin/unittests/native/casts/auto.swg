@@ -1,7 +1,7 @@
 #global private
 
 const A: s32  = 1
-const B: bool = cast() A
+const B: bool = cast(A)
 #assert(B == true)
 
 var gAutoPtr: *u32?
@@ -16,21 +16,21 @@ func takes_f64(v: f64) { gAutoF64 = v }
 #test
 {
     var ptr: *u64 = &gAutoX64
-    toto(cast() ptr)
-    Swag.assert(gAutoPtr == cast(*u32) ptr)
+    toto(cast(ptr))
+    Swag.assert(gAutoPtr == cast(*u32, ptr))
 }
 
 #test
 {
     var f: f32 = 12.75
-    takes_s32(cast() f)
+    takes_s32(cast(f))
     Swag.assert(gAutoS32 == 12)
 }
 
 #test
 {
     const B: bool = true
-    const S: s32  = cast() B
+    const S: s32  = cast(B)
     #assert(S == 1)
     Swag.assert(S == 1)
 }
@@ -38,7 +38,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
 #test
 {
     func ret_u64()->u64 { return 42 }
-    var y: s32 = cast() ret_u64()
+    var y: s32 = cast(ret_u64())
     Swag.assert(y == 42)
 }
 
@@ -46,15 +46,15 @@ func takes_f64(v: f64) { gAutoF64 = v }
 {
     #[Swag.Inline]
     func ret_u64()->u64 { return 42 }
-    var y: s32 = cast() ret_u64()
+    var y: s32 = cast(ret_u64())
     Swag.assert(y == 42)
 }
 
 #test
 {
     var v: u16 = 7
-    takes_u64(cast() v)
-    takes_f64(cast() v)
+    takes_u64(cast(v))
+    takes_f64(cast(v))
     Swag.assert(gAutoU64 == 7)
     Swag.assert(gAutoF64 == 7.0)
 }
@@ -99,17 +99,17 @@ func takes_f64(v: f64) { gAutoF64 = v }
 }
 
 #[Swag.Inline]
-func ret_u64_short() => cast(u64) 42
+func ret_u64_short() => cast(u64, 42)
 func a_takes_s32(v: s32) { gAutoS32 = v }
 
 #test
 {
-    var y: s32 = cast() ret_u64_short()
+    var y: s32 = cast(ret_u64_short())
     Swag.assert(y == 42)
 }
 
 #test
 {
-    a_takes_s32(cast() ret_u64_short())
+    a_takes_s32(cast(ret_u64_short()))
     Swag.assert(gAutoS32 == 42)
 }

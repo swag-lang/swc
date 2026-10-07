@@ -32,7 +32,7 @@ func day4B()
         let res = expect StrConv.parseS64(l[idx to])
 
         for i in str.count do
-            str[i] = cast(u8) ((str[i] + res.value) % 26 + 'a')
+            str[i] = cast(u8, ((str[i] + res.value) % 26 + 'a'))
 
         if Utf8.contains(str, "north")
         {

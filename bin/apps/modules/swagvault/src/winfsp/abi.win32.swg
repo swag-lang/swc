@@ -8,7 +8,7 @@ namespace WinFsp
 
     alias NativeModule = HMODULE
 
-    const InvalidHandle = cast(NativeHandle) cast #bit (u64) -1's64
+    const InvalidHandle = cast(NativeHandle, cast #bit (u64, -1's64))
     const GenericWrite  = 0x40000000'u32
     const ShareRead     = 0x00000001'u32
     const NormalFile    = 0x00000080'u32
@@ -243,7 +243,7 @@ namespace WinFsp
     func environmentValue(name: string)->String
     {
         var buffer: [32768] u8
-        let count = GetEnvironmentVariableA(name.buffer, buffer.buffer, cast(u32) buffer.count)
+        let count = GetEnvironmentVariableA(name.buffer, buffer.buffer, cast(u32, buffer.count))
         if not count or count >= buffer.count do
             return ""
         return Swag.makeString(buffer.buffer, count)

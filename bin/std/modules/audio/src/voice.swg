@@ -95,16 +95,16 @@ private impl Voice
         .destroyPacketCodec()
     }
 
-    mtd hasState(st: VoiceState)->bool => Atomic.get(cast(*u32) &.state) & cast(u32) st ? true : false
+    mtd hasState(st: VoiceState)->bool => Atomic.get(cast(*u32, &.state)) & cast(u32, st) ? true : false
 
     mtd setState(st: VoiceState)
     {
-        discard Atomic.logicOr(cast(*u32) &.state, cast(u32) st)
+        discard Atomic.logicOr(cast(*u32, &.state), cast(u32, st))
     }
 
     mtd resetState(st: VoiceState)
     {
-        discard Atomic.logicAnd(cast(*u32) &.state, ~cast(u32) st)
+        discard Atomic.logicAnd(cast(*u32, &.state), ~cast(u32, st))
     }
 }
 
@@ -139,7 +139,7 @@ public impl Voice
         }
 
         voice.file = file
-        voice.seekDiscardFrames = cast(u32) file.leadingTrim
+        voice.seekDiscardFrames = cast(u32, file.leadingTrim)
 
         try voice.createNative(createFlags)
         g_Driver.updateVoice(voice, .Register)
@@ -216,7 +216,7 @@ public impl Voice
             try .stopNative()
         try .resetNative()
         .closeBuffer()
-        .seekDiscardFrames = cast(u32) .file!.leadingTrim
+        .seekDiscardFrames = cast(u32, .file!.leadingTrim)
         .playbackBaseFrame = 0
         .nativeFrameOrigin = .playedFramesNative()
         .resetState(.Playing | .PlayedOnce)
@@ -269,11 +269,11 @@ public impl Voice
             // so a random seek has the same samples as uninterrupted playback.
             let preroll = low ? low - 1 : low
             .streamPacketIdx   = preroll
-            .seekDiscardFrames = cast(u32) (decodedTarget - file.packetStarts[preroll])
+            .seekDiscardFrames = cast(u32, (decodedTarget - file.packetStarts[preroll]))
         }
         elif not file.usesPacketCodec()
         {
-            let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
+            let bytesPerFrame = cast(u64, file.channelCount) * cast(u64, (file.bitsPerSample / 8))
             .streamCurSeek = Math.min(target * bytesPerFrame, file.dataSize)
         }
         else
@@ -314,7 +314,7 @@ public impl Voice
     {
         if not .file or not .file.sampleRate do
             return 0
-        return cast(f64) .playbackSampleFrame() / cast(f64) .file.sampleRate
+        return cast(f64, .playbackSampleFrame()) / cast(f64, .file.sampleRate)
     }
 
     // Schedules this voice and its native resources for destruction.

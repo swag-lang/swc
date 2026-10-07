@@ -206,10 +206,6 @@ namespace
             if (prev.is(TokenId::SymColon) && prev.hasRole(FormatRoleE::NamedArgumentColon))
                 return fromBool(opt.spaceAfterColonInNamedArguments);
 
-            // After the `)` of a cast.
-            if (prev.hasRole(FormatRoleE::CastCloseParen) && !isClosingId(cur.id))
-                return fromBool(opt.spaceAfterCast);
-
             // Attribute bracket on the declaration line.
             if (cur.hasRole(FormatRoleE::AttrOpen))
                 return fromBool(opt.spaceBeforeAttributeBracket);

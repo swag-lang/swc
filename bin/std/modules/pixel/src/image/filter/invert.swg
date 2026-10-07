@@ -26,7 +26,7 @@ public impl Image
             .visitVectorBytes() #code(block, data)
             {
                 discard data
-                let invertMask = cast(Math.Simd.U8x16) [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0]
+                let invertMask = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
                 Math.Simd.store(block, Math.Simd.load(block) ^ invertMask)
             }
         }

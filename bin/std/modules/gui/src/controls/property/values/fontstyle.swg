@@ -15,7 +15,7 @@ internal impl IPropertyEditor for FontStyleEditor
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parentItem)
-        let style = cast(*FontFamilyStyle?) data
+        let style = cast(*FontFamilyStyle?, data)
 
         const BtnW = 34
         let lineH = list.themeMetrics().btnPush_Height

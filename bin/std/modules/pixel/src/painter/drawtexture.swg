@@ -28,7 +28,7 @@ impl Painter
             return
 
         let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .Fill}
-        .fillRect(x, y, cast(f32) texture.width, cast(f32) texture.height, brush)
+        .fillRect(x, y, cast(f32, texture.width), cast(f32, texture.height), brush)
     }
 
     // Draws the `srcRect` texel rectangle of a texture stretched over a destination rectangle.

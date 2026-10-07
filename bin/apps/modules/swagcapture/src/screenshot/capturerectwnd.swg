@@ -253,9 +253,9 @@ impl IWnd for CaptureRectWnd
             let endX         = g_EndGrabX / k
             let endY         = g_EndGrabY / k
             painter.drawLine(endX, 0, endX, dstGrab.y, cross)
-            painter.drawLine(endX, dstGrab.bottom(), endX, cast(f32) g_ScreenHeight / k, cross)
+            painter.drawLine(endX, dstGrab.bottom(), endX, cast(f32, g_ScreenHeight) / k, cross)
             painter.drawLine(0, endY, dstGrab.x, endY, cross)
-            painter.drawLine(dstGrab.right(), endY, cast(f32) g_ScreenWidth / k, endY, cross)
+            painter.drawLine(dstGrab.right(), endY, cast(f32, g_ScreenWidth) / k, endY, cross)
         }
 
         // The readout, in physical desktop pixels: that is the size of the captured

@@ -22,7 +22,7 @@ impl SetTarget
 
     mtd opSet(value: f32)
     {
-        .value = cast(s32) value
+        .value = cast(s32, value)
         .tag   = 20
     }
 
@@ -56,15 +56,15 @@ impl ParamSetTarget
     #[Swag.Implicit]
     mtd opSet(value: u16)
     {
-        .value = cast(s32) value
+        .value = cast(s32, value)
         .tag   = 20
     }
 
     mtd opSet(value: u64)
     {
-        .value    = cast(s32) value
+        .value    = cast(s32, value)
         .tag      = 30
-        .sentinel = cast(s32) value
+        .sentinel = cast(s32, value)
     }
 }
 
@@ -89,7 +89,7 @@ impl ConstPaletteColor
     #[Swag.ConstExpr, Swag.Implicit]
     mtd opSet(value: ConstPaletteSource)
     {
-        .raw = cast(u32) value
+        .raw = cast(u32, value)
     }
 }
 
@@ -255,7 +255,7 @@ func semaTest006()
     func takesExplicit(value: ParamSetTarget) {}
     func takesImplicit(value: ParamSetTarget) {}
 
-    takesExplicit(cast(ParamSetTarget) 5's32)
+    takesExplicit(cast(ParamSetTarget, 5's32))
     takesImplicit(7'u16)
 
     let complete: ParamSetTarget = 2'u64
@@ -266,7 +266,7 @@ func semaTest007()
 {
     let delay1: LiteralSetTarget = 5's
     let delay2: LiteralSetTarget = 500'ms
-    let delay3                   = cast(LiteralSetTarget) 2'min
+    let delay3                   = cast(LiteralSetTarget, 2'min)
     var delay4                   = LiteralSetTarget{}
     delay4 = 1'h
 
@@ -284,8 +284,8 @@ func semaTest008()
     let fromInt:   LiteralOverloadTarget = 5's
     let fromFloat: LiteralOverloadTarget = 1.5's
 
-    let castInt   = cast(LiteralOverloadTarget) 250'ms
-    let castFloat = cast(LiteralOverloadTarget) 0.5'h
+    let castInt   = cast(LiteralOverloadTarget, 250'ms)
+    let castFloat = cast(LiteralOverloadTarget, 0.5'h)
 
     func takesImplicit(value: LiteralOverloadTarget) {}
     takesImplicit(2'min)

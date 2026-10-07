@@ -109,7 +109,7 @@ func semaTest006()
 {
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
-    let copied               = cast(f32) valueRef[]
+    let copied               = cast(f32, valueRef[])
     let sum                  = valueRef[] + 2.5'f32
 
     #assert(#typeof(copied) == f32)

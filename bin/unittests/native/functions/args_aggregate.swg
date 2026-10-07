@@ -65,7 +65,7 @@ func passPointer(value: *void?)->*void?
 
 func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: *void?)->s32
 {
-    return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
+    return a + cast(s32, b[0]) + c.a + d[1] + cast(s32, (e != null))
 }
 
 func passConstRef(value: AbiPair)->s32
@@ -78,17 +78,17 @@ func passScalars(
     a4: u8, a5: u16, a6: u32, a7: u64,
     a8: f32, a9: f64, a10: bool, a11: rune)->s32
 {
-    return cast(s32) a0 + cast(s32) a1 + a2 + cast(s32) a3 + cast(s32) a4 + cast(s32) a5 + cast(s32) a6 + cast(s32) a7 + cast(s32) a8 + cast(s32) a9 + cast(s32) a10 + cast(s32) a11
+    return cast(s32, a0) + cast(s32, a1) + a2 + cast(s32, a3) + cast(s32, a4) + cast(s32, a5) + cast(s32, a6) + cast(s32, a7) + cast(s32, a8) + cast(s32, a9) + cast(s32, a10) + cast(s32, a11)
 }
 
 func passBoolRunePositions(a: bool, b: s32, c: rune, d: s32, e: bool, f: rune)->s32
 {
-    return cast(s32) a + b + cast(s32) c + d + cast(s32) e + cast(s32) f
+    return cast(s32, a) + b + cast(s32, c) + d + cast(s32, e) + cast(s32, f)
 }
 
 func passAliasEnum(a: s32, b: AbiAlias, c: AbiEnum, d: s32)->s32
 {
-    return a + b + cast(s32) cast(u16) c + d
+    return a + b + cast(s32, cast(u16, c)) + d
 }
 
 func passSlice(values: const [..] s32, idx: s32)->s32
@@ -98,12 +98,12 @@ func passSlice(values: const [..] s32, idx: s32)->s32
 
 func passAggregatePositions(a: *void?, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
 {
-    return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
+    return cast(u64, b[1]) + cast(u64, d.a) + e.a3 + cast(u64, c[0]) + cast(u64, (a != null))
 }
 
 func passNested(value: AbiNested, extra: s32)->u64
 {
-    return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
+    return cast(u64, value.p.a) + cast(u64, value.p.b) + value.q.a0 + value.q.a3 + cast(u64, extra)
 }
 
 func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void?, values: [2] s32, e: AbiEnum)->bool
@@ -158,12 +158,12 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 #test
 {
     let p0 = passPointer(null)
-    let p1 = passPointer(cast(*void) 0x1234'u64)
+    let p1 = passPointer(cast(*void, 0x1234'u64))
 
     Swag.assert(p0 == null)
-    Swag.assert(p1 == cast(*void) 0x1234'u64)
+    Swag.assert(p1 == cast(*void, 0x1234'u64))
     Swag.assert(passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    Swag.assert(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64) == 330)
+    Swag.assert(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567'u64)) == 330)
 
     const p: AbiPair = {a: 6, b: 7}
     Swag.assert(passConstRef(p) == 13)
@@ -186,7 +186,7 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     Swag.assert(passSlice(values0, 2) == 33)
     Swag.assert(passSlice(values1, 3) == 404)
     Swag.assert(passSlice(values2, 0) == -1)
-    Swag.assert(passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
+    Swag.assert(passAggregatePositions(cast(*void, 0x10'u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
     Swag.assert(passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
     Swag.assert(passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
     Swag.assert(passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A))

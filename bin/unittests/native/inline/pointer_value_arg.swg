@@ -21,8 +21,8 @@ func copyWithRuntimeTypeSize(dest: [*] void, src: const [*] void, valueType: typ
     src[1] = 20
     src[2] = 30
 
-    let dest = cast([*] u8) &dst[0]
-    let from = cast([*] u8) &src[1]
+    let dest = cast([*] u8, &dst[0])
+    let from = cast([*] u8, &src[1])
     let size = #sizeof(s32)
 
     inlineCopy(dest, from, size)
@@ -36,8 +36,8 @@ func copyWithRuntimeTypeSize(dest: [*] void, src: const [*] void, valueType: typ
     src[0] = 10
     src[1] = 20
 
-    let dest = cast([*] u8) &dst[0]
-    let from = cast([*] u8) &src[1]
+    let dest = cast([*] u8, &dst[0])
+    let from = cast([*] u8, &src[1])
 
     copyWithRuntimeTypeSize(dest, from, #typeof(s32))
     Swag.assert(dst[0] == 20)

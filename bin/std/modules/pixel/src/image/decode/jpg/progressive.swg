@@ -18,7 +18,7 @@ impl Decoder
             .blockLenX = blkLenX
             .blockLenY = blkLenY
             .blockSize = (blkLenX * blkLenY) * #sizeof(s16)
-            .pdata.resize(cast(u64) .blockSize * blkNumX * blkNumY)
+            .pdata.resize(cast(u64, .blockSize) * blkNumX * blkNumY)
         }
 
         return result
@@ -35,7 +35,7 @@ impl Decoder
 
         s    += .lastDcVal[cmpId]
         .lastDcVal[cmpId] = s
-        p[0] = cast(s16) (s << .successiveLow)
+        p[0] = cast(s16, (s << .successiveLow))
     }
 
     mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32) fail
@@ -73,7 +73,7 @@ impl Decoder
                     fail InvalidFormatError{"decode error"}
 
                 s         = extendSign(rbits, s)
-                p[Zag[k]] = cast(s16) (s << .successiveLow)
+                p[Zag[k]] = cast(s16, (s << .successiveLow))
             }
             else
             {
@@ -139,12 +139,12 @@ impl Decoder
                     {
                         if .getBits2(1)
                         {
-                            if (thisCoef[] & cast(s16) p1) == 0
+                            if (thisCoef[] & cast(s16, p1)) == 0
                             {
                                 if thisCoef[] >= 0 do
-                                    thisCoef[] += cast(s16) p1
+                                    thisCoef[] += cast(s16, p1)
                                 else do
-                                    thisCoef[] += cast(s16) m1
+                                    thisCoef[] += cast(s16, m1)
                             }
                         }
                     }
@@ -162,7 +162,7 @@ impl Decoder
 
                 if s and (k < 64)
                 {
-                    p[Zag[k]] = cast(s16) s
+                    p[Zag[k]] = cast(s16, s)
                 }
 
                 k += 1
@@ -180,12 +180,12 @@ impl Decoder
                 {
                     if .getBits2(1)
                     {
-                        if (thisCoef[] & cast(s16) p1) == 0
+                        if (thisCoef[] & cast(s16, p1)) == 0
                         {
                             if thisCoef[] >= 0 do
-                                thisCoef[] += cast(s16) p1
+                                thisCoef[] += cast(s16, p1)
                             else do
-                                thisCoef[] += cast(s16) m1
+                                thisCoef[] += cast(s16, m1)
                         }
                     }
                 }

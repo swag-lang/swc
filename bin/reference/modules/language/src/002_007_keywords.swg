@@ -27,7 +27,7 @@ switch  to  unreachable  until  where  while
 # Values, Errors, and Conversion
 
 ```swag
-cast  catch  discard  expect  fail  false  null
+assume  cast  catch  discard  expect  fail  false  null
 retval  true  try
 ```
 
@@ -87,8 +87,8 @@ follows them. They annotate what carries no symbol; a declaration takes an
 attribute instead.
 
 ```swag
-#assume  #bit  #complete  #fail  #fwd  #move  #nodrop  #nofail
-#prom  #raw  #relocate  #simd  #try  #unconst  #wrap
+#bit  #complete  #fail  #fwd  #move  #nodrop  #nofail
+#prom  #raw  #relocate  #simd  #unconst  #wrap
 ```
 
 # Runtime and Compiler Intrinsics

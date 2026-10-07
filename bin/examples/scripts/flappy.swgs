@@ -256,7 +256,7 @@ func paint(painter: *Painter)
         painter.translateTransform(g_Bird.pos.x + trf.tx, g_Bird.pos.y + trf.ty)
 
         // Select one of the three wing animation frames.
-        let frame = cast(s32) g_Bird.frame % 3
+        let frame = cast(s32, g_Bird.frame) % 3
 
         // Both fields are assigned before use, so skip their default initialization.
         var pt: Math.Point
@@ -281,8 +281,8 @@ func paint(painter: *Painter)
     }
 
     // Scroll two ground copies to form a seamless strip.
-    painter.drawTexture(-g_BasePos, g_Rect.bottom() - GroundHeight, cast(f32) g_BaseTexture.width, GroundHeight, g_BaseTexture)
-    painter.drawTexture(-g_BasePos + g_BaseTexture.width, g_Rect.bottom() - GroundHeight, cast(f32) g_BaseTexture.width, GroundHeight, g_BaseTexture)
+    painter.drawTexture(-g_BasePos, g_Rect.bottom() - GroundHeight, cast(f32, g_BaseTexture.width), GroundHeight, g_BaseTexture)
+    painter.drawTexture(-g_BasePos + g_BaseTexture.width, g_Rect.bottom() - GroundHeight, cast(f32, g_BaseTexture.width), GroundHeight, g_BaseTexture)
     if not g_GameOver do
         g_BasePos += SpeedHorz * g_Dt
     if g_BasePos >= g_BaseTexture.width do

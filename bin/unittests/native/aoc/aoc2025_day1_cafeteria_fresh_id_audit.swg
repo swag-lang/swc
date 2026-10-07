@@ -24,7 +24,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
+        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -33,7 +33,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
 func parseRange(text: string)->IdRange
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
 
     var result: IdRange
     var index:  u32

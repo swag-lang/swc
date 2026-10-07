@@ -31,7 +31,7 @@ func countWord(data: const [*] u16, count: u64, value: u16)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func lastBelow(data: const [*] s32, count: u64, limit: s32)->s64
 {
-    var i = cast(s64) count - 1
+    var i = cast(s64, count) - 1
     while i >= 0
     {
         if data[i] < limit do

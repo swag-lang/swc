@@ -9,9 +9,9 @@ func inkCount(image: const *Image)->s32
     let background = image.pixelColor(0, 0).argb
 
     var result = 0
-    for y in cast(s32) image.height
+    for y in cast(s32, image.height)
     {
-        for x in cast(s32) image.width
+        for x in cast(s32, image.width)
         {
             if image.pixelColor(x, y).argb != background do
                 result += 1
@@ -73,6 +73,6 @@ func renderSpinner(dpiScale: f32)->Image
     Swag.assert(image2.width == 2 * image1.width and image2.height == 2 * image1.height)
 
     // Four times the area, give or take the antialiased rim of eight small disks.
-    let ratio = cast(f32) ink2 / cast(f32) ink1
+    let ratio = cast(f32, ink2) / cast(f32, ink1)
     Swag.assert(ratio > 3.5 and ratio < 4.5)
 }

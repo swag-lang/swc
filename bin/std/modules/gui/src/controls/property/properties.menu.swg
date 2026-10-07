@@ -34,7 +34,7 @@ internal impl Properties
         let menu = MenuCtrl.createPopup(me)
 
         // Custom items first, contributed by the notify interface(s) along the parent chain.
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             scan.ntfyItf?.fillPopupMenu(me, item, menu)

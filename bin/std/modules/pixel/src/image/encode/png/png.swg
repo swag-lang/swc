@@ -165,7 +165,7 @@ impl Encoder
     func writeU32(dst: [*] u8, val: u32)
     {
         let v = Math.nativeToBigEndian(val)
-        (cast(*u32) dst)[] = v
+        cast(*u32, dst)[] = v
     }
 
     mtd writeData(buf: const [*] u8, bytes: u32)
@@ -176,7 +176,7 @@ impl Encoder
     mtd writeU32(val: u32)
     {
         var v = Math.nativeToBigEndian(val)
-        .stream!.addBytes(Swag.makeSlice(cast(const [*] u8) &v, 4))
+        .stream!.addBytes(Swag.makeSlice(cast(const [*] u8, &v), 4))
     }
 
     mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
@@ -185,7 +185,7 @@ impl Encoder
         let stream = .stream!
         stream.grow(total)
 
-        .currentChunk.length = cast(u32) chunkLength
+        .currentChunk.length = cast(u32, chunkLength)
         .writeU32(.currentChunk.length)
 
         Memory.copy(&.currentChunk.type, chunkType, 4)
@@ -218,11 +218,11 @@ impl Encoder
     {
         .writeData(PngSignature, 8)
 
-        var dst = cast([*] u8) &.tmpBuf[0]
+        var dst = cast([*] u8, &.tmpBuf[0])
         writeU32(dst, .ihdr.width)
         writeU32(dst + 4, .ihdr.height)
         dst[8]  = .ihdr.bitDepth
-        dst[9]  = cast(u8) .ihdr.colorType
+        dst[9]  = cast(u8, .ihdr.colorType)
         dst[10] = .ihdr.compressionMethod
         dst[11] = .ihdr.filterMethod
         dst[12] = .ihdr.interlaceMethod
@@ -275,7 +275,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .userOptions = (cast(const *EncodeOptions) options.buffer!)[]
+            .userOptions = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         let supported = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8 or image.pixelFormat == .Gray16 or image.pixelFormat == .GrayAlpha16 or image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8 or image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB16 or image.pixelFormat == .RGBA16
@@ -292,7 +292,7 @@ internal impl IImageEncoder for Encoder
         .ihdr.width           = image.width
         .ihdr.height          = image.height
         .ihdr.bitDepth        = image.pixelFormat.bitDepth()
-        .ihdr.colorType       = image.pixelFormat.isGrayscale() ? cast(ColorType) 0 : .Color
+        .ihdr.colorType       = image.pixelFormat.isGrayscale() ? cast(ColorType, 0) : .Color
         .ihdr.interlaceMethod = .userOptions.interlace ? 1 : 0
         if image.pixelFormat.hasAlpha() do
             .ihdr.colorType |= .Alpha
@@ -305,12 +305,12 @@ internal impl IImageEncoder for Encoder
         var scanlineBufSize = .subimage[.widestPass].scanlineWidth
         scanlineBufSize += 32
 
-        .scanlineBuf         = Memory.alloc(cast(u64) scanlineBufSize)
-        .prevScanlineBuf     = Memory.alloc(cast(u64) scanlineBufSize)
-        .filteredScanlineBuf = Memory.alloc(cast(u64) scanlineBufSize)
-        defer Memory.free(.scanlineBuf, cast(u64) scanlineBufSize)
-        defer Memory.free(.prevScanlineBuf, cast(u64) scanlineBufSize)
-        defer Memory.free(.filteredScanlineBuf, cast(u64) scanlineBufSize)
+        .scanlineBuf         = Memory.alloc(cast(u64, scanlineBufSize))
+        .prevScanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
+        .filteredScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
+        defer Memory.free(.scanlineBuf, cast(u64, scanlineBufSize))
+        defer Memory.free(.prevScanlineBuf, cast(u64, scanlineBufSize))
+        defer Memory.free(.filteredScanlineBuf, cast(u64, scanlineBufSize))
 
         .scanline         = .scanlineBuf + 16
         .prevScanline     = .prevScanlineBuf + 16
@@ -322,7 +322,7 @@ internal impl IImageEncoder for Encoder
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 
-        let srcPixels = cast([*] u8) image.pixels.storage()
+        let srcPixels = cast([*] u8, image.pixels.storage())
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel

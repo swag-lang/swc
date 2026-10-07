@@ -121,14 +121,14 @@ func expectAccessNode(present: bool)->*ExpectAccessNode? => present ? &g_expectA
 }
 
 // A cast over an asserted source is guarded by the assertion, not by the cast.
-func expectRawNode(present: bool)->*void? => present ? cast(*void) &g_expectAccessNode : null
+func expectRawNode(present: bool)->*void? => present ? cast(*void, &g_expectAccessNode) : null
 
 #test
 {
     #[Swag.Safety(.Expect, true)]
     func unNullCastPanic()->s32
     {
-        let node = cast(*ExpectAccessNode) expectRawNode(false)!     // swc-expected-error {{safety_err_runtime}}
+        let node = cast(*ExpectAccessNode, expectRawNode(false)!)     // swc-expected-error {{safety_err_runtime}}
         return node.value
     }
 
@@ -140,7 +140,7 @@ func expectRawNode(present: bool)->*void? => present ? cast(*void) &g_expectAcce
     #[Swag.Safety(.Expect, true)]
     func unNullCastSuccess()->s32
     {
-        let node = cast(*ExpectAccessNode) expectRawNode(true)!
+        let node = cast(*ExpectAccessNode, expectRawNode(true)!)
         return node.value
     }
 

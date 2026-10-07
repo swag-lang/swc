@@ -73,8 +73,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
 
         // Set an empty tile
-        let i = Random.shared().nextU64(0, cast(u64) NumElems - 1)
-        let j = Random.shared().nextU64(0, cast(u64) NumElems - 1)
+        let i = Random.shared().nextU64(0, cast(u64, NumElems) - 1)
+        let j = Random.shared().nextU64(0, cast(u64, NumElems) - 1)
         g_Matrix[i, j].empty = true
 
     case MouseEvent as mouseEvt where mouseEvt.kind == .Move:

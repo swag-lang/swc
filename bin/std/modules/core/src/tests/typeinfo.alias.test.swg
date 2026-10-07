@@ -58,7 +58,7 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
 
     let directRaw = Memory.alloc(#sizeof(CoreAliasLifecycleProbe))
     defer Memory.free(directRaw, #sizeof(CoreAliasLifecycleProbe))
-    let direct = cast(*CoreAliasLifecycleProbe) directRaw
+    let direct = cast(*CoreAliasLifecycleProbe, directRaw)
     direct.value = 7
 
     resetCoreAliasLifecycleCounters()
@@ -70,7 +70,7 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
 
     let arrayRaw = Memory.alloc(#sizeof([2] CoreAliasLifecycleProbe))
     defer Memory.free(arrayRaw, #sizeof([2] CoreAliasLifecycleProbe))
-    let values = cast([*] CoreAliasLifecycleProbe) arrayRaw
+    let values = cast([*] CoreAliasLifecycleProbe, arrayRaw)
     values[0].value = 11
     values[1].value = 22
 

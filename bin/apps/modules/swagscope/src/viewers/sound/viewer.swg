@@ -14,7 +14,7 @@ func soundViewerPlugin()->Viewer.Plugin
         .staticName   = "Sound"
         .attach       = &registerSoundStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Sound
+        .iconIndex    = cast(s32, ViewerIcons.Sound)
         .create       = &createSoundViewer
         .smokeFixture = "pacman_beginning.wav"
     }
@@ -120,25 +120,25 @@ func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)
     switch encoding
     {
     case .Pcm8:
-        return (cast(f32) bytes[offset] - 128) / 128
+        return (cast(f32, bytes[offset]) - 128) / 128
 
     case .Pcm16:
-        let raw = cast(u16) bytes[offset] | (cast(u16) bytes[offset + 1] << 8)
-        return cast(f32) cast #bit (s16) raw / 32768
+        let raw = cast(u16, bytes[offset]) | (cast(u16, bytes[offset + 1]) << 8)
+        return cast(f32, cast #bit (s16, raw)) / 32768
 
     case .Pcm24:
-        var raw = cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16)
+        var raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16)
         if raw & 0x00800000 do
             raw |= 0xFF000000
-        return cast(f32) cast #bit (s32) raw / 8388608
+        return cast(f32, cast #bit (s32, raw)) / 8388608
 
     case .Pcm32:
-        let raw = cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
-        return cast(f32) cast #bit (s32) raw / 2147483648
+        let raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16) | (cast(u32, bytes[offset + 3]) << 24)
+        return cast(f32, cast #bit (s32, raw)) / 2147483648
 
     case .Float32:
-        let raw = cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
-        return Math.clamp(cast #bit (f32) raw, -1, 1)
+        let raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16) | (cast(u32, bytes[offset + 3]) << 24)
+        return Math.clamp(cast #bit (f32, raw), -1, 1)
     }
 
     return 0
@@ -180,7 +180,7 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
             sum  += level
         }
 
-        result[point] = {peak, sum / cast(f32) (last - first)}
+        result[point] = {peak, sum / cast(f32, (last - first))}
     }
 
     return result
@@ -190,7 +190,7 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
 func soundDurationText(seconds: f32)->String
 {
     if seconds < 1 do
-        return Format.toString("% ms", cast(u32) Math.max(Math.round(seconds * 1000), 1))
+        return Format.toString("% ms", cast(u32, Math.max(Math.round(seconds * 1000), 1)))
     return Format.toString("%{f2} s", seconds)
 }
 
@@ -229,7 +229,7 @@ impl WaveformReducer
             let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
             if target != .currentPoint
             {
-                .points[][.currentPoint] = {.peak, .sampleCount ? cast(f32) (.sum / cast(f64) .sampleCount) : 0}
+                .points[][.currentPoint] = {.peak, .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0}
                 .readyCount   = .currentPoint + 1
                 .currentPoint = target
                 .peak         = 0
@@ -239,7 +239,7 @@ impl WaveformReducer
 
             var mixed = 0'f32
             for channel in .channels do
-                mixed += cast(f32) samples[frame * .channels + channel] / 32768
+                mixed += cast(f32, samples[frame * .channels + channel]) / 32768
             let level = Math.abs(mixed / .channels)
             .peak        = Math.max(.peak, level)
             .sum         += level
@@ -252,7 +252,7 @@ impl WaveformReducer
     {
         if not .sampleCount or .currentPoint >= .pointCount do
             return
-        .points[][.currentPoint] = {.peak, cast(f32) (.sum / cast(f64) .sampleCount)}
+        .points[][.currentPoint] = {.peak, cast(f32, (.sum / cast(f64, .sampleCount)))}
         .readyCount = .currentPoint + 1
     }
 }
@@ -276,14 +276,14 @@ func waveformTickText(seconds, step: f32)->String
 {
     if seconds >= 60
     {
-        let minutes = cast(u32) (seconds / 60)
-        let rest    = cast(u32) Math.round(seconds - cast(f32) minutes * 60)
+        let minutes = cast(u32, (seconds / 60))
+        let rest    = cast(u32, Math.round(seconds - cast(f32, minutes) * 60))
         return Format.toString("%:%{02}", minutes, rest)
     }
 
     if step < 1 do
         return Format.toString("%{f2}", seconds)
-    return Format.toString("%", cast(u32) Math.round(seconds))
+    return Format.toString("%", cast(u32, Math.round(seconds)))
 }
 
 private impl SoundWaveformView
@@ -363,7 +363,7 @@ private impl IWnd for SoundWaveformView
         let restBody  = Color.lerp(colors.view_Bk, alternate, 0.48)
         let restPeak  = Color.lerp(colors.view_Bk, alternate, 0.25)
 
-        let columns = cast(u64) Math.max(plot.width, 1)
+        let columns = cast(u64, Math.max(plot.width, 1))
 
         // Pixel alignment keeps the progress boundary crisp instead of blending two adjacent
         // waveform columns into a soft vertical seam.
@@ -388,8 +388,8 @@ private impl IWnd for SoundWaveformView
             // rendering fault rather than as a quiet passage.
             let peakHeight = Math.max(peak * scale, 0.5)
             let bodyHeight = Math.max(body * scale, 0.5)
-            let played     = cast(f32) column < playHead
-            let x          = plot.x + cast(f32) column
+            let played     = cast(f32, column) < playHead
+            let x          = plot.x + cast(f32, column)
 
             painter.fillRect(x, center - peakHeight, 1, peakHeight * 2, played ? playPeak : restPeak)
             painter.fillRect(x, center - bodyHeight, 1, bodyHeight * 2, played ? playBody : restBody)
@@ -691,7 +691,7 @@ impl SoundViewer
         if not .engineReady or not .ensureVoice() do
             return
         let target = Math.clamp(seconds, 0, .duration)
-        let frame  = cast(u64) Math.round(target * cast(f32) .sound.sampleRateHz())
+        let frame  = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
         catch .voice!.seekSampleFrame(frame) as seekError
         if seekError != null do
             return
@@ -701,7 +701,7 @@ impl SoundViewer
 
     mtd seekRelative(seconds: f32)
     {
-        let current = .voice ? cast(f32) .voice.playbackPositionSeconds() : .elapsed
+        let current = .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
         .seekSeconds(current + seconds)
     }
 
@@ -799,7 +799,7 @@ impl IWnd for SoundViewer
         .syncWaveform()
         if not .playing or not .voice do
             return
-        .elapsed = cast(f32) .voice.playbackPositionSeconds()
+        .elapsed = cast(f32, .voice.playbackPositionSeconds())
         if .elapsed >= .duration
         {
             .finishPlayback()
@@ -984,7 +984,7 @@ impl SoundViewer
 // loading completes.
 private func runSoundViewerOpen(thread: Thread)
 {
-    let view    = cast(*SoundViewer) thread.userParam!
+    let view    = cast(*SoundViewer, thread.userParam!)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
     var sound = catch SoundFile.load(view.openFileName.toString(), preloadData: false) as openError
@@ -1012,9 +1012,9 @@ func createSoundViewer(host: Viewer.Host)
 
         with var lifecycle: Viewer.LifecycleApi
         {
-            .retire    = func(wnd)->bool => (cast #assume (*SoundViewer) wnd).retire()
-            .isLoading = func(wnd)->bool => (cast #assume (*SoundViewer) wnd).isLoading()
-            .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*SoundViewer) wnd).needsLoadingOverlay()
+            .retire    = func|view|()->bool => view.retire()
+            .isLoading = func|view|()->bool => view.isLoading()
+            .needsLoadingOverlay = func|view|()->bool => view.needsLoadingOverlay()
         }
 
         host.setLifecycle(lifecycle)

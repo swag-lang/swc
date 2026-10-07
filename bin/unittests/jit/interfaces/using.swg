@@ -20,14 +20,14 @@ struct W
 func runDirectCast()->bool
 {
     var s: S
-    var i0 = cast(I) s
+    var i0 = cast(I, s)
     return i0.foo() == 1
 }
 
 func runUsingCast()->bool
 {
     var w: W
-    var i1 = cast(I) w
+    var i1 = cast(I, w)
     return i1.foo() == 1
 }
 

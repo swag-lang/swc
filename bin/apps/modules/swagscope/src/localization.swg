@@ -80,5 +80,5 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
 
 #run
 {
-    expect Gui.validateStrings'AppStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'AppStrings(cast(string, FrenchStrings))
 }

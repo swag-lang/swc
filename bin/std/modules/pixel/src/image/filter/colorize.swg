@@ -21,7 +21,7 @@ public impl Image
             var context = {h: h, s: s, strength: st}
             .transformLogicalPixels(&context)
             {
-                let params    = (cast(const *#decltype(context)) userData!)[]
+                let params    = cast(const *#decltype(context), userData!)[]
                 let lightness = (Math.min(value.r, value.g, value.b) + Math.max(value.r, value.g, value.b)) * 0.5
                 let colorized = hslPixelValue(params.h, params.s, lightness)
                 value.r = Math.lerp(value.r, colorized.r, params.strength)
@@ -40,9 +40,9 @@ public impl Image
             for i in 256
             {
                 let c = Color.fromHsl(h, s, i / 255.0)
-                convArr[i, 0] = cast(f32) c.b
-                convArr[i, 1] = cast(f32) c.g
-                convArr[i, 2] = cast(f32) c.r
+                convArr[i, 0] = cast(f32, c.b)
+                convArr[i, 1] = cast(f32, c.g)
+                convArr[i, 2] = cast(f32, c.r)
             }
         }
         elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
@@ -50,24 +50,24 @@ public impl Image
             for i in 256
             {
                 let c = Color.fromHsl(h, s, i / 255.0)
-                convArr[i, 0] = cast(f32) c.r
-                convArr[i, 1] = cast(f32) c.g
-                convArr[i, 2] = cast(f32) c.b
+                convArr[i, 0] = cast(f32, c.r)
+                convArr[i, 1] = cast(f32, c.g)
+                convArr[i, 2] = cast(f32, c.b)
             }
         }
 
-        var f = {precalc: cast([*] f32) &convArr[0, 0], st: st}
+        var f = {precalc: cast([*] f32, &convArr[0, 0]), st: st}
         .visitPixels(&f)
         {
-            let params = cast(*#decltype(f)) userData!
+            let params = cast(*#decltype(f), userData!)
             let min    = Math.min(pix[0], pix[1], pix[2])
             let max    = Math.max(pix[0], pix[1], pix[2])
-            let lum    = cast(u8) ((cast(s32) max + cast(s32) min) / 2)
+            let lum    = cast(u8, ((cast(s32, max) + cast(s32, min)) / 2))
 
-            let precalc = params.precalc + (cast(s32) lum * 3)
-            pix[0] = cast(u8) Math.lerp(cast(f32) pix[0], precalc[0], params.st)
-            pix[1] = cast(u8) Math.lerp(cast(f32) pix[1], precalc[1], params.st)
-            pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], precalc[2], params.st)
+            let precalc = params.precalc + (cast(s32, lum) * 3)
+            pix[0] = cast(u8, Math.lerp(cast(f32, pix[0]), precalc[0], params.st))
+            pix[1] = cast(u8, Math.lerp(cast(f32, pix[1]), precalc[1], params.st))
+            pix[2] = cast(u8, Math.lerp(cast(f32, pix[2]), precalc[2], params.st))
         }
     }
 }

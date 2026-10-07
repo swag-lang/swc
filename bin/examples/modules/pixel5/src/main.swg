@@ -82,12 +82,12 @@ func cloneImage(image: Image)->Image => Image.create(image.width, image.height, 
 func normalizeShowcaseImage(image: Image)->Image
 {
     var result  = cloneImage(image)
-    let maxSide = cast(f32) Math.max(result.width, result.height)
+    let maxSide = cast(f32, Math.max(result.width, result.height))
     if maxSide > 760.0
     {
         let scale     = 760.0 / maxSide
-        let newWidth  = Math.max(cast(s32) Math.round(cast(f32) result.width * scale), 1)
-        let newHeight = Math.max(cast(s32) Math.round(cast(f32) result.height * scale), 1)
+        let newWidth  = Math.max(cast(s32, Math.round(cast(f32, result.width) * scale)), 1)
+        let newHeight = Math.max(cast(s32, Math.round(cast(f32, result.height) * scale)), 1)
         result.resize(newWidth, newHeight, .Quadratic)
     }
 
@@ -162,15 +162,15 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 {
     let surfaceWidth  = Math.max(width, 1)
     let surfaceHeight = Math.max(height, 1)
-    let scaleX        = cast(f32) surfaceWidth / cast(f32) W
-    let scaleY        = cast(f32) surfaceHeight / cast(f32) H
+    let scaleX        = cast(f32, surfaceWidth) / cast(f32, W)
+    let scaleY        = cast(f32, surfaceHeight) / cast(f32, H)
 
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
-        .rect.x = Math.round((cast(f32) surfaceWidth - .rect.width) * 0.5)
-        .rect.y = Math.round((cast(f32) surfaceHeight - .rect.height) * 0.5)
+        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
+        .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
 
     return result
@@ -181,8 +181,8 @@ func getCardRect(index: s32)->Math.Rectangle
     let gap         = 18.0
     let top         = 112.0
     let bottomInset = 42.0
-    let cardWidth   = (W - 56.0 - (GalleryCols - 1) * gap) / cast(f32) GalleryCols
-    let cardHeight  = (H - top - bottomInset - (GalleryRows - 1) * gap) / cast(f32) GalleryRows
+    let cardWidth   = (W - 56.0 - (GalleryCols - 1) * gap) / cast(f32, GalleryCols)
+    let cardHeight  = (H - top - bottomInset - (GalleryRows - 1) * gap) / cast(f32, GalleryRows)
     let col         = index % GalleryCols
     let row         = index / GalleryCols
 
@@ -209,8 +209,8 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: Textur
         return
 
     let srcRect      = card.options.sourceRect
-    let sourceWidth  = srcRect.isEmpty() ? cast(f32) card.texture.width : srcRect.width
-    let sourceHeight = srcRect.isEmpty() ? cast(f32) card.texture.height : srcRect.height
+    let sourceWidth  = srcRect.isEmpty() ? cast(f32, card.texture.width) : srcRect.width
+    let sourceHeight = srcRect.isEmpty() ? cast(f32, card.texture.height) : srcRect.height
     var textureRect  = fitTextureRect(rect, sourceWidth, sourceHeight, card.options.angle)
     let centerX      = textureRect.horzCenter()
     let centerY      = textureRect.vertCenter()
@@ -284,7 +284,7 @@ func display()
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
     let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32) Math.round(g_RC.width / scale), cast(s32) Math.round(g_RC.height / scale))
+    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)), cast(s32, Math.round(g_RC.height / scale)))
 
     g_Render.begin(g_RC)
     g_Painter.begin()
@@ -351,7 +351,7 @@ func updateTestMode()
 
     var loop: Env.WindowLoop
     if Env.isSmokeRun() do
-        loop.smokeFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
+        loop.smokeFrames = cast(u32, MaxPages) * cast(u32, TestFramesPerPage)
     while loop.next()
     {
         updateShortcuts()

@@ -24,7 +24,7 @@ func day4A()
     {
         let s = Tokenize.split(l[], " ")
         let set: HashSet'(string) = s[to]
-        total += cast(s32) (set.count == s.count)
+        total += cast(s32, (set.count == s.count))
     }
 
     Swag.assert(total == 455)

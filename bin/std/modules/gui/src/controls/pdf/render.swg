@@ -332,7 +332,7 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
 // Draws one text item, preferring the embedded program and falling back to a matching face.
 private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *FontCache, page: const *Page, item: const *Item, base: Transform2, fallbackFontFile: string) fail
 {
-    let fontSize = cast(u32) Math.max(1, Math.round(item.fontSize))
+    let fontSize = cast(u32, Math.max(1, Math.round(item.fontSize)))
     let resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
 
     if resource
@@ -651,11 +651,11 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     let scaledWidth  = Math.ceil(region.width * options.scale)
     let scaledHeight = Math.ceil(region.height * options.scale)
-    if not Math.isFinite(scaledWidth) or not Math.isFinite(scaledHeight) or scaledWidth > cast(f32) options.maxDimension or scaledHeight > cast(f32) options.maxDimension do
+    if not Math.isFinite(scaledWidth) or not Math.isFinite(scaledHeight) or scaledWidth > cast(f32, options.maxDimension) or scaledHeight > cast(f32, options.maxDimension) do
         fail Errors.UnsupportedFormatError{"rendered PDF page exceeds the configured dimension limit"}
-    let width  = cast(s32) Math.max(1, scaledWidth)
-    let height = cast(s32) Math.max(1, scaledHeight)
-    if cast(u64) width * cast(u64) height > options.maxPixels do
+    let width  = cast(s32, Math.max(1, scaledWidth))
+    let height = cast(s32, Math.max(1, scaledHeight))
+    if cast(u64, width) * cast(u64, height) > options.maxPixels do
         fail Errors.UnsupportedFormatError{"rendered PDF page exceeds the configured pixel limit"}
 
     var cpu:      RenderCpu

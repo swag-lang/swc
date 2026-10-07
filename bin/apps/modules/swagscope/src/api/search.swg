@@ -31,7 +31,7 @@ struct SearchMatch
 }
 
 // Reveals one exact match without loading the preceding file content.
-alias RevealSearchMatch = func(*Wnd, SearchMatch, string)->bool
+alias RevealSearchMatch = func||(SearchMatch, string)->bool
 
 // Returns the rendered bounds of one revealed match in surface coordinates.
 //
@@ -39,10 +39,10 @@ alias RevealSearchMatch = func(*Wnd, SearchMatch, string)->bool
 // marker around what it is given, so a band that is not the one being framed leaves two
 // rectangles of different sizes over one word. Report the wording rather than the line, the row
 // or the cell that carries it, so the marker is the size of what was found in every viewer.
-alias SearchMatchBounds = func(*Wnd, SearchMatch, *Math.Rectangle)->bool
+alias SearchMatchBounds = func||(SearchMatch, *Math.Rectangle)->bool
 
 // Removes presentation left by the last revealed match.
-alias ClearSearch = func(*Wnd)
+alias ClearSearch = func||()
 
 // Collects every logical-text match owned by a viewer, and reports whether the collection is
 // complete.
@@ -52,10 +52,10 @@ alias ClearSearch = func(*Wnd)
 // in `progress`, and answers false; the host then calls again, with the same query, options,
 // progress and array, until the viewer answers true. A viewer that has everything at hand
 // appends every match and answers true at once.
-alias CollectSearchMatches = func(*Wnd, string, SearchOptions, *u64, *Array'SearchMatch)->bool
+alias CollectSearchMatches = func||(string, SearchOptions, *u64, *Array'SearchMatch)->bool
 
 // Applies the shared query as a live visibility filter owned by the viewer.
-alias ApplySearchFilter = func(*Wnd, string, SearchOptions)
+alias ApplySearchFilter = func||(string, SearchOptions)
 
 // Describes viewer-specific wording and option visibility for the shared search field.
 struct SearchPresentation
@@ -72,7 +72,7 @@ struct SearchPresentation
 }
 
 // Describes the active viewer's search syntax in the application's current language.
-alias DescribeSearch = func(*Wnd, *SearchPresentation)
+alias DescribeSearch = func||(*SearchPresentation)
 
 // Describes a streamed-file search prepared by a viewer.
 struct SearchPlan
@@ -85,18 +85,19 @@ struct SearchPlan
 }
 
 // Parses a viewer-specific query before the host opens and scans the file.
-alias PrepareSearch = func(*Wnd, string, *SearchPlan)->EditBoxCheckResult
+alias PrepareSearch = func||(string, *SearchPlan)->EditBoxCheckResult
 
 // Collects candidates inside one host-owned streamed source window.
-alias CollectFileMatches = func(*Wnd, string, u64, *Array'SearchMatch)
+alias CollectFileMatches = func||(string, u64, *Array'SearchMatch)
 
 // Lets a viewer borrow the host-owned result index while the current query remains active.
-alias UseSearchMatches = func(*Wnd, *Array'SearchMatch?)
+alias UseSearchMatches = func||(*Array'SearchMatch?)
 
 // Configures the optional search behavior of one attached document view.
 //
-// A null `collectMatches` asks the host to scan file bytes. The view and every callback remain
-// owned by the plugin; the host calls them only while the attached view is alive.
+// A null `collectMatches` asks the host to scan file bytes. Callbacks capture the concrete
+// viewer pointer by value. The host copies the callbacks and invokes them only while the
+// attached view is alive; the captured pointers borrow that view.
 struct SearchApi
 {
     public
@@ -159,7 +160,7 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
             // for a viewer to outline or select.
             if not value.count do
                 continue
-            let found = cast(u64) cast(s64) (value.buffer - sourceData)
+            let found = cast(u64, cast(s64, (value.buffer - sourceData)))
             if not options.wholeWord or isWholeWordMatch(source, found, value.count) do
                 result.add({major, minor, baseOffset + found, value.count})
         }

@@ -88,7 +88,7 @@ func day6B1()
         {
             lineVal = 0
             for c in l.bytes() do
-                lineVal |= 1 << cast(u32) (c - 'a')
+                lineVal |= 1 << cast(u32, (c - 'a'))
             interVal &= lineVal
         }
 

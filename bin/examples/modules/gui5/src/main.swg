@@ -118,7 +118,7 @@ func pageSubtitle(page: s32)->string
 func colorSummary()->String
 {
     let hsl = g_Color.toHsl()
-    return Format.toString("#%{X08}  A:% R:% G:% B:%  H:% S:% L:%", g_Color.argb, g_Color.a, g_Color.r, g_Color.g, g_Color.b, cast(s32) (hsl.h * 360), cast(s32) (hsl.s * 100), cast(s32) (hsl.l * 100))
+    return Format.toString("#%{X08}  A:% R:% G:% B:%  H:% S:% L:%", g_Color.argb, g_Color.a, g_Color.r, g_Color.g, g_Color.b, cast(s32, (hsl.h * 360)), cast(s32, (hsl.s * 100)), cast(s32, (hsl.l * 100)))
 }
 
 func updateHeader()
@@ -304,13 +304,13 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 // short, wide bottom panels where a tall card would overlap or clip.
 func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'(string), cols: Array'Color)
 {
-    let n   = Math.max(cast(f32) cols.count, 1.0)
+    let n   = Math.max(cast(f32, cols.count), 1.0)
     let pad = 16.0
     let sw  = Math.max((rect.width - pad * (n + 1)) / n, 40.0)
     let sh  = Math.max(rect.height - 34, 24.0)
     for c, i in cols
     {
-        let x = rect.x + pad + cast(f32) i * (sw + pad)
+        let x = rect.x + pad + cast(f32, i) * (sw + pad)
         drawSwatch(painter, {x, rect.y + 6, sw, sh}, names[i], c, font, colors)
     }
 }
@@ -398,8 +398,8 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
             let cellH = Math.max((rect.height - pad * 3 - 48) / 2, 50.0)
             for c, i in cols
             {
-                let col = cast(f32) (i % 3)
-                let row = cast(f32) (i / 3)
+                let col = cast(f32, (i % 3))
+                let row = cast(f32, (i / 3))
                 let x   = rect.x + pad + col * (cellW + pad)
                 let y   = rect.y + pad + row * (cellH + 24 + pad)
                 drawSwatch(painter, {x, y, cellW, cellH}, names[i], c, font, colors)
@@ -433,7 +433,7 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
         // Fit the body text to whatever height the card actually has.
         let bodyTop = 50.0
-        let lines   = cast(u32) Math.max((left.height - bodyTop) / 18.0, 1.0)
+        let lines   = cast(u32, Math.max((left.height - bodyTop) / 18.0, 1.0))
 
         painter.fillRoundRect(left, 18, 18, g_Color)
         painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
@@ -637,7 +637,7 @@ func createRootView()
 
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
-        app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
+        app.maxRunFrame = cast(u32, MaxPages) * cast(u32, TestFramesPerPage) + 10
 
     surface.show()
     applyTheme()

@@ -98,8 +98,8 @@ impl Decoder
         var offset = 0'u32
         while offset < total
         {
-            let sampleY   = y + cast(s32) offset
-            let available = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma - 1, yLuma + cast(s32) offset * scale, pps.constrainedIntraPred)
+            let sampleY   = y + cast(s32, offset)
+            let available = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma - 1, yLuma + cast(s32, offset) * scale, pps.constrainedIntraPred)
             for inner in step
             {
                 let index = offset + inner
@@ -107,7 +107,7 @@ impl Decoder
                     break
                 reference.available[size * 2 - 1 - index] = available
                 if available do
-                    reference.setLeft(index, .reconstructedSample(component, x - 1, sampleY + cast(s32) inner))
+                    reference.setLeft(index, .reconstructedSample(component, x - 1, sampleY + cast(s32, inner)))
             }
 
             offset += step
@@ -117,8 +117,8 @@ impl Decoder
         offset = 0
         while offset < total
         {
-            let sampleX   = x + cast(s32) offset
-            let available = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma + cast(s32) offset * scale, yLuma - 1, pps.constrainedIntraPred)
+            let sampleX   = x + cast(s32, offset)
+            let available = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma + cast(s32, offset) * scale, yLuma - 1, pps.constrainedIntraPred)
             for inner in step
             {
                 let index = offset + inner
@@ -126,7 +126,7 @@ impl Decoder
                     break
                 reference.available[size * 2 + 1 + index] = available
                 if available do
-                    reference.setTop(index, .reconstructedSample(component, sampleX + cast(s32) inner, y - 1))
+                    reference.setTop(index, .reconstructedSample(component, sampleX + cast(s32, inner), y - 1))
             }
 
             offset += step
@@ -164,7 +164,7 @@ impl Decoder
         {
             // Nothing around the block was decoded: the whole reference is the midpoint of the
             // sample range.
-            let midpoint = cast(u16) (1'u32 << (bitDepth - 1))
+            let midpoint = cast(u16, (1'u32 << (bitDepth - 1)))
             for index in count do
                 reference.samples[index] = midpoint
             return
@@ -188,8 +188,8 @@ impl Decoder
         if component != 0 or size == 4 or mode == IntraDc or sps.intraSmoothingDisabled do
             return
 
-        let distance = Math.min(Math.abs(cast(s32) mode - 26), Math.abs(cast(s32) mode - 10))
-        if distance <= cast(s32) IntraSmoothingThreshold[log2Size - 2] do
+        let distance = Math.min(Math.abs(cast(s32, mode) - 26), Math.abs(cast(s32, mode) - 10))
+        if distance <= cast(s32, IntraSmoothingThreshold[log2Size - 2]) do
             return
 
         let total = size * 2
@@ -199,17 +199,17 @@ impl Decoder
         if sps.strongIntraSmoothing and size == 32
         {
             let limit    = 1's32 << (bitDepth - 5)
-            let corner   = cast(s32) reference.corner()
-            let flatTop  = Math.abs(corner + cast(s32) reference.top(total - 1) - 2 * cast(s32) reference.top(size - 1)) < limit
-            let flatLeft = Math.abs(corner + cast(s32) reference.left(total - 1) - 2 * cast(s32) reference.left(size - 1)) < limit
+            let corner   = cast(s32, reference.corner())
+            let flatTop  = Math.abs(corner + cast(s32, reference.top(total - 1)) - 2 * cast(s32, reference.top(size - 1))) < limit
+            let flatLeft = Math.abs(corner + cast(s32, reference.left(total - 1)) - 2 * cast(s32, reference.left(size - 1))) < limit
             if flatTop and flatLeft
             {
-                let lastTop  = cast(s32) reference.top(63)
-                let lastLeft = cast(s32) reference.left(63)
+                let lastTop  = cast(s32, reference.top(63))
+                let lastLeft = cast(s32, reference.left(63))
                 for index in 63'u32
                 {
-                    reference.setLeft(index, cast(u16) ((cast(s32) (63 - index) * corner + cast(s32) (index + 1) * lastLeft + 32) >> 6))
-                    reference.setTop(index, cast(u16) ((cast(s32) (63 - index) * corner + cast(s32) (index + 1) * lastTop + 32) >> 6))
+                    reference.setLeft(index, cast(u16, ((cast(s32, (63 - index)) * corner + cast(s32, (index + 1)) * lastLeft + 32) >> 6)))
+                    reference.setTop(index, cast(u16, ((cast(s32, (63 - index)) * corner + cast(s32, (index + 1)) * lastTop + 32) >> 6)))
                 }
 
                 return
@@ -217,33 +217,33 @@ impl Decoder
         }
 
         var filtered: [129] u16
-        filtered[size * 2] = cast(u16) ((cast(u32) reference.left(0) + 2 * cast(u32) reference.corner() + cast(u32) reference.top(0) + 2) >> 2)
+        filtered[size * 2] = cast(u16, ((cast(u32, reference.left(0)) + 2 * cast(u32, reference.corner()) + cast(u32, reference.top(0)) + 2) >> 2))
         for index in total - 1
         {
             let previousLeft = index == 0 ? reference.corner() : reference.left(index - 1)
             let previousTop  = index == 0 ? reference.corner() : reference.top(index - 1)
-            filtered[size * 2 - 1 - index] = cast(u16) ((cast(u32) reference.left(index + 1) + 2 * cast(u32) reference.left(index) + cast(u32) previousLeft + 2) >> 2)
-            filtered[size * 2 + 1 + index] = cast(u16) ((cast(u32) reference.top(index + 1) + 2 * cast(u32) reference.top(index) + cast(u32) previousTop + 2) >> 2)
+            filtered[size * 2 - 1 - index] = cast(u16, ((cast(u32, reference.left(index + 1)) + 2 * cast(u32, reference.left(index)) + cast(u32, previousLeft) + 2) >> 2))
+            filtered[size * 2 + 1 + index] = cast(u16, ((cast(u32, reference.top(index + 1)) + 2 * cast(u32, reference.top(index)) + cast(u32, previousTop) + 2) >> 2))
         }
 
         filtered[0] = reference.samples[0]
         filtered[reference.count - 1] = reference.samples[reference.count - 1]
-        Memory.copy(&reference.samples, &filtered, cast(u64) reference.count * #sizeof(u16))
+        Memory.copy(&reference.samples, &filtered, cast(u64, reference.count) * #sizeof(u16))
     }
 
     // Predicts a planar block, clause 8.4.4.2.4.
     private mtd predictPlanar(reference: const *IntraReference, size, log2Size: u32)
     {
         let shift      = log2Size + 1
-        let rightTop   = cast(u32) reference.top(size)
-        let bottomLeft = cast(u32) reference.left(size)
+        let rightTop   = cast(u32, reference.top(size))
+        let bottomLeft = cast(u32, reference.left(size))
         for y in size
         {
-            let leftSample = cast(u32) reference.left(y)
+            let leftSample = cast(u32, reference.left(y))
             for x in size
             {
-                let value = (size - 1 - x) * leftSample + (x + 1) * rightTop + (size - 1 - y) * cast(u32) reference.top(x) + (y + 1) * bottomLeft + size
-                .predSamples[y * size + x] = cast(u16) (value >> shift)
+                let value = (size - 1 - x) * leftSample + (x + 1) * rightTop + (size - 1 - y) * cast(u32, reference.top(x)) + (y + 1) * bottomLeft + size
+                .predSamples[y * size + x] = cast(u16, (value >> shift))
             }
         }
     }
@@ -253,30 +253,30 @@ impl Decoder
     {
         var sum = size
         for index in size do
-            sum += cast(u32) reference.top(index) + cast(u32) reference.left(index)
+            sum += cast(u32, reference.top(index)) + cast(u32, reference.left(index))
         let dc = sum >> (log2Size + 1)
 
         for index in size * size do
-            .predSamples[index] = cast(u16) dc
+            .predSamples[index] = cast(u16, dc)
 
         // The edges of a small luma block are blended with their neighbours, which is what keeps
         // a flat prediction from showing its own boundary.
         if component != 0 or size >= 32 do
             return
 
-        .predSamples[0] = cast(u16) ((cast(u32) reference.left(0) + 2 * dc + cast(u32) reference.top(0) + 2) >> 2)
+        .predSamples[0] = cast(u16, ((cast(u32, reference.left(0)) + 2 * dc + cast(u32, reference.top(0)) + 2) >> 2))
         for x in 1 until size do
-            .predSamples[x] = cast(u16) ((cast(u32) reference.top(x) + 3 * dc + 2) >> 2)
+            .predSamples[x] = cast(u16, ((cast(u32, reference.top(x)) + 3 * dc + 2) >> 2))
         for y in 1 until size do
-            .predSamples[y * size] = cast(u16) ((cast(u32) reference.left(y) + 3 * dc + 2) >> 2)
+            .predSamples[y * size] = cast(u16, ((cast(u32, reference.left(y)) + 3 * dc + 2) >> 2))
     }
 
     // Predicts a directional block, clause 8.4.4.2.6.
     private mtd predictAngular(reference: const *IntraReference, size, component, mode, bitDepth: u32)
     {
-        let angle    = cast(s32) IntraPredAngle[mode]
+        let angle    = cast(s32, IntraPredAngle[mode])
         let vertical = mode >= 18
-        let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 
         // The main reference runs along the direction the prediction comes from, and is extended
         // backwards through the other edge when the angle is negative.
@@ -290,10 +290,10 @@ impl Decoder
 
         if angle < 0
         {
-            let limit = (cast(s32) size * angle) >> 5
+            let limit = (cast(s32, size) * angle) >> 5
             if limit < -1
             {
-                let inverse = cast(s32) IntraInvAngle[mode]
+                let inverse = cast(s32, IntraInvAngle[mode])
                 var index   = -1's32
                 while index >= limit
                 {
@@ -302,8 +302,8 @@ impl Decoder
                     if position < 0 do
                         value = reference.corner()
                     else do
-                        value = vertical ? reference.left(cast(u32) position) : reference.top(cast(u32) position)
-                    main[cast(u32) (cast(s32) origin + index)] = value
+                        value = vertical ? reference.left(cast(u32, position)) : reference.top(cast(u32, position))
+                    main[cast(u32, (cast(s32, origin) + index))] = value
                     index -= 1
                 }
             }
@@ -316,22 +316,22 @@ impl Decoder
 
         for outer in size
         {
-            let step  = cast(s32) (outer + 1) * angle
+            let step  = cast(s32, (outer + 1)) * angle
             let shift = step >> 5
             let blend = step & 31
             for inner in size
             {
-                let base = cast(u32) (cast(s32) origin + cast(s32) inner + shift + 1)
+                let base = cast(u32, (cast(s32, origin) + cast(s32, inner) + shift + 1))
                 var value: u32
                 if blend != 0 do
-                    value = (cast(u32) (32 - blend) * cast(u32) main[base] + cast(u32) blend * cast(u32) main[base + 1] + 16) >> 5
+                    value = (cast(u32, (32 - blend)) * cast(u32, main[base]) + cast(u32, blend) * cast(u32, main[base + 1]) + 16) >> 5
                 else do
-                    value = cast(u32) main[base]
+                    value = cast(u32, main[base])
 
                 if vertical do
-                    .predSamples[outer * size + inner] = cast(u16) value
+                    .predSamples[outer * size + inner] = cast(u16, value)
                 else do
-                    .predSamples[inner * size + outer] = cast(u16) value
+                    .predSamples[inner * size + outer] = cast(u16, value)
             }
         }
 
@@ -340,16 +340,16 @@ impl Decoder
         if component != 0 or size >= 32 do
             return
 
-        let corner = cast(s32) reference.corner()
+        let corner = cast(s32, reference.corner())
         if mode == IntraAngular26
         {
             for y in size do
-                .predSamples[y * size] = cast(u16) Math.clamp(cast(s32) reference.top(0) + ((cast(s32) reference.left(y) - corner) >> 1), 0, maximum)
+                .predSamples[y * size] = cast(u16, Math.clamp(cast(s32, reference.top(0)) + ((cast(s32, reference.left(y)) - corner) >> 1), 0, maximum))
         }
         elif mode == IntraAngular10
         {
             for x in size do
-                .predSamples[x] = cast(u16) Math.clamp(cast(s32) reference.left(0) + ((cast(s32) reference.top(x) - corner) >> 1), 0, maximum)
+                .predSamples[x] = cast(u16, Math.clamp(cast(s32, reference.left(0)) + ((cast(s32, reference.top(x)) - corner) >> 1), 0, maximum))
         }
     }
 }

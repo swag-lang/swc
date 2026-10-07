@@ -26,7 +26,7 @@ impl IWnd for ViewerDropHighlight
             return
 
         let corner = .themeRects().panel_Bk.radius
-        let wash   = colors.hilight.withAlpha(cast(u8) (cast(f32) colors.hilight.a * ViewerDropHighlightWash))
+        let wash   = colors.hilight.withAlpha(cast(u8, (cast(f32, colors.hilight.a) * ViewerDropHighlightWash)))
         painter.fillRoundRect(rect, corner, corner, wash)
 
         var pen = Pen.createSolid(colors.hilight, 2)

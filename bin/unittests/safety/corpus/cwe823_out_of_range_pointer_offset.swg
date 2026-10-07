@@ -51,7 +51,7 @@ using Corpus
 //
 // func forgePointer(address: u64)->s32
 // {
-//     let pointer = cast(*s32) address
+//     let pointer = cast(*s32, address)
 //     return pointer[]
 // }
 
@@ -62,7 +62,7 @@ using Corpus
 func walkInsideBuffer()->s32
 {
     var values = [10, 20, 30]
-    var cursor = cast([*] s32) &values[0]
+    var cursor = cast([*] s32, &values[0])
     cursor = cursor + 2
     return cursor[0]
 }

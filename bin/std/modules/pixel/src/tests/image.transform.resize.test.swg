@@ -7,8 +7,8 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
 {
     var intermediate   = Image.create(width, source.height, source.pixelFormat, alphaMode: source.alphaMode)
     var result: retval = Image.create(width, height, source.pixelFormat, alphaMode: source.alphaMode)
-    let horizontal     = ResizeTools.calcContributions(width, source.width, cast(f64) width / source.width, mode)
-    let vertical       = ResizeTools.calcContributions(height, source.height, cast(f64) height / source.height, mode)
+    let horizontal     = ResizeTools.calcContributions(width, source.width, cast(f64, width) / source.width, mode)
+    let vertical       = ResizeTools.calcContributions(height, source.height, cast(f64, height) / source.height, mode)
     let format         = source.pixelFormat
     let legacy         = format == .RGB8 or format == .RGBA8 or format == .BGR8 or format == .BGRA8
     for row in source.height
@@ -40,7 +40,7 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     let dimensions: [6] [2] s32          = [[31, 33], [32, 32], [33, 33], [1, 1031], [1031, 1], [97, 71]]
     var pattern = Image.create(67, 69, .RGBA8)
     for index in pattern.byteCount do
-        pattern.pixels[index] = cast(u8) ((index * 47 + index / 13 + 29) & 0xFF)
+        pattern.pixels[index] = cast(u8, ((index * 47 + index / 13 + 29) & 0xFF))
     for format in formats
     {
         let source    = pattern.convertedTo(format)
@@ -71,7 +71,7 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     Swag.startWorkers()
     var source = Image.create(63, 65, .RGBA8)
     for index in source.byteCount do
-        source.pixels[index] = cast(u8) ((index * 31 + 7) & 0xFF)
+        source.pixels[index] = cast(u8, ((index * 31 + 7) & 0xFF))
     let expected  = serialFilteredResize(&source, 97, 71, .Bicubic)
     let reference = &expected
     parallel for |&source, reference| iteration in 7

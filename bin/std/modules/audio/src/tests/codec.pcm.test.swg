@@ -7,20 +7,20 @@ private func audioPcmReferenceSample(encoding: SoundFileEncoding, source: const 
     switch encoding
     {
     case .Pcm8:
-        return cast(s16) ((cast(s32) source[0] - 128) << 8)
+        return cast(s16, ((cast(s32, source[0]) - 128) << 8))
 
     case .Pcm24:
-        var sample = cast(u32) source[0] | (cast(u32) source[1] << 8) | (cast(u32) source[2] << 16)
+        var sample = cast(u32, source[0]) | (cast(u32, source[1]) << 8) | (cast(u32, source[2]) << 16)
         if sample & 0x00800000 do
             sample |= 0xFF000000
-        return cast(s16) (cast #wrap (s32) sample >> 8)
+        return cast(s16, (cast #wrap (s32, sample) >> 8))
 
     case .Pcm32:
-        return cast(s16) ((cast(const [*] s32) source)[0] >> 16)
+        return cast(s16, (cast(const [*] s32, source)[0] >> 16))
 
     case .Float32:
-        let sample = (cast(const [*] f32) source)[0] * 32768.0
-        return cast(s16) Math.clamp(cast #wrap (s32) sample, -32768, 32767)
+        let sample = cast(const [*] f32, source)[0] * 32768.0
+        return cast(s16, Math.clamp(cast #wrap (s32, sample), -32768, 32767))
     }
 
     Swag.assert(false)
@@ -35,14 +35,14 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     var source: Array'u8
     source.resize((MaxSamples + 4) * sampleSize)
     for index in source.count do
-        source[index] = cast(u8) ((index * 73 + 19) & 255)
+        source[index] = cast(u8, ((index * 73 + 19) & 255))
 
     if encoding == .Float32
     {
-        let values = cast([*] f32) source.storage()
+        let values = cast([*] f32, source.storage())
         for index in MaxSamples + 4
         {
-            values[index] = cast(f32) (cast(s64) (index % 23) - 11) / 7.0
+            values[index] = cast(f32, (cast(s64, (index % 23)) - 11)) / 7.0
         }
     }
 
@@ -70,7 +70,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
             for index in expectedCount
             {
                 let expected = audioPcmReferenceSample(encoding, source.storage() + index * sampleSize)
-                Swag.assert((cast([*] s16) destination.storage())[index] == expected)
+                Swag.assert(cast([*] s16, destination.storage())[index] == expected)
             }
 
             for index in expectedCount * #sizeof(s16) until destination.count do
@@ -142,7 +142,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
 #test
 {
     var src: [12] f32 = [-1.0, 0.0, 0.5, 1.0, 2.0, -2.0, 0.25, -0.25, 0.9999, -0.9999, 0.0001, -0.0001]
-    let decoded       = expect audioDecodePcmToPcm16(.Float32, cast([..] u8) src, src.count * #sizeof(s16))
+    let decoded       = expect audioDecodePcmToPcm16(.Float32, cast([..] u8, src), src.count * #sizeof(s16))
     Swag.assert(decoded.progress.bytesWritten == src.count * #sizeof(s16))
     Swag.assert(decoded.progress.bytesRead == src.count * #sizeof(f32))
     audioAssertSamples(decoded.destination.toSlice(), [-32768's16, 0's16, 16384's16, 32767's16, 32767's16, -32768's16, 8192's16, -8192's16, 32764's16, -32764's16, 3's16, -3's16])

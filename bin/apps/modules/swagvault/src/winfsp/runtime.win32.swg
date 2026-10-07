@@ -24,21 +24,21 @@ namespace WinFsp
         if not create or not destroy or not setMountPoint or not removeMountPoint or not startDispatcher or not stopDispatcher or not addDirInfo or not setGuard or not setSecurity or not deleteSecurity or not registerServer or not unregisterServer or not setDebugLogHandle or not startService do
             try failWith("The bundled WinFsp runtime does not expose the expected ABI.")
 
-        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn) create!
-        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn) destroy!
-        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn) setMountPoint!
-        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn) removeMountPoint!
-        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn) startDispatcher!
-        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn) stopDispatcher!
-        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn) addDirInfo!
-        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn) setGuard!
-        g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn) setSecurity!
+        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn, create!)
+        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn, destroy!)
+        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn, setMountPoint!)
+        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn, removeMountPoint!)
+        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn, startDispatcher!)
+        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn, stopDispatcher!)
+        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn, addDirInfo!)
+        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn, setGuard!)
+        g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn, setSecurity!)
         g_WinFsp.setSecurityAddress       = setSecurity
-        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn) deleteSecurity!
-        g_WinFsp.registerServer           = cast(WinFspRegistrationFn) registerServer!
-        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn) unregisterServer!
-        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn) setDebugLogHandle!
-        g_WinFsp.startService             = cast(FspFsctlStartServiceFn) startService!
+        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn, deleteSecurity!)
+        g_WinFsp.registerServer           = cast(WinFspRegistrationFn, registerServer!)
+        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn, unregisterServer!)
+        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn, setDebugLogHandle!)
+        g_WinFsp.startService             = cast(FspFsctlStartServiceFn, startService!)
     }
 
     func winFspLogPath()->String
@@ -99,7 +99,7 @@ namespace WinFsp
             return
 
         #static if #hastag("vault.integration") do
-            discard catch File.writeAllBytes(winFspStageLogPath(), Swag.makeSlice(cast(const [*] u8) ("load requested\n").buffer, ("load requested\n").count))
+            discard catch File.writeAllBytes(winFspStageLogPath(), Swag.makeSlice(cast(const [*] u8, ("load requested\n").buffer), ("load requested\n").count))
 
         if g_WinFsp.guardianManaged
         {

@@ -114,7 +114,7 @@ func day8B()
 
     var total = onEnd[0]
     for i in 1 until onEnd.count do
-        total = Math.lcm(cast(s64) total, cast(s64) onEnd[i])
+        total = Math.lcm(cast(s64, total), cast(s64, onEnd[i]))
 
     Swag.assert(total == 16187743689077)
 }

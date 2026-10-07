@@ -40,14 +40,14 @@ struct VaultAccess
 private func updateAccessWord(hash: *Core.Hash.Blake2b, value: u64)
 {
     var bytes: [8] u8
-    bytes[0] = cast(u8) value
-    bytes[1] = cast(u8) (value >> 8)
-    bytes[2] = cast(u8) (value >> 16)
-    bytes[3] = cast(u8) (value >> 24)
-    bytes[4] = cast(u8) (value >> 32)
-    bytes[5] = cast(u8) (value >> 40)
-    bytes[6] = cast(u8) (value >> 48)
-    bytes[7] = cast(u8) (value >> 56)
+    bytes[0] = cast(u8, value)
+    bytes[1] = cast(u8, (value >> 8))
+    bytes[2] = cast(u8, (value >> 16))
+    bytes[3] = cast(u8, (value >> 24))
+    bytes[4] = cast(u8, (value >> 32))
+    bytes[5] = cast(u8, (value >> 40))
+    bytes[6] = cast(u8, (value >> 48))
+    bytes[7] = cast(u8, (value >> 56))
     hash.update(bytes)
 }
 

@@ -162,7 +162,7 @@ func getFaceImpl(face: *Face?)->*FaceImpl fail
     if not face do
         try fault(0x23)
     let safeFace = face!
-    return cast(*FaceImpl) cast(*void) safeFace
+    return cast(*FaceImpl, cast(*void, safeFace))
 }
 
 func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail => try getFaceImpl(slot.face)

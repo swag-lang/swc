@@ -34,5 +34,5 @@ func registerPdfStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'PdfStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'PdfStrings(cast(string, FrenchStrings))
 }

@@ -138,15 +138,15 @@ enum IfElseKind: u16
     {
         if flag
         {
-            var a: s8  = cast(s8) -12
-            var b: s16 = cast(s16) (3 * 4)
-            return cast(s32) a + cast(s32) b
+            var a: s8  = cast(s8, -12)
+            var b: s16 = cast(s16, (3 * 4))
+            return cast(s32, a) + cast(s32, b)
         }
         else
         {
             var a: u8  = 7'u8
-            var b: u16 = cast(u16) (20 + 5)
-            return cast(s32) a + cast(s32) b
+            var b: u16 = cast(u16, (20 + 5))
+            return cast(s32, a) + cast(s32, b)
         }
     }
 
@@ -163,12 +163,12 @@ enum IfElseKind: u16
         if flag
         {
             var v: f32 = (1.25'f32 + 0.75'f32) * 10.0'f32
-            return cast(s32) v
+            return cast(s32, v)
         }
         else
         {
-            var v: f64 = cast(f64) (3 + 2) * 4.0'f64
-            return cast(s32) v
+            var v: f64 = cast(f64, (3 + 2)) * 4.0'f64
+            return cast(s32, v)
         }
     }
 
@@ -188,7 +188,7 @@ enum IfElseKind: u16
             var r: rune = 'A'
             if b
             {
-                return cast(s32) r
+                return cast(s32, r)
             }
             else
             {
@@ -201,7 +201,7 @@ enum IfElseKind: u16
             var r: rune = 'z'
             if b
             {
-                return cast(s32) r
+                return cast(s32, r)
             }
             else
             {
@@ -223,12 +223,12 @@ enum IfElseKind: u16
         if flag
         {
             var s: string = "Hi"
-            return cast(u32) s[0] + cast(u32) s[1]
+            return cast(u32, s[0]) + cast(u32, s[1])
         }
         else
         {
             var s = "Az"
-            return cast(u32) s[0] + cast(u32) s[1]
+            return cast(u32, s[0]) + cast(u32, s[1])
         }
     }
 
@@ -289,13 +289,13 @@ enum IfElseKind: u16
         if flag
         {
             var e: IfElseKind = IfElseKind.A
-            var v: s32        = cast(s32) cast(u16) e
+            var v: s32        = cast(s32, cast(u16, e))
             return v + 1
         }
         else
         {
             var e = IfElseKind.B
-            var v = cast(s32) cast(u16) e
+            var v = cast(s32, cast(u16, e))
             return v + 2
         }
     }
@@ -324,7 +324,7 @@ enum IfElseKind: u16
         }
         else
         {
-            var p: *void = cast(*void) 0x12'u64
+            var p: *void = cast(*void, 0x12'u64)
             if p != null
             {
                 return 2
@@ -618,7 +618,7 @@ enum IfElseKind: u16
         }
         else
         {
-            var v: *void = cast(*void) 0x34'u64
+            var v: *void = cast(*void, 0x34'u64)
             return v
         }
     }
@@ -718,15 +718,15 @@ enum IfElseKind: u16
     const A1 = #run matrixAlias(false)
     #assert(#typeof(A0) == IfElseAlias)
     #assert(#typeof(A1) == IfElseAlias)
-    #assert(cast(s32) A0 == 77)
-    #assert(cast(s32) A1 == 99)
+    #assert(cast(s32, A0) == 77)
+    #assert(cast(s32, A1) == 99)
 
     const E0 = #run matrixEnum(true)
     const E1 = #run matrixEnum(false)
     #assert(#typeof(E0) == IfElseKind)
     #assert(#typeof(E1) == IfElseKind)
-    #assert(cast(u16) E0 == 2'u16)
-    #assert(cast(u16) E1 == 5'u16)
+    #assert(cast(u16, E0) == 2'u16)
+    #assert(cast(u16, E1) == 5'u16)
 
     const P0 = #run matrixStruct(true)
     const P1 = #run matrixStruct(false)

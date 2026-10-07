@@ -18,7 +18,7 @@ using Core, Core.Errors
 // negative. Scoring the signed difference instead lets a noisy row cancel itself out and score
 // as well as a flat one, which is how a bad filter gets chosen.
 #[Swag.Inline]
-func residualScore(value: u8)->s32 => 128 - Math.abs(cast(s32) value - 128)
+func residualScore(value: u8)->s32 => 128 - Math.abs(cast(s32, value) - 128)
 
 // Folds the scores of sixteen filtered bytes into a running total.
 //
@@ -30,7 +30,7 @@ func residualScore(value: u8)->s32 => 128 - Math.abs(cast(s32) value - 128)
 func accumulateResidual(total: Math.Simd.S32x4, residual: Math.Simd.U8x16, ones: Math.Simd.S16x8)->Math.Simd.S32x4
 {
     let score  = Math.min(residual, Math.Simd.splat(0'u8) - residual)
-    let halves = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(score) + cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(score)
+    let halves = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(score)) + cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(score))
     return total + Math.Simd.mulAddPairs(halves, ones)
 }
 
@@ -56,7 +56,7 @@ func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64
 
     while offset < count
     {
-        destination[offset] = cast #bit(u8) (source[offset] - #wrap previous[offset])
+        destination[offset] = cast #bit(u8, (source[offset] - #wrap previous[offset]))
         offset += 1
     }
 }
@@ -89,7 +89,7 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
 
     while offset < count
     {
-        destination[offset] = cast #bit(u8) (source[offset] - #wrap source[offset - bytesPerPixel])
+        destination[offset] = cast #bit(u8, (source[offset] - #wrap source[offset - bytesPerPixel]))
         offset += 1
     }
 }
@@ -124,7 +124,7 @@ func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)-
     {
         var residual = source[offset]
         if up do
-            residual = cast #bit(u8) (residual - #wrap previous[offset])
+            residual = cast #bit(u8, (residual - #wrap previous[offset]))
         sum    += residualScore(residual)
         offset += 1
     }
@@ -158,8 +158,8 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
     var offset = 0'u64
     while offset < bytesPerPixel and offset < count
     {
-        let average = cast(u16) previous[offset] / 2
-        destination[offset] = cast #bit(u8) (source[offset] - #wrap average)
+        let average = cast(u16, previous[offset]) / 2
+        destination[offset] = cast #bit(u8, (source[offset] - #wrap average))
         offset += 1
     }
 
@@ -184,8 +184,8 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
 
     while offset < count
     {
-        let average = (cast(u16) source[offset - bytesPerPixel] + previous[offset]) / 2
-        destination[offset] = cast #bit(u8) (source[offset] - #wrap average)
+        let average = (cast(u16, source[offset - bytesPerPixel]) + previous[offset]) / 2
+        destination[offset] = cast #bit(u8, (source[offset] - #wrap average))
         offset += 1
     }
 }
@@ -197,8 +197,8 @@ func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)
     var sum    = 0's32
     for i in prefix
     {
-        let average = cast(u8) (cast(u16) previous[i] / 2)
-        sum += residualScore(cast #bit(u8) (source[i] - #wrap average))
+        let average = cast(u8, (cast(u16, previous[i]) / 2))
+        sum += residualScore(cast #bit(u8, (source[i] - #wrap average)))
     }
 
     var total  = Math.Simd.splat(0's32)
@@ -213,8 +213,8 @@ func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)
     sum += Math.Simd.sum(total)
     while offset < count
     {
-        let average = cast(u8) ((cast(u16) source[offset - bytesPerPixel] + previous[offset]) / 2)
-        sum    += residualScore(cast #bit(u8) (source[offset] - #wrap average))
+        let average = cast(u8, ((cast(u16, source[offset - bytesPerPixel]) + previous[offset]) / 2))
+        sum    += residualScore(cast #bit(u8, (source[offset] - #wrap average)))
         offset += 1
     }
 
@@ -223,10 +223,10 @@ func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)
 
 func paethScalar(a, b, c: s32)->s32
 {
-    let p  = cast(s16) (a + b - c)
-    let pa = Math.abs(cast(s16) (p - a))
-    let pb = Math.abs(cast(s16) (p - b))
-    let pc = Math.abs(cast(s16) (p - c))
+    let p  = cast(s16, (a + b - c))
+    let pa = Math.abs(cast(s16, (p - a)))
+    let pb = Math.abs(cast(s16, (p - b)))
+    let pc = Math.abs(cast(s16, (p - c)))
 
     if pa <= pb and pa <= pc do
         return a
@@ -253,12 +253,12 @@ func paethPacked(a, b, c: Math.Simd.S16x8)->Math.Simd.S16x8
 #[Swag.Inline]
 func paethPredictorBytes(left, up, upLeft: Math.Simd.U8x16)->Math.Simd.U8x16
 {
-    let lowPredictor = paethPacked(cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(left),
-                                   cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(up),
-                                   cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(upLeft))
-    let highPredictor = paethPacked(cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(left),
-                                    cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(up),
-                                    cast #bit(Math.Simd.S16x8) Math.Simd.widenHigh(upLeft))
+    let lowPredictor = paethPacked(cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(left)),
+                                   cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(up)),
+                                   cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(upLeft)))
+    let highPredictor = paethPacked(cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(left)),
+                                    cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(up)),
+                                    cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(upLeft)))
     return Math.Simd.packUnsigned(lowPredictor, highPredictor)
 }
 
@@ -267,7 +267,7 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
     var offset = 0'u64
     while offset < bytesPerPixel and offset < count
     {
-        destination[offset] = cast #bit(u8) (source[offset] - #wrap previous[offset])
+        destination[offset] = cast #bit(u8, (source[offset] - #wrap previous[offset]))
         offset += 1
     }
 
@@ -281,7 +281,7 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
     while offset < count
     {
         let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])
-        destination[offset] = cast #bit(u8) (source[offset] - #wrap predictor)
+        destination[offset] = cast #bit(u8, (source[offset] - #wrap predictor))
         offset += 1
     }
 }
@@ -292,7 +292,7 @@ func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->
     let prefix = Math.min(count, bytesPerPixel)
     var sum    = 0's32
     for i in prefix do
-        sum += residualScore(cast #bit(u8) (source[i] - #wrap previous[i]))
+        sum += residualScore(cast #bit(u8, (source[i] - #wrap previous[i])))
 
     var total  = Math.Simd.splat(0's32)
     var offset = prefix
@@ -307,7 +307,7 @@ func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->
     while offset < count
     {
         let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])
-        sum    += residualScore(cast #bit(u8) (source[offset] - #wrap cast(u8) predictor))
+        sum    += residualScore(cast #bit(u8, (source[offset] - #wrap cast(u8, predictor))))
         offset += 1
     }
 
@@ -321,13 +321,13 @@ impl Encoder
         if .encodeFlags.filterChoice == .Disabled do
             return .None
 
-        let chl = cast(s32) .encodeFlags.filterChoice
+        let chl = cast(s32, .encodeFlags.filterChoice)
         if not (chl & (chl - 1))
         {
             for i in 5
             {
                 if chl == 1 << (i + 3) do
-                    return cast() i
+                    return cast(i)
             }
         }
 
@@ -339,7 +339,7 @@ impl Encoder
             if not (chl & flag) do
                 continue
 
-            let score = .filterSum(size, cast(Filter) i)
+            let score = .filterSum(size, cast(Filter, i))
             if score < bestScore
             {
                 bestScore  = score
@@ -347,7 +347,7 @@ impl Encoder
             }
         }
 
-        return cast() bestFilter
+        return cast(bestFilter)
     }
 
     mtd filterSum(size: u32, filter: Filter)->s32

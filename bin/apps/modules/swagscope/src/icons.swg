@@ -42,7 +42,7 @@ func viewerIcons()->*IconAtlas
 {
     if not g_ViewerIconsParsed
     {
-        expect g_ViewerIcons.setup(cast(string) IconsSvg)
+        expect g_ViewerIcons.setup(cast(string, IconsSvg))
         g_ViewerIconsParsed = true
     }
 

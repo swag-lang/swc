@@ -28,7 +28,7 @@ impl Generator
         #static if #defined(T.seedU32) do
             return .rng.seedU32(seed)
         else do
-            return .rng.seedU64(cast(u64) seed)
+            return .rng.seedU64(cast(u64, seed))
     }
 
     // Seeds the generator with a 64-bit value.
@@ -39,7 +39,7 @@ impl Generator
         #static if #defined(T.seedU64) do
             return .rng.seedU64(seed)
         else do
-            return .rng.seedU32(cast #wrap (u32) seed)
+            return .rng.seedU32(cast #wrap (u32, seed))
     }
 
     // Returns the next 32-bit unsigned value.
@@ -52,7 +52,7 @@ impl Generator
         #static if #defined(T.nextU32) do
             return .rng.nextU32()
         else do
-            return cast #wrap (u32) .rng.nextU64()
+            return cast #wrap (u32, .rng.nextU64())
     }
 
     // Returns the next 64-bit unsigned value.
@@ -65,7 +65,7 @@ impl Generator
         #static if #defined(T.nextU64) do
             return .rng.nextU64()
         else do
-            return (cast(u64) .rng.nextU32() << 32) | .rng.nextU32()
+            return (cast(u64, .rng.nextU32()) << 32) | .rng.nextU32()
     }
 
     // Seeds the generator from the current clock and thread.
@@ -76,19 +76,19 @@ impl Generator
 
     // Returns the next 32-bit signed value.
     #[Swag.Inline]
-    mtd nextS32()->s32 => cast #bit (s32) .nextU32()
+    mtd nextS32()->s32 => cast #bit (s32, .nextU32())
 
     // Returns the next 64-bit signed value.
     #[Swag.Inline]
-    mtd nextS64()->s64 => cast #bit (s64) .nextU64()
+    mtd nextS64()->s64 => cast #bit (s64, .nextU64())
 
     // Returns a value in the half-open interval `[0, 1)`, with 24 bits of precision.
     #[Swag.Inline]
-    mtd nextF32()->f32 => cast(f32) (.nextU32() >> 8) * (1'f32 / 16777216'f32)
+    mtd nextF32()->f32 => cast(f32, (.nextU32() >> 8)) * (1'f32 / 16777216'f32)
 
     // Returns a value in the half-open interval `[0, 1)`, with 53 bits of precision.
     #[Swag.Inline]
-    mtd nextF64()->f64 => cast(f64) (.nextU64() >> 11) * (1'f64 / 9007199254740992'f64)
+    mtd nextF64()->f64 => cast(f64, (.nextU64() >> 11)) * (1'f64 / 9007199254740992'f64)
 
     // Returns a uniformly distributed value in the half-open interval `[min, max)`.
     //
@@ -127,15 +127,15 @@ impl Generator
     mtd nextS32(min, max: s32)->s32
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let minBits = cast #bit (u32) min
-        let maxBits = cast #bit (u32) max
-        let range   = cast #wrap (u32) (maxBits - minBits)
+        let minBits = cast #bit (u32, min)
+        let maxBits = cast #bit (u32, max)
+        let range   = cast #wrap (u32, (maxBits - minBits))
         let limit   = Swag.U32.Max - Swag.U32.Max % range
         var value   = .nextU32()
         while value >= limit do
             value = .nextU32()
         value %= range
-        return cast #bit (s32) cast #wrap (u32) (minBits + value)
+        return cast #bit (s32, cast #wrap (u32, (minBits + value)))
     }
 
     // Returns a uniformly distributed value in the half-open interval `[min, max)`.
@@ -145,15 +145,15 @@ impl Generator
     mtd nextS64(min, max: s64)->s64
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
-        let minBits = cast #bit (u64) min
-        let maxBits = cast #bit (u64) max
-        let range   = cast #wrap (u64) (maxBits - minBits)
+        let minBits = cast #bit (u64, min)
+        let maxBits = cast #bit (u64, max)
+        let range   = cast #wrap (u64, (maxBits - minBits))
         let limit   = Swag.U64.Max - Swag.U64.Max % range
         var value   = .nextU64()
         while value >= limit do
             value = .nextU64()
         value %= range
-        return cast #bit (s64) cast #wrap (u64) (minBits + value)
+        return cast #bit (s64, cast #wrap (u64, (minBits + value)))
     }
 
     // Returns a value in the half-open interval `[min, max)`.

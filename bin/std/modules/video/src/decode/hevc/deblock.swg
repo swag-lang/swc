@@ -14,11 +14,11 @@ using Core
 // consecutive samples of the same row: one load holds all four, and the whole segment filters
 // in lanes. The load reads eight, which the padding of every plane keeps inside the row.
 #[Swag.Inline]
-private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8 => cast #bit(Simd.S16x8) Simd.load(&line[offset])
+private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8 => cast #bit(Simd.S16x8, Simd.load(&line[offset]))
 
 // Writes back the four lines the quad above holds.
 #[Swag.Inline]
-private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8) { (cast([*] u64) &line[offset])[0] = (cast #bit(Simd.U64x2) value)[0] }
+private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8) { cast([*] u64, &line[offset])[0] = cast #bit(Simd.U64x2, value)[0] }
 
 // Holds `value` within `limit` of what the sample was, which is what the strong filter is
 // allowed to move it by, clause 8.7.2.5.7.
@@ -59,14 +59,14 @@ impl Decoder
     // Marks the leading edges of one block in the edge grid.
     mtd markEdges(x0, y0, width, height: s32, leftMask, topMask: u8)
     {
-        let blocksX = cast(u32) width >> MinBlockLog2
-        let blocksY = cast(u32) height >> MinBlockLog2
+        let blocksX = cast(u32, width) >> MinBlockLog2
+        let blocksY = cast(u32, height) >> MinBlockLog2
         let origin  = .blockIndex(x0, y0)
 
         for row in blocksY do
-            .edgeFlags[origin + cast(u64) row * cast(u64) .gridWidth] |= leftMask
+            .edgeFlags[origin + cast(u64, row) * cast(u64, .gridWidth)] |= leftMask
         for column in blocksX do
-            .edgeFlags[origin + cast(u64) column] |= topMask
+            .edgeFlags[origin + cast(u64, column)] |= topMask
     }
 
     // Filters the block edges of the whole picture, clause 8.7.2.
@@ -91,9 +91,9 @@ impl Decoder
         if laneCount > 1
         {
             var context = DeblockContext{me, vertical, stepX, stepY, bandCount, laneCount}
-            parallel for |&context| parIndex in cast(u64) laneCount
+            parallel for |&context| parIndex in cast(u64, laneCount)
             {
-                let index = cast(u32) parIndex
+                let index = cast(u32, parIndex)
                 let width = context.decoder.activeSps!.width
                 var band  = index
                 while band < context.bandCount
@@ -102,7 +102,7 @@ impl Decoder
                     var x = 0'u32
                     while x < width
                     {
-                        context.decoder.filterBlockEdge(cast(s32) x, cast(s32) y, context.vertical)
+                        context.decoder.filterBlockEdge(cast(s32, x), cast(s32, y), context.vertical)
                         x += context.stepX
                     }
 
@@ -119,7 +119,7 @@ impl Decoder
             var x = 0'u32
             while x < sps.width
             {
-                .filterBlockEdge(cast(s32) x, cast(s32) y, vertical)
+                .filterBlockEdge(cast(s32, x), cast(s32, y), vertical)
                 x += stepX
             }
 
@@ -151,9 +151,9 @@ impl Decoder
         if not strength do
             return
 
-        let qpP   = cast(s32) .qpY[.blockIndex(xP, yP)]
-        let qpQ   = cast(s32) .qpY[index]
-        let slice = &.sliceParams[cast(u64) .ctbSliceIndex[.ctbAddressRs(x, y)]]
+        let qpP   = cast(s32, .qpY[.blockIndex(xP, yP)])
+        let qpQ   = cast(s32, .qpY[index])
+        let slice = &.sliceParams[cast(u64, .ctbSliceIndex[.ctbAddressRs(x, y)])]
         .filterLumaEdge(x, y, vertical, strength, qpP, qpQ, slice)
 
         // A chroma edge sits every sixteen luma samples, and is only filtered where an intra
@@ -186,7 +186,7 @@ impl Decoder
         if not pps.loopFilterAcrossTiles and .tileId[currentCtb] != .tileId[neighbourCtb] do
             return false
 
-        let slice = &.sliceParams[cast(u64) .ctbSliceIndex[.ctbAddressRs(x, y)]]
+        let slice = &.sliceParams[cast(u64, .ctbSliceIndex[.ctbAddressRs(x, y)])]
         if not slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)] do
             return false
         discard sps
@@ -217,15 +217,15 @@ impl Decoder
         var leftCount, rightCount = 0'u32
         for list in ListCount
         {
-            if (cast(u32) left.predFlags & (1'u32 << list)) != 0
+            if (cast(u32, left.predFlags) & (1'u32 << list)) != 0
             {
-                leftPoc[leftCount] = .refList.poc[list, cast(u32) left.refIdx[list]]
+                leftPoc[leftCount] = .refList.poc[list, cast(u32, left.refIdx[list])]
                 leftCount += 1
             }
 
-            if (cast(u32) right.predFlags & (1'u32 << list)) != 0
+            if (cast(u32, right.predFlags) & (1'u32 << list)) != 0
             {
-                rightPoc[rightCount] = .refList.poc[list, cast(u32) right.refIdx[list]]
+                rightPoc[rightCount] = .refList.poc[list, cast(u32, right.refIdx[list])]
                 rightCount += 1
             }
         }
@@ -267,8 +267,8 @@ impl Decoder
     // Reports whether two motion vectors differ by a whole sample or more.
     private mtd const motionFar(left: const *PuMotion, leftList: u32, right: const *PuMotion, rightList: u32)->bool
     {
-        let dx = Math.abs(cast(s32) left.mv[leftList, 0] - cast(s32) right.mv[rightList, 0])
-        let dy = Math.abs(cast(s32) left.mv[leftList, 1] - cast(s32) right.mv[rightList, 1])
+        let dx = Math.abs(cast(s32, left.mv[leftList, 0]) - cast(s32, right.mv[rightList, 0]))
+        let dy = Math.abs(cast(s32, left.mv[leftList, 1]) - cast(s32, right.mv[rightList, 1]))
         return dx >= 4 or dy >= 4
     }
 
@@ -285,18 +285,18 @@ impl Decoder
         let sps      = .activeSps!
         let frame    = .current!
         let bitDepth = sps.bitDepthLuma
-        let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 
         let average = (qpP + qpQ + 1) >> 1
-        let betaQ   = Math.clamp(average + (cast(s32) slice.betaOffsetDiv2 << 1), 0, 51)
-        let beta    = cast(s32) DeblockBeta[betaQ] * (1 << (bitDepth - 8))
-        let tcQ     = Math.clamp(average + 2 * (cast(s32) strength - 1) + (cast(s32) slice.tcOffsetDiv2 << 1), 0, 53)
-        let tc      = cast(s32) DeblockTc[tcQ] * (1 << (bitDepth - 8))
+        let betaQ   = Math.clamp(average + (cast(s32, slice.betaOffsetDiv2) << 1), 0, 51)
+        let beta    = cast(s32, DeblockBeta[betaQ]) * (1 << (bitDepth - 8))
+        let tcQ     = Math.clamp(average + 2 * (cast(s32, strength) - 1) + (cast(s32, slice.tcOffsetDiv2) << 1), 0, 53)
+        let tc      = cast(s32, DeblockTc[tcQ]) * (1 << (bitDepth - 8))
         if not beta do
             return
 
-        let stride    = cast(s64) frame.strideLuma
-        let origin    = frame.luma.storage() + cast(u64) (y + cast(s32) FramePadding) * frame.strideLuma + cast(u64) (x + cast(s32) FramePadding)
+        let stride    = cast(s64, frame.strideLuma)
+        let origin    = frame.luma.storage() + cast(u64, (y + cast(s32, FramePadding))) * frame.strideLuma + cast(u64, (x + cast(s32, FramePadding)))
         let lineStep  = vertical ? stride : 1's64
         let crossStep = vertical ? 1's64 : stride
 
@@ -304,23 +304,23 @@ impl Decoder
         let a = origin
         let d = origin + 3 * lineStep
 
-        let p0a = cast(s32) a[-crossStep]
-        let p1a = cast(s32) a[-2 * crossStep]
-        let p2a = cast(s32) a[-3 * crossStep]
-        let p3a = cast(s32) a[-4 * crossStep]
-        let q0a = cast(s32) a[0]
-        let q1a = cast(s32) a[crossStep]
-        let q2a = cast(s32) a[2 * crossStep]
-        let q3a = cast(s32) a[3 * crossStep]
+        let p0a = cast(s32, a[-crossStep])
+        let p1a = cast(s32, a[-2 * crossStep])
+        let p2a = cast(s32, a[-3 * crossStep])
+        let p3a = cast(s32, a[-4 * crossStep])
+        let q0a = cast(s32, a[0])
+        let q1a = cast(s32, a[crossStep])
+        let q2a = cast(s32, a[2 * crossStep])
+        let q3a = cast(s32, a[3 * crossStep])
 
-        let p0d = cast(s32) d[-crossStep]
-        let p1d = cast(s32) d[-2 * crossStep]
-        let p2d = cast(s32) d[-3 * crossStep]
-        let p3d = cast(s32) d[-4 * crossStep]
-        let q0d = cast(s32) d[0]
-        let q1d = cast(s32) d[crossStep]
-        let q2d = cast(s32) d[2 * crossStep]
-        let q3d = cast(s32) d[3 * crossStep]
+        let p0d = cast(s32, d[-crossStep])
+        let p1d = cast(s32, d[-2 * crossStep])
+        let p2d = cast(s32, d[-3 * crossStep])
+        let p3d = cast(s32, d[-4 * crossStep])
+        let q0d = cast(s32, d[0])
+        let q1d = cast(s32, d[crossStep])
+        let q2d = cast(s32, d[2 * crossStep])
+        let q3d = cast(s32, d[3 * crossStep])
 
         let dp0  = Math.abs(p2a - 2 * p1a + p0a)
         let dp3  = Math.abs(p2d - 2 * p1d + p0d)
@@ -349,24 +349,24 @@ impl Decoder
         var line = origin
         for index in 4'u32
         {
-            let p0 = cast(s32) line[-crossStep]
-            let p1 = cast(s32) line[-2 * crossStep]
-            let p2 = cast(s32) line[-3 * crossStep]
-            let q0 = cast(s32) line[0]
-            let q1 = cast(s32) line[crossStep]
-            let q2 = cast(s32) line[2 * crossStep]
+            let p0 = cast(s32, line[-crossStep])
+            let p1 = cast(s32, line[-2 * crossStep])
+            let p2 = cast(s32, line[-3 * crossStep])
+            let q0 = cast(s32, line[0])
+            let q1 = cast(s32, line[crossStep])
+            let q2 = cast(s32, line[2 * crossStep])
 
             if strong
             {
-                let p3    = cast(s32) line[-4 * crossStep]
-                let q3    = cast(s32) line[3 * crossStep]
+                let p3    = cast(s32, line[-4 * crossStep])
+                let q3    = cast(s32, line[3 * crossStep])
                 let limit = 2 * tc
-                line[-crossStep]     = cast(u16) Math.clamp((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit)
-                line[-2 * crossStep] = cast(u16) Math.clamp((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit)
-                line[-3 * crossStep] = cast(u16) Math.clamp((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit)
-                line[0]              = cast(u16) Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit)
-                line[crossStep]      = cast(u16) Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit)
-                line[2 * crossStep]  = cast(u16) Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit)
+                line[-crossStep]     = cast(u16, Math.clamp((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit))
+                line[-2 * crossStep] = cast(u16, Math.clamp((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit))
+                line[-3 * crossStep] = cast(u16, Math.clamp((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit))
+                line[0]              = cast(u16, Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit))
+                line[crossStep]      = cast(u16, Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit))
+                line[2 * crossStep]  = cast(u16, Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit))
                 line                 += lineStep
                 continue
             }
@@ -379,21 +379,21 @@ impl Decoder
             }
 
             delta   = Math.clamp(delta, -tc, tc)
-            line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
-            line[0] = cast(u16) Math.clamp(q0 - delta, 0, maximum)
+            line[-crossStep] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
+            line[0] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
 
             if filterP
             {
                 let half  = tc >> 1
                 let value = Math.clamp((((p2 + p0 + 1) >> 1) - p1 + delta) >> 1, -half, half)
-                line[-2 * crossStep] = cast(u16) Math.clamp(p1 + value, 0, maximum)
+                line[-2 * crossStep] = cast(u16, Math.clamp(p1 + value, 0, maximum))
             }
 
             if filterQ
             {
                 let half  = tc >> 1
                 let value = Math.clamp((((q2 + q0 + 1) >> 1) - q1 - delta) >> 1, -half, half)
-                line[crossStep] = cast(u16) Math.clamp(q1 + value, 0, maximum)
+                line[crossStep] = cast(u16, Math.clamp(q1 + value, 0, maximum))
             }
 
             line += lineStep
@@ -418,7 +418,7 @@ impl Decoder
         {
             let p3    = lineQuad(line, -4 * crossStep)
             let q3    = lineQuad(line, 3 * crossStep)
-            let limit = Simd.splat(cast(s16) (2 * tc))
+            let limit = Simd.splat(cast(s16, (2 * tc)))
             let fours = Simd.splat(4's16)
             let twos  = Simd.splat(2's16)
 
@@ -432,19 +432,19 @@ impl Decoder
         }
 
         let zeros  = Simd.splat(0's16)
-        let maxima = Simd.splat(cast(s16) maximum)
-        let bound  = Simd.splat(cast(s16) tc)
+        let maxima = Simd.splat(cast(s16, maximum))
+        let bound  = Simd.splat(cast(s16, tc))
         var delta  = (Simd.splat(9's16) * (q0 - p0) - Simd.splat(3's16) * (q1 - p1) + Simd.splat(8's16)) >> 4
 
         // A line the filter would move too far is left alone, and that is the one decision the
         // clause makes per line rather than per segment.
-        let active = Math.abs(delta) < Simd.splat(cast(s16) (tc * 10))
+        let active = Math.abs(delta) < Simd.splat(cast(s16, (tc * 10)))
         delta = Math.max(Math.min(delta, bound), zeros - bound)
 
         storeQuad(line, -crossStep, Simd.select(active, Math.max(Math.min(p0 + delta, maxima), zeros), p0))
         storeQuad(line, 0, Simd.select(active, Math.max(Math.min(q0 - delta, maxima), zeros), q0))
 
-        let half = Simd.splat(cast(s16) (tc >> 1))
+        let half = Simd.splat(cast(s16, (tc >> 1)))
         if filterP
         {
             let move = Math.max(Math.min((((p2 + p0 + Simd.splat(1's16)) >> 1) - p1 + delta) >> 1, half), zeros - half)
@@ -478,7 +478,7 @@ impl Decoder
         let pps      = .activePps!
         let frame    = .current!
         let bitDepth = sps.bitDepthChroma
-        let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
+        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 
         let offset  = component == 1 ? pps.cbQpOffset : pps.crQpOffset
         let average = ((qpP + qpQ + 1) >> 1) + offset
@@ -487,7 +487,7 @@ impl Decoder
         if sps.chromaArrayType == 1
         {
             if average >= 30 and average <= 43 do
-                chromaQp = cast(s32) ChromaQpMapping[average - 30]
+                chromaQp = cast(s32, ChromaQpMapping[average - 30])
             elif average > 43 do
                 chromaQp = average - 6
         }
@@ -496,17 +496,17 @@ impl Decoder
             chromaQp = Math.min(average, 51)
         }
 
-        let tcQ = Math.clamp(chromaQp + 2 + (cast(s32) slice.tcOffsetDiv2 << 1), 0, 53)
-        let tc  = cast(s32) DeblockTc[tcQ] * (1 << (bitDepth - 8))
+        let tcQ = Math.clamp(chromaQp + 2 + (cast(s32, slice.tcOffsetDiv2) << 1), 0, 53)
+        let tc  = cast(s32, DeblockTc[tcQ]) * (1 << (bitDepth - 8))
         if not tc do
             return
 
         let plane  = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
-        let stride = cast(s64) frame.strideChroma
-        let cx     = x / cast(s32) sps.subWidthC
-        let cy     = y / cast(s32) sps.subHeightC
+        let stride = cast(s64, frame.strideChroma)
+        let cx     = x / cast(s32, sps.subWidthC)
+        let cy     = y / cast(s32, sps.subHeightC)
 
-        let origin    = plane + cast(u64) (cy + cast(s32) FramePadding) * frame.strideChroma + cast(u64) (cx + cast(s32) FramePadding)
+        let origin    = plane + cast(u64, (cy + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (cx + cast(s32, FramePadding)))
         let lineStep  = vertical ? stride : 1's64
         let crossStep = vertical ? 1's64 : stride
 
@@ -514,14 +514,14 @@ impl Decoder
         var line = origin
         for index in 2'u32
         {
-            let p0 = cast(s32) line[-crossStep]
-            let p1 = cast(s32) line[-2 * crossStep]
-            let q0 = cast(s32) line[0]
-            let q1 = cast(s32) line[crossStep]
+            let p0 = cast(s32, line[-crossStep])
+            let p1 = cast(s32, line[-2 * crossStep])
+            let q0 = cast(s32, line[0])
+            let q1 = cast(s32, line[crossStep])
 
             let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
-            line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
-            line[0] = cast(u16) Math.clamp(q0 - delta, 0, maximum)
+            line[-crossStep] = cast(u16, Math.clamp(p0 + delta, 0, maximum))
+            line[0] = cast(u16, Math.clamp(q0 - delta, 0, maximum))
             line    += lineStep
         }
     }

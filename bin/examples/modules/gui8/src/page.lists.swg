@@ -28,7 +28,7 @@ func createListsPage(parent: *Wnd)
     {
         if line == null do
             return
-        line.setItem(0, Format.toString("virtual result %     cache line %", idx, idx % 64), sampleIcon(cast(s32) idx))
+        line.setItem(0, Format.toString("virtual result %     cache line %", idx, idx % 64), sampleIcon(cast(s32, idx)))
     }
 
     virtualList.setVirtualCount(1_000_000)

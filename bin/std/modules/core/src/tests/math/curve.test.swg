@@ -69,19 +69,19 @@ func capturedCubicPoint(start, end, ctrl1, ctrl2: Math.Vector2, t: f32)->Math.Ve
 
 #test
 {
-    let start = Math.Vector2{cast #bit (f32) 0x42480000'u32, cast #bit (f32) 0x42A8004F'u32}
-    let end   = Math.Vector2{cast #bit (f32) 0x427001A4'u32, cast #bit (f32) 0x4293FF80'u32}
-    let ctrl1 = Math.Vector2{cast #bit (f32) 0x42480000'u32, cast #bit (f32) 0x429CF428'u32}
-    let ctrl2 = Math.Vector2{cast #bit (f32) 0x4259E952'u32, cast #bit (f32) 0x4293FF80'u32}
+    let start = Math.Vector2{cast #bit (f32, 0x42480000'u32), cast #bit (f32, 0x42A8004F'u32)}
+    let end   = Math.Vector2{cast #bit (f32, 0x427001A4'u32), cast #bit (f32, 0x4293FF80'u32)}
+    let ctrl1 = Math.Vector2{cast #bit (f32, 0x42480000'u32), cast #bit (f32, 0x429CF428'u32)}
+    let ctrl2 = Math.Vector2{cast #bit (f32, 0x4259E952'u32), cast #bit (f32, 0x4293FF80'u32)}
 
     // The third and eighth of nine samples, with each product and sum rounded to f32.
-    let third = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32) 0x3EAAAAAB'u32)
-    Swag.assert(cast #bit (u32) third.x == 0x424D7647)
-    Swag.assert(cast #bit (u32) third.y == 0x429DE7BC)
+    let third = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32, 0x3EAAAAAB'u32))
+    Swag.assert(cast #bit (u32, third.x) == 0x424D7647)
+    Swag.assert(cast #bit (u32, third.y) == 0x429DE7BC)
 
-    let eighth = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32) 0x3F638E39'u32)
-    Swag.assert(cast #bit (u32) eighth.x == 0x4268D0B0)
-    Swag.assert(cast #bit (u32) eighth.y == 0x42945200)
+    let eighth = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32, 0x3F638E39'u32))
+    Swag.assert(cast #bit (u32, eighth.x) == 0x4268D0B0)
+    Swag.assert(cast #bit (u32, eighth.y) == 0x42945200)
 }
 
 // The closed form of every classic curve, kept here as the reference the preset table is checked
@@ -169,7 +169,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
         let tolerance = presetTolerance(preset)
         for step in Samples + 1
         {
-            let p = cast(f32) step / cast(f32) Samples
+            let p = cast(f32, step) / cast(f32, Samples)
             Swag.assert(Math.isEqualEpsilon(named.evaluate(p), referencePreset(preset, p), tolerance))
         }
     }
@@ -200,7 +200,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     var bounce = Math.CurvePreset.EaseOutBounce
     for step in 101
     {
-        let value = bounce.evaluate(cast(f32) step / 100)
+        let value = bounce.evaluate(cast(f32, step) / 100)
         Swag.assert(value >= 0 and value <= 1.0001)
     }
 }
@@ -324,7 +324,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
 
     for step in 65
     {
-        let x = cast(f32) step / 64
+        let x = cast(f32, step) / 64
         Swag.assert(Math.isEqualEpsilon(bezier.evaluateNormalized(x), hermite.evaluateNormalized(x), 0.0005))
     }
 
@@ -341,7 +341,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     let straight = Math.Curve.createBezier(1 / 3.0, 1 / 3.0, 2 / 3.0, 2 / 3.0)
     for step in 33
     {
-        let x = cast(f32) step / 32
+        let x = cast(f32, step) / 32
         Swag.assert(Math.isEqualEpsilon(straight.evaluateNormalized(x), x, 0.001))
     }
 
@@ -354,7 +354,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     var previous = 0'f32
     for step in 65
     {
-        let value = ease.evaluateNormalized(cast(f32) step / 64)
+        let value = ease.evaluateNormalized(cast(f32, step) / 64)
         Swag.assert(value >= previous - 0.0001)
         previous = value
     }
@@ -418,7 +418,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
 
     for step in 33
     {
-        let x = -1 + cast(f32) step / 8
+        let x = -1 + cast(f32, step) / 8
         Swag.assert(Math.isEqualEpsilon(decoded.evaluate(x), curve.evaluate(x), 0.0001))
     }
 }

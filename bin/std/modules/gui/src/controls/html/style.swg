@@ -958,7 +958,7 @@ impl HtmlComputedStyle
             default:
                 let number = htmlParseNumber(text)
                 if number.eat == text.count and number.value >= 1 and number.value <= 1000 do
-                    .fontWeight = cast(u32) number.value
+                    .fontWeight = cast(u32, number.value)
             }
         }
 
@@ -1047,7 +1047,7 @@ impl HtmlComputedStyle
     private mtd gridTemplate(value: string, context: *HtmlDeclarationContext)
     {
         let parts = htmlSplitValue(value)
-        .gridColumnFirst = cast(u32) context.pool.calc.count
+        .gridColumnFirst = cast(u32, context.pool.calc.count)
         .gridColumnCount = 0
         if parts.isEmpty() do
             return
@@ -1066,7 +1066,7 @@ impl HtmlComputedStyle
                 if count.eat == countText.count and count.value >= 1
                 {
                     // A count large enough to hit this bound is hostile input, not a layout.
-                    let times = cast(u32) Math.min(count.value, 1024)
+                    let times = cast(u32, Math.min(count.value, 1024))
                     let inner = htmlSplitValue(call.arguments[1].toString())
                     for times
                     {
@@ -1220,7 +1220,7 @@ impl HtmlComputedStyle
             default:
                 let number = htmlParseNumber(value)
                 if number.eat do
-                    .fontWeight = cast(u32) Math.clamp(number.value, 1, 1000)
+                    .fontWeight = cast(u32, Math.clamp(number.value, 1, 1000))
             }
 
         case .FontStyle:
@@ -1621,12 +1621,12 @@ impl HtmlComputedStyle
         case .ZIndex:
             let number = htmlParseNumber(value)
             if number.eat do
-                .zIndex = cast(s32) number.value
+                .zIndex = cast(s32, number.value)
 
         case .Order:
             let number = htmlParseNumber(value)
             if number.eat do
-                .order = cast(s32) number.value
+                .order = cast(s32, number.value)
 
         case .Overflow:
             .applyDeclaration(.OverflowX, value, context)
@@ -1751,12 +1751,12 @@ impl HtmlComputedStyle
         case .GridColumn, .GridColumnStart:
             let number = htmlParseNumber(value)
             if number.eat do
-                .gridColumn = cast(s32) number.value
+                .gridColumn = cast(s32, number.value)
 
         case .GridRow, .GridRowStart:
             let number = htmlParseNumber(value)
             if number.eat do
-                .gridRow = cast(s32) number.value
+                .gridRow = cast(s32, number.value)
 
         case .Content:
             var text = Latin1.trim(value)

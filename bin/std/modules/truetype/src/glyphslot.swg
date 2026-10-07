@@ -84,8 +84,8 @@ public impl GlyphSlot
             return
 
         let points = .outline.points!
-        for index in cast(u32) .outline.pointCount do
-            points[index].x += cast(s32) Math.round(points[index].y * 0.21256)
+        for index in cast(u32, .outline.pointCount) do
+            points[index].x += cast(s32, Math.round(points[index].y * 0.21256))
 
         updateSlotMetrics(me)
     }
@@ -146,8 +146,8 @@ func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX
     result.maxX = Swag.S32.Min
     result.maxY = Swag.S32.Min
 
-    let points = cast(const [*] Vector) outline.points!
-    for index in cast(u32) outline.pointCount
+    let points = cast(const [*] Vector, outline.points!)
+    for index in cast(u32, outline.pointCount)
     {
         let pt = points[index]
         result.minX = Math.min(result.minX, pt.x)

@@ -49,10 +49,10 @@ private func buildScanOrders()
         {
             while y >= 0
             {
-                if x < cast(s32) size and y < cast(s32) size
+                if x < cast(s32, size) and y < cast(s32, size)
                 {
-                    ScanX[log2Size, ScanDiagonal, position] = cast(u8) x
-                    ScanY[log2Size, ScanDiagonal, position] = cast(u8) y
+                    ScanX[log2Size, ScanDiagonal, position] = cast(u8, x)
+                    ScanY[log2Size, ScanDiagonal, position] = cast(u8, y)
                     position += 1
                 }
 
@@ -70,8 +70,8 @@ private func buildScanOrders()
         {
             for column in size
             {
-                ScanX[log2Size, ScanHorizontal, position] = cast(u8) column
-                ScanY[log2Size, ScanHorizontal, position] = cast(u8) row
+                ScanX[log2Size, ScanHorizontal, position] = cast(u8, column)
+                ScanY[log2Size, ScanHorizontal, position] = cast(u8, row)
                 position += 1
             }
         }
@@ -82,8 +82,8 @@ private func buildScanOrders()
         {
             for row in size
             {
-                ScanX[log2Size, ScanVertical, position] = cast(u8) column
-                ScanY[log2Size, ScanVertical, position] = cast(u8) row
+                ScanX[log2Size, ScanVertical, position] = cast(u8, column)
+                ScanY[log2Size, ScanVertical, position] = cast(u8, row)
                 position += 1
             }
         }
@@ -96,25 +96,25 @@ private func buildScanOrders()
         {
             for position in size * size
             {
-                let x = cast(u32) ScanX[log2Size, order, position]
-                let y = cast(u32) ScanY[log2Size, order, position]
-                ScanIndex[log2Size, order, y * size + x] = cast(u8) position
+                let x = cast(u32, ScanX[log2Size, order, position])
+                let y = cast(u32, ScanY[log2Size, order, position])
+                ScanIndex[log2Size, order, y * size + x] = cast(u8, position)
             }
         }
     }
 
     for position in 16'u32
     {
-        let x = cast(u32) ScanX[2, ScanDiagonal, position]
-        let y = cast(u32) ScanY[2, ScanDiagonal, position]
-        DiagScan4x4Index[y * 4 + x] = cast(u8) position
+        let x = cast(u32, ScanX[2, ScanDiagonal, position])
+        let y = cast(u32, ScanY[2, ScanDiagonal, position])
+        DiagScan4x4Index[y * 4 + x] = cast(u8, position)
     }
 
     for position in 64'u32
     {
-        let x = cast(u32) ScanX[3, ScanDiagonal, position]
-        let y = cast(u32) ScanY[3, ScanDiagonal, position]
-        DiagScan8x8Index[y * 8 + x] = cast(u8) position
+        let x = cast(u32, ScanX[3, ScanDiagonal, position])
+        let y = cast(u32, ScanY[3, ScanDiagonal, position])
+        DiagScan8x8Index[y * 8 + x] = cast(u8, position)
     }
 }
 

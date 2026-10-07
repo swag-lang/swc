@@ -49,9 +49,9 @@ func __testPanicHandler(message: string?, loc: Swag.SourceCodeLocation)
 // Records a hardware exception delivered by the host for the active test thread.
 func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64, accessAddress: u64)
 {
-    Swag.print("\n#test stops on hardware exception ", cast(s64) code, "\n")
+    Swag.print("\n#test stops on hardware exception ", cast(s64, code), "\n")
     Swag.print("#test faulting instruction address ", instructionAddress, "\n")
-    let symbol = __symbolize(cast(*void) instructionAddress)
+    let symbol = __symbolize(cast(*void, instructionAddress))
     if symbol.hasLine do
         Swag.print("#test faulting symbol ", symbol.name, " (", symbol.file, ":", symbol.line, ")\n")
     elif symbol.found do
@@ -137,13 +137,13 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     if not __isTestRun() do
         return
 
-    let testName = Swag.makeString(name, (cast(const cstring) name).count)
-    let testPath = Swag.makeString(path, (cast(const cstring) path).count)
-    let testTag  = Swag.makeString(tag, (cast(const cstring) tag).count)
+    let testName = Swag.makeString(name, cast(const cstring, name).count)
+    let testPath = Swag.makeString(path, cast(const cstring, path).count)
+    let testTag  = Swag.makeString(tag, cast(const cstring, tag).count)
     if not __isTestFileSelected(testPath) or not __isTestTagSelected(testTag) do
         return
 
-    Swag.print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
+    Swag.print("[swag.test] event=start executed=", cast(s64, g_TestsExecuted), " failed=", cast(s64, g_TestsFailedCnt), " name=", testName, "\n")
 
     g_TestsExecuted += 1
     g_TestFailed    = false
@@ -157,7 +157,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     discard schedulerInstance()
     let previousPanic  = cxt.panic
     let previousFilter = __hostTestInstallHardwareFilter()
-    cxt.panic = cast() &__testPanicHandler
+    cxt.panic = cast(&__testPanicHandler)
 
     g_TestRunning = true
     __hostTestCall(fn)
@@ -170,7 +170,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     if g_TestFailed do
         g_TestsFailedCnt += 1
 
-    Swag.print("[swag.test] event=", g_TestFailed ? "fail" : "pass", " executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
+    Swag.print("[swag.test] event=", g_TestFailed ? "fail" : "pass", " executed=", cast(s64, g_TestsExecuted), " failed=", cast(s64, g_TestsFailedCnt), " name=", testName, "\n")
 }
 
 func __testsDone()
@@ -179,7 +179,7 @@ func __testsDone()
         return
 
     // Marker parsed by the compiler's test command to report the native tally.
-    Swag.print("[swag.test] executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, "\n")
+    Swag.print("[swag.test] executed=", cast(s64, g_TestsExecuted), " failed=", cast(s64, g_TestsFailedCnt), "\n")
     if g_TestsFailedCnt do
         __exitError()
 }

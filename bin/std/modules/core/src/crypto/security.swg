@@ -44,7 +44,7 @@ func randomBytes(buffer: [..] u8) fail
     var done = 0'u64
     while done < buffer.count
     {
-        let chunk = cast(u32) Math.min(buffer.count - done, cast(u64) Swag.U32.Max)
+        let chunk = cast(u32, Math.min(buffer.count - done, cast(u64, Swag.U32.Max)))
         if not randomFillNative(buffer.buffer + done, chunk) do
             fail Swag.SystemError{"the operating system cryptographic random-number generator failed"}
         done += chunk

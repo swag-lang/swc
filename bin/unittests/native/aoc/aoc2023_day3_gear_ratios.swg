@@ -91,7 +91,7 @@ struct Grid
 impl Grid
 {
     mtd const at(r, c: u32)->u8         => .cells[r * MaxDim + c]
-    mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
+    mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32, r) < .height and cast(u32, c) < .width
 }
 
 func parseGrid(bytes: const [..] u8)->Grid
@@ -218,15 +218,15 @@ impl IAdjacencyChecker for DirectChecker
 
 func checkAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool
 {
-    let r = cast(s32) entry.row
+    let r = cast(s32, entry.row)
 
-    for c in cast(s32) entry.col0 to cast(s32) entry.col1
+    for c in cast(s32, entry.col0) to cast(s32, entry.col1)
     {
         for index in 8
         {
             let nr = r + DirDR[index]
             let nc = c + DirDC[index]
-            if grid.inBounds(nr, nc) and isSymbol(grid.at(cast(u32) nr, cast(u32) nc)) do
+            if grid.inBounds(nr, nc) and isSymbol(grid.at(cast(u32, nr), cast(u32, nc))) do
                 return true
         }
     }
@@ -259,18 +259,18 @@ func(T) maxOf(a, b: T)->T
 #[Swag.Macro]
 func forEachNeighborCell(grid: Grid, entry: NumberEntry, stmt: #code(nr: u32, nc: u32))
 {
-    let rStart = maxOf's32(0, cast(s32) entry.row - 1)
-    let rEnd   = minOf's32(cast(s32) grid.height - 1, cast(s32) entry.row + 1)
-    let cStart = maxOf's32(0, cast(s32) entry.col0 - 1)
-    let cEnd   = minOf's32(cast(s32) grid.width - 1, cast(s32) entry.col1 + 1)
+    let rStart = maxOf's32(0, cast(s32, entry.row) - 1)
+    let rEnd   = minOf's32(cast(s32, grid.height) - 1, cast(s32, entry.row) + 1)
+    let cStart = maxOf's32(0, cast(s32, entry.col0) - 1)
+    let cEnd   = minOf's32(cast(s32, grid.width) - 1, cast(s32, entry.col1) + 1)
 
     for r in rStart to rEnd
     {
         for c in cStart to cEnd
         {
-            if cast(u32) r == entry.row and cast(u32) c >= entry.col0 and cast(u32) c <= entry.col1 do
+            if cast(u32, r) == entry.row and cast(u32, c) >= entry.col0 and cast(u32, c) <= entry.col1 do
                 continue
-            #inject(stmt, nr = cast(u32) r, nc = cast(u32) c)
+            #inject(stmt, nr = cast(u32, r), nc = cast(u32, c))
         }
     }
 }
@@ -307,7 +307,7 @@ func extractNumbers(grid: Grid)->NumberList
                 let col0 = col
                 while col < grid.width and isDigit(grid.at(row, col))
                 {
-                    value = value * 10 + cast(u32) (grid.at(row, col) - '0'u8)
+                    value = value * 10 + cast(u32, (grid.at(row, col) - '0'u8))
                     col   += 1
                 }
 
@@ -339,7 +339,7 @@ func solveClean(grid: Grid)->EngineResult
         let entry = numbers.entries[i]
         if checkAdjacentSymbol(grid, entry)
         {
-            result.partNumberSum += cast(u64) entry.value
+            result.partNumberSum += cast(u64, entry.value)
             result.partCount     += 1
         }
     }
@@ -361,7 +361,7 @@ func solveClean(grid: Grid)->EngineResult
                 if isAdjacentToCell(entry, row, col)
                 {
                     adjCount += 1
-                    prod     *= cast(u64) entry.value
+                    prod     *= cast(u64, entry.value)
                 }
             }
 
@@ -378,14 +378,14 @@ func solveClean(grid: Grid)->EngineResult
 
 func isAdjacentToCell(entry: NumberEntry, row, col: u32)->bool
 {
-    let dr = cast(s32) entry.row - cast(s32) row
+    let dr = cast(s32, entry.row) - cast(s32, row)
     if dr < -1 or dr > 1 do
         return false
 
-    let cStart = cast(s32) entry.col0 - 1
-    let cEnd   = cast(s32) entry.col1 + 1
+    let cStart = cast(s32, entry.col0) - 1
+    let cEnd   = cast(s32, entry.col1) + 1
 
-    return cast(s32) col >= cStart and cast(s32) col <= cEnd
+    return cast(s32, col) >= cStart and cast(s32, col) <= cEnd
 }
 
 // ---------------------------------------------------------------------------
@@ -398,14 +398,14 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     numbers = extractNumbers(grid)
 
     var checker: DirectChecker
-    let iChecker = cast(IAdjacencyChecker) checker
+    let iChecker = cast(IAdjacencyChecker, checker)
 
     // Part 1 via interface dispatch
     for entry, idx in numbers.entries[0 until numbers.count]
     {
         if iChecker.hasAdjacentSymbol(grid, entry)
         {
-            result.partNumberSum += cast(u64) entry.value
+            result.partNumberSum += cast(u64, entry.value)
             result.partCount     += 1
         }
     }
@@ -452,7 +452,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     {
         if gear.adjCount == 2
         {
-            result.gearRatioSum += cast(u64) gear.firstVal * cast(u64) gear.secondVal
+            result.gearRatioSum += cast(u64, gear.firstVal) * cast(u64, gear.secondVal)
             result.gearCount    += 1
         }
     }
@@ -478,7 +478,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 
 #test
 {
-    let grid = parseGrid(cast(const [..] u8) SampleInput)
+    let grid = parseGrid(cast(const [..] u8, SampleInput))
     Swag.assert(grid.width == 10'u32)
     Swag.assert(grid.height == 10'u32)
     Swag.assert(grid.at(0, 0) == '4'u8)
@@ -499,7 +499,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 
 #test
 {
-    let grid = parseGrid(cast(const [..] u8) TinyInput)
+    let grid = parseGrid(cast(const [..] u8, TinyInput))
     Swag.assert(grid.width == 4'u32)
     Swag.assert(grid.height == 3'u32)
 
@@ -516,7 +516,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 
 #test
 {
-    let grid  = parseGrid(cast(const [..] u8) EdgeInput)
+    let grid  = parseGrid(cast(const [..] u8, EdgeInput))
     let clean = solveClean(grid)
     // Both 100s are adjacent to '*'
     Swag.assert(clean.partNumberSum == 200'u64)
@@ -530,7 +530,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 
 #test
 {
-    let grid  = parseGrid(cast(const [..] u8) SingleDigitInput)
+    let grid  = parseGrid(cast(const [..] u8, SingleDigitInput))
     let clean = solveClean(grid)
     // 5 adjacent to '*', 3 adjacent to '*'
     Swag.assert(clean.partNumberSum == 8'u64)

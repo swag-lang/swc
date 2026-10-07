@@ -49,7 +49,7 @@ func archiveViewerPlugin()->Viewer.Plugin
         .resolveName  = func()->string => archiveStrings().ui_Name
         .attach       = &registerArchiveStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Archive
+        .iconIndex    = cast(s32, ViewerIcons.Archive)
         .create       = &createArchiveViewer
         .probe        = &archivePluginProbe
         .smokeFixture = "viewer.archive.zip"
@@ -252,7 +252,7 @@ private impl ArchiveViewer
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
                 line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize).toString())
-                line.userData0 = cast(*void?) (entryIndex + 1)
+                line.userData0 = cast(*void?, (entryIndex + 1))
                 .entryLines[entryIndex] = line
             }
         }
@@ -282,7 +282,7 @@ private impl ArchiveViewer
         let line = .list.selectedLine()
         if not line or not line.userData0 do
             return Swag.U64.Max
-        return cast(u64) line.userData0 - 1
+        return cast(u64, line.userData0) - 1
     }
 
     mtd previewSelectedEntry()
@@ -578,55 +578,39 @@ func createArchiveViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, progress, matches)->bool
         {
             discard progress
-            (cast #assume (*ArchiveViewer) wnd).collectMatches(text, options, matches)
+            view.collectMatches(text, options, matches)
             return true
         }
 
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
             discard text
-            return (cast #assume (*ArchiveViewer) wnd).revealEntry(match)
+            return view.revealEntry(match)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*ArchiveViewer) wnd).searchBounds(bounds)
+            return view.searchBounds(bounds)
         }
 
-        .clear = func(wnd)
-        {
-            (cast #assume (*ArchiveViewer) wnd).clearSearch()
-        }
+        .clear = func|view|() => view.clearSearch()
 
-        .describe = func(wnd, presentation)
-        {
-            (cast #assume (*ArchiveViewer) wnd).describeSearch(presentation)
-        }
+        .describe = func|view|(presentation) => view.describeSearch(presentation)
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool
-        {
-            let viewer = cast #assume (*ArchiveViewer) wnd
-            return viewer.loadTimer != null or viewer.extract.started or viewer.embedded.isLoading()
-        }
+        .isLoading = func|view|()->bool => view.loadTimer != null or view.extract.started or view.embedded.isLoading()
 
-        .needsLoadingOverlay = func(wnd)->bool
-        {
-            return (cast #assume (*ArchiveViewer) wnd).loadTimer != null
-        }
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
 
-        .retire = func(wnd)->bool
-        {
-            return (cast #assume (*ArchiveViewer) wnd).retire()
-        }
+        .retire = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

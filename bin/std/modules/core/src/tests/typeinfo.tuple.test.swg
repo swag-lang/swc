@@ -37,7 +37,7 @@ alias CoreTupleLifecycleStrict = #decltype({first: CoreTupleLifecycleProbe{}, se
 func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index: u64)->*CoreTupleLifecycleProbe
 {
     let fields = type.fields!
-    return cast(*CoreTupleLifecycleProbe) (base + fields[index].offset)
+    return cast(*CoreTupleLifecycleProbe, (base + fields[index].offset))
 }
 
 func testCoreTupleRuntimeLifecycle()->bool
@@ -46,7 +46,7 @@ func testCoreTupleRuntimeLifecycle()->bool
     if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast #assume(const *TypeInfoStruct) tupleType
+    let tupleStruct = assume cast(const *TypeInfoStruct, tupleType)
     if tupleStruct.opInit or tupleStruct.opDrop or tupleStruct.opPostCopy or tupleStruct.opPostMove do
         return false
 
@@ -54,13 +54,13 @@ func testCoreTupleRuntimeLifecycle()->bool
     let target = Memory.new(tupleType)
     if not source or not target do
         return false
-    defer Memory.free(cast([*] void?) source, cast(u64) tupleType.sizeof)
-    defer Memory.free(cast([*] void?) target, cast(u64) tupleType.sizeof)
+    defer Memory.free(cast([*] void?, source), cast(u64, tupleType.sizeof))
+    defer Memory.free(cast([*] void?, target), cast(u64, tupleType.sizeof))
 
-    let sourceFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (source), tupleStruct, 0)
-    let sourceSecond = coreTupleLifecycleProbeAt(cast([*] u8) (source), tupleStruct, 1)
-    let targetFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (target), tupleStruct, 0)
-    let targetSecond = coreTupleLifecycleProbeAt(cast([*] u8) (target), tupleStruct, 1)
+    let sourceFirst  = coreTupleLifecycleProbeAt(cast([*] u8, (source)), tupleStruct, 0)
+    let sourceSecond = coreTupleLifecycleProbeAt(cast([*] u8, (source)), tupleStruct, 1)
+    let targetFirst  = coreTupleLifecycleProbeAt(cast([*] u8, (target)), tupleStruct, 0)
+    let targetSecond = coreTupleLifecycleProbeAt(cast([*] u8, (target)), tupleStruct, 1)
     if sourceFirst.id != 7 or sourceSecond.id != 7 or sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
         return false
 
@@ -103,17 +103,17 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     if arrayType.kind != TypeInfoKind.Array do
         return false
 
-    let arrayStruct = cast #assume(const *TypeInfoArray) arrayType
+    let arrayStruct = assume cast(const *TypeInfoArray, arrayType)
     if not (arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast #assume(const *TypeInfoStruct) arrayStruct.pointedType
+    let tupleStruct = assume cast(const *TypeInfoStruct, arrayStruct.pointedType)
     let values      = Memory.new(arrayType)
     if not values do
         return false
-    defer Memory.free(cast([*] void?) values, cast(u64) arrayType.sizeof)
+    defer Memory.free(cast([*] void?, values), cast(u64, arrayType.sizeof))
 
-    let tuple0  = cast([*] u8) (values)
+    let tuple0  = cast([*] u8, (values))
     let tuple1  = tuple0 + arrayStruct.pointedType.sizeof
     let first0  = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 0)
     let second0 = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 1)
@@ -151,18 +151,18 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
        not (aliasType.flags & TypeInfoFlags.HasPostMove) do
         return false
 
-    let rawType = (cast #assume(const *TypeInfoAlias) aliasType).rawType
+    let rawType = assume cast(const *TypeInfoAlias, aliasType).rawType
     if not (rawType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast #assume(const *TypeInfoStruct) rawType
+    let tupleStruct = assume cast(const *TypeInfoStruct, rawType)
     let value       = Memory.new(aliasType)
     if not value do
         return false
-    defer Memory.free(cast([*] void?) value, cast(u64) aliasType.sizeof)
+    defer Memory.free(cast([*] void?, value), cast(u64, aliasType.sizeof))
 
-    let first  = coreTupleLifecycleProbeAt(cast([*] u8) (value), tupleStruct, 0)
-    let second = coreTupleLifecycleProbeAt(cast([*] u8) (value), tupleStruct, 1)
+    let first  = coreTupleLifecycleProbeAt(cast([*] u8, (value)), tupleStruct, 0)
+    let second = coreTupleLifecycleProbeAt(cast([*] u8, (value)), tupleStruct, 1)
     if first.id != 7 or second.id != 7 or first.value != "tuple-default" or second.value != "tuple-default" do
         return false
 

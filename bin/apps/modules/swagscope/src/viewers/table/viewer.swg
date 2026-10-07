@@ -11,7 +11,7 @@ func tableViewerPlugin()->Viewer.Plugin
         .staticName   = "Table"
         .attach       = &registerTableStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Table
+        .iconIndex    = cast(s32, ViewerIcons.Table)
         .create       = &createTableViewer
         .textual      = true
         .smokeFixture = "viewer.csv"
@@ -39,7 +39,7 @@ impl TableRow
     // Closes the cell being read: its bytes become the next cell of the row, and `cell` is emptied.
     mtd finishCell(cell: *Array'u8)
     {
-        .cells.add(String.from(cast(string) cell.toSlice()))
+        .cells.add(String.from(cast(string, cell.toSlice())))
         cell.clear()
     }
 }
@@ -202,7 +202,7 @@ func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
     for column, index in result.columns where column.isEmpty()
     {
         result.columns[index] = Format.toString(tableStrings().ui_Column, index + 1)
-        result.generatedColumns.add(cast(u32) index)
+        result.generatedColumns.add(cast(u32, index))
     }
 
     return result
@@ -362,12 +362,12 @@ private impl TableViewer
             var longest = column.length
             for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count do
                 longest = Math.max(longest, row.cells[index].length)
-            let width = Math.clamp(cast(f32) longest * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
+            let width = Math.clamp(cast(f32, longest) * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
             let range = tableCellPreviewRange(column.toString())
             .list.addColumn(column.toString()[range.start until range.end], width)
         }
 
-        .list.setVirtualCount(cast(u32) .document.rows.count)
+        .list.setVirtualCount(cast(u32, .document.rows.count))
         .applyLayout()
         .setInitialFocus(.list)
 
@@ -405,7 +405,7 @@ private impl TableViewer
         {
             let value = column < row.cells.count ? row.cells[column].toString() : ""
             let range = tableCellPreviewRange(value, index == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
-            let item  = line.setItem(cast(u32) column, value[range.start until range.end])
+            let item  = line.setItem(cast(u32, column), value[range.start until range.end])
             if index == .searchRow and column == .searchColumn
             {
                 item.colorBk = .themeColors().edit_SelectedBk
@@ -479,7 +479,7 @@ impl TableViewer
         .searchOffset = match.offset
         .searchLength = match.length
         .list.unselectAll()
-        .list.setFocusedIndex(cast(u32) match.major)
+        .list.setFocusedIndex(cast(u32, match.major))
         .list.invalidate()
         return true
     }
@@ -506,7 +506,7 @@ impl TableViewer
             shown += "\u2026"
         let lead = shown.length
         shown += value[range.start until range.end]
-        return Viewer.listCellMatchBounds(.list, cast(u32) .searchRow, cast(u32) .searchColumn, shown.toString(), lead + markedStart - range.start, markedEnd - markedStart, result)
+        return Viewer.listCellMatchBounds(.list, cast(u32, .searchRow), cast(u32, .searchColumn), shown.toString(), lead + markedStart - range.start, markedEnd - markedStart, result)
     }
 
     mtd clearSearch()
@@ -550,7 +550,7 @@ private func fillTableVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line == null do
         return
-    (cast #assume (*TableViewer) list.parent!).fillLine(line, index)
+    assume cast (*TableViewer, list.parent).fillLine(line, index)
 }
 
 // Creates the integrated CSV/TSV table view.
@@ -562,38 +562,35 @@ func createTableViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, progress, matches)->bool
         {
             discard progress
-            (cast #assume (*TableViewer) wnd).collectMatches(text, options, matches)
+            view.collectMatches(text, options, matches)
             return true
         }
 
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
             discard text
-            return (cast #assume (*TableViewer) wnd).revealMatch(match)
+            return view.revealMatch(match)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*TableViewer) wnd).searchBounds(bounds)
+            return view.searchBounds(bounds)
         }
 
-        .clear = func(wnd)
-        {
-            (cast #assume (*TableViewer) wnd).clearSearch()
-        }
+        .clear = func|view|() => view.clearSearch()
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null
-        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null
-        .retire    = func(wnd)->bool => (cast #assume (*TableViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

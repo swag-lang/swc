@@ -86,7 +86,7 @@ func day10B()
     for l, y in lines do
         for c, x in l do
             if c == '#' do
-                arr.add({{cast(f32) x, cast(f32) y}})
+                arr.add({{cast(f32, x), cast(f32, y)}})
     tot.resize(arr.count)
 
     if arr.count > 1
@@ -127,13 +127,13 @@ func day10B()
     // and an exact squared distance to keep same-ray asteroids in near-to-far order.
     for &it in arr
     {
-        let dx  = cast(s64) it.pos.x - cast(s64) posStart.x
-        let dy  = cast(s64) it.pos.y - cast(s64) posStart.y
+        let dx  = cast(s64, it.pos.x) - cast(s64, posStart.x)
+        let dy  = cast(s64, it.pos.y) - cast(s64, posStart.y)
         let gcd = Math.gcd(dx, dy)
         it.dirX  = dx / gcd
         it.dirY  = dy / gcd
         it.dist2 = (dx * dx) + (dy * dy)
-        it.angle = Math.atan2(cast(f32) it.dirX, cast(f32) -it.dirY)
+        it.angle = Math.atan2(cast(f32, it.dirX), cast(f32, -it.dirY))
         if it.angle < 0 do
             it.angle += Math.ConstF32.TwoPi
     }
@@ -182,8 +182,8 @@ func day10B()
 
             if total == 200
             {
-                let resultX = cast(s64) vaporized.pos.x
-                let resultY = cast(s64) vaporized.pos.y
+                let resultX = cast(s64, vaporized.pos.x)
+                let resultY = cast(s64, vaporized.pos.y)
                 Swag.assert((resultX * 100) + resultY == 502)
                 return
             }

@@ -5,21 +5,21 @@ using Swag
 
 alias CLIPFORMAT = WORD
 
-const E_NOTIMPL                    = cast #bit (HRESULT) 0x80004001
-const E_NOINTERFACE                = cast #bit (HRESULT) 0x80004002
-const E_POINTER                    = cast #bit (HRESULT) 0x80004003
-const E_FAIL                       = cast #bit (HRESULT) 0x80004005
-const E_INVALIDARG                 = cast #bit (HRESULT) 0x80070057
-const E_OUTOFMEMORY                = cast #bit (HRESULT) 0x8007000E
-const DV_E_FORMATETC               = cast #bit (HRESULT) 0x80040064
-const DV_E_TYMED                   = cast #bit (HRESULT) 0x80040069
-const DV_E_DVASPECT                = cast #bit (HRESULT) 0x8004006B
+const E_NOTIMPL                    = cast #bit (HRESULT, 0x80004001)
+const E_NOINTERFACE                = cast #bit (HRESULT, 0x80004002)
+const E_POINTER                    = cast #bit (HRESULT, 0x80004003)
+const E_FAIL                       = cast #bit (HRESULT, 0x80004005)
+const E_INVALIDARG                 = cast #bit (HRESULT, 0x80070057)
+const E_OUTOFMEMORY                = cast #bit (HRESULT, 0x8007000E)
+const DV_E_FORMATETC               = cast #bit (HRESULT, 0x80040064)
+const DV_E_TYMED                   = cast #bit (HRESULT, 0x80040069)
+const DV_E_DVASPECT                = cast #bit (HRESULT, 0x8004006B)
 const DRAGDROP_S_DROP              = 0x00040100's32
 const DRAGDROP_S_CANCEL            = 0x00040101's32
 const DRAGDROP_S_USEDEFAULTCURSORS = 0x00040102's32
 const DATA_S_SAMEFORMATETC         = 0x00040130's32
-const OLE_E_ADVISENOTSUPPORTED     = cast #bit (HRESULT) 0x80040003
-const RPC_E_CHANGED_MODE           = cast #bit (HRESULT) 0x80010106
+const OLE_E_ADVISENOTSUPPORTED     = cast #bit (HRESULT, 0x80040003)
+const RPC_E_CHANGED_MODE           = cast #bit (HRESULT, 0x80010106)
 
 const COINIT_APARTMENTTHREADED = 0x2'u32
 const COINIT_MULTITHREADED     = 0x0'u32
@@ -311,8 +311,8 @@ struct IEnumFORMATETCVtbl
 // Reports whether two interface identifiers name the same interface.
 func isEqualGuid(a, b: GUID)->bool
 {
-    let tailA = (cast(const *u64) (&a.Data4[0]))[]
-    let tailB = (cast(const *u64) (&b.Data4[0]))[]
+    let tailA = cast(const *u64, (&a.Data4[0]))[]
+    let tailB = cast(const *u64, (&b.Data4[0]))[]
     return a.Data1 == b.Data1 and
            a.Data2 == b.Data2 and
            a.Data3 == b.Data3 and

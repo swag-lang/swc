@@ -41,7 +41,7 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
     var result:   retval
     var findfile: WIN32_FIND_DATAW
     var fileTime: SYSTEMTIME
-    let dataof = cast(const [*] u16) findfile.cFileName.buffer
+    let dataof = cast(const [*] u16, findfile.cFileName.buffer)
     var toScan = String.from(dirName)
     if toScan.back() == Path.VolumeSeparator do
         toScan += Path.DirectorySeparator
@@ -59,7 +59,7 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
         var info: FileInfo
         info.fullName   = Path.combine(toScan.toString(), fileName.toString())
         info.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)
-        info.size       = findfile.nFileSizeLow + (cast(u64) findfile.nFileSizeHigh << 32)
+        info.size       = findfile.nFileSizeLow + (cast(u64, findfile.nFileSizeHigh) << 32)
 
         catch FileTimeToSystemTime(&findfile.ftCreationTime, &fileTime)
         info.creationTime.setWallClock(Time.wallClockFields(fileTime))
@@ -83,7 +83,7 @@ func currentPath()->String fail
     let length = try GetCurrentDirectoryW(0, null)
 
     var arr16: Array'u16
-    arr16.reserve(cast(u64) length + 1)
+    arr16.reserve(cast(u64, length) + 1)
     arr16.count = try GetCurrentDirectoryW(length + 1, arr16.buffer)
 
     var result = Utf8.fromUtf16(arr16.toSlice())
@@ -112,10 +112,10 @@ func drives()->Array'String fail
     if slen >= MAX_PATH do
         return result
 
-    var ptr = cast([*] u8) &volName[0]
+    var ptr = cast([*] u8, &volName[0])
     while ptr[0]
     {
-        let len = (cast(cstring) ptr).count
+        let len = cast(cstring, ptr).count
         result.add(Swag.makeString(ptr, len))
         ptr += len + 1
     }
@@ -144,7 +144,7 @@ func volumes()->Array'String fail
         catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret) as err
         if err == null
         {
-            let len = (cast(cstring) driveName).count
+            let len = cast(cstring, driveName).count
             if len
             {
                 var str = String.from(Swag.makeString(&driveName[0], len))

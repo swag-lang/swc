@@ -46,7 +46,7 @@ const Eol = #raw """
     let a = """line1
 line2
 line3"""
-    Swag.assert(a[0] == cast(u8) 'l'rune)
+    Swag.assert(a[0] == cast(u8, 'l'rune))
     Swag.assert(a.count > 10)
 }
 

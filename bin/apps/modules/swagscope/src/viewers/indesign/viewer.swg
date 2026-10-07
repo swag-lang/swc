@@ -146,7 +146,7 @@ private func indesignU32(bytes: const [..] u8, offset: u64, bigEndian: bool)->u3
     for index in 4'u64
     {
         let position = bigEndian ? index : 3 - index
-        result = (result << 8) | cast(u32) bytes[offset + position]
+        result = (result << 8) | cast(u32, bytes[offset + position])
     }
 
     return result
@@ -156,7 +156,7 @@ private func indesignU64(bytes: const [..] u8, offset: u64)->u64
 {
     var result = 0'u64
     for index in 8'u64 do
-        result = (result << 8) | cast(u64) bytes[offset + 7 - index]
+        result = (result << 8) | cast(u64, bytes[offset + 7 - index])
     return result
 }
 
@@ -225,7 +225,7 @@ private func indesignPreviewBase64(bytes: const [..] u8, start, end: u64)->Strin
         index += 1
     }
 
-    return result.isEmpty() ? {} : String.from(cast(string) result.toSlice())
+    return result.isEmpty() ? {} : String.from(cast(string, result.toSlice()))
 }
 
 private func indesignPreviewPageNumber(bytes: const [..] u8, start, end: u64)->u32
@@ -243,9 +243,9 @@ private func indesignPreviewPageNumber(bytes: const [..] u8, start, end: u64)->u
     for index in numberStart until numberEnd
     {
         let value = bytes[index]
-        if value < '0' or value > '9' or result > (Swag.U32.Max - cast(u32) (value - '0')) / 10 do
+        if value < '0' or value > '9' or result > (Swag.U32.Max - cast(u32, (value - '0'))) / 10 do
             return 0
-        result = result * 10 + cast(u32) (value - '0')
+        result = result * 10 + cast(u32, (value - '0'))
     }
 
     return result == Swag.U32.Max ? 0 : result
@@ -279,7 +279,7 @@ private func indesignJpegGeometry(bytes: const [..] u8, result: *IndesignPreview
         if index + 1 >= bytes.count do
             return false
 
-        let segmentSize = (cast(u64) bytes[index] << 8) | cast(u64) bytes[index + 1]
+        let segmentSize = (cast(u64, bytes[index]) << 8) | cast(u64, bytes[index + 1])
         if segmentSize < 2 or segmentSize > bytes.count - index do
             return false
         if indesignJpegStartOfFrame(marker)
@@ -287,9 +287,9 @@ private func indesignJpegGeometry(bytes: const [..] u8, result: *IndesignPreview
             if segmentSize < 8 do
                 return false
 
-            result.height = (cast(u32) bytes[index + 3] << 8) | cast(u32) bytes[index + 4]
-            result.width  = (cast(u32) bytes[index + 5] << 8) | cast(u32) bytes[index + 6]
-            let pixels = cast(u64) result.width * cast(u64) result.height
+            result.height = (cast(u32, bytes[index + 3]) << 8) | cast(u32, bytes[index + 4])
+            result.width  = (cast(u32, bytes[index + 5]) << 8) | cast(u32, bytes[index + 6])
+            let pixels = cast(u64, result.width) * cast(u64, result.height)
             return result.width != 0 and result.height != 0 and pixels <= IndesignPreviewPixelLimit
         }
 
@@ -396,7 +396,7 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
         }
 
         let payloadStart = cursor + IndesignContiguousMarkerSize
-        let length       = cast(u64) indesignU32(bytes, cursor + 24, false)
+        let length       = cast(u64, indesignU32(bytes, cursor + 24, false))
         if length > end - payloadStart - IndesignContiguousMarkerSize
         {
             cursor += 1
@@ -462,7 +462,7 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
 
     var result: retval
     result = catch Image.decode("indesign-preview.jpg", previewBytes.toSlice()) as decodeError
-    if decodeError != null or not result.isValid() or result.width != cast(s32) geometry.width or result.height != cast(s32) geometry.height do
+    if decodeError != null or not result.isValid() or result.width != cast(s32, geometry.width) or result.height != cast(s32, geometry.height) do
         fail InvalidFormatError{indesignStrings().err_Preview}
     return #move result
 }
@@ -543,7 +543,7 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
     var file          = try File.MappedFile.open(fileName)
     let region        = try file.mapAll()
     let header        = hasSecond and (not hasFirst or second.sequence > first.sequence) ? second : first
-    let declaredBytes = cast(u64) header.storagePages * IndesignHeaderCopySize
+    let declaredBytes = cast(u64, header.storagePages) * IndesignHeaderCopySize
     if declaredBytes > fileSize do
         fail InvalidFormatError{indesignStrings().err_Header}
     let bytes    = region.bytes()
@@ -584,7 +584,7 @@ func indesignViewerPlugin()->Viewer.Plugin
         .resolveName  = func()->string => indesignStrings().ui_Name
         .attach       = &registerIndesignStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Indesign
+        .iconIndex    = cast(s32, ViewerIcons.Indesign)
         .create       = &createIndesignViewer
         .smokeFixture = "uni-halle-52a.idml"
         .addSelectors(".indd;.idml")
@@ -689,13 +689,13 @@ private impl IndesignViewer
     {
         if .isMarkup()
         {
-            .zoomLabel.setText(.markupFit ? (.markupFitWidth ? indesignStrings().ui_FitWidth : indesignStrings().ui_Fit) : Format.toString("% %", cast(u32) Math.round(.markupPageScale(.previewIndex) * 100), "%"))
+            .zoomLabel.setText(.markupFit ? (.markupFitWidth ? indesignStrings().ui_FitWidth : indesignStrings().ui_Fit) : Format.toString("% %", cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), "%"))
             if .reportChromeChanged do
                 .reportChromeChanged(me)
             return
         }
 
-        .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.imageView.effectiveZoom() * 100), "%"))
+        .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.imageView.effectiveZoom() * 100)), "%"))
         if .reportChromeChanged do
             .reportChromeChanged(me)
     }
@@ -718,7 +718,7 @@ private impl IndesignViewer
     {
         .markupFit      = false
         .markupFitWidth = false
-        .markupZoom     = cast(f32) Math.clamp(percent, 25'u32, 300'u32) / 100
+        .markupZoom     = cast(f32, Math.clamp(percent, 25'u32, 300'u32)) / 100
         .selectMarkupPage(.previewIndex)
     }
 
@@ -803,7 +803,7 @@ private impl IndesignViewer
 
     mtd cachePreview(index: u64, image: *Image)
     {
-        let pixelCount = cast(u64) image.width * cast(u64) image.height
+        let pixelCount = cast(u64, image.width) * cast(u64, image.height)
         for &cached in .cachedPreviews
         {
             if cached.index == index
@@ -1138,13 +1138,13 @@ private impl IWnd for IndesignViewer
 
         case .Add, .OemPlus:
             if .isMarkup() do
-                .setMarkupZoom(cast(u32) Math.round(.markupPageScale(.previewIndex) * 100) + 25)
+                .setMarkupZoom(cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)) + 25)
             else do
                 .imageView.zoomIn()
 
         case .Subtract, .OemMinus:
             if .isMarkup() do
-                .setMarkupZoom(Math.max(cast(u32) Math.round(.markupPageScale(.previewIndex) * 100), 50) - 25)
+                .setMarkupZoom(Math.max(cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), 50) - 25)
             else do
                 .imageView.zoomOut()
 
@@ -1347,37 +1347,34 @@ func createIndesignViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        .collectMatches = func|view|(text, options, progress, matches)->bool
         {
             discard progress
-            (cast #assume (*IndesignViewer) wnd).collectMatches(text, options, matches)
+            view.collectMatches(text, options, matches)
             return true
         }
 
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
-            return (cast #assume (*IndesignViewer) wnd).revealMatch(match, text)
+            return view.revealMatch(match, text)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*IndesignViewer) wnd).searchBounds(bounds)
+            return view.searchBounds(bounds)
         }
 
-        .clear = func(wnd)
-        {
-            (cast #assume (*IndesignViewer) wnd).clearSearch()
-        }
+        .clear = func|view|() => view.clearSearch()
     }
 
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null }
-        .needsLoadingOverlay = func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) }
-        .retire    = func(wnd)->bool => (cast #assume (*IndesignViewer) wnd).retire()
+        .isLoading = func|view|()->bool => view.loadTimer != null or view.previewLoadTimer != null
+        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent)
+        .retire    = func|view|()->bool => view.retire()
     }
 
     host.setLifecycle(lifecycle)

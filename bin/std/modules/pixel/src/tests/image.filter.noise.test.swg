@@ -15,8 +15,8 @@ func makeFastNoise()->Noise.FastNoise
 
 func makeNoiseColor(noise: *Noise.FastNoise, x, y: s32, alpha: u8)->Color
 {
-    let value = noise.sample(cast(f32) x, cast(f32) y)
-    let light = cast(u8) Math.map(value, -1.0, 1.0, 0, 255.0)
+    let value = noise.sample(cast(f32, x), cast(f32, y))
+    let light = cast(u8, Math.map(value, -1.0, 1.0, 0, 255.0))
     return Color.fromArgb(alpha, light, light, light)
 }
 

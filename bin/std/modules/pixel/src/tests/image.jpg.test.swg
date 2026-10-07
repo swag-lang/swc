@@ -4,7 +4,7 @@ using Swag, Core
 
 func assertNearByte(value, expected: u8, tolerance: u8)
 {
-    let diff = Math.abs(cast(s32) value - cast(s32) expected)
+    let diff = Math.abs(cast(s32, value) - cast(s32, expected))
     Swag.assert(diff <= tolerance)
 }
 
@@ -26,7 +26,7 @@ func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
     Swag.assert(img.pixelFormat == .BGR8)
     Swag.assert(img.bitsPerPixel == 24)
     Swag.assert(img.bytesPerPixel == 3)
-    Swag.assert(img.pixels.count == cast(u64) width * height * 3)
+    Swag.assert(img.pixels.count == cast(u64, width) * height * 3)
     assertJpgPixelNear(img, b, g, r, 8'u8)
 }
 
@@ -114,7 +114,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.assert(img.width == src.width)
     Swag.assert(img.height == src.height)
     Swag.assert(img.pixelFormat == .BGR8)
-    Swag.assert(img.pixels.count == cast(u64) src.width * src.height * 3)
+    Swag.assert(img.pixels.count == cast(u64, src.width) * src.height * 3)
     assertJpgPixelNear(img, expectedB, expectedG, expectedR, tolerance)
 }
 
@@ -141,7 +141,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     assertLoadedJpg("gray.jpg", 660, 441, 202'u8, 202'u8, 202'u8)
     let gray = expect Image.load(getTestDataPath("gray.jpg"))
-    for pixel in cast(u64) gray.width * gray.height
+    for pixel in cast(u64, gray.width) * gray.height
     {
         let offset = pixel * 3
         Swag.assert(gray.pixels.storage()[offset] == gray.pixels.storage()[offset + 1])
@@ -163,7 +163,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.assert(img.width == 48 and img.height == 32)
     Swag.assert(img.pixelFormat == .BGR8)
 
-    let row = cast(u64) (img.height - 1 - 16) * cast(u64) img.width * 3
+    let row = cast(u64, (img.height - 1 - 16)) * cast(u64, img.width) * 3
     let red = img.pixels.storage() + row + 8 * 3
     assertNearByte(red[0], 0'u8, 8'u8)
     assertNearByte(red[1], 0'u8, 8'u8)
@@ -226,7 +226,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
             var found = false
             for item in decoded.metadata where item.isTag("Source")
             {
-                Swag.assert(cast(string) item.toSlice() == "camera")
+                Swag.assert(cast(string, item.toSlice()) == "camera")
                 found = true
             }
 

@@ -55,7 +55,7 @@ namespace
     AstNodeRef transparentConditionExprOperandRef(const AstNode& node)
     {
         // Dynamic conversions can produce null from a present box containing a null pointer.
-        if (node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+        if (node.is(AstNodeId::CastExpr) && (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) || node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Fallible)))
             return AstNodeRef::invalid();
         if (node.is(AstNodeId::AutoCastExpr) && node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
             return AstNodeRef::invalid();

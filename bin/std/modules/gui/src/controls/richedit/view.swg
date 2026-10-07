@@ -351,7 +351,7 @@ impl IWnd for RichEditView
         }
 
         // Scroll size
-        edn.loadedContentHeight = cast(f32) (edn.countVisibleLines * size.y)
+        edn.loadedContentHeight = cast(f32, (edn.countVisibleLines * size.y))
         y = Math.max(edn.residentContentOffset + edn.loadedContentHeight, edn.estimatedContentHeight)
         if edn.flags.has(.WordWrap)
         {
@@ -449,8 +449,8 @@ impl RichEditView
         var dummyChar  = ' 'rune
         var dummyStyle = 0'u8
         var count      = line.length()
-        var pChar      = cast([*] rune) &dummyChar
-        var pStyle     = cast([*] u8) &dummyStyle
+        var pChar      = cast([*] rune, &dummyChar)
+        var pStyle     = cast([*] u8, &dummyStyle)
         if count
         {
             pChar  = line.chars.storage()
@@ -546,7 +546,7 @@ impl RichEditView
             if isTabulation
             {
                 let x1 = x
-                x += edn.tabAdvance(cast(s32) x)
+                x += edn.tabAdvance(cast(s32, x))
 
                 // Background color for tabulations
                 if visible and oldStyle.colBk.a do

@@ -7,7 +7,7 @@ func expectedHasZeroByte16(value: u16)->bool => (value & 0x00FF) == 0 or (value 
 
 func expectedHasByte16(value: u16, byte: u8)->bool
 {
-    let expected = cast(u16) byte
+    let expected = cast(u16, byte)
     return (value & 0x00FF) == expected or ((value >> 8) & 0x00FF) == expected
 }
 
@@ -62,17 +62,17 @@ func expectedAbs8(value: s8)->s8
 {
     for value in 65536
     {
-        let input = cast(u16) value
+        let input = cast(u16, value)
         Swag.assert(Math.hasZeroByte(input) == expectedHasZeroByte16(input))
     }
 
     for value in 256
     {
-        let byte = cast(u8) value
-        Swag.assert(Math.makeRepeat16(byte) == (cast(u16) byte | (cast(u16) byte << 8)))
+        let byte = cast(u8, value)
+        Swag.assert(Math.makeRepeat16(byte) == (cast(u16, byte) | (cast(u16, byte) << 8)))
         Swag.assert(Math.hasByte(Math.makeRepeat16(byte), byte))
-        Swag.assert(Math.hasByte(cast(u16) byte, byte))
-        Swag.assert(Math.hasByte(cast(u16) byte << 8, byte))
+        Swag.assert(Math.hasByte(cast(u16, byte), byte))
+        Swag.assert(Math.hasByte(cast(u16, byte) << 8, byte))
 
         if byte != 0xFF
         {
@@ -83,7 +83,7 @@ func expectedAbs8(value: s8)->s8
 
     for value in 65536
     {
-        let input = cast(u16) value
+        let input = cast(u16, value)
         Swag.assert(Math.hasByte(input, 0x00'u8) == expectedHasByte16(input, 0x00'u8))
         Swag.assert(Math.hasByte(input, 0x7F'u8) == expectedHasByte16(input, 0x7F'u8))
         Swag.assert(Math.hasByte(input, 0x80'u8) == expectedHasByte16(input, 0x80'u8))
@@ -187,7 +187,7 @@ func expectedAbs8(value: s8)->s8
 {
     for value in 256
     {
-        let input = cast #bit (s8) cast(u8) value
+        let input = cast #bit (s8, cast(u8, value))
         Swag.assert(Math.sign(input) == expectedSign8(input))
         if input != -128's8 do
             Swag.assert(Math.abs(input) == expectedAbs8(input))
@@ -195,10 +195,10 @@ func expectedAbs8(value: s8)->s8
 
     for left in 256
     {
-        let a = cast #bit (s8) cast(u8) left
+        let a = cast #bit (s8, cast(u8, left))
         for right in 256
         {
-            let b = cast #bit (s8) cast(u8) right
+            let b = cast #bit (s8, cast(u8, right))
             Swag.assert(Math.min(a, b) == (a < b ? a : b))
             Swag.assert(Math.max(a, b) == (a > b ? a : b))
         }
@@ -206,10 +206,10 @@ func expectedAbs8(value: s8)->s8
 
     for left in 256
     {
-        let a = cast(u8) left
+        let a = cast(u8, left)
         for right in 256
         {
-            let b = cast(u8) right
+            let b = cast(u8, right)
             Swag.assert(Math.min(a, b) == (a < b ? a : b))
             Swag.assert(Math.max(a, b) == (a > b ? a : b))
         }

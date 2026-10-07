@@ -22,7 +22,7 @@ impl IAllocator for LibraryRejectAllocator
     f.setup(registerHeadlessCommands: true)
     defer f.shutdown()
     discard f.setupLibraryWnd()
-    let libWnd = cast(*Wnd) f.main.libWnd
+    let libWnd = cast(*Wnd, f.main.libWnd)
 
     var sizeEvt = Gui.Testing.commandState(ActionRecentSize.LibBig)
     Swag.assert(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
@@ -123,7 +123,7 @@ impl IAllocator for LibraryRejectAllocator
     defer f.shutdown()
     let lib  = f.setupLibraryWnd()
     let view = lib.view
-    let wnd  = cast(*Wnd) lib
+    let wnd  = cast(*Wnd, lib)
 
     let old   = testAddLibraryItem(view, "old.scc", 10, 1)
     let big   = testAddLibraryItem(view, "big-linked.scc", 30, 3, "big.png")
@@ -251,7 +251,7 @@ impl IAllocator for LibraryRejectAllocator
         {
             if it.fi.fullName == file
             {
-                libWnd.view.selModel.unselect(cast() i)
+                libWnd.view.selModel.unselect(cast(i))
                 libWnd.view.items.removeAtOrdered(i)
                 break
             }
@@ -274,7 +274,7 @@ impl IAllocator for LibraryRejectAllocator
         Memory.delete(capture)
 
         g_Library.addFile(path)
-        discard testAddLibraryItem(view, path, size: 8, day: cast(u16) (idx + 1))
+        discard testAddLibraryItem(view, path, size: 8, day: cast(u16, (idx + 1)))
         paths.add(path)
     }
 
@@ -294,7 +294,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(g_Library.files.count == 3)
 
     for idx in view.items.count do
-        view.selModel.select(cast() idx)
+        view.selModel.select(cast(idx))
 
     lib.removeSelected()
 
@@ -491,7 +491,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(view.items[0] == chrome)
 
     for item, i in view.items where item == slack do
-        view.setFocusItem(cast(u32) i)
+        view.setFocusItem(cast(u32, i))
     lib.sortMethod = .Dimensions
     view.sort()
     Swag.assert(view.focusItem < view.items.count)
@@ -664,15 +664,15 @@ impl IAllocator for LibraryRejectAllocator
 
     for i in lib.listCtrl.lineCount()
     {
-        let line = lib.listCtrl.lineAt(cast(u32) i)!
-        if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Application do
+        let line = lib.listCtrl.lineAt(cast(u32, i))!
+        if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Application do
             continue
-        let idx = cast(u64) line.userData0
+        let idx = cast(u64, line.userData0)
         if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
         {
             Swag.assert(line.itemAt(0).icon.isValid())
             Swag.assert(line.itemAt(0).icon.color == Argb.White)
-            lib.listCtrl.selectLine(cast(u32) i)
+            lib.listCtrl.selectLine(cast(u32, i))
         }
     }
 
@@ -682,12 +682,12 @@ impl IAllocator for LibraryRejectAllocator
 
     for i in lib.listCtrl.lineCount()
     {
-        let line = lib.listCtrl.lineAt(cast(u32) i)!
-        if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Tag do
+        let line = lib.listCtrl.lineAt(cast(u32, i))!
+        if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Tag do
             continue
-        let idx = cast(u64) line.userData0
+        let idx = cast(u64, line.userData0)
         if idx < lib.sidebarTags.count and lib.sidebarTags[idx].name == "work" do
-            lib.listCtrl.selectLine(cast(u32) i)
+            lib.listCtrl.selectLine(cast(u32, i))
     }
 
     Swag.assert(lib.applicationFilter.isEmpty())
@@ -702,10 +702,10 @@ impl IAllocator for LibraryRejectAllocator
     var foundApplication = false
     for i in lib.listCtrl.lineCount()
     {
-        let line = lib.listCtrl.lineAt(cast(u32) i)!
-        if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Application do
+        let line = lib.listCtrl.lineAt(cast(u32, i))!
+        if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Application do
             continue
-        let idx = cast(u64) line.userData0
+        let idx = cast(u64, line.userData0)
         if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
         {
             foundApplication = true

@@ -78,7 +78,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
         let ch = bytes[index]
         if isDigit(ch)
         {
-            value         = value * 10 + cast(s32) (ch - '0')
+            value         = value * 10 + cast(s32, (ch - '0'))
             readingNumber = true
             continue
         }
@@ -133,8 +133,8 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
 
     for index in report.count
     {
-        let rawIndex = cast(u32) index
-        if cast(s32) rawIndex == skippedIndex do
+        let rawIndex = cast(u32, index)
+        if cast(s32, rawIndex) == skippedIndex do
             continue
 
         let level = report.levels[rawIndex]
@@ -167,7 +167,7 @@ func isSafeWithProblemDampener(report: Report)->bool
 
     for index in report.count
     {
-        let skippedIndex = cast(s32) index
+        let skippedIndex = cast(s32, index)
         if isSafeReport(report, skippedIndex) do
             return true
     }
@@ -182,7 +182,7 @@ func auditReportsClean(batch: ReportBatch)->SafetyAudit
 
     for idx in batch.count
     {
-        let index      = cast(u32) idx
+        let index      = cast(u32, idx)
         let report     = batch.reports[index]
         let strictSafe = isSafeReport(report, -1)
         if strictSafe do
@@ -250,10 +250,10 @@ func visitReportLevels(report: Report, skippedIndex: s32, stmt: #code(level, raw
 {
     for index in report.count
     {
-        if cast(s32) index == skippedIndex do
+        if cast(s32, index) == skippedIndex do
             continue
 
-        #inject(stmt, level = report.levels[cast(u32) index], rawIndex = cast(u32) index)
+        #inject(stmt, level = report.levels[cast(u32, index)], rawIndex = cast(u32, index))
     }
 }
 
@@ -278,7 +278,7 @@ func isSafeWithProblemDampenerLanguageFeatures(report: Report)->bool
 
     for index in report.count
     {
-        let skippedIndex = cast(s32) index
+        let skippedIndex = cast(s32, index)
         if isSafeReportWithLanguageFeatures(report, skippedIndex) do
             return true
     }
@@ -293,7 +293,7 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
     for idx in batch.count
     {
-        let index      = cast(u32) idx
+        let index      = cast(u32, idx)
         let report     = batch.reports[index]
         let strictSafe = isSafeReportWithLanguageFeatures(report, -1)
         if strictSafe do
@@ -308,7 +308,7 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let sampleBatch    = parseReports(cast(const [..] u8) SampleInput)
+    let sampleBatch    = parseReports(cast(const [..] u8, SampleInput))
     let sampleClean    = auditReportsClean(sampleBatch)
     let sampleFeatures = auditReportsWithLanguageFeatures(sampleBatch)
 
@@ -331,7 +331,7 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let edgeBatch    = parseReports(cast(const [..] u8) EdgeInput)
+    let edgeBatch    = parseReports(cast(const [..] u8, EdgeInput))
     let edgeClean    = auditReportsClean(edgeBatch)
     let edgeFeatures = auditReportsWithLanguageFeatures(edgeBatch)
 
@@ -345,7 +345,7 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let coverageBatch    = parseReports(cast(const [..] u8) CoverageInput)
+    let coverageBatch    = parseReports(cast(const [..] u8, CoverageInput))
     let coverageClean    = auditReportsClean(coverageBatch)
     let coverageFeatures = auditReportsWithLanguageFeatures(coverageBatch)
 

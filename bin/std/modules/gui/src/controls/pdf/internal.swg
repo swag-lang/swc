@@ -65,7 +65,7 @@ struct ObjectStream
 
 struct PdfParser
 {
-    bytes:   const [..] u8 = cast(const [..] u8) ""
+    bytes:   const [..] u8 = cast(const [..] u8, "")
     pos:     u64
     nodes:   Array'Node
     objects: HashTable'(u32, u32)
@@ -123,4 +123,4 @@ struct PdfParser
 const ImageCacheBudget = 64 * 1024 * 1024'u64
 
 // Returns the cache key of one decoded image.
-func imageCacheKey(imageId, resourcesId: u32)->u64 => (cast(u64) imageId << 32) | cast(u64) resourcesId
+func imageCacheKey(imageId, resourcesId: u32)->u64 => (cast(u64, imageId) << 32) | cast(u64, resourcesId)

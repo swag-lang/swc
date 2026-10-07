@@ -2,7 +2,7 @@
 
 using Swag, Core
 
-func webpExpectedChannel(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
+func webpExpectedChannel(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8
 
@@ -59,9 +59,9 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
             // Both decoded images use the module's bottom-up row convention, so the reference
             // planes are read at the same internal row as the result.
             let sourceY   = y
-            let luma      = cast(s32) golden.pixelColor(x, sourceY).r
-            let cb        = cast(s32) golden.pixelColor(x / 2, height + sourceY / 2).r
-            let cr        = cast(s32) golden.pixelColor(halfWidth + x / 2, height + sourceY / 2).r
+            let luma      = cast(s32, golden.pixelColor(x, sourceY).r)
+            let cb        = cast(s32, golden.pixelColor(x / 2, height + sourceY / 2).r)
+            let cr        = cast(s32, golden.pixelColor(halfWidth + x / 2, height + sourceY / 2).r)
             let expectedR = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cr, 26149) - 14234) >> 6)
             let expectedG = webpExpectedChannel((webpMultiplyHigh(luma, 19077) - webpMultiplyHigh(cb, 6419) - webpMultiplyHigh(cr, 13320) + 8708) >> 6)
             let expectedB = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
@@ -83,9 +83,9 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.assert(bytes[0] == 'R' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == 'F')
     Swag.assert(bytes[8] == 'W' and bytes[9] == 'E' and bytes[10] == 'B' and bytes[11] == 'P')
     Swag.assert(bytes[12] == 'V' and bytes[13] == 'P' and bytes[14] == '8' and bytes[15] == 'L')
-    let riffSize = cast(u32) bytes[4] | (cast(u32) bytes[5] << 8) |
-                   (cast(u32) bytes[6] << 16) | (cast(u32) bytes[7] << 24)
-    Swag.assert(cast(u64) riffSize + 8 == bytes.count)
+    let riffSize = cast(u32, bytes[4]) | (cast(u32, bytes[5]) << 8) |
+                   (cast(u32, bytes[6]) << 16) | (cast(u32, bytes[7]) << 24)
+    Swag.assert(cast(u64, riffSize) + 8 == bytes.count)
 
     let decoded = expect Image.decode("encoded.webp", bytes, {})
     Swag.assert(decoded.width == source.width)

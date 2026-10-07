@@ -1,10 +1,10 @@
 #global private
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func assumeWrongNullPointer(value: any?)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    let pointer = cast #assume (*s32?) value
+    let pointer = assume cast (*s32?, value)
 }
 
 #test
@@ -17,11 +17,11 @@ func assumeWrongNullPointer(value: any?)
 struct CheckedDynamicBase { value: s32 }
 struct CheckedDynamicChild { using base: CheckedDynamicBase; extra: s32 }
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func assumeDynamicChild(value: *CheckedDynamicBase)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    let child = cast #assume (*CheckedDynamicChild) value
+    let child = assume cast (*CheckedDynamicChild, value)
 }
 
 #test
@@ -30,11 +30,11 @@ func assumeDynamicChild(value: *CheckedDynamicBase)
     assumeDynamicChild(&value)
 }
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.Assume, true)]
 func assumePresentChild(value: *CheckedDynamicBase?)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    let child = cast #assume (*CheckedDynamicChild) value
+    let child = assume cast (*CheckedDynamicChild, value)
 }
 
 #test
@@ -42,10 +42,10 @@ func assumePresentChild(value: *CheckedDynamicBase?)
     assumePresentChild(null)
 }
 
-#[Swag.Safety(.DynCast, false)]
+#[Swag.Safety(.Assume, false)]
 func tryDynamicChild(value: *CheckedDynamicBase)->*CheckedDynamicChild?
 {
-    return cast #try (*CheckedDynamicChild) value
+    return (catch cast(*CheckedDynamicChild?, value))
 }
 
 #test

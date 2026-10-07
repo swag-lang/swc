@@ -14,7 +14,7 @@ using Core, Pixel
         {
             var image = Image.create(size, size, .RGBA8)
             for index in image.byteCount do
-                image.pixels[index] = cast(u8) ((index * 47 + 13) & 0xFF)
+                image.pixels[index] = cast(u8, ((index * 47 + 13) & 0xFF))
             let iterations = Math.max(4, 1048576 / (size * size))
             image.invert()
             image.invert()
@@ -26,7 +26,7 @@ using Core, Pixel
                     image.invert()
                 watch.stop()
                 for index in image.byteCount do
-                    Swag.assert(image.pixels[index] == cast(u8) ((index * 47 + 13) & 0xFF))
+                    Swag.assert(image.pixels[index] == cast(u8, ((index * 47 + 13) & 0xFF)))
                 Console.println("invert size=", size, " workers=", count, " iterations=", iterations, " sample=", sample, " us=", watch.elapsedMicroseconds())
             }
         }

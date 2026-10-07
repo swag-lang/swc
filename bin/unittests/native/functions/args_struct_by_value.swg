@@ -38,17 +38,17 @@ struct FloatPair
 
 var GSeed: u64 = 7
 
-func sum1(v: Only1)->u32   => cast(u32) v.a
-func sum2(v: Only2)->u32   => cast(u32) v.a * 100 + cast(u32) v.b
-func sum4(v: Only4)->u32   => cast(u32) v.a * 1000 + cast(u32) v.b
+func sum1(v: Only1)->u32   => cast(u32, v.a)
+func sum2(v: Only2)->u32   => cast(u32, v.a) * 100 + cast(u32, v.b)
+func sum4(v: Only4)->u32   => cast(u32, v.a) * 1000 + cast(u32, v.b)
 func sumPair(v: Pair)->u32 => v.x * 1000 + v.y
 func sumFloatPair(v: FloatPair)->f32 => v.x + v.y
 
 // The fifth argument lands in a stack slot rather than a register.
-func sumPairStack(a, b, c, d: u64, v: Pair)->u64 => a + b + c + d + cast(u64) v.x * 3 + cast(u64) v.y
+func sumPairStack(a, b, c, d: u64, v: Pair)->u64 => a + b + c + d + cast(u64, v.x) * 3 + cast(u64, v.y)
 
 // The integer lane between two float lanes carries the aggregate.
-func sumMixedLanes(a: f64, v: Pair, b: f64)->f64 => a + cast(f64) (v.x + v.y) + b
+func sumMixedLanes(a: f64, v: Pair, b: f64)->f64 => a + cast(f64, (v.x + v.y)) + b
 
 // The parameter has a memory home: its address is a real address.
 func sumViaAddress(v: Pair)->u32

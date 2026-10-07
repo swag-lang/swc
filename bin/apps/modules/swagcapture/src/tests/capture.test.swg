@@ -10,7 +10,7 @@ func testAddMonitorAt(main: *MainWnd, rect: Math.Rectangle)
 
 func testAddMonitor(main: *MainWnd, idx: u32)
 {
-    testAddMonitorAt(main, {cast(f32) idx * 320, 0, 320, 240})
+    testAddMonitorAt(main, {cast(f32, idx) * 320, 0, 320, 240})
 }
 
 // Capture command states cover every toolbar/menu entry, including monitor

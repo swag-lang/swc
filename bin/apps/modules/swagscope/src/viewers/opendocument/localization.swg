@@ -53,5 +53,5 @@ func registerOpenDocumentStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'OpenDocumentStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'OpenDocumentStrings(cast(string, FrenchStrings))
 }

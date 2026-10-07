@@ -37,13 +37,13 @@ struct BoardAudit
 
 func stringLess(left, right: string)->bool
 {
-    let leftBytes    = cast(const [..] u8) left
-    let rightBytes   = cast(const [..] u8) right
+    let leftBytes    = cast(const [..] u8, left)
+    let rightBytes   = cast(const [..] u8, right)
     let commonLength = Swag.min(leftBytes.count, rightBytes.count)
 
     for idx in commonLength
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if leftBytes[index] < rightBytes[index] do
             return true
         if leftBytes[index] > rightBytes[index] do
@@ -55,16 +55,16 @@ func stringLess(left, right: string)->bool
 
 func parseWireIndex(name: string)->u32
 {
-    let bytes = cast(const [..] u8) name
+    let bytes = cast(const [..] u8, name)
     Swag.assert(bytes.count == 3)
     Swag.assert(bytes[1] >= '0' and bytes[1] <= '9')
     Swag.assert(bytes[2] >= '0' and bytes[2] <= '9')
-    return cast(u32) (bytes[1] - '0') * 10'u32 + cast(u32) (bytes[2] - '0')
+    return cast(u32, (bytes[1] - '0')) * 10'u32 + cast(u32, (bytes[2] - '0'))
 }
 
 func startsWith(name: string, prefix: u8)->bool
 {
-    let bytes = cast(const [..] u8) name
+    let bytes = cast(const [..] u8, name)
     return bytes.count == 3 and bytes[0] == prefix
 }
 
@@ -96,7 +96,7 @@ func findWireIndex(wireNames: const [..] string, wireCount: u32, name: string)->
 {
     for idx in wireCount
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if wireNames[index] == name do
             return index
     }
@@ -108,7 +108,7 @@ func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
 {
     for idx in suspectCount[]
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if suspects[index] == name do
             return
     }
@@ -150,10 +150,10 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
 {
     for index in suspectCount
     {
-        let left = cast(u32) index
+        let left = cast(u32, index)
         for idx in suspectCount
         {
-            let right = cast(u32) idx
+            let right = cast(u32, idx)
             if right <= left do
                 continue
 
@@ -169,12 +169,12 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
 
 func suspectsMatch(audit: BoardAudit, expected: const [..] string)->bool
 {
-    if audit.suspectCount != cast(u32) expected.count do
+    if audit.suspectCount != cast(u32, expected.count) do
         return false
 
     for idx in audit.suspectCount
     {
-        let index = cast(u32) idx
+        let index = cast(u32, idx)
         if audit.suspects[index] != expected[index] do
             return false
     }
@@ -205,7 +205,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     var gateResolved:  [MaxGates] bool
     var resolvedCount: u32
 
-    while resolvedCount < cast(u32) gates.count
+    while resolvedCount < cast(u32, gates.count)
     {
         var progress = false
 
@@ -242,7 +242,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
     for index in wireCount
     {
-        let wireIndex = cast(u32) index
+        let wireIndex = cast(u32, index)
         if wireKnown[wireIndex] and isOutputWire(wireNames[wireIndex]) and wireValues[wireIndex] != 0
         {
             let bitIndex = parseWireIndex(wireNames[wireIndex])

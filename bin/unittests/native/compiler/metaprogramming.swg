@@ -134,8 +134,8 @@ namespace compiler1665
 
     func C(x: ...)
     {
-        var ptr1 = cast #assume(const * TT) x[0]
-        var ptr2 = cast #assume(TT) x[0]
+        var ptr1 = assume cast(const * TT, x[0])
+        var ptr2 = assume cast(TT, x[0])
         Swag.assert(ptr1.x == 456)
         Swag.assert(ptr2.y == 456)
         ptr2.x = 100
@@ -170,7 +170,7 @@ namespace compiler1667
     func C(x: ...)
     {
         // Swag.print(#typeof(x[0]).name)
-        // var ptr1 = cast(const TT) x[0]
+        // var ptr1 = cast(const TT, x[0])
         // ptr1.value = 456
     }
 
@@ -282,7 +282,7 @@ namespace compiler2447
     #assert(#typeof(N()) == #typeof(10))
     #assert(#typeof(#run N()) == #typeof(10))
 
-    const ArrCount = cast(s32) #run N()
+    const ArrCount = cast(s32, #run N())
     var arr: [ArrCount] s32
 
     // #run result used as array size
@@ -629,7 +629,7 @@ namespace compiler4844
         {
             var arr: [N] s32
             for i in arr.count do
-                arr[i] = 1 << cast(u32) i
+                arr[i] = 1 << cast(u32, i)
             return arr
         }
 
@@ -699,7 +699,7 @@ namespace compiler4849
         str[0] = 'a'
         str[1] = 'b'
         str[2] = str[1] + 1
-        return cast(string) str
+        return cast(string, str)
     }
 
     #assert(MyString == "abc")
@@ -723,12 +723,12 @@ namespace compiler4849
 
         let values = #run
         {
-            return [cast(any) "first", cast(any) "second"]
+            return [cast(any, "first"), cast(any, "second")]
         }
 
-        Swag.assert(cast #assume(string) value.item == "abc")
-        Swag.assert(cast #assume(string) value.other == "def")
-        Swag.assert(cast #assume(string) values[0] == "first")
-        Swag.assert(cast #assume (string) values[1] == "second")
+        Swag.assert(assume cast(string, value.item) == "abc")
+        Swag.assert(assume cast(string, value.other) == "def")
+        Swag.assert(assume cast(string, values[0]) == "first")
+        Swag.assert(assume cast (string, values[1]) == "second")
     }
 }

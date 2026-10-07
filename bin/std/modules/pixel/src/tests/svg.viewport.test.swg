@@ -69,9 +69,9 @@ private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, 
 private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
 {
     var result = 0'u64
-    for y in cast(s32) rect.y until cast(s32) rect.bottom()
+    for y in cast(s32, rect.y) until cast(s32, rect.bottom())
     {
-        for x in cast(s32) rect.x until cast(s32) rect.right() where (a.pixelColor(x, y).argb & 0xFFFFFF) != (b.pixelColor(x, y).argb & 0xFFFFFF) do
+        for x in cast(s32, rect.x) until cast(s32, rect.right()) where (a.pixelColor(x, y).argb & 0xFFFFFF) != (b.pixelColor(x, y).argb & 0xFFFFFF) do
             result += 1
     }
 
@@ -121,7 +121,7 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     {
         source.appendFormat("<path fill='none' stroke='#%{X02}3050' stroke-width='%' d='M20 %", 40 + band * 16, 2 + band, 60 + band * 128)
         for step in 700 do
-            source.appendFormat("L% %", 20 + cast(f32) step * 2.24, 60 + band * 128 + Math.sin(cast(f32) step * 0.09) * 44)
+            source.appendFormat("L% %", 20 + cast(f32, step) * 2.24, 60 + band * 128 + Math.sin(cast(f32, step) * 0.09) * 44)
         source += "'/>"
     }
 
@@ -135,7 +135,7 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     const Width  = 100's32     // 1600 * Scale
     const Height = 100's32
 
-    let clip     = Math.Rectangle{0, 0, cast(f32) Width, cast(f32) Height}
+    let clip     = Math.Rectangle{0, 0, cast(f32, Width), cast(f32, Height)}
     let minified = renderViewport(&drawing, Width, Height, 0, 0, Scale, clip, true)
     let detailed = drawing.rasterize(Width, Height, 1)
 
@@ -148,16 +148,16 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
         {
             let a = minified.pixelColor(x, y)
             let b = detailed.pixelColor(x, y)
-            total += cast(u64) Math.abs(cast(s32) a.r - cast(s32) b.r)
-            total += cast(u64) Math.abs(cast(s32) a.g - cast(s32) b.g)
-            total += cast(u64) Math.abs(cast(s32) a.b - cast(s32) b.b)
+            total += cast(u64, Math.abs(cast(s32, a.r) - cast(s32, b.r)))
+            total += cast(u64, Math.abs(cast(s32, a.g) - cast(s32, b.g)))
+            total += cast(u64, Math.abs(cast(s32, a.b) - cast(s32, b.b)))
         }
     }
 
     // Averaged over every channel of every pixel, in thousandths of a level. Sub-pixel edge
     // disagreement lands well under one level; a band or a ring the minified pass had lost
     // would be worth tens of them.
-    let average = total * 1000 / (cast(u64) Width * cast(u64) Height * 3)
+    let average = total * 1000 / (cast(u64, Width) * cast(u64, Height) * 3)
     Swag.assert(average < 2000)
 }
 
@@ -170,7 +170,7 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     const Width  = 200's32
     const Height = 260's32
 
-    let clip  = Math.Rectangle{0, 0, cast(f32) Width, cast(f32) Height}
+    let clip  = Math.Rectangle{0, 0, cast(f32, Width), cast(f32, Height)}
     let first = renderViewport(&drawing, Width, Height, 0, -300, 1, clip, true)
     discard renderViewport(&drawing, Width, Height, 0, 0, 0.28, clip, true)
     discard renderViewport(&drawing, Width, Height, 0, -700, 1, clip, true)

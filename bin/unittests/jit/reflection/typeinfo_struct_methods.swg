@@ -113,7 +113,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
 {
     RuntimeMethodReflectionCalls += 1
 
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != expectedCount do
         return false
 
@@ -129,7 +129,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
 
 func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     for &methodInfo in info.methods
     {
         if methodInfo.name == expectedName do
@@ -141,12 +141,12 @@ func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 
 func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
-    let methodType = cast #assume(const *Swag.TypeInfoFunc?) methodInfo.pointedType
+    let methodType = assume cast(const *Swag.TypeInfoFunc?, methodInfo.pointedType)
     if methodType == null do
         return false
     let params = methodType.parameters
@@ -160,7 +160,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: SimpleMethodProbe = {value: seed}
-    let method = cast(SimplePingFn) methodInfo.value
+    let method = cast(SimplePingFn, methodInfo.value)
     let result = method(&probe)
     RuntimeMethodPointerCalls += 1
     return result == seed + 1
@@ -168,12 +168,12 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 
 func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
-    let methodType = cast #assume(const *Swag.TypeInfoFunc?) methodInfo.pointedType
+    let methodType = assume cast(const *Swag.TypeInfoFunc?, methodInfo.pointedType)
     if methodType == null do
         return false
     let params = methodType.parameters
@@ -189,7 +189,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 
     var probe: GenericMethodProbe's32 = {value: start}
     let values = [next, start]
-    let method = cast(GenericCopyFromFn) methodInfo.value
+    let method = cast(GenericCopyFromFn, methodInfo.value)
     let result = method(&probe, values)
     RuntimeMethodPointerCalls += 1
     return result == next and probe.value == next
@@ -197,7 +197,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 
 func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     if info.methods.count != 4 do
         return false
 
@@ -207,10 +207,10 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     let scaledInfo = methods[2]
     let scoreInfo  = methods[3]
 
-    let scaleType  = cast #assume(const *Swag.TypeInfoFunc?) scaleInfo.pointedType
-    let addType    = cast #assume(const *Swag.TypeInfoFunc?) addInfo.pointedType
-    let scaledType = cast #assume(const *Swag.TypeInfoFunc?) scaledInfo.pointedType
-    let scoreType  = cast #assume(const *Swag.TypeInfoFunc?) scoreInfo.pointedType
+    let scaleType  = assume cast(const *Swag.TypeInfoFunc?, scaleInfo.pointedType)
+    let addType    = assume cast(const *Swag.TypeInfoFunc?, addInfo.pointedType)
+    let scaledType = assume cast(const *Swag.TypeInfoFunc?, scaledInfo.pointedType)
+    let scoreType  = assume cast(const *Swag.TypeInfoFunc?, scoreInfo.pointedType)
     if scaleType == null or addType == null or scaledType == null or scoreType == null do
         return false
 
@@ -258,24 +258,24 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scoreInfo.value == null do
         return false
 
-    let scaleValue = cast(ExportedScaleValueFn) scaleInfo.value
+    let scaleValue = cast(ExportedScaleValueFn, scaleInfo.value)
     if scaleValue(seed, 3) != seed * 3 do
         return false
     RuntimeMethodPointerCalls += 1
 
     var probe: ExportedMethodProbe = {value: seed}
 
-    let add = cast(ExportedAddFn) addInfo.value
+    let add = cast(ExportedAddFn, addInfo.value)
     if add(&probe, 5) != seed + 5 or probe.value != seed + 5 do
         return false
     RuntimeMethodPointerCalls += 1
 
-    let scaled = cast(ExportedScaledFn) scaledInfo.value
+    let scaled = cast(ExportedScaledFn, scaledInfo.value)
     if scaled(&probe, 2) != (seed + 5) * 2 do
         return false
     RuntimeMethodPointerCalls += 1
 
-    let score = cast(ExportedScoreFn) scoreInfo.value
+    let score = cast(ExportedScoreFn, scoreInfo.value)
     if score(&probe, 7) != seed + 12 do
         return false
     RuntimeMethodPointerCalls += 1

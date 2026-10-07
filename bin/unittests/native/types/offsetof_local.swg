@@ -17,7 +17,7 @@ func scalarLayout()->u64
     #assert(#offsetof(b) == 2)
     #assert(#offsetof(c) == 4)
     #assert(#offsetof(d) == 8)
-    return cast(u64) #offsetof(a) + cast(u64) #offsetof(b) + cast(u64) #offsetof(c) + cast(u64) #offsetof(d)
+    return cast(u64, #offsetof(a)) + cast(u64, #offsetof(b)) + cast(u64, #offsetof(c)) + cast(u64, #offsetof(d))
 }
 
 func stringAndNested()->u64
@@ -31,7 +31,7 @@ func stringAndNested()->u64
     let tail: u16 = 7
     #assert(#offsetof(head) == 0)
     #assert(#offsetof(tail) == 24)
-    return cast(u64) #offsetof(head) + cast(u64) #offsetof(tail)
+    return cast(u64, #offsetof(head)) + cast(u64, #offsetof(tail))
 }
 
 func multiDecl()->u64
@@ -39,7 +39,7 @@ func multiDecl()->u64
     var a, b: s32 = 1
     #assert(#offsetof(a) == 0)
     #assert(#offsetof(b) == 4)
-    return cast(u64) #offsetof(b)
+    return cast(u64, #offsetof(b))
 }
 
 func aggregateLayout()->u64
@@ -51,7 +51,7 @@ func aggregateLayout()->u64
     #assert(#offsetof(lead) == 0)
     #assert(#offsetof(pair) == 8)
     #assert(#offsetof(tail) == 24)
-    return cast(u64) #offsetof(tail)
+    return cast(u64, #offsetof(tail))
 }
 
 #test

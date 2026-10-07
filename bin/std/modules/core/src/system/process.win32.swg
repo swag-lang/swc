@@ -24,7 +24,7 @@ private const MaxWaitStep = 0xFFFFFFFE'u64
 // The code is signed like everywhere else exit codes travel — [[Core.Env.Process.waitForExit]],
 // [[Core.Env.Process.exitCode]], [[Core.Env.Process.kill]] — and is reinterpreted at the
 // system boundary.
-func exit(exitCode: s32) => ExitProcess(cast #bit (u32) exitCode)
+func exit(exitCode: s32) => ExitProcess(cast #bit (u32, exitCode))
 
 // Returns the environment variables of the current process.
 //
@@ -174,7 +174,7 @@ private func nativePath(path: string)->String
 // Closes `handle` and clears it, so a repeated release is a no-op.
 private func releaseHandle(handle: *ProcessHandle)
 {
-    let native = cast(HANDLE) handle[]
+    let native = cast(HANDLE, handle[])
     if not native do
         return
 
@@ -212,7 +212,7 @@ private func createRedirectionPipe(parentEnd, childEnd: *ProcessHandle, childWri
 
     // Only the child's end may be inherited. A duplicate of this side living in the child would
     // hold the pipe open after the child exits, and the reader would never see the end of it.
-    try SetHandleInformation(cast(HANDLE) parentEnd[], HANDLE_FLAG_INHERIT, 0)
+    try SetHandleInformation(cast(HANDLE, parentEnd[]), HANDLE_FLAG_INHERIT, 0)
 }
 
 // Returns the standard handle a child inherits, normalizing the absence of one to null.
@@ -328,7 +328,7 @@ func startProcess(info: StartInfo)->Process fail
     if info.environment
     {
         environmentBlock = buildEnvironmentBlock(info.environment)
-        environmentPtr   = cast(LPVOID) (environmentBlock.toSlice()).buffer
+        environmentPtr   = cast(LPVOID, (environmentBlock.toSlice()).buffer)
         creationFlags    |= CREATE_UNICODE_ENVIRONMENT
     }
 
@@ -337,9 +337,9 @@ func startProcess(info: StartInfo)->Process fail
     if anyRedirection
     {
         startup.dwFlags    = STARTF_USESTDHANDLES
-        startup.hStdInput  = cast(HANDLE) childInput
-        startup.hStdOutput = cast(HANDLE) childOutput
-        startup.hStdError  = cast(HANDLE) childError
+        startup.hStdInput  = cast(HANDLE, childInput)
+        startup.hStdOutput = cast(HANDLE, childOutput)
+        startup.hStdError  = cast(HANDLE, childError)
     }
 
     // Nothing here decides whether a window appears for a program that draws its own; the flag
@@ -398,12 +398,12 @@ impl Process
             if not job do
                 try failWinError(GetLastError())
 
-            .jobHandle = cast(ProcessHandle) job
-            try AssignProcessToJobObject(job, cast(HANDLE) .handle)
+            .jobHandle = cast(ProcessHandle, job)
+            try AssignProcessToJobObject(job, cast(HANDLE, .handle))
         }
 
         if info.affinityMask != 0 do
-            try SetProcessAffinityMask(cast(HANDLE) .handle, info.affinityMask)
+            try SetProcessAffinityMask(cast(HANDLE, .handle), info.affinityMask)
     }
 
     // Releases resources owned by this value.
@@ -437,16 +437,16 @@ impl Process
             return result
 
         var accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
-        if QueryInformationJobObject(cast(HANDLE) .jobHandle, JobObjectBasicAccountingInformation, cast(LPVOID) &accounting, #sizeof(accounting), null)
+        if QueryInformationJobObject(cast(HANDLE, .jobHandle), JobObjectBasicAccountingInformation, cast(LPVOID, &accounting), #sizeof(accounting), null)
         {
             // A job reports its times in 100-nanosecond units.
-            result.userTime     = Time.Duration.fromSeconds(cast(f64) accounting.TotalUserTime / 10_000_000.0)
-            result.kernelTime   = Time.Duration.fromSeconds(cast(f64) accounting.TotalKernelTime / 10_000_000.0)
+            result.userTime     = Time.Duration.fromSeconds(cast(f64, accounting.TotalUserTime) / 10_000_000.0)
+            result.kernelTime   = Time.Duration.fromSeconds(cast(f64, accounting.TotalKernelTime) / 10_000_000.0)
             result.processCount = accounting.TotalProcesses
         }
 
         var limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-        if QueryInformationJobObject(cast(HANDLE) .jobHandle, JobObjectExtendedLimitInformation, cast(LPVOID) &limits, #sizeof(limits), null)
+        if QueryInformationJobObject(cast(HANDLE, .jobHandle), JobObjectExtendedLimitInformation, cast(LPVOID, &limits), #sizeof(limits), null)
         {
             result.peakMemory        = limits.PeakJobMemoryUsed
             result.peakProcessMemory = limits.PeakProcessMemoryUsed
@@ -459,8 +459,8 @@ impl Process
     internal mtd collectExitCode() fail
     {
         var code: DWORD
-        try GetExitCodeProcess(cast(HANDLE) .handle, &code)
-        .status = cast #bit (s32) code
+        try GetExitCodeProcess(cast(HANDLE, .handle), &code)
+        .status = cast #bit (s32, code)
         .exited = true
     }
 
@@ -478,7 +478,7 @@ impl Process
     // Moves everything one captured pipe currently holds into `text`.
     private mtd drainPipe(pipe: *ProcessHandle, text: *String)
     {
-        let handle = cast(HANDLE) pipe[]
+        let handle = cast(HANDLE, pipe[])
         if not handle do
             return
 
@@ -506,7 +506,7 @@ impl Process
                 return
             }
 
-            text.append(cast(string) buffer[until read])
+            text.append(cast(string, buffer[until read]))
         }
     }
 
@@ -524,7 +524,7 @@ impl Process
         while not .exited
         {
             .readAvailable()
-            let status = try WaitForSingleObject(cast(HANDLE) .handle, interval)
+            let status = try WaitForSingleObject(cast(HANDLE, .handle), interval)
             if status == WAIT_OBJECT_0 do
                 try .collectExitCode()
         }
@@ -549,10 +549,10 @@ impl Process
         {
             .readAvailable()
 
-            let step  = .hasCapturedStream() ? cast(u64) PipePollInterval : MaxWaitStep
+            let step  = .hasCapturedStream() ? cast(u64, PipePollInterval) : MaxWaitStep
             let slice = Math.min(remaining, step)
 
-            let status = try WaitForSingleObject(cast(HANDLE) .handle, cast(DWORD) slice)
+            let status = try WaitForSingleObject(cast(HANDLE, .handle), cast(DWORD, slice))
             if status == WAIT_OBJECT_0
             {
                 try .collectExitCode()
@@ -577,7 +577,7 @@ impl Process
     {
         if .exited or not .handle do
             return
-        try TerminateProcess(cast(HANDLE) .handle, cast #bit (u32) exitCode)
+        try TerminateProcess(cast(HANDLE, .handle), cast #bit (u32, exitCode))
     }
 
     // Writes `data` to the standard input of the process.
@@ -587,7 +587,7 @@ impl Process
     // last write: a child reading to the end of its input waits forever otherwise.
     mtd writeStandardInput(data: string) fail
     {
-        let handle = cast(HANDLE) .inputPipe
+        let handle = cast(HANDLE, .inputPipe)
         if not handle do
             fail BadParameterError{"standard input is not redirected to a pipe"}
 
@@ -595,7 +595,7 @@ impl Process
         while offset < data.count
         {
             var written: DWORD
-            try WriteFile(handle, data.buffer + offset, cast(u32) Math.min(data.count - offset, cast(u64) Swag.U32.Max), &written, null)
+            try WriteFile(handle, data.buffer + offset, cast(u32, Math.min(data.count - offset, cast(u64, Swag.U32.Max))), &written, null)
             if not written do
                 try failWinError(ERROR_NO_DATA)
             offset += written
@@ -619,7 +619,7 @@ impl Process
     func currentExecutablePath()->String fail
     {
         var buffer: [32768] u16
-        let count = GetModuleFileNameW(null, buffer.buffer, cast(u32) buffer.count)
+        let count = GetModuleFileNameW(null, buffer.buffer, cast(u32, buffer.count))
         if not count do
             try failWinError(GetLastError())
         if count >= buffer.count do

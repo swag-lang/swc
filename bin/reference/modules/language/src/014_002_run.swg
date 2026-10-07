@@ -106,7 +106,7 @@ Example: initializing a static array at compile time.
     {
         var arr: [N] s32
         for i in arr.count do
-            arr[i] = 1 << cast(u32) i
+            arr[i] = 1 << cast(u32, i)
         return arr
     }
 
@@ -127,7 +127,7 @@ Example: compile-time string construction.
         str[0] = 'a'
         str[1] = 'b'
         str[2] = str[1] + 1
-        return cast(string) str
+        return cast(string, str)
     }
 
     #assert(MyString == "abc")

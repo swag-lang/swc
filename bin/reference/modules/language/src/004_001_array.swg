@@ -47,7 +47,7 @@ The '.buffer' intrinsic retrieves the address of the first element in an array.
     var ptr0 = array.buffer
     ptr0[0] = 1
 
-    var ptr1 = cast([*] s32) &array[0]
+    var ptr1 = cast([*] s32, &array[0])
     ptr1[1] = 2
 
     Swag.assert(array[0] == 1)

@@ -14,7 +14,7 @@ func __concreteAlias(type1: typeinfo)->typeinfo
 {
     if type1.kind != TypeInfoKind.Alias or type1.flags & TypeInfoFlags.Strict do
         return type1
-    let typeAlias = cast(const *TypeInfoAlias) cast(const *void) type1
+    let typeAlias = cast(const *TypeInfoAlias, cast(const *void, type1))
     return __concreteAlias(typeAlias.rawType)
 }
 
@@ -44,7 +44,7 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
     if fromType.kind != .Struct do
         return null
 
-    let fromStruct = cast(const *TypeInfoStruct) cast(const *void) fromType
+    let fromStruct = cast(const *TypeInfoStruct, cast(const *void, fromType))
     if toType.kind == .Interface
     {
         // The object's metadata carries its own tables, including across modules.
@@ -54,7 +54,7 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
             if let table = entry.value
             {
                 if view != null do
-                    view.itable = cast(const [*] ([*] void?)) table
+                    view.itable = cast(const [*] ([*] void?), table)
                 return ptr
             }
         }
@@ -65,7 +65,7 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
     var visit = previous
     while visit
     {
-        if visit.address == ptr and cast(const *void) visit.type == cast(const *void) fromType do
+        if visit.address == ptr and cast(const *void, visit.type) == cast(const *void, fromType) do
             return null
         visit = visit.previous
     }
@@ -76,12 +76,12 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
         var fieldType = __concreteAlias(field.pointedType!)
         if fieldType.flags & .Const and not readOnly do
             continue
-        var fieldPtr = cast(*void?) (cast([*] u8) ptr + field.offset)
+        var fieldPtr = cast(*void?, (cast([*] u8, ptr) + field.offset))
         if fieldType.kind == .Pointer
         {
-            let pointerType = cast(const *TypeInfoPointer) cast(const *void) fieldType
+            let pointerType = cast(const *TypeInfoPointer, cast(const *void, fieldType))
             fieldType = __concreteAlias(pointerType.pointedType)
-            fieldPtr  = (cast(*(*void?)) fieldPtr!)[]
+            fieldPtr  = cast(*(*void?), fieldPtr!)[]
         }
 
         if fieldPtr == null do
@@ -99,7 +99,7 @@ func __hasDynamicBase(toType, fromType: typeinfo)->bool
         return true
     if fromType.kind != .Struct do
         return false
-    let info = cast(const *TypeInfoStruct) cast(const *void) fromType
+    let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
         let fieldType = __concreteAlias(field.pointedType!)
@@ -116,13 +116,13 @@ func __containsDynamicSubobject(toType, fromType: typeinfo, ptr, expected: *void
         return true
     if fromType.kind != .Struct do
         return false
-    let info = cast(const *TypeInfoStruct) cast(const *void) fromType
+    let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
         let fieldType = __concreteAlias(field.pointedType!)
         if fieldType.kind != .Struct do
             continue
-        let fieldPtr = cast(*void) (cast([*] u8) ptr + field.offset)
+        let fieldPtr = cast(*void, (cast([*] u8, ptr) + field.offset))
         if __containsDynamicSubobject(toType, fieldType, fieldPtr, expected) do
             return true
     }
@@ -136,13 +136,13 @@ func __findDynamicOwner(toType, fromType: typeinfo, ptr: *void, sourceType: type
         return ptr
     if fromType.kind != .Struct do
         return null
-    let info = cast(const *TypeInfoStruct) cast(const *void) fromType
+    let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
         let fieldType = __concreteAlias(field.pointedType!)
         if fieldType.kind != .Struct do
             continue
-        let fieldPtr = cast(*void) (cast([*] u8) ptr + field.offset)
+        let fieldPtr = cast(*void, (cast([*] u8, ptr) + field.offset))
         if let found = __findDynamicOwner(toType, fieldType, fieldPtr, sourceType, sourcePtr) do
             return found
     }
@@ -165,7 +165,7 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
     let targetIsConst = readOnly or (requestedType.flags & .Const) != 0
     var targetType    = requestedType
     if not borrowValue and requestedType.kind == .Pointer do
-        targetType = __concreteAlias((cast(const *TypeInfoPointer) cast(const *void) requestedType).pointedType)
+        targetType = __concreteAlias(cast(const *TypeInfoPointer, cast(const *void, requestedType)).pointedType)
     if borrowValue do
         targetType = targetType.unqualified!
     var sourceType = __concreteAlias(fromType)
@@ -197,9 +197,9 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
             return null
         if sourcePtr == null do
             return null
-        let pointerType = cast(const *TypeInfoPointer) cast(const *void) sourceType
+        let pointerType = cast(const *TypeInfoPointer, cast(const *void, sourceType))
         sourceType = __concreteAlias(pointerType.pointedType)
-        sourcePtr  = (cast(*(*void?)) sourcePtr)[]
+        sourcePtr  = cast(*(*void?), sourcePtr)[]
         if sourcePtr == null and matchedNull != null do
             matchedNull[] = Swag.typeCmp(targetType, sourceType, .Strict) or
                             __hasDynamicBase(targetType, sourceType) or
@@ -218,10 +218,10 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
             return null
         if sourcePtr == null do
             return null
-        let sourceView = cast(*Interface) sourcePtr
+        let sourceView = cast(*Interface, sourcePtr)
         if sourceView.itable == null do
             return null
-        sourceType        = cast(const *TypeInfo) sourceView.itable[0]!
+        sourceType        = cast(const *TypeInfo, sourceView.itable[0]!)
         sourcePtr         = sourceView.obj
         acceptsNullObject = true
     }
@@ -244,12 +244,12 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
 
     if sourceType.kind == .Struct
     {
-        let structType = cast(const *TypeInfoStruct) cast(const *void) sourceType
+        let structType = cast(const *TypeInfoStruct, cast(const *void, sourceType))
         if let slots = structType.dynamicSlots
         {
-            let slotAddress = cast([*] u8) sourcePtr + slots[0].offset
-            let descriptor  = (cast(*const *DynamicStructInfo) cast(*void) slotAddress)[]
-            sourcePtr  = cast(*void) (slotAddress - descriptor.offset)
+            let slotAddress = cast([*] u8, sourcePtr) + slots[0].offset
+            let descriptor  = cast(*const *DynamicStructInfo, cast(*void, slotAddress))[]
+            sourcePtr  = cast(*void, (slotAddress - descriptor.offset))
             sourceType = descriptor.type
         }
     }
@@ -268,9 +268,9 @@ func __isCompilerType(type: typeinfo?)->bool
     if type == null do
         return false
     const identityOffset = #sizeof(TypeInfo) - #sizeof(*void)
-    let address  = cast(const [*] u8) cast(const *void) type + identityOffset
-    let identity = (cast(const *const *DynamicStructInfo) address)[]
-    return cast(const *void?) identity.runtimeType == cast(const *void) type
+    let address  = cast(const [*] u8, cast(const *void, type)) + identityOffset
+    let identity = cast(const *const *DynamicStructInfo, address)[]
+    return cast(const *void?, identity.runtimeType) == cast(const *void, type)
 }
 
 struct RuntimeTypeCastVisit
@@ -295,7 +295,7 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
     var visit = previous
     while visit
     {
-        if cast(const *void) visit.type == cast(const *void) source and cast(const *void) visit.target == cast(const *void) target do
+        if cast(const *void, visit.type) == cast(const *void, source) and cast(const *void, visit.target) == cast(const *void, target) do
             return false
         visit = visit.previous
     }
@@ -303,12 +303,12 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
     let current = RuntimeTypeCastVisit{source, target, previous}
     if source.kind == .Pointer
     {
-        let pointer = cast(const *TypeInfoPointer) cast(const *void) source
+        let pointer = cast(const *TypeInfoPointer, cast(const *void, source))
         if target.kind == .Interface do
             return __runtimeTypeCompatible(target, pointer.pointedType, &current, (target.flags & .Const) != 0)
         if target.kind != .Pointer do
             return false
-        let targetPointer = cast(const *TypeInfoPointer) cast(const *void) target
+        let targetPointer = cast(const *TypeInfoPointer, cast(const *void, target))
         if Swag.typeCmp(targetPointer.pointedType, pointer.pointedType, .Strict) do
             return true
         return __runtimeTypeCompatible(targetPointer.pointedType, pointer.pointedType, &current, (target.flags & .Const) != 0)
@@ -316,7 +316,7 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
 
     if source.kind != .Struct do
         return false
-    let info = cast(const *TypeInfoStruct) cast(const *void) source
+    let info = cast(const *TypeInfoStruct, cast(const *void, source))
     if target.kind == .Interface
     {
         for entry in info.interfaces where entry.value != null
@@ -332,7 +332,7 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
         if fieldType.flags & .Const and not readOnly and not (target.flags & .Const) do
             continue
         if fieldType.kind == .Pointer do
-            fieldType = (cast(const *TypeInfoPointer) cast(const *void) fieldType).pointedType
+            fieldType = cast(const *TypeInfoPointer, cast(const *void, fieldType)).pointedType
         if __runtimeTypeCompatible(target, fieldType, &current, readOnly or (target.flags & .Const) != 0) do
             return true
     }
@@ -359,7 +359,7 @@ struct RuntimeValueCastStorage
 
 func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void, readOnly: bool)->bool
 {
-    let result = cast(*RuntimeValueCastStorage) storage
+    let result = cast(*RuntimeValueCastStorage, storage)
     result.value       = null
     result.view.obj    = null
     result.view.itable = null
@@ -381,7 +381,7 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     let view: *Interface? = target.kind == .Interface ? &result.view : null
 
     // The result's constness is carried by the cast expression; lookup only reads this address.
-    let sourceData = cast #unconst(*void?) cast(const *void?) source[].buffer
+    let sourceData = cast #unconst(*void?, cast(const *void?, source[].buffer))
     let found      = __dynamicCastImpl(target, sourceType, sourceData, view, false, null, true, readOnly)
     if target.kind == .Interface
     {
@@ -413,7 +413,7 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
        type1.flags & .PointerRef and
        type1.flags & .Const
     {
-        let typePointer = cast(const *Swag.TypeInfoPointer) cast(const *void) type1
+        let typePointer = cast(const *Swag.TypeInfoPointer, cast(const *void, type1))
         return Swag.typeCmp(typePointer.pointedType, type2, cmpFlags)
     }
 
@@ -429,8 +429,8 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 
     if type1.kind == TypeInfoKind.Native
     {
-        let native1 = cast(const *TypeInfoNative) cast(const *void) type1
-        let native2 = cast(const *TypeInfoNative) cast(const *void) type2
+        let native1 = cast(const *TypeInfoNative, cast(const *void, type1))
+        let native2 = cast(const *TypeInfoNative, cast(const *void, type2))
         if native1.nativeKind != native2.nativeKind do
             return false
         if native1.nativeKind == TypeInfoNativeKind.String or
@@ -442,8 +442,8 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
     // For tuples, we compare field by field
     if type1.flags & .Tuple
     {
-        let type1S  = cast(const *TypeInfoStruct) cast(const *void) type1
-        let type2S  = cast(const *TypeInfoStruct) cast(const *void) type2
+        let type1S  = cast(const *TypeInfoStruct, cast(const *void, type1))
+        let type2S  = cast(const *TypeInfoStruct, cast(const *void, type2))
         let fields1 = type1S.fields
         let fields2 = type2S.fields
         if fields1 == null or fields2 == null do
@@ -481,17 +481,17 @@ func tableOf(structType, itfType: typeinfo?)->const *void?
 {
     if not structType or not itfType or itfType.kind != .Interface do
         return null
-    let info = cast #try (const *TypeInfoStruct) structType
-    if not info do
-        return null
-    let itfs = info.interfaces
-    if itfs == null do
-        return null
-
-    for i in itfs.count
+    if structType is TypeInfoStruct as info
     {
-        if Swag.stringCmp(itfs[i].name, itfType.fullname) do
-            return itfs[i].value
+        let itfs = info.interfaces
+        if itfs == null do
+            return null
+
+        for i in itfs.count
+        {
+            if Swag.stringCmp(itfs[i].name, itfType.fullname) do
+                return itfs[i].value
+        }
     }
 
     return null
@@ -526,7 +526,7 @@ func __convertArgcArgv(args: const [*] u8?)
             let start = cmdLine
             while cmdLine[] and cmdLine[] != '"' do
                 cmdLine += 1
-            __argv[__argc] = cast(string) Swag.makeSlice(start, cast(u64) (cmdLine - start))
+            __argv[__argc] = cast(string, Swag.makeSlice(start, cast(u64, (cmdLine - start))))
             if cmdLine[] do
                 cmdLine += 1
         }
@@ -535,7 +535,7 @@ func __convertArgcArgv(args: const [*] u8?)
             let start = cmdLine
             while cmdLine[] and cmdLine[] != ' ' do
                 cmdLine += 1
-            __argv[__argc] = cast(string) Swag.makeSlice(start, cast(u64) (cmdLine - start))
+            __argv[__argc] = cast(string, Swag.makeSlice(start, cast(u64, (cmdLine - start))))
         }
 
         __argc += 1
@@ -550,7 +550,7 @@ func args()->const [..] string
 {
     if __argc == 0 do
         __convertArgcArgv((Swag.processInfos().args).buffer)
-    return Swag.makeSlice(&__argv[0], cast(u64) __argc)
+    return Swag.makeSlice(&__argv[0], cast(u64, __argc))
 }
 
 ////////////////////////////////////////////////////////////
@@ -675,7 +675,7 @@ func __dropGlobalVariables()
 {
     for g in Swag.gvtd()
     {
-        var ptr = cast([*] u8) g.ptr
+        var ptr = cast([*] u8, g.ptr)
         for x in g.count
         {
             g.opDrop(ptr)

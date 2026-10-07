@@ -46,8 +46,8 @@ func reused(a, b: u64)->u64
             Swag.assert(nine(a, b) == (low ? 16 : 7))
             Swag.assert(reversed(a, b) == (low ? 3 : 5))
             Swag.assert(wrapped(a, b) == (a == b ? 1'u64 : 0xFFFFFFFFFFFFFFFF))
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
-            let b32 = cast(u32) (b & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
+            let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(narrow(a32, b32) == (a32 == b32 ? 1'u32 : 0xFFFFFFFF))
             Swag.assert(reused(a, b) == (low ? 5'u64 : 3) + (a == b ? 7'u64 : 11))
         }

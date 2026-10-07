@@ -173,7 +173,7 @@ These change one operation rather than producing a value:
 
     #assert(#typeof(255'u8 + #prom 1'u8) == u32)
 
-    let bits = cast #bit (u32) 1.0'f32
+    let bits = cast #bit (u32, 1.0'f32)
     Swag.assert(bits == 0x3F800000)
 }
 
@@ -279,10 +279,10 @@ clearly than disabling overflow checks for a file.
 
 # Contextual Keywords Are Different
 
-'cast' is the common conversion expression. Its '#try' modifier returns a nullable
-view for a dynamic conversion. Use 'value is T' to test compatibility directly.
-Its '#assume' modifier asserts compatibility and checks that assertion when dynamic
-cast safety is enabled. A compile-time expression such as
+'cast(Type, value)' is the common conversion expression. 'try' propagates a
+conversion error, 'expect' panics on failure in every configuration, and 'assume'
+asserts compatibility with a check controlled by runtime safety. Use 'value is T'
+to test compatibility directly. A compile-time expression such as
 `T is IFoo` can constrain a generic declaration with 'where'.
 The contextual 'as' names the caught error in a 'catch' clause, or the borrowed
 view in an 'if value is T as name' or 'case T as name' pattern.

@@ -43,12 +43,12 @@ func resetMemo(memo: [..] s32)
 
 func countPaths(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 {
-    if nodeIndex == cast(u32) ReactorNode.Output do
+    if nodeIndex == cast(u32, ReactorNode.Output) do
         return 1
 
     let cached = memo[nodeIndex]
     if cached >= 0 do
-        return cast(u32) cached
+        return cast(u32, cached)
 
     var total: u32
     let outputCount = graph.outputCounts[nodeIndex]
@@ -59,18 +59,18 @@ func countPaths(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
         total += countPaths(memo, graph, nextIndex)
     }
 
-    memo[nodeIndex] = cast(s32) total
+    memo[nodeIndex] = cast(s32, total)
     return total
 }
 
 func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 {
-    if nodeIndex == cast(u32) ReactorNode.Output do
+    if nodeIndex == cast(u32, ReactorNode.Output) do
         return 0
 
     let cached = memo[nodeIndex]
     if cached >= 0 do
-        return cast(u32) cached
+        return cast(u32, cached)
 
     var best: u32
     let outputCount = graph.outputCounts[nodeIndex]
@@ -83,7 +83,7 @@ func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
             best = candidate
     }
 
-    memo[nodeIndex] = cast(s32) best
+    memo[nodeIndex] = cast(s32, best)
     return best
 }
 
@@ -98,10 +98,10 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
     resetMemo(chainMemo)
 
     var result: ReactorReport
-    result.pathCount    = countPaths(pathMemo, graph, cast(u32) ReactorNode.Intake)
-    result.longestChain = longestChain(chainMemo, graph, cast(u32) ReactorNode.Intake)
+    result.pathCount    = countPaths(pathMemo, graph, cast(u32, ReactorNode.Intake))
+    result.longestChain = longestChain(chainMemo, graph, cast(u32, ReactorNode.Intake))
 
-    let intakeIndex = cast(u32) ReactorNode.Intake
+    let intakeIndex = cast(u32, ReactorNode.Intake)
     let branchCount = graph.outputCounts[intakeIndex]
 
     for index in branchCount
@@ -121,16 +121,16 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
 
 func buildSampleReactor()->ReactorGraph
 {
-    const Intake  = cast(u32) ReactorNode.Intake
-    const Mixer   = cast(u32) ReactorNode.Mixer
-    const Heater  = cast(u32) ReactorNode.Heater
-    const Cooler  = cast(u32) ReactorNode.Cooler
-    const Valve   = cast(u32) ReactorNode.Valve
-    const Sensor  = cast(u32) ReactorNode.Sensor
-    const Relay   = cast(u32) ReactorNode.Relay
-    const Buffer  = cast(u32) ReactorNode.Buffer
-    const Chamber = cast(u32) ReactorNode.Chamber
-    const Output  = cast(u32) ReactorNode.Output
+    const Intake  = cast(u32, ReactorNode.Intake)
+    const Mixer   = cast(u32, ReactorNode.Mixer)
+    const Heater  = cast(u32, ReactorNode.Heater)
+    const Cooler  = cast(u32, ReactorNode.Cooler)
+    const Valve   = cast(u32, ReactorNode.Valve)
+    const Sensor  = cast(u32, ReactorNode.Sensor)
+    const Relay   = cast(u32, ReactorNode.Relay)
+    const Buffer  = cast(u32, ReactorNode.Buffer)
+    const Chamber = cast(u32, ReactorNode.Chamber)
+    const Output  = cast(u32, ReactorNode.Output)
 
     var result: ReactorGraph
 
@@ -172,12 +172,12 @@ func buildSampleReactor()->ReactorGraph
 
 func buildCompactReactor()->ReactorGraph
 {
-    const Intake  = cast(u32) ReactorNode.Intake
-    const Mixer   = cast(u32) ReactorNode.Mixer
-    const Heater  = cast(u32) ReactorNode.Heater
-    const Valve   = cast(u32) ReactorNode.Valve
-    const Chamber = cast(u32) ReactorNode.Chamber
-    const Output  = cast(u32) ReactorNode.Output
+    const Intake  = cast(u32, ReactorNode.Intake)
+    const Mixer   = cast(u32, ReactorNode.Mixer)
+    const Heater  = cast(u32, ReactorNode.Heater)
+    const Valve   = cast(u32, ReactorNode.Valve)
+    const Chamber = cast(u32, ReactorNode.Chamber)
+    const Output  = cast(u32, ReactorNode.Output)
 
     var result: ReactorGraph
 

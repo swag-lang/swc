@@ -9,7 +9,7 @@ struct(T) DeferredConstantProbe
 #[Swag.NoInline]
 func reflectedMethod()->const *void?
 {
-    let info = cast(const *Swag.TypeInfoStruct) #type DeferredConstantProbe's32
+    let info = cast(const *Swag.TypeInfoStruct, #type DeferredConstantProbe's32)
     return info.methods![0].value
 }
 
@@ -43,7 +43,7 @@ func callPublishedMethod()->bool
     let second = forwardedMethod()
     if first == null or second != first do
         return false
-    let method = cast(func(const *DeferredConstantProbe's32)->s32) first
+    let method = cast(func(const *DeferredConstantProbe's32)->s32, first)
     return method(&probe) == 73
 }
 

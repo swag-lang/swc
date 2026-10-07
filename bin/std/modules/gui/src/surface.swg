@@ -251,8 +251,8 @@ impl Surface
         // and every layout tuned against its size would come up short — which is exactly what
         // clipped the last field of a form off the bottom of its card.
         let margin = surface.shadowMargin()
-        let outerW = width + 2 * cast(s32) margin
-        let outerH = height + 2 * cast(s32) margin
+        let outerW = width + 2 * cast(s32, margin)
+        let outerH = height + 2 * cast(s32, margin)
 
         // These are logical units. The native layer resolves the monitor's scale and sizes the
         // window in physical pixels; everything after this point that touches the screen is
@@ -261,14 +261,14 @@ impl Surface
         if app.renderer.needsNativeWindow() do
             try createNative(app, surface, x, y, outerW, outerH, flags)
 
-        let physWidth  = cast(s32) Math.round(outerW * surface.dpiScale)
-        let physHeight = cast(s32) Math.round(outerH * surface.dpiScale)
+        let physWidth  = cast(s32, Math.round(outerW * surface.dpiScale))
+        let physHeight = cast(s32, Math.round(outerH * surface.dpiScale))
         surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), physWidth, physHeight, mainSurface ? &mainSurface.rc : null)
         surface.painter = Painter.create(app.renderer)
 
         surface.minSize = {128, 128}
-        let w = Math.max(surface.minSize.x * surface.dpiScale, cast(f32) physWidth)
-        let h = Math.max(surface.minSize.y * surface.dpiScale, cast(f32) physHeight)
+        let w = Math.max(surface.minSize.x * surface.dpiScale, cast(f32, physWidth))
+        let h = Math.max(surface.minSize.y * surface.dpiScale, cast(f32, physHeight))
 
         surface.sendResizeEvent(w, h)
     }
@@ -550,7 +550,7 @@ impl Surface
         if tracing
         {
             .paintTargetUs = traceWatch.elapsedMicroseconds()
-            .paintArea     = cast(u64) (physClip.width * physClip.height)
+            .paintArea     = cast(u64, (physClip.width * physClip.height))
         }
 
         return true
@@ -587,7 +587,7 @@ impl Surface
             .colorDisabled = Argb.White
         }
 
-        let dstRect = Math.Rectangle{0, 0, cast(f32) .rc.width, cast(f32) .rc.height}
+        let dstRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
 
         .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, color)
         .painter.end()
@@ -622,8 +622,8 @@ impl Surface
     // logical size derived through the surface scale.
     private mtd sendResizeEvent(width, height: f32)
     {
-        .rc.width        = cast(s32) width
-        .rc.height       = cast(s32) height
+        .rc.width        = cast(s32, width)
+        .rc.height       = cast(s32, height)
         .position.width  = width
         .position.height = height
 
@@ -901,9 +901,9 @@ impl Surface
         var target = .focusIndex
         if target < 0 do
             target = 0
-        if target >= cast(s64) order.stops.count do
-            target = cast(s64) order.stops.count - 1
-        order.stops[cast(u64) target].setFocus()
+        if target >= cast(s64, order.stops.count) do
+            target = cast(s64, order.stops.count) - 1
+        order.stops[cast(u64, target)].setFocus()
         return true
     }
 

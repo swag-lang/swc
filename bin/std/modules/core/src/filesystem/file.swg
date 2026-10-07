@@ -186,7 +186,7 @@ func writeAllBytes(fullName: string, buffer: ConcatBuffer)->u64 fail
 
 // Creates or replaces a file with the UTF-8 bytes of `text` and returns the number of bytes written.
 #[Swag.Discardable]
-func writeAllText(fullName: string, text: string)->u64 fail => try writeAllBytes(fullName, cast(const [..] u8) text)
+func writeAllText(fullName: string, text: string)->u64 fail => try writeAllBytes(fullName, cast(const [..] u8, text))
 
 // Creates or replaces a file with `lines`, each followed by `\n`, and returns the number of bytes written.
 #[Swag.Discardable]
@@ -197,8 +197,8 @@ func writeAllLines(fullName: string, lines: Array'(string))->u64 fail
     var total = 0'u64
     for line in lines
     {
-        total += try stream.write(cast(const [..] u8) line)
-        total += try stream.write(cast(const [..] u8) "\n")
+        total += try stream.write(cast(const [..] u8, line))
+        total += try stream.write(cast(const [..] u8, "\n"))
     }
 
     return total

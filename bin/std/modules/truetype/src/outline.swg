@@ -84,7 +84,7 @@ public impl Outline
             return
 
         let points = .points!
-        for index in cast(u32) .pointCount
+        for index in cast(u32, .pointCount)
         {
             points[index].x += xOffset
             points[index].y += yOffset
@@ -101,11 +101,11 @@ public impl Outline
             return
 
         let points = .points!
-        for index in cast(u32) .pointCount
+        for index in cast(u32, .pointCount)
         {
             let pt = points[index]
-            points[index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
-            points[index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
+            points[index].x = roundDiv(cast(s64, pt.x) * matrix.xx + cast(s64, pt.y) * matrix.xy, 65536)
+            points[index].y = roundDiv(cast(s64, pt.x) * matrix.yx + cast(s64, pt.y) * matrix.yy, 65536)
         }
     }
 
@@ -129,14 +129,14 @@ public impl Outline
         // shifting: each side of a stem moves by strength/2, so the stem thickens by
         // strength total. Shifting by the full strength per side would otherwise
         // double the visual weight for the same nominal value.
-        let perSide = cast(f64) strength * 0.5
+        let perSide = cast(f64, strength) * 0.5
 
         var start    = 0'u32
         let points   = .points!
         let contours = .contours!
-        for index in cast(u32) .contourCount
+        for index in cast(u32, .contourCount)
         {
-            let endIdx = cast(u32) contours[index]
+            let endIdx = cast(u32, contours[index])
             let slice  = Swag.makeSlice(points + start, endIdx - start + 1)
             applyEmboldenToContour(slice, perSide, ccw)
             start = endIdx + 1
@@ -153,8 +153,8 @@ public impl Outline
 func midpoint(a, b: Vector)->Vector
 {
     var result: retval
-    result.x = cast(s32) ((cast(s64) a.x + b.x) / 2)
-    result.y = cast(s32) ((cast(s64) a.y + b.y) / 2)
+    result.x = cast(s32, ((cast(s64, a.x) + b.x) / 2))
+    result.y = cast(s32, ((cast(s64, a.y) + b.y) / 2))
     return result
 }
 
@@ -171,12 +171,12 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
         return commands
 
     var contourStart = 0'u32
-    let points       = cast(const [*] Vector) outline.points!
-    let tags         = cast(const [*] u8) outline.tags!
-    let contours     = cast(const [*] s16) outline.contours!
-    for index in cast(u32) outline.contourCount
+    let points       = cast(const [*] Vector, outline.points!)
+    let tags         = cast(const [*] u8, outline.tags!)
+    let contours     = cast(const [*] s16, outline.contours!)
+    for index in cast(u32, outline.contourCount)
     {
-        let contourEnd = cast(u32) contours[index]
+        let contourEnd = cast(u32, contours[index])
         let first      = points[contourStart]
         let last       = points[contourEnd]
         let firstOn    = isOnCurve(tags[contourStart])
@@ -261,7 +261,7 @@ func contourSignedArea(points: const [..] Vector)->f64
     {
         let p0 = points[index]
         let p1 = points[(index + 1) % points.count]
-        area += cast(f64) p0.x * cast(f64) p1.y - cast(f64) p1.x * cast(f64) p0.y
+        area += cast(f64, p0.x) * cast(f64, p1.y) - cast(f64, p1.x) * cast(f64, p0.y)
     }
 
     return area * 0.5
@@ -277,11 +277,11 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
 
     var total    = 0.0'f64
     var start    = 0'u32
-    let points   = cast(const [*] Vector) outline.points!
-    let contours = cast(const [*] s16) outline.contours!
-    for index in cast(u32) outline.contourCount
+    let points   = cast(const [*] Vector, outline.points!)
+    let contours = cast(const [*] s16, outline.contours!)
+    for index in cast(u32, outline.contourCount)
     {
-        let endIdx = cast(u32) contours[index]
+        let endIdx = cast(u32, contours[index])
         let slice  = Swag.makeSlice(points + start, endIdx - start + 1)
         total += contourSignedArea(slice)
         start = endIdx + 1
@@ -292,7 +292,7 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
 
 func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 {
-    if points.count < 2 or Math.isZeroEpsilon(cast(f32) strength) do
+    if points.count < 2 or Math.isZeroEpsilon(cast(f32, strength)) do
         return
 
     var source: Array'Vector
@@ -304,27 +304,27 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
         let cur  = source[index]
         let next = source[(index + 1) % source.count]
 
-        var e0x = cast(f64) (cur.x - prev.x)
-        var e0y = cast(f64) (cur.y - prev.y)
-        var e1x = cast(f64) (next.x - cur.x)
-        var e1y = cast(f64) (next.y - cur.y)
+        var e0x = cast(f64, (cur.x - prev.x))
+        var e0y = cast(f64, (cur.y - prev.y))
+        var e1x = cast(f64, (next.x - cur.x))
+        var e1y = cast(f64, (next.y - cur.y))
 
         let len0 = Math.sqrt(e0x * e0x + e0y * e0y)
         let len1 = Math.sqrt(e1x * e1x + e1y * e1y)
-        if Math.isZeroEpsilon(cast(f32) len0)
+        if Math.isZeroEpsilon(cast(f32, len0))
         {
             e0x = e1x
             e0y = e1y
         }
 
-        if Math.isZeroEpsilon(cast(f32) len1)
+        if Math.isZeroEpsilon(cast(f32, len1))
         {
             e1x = e0x
             e1y = e0y
         }
 
-        let il0 = Math.isZeroEpsilon(cast(f32) len0) ? 0.0 : 1.0 / Math.max(len0, 0.0001)
-        let il1 = Math.isZeroEpsilon(cast(f32) len1) ? 0.0 : 1.0 / Math.max(len1, 0.0001)
+        let il0 = Math.isZeroEpsilon(cast(f32, len0)) ? 0.0 : 1.0 / Math.max(len0, 0.0001)
+        let il1 = Math.isZeroEpsilon(cast(f32, len1)) ? 0.0 : 1.0 / Math.max(len1, 0.0001)
         let n0x = ccw ? e0y * il0 : -e0y * il0
         let n0y = ccw ? -e0x * il0 : e0x * il0
         let n1x = ccw ? e1y * il1 : -e1y * il1
@@ -335,7 +335,7 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 
         // Keep both squared terms rounded before normalization: FMA can move a 26.6 tie.
         let dirLen = Math.sqrt(Math.mulAdd(dirx, dirx, diry * diry))
-        if Math.isZeroEpsilon(cast(f32) dirLen)
+        if Math.isZeroEpsilon(cast(f32, dirLen))
         {
             dirx = n1x
             diry = n1y
@@ -351,7 +351,7 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
         let miter = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
 
         // Round the displacement before adding the origin at the final 26.6 boundary.
-        points[index].x = cast(s32) Math.round(Math.mulAdd(dirx * strength, miter, cast(f64) cur.x))
-        points[index].y = cast(s32) Math.round(Math.mulAdd(diry * strength, miter, cast(f64) cur.y))
+        points[index].x = cast(s32, Math.round(Math.mulAdd(dirx * strength, miter, cast(f64, cur.x))))
+        points[index].y = cast(s32, Math.round(Math.mulAdd(diry * strength, miter, cast(f64, cur.y))))
     }
 }

@@ -45,7 +45,7 @@ struct IcoDib
 func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [..] u8)->Array'u8
 {
     var cb: ConcatBuffer
-    let bodyLen = cast(u32) dibBody.count
+    let bodyLen = cast(u32, dibBody.count)
 
     var dir: IcoDir
     dir.type  = 1
@@ -53,8 +53,8 @@ func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [.
     cb.addStruct(dir)
 
     var e: IcoEntry
-    e.width       = cast(u8) (width == 256 ? 0 : width)
-    e.height      = cast(u8) (height == 256 ? 0 : height)
+    e.width       = cast(u8, (width == 256 ? 0 : width))
+    e.height      = cast(u8, (height == 256 ? 0 : height))
     e.planes      = 1
     e.bitCount    = bitCount
     e.bytesInRes  = 40 + bodyLen
@@ -317,9 +317,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     // Two 32-bit images: 1x1 and 2x2. Directory holds 2 entries.
-    let body1Len = cast(u32) (40 + 4 + 4)      // 1x1: 4 XOR + 4 AND
-    let body2Len = cast(u32) (40 + 16 + 8)     // 2x2: 16 XOR + 8 AND
-    let off1     = 6 + 32'u32                  // after dir + 2 entries
+    let body1Len = cast(u32, (40 + 4 + 4))      // 1x1: 4 XOR + 4 AND
+    let body2Len = cast(u32, (40 + 16 + 8))     // 2x2: 16 XOR + 8 AND
+    let off1     = 6 + 32'u32                   // after dir + 2 entries
     let off2     = off1 + body1Len
 
     var cb: ConcatBuffer
@@ -401,7 +401,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let png = expect src.encode("memory.png")
     png.makeLinear()
     let pngBytes = nnBytes(png.toSlice())
-    let pngLen   = cast(u32) pngBytes.count
+    let pngLen   = cast(u32, pngBytes.count)
 
     var cb:  ConcatBuffer
     var dir: IcoDir

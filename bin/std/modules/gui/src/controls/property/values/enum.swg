@@ -7,7 +7,7 @@ internal impl Properties
         if .hostNtfy and not .hostNtfy.isEnumValueVisible(me, item, enumValue) do
             return false
 
-        var scan = cast(*PropertiesItem?) item
+        var scan = cast(*PropertiesItem?, item)
         while scan
         {
             if scan.ntfyItf and not scan.ntfyItf.isEnumValueVisible(me, item, enumValue) do
@@ -26,20 +26,20 @@ internal impl Properties
             switch item.typeValue.pointedType!.sizeof
             {
             case 1:
-                val1 = cast(u64) (cast(const *u8) item.data!)[]
-                val2 = cast(u64) (cast(const *u8) item.typeValue.value!)[]
+                val1 = cast(u64, cast(const *u8, item.data!)[])
+                val2 = cast(u64, cast(const *u8, item.typeValue.value!)[])
 
             case 2:
-                val1 = cast(u64) (cast(const *u16) item.data!)[]
-                val2 = cast(u64) (cast(const *u16) item.typeValue.value!)[]
+                val1 = cast(u64, cast(const *u16, item.data!)[])
+                val2 = cast(u64, cast(const *u16, item.typeValue.value!)[])
 
             case 4:
-                val1 = cast(u64) (cast(const *u32) item.data!)[]
-                val2 = cast(u64) (cast(const *u32) item.typeValue.value!)[]
+                val1 = cast(u64, cast(const *u32, item.data!)[])
+                val2 = cast(u64, cast(const *u32, item.typeValue.value!)[])
 
             case 8:
-                val1 = cast(u64) (cast(const *u64) item.data!)[]
-                val2 = cast(u64) (cast(const *u64) item.typeValue.value!)[]
+                val1 = cast(u64, cast(const *u64, item.data!)[])
+                val2 = cast(u64, cast(const *u64, item.typeValue.value!)[])
             }
 
             // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
@@ -55,17 +55,17 @@ internal impl Properties
     {
         if item.comboBox != null
         {
-            let typeEnum = cast #assume(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
+            let typeEnum = assume cast(const *Swag.TypeInfoEnum, item.typeValue.pointedType)
 
             var val1, val2:   u64
             var val1s, val2s: string?
             switch typeEnum.rawType!.sizeof
             {
-            case 1:  val1 = cast(u64) (cast(const *u8) item.data!)[]
-            case 2:  val1 = cast(u64) (cast(const *u16) item.data!)[]
-            case 4:  val1 = cast(u64) (cast(const *u32) item.data!)[]
-            case 8:  val1 = cast(u64) (cast(const *u64) item.data!)[]
-            case 16: val1s = (cast(const *string) item.data!)[]
+            case 1:  val1 = cast(u64, cast(const *u8, item.data!)[])
+            case 2:  val1 = cast(u64, cast(const *u16, item.data!)[])
+            case 4:  val1 = cast(u64, cast(const *u32, item.data!)[])
+            case 8:  val1 = cast(u64, cast(const *u64, item.data!)[])
+            case 16: val1s = cast(const *string, item.data!)[]
             }
 
             var idxSel = 0'u64
@@ -73,11 +73,11 @@ internal impl Properties
             {
                 switch typeEnum.rawType!.sizeof
                 {
-                case 1:  val2 = cast(u64) (cast(const *u8) v.value!)[]
-                case 2:  val2 = cast(u64) (cast(const *u16) v.value!)[]
-                case 4:  val2 = cast(u64) (cast(const *u32) v.value!)[]
-                case 8:  val2 = cast(u64) (cast(const *u64) v.value!)[]
-                case 16: val2s = (cast(const *string) v.value!)[]
+                case 1:  val2 = cast(u64, cast(const *u8, v.value!)[])
+                case 2:  val2 = cast(u64, cast(const *u16, v.value!)[])
+                case 4:  val2 = cast(u64, cast(const *u32, v.value!)[])
+                case 8:  val2 = cast(u64, cast(const *u64, v.value!)[])
+                case 16: val2s = cast(const *string, v.value!)[]
                 }
 
                 if val1 == val2 and val1s == val2s do
@@ -90,9 +90,9 @@ internal impl Properties
             var idxCombo = Swag.U32.Max
             for cb, cbIdx in item.comboBox.items
             {
-                if cast(u64) cb!.userData0 == idxSel
+                if cast(u64, cb!.userData0) == idxSel
                 {
-                    idxCombo = cast(u32) cbIdx
+                    idxCombo = cast(u32, cbIdx)
                     break
                 }
             }
@@ -112,7 +112,7 @@ internal impl Properties
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
             let sz   = item.typeValue.pointedType!.sizeof
-            let mask = readEnumBits(cast(*u8) item.checkBox.userData!, sz)
+            let mask = readEnumBits(cast(*u8, item.checkBox.userData!), sz)
             .writeEnumBit(item, mask, item.checkBox.isChecked())
         }
 
@@ -126,12 +126,12 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p  = cast(*T) item.data!
-                let p1 = cast(const *T) typeEnum.values![idxEnum].value!
+                let p  = cast(*T, item.data!)
+                let p1 = cast(const *T, typeEnum.values![idxEnum].value!)
                 p[] = p1[]
             }
 
-            let typeEnum = cast #assume(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
+            let typeEnum = assume cast(const *Swag.TypeInfoEnum, item.typeValue.pointedType)
             let sel      = item.comboBox.selectedIndex
 
             // A deselected combo means "mixed" was just shown (multi-selection); there is
@@ -140,7 +140,7 @@ internal impl Properties
                 return
 
             // Combo slot -> enum value index (the combo may hide values, see constructEnum)
-            let idxEnum = cast(u64) item.comboBox.items[sel]!.userData0
+            let idxEnum = cast(u64, item.comboBox.items[sel]!.userData0)
 
             switch typeEnum.rawType!.sizeof
             {
@@ -203,7 +203,7 @@ internal impl Properties
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
                 .dockStyle = .Left
-                .userData  = cast #unconst (*void?) v.value
+                .userData  = cast #unconst (*void?, v.value)
             }
 
             itemB.assignCheckBox(ed)
@@ -260,14 +260,14 @@ internal impl Properties
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
-                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
+                .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
             }
 
             item.assignComboBox(ctrl.combo)
         }
         else
         {
-            var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
+            var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
             if not me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
             with let ed = ComboBox.create(item.line)
@@ -293,7 +293,7 @@ internal impl Properties
             if not .isEnumValueShown(item, v) do
                 continue
             let dn = Reflection.attributeValue(v, Properties.Name, "name")
-            item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(*void?) idx)
+            item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(*void?, idx))
         }
 
         .refreshEnum(item)

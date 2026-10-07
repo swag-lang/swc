@@ -26,7 +26,7 @@ const KeySlotPlainSize = Crypto.NonceSize + Crypto.MasterKeySize + Crypto.TagSiz
 const KeySlotSize        = 256'u64
 const KeySlotCount       = 4'u64
 const KeySlotAreaSize    = KeySlotCount * KeySlotSize
-const KeySlotPrefixSize  = cast(u64) Crypto.SaltSize
+const KeySlotPrefixSize  = cast(u64, Crypto.SaltSize)
 const KeySlotPayloadSize = KeySlotSize - KeySlotPrefixSize
 
 #assert(KeySlotCount == 4)
@@ -36,7 +36,7 @@ const KeySlotKind = 8'u32
 
 // Bit that marks the slot at `index` as holding a password, in the mask the
 // volume header carries.
-func keySlotBit(index: u64)->u32 => cast(u32) (1'u64 << index)
+func keySlotBit(index: u64)->u32 => cast(u32, (1'u64 << index))
 
 // The byte range one slot owns after its uniformly random prefix.
 func keySlotPayloadOffset(index: u64)->u64 => KeySlotAreaOffset + index * KeySlotSize + KeySlotPrefixSize
@@ -48,7 +48,7 @@ func keySlotIndex(random: u64)->u64 => random & (KeySlotCount - 1)
 func randomKeySlotIndex()->u64 fail
 {
     var random: u64
-    try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
+    try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8, &random), #sizeof(random)))
     return keySlotIndex(random)
 }
 

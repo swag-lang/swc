@@ -53,7 +53,7 @@ func(N: s32) mustBePositive()->s32
 func(T = Real32) defaultFloatValue()->T
     where T == f32 or T == f64
 {
-    return cast(T) 2
+    return cast(T, 2)
 }
 
 func(T, U = T) sameTypePair(left: T, right: U)->U
@@ -159,7 +159,7 @@ impl InterpolationWindow
     func midpoint(const me)->T
         where Count >= 3
     {
-        return interpolateWithWhere'(T)(me.values[0], me.values[Count - 1], cast(T) 0.5)
+        return interpolateWithWhere'(T)(me.values[0], me.values[Count - 1], cast(T, 0.5))
     }
 }
 

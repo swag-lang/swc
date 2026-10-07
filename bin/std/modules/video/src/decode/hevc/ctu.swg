@@ -19,8 +19,8 @@ impl Decoder
     mtd codingTreeUnit() fail
     {
         let sps  = .activeSps!
-        let xCtb = cast(s32) ((.ctbAddrRs % sps.widthInCtbs) << sps.ctbLog2Size)
-        let yCtb = cast(s32) ((.ctbAddrRs / sps.widthInCtbs) << sps.ctbLog2Size)
+        let xCtb = cast(s32, ((.ctbAddrRs % sps.widthInCtbs) << sps.ctbLog2Size))
+        let yCtb = cast(s32, ((.ctbAddrRs / sps.widthInCtbs) << sps.ctbLog2Size))
 
         if .header.saoLuma or .header.saoChroma do
             try .readSaoParameters(xCtb >> sps.ctbLog2Size, yCtb >> sps.ctbLog2Size)
@@ -36,12 +36,12 @@ impl Decoder
         let size = 1's32 << log2CbSize
 
         var split = log2CbSize > sps.minCbLog2Size
-        if x0 + size <= cast(s32) sps.width and y0 + size <= cast(s32) sps.height and log2CbSize > sps.minCbLog2Size
+        if x0 + size <= cast(s32, sps.width) and y0 + size <= cast(s32, sps.height) and log2CbSize > sps.minCbLog2Size
         {
             var context = 0'u32
-            if .isAvailable(x0, y0, x0 - 1, y0) and cast(u32) .ctDepth[.blockIndex(x0 - 1, y0)] > depth do
+            if .isAvailable(x0, y0, x0 - 1, y0) and cast(u32, .ctDepth[.blockIndex(x0 - 1, y0)]) > depth do
                 context += 1
-            if .isAvailable(x0, y0, x0, y0 - 1) and cast(u32) .ctDepth[.blockIndex(x0, y0 - 1)] > depth do
+            if .isAvailable(x0, y0, x0, y0 - 1) and cast(u32, .ctDepth[.blockIndex(x0, y0 - 1)]) > depth do
                 context += 1
             split = .cabac.decision(CtxSplitCuFlag + context) != 0
         }
@@ -62,11 +62,11 @@ impl Decoder
 
         let half = size >> 1
         try .codingQuadtree(x0, y0, log2CbSize - 1, depth + 1)
-        if x0 + half < cast(s32) sps.width do
+        if x0 + half < cast(s32, sps.width) do
             try .codingQuadtree(x0 + half, y0, log2CbSize - 1, depth + 1)
-        if y0 + half < cast(s32) sps.height do
+        if y0 + half < cast(s32, sps.height) do
             try .codingQuadtree(x0, y0 + half, log2CbSize - 1, depth + 1)
-        if x0 + half < cast(s32) sps.width and y0 + half < cast(s32) sps.height do
+        if x0 + half < cast(s32, sps.width) and y0 + half < cast(s32, sps.height) do
             try .codingQuadtree(x0 + half, y0 + half, log2CbSize - 1, depth + 1)
     }
 
@@ -93,7 +93,7 @@ impl Decoder
             skip = .cabac.decision(CtxCuSkipFlag + context) != 0
         }
 
-        .fillBlocks(.ctDepth.storage(), x0, y0, nCbS, cast(u8) depth)
+        .fillBlocks(.ctDepth.storage(), x0, y0, nCbS, cast(u8, depth))
         .fillBlocks(.skipFlag.storage(), x0, y0, nCbS, skip ? 1'u8 : 0'u8)
 
         // A coding block boundary is a transform block boundary and a prediction block boundary
@@ -186,8 +186,8 @@ impl Decoder
             for i in blocks
             {
                 let slot = j * 2 + i
-                let x    = x0 + cast(s32) i * pbSize
-                let y    = y0 + cast(s32) j * pbSize
+                let x    = x0 + cast(s32, i) * pbSize
+                let y    = y0 + cast(s32, j) * pbSize
                 modes[slot] = .deriveIntraLumaMode(x, y, candidate[slot])
                 .fillBlocks(.intraModeY.storage(), x, y, pbSize, modes[slot])
             }
@@ -243,8 +243,8 @@ impl Decoder
             else
             {
                 most[0] = candidateA
-                most[1] = cast(u8) (2 + ((cast(u32) candidateA + 29) % 32))
-                most[2] = cast(u8) (2 + ((cast(u32) candidateA - 2 + 1) % 32))
+                most[1] = cast(u8, (2 + ((cast(u32, candidateA) + 29) % 32)))
+                most[2] = cast(u8, (2 + ((cast(u32, candidateA) - 2 + 1) % 32)))
             }
         }
         else
@@ -277,7 +277,7 @@ impl Decoder
             }
         }
 
-        var mode = cast(u8) (code - 32)
+        var mode = cast(u8, (code - 32))
         for index in 3'u32
         {
             if mode >= sorted[index] do
@@ -380,7 +380,7 @@ impl Decoder
         {
             if nPbW + nPbH != 12
             {
-                let depth = cast(u32) .ctDepth[.blockIndex(xPb, yPb)]
+                let depth = cast(u32, .ctDepth[.blockIndex(xPb, yPb)])
                 if .cabac.decision(CtxInterPredIdc + depth) != 0
                 {
                     predFlags = 3
@@ -399,7 +399,7 @@ impl Decoder
         motion.predFlags = predFlags
         for list in ListCount
         {
-            if (cast(u32) predFlags & (1'u32 << list)) == 0
+            if (cast(u32, predFlags) & (1'u32 << list)) == 0
             {
                 motion.refIdx[list] = -1
                 continue
@@ -410,7 +410,7 @@ impl Decoder
                 refIdx = .readRefIdx(header.numRefIdx[list])
             if refIdx >= header.numRefIdx[list] do
                 fail InvalidFormatError{"HEVC prediction unit selects a reference past the end of its list"}
-            motion.refIdx[list] = cast(s8) refIdx
+            motion.refIdx[list] = cast(s8, refIdx)
 
             var difference: [2] s32
             if list == 1 and header.mvdL1Zero and predFlags == 3
@@ -424,13 +424,13 @@ impl Decoder
             }
 
             let mvpFlag   = .cabac.decision(CtxMvpFlag)
-            let predictor = .derivePredictor(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, list, cast(s32) refIdx, mvpFlag)
+            let predictor = .derivePredictor(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, list, cast(s32, refIdx), mvpFlag)
 
             // The sum wraps in sixteen bits, clause 8-133.
             for component in 2'u32
             {
-                let sum = (cast(s32) predictor[component] + difference[component] + 65536) & 0xFFFF
-                motion.mv[list, component] = cast(s16) (sum >= 32768 ? sum - 65536 : sum)
+                let sum = (cast(s32, predictor[component]) + difference[component] + 65536) & 0xFFFF
+                motion.mv[list, component] = cast(s16, (sum >= 32768 ? sum - 65536 : sum))
             }
         }
 
@@ -489,7 +489,7 @@ impl Decoder
             if greater1[component] do
                 magnitude = 2 + .readExpGolomb(1)
             let negative = .cabac.bypass() != 0
-            result[component] = negative ? -cast(s32) magnitude : cast(s32) magnitude
+            result[component] = negative ? -cast(s32, magnitude) : cast(s32, magnitude)
         }
 
         return result
@@ -540,13 +540,13 @@ impl Decoder
     {
         discard hasResidual
 
-        let blocks = cast(u32) nCbS >> MinBlockLog2
+        let blocks = cast(u32, nCbS) >> MinBlockLog2
         let origin = .blockIndex(x0, y0)
         for row in blocks
         {
-            let line = origin + cast(u64) row * cast(u64) .gridWidth
+            let line = origin + cast(u64, row) * cast(u64, .gridWidth)
             for column in blocks do
-                .qpY[line + cast(u64) column] = cast(s8) .currentQp
+                .qpY[line + cast(u64, column)] = cast(s8, .currentQp)
         }
 
         .qpYPrev = .currentQp
@@ -628,14 +628,14 @@ impl Decoder
         var block: TransformBlock
         block.x         = x0
         block.y         = y0
-        block.size      = cast(u32) size
+        block.size      = cast(u32, size)
         block.log2Size  = log2TrafoSize
         block.component = 0
         block.isIntra   = isIntra
         block.bypass    = bypass
         block.qp        = .currentQp + sps.qpBdOffsetY
 
-        let lumaMode = cast(u32) .intraModeY[.blockIndex(x0, y0)]
+        let lumaMode = cast(u32, .intraModeY[.blockIndex(x0, y0)])
         if isIntra do
             .intraPredict(x0, y0, x0, y0, log2TrafoSize, 0, lumaMode)
 
@@ -664,7 +664,7 @@ impl Decoder
             var chroma: TransformBlock
             chroma.x         = xChroma
             chroma.y         = yChroma
-            chroma.size      = cast(u32) chromaSize
+            chroma.size      = cast(u32, chromaSize)
             chroma.log2Size  = log2ChromaSize
             chroma.component = component
             chroma.isIntra   = isIntra
@@ -672,11 +672,11 @@ impl Decoder
             chroma.qp        = .chromaQp(component) + sps.qpBdOffsetC
 
             if isIntra do
-                .intraPredict(xChroma / 2, yChroma / 2, xChroma, yChroma, log2ChromaSize, component, cast(u32) chromaMode)
+                .intraPredict(xChroma / 2, yChroma / 2, xChroma, yChroma, log2ChromaSize, component, cast(u32, chromaMode))
 
             if coded
             {
-                let read = try .residualCoding(xChroma, yChroma, log2ChromaSize, component, cast(u32) chromaMode, isIntra, bypass)
+                let read = try .residualCoding(xChroma, yChroma, log2ChromaSize, component, cast(u32, chromaMode), isIntra, bypass)
                 chroma.transformSkip = read.transformSkip
                 chroma.lastX         = read.lastX
                 chroma.lastY         = read.lastY
@@ -703,9 +703,9 @@ impl Decoder
         if prefix > 4 do
             magnitude = 5 + .readExpGolomb(0)
         if magnitude != 0 and .cabac.bypass() != 0 do
-            .cuQpDeltaVal = -cast(s32) magnitude
+            .cuQpDeltaVal = -cast(s32, magnitude)
         else do
-            .cuQpDeltaVal = cast(s32) magnitude
+            .cuQpDeltaVal = cast(s32, magnitude)
 
         .refreshQp()
     }
@@ -719,13 +719,13 @@ impl Decoder
     // Writes one value over every four-sample block a square region covers.
     private mtd fillBlocks(grid: [*] u8, x0, y0, size: s32, value: u8)
     {
-        let blocks = cast(u32) size >> MinBlockLog2
+        let blocks = cast(u32, size) >> MinBlockLog2
         let origin = .blockIndex(x0, y0)
         for row in blocks
         {
-            let line = origin + cast(u64) row * cast(u64) .gridWidth
+            let line = origin + cast(u64, row) * cast(u64, .gridWidth)
             for column in blocks do
-                grid[line + cast(u64) column] = value
+                grid[line + cast(u64, column)] = value
         }
     }
 }

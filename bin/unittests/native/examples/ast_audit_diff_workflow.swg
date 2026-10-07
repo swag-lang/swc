@@ -38,7 +38,7 @@ func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 #[Swag.Compiler]
 func appendAuditDiffFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
 {
-    let typeStruct = cast #assume(const *Swag.TypeInfoStruct) type
+    let typeStruct = assume cast(const *Swag.TypeInfoStruct, type)
     var len        = start
 
     for field in typeStruct.fields
@@ -71,7 +71,7 @@ struct(T) AuditDiff
         var len = appendAuditDiffFields(&buffer[0], 0, #typeof(T))
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
@@ -82,7 +82,7 @@ func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
     {
         var buffer: [8192] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "result.changed_")
@@ -107,7 +107,7 @@ func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return result
 }
@@ -119,7 +119,7 @@ func(T) auditChangedCount(diff: AuditDiff'T)->s32
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
@@ -129,7 +129,7 @@ func(T) auditChangedCount(diff: AuditDiff'T)->s32
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return count
 }
@@ -141,7 +141,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     {
         var buffer: [4096] u8
         var len        = 0'u64
-        let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
+        let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
@@ -155,7 +155,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         }
         if len == 0 do
             return ""
-        return cast(string) Swag.makeSlice(&buffer[0], len)
+        return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return result
 }

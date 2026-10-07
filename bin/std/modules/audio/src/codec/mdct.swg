@@ -37,18 +37,18 @@ impl Mdct
         result.twiddleSin.resize(m)
         for k in m
         {
-            let angle = 2.0 * Math.ConstF64.Pi * (cast(f64) k + 0.125) / cast(f64) n
-            result.twiddleCos[k] = cast(f32) Math.cos(angle)
-            result.twiddleSin[k] = cast(f32) Math.sin(angle)
+            let angle = 2.0 * Math.ConstF64.Pi * (cast(f64, k) + 0.125) / cast(f64, n)
+            result.twiddleCos[k] = cast(f32, Math.cos(angle))
+            result.twiddleSin[k] = cast(f32, Math.sin(angle))
         }
 
         result.fftCos.resize(m / 2)
         result.fftSin.resize(m / 2)
         for j in m / 2
         {
-            let angle = 2.0 * Math.ConstF64.Pi * cast(f64) j / cast(f64) m
-            result.fftCos[j] = cast(f32) Math.cos(angle)
-            result.fftSin[j] = cast(f32) Math.sin(angle)
+            let angle = 2.0 * Math.ConstF64.Pi * cast(f64, j) / cast(f64, m)
+            result.fftCos[j] = cast(f32, Math.cos(angle))
+            result.fftSin[j] = cast(f32, Math.sin(angle))
         }
 
         var bits = 0'u32

@@ -36,11 +36,11 @@ func checked(a, b: u64)->u64 => (a & 1) * b
             let expected = odd ? b : 0
             Swag.assert(low(a, b) == expected)
             Swag.assert(reversed(a, b) == expected)
-            Swag.assert(narrow(cast(u32) (a & 0xFFFFFFFF), cast(u32) (b & 0xFFFFFFFF)) == cast(u32) (expected & 0xFFFFFFFF))
+            Swag.assert(narrow(cast(u32, (a & 0xFFFFFFFF)), cast(u32, (b & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
             Swag.assert(shifted(a, b) == ((a & 0x20000) != 0 ? b : 0))
             Swag.assert(sharedInput(a, b) == (expected ^ a))
             Swag.assert(sharedMask(a, b) == expected + (a & 1))
-            Swag.assert(signed(cast #bit(s64) a, cast #bit(s64) b) == cast #bit(s64) expected)
+            Swag.assert(signed(cast #bit(s64, a), cast #bit(s64, b)) == cast #bit(s64, expected))
             Swag.assert(checked(a, b) == expected)
         }
     }

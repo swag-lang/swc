@@ -33,10 +33,10 @@ func readVectorDelta(reader: *BitReader, fcode: u32, result: *Vector)->bool
         if entry < 0 do
             return false
 
-        let coded    = cast(s32) MvdDelta[cast(u64) entry]
+        let coded    = cast(s32, MvdDelta[cast(u64, entry)])
         var residual = 0's32
         if step != 1 and coded != 0 do
-            residual = cast(s32) reader.read(bits)
+            residual = cast(s32, reader.read(bits))
 
         var value = coded
         if step != 1 and coded != 0
@@ -88,7 +88,7 @@ func chromaVector(vectors: const [..] Vector)->Vector
     let table: const [..] u8 = count == 4 ? ChromaRoundFourBlocks
                                : (count == 3 ? ChromaRoundThreeBlocks
                                   : (count == 2 ? ChromaRoundTwoBlocks : ChromaRoundOneBlock))
-    let span = 4's32 * cast(s32) count
+    let span = 4's32 * cast(s32, count)
 
     var result: retval
     result.x = reduceChroma(sum.x, span, table)
@@ -110,7 +110,7 @@ private func reduceChroma(sum, span: s32, table: const [..] u8)->s32
         residue += span
     }
 
-    return 2 * whole + cast(s32) table[cast(u64) residue]
+    return 2 * whole + cast(s32, table[cast(u64, residue)])
 }
 
 // Copies one block out of a reference plane, interpolating where the vector points between
@@ -125,31 +125,31 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
     // from the padding is what the format's unrestricted vectors mean; a vector that points
     // further than the padding reaches reads the same samples the padding would have repeated,
     // which is what clamping the position to it produces.
-    let full  = 1 - cast(s32) rounding
-    let limit = cast(s32) FramePadding - cast(s32) height - 2
+    let full  = 1 - cast(s32, rounding)
+    let limit = cast(s32, FramePadding) - cast(s32, height) - 2
     var fullX = x + (vector.x >> 1)
     var fullY = y + (vector.y >> 1)
-    fullX = Math.clamp(fullX, -cast(s32) FramePadding, cast(s32) planeWidth + limit)
-    fullY = Math.clamp(fullY, -cast(s32) FramePadding, cast(s32) planeHeight + limit)
+    fullX = Math.clamp(fullX, -cast(s32, FramePadding), cast(s32, planeWidth) + limit)
+    fullY = Math.clamp(fullY, -cast(s32, FramePadding), cast(s32, planeHeight) + limit)
     let halfX = (vector.x & 1) != 0
     let halfY = (vector.y & 1) != 0
-    let at    = cast(u64) (cast(s64) sourceOrigin + cast(s64) fullY * cast(s64) sourceStride + cast(s64) fullX)
+    let at    = cast(u64, (cast(s64, sourceOrigin) + cast(s64, fullY) * cast(s64, sourceStride) + cast(s64, fullX)))
 
     if not halfX and not halfY
     {
-        for row in cast(u64) height do
-            Memory.copy(destination + row * destinationStride, source + at + row * sourceStride, cast(u64) width)
+        for row in cast(u64, height) do
+            Memory.copy(destination + row * destinationStride, source + at + row * sourceStride, cast(u64, width))
         return
     }
 
     if halfX and not halfY
     {
-        for row in cast(u64) height
+        for row in cast(u64, height)
         {
             let line = at + row * sourceStride
-            for column in cast(u64) width do
+            for column in cast(u64, width) do
                 destination[row * destinationStride + column] =
-                    cast(u8) ((cast(s32) source[line + column] + cast(s32) source[line + column + 1] + full) >> 1)
+                    cast(u8, ((cast(s32, source[line + column]) + cast(s32, source[line + column + 1]) + full) >> 1))
         }
 
         return
@@ -157,27 +157,27 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
 
     if not halfX and halfY
     {
-        for row in cast(u64) height
+        for row in cast(u64, height)
         {
             let line = at + row * sourceStride
-            for column in cast(u64) width do
+            for column in cast(u64, width) do
                 destination[row * destinationStride + column] =
-                    cast(u8) ((cast(s32) source[line + column] + cast(s32) source[line + sourceStride + column] + full) >> 1)
+                    cast(u8, ((cast(s32, source[line + column]) + cast(s32, source[line + sourceStride + column]) + full) >> 1))
         }
 
         return
     }
 
-    for row in cast(u64) height
+    for row in cast(u64, height)
     {
         let line = at + row * sourceStride
-        for column in cast(u64) width
+        for column in cast(u64, width)
         {
-            let a = cast(s32) source[line + column]
-            let b = cast(s32) source[line + column + 1]
-            let c = cast(s32) source[line + sourceStride + column]
-            let d = cast(s32) source[line + sourceStride + column + 1]
-            destination[row * destinationStride + column] = cast(u8) ((a + b + c + d + 2 - cast(s32) rounding) >> 2)
+            let a = cast(s32, source[line + column])
+            let b = cast(s32, source[line + column + 1])
+            let c = cast(s32, source[line + sourceStride + column])
+            let d = cast(s32, source[line + sourceStride + column + 1])
+            destination[row * destinationStride + column] = cast(u8, ((a + b + c + d + 2 - cast(s32, rounding)) >> 2))
         }
     }
 }
@@ -187,13 +187,13 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
 // A bidirectional block is the mean of what its two references say, rounded up, clause 7.6.7.
 func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceStride: u64, width, height: u32)
 {
-    for row in cast(u64) height
+    for row in cast(u64, height)
     {
-        for column in cast(u64) width
+        for column in cast(u64, width)
         {
-            let a = cast(u32) destination[row * destinationStride + column]
-            let b = cast(u32) source[row * sourceStride + column]
-            destination[row * destinationStride + column] = cast(u8) ((a + b + 1) >> 1)
+            let a = cast(u32, destination[row * destinationStride + column])
+            let b = cast(u32, source[row * sourceStride + column])
+            destination[row * destinationStride + column] = cast(u8, ((a + b + 1) >> 1))
         }
     }
 }

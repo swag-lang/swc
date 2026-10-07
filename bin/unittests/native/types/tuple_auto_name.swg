@@ -5,8 +5,8 @@ func readAutoNamedTupleThroughDecltype(seed: s32)->s32
     let capture = seed + 1
     let masks   = seed + 2
     var params  = {capture, boundRects: seed + 3, masks}
-    let raw     = cast(*void) &params
-    let p       = cast(*#decltype(params)) raw
+    let raw     = cast(*void, &params)
+    let p       = cast(*#decltype(params), raw)
     return p.capture + p.boundRects + p.masks
 }
 

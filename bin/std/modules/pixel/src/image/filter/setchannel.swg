@@ -37,7 +37,7 @@ public impl Image
             var alpha = value / 255.0
             .transformLogicalPixels(&alpha)
             {
-                value.a = (cast(const *f32) userData!)[]
+                value.a = cast(const *f32, userData!)[]
             }
 
             return
@@ -46,14 +46,14 @@ public impl Image
         var alphaByte = value
         .visitVectorBytes(&alphaByte) #code(block, data)
         {
-            let alphaValue = cast(*u8) data!
-            let alphaWord  = cast(u32) alphaValue[] << 24
-            let pixels     = Math.Simd.load(cast([*] u32) block)
-            Math.Simd.store(cast([*] u32) block, (pixels & Math.Simd.splat(0x00FF_FFFF'u32)) | Math.Simd.splat(alphaWord))
+            let alphaValue = cast(*u8, data!)
+            let alphaWord  = cast(u32, alphaValue[]) << 24
+            let pixels     = Math.Simd.load(cast([*] u32, block))
+            Math.Simd.store(cast([*] u32, block), (pixels & Math.Simd.splat(0x00FF_FFFF'u32)) | Math.Simd.splat(alphaWord))
         }
 
-        let alphaWord = cast(u32) value << 24
-        let pixels    = cast([*] u32) .pixels.storage()
+        let alphaWord = cast(u32, value) << 24
+        let pixels    = cast([*] u32, .pixels.storage())
         let count     = .byteCount / 4
         var offset    = (.byteCount - .byteCount % 16) / 4
         while offset < count
@@ -86,7 +86,7 @@ public impl Image
             var context = {mode: rmode, valueMode: value, color: color / 255.0}
             .transformLogicalPixels(&context)
             {
-                let params = (cast(const *#decltype(context)) userData!)[]
+                let params = cast(const *#decltype(context), userData!)[]
                 var channelValue: f32
                 switch #complete params.valueMode
                 {
@@ -134,16 +134,16 @@ public impl Image
             var context = {mask: mask, color: color}
             .visitVectorBytes(&context) #code(block, data)
             {
-                let params      = cast(*#decltype(context)) data!
+                let params      = cast(*#decltype(context), data!)
                 let channelMask = Math.Simd.splat(params.mask)
-                let replacement = cast #bit(Math.Simd.U32x4) Math.Simd.splat(params.color)
-                let pixels      = Math.Simd.load(cast([*] u32) block)
-                Math.Simd.store(cast([*] u32) block, (pixels & ~channelMask) | (replacement & channelMask))
+                let replacement = cast #bit(Math.Simd.U32x4, Math.Simd.splat(params.color))
+                let pixels      = Math.Simd.load(cast([*] u32, block))
+                Math.Simd.store(cast([*] u32, block), (pixels & ~channelMask) | (replacement & channelMask))
             }
 
-            let pixels = cast([*] u32) .pixels.storage()
+            let pixels = cast([*] u32, .pixels.storage())
             let count  = .byteCount / 4
-            let word   = cast(u32) color * 0x0101_0101
+            let word   = cast(u32, color) * 0x0101_0101
             var offset = (.byteCount - .byteCount % 16) / 4
             while offset < count
             {
@@ -155,15 +155,15 @@ public impl Image
         }
 
         var context = {image: me, rmode: rmode, value: value, color: color}
-        parallel for |&context| parIndex in cast(u64) .height
+        parallel for |&context| parIndex in cast(u64, .height)
         {
-            let row    = cast(u32) parIndex
+            let row    = cast(u32, parIndex)
             let params = &context
-            let image  = cast(*Image) params.image
-            let pixels = image.pixels.storage() + cast(u64) row * image.rowStride
+            let image  = cast(*Image, params.image)
+            let pixels = image.pixels.storage() + cast(u64, row) * image.rowStride
             for x in image.width
             {
-                let pix  = pixels + cast(u64) x * image.bytesPerPixel
+                let pix  = pixels + cast(u64, x) * image.bytesPerPixel
                 let mode = params.rmode
 
                 var channelValue: u8
@@ -172,7 +172,7 @@ public impl Image
                 case .Color:   channelValue = params.color
                 case .MinRGB:  channelValue = Math.min(pix[0], pix[1], pix[2])
                 case .MaxRGB:  channelValue = Math.max(pix[0], pix[1], pix[2])
-                case .MeanRGB: channelValue = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
+                case .MeanRGB: channelValue = cast(u8, ((pix[0] + #prom pix[1] + #prom pix[2]) / 3))
                 case .Alpha:   channelValue = pix[3]
                 }
 

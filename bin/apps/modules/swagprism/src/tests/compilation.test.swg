@@ -96,8 +96,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.setComparisonEnabled(true)
     window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
     window.compile()
-    let preview = cast #assume(*PreviewViewer) window.panels[0].viewer!.window()
-    let micro   = cast #assume(*MicrocodeViewer) window.panels[1].viewer!.window()
+    let preview = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
+    let micro   = assume cast(*MicrocodeViewer, window.panels[1].viewer!.window())
     var watch: Time.Stopwatch
     watch.start()
     while (micro.job.running or not preview.frameCount) and watch.elapsedMilliseconds() < 90000
@@ -127,8 +127,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
     window.panels[1].selectViewer(.Render2D)
     window.compile()
-    let first  = cast #assume(*PreviewViewer) window.panels[0].viewer!.window()
-    let second = cast #assume(*PreviewViewer) window.panels[1].viewer!.window()
+    let first  = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
+    let second = assume cast(*PreviewViewer, window.panels[1].viewer!.window())
     var watch: Time.Stopwatch
     watch.start()
     while (not first.frameCount or not second.frameCount) and watch.elapsedMilliseconds() < 90000
@@ -209,7 +209,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         var library = expect NativeLibrary.load(artifact.binary.toString())
         let symbol  = library.symbol("prism_shade")
         Swag.assert(symbol != null)
-        let shade = cast(func(f32, f32, f32)->u32) symbol
+        let shade = cast(func(f32, f32, f32)->u32, symbol)
         let color = shade(0, 0, 0)
         Swag.assert((color & 0xFF000000) == 0xFF000000)
     }

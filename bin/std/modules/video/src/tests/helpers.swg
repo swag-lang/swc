@@ -27,7 +27,7 @@ func videoGrayImage(width, height: s32, value: u8)->Image
 // Returns one YUV4MPEG2 4:2:0 payload of a flat frame of luma `luma`.
 func videoFlatPayload(width, height: s32, luma: u8)->Array'u8
 {
-    let lumaSize = cast(u64) width * cast(u64) height
+    let lumaSize = cast(u64, width) * cast(u64, height)
 
     var result: retval
     result.resize(lumaSize + lumaSize / 2)
@@ -42,7 +42,7 @@ func videoFlatPayload(width, height: s32, luma: u8)->Array'u8
 // would agree with it whatever it computed.
 func videoLumaToGray(luma: u8)->s32
 {
-    let c = Math.max(cast(s32) luma - 16, 0)
+    let c = Math.max(cast(s32, luma) - 16, 0)
     return Math.clamp((298 * c + 128) >> 8, 0, 255)
 }
 
@@ -52,20 +52,20 @@ func videoLumaToGray(luma: u8)->s32
 // roundings are what the test compares against, not the value that was written.
 func videoGrayRoundTrip(value: u8)->s32
 {
-    let luma = ((220 * cast(s32) value + 128) >> 8) + 16
-    return videoLumaToGray(cast(u8) Math.clamp(luma, 0, 255))
+    let luma = ((220 * cast(s32, value) + 128) >> 8) + 16
+    return videoLumaToGray(cast(u8, Math.clamp(luma, 0, 255)))
 }
 
 func videoAssertColor(actual: Color, r, g, b: u8, tolerance = 3)
 {
-    Swag.assert(Math.abs(cast(s32) actual.r - r) <= tolerance)
-    Swag.assert(Math.abs(cast(s32) actual.g - g) <= tolerance)
-    Swag.assert(Math.abs(cast(s32) actual.b - b) <= tolerance)
+    Swag.assert(Math.abs(cast(s32, actual.r) - r) <= tolerance)
+    Swag.assert(Math.abs(cast(s32, actual.g) - g) <= tolerance)
+    Swag.assert(Math.abs(cast(s32, actual.b) - b) <= tolerance)
 }
 
 func videoAssertGray(actual: Color, value: s32, tolerance = 3)
 {
-    videoAssertColor(actual, cast(u8) value, cast(u8) value, cast(u8) value, tolerance)
+    videoAssertColor(actual, cast(u8, value), cast(u8, value), cast(u8, value), tolerance)
 }
 
 // One point of a fixture frame, and the colour it must hold.
@@ -81,7 +81,7 @@ struct VideoFixtureSample
 }
 
 // Returns the neutral level identifying frame `index` of a fixture clip.
-func videoFixtureGray(index: u64)->s32 => cast(s32) (20 + 20 * index)
+func videoFixtureGray(index: u64)->s32 => cast(s32, (20 + 20 * index))
 
 // Returns the four points frame `index` of a fixture of that geometry must hold.
 func videoFixtureSamples(width, height: s32, index: u64)->[4] VideoFixtureSample
@@ -90,7 +90,7 @@ func videoFixtureSamples(width, height: s32, index: u64)->[4] VideoFixtureSample
     let right  = width - width / 4
     let top    = height / 4
     let bottom = height - height / 4
-    let gray   = cast(u8) videoFixtureGray(index)
+    let gray   = cast(u8, videoFixtureGray(index))
     return [{left, top, 255, 0, 0},
             {right, top, 0, 255, 0},
             {left, bottom, 0, 0, 255},
@@ -125,10 +125,10 @@ func videoAssertFixtureLumaFrame(frame: Image, index: u64, tolerance = 3)
 // 4:2:0 dump, none for a 4:4:4 one.
 func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, chromaShift = 1's32)->Image
 {
-    let round        = cast(u64) ((1's32 << chromaShift) - 1)
-    let lumaSize     = cast(u64) width * cast(u64) height
-    let chromaWidth  = (cast(u64) width + round) >> chromaShift
-    let chromaHeight = (cast(u64) height + round) >> chromaShift
+    let round        = cast(u64, ((1's32 << chromaShift) - 1))
+    let lumaSize     = cast(u64, width) * cast(u64, height)
+    let chromaWidth  = (cast(u64, width) + round) >> chromaShift
+    let chromaHeight = (cast(u64, height) + round) >> chromaShift
     let chromaSize   = chromaWidth * chromaHeight
     let frameSize    = lumaSize + chromaSize * 2
     let base         = index * frameSize
@@ -137,18 +137,18 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
     var result: retval = Image.create(width, height, .RGB8)
     for y in height
     {
-        let destinationRow = cast(u64) (height - y - 1) * cast(u64) result.rowStride
+        let destinationRow = cast(u64, (height - y - 1)) * cast(u64, result.rowStride)
         for x in width
         {
-            let luma         = cast(s32) bytes[base + cast(u64) y * cast(u64) width + cast(u64) x]
-            let chromaSource = cast(u64) (y >> chromaShift) * chromaWidth + cast(u64) (x >> chromaShift)
-            let d            = cast(s32) bytes[base + lumaSize + chromaSource] - 128
-            let e            = cast(s32) bytes[base + lumaSize + chromaSize + chromaSource] - 128
+            let luma         = cast(s32, bytes[base + cast(u64, y) * cast(u64, width) + cast(u64, x)])
+            let chromaSource = cast(u64, (y >> chromaShift)) * chromaWidth + cast(u64, (x >> chromaShift))
+            let d            = cast(s32, bytes[base + lumaSize + chromaSource]) - 128
+            let e            = cast(s32, bytes[base + lumaSize + chromaSize + chromaSource]) - 128
             let c            = Math.max(luma - 16, 0)
-            let destination  = result.pixels.storage() + destinationRow + cast(u64) x * 3
-            destination[0] = cast(u8) Math.clamp((298 * c + 409 * e + 128) >> 8, 0, 255)
-            destination[1] = cast(u8) Math.clamp((298 * c - 100 * d - 208 * e + 128) >> 8, 0, 255)
-            destination[2] = cast(u8) Math.clamp((298 * c + 516 * d + 128) >> 8, 0, 255)
+            let destination  = result.pixels.storage() + destinationRow + cast(u64, x) * 3
+            destination[0] = cast(u8, Math.clamp((298 * c + 409 * e + 128) >> 8, 0, 255))
+            destination[1] = cast(u8, Math.clamp((298 * c - 100 * d - 208 * e + 128) >> 8, 0, 255))
+            destination[2] = cast(u8, Math.clamp((298 * c + 516 * d + 128) >> 8, 0, 255))
         }
     }
 

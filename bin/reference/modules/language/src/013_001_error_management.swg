@@ -39,7 +39,7 @@ To retain an error after its capture ends, give it an explicit [[Swag.Error]] ow
     Swag.assert(value == 0)
     Swag.assert(err != null)
 
-    let e = cast #assume(MyError) err
+    let e = assume cast(MyError, err)
     Swag.assert(e.code == 7)
     Swag.assert(e.message == "name cannot be null")
 }
@@ -69,7 +69,7 @@ synchronization.
     saved.reset()
     Swag.assert(saved.isEmpty())
     Swag.assert(err is MyError)
-    let e = cast #assume(MyError) err
+    let e = assume cast(MyError, err)
     Swag.assert(e.code == 7)
     Swag.assert(e.message == "name cannot be null")
 }
@@ -83,7 +83,7 @@ lazily — only on the failure path — and may divert control flow (e.g. an ear
 */
 func recordTrace(name: string?, out: *s32) fail
 {
-    out[] = cast(s32) (try count(name))
+    out[] = cast(s32, (try count(name)))
 }
 
 #test
@@ -142,12 +142,12 @@ func propagateCount(name: string?)->u64 fail
     let value = catch propagateCount(null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
-    Swag.assert((cast #assume(MyError) err).code == 7)
+    Swag.assert(assume cast(MyError, err).code == 7)
 }
 
 /**
 # Explicit Error Handling
-Every call to a function declared with 'fail' needs 'try', 'catch', or 'expect'.
+Every call to a function declared with 'fail' needs 'try', 'catch', 'expect', or 'assume'.
 Declaring the caller with 'fail' permits propagation, but does not make it implicit.
 The compiler rejects a call that omits its error-management keyword.
 */
@@ -161,12 +161,12 @@ func explicitTryCount(name: string?)->u64 fail
     let value = catch explicitTryCount(null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
-    Swag.assert((cast #assume(MyError) err).code == 7)
+    Swag.assert(assume cast(MyError, err).code == 7)
 }
 
 /**
 # Error-Handling Blocks
-'try', 'catch' (optionally with 'as err' or 'else'), and 'expect' can also guard
+'try', 'catch' (optionally with 'as err' or 'else'), 'expect', and 'assume' can also guard
 a whole block of code. Each fallible call inside the block still needs its own
 keyword: use 'try' to pass its error to the enclosing block's handler.
 */
@@ -193,7 +193,7 @@ func blockCatchCode()->s32
     if err == null do
         return -1
 
-    return (cast #assume(MyError) err).code
+    return assume cast(MyError, err).code
 }
 
 func blockCatchElse(name: string?)->u64
@@ -212,7 +212,7 @@ func blockCatchElse(name: string?)->u64
     let value = catch blockTry("ab", null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
-    Swag.assert((cast #assume(MyError) err).code == 7)
+    Swag.assert(assume cast(MyError, err).code == 7)
 }
 
 #test
@@ -265,6 +265,34 @@ func loadRequiredValue()->*s32 fail => &requiredValue
 {
     let value = expect count("swag")
     Swag.assert(value == 4)
+}
+
+/**
+# Assume
+'assume expression' states that every propagated failure in the expression is
+impossible under the caller's invariants. With '.Assume' safety enabled, a failure
+panics and reports the original error. Without that safety, the caller performs no
+error-state test and establishes no error-handling frame for the assumption.
+
+Failure then violates the program's contract: there is no guaranteed continuation,
+replacement value, or recoverable error. Use 'expect' when failure must terminate
+reliably in every configuration. A failed function still produces no result;
+'assume' does not make it initialize a default.
+
+Like 'expect', 'assume' preserves the successful result's type, including non-null
+pointers and types without a default. It does not unwrap a nullable success value.
+Nested 'catch' expressions keep handling their own failures normally.
+
+For conversions, 'assume cast(T, value)' states the same invariant. Its checks use
+'.Assume' for both type compatibility and presence. The same flag governs every
+'assume', including casts inside a fallible expression.
+*/
+#test
+{
+    let value = assume count("swag")
+    Swag.assert(value == 4)
+    let required = assume loadRequiredValue()
+    Swag.assert(required[] == 42)
 }
 
 /**

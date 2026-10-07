@@ -46,7 +46,7 @@ func intersect(ox, oy, oz, dx, dy, dz, tmin: f64)
         if t >= tmin and t < best
         {
             best = t
-            hit  = cast(s32) i
+            hit  = cast(s32, i)
         }
     }
 
@@ -67,7 +67,7 @@ func trace(ox, oy, oz, dx, dy, dz: f64, depth: s32)
         return
     }
 
-    let hi = cast(u64) hit
+    let hi = cast(u64, hit)
     let px = ox + dx * t
     let py = oy + dy * t
     let pz = oz + dz * t
@@ -120,29 +120,29 @@ func trace(ox, oy, oz, dx, dy, dz: f64, depth: s32)
 {
     let t0 = now()
 
-    let aspect = cast(f64) W / cast(f64) H
+    let aspect = cast(f64, W) / cast(f64, H)
     var check  = 0'u64
 
     for py in H
     {
         for px in W
         {
-            let dx = ((cast(f64) px + 0.5'f64) / cast(f64) W * 2.0'f64 - 1.0'f64) * aspect
-            let dy = 1.0'f64 - (cast(f64) py + 0.5'f64) / cast(f64) H * 2.0'f64
+            let dx = ((cast(f64, px) + 0.5'f64) / cast(f64, W) * 2.0'f64 - 1.0'f64) * aspect
+            let dy = 1.0'f64 - (cast(f64, py) + 0.5'f64) / cast(f64, H) * 2.0'f64
             let dz = 1.0'f64
             let il = 1.0'f64 / Swag.sqrt(dx * dx + dy * dy + dz * dz)
             trace(0.0'f64, 0.0'f64, 0.0'f64, dx * il, dy * il, dz * il, 0)
 
-            var ir = cast(s64) (g_OutR * 255.0'f64)
-            var ig = cast(s64) (g_OutG * 255.0'f64)
-            var ib = cast(s64) (g_OutB * 255.0'f64)
+            var ir = cast(s64, (g_OutR * 255.0'f64))
+            var ig = cast(s64, (g_OutG * 255.0'f64))
+            var ib = cast(s64, (g_OutB * 255.0'f64))
             if ir > 255 do
                 ir = 255
             if ig > 255 do
                 ig = 255
             if ib > 255 do
                 ib = 255
-            check += cast(u64) (ir + 2 * ig + 3 * ib)
+            check += cast(u64, (ir + 2 * ig + 3 * ib))
         }
     }
 

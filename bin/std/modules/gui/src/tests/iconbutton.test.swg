@@ -137,9 +137,9 @@ func iconButtonHeadlessReset()
 func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var result = 0
-    for y in cast(s32) image.height
+    for y in cast(s32, image.height)
     {
-        for x in cast(s32) image.width
+        for x in cast(s32, image.width)
         {
             if image.pixelColor(x, y).argb == color.argb do
                 result += 1

@@ -2,7 +2,7 @@
 
 func A()               => true
 func B(a: s32, b: s32) => a + b
-func C(a: s32)         => cast(f32) a
+func C(a: s32)         => cast(f32, a)
 func D(a: s32)         => a
 func E(a: s32)         => a > 0
 func F(a, b: s32)      => a - b

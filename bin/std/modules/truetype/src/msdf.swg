@@ -167,8 +167,8 @@ func msdfSwitchColor(color: *u8, seed: *u64, banned: u8 = MSDF_BLACK)
         return
     }
 
-    let shifted = cast(u32) color[] << (1 + (seed[] & 1))
-    color[] = cast(u8) ((shifted | (shifted >> 3)) & MSDF_WHITE)
+    let shifted = cast(u32, color[]) << (1 + (seed[] & 1))
+    color[] = cast(u8, ((shifted | (shifted >> 3)) & MSDF_WHITE))
     seed[]  >>= 1
 }
 
@@ -218,7 +218,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
         return
     }
 
-    let cornerCount = cast(u32) corners.count
+    let cornerCount = cast(u32, corners.count)
     var spline      = 0'u32
     let start       = corners[0]
     var color       = MSDF_WHITE
@@ -260,8 +260,8 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
         switch cmd.kind
         {
         case .MoveTo:
-            contourElemStart.add(cast(u32) elements.count)
-            contourSegStart.add(cast(u32) segs.count)
+            contourElemStart.add(cast(u32, elements.count))
+            contourSegStart.add(cast(u32, segs.count))
             curX = cmd.p0.x / 64.0'f64
             curY = cmd.p0.y / 64.0'f64
 
@@ -270,9 +270,9 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             let y = cmd.p0.y / 64.0'f64
 
             var el: MsdfElement
-            el.firstSeg = cast(u32) segs.count
+            el.firstSeg = cast(u32, segs.count)
             msdfAddSeg(segs, curX, curY, x, y)
-            el.segCount = cast(u32) segs.count - el.firstSeg
+            el.segCount = cast(u32, segs.count) - el.firstSeg
 
             let {dx, dy} = msdfNormDir(x - curX, y - curY)
             el.sdx0, el.edx1 = dx
@@ -289,13 +289,13 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             let y  = cmd.p1.y / 64.0'f64
 
             var el: MsdfElement
-            el.firstSeg = cast(u32) segs.count
+            el.firstSeg = cast(u32, segs.count)
             msdfFlattenQuadratic(segs, curX, curY, cx, cy, x, y, tolerance)
-            el.segCount = cast(u32) segs.count - el.firstSeg
+            el.segCount = cast(u32, segs.count) - el.firstSeg
 
             var s0x = cx - curX
             var s0y = cy - curY
-            if Math.isZeroEpsilon(cast(f32) s0x) and Math.isZeroEpsilon(cast(f32) s0y)
+            if Math.isZeroEpsilon(cast(f32, s0x)) and Math.isZeroEpsilon(cast(f32, s0y))
             {
                 s0x = x - curX
                 s0y = y - curY
@@ -303,7 +303,7 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
 
             var e1x = x - cx
             var e1y = y - cy
-            if Math.isZeroEpsilon(cast(f32) e1x) and Math.isZeroEpsilon(cast(f32) e1y)
+            if Math.isZeroEpsilon(cast(f32, e1x)) and Math.isZeroEpsilon(cast(f32, e1y))
             {
                 e1x = x - curX
                 e1y = y - curY
@@ -329,21 +329,21 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             let y   = cmd.p2.y / 64.0'f64
 
             var el: MsdfElement
-            el.firstSeg = cast(u32) segs.count
+            el.firstSeg = cast(u32, segs.count)
             msdfFlattenCubic(segs, curX, curY, c0x, c0y, c1x, c1y, x, y, tolerance)
-            el.segCount = cast(u32) segs.count - el.firstSeg
+            el.segCount = cast(u32, segs.count) - el.firstSeg
 
             // A control point coincident with its endpoint carries no direction; the
             // next-best tangent is the one the other control or the chord gives.
             var s0x = c0x - curX
             var s0y = c0y - curY
-            if Math.isZeroEpsilon(cast(f32) s0x) and Math.isZeroEpsilon(cast(f32) s0y)
+            if Math.isZeroEpsilon(cast(f32, s0x)) and Math.isZeroEpsilon(cast(f32, s0y))
             {
                 s0x = c1x - curX
                 s0y = c1y - curY
             }
 
-            if Math.isZeroEpsilon(cast(f32) s0x) and Math.isZeroEpsilon(cast(f32) s0y)
+            if Math.isZeroEpsilon(cast(f32, s0x)) and Math.isZeroEpsilon(cast(f32, s0y))
             {
                 s0x = x - curX
                 s0y = y - curY
@@ -351,13 +351,13 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
 
             var e1x = x - c1x
             var e1y = y - c1y
-            if Math.isZeroEpsilon(cast(f32) e1x) and Math.isZeroEpsilon(cast(f32) e1y)
+            if Math.isZeroEpsilon(cast(f32, e1x)) and Math.isZeroEpsilon(cast(f32, e1y))
             {
                 e1x = x - c0x
                 e1y = y - c0y
             }
 
-            if Math.isZeroEpsilon(cast(f32) e1x) and Math.isZeroEpsilon(cast(f32) e1y)
+            if Math.isZeroEpsilon(cast(f32, e1x)) and Math.isZeroEpsilon(cast(f32, e1y))
             {
                 e1x = x - curX
                 e1y = y - curY
@@ -376,8 +376,8 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
         }
     }
 
-    contourElemStart.add(cast(u32) elements.count)
-    contourSegStart.add(cast(u32) segs.count)
+    contourElemStart.add(cast(u32, elements.count))
+    contourSegStart.add(cast(u32, segs.count))
 
     var seed = 0'u64
     for c in contourElemStart.count - 1
@@ -550,7 +550,7 @@ func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32
     var sweep: Array'MsdfSweep
     sweep.reserve(segs.count)
     for &s, i in segs do
-        sweep.add(MsdfSweep{s.minY, cast(u32) i})
+        sweep.add(MsdfSweep{s.minY, cast(u32, i)})
     sweep.sort(func||(l, r) => l.minY <=> r.minY)
 
     var cuts: Array'MsdfCut
@@ -816,7 +816,7 @@ impl MsdfBest
 
         for ch in 3
         {
-            if not (s.color & cast(u8) (1 << ch)) do
+            if not (s.color & cast(u8, (1 << ch))) do
                 continue
 
             // An exact tie goes to the more perpendicular contact, which is what keeps a
@@ -868,7 +868,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
         if bx * bx + by * by > best.reach2[s.color] do
             continue
 
-        best.fold(s, cast(s32) i, px, py)
+        best.fold(s, cast(s32, i), px, py)
     }
 
     seed.channel[0] = best.idx[0]
@@ -944,13 +944,13 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
 {
     let segsS   = c.segs.toSlice()
     let edgesS  = c.edges.toSlice()
-    let sampleY = cast(f64) c.top - (cast(f64) py + 0.5)
+    let sampleY = cast(f64, c.top) - (cast(f64, py) + 0.5)
 
     // Inside/outside is a ray cast to the right, so a pixel is inside when the crossings
     // still ahead of it wind to something other than zero. That makes it a property of the
     // row: gathering the crossings once and sweeping them costs one pass over the outline
     // per row instead of one per pixel.
-    let crossings  = c.crossings + cast(u64) py * c.crossingStride
+    let crossings  = c.crossings + cast(u64, py) * c.crossingStride
     let crossCount = msdfRowCrossings(segsS, crossings, sampleY)
 
     var winding = 0's32
@@ -964,7 +964,7 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
     var localVote = 0's64
     for px in c.width
     {
-        let sampleX = cast(f64) c.left + cast(f64) px + 0.5
+        let sampleX = cast(f64, c.left) + cast(f64, px) + 0.5
         while passed < crossCount and crossings[passed].x <= sampleX
         {
             winding -= crossings[passed].dir
@@ -980,11 +980,11 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
         let {r, g, b, trueDist} = msdfChannelDistances(edgesS, sampleX, sampleY, &seed)
         let trueSd = inside ? trueDist : -trueDist
 
-        let idx = (cast(u64) py * cast(u64) c.width + cast(u64) px) * 4
-        c.channels[idx + 0] = cast(f32) r
-        c.channels[idx + 1] = cast(f32) g
-        c.channels[idx + 2] = cast(f32) b
-        c.channels[idx + 3] = cast(f32) trueSd
+        let idx = (cast(u64, py) * cast(u64, c.width) + cast(u64, px)) * 4
+        c.channels[idx + 0] = cast(f32, r)
+        c.channels[idx + 1] = cast(f32, g)
+        c.channels[idx + 2] = cast(f32, b)
+        c.channels[idx + 3] = cast(f32, trueSd)
 
         // Sparse sign sampling (every other pixel on both axes) is enough for a robust
         // global majority, and keeps the median off the hot path.
@@ -1022,7 +1022,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         safeSpread = 1
     safeSpread = Math.min(safeSpread, 64)
 
-    let padding = cast(s32) safeSpread
+    let padding = cast(s32, safeSpread)
     let bounds  = computeOutlineBounds(&safeSlot.outline)
     let left    = Math.floorS32(bounds.minX / 64.0) - padding
     let right   = Math.ceilS32(bounds.maxX / 64.0) + padding
@@ -1039,21 +1039,21 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         return
 
     var channels: Array'f32
-    channels.resize(cast(u64) width * rows * 4)
+    channels.resize(cast(u64, width) * rows * 4)
 
-    let scale = 127.0 / cast(f64) safeSpread
+    let scale = 127.0 / cast(f64, safeSpread)
 
     // Per-row sign votes, summed afterwards. The vote only decides the single global
     // sign of the field, so it is sampled on a sparse grid (every other pixel) — that
     // is hundreds of authoritative inside/outside tests, plenty for a robust majority.
     var rowVotes: Array's64
-    rowVotes.resize(cast(u64) rows)
+    rowVotes.resize(cast(u64, rows))
 
     // A row can meet each segment at most once, which bounds its crossing list. Every row
     // owns its own span so that the rows below can run in parallel without sharing scratch.
     let crossingStride = segs.count
     var crossings: Array'MsdfCrossing
-    crossings.resize(cast(u64) rows * crossingStride)
+    crossings.resize(cast(u64, rows) * crossingStride)
 
     let channelsBuffer = channels.storage()
     let rowVotesBuffer = rowVotes.storage()
@@ -1069,16 +1069,16 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         left: left,
         top: top}
 
-    let samples = cast(u64) width * cast(u64) rows
+    let samples = cast(u64, width) * cast(u64, rows)
     if rows >= 2 and samples >= MsdfParallelMinSamples and Swag.workerCount() > 1
     {
         parallel for |&ctx| py in rows do
-            msdfProcessRow(&ctx, cast(u32) py)
+            msdfProcessRow(&ctx, cast(u32, py))
     }
     else
     {
         for py in rows do
-            msdfProcessRow(&ctx, cast(u32) py)
+            msdfProcessRow(&ctx, cast(u32, py))
     }
 
     var vote = 0's64
@@ -1087,7 +1087,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 
     let flip: f64 = vote < 0 ? -1 : 1
 
-    let count = cast(u64) width * rows
+    let count = cast(u64, width) * rows
     faceData.bitmapPixels.resize(count * 4)
     var dst = faceData.bitmapPixels.storage()
     for i in count
@@ -1095,7 +1095,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         let src = i * 4
 
         // A: true signed distance (already signed by the per-pixel inside test).
-        let trueSd = cast(f64) channelsBuffer[src + 3]
+        let trueSd = cast(f64, channelsBuffer[src + 3])
 
         // RGB: multi-channel field, corrected by the global sign vote. A texel whose median
         // still disagrees with the fill lies near a sliver thinner than the boundary cutting
@@ -1104,7 +1104,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         // single-channel texel: msdfgen's own answer to a texel it cannot trust.
         var rgb: [3] f64
         for c in 3 do
-            rgb[c] = flip * cast(f64) channelsBuffer[src + c]
+            rgb[c] = flip * cast(f64, channelsBuffer[src + c])
         let median = msdfMedian(rgb[0], rgb[1], rgb[2])
         if (trueSd > 0 and median < 0) or (trueSd < 0 and median > 0) do
             rgb[0], rgb[1], rgb[2] = trueSd
@@ -1112,12 +1112,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         for c in 3
         {
             let value = 128.0'f64 + rgb[c] * scale
-            dst[src + c] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))
+            dst[src + c] = cast(u8, Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value))))
         }
 
         let av = 128.0'f64 + trueSd * scale
-        dst[src + 3] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av)))
+        dst[src + 3] = cast(u8, Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av))))
     }
 
-    safeSlot.setBitmap(rows, width, cast(s32) width * 4, dst, .Rgba, left, top)
+    safeSlot.setBitmap(rows, width, cast(s32, width) * 4, dst, .Rgba, left, top)
 }

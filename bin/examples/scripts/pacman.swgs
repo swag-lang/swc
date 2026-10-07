@@ -397,7 +397,7 @@ impl Ghost
     mtd aiSpawn()
     {
         .setSpeed(50)
-        if cast(s32) (.y * 10.0) % 10 == 5 and cast(s32) (.x * 10.0) % 10 == 5 and isImpassible(.getNextTile(.dir))
+        if cast(s32, (.y * 10.0)) % 10 == 5 and cast(s32, (.x * 10.0)) % 10 == 5 and isImpassible(.getNextTile(.dir))
         {
             // Switch direction upon hitting a WALL
             switch .dir
@@ -443,7 +443,7 @@ impl Ghost
             .ai  = g_Wave
             .setSpeed(100)
         }
-        elif cast(s32) (.y * 10.0) % 10 == 5 and isImpassible(.getNextTile(.dir))
+        elif cast(s32, (.y * 10.0)) % 10 == 5 and isImpassible(.getNextTile(.dir))
         {
             .dir = .UP
         }
@@ -550,7 +550,7 @@ impl Ghost
         for
         {
             // Choose random direction from UP, RIGHT, DOWN or LEFT
-            let newDir = cast(Direction) ((Random.shared().nextU32() % cast(u32) Direction.LEFT) + 1)
+            let newDir = cast(Direction, ((Random.shared().nextU32() % cast(u32, Direction.LEFT)) + 1))
 
             // Ensure random direction is traversible
             if not isImpassible(.getNextTile(newDir))
@@ -582,8 +582,8 @@ impl Ghost
      */
     func distanceBetween(p1, p2: Dest)->f32
     {
-        let dx = cast(f32) p1.x - p2.x
-        let dy = cast(f32) p1.y - p2.y
+        let dx = cast(f32, p1.x) - p2.x
+        let dy = cast(f32, p1.y) - p2.y
         return Math.sqrt((dx * dx) + (dy * dy))
     }
 
@@ -792,7 +792,7 @@ impl Ghost
      */
     mtd atTileCenter()->bool
     {
-        let mod = cast(s32) (1 / .dPos)
+        let mod = cast(s32, (1 / .dPos))
         return Math.roundS32(.y * mod) % mod == 0 and Math.roundS32(.x * mod) % mod == 0
     }
 
@@ -912,7 +912,7 @@ impl Ghost
 
         // Determine which colour ghost to draw and whether it is the alternate texture (wiggle animation)
         var ghostTex: Texture
-        let ghostAlt = cast(s32) Math.floor(.texCount % 20 / 10.0)
+        let ghostAlt = cast(s32, Math.floor(.texCount % 20 / 10.0))
 
         // If in FRIGHTENED mode, draw the correct skin
         if .ai == .FRIGHTENED
@@ -1177,7 +1177,7 @@ impl Pacman
         // Draw current sprite of Pac-Man's death animation sequence
         if .deadTexCount < 55
         {
-            let deadFrame = cast(s32) Math.floor(.deadTexCount / 5)
+            let deadFrame = cast(s32, Math.floor(.deadTexCount / 5))
             thePainter().drawTexture(-7.5, -7.5, 15, 15, g_DeadTex[deadFrame])
         }
 
@@ -1271,7 +1271,7 @@ func drawMap()
         for y in 31
         {
             // Determine size of big pills to draw depending on ticks
-            let bigPill = cast(s32) Math.floor((g_Ticks % 40) / 20.0)
+            let bigPill = cast(s32, Math.floor((g_Ticks % 40) / 20.0))
 
             switch getTile(x, y)
             {
@@ -1692,7 +1692,7 @@ func checkCollisions()
                 // Set ghost AI to DEAD, increasing the score and count of ghosts eaten since the last big pill
                 g.setAI(.DEAD, false)
                 g_GhostsEaten += 1
-                g_Score       += 200 * cast(s32) Math.pow(2.0, cast(f32) Math.min(g_GhostsEaten, 3))
+                g_Score       += 200 * cast(s32, Math.pow(2.0, cast(f32, Math.min(g_GhostsEaten, 3))))
                 if g_Score > g_HighScore do
                     g_HighScore = g_Score
 
@@ -1829,8 +1829,8 @@ func spawnFruit()
 {
     for
     {
-        let x = cast(s32) Random.shared().nextU32(0, 27) + 1     // Generate random X within the map (excluding outer walls)
-        let y = cast(s32) Random.shared().nextU32(0, 10) + 1     // Generate random Y within the lower third of the map (excluding outer walls)
+        let x = cast(s32, Random.shared().nextU32(0, 27)) + 1     // Generate random X within the map (excluding outer walls)
+        let y = cast(s32, Random.shared().nextU32(0, 10)) + 1     // Generate random Y within the lower third of the map (excluding outer walls)
 
         // Randomly selected tile must be empty
         if getTile(x, y) == .e
@@ -1925,7 +1925,7 @@ func gameLoop()
     let curTime = Time.monotonicMilliseconds()
     if curTime - g_LastTime < 16
     {
-        let delay = cast(u32) (16 - (curTime - g_LastTime))
+        let delay = cast(u32, (16 - (curTime - g_LastTime)))
         Threading.Thread.sleep(Time.Duration.fromMilliseconds(delay))
     }
 
@@ -2226,5 +2226,5 @@ func loadBindTextures()
             expect Audio.setOutputVolume(0)
     }
 
-    Application.runSurface(100, 100, cast(s32) (BoardWidth * Scale), cast(s32) (BoardHeight * Scale) + CaptionRoom, title: "Pacman", hook: &onEvent, init: &muteForTest)
+    Application.runSurface(100, 100, cast(s32, (BoardWidth * Scale)), cast(s32, (BoardHeight * Scale)) + CaptionRoom, title: "Pacman", hook: &onEvent, init: &muteForTest)
 }

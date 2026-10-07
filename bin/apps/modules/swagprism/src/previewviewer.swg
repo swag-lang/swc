@@ -87,8 +87,8 @@ impl PreviewViewer
         let click  = Atomic.get(&header.click)
         if click != Atomic.get(&header.clicked) do
             return
-        header.clickX = cast(u32) point.x
-        header.clickY = cast(u32) point.y
+        header.clickX = cast(u32, point.x)
+        header.clickY = cast(u32, point.y)
         Atomic.exchange(&header.click, click + 1)
     }
 

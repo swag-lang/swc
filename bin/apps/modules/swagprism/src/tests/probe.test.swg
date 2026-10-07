@@ -95,7 +95,7 @@ using Core
 
         var output: CompilerOutput
         output.parse(result.text.toString())
-        let expected = Format.toString("  optimize : O%", cast(u8) level)
+        let expected = Format.toString("  optimize : O%", cast(u8, level))
         Swag.assert(output.text.contains(expected.toString()))
     }
 }
@@ -120,7 +120,7 @@ using Core
 
     for stage in Pipeline.Stages
     {
-        let name     = cast(const [..] u8) stage
+        let name     = cast(const [..] u8, stage)
         let isBefore = Utf8.startsWith(name, "pre-")
         let isAfter  = Utf8.startsWith(name, "post-")
         Swag.assert(isBefore or isAfter)

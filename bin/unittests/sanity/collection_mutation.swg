@@ -58,7 +58,7 @@ impl CollMutVec
         for idx in me.count
         {
             #static if ptr do
-                #inject(stmt, item = cast(*s32) &me.buffer[idx], index = idx)
+                #inject(stmt, item = cast(*s32, &me.buffer[idx]), index = idx)
             else do
                 #inject(stmt, item = me.buffer[idx], index = idx)
         }
@@ -123,7 +123,7 @@ func collMutReadDuringIter()->u64
     for x in v
     {
         total += v.opCount()
-        total += cast(u64) v[0]
+        total += cast(u64, v[0])
     }
     return total
 }

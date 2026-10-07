@@ -36,7 +36,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = cast #assume (*MainWnd) cxt.wnd!
+        let main    = assume cast (*MainWnd, cxt.wnd)
         let capture = main.getCapture()
 
         switch cxt.id
@@ -52,7 +52,7 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast #assume (*MainWnd) cxt.wnd!
+        let main    = assume cast (*MainWnd, cxt.wnd)
         let capture = main.getCapture()!
 
         // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
@@ -146,15 +146,15 @@ impl MainWnd
     mtd resizeImage()
     {
         let capture = .getCapture()!
-        let ratio   = cast(f32) capture.width / capture.height
+        let ratio   = cast(f32, capture.width) / capture.height
 
         let dlg = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
         dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
         dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
         let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
-        edit0.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
-        edit1.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
+        edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {120, 85})
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
 
@@ -163,7 +163,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let w = catch StrConv.toS32(edt.text())
-                let h = Math.max(1, cast(s32) (w / ratio))
+                let h = Math.max(1, cast(s32, (w / ratio)))
                 edit1.edit.setText(Format.toString("%", h), notify: false)
             }
         }
@@ -173,7 +173,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let h = catch StrConv.toS32(edt.text())
-                let w = Math.max(1, cast(s32) (h * ratio))
+                let w = Math.max(1, cast(s32, (h * ratio)))
                 edit0.edit.setText(Format.toString("%", w), notify: false)
             }
         }
@@ -201,14 +201,14 @@ impl MainWnd
         {
             let btn = CheckButton.create(dlg, " ", pos)
             btn.setState(g_ResizeMode == id ? .Indeterminate : .Unchecked)
-            btn.userData   = cast(*void) id
+            btn.userData   = cast(*void, id)
             btn.sigChanged += func(btn)
             {
                 for c in btn.parent!.children
                 {
                     if c.userData
                     {
-                        let btnc = cast #assume(*CheckButton) c
+                        let btnc = assume cast(*CheckButton, c)
                         btnc.setState(c != btn ? .Unchecked : .Indeterminate)
                         btnc.invalidate()
                     }
@@ -237,21 +237,21 @@ impl MainWnd
         dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
         dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
 
-        let ratio = cast(f32) w / h
+        let ratio = cast(f32, w) / h
 
         g_Width  = w
         g_Height = h
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
         let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
-        edit0.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
-        edit1.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
+        edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
 
         edit0.edit.sigTextChanged += func|ratio, edit1|(edt)
         {
             g_Width = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
-                g_Height = Math.max(1, cast(s32) (g_Width / ratio))
+                g_Height = Math.max(1, cast(s32, (g_Width / ratio)))
                 edit1.edit.setText(Format.toString("%", g_Height), notify: false)
             }
         }
@@ -261,7 +261,7 @@ impl MainWnd
             g_Height = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
-                g_Width = Math.max(1, cast(s32) (g_Height * ratio))
+                g_Width = Math.max(1, cast(s32, (g_Height * ratio)))
                 edit0.edit.setText(Format.toString("%", g_Width), notify: false)
             }
         }
@@ -278,10 +278,10 @@ impl MainWnd
         {
             if c.userData
             {
-                let btnc = cast #assume (*CheckButton) c
+                let btnc = assume cast (*CheckButton, c)
                 if btnc.state != .Unchecked
                 {
-                    g_ResizeMode = cast(u64) btnc.userData
+                    g_ResizeMode = cast(u64, btnc.userData)
                     break
                 }
             }
@@ -307,8 +307,8 @@ impl MainWnd
             return
 
         var l, t, r, b: s32 = 0
-        let cw = w - cast(s32) capture.backImg.width
-        let ch = h - cast(s32) capture.backImg.height
+        let cw = w - cast(s32, capture.backImg.width)
+        let ch = h - cast(s32, capture.backImg.height)
 
         switch g_ResizeMode
         {
@@ -484,12 +484,12 @@ impl MainWnd
         {
             with let undo = capture.newUndo(.MoveCapture)
             {
-                .newPosX  -= cast(s32) minX
-                .newSizeX -= cast(s32) minX
-                .newPosY  -= cast(s32) minY
-                .newSizeY -= cast(s32) minY
-                .newSizeX -= cast(s32) (capture.width - maxX)
-                .newSizeY -= cast(s32) (capture.height - maxY)
+                .newPosX  -= cast(s32, minX)
+                .newSizeX -= cast(s32, minX)
+                .newPosY  -= cast(s32, minY)
+                .newSizeY -= cast(s32, minY)
+                .newSizeX -= cast(s32, (capture.width - maxX))
+                .newSizeY -= cast(s32, (capture.height - maxY))
             }
 
             capture.pushUndo(undo, serial)

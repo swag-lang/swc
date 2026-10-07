@@ -32,7 +32,7 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
     var pos = start
     while pos < text.count and Latin1.isDigit(text[pos])
     {
-        value = value * 10 + cast(u32) (text[pos] - '0')
+        value = value * 10 + cast(u32, (text[pos] - '0'))
         pos   += 1
     }
 
@@ -52,18 +52,18 @@ private func parseStamp(text: string)->u64
         {
             if not Latin1.isDigit(text[i]) do
                 return 0
-            value = value * 10 + cast(u64) (text[i] - '0')
+            value = value * 10 + cast(u64, (text[i] - '0'))
         }
         elif text[i] != StampShape[i] do
             return 0
     }
 
     let date = Time.DateTime{
-        year: cast() (value / 100000000),
-        month: cast() ((value / 1000000) % 100),
-        day: cast() ((value / 10000) % 100),
-        hour: cast() ((value / 100) % 100),
-        minute: cast() (value % 100)}
+        year: cast((value / 100000000)),
+        month: cast(((value / 1000000) % 100)),
+        day: cast(((value / 10000) % 100)),
+        hour: cast(((value / 100) % 100)),
+        minute: cast((value % 100))}
     return date.isValid() ? value : 0
 }
 
@@ -109,14 +109,14 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
         lineNumber += 1
         let trimmed = Latin1.trim(line)
 
-        if Utf8.startsWith(cast(const [..] u8) line, "## ")
+        if Utf8.startsWith(cast(const [..] u8, line), "## ")
         {
             if entryCount != 0 do
                 sectionLine = lineNumber
             continue
         }
 
-        if Utf8.startsWith(cast(const [..] u8) line, "### ")
+        if Utf8.startsWith(cast(const [..] u8, line), "### ")
         {
             if awaitRecorded
             {
@@ -138,7 +138,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
             allowUpdated  = false
             recorded      = 0
 
-            if not Utf8.startsWith(cast(const [..] u8) line, headingPrefix.toString())
+            if not Utf8.startsWith(cast(const [..] u8, line), headingPrefix.toString())
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": backlog entry identifier does not match its file name")
                 result.errors += 1
@@ -147,7 +147,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
             let digitStart = headingPrefix.count
             let parsed     = parseDecimal(line, digitStart)
-            if parsed.value == 0 or parsed.end != digitStart + 3 or not Utf8.startsWith(cast(const [..] u8) line[parsed.end until line.count], " — ")
+            if parsed.value == 0 or parsed.end != digitStart + 3 or not Utf8.startsWith(cast(const [..] u8, line[parsed.end until line.count]), " — ")
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": malformed backlog identifier heading")
                 result.errors += 1
@@ -172,7 +172,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
                 continue
 
             awaitRecorded = false
-            if not Utf8.startsWith(cast(const [..] u8) trimmed, RecordedField)
+            if not Utf8.startsWith(cast(const [..] u8, trimmed), RecordedField)
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
                 result.errors += 1
@@ -201,7 +201,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
         let updatedAllowed = allowUpdated
         allowUpdated = false
-        if Utf8.startsWith(cast(const [..] u8) trimmed, UpdatedField)
+        if Utf8.startsWith(cast(const [..] u8, trimmed), UpdatedField)
         {
             if not updatedAllowed
             {
@@ -221,7 +221,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
             }
 
             let note = rest[stamp.count until rest.count]
-            if not Utf8.startsWith(cast(const [..] u8) note, NoteSeparator) or Latin1.trim(note[NoteSeparator.count until note.count]).count == 0
+            if not Utf8.startsWith(cast(const [..] u8, note), NoteSeparator) or Latin1.trim(note[NoteSeparator.count until note.count]).count == 0
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": an Updated stamp must say what changed after ' — '")
                 result.errors += 1
@@ -242,7 +242,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
                 result.stamp  = String.from(stamp)
             }
         }
-        elif Utf8.startsWith(cast(const [..] u8) trimmed, RecordedField)
+        elif Utf8.startsWith(cast(const [..] u8, trimmed), RecordedField)
         {
             Console.println("error: ", fileName, ":", lineNumber, ": a Recorded stamp must directly follow the entry heading")
             result.errors += 1
@@ -268,10 +268,10 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
 private func auditBacklogLink(fileName: string, lineNumber: u64, destination: string)->u32 fail
 {
-    if Utf8.startsWith(cast(const [..] u8) destination, "https://") or Utf8.startsWith(cast(const [..] u8) destination, "http://") or Utf8.startsWith(cast(const [..] u8) destination, "mailto:") do
+    if Utf8.startsWith(cast(const [..] u8, destination), "https://") or Utf8.startsWith(cast(const [..] u8, destination), "http://") or Utf8.startsWith(cast(const [..] u8, destination), "mailto:") do
         return 0
 
-    let hash = Utf8.indexOf(cast(const [..] u8) destination, "#")
+    let hash = Utf8.indexOf(cast(const [..] u8, destination), "#")
     let path = hash == Swag.U64.Max ? destination : destination[0 until hash]
 
     var target = path.count == 0 ? String.from(fileName) : Path.combine(Path.directoryName(fileName) orelse "", path)
@@ -321,7 +321,7 @@ private func auditBacklogLinks(fileName: string)->u32 fail
         var offset = 0'u64
         while offset < line.count
         {
-            let marker = Utf8.indexOf(cast(const [..] u8) line[offset until line.count], "](")
+            let marker = Utf8.indexOf(cast(const [..] u8, line[offset until line.count]), "](")
             if marker == Swag.U64.Max do
                 break
 
@@ -332,7 +332,7 @@ private func auditBacklogLinks(fileName: string)->u32 fail
                 continue
             }
 
-            let close = Utf8.indexOf(cast(const [..] u8) line[start until line.count], ")")
+            let close = Utf8.indexOf(cast(const [..] u8, line[start until line.count]), ")")
             if close == Swag.U64.Max do
                 break
 
@@ -370,7 +370,7 @@ private func isBacklogScope(text: string)->bool
 
 private func isBacklogIdentifier(text: string)->bool
 {
-    let suffixDot = Utf8.lastIndexOf(cast(const [..] u8) text, ".")
+    let suffixDot = Utf8.lastIndexOf(cast(const [..] u8, text), ".")
     if suffixDot == Swag.U64.Max or suffixDot + 4 != text.count or not isBacklogScope(text[0 until suffixDot]) do
         return false
 
@@ -397,10 +397,10 @@ private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 f
     {
         lineNumber += 1
         let trimmed = Latin1.trim(line)
-        if Utf8.startsWith(cast(const [..] u8) trimmed, "- Related:") or
-           Utf8.startsWith(cast(const [..] u8) trimmed, "Related:") or
-           Utf8.startsWith(cast(const [..] u8) trimmed, "**Related:**") or
-           Utf8.startsWith(cast(const [..] u8) trimmed, "- **Related:**") do
+        if Utf8.startsWith(cast(const [..] u8, trimmed), "- Related:") or
+           Utf8.startsWith(cast(const [..] u8, trimmed), "Related:") or
+           Utf8.startsWith(cast(const [..] u8, trimmed), "**Related:**") or
+           Utf8.startsWith(cast(const [..] u8, trimmed), "- **Related:**") do
             related = true
         elif related and line.count != 0 and (line[0] == ' ' or line[0] == '\t') do
             related = true
@@ -452,11 +452,11 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
     {
         lineNumber += 1
         let trimmed = Latin1.trim(line)
-        if not Utf8.startsWith(cast(const [..] u8) trimmed, "| [") do
+        if not Utf8.startsWith(cast(const [..] u8, trimmed), "| [") do
             continue
 
-        let open  = Utf8.indexOf(cast(const [..] u8) trimmed, "](")
-        let close = open == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(cast(const [..] u8) trimmed, ")", open)
+        let open  = Utf8.indexOf(cast(const [..] u8, trimmed), "](")
+        let close = open == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(cast(const [..] u8, trimmed), ")", open)
         if close == Swag.U64.Max or trimmed[trimmed.count - 1] != '|'
         {
             Console.println("error: ", fileName, ":", lineNumber, ": malformed inventory row")
@@ -466,7 +466,7 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
 
         let name  = trimmed[open + 2 until close]
         let body  = trimmed[0 until trimmed.count - 1]
-        let cell  = Utf8.lastIndexOf(cast(const [..] u8) body, "|")
+        let cell  = Utf8.lastIndexOf(cast(const [..] u8, body), "|")
         let text  = Latin1.trim(body[cell + 1 until body.count])
         let stamp = parseStamp(text)
         if stamp == 0
@@ -512,10 +512,10 @@ private func collectHeadingIdentifiers(text: string, prefix: string, result: *Ha
 {
     for line in Tokenize.splitLines(text)
     {
-        if not Utf8.startsWith(cast(const [..] u8) line, prefix) do
+        if not Utf8.startsWith(cast(const [..] u8, line), prefix) do
             continue
         let heading = line[prefix.count to]
-        let end     = Utf8.indexOf(cast(const [..] u8) heading, " ")
+        let end     = Utf8.indexOf(cast(const [..] u8, heading), " ")
         if end != Swag.U64.Max and isBacklogIdentifier(heading[0 until end]) do
             result.add(String.from(heading[0 until end]))
     }
@@ -532,7 +532,7 @@ private func captureBacklogGit(context: *Context, arguments: Arguments, allowNoM
     {
         Console.print(process.standardOutput())
         Console.print(process.standardError())
-        fail Swag.SystemError{"cannot read backlog allocation history", errorID: cast(u32) process.exitCode()}
+        fail Swag.SystemError{"cannot read backlog allocation history", errorID: cast(u32, process.exitCode())}
     }
 
     return String.from(process.standardOutput())
@@ -592,17 +592,17 @@ private func readBacklogIdentity(context: *Context, revision: string, path: stri
     var heading: String
     for line in Tokenize.splitLines(content.toString())
     {
-        if Utf8.startsWith(cast(const [..] u8) line, "### ")
+        if Utf8.startsWith(cast(const [..] u8, line), "### ")
         {
             heading.clear()
-            if Utf8.startsWith(cast(const [..] u8) line, prefix.toString())
+            if Utf8.startsWith(cast(const [..] u8, line), prefix.toString())
             {
-                let end = Utf8.indexOf(cast(const [..] u8) line, " ", 4)
+                let end = Utf8.indexOf(cast(const [..] u8, line), " ", 4)
                 if end == prefix.count + 3 and isBacklogIdentifier(line[4 until end]) do
                     heading = String.from(line[prefix.count to])
             }
         }
-        elif not heading.isEmpty() and Utf8.startsWith(cast(const [..] u8) Latin1.trim(line), RecordedField)
+        elif not heading.isEmpty() and Utf8.startsWith(cast(const [..] u8, Latin1.trim(line)), RecordedField)
         {
             result.entries.add(Format.toString("%\n%", heading.toString(), Latin1.trim(line)))
             heading.clear()
@@ -724,7 +724,7 @@ private func collectBacklogAllocationHistory(context: *Context, revision: string
     {
         if line.count == 0 do
             continue
-        if not Utf8.startsWith(cast(const [..] u8) line, "backlog/")
+        if not Utf8.startsWith(cast(const [..] u8, line), "backlog/")
         {
             commit = String.from(line)
             continue
@@ -773,7 +773,7 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
 
     var added: Array'String
     let prefix = Format.toString("%.", stem)
-    for identifier in seen[] where identifier.count == prefix.count + 3 and Utf8.startsWith(cast(const [..] u8) identifier.toString(), prefix.toString())
+    for identifier in seen[] where identifier.count == prefix.count + 3 and Utf8.startsWith(cast(const [..] u8, identifier.toString()), prefix.toString())
     {
         if not previous.contains(identifier) do
             added.add(identifier)
@@ -853,7 +853,7 @@ public func auditBacklog(context: *Context)->s32 fail
             errors += 1
         }
 
-        if Utf8.indexOf(cast(const [..] u8) readme.toString(), name) == Swag.U64.Max
+        if Utf8.indexOf(cast(const [..] u8, readme.toString()), name) == Swag.U64.Max
         {
             Console.println("error: backlog/README.md does not document ", name)
             errors += 1

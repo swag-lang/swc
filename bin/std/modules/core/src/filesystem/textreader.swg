@@ -76,7 +76,7 @@ public impl TextReader
             // Scan eight bytes at a time for a line ending, then finish byte by byte.
             while ptr + 8'u64 <= ptrE
             {
-                let c64 = (cast(const *u64) ptr)[]
+                let c64 = cast(const *u64, ptr)[]
                 if Math.hasByte(c64, '\r') or Math.hasByte(c64, '\n') do
                     break
                 ptr += 8
@@ -85,7 +85,7 @@ public impl TextReader
             while ptr != ptrE and ptr[] != '\r' and ptr[] != '\n' do
                 ptr += 1
 
-            let range = cast(u64) (ptr - ptrB)
+            let range = cast(u64, (ptr - ptrB))
             result[] += Swag.makeString(ptrB, range)
 
             // The line continues in the next refill; at end of file it ends here.

@@ -739,6 +739,7 @@ namespace
         clonedPayload.ufcsReceiverAddress |= sourcePayload->ufcsReceiverAddress;
         clonedPayload.dynamicCast |= sourcePayload->dynamicCast;
         clonedPayload.assumedDynamicCast |= sourcePayload->assumedDynamicCast;
+        clonedPayload.fallibleDynamicCast |= sourcePayload->fallibleDynamicCast;
         clonedPayload.runtimeTypeCast |= sourcePayload->runtimeTypeCast;
         clonedPayload.runtimeValueCast |= sourcePayload->runtimeValueCast;
     }

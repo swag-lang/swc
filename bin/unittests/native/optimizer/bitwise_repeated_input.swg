@@ -52,8 +52,8 @@ func changedInput(a, b: u64)->u64
     {
         for b in values
         {
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
-            let b32 = cast(u32) (b & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
+            let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(absorbOr32(a32, b32) == a32)
             Swag.assert(absorbAnd32(a32, b32) == a32)
             Swag.assert(cancelLeft32(a32, b32) == b32)

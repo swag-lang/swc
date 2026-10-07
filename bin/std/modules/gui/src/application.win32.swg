@@ -75,9 +75,9 @@ impl Application
         let winKey = Input.Keyboard.keyToVirtualKey(key)
 
         var crc32: Hash.Crc32
-        crc32.update(Swag.makeSlice(cast(const [*] u8) &mod, 4))
-        crc32.update(Swag.makeSlice(cast(const [*] u8) &winKey, 4))
-        return cast(s32) (crc32.value() & 0x7FFFFFFF)
+        crc32.update(Swag.makeSlice(cast(const [*] u8, &mod), 4))
+        crc32.update(Swag.makeSlice(cast(const [*] u8, &winKey), 4))
+        return cast(s32, (crc32.value() & 0x7FFFFFFF))
     }
 
     // A system-wide hot key belongs to the desktop of the person running the process, and only one
@@ -129,7 +129,7 @@ impl Application
             modifiers |= .Control
         if msg.lParam & MOD_SHIFT do
             modifiers |= .Shift
-        let key = Keyboard.virtualKeyToKey(cast() (msg.lParam >> 16))
+        let key = Keyboard.virtualKeyToKey(cast((msg.lParam >> 16)))
 
         .dispatchHotKey(modifiers, key)
     }
@@ -156,7 +156,7 @@ impl Application
 
     internal mtd surfaceAtNative(x, y: f32)->*Surface?
     {
-        let pt   = POINT{cast(s32) x, cast(s32) y}
+        let pt   = POINT{cast(s32, x), cast(s32, y)}
         let hWnd = WindowFromPoint(pt)
         if hWnd == null do
             return null
@@ -184,14 +184,14 @@ impl Application
 
         if small
         {
-            index = cast(s32) .mapFileSmallIcons.count
+            index = cast(s32, .mapFileSmallIcons.count)
             .mapFileSmallIcons.add(name, index)
             curImg     = &.fileSmallIconsImage
             curImgList = &.fileSmallIconsImageList
         }
         else
         {
-            index = cast(s32) .mapFileBigIcons.count
+            index = cast(s32, .mapFileBigIcons.count)
             .mapFileBigIcons.add(name, index)
             curImg     = &.fileBigIconsImage
             curImgList = &.fileBigIconsImageList

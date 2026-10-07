@@ -8,14 +8,14 @@ func htmlViewerFixturePath()->String => Path.combine(Path.combine(Path.directory
 func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
     var attempts: u32
-    while result.isLoading!(result.view!) and attempts < 100
+    while result.isLoading!() and attempts < 100
     {
         Threading.Thread.sleep(5'ms)
         host.app.runFrame()
         attempts += 1
     }
 
-    Swag.assert(not result.isLoading!(result.view!))
+    Swag.assert(not result.isLoading!())
 }
 
 // The viewer remains a thin ABI adapter around the reusable GUI control.
@@ -34,9 +34,9 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null)
     Swag.assert(result.commands == null and result.info != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
-    Swag.assert(result.isLoading(result.view))
+    Swag.assert(result.isLoading())
     Swag.assert(Utf8.contains(result.details.toString(), "HTML"))
-    let view = cast #assume (*HtmlViewer) result.view
+    let view = assume cast (*HtmlViewer, result.view)
     finishHtmlViewer(&host, &result)
     Swag.assert(result.view != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
@@ -50,20 +50,20 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     let offset = source.indexOf("immutable")
     Swag.assert(offset != Swag.U64.Max)
     let match    = Viewer.SearchMatch{offset: offset, length: "immutable".count}
-    let revealed = result.revealMatch(result.view, match, "immutable")
+    let revealed = result.revealMatch(match, "immutable")
     Swag.assert(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds(result.view, match, &bounds) and not bounds.isEmpty())
+    Swag.assert(result.searchBounds(match, &bounds) and not bounds.isEmpty())
 
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.assert(view.zoomLabel.toolTip == htmlStrings().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
-    Swag.assert(view.zoomPercent == 100 and result.searchBounds(result.view, match, &bounds))
+    Swag.assert(view.zoomPercent == 100 and result.searchBounds(match, &bounds))
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
     Swag.assert(view.zoomLabel.toolTip == oldTip)
-    result.clearSearch(result.view)
+    result.clearSearch()
 }
 
 // The rendered document and its host-owned zoom chrome have a dedicated visual contract.
@@ -85,7 +85,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     var result = openTestViewer(htmlViewerPlugin(), &host.root, htmlViewerFixturePath().toString(), infoParent: infoBar)
     Swag.assert(result.view != null and result.info != null)
     infoBar.centerGroup = result.info
-    let view = cast #assume (*HtmlViewer) result.view
+    let view = assume cast (*HtmlViewer, result.view)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishHtmlViewer(&host, &result)

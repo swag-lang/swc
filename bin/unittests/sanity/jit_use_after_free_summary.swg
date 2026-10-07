@@ -74,7 +74,7 @@ func releaseWrapperForJitSummary(pointer: *void)
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func probeJitSummary()->s32
 {
-    let pointer = cast(*s32) allocateForJitSummary()
+    let pointer = cast(*s32, allocateForJitSummary())
     pointer[] = 42
     releaseWrapperForJitSummary(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return pointer[]                         // swc-expected-error {{sanity_err_use_after_free}}
@@ -96,7 +96,7 @@ struct JitCarrier { late target: *void }
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func createCarrierForJitSummary(pointer: *void)->*JitCarrier
 {
-    let carrier = cast(*JitCarrier) allocateForJitSummary(#sizeof(JitCarrier))
+    let carrier = cast(*JitCarrier, allocateForJitSummary(#sizeof(JitCarrier)))
     carrier.target = pointer
     return carrier
 }
@@ -119,7 +119,7 @@ func releaseIndependentForJitSummary(pointer: *void)
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func probeIndependentJitSummary()->s32
 {
-    let pointer = cast(*s32) allocateForJitSummary()
+    let pointer = cast(*s32, allocateForJitSummary())
     defer releaseForJitSummary(pointer)
     pointer[] = 42
     releaseCarrierForJitSummary(pointer)
@@ -154,7 +154,7 @@ func releaseOwnedForJitSummary(owner: *JitOwner)
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func probeOwnedJitSummary()->s32
 {
-    var owner = JitOwner{data: cast([*] s32) allocateForJitSummary()}
+    var owner = JitOwner{data: cast([*] s32, allocateForJitSummary())}
     releaseOwnedForJitSummary(&owner)
     return owner.marker
 }

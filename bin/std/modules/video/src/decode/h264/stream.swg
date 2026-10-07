@@ -132,13 +132,13 @@ impl AvcStream
         .cropLeft = sps.cropLeft
         .cropTop  = sps.cropTop
 
-        let pixels = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight * 256
-        let wanted = cast(u32) Math.min((pixels + AvcPixelsPerLane - 1) / AvcPixelsPerLane, cast(u64) AvcMaxFrameThreads)
+        let pixels = cast(u64, sps.mbWidth) * cast(u64, sps.mbHeight) * 256
+        let wanted = cast(u32, Math.min((pixels + AvcPixelsPerLane - 1) / AvcPixelsPerLane, cast(u64, AvcMaxFrameThreads)))
         .laneCount = Math.min(.laneCount, Math.max(wanted, AvcMinFrameThreads))
 
         let laneBytes = pixels * AvcBytesPerLanePixel
         if laneBytes do
-            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64)))
+            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32, Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64))))
 
         try .installFrames(#move frames)
     }
@@ -174,12 +174,12 @@ impl AvcStream
         for index in count
         {
             var position = order.count
-            while position > 0 and .frames[cast(u64) order[position - 1]].presentationTime > .frames[index].presentationTime
+            while position > 0 and .frames[cast(u64, order[position - 1])].presentationTime > .frames[index].presentationTime
             {
                 position -= 1
             }
 
-            order.insertAt(position, cast(u32) index)
+            order.insertAt(position, cast(u32, index))
         }
 
         .rankOfSample.clear()
@@ -189,7 +189,7 @@ impl AvcStream
         for rank in order.count
         {
             .sampleAtRank[rank] = order[rank]
-            .rankOfSample[cast(u64) order[rank]] = cast(u32) rank
+            .rankOfSample[cast(u64, order[rank])] = cast(u32, rank)
         }
 
         .syncFlags.clear()
@@ -229,26 +229,26 @@ impl AvcStream
         for index in frames.count
         {
             var position = order.count
-            while position > 0 and frames[cast(u64) order[position - 1]].presentationTime > frames[index].presentationTime
+            while position > 0 and frames[cast(u64, order[position - 1])].presentationTime > frames[index].presentationTime
             {
                 position -= 1
             }
 
-            order.insertAt(position, cast(u32) index)
+            order.insertAt(position, cast(u32, index))
         }
 
         let mutableRank = Math.min(.nextRank, .sampleAtRank.count)
-        if mutableRank and frames[cast(u64) order[0]].presentationTime < .presentationTimeAtRank(mutableRank - 1) do
+        if mutableRank and frames[cast(u64, order[0])].presentationTime < .presentationTimeAtRank(mutableRank - 1) do
             fail InvalidFormatError{"H.264 container chunk overlaps pictures already presented"}
 
-        let firstNewTimestamp = frames[cast(u64) order[0]].presentationTime
+        let firstNewTimestamp = frames[cast(u64, order[0])].presentationTime
         var insertionRank     = mutableRank
         while insertionRank < first and .presentationTimeAtRank(insertionRank) <= firstNewTimestamp do
             insertionRank += 1
 
         var stableRank = mutableRank
         for sample in Math.min(.nextDecode, first) do
-            stableRank = Math.max(stableRank, cast(u64) .rankOfSample[sample] + 1)
+            stableRank = Math.max(stableRank, cast(u64, .rankOfSample[sample]) + 1)
         let restart = insertionRank < stableRank
 
         var merged: Array'u32
@@ -260,7 +260,7 @@ impl AvcStream
         var newRank = 0'u64
         while oldRank < first or newRank < order.count
         {
-            let useOld = newRank >= order.count or (oldRank < first and .presentationTimeAtRank(oldRank) <= frames[cast(u64) order[newRank]].presentationTime)
+            let useOld = newRank >= order.count or (oldRank < first and .presentationTimeAtRank(oldRank) <= frames[cast(u64, order[newRank])].presentationTime)
             if useOld
             {
                 merged.add(.sampleAtRank[oldRank])
@@ -268,7 +268,7 @@ impl AvcStream
             }
             else
             {
-                merged.add(cast(u32) (first + cast(u64) order[newRank]))
+                merged.add(cast(u32, (first + cast(u64, order[newRank]))))
                 newRank += 1
             }
         }
@@ -297,7 +297,7 @@ impl AvcStream
         {
             for localSample in frames.count where frames[localSample].isSync
             {
-                .syncFlags[0] = cast(u8) (.frames[0].isSync ? 1 : 0)
+                .syncFlags[0] = cast(u8, (.frames[0].isSync ? 1 : 0))
                 .assumedSync  = false
                 break
             }
@@ -306,13 +306,13 @@ impl AvcStream
         .sampleAtRank = #move merged
         .rankOfSample.resize(.frames.count)
         for rank in mutableRank until .sampleAtRank.count do
-            .rankOfSample[cast(u64) .sampleAtRank[rank]] = cast(u32) rank
+            .rankOfSample[cast(u64, .sampleAtRank[rank])] = cast(u32, rank)
 
         .reachedEnd = false
         if not restart do
             return
 
-        let nextSample = cast(u64) .sampleAtRank[.nextRank]
+        let nextSample = cast(u64, .sampleAtRank[.nextRank])
         var sync       = nextSample
         while sync > 0 and .syncFlags[sync] == 0 do
             sync -= 1
@@ -335,7 +335,7 @@ impl AvcStream
         var scan = rank
         while scan < .frames.count
         {
-            if .syncFlags[cast(u64) .sampleAtRank[scan]] != 0 do
+            if .syncFlags[cast(u64, .sampleAtRank[scan])] != 0 do
                 return scan
             scan += 1
         }
@@ -347,7 +347,7 @@ impl AvcStream
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
         Swag.assert(rank < .sampleAtRank.count)
-        return .frames[cast(u64) .sampleAtRank[rank]].presentationTime
+        return .frames[cast(u64, .sampleAtRank[rank])].presentationTime
     }
 
     // Positions the stream so the next decoded frame has display rank `rank`.
@@ -360,7 +360,7 @@ impl AvcStream
 
         .stopFrameThreads()
         var wanted = rank
-        var sample = cast(u64) .sampleAtRank[wanted]
+        var sample = cast(u64, .sampleAtRank[wanted])
         var sync   = sample
         while sync > 0 and .syncFlags[sync] == 0 do
             sync -= 1
@@ -374,7 +374,7 @@ impl AvcStream
             if first < .frames.count
             {
                 wanted = first
-                sample = cast(u64) .sampleAtRank[wanted]
+                sample = cast(u64, .sampleAtRank[wanted])
                 sync   = sample
             }
         }
@@ -535,7 +535,7 @@ impl AvcStream
             let entry = .frames[.nextDecode]
             try readStoredFrame(source, entry, .prefix.toSlice(), payload)
 
-            let rank = cast(u64) .rankOfSample[.nextDecode]
+            let rank = cast(u64, .rankOfSample[.nextDecode])
             .nextDecode += 1
             if rank < .skipBefore and decoder.canSkipWhileSeeking(payload.toSlice()) do
                 continue
@@ -664,7 +664,7 @@ impl AvcStream
 // Decodes complete pictures in one persistent per-frame context.
 private func runAvcFrameThread(thread: Threading.Thread)
 {
-    let frameThread = cast(*AvcFrameThread) thread.userParam!
+    let frameThread = cast(*AvcFrameThread, thread.userParam!)
     while not thread.requestEnd
     {
         frameThread.wake.wait()

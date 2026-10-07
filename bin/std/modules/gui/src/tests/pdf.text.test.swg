@@ -76,7 +76,7 @@ using Core, Core.Math, Pdf
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     let page     = document.pages[0]
     Swag.assert(page.items.count == 2)
 
@@ -97,7 +97,7 @@ using Core, Core.Math, Pdf
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 65 /LastChar 66 /Widths [1000 500] >>")
 
     let content  = "BT /F0 10 Tf 0 0 Td (AB) Tj (C) Tj ET"
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     let page     = document.pages[0]
     Swag.assert(page.items.count == 2)
 
@@ -105,7 +105,7 @@ using Core, Core.Math, Pdf
     Swag.assert(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
 
     let kerned = "BT /F0 10 Tf 0 0 Td [(A) -500 (B)] TJ ET"
-    let second = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) kerned, objects.toSlice()).toSlice())
+    let second = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, kerned), objects.toSlice()).toSlice())
     Swag.assert(second.pages[0].items.count == 2)
 
     // One em for "A", then five extra points of kerning.
@@ -121,7 +121,7 @@ using Core, Core.Math, Pdf
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
     let content  = "BT /F0 10 Tf 3 Tr (hidden) Tj 0 Tr (shown) Tj ET"
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     Swag.assert(pageText(document.pages[0]) == "hiddenshown")
     Swag.assert(document.pages[0].items.count == 2)
     Swag.assert(document.pages[0].items[0].invisibleText)
@@ -137,16 +137,16 @@ using Core, Core.Math, Pdf
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
     let content  = "BT /F0 10 Tf 10 80 Td 3 Tr (hidden) Tj 0 Tr (shown) Tj 7 Tr (clipped) Tj ET"
-    let bytes    = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice())
+    let bytes    = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice())
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pdf-invisible-%{X016}.pdf", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var reader = expect Reader.open(fileName)
     let text   = expect reader.loadPageText(0)
-    Swag.assert(text.contains(cast(string) "hidden"))
-    Swag.assert(text.contains(cast(string) "shown"))
-    Swag.assert(text.contains(cast(string) "clipped"))
+    Swag.assert(text.contains(cast(string, "hidden")))
+    Swag.assert(text.contains(cast(string, "shown")))
+    Swag.assert(text.contains(cast(string, "clipped")))
     var page    = expect reader.loadPage(0)
     let indexed = TextIndex.build(&page)
     Swag.assert(text == indexed.text)
@@ -160,7 +160,7 @@ using Core, Core.Math, Pdf
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
     let content  = "BT /F0 10 Tf 10 80 Td 3 Tr (hidden) Tj 7 Tr (clipped) Tj ET"
-    var document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    var document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     var page     = document.pages[0]
     page.prepare(1)
     var blank    = Page.create(page.width, page.height)
@@ -192,7 +192,7 @@ using Core, Core.Math, Pdf
     addObject(&objects, 6, "<< /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /eacute /Euro] >>")
 
     let content  = "BT /F0 10 Tf (ABC) Tj ET"
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     Swag.assert(pageText(document.pages[0]) == "é€C")
 }
 
@@ -215,10 +215,10 @@ endcmap
 
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 6 0 R >>")
-    addStreamObject(&objects, 6, "", cast(const [..] u8) cmap)
+    addStreamObject(&objects, 6, "", cast(const [..] u8, cmap))
 
     let content  = "BT /F0 10 Tf (ABCD) Tj ET"
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     Swag.assert(pageText(document.pages[0]) == "ABabc")
 }
 
@@ -243,10 +243,10 @@ endcmap
 
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+Calibri-Bold /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>")
-    addStreamObject(&objects, 6, "", cast(const [..] u8) cmap)
+    addStreamObject(&objects, 6, "", cast(const [..] u8, cmap))
 
     let content  = "BT /F0 10 Tf (B) Tj ET"
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     Swag.assert(document.pages[0].fonts[0].codeBytes == 1)
     Swag.assert(pageText(document.pages[0]) == "B")
 }
@@ -268,10 +268,10 @@ endcmap
     var objects: Array'u8
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type0 /BaseFont /Custom /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 7 0 R >>")
     addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Custom /DW 1000 /W [3 [500 250]] >>")
-    addStreamObject(&objects, 7, "", cast(const [..] u8) cmap)
+    addStreamObject(&objects, 7, "", cast(const [..] u8, cmap))
 
     let content  = "BT /F0 20 Tf <00030004> Tj <0003> Tj ET"
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     let page     = document.pages[0]
     Swag.assert(page.items.count == 2)
     Swag.assert(page.items[0].textValue() == "Hi")
@@ -294,7 +294,7 @@ endcmap
     addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Custom /CIDToGIDMap 7 0 R >>")
     addStreamObject(&objects, 7, "", glyphMap)
 
-    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) "", objects.toSlice()).toSlice())
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, ""), objects.toSlice()).toSlice())
     let font     = &document.pages[0].fonts[0]
     Swag.assert(not font.identityGlyphs)
     Swag.assert(font.glyphIndex(3) == {7, true})
@@ -332,12 +332,12 @@ endcmap
     document.addPage(#move page)
 
     let bytes = expect document.encode()
-    let text  = cast(string) bytes.toSlice()
+    let text  = cast(string, bytes.toSlice())
     Swag.assert(Utf8.indexOf(text, "/Times-Bold") != Swag.U64.Max)
     Swag.assert(Utf8.indexOf(text, "/Times-Bold", Utf8.indexOf(text, "/Times-Bold") + 1) == Swag.U64.Max)
 
     var empty = Document.create()
     empty.addPage(Page.create(100, 100))
     let emptyBytes = expect empty.encode()
-    Swag.assert(Utf8.indexOf(cast(string) emptyBytes.toSlice(), "/Font") == Swag.U64.Max)
+    Swag.assert(Utf8.indexOf(cast(string, emptyBytes.toSlice()), "/Font") == Swag.U64.Max)
 }

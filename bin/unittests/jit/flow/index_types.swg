@@ -46,7 +46,7 @@
         for value, index in arr
         {
             Swag.assert(#typeof(index) == u64)
-            acc += index + cast(u64) value
+            acc += index + cast(u64, value)
         }
 
         return acc
@@ -66,7 +66,7 @@
 
         for i in arr.count
         {
-            acc += cast(u64) i
+            acc += cast(u64, i)
         }
 
         for i in str.count

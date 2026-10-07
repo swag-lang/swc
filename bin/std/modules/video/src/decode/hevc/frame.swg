@@ -117,11 +117,11 @@ impl Frame
         default:    .matrix = sps.width >= 1280 or sps.height > 576 ? .Bt709 : .Bt601
         }
 
-        .strideLuma   = cast(u64) (.width + FramePadding * 2)
-        .strideChroma = cast(u64) (.chromaWidth + FramePadding * 2)
+        .strideLuma   = cast(u64, (.width + FramePadding * 2))
+        .strideChroma = cast(u64, (.chromaWidth + FramePadding * 2))
 
-        let lumaSize   = .strideLuma * cast(u64) (.height + FramePadding * 2)
-        let chromaSize = .strideChroma * cast(u64) (.chromaHeight + FramePadding * 2)
+        let lumaSize   = .strideLuma * cast(u64, (.height + FramePadding * 2))
+        let chromaSize = .strideChroma * cast(u64, (.chromaHeight + FramePadding * 2))
         if .luma.count != lumaSize
         {
             .luma.resize(lumaSize)
@@ -131,7 +131,7 @@ impl Frame
 
         .colWidth  = (.width + (1 << ColMotionLog2) - 1) >> ColMotionLog2
         .colHeight = (.height + (1 << ColMotionLog2) - 1) >> ColMotionLog2
-        let records = cast(u64) .colWidth * cast(u64) .colHeight
+        let records = cast(u64, .colWidth) * cast(u64, .colHeight)
         if .colMotion.count != records do
             .colMotion.resize(records)
 
@@ -146,29 +146,29 @@ impl Frame
 
     // Returns a pointer to luma sample `(x, y)`, which may sit in the padding.
     #[Swag.Inline]
-    mtd const lumaAt(x, y: s32)->const [*] u16? => .luma.storage() + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
+    mtd const lumaAt(x, y: s32)->const [*] u16? => .luma.storage() + cast(u64, (y + cast(s32, FramePadding))) * .strideLuma + cast(u64, (x + cast(s32, FramePadding)))
 
     #[Swag.Inline]
-    mtd lumaAtMutable(x, y: s32)->[*] u16 => .luma.storage() + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
+    mtd lumaAtMutable(x, y: s32)->[*] u16 => .luma.storage() + cast(u64, (y + cast(s32, FramePadding))) * .strideLuma + cast(u64, (x + cast(s32, FramePadding)))
 
     #[Swag.Inline]
     mtd chromaAtMutable(plane: u32, x, y: s32)->[*] u16
     {
         let base = plane == 0 ? .chromaB.storage() : .chromaR.storage()
-        return base + (cast(u64) (y + cast(s32) FramePadding)) * .strideChroma + cast(u64) (x + cast(s32) FramePadding)
+        return base + cast(u64, (y + cast(s32, FramePadding))) * .strideChroma + cast(u64, (x + cast(s32, FramePadding)))
     }
 
     // Returns the collocated motion of the region holding luma sample `(x, y)`.
     mtd const colMotionAt(x, y: s32)->ColMotion
     {
-        let cx = Math.clamp(cast(u32) x >> ColMotionLog2, 0, .colWidth - 1)
-        let cy = Math.clamp(cast(u32) y >> ColMotionLog2, 0, .colHeight - 1)
-        return .colMotion[cast(u64) cy * cast(u64) .colWidth + cast(u64) cx]
+        let cx = Math.clamp(cast(u32, x) >> ColMotionLog2, 0, .colWidth - 1)
+        let cy = Math.clamp(cast(u32, y) >> ColMotionLog2, 0, .colHeight - 1)
+        return .colMotion[cast(u64, cy) * cast(u64, .colWidth) + cast(u64, cx)]
     }
 
     // Returns the progress value that covers the whole picture, padding included.
     #[Swag.Inline]
-    mtd const progressComplete()->s32 => cast(s32) ((.height + 63) / 64) + 1
+    mtd const progressComplete()->s32 => cast(s32, ((.height + 63) / 64)) + 1
 
     // Publishes reconstruction progress and releases everything waiting for less than it.
     mtd publishProgress(rows: s32)
@@ -240,8 +240,8 @@ impl Frame
         {
             // The row base sits at the start of the padding, so both sides are written with an
             // index that never goes below zero.
-            let rowBase = plane + cast(u64) (row + FramePadding) * stride
-            let line    = rowBase + cast(u64) FramePadding
+            let rowBase = plane + cast(u64, (row + FramePadding)) * stride
+            let line    = rowBase + cast(u64, FramePadding)
             let left    = Simd.splat(line[0])
             let right   = Simd.splat(line[width - 1])
 
@@ -249,8 +249,8 @@ impl Frame
             var offset = 0'u32
             while offset < FramePadding
             {
-                Simd.store(rowBase + cast(u64) offset, left)
-                Simd.store(line + cast(u64) width + cast(u64) offset, right)
+                Simd.store(rowBase + cast(u64, offset), left)
+                Simd.store(line + cast(u64, width) + cast(u64, offset), right)
                 offset += 8
             }
         }
@@ -259,13 +259,13 @@ impl Frame
     private mtd const extendPlaneBorders(plane: [*] u16, stride: u64, height: u32)
     {
         let rowBytes = stride * #sizeof(u16)
-        let top      = plane + cast(u64) FramePadding * stride
+        let top      = plane + cast(u64, FramePadding) * stride
         for offset in FramePadding do
-            Memory.copy(plane + cast(u64) offset * stride, top, rowBytes)
+            Memory.copy(plane + cast(u64, offset) * stride, top, rowBytes)
 
-        let bottom = plane + cast(u64) (height + FramePadding - 1) * stride
+        let bottom = plane + cast(u64, (height + FramePadding - 1)) * stride
         for offset in FramePadding do
-            Memory.copy(bottom + cast(u64) (offset + 1) * stride, bottom, rowBytes)
+            Memory.copy(bottom + cast(u64, (offset + 1)) * stride, bottom, rowBytes)
     }
 
     // Copies the visible picture into `target` as eight-bit planes.
@@ -274,47 +274,47 @@ impl Frame
     // the rounding the standard uses for a bit-depth decrease.
     mtd const writePlanar(target: *PlanarFrame)
     {
-        let visibleWidth  = cast(s32) .visibleWidth
-        let visibleHeight = cast(s32) .visibleHeight
+        let visibleWidth  = cast(s32, .visibleWidth)
+        let visibleHeight = cast(s32, .visibleHeight)
         target.resize(visibleWidth, visibleHeight)
         target.studioRange = .studioRange
         target.matrix      = .matrix
 
-        let left  = cast(s32) (.cropLeft * .subWidthC)
-        let top   = cast(s32) (.cropTop * .subHeightC)
+        let left  = cast(s32, (.cropLeft * .subWidthC))
+        let top   = cast(s32, (.cropTop * .subHeightC))
         let shift = .bitDepth - 8
 
-        .reducePlane(target.luma.storage(), cast(u64) target.strideLuma, .luma.storage(), .strideLuma, left, top, visibleWidth, visibleHeight, shift)
+        .reducePlane(target.luma.storage(), cast(u64, target.strideLuma), .luma.storage(), .strideLuma, left, top, visibleWidth, visibleHeight, shift)
 
-        let chromaLeft   = left / cast(s32) .subWidthC
-        let chromaTop    = top / cast(s32) .subHeightC
+        let chromaLeft   = left / cast(s32, .subWidthC)
+        let chromaTop    = top / cast(s32, .subHeightC)
         let chromaWidth  = (visibleWidth + 1) / 2
         let chromaHeight = (visibleHeight + 1) / 2
-        .reducePlane(target.chromaB.storage(), cast(u64) target.strideChroma, .chromaB.storage(), .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
-        .reducePlane(target.chromaR.storage(), cast(u64) target.strideChroma, .chromaR.storage(), .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
+        .reducePlane(target.chromaB.storage(), cast(u64, target.strideChroma), .chromaB.storage(), .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
+        .reducePlane(target.chromaR.storage(), cast(u64, target.strideChroma), .chromaR.storage(), .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)
     }
 
     private mtd const reducePlane(destination: [*] u8, destinationStride: u64, source: const [*] u16, sourceStride: u64, left, top, width, height: s32, shift: u32)
     {
-        let origin = source + (cast(u64) (top + cast(s32) FramePadding)) * sourceStride + cast(u64) (left + cast(s32) FramePadding)
+        let origin = source + cast(u64, (top + cast(s32, FramePadding))) * sourceStride + cast(u64, (left + cast(s32, FramePadding)))
         if not shift
         {
             for row in height
             {
-                let line   = origin + cast(u64) row * sourceStride
-                let out    = destination + cast(u64) row * destinationStride
+                let line   = origin + cast(u64, row) * sourceStride
+                let out    = destination + cast(u64, row) * destinationStride
                 var column = 0's32
                 while column + 16 <= width
                 {
-                    let low  = cast #bit(Simd.S16x8) Simd.load(line + column)
-                    let high = cast #bit(Simd.S16x8) Simd.load(line + column + 8)
+                    let low  = cast #bit(Simd.S16x8, Simd.load(line + column))
+                    let high = cast #bit(Simd.S16x8, Simd.load(line + column + 8))
                     Simd.store(out + column, Simd.packUnsigned(low, high))
                     column += 16
                 }
 
                 while column < width
                 {
-                    out[column] = cast(u8) line[column]
+                    out[column] = cast(u8, line[column])
                     column      += 1
                 }
             }
@@ -323,25 +323,25 @@ impl Frame
         }
 
         let rounding       = 1'u32 << (shift - 1)
-        let maximum        = cast(u32) ((1'u32 << .bitDepth) - 1)
-        let packedRounding = Simd.splat(cast(u16) rounding)
-        let packedMaximum  = Simd.splat(cast(u16) maximum)
+        let maximum        = cast(u32, ((1'u32 << .bitDepth) - 1))
+        let packedRounding = Simd.splat(cast(u16, rounding))
+        let packedMaximum  = Simd.splat(cast(u16, maximum))
         for row in height
         {
-            let line   = origin + cast(u64) row * sourceStride
-            let out    = destination + cast(u64) row * destinationStride
+            let line   = origin + cast(u64, row) * sourceStride
+            let out    = destination + cast(u64, row) * destinationStride
             var column = 0's32
             while column + 16 <= width
             {
-                let low  = cast #bit(Simd.S16x8) (Math.min(Simd.load(line + column) + packedRounding, packedMaximum) >> shift)
-                let high = cast #bit(Simd.S16x8) (Math.min(Simd.load(line + column + 8) + packedRounding, packedMaximum) >> shift)
+                let low  = cast #bit(Simd.S16x8, (Math.min(Simd.load(line + column) + packedRounding, packedMaximum) >> shift))
+                let high = cast #bit(Simd.S16x8, (Math.min(Simd.load(line + column + 8) + packedRounding, packedMaximum) >> shift))
                 Simd.store(out + column, Simd.packUnsigned(low, high))
                 column += 16
             }
 
             while column < width
             {
-                out[column] = cast(u8) (Math.min(cast(u32) line[column] + rounding, maximum) >> shift)
+                out[column] = cast(u8, (Math.min(cast(u32, line[column]) + rounding, maximum) >> shift))
                 column      += 1
             }
         }

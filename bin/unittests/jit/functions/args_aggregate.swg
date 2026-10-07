@@ -107,10 +107,10 @@ struct AbiNested
     func passPointer(value: *void?)->*void? { return value }
     const V = #run passPointer(null)
     #assert(V == null)
-    const V1 = #run passPointer(cast(*void) 0x1234'u64)
-    #assert(V1 == cast(*void) 0x1234'u64)
-    const V2 = #run passPointer(cast(*void) 0xABCD'u64)
-    #assert(V2 == cast(*void) 0xABCD'u64)
+    const V1 = #run passPointer(cast(*void, 0x1234'u64))
+    #assert(V1 == cast(*void, 0x1234'u64))
+    const V2 = #run passPointer(cast(*void, 0xABCD'u64))
+    #assert(V2 == cast(*void, 0xABCD'u64))
 }
 
 #test
@@ -118,9 +118,9 @@ struct AbiNested
     func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: *void?)->s32 { return a + c.a + d[1] }
     const V = #run passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null)
     #assert(V == 22)
-    const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64)
+    const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567'u64))
     #assert(V1 == 220)
-    const V2 = #run passMixed(-30, "mix3", {a: 100, b: 110}, [80, 90], cast(*void) 0xFEDC'u64)
+    const V2 = #run passMixed(-30, "mix3", {a: 100, b: 110}, [80, 90], cast(*void, 0xFEDC'u64))
     #assert(V2 == 160)
 }
 
@@ -137,7 +137,7 @@ struct AbiNested
     func passScalars(
         a0: s8, a1: s16, a2: s32, a3: s64,
         a4: u8, a5: u16, a6: u32, a7: u64,
-        a8: f32, a9: f64, a10: bool, a11: rune)->s32 { return cast(s32) a0 + cast(s32) a1 + a2 + cast(s32) a3 + cast(s32) a4 + cast(s32) a5 + cast(s32) a6 + cast(s32) a7 + cast(s32) a8 + cast(s32) a9 + cast(s32) a10 + cast(s32) a11 }
+        a8: f32, a9: f64, a10: bool, a11: rune)->s32 { return cast(s32, a0) + cast(s32, a1) + a2 + cast(s32, a3) + cast(s32, a4) + cast(s32, a5) + cast(s32, a6) + cast(s32, a7) + cast(s32, a8) + cast(s32, a9) + cast(s32, a10) + cast(s32, a11) }
 
     const V = #run passScalars(
         -5's8, -123's16, 77's32, 5000's64,
@@ -148,7 +148,7 @@ struct AbiNested
 
 #test
 {
-    func passBoolRunePositions(a: bool, b: s32, c: rune, d: s32, e: bool, f: rune)->s32 { return cast(s32) a + b + cast(s32) c + d + cast(s32) e + cast(s32) f }
+    func passBoolRunePositions(a: bool, b: s32, c: rune, d: s32, e: bool, f: rune)->s32 { return cast(s32, a) + b + cast(s32, c) + d + cast(s32, e) + cast(s32, f) }
 
     const V = #run passBoolRunePositions(true, 3, 'Q', 4, true, 'W')
     #assert(V == 177)
@@ -160,7 +160,7 @@ struct AbiNested
 
 #test
 {
-    func passAliasEnum(a: s32, b: AbiAlias, c: AbiEnum, d: s32)->s32 { return a + b + cast(s32) cast(u16) c + d }
+    func passAliasEnum(a: s32, b: AbiAlias, c: AbiEnum, d: s32)->s32 { return a + b + cast(s32, cast(u16, c)) + d }
     const V = #run passAliasEnum(1, 2, AbiEnum.A, 3)
     #assert(V == 23)
     const V1 = #run passAliasEnum(10, 20, AbiEnum.B, 30)
@@ -187,10 +187,10 @@ struct AbiNested
 {
     func passAggregatePositions(a: *void?, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
     {
-        return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
+        return cast(u64, b[1]) + cast(u64, d.a) + e.a3 + cast(u64, c[0]) + cast(u64, (a != null))
     }
 
-    const V = #run passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
+    const V = #run passAggregatePositions(cast(*void, 0x10'u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
     #assert(V == 115'u64)
     const V1 = #run passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
     #assert(V1 == 235'u64)
@@ -200,7 +200,7 @@ struct AbiNested
 {
     func passNested(value: AbiNested, extra: s32)->u64
     {
-        return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
+        return cast(u64, value.p.a) + cast(u64, value.p.b) + value.q.a0 + value.q.a3 + cast(u64, extra)
     }
 
     const V = #run passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5)

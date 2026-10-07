@@ -146,7 +146,7 @@ func compilerWorkerCount()->u32
 // Explicit launch options let development runs select the compiler and share a worker budget.
 private func compilerArgument(prefix: string)->string
 {
-    for argument in Env.arguments() where Utf8.startsWith(cast(const [..] u8) argument, prefix) do
+    for argument in Env.arguments() where Utf8.startsWith(cast(const [..] u8, argument), prefix) do
         return argument[prefix.count to]
     return ""
 }
@@ -188,7 +188,7 @@ private func firstFunctionOffset(source: string)->u64
 {
     const Marker = "func "
 
-    let bytes = cast(const [..] u8) source
+    let bytes = cast(const [..] u8, source)
     var start = 0'u64
     while start < bytes.count
     {
@@ -217,7 +217,7 @@ func writeIfChanged(path: string, content: string) fail
     let existing = catch File.readAllText(path) as readError
     if readError == null and existing.toString() == content do
         return
-    discard try File.writeAllBytes(path, cast(const [..] u8) content)
+    discard try File.writeAllBytes(path, cast(const [..] u8, content))
 }
 
 // Always reap an owned process before dropping its pipes or temporary files.

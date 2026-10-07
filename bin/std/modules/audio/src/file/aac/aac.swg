@@ -36,31 +36,31 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
     if bytes[0] != 0xFF or (bytes[1] & 0xF0) != 0xF0 do
         fail InvalidFormatError{"ADTS frame has no sync word"}
 
-    let layer = cast(u32) (bytes[1] >> 1) & 3
+    let layer = cast(u32, (bytes[1] >> 1)) & 3
     if layer do
         fail InvalidFormatError{"ADTS frame states a layer, which the format reserves"}
 
     var result: retval
     result.headerBytes = (bytes[1] & 1) != 0 ? 7 : 9
 
-    let profile = cast(u32) (bytes[2] >> 6) & 3
+    let profile = cast(u32, (bytes[2] >> 6)) & 3
     if profile != 1 do
         fail UnsupportedFormatError{"audio decoder reads AAC Low Complexity only"}
 
-    result.rateIndex = cast(u32) (bytes[2] >> 2) & 15
+    result.rateIndex = cast(u32, (bytes[2] >> 2)) & 15
     if result.rateIndex >= 13 do
         fail InvalidFormatError{"ADTS frame states a reserved sampling frequency"}
-    result.sampleRate = AdtsRates[cast(u64) result.rateIndex]
+    result.sampleRate = AdtsRates[cast(u64, result.rateIndex)]
 
-    result.channelIndex = (cast(u32) (bytes[2] & 1) << 2) | (cast(u32) (bytes[3] >> 6) & 3)
+    result.channelIndex = (cast(u32, (bytes[2] & 1)) << 2) | (cast(u32, (bytes[3] >> 6)) & 3)
     if not result.channelIndex or result.channelIndex > 7 do
         fail UnsupportedFormatError{"ADTS frame states a channel configuration this reader does not carry"}
 
     // Configuration seven is 7.1, whose eighth channel is the low frequency effects one.
     result.channels = result.channelIndex == 7 ? 8 : result.channelIndex
 
-    result.frameBytes = (cast(u64) (bytes[3] & 3) << 11) | (cast(u64) bytes[4] << 3) | (cast(u64) bytes[5] >> 5)
-    result.blocks     = (cast(u32) bytes[6] & 3) + 1
+    result.frameBytes = (cast(u64, (bytes[3] & 3)) << 11) | (cast(u64, bytes[4]) << 3) | (cast(u64, bytes[5]) >> 5)
+    result.blocks     = (cast(u32, bytes[6]) & 3) + 1
     if result.frameBytes < result.headerBytes do
         fail InvalidFormatError{"ADTS frame is shorter than its own header"}
     return result
@@ -73,8 +73,8 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
 private func audioSpecificConfig(header: const *AdtsHeader)->Array'u8
 {
     var result: retval
-    let first  = cast(u8) ((2 << 3) | ((header.rateIndex >> 1) & 7))
-    let second = cast(u8) (((header.rateIndex & 1) << 7) | ((header.channelIndex & 15) << 3))
+    let first  = cast(u8, ((2 << 3) | ((header.rateIndex >> 1) & 7)))
+    let second = cast(u8, (((header.rateIndex & 1) << 7) | ((header.channelIndex & 15) << 3)))
     result.add(first)
     result.add(second)
     return result
@@ -124,8 +124,8 @@ internal func openFile(path: string)->SoundFile fail
         let payload = header.frameBytes - header.headerBytes
         if not payload do
             fail InvalidFormatError{"ADTS frame carries no audio"}
-        packets.add({at + header.headerBytes, cast(u32) payload, header.blocks * 1024})
-        frames += cast(u64) header.blocks * 1024
+        packets.add({at + header.headerBytes, cast(u32, payload), header.blocks * 1024})
+        frames += cast(u64, header.blocks) * 1024
         at     += header.frameBytes
     }
 

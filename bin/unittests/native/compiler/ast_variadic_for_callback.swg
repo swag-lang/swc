@@ -25,13 +25,13 @@ impl RegressionAstBuilder
 {
     mtd append(value: string)
     {
-        Swag.memcpy(&.buffer[.length], value.buffer, cast(u64) value.count)
-        .length += cast(u64) value.count
+        Swag.memcpy(&.buffer[.length], value.buffer, cast(u64, value.count))
+        .length += cast(u64, value.count)
     }
 
     mtd const toString()->RegressionAstString
     {
-        return {cast([*] u8) &.buffer[0], .length}
+        return {cast([*] u8, &.buffer[0]), .length}
     }
 }
 
@@ -56,7 +56,7 @@ impl RegressionArray
         if not .count do
             return
 
-        var scan = cast([*] T) &.values[0] - 1
+        var scan = cast([*] T, &.values[0]) - 1
         for idx in .count
         {
             scan += 1
@@ -90,9 +90,9 @@ impl RegressionSignal
             {
                 var sb: RegressionAstBuilder
                 let ts = #typeof(T)
-                sb.append("fn(cast #assume(")
+                sb.append("fn(assume cast(")
                 sb.append(ts.parameters[0].pointedType.fullname!)
-                sb.append(") params[0])\n")
+                sb.append(", params[0]))\n")
                 return sb.toString()
             }
         }

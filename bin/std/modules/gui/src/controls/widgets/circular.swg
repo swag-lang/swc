@@ -386,14 +386,14 @@ private impl Circular
             return
 
         let totalAngle  = .endAngle - .startAngle
-        let stepAngle   = totalAngle / cast(f32) (.tickCount - 1)
+        let stepAngle   = totalAngle / cast(f32, (.tickCount - 1))
         let brush       = Brush.createSolid(color)
         let dotRadius   = (.tickOuterRadiusFactor - .tickInnerRadiusFactor) * 0.5
         let dotDistance = .radius + (.tickOuterRadiusFactor + .tickInnerRadiusFactor) * 0.5
 
         for i in .tickCount
         {
-            let angle = .startAngle + stepAngle * cast(f32) i
+            let angle = .startAngle + stepAngle * cast(f32, i)
 
             let pos = Math.Vector2{.centerX + Math.sin(angle) * dotDistance, .centerY - Math.cos(angle) * dotDistance}
             painter.fillCircle(pos.x, pos.y, dotRadius, brush)
@@ -407,7 +407,7 @@ private impl Circular
             return
 
         let totalAngle = .endAngle - .startAngle
-        let stepAngle  = totalAngle / cast(f32) (.tickCount - 1)
+        let stepAngle  = totalAngle / cast(f32, (.tickCount - 1))
         let pen        = Pen.createSolid(color, 3.0)
 
         let innerRadius = .radius + .tickInnerRadiusFactor
@@ -415,7 +415,7 @@ private impl Circular
 
         for i in .tickCount
         {
-            let angle = .startAngle + stepAngle * cast(f32) i
+            let angle = .startAngle + stepAngle * cast(f32, i)
 
             let innerPos = Math.Vector2{.centerX + Math.sin(angle) * innerRadius, .centerY - Math.cos(angle) * innerRadius}
             let outerPos = Math.Vector2{.centerX + Math.sin(angle) * outerRadius, .centerY - Math.cos(angle) * outerRadius}
@@ -436,7 +436,7 @@ private impl Circular
         let normalized = Math.clamp(f, 0, 1)
         if .steps > 0
         {
-            let r = cast(s32) ((normalized / .steps) + 0.5)
+            let r = cast(s32, ((normalized / .steps) + 0.5))
             return Math.clamp(r * .steps, 0, 1)
         }
 

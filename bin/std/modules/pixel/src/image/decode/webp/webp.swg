@@ -65,9 +65,9 @@ internal struct Decoder
     container: Container
 }
 
-func readU24(data: const [*] u8)->u32 => data[0] | (cast(u32) data[1] << 8) | (cast(u32) data[2] << 16)
+func readU24(data: const [*] u8)->u32 => data[0] | (cast(u32, data[1]) << 8) | (cast(u32, data[2]) << 16)
 
-func readU32(data: const [*] u8)->u32 => data[0] | (cast(u32) data[1] << 8) | (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
+func readU32(data: const [*] u8)->u32 => data[0] | (cast(u32, data[1]) << 8) | (cast(u32, data[2]) << 16) | (cast(u32, data[3]) << 24)
 
 func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Container fail
 {
@@ -78,7 +78,7 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
     if readU32(source) != WEBP_FOURCC_RIFF or readU32(source + 8) != WEBP_FOURCC_WEBP do
         fail InvalidFormatError{"WebP data does not contain a RIFF WEBP header"}
 
-    let riffSize = cast(u64) readU32(source + 4)
+    let riffSize = cast(u64, readU32(source + 4))
     if riffSize < 4 do
         fail InvalidFormatError{"WebP RIFF size does not include the WEBP form type"}
     if riffSize + 8 > buffer.count do
@@ -96,7 +96,7 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
         let kind       = readU32(cursor)
         let chunkSize  = readU32(cursor + 4)
         let chunkData  = cursor + 8
-        let paddedSize = cast(u64) chunkSize + (chunkSize & 1)
+        let paddedSize = cast(u64, chunkSize) + (chunkSize & 1)
         if chunkData + paddedSize > riffEnd do
             fail InvalidFormatError{"WebP data ends before the declared chunk size"}
 
@@ -108,7 +108,7 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
                 var metadata: ImageMetadata
                 metadata.tag       = kind == 0x46495845 ? "Exif" : (kind == 0x20504D58 ? "XMP" : "ICC")
                 metadata.signature = kind == 0x46495845 ? 1 : 0
-                metadata.value     = cast(string) Swag.makeSlice(chunkData, chunkSize)
+                metadata.value     = cast(string, Swag.makeSlice(chunkData, chunkSize))
                 result.metadata.add(#move metadata)
             }
 
@@ -125,9 +125,9 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
 
             result.hasExtendedHeader = true
             result.expectsAlpha      = (chunkData[0] & WEBP_FEATURE_ALPHA) != 0
-            result.canvasWidth       = cast(s32) readU24(chunkData + 4) + 1
-            result.canvasHeight      = cast(s32) readU24(chunkData + 7) + 1
-            if cast(u64) result.canvasWidth * result.canvasHeight > 0x1FFFFFFF do
+            result.canvasWidth       = cast(s32, readU24(chunkData + 4)) + 1
+            result.canvasHeight      = cast(s32, readU24(chunkData + 7)) + 1
+            if cast(u64, result.canvasWidth) * result.canvasHeight > 0x1FFFFFFF do
                 fail UnsupportedFormatError{"WebP canvas needs more than 2 GiB of decoded pixel memory"}
             try options.checkImage(result.canvasWidth, result.canvasHeight, .RGBA8)
 
@@ -152,14 +152,14 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
                 fail InvalidFormatError{"WebP animation header is invalid or misplaced"}
             seenAnimation     = true
             result.background = {r: chunkData[2], g: chunkData[1], b: chunkData[0], a: chunkData[3]}
-            result.loopCount  = chunkData[4] | (cast(u32) chunkData[5] << 8)
+            result.loopCount  = chunkData[4] | (cast(u32, chunkData[5]) << 8)
 
         case WEBP_FOURCC_ANMF:
             if not seenAnimation or chunkSize < 16 do
                 fail InvalidFormatError{"WebP animation frame has no valid animation header"}
             try options.checkFrameCount(result.frames.count + 1)
             var frame: Frame
-            frame.info = {kind: .Animation, x: cast(s32) readU24(chunkData) * 2, y: cast(s32) readU24(chunkData + 3) * 2, width: cast(s32) readU24(chunkData + 6) + 1, height: cast(s32) readU24(chunkData + 9) + 1, durationSeconds: cast(f64) readU24(chunkData + 12) / 1000, disposal: (chunkData[15] & 1) ? .Background : .Keep, blend: (chunkData[15] & 2) ? .Replace : .Over}
+            frame.info = {kind: .Animation, x: cast(s32, readU24(chunkData)) * 2, y: cast(s32, readU24(chunkData + 3)) * 2, width: cast(s32, readU24(chunkData + 6)) + 1, height: cast(s32, readU24(chunkData + 9)) + 1, durationSeconds: cast(f64, readU24(chunkData + 12)) / 1000, disposal: (chunkData[15] & 1) ? .Background : .Keep, blend: (chunkData[15] & 2) ? .Replace : .Over}
             if frame.info.x > result.canvasWidth - frame.info.width or frame.info.y > result.canvasHeight - frame.info.height do
                 fail InvalidFormatError{"WebP animation frame lies outside its canvas"}
             var nested   = chunkData + 16
@@ -171,8 +171,8 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
                 let frameKind = readU32(nested)
                 let frameSize = readU32(nested + 4)
                 let payload   = nested + 8
-                let padded    = cast(u64) frameSize + (frameSize & 1)
-                if padded > cast(u64) (frameEnd - payload) do
+                let padded    = cast(u64, frameSize) + (frameSize & 1)
+                if padded > cast(u64, (frameEnd - payload)) do
                     fail InvalidFormatError{"WebP animation frame chunk is truncated"}
                 switch frameKind
                 {
@@ -216,12 +216,12 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
 
 func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 {
-    let rowBytes = cast(u64) width * 4
-    let data     = cast([*] u8) pixels.storage()
+    let rowBytes = cast(u64, width) * 4
+    let data     = cast([*] u8, pixels.storage())
     for y in height / 2
     {
-        var upper = cast(u64) y * rowBytes
-        var lower = cast(u64) (height - y - 1) * rowBytes
+        var upper = cast(u64, y) * rowBytes
+        var lower = cast(u64, (height - y - 1)) * rowBytes
         for rowBytes
         {
             swap(&data[upper], &data[lower])
@@ -233,7 +233,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
+    let imageData = Swag.makeSlice(cast(const [*] u8, container.image.data!), container.image.size)
     var reader:        LosslessBitReader
     var width, height: s32
     try losslessDecodeHeader(&reader, imageData, &width, &height)
@@ -261,36 +261,36 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     if container.alpha.size == 0 do
         fail InvalidFormatError{"WebP ALPH chunk does not contain a control byte"}
 
-    let source  = cast(const [*] u8) container.alpha.data
+    let source  = cast(const [*] u8, container.alpha.data)
     let control = source[0]
     if control & 0xC0 do
         fail InvalidFormatError{"WebP ALPH chunk sets reserved bits"}
     if ((control >> 4) & 3) > 1 do
         fail UnsupportedFormatError{"WebP ALPH chunk uses an unsupported preprocessing method"}
 
-    let pixelCount = cast(u64) width * height
+    let pixelCount = cast(u64, width) * height
     switch control & 3
     {
     case 0:
         if container.alpha.size - 1 != pixelCount do
             fail InvalidFormatError{"WebP uncompressed ALPH byte count differs from the canvas dimensions"}
         alpha.resize(pixelCount)
-        Memory.copy(cast([*] u8) alpha.storage(), source + 1, pixelCount)
+        Memory.copy(cast([*] u8, alpha.storage()), source + 1, pixelCount)
 
     case 1:
-        let widthMinusOne  = cast(u32) width - 1
-        let heightMinusOne = cast(u32) height - 1
+        let widthMinusOne  = cast(u32, width) - 1
+        let heightMinusOne = cast(u32, height) - 1
         if widthMinusOne > 0x3FFF or heightMinusOne > 0x3FFF do
             fail InvalidFormatError{"WebP compressed ALPH dimensions exceed the VP8L header range"}
 
         var compressed: Array'u8
-        compressed.resize(cast(u64) container.alpha.size + 4)
+        compressed.resize(cast(u64, container.alpha.size) + 4)
         compressed[0] = 0x2F
-        compressed[1] = losslessWrap8(cast(s32) widthMinusOne)
-        compressed[2] = losslessWrap8(cast(s32) ((widthMinusOne >> 8) | (heightMinusOne << 6)))
-        compressed[3] = losslessWrap8(cast(s32) (heightMinusOne >> 2))
-        compressed[4] = losslessWrap8(cast(s32) (heightMinusOne >> 10))
-        Memory.copy(cast([*] u8) (compressed.buffer + 5)!, source + 1, container.alpha.size - 1)
+        compressed[1] = losslessWrap8(cast(s32, widthMinusOne))
+        compressed[2] = losslessWrap8(cast(s32, ((widthMinusOne >> 8) | (heightMinusOne << 6))))
+        compressed[3] = losslessWrap8(cast(s32, (heightMinusOne >> 2)))
+        compressed[4] = losslessWrap8(cast(s32, (heightMinusOne >> 10)))
+        Memory.copy(cast([*] u8, (compressed.buffer + 5)!), source + 1, container.alpha.size - 1)
 
         var rgba: Array'u8
         var decodedWidth, decodedHeight: s32
@@ -298,8 +298,8 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         if decodedWidth != width or decodedHeight != height do
             fail InvalidFormatError{"WebP compressed ALPH dimensions differ from the canvas"}
         alpha.resize(pixelCount)
-        let alphaData = cast([*] u8) alpha.storage()
-        let rgbaData  = cast([*] u8) rgba.storage()
+        let alphaData = cast([*] u8, alpha.storage())
+        let rgbaData  = cast([*] u8, rgba.storage())
         for i in pixelCount do
             alphaData[i] = rgbaData[4 * i + 1]
 
@@ -307,7 +307,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         fail UnsupportedFormatError{"WebP ALPH chunk uses an unsupported compression method"}
     }
 
-    let data   = cast([*] u8) alpha.storage()
+    let data   = cast([*] u8, alpha.storage())
     let filter = (control >> 2) & 3
     if filter == 0 do
         return
@@ -319,7 +319,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     {
         for y in height - 1
         {
-            let row = cast(u64) (y + 1) * width
+            let row = cast(u64, (y + 1)) * width
             data[row] = losslessWrap8(data[row] + data[row - width])
             for x in width - 1 do
                 data[row + x + 1] = losslessWrap8(data[row + x + 1] + data[row + x])
@@ -327,7 +327,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     }
     elif filter == 2
     {
-        var i = cast(u64) width
+        var i = cast(u64, width)
         while i < pixelCount
         {
             data[i] = losslessWrap8(data[i] + data[i - width])
@@ -338,12 +338,12 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     {
         for y in height - 1
         {
-            let row = cast(u64) (y + 1) * width
+            let row = cast(u64, (y + 1)) * width
             data[row] = losslessWrap8(data[row] + data[row - width])
             for x in width - 1
             {
                 let offset     = row + x + 1
-                let prediction = vp8Clip(cast(s32) data[offset - 1] + data[offset - width] - data[offset - width - 1], 0, 255)
+                let prediction = vp8Clip(cast(s32, data[offset - 1]) + data[offset - width] - data[offset - width - 1], 0, 255)
                 data[offset] = losslessWrap8(data[offset] + prediction)
             }
         }
@@ -353,10 +353,10 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
 func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 {
     result.allocPixels()
-    let yData   = cast([*] u8) decoder.y.storage()
-    let cbData  = cast([*] u8) decoder.cb.storage()
-    let crData  = cast([*] u8) decoder.cr.storage()
-    let outData = cast([*] u8) result.pixels.storage()
+    let yData   = cast([*] u8, decoder.y.storage())
+    let cbData  = cast([*] u8, decoder.cb.storage())
+    let crData  = cast([*] u8, decoder.cr.storage())
+    let outData = cast([*] u8, result.pixels.storage())
     let aData   = alpha.buffer
     let width   = decoder.header.width
     let height  = decoder.header.height
@@ -367,13 +367,13 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
         let chromaRow = (y >> 1) * decoder.cStride
 
         // VP8 planes are top-down while Image stores row zero at the bottom.
-        var destination = cast(u64) (height - y - 1) * width * 4
-        let alphaRow    = cast(u64) y * width
+        var destination = cast(u64, (height - y - 1)) * width * 4
+        let alphaRow    = cast(u64, y) * width
         for x in width
         {
-            let luma = cast(s32) yData[sourceRow + x]
-            let cb   = cast(s32) cbData[chromaRow + (x >> 1)]
-            let cr   = cast(s32) crData[chromaRow + (x >> 1)]
+            let luma = cast(s32, yData[sourceRow + x])
+            let cb   = cast(s32, cbData[chromaRow + (x >> 1)])
+            let cr   = cast(s32, crData[chromaRow + (x >> 1)])
             outData[destination + 0] = vp8YuvToR(luma, cr)
             outData[destination + 1] = vp8YuvToG(luma, cb, cr)
             outData[destination + 2] = vp8YuvToB(luma, cb)
@@ -385,7 +385,7 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
+    let imageData = Swag.makeSlice(cast(const [*] u8, container.image.data!), container.image.size)
     var decoder: Vp8Decoder = {source: imageData.buffer}
     try vp8DecodeFrameHeader(&decoder, imageData)
 

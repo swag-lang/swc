@@ -16,7 +16,7 @@ alias LambdaDefaultPayloadFn = func(payload = {values: [3, 4, 5], bias: 7})->s32
         var total = 0.0
         for value, index in values
         {
-            total += value * cast(f32) index
+            total += value * cast(f32, index)
         }
 
         return total + values[0]

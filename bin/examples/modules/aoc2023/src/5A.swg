@@ -178,7 +178,7 @@ func day5A()
         range.dst   = expect StrConv.toU64(values[0])
         range.src   = expect StrConv.toU64(values[1])
         range.range = expect StrConv.toU64(values[2])
-        convert[cast(s32) mode].add(range)
+        convert[cast(s32, mode)].add(range)
     }
 
     var total = Swag.U64.Max

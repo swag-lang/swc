@@ -34,7 +34,7 @@ func day2B()
         let letter = r.getCapture(3)[0]
         let pwd    = r.getCapture(4)
 
-        let t = cast(s32) (pwd[min] == letter) + cast(s32) (pwd[max] == letter)
+        let t = cast(s32, (pwd[min] == letter)) + cast(s32, (pwd[max] == letter))
         total += t == 1 ? 1 : 0
     }
 

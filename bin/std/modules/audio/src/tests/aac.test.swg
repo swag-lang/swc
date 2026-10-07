@@ -11,7 +11,7 @@ private func aacTestPackets(path: string)->Array'SoundPacket fail
     {
         if bytes.count - offset < 7 or bytes[offset] != 0xFF or bytes[offset + 1] & 0xF6 != 0xF0 do
             fail InvalidFormatError{"AAC test fixture has an invalid ADTS header"}
-        let frameSize = (cast(u32) (bytes[offset + 3] & 3) << 11) | (cast(u32) bytes[offset + 4] << 3) | (cast(u32) bytes[offset + 5] >> 5)
+        let frameSize = (cast(u32, (bytes[offset + 3] & 3)) << 11) | (cast(u32, bytes[offset + 4]) << 3) | (cast(u32, bytes[offset + 5]) >> 5)
         if frameSize < 7 or frameSize > bytes.count - offset do
             fail InvalidFormatError{"AAC test fixture has a truncated ADTS frame"}
         result.add({offset + 7, frameSize - 7, 1024})
@@ -42,8 +42,8 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var real, imaginary: f64
     for frame in frameCount
     {
-        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64) frame / sampleRate
-        let value = cast(f64) samples[(firstFrame + frame) * channels + channel]
+        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64, frame) / sampleRate
+        let value = cast(f64, samples[(firstFrame + frame) * channels + channel])
         real      += value * Math.cos(angle)
         imaginary -= value * Math.sin(angle)
     }
@@ -74,10 +74,10 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     let voice   = expect Voice.create(&sound)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 4 * 1024 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16, decoded.buffer!)
     var peak    = 0's32
     for index in decoded.size / #sizeof(s16) do
-        peak = Math.max(peak, Math.abs(cast(s32) samples[index]))
+        peak = Math.max(peak, Math.abs(cast(s32, samples[index])))
     Swag.assert(peak > 1_000)
     Swag.assert(aacTonePower(samples, 2_048, 2_048, 2, 0, 44_100, 440) > 10.0 * aacTonePower(samples, 2_048, 2_048, 2, 0, 44_100, 660))
     Swag.assert(aacTonePower(samples, 2_048, 2_048, 2, 1, 44_100, 660) > 10.0 * aacTonePower(samples, 2_048, 2_048, 2, 1, 44_100, 440))
@@ -102,7 +102,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 4 * 1024 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16) decoded.buffer!
+    let samples = cast(const [*] s16, decoded.buffer!)
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {
@@ -117,7 +117,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     var lfePeak = 0's32
     for frame in 4 * 1024 do
-        lfePeak = Math.max(lfePeak, Math.abs(cast(s32) samples[frame * 6 + 3]))
+        lfePeak = Math.max(lfePeak, Math.abs(cast(s32, samples[frame * 6 + 3])))
     Swag.assert(lfePeak > 100)
 }
 
@@ -171,7 +171,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     discard expect voice.play()
     discard expect voice.updateNoSound()
     Swag.assert(voice.playbackSampleFrame() == sound.sampleFrameCount())
-    Swag.assert(not (cast(*NoSoundVoice) voice.handle!).isPlaying)
+    Swag.assert(not cast(*NoSoundVoice, voice.handle!).isPlaying)
     voice.destroy()
 }
 

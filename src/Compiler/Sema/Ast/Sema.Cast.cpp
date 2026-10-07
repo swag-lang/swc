@@ -111,6 +111,9 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView srcTypeView  = sema.viewTypeConstant(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
+    if (SemaHelpers::isAssumedCast(sema))
+        modifierFlags.add(AstModifierFlagsE::Assume);
+
     if (nodeTypeView.type() && nodeTypeView.type()->isBool() && !modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
         SWC_RESULT(SemaCheck::typePattern(sema, nodeExprRef));
 
@@ -126,13 +129,97 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     castFlags.add(CastFlagsE::FromExplicitNode);
 
     const bool runtimeTarget     = sema.isValue(nodeTypeRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), nodeTypeView.typeRef());
-    const bool runtimeTypeSource = modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) &&
-                                   sema.isValue(nodeExprRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), srcTypeView.typeRef()) &&
-                                   !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), nodeTypeView.typeRef()) && !nodeTypeView.type()->isTypeInfo();
+    bool       runtimeTypeSource = !modifierFlags.hasAny({AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}) &&
+                             sema.isValue(nodeExprRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), srcTypeView.typeRef()) &&
+                             !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), nodeTypeView.typeRef()) && !nodeTypeView.type()->isTypeInfo();
+    if (runtimeTypeSource && !modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+    {
+        // A descriptor is also a pointer. Its ordinary address conversions stay static;
+        // only an incompatible destination asks about the type that it describes.
+        CastRequest probe(CastKind::Explicit);
+        probe.probing           = true;
+        probe.flags             = castFlags;
+        probe.errorNodeRef      = sema.curNodeRef();
+        const Result compatible = Cast::castAllowed(sema, probe, srcTypeView.typeRef(), nodeTypeView.typeRef());
+        if (compatible == Result::Pause)
+            return Result::Pause;
+        runtimeTypeSource = compatible == Result::Error;
+    }
+    const TypeInfo& source    = SemaHelpers::aliasEnumType(sema, srcTypeView);
+    const TypeRef   targetRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), nodeTypeView.typeRef());
+    const TypeInfo& target    = sema.typeMgr().get(targetRef);
+    if (!runtimeTarget && !runtimeTypeSource && source.isNullable() && target.isNonNullable() &&
+        (source.kind() == target.kind() || (source.isAnyPointer() && target.isAnyPointer())) &&
+        !modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}))
+    {
+        TypeInfo nullableTarget = target;
+        nullableTarget.addFlag(TypeInfoFlagsE::Nullable);
+        CastRequest probe(CastKind::Explicit);
+        probe.probing           = true;
+        probe.flags             = CastFlagsE::FromExplicitNode;
+        probe.errorNodeRef      = sema.curNodeRef();
+        const Result compatible = Cast::castAllowed(sema, probe, srcTypeView.typeRef(), sema.typeMgr().addType(nullableTarget));
+        if (compatible == Result::Pause)
+            return Result::Pause;
+        if (compatible == Result::Continue)
+        {
+            addFlag(AstCastExprFlagsE::NullabilityOnly);
+            castFlags.remove(CastFlagsE::Assume);
+            castFlags.add(CastFlagsE::NonNullChecked);
+            if (modifierFlags.has(AstModifierFlagsE::Assume))
+                SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Assume, codeRef()));
+        }
+    }
+    // An assumption also covers calls inside the operand. It must not turn an
+    // already valid static conversion into a dynamic type query.
+    if (castFlags.has(CastFlagsE::Assume) && sema.isValue(nodeExprRef) && !runtimeTarget && !runtimeTypeSource && !source.isAny())
+    {
+        CastRequest probe(CastKind::Explicit);
+        probe.probing = true;
+        probe.flags   = castFlags;
+        probe.flags.remove(CastFlagsE::Assume);
+        probe.errorNodeRef      = sema.curNodeRef();
+        const Result compatible = Cast::castAllowed(sema, probe, srcTypeView.typeRef(), nodeTypeView.typeRef());
+        if (compatible == Result::Pause)
+            return Result::Pause;
+        if (compatible == Result::Continue)
+            castFlags.remove(CastFlagsE::Assume);
+    }
+    if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume, AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}))
+    {
+        bool dynamic = runtimeTarget || runtimeTypeSource || hasFlag(AstCastExprFlagsE::NullabilityOnly);
+        if (!dynamic && !target.isAny() && !target.isBool() &&
+            (source.isAny() || source.isInterface() || source.isTypeInfo() || (source.isAnyPointer() && (target.isValuePointer() || target.isInterface()))))
+        {
+            CastRequest probe(CastKind::Explicit);
+            probe.probing       = true;
+            probe.flags         = castFlags;
+            probe.errorNodeRef  = sema.curNodeRef();
+            TypeRef probeTarget = nodeTypeView.typeRef();
+            if (source.isNullable() && target.isNonNullable())
+            {
+                TypeInfo nullableTarget = target;
+                nullableTarget.addFlag(TypeInfoFlagsE::Nullable);
+                probeTarget = sema.typeMgr().addType(nullableTarget);
+            }
+            const Result compatible = Cast::castAllowed(sema, probe, srcTypeView.typeRef(), probeTarget);
+            if (compatible == Result::Pause)
+                return Result::Pause;
+            dynamic = compatible == Result::Error && probe.failure.diagId != DiagnosticId::sema_err_cannot_cast_const;
+        }
+        if (dynamic)
+        {
+            SWC_RESULT(SemaHelpers::prepareFallibleCast(sema));
+            addFlag(AstCastExprFlagsE::Fallible);
+            castFlags.add(CastFlagsE::Fallible);
+            if (!hasFlag(AstCastExprFlagsE::NullabilityOnly))
+                castFlags.add(CastFlagsE::Assume);
+        }
+    }
     if (runtimeTarget || runtimeTypeSource)
     {
-        const bool tryCast    = modifierFlags.has(AstModifierFlagsE::Try);
-        const bool assumeCast = modifierFlags.has(AstModifierFlagsE::Assume);
+        const bool tryCast    = castFlags.has(CastFlagsE::Try);
+        const bool assumeCast = castFlags.has(CastFlagsE::Assume);
         if (tryCast == assumeCast || modifierFlags.hasAny({AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}))
             return SemaError::raise(sema, DiagnosticId::sema_err_dynamic_cast_modifier, sema.curNodeRef());
 
@@ -178,14 +265,14 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         payload.runtimeTypeCast    = typeQuery;
         payload.runtimeValueCast   = !typeQuery;
         payload.assumedDynamicCast = assumeCast;
-        if (assumeCast)
-            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::DynCast, codeRef()));
+        if (assumeCast && !castFlags.has(CastFlagsE::Fallible))
+            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Assume, codeRef()));
         const auto function = typeQuery ? IdentifierManager::RuntimeFunctionKind::RuntimeTypeCast : IdentifierManager::RuntimeFunctionKind::RuntimeValueCast;
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), function, codeRef());
     }
 
     sema.inheritPayloadFlags(*this, srcTypeView.nodeRef());
-    if (srcTypeView.hasConstant())
+    if (srcTypeView.hasConstant() && !castFlags.has(CastFlagsE::Fallible))
         sema.setConstant(sema.curNodeRef(), srcTypeView.cstRef());
     else
         sema.setType(sema.curNodeRef(), srcTypeView.typeRef());
@@ -305,6 +392,8 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)
 {
+    if (SemaHelpers::isAssumedCast(sema))
+        modifierFlags.add(AstModifierFlagsE::Assume);
     const SemaNodeView exprView = sema.viewTypeConstant(nodeExprRef);
 
     // Value-check
@@ -326,6 +415,15 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
         sema.setFoldedTypedConst(sema.curNodeRef());
 
     sema.setIsValue(*this);
+
+    // Resolve a contextual assumption before its error wrapper copies the result
+    // type. Otherwise a fallible operand would hide the explicit conversion from
+    // the enclosing binding.
+    if (modifierFlags.has(AstModifierFlagsE::Assume) && !sema.frame().bindingTypes().empty())
+    {
+        SemaNodeView view = sema.curViewNodeTypeConstant();
+        SWC_RESULT(Cast::cast(sema, view, sema.frame().bindingTypes().back(), CastKind::Explicit));
+    }
 
     return Result::Continue;
 }

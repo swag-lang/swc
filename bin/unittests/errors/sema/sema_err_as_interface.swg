@@ -10,7 +10,7 @@ struct Missing {}
 #test
 {
     var value: Missing
-    discard cast(IFoo) &value     // swc-expected-error {{sema_err_cannot_cast_to_interface}}
+    discard cast(IFoo, &value)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
 }
 
 struct Present {}
@@ -24,12 +24,12 @@ impl IFoo for Present
 {
     var value = Present{}
     let pointer: const *Present = &value
-    discard cast #try (IFoo) pointer     // swc-expected-error {{sema_err_cannot_cast_const}}
+    discard catch cast(IFoo?, pointer)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
 {
     var value = Present{}
     let pointer: const *Present = &value
-    discard cast(IFoo) pointer     // swc-expected-error {{sema_err_cannot_cast_const}}
+    discard cast(IFoo, pointer)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }

@@ -69,7 +69,7 @@ internal func updateThreadProc(th: Threading.Thread)
             switch cmd.command
             {
             case .Register:
-                voice.idxInList = cast() driver.activeVoices.count
+                voice.idxInList = cast(driver.activeVoices.count)
                 driver.activeVoices.add(voice)
 
             case .Destroy:

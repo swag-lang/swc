@@ -38,9 +38,9 @@ impl ReversedOrderedSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &.source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &.source.keys[keyIndex]), index = offset, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &.source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &.source.keys[keyIndex]), index = offset, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = .source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
             }
@@ -65,7 +65,7 @@ impl OrderedSet
     {
         Swag.assert(comparator != null)
         Swag.assert(.isEmpty(), "ordered set is not empty")
-        .comparator = cast(*void) comparator
+        .comparator = cast(*void, comparator)
     }
 
     // Returns the number of keys in the set.
@@ -93,7 +93,7 @@ impl OrderedSet
     private mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
-            return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)
+            return cast(func(const *K, const *K)->s32, .comparator!)(&left, &right)
 
         Swag.assert(false, "ordered set has not been initialized with a comparator")
         return 0
@@ -153,7 +153,7 @@ impl OrderedSet
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return Swag.makeSlice(cast(const [*] K) 1'u64, 0)
+            return Swag.makeSlice(cast(const [*] K, 1'u64), 0)
         return Swag.makeSlice(.keys.storage() + first, last - first)
     }
 
@@ -213,9 +213,9 @@ impl OrderedSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K) &.keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(*K, &.keys[keyIndex]), index = keyIndex, break = break to Up, continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K) &.keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const *K, &.keys[keyIndex]), index = keyIndex, break = break to Up, continue = break to Down)
                 else do
                     #inject(stmt, key = .keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
             }

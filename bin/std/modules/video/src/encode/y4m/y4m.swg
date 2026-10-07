@@ -60,7 +60,7 @@ impl IEncoder for Encoder
         default: fail UnsupportedFormatError{"Y4M frames need an interleaved 8-bit RGB or BGR image"}
         }
 
-        let planeSize = cast(u64) .info.width * cast(u64) .info.height
+        let planeSize = cast(u64, .info.width) * cast(u64, .info.height)
         if .payload.count != planeSize * 3 do
             .payload.resize(planeSize * 3)
 
@@ -69,12 +69,12 @@ impl IEncoder for Encoder
         let vPlane = uPlane + planeSize
         for y in image.height
         {
-            let sourceRow = cast(u64) (image.height - y - 1) * cast(u64) image.rowStride
+            let sourceRow = cast(u64, (image.height - y - 1)) * cast(u64, image.rowStride)
             for x in image.width
             {
-                let source    = image.pixels.storage() + sourceRow + cast(u64) x * image.bytesPerPixel
+                let source    = image.pixels.storage() + sourceRow + cast(u64, x) * image.bytesPerPixel
                 let {r, g, b} = readRgb(image, source)
-                let target    = cast(u64) y * cast(u64) image.width + cast(u64) x
+                let target    = cast(u64, y) * cast(u64, image.width) + cast(u64, x)
                 yPlane[target] = clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
                 uPlane[target] = clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
                 vPlane[target] = clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)

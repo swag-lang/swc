@@ -23,7 +23,7 @@ using Core, Core.Errors, Pixel
     Swag.assert(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
     Swag.assert(stream.sampleAtRank[4] == 1 and stream.sampleAtRank[5] == 3)
     for rank in stream.sampleAtRank.count do
-        Swag.assert(stream.rankOfSample[cast(u64) stream.sampleAtRank[rank]] == cast(u32) rank)
+        Swag.assert(stream.rankOfSample[cast(u64, stream.sampleAtRank[rank])] == cast(u32, rank))
     Swag.assert(stream.nextRank == 2 and stream.nextDecode == 0 and stream.skipBefore == 2)
 }
 
@@ -89,13 +89,13 @@ struct BarColor
 const BarColors: [8] BarColor = [{255, 255, 255}, {255, 255, 0}, {0, 255, 255}, {0, 255, 0}, {255, 0, 255}, {255, 0, 0}, {0, 0, 255}, {0, 0, 0}]
 
 // Returns the neutral value the corner block of frame `index` decodes to.
-func barsTimecodeGray(index: u64)->s32 => videoLumaToGray(cast(u8) (16 + index % BarsTimecodePeriod))
+func barsTimecodeGray(index: u64)->s32 => videoLumaToGray(cast(u8, (16 + index % BarsTimecodePeriod)))
 
 // Asserts that a pixel taken at column `x`, below the corner block, holds the bar frame `index`
 // scrolled to that column.
 func barsAssertBar(actual: Color, x: s32, index: u64)
 {
-    let bar = BarColors[(cast(u64) (x / BarsBarWidth) + index) % BarColors.count]
+    let bar = BarColors[(cast(u64, (x / BarsBarWidth)) + index) % BarColors.count]
     videoAssertColor(actual, bar.r, bar.g, bar.b)
 }
 
@@ -189,7 +189,7 @@ const WrittenFrameCount = 300'u64
     var source = videoGrayImage(WrittenWidth, WrittenHeight, 0)
     for index in WrittenFrameCount
     {
-        Memory.set(source.pixels.storage(), cast(u8) (16 + index % 200), source.pixels.count)
+        Memory.set(source.pixels.storage(), cast(u8, (16 + index % 200)), source.pixels.count)
         expect writer.addFrame(source)
     }
 
@@ -199,7 +199,7 @@ const WrittenFrameCount = 300'u64
     // The encoder writes 4:4:4 planes behind a bare frame marker, so the size of the result is
     // known exactly; a writer that dropped, repeated or buffered away a frame would not match it.
     let header    = "YUV4MPEG2 W160 H120 F30:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n"
-    let frameSize = cast(u64) WrittenWidth * cast(u64) WrittenHeight * 3 + 6
+    let frameSize = cast(u64, WrittenWidth) * cast(u64, WrittenHeight) * 3 + 6
     let info      = expect File.info(fileName.toString())
     Swag.assert(info.size == header.count + WrittenFrameCount * frameSize)
 
@@ -212,7 +212,7 @@ const WrittenFrameCount = 300'u64
     for index in Probes
     {
         expect reader.decodeFrameInto(&frame, index)
-        videoAssertGray(frame.pixelColor(WrittenWidth / 2, WrittenHeight / 2), videoGrayRoundTrip(cast(u8) (16 + index % 200)))
+        videoAssertGray(frame.pixelColor(WrittenWidth / 2, WrittenHeight / 2), videoGrayRoundTrip(cast(u8, (16 + index % 200))))
     }
 }
 
@@ -233,17 +233,17 @@ const HoleFrameCount = 600'u64
     defer discard catch File.delete(fileName)
 
     let header      = "YUV4MPEG2 W320 H240 F25:1 Ip C420jpeg\n"
-    let payloadSize = cast(u64) HoleWidth * cast(u64) HoleHeight * 3 / 2
+    let payloadSize = cast(u64, HoleWidth) * cast(u64, HoleHeight) * 3 / 2
     let frameSize   = payloadSize + 6
 
     var stream = expect File.openWrite(fileName)
-    expect stream.writeAll(cast(const [..] u8) header)
-    expect stream.writeAll(cast(const [..] u8) "FRAME\n")
+    expect stream.writeAll(cast(const [..] u8, header))
+    expect stream.writeAll(cast(const [..] u8, "FRAME\n"))
     expect stream.writeAll(videoFlatPayload(HoleWidth, HoleHeight, 100).toSlice())
     expect stream.resize(header.count + HoleFrameCount * frameSize)
 
     var lastFrame: Array'u8
-    lastFrame.add(cast(const [..] u8) "FRAME\n")
+    lastFrame.add(cast(const [..] u8, "FRAME\n"))
     lastFrame.add(videoFlatPayload(HoleWidth, HoleHeight, 200).toSlice())
     expect stream.writeAllAt(header.count + (HoleFrameCount - 1) * frameSize, lastFrame.toSlice())
     stream.close()

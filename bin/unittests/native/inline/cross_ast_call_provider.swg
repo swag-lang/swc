@@ -303,7 +303,7 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *v
         let countof = sliceBuffer.count
         for countof / sliceOffset
         {
-            #inject(stmt, buffer = cast #unconst (*T) scan, data = sliceContextData)
+            #inject(stmt, buffer = cast #unconst (*T, scan), data = sliceContextData)
 
             scan += sliceOffset
         }
@@ -374,7 +374,7 @@ func inlineInjectedPointerOffsetShadow(dstImage: *InlinePixelProbe)
     var image = InlinePixelProbe{buffer: dstImage.buffer, bpp8: 2, width: 4}
     image.visitWithUserData(dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe, userData)
         let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 103
     }
@@ -386,7 +386,7 @@ func inlineInjectedContextDataShadow(dstImage: *InlinePixelProbe)
     var image = InlinePixelProbe{buffer: dstImage.buffer, bpp8: 2, width: 4}
     image.visitParallelLike(dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe, userData)
         let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 117
     }
@@ -398,7 +398,7 @@ func inlineInjectedLocalContextDataShadow(dstImage: *InlinePixelProbe)
     var image = InlinePixelProbe{buffer: dstImage.buffer, bpp8: 2, width: 4}
     image.visitParallelLocalLike(dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe, userData)
         let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 119
     }
@@ -409,7 +409,7 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
 {
     genericParallelVisitLike(Swag.makeSlice(dstImage.buffer, 1), 1, dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) data!
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe, data!)
         let x        = 1
         let y        = 1
         let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width

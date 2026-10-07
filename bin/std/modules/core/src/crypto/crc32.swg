@@ -501,12 +501,12 @@ private
     // @ORIGIN: Chromium zlib, https://github.com/chromium/chromium/blob/main/third_party/zlib/crc32_simd.c
     // @MODIFIED: Ported to Swag vector intrinsics.
     // @NOTICE: /bin/THIRDPARTY.md#zlib
-    const FoldK1K2 = cast(Math.Simd.U64x2) [0x0154442BD4'u64, 0x01C6E41596]
-    const FoldK3K4 = cast(Math.Simd.U64x2) [0x01751997D0'u64, 0x00CCAA009E]
-    const FoldK5   = cast(Math.Simd.U64x2) [0x0163CD6124'u64, 0x0000000000]
-    const FoldPoly = cast(Math.Simd.U64x2) [0x01DB710641'u64, 0x01F7011641]
-    const FoldZero = cast(Math.Simd.U64x2) [0'u64, 0]
-    const FoldMask = cast(Math.Simd.U64x2) [0x0000_0000_FFFF_FFFF'u64, 0x0000_0000_FFFF_FFFF]
+    const FoldK1K2 = cast(Math.Simd.U64x2, [0x0154442BD4'u64, 0x01C6E41596])
+    const FoldK3K4 = cast(Math.Simd.U64x2, [0x01751997D0'u64, 0x00CCAA009E])
+    const FoldK5   = cast(Math.Simd.U64x2, [0x0163CD6124'u64, 0x0000000000])
+    const FoldPoly = cast(Math.Simd.U64x2, [0x01DB710641'u64, 0x01F7011641])
+    const FoldZero = cast(Math.Simd.U64x2, [0'u64, 0])
+    const FoldMask = cast(Math.Simd.U64x2, [0x0000_0000_FFFF_FFFF'u64, 0x0000_0000_FFFF_FFFF])
 
     // Folds 'length' bytes — at least 64, a multiple of 16 — into the running
     // inverted CRC-32 register with carry-less multiplications: four lanes of
@@ -514,9 +514,9 @@ private
     // back to thirty-two bits.
     func foldClmul(crcReg: u32, buffer: const [*] u8, length: u64)->u32
     {
-        var seed: [2] u64 = [cast(u64) crcReg, 0]
+        var seed: [2] u64 = [cast(u64, crcReg), 0]
 
-        var buf = cast(const [*] u64) buffer
+        var buf = cast(const [*] u64, buffer)
         var len = length
 
         var x1 = Math.Simd.load(buf)
@@ -524,7 +524,7 @@ private
         var x3 = Math.Simd.load(buf + 4)
         var x4 = Math.Simd.load(buf + 6)
 
-        x1 ^= Math.Simd.load(cast(const [*] u64) &seed[0])
+        x1 ^= Math.Simd.load(cast(const [*] u64, &seed[0]))
 
         var k = FoldK1K2
         buf += 8
@@ -589,8 +589,8 @@ private
         x1 ^= t
 
         var out: [2] u64
-        Math.Simd.store(cast([*] u64) &out[0], x1)
-        return cast(u32) (out[0] >> 32)
+        Math.Simd.store(cast([*] u64, &out[0]), x1)
+        return cast(u32, (out[0] >> 32))
     }
 }
 
@@ -610,7 +610,7 @@ public impl Crc32
         var length = data.count
         if not length do
             return
-        var current = cast(const [*] u32) data.buffer!
+        var current = cast(const [*] u32, data.buffer!)
 
         var cur = ~.currentValue
 
@@ -621,8 +621,8 @@ public impl Crc32
             if length >= 64
             {
                 let folded = length & ~15'u64
-                cur     = foldClmul(cur, cast(const [*] u8) current, folded)
-                current = cast(const [*] u32) (cast(const [*] u8) current + folded)
+                cur     = foldClmul(cur, cast(const [*] u8, current), folded)
+                current = cast(const [*] u32, (cast(const [*] u8, current) + folded))
                 length  -= folded
             }
         }
@@ -674,7 +674,7 @@ public impl Crc32
             length -= bytesAtOnce
         }
 
-        var currentChar = cast(const [*] u8) current
+        var currentChar = cast(const [*] u8, current)
         while length
         {
             cur         = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]

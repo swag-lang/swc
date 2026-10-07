@@ -93,6 +93,7 @@ namespace
             case TokenId::KwdTry:
             case TokenId::KwdCatch:
             case TokenId::KwdExpect:
+            case TokenId::KwdAssume:
             case TokenId::KwdCase:
             case TokenId::KwdDefault:
                 return true;

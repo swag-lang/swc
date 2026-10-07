@@ -127,7 +127,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
                 if nextIdx < cpt do
                     nextIdx += 1
                 idx       = nextIdx
-                strFormat = Swag.makeSlice(ptrFormat, cast(u64) countFormat)
+                strFormat = Swag.makeSlice(ptrFormat, cast(u64, countFormat))
             }
 
             // '#' starts an explicit 0-based argument index, so a translation can reorder
@@ -136,10 +136,10 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
             var useIdx = paramIdx
             if strFormat != null and strFormat.count and strFormat[0] == '#'u8
             {
-                let spec = cast(string) Swag.makeSlice(strFormat.buffer + 1, strFormat.count - 1)
+                let spec = cast(string, Swag.makeSlice(strFormat.buffer + 1, strFormat.count - 1))
                 let {argIdx, eatCount, ?} = expect StrConv.parseU64(spec)
                 Swag.assert(eatCount != 0, "missing argument index after '#'")
-                useIdx = cast(u32) argIdx
+                useIdx = cast(u32, argIdx)
 
                 // An optional conversion format follows ':'.
                 strFormat = null
@@ -153,7 +153,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
             // Deal with the parameter
             Swag.assert(useIdx < numParams, "not enough 'format' parameters")
-            StrConv.convertAny(buf, values[useIdx], convFmt, cast(string?) strFormat)
+            StrConv.convertAny(buf, values[useIdx], convFmt, cast(string?, strFormat))
         }
         else
         {
@@ -242,7 +242,7 @@ func byteSize(bytes: u64)->String
     if bytes < 1024 do
         return toString("% B", bytes)
 
-    var value = cast(f64) bytes / 1024.0
+    var value = cast(f64, bytes) / 1024.0
     var unit  = "KB"
     if value >= 1024
     {

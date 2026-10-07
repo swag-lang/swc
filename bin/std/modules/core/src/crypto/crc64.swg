@@ -38,7 +38,7 @@ public impl Crc64
         if length == 0 do
             return
 
-        let bytes = cast(const [*] u8) data.buffer!
+        let bytes = cast(const [*] u8, data.buffer!)
         var cur   = .currentValue
         var i     = 0'u64
         switch #complete .kind
@@ -47,7 +47,7 @@ public impl Crc64
             const POLY: u64 = 0x42F0_E1EB_A9EA_3693
             while i < length
             {
-                cur ^= cast(u64) bytes[i] << 56
+                cur ^= cast(u64, bytes[i]) << 56
                 for 8
                 {
                     if cur & 0x8000_0000_0000_0000'u64 do

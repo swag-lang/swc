@@ -6,7 +6,7 @@ func narrow(value: u32)->u16
     switch
     {
     case value <= 0xFFFF:
-        return cast(u16) value
+        return cast(u16, value)
     default:
         return 7
     }

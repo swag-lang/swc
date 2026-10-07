@@ -21,7 +21,7 @@ using Corpus
 #[Swag.Sanity(.Lifecycle, true)]
 func freeTwice()
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     heapFree(pointer, 4)     // swc-expected-error {{sanity_err_double_free}}
 }
@@ -42,7 +42,7 @@ func releaseWrapper(pointer: *s32)
 #[Swag.Sanity(.Lifecycle, true)]
 func freeTwiceThroughWrapper()
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     releaseWrapper(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
     releaseWrapper(pointer)     // swc-expected-error {{sanity_err_double_free}}
 }
@@ -57,7 +57,7 @@ func freeTwiceThroughWrapper()
 #[Swag.Sanity(.Lifecycle, true)]
 func freeTwiceThroughAlias()
 {
-    let pointer = cast(*s32) heapAlloc(4)
+    let pointer = cast(*s32, heapAlloc(4))
     let other   = pointer
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     heapFree(other, 4)       // swc-expected-error {{sanity_err_double_free}}
@@ -98,7 +98,7 @@ struct OwnerHolder
 #test
 {
     var first: Owner
-    first.pointer = cast(*s32) heapAlloc(4)
+    first.pointer = cast(*s32, heapAlloc(4))
     var second = first     // swc-expected-error {{sema_err_cannot_copy_owning}}
     discard second
 }
@@ -136,7 +136,7 @@ func releaseHandle(handle: *Handle)
     defer context.allocator = heap.base
 
     var first: Handle
-    first.pointer = cast(*s32) heapAlloc(4)
+    first.pointer = cast(*s32, heapAlloc(4))
     var second = first
     releaseHandle(&first)
     releaseHandle(&second)
@@ -154,8 +154,8 @@ func releaseHandle(handle: *Handle)
 #[Swag.Sanity(.Lifecycle, true)]
 func freeTwoBlocks()
 {
-    let first  = cast(*s32) heapAlloc(4)
-    let second = cast(*s32) heapAlloc(4)
+    let first  = cast(*s32, heapAlloc(4))
+    let second = cast(*s32, heapAlloc(4))
     heapFree(first, 4)
     heapFree(second, 4)
 }
@@ -164,9 +164,9 @@ func freeTwoBlocks()
 #[Swag.Sanity(.Lifecycle, true)]
 func freeReallocateFree()
 {
-    var pointer = cast(*s32) heapAlloc(4)
+    var pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)
-    pointer = cast(*s32) heapAlloc(4)
+    pointer = cast(*s32, heapAlloc(4))
     heapFree(pointer, 4)
 }
 
@@ -194,7 +194,7 @@ func freeReallocateFree()
     defer context.allocator = heap.base
 
     var handle: Handle
-    handle.pointer = cast(*s32) heapAlloc(4)
+    handle.pointer = cast(*s32, heapAlloc(4))
     releaseHandle(&handle)
     releaseHandle(&handle)
     Swag.assert(heap.count == 1)

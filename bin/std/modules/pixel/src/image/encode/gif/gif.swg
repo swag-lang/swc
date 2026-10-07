@@ -34,8 +34,8 @@ impl Encoder
 {
     func writeU16(result: *ConcatBuffer, value: u16)
     {
-        result.addNative(cast(u8) (value & 0xFF))
-        result.addNative(cast(u8) (value >> 8))
+        result.addNative(cast(u8, (value & 0xFF)))
+        result.addNative(cast(u8, (value >> 8)))
     }
 }
 
@@ -56,8 +56,8 @@ internal impl IImageEncoder for Encoder
         let packed  = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
 
         result.addBytes("GIF89a")
-        Encoder.writeU16(result, cast(u16) image.width)
-        Encoder.writeU16(result, cast(u16) image.height)
+        Encoder.writeU16(result, cast(u16, image.width))
+        Encoder.writeU16(result, cast(u16, image.height))
         result.addNative(packed)
         result.addNative(0'u8)
         result.addNative(0'u8)
@@ -70,15 +70,15 @@ internal impl IImageEncoder for Encoder
             result.addNative(0x04'u8)
             result.addNative(0x01'u8)
             Encoder.writeU16(result, 0)
-            result.addNative(cast(u8) palette.transparentIndex)
+            result.addNative(cast(u8, palette.transparentIndex))
             result.addNative(0'u8)
         }
 
         result.addNative(0x2C'u8)
         Encoder.writeU16(result, 0)
         Encoder.writeU16(result, 0)
-        Encoder.writeU16(result, cast(u16) image.width)
-        Encoder.writeU16(result, cast(u16) image.height)
+        Encoder.writeU16(result, cast(u16, image.width))
+        Encoder.writeU16(result, cast(u16, image.height))
         result.addNative(0'u8)
         result.addNative(palette.lzwMinCodeSize)
 

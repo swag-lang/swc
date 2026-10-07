@@ -28,7 +28,7 @@ private impl Writer
 {
     mtd append(text: string)
     {
-        .bytes.add(cast(const [..] u8) text)
+        .bytes.add(cast(const [..] u8, text))
     }
 
     mtd beginObject(number: u32)
@@ -64,7 +64,7 @@ private func pdfNumber(value: f32)->String
     var result: retval
     if value == Math.trunc(value) and Math.abs(value) < 1e9
     {
-        let magnitude = cast(s64) Math.abs(value)
+        let magnitude = cast(s64, Math.abs(value))
         result.appendFormat("%", value < 0 ? -magnitude : magnitude)
         return result
     }
@@ -84,16 +84,16 @@ private func windows1252(text: string)->Array'u8 fail
     {
         if c <= 0x7F or (c >= 0xA0 and c <= 0xFF)
         {
-            result.add(cast(u8) c)
+            result.add(cast(u8, c))
             continue
         }
 
         var found = false
         for value in 0x80'u32 to 0x9F
         {
-            if Text.windows1252Rune(cast(u8) value) == c
+            if Text.windows1252Rune(cast(u8, value)) == c
             {
-                result.add(cast(u8) value)
+                result.add(cast(u8, value))
                 found = true
                 break
             }
@@ -325,8 +325,8 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
 private func encodeImagePixels(image: const *Image)->EncodedImage
 {
     var result: retval
-    let width       = cast(u64) image.width
-    let height      = cast(u64) image.height
+    let width       = cast(u64, image.width)
+    let height      = cast(u64, image.height)
     let swapRedBlue = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
     let hasAlpha    = image.pixelFormat == .BGRA8 or image.pixelFormat == .RGBA8
 
@@ -498,7 +498,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
 
         let content    = #move try pageContent(page, fonts.toSlice())
         var zlib: Compress.ZLib
-        let compressed = #move try zlib.compress(cast(const [..] u8) content)
+        let compressed = #move try zlib.compress(cast(const [..] u8, content))
         writer.streamObject(objects.content, compressed.toSlice(), "/Filter /FlateDecode")
 
         var imageIndex = 0'u64
@@ -520,7 +520,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
                 var alpha = encoded.alpha
                 if not alpha.count
                 {
-                    alpha.resize(cast(u64) item.image.width * cast(u64) item.image.height)
+                    alpha.resize(cast(u64, item.image.width) * cast(u64, item.image.height))
                     for i in alpha.count do
                         alpha[i] = 0xFF
                 }

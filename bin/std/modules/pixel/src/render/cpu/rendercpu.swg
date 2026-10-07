@@ -97,7 +97,7 @@ private impl PixelBounds
     mtd const rows()->s32 => .maxY - .minY + 1
 
     // Returns the number of pixels the rectangle spans.
-    mtd const area()->u64 => cast(u64) (.maxX - .minX + 1) * cast(u64) .rows()
+    mtd const area()->u64 => cast(u64, (.maxX - .minX + 1)) * cast(u64, .rows())
 }
 
 private
@@ -116,9 +116,9 @@ private
     const CpuProgram_Resolve: u8 = 5
 
     // Four BGRA pixels share these byte masks in the packed span kernels.
-    const CpuBgraRgbMask   = cast(Math.Simd.U8x16) [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0]
-    const CpuBgraAlphaMask = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
-    const CpuPixelLanes    = cast(Math.Simd.F32x4) [0.0'f32, 1.0, 2.0, 3.0]
+    const CpuBgraRgbMask   = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
+    const CpuBgraAlphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+    const CpuPixelLanes    = cast(Math.Simd.F32x4, [0.0'f32, 1.0, 2.0, 3.0])
 
     // Alpha factor of the bitmap font shader per atlas byte: pow(byte / 255, FontGamma).
     //
@@ -134,7 +134,7 @@ private func ensureFontGammaLut()
     if g_FontGammaLutReady do
         return
     for i in 256 do
-        g_FontGammaLut[i] = Math.pow(cast(f32) i / 255.0, FontGamma)
+        g_FontGammaLut[i] = Math.pow(cast(f32, i) / 255.0, FontGamma)
     g_FontGammaLutReady = true
 }
 
@@ -232,7 +232,7 @@ private impl RenderCpu
 
     mtd ensureStencil(width, height: s32)
     {
-        let count   = cast(u64) width * cast(u64) height
+        let count   = cast(u64, width) * cast(u64, height)
         let stencil = .currentStencil()
         if stencil.count == count do
             return
@@ -274,17 +274,17 @@ private impl RenderCpu
         }
 
         var result: retval
-        result.minX = Math.clamp(cast(s32) Math.floor(lowest.x), 0, image.width - 1)
-        result.minY = Math.clamp(cast(s32) Math.floor(lowest.y), 0, image.height - 1)
-        result.maxX = Math.clamp(cast(s32) Math.ceil(highest.x) - 1, 0, image.width - 1)
-        result.maxY = Math.clamp(cast(s32) Math.ceil(highest.y) - 1, 0, image.height - 1)
+        result.minX = Math.clamp(cast(s32, Math.floor(lowest.x)), 0, image.width - 1)
+        result.minY = Math.clamp(cast(s32, Math.floor(lowest.y)), 0, image.height - 1)
+        result.maxX = Math.clamp(cast(s32, Math.ceil(highest.x)) - 1, 0, image.width - 1)
+        result.maxY = Math.clamp(cast(s32, Math.ceil(highest.y)) - 1, 0, image.height - 1)
 
         if .scissorOn
         {
-            result.minX = Math.max(result.minX, cast(s32) .scissorRect.x)
-            result.minY = Math.max(result.minY, cast(s32) .scissorRect.y)
-            result.maxX = Math.min(result.maxX, cast(s32) .scissorRect.right() - 1)
-            result.maxY = Math.min(result.maxY, cast(s32) .scissorRect.bottom() - 1)
+            result.minX = Math.max(result.minX, cast(s32, .scissorRect.x))
+            result.minY = Math.max(result.minY, cast(s32, .scissorRect.y))
+            result.maxX = Math.min(result.maxX, cast(s32, .scissorRect.right()) - 1)
+            result.maxY = Math.min(result.maxY, cast(s32, .scissorRect.bottom()) - 1)
         }
 
         return result
@@ -308,9 +308,9 @@ private impl RenderCpu
     // Zeroes `bounds` inside a per-pixel scratch plane stored as `width` bytes per row.
     func clearScratchRows(plane: [*] u8, width: s32, bounds: PixelBounds)
     {
-        let runWidth = cast(u64) (bounds.maxX - bounds.minX + 1)
+        let runWidth = cast(u64, (bounds.maxX - bounds.minX + 1))
         for var y = bounds.minY; y <= bounds.maxY; y += 1 do
-            Memory.clear(plane + cast(u64) y * cast(u64) width + cast(u64) bounds.minX, runWidth)
+            Memory.clear(plane + cast(u64, y) * cast(u64, width) + cast(u64, bounds.minX), runWidth)
     }
 
     func edge(a, b, p: Vector2)->f32 => Math.mulAdd(-(b.y - a.y), p.x - a.x, (b.x - a.x) * (p.y - a.y))
@@ -346,10 +346,10 @@ private impl RenderCpu
     func lerpColor(c0, c1: Color, t: f32)->Color
     {
         let u = Math.saturate(t)
-        return Color.fromArgbF32((cast(f32) c0.a + (cast(f32) c1.a - c0.a) * u) / 255.0,
-                                 (cast(f32) c0.r + (cast(f32) c1.r - c0.r) * u) / 255.0,
-                                 (cast(f32) c0.g + (cast(f32) c1.g - c0.g) * u) / 255.0,
-                                 (cast(f32) c0.b + (cast(f32) c1.b - c0.b) * u) / 255.0)
+        return Color.fromArgbF32((cast(f32, c0.a) + (cast(f32, c1.a) - c0.a) * u) / 255.0,
+                                 (cast(f32, c0.r) + (cast(f32, c1.r) - c0.r) * u) / 255.0,
+                                 (cast(f32, c0.g) + (cast(f32, c1.g) - c0.g) * u) / 255.0,
+                                 (cast(f32, c0.b) + (cast(f32, c1.b) - c0.b) * u) / 255.0)
     }
 
     // Bilinear texture filtering keeps the two byte-quantizing lerps of the former float path,
@@ -358,14 +358,14 @@ private impl RenderCpu
     func lerpByte(c0, c1: u8, weight: u32)->u8
     {
         const One = 65536'u32
-        return cast(u8) ((cast(u32) c0 * (One - weight) + cast(u32) c1 * weight) >> 16)
+        return cast(u8, ((cast(u32, c0) * (One - weight) + cast(u32, c1) * weight) >> 16))
     }
 
     func bilinearColor(c00, c10, c01, c11: Color, tx, ty: f32)->Color
     {
         const One = 65536.0'f32
-        let wx = cast(u32) (Math.saturate(tx) * One)
-        let wy = cast(u32) (Math.saturate(ty) * One)
+        let wx = cast(u32, (Math.saturate(tx) * One))
+        let wy = cast(u32, (Math.saturate(ty) * One))
 
         var top, bottom, result: Color
         top.a    = lerpByte(c00.a, c10.a, wx)
@@ -400,7 +400,7 @@ private impl RenderCpu
     {
         let cx  = Math.clamp(x, 0, image.width - 1)
         let cy  = image.height - Math.clamp(y, 0, image.height - 1) - 1
-        let pix = image.pixels.storage() + cast(u64) (cx * 4) + cast(u64) cy * cast(u64) image.width * 4
+        let pix = image.pixels.storage() + cast(u64, (cx * 4)) + cast(u64, cy) * cast(u64, image.width) * 4
 
         var result: Color
         result.b = pix[0]
@@ -413,7 +413,7 @@ private impl RenderCpu
     func writePixel(image: *Image, x, y: s32, color: Color)
     {
         let storageY = image.height - y - 1
-        let pixel    = image.pixels.storage() + cast(u64) (storageY * image.rowStride + x * image.bytesPerPixel)
+        let pixel    = image.pixels.storage() + cast(u64, (storageY * image.rowStride + x * image.bytesPerPixel))
 
         switch #complete image.pixelFormat
         {
@@ -424,7 +424,7 @@ private impl RenderCpu
 
         case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
              .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
-            writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, {cast(f32) color.r / 255.0, cast(f32) color.g / 255.0, cast(f32) color.b / 255.0, cast(f32) color.a / 255.0})
+            writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, {cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0, cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0})
 
         case .BGRA8:
             pixel[0] = color.b
@@ -579,7 +579,7 @@ private impl RenderCpu
     // Both weights sum to 255, so the numerator fits in 16 bits and equal colors stay equal.
     // Keeping the weights integral makes quantization independent of floating-point contraction.
     #[Swag.Inline]
-    func blendAlphaByte(src, dst, alpha: u8)->u8 => cast(u8) ((cast(u32) src * alpha + cast(u32) dst * (255'u32 - alpha)) / 255)
+    func blendAlphaByte(src, dst, alpha: u8)->u8 => cast(u8, ((cast(u32, src) * alpha + cast(u32, dst) * (255'u32 - alpha)) / 255))
 
     // Alpha-blends one BGRA8 pixel under the default color mask, preserving its alpha byte.
     func blendAlphaBgra8(pixel: [*] u8, src: Color)
@@ -611,13 +611,13 @@ private impl RenderCpu
         if .alphaResolve
         {
             var out = dst
-            let a   = cast(u8) Math.clamp(Math.round(cast(f32) src.a * cast(f32) src.a / 255.0), 0.0, 255.0)
+            let a   = cast(u8, Math.clamp(Math.round(cast(f32, src.a) * cast(f32, src.a) / 255.0), 0.0, 255.0))
             out.a = Math.max(out.a, a)
             writePixel(image, x, y, out)
             return
         }
 
-        let pixelIdx = cast(u64) y * cast(u64) image.width + cast(u64) x
+        let pixelIdx = cast(u64, y) * cast(u64, image.width) + cast(u64, x)
 
         // The mark pass keeps the coverage a pixel is most covered by, so the draw pass can
         // composite it once. It is the alpha itself, not the alpha weighted by itself: squaring
@@ -661,8 +661,8 @@ private impl RenderCpu
             return
         }
 
-        let sa = cast(f32) src.a / 255.0
-        let da = cast(f32) dst.a / 255.0
+        let sa = cast(f32, src.a) / 255.0
+        let da = cast(f32, dst.a) / 255.0
 
         // The alpha channel composites with a source factor of one, not with the source alpha the
         // colour channels use: weighting it by itself accumulates coverage as a square, so a stack
@@ -672,8 +672,8 @@ private impl RenderCpu
         if .blendingMode.usesAdvancedBlending() do
             outA = sa + da * (1.0 - sa)
 
-        let srcColor = Math.Vector3{cast(f32) src.r / 255.0, cast(f32) src.g / 255.0, cast(f32) src.b / 255.0}
-        let dstColor = Math.Vector3{cast(f32) dst.r / 255.0, cast(f32) dst.g / 255.0, cast(f32) dst.b / 255.0}
+        let srcColor = Math.Vector3{cast(f32, src.r) / 255.0, cast(f32, src.g) / 255.0, cast(f32, src.b) / 255.0}
+        let dstColor = Math.Vector3{cast(f32, dst.r) / 255.0, cast(f32, dst.g) / 255.0, cast(f32, dst.b) / 255.0}
         var outColor = Math.Vector3{blendChannel(srcColor.x, dstColor.x, sa, da, .blendingMode),
                                     blendChannel(srcColor.y, dstColor.y, sa, da, .blendingMode),
                                     blendChannel(srcColor.z, dstColor.z, sa, da, .blendingMode)}
@@ -717,8 +717,8 @@ private impl RenderCpu
             vv = Math.saturate(vv)
         }
 
-        let x = Math.clamp(cast(s32) Math.floor(uu * image.width), 0, image.width - 1)
-        let y = Math.clamp(cast(s32) Math.floor((1.0 - vv) * image.height), 0, image.height - 1)
+        let x = Math.clamp(cast(s32, Math.floor(uu * image.width)), 0, image.width - 1)
+        let y = Math.clamp(cast(s32, Math.floor((1.0 - vv) * image.height)), 0, image.height - 1)
         if image.pixelFormat == .BGRA8 do
             return fetchBgra8(image, x, y)
         return readPixel(image, x, y)
@@ -745,8 +745,8 @@ private impl RenderCpu
 
         let fx = uu * image.width - 0.5
         let fy = (1.0 - vv) * image.height - 0.5
-        let x0 = cast(s32) Math.floor(fx)
-        let y0 = cast(s32) Math.floor(fy)
+        let x0 = cast(s32, Math.floor(fx))
+        let y0 = cast(s32, Math.floor(fy))
         let tx = fx - Math.floor(fx)
         let ty = fy - Math.floor(fy)
 
@@ -776,21 +776,21 @@ private impl RenderCpu
     func sampleSubRect(image: *Image, paintPos: Vector2, params: const *Command, contentScale: f32)->Color
     {
         let p    = &params.texture0
-        let minX = cast(s32) Math.floor(p.textureRect.x * image.width)
-        let minY = cast(s32) Math.floor(p.textureRect.y * image.height)
-        let maxX = cast(s32) Math.floor(p.textureRect.z * image.width)
-        let maxY = cast(s32) Math.floor(p.textureRect.w * image.height)
+        let minX = cast(s32, Math.floor(p.textureRect.x * image.width))
+        let minY = cast(s32, Math.floor(p.textureRect.y * image.height))
+        let maxX = cast(s32, Math.floor(p.textureRect.z * image.width))
+        let maxY = cast(s32, Math.floor(p.textureRect.w * image.height))
         let dstW = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
         let dstH = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
         let tx   = Math.saturate((paintPos.x - p.boundRect.x) / dstW)
         let ty   = Math.saturate((paintPos.y - p.boundRect.y) / dstH)
-        var px   = cast(f32) minX + tx * cast(f32) (maxX - minX + 1) - 0.5
-        var py   = cast(f32) minY + ty * cast(f32) (maxY - minY + 1) - 0.5
+        var px   = cast(f32, minX) + tx * cast(f32, (maxX - minX + 1)) - 0.5
+        var py   = cast(f32, minY) + ty * cast(f32, (maxY - minY + 1)) - 0.5
 
         if p.interpolationMode == .Pixel and contentScale == 1
         {
-            let x = Math.clamp(cast(s32) Math.floor(px + 0.5), minX, maxX)
-            let y = Math.clamp(cast(s32) Math.floor(py + 0.5), minY, maxY)
+            let x = Math.clamp(cast(s32, Math.floor(px + 0.5)), minX, maxX)
+            let y = Math.clamp(cast(s32, Math.floor(py + 0.5)), minY, maxY)
 
             // The presentation blit runs through here for every surface pixel.
             if image.pixelFormat == .BGRA8 do
@@ -798,10 +798,10 @@ private impl RenderCpu
             return readPixel(image, x, y)
         }
 
-        px = Math.clamp(px, cast(f32) minX, cast(f32) maxX)
-        py = Math.clamp(py, cast(f32) minY, cast(f32) maxY)
-        let x0 = cast(s32) Math.floor(px)
-        let y0 = cast(s32) Math.floor(py)
+        px = Math.clamp(px, cast(f32, minX), cast(f32, maxX))
+        py = Math.clamp(py, cast(f32, minY), cast(f32, maxY))
+        let x0 = cast(s32, Math.floor(px))
+        let y0 = cast(s32, Math.floor(py))
         let x1 = Math.min(x0 + 1, maxX)
         let y1 = Math.min(y0 + 1, maxY)
         var fx = px - Math.floor(px)
@@ -812,8 +812,8 @@ private impl RenderCpu
         // instead of dropping texels or smearing one-texel tile borders.
         if p.interpolationMode == .Pixel
         {
-            let texelsPerUnitX = cast(f32) (maxX - minX + 1) / dstW
-            let texelsPerUnitY = cast(f32) (maxY - minY + 1) / dstH
+            let texelsPerUnitX = cast(f32, (maxX - minX + 1)) / dstW
+            let texelsPerUnitY = cast(f32, (maxY - minY + 1)) / dstH
             let wx             = Math.clamp(texelsPerUnitX / contentScale, 0.0001, 1.0)
             let wy             = Math.clamp(texelsPerUnitY / contentScale, 0.0001, 1.0)
             fx = Math.saturate((fx - 0.5) / wx + 0.5)
@@ -850,10 +850,10 @@ private impl RenderCpu
             let sv     = .blurAxis == 0 ? v : v + offset / image.height
             let sample = sampleLinear(image, su, sv, false)
             let weight = batch.blurWeights![i]
-            a      += cast(f32) sample.a / 255.0 * weight
-            r      += cast(f32) sample.r / 255.0 * weight
-            g      += cast(f32) sample.g / 255.0 * weight
-            b      += cast(f32) sample.b / 255.0 * weight
+            a      += cast(f32, sample.a) / 255.0 * weight
+            r      += cast(f32, sample.r) / 255.0 * weight
+            g      += cast(f32, sample.g) / 255.0 * weight
+            b      += cast(f32, sample.b) / 255.0 * weight
             offset += 1.0
         }
 
@@ -865,8 +865,8 @@ private impl RenderCpu
         let factor    = Math.clamp(.resolveFactor, 1, 8)
         let dstWidth  = Math.max(image.width / factor, 1)
         let dstHeight = Math.max(image.height / factor, 1)
-        let baseX     = cast(s32) Math.floor(Math.clamp(u, 0.0, 0.999999) * dstWidth) * factor
-        let baseY     = cast(s32) Math.floor(Math.clamp(1.0 - v, 0.0, 0.999999) * dstHeight) * factor
+        let baseX     = cast(s32, Math.floor(Math.clamp(u, 0.0, 0.999999) * dstWidth)) * factor
+        let baseY     = cast(s32, Math.floor(Math.clamp(1.0 - v, 0.0, 0.999999) * dstHeight)) * factor
 
         var sumA, sumR, sumG, sumB: f32
         for var y: s32; y < factor; y += 1
@@ -874,14 +874,14 @@ private impl RenderCpu
             for var x: s32; x < factor; x += 1
             {
                 let sample = readPixel(image, Math.clamp(baseX + x, 0, image.width - 1), Math.clamp(baseY + y, 0, image.height - 1))
-                sumA += cast(f32) sample.a / 255.0
-                sumR += cast(f32) sample.r / 255.0
-                sumG += cast(f32) sample.g / 255.0
-                sumB += cast(f32) sample.b / 255.0
+                sumA += cast(f32, sample.a) / 255.0
+                sumR += cast(f32, sample.r) / 255.0
+                sumG += cast(f32, sample.g) / 255.0
+                sumB += cast(f32, sample.b) / 255.0
             }
         }
 
-        let count = cast(f32) (factor * factor)
+        let count = cast(f32, (factor * factor))
         let alpha = sumA / count
         if sumA <= 0.00001 do
             return Color.fromArgbF32(alpha, 0, 0, 0)
@@ -1002,8 +1002,8 @@ private impl RenderCpu
             return sampleNearest(image, u, v, repeat)
 
         case .Hatch:
-            let x = modFloor(cast(s32) Math.floor(paintPos.x - p.boundRect.x), 8)
-            let y = modFloor(cast(s32) Math.floor(paintPos.y - p.boundRect.y), 8)
+            let x = modFloor(cast(s32, Math.floor(paintPos.x - p.boundRect.x)), 8)
+            let y = modFloor(cast(s32, Math.floor(paintPos.y - p.boundRect.y)), 8)
             return hatchPixel(p.hatch, x, y) ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Zero)
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
@@ -1013,7 +1013,7 @@ private impl RenderCpu
 
     func hatchPixel(style: HatchStyle, x, y: s32)->bool
     {
-        let idx = cast(u64) (y * 8 + x)
+        let idx = cast(u64, (y * 8 + x))
         switch #complete style
         {
         case .Dot:                   return Hatch.Dot[idx] != 0
@@ -1073,29 +1073,29 @@ private impl RenderCpu
             return null
 
         let cache = .font.cache
-        if cast(u64) .fontAtlasIndex >= cache.atlases.count do
+        if cast(u64, .fontAtlasIndex) >= cache.atlases.count do
             return null
-        return &cache.atlases[cast(u64) .fontAtlasIndex]
+        return &cache.atlases[cast(u64, .fontAtlasIndex)]
     }
 
     func readFontAtlas(atlas: const *GlyphAtlas, x, y: s32)->Vector4
     {
-        let pixelWidth = cast(s32) (atlas.width / atlas.bytesPerPixel)
+        let pixelWidth = cast(s32, (atlas.width / atlas.bytesPerPixel))
         let xx         = Math.clamp(x, 0, pixelWidth - 1)
-        let yy         = Math.clamp(y, 0, cast(s32) atlas.height - 1)
-        let row        = cast(s32) atlas.height - yy - 1
-        let ptr        = atlas.data.storage() + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
+        let yy         = Math.clamp(y, 0, cast(s32, atlas.height) - 1)
+        let row        = cast(s32, atlas.height) - yy - 1
+        let ptr        = atlas.data.storage() + cast(u64, row) * atlas.width + cast(u64, xx) * atlas.bytesPerPixel
 
         if atlas.bytesPerPixel == 1
         {
-            let value = cast(f32) ptr[0] / 255.0
+            let value = cast(f32, ptr[0]) / 255.0
             return {value, value, value, value}
         }
 
-        return {cast(f32) ptr[0] / 255.0,
-                cast(f32) ptr[1] / 255.0,
-                cast(f32) ptr[2] / 255.0,
-                cast(f32) ptr[3] / 255.0}
+        return {cast(f32, ptr[0]) / 255.0,
+                cast(f32, ptr[1]) / 255.0,
+                cast(f32, ptr[2]) / 255.0,
+                cast(f32, ptr[3]) / 255.0}
     }
 
     // Keep the interpolation rounded before quantizing font coverage and effect colors.
@@ -1109,19 +1109,19 @@ private impl RenderCpu
 
     func sampleFontAtlas(atlas: const *GlyphAtlas, uv: Vector2, linear: bool)->Vector4
     {
-        let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
-        let height = cast(s32) atlas.height
+        let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
+        let height = cast(s32, atlas.height)
         if not linear
         {
-            let x = Math.clamp(cast(s32) Math.floor(uv.x * width), 0, width - 1)
-            let y = Math.clamp(cast(s32) Math.floor(uv.y * height), 0, height - 1)
+            let x = Math.clamp(cast(s32, Math.floor(uv.x * width)), 0, width - 1)
+            let y = Math.clamp(cast(s32, Math.floor(uv.y * height)), 0, height - 1)
             return readFontAtlas(atlas, x, y)
         }
 
         let px = Math.saturate(uv.x) * width - 0.5
         let py = Math.saturate(uv.y) * height - 0.5
-        let x0 = cast(s32) Math.floor(px)
-        let y0 = cast(s32) Math.floor(py)
+        let x0 = cast(s32, Math.floor(px))
+        let y0 = cast(s32, Math.floor(py))
         let x1 = Math.min(x0 + 1, width - 1)
         let y1 = Math.min(y0 + 1, height - 1)
         let tx = px - Math.floor(px)
@@ -1136,11 +1136,11 @@ private impl RenderCpu
                 let xx  = Math.clamp(x, 0, width - 1)
                 let yy  = Math.clamp(y, 0, height - 1)
                 let row = height - yy - 1
-                let ptr = atlas.data.storage() + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
-                return {cast(f32) ptr[0] / 255.0,
-                        cast(f32) ptr[1] / 255.0,
-                        cast(f32) ptr[2] / 255.0,
-                        cast(f32) ptr[3] / 255.0}
+                let ptr = atlas.data.storage() + cast(u64, row) * atlas.width + cast(u64, xx) * atlas.bytesPerPixel
+                return {cast(f32, ptr[0]) / 255.0,
+                        cast(f32, ptr[1]) / 255.0,
+                        cast(f32, ptr[2]) / 255.0,
+                        cast(f32, ptr[3]) / 255.0}
             }
 
             let f00 = fetch(atlas, width, height, x0, y0)
@@ -1181,8 +1181,8 @@ private impl RenderCpu
             return fallback
         }
 
-        let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
-        let height = cast(s32) atlas.height
+        let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
+        let height = cast(s32, atlas.height)
         var samples: [4] FontLinearSample
         var minX   = Swag.S32.Max
         var minY   = Swag.S32.Max
@@ -1193,8 +1193,8 @@ private impl RenderCpu
             let px     = Math.saturate(point.x) * width - 0.5
             let py     = Math.saturate(point.y) * height - 0.5
             let sample = &samples[index]
-            sample.x0 = cast(s32) Math.floor(px)
-            sample.y0 = cast(s32) Math.floor(py)
+            sample.x0 = cast(s32, Math.floor(px))
+            sample.y0 = cast(s32, Math.floor(py))
             sample.x1 = Math.min(sample.x0 + 1, width - 1)
             sample.y1 = Math.min(sample.y0 + 1, height - 1)
             sample.tx = px - Math.floor(px)
@@ -1219,7 +1219,7 @@ private impl RenderCpu
         for y in cacheHeight
         {
             for x in cacheWidth do
-                cache[cast(u64) (y * cacheWidth + x)] = readFontAtlas(atlas, minX + x, minY + y)
+                cache[cast(u64, (y * cacheWidth + x))] = readFontAtlas(atlas, minX + x, minY + y)
         }
 
         var result = 0'f32
@@ -1227,10 +1227,10 @@ private impl RenderCpu
         {
             let row0  = (sample.y0 - minY) * cacheWidth
             let row1  = (sample.y1 - minY) * cacheWidth
-            let f00   = cache[cast(u64) (row0 + sample.x0 - minX)]
-            let f10   = cache[cast(u64) (row0 + sample.x1 - minX)]
-            let f01   = cache[cast(u64) (row1 + sample.x0 - minX)]
-            let f11   = cache[cast(u64) (row1 + sample.x1 - minX)]
+            let f00   = cache[cast(u64, (row0 + sample.x0 - minX))]
+            let f10   = cache[cast(u64, (row0 + sample.x1 - minX))]
+            let f01   = cache[cast(u64, (row1 + sample.x0 - minX))]
+            let f11   = cache[cast(u64, (row1 + sample.x1 - minX))]
             let value = lerpFontSample(lerpFontSample(f00, f10, sample.tx), lerpFontSample(f01, f11, sample.tx), sample.ty)
             let sd    = median(value.x, value.y, value.z)
             result += Math.saturate((sd - 0.5) * screenPxRange + 0.5)
@@ -1241,8 +1241,8 @@ private impl RenderCpu
 
     mtd shadeMsdf(faceColor: Color, uv, uvDx, uvDy: Vector2, safeAtlas: const *GlyphAtlas)->Color
     {
-        let width         = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
-        let height        = cast(f32) safeAtlas.height
+        let width         = cast(f32, (safeAtlas.width / safeAtlas.bytesPerPixel))
+        let height        = cast(f32, safeAtlas.height)
         let fwX           = Math.abs(uvDx.x) + Math.abs(uvDy.x)
         let fwY           = Math.abs(uvDx.y) + Math.abs(uvDy.y)
         let screenX       = fwX > 0.000001 ? 1.0 / fwX : 1.0
@@ -1253,7 +1253,7 @@ private impl RenderCpu
         {
             let off   = Vector2{fwX * 0.25, fwY * 0.25}
             let alpha = Math.pow(msdfCoverage4(safeAtlas, uv, off, screenPxRange) * 0.25, FontGamma)
-            return faceColor.withAlphaF32(cast(f32) faceColor.a / 255.0 * alpha)
+            return faceColor.withAlphaF32(cast(f32, faceColor.a) / 255.0 * alpha)
         }
 
         let p           = &.fontEffect
@@ -1341,13 +1341,13 @@ private impl RenderCpu
 
             // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
             // lookup table replaces the per-pixel pow with the factor it would have computed.
-            let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
-            let height = cast(s32) atlas.height
-            let x      = Math.clamp(cast(s32) Math.floor(fontUv.x * width), 0, width - 1)
-            let y      = Math.clamp(cast(s32) Math.floor(fontUv.y * height), 0, height - 1)
-            let row    = cast(s32) atlas.height - y - 1
-            let value  = atlas.data.storage()[cast(u64) row * atlas.width + cast(u64) x * atlas.bytesPerPixel]
-            result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * g_FontGammaLut[value]), 0.0, 255.0)
+            let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
+            let height = cast(s32, atlas.height)
+            let x      = Math.clamp(cast(s32, Math.floor(fontUv.x * width)), 0, width - 1)
+            let y      = Math.clamp(cast(s32, Math.floor(fontUv.y * height)), 0, height - 1)
+            let row    = cast(s32, atlas.height) - y - 1
+            let value  = atlas.data.storage()[cast(u64, row) * atlas.width + cast(u64, x) * atlas.bytesPerPixel]
+            result.a = cast(u8, Math.clamp(Math.round(cast(f32, result.a) * g_FontGammaLut[value]), 0.0, 255.0))
         }
         elif .program == CpuProgram_Msdf
         {
@@ -1358,7 +1358,7 @@ private impl RenderCpu
         }
         elif .program == CpuProgram_Default
         {
-            result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * coverage), 0.0, 255.0)
+            result.a = cast(u8, Math.clamp(Math.round(cast(f32, result.a) * coverage), 0.0, 255.0))
         }
 
         return result
@@ -1389,10 +1389,10 @@ private impl RenderCpu
             area = -area
         }
 
-        let minX = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.x, p1.x, p2.x)), 0, batch.width - 1), batch.clipMinX)
-        let minY = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, p1.y, p2.y)), 0, batch.height - 1), bandMinY, batch.clipMinY)
-        let maxX = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, p1.x, p2.x)) - 1, 0, batch.width - 1), batch.clipMaxX)
-        let maxY = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, p1.y, p2.y)) - 1, 0, batch.height - 1), bandMaxY, batch.clipMaxY)
+        let minX = Math.max(Math.clamp(cast(s32, Math.floor(Math.min(p0.x, p1.x, p2.x))), 0, batch.width - 1), batch.clipMinX)
+        let minY = Math.max(Math.clamp(cast(s32, Math.floor(Math.min(p0.y, p1.y, p2.y))), 0, batch.height - 1), bandMinY, batch.clipMinY)
+        let maxX = Math.min(Math.clamp(cast(s32, Math.ceil(Math.max(p0.x, p1.x, p2.x))) - 1, 0, batch.width - 1), batch.clipMaxX)
+        let maxY = Math.min(Math.clamp(cast(s32, Math.ceil(Math.max(p0.y, p1.y, p2.y))) - 1, 0, batch.height - 1), bandMaxY, batch.clipMaxY)
         if minX > maxX or minY > maxY do
             return
 
@@ -1477,18 +1477,18 @@ private impl RenderCpu
             if fastAlpha or fastCopy or alphaMaskStore
             {
                 let copyAll = fastCopy and maskFull
-                let fill    = cast(Math.Simd.U8x16) [constColor.b, constColor.g, constColor.r, constColor.a,
+                let fill    = cast(Math.Simd.U8x16, [constColor.b, constColor.g, constColor.r, constColor.a,
                                                      constColor.b, constColor.g, constColor.r, constColor.a,
                                                      constColor.b, constColor.g, constColor.r, constColor.a,
-                                                     constColor.b, constColor.g, constColor.r, constColor.a]
+                                                     constColor.b, constColor.g, constColor.r, constColor.a])
                 for var y = minY; y <= maxY; y += 1
                 {
-                    let sy         = cast(f32) y + 0.5
+                    let sy         = cast(f32, y) + 0.5
                     let rowDy0     = sy - edge0Origin.y
                     let rowDy1     = sy - edge1Origin.y
                     let rowDy2     = sy - edge2Origin.y
-                    let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
-                    let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
+                    let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
+                    let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
                     var x          = minX
                     while x <= maxX
                     {
@@ -1496,7 +1496,7 @@ private impl RenderCpu
                         var laneCount = 1
                         if maxX - x >= 3
                         {
-                            let sx = Math.Simd.splat(cast(f32) x + 0.5) + CpuPixelLanes
+                            let sx = Math.Simd.splat(cast(f32, x) + 0.5) + CpuPixelLanes
                             let e0 = dx0 * rowDy0 - dy0 * (sx - edge0Origin.x)
                             let e1 = dx1 * rowDy1 - dy1 * (sx - edge1Origin.x)
                             let e2 = dx2 * rowDy2 - dy2 * (sx - edge2Origin.x)
@@ -1505,7 +1505,7 @@ private impl RenderCpu
                         }
                         else
                         {
-                            let sx = cast(f32) x + 0.5
+                            let sx = cast(f32, x) + 0.5
                             let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
                             let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
                             let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
@@ -1513,7 +1513,7 @@ private impl RenderCpu
                                 coverage = 1
                         }
 
-                        let pixel = rowPixels + cast(u64) x * 4
+                        let pixel = rowPixels + cast(u64, x) * 4
 
                         // Translucent alpha uses the exact byte blend; the other full spans
                         // collapse to one packed load/store pair.
@@ -1533,7 +1533,7 @@ private impl RenderCpu
                         {
                             if not (coverage & (1'u32 << lane)) do
                                 continue
-                            let pixelX = x + cast(s32) lane
+                            let pixelX = x + cast(s32, lane)
 
                             // The region cuts the coverage. A copy has no coverage to cut, so the
                             // region decides alone whether the pixel is written.
@@ -1552,14 +1552,14 @@ private impl RenderCpu
                                     }
                                     else
                                     {
-                                        laneColor.a = cast(u8) ((cast(u32) laneColor.a * clip) / 255)
+                                        laneColor.a = cast(u8, ((cast(u32, laneColor.a) * clip) / 255))
                                         if laneColor.a == 0 do
                                             continue
                                     }
                                 }
                             }
 
-                            let lanePixel = rowPixels + cast(u64) pixelX * 4
+                            let lanePixel = rowPixels + cast(u64, pixelX) * 4
                             if fastAlpha
                             {
                                 blendAlphaBgra8(lanePixel, laneColor)
@@ -1606,12 +1606,12 @@ private impl RenderCpu
             {
                 // Everything the sampler recomputes per pixel from the paint command is
                 // constant over the triangle.
-                let texMinX = cast(s32) Math.floor(paint.textureRect.x * source.width)
-                let texMinY = cast(s32) Math.floor(paint.textureRect.y * source.height)
-                let texMaxX = cast(s32) Math.floor(paint.textureRect.z * source.width)
-                let texMaxY = cast(s32) Math.floor(paint.textureRect.w * source.height)
-                let spanX   = cast(f32) (texMaxX - texMinX + 1)
-                let spanY   = cast(f32) (texMaxY - texMinY + 1)
+                let texMinX = cast(s32, Math.floor(paint.textureRect.x * source.width))
+                let texMinY = cast(s32, Math.floor(paint.textureRect.y * source.height))
+                let texMaxX = cast(s32, Math.floor(paint.textureRect.z * source.width))
+                let texMaxY = cast(s32, Math.floor(paint.textureRect.w * source.height))
+                let spanX   = cast(f32, (texMaxX - texMinX + 1))
+                let spanY   = cast(f32, (texMaxY - texMinY + 1))
                 let dstW    = Math.max(paint.boundRect.z - paint.boundRect.x, 0.000001)
                 let dstH    = Math.max(paint.boundRect.w - paint.boundRect.y, 0.000001)
                 let originX = paint.boundRect.x
@@ -1619,22 +1619,22 @@ private impl RenderCpu
 
                 let hasAlpha    = source.pixelFormat == .RGBA8 or source.pixelFormat == .BGRA8
                 let swapRedBlue = source.pixelFormat == .RGBA8 or source.pixelFormat == .RGB8
-                let texelBytes  = cast(u64) (hasAlpha ? 4 : 3)
-                let texelRow    = texelBytes * cast(u64) source.width
+                let texelBytes  = cast(u64, (hasAlpha ? 4 : 3))
+                let texelRow    = texelBytes * cast(u64, source.width)
                 let texels      = source.pixels.storage()
                 let lastTexelX  = source.width - 1
                 let lastTexelY  = source.height - 1
 
                 for var y = minY; y <= maxY; y += 1
                 {
-                    let sy        = cast(f32) y + 0.5
+                    let sy        = cast(f32, y) + 0.5
                     let rowDy0    = sy - edge0Origin.y
                     let rowDy1    = sy - edge1Origin.y
                     let rowDy2    = sy - edge2Origin.y
-                    let rowPixels = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
+                    let rowPixels = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
                     for var x = minX; x <= maxX; x += 1
                     {
-                        let sx = cast(f32) x + 0.5
+                        let sx = cast(f32, x) + 0.5
                         let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
                         let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
                         let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
@@ -1646,14 +1646,14 @@ private impl RenderCpu
                         let w2 = e2 * invArea
                         let tx = Math.saturate((v0.pos.x * w0 + v1.pos.x * w1 + v2.pos.x * w2 - originX) / dstW)
                         let ty = Math.saturate((v0.pos.y * w0 + v1.pos.y * w1 + v2.pos.y * w2 - originY) / dstH)
-                        let px = cast(f32) texMinX + tx * spanX - 0.5
-                        let py = cast(f32) texMinY + ty * spanY - 0.5
+                        let px = cast(f32, texMinX) + tx * spanX - 0.5
+                        let py = cast(f32, texMinY) + ty * spanY - 0.5
 
-                        let texelX = Math.clamp(Math.clamp(cast(s32) Math.floor(px + 0.5), texMinX, texMaxX), 0, lastTexelX)
-                        let texelY = Math.clamp(Math.clamp(cast(s32) Math.floor(py + 0.5), texMinY, texMaxY), 0, lastTexelY)
-                        let texel  = texels + cast(u64) texelX * texelBytes + cast(u64) (lastTexelY - texelY) * texelRow
+                        let texelX = Math.clamp(Math.clamp(cast(s32, Math.floor(px + 0.5)), texMinX, texMaxX), 0, lastTexelX)
+                        let texelY = Math.clamp(Math.clamp(cast(s32, Math.floor(py + 0.5)), texMinY, texMaxY), 0, lastTexelY)
+                        let texel  = texels + cast(u64, texelX) * texelBytes + cast(u64, (lastTexelY - texelY)) * texelRow
 
-                        let pixel = rowPixels + cast(u64) x * 4
+                        let pixel = rowPixels + cast(u64, x) * 4
                         if hasAlpha
                         {
                             var src: Color
@@ -1687,15 +1687,15 @@ private impl RenderCpu
 
         for var y = minY; y <= maxY; y += 1
         {
-            let sy         = cast(f32) y + 0.5
+            let sy         = cast(f32, y) + 0.5
             let rowDy0     = sy - edge0Origin.y
             let rowDy1     = sy - edge1Origin.y
             let rowDy2     = sy - edge2Origin.y
-            let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
-            let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
+            let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
+            let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
             for var x = minX; x <= maxX; x += 1
             {
-                let sx = cast(f32) x + 0.5
+                let sx = cast(f32, x) + 0.5
                 let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
                 let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
                 let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
@@ -1729,7 +1729,7 @@ private impl RenderCpu
                     if .stencilMode == .Set do
                         rowStencil[x] = Math.max(rowStencil[x], src.a)
                     else do
-                        rowStencil[x] = cast(u8) ((cast(u32) rowStencil[x] * (255 - cast(u32) src.a)) / 255)
+                        rowStencil[x] = cast(u8, ((cast(u32, rowStencil[x]) * (255 - cast(u32, src.a))) / 255))
                     continue
                 }
 
@@ -1744,7 +1744,7 @@ private impl RenderCpu
                     }
                     else
                     {
-                        src.a = cast(u8) ((cast(u32) src.a * clip) / 255)
+                        src.a = cast(u8, ((cast(u32, src.a) * clip) / 255))
                     }
                 }
 
@@ -1753,12 +1753,12 @@ private impl RenderCpu
                     // The zero-alpha skip mirrors the general blend's coverage early-out.
                     if src.a == 0 do
                         continue
-                    blendAlphaBgra8(rowPixels + cast(u64) x * 4, src)
+                    blendAlphaBgra8(rowPixels + cast(u64, x) * 4, src)
                 }
                 elif fastCopy
                 {
                     // 'Copy' writes transparent sources too, which is the erase operation.
-                    let pixel = rowPixels + cast(u64) x * 4
+                    let pixel = rowPixels + cast(u64, x) * 4
                     pixel[0] = src.b
                     pixel[1] = src.g
                     pixel[2] = src.r
@@ -1803,9 +1803,9 @@ private impl RenderCpu
         // keep triangle order and exclusive row ownership; the final block may be shorter.
         let bandCount = (bounds.rows() - 1) / CpuBandRows + 1
         let renderer  = me
-        parallel for |renderer, batch, bounds| index in cast(u64) bandCount
+        parallel for |renderer, batch, bounds| index in cast(u64, bandCount)
         {
-            let bandY = bounds.minY + cast(s32) index * CpuBandRows
+            let bandY = bounds.minY + cast(s32, index) * CpuBandRows
             let lastY = bandY + Math.min(CpuBandRows - 1, bounds.maxY - bandY)
             renderer.drawTriangleRange(batch, bandY, lastY)
         }
@@ -1834,10 +1834,10 @@ private impl RenderCpu
         batch.clipMaxY = image.height - 1
         if .scissorOn
         {
-            batch.clipMinX = Math.max(batch.clipMinX, cast(s32) Math.ceil(.scissorRect.x))
-            batch.clipMinY = Math.max(batch.clipMinY, cast(s32) Math.ceil(.scissorRect.y))
-            batch.clipMaxX = Math.min(batch.clipMaxX, cast(s32) Math.ceil(.scissorRect.right()) - 1)
-            batch.clipMaxY = Math.min(batch.clipMaxY, cast(s32) Math.ceil(.scissorRect.bottom()) - 1)
+            batch.clipMinX = Math.max(batch.clipMinX, cast(s32, Math.ceil(.scissorRect.x)))
+            batch.clipMinY = Math.max(batch.clipMinY, cast(s32, Math.ceil(.scissorRect.y)))
+            batch.clipMaxX = Math.min(batch.clipMaxX, cast(s32, Math.ceil(.scissorRect.right())) - 1)
+            batch.clipMaxY = Math.min(batch.clipMaxY, cast(s32, Math.ceil(.scissorRect.bottom())) - 1)
         }
 
         batch.stencil = .currentStencil().storage()
@@ -1901,17 +1901,17 @@ private impl RenderCpu
 
         let deviceTopLeft     = batch.transform.transformPoint(topLeft)
         let deviceBottomRight = batch.transform.transformPoint(bottomRight)
-        let dstX              = cast(s32) deviceTopLeft.x
-        let dstY              = cast(s32) deviceTopLeft.y
-        let dstRight          = cast(s32) deviceBottomRight.x
-        let dstBottom         = cast(s32) deviceBottomRight.y
-        if cast(f32) dstX != deviceTopLeft.x or cast(f32) dstY != deviceTopLeft.y or cast(f32) dstRight != deviceBottomRight.x or cast(f32) dstBottom != deviceBottomRight.y do
+        let dstX              = cast(s32, deviceTopLeft.x)
+        let dstY              = cast(s32, deviceTopLeft.y)
+        let dstRight          = cast(s32, deviceBottomRight.x)
+        let dstBottom         = cast(s32, deviceBottomRight.y)
+        if cast(f32, dstX) != deviceTopLeft.x or cast(f32, dstY) != deviceTopLeft.y or cast(f32, dstRight) != deviceBottomRight.x or cast(f32, dstBottom) != deviceBottomRight.y do
             return false
 
-        let srcX      = cast(s32) Math.floor(params.textureRect.x * source.width)
-        let srcY      = cast(s32) Math.floor(params.textureRect.y * source.height)
-        let srcRight  = cast(s32) Math.floor(params.textureRect.z * source.width) + 1
-        let srcBottom = cast(s32) Math.floor(params.textureRect.w * source.height) + 1
+        let srcX      = cast(s32, Math.floor(params.textureRect.x * source.width))
+        let srcY      = cast(s32, Math.floor(params.textureRect.y * source.height))
+        let srcRight  = cast(s32, Math.floor(params.textureRect.z * source.width)) + 1
+        let srcBottom = cast(s32, Math.floor(params.textureRect.w * source.height)) + 1
         let width     = dstRight - dstX
         let height    = dstBottom - dstY
         if width <= 0 or height <= 0 or srcRight - srcX != width or srcBottom - srcY != height do
@@ -1921,11 +1921,11 @@ private impl RenderCpu
         if srcX < 0 or srcY < 0 or srcRight > source.width or srcBottom > source.height do
             return false
 
-        let rowBytes = cast(u64) width * 4
+        let rowBytes = cast(u64, width) * 4
         for row in height
         {
-            let sourceRow = source.pixels.storage() + cast(u64) (source.height - srcY - row - 1) * cast(u64) source.rowStride + cast(u64) srcX * 4
-            let targetRow = target.pixels.storage() + cast(u64) (target.height - dstY - row - 1) * cast(u64) target.rowStride + cast(u64) dstX * 4
+            let sourceRow = source.pixels.storage() + cast(u64, (source.height - srcY - row - 1)) * cast(u64, source.rowStride) + cast(u64, srcX) * 4
+            let targetRow = target.pixels.storage() + cast(u64, (target.height - dstY - row - 1)) * cast(u64, target.rowStride) + cast(u64, dstX) * 4
             Memory.copy(targetRow, sourceRow, rowBytes)
         }
 
@@ -1977,7 +1977,7 @@ private impl RenderCpu
 
         // Both overlap passes only ever reach the pixels the range covers, so the scratch
         // planes are reset over those bounds instead of over the whole target.
-        let pixelCount = cast(u64) image.width * cast(u64) image.height
+        let pixelCount = cast(u64, image.width) * cast(u64, image.height)
         if .overlapAlpha.count != pixelCount do
             .overlapAlpha.resize(pixelCount)
         if .overlapWritten.count != pixelCount do
@@ -2001,10 +2001,10 @@ private impl RenderCpu
             return {0, 0, image.width - 1, image.height - 1}
 
         var result: retval
-        result.minX = Math.clamp(cast(s32) .scissorRect.x, 0, image.width - 1)
-        result.minY = Math.clamp(cast(s32) .scissorRect.y, 0, image.height - 1)
-        result.maxX = Math.clamp(cast(s32) .scissorRect.right() - 1, 0, image.width - 1)
-        result.maxY = Math.clamp(cast(s32) .scissorRect.bottom() - 1, 0, image.height - 1)
+        result.minX = Math.clamp(cast(s32, .scissorRect.x), 0, image.width - 1)
+        result.minY = Math.clamp(cast(s32, .scissorRect.y), 0, image.height - 1)
+        result.maxX = Math.clamp(cast(s32, .scissorRect.right()) - 1, 0, image.width - 1)
+        result.maxY = Math.clamp(cast(s32, .scissorRect.bottom()) - 1, 0, image.height - 1)
         return result
     }
 
@@ -2030,11 +2030,11 @@ private impl RenderCpu
 
         // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
         let pixels = image.pixels.storage()
-        let stride = cast(u64) image.bytesPerPixel
+        let stride = cast(u64, image.bytesPerPixel)
         let zero   = Math.Simd.splat(0'u8)
         for var y = minY; y < maxY; y += 1
         {
-            let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
+            let row    = pixels + cast(u64, ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel))
             var offset = 3'u64
             var x      = minX
             while maxX - x >= 4
@@ -2060,19 +2060,19 @@ private impl RenderCpu
         if not image do
             return
 
-        let minX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
-        let minY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
-        let maxX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
-        let maxY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
+        let minX = .scissorOn ? Math.clamp(cast(s32, .scissorRect.x), 0, image.width) : 0
+        let minY = .scissorOn ? Math.clamp(cast(s32, .scissorRect.y), 0, image.height) : 0
+        let maxX = .scissorOn ? Math.clamp(cast(s32, .scissorRect.right()), 0, image.width) : image.width
+        let maxY = .scissorOn ? Math.clamp(cast(s32, .scissorRect.bottom()), 0, image.height) : image.height
         if minX >= maxX or minY >= maxY do
             return
 
         // The stencil plane is row-contiguous, so the reset runs per row instead of per pixel.
         let stencil    = .currentStencil()
         let stencilBuf = stencil.storage()
-        let runWidth   = cast(u64) (maxX - minX)
+        let runWidth   = cast(u64, (maxX - minX))
         for var y = minY; y < maxY; y += 1 do
-            Memory.clear(stencilBuf + cast(u64) y * cast(u64) image.width + cast(u64) minX, runWidth)
+            Memory.clear(stencilBuf + cast(u64, y) * cast(u64, image.width) + cast(u64, minX), runWidth)
 
         // The masked general write reduces to raw byte stores for the BGRA8 targets every frame
         // clears: all channels under a forced or full mask, or the three color bytes under the
@@ -2090,20 +2090,20 @@ private impl RenderCpu
                 let byteCount = runWidth * 4
                 for var y = minY; y < maxY; y += 1
                 {
-                    let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
+                    let row = pixels + cast(u64, ((image.height - y - 1) * image.rowStride + minX * 4))
                     Memory.clear(row, byteCount)
                 }
 
                 return
             }
 
-            let fill = cast(Math.Simd.U8x16) [color.b, color.g, color.r, color.a,
+            let fill = cast(Math.Simd.U8x16, [color.b, color.g, color.r, color.a,
                                               color.b, color.g, color.r, color.a,
                                               color.b, color.g, color.r, color.a,
-                                              color.b, color.g, color.r, color.a]
+                                              color.b, color.g, color.r, color.a])
             for var y = minY; y < maxY; y += 1
             {
-                let row       = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
+                let row       = pixels + cast(u64, ((image.height - y - 1) * image.rowStride + minX * 4))
                 var offset    = 0'u64
                 let byteCount = runWidth * 4
                 while byteCount - offset >= #sizeof(Math.Simd.U8x16)
@@ -2450,7 +2450,7 @@ impl RenderCpu
         .resetDrawState()
         .contentScale = painter.contentScale()
         for &cmd, idx in painter.commandBuffer do
-            .executeCommand(painter, cmd, cast(u64) idx)
+            .executeCommand(painter, cmd, cast(u64, idx))
     }
 
     // Binds an off-screen target for following direct operations or painter submission.
@@ -2513,9 +2513,9 @@ impl RenderCpu
     {
         Swag.assert(width > 0 and height > 0, "createRenderTarget needs positive width and height")
 
-        let targetHandle = cast(RenderTargetHandle) .nextHandle
+        let targetHandle = cast(RenderTargetHandle, .nextHandle)
         .nextHandle += 1
-        let textureHandle = cast(TextureHandle) .nextHandle
+        let textureHandle = cast(TextureHandle, .nextHandle)
         .nextHandle += 1
 
         var result: retval
@@ -2559,7 +2559,7 @@ impl RenderCpu
         view.convertToRgb(&image)
 
         var result: retval
-        result.attach(cast(TextureHandle) .nextHandle, view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
+        result.attach(cast(TextureHandle, .nextHandle), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .nextHandle += 1
 
         var storage: CpuTexture
@@ -2586,7 +2586,7 @@ impl RenderCpu
             return {}
 
         var result: retval
-        result.attach(cast(TextureHandle) .nextHandle, image.pixelFormat, image.width, image.height)
+        result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height)
         .nextHandle += 1
 
         var storage: CpuTexture
@@ -2676,8 +2676,8 @@ impl RenderCpu
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Swag.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
-        let w2 = Math.roundUpToPowerOf2(cast(u32) width)
-        let h2 = Math.roundUpToPowerOf2(cast(u32) height)
+        let w2 = Math.roundUpToPowerOf2(cast(u32, width))
+        let h2 = Math.roundUpToPowerOf2(cast(u32, height))
 
         // Prefer the same-size bucket before consuming a larger target. Besides retaining
         // the expensive large allocations for draws that need them, this mirrors RenderOgl
@@ -2703,7 +2703,7 @@ impl RenderCpu
         }
 
         let result = Memory.new'RenderTarget()
-        result[] = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
+        result[] = .createRenderTargetImpl(cast(s32, w2), cast(s32, h2))
         return result
     }
 

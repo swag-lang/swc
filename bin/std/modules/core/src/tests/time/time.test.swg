@@ -41,7 +41,7 @@ using Swag
 
     for i in 12
     {
-        let month = cast(u16) i + 1
+        let month = cast(u16, i) + 1
         Swag.assert(Time.daysInMonth(2023, month) == days365[i])
         Swag.assert(Time.daysInMonth(2024, month) == days366[i])
     }
@@ -107,7 +107,7 @@ using Swag
 {
     for monthIdx in 12
     {
-        let month = cast(u16) monthIdx + 1
+        let month = cast(u16, monthIdx) + 1
         let day   = Time.daysInMonth(2024, month)
         let date  = Time.ticksToDate(Time.dateToTicks(2024, month, day))
         Swag.assert(date.year == 2024)

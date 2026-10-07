@@ -31,7 +31,7 @@ func unaryBangBang(a: s32)->bool
     Swag.assert(unaryBangInt(0))
     Swag.assert(not unaryBangInt(1))
     Swag.assert(unaryBangPointer(null))
-    Swag.assert(not unaryBangPointer(cast(*void) 0x1000'u64))
+    Swag.assert(not unaryBangPointer(cast(*void, 0x1000'u64)))
     Swag.assert(not unaryBangBang(0))
     Swag.assert(unaryBangBang(12))
 }

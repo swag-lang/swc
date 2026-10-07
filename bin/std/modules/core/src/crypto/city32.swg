@@ -15,7 +15,7 @@ impl City32
 {
     const C1 = 0xCC9E2D51
     const C2 = 0x1B873593
-    func fetch(buf: const [*] u8) => Math.littleEndianToNative((cast(const *u32) buf)[])
+    func fetch(buf: const [*] u8) => Math.littleEndianToNative(cast(const *u32, buf)[])
 
     #[Swag.Safety(.Overflow, false)]
     mtd len0to4(data: const [..] u8)
@@ -28,14 +28,14 @@ impl City32
             c ^= b
         }
 
-        .currentValue = murmur3(murmur3(b, murmur3(cast(u32) data.count, c)))
+        .currentValue = murmur3(murmur3(b, murmur3(cast(u32, data.count), c)))
     }
 
     #[Swag.Safety(.Overflow, false)]
     mtd len5to12(data: const [..] u8)
     {
         let s   = data.buffer
-        let len = cast(u32) data.count
+        let len = cast(u32, data.count)
         var a   = len + .currentValue
         var b   = len * 5
         var c   = 9'u32
@@ -50,7 +50,7 @@ impl City32
     mtd len13to24(data: const [..] u8)
     {
         let s   = data.buffer
-        let len = cast(u32) data.count
+        let len = cast(u32, data.count)
         let a   = fetch(s - 4 + (len >> 1))
         let b   = fetch(s + 4)
         let c   = fetch(s + len - 8)
@@ -71,7 +71,7 @@ impl City32
     #[Swag.Safety(.Overflow, false)]
     mtd update(data: const [..] u8)
     {
-        let len = cast(u32) data.count
+        let len = cast(u32, data.count)
 
         switch
         {

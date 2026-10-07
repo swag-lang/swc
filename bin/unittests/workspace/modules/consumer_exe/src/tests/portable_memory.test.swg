@@ -30,7 +30,7 @@ func prepareMemoryFields(fields: *MemoryFields)
 func extendMemoryRow(row: [*] u8, width: u32, padding: u64)
 {
     depMemorySet(row - padding, row[0], padding)
-    depMemorySet(row + cast(u64) width, row[cast(u64) width - 1], padding)
+    depMemorySet(row + cast(u64, width), row[cast(u64, width) - 1], padding)
 }
 
 func extendMemoryPlane(base: [*] u8, width, height: u32)
@@ -41,7 +41,7 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     for height
     {
         depMemorySet(row - Padding, row[0], Padding)
-        depMemorySet(row + cast(u64) width, row[cast(u64) width - 1], Padding)
+        depMemorySet(row + cast(u64, width), row[cast(u64, width) - 1], Padding)
         row += Stride
     }
 }

@@ -37,7 +37,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null and result.retire != null)
 
-    let view = cast #assume (*TextViewer) result.view
+    let view = assume cast (*TextViewer, result.view)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishTextStatistics(&host, view)
@@ -88,7 +88,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let view = cast #assume (*TextViewer) result.view
+    let view = assume cast (*TextViewer, result.view)
     finishTextStatistics(&host, view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None
@@ -110,12 +110,12 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     var source: String
     for 40_000 do
         source += "Plain text stays responsive while changing its encoding.\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
     var session = openTestViewer(textViewerPlugin(), &host.root, fileName, waitForText: false)
-    let view    = cast #assume (*TextViewer) session.view!
+    let view    = assume cast (*TextViewer, session.view)
     view.resize(640, 360)
     view.applyLayout()
     Swag.assert(view.read.started and view.editor.text().isEmpty())
@@ -162,7 +162,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     host.setup(640, 360)
     defer host.shutdown()
     var session = openTestViewer(textViewerPlugin(), &host.root, fileName)
-    let view    = cast #assume (*TextViewer) session.view!
+    let view    = assume cast (*TextViewer, session.view)
     Swag.assert(view.revealOffset(15, "needle"))
     Swag.assert(not view.read.started and not view.pendingSeek)
     Swag.assert(view.editor.selectedText() == "needle")

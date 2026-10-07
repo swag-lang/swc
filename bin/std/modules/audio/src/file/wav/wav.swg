@@ -122,7 +122,7 @@ private struct Format
     extra:         Array'u8     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
 }
 
-private func readU16(bytes: const [..] u8, offset: u64)->u32 => cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8)
+private func readU16(bytes: const [..] u8, offset: u64)->u32 => cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8)
 private func readU32(bytes: const [..] u8, offset: u64)->u32 => readU16(bytes, offset) | (readU16(bytes, offset + 2) << 16)
 
 private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
@@ -162,13 +162,13 @@ private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 // Returns the classic format tag an extensible subformat stands for.
 private func subformatTag(subformat: const [..] u8)->u32 fail
 {
-    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatPcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatPcm) do
         return WAVE_FORMAT_PCM
-    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatIeeeFloat) do
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatIeeeFloat) do
         return WAVE_FORMAT_IEEE_FLOAT
-    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatAdpcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatAdpcm) do
         return WAVE_FORMAT_ADPCM
-    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatImaAdpcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatImaAdpcm) do
         return WAVE_FORMAT_IMA_ADPCM
     fail UnsupportedFormatError{"unsupported wav format"}
 }
@@ -207,7 +207,7 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     var classicTag = tag
     if size >= FormatExtensibleSize
     {
-        result.validBits     = cast(u16) readU16(bytes, 18)
+        result.validBits     = cast(u16, readU16(bytes, 18))
         result.speakerMask   = readU32(bytes, 20)
         result.hasExtensible = true
         if tag == WAVE_FORMAT_EXTENSIBLE
@@ -344,11 +344,11 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
     var at    = 0'u64
     while at < layout.dataSize
     {
-        let bytes  = Math.min(cast(u64) format.blockAlign, layout.dataSize - at)
+        let bytes  = Math.min(cast(u64, format.blockAlign), layout.dataSize - at)
         let frames = Adpcm.blockFrameCount(format.encoding, format.channels, bytes)
         if not frames do
             break
-        packets.add({layout.dataOffset + at, cast(u32) bytes, cast(u32) frames})
+        packets.add({layout.dataOffset + at, cast(u32, bytes), cast(u32, frames)})
         total += frames
         at    += bytes
     }
@@ -402,7 +402,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     result.dataOffset      = layout.dataOffset
     result.dataSize        = layout.dataSize
     result.frameCount      = layout.dataSize / (format.channels * bytesPerSample)
-    result.durationSeconds = cast(f32) (result.frameCount / cast(f64) format.sampleRate)
+    result.durationSeconds = cast(f32, (result.frameCount / cast(f64, format.sampleRate)))
     if preloadData
     {
         result.data.resize(layout.dataSize)

@@ -78,7 +78,7 @@ impl MainWindow
     }
 
     // Returns an application glyph at the toolbar size.
-    mtd icon(kind: PrismIcon)->Icon => .icons.icon(cast(s32) kind, 18, .theme().res.atlasScale)
+    mtd icon(kind: PrismIcon)->Icon => .icons.icon(cast(s32, kind), 18, .theme().res.atlasScale)
 
     // Creates the caption's appearance action, which persists the palette and language it applies.
     mtd createAppearanceButton()
@@ -87,7 +87,7 @@ impl MainWindow
         {
             .sigThemeChanged += func|window = me|(button)
             {
-                window.themeIndex = cast(u32) button.appearanceTheme
+                window.themeIndex = cast(u32, button.appearanceTheme)
                 catch g_App.saveState()
             }
 
@@ -156,7 +156,7 @@ impl MainWindow
             .sigChanged += func|window = me|(combo, index)
             {
                 discard combo
-                window.openExample(cast(ExampleKind) index)
+                window.openExample(cast(ExampleKind, index))
             }
         }
     }
@@ -419,7 +419,7 @@ impl MainWindow
         .selectedExample = kind
         .editor.setText(exampleSource(kind))
         .panels[0].selectViewer(exampleViewer(kind))
-        .commandBar.exampleCombo.setSelectedIndex(cast(u32) kind, notify: false)
+        .commandBar.exampleCombo.setSelectedIndex(cast(u32, kind), notify: false)
         .compile()
     }
 
@@ -485,8 +485,8 @@ impl MainWindow
     // Applies the persisted standard application palette.
     mtd applyTheme()
     {
-        .themeIndex = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
-        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme) .themeIndex)
+        .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
+        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 
     mtd showAbout()

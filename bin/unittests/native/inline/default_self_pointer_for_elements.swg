@@ -18,7 +18,7 @@ impl InlineDefaultSelfCells
 
         #static if ptr
         {
-            #inject(stmt, item = cast(*InlineDefaultSelfCell) &(me.values[0]), index = 0'u64)
+            #inject(stmt, item = cast(*InlineDefaultSelfCell, &(me.values[0])), index = 0'u64)
         }
         else
         {

@@ -44,7 +44,7 @@ impl FrameTiming
 
         // Delta time
         let diff = newTick - .previousTick
-        .deltaSeconds = cast(f32) (cast(f64) diff / monotonicFrequency())
+        .deltaSeconds = cast(f32, (cast(f64, diff) / monotonicFrequency()))
         .deltaSeconds = Math.clamp(.deltaSeconds, .minimumDeltaSeconds, .maximumDeltaSeconds)
 
         // Setup for next frame

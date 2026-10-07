@@ -24,7 +24,7 @@ impl PaintImage
         if not (evt is PaintEvent) do
             return false
 
-        let pt    = cast(*PaintImage) wnd.surface!.userData!
+        let pt    = cast(*PaintImage, wnd.surface!.userData!)
         let paint = pt.paint
         if not paint do
             return false

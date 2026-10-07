@@ -91,7 +91,7 @@ impl LinePathList
     // normalized copy the fill cache may hold beside them.
     mtd const memoryUsage()->u64
     {
-        var result = cast(u64) #sizeof(LinePathList)
+        var result = cast(u64, #sizeof(LinePathList))
         for path in .paths do
             result += path.memoryUsage()
         result += .fillCacheStamps.capacity * #sizeof(u64)
@@ -284,7 +284,7 @@ impl LinePathList
             }
 
             var res: Clipper.ClipperPaths
-            off.execute(&res, cast(f64) (value * ClipperScaleCoords))
+            off.execute(&res, cast(f64, (value * ClipperScaleCoords)))
 
             for path in res
             {

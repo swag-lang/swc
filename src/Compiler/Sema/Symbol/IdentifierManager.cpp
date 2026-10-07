@@ -125,6 +125,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeBindErr, .str = "__bindErr"},
         {.name = PredefinedName::RuntimeClearErr, .str = "__clearErr"},
         {.name = PredefinedName::RuntimeFailedExpect, .str = "__failedExpect"},
+        {.name = PredefinedName::RuntimeFailedCast, .str = "__failedCast"},
         {.name = PredefinedName::RuntimePanic, .str = "Swag.panic"},
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "Swag.safetyPanic"},
         {.name = PredefinedName::RuntimeAs, .str = "__borrowAnyValue"},
@@ -165,6 +166,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::BindErr)]                = predefined(PredefinedName::RuntimeBindErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ClearErr)]               = predefined(PredefinedName::RuntimeClearErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedExpect)]           = predefined(PredefinedName::RuntimeFailedExpect);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedCast)]             = predefined(PredefinedName::RuntimeFailedCast);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]                  = predefined(PredefinedName::RuntimePanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]            = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]                     = predefined(PredefinedName::RuntimeAs);

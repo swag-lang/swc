@@ -39,10 +39,10 @@ func mul64(a, b, c, flag: u64)->u64 => flag != 0 ? a * b : a * c
                     Swag.assert(or64(a, b, c, flag) == (a | selected))
                     Swag.assert(mul64(a, b, c, flag) == a * selected)
 
-                    let a32        = cast(u32) a
-                    let b32        = cast(u32) b
-                    let c32        = cast(u32) c
-                    let flag32     = cast(u32) flag
+                    let a32        = cast(u32, a)
+                    let b32        = cast(u32, b)
+                    let c32        = cast(u32, c)
+                    let flag32     = cast(u32, flag)
                     let selected32 = flag32 != 0 ? b32 : c32
                     Swag.assert(add32(a32, b32, c32, flag32) == a32 + selected32)
                     Swag.assert(sub32(a32, b32, c32, flag32) == a32 - selected32)

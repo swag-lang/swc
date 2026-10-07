@@ -52,18 +52,18 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
     if bytes[0] != 0xFF or (bytes[1] & 0xE0) != 0xE0 do
         fail InvalidFormatError{"MP3 frame has no sync word"}
 
-    let version = cast(u32) (bytes[1] >> 3) & 3
-    let layer   = cast(u32) (bytes[1] >> 1) & 3
+    let version = cast(u32, (bytes[1] >> 3)) & 3
+    let layer   = cast(u32, (bytes[1] >> 1)) & 3
     if version == 1 do
         fail InvalidFormatError{"MP3 frame states the reserved version"}
     if layer != 1 do
         fail UnsupportedFormatError{"audio decoder reads MPEG Layer III only"}
 
-    let rate = cast(u32) (bytes[2] >> 2) & 3
+    let rate = cast(u32, (bytes[2] >> 2)) & 3
     if rate == 3 do
         fail InvalidFormatError{"MP3 frame states the reserved sampling frequency"}
 
-    let bitrateIndex = cast(u32) (bytes[2] >> 4) & 15
+    let bitrateIndex = cast(u32, (bytes[2] >> 4)) & 15
     if not bitrateIndex do
         fail UnsupportedFormatError{"audio decoder does not read free-format MP3"}
     if bitrateIndex == 15 do
@@ -76,20 +76,20 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
 
     // Version 2.5 halves version 2, which halves version 1.
     let versionRow = result.isMpeg1 ? 2'u64 : (result.isMpeg25 ? 0'u64 : 1'u64)
-    result.sampleRate = SampleRates[versionRow, cast(u64) rate]
+    result.sampleRate = SampleRates[versionRow, cast(u64, rate)]
 
     // The band tables are indexed by one widened number covering all three versions.
     result.rateIndex = result.isMpeg1 ? 5 + rate : (result.isMpeg25 ? (rate == 2 ? 1 : 0) : 2 + rate)
 
-    result.mode          = cast(u32) (bytes[3] >> 6) & 3
-    result.modeExtension = cast(u32) (bytes[3] >> 4) & 3
+    result.mode          = cast(u32, (bytes[3] >> 6)) & 3
+    result.modeExtension = cast(u32, (bytes[3] >> 4)) & 3
     result.channels      = result.mode == 3 ? 1 : 2
     result.granules      = result.isMpeg1 ? 2 : 1
     result.frameSamples  = result.isMpeg1 ? 1152 : 576
 
-    let kbits   = result.isMpeg1 ? BitRatesMpeg1[cast(u64) bitrateIndex] : BitRatesMpeg2[cast(u64) bitrateIndex]
-    let padding = cast(u64) (bytes[2] >> 1) & 1
-    result.frameBytes = cast(u64) (result.frameSamples / 8) * cast(u64) kbits * 1000 / cast(u64) result.sampleRate + padding
+    let kbits   = result.isMpeg1 ? BitRatesMpeg1[cast(u64, bitrateIndex)] : BitRatesMpeg2[cast(u64, bitrateIndex)]
+    let padding = cast(u64, (bytes[2] >> 1)) & 1
+    result.frameBytes = cast(u64, (result.frameSamples / 8)) * cast(u64, kbits) * 1000 / cast(u64, result.sampleRate) + padding
     if result.frameBytes < 4 do
         fail InvalidFormatError{"MP3 frame states a size no frame can have"}
 
@@ -124,7 +124,7 @@ impl BitReader
             if .bitPos < .bitEnd
             {
                 let byte = .data![.bitPos >> 3]
-                result |= cast(u32) (byte >> (7 - cast(u32) (.bitPos & 7))) & 1
+                result |= cast(u32, (byte >> (7 - cast(u32, (.bitPos & 7))))) & 1
             }
 
             .bitPos += 1
@@ -162,15 +162,15 @@ impl GranuleInfo
     // The width of one scalefactor band of this granule, in spectral lines.
     mtd const bandWidth(rateIndex: u32, band: u64)->u32
     {
-        let rate = cast(u64) rateIndex
+        let rate = cast(u64, rateIndex)
         if .bandKind == 1 do
-            return band < 40 ? cast(u32) ScfBandShort[rate, band] : 0
+            return band < 40 ? cast(u32, ScfBandShort[rate, band]) : 0
         if .bandKind == 2 do
-            return band < 40 ? cast(u32) ScfBandMixed[rate, band] : 0
-        return band < 23 ? cast(u32) ScfBandLong[rate, band] : 0
+            return band < 40 ? cast(u32, ScfBandMixed[rate, band]) : 0
+        return band < 23 ? cast(u32, ScfBandLong[rate, band]) : 0
     }
 
-    mtd const bandCount()->u64 => cast(u64) .longBands + cast(u64) .shortBands
+    mtd const bandCount()->u64 => cast(u64, .longBands) + cast(u64, .shortBands)
 }
 
 // Reads the side information of one frame, clause 2.4.1.7.
@@ -184,13 +184,13 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
     var scfsi         = 0'u32
     if header.isMpeg1
     {
-        mainDataBegin = cast(u64) reader.read(9)
+        mainDataBegin = cast(u64, reader.read(9))
         discard reader.read(header.channels == 1 ? 5 : 3)
         scfsi = reader.read(4 * header.channels)
     }
     else
     {
-        mainDataBegin = cast(u64) reader.read(8)
+        mainDataBegin = cast(u64, reader.read(8))
         discard reader.read(header.channels == 1 ? 1 : 2)
     }
 
@@ -198,7 +198,7 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
     {
         for channel in header.channels
         {
-            let info = &granules[][cast(u64) granule, cast(u64) channel]
+            let info = &granules[][cast(u64, granule), cast(u64, channel)]
             info.part23Length = reader.read(12)
             info.bigValues    = reader.read(9)
             if info.bigValues > 288 do
@@ -304,8 +304,8 @@ impl Codec
     mtd const power43(value: u32)->f32
     {
         if value < 16 do
-            return Pow43Small[cast(u64) value]
-        return cast(f32) Math.pow(cast(f64) value, 4.0'f64 / 3.0'f64)
+            return Pow43Small[cast(u64, value)]
+        return cast(f32, Math.pow(cast(f64, value), 4.0'f64 / 3.0'f64))
     }
 
     // Reads the scalefactors of one granule and folds them into one gain per band.
@@ -321,11 +321,11 @@ impl Codec
 
         // Long blocks, mixed blocks, and short blocks each partition their scalefactors
         // differently, and the row that says how is the same for both versions.
-        let partitionRow = cast(u64) (info.shortBands != 0 ? 1'u32 : 0'u32) + cast(u64) (info.longBands == 0 ? 1'u32 : 0'u32)
+        let partitionRow = cast(u64, (info.shortBands != 0 ? 1'u32 : 0'u32)) + cast(u64, (info.longBands == 0 ? 1'u32 : 0'u32))
         var partitionAt  = 0'u64
         if header.isMpeg1
         {
-            let packed = cast(u32) ScfCompress[cast(u64) info.scalefacCompress]
+            let packed = cast(u32, ScfCompress[cast(u64, info.scalefacCompress)])
             sizes[0] = packed >> 2
             sizes[1] = packed >> 2
             sizes[2] = packed & 3
@@ -336,7 +336,7 @@ impl Codec
             // A low sampling frequency granule states four lengths as one number, and the
             // partition they apply to comes out of the same division, clause 2.4.3.2.
             let intensity = header.isIntensity() and channel == 1
-            var remaining = cast(s32) (info.scalefacCompress >> (intensity ? 1'u32 : 0'u32))
+            var remaining = cast(s32, (info.scalefacCompress >> (intensity ? 1'u32 : 0'u32)))
             var k         = intensity ? 12'u64 : 0'u64
             for
             {
@@ -344,8 +344,8 @@ impl Codec
                 var index   = 3's32
                 while index >= 0
                 {
-                    let modulus = cast(s32) LsfModulus[k + cast(u64) index]
-                    sizes[cast(u64) index] = cast(u32) (remaining / product % modulus)
+                    let modulus = cast(s32, LsfModulus[k + cast(u64, index)])
+                    sizes[cast(u64, index)] = cast(u32, (remaining / product % modulus))
                     product *= modulus
                     index   -= 1
                 }
@@ -360,14 +360,14 @@ impl Codec
         }
 
         for index in 4'u64 do
-            counts[index] = cast(u32) LsfPartitions[partitionRow, partitionAt + index]
+            counts[index] = cast(u32, LsfPartitions[partitionRow, partitionAt + index])
 
         var values: [40] u8
         var at    = 0'u64
         var share = info.scfsi
         for partition in 4'u64
         {
-            let count = cast(u64) counts[partition]
+            let count = cast(u64, counts[partition])
             if not count do
                 break
 
@@ -375,7 +375,7 @@ impl Codec
             {
                 // This partition keeps the values the previous granule read.
                 for index in count where at + index < 40 do
-                    values[at + index] = .scalefac[cast(u64) channel, at + index]
+                    values[at + index] = .scalefac[cast(u64, channel), at + index]
             }
             else
             {
@@ -384,21 +384,21 @@ impl Codec
                 for index in count where at + index < 40
                 {
                     let value = bits ? reader.read(bits) : 0'u32
-                    values[at + index] = cast(u8) value
+                    values[at + index] = cast(u8, value)
 
                     // A low sampling frequency granule marks an unusable intensity position by
                     // saturating the field.
                     if not header.isMpeg1 and bits and value == full do
-                        .intensityPos[cast(u64) channel, at + index] = 255
+                        .intensityPos[cast(u64, channel), at + index] = 255
                     else do
-                        .intensityPos[cast(u64) channel, at + index] = cast(u8) value
+                        .intensityPos[cast(u64, channel), at + index] = cast(u8, value)
                 }
             }
 
             if header.isMpeg1
             {
                 for index in count where at + index < 40 do
-                    .intensityPos[cast(u64) channel, at + index] = values[at + index]
+                    .intensityPos[cast(u64, channel), at + index] = values[at + index]
             }
 
             at    += count
@@ -412,39 +412,39 @@ impl Codec
         }
 
         for index in 40'u64 do
-            .scalefac[cast(u64) channel, index] = values[index]
+            .scalefac[cast(u64, channel), index] = values[index]
 
         // Subblock gain lowers a whole short window; preemphasis raises the top long bands.
         var scaled: [40] s32
         for index in 40'u64 do
-            scaled[index] = cast(s32) values[index]
+            scaled[index] = cast(s32, values[index])
         if info.shortBands
         {
-            let up    = 3 - cast(s32) shift
+            let up    = 3 - cast(s32, shift)
             var index = 0'u64
-            while index < cast(u64) info.shortBands
+            while index < cast(u64, info.shortBands)
             {
-                for window in 3'u64 where cast(u64) info.longBands + index + window < 40 do
-                    scaled[cast(u64) info.longBands + index + window] += cast(s32) info.subblockGain[window] << up
+                for window in 3'u64 where cast(u64, info.longBands) + index + window < 40 do
+                    scaled[cast(u64, info.longBands) + index + window] += cast(s32, info.subblockGain[window]) << up
                 index += 3
             }
         }
         elif info.preflag
         {
             for index in 10'u64 where 11 + index < 40 do
-                scaled[11 + index] += cast(s32) Preemphasis[index]
+                scaled[11 + index] += cast(s32, Preemphasis[index])
         }
 
         // Mid/side scales both channels down by the square root of two, which the intensity path
         // takes back for the bands it owns.
-        var exponent = cast(s32) info.globalGain - 210
+        var exponent = cast(s32, info.globalGain) - 210
         if header.isMidSide() do
             exponent -= 2
 
         for index in 40'u64
         {
-            let power = cast(f64) (exponent - (scaled[index] << shift)) / 4.0'f64
-            .bandGain[cast(u64) channel, index] = cast(f32) Math.pow(2.0'f64, power)
+            let power = cast(f64, (exponent - (scaled[index] << shift))) / 4.0'f64
+            .bandGain[cast(u64, channel), index] = cast(f32, Math.pow(2.0'f64, power))
         }
     }
 
@@ -455,13 +455,13 @@ impl Codec
         var node = 0's32
         for 32'u32
         {
-            let slot = cast(u64) (node * 2) + cast(u64) reader.read(1)
+            let slot = cast(u64, (node * 2)) + cast(u64, reader.read(1))
             if slot >= tree.count do
                 return -1
             let next = tree[slot]
             if next < 0 do
-                return cast(s32) (-next - 1)
-            node = cast(s32) next
+                return cast(s32, (-next - 1))
+            node = cast(s32, next)
         }
 
         return -1
@@ -470,7 +470,7 @@ impl Codec
     // The decoding tree of one `table_select` value.
     mtd const codeTree(select: u32)->const [..] s16
     {
-        switch cast(u32) HuffCodeTable[cast(u64) select]
+        switch cast(u32, HuffCodeTable[cast(u64, select)])
         {
         case 1:  return Huff1Tree
         case 2:  return Huff2Tree
@@ -495,7 +495,7 @@ impl Codec
     // How many values one axis of that table holds, which is what splits a symbol into its pair.
     mtd const codeWidth(select: u32)->u32
     {
-        switch cast(u32) HuffCodeTable[cast(u64) select]
+        switch cast(u32, HuffCodeTable[cast(u64, select)])
         {
         case 1:              return 2
         case 2, 3:           return 3
@@ -515,7 +515,7 @@ impl Codec
     // multiplies it, and the walk does not restart between the two regions.
     mtd decodeSpectrum(header: const *FrameHeader, info: const *GranuleInfo, reader: *BitReader, channel: u32, limit: u64)
     {
-        let lines = &.lines[cast(u64) channel]
+        let lines = &.lines[cast(u64, channel)]
         for index in 576'u64 do
             lines[][index] = 0
 
@@ -523,7 +523,7 @@ impl Codec
         var band      = 0'u64
         var pairsLeft = 0'u64     // Pairs the current band still holds.
         var gain      = 0'f32
-        var big       = cast(u64) info.bigValues
+        var big       = cast(u64, info.bigValues)
         var region    = 0'u64
         var ended     = false
 
@@ -533,11 +533,11 @@ impl Codec
 
             // Table zero codes nothing at all: its region is a run of zero pairs that occupies no
             // bit. Reading one anyway moves the bit position and loses the rest of the granule.
-            let empty  = HuffCodeTable[cast(u64) select] == 0
+            let empty  = HuffCodeTable[cast(u64, select)] == 0
             let tree   = .codeTree(select)
             let axis   = .codeWidth(select)
-            let escape = cast(u32) HuffLinbits[cast(u64) select]
-            var spans  = cast(s32) info.regionBands[region] + 1
+            let escape = cast(u32, HuffLinbits[cast(u64, select)])
+            var spans  = cast(s32, info.regionBands[region]) + 1
             region += 1
 
             while big and spans > 0
@@ -549,11 +549,11 @@ impl Codec
                     break
                 }
 
-                gain  = .bandGain[cast(u64) channel, band]
+                gain  = .bandGain[cast(u64, channel), band]
                 band  += 1
                 spans -= 1
 
-                pairsLeft = cast(u64) width / 2
+                pairsLeft = cast(u64, width) / 2
                 var take = Math.min(big, pairsLeft)
                 big       -= take
                 pairsLeft -= take
@@ -577,7 +577,7 @@ impl Codec
                     if symbol < 0 or reader.bitPos > limit do
                         return
 
-                    let pair = cast(u32) symbol
+                    let pair = cast(u32, symbol)
                     for component in 2'u32
                     {
                         var value = component == 0 ? pair / axis : pair % axis
@@ -622,9 +622,9 @@ impl Codec
                         break
                     }
 
-                    gain      = .bandGain[cast(u64) channel, band]
+                    gain      = .bandGain[cast(u64, channel), band]
                     band      += 1
-                    pairsLeft = cast(u64) width / 2
+                    pairsLeft = cast(u64, width) / 2
                     if not pairsLeft do
                         continue
                 }
@@ -633,7 +633,7 @@ impl Codec
                 for component in 2'u32
                 {
                     var sample = 0'f32
-                    if (cast(u32) symbol & (8 >> (half * 2 + component))) != 0
+                    if (cast(u32, symbol) & (8 >> (half * 2 + component))) != 0
                     {
                         sample = gain
                         if reader.read(1) != 0 do
@@ -663,7 +663,7 @@ impl Codec
         let right    = &.lines[1]
         let maxPos   = header.isMpeg1 ? 7'u32 : 64'u32
         let midSide  = header.isMidSide()
-        let takeBack = midSide ? cast(f32) Math.sqrt(2.0'f64) : 1.0'f32
+        let takeBack = midSide ? cast(f32, Math.sqrt(2.0'f64)) : 1.0'f32
 
         // The intensity region starts where the right channel stopped carrying anything.
         var topBand: [3] s32 = [-1, -1, -1]
@@ -672,7 +672,7 @@ impl Codec
             var line = 0'u64
             for band in info.bandCount()
             {
-                let width = cast(u64) info.bandWidth(header.rateIndex, band)
+                let width = cast(u64, info.bandWidth(header.rateIndex, band))
                 if not width do
                     break
                 var index = 0'u64
@@ -680,7 +680,7 @@ impl Codec
                 {
                     if line + index < 576 and right[][line + index] != 0
                     {
-                        topBand[band % 3] = cast(s32) band
+                        topBand[band % 3] = cast(s32, band)
                         break
                     }
 
@@ -707,11 +707,11 @@ impl Codec
                 if count < blocks do
                     break
                 let top  = count - blocks + index
-                let prev = cast(s64) top - cast(s64) blocks
+                let prev = cast(s64, top) - cast(s64, blocks)
                 if top >= 40 do
                     continue
-                if prev >= 0 and topBand[index] < cast(s32) prev do
-                    .intensityPos[1, top] = .intensityPos[1, cast(u64) prev]
+                if prev >= 0 and topBand[index] < cast(s32, prev) do
+                    .intensityPos[1, top] = .intensityPos[1, cast(u64, prev)]
                 else do
                     .intensityPos[1, top] = neutral
             }
@@ -720,23 +720,23 @@ impl Codec
         var line = 0'u64
         for band in info.bandCount()
         {
-            let width = cast(u64) info.bandWidth(header.rateIndex, band)
+            let width = cast(u64, info.bandWidth(header.rateIndex, band))
             if not width do
                 break
 
-            let position = cast(u32) .intensityPos[1, band]
-            if header.isIntensity() and cast(s32) band > topBand[band % 3] and position < maxPos
+            let position = cast(u32, .intensityPos[1, band])
+            if header.isIntensity() and cast(s32, band) > topBand[band % 3] and position < maxPos
             {
                 var kl = 1.0'f32
                 var kr = 1.0'f32
                 if header.isMpeg1
                 {
-                    kl = Pan[cast(u64) position, 0]
-                    kr = Pan[cast(u64) position, 1]
+                    kl = Pan[cast(u64, position), 0]
+                    kr = Pan[cast(u64, position), 1]
                 }
                 else
                 {
-                    kr = cast(f32) Math.pow(2.0'f64, -cast(f64) ((position + 1) >> 1 << lsfShift) / 4.0'f64)
+                    kr = cast(f32, Math.pow(2.0'f64, -cast(f64, ((position + 1) >> 1 << lsfShift)) / 4.0'f64))
                     if (position & 1) != 0
                     {
                         kl = kr
@@ -769,14 +769,14 @@ impl Codec
     // Turns the spectral lines of one granule of one channel into 576 samples.
     mtd synthesizeChannel(header: const *FrameHeader, info: const *GranuleInfo, channel, granule: u32)
     {
-        let lines = &.lines[cast(u64) channel]
+        let lines = &.lines[cast(u64, channel)]
 
         // A short block interleaves its windows, and a mixed block does so past its long bands.
         if info.blockType == 2
         {
             var firstLine = 0'u32
             var firstBand = 0'u64
-            for band in cast(u64) info.longBands
+            for band in cast(u64, info.longBands)
             {
                 firstLine += info.bandWidth(header.rateIndex, band)
                 firstBand += 1
@@ -784,8 +784,8 @@ impl Codec
 
             var widths: [40] u8
             for band in 40'u64 do
-                widths[band] = cast(u8) info.bandWidth(header.rateIndex, band)
-            reorderShortBlocks(lines, widths, cast(u32) firstBand, firstLine)
+                widths[band] = cast(u8, info.bandWidth(header.rateIndex, band))
+            reorderShortBlocks(lines, widths, cast(u32, firstBand), firstLine)
         }
 
         // Only long blocks were aliased. A mixed block aliased its long part alone.
@@ -803,13 +803,13 @@ impl Codec
         for subband in 32'u32
         {
             let kind = subband < longSubbands ? (info.blockType == 2 ? 0'u32 : info.blockType) : 2'u32
-            inverseTransform(lines, &.state[cast(u64) channel].overlap, subband, kind)
+            inverseTransform(lines, &.state[cast(u64, channel)].overlap, subband, kind)
         }
 
         invertFrequencies(lines)
 
-        let base = cast(u64) granule * 576
-        synthesizeGranule(&.state[cast(u64) channel], lines, &.output[cast(u64) channel, base], 1)
+        let base = cast(u64, granule) * 576
+        synthesizeGranule(&.state[cast(u64, channel)], lines, &.output[cast(u64, channel), base], 1)
     }
 
     // Restores the state a decode starts from.
@@ -818,8 +818,8 @@ impl Codec
         for channel in 2'u64 do
             .state[channel].reset()
         .reservoir.clear()
-        Memory.set(cast(*void) &.scalefac[0, 0], 0, 2 * 40)
-        Memory.set(cast(*void) &.intensityPos[0, 0], 0, 2 * 40)
+        Memory.set(cast(*void, &.scalefac[0, 0]), 0, 2 * 40)
+        Memory.set(cast(*void, &.intensityPos[0, 0]), 0, 2 * 40)
         .ready = false
     }
 
@@ -864,21 +864,21 @@ impl Codec
             {
                 for channel in header.channels
                 {
-                    let info  = &granules[cast(u64) granule, cast(u64) channel]
+                    let info  = &granules[cast(u64, granule), cast(u64, channel)]
                     let start = reader.bitPos
                     .readScalefactors(&header, info, &reader, channel)
-                    .decodeSpectrum(&header, info, &reader, channel, start + cast(u64) info.part23Length)
-                    reader.bitPos = start + cast(u64) info.part23Length
+                    .decodeSpectrum(&header, info, &reader, channel, start + cast(u64, info.part23Length))
+                    reader.bitPos = start + cast(u64, info.part23Length)
                 }
 
                 if header.channels == 2 and header.mode == 1
                 {
-                    let next = &granules[cast(u64) granule, 1]
-                    .processStereo(&header, &granules[cast(u64) granule, 0], next.scalefacCompress & 1)
+                    let next = &granules[cast(u64, granule), 1]
+                    .processStereo(&header, &granules[cast(u64, granule), 0], next.scalefacCompress & 1)
                 }
 
                 for channel in header.channels do
-                    .synthesizeChannel(&header, &granules[cast(u64) granule, cast(u64) channel], channel, granule)
+                    .synthesizeChannel(&header, &granules[cast(u64, granule), cast(u64, channel)], channel, granule)
             }
 
             produced = header.frameSamples
@@ -889,7 +889,7 @@ impl Codec
                 .state[channel].reset()
             for channel in header.channels
             {
-                for index in cast(u64) header.frameSamples do
+                for index in cast(u64, header.frameSamples) do
                     .output[channel, index] = 0
             }
 
@@ -937,18 +937,18 @@ impl IPacketCodec for Codec
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let frames   = try .decodeFrame(packet)
-        let produced = cast(u64) frames * cast(u64) .channels * #sizeof(s16)
+        let produced = cast(u64, frames) * cast(u64, .channels) * #sizeof(s16)
         if destinationSize < produced do
             fail BadParameterError{"MP3 destination buffer is too small"}
 
-        let samples = cast([*] s16) destination
+        let samples = cast([*] s16, destination)
         var at      = 0'u64
-        for index in cast(u64) frames
+        for index in cast(u64, frames)
         {
-            for channel in cast(u64) .channels
+            for channel in cast(u64, .channels)
             {
                 let value = .output[channel, index] * 32767.0
-                samples[at] = cast(s16) Math.clamp(value, -32768.0'f32, 32767.0'f32)
+                samples[at] = cast(s16, Math.clamp(value, -32768.0'f32, 32767.0'f32))
                 at += 1
             }
         }

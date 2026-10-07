@@ -17,13 +17,13 @@ impl CrossAstCastProbe
     #[Swag.Inline]
     mtd asS32()->s32
     {
-        return cast(s32) .val
+        return cast(s32, .val)
     }
 
     #[Swag.Inline]
     mtd doubledAsU8()->u8
     {
-        return cast(u8) (.val + .val)
+        return cast(u8, (.val + .val))
     }
 }
 

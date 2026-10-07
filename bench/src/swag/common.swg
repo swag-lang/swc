@@ -21,10 +21,10 @@ func benchAlloc(size: u64)->[*] void?
     if not request.address do
         return null
 
-    let header = cast(*BenchAllocationHeader) request.address
+    let header = cast(*BenchAllocationHeader, request.address)
     header.totalSize = request.size
     header._padding  = 0
-    return cast([*] void) (cast([*] u8) header + #sizeof(BenchAllocationHeader))
+    return cast([*] void, (cast([*] u8, header) + #sizeof(BenchAllocationHeader)))
 }
 
 func benchFree(ptr: [*] void?)
@@ -32,7 +32,7 @@ func benchFree(ptr: [*] void?)
     if not ptr do
         return
 
-    let header = cast(*BenchAllocationHeader) (cast([*] u8) ptr - #sizeof(BenchAllocationHeader))
+    let header = cast(*BenchAllocationHeader, (cast([*] u8, ptr) - #sizeof(BenchAllocationHeader)))
     var request: Swag.AllocatorRequest
     request.address = header
     request.size    = header.totalSize
@@ -45,7 +45,7 @@ func now()->f64
     var c, f: Win32.LARGE_INTEGER
     Win32.QueryPerformanceCounter(&c)
     Win32.QueryPerformanceFrequency(&f)
-    return cast(f64) c / cast(f64) f
+    return cast(f64, c) / cast(f64, f)
 }
 
 var g_Seed = 12345'u64

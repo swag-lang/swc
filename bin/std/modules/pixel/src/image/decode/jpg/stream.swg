@@ -12,21 +12,21 @@ impl Decoder
     #[Discardable]
     mtd getBits1(numBits: s32)->u32
     {
-        let i = .bitBuf >> cast(u32) (16 - numBits) & ((1'u32 << cast(u32) numBits) - 1)
+        let i = .bitBuf >> cast(u32, (16 - numBits)) & ((1'u32 << cast(u32, numBits)) - 1)
         .bitsLeft -= numBits
         if .bitsLeft <= 0
         {
-            .bitBuf = rol(.bitBuf, cast(u32) (numBits + .bitsLeft))
+            .bitBuf = rol(.bitBuf, cast(u32, (numBits + .bitsLeft)))
             let c1 = .getChar()
             let c2 = .getChar()
 
-            .bitBuf   = (.bitBuf & 0xFFFF) | (cast(u32) c1 << 24) | (cast(u32) c2 << 16)
-            .bitBuf   = rol(.bitBuf, cast(u32) -.bitsLeft)
+            .bitBuf   = (.bitBuf & 0xFFFF) | (cast(u32, c1) << 24) | (cast(u32, c2) << 16)
+            .bitBuf   = rol(.bitBuf, cast(u32, -.bitsLeft))
             .bitsLeft += 16
         }
         else
         {
-            .bitBuf = rol(.bitBuf, cast(u32) numBits)
+            .bitBuf = rol(.bitBuf, cast(u32, numBits))
         }
 
         return i
@@ -35,11 +35,11 @@ impl Decoder
     #[Discardable]
     mtd getBits2(numBits: s32)->u32
     {
-        let i = (.bitBuf >> cast(u32) (16 - numBits)) & ((1'u32 << cast(u32) numBits) - 1)
+        let i = (.bitBuf >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)
         .bitsLeft -= numBits
         if .bitsLeft <= 0
         {
-            .bitBuf = rol(.bitBuf, cast(u32) (numBits + .bitsLeft))
+            .bitBuf = rol(.bitBuf, cast(u32, (numBits + .bitsLeft)))
 
             var c1, c2: u32
             let inBufOfs = .inBufOfs!
@@ -61,12 +61,12 @@ impl Decoder
             }
 
             .bitBuf   = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-            .bitBuf   = rol(.bitBuf, cast(u32) -.bitsLeft)
+            .bitBuf   = rol(.bitBuf, cast(u32, -.bitsLeft))
             .bitsLeft += 16
         }
         else
         {
-            .bitBuf = rol(.bitBuf, cast(u32) numBits)
+            .bitBuf = rol(.bitBuf, cast(u32, numBits))
         }
 
         return i
@@ -91,12 +91,12 @@ impl Decoder
             if c == 0x00 do
                 return 0xFF
 
-            .stuffChar(cast(u8) c)
+            .stuffChar(cast(u8, c))
             .stuffChar(0xFF)
             return 0xFF
         }
 
-        return cast(u8) c
+        return cast(u8, c)
     }
 
     mtd getChar(paddingFlag: *bool)->u32
@@ -164,7 +164,7 @@ impl Decoder
             }
         }
 
-        return cast(Marker) c
+        return cast(Marker, c)
     }
 
     #[Discardable]
@@ -194,7 +194,7 @@ impl Decoder
                 try .readDriMarker()
 
             default:
-                if cast(u32) c & cast(u32) M_APP0 == cast(u32) M_APP0 do
+                if cast(u32, c) & cast(u32, M_APP0) == cast(u32, M_APP0) do
                     try .readAppMarker(c)
                 else do
                     try .readVariableMarker(c)
@@ -236,7 +236,7 @@ impl Decoder
             huffNumt[0] = 0
             for i in 1 to 16
             {
-                huffNumt[i] = cast(u8) .getBits1(8)
+                huffNumt[i] = cast(u8, .getBits1(8))
                 count       += huffNumt[i]
             }
 
@@ -244,7 +244,7 @@ impl Decoder
                 fail InvalidFormatError{"bad dht counts"}
             for i in count
             {
-                huffValt[i] = cast(u8) .getBits1(8)
+                huffValt[i] = cast(u8, .getBits1(8))
             }
 
             let i = 1 + 16 + count
@@ -288,7 +288,7 @@ impl Decoder
                 var temp = .getBits1(8)
                 if prec do
                     temp = (temp << 8) + .getBits1(8)
-                qbuf[i] = cast(s16) temp
+                qbuf[i] = cast(s16, temp)
             }
 
             var i = 64 + 1
@@ -347,11 +347,11 @@ impl Decoder
         var prefixCount: u32
         var inValue = false
         var meta:        ImageMetadata
-        meta.signature = cast(u32) marker - cast(u32) Marker.M_APP0
+        meta.signature = cast(u32, marker) - cast(u32, Marker.M_APP0)
 
         while left
         {
-            let c = cast(u8) .getBits1(8)
+            let c = cast(u8, .getBits1(8))
             left -= 1
 
             if prefixCount < prefix.count
@@ -376,7 +376,7 @@ impl Decoder
             .hasJfifMarker = true
         }
 
-        if cast(u32) marker == cast(u32) Marker.M_APP0 + 14 and prefixCount == prefix.count and prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
+        if cast(u32, marker) == cast(u32, Marker.M_APP0) + 14 and prefixCount == prefix.count and prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
         {
             .hasAdobeMarker = true
             .adobeTransform = prefix[11]
@@ -494,7 +494,7 @@ impl Decoder
 
     func memset16(p: [*] void, c: u16, n: u32)
     {
-        var ps = cast([*] u16) p
+        var ps = cast([*] u16, p)
         for n
         {
             ps[] = c
@@ -519,7 +519,7 @@ impl Decoder
             }
 
             let bytesRead = size
-            Memory.copy(cast([*] u8) &.inBuf[0] + .inBufLeft, .stream + .streamSeek, cast(u64) size)
+            Memory.copy(cast([*] u8, &.inBuf[0]) + .inBufLeft, .stream + .streamSeek, cast(u64, size))
             .streamSeek += size
             .inBufLeft  += bytesRead
             if .inBufLeft >= InBufSize or .eofReached do

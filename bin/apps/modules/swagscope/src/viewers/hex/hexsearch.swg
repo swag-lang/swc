@@ -149,7 +149,7 @@ private func appendHexScalarPattern(pattern: *HexSearchPattern, raw, size: u64, 
     for index in size
     {
         let byteIndex = bigEndian ? size - 1 - index : index
-        pattern.values.add(cast(u8) ((raw >> (byteIndex * 8)) & 0xFF))
+        pattern.values.add(cast(u8, ((raw >> (byteIndex * 8)) & 0xFF)))
         pattern.masks.add(0xFF)
     }
 }
@@ -176,7 +176,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
             let min  = bits == 64 ? Swag.S64.Min : -(1's64 << (bits - 1))
             let max  = bits == 64 ? Swag.S64.Max : (1's64 << (bits - 1)) - 1
             valid = parsed.value >= min and parsed.value <= max
-            raw   = cast #bit (u64) parsed.value
+            raw   = cast #bit (u64, parsed.value)
         }
 
     case .Unsigned8, .Unsigned16, .Unsigned32, .Unsigned64:
@@ -193,7 +193,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             valid = true
-            raw   = cast #bit (u32) cast(f32) parsed.value
+            raw   = cast #bit (u32, cast(f32, parsed.value))
         }
 
     case .Float64:
@@ -201,11 +201,11 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             valid = true
-            raw   = cast #bit (u64) parsed.value
+            raw   = cast #bit (u64, parsed.value)
         }
 
     case .Bytes, .Hex16, .Hex32, .Hex64:
-        let digits = Utf8.startsWith(source, "0x", .Latin1NoCase) ? cast(string) source[2 to] : source
+        let digits = Utf8.startsWith(source, "0x", .Latin1NoCase) ? cast(string, source[2 to]) : source
         let parsed = catch StrConv.parseX64(digits) as parseError
         if parseError == null and parsed.eat == digits.count and not parsed.ovf
         {
@@ -243,11 +243,11 @@ func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexS
     }
 
     if Utf8.startsWith(trimmed, "text:", .Latin1NoCase) do
-        return parseHexTextPattern(Latin1.trim(cast(string) trimmed[5 to]))
+        return parseHexTextPattern(Latin1.trim(cast(string, trimmed[5 to])))
     if Utf8.startsWith(trimmed, "value:", .Latin1NoCase) do
-        return parseHexValuePattern(Latin1.trim(cast(string) trimmed[6 to]), grouping, bigEndian)
+        return parseHexValuePattern(Latin1.trim(cast(string, trimmed[6 to])), grouping, bigEndian)
     if Utf8.startsWith(trimmed, "hex:", .Latin1NoCase) do
-        return parseHexBytePattern(Latin1.trim(cast(string) trimmed[4 to]))
+        return parseHexBytePattern(Latin1.trim(cast(string, trimmed[4 to])))
 
     if trimmed[0] == '"'u8
     {
@@ -258,7 +258,7 @@ func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexS
             return result
         }
 
-        return parseHexTextPattern(cast(string) trimmed[1 until trimmed.count - 1])
+        return parseHexTextPattern(cast(string, trimmed[1 until trimmed.count - 1]))
     }
 
     return parseHexBytePattern(trimmed)

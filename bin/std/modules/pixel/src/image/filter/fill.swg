@@ -10,11 +10,11 @@ public impl Image
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
-            var logical = PixelValue{cast(f32) color.r / 255.0, cast(f32) color.g / 255.0,
-                                     cast(f32) color.b / 255.0, cast(f32) color.a / 255.0}
+            var logical = PixelValue{cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0,
+                                     cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0}
             .transformLogicalPixels(&logical)
             {
-                value = (cast(const *PixelValue) userData!)[]
+                value = cast(const *PixelValue, userData!)[]
             }
 
             return
@@ -26,7 +26,7 @@ public impl Image
             var pix = .pixels.buffer
             for x in .width
             {
-                convertToRGBA8'PF(cast([*] u8) pix!, color.r, color.g, color.b, color.a)
+                convertToRGBA8'PF(cast([*] u8, pix!), color.r, color.g, color.b, color.a)
                 pix += .bytesPerPixel
             }
         }
@@ -42,7 +42,7 @@ public impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) image.pixels.storage(), cast(u64) image.width * image.bytesPerPixel)
+            Memory.copy(pix, cast([*] u8, image.pixels.storage()), cast(u64, image.width) * image.bytesPerPixel)
         }
     }
 }

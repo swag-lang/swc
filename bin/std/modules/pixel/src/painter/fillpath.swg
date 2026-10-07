@@ -14,7 +14,7 @@ public enum PathFillRule
 
 // Identifies one contour point by its exact coordinates. The tessellator copies the points it is
 // given, so the two bit patterns are the same value and not merely a close one.
-private func contourPointKey(point: Vector2)->u64 => cast(u64) cast #bit(u32) point.x << 32 | cast(u64) cast #bit(u32) point.y
+private func contourPointKey(point: Vector2)->u64 => cast(u64, cast #bit(u32, point.x)) << 32 | cast(u64, cast #bit(u32, point.y))
 
 // One region a fill triangulates as a unit, as a range of a companion contour array.
 //

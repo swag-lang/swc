@@ -149,7 +149,7 @@ impl FontResource
 
         // A symbolic TrueType subset maps its codes into the private use area rather than
         // declaring them as characters, which is the one place a raw code is an address.
-        let symbol = font.glyphIndex(cast(rune) (0xF000 + code))
+        let symbol = font.glyphIndex(cast(rune, (0xF000 + code)))
         if symbol do
             return {symbol, true}
 
@@ -177,7 +177,7 @@ impl FontResource
         if mapped do
             return mapped.value
         if .codeBytes == 1 do
-            return encodingRune(.baseEncoding, cast(u8) code)
+            return encodingRune(.baseEncoding, cast(u8, code))
         return 0
     }
 
@@ -299,7 +299,7 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
             if cid != InvalidNode
             {
                 metrics = cid
-                result.defaultWidth = cast(f32) parser.number(parser.dict(cid, "DW"), 1000.0) / 1000.0
+                result.defaultWidth = cast(f32, parser.number(parser.dict(cid, "DW"), 1000.0)) / 1000.0
                 readCidWidths(parser, &result, parser.dict(cid, "W"))
 
                 if parser.name(parser.dict(cid, "Subtype")) == "CIDFontType2"
@@ -314,7 +314,7 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
                         let bytes = #move try parser.decodeStream(mapping)
                         result.glyphIndices.reserve(bytes.count / 2)
                         for i in bytes.count / 2 do
-                            result.glyphIndices.add(cast(u32) bytes[i * 2] << 8 | bytes[i * 2 + 1])
+                            result.glyphIndices.add(cast(u32, bytes[i * 2]) << 8 | bytes[i * 2 + 1])
                     }
                 }
                 else
@@ -335,7 +335,7 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     {
         let missing = parser.dict(descriptor, "MissingWidth")
         if missing != InvalidNode do
-            result.defaultWidth = cast(f32) parser.number(missing) / 1000.0
+            result.defaultWidth = cast(f32, parser.number(missing)) / 1000.0
 
         readDescriptorTraits(parser, &result, descriptor)
         try readFontProgram(parser, &result, descriptor)
@@ -365,7 +365,7 @@ private const FlagForceBold  = 1'u32 << 18
 // reset to the renderer's default face.
 private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descriptor: u32)
 {
-    let flags = cast(u32) parser.integer(parser.dict(descriptor, "Flags"), 0)
+    let flags = cast(u32, parser.integer(parser.dict(descriptor, "Flags"), 0))
     font.fixedPitch = (flags & FlagFixedPitch) != 0
     font.serif      = (flags & FlagSerif) != 0
     font.symbolic   = (flags & FlagSymbolic) != 0
@@ -375,13 +375,13 @@ private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descr
     // The base name is the writer's own description of the face and outranks the flags,
     // which many producers leave at their defaults.
     let baseName = font.baseName
-    if baseName.contains(cast(string) "Bold") do
+    if baseName.contains(cast(string, "Bold")) do
         font.bold = true
-    if baseName.contains(cast(string) "Italic") or baseName.contains(cast(string) "Oblique") do
+    if baseName.contains(cast(string, "Italic")) or baseName.contains(cast(string, "Oblique")) do
         font.italic = true
-    if baseName.contains(cast(string) "Times") or baseName.contains(cast(string) "Roman") or baseName.contains(cast(string) "Georgia") or baseName.contains(cast(string) "Serif") do
+    if baseName.contains(cast(string, "Times")) or baseName.contains(cast(string, "Roman")) or baseName.contains(cast(string, "Georgia")) or baseName.contains(cast(string, "Serif")) do
         font.serif = true
-    if baseName.contains(cast(string) "Courier") or baseName.contains(cast(string) "Mono") do
+    if baseName.contains(cast(string, "Courier")) or baseName.contains(cast(string, "Mono")) do
         font.fixedPitch = true
 }
 
@@ -435,7 +435,7 @@ private func readSimpleWidths(parser: *PdfParser, font: *FontResource, metricsId
     if firstChar < 0 or widthsId == InvalidNode or parser.nodes[widthsId].kind != .Array do
         return
     for value, index in parser.nodes[widthsId].values do
-        font.widths[cast(u32) firstChar + cast(u32) index] = cast(f32) parser.number(value) / 1000.0
+        font.widths[cast(u32, firstChar) + cast(u32, index)] = cast(f32, parser.number(value)) / 1000.0
 }
 
 // Reads the `/W` array of a CIDFont, which alternates between a list form and a range form.
@@ -456,7 +456,7 @@ private func readCidWidths(parser: *PdfParser, font: *FontResource, widthsId: u3
         if listId != InvalidNode and parser.nodes[listId].kind == .Array
         {
             for value, offset in parser.nodes[listId].values do
-                font.widths[cast(u32) first + cast(u32) offset] = cast(f32) parser.number(value) / 1000.0
+                font.widths[cast(u32, first) + cast(u32, offset)] = cast(f32, parser.number(value)) / 1000.0
             index += 1
             continue
         }
@@ -465,9 +465,9 @@ private func readCidWidths(parser: *PdfParser, font: *FontResource, widthsId: u3
         index += 1
         if index >= values.count or last < first or last - first > 65_535 do
             return
-        let width = cast(f32) parser.number(values[index]) / 1000.0
+        let width = cast(f32, parser.number(values[index])) / 1000.0
         index += 1
-        for code in cast(u32) first to cast(u32) last do
+        for code in cast(u32, first) to cast(u32, last) do
             font.widths[code] = width
     }
 }
@@ -504,7 +504,7 @@ private func readEncoding(parser: *PdfParser, font: *FontResource, encodingRaw: 
         {
             let start = parser.nodes[id].integer
             if start >= 0 and start <= Swag.U16.Max do
-                code = cast(u32) start
+                code = cast(u32, start)
             continue
         }
 
@@ -605,7 +605,7 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
         let start = scanner.pos
         while scanner.pos < bytes.count and not isDelimiter(bytes[scanner.pos]) do
             scanner.pos += 1
-        let word = cast(string) Swag.makeSlice(bytes.buffer + start, scanner.pos - start)
+        let word = cast(string, Swag.makeSlice(bytes.buffer + start, scanner.pos - start))
         switch word
         {
         case "begincodespacerange":
@@ -647,7 +647,7 @@ private func applyCMapChars(font: *FontResource, scanner: *PdfParser, pending: c
         let target = &scanner.nodes[pending[i * 2 + 1]]
         if source.kind != .String or target.kind != .String do
             continue
-        var decoded = #move Text.decode(cast(const [..] u8) target.text.toString(), .Utf16Be)
+        var decoded = #move Text.decode(cast(const [..] u8, target.text.toString()), .Utf16Be)
         font.unicode[cmapCode(source.text.toString())] = #move decoded
     }
 }
@@ -671,13 +671,13 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
         // destination and increments its last UTF-16 unit across the range.
         if dest.kind == .Array
         {
-            for value, offset in dest.values where offset <= cast(u64) (last - first)
+            for value, offset in dest.values where offset <= cast(u64, (last - first))
             {
                 let entry = &scanner.nodes[value]
                 if entry.kind == .String
                 {
-                    var decoded = #move Text.decode(cast(const [..] u8) entry.text.toString(), .Utf16Be)
-                    font.unicode[first + cast(u32) offset] = #move decoded
+                    var decoded = #move Text.decode(cast(const [..] u8, entry.text.toString()), .Utf16Be)
+                    font.unicode[first + cast(u32, offset)] = #move decoded
                 }
             }
 
@@ -688,7 +688,7 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
             continue
         if dest.text.length > 2
         {
-            var decoded = #move Text.decode(cast(const [..] u8) dest.text.toString(), .Utf16Be)
+            var decoded = #move Text.decode(cast(const [..] u8, dest.text.toString()), .Utf16Be)
             font.unicode[first] = #move decoded
             continue
         }
@@ -697,7 +697,7 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
         for code in first to last
         {
             var builder: StrConv.StringBuilder
-            builder.appendRune(cast(rune) (base + code - first))
+            builder.appendRune(cast(rune, (base + code - first)))
             var decoded = #move builder.toString()
             font.unicode[code] = #move decoded
         }
@@ -707,7 +707,7 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
 private func cmapCode(bytes: string)->u32
 {
     var result = 0'u32
-    for value in cast(const [..] u8) bytes do
+    for value in cast(const [..] u8, bytes) do
         result = result << 8 | value
     return result
 }

@@ -98,14 +98,14 @@ const EmptyConst = ""
 
 #test
 {
-    var runtime = cast(CountOfStrictU32) 7'u32
-    const constant = (cast(CountOfStrictU32) 5'u32).count
+    var runtime = cast(CountOfStrictU32, 7'u32)
+    const constant = cast(CountOfStrictU32, 5'u32).count
     let value = runtime.count
 
     #assert(#typeof(constant) == CountOfStrictU32)
     #assert(#typeof(value) == CountOfStrictU32)
-    Swag.assert(constant == cast(CountOfStrictU32) 5'u32)
-    Swag.assert(value == cast(CountOfStrictU32) 7'u32)
+    Swag.assert(constant == cast(CountOfStrictU32, 5'u32))
+    Swag.assert(value == cast(CountOfStrictU32, 7'u32))
 }
 
 // ============================================================
@@ -142,11 +142,11 @@ namespace NS {}
 
 #test
 {
-    var text = cast(CountOfStrictString) "hello"
+    var text = cast(CountOfStrictString, "hello")
     Swag.assert(text.count == 5)
 
     var data: [3] u8 = [1, 2, 3]
-    var slice        = cast(CountOfStrictSlice) data
+    var slice        = cast(CountOfStrictSlice, data)
     Swag.assert(slice.count == 3)
 }
 
@@ -201,7 +201,7 @@ namespace NS {}
 #test
 {
     var values: [3] ZeroSized
-    let slice = cast([..] ZeroSized) values
+    let slice = cast([..] ZeroSized, values)
     let count = slice.count
     #assert(#typeof(count) == u64)
     Swag.assert(count == 3)
@@ -311,7 +311,7 @@ func loopSignedRef(value: *s32)->s32
 #test
 {
     var data:    [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
-    var cstr:    cstring  = cast(cstring) &data[0]
+    var cstr:    cstring  = cast(cstring, &data[0])
     var cstrRef: *cstring = &cstr
     Swag.assert((cstrRef[]).count == 4)
     Swag.assert(countCStringRef(cstrRef) == 4)
@@ -325,7 +325,7 @@ func loopSignedRef(value: *s32)->s32
     Swag.assert((arrayRef[]).count == 6)
 
     var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
-    let slice = cast([..] u8) flat
+    let slice = cast([..] u8, flat)
     var sliceRef: const *[..] u8 = &slice
     Swag.assert((sliceRef[]).count == 6)
     Swag.assert(countSliceRef(sliceRef[]) == 6)

@@ -11,7 +11,7 @@ var Plane: [16 * 64] u8
 func fillPlane()
 {
     for i in 16 * 64 do
-        Plane[i] = cast(u8) ((i * 7 + 3) & 0xFF)
+        Plane[i] = cast(u8, ((i * 7 + 3) & 0xFF))
 }
 
 // A register stride and a unit step: the row loop of a pixel kernel.
@@ -23,7 +23,7 @@ func sumRows(base: const [*] u8, stride: u64, rows, cols: u64)->u64
     {
         let line = base + row * stride
         for col in cols do
-            acc += cast(u64) line[col]
+            acc += cast(u64, line[col])
     }
     return acc
 }
@@ -35,10 +35,10 @@ func sumThreeStrides(base: const [*] u8, s0, s1, s2: u64, rows: u64)->u64
     var acc: u64
     for row in rows
     {
-        acc += cast(u64) base[row * s0]
-        acc += cast(u64) base[row * s1 + 1]
-        acc += cast(u64) base[row * s2 + 2]
-        acc += cast(u64) base[row * s0 + 3]
+        acc += cast(u64, base[row * s0])
+        acc += cast(u64, base[row * s1 + 1])
+        acc += cast(u64, base[row * s2 + 2])
+        acc += cast(u64, base[row * s0 + 3])
     }
     return acc
 }
@@ -51,8 +51,8 @@ func sumImmediateStrides(base: const [*] u8, rows: u64)->u64
     var acc: u64
     for row in rows
     {
-        acc += cast(u64) base[row * 24]
-        acc += cast(u64) base[row * 16 + 5]
+        acc += cast(u64, base[row * 24])
+        acc += cast(u64, base[row * 16 + 5])
     }
     return acc
 }
@@ -65,7 +65,7 @@ func sumStepTwo(base: const [*] u8, stride: u64, rows: u64)->u64
     var row: u64
     while row < rows
     {
-        acc += cast(u64) base[row * stride]
+        acc += cast(u64, base[row * stride])
         row += 2
     }
     return acc
@@ -79,7 +79,7 @@ func sumDownwards(base: const [*] u8, stride: u64, rows: u64)->u64
     while row > 0
     {
         row -= 1
-        acc += cast(u64) base[row * stride]
+        acc += cast(u64, base[row * stride])
     }
     return acc
 }
@@ -104,7 +104,7 @@ func nestedProducts(base: const [*] u8, stride: u64, rows, cols: u64)->{ sum: u6
     while row < rows
     {
         for col in cols do
-            acc += cast(u64) base[row * stride + col]
+            acc += cast(u64, base[row * stride + col])
         row += 1
     }
     return {acc, row}
@@ -118,7 +118,7 @@ func movingStride(base: const [*] u8, rows: u64)->u64
     var stride: u64 = 1
     for row in rows
     {
-        acc    += cast(u64) base[row * stride]
+        acc    += cast(u64, base[row * stride])
         stride += 1
     }
     return acc
@@ -133,7 +133,7 @@ func sumOddRows(base: const [*] u8, stride: u64, rows: u64)->u64
     {
         if (row & 1) == 0 do
             continue
-        acc += cast(u64) base[row * stride]
+        acc += cast(u64, base[row * stride])
     }
     return acc
 }
@@ -144,7 +144,7 @@ func reference(rows, stride: u64, cols: u64)->u64
     for row in rows
     {
         for col in cols do
-            acc += cast(u64) Plane[row * stride + col]
+            acc += cast(u64, Plane[row * stride + col])
     }
     return acc
 }
@@ -152,7 +152,7 @@ func reference(rows, stride: u64, cols: u64)->u64
 #test
 {
     fillPlane()
-    let base = cast(const [*] u8) &Plane[0]
+    let base = cast(const [*] u8, &Plane[0])
 
     Swag.assert(sumRows(base, 64, 16, 40) == reference(16, 64, 40))
     Swag.assert(sumRows(base, 48, 10, 48) == reference(10, 48, 48))
@@ -161,18 +161,18 @@ func reference(rows, stride: u64, cols: u64)->u64
     var expected: u64
     for row in 12'u64
     {
-        expected += cast(u64) Plane[row * 64]
-        expected += cast(u64) Plane[row * 33 + 1]
-        expected += cast(u64) Plane[row * 17 + 2]
-        expected += cast(u64) Plane[row * 64 + 3]
+        expected += cast(u64, Plane[row * 64])
+        expected += cast(u64, Plane[row * 33 + 1])
+        expected += cast(u64, Plane[row * 17 + 2])
+        expected += cast(u64, Plane[row * 64 + 3])
     }
     Swag.assert(sumThreeStrides(base, 64, 33, 17, 12) == expected)
 
     expected = 0
     for row in 20'u64
     {
-        expected += cast(u64) Plane[row * 24]
-        expected += cast(u64) Plane[row * 16 + 5]
+        expected += cast(u64, Plane[row * 24])
+        expected += cast(u64, Plane[row * 16 + 5])
     }
     Swag.assert(sumImmediateStrides(base, 20) == expected)
 
@@ -180,14 +180,14 @@ func reference(rows, stride: u64, cols: u64)->u64
     var evenRow: u64
     while evenRow < 15
     {
-        expected += cast(u64) Plane[evenRow * 64]
+        expected += cast(u64, Plane[evenRow * 64])
         evenRow  += 2
     }
     Swag.assert(sumStepTwo(base, 64, 15) == expected)
 
     expected = 0
     for row in 16'u64 do
-        expected += cast(u64) Plane[row * 64]
+        expected += cast(u64, Plane[row * 64])
     Swag.assert(sumDownwards(base, 64, 16) == expected)
 
     var wrapped: u32
@@ -200,14 +200,14 @@ func reference(rows, stride: u64, cols: u64)->u64
 
     expected = 0
     for row in 30'u64 do
-        expected += cast(u64) Plane[row * (row + 1)]
+        expected += cast(u64, Plane[row * (row + 1)])
     Swag.assert(movingStride(base, 30) == expected)
 
     expected = 0
     for row in 16'u64
     {
         if (row & 1) == 1 do
-            expected += cast(u64) Plane[row * 64]
+            expected += cast(u64, Plane[row * 64])
     }
     Swag.assert(sumOddRows(base, 64, 16) == expected)
 }

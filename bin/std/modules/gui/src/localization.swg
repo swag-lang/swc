@@ -337,7 +337,7 @@ private func applyTableLanguage(table: *StringTable, resources: const *Resources
         return
 
     let bytes = try resources.load(resName.toString())
-    try parseStringsContent(table.type, cast([*] u8) table.data!, cast(string) bytes.toSlice(), &table.pool)
+    try parseStringsContent(table.type, cast([*] u8, table.data!), cast(string, bytes.toSlice()), &table.pool)
 }
 
 // Decodes `content` against the string table type `T` without touching any live table.
@@ -355,15 +355,15 @@ func validateStrings(type: typeinfo, content: string) fail
     Swag.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
 
     // The probe only receives `string` views, so releasing the raw block is enough.
-    let structType = cast #assume(const *Swag.TypeInfoStruct) type
-    let probe      = Memory.alloc(cast(u64) structType.sizeof)
-    defer Memory.free(probe, cast(u64) structType.sizeof)
+    let structType = assume cast(const *Swag.TypeInfoStruct, type)
+    let probe      = Memory.alloc(cast(u64, structType.sizeof))
+    defer Memory.free(probe, cast(u64, structType.sizeof))
     if structType.opInit != null do
         structType.opInit(probe)
     else do
-        Memory.clear(probe, cast(u64) structType.sizeof)
+        Memory.clear(probe, cast(u64, structType.sizeof))
 
-    try parseStringsContent(type, cast([*] u8) probe, content, null)
+    try parseStringsContent(type, cast([*] u8, probe), content, null)
 }
 
 // Registers the GUI string table, the languages it ships, and its embedded translations.
@@ -383,14 +383,14 @@ private func langResourceName(tag: string, file: String)->String => Format.toStr
 // released once no field can reference it anymore.
 private func resetTable(table: *StringTable)
 {
-    let structType = cast #assume(const *Swag.TypeInfoStruct) table.type
+    let structType = assume cast(const *Swag.TypeInfoStruct, table.type)
     let data       = table.data!
     if structType.opDrop != null do
         structType.opDrop(data)
     if structType.opInit != null do
         structType.opInit(data)
     else do
-        Memory.clear(data, cast(u64) structType.sizeof)
+        Memory.clear(data, cast(u64, structType.sizeof))
 
     for entry in table.pool do
         Memory.delete(entry)
@@ -445,7 +445,7 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
         let owned = Memory.new'String()
         owned[] = value
         pool.add(owned)
-        (cast(*string) (data + safeField.offset))[] = owned.toString()
+        cast(*string, (data + safeField.offset))[] = owned.toString()
     }
 }
 
@@ -453,5 +453,5 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
 // file is a compile error with its line number, not a runtime fallback.
 #run
 {
-    expect validateStrings'Strings(cast(string) FrenchStrings)
+    expect validateStrings'Strings(cast(string, FrenchStrings))
 }

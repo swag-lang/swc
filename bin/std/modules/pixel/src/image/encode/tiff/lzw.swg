@@ -24,7 +24,7 @@ impl LzwBitWriter
         while .pendingBits >= 8
         {
             .pendingBits -= 8
-            .result.add(cast(u8) (.pending >> .pendingBits))
+            .result.add(cast(u8, (.pending >> .pendingBits)))
             .pending &= (1'u64 << .pendingBits) - 1
         }
     }
@@ -32,7 +32,7 @@ impl LzwBitWriter
     mtd finish()
     {
         if .pendingBits do
-            .result.add(cast(u8) (.pending << (8 - .pendingBits)))
+            .result.add(cast(u8, (.pending << (8 - .pendingBits))))
     }
 }
 
@@ -57,11 +57,11 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
 
     var width    = 9'u32
     var nextCode = LZW_FIRST_CODE
-    var prefix   = cast(u32) src[0]
+    var prefix   = cast(u32, src[0])
 
     for i in count - 1
     {
-        let value = cast(u32) src[i + 1]
+        let value = cast(u32, src[i + 1])
         let key   = (prefix << 8) | value
         let found = dictionary.tryFind(key)
         if found
@@ -74,7 +74,7 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
 
         if nextCode <= LZW_MAX_CODE
         {
-            dictionary.add(key, cast(u16) nextCode)
+            dictionary.add(key, cast(u16, nextCode))
             nextCode += 1
 
             if width < 12 and nextCode > (1'u32 << width) - 1 do

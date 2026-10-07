@@ -90,7 +90,7 @@ impl Table
     // 'me' takes an argument slot, so 'value' is the fifth and lands on the stack
     mtd store(index: u64, tag: u32, other: u64, value: #fwd u64)
     {
-        .slots[index] = #fwd value + other + cast(u64) tag
+        .slots[index] = #fwd value + other + cast(u64, tag)
     }
 
     mtd storeDefault(index: u64)

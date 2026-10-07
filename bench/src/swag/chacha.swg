@@ -5,7 +5,7 @@ const M32  = 0xFFFFFFFF'u64
 // the range every port of this benchmark can represent exactly, and keeps the
 // overflow guard of the checked build configurations out of the measurement.
 #[Swag.Inline]
-func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & M32)
+func add32(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) & M32))
 
 #[Swag.Inline]
 func quarterRound(state: *[16] u32, a, b, c, d: u32)
@@ -27,17 +27,17 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 #run
 {
     // ---- data generation (not timed) ----
-    let data = cast([*] u32) benchAlloc(SIZE * 4)!
+    let data = cast([*] u32, benchAlloc(SIZE * 4)!)
     for i in SIZE do
-        data[i] = cast(u32) (rnd() & M32)
+        data[i] = cast(u32, (rnd() & M32))
 
     var key: [8] u32
     for i in 8 do
-        key[i] = cast(u32) (rnd() & M32)
+        key[i] = cast(u32, (rnd() & M32))
 
     var nonce: [3] u32
     for i in 3 do
-        nonce[i] = cast(u32) (rnd() & M32)
+        nonce[i] = cast(u32, (rnd() & M32))
 
     // ---- timed work ----
     let t0 = now()
@@ -80,7 +80,7 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 
     var check = 0'u64
     for i in SIZE do
-        check ^= (cast(u64) data[i] + i) & M32
+        check ^= (cast(u64, data[i]) + i) & M32
 
     let t1 = now()
     report(check, t0, t1)

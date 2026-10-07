@@ -25,12 +25,12 @@ public impl CultureInfo
         let name = .name.toString()
         if name.count < language.count do
             return false
-        if Utf8.compare(cast(const [..] u8) name[until language.count], cast(const [..] u8) language, .Latin1NoCase) != 0 do
+        if Utf8.compare(cast(const [..] u8, name[until language.count]), cast(const [..] u8, language), .Latin1NoCase) != 0 do
             return false
         return name.count == language.count or name[language.count] == '-'
     }
 
-    internal mtd const isNamed(locale: string)->bool => Utf8.compare(.name.toSlice(), cast(const [..] u8) locale, .Latin1NoCase) == 0
+    internal mtd const isNamed(locale: string)->bool => Utf8.compare(.name.toSlice(), cast(const [..] u8, locale), .Latin1NoCase) == 0
 
     // Creates formatting and language rules for a BCP 47 locale name.
     //
@@ -160,8 +160,8 @@ public impl CultureInfo
     mtd const cardinalPlural(value: f64)->PluralCategory
     {
         let absolute = Math.abs(value)
-        let integer  = cast(u64) Math.trunc(absolute)
-        let integral = absolute == cast(f64) integer
+        let integer  = cast(u64, Math.trunc(absolute))
+        let integral = absolute == cast(f64, integer)
 
         if .isLanguage("ja") or .isLanguage("zh") or .isLanguage("ko") or .isLanguage("th") or .isLanguage("vi") do
             return .Other
@@ -251,12 +251,12 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(cast(const [..] u8) value)
+        Utf8.visitRunes(cast(const [..] u8, value))
         {
             if turkic and c == 'i' do
                 result.append(0x0130)
             elif turkic and c == 0x0131 do
-                result.append(cast(rune) 'I')
+                result.append(cast(rune, 'I'))
             elif c == 0x00DF do
                 result.append("SS")
             else do
@@ -271,12 +271,12 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(cast(const [..] u8) value)
+        Utf8.visitRunes(cast(const [..] u8, value))
         {
             if turkic and c == 'I' do
                 result.append(0x0131)
             elif turkic and c == 0x0130 do
-                result.append(cast(rune) 'i')
+                result.append(cast(rune, 'i'))
             else do
                 result.append(Unicode.toLower(c))
         }
@@ -289,7 +289,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(cast(const [..] u8) value)
+        Utf8.visitRunes(cast(const [..] u8, value))
         {
             if c == 0x00DF do
                 result.append("ss")
@@ -298,7 +298,7 @@ public impl CultureInfo
             elif turkic and c == 'I' do
                 result.append(0x0131)
             elif turkic and c == 0x0130 do
-                result.append(cast(rune) 'i')
+                result.append(cast(rune, 'i'))
             else do
                 result.append(Unicode.toLower(c))
         }
@@ -387,7 +387,7 @@ public impl CultureInfo
         let primary  = Utf8.compare(leftKey.toSlice(), rightKey.toSlice(), .Unicode)
         if primary do
             return primary
-        return Utf8.compare(cast(const [..] u8) left, cast(const [..] u8) right, ignoreCase ? .UnicodeNoCase : .Unicode)
+        return Utf8.compare(cast(const [..] u8, left), cast(const [..] u8, right), ignoreCase ? .UnicodeNoCase : .Unicode)
     }
 }
 

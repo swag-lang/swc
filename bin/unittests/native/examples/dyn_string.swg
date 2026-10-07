@@ -32,9 +32,9 @@ func reserve(s: *DynString, want: u64)
         newCap *= 2
 
     if s.data do
-        s.data = cast([*] u8?) testRealloc(s.data, newCap)
+        s.data = cast([*] u8?, testRealloc(s.data, newCap))
     else do
-        s.data = cast([*] u8?) testAlloc(newCap)
+        s.data = cast([*] u8?, testAlloc(newCap))
     s.capacity = newCap
 }
 
@@ -110,10 +110,10 @@ impl DynString
         .count    = 0
         .capacity = 0
 
-        let len = cast(u64) text.count
+        let len = cast(u64, text.count)
         if len == 0 do
             return
-        storeBytes(me, cast(const [*] u8) text.buffer, len)
+        storeBytes(me, cast(const [*] u8, text.buffer), len)
     }
 
     // Read a byte: `let c = s[i]`
@@ -135,9 +135,9 @@ impl DynString
     mtd(op: Swag.Operator) opAssign(text: string)
         where op == .AddAssign
     {
-        let len = cast(u64) text.count
+        let len = cast(u64, text.count)
         if len > 0 do
-            appendBytes(me, cast(const [*] u8) text.buffer, len)
+            appendBytes(me, cast(const [*] u8, text.buffer), len)
     }
 
     // Append: `s += other`

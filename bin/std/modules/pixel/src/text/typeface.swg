@@ -169,7 +169,7 @@ public impl TypeFace
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
         if emb do
-            try .face.glyph.outline.embolden(cast(s32) emb * 64)
+            try .face.glyph.outline.embolden(cast(s32, emb) * 64)
         if .forceItalic or forceItalic do
             .face.glyph.oblique()
     }
@@ -180,10 +180,10 @@ public impl TypeFace
     {
         const FadePx = 24.0'f32     // no darkening at or above this size
         const MaxPx  = 0.12'f32     // per-side dilation in pixels at the smallest sizes
-        if cast(f32) size >= FadePx do
+        if cast(f32, size) >= FadePx do
             return 0
-        let t = (FadePx - cast(f32) size) / FadePx
-        return cast(s32) Math.round(MaxPx * t * 64.0)
+        let t = (FadePx - cast(f32, size)) / FadePx
+        return cast(s32, Math.round(MaxPx * t * 64.0))
     }
 
     // Rasterizes one rune as a grayscale bitmap at `size` pixels.

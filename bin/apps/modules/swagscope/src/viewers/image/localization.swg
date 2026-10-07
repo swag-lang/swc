@@ -54,5 +54,5 @@ func registerImageStrings(app: *Application)
 
 #run
 {
-    expect Gui.validateStrings'ImageStrings(cast(string) FrenchStrings)
+    expect Gui.validateStrings'ImageStrings(cast(string, FrenchStrings))
 }

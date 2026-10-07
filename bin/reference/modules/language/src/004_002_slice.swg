@@ -65,7 +65,7 @@ The 'Swag.makeSlice' intrinsic creates a slice from a pointer and an element cou
 {
     var array: [4] u32 = [10, 20, 30, 40]
 
-    let slice: [..] u32 = Swag.makeSlice(cast([*] u32) &array[0] + 2, 2)
+    let slice: [..] u32 = Swag.makeSlice(cast([*] u32, &array[0]) + 2, 2)
     Swag.assert(slice.count == 2)
     Swag.assert(slice[0] == 30)
     Swag.assert(slice[1] == 40)

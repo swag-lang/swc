@@ -82,7 +82,7 @@
     func descale(x: s32)->s32
     {
         let n = 18'u32
-        return cast(s32) ((x + (1's32 << (n - 1))) >> n)
+        return cast(s32, ((x + (1's32 << (n - 1))) >> n))
     }
     const V = #run descale(-4546560's32)
     #assert(#typeof(V) == s32)

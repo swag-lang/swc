@@ -6,7 +6,7 @@ func increment(value: *u32, amount: u32)
 }
 
 #[Swag.NoInline]
-func functionAddress()->const *void => cast(const *void) &increment
+func functionAddress()->const *void => cast(const *void, &increment)
 
 #[Swag.NoInline]
 func forwardedFunctionAddress()->const *void => functionAddress()
@@ -17,12 +17,12 @@ struct CallbackAddress
 }
 
 #[Swag.NoInline]
-func wrappedFunctionAddress()->CallbackAddress => {cast(const *void) &increment}
+func wrappedFunctionAddress()->CallbackAddress => {cast(const *void, &increment)}
 
 #[Swag.NoInline]
 func invokeDeferred(value: *u32)
 {
-    let action = cast(func(*u32, u32)) functionAddress()
+    let action = cast(func(*u32, u32), functionAddress())
     action(value, 3)
     defer action(value, 7)
 }
@@ -35,12 +35,12 @@ func invokeDeferred(value: *u32)
     invokeDeferred(&value)
     Swag.assert(value == 10)
 
-    let forwarded = cast(func(*u32, u32)) forwardedFunctionAddress()
+    let forwarded = cast(func(*u32, u32), forwardedFunctionAddress())
     forwarded(&value, 5)
     Swag.assert(value == 15)
 
     let wrapped = wrappedFunctionAddress()
-    let action  = cast(func(*u32, u32)) wrapped.address
+    let action  = cast(func(*u32, u32), wrapped.address)
     action(&value, 9)
     Swag.assert(value == 24)
 }

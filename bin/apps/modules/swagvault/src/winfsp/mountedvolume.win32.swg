@@ -71,7 +71,7 @@ func mountVaultNative(path: string, password: const [..] u8, destination: string
 // Stops and releases the Windows mount even when flushing it reports a failure.
 func unmountVaultNative(handle: *void) fail
 {
-    let mounted = cast(*WinFsp.MountedVolume) handle
+    let mounted = cast(*WinFsp.MountedVolume, handle)
     discard catch mounted.close() as unmountError
     Memory.delete(mounted)
     if unmountError != null do
@@ -80,7 +80,7 @@ func unmountVaultNative(handle: *void) fail
 
 func mountedVaultSpaceNative(handle: *void)->MountedVaultSpace
 {
-    let mounted = cast(*WinFsp.MountedVolume) handle
+    let mounted = cast(*WinFsp.MountedVolume, handle)
     mounted.volume.accessLock.lockShared()
     defer mounted.volume.accessLock.unlockShared()
     return {mounted.volume.totalBytes(), mounted.volume.freeBytes()}

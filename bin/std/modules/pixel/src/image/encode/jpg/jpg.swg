@@ -110,20 +110,20 @@ private
 
     // Fixed-point coefficients of the colour conversion, in 16.16. The rounding of each one is
     // part of the sample the transform receives.
-    const CoeffYR  = cast(s32) (65536.0 * 0.299 + 0.5)
-    const CoeffYG  = cast(s32) (65536.0 * 0.587 + 0.5)
-    const CoeffYB  = cast(s32) (65536.0 * 0.114 + 0.5)
-    const CoeffCbR = cast(s32) (65536.0 * -0.16874 + 0.5)
-    const CoeffCbG = cast(s32) (65536.0 * -0.33126 + 0.5)
+    const CoeffYR  = cast(s32, (65536.0 * 0.299 + 0.5))
+    const CoeffYG  = cast(s32, (65536.0 * 0.587 + 0.5))
+    const CoeffYB  = cast(s32, (65536.0 * 0.114 + 0.5))
+    const CoeffCbR = cast(s32, (65536.0 * -0.16874 + 0.5))
+    const CoeffCbG = cast(s32, (65536.0 * -0.33126 + 0.5))
     const CoeffCbB = 32768
     const CoeffCrR = 32768
-    const CoeffCrG = cast(s32) (65536.0 * -0.41869 + 0.5)
-    const CoeffCrB = cast(s32) (65536.0 * -0.08131 + 0.5)
+    const CoeffCrG = cast(s32, (65536.0 * -0.41869 + 0.5))
+    const CoeffCrB = cast(s32, (65536.0 * -0.08131 + 0.5))
 
     // Byte permutations that lift one colour channel of four pixels into four 32-bit lanes.
-    const RedLanes   = cast(Math.Simd.U8x16) [2'u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80]
-    const GreenLanes = cast(Math.Simd.U8x16) [1'u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80]
-    const BlueLanes  = cast(Math.Simd.U8x16) [0'u8, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80]
+    const RedLanes   = cast(Math.Simd.U8x16, [2'u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80])
+    const GreenLanes = cast(Math.Simd.U8x16, [1'u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80])
+    const BlueLanes  = cast(Math.Simd.U8x16, [0'u8, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80])
 }
 
 impl ColorRGB
@@ -207,8 +207,8 @@ impl Encoder
 {
     mtd loadBitmap(image: Image)
     {
-        .imageX = cast(u16) image.width
-        .imageY = cast(u16) image.height
+        .imageX = cast(u16, image.width)
+        .imageY = cast(u16, image.height)
 
         var xDiv8, yDiv8: u32
         if .imageX % 8 != 0 do
@@ -222,7 +222,7 @@ impl Encoder
 
         // The conversion reads whole vectors, so the last pixels of the source are followed by
         // enough slack for a sixteen-byte read that starts on them.
-        .bufferRGB.resize(cast(u64) xDiv8 * yDiv8 + 8)
+        .bufferRGB.resize(cast(u64, xDiv8) * yDiv8 + 8)
         let pdst = .bufferRGB.storage()
         var pref = image.pixels.storage()
 
@@ -230,7 +230,7 @@ impl Encoder
         // written straight to its mirrored position instead of being copied and then swapped.
         for nrline in .imageY
         {
-            let line = pdst + (cast(u32) .imageY - 1 - nrline) * xDiv8
+            let line = pdst + (cast(u32, .imageY) - 1 - nrline) * xDiv8
             switch image.pixelFormat
             {
             case .BGR8:
@@ -275,15 +275,15 @@ impl Encoder
                 line[column] = lastcolor
         }
 
-        .imageX = cast(u16) xDiv8
+        .imageX = cast(u16, xDiv8)
 
         // Height completion: the padded rows repeat the last coded row.
-        let dimline  = cast(u64) .imageX * #sizeof(ColorRGB)
-        let lastLine = pdst + (cast(u32) .imageY - 1) * cast(u32) .imageX
-        for var nrLine = cast(u32) .imageY; nrLine < yDiv8; nrLine += 1 do
-            Memory.copy(pdst + nrLine * cast(u32) .imageX, lastLine, dimline)
+        let dimline  = cast(u64, .imageX) * #sizeof(ColorRGB)
+        let lastLine = pdst + (cast(u32, .imageY) - 1) * cast(u32, .imageX)
+        for var nrLine = cast(u32, .imageY); nrLine < yDiv8; nrLine += 1 do
+            Memory.copy(pdst + nrLine * cast(u32, .imageX), lastLine, dimline)
 
-        .imageY = cast(u16) yDiv8
+        .imageY = cast(u16, yDiv8)
     }
 
     mtd encoder()
@@ -314,11 +314,11 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            opt = (cast(const *EncodeOptions) options.buffer!)[]
+            opt = cast(const *EncodeOptions, options.buffer!)[]
         }
 
         .stream      = result
-        .scaleFactor = cast(u8) (100 - Math.clamp(opt.quality, 1'u8, 100'u8))
+        .scaleFactor = cast(u8, (100 - Math.clamp(opt.quality, 1'u8, 100'u8)))
 
         .loadBitmap(image)
 
@@ -343,7 +343,7 @@ internal impl IImageEncoder for Encoder
         // The last byte of the scan is padded with one bits, so a decoder cannot read the marker
         // that follows as entropy-coded data.
         let padding = 8 - .bitCount
-        .writeBits({cast(u8) padding, cast(u16) ((1'u32 << padding) - 1)})
+        .writeBits({cast(u8, padding), cast(u16, ((1'u32 << padding) - 1))})
 
         .writeWord(0xFFD9)     // EOI
         .flushStaged()

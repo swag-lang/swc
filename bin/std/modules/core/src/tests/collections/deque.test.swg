@@ -78,17 +78,17 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
 {
     var values: Deque's32
     for value in 32 do
-        values.pushBack(cast(s32) value)
+        values.pushBack(cast(s32, value))
     for value in 16 do
-        Swag.assert(values.popFront() == cast(s32) value)
+        Swag.assert(values.popFront() == cast(s32, value))
     for value in 16 do
-        values.pushFront(-cast(s32) value - 1)
+        values.pushFront(-cast(s32, value) - 1)
 
     Swag.assert(values.count == 32)
     for value in 16 do
-        Swag.assert(values.popBack() == 31 - cast(s32) value)
+        Swag.assert(values.popBack() == 31 - cast(s32, value))
     for value in 16 do
-        Swag.assert(values.popBack() == -cast(s32) value - 1)
+        Swag.assert(values.popBack() == -cast(s32, value) - 1)
     Swag.assert(values.isEmpty())
 }
 
@@ -119,9 +119,9 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
         for value in 5
         {
             if frontOnly do
-                values.pushFront(cast(s32) value)
+                values.pushFront(cast(s32, value))
             else do
-                values.pushBack(cast(s32) value)
+                values.pushBack(cast(s32, value))
         }
 
         let first    = &values[0]

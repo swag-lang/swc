@@ -8,7 +8,7 @@ struct(T) DeferredMethodProbe
 
 func reflectedMethod(type: typeinfo)->const *void?
 {
-    let info = cast #assume(const *Swag.TypeInfoStruct) type
+    let info = assume cast(const *Swag.TypeInfoStruct, type)
     return info.methods![0].value
 }
 
@@ -33,7 +33,7 @@ func callDeferredMethod()->bool
     let pointer = reflectedMethod(#type DeferredMethodProbe's32)
     if pointer == null do
         return false
-    let method = cast(func(const *DeferredMethodProbe's32)->s32) pointer
+    let method = cast(func(const *DeferredMethodProbe's32)->s32, pointer)
     return method(&probe) == 42
 }
 

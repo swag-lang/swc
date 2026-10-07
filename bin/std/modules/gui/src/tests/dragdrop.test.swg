@@ -126,7 +126,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 
     let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
     discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
-    Swag.assert(host.app.dragEnterWnd == cast(*Wnd?) catcher)
+    Swag.assert(host.app.dragEnterWnd == cast(*Wnd?, catcher))
 
     catcher.destroy()
     host.pump()
@@ -283,7 +283,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     // A payload carrying nothing but a file of its own is still something to drag, so this one
     // is refused for the missing desktop rather than for an empty payload.
     var carried: DragData
-    carried.addContent("only.txt", cast(const [..] u8) "content")
+    carried.addContent("only.txt", cast(const [..] u8, "content"))
     effect = catcher.startDrag(&carried)
     Swag.assert(effect == .None)
 }

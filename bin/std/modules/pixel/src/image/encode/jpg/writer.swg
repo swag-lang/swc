@@ -21,8 +21,8 @@ impl Encoder
     #[Swag.Inline]
     mtd writeWord(w: u16)
     {
-        .writeByte(cast(u8) (w >> 8))
-        .writeByte(cast(u8) (w & 0xFF))
+        .writeByte(cast(u8, (w >> 8)))
+        .writeByte(cast(u8, (w & 0xFF)))
     }
 
     mtd writeBytes(s: const [..] u8)
@@ -39,7 +39,7 @@ impl Encoder
         if not .outCount do
             return
 
-        .stream!.addBytes(Swag.makeSlice(cast(const [*] u8) &.outBuf[0], cast(u64) .outCount))
+        .stream!.addBytes(Swag.makeSlice(cast(const [*] u8, &.outBuf[0]), cast(u64, .outCount)))
         .outCount = 0
     }
 
@@ -49,14 +49,14 @@ impl Encoder
     // entry, so a code costs one shift and the loop below only runs when a byte completed.
     mtd writeBits(bs: BitString)
     {
-        let length = cast(u32) bs.length
-        .bitBuffer = (.bitBuffer << #wrap length) | (cast(u32) bs.value & ((1'u32 << length) - 1))
+        let length = cast(u32, bs.length)
+        .bitBuffer = (.bitBuffer << #wrap length) | (cast(u32, bs.value) & ((1'u32 << length) - 1))
         .bitCount  += length
 
         while .bitCount >= 8
         {
             .bitCount -= 8
-            let written = cast(u8) ((.bitBuffer >> .bitCount) & 0xFF)
+            let written = cast(u8, ((.bitBuffer >> .bitCount) & 0xFF))
             .writeByte(written)
 
             // A 0xFF inside entropy-coded data is stuffed, or a decoder reads it as a marker.
@@ -69,8 +69,8 @@ impl Encoder
     {
         for md in image.metadata
         {
-            .writeWord(0xFFE0'u16 + cast(u16) md.signature)
-            .writeWord(3 + cast(u16) md.tag.count + cast(u16) md.value.count)
+            .writeWord(0xFFE0'u16 + cast(u16, md.signature))
+            .writeWord(3 + cast(u16, md.tag.count) + cast(u16, md.value.count))
             .writeBytes(md.tag.toSlice())
             .writeByte(0)
             .writeBytes(md.value.toSlice())
@@ -92,8 +92,8 @@ impl Encoder
         .writeWord(SOF0info.marker)
         .writeWord(SOF0info.length)
         .writeByte(SOF0info.precision)
-        .writeWord(cast(u16) image.height)
-        .writeWord(cast(u16) image.width)
+        .writeWord(cast(u16, image.height))
+        .writeWord(cast(u16, image.width))
         .writeByte(SOF0info.numComponents)
         .writeByte(SOF0info.idy)
         .writeByte(SOF0info.hvy)

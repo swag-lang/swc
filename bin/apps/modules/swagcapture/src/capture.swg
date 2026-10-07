@@ -317,7 +317,7 @@ func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(for
                 continue
         }
 
-        #inject(stmt, form = cast #assume (*T) f, itf = f, idx = visitIdx)
+        #inject(stmt, form = assume cast (*T, f), itf = f, idx = visitIdx)
         visitIdx += 1
     }
 }
@@ -529,10 +529,10 @@ impl Capture
         {
             let editView = capture.editView!
             var undo     = capture.newUndo(.MoveCapture)
-            undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / editView.zoom)
-            undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / editView.zoom)
-            undo.newSizeX = cast(s32) ((g.movingRect.width - g.rect.width) / editView.zoom)
-            undo.newSizeY = cast(s32) ((g.movingRect.height - g.rect.height) / editView.zoom)
+            undo.newPosX  = cast(s32, ((g.rect.x - g.movingRect.x) / editView.zoom))
+            undo.newPosY  = cast(s32, ((g.rect.y - g.movingRect.y) / editView.zoom))
+            undo.newSizeX = cast(s32, ((g.movingRect.width - g.rect.width) / editView.zoom))
+            undo.newSizeY = cast(s32, ((g.movingRect.height - g.rect.height) / editView.zoom))
             capture.pushUndo(undo)
             editView.invalidate()
         }
@@ -574,7 +574,7 @@ impl Capture
         painter.begin()
 
         var layer: Layer
-        layer.begin(&painter, {width: cast(s32) rect.width, height: cast(s32) rect.height, paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
+        layer.begin(&painter, {width: cast(s32, rect.width), height: cast(s32, rect.height), paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
 
         .paintBackImage(&painter, 0, 0, zoom)
         with painter
@@ -588,7 +588,7 @@ impl Capture
             for sel in .selection
             {
                 let f = .forms[sel]
-                let b = cast #assume (*BaseForm) f
+                let b = assume cast (*BaseForm, f)
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -598,7 +598,7 @@ impl Capture
         {
             for f in .forms
             {
-                let b = cast #assume (*BaseForm) f
+                let b = assume cast (*BaseForm, f)
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -614,7 +614,7 @@ impl Capture
         let rt     = layer.contentTarget!
         var buffer = render.readTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
-        result.crop(0, 0, cast(s32) rect.width, cast(s32) rect.height)
+        result.crop(0, 0, cast(s32, rect.width), cast(s32, rect.height))
         render.releaseRenderTarget(rt)
 
         return result
@@ -1014,7 +1014,7 @@ impl Capture
             // cannot read forms.
             if not imgDone and Swag.kindOf(itf) == FormImage
             {
-                let fimg = cast #assume (*FormImage) itf
+                let fimg = assume cast (*FormImage, itf)
                 if fimg.kind == .Image and fimg.image.isValid()
                 {
                     imgDone = true
@@ -1119,7 +1119,7 @@ impl Capture
         {
             let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
             let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
-            itf.moveForm(cast() dx, cast() dy)
+            itf.moveForm(cast(dx), cast(dy))
         }
 
         let countBefore = .forms.count
@@ -1215,7 +1215,7 @@ impl Capture
         if Swag.kindOf(f) != FormImage do
             return true
 
-        let fi = cast #assume (*FormImage) f
+        let fi = assume cast (*FormImage, f)
         switch fi.kind
         {
         case .Image:   return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)
@@ -1236,7 +1236,7 @@ impl Capture
     // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
     mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
-        let base = cast #assume (*BaseForm) f
+        let base = assume cast (*BaseForm, f)
 
         // The geometry of the direct path, without its view clip: the cache keeps the
         // whole form, so scrolling never invalidates it.
@@ -1256,8 +1256,8 @@ impl Capture
         pos.height += pos.y - Math.round(pos.y)
         pos.round()
 
-        let wt2 = cast(s32) pos.width
-        let ht2 = cast(s32) pos.height
+        let wt2 = cast(s32, pos.width)
+        let ht2 = cast(s32, pos.height)
         if wt2 <= 0 or ht2 <= 0 do
             return false
 
@@ -1269,10 +1269,10 @@ impl Capture
         // is a better answer than repainting the whole form for every mouse move.
         let scale = painter.contentScale()
         var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
-        while textSuperSample > 1 and (wt2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample)) or ht2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample))) do
+        while textSuperSample > 1 and (wt2 > cast(s32, (MaxFormCacheDim / (scale * textSuperSample))) or ht2 > cast(s32, (MaxFormCacheDim / (scale * textSuperSample)))) do
             textSuperSample -= 1
 
-        let maxDim = cast(s32) (MaxFormCacheDim / (scale * textSuperSample))
+        let maxDim = cast(s32, (MaxFormCacheDim / (scale * textSuperSample)))
         if wt2 > maxDim or ht2 > maxDim do
             return false
 
@@ -1318,7 +1318,7 @@ impl Capture
                 .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
                 var cxt: FormPaintContext
                 cxt.z = zoom
-                cxt.renderScale = cast() textSuperSample
+                cxt.renderScale = cast(textSuperSample)
                 f.paint(painter, cxt)
                 .popTransform()
             }
@@ -1331,7 +1331,7 @@ impl Capture
             sharp         = true
         }
 
-        let colForm   = Color.fromArgb(cast(u8) Math.map(cast(f32) base.alpha, 0, 100, 0, 255), Argb.White)
+        let colForm   = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
         var paintRect = pos
 
         painter.pushTransform()
@@ -1382,7 +1382,7 @@ impl Capture
         var savePaintPos:  Math.Rectangle
         var saveNoClipPos: Math.Rectangle
         var wt2, ht2:      s32
-        with let base = cast #assume (*BaseForm) f
+        with let base = assume cast (*BaseForm, f)
         {
             savePaintPos = .paintPos
 
@@ -1413,8 +1413,8 @@ impl Capture
             .paintPos.height += .paintPos.y - Math.round(.paintPos.y)
             .paintPos.round()
 
-            wt2 = cast(s32) (.paintPos.width - clipOffset.x)
-            ht2 = cast(s32) (.paintPos.height - clipOffset.y)
+            wt2 = cast(s32, (.paintPos.width - clipOffset.x))
+            ht2 = cast(s32, (.paintPos.height - clipOffset.y))
         }
 
         let textSuperSample = (not quickMode and Swag.kindOf(f) == FormText) ? TextFormSuperSample : 1
@@ -1427,7 +1427,7 @@ impl Capture
             .translateTransform(((-boundRect.x * zoom) - clipOffset.x) * textSuperSample, ((-boundRect.y * zoom) - clipOffset.y) * textSuperSample)
             var cxt: FormPaintContext
             cxt.z           = zoom
-            cxt.renderScale = cast() textSuperSample
+            cxt.renderScale = cast(textSuperSample)
             cxt.quickMode   = quickMode
             f.paint(painter, cxt)
             .popTransform()
@@ -1439,7 +1439,7 @@ impl Capture
         if quickMode and (base.subKind == .Highlight or base.subKind == .PixSel) do
             colForm = Argb.White
         else do
-            colForm = Color.fromArgb(cast(u8) Math.map(cast(f32) base.alpha, 0, 100, 0, 255), Argb.White)
+            colForm = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
 
         var paintRect: Math.Rectangle
         paintRect.x      = base.paintPos.x + clipOffset.x
@@ -1726,13 +1726,13 @@ impl Capture
 
         if .selection.count == 1 and type == FormPolygon
         {
-            let poly = cast #assume (*FormPolygon) form
+            let poly = assume cast (*FormPolygon, form)
             result.x = poly.points[idxPt].x + nx
             result.y = poly.points[idxPt].y + ny
         }
         elif (.selection.count == 1 or editForm) and (type == FormLine or type == FormArrow)
         {
-            let line = cast #assume (*FormLine) form
+            let line = assume cast (*FormLine, form)
             if not right or not bottom
             {
                 result.x = line.xa
@@ -1809,20 +1809,20 @@ impl Capture
         for f, i in .forms
         {
             let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
-            let form    = cast #assume (*BaseForm) f
+            let form    = assume cast (*BaseForm, f)
 
             switch f
             {
             case FormLine as form2:
                 if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
-                    arrX.add(cast(s32) form2.xa)
+                    arrX.add(cast(s32, form2.xa))
                 if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
-                    arrY.add(cast(s32) form2.ya)
+                    arrY.add(cast(s32, form2.ya))
 
                 if not autoSel or idxPt != 1
                 {
-                    arrX.add(cast(s32) form2.xb)
-                    arrY.add(cast(s32) form2.yb)
+                    arrX.add(cast(s32, form2.xb))
+                    arrY.add(cast(s32, form2.yb))
                 }
 
             case FormPolygon as form2:
@@ -1830,8 +1830,8 @@ impl Capture
                 {
                     if not autoSel or idx != idxPt
                     {
-                        arrX.add(cast(s32) pt.x)
-                        arrY.add(cast(s32) pt.y)
+                        arrX.add(cast(s32, pt.x))
+                        arrY.add(cast(s32, pt.y))
                     }
                 }
 
@@ -1839,18 +1839,18 @@ impl Capture
                 if autoSel do
                     continue
                 let boundR = f.boundRect()
-                arrX.add(cast(s32) boundR.x)
-                arrX.add(cast(s32) boundR.right())
-                arrY.add(cast(s32) boundR.y)
-                arrY.add(cast(s32) boundR.bottom())
+                arrX.add(cast(s32, boundR.x))
+                arrX.add(cast(s32, boundR.right()))
+                arrY.add(cast(s32, boundR.y))
+                arrY.add(cast(s32, boundR.bottom()))
 
             default:
                 if autoSel do
                     continue
-                arrX.add(cast(s32) form.x)
-                arrX.add(cast(s32) (form.x + form.w))
-                arrY.add(cast(s32) form.y)
-                arrY.add(cast(s32) (form.y + form.h))
+                arrX.add(cast(s32, form.x))
+                arrX.add(cast(s32, (form.x + form.w)))
+                arrY.add(cast(s32, form.y))
+                arrY.add(cast(s32, (form.y + form.h)))
             }
         }
 
@@ -1892,13 +1892,13 @@ impl Capture
         if x and bestX < SnapToler
         {
             .snapX = bestCoordX
-            nx     = cast(s32) (bestCoordX - pOrg.x)
+            nx     = cast(s32, (bestCoordX - pOrg.x))
         }
 
         if y and bestY < SnapToler
         {
             .snapY = bestCoordY
-            ny     = cast(s32) (bestCoordY - pOrg.y)
+            ny     = cast(s32, (bestCoordY - pOrg.y))
         }
 
         if x do
@@ -2008,7 +2008,7 @@ impl Capture
             if .selection.count == 1
             {
                 let selForm = .forms[.selection[0]]
-                let p       = cast #assume (*BaseForm) selForm
+                let p       = assume cast (*BaseForm, selForm)
                 if not view.main.freezeSel or not p.freeze
                 {
                     if selForm.mouse(view, localPos, evt)
@@ -2036,7 +2036,7 @@ impl Capture
                 var ht = .hitTest(localPos)
                 if ht != Swag.U64.Max
                 {
-                    let p = cast #assume (*BaseForm) (.forms[ht])
+                    let p = assume cast (*BaseForm, (.forms[ht]))
                     if view.main.freezeSel and p.freeze do
                         ht = Swag.U64.Max
                 }
@@ -2213,8 +2213,8 @@ impl Capture
             return true
 
         case .Moving:
-            let newPosX = cast(s32) ((localPos.x - .movingStart.x) / view.zoom)
-            let newPosY = cast(s32) ((localPos.y - .movingStart.y) / view.zoom)
+            let newPosX = cast(s32, ((localPos.x - .movingStart.x) / view.zoom))
+            let newPosY = cast(s32, ((localPos.y - .movingStart.y) / view.zoom))
 
             let firstDragMove = .firstMouseMove
             if firstDragMove
@@ -2272,8 +2272,8 @@ impl Capture
             return true
 
         case .Creating:
-            let newPosX = cast(s32) ((localPos.x - .movingStart.x) / view.zoom)
-            let newPosY = cast(s32) ((localPos.y - .movingStart.y) / view.zoom)
+            let newPosX = cast(s32, ((localPos.x - .movingStart.x) / view.zoom))
+            let newPosY = cast(s32, ((localPos.y - .movingStart.y) / view.zoom))
 
             var createdNow = false
             if .firstMouseMove
@@ -2287,7 +2287,7 @@ impl Capture
                 let mode = editView.main.getEditMode()
                 let itf  = editView.main.newFormFromModel(mode, clear: true)
                 itf.setup(me)
-                let base = cast #assume (*BaseForm) itf
+                let base = assume cast (*BaseForm, itf)
                 if editView.main.editMode == .PixSel do
                     base.subKind = .PixSel
                 let undo = .newUndo(.CreateForm)
@@ -2375,7 +2375,7 @@ impl Capture
     {
         if .selection.isEmpty() do
             return null
-        return cast #assume (*BaseForm) .forms[.selection.back()]
+        return assume cast (*BaseForm, .forms[.selection.back()])
     }
 
     mtd getSelectedFormType()->typeinfo?
@@ -2431,7 +2431,7 @@ impl Capture
     // grouped form expands to every form sharing this id, so a group moves as a whole.
     func formOuterGroup(f: IForm)->u64
     {
-        let b = cast #assume (*BaseForm) f
+        let b = assume cast (*BaseForm, f)
         if b.groups.isEmpty() do
             return 0
         return b.groups[0]
@@ -2512,7 +2512,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast #assume (*BaseForm) f
+            let b = assume cast (*BaseForm, f)
             for gid in b.groups
             {
                 if gid == 0 or oldIds.contains(gid) do
@@ -2524,7 +2524,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast #assume (*BaseForm) f
+            let b = assume cast (*BaseForm, f)
             for i in b.groups.count
             {
                 let idx = Slice.findLinear(oldIds.toSlice(), b.groups[i])

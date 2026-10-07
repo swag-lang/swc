@@ -43,7 +43,7 @@ namespace GenericCloneCodegenSupport
             if newCapacity <= .capacity do
                 return
 
-            .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
         }
 
@@ -76,7 +76,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = cast(*T) testAlloc(#sizeof(T))!
+            let ptr = cast(*T, testAlloc(#sizeof(T))!)
             ptr[] = value
             .values.add(ptr)
         }

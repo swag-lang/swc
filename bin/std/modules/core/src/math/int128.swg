@@ -54,18 +54,18 @@ impl Int128
     // Values beyond 2^53 in magnitude lose their low bits, as with any conversion to `f64`.
     mtd const opCast()->f64
     {
-        const Shift64: f64 = cast #bit (f64) 0x43F0000000000000     // 2^64
+        const Shift64: f64 = cast #bit (f64, 0x43F0000000000000)     // 2^64
         if .hi < 0
         {
             if .lo == 0 do
-                return cast(f64) (.hi * Shift64)
+                return cast(f64, (.hi * Shift64))
 
-            let lo = cast(f64) (~.lo + 1)
-            let hi = cast(f64) ~.hi * Shift64
+            let lo = cast(f64, (~.lo + 1))
+            let hi = cast(f64, ~.hi) * Shift64
             return -(lo + hi)
         }
 
-        return cast(f64) (.lo + .hi * Shift64)
+        return cast(f64, (.lo + .hi * Shift64))
     }
 
     // Returns the exact 128-bit product of `x` and `y`.
@@ -83,19 +83,19 @@ impl Int128
 
         if lhs < 0 do
             lhs = -lhs
-        let int1Hi = cast(u64) lhs >> 32
-        let int1Lo = cast(u64) (lhs & 0xFFFFFFFF)
+        let int1Hi = cast(u64, lhs) >> 32
+        let int1Lo = cast(u64, (lhs & 0xFFFFFFFF))
 
         if rhs < 0 do
             rhs = -rhs
-        let int2Hi = cast(u64) rhs >> 32
-        let int2Lo = cast(u64) (rhs & 0xFFFFFFFF)
+        let int2Hi = cast(u64, rhs) >> 32
+        let int2Lo = cast(u64, (rhs & 0xFFFFFFFF))
 
         let a = int1Hi * int2Hi
         let b = int1Lo * int2Lo
         let c = int1Hi * int2Lo + int1Lo * int2Hi
 
-        result.hi = cast(s64) (a + (c >> 32))
+        result.hi = cast(s64, (a + (c >> 32)))
         result.lo = c << 32
         result.lo += b
         if result.lo < b do

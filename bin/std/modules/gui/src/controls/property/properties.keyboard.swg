@@ -229,7 +229,7 @@ private impl Properties
     mtd isEditing()->bool
     {
         let f = .focusedWindow()
-        if not f or f == cast(*Wnd?) .edView do
+        if not f or f == cast(*Wnd?, .edView) do
             return false
         return .isEditorWnd(f)
     }
@@ -289,10 +289,10 @@ private impl Properties
         }
         else
         {
-            for var i = cast(s64) .items.count - 1; i >= 0; i -= 1
+            for var i = cast(s64, .items.count) - 1; i >= 0; i -= 1
             {
-                if .isNavigable(.items[cast(u64) i]) do
-                    return .items[cast(u64) i]
+                if .isNavigable(.items[cast(u64, i)]) do
+                    return .items[cast(u64, i)]
             }
         }
 
@@ -306,7 +306,7 @@ private impl Properties
         for it, idx in .items
         {
             if it == item do
-                return cast(s64) idx
+                return cast(s64, idx)
         }
 
         return -1
@@ -338,11 +338,11 @@ private impl Properties
         for
         {
             i += dir
-            if i < 0 or i >= cast(s64) .items.count do
+            if i < 0 or i >= cast(s64, .items.count) do
                 return
-            if .isNavigable(.items[cast(u64) i])
+            if .isNavigable(.items[cast(u64, i)])
             {
-                .setSelItem(.items[cast(u64) i])
+                .setSelItem(.items[cast(u64, i)])
                 return
             }
         }
@@ -353,7 +353,7 @@ private impl Properties
     {
         let lh    = .isGridLike() ? .gridLineHeight : 40.0
         let viewH = .scrollWnd.clientRect().height
-        let count = cast(u32) Math.max(1.0, Math.floor(viewH / Math.max(lh, 1.0)))
+        let count = cast(u32, Math.max(1.0, Math.floor(viewH / Math.max(lh, 1.0))))
         for count do
             .moveSel(dir)
     }

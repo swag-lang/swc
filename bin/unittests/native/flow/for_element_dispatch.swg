@@ -47,7 +47,7 @@ impl CountedBag
     let text = "abc"
     var sum  = 0
     for b in text do
-        sum += cast(s32) b
+        sum += cast(s32, b)
     Swag.assert(sum == 97 + 98 + 99)
 }
 
@@ -57,7 +57,7 @@ impl CountedBag
     var arr: [3] s32 = [10, 20, 30]
     var sum = 0
     for v, i in arr do
-        sum += v + cast(s32) i
+        sum += v + cast(s32, i)
     Swag.assert(sum == 60 + 3)
 }
 

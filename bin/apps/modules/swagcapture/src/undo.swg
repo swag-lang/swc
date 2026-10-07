@@ -48,7 +48,7 @@ func formEditableTextDirty(f: IForm)
 {
     if Swag.kindOf(f) == FormText
     {
-        let b = cast #assume (*FormText) f
+        let b = assume cast (*FormText, f)
         b.isDirty = true
     }
 }
@@ -83,7 +83,7 @@ func formFontDirty(f: IForm)
 {
     if Swag.kindOf(f) == FormText
     {
-        let b = cast #assume (*FormText) f
+        let b = assume cast (*FormText, f)
         b.isDirtyFont = true
     }
 }
@@ -186,13 +186,13 @@ impl Undo
         {
             if let value = .mdlValue
             {
-                let view = cast #assume (IForm) value
+                let view = assume cast (IForm, value)
                 Memory.delete(view.buffer, Swag.kindOf(view))
             }
 
             for f in .oldForm
             {
-                let view = cast #assume (IForm) f
+                let view = assume cast (IForm, f)
                 Memory.delete(view.buffer, Swag.kindOf(view))
             }
         }
@@ -276,7 +276,7 @@ impl Undo
                 if not np do
                     continue
                 .oldText.add(np[])
-                .oldU32.add(cast(u32) sp![])
+                .oldU32.add(cast(u32, sp![]))
             }
 
         case .SetFontStyle:
@@ -286,7 +286,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if not sp do
                     continue
-                .oldU32.add(cast(u32) sp[])
+                .oldU32.add(cast(u32, sp[]))
             }
 
         case .SetFormFromModel:
@@ -298,7 +298,7 @@ impl Undo
                 let mdlType = .mdlType orelse #typeof(FormShape)
                 let storage = Memory.new(mdlType)!
                 let view    = Swag.makeInterface(storage, mdlType, IForm)!
-                let save    = cast #assume (*BaseForm) view
+                let save    = assume cast (*BaseForm, view)
                 itf.copy(save, form)
                 .oldForm.add(save)
             }
@@ -316,13 +316,13 @@ impl Undo
                 var pos, size: s32
                 if horz
                 {
-                    pos  = cast(s32) r.x
-                    size = cast(s32) r.width
+                    pos  = cast(s32, r.x)
+                    size = cast(s32, r.width)
                 }
                 else
                 {
-                    pos  = cast(s32) r.y
-                    size = cast(s32) r.height
+                    pos  = cast(s32, r.y)
+                    size = cast(s32, r.height)
                 }
 
                 .oldS32.add(pos)
@@ -350,7 +350,7 @@ impl Undo
             {
                 if not itf.canRotate() do
                     continue
-                .oldU32.add(cast #bit (u32) form.rotate)
+                .oldU32.add(cast #bit (u32, form.rotate))
             }
 
         case .MoveToFront, .MoveToBack, .MoveBackward, .MoveForward:
@@ -545,18 +545,18 @@ impl Undo
                 if .kind == .AlignLeft or .kind == .AlignTop do
                     delta = .minP
                 elif .kind == .AlignRight do
-                    delta = .maxP - cast(s32) r.width
+                    delta = .maxP - cast(s32, r.width)
                 elif .kind == .AlignBottom do
-                    delta = .maxP - cast(s32) r.height
+                    delta = .maxP - cast(s32, r.height)
                 elif .kind == .AlignCenter do
-                    delta = (.maxP + .minP) / 2 - (cast(s32) r.width / 2)
+                    delta = (.maxP + .minP) / 2 - (cast(s32, r.width) / 2)
                 else do
-                    delta = (.maxP + .minP) / 2 - (cast(s32) r.height / 2)
+                    delta = (.maxP + .minP) / 2 - (cast(s32, r.height) / 2)
 
                 if .kind == .AlignLeft or .kind == .AlignRight or .kind == .AlignCenter do
-                    itf.moveBaseForm(delta - cast(s32) r.x, 0, 0, 0)
+                    itf.moveBaseForm(delta - cast(s32, r.x), 0, 0, 0)
                 else do
-                    itf.moveBaseForm(0, delta - cast(s32) r.y, 0, 0)
+                    itf.moveBaseForm(0, delta - cast(s32, r.y), 0, 0)
             }
 
         case .MovePoint:
@@ -720,7 +720,7 @@ impl Undo
                 if not np do
                     continue
                 np[]  = .oldText[idx]
-                sp![] = cast() .oldU32[idx]
+                sp![] = cast(.oldU32[idx])
                 formFontDirty(itf)
             }
 
@@ -730,7 +730,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if not sp do
                     continue
-                sp[] = cast() .oldU32[idx]
+                sp[] = cast(.oldU32[idx])
                 formFontDirty(itf)
             }
 
@@ -759,7 +759,7 @@ impl Undo
             {
                 if not itf.canRotate() do
                     continue
-                form.rotate = cast #bit (f32) .oldU32[idx]
+                form.rotate = cast #bit (f32, .oldU32[idx])
             }
 
             capture.updateModelFromSelection()
@@ -774,9 +774,9 @@ impl Undo
             {
                 let r = itf.boundRect()
                 if horz do
-                    itf.moveBaseForm(.oldS32[idx] - cast(s32) r.x, 0, 0, 0)
+                    itf.moveBaseForm(.oldS32[idx] - cast(s32, r.x), 0, 0, 0)
                 else do
-                    itf.moveBaseForm(0, .oldS32[idx] - cast(s32) r.y, 0, 0)
+                    itf.moveBaseForm(0, .oldS32[idx] - cast(s32, r.y), 0, 0)
             }
 
         case .MovePoint:

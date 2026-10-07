@@ -25,8 +25,8 @@ struct PlainPod
 {
     // Const container (the typeinfo cast is a compile-time constant pointer); the member is a
     // `func(*void)` field. This used to fail to compile; it must now read opDrop at runtime.
-    let dropPtr  = (cast(const *Swag.TypeInfoStruct) #typeof(WithDrop)).opDrop
-    let plainPtr = (cast(const *Swag.TypeInfoStruct) #typeof(PlainPod)).opDrop
+    let dropPtr  = cast(const *Swag.TypeInfoStruct, #typeof(WithDrop)).opDrop
+    let plainPtr = cast(const *Swag.TypeInfoStruct, #typeof(PlainPod)).opDrop
 
     Swag.assert(dropPtr != null)
     Swag.assert(plainPtr == null)

@@ -220,7 +220,7 @@ func(T) patternOverload(value: T)->s32 where not (T is IPatternValue) => 2
 #test
 {
     // An interface can expose static methods without an object. Presence follows
-    // its table, as it does for the equivalent '#try' interface conversion.
+    // its table, as it does for the equivalent 'catch cast' interface conversion.
     let view = Swag.makeInterface(null, PatternValue, IPatternValue)
     Swag.assert(view is IPatternOther)
     Swag.assert(not (view is PatternValue))

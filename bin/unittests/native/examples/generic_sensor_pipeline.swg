@@ -70,7 +70,7 @@ impl TelemetrySeries
         var total: T = 0
         for var i = 0; i < .filled; i += 1 do
             total += .samples[i]
-        return total / cast(T) .filled
+        return total / cast(T, .filled)
     }
 
     func movingMidpoint(const me)->T
@@ -78,7 +78,7 @@ impl TelemetrySeries
     {
         let oldestIndex = .next % Count
         let newestIndex = (.next + Count - 1) % Count
-        return interpolate'(T)(.samples[oldestIndex], .samples[newestIndex], cast(T) 0.5)
+        return interpolate'(T)(.samples[oldestIndex], .samples[newestIndex], cast(T, 0.5))
     }
 
     func(U = Unit) sameUnit(const me, other: U)->bool
@@ -96,7 +96,7 @@ impl TelemetrySeries
     func(U = T) midpoint(const me, left: U, right: U)->T
         where T == U
     {
-        return interpolate'(T)(left, right, cast(T) 0.5)
+        return interpolate'(T)(left, right, cast(T, 0.5))
     }
 }
 

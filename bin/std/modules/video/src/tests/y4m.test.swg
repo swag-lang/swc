@@ -92,7 +92,7 @@ using Core, Core.Errors, Pixel
     for mode in Modes
     {
         var bytes: Array'u8
-        bytes.add(cast(const [..] u8) Format.toString("YUV4MPEG2 W2 H2 F1:1 Ip%\nFRAME\n", mode).toString())
+        bytes.add(cast(const [..] u8, Format.toString("YUV4MPEG2 W2 H2 F1:1 Ip%\nFRAME\n", mode).toString()))
         bytes.add([81'u8, 81, 81, 81, 90, 240])
         var reader = expect Reader.openMemory("subsampled.y4m", bytes.toSlice())
         let frame  = expect reader.decodeFrame(0)
@@ -117,7 +117,7 @@ using Core, Core.Errors, Pixel
 {
     const FullRangeRed = "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=FULL\nFRAME\n"
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) FullRangeRed)
+    bytes.add(cast(const [..] u8, FullRangeRed))
     bytes.add([76'u8, 85, 255])
     var reader = expect Reader.openMemory("full-range.y4m", bytes.toSlice())
     let frame  = expect reader.decodeFrame(0)
@@ -129,10 +129,10 @@ using Core, Core.Errors, Pixel
 #test
 {
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "YUV4MPEG2 W1 H1 F1:1 Ip C444\n")
-    bytes.add(cast(const [..] u8) "FRAME Xsomething\n")
+    bytes.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip C444\n"))
+    bytes.add(cast(const [..] u8, "FRAME Xsomething\n"))
     bytes.add([81'u8, 90, 240])
-    bytes.add(cast(const [..] u8) "FRAME\n")
+    bytes.add(cast(const [..] u8, "FRAME\n"))
     bytes.add([145'u8, 54, 34])
 
     var reader = expect Reader.openMemory("parameters.y4m", bytes.toSlice())
@@ -160,10 +160,10 @@ using Core, Core.Errors, Pixel
 #test
 {
     var bytes: Array'u8
-    bytes.add(cast(const [..] u8) "YUV4MPEG2 W1 H1 F1:1 Ip C444\n")
-    bytes.add(cast(const [..] u8) "FRAME\n")
+    bytes.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip C444\n"))
+    bytes.add(cast(const [..] u8, "FRAME\n"))
     bytes.add([81'u8, 90, 240])
-    bytes.add(cast(const [..] u8) "FRAME\n")
+    bytes.add(cast(const [..] u8, "FRAME\n"))
     bytes.add([145'u8, 54])
 
     // The truncated tail is not a frame, and the stream no longer tiles, so it is walked.

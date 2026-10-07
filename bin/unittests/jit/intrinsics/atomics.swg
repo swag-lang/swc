@@ -94,17 +94,17 @@ alias AtomicStrictU32 = u32
     func runAtomStrictAlias()->bool
     {
         var sx = 0's32
-        let a  = atomAddStrictS32(&sx, cast(AtomicStrictS32) 2)
-        let b  = atomCmpXchgStrictS32(&sx, cast(AtomicStrictS32) 2, cast(AtomicStrictS32) 5)
+        let a  = atomAddStrictS32(&sx, cast(AtomicStrictS32, 2))
+        let b  = atomCmpXchgStrictS32(&sx, cast(AtomicStrictS32, 2), cast(AtomicStrictS32, 5))
 
         var ux = 1'u32
-        let c  = atomOrStrictU32(&ux, cast(AtomicStrictU32) 4)
+        let c  = atomOrStrictU32(&ux, cast(AtomicStrictU32, 4))
 
         #assert(#typeof(a) == AtomicStrictS32)
         #assert(#typeof(b) == AtomicStrictS32)
         #assert(#typeof(c) == AtomicStrictU32)
 
-        return a == cast(AtomicStrictS32) 0 and b == cast(AtomicStrictS32) 2 and sx == 5 and c == cast(AtomicStrictU32) 1 and ux == 5
+        return a == cast(AtomicStrictS32, 0) and b == cast(AtomicStrictS32, 2) and sx == 5 and c == cast(AtomicStrictU32, 1) and ux == 5
     }
 
     #[Swag.NoInline]

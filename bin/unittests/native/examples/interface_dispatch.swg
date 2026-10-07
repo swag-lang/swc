@@ -85,7 +85,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 #test
 {
     var bulk:  BulkDiscount
-    var rules: [1] IDiscountRule = [cast(IDiscountRule) bulk]
+    var rules: [1] IDiscountRule = [cast(IDiscountRule, bulk)]
 
     var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
     let disc = rules[0].apply(&line)
@@ -99,7 +99,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var bookLine:  OrderLine = {kind: ProductKind.Book, quantity: 1, unitCent: 1000}
     var otherLine: OrderLine = {kind: ProductKind.Food, quantity: 1, unitCent: 1000}
 
-    let itf = cast(IDiscountRule) bd
+    let itf = cast(IDiscountRule, bd)
     Swag.assert(itf.apply(&bookLine) == 150)
     Swag.assert(itf.apply(&otherLine) == 0)
 }
@@ -111,7 +111,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 50}
 
-    var rules: [3] IDiscountRule = [cast(IDiscountRule) bulk, cast(IDiscountRule) book, cast(IDiscountRule) flat]
+    var rules: [3] IDiscountRule = [cast(IDiscountRule, bulk), cast(IDiscountRule, book), cast(IDiscountRule, flat)]
 
     // 8 books at 1000c each: bulk=800, book=1200, flat=50 -> best=1200
     var line: OrderLine = {kind: ProductKind.Book, quantity: 8, unitCent: 1000}
@@ -125,7 +125,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 25}
 
-    var rules: [3] IDiscountRule = [cast(IDiscountRule) bulk, cast(IDiscountRule) book, cast(IDiscountRule) flat]
+    var rules: [3] IDiscountRule = [cast(IDiscountRule, bulk), cast(IDiscountRule, book), cast(IDiscountRule, flat)]
 
     Swag.assert(Swag.kindOf(rules[0]) == BulkDiscount)
     Swag.assert(Swag.kindOf(rules[1]) == BookDiscount)
@@ -153,7 +153,7 @@ func classifyRule(rule: IDiscountRule)->s32
     var bulk: BulkDiscount
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 10}
-    Swag.assert(classifyRule(cast(IDiscountRule) bulk) == 1)
-    Swag.assert(classifyRule(cast(IDiscountRule) book) == 2)
-    Swag.assert(classifyRule(cast(IDiscountRule) flat) == 3)
+    Swag.assert(classifyRule(cast(IDiscountRule, bulk)) == 1)
+    Swag.assert(classifyRule(cast(IDiscountRule, book)) == 2)
+    Swag.assert(classifyRule(cast(IDiscountRule, flat)) == 3)
 }

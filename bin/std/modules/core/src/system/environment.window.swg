@@ -141,8 +141,8 @@ impl Window
         if .isOpen() do
             .rebindNative()
         let scale          = .dpiScale()
-        let physicalWidth  = cast(s32) Math.round(width * scale)
-        let physicalHeight = cast(s32) Math.round(height * scale)
+        let physicalWidth  = cast(s32, Math.round(width * scale))
+        let physicalHeight = cast(s32, Math.round(height * scale))
         try .setClientSizeNative(physicalWidth, physicalHeight)
     }
 

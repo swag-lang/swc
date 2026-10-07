@@ -33,8 +33,8 @@ func complementBranch(a, b: u64)->s32
         {
             Swag.assert(rightComplement(a, b) == ~(a ^ b))
             Swag.assert(leftComplement(a, b) == ~(a ^ b))
-            let a32 = cast(u32) (a & 0xFFFFFFFF)
-            let b32 = cast(u32) (b & 0xFFFFFFFF)
+            let a32 = cast(u32, (a & 0xFFFFFFFF))
+            let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.assert(rightComplement32(a32, b32) == ~(a32 ^ b32))
             Swag.assert(sharedComplement(a, b) == (~a & ~b))
             Swag.assert(complementBranch(a, b) == (a == ~b ? 11 : 27))

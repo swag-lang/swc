@@ -34,12 +34,12 @@ func makePacked5(a: u8, b: u32)->Packed5
 {
     func sumPacked3(values: Packed3...)->u32
     {
-        return cast(u32) values[0].a +
-               cast(u32) values[0].b +
-               cast(u32) values[1].a +
-               cast(u32) values[1].b +
-               cast(u32) values[2].a +
-               cast(u32) values[2].b
+        return cast(u32, values[0].a) +
+               cast(u32, values[0].b) +
+               cast(u32, values[1].a) +
+               cast(u32, values[1].b) +
+               cast(u32, values[2].a) +
+               cast(u32, values[2].b)
     }
 
     const value = #run sumPacked3(
@@ -53,10 +53,10 @@ func makePacked5(a: u8, b: u32)->Packed5
 {
     func sumPacked5(values: Packed5...)->u64
     {
-        return cast(u64) values[0].a +
-               cast(u64) values[0].b +
-               cast(u64) values[1].a +
-               cast(u64) values[1].b
+        return cast(u64, values[0].a) +
+               cast(u64, values[0].b) +
+               cast(u64, values[1].a) +
+               cast(u64, values[1].b)
     }
 
     const value = #run sumPacked5(

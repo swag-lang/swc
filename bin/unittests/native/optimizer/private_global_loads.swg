@@ -27,7 +27,7 @@ func fillPrivateTable()->u64
     var sum = 0'u64
     for i in 64
     {
-        g_PrivateTable![i] = cast(u64) i * 3
+        g_PrivateTable![i] = cast(u64, i) * 3
         if i < g_PrivateCount do
             sum += g_PrivateTable![i]
     }
@@ -41,7 +41,7 @@ func countThroughEscapedAddress(slots: [*] u64, target: *u64)->u64
     var seen = 0'u64
     for i in 8
     {
-        target[] = cast(u64) i + 100
+        target[] = cast(u64, i) + 100
         slots[i] = g_TakenCount
         seen     += g_TakenCount
     }

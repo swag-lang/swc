@@ -37,7 +37,7 @@ namespace compiler1647
     {
         var arr: [12] u8
         let cpt   = 3'u32
-        let slice = cast([..] u8) Swag.makeSlice(&arr[0], cast(u64) cpt)
+        let slice = cast([..] u8, Swag.makeSlice(&arr[0], cast(u64, cpt)))
         Swag.assert(slice.count == 3)
     }
 }
@@ -243,8 +243,8 @@ namespace compiler284
     func main()->bool
     {
         var v:  bool = false
-        var p1: *s32 = cast(*s32) &v
-        return p1 == cast(*s32) &v
+        var p1: *s32 = cast(*s32, &v)
+        return p1 == cast(*s32, &v)
     }
 
     #test

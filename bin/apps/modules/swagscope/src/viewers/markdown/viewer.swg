@@ -21,7 +21,7 @@ func markdownViewerPlugin()->Viewer.Plugin
         .staticName   = "Markdown"
         .attach       = &registerMarkdownStrings
         .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32) ViewerIcons.Markdown
+        .iconIndex    = cast(s32, ViewerIcons.Markdown)
         .create       = &createMarkdownViewer
         .textual      = true
         .smokeFixture = "comprehensive.md"
@@ -151,16 +151,16 @@ func markdownViewerColors(themeIndex: u32)->string
 func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32, applyColors = true)
 {
     var style = markdownViewerStyle(themeIndex, widthIndex)
-    let scale = cast(f32) zoomPercent / 100
-    style.bodyFontSize     = cast(u32) Math.max(Math.round(cast(f32) style.bodyFontSize * scale), 1)
-    style.codeFontSize     = cast(u32) Math.max(Math.round(cast(f32) style.codeFontSize * scale), 1)
-    style.mathFontSize     = cast(u32) Math.max(Math.round(cast(f32) style.mathFontSize * scale), 1)
-    style.heading1FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading1FontSize * scale), 1)
-    style.heading2FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading2FontSize * scale), 1)
-    style.heading3FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading3FontSize * scale), 1)
-    style.heading4FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading4FontSize * scale), 1)
-    style.heading5FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading5FontSize * scale), 1)
-    style.heading6FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading6FontSize * scale), 1)
+    let scale = cast(f32, zoomPercent) / 100
+    style.bodyFontSize     = cast(u32, Math.max(Math.round(cast(f32, style.bodyFontSize) * scale), 1))
+    style.codeFontSize     = cast(u32, Math.max(Math.round(cast(f32, style.codeFontSize) * scale), 1))
+    style.mathFontSize     = cast(u32, Math.max(Math.round(cast(f32, style.mathFontSize) * scale), 1))
+    style.heading1FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading1FontSize) * scale), 1))
+    style.heading2FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading2FontSize) * scale), 1))
+    style.heading3FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading3FontSize) * scale), 1))
+    style.heading4FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading4FontSize) * scale), 1))
+    style.heading5FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading5FontSize) * scale), 1))
+    style.heading6FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading6FontSize) * scale), 1))
     if applyColors do
         view.setDocumentThemeColors(markdownViewerColors(themeIndex))
     view.setDocumentStyle(style)
@@ -281,7 +281,7 @@ impl MarkdownZoomButton
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = markdownStrings().ui_ZoomMenu
-            .sigPressed += func(button) { (cast #assume (*MarkdownZoomButton) button).showZoomMenu() }
+            .sigPressed += func(button) { assume cast (*MarkdownZoomButton, button).showZoomMenu() }
         }
 
         return result
@@ -389,7 +389,7 @@ func createMarkdownViewer(host: Viewer.Host)
     if services.reportFailure
     {
         let reportFailure: Viewer.ReportFailure = services.reportFailure
-        view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd) markdown, reason) }
+        view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd, markdown), reason) }
     }
 
     applyMarkdownViewerStyle(view, g_MarkdownViewerSettings.themeIndex, g_MarkdownViewerSettings.widthIndex, zoomButton.zoomPercent)
@@ -398,21 +398,18 @@ func createMarkdownViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func(wnd, match, text)->bool
+        .revealMatch = func|view|(match, text)->bool
         {
-            return (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text)
+            return view.revealFileOffset(match.offset, text)
         }
 
-        .matchBounds = func(wnd, match, bounds)->bool
+        .matchBounds = func|view|(match, bounds)->bool
         {
             discard match
-            return (cast #assume (*Markdown.View) wnd).searchMatchRect(bounds)
+            return view.searchMatchRect(bounds)
         }
 
-        .clear = func(wnd)
-        {
-            (cast #assume (*Markdown.View) wnd).clearSearchHighlight()
-        }
+        .clear = func|view|() => view.clearSearchHighlight()
     }
 
     host.setSearch(search)
@@ -424,8 +421,8 @@ func createMarkdownViewer(host: Viewer.Host)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func(wnd)->bool => (cast #assume (*Markdown.View) wnd).isLoading()
-        .retire    = func(wnd)->bool => (cast(*MarkdownZoomButton) wnd.userData!).retire()
+        .isLoading = func|view|()->bool => view.isLoading()
+        .retire    = func|view|()->bool => cast(*MarkdownZoomButton, view.userData!).retire()
     }
 
     host.setLifecycle(lifecycle)

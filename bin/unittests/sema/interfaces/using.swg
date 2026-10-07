@@ -27,13 +27,13 @@ struct Bad
 func semaTest001()
 {
     var s: S
-    var i0 = cast(I) s
+    var i0 = cast(I, s)
     discard i0.foo()
 }
 
 func semaTest002()
 {
     var w: W
-    var i1 = cast(I) w
+    var i1 = cast(I, w)
     discard i1.foo()
 }

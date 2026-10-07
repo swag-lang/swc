@@ -147,7 +147,7 @@ func spawnWithTasks(values: [..] u64, partitions: u64)
 func measureSpawn(name: string, values: [..] u64, grouped: bool)
 {
     let workers    = Swag.workerCount()
-    let partitions = cast(u64) (workers < 1 ? 1'u32 : workers)
+    let partitions = cast(u64, (workers < 1 ? 1'u32 : workers))
 
     var samples: [Samples] u64
     for sample in Samples
@@ -201,7 +201,7 @@ func flatWork(values: [..] u64, outer, inner, rounds: u64)
 func measureNesting(name: string, values: [..] u64, nested: bool)
 {
     let workers = Swag.workerCount()
-    let outer   = cast(u64) (workers < 1 ? 1'u32 : workers)
+    let outer   = cast(u64, (workers < 1 ? 1'u32 : workers))
     let inner   = 8'u64
     let rounds  = 20_000'u64
 
@@ -234,7 +234,7 @@ struct ObserverPayload
 
 func observerEntry(th: Threading.Thread)
 {
-    let payload = cast(*ObserverPayload) th.userParam!
+    let payload = cast(*ObserverPayload, th.userParam!)
     payload.task.wait()
 }
 
@@ -268,7 +268,7 @@ func streamShortTasks(count: u64)->u64
 func measureHerd(observed: bool)
 {
     let workers  = Swag.workerCount()
-    var occupied = cast(u64) workers
+    var occupied = cast(u64, workers)
     if occupied > MaxOccupancy do
         occupied = MaxOccupancy
     if occupied == 0 do
@@ -292,7 +292,7 @@ func measureHerd(observed: bool)
 
     // Every sleeper must be running before an observer joins it, otherwise the observer claims the
     // queued node and runs the sleep itself instead of parking.
-    while running.load() != cast(u32) occupied do
+    while running.load() != cast(u32, occupied) do
         Threading.Thread.sleep(1'ms)
 
     if observed

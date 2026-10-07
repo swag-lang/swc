@@ -40,7 +40,7 @@ func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacterPageSize
 
     while code < FontCharacterLimit
     {
-        let character = cast(rune) code
+        let character = cast(rune, code)
         if Utf8.isValidRune(character) and face.hasChar(character)
         {
             if result.characters.count == pageSize
@@ -163,13 +163,13 @@ private impl FontDocumentView
         // A page holds far more cells than a viewport shows, so the band names the rows to draw
         // instead of the loop walking every cell to reject it.
         let pitch = .layout.cellHeight + FontCellGap
-        let first = Math.min(cast(u64) (Math.max(band.y - .layout.gridTop, 0) / pitch), .layout.rows)
-        let last  = Math.min(cast(u64) Math.ceil(Math.max(band.bottom() - .layout.gridTop, 0) / pitch), .layout.rows)
+        let first = Math.min(cast(u64, (Math.max(band.y - .layout.gridTop, 0) / pitch)), .layout.rows)
+        let last  = Math.min(cast(u64, Math.ceil(Math.max(band.bottom() - .layout.gridTop, 0) / pitch)), .layout.rows)
 
         let corner = .themeRects().btnIcon_RoundSquareBk.radius
         for row in first until last
         {
-            let top = .layout.gridTop + cast(f32) row * pitch
+            let top = .layout.gridTop + cast(f32, row) * pitch
             for column in .layout.columns
             {
                 let index = row * .layout.columns + column
@@ -177,7 +177,7 @@ private impl FontDocumentView
                     break
 
                 let cell = &.cells[index]
-                let box  = Math.Rectangle{.layout.gridLeft + cast(f32) column * (FontCellWidth + FontCellGap), top, FontCellWidth, .layout.cellHeight}
+                let box  = Math.Rectangle{.layout.gridLeft + cast(f32, column) * (FontCellWidth + FontCellGap), top, FontCellWidth, .layout.cellHeight}
                 painter.fillRoundRect(box, corner, corner, colors.wnd_Bk)
 
                 let codeTop   = box.bottom() - FontCellPadding - .fontCode.height
@@ -336,15 +336,15 @@ impl FontDocumentView
 
         let client = .clientRect()
         let usable = Math.max(client.width - 2 * FontContentInset, FontCellWidth)
-        .layout.columns = Math.max(1, cast(u32) ((usable + FontCellGap) / (FontCellWidth + FontCellGap)))
+        .layout.columns = Math.max(1, cast(u32, ((usable + FontCellGap) / (FontCellWidth + FontCellGap))))
         .layout.rows    = (.cells.count + .layout.columns - 1) / .layout.columns
 
-        let gridWidth = cast(f32) .layout.columns * FontCellWidth + cast(f32) (.layout.columns - 1) * FontCellGap
+        let gridWidth = cast(f32, .layout.columns) * FontCellWidth + cast(f32, (.layout.columns - 1)) * FontCellGap
         .layout.gridLeft = Math.max(FontContentInset, (client.width - gridWidth) * 0.5)
 
         var grid = .fontCode.height
         if .layout.rows do
-            grid = cast(f32) .layout.rows * (.layout.cellHeight + FontCellGap) - FontCellGap
+            grid = cast(f32, .layout.rows) * (.layout.cellHeight + FontCellGap) - FontCellGap
         .layout.height = .layout.gridTop + grid + FontContentInset
 
         .scroll.setScrollSize(0, .layout.height)
@@ -354,7 +354,7 @@ impl FontDocumentView
     mtd loadPage(start: u32)
     {
         let page = fontCharacterPage(.face!, start)
-        .pageStart = not page.characters.isEmpty() ? cast(u32) page.characters[0] : start
+        .pageStart = not page.characters.isEmpty() ? cast(u32, page.characters[0]) : start
         .pageEnd   = page.end
         .hasNext   = page.hasNext
 
@@ -365,7 +365,7 @@ impl FontDocumentView
             var cell: FontDocumentCell
             cell.character = character
             cell.glyph.append(character)
-            cell.code = Format.toString("U+%{X04}", cast(u32) character)
+            cell.code = Format.toString("U+%{X04}", cast(u32, character))
             .cells.add(#move cell)
         }
 

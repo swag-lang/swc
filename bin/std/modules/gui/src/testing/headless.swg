@@ -98,7 +98,7 @@ impl HeadlessHost
         .app.setMotionPreference(.Reduced)
         .app.deterministicStreaming = true
 
-        .surface.rc = expect .app.renderer.createContext(null, cast(s32) (width * dpiScale), cast(s32) (height * dpiScale))
+        .surface.rc = expect .app.renderer.createContext(null, cast(s32, (width * dpiScale)), cast(s32, (height * dpiScale)))
         .surface.bindPainterToRenderer(.app.renderer)
         .app.renderer.setCurrentContext(.surface.rc)
         .app.renderer.init()
@@ -381,7 +381,7 @@ impl HeadlessHost
 
     private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder, file, label: string? = null)->*AutoStage
     {
-        let stage = cast(*AutoStage) .autoStages.emplaceInitAddress()
+        let stage = cast(*AutoStage, .autoStages.emplaceInitAddress())
         stage.kind   = kind
         stage.button = button orelse ""
         stage.folder = folder
@@ -460,7 +460,7 @@ impl HeadlessHost
     {
         Swag.assert(.autoArmed and not .autoStages.isEmpty())
         let stage = .autoStages.storage() + .autoStages.count - 1
-        let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
+        let edit  = cast(*AutoEdit, stage.edits.emplaceInitAddress())
         edit.label = label
         edit.text  = text
     }
@@ -532,7 +532,7 @@ impl HeadlessHost
         // `SurfaceWnd.create` parents the view it is given, so that tree lives outside `root`:
         // search the surface window first, and let `root` answer for a tree the test built there.
         let hosted = .surfaceWnd.windowAt(pt.x, pt.y, true)
-        if hosted and hosted != cast(*Wnd) &.surfaceWnd do
+        if hosted and hosted != cast(*Wnd, &.surfaceWnd) do
             return hosted
 
         return .root.windowAt(pt.x, pt.y, true)
@@ -834,7 +834,7 @@ impl HeadlessHost
     // Returns the popup menu holding the pointer capture, or `null` when none does.
     mtd capturedPopupMenu()->*MenuCtrl?
     {
-        let menu = cast #try (*MenuCtrl) .app.mouseCaptureWnd
+        let menu = (catch cast(*MenuCtrl?, .app.mouseCaptureWnd))
         if not menu do
             return null
         if menu.bar do
@@ -1142,7 +1142,7 @@ impl HeadlessHost
         var needUpdateState = false
         for it in copy
         {
-            let evt = cast #assume (*Event) it
+            let evt = assume cast (*Event, it)
             if it is InvalidateEvent do
                 evt.target?.invalidate()
             else do

@@ -69,7 +69,7 @@ const NumDirections = countDirections()
 
 func parseGrid(text: string)->Grid
 {
-    let bytes = cast(const [..] u8) text
+    let bytes = cast(const [..] u8, text)
     var result: Grid
 
     var col: u32
@@ -146,15 +146,15 @@ func dfs(g: Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
     {
         let dr = Directions[dirIdx][0]
         let dc = Directions[dirIdx][1]
-        let nr = cast(s32) row + dr
-        let nc = cast(s32) col + dc
+        let nr = cast(s32, row) + dr
+        let nc = cast(s32, col) + dc
 
-        if nr < 0 or nc < 0 or cast(u32) nr >= g.height or cast(u32) nc >= g.width do
+        if nr < 0 or nc < 0 or cast(u32, nr) >= g.height or cast(u32, nc) >= g.width do
             continue
-        if cellAt(g, cast(u32) nr, cast(u32) nc) != nextH do
+        if cellAt(g, cast(u32, nr), cast(u32, nc)) != nextH do
             continue
 
-        paths += dfs(g, cast(u32) nr, cast(u32) nc, vis, scoreOut)
+        paths += dfs(g, cast(u32, nr), cast(u32, nc), vis, scoreOut)
     }
 
     return paths
@@ -176,10 +176,10 @@ func findTrails(grid: Grid)->TrailResult
             // Clear visited for this trailhead
             for index in grid.height
             {
-                let r = cast(u32) index
+                let r = cast(u32, index)
                 for idx in grid.width
                 {
-                    let c = cast(u32) idx
+                    let c = cast(u32, idx)
                     visited[r * MaxDim + c] = false
                 }
             }

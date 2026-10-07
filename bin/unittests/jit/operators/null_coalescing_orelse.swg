@@ -21,10 +21,10 @@ var GNullCoerc: s32 = 56
 {
     func zeroFallbackRune(x: rune)->rune
     {
-        return x != cast(rune) 0'u32 ? x : 'A'rune
+        return x != cast(rune, 0'u32) ? x : 'A'rune
     }
 
-    const V0 = #run zeroFallbackRune(cast(rune) 0'u32)
+    const V0 = #run zeroFallbackRune(cast(rune, 0'u32))
     const V1 = #run zeroFallbackRune('B'rune)
     #assert(V0 == 'A'rune)
     #assert(V1 == 'B'rune)
@@ -59,7 +59,7 @@ var GNullCoerc: s32 = 56
 {
     func nullPointerFallback(ptr: *s32?)->s32
     {
-        let fallback = cast(*s32) &GNullCoerc
+        let fallback = cast(*s32, &GNullCoerc)
         let resolved = ptr orelse fallback
         return resolved[]
     }
@@ -74,8 +74,8 @@ var GNullCoerc: s32 = 56
     {
         var x: u8    = 0
         var y: u8    = 0
-        let ptr      = cast(*void) &x
-        let fallback = cast(*void) &y
+        let ptr      = cast(*void, &x)
+        let fallback = cast(*void, &y)
         let resolved = ptr orelse fallback
         return resolved == ptr and resolved != fallback
     }

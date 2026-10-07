@@ -70,7 +70,7 @@ impl TextIndex
         {
             if item.kind != .Text or item.text.isEmpty() do
                 continue
-            var seed = seedRun(page, item, cast(u32) itemIndex)
+            var seed = seedRun(page, item, cast(u32, itemIndex))
             if seed.run.rect.width <= 0 or seed.run.rect.height <= 0 do
                 continue
             seeds.add(#move seed)
@@ -223,7 +223,7 @@ impl TextIndex
             {
                 let codeString = font.codeText(code)
                 let byteEnd    = Math.min(byteStart + codeString.length, item.text.length)
-                codes.add({cast(u32) byteStart, cast(u32) byteEnd, x, x + item.textAdvances[index]})
+                codes.add({cast(u32, byteStart), cast(u32, byteEnd), x, x + item.textAdvances[index]})
                 x         += item.textAdvances[index]
                 byteStart = byteEnd
             }
@@ -231,7 +231,7 @@ impl TextIndex
             // The decoded text and the codes can disagree on a malformed file; keep the byte
             // ranges inside the text whatever happened.
             if byteStart < item.text.length and codes.count do
-                codes.backPtr().byteEnd = cast(u32) item.text.length
+                codes.backPtr().byteEnd = cast(u32, item.text.length)
             return x
         }
 
@@ -241,7 +241,7 @@ impl TextIndex
         {
             let {value, eat} = Utf8.decodeRune(source[scan to])
             let advance      = item.standardFont.glyphWidth(value) * item.fontSize
-            codes.add({cast(u32) scan, cast(u32) (scan + eat), x, x + advance})
+            codes.add({cast(u32, scan), cast(u32, (scan + eat)), x, x + advance})
             x    += advance
             scan += eat
         }

@@ -62,8 +62,14 @@ struct NativeSurface
     inDiscretePlacement: bool
     preparingFrame:      bool
     preparedFrame:       bool
+    presentedFrame:      bool
     preparedWidth:       s32
     preparedHeight:      s32
+    presentationTarget:  Pixel.RenderTarget
+    presentationDC:      HDC
+    presentationBitmap:  Gdi32.HBITMAP
+    presentationPixels:  *u8?
+    presentationWidth, presentationHeight: s32
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -200,8 +206,17 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCCALCSIZE:
-            // The custom chrome occupies the whole client area. Let USER32 preserve the
-            // previous image until WM_SIZE publishes the frame for the committed bounds.
+
+            // UpdateLayeredWindow publishes bounds and pixels in one native operation before
+            // USER32 exposes the new client area. Mark it first because publication reenters us.
+            if surface.inDiscretePlacement and surface.preparedFrame and not surface.presentedFrame
+            {
+                surface.presentedFrame = true
+                surface.preparingFrame = true
+                surface.presentPreparedFrame()
+                surface.preparingFrame = false
+            }
+
             return 0
 
         case WM_NCHITTEST:
@@ -236,8 +251,8 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
 
-            // A pre-rendered frame belongs to the upcoming geometry. Painting it into the old
-            // drawable before WM_SIZE would expose a frame with mismatched content and bounds.
+            // A prepared frame belongs to the upcoming placement. Do not replace it with an
+            // ordinary repaint while preparing or publishing that placement.
             if surface.preparingFrame or surface.preparedFrame
             {
                 EndPaint(hWnd, &ps)
@@ -282,7 +297,14 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                         return 0
 
                     surface.preparedFrame  = false
+                    surface.presentedFrame = false
                     surface.preparingFrame = true
+                    if (next.flags & SWP_NOMOVE) == 0
+                    {
+                        surface.position.x = cast(f32) next.x
+                        surface.position.y = cast(f32) next.y
+                    }
+
                     surface.sendResizeEvent(cast(f32) next.cx, cast(f32) next.cy)
                     surface.preparedFrame  = surface.prepareResizeFrame(surface.wnd)
                     surface.preparingFrame = false
@@ -290,8 +312,6 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                     {
                         surface.preparedWidth  = next.cx
                         surface.preparedHeight = next.cy
-                        if Ogl.wglGetCurrentContext() != null do
-                            Ogl.glFlush()
                     }
                 }
             }
@@ -383,12 +403,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             let width    = cast(s32) LOWORD(lParam)
             let height   = cast(s32) HIWORD(lParam)
             let prepared = surface.preparedFrame and surface.preparedWidth == width and surface.preparedHeight == height and not surface.isDirty
-            surface.preparedFrame = false
+            surface.preparedFrame = prepared
             if not prepared do
                 surface.sendResizeEvent(cast(f32) width, cast(f32) height)
+            if surface.inDiscretePlacement do
+                return 0
+            surface.preparedFrame = false
 
-            // Drawing and geometry share the window thread, so WGL does not retire drawable
-            // buffers on a worker while USER32 is still changing that same window.
+            // Interactive resizing paints on the window thread while the application loop
+            // is suspended in USER32's sizing loop.
             if surface.canPresentNow()
             {
                 if prepared do
@@ -459,7 +482,7 @@ private impl Surface
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
             wc.cbWndExtra    = #sizeof(*void?)
-            wc.style         = CS_OWNDC | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
+            wc.style         = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
             wc.lpfnWndProc   = cast() &winProc
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
             wc.hIcon         = hIcon
@@ -470,7 +493,7 @@ private impl Surface
         var winFlags = 0'u32
         winFlags |= WS_POPUP | WS_CLIPCHILDREN
 
-        var winFlagsEx = 0'u32
+        var winFlagsEx = WS_EX_LAYERED
         if flags & .ToolWindow do
             winFlagsEx |= WS_EX_TOOLWINDOW
         if flags & .TopMost
@@ -483,8 +506,6 @@ private impl Surface
         result.hWnd = cast(const *void?) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
         if not result.hWnd do
             try failWinError(GetLastError())
-
-        result.enablePerPixelAlpha()
 
         // The window now knows its monitor: resolve the scale and resize the still
         // hidden window from logical units to physical pixels.
@@ -504,6 +525,13 @@ private impl Surface
 
     mtd destroyNative()
     {
+        if .rc.data
+        {
+            .app.renderer.setCurrentContext(.rc)
+            .app.renderer.deleteRenderTarget(&.presentationTarget)
+        }
+
+        .destroyNativePresentation()
         .destroyRendering()
         if not .hWnd do
             return
@@ -519,13 +547,26 @@ impl Surface
 {
     private mtd finishDiscretePlacement()
     {
-        .inDiscretePlacement = false
-        .preparedFrame       = false
-        // A placement with unchanged dimensions can still change the chrome. Otherwise
-        // WM_SIZE has already presented its prepared frame; do not submit it a second time.
-        if .canPresentNow() and .isDirty
+        .preparingFrame = true
+        defer .preparingFrame = false
+        defer .inDiscretePlacement = false
+        defer .preparedFrame = false
+        defer .presentedFrame = false
+
+        // An unchanged size can still change the chrome. Present once if no size transaction
+        // published the frame, or repaint if the placement invalidated its prepared contents.
+        if .canPresentNow()
         {
-            .paint()
+            if .preparedFrame and not .isDirty
+            {
+                if not .presentedFrame do
+                    .presentPreparedFrame()
+            }
+            else
+            {
+                .paint()
+            }
+
             discard ValidateRect(.hWnd, null)
         }
     }
@@ -553,6 +594,7 @@ impl Surface
             result.rcNormalPosition.top    -= dy
             result.rcNormalPosition.bottom -= dy
         }
+
         return result
     }
 
@@ -561,28 +603,64 @@ impl Surface
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
 
-    // Makes the desktop compositor read the alpha channel the surface renders.
-    //
-    // Without this a window is composited as if it were opaque, whatever its framebuffer says,
-    // and the transparent margin the theme casts its drop shadow into came out as a hard band of
-    // window ground around every surface. Asking to blur behind an *empty* region is the way to
-    // say "read my alpha, blur nothing": the flags name a region, the region covers no pixel, so
-    // no blur is ever drawn and the whole window becomes alpha-composited.
-    private mtd enablePerPixelAlpha()
+    private mtd destroyNativePresentation()
     {
-        // An inverted rectangle is the empty region.
-        let emptyRegion = CreateRectRgn(0, 0, -1, -1)
-        defer if emptyRegion do
-            catch DeleteObject(cast(Gdi32.HGDIOBJ) emptyRegion)
+        if .presentationDC do
+            catch DeleteDC(.presentationDC)
+        if .presentationBitmap do
+            catch DeleteObject(cast(Gdi32.HGDIOBJ) .presentationBitmap)
+        .presentationDC     = null
+        .presentationBitmap = null
+        .presentationPixels = null
+        .presentationWidth  = 0
+        .presentationHeight = 0
+    }
 
-        with var blurBehind: DWM_BLURBEHIND
+    internal mtd bindNativePresentationTarget()
+    {
+        if .presentationTarget.colorBuffer.width != .rc.width or .presentationTarget.colorBuffer.height != .rc.height
         {
-            .dwFlags  = DWM_BB_ENABLE | DWM_BB_BLURREGION
-            .fEnable  = TRUE
-            .hRgnBlur = emptyRegion
+            .app.renderer.deleteRenderTarget(&.presentationTarget)
+            .presentationTarget = .app.renderer.createRenderTarget(.rc.width, .rc.height)
         }
 
-        discard DwmEnableBlurBehindWindow(.hWnd, &blurBehind)
+        .app.renderer.bindRenderTarget(&.presentationTarget)
+    }
+
+    internal mtd prepareNativePresentation()
+    {
+        // A persistent layered HWND lets USER32 publish geometry and pixels together. Its
+        // bitmap is CPU-backed; keep it across repaints and copy the complete premultiplied
+        // BGRA frame, including the transparent shadow margin.
+        if .presentationWidth != .rc.width or .presentationHeight != .rc.height
+        {
+            .destroyNativePresentation()
+            .presentationDC = expect CreateCompatibleDC(null)
+            var info: BITMAPINFO
+            info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
+            info.bmiHeader.biWidth       = .rc.width
+            info.bmiHeader.biHeight      = .rc.height
+            info.bmiHeader.biPlanes      = 1
+            info.bmiHeader.biBitCount    = 32
+            info.bmiHeader.biCompression = BI_RGB
+            .presentationBitmap          = expect CreateDIBSection(null, &info, cast() DIB_RGB_COLORS, &.presentationPixels, null, 0)
+            SelectObject(.presentationDC, cast(Gdi32.HGDIOBJ) .presentationBitmap)
+            .presentationWidth  = .rc.width
+            .presentationHeight = .rc.height
+        }
+
+        let image = .app.renderer.readRenderTarget(&.presentationTarget, 0, 0, .rc.width, .rc.height)
+        Memory.copy(.presentationPixels!, image.pixels.buffer, image.byteCount)
+    }
+
+    internal mtd publishNativePresentation()
+    {
+        let destination = POINT{cast(s32) .position.x, cast(s32) .position.y}
+        let size        = SIZE{.presentationWidth, .presentationHeight}
+        let source      = POINT{}
+        let blend       = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
+        if not UpdateLayeredWindow(.hWnd, null, &destination, &size, .presentationDC, &source, 0, &blend, ULW_ALPHA) do
+            expect failWinError(GetLastError())
     }
 
     private mtd applyNativeDwmStyle()
@@ -716,7 +794,7 @@ impl Surface
     internal mtd applyNativeSurfaceFlags()
     {
         let shouldBeTopMost = .flags.has(.TopMost)
-        let topMostChanged = .topMost != shouldBeTopMost
+        let topMostChanged  = .topMost != shouldBeTopMost
         .topMost = shouldBeTopMost
 
         if not .app.renderer.needsNativeWindow() or not .hWnd do
@@ -953,7 +1031,10 @@ impl Surface
         .inDiscretePlacement = true
         defer .finishDiscretePlacement()
 
-        var placement = .nativePlacement(restoreTo, SW_SHOWMAXIMIZED)
+        // Maximize the current window first. Changing its normal rectangle while it is
+        // still normal would move it there before USER32 applies the maximized state.
+        ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
+        var placement = .nativePlacement(.restoredPosition, SW_SHOWMAXIMIZED)
         catch SetWindowPlacement(.hWnd, &placement)
     }
 
@@ -965,10 +1046,10 @@ impl Surface
     // like. `pos` is in physical screen pixels and becomes the bounds a later restore uses.
     //
     // Windows owns the show state and restore placement. The frame is prepared before the
-    // geometry changes, then submitted from WM_SIZE at the resulting client dimensions.
+    // geometry changes, then published with the destination bounds by UpdateLayeredWindow.
     mtd showNormalAt(pos: Math.Rectangle)
     {
-        let clampPos     = .clampToSizeLimits(pos)
+        let clampPos = .clampToSizeLimits(pos)
         .isMaximized = false
         .isMinimized = false
         .position    = clampPos
@@ -999,12 +1080,6 @@ impl Surface
 
         // SW_RESTORE returns a minimized maximized HWND to maximized state. Explicit normal
         // placement is needed when the caller asks to leave both states at once.
-        if .isMaximized and .isMinimized
-        {
-            .showNormalAt(.restoredPosition)
-            return
-        }
-
         .showNormalAt(.restoredPosition)
     }
 

@@ -6,6 +6,23 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.078 — Reduce a suspected nested-owner release false positive
+
+- Recorded: 2026-10-07 10:42
+- Evidence: an experimental Windows OpenGL/DirectComposition context stored a separately
+  allocated composition object in `OglContext.composition`. `NativeRenderOgl.dropContext(rc:
+  OglContext)` deleted that field; its caller then deleted the separately allocated `OglContext`
+  carrier. The compiler reported that the carrier had already been freed. Embedding the
+  composition state removed the report, but changed the ownership shape and did not explain it.
+- Boundary: this was observed in the discarded composition prototype, not in the retained
+  layered presenter. It is a suspected false positive, not an established alias-analysis defect;
+  no standalone suite reproducer has yet been obtained.
+- Next: reduce a heap-allocated carrier with a separately allocated field, a by-value cleanup
+  callee, and the subsequent carrier delete to the safety suite. Check whether the inferred
+  release summary confuses a field's pointee with its enclosing allocation before changing it.
+- Complete when: a standalone regression explains the diagnostic as valid or protects the
+  corrected ownership summary without GUI or graphics dependencies.
+
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 
 - Recorded: 2026-09-30 15:28

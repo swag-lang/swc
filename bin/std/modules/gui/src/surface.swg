@@ -428,11 +428,24 @@ impl Surface
     }
 
     // Prepares the next native geometry while the old window rectangle is still on screen.
-    // The platform presents this target only after USER32 has committed the new rectangle.
-    internal mtd prepareResizeFrame(root: *Wnd)->bool => .paintToRenderTarget(root)
+    // The platform publishes its pixels and the new rectangle together.
+    internal mtd prepareResizeFrame(root: *Wnd)->bool
+    {
+        if not .paintToRenderTarget(root) do
+            return false
+        if .app.renderer.needsNativeWindow() do
+            .presentRenderTarget(publish: false)
+        return true
+    }
 
     internal mtd presentPreparedFrame()
     {
+        if .app.renderer.needsNativeWindow()
+        {
+            .publishNativePresentation()
+            return
+        }
+
         .app.renderer.begin(.rc)
         .presentRenderTarget()
     }
@@ -543,7 +556,7 @@ impl Surface
         return true
     }
 
-    private mtd presentRenderTarget()
+    private mtd presentRenderTarget(publish = true)
     {
         var traceWatch: Time.Stopwatch
         let tracing = .app.frameTrace.enabled
@@ -579,7 +592,14 @@ impl Surface
         .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, color)
         .painter.end()
 
+        if .app.renderer.needsNativeWindow() do
+            .bindNativePresentationTarget()
         .app.renderer.draw(&.painter)
+        if .app.renderer.needsNativeWindow()
+        {
+            .app.renderer.unbindRenderTarget()
+            .prepareNativePresentation()
+        }
 
         // The copy and the present are timed apart because they answer different questions: one
         // is work the window asked for, the other is how long the display made it wait.
@@ -587,6 +607,8 @@ impl Surface
         if tracing do
             presentUs = traceWatch.elapsedMicroseconds()
         .app.renderer.end()
+        if publish and .app.renderer.needsNativeWindow() do
+            .publishNativePresentation()
 
         if tracing
         {

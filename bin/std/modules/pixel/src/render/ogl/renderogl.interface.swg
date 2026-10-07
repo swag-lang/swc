@@ -12,13 +12,14 @@ struct OglContext
 {
     public
     {
-        hDC:    const *void?     // Platform device context.
-        hRC:    const *void?     // OpenGL rendering context.
-        hWnd:   const *void?     // Associated drawable, or `null` for an externally supplied context.
-        width:  s32              // Drawable width, in pixels.
-        height: s32              // Drawable height, in pixels.
-        ownsDC: bool             // Whether dropping the context must release `hDC`.
-        ownsRC: bool             // Whether dropping the context must delete `hRC`.
+        hDC:        const *void?     // Platform device context.
+        hRC:        const *void?     // OpenGL rendering context.
+        hWnd:       const *void?     // Associated drawable, or `null` for an externally supplied context.
+        width:      s32              // Drawable width, in pixels.
+        height:     s32              // Drawable height, in pixels.
+        ownsDC:     bool             // Whether dropping the context must release `hDC`.
+        ownsRC:     bool             // Whether dropping the context must delete `hRC`.
+        ownsWindow: bool             // Whether an off-screen context host belongs to this context.
     }
 }
 

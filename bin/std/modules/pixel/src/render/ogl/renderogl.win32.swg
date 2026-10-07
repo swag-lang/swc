@@ -9,10 +9,27 @@ internal impl NativeRenderOgl
     // When `mainRC` is provided, it is borrowed instead of creating a new context.
     mtd createWindowContext(hWnd: const *void?, width, height: s32, mainRC: const *void? = null)->OglContext fail
     {
-        let nativeWindow = cast(HWND) hWnd
-        var result       = try .createContextForDeviceContext(cast(const *void?) GetDC(nativeWindow), width, height, mainRC)
-        result.hWnd   = hWnd
-        result.ownsDC = true
+        var nativeWindow = cast(HWND) hWnd
+        let ownsWindow   = (GetWindowLongPtrW(nativeWindow, GWL_EXSTYLE) & WS_EX_LAYERED) != 0
+        if ownsWindow
+        {
+            // Layered windows publish an offscreen image through USER32. Keep WGL's drawable
+            // on a separate, fixed-size host so visible geometry never reallocates it.
+            let className = Utf16.toZeroTerminated("STATIC")
+            let hostName  = Utf16.toZeroTerminated("Swag OpenGL context")
+            nativeWindow = CreateWindowExW(0, className.buffer, hostName.buffer, WS_POPUP, 0, 0, 1, 1, null, null, GetModuleHandleW(null), null)
+            if not nativeWindow do
+                try failWinError(GetLastError())
+        }
+
+        defer #fail if ownsWindow do
+            catch DestroyWindow(nativeWindow)
+        let dc = GetDC(nativeWindow)
+        defer #fail ReleaseDC(nativeWindow, dc)
+        var result = try .createContextForDeviceContext(cast(const *void?) dc, width, height, mainRC)
+        result.hWnd       = cast(const *void?) nativeWindow
+        result.ownsDC     = true
+        result.ownsWindow = ownsWindow
         return result
     }
 
@@ -67,6 +84,8 @@ internal impl NativeRenderOgl
             catch wglDeleteContext(cast(HGLRC) rc.hRC)
         if rc.ownsDC do
             ReleaseDC(cast(HWND) rc.hWnd, cast(HDC) rc.hDC)
+        if rc.ownsWindow do
+            catch DestroyWindow(cast(HWND) rc.hWnd)
     }
 
     // Deletes a renderer-owned shared OpenGL context after its last drawable is gone.
@@ -84,6 +103,8 @@ internal impl NativeRenderOgl
     // Presents the current back buffer for `rc`.
     mtd swapBuffers(rc: OglContext)
     {
+        if rc.ownsWindow do
+            return
         expect SwapBuffers(cast(HDC) rc.hDC)
     }
 

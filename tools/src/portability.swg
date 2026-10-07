@@ -74,6 +74,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/audio/src/driver/xaudio2.swg",
     "bin/std/modules/audio/src/tests/driver.xaudio2.win32.test.swg",
     "bin/apps/modules/swagcapture/src/screenshot/screenshot.win32.swg",
+    "bin/apps/modules/swagscope/src/tests/viewerwindow.placement.win32.test.swg",
     "bin/apps/modules/swagvault/src/autounmount.win32.swg",
     "bin/apps/modules/swagvault/src/tests/integration.win32.swg"]
 

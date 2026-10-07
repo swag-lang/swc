@@ -34,69 +34,41 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
-### std.gui.057 — Prevent stale compositor frames during maximize and restore
+### std.gui.057 — Validate layered presentation across displays and live resizing
 
 - Recorded: 2026-09-26 18:37
-- Updated: 2026-10-07 08:32 — Restore the October 6 placement code, record its minimized-position test failure, and establish the composition-contract investigation.
-- Evidence: a 30 fps, 3680x1970 screen recording of Swag Scope viewing a large Markdown
-  manuscript shows one visibly broken restore frame at frame 84 (2.8 s): the old maximized
-  document is cropped over the desktop at the restored window's location, with no window chrome.
-  Frame 85 has the correctly laid-out restored window. The reverse transition at frames 199-200
-  jumps directly to the maximized frame. The reporter has also seen worse instances.
-- Current boundary: the user reported worsening full-screen and restore artifacts on October 7
-  and requested a return to the previous day's code. The affected implementations were restored
-  from `77bedb326` (whose latest placement change is `81f3a02c7`). Unrelated non-null API changes
-  remain. This baseline still contains the earlier placement overlay and is not a verified fix.
-- Rollback validation: the devmode app builds and all 52 `viewerwindow.test.swg` tests pass.
-  `surface.renderthread.win32.test.swg` reports three passes and one failure: after minimizing a
-  maximized surface, `surface.position == maximized` fails at line 102. This is a result on the
-  restored implementation; do not report the rollback as a clean native or visual validation.
-- Reproduction: open the large `manuscrit.md` document in Swag Scope and start from a normal,
-  non-maximized window. Cover normal/full-screen/normal and normal/maximized/normal, then the
-  maximized/full-screen/maximized path. Starting maximized reduces the reported symptom.
-- Rejected approach: the October 7 experiments alternated a WGL window and a layered snapshot,
-  with hiding, cloaking, region changes or extra flushes. None established a shared presentation
-  transaction. Timing probes with the manuscript observed multi-second synchronous readback
-  waits in some transitions even when preparing the offscreen frame took only tens of
-  milliseconds. These observations localize an added stall, not the original artifact's cause.
-- Documented contracts: [DwmFlush](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmflush)
-  waits for queued DirectX updates from the caller; it does not document an atomic transaction
-  spanning USER32 geometry, WGL presentation and a second layered HWND.
-  [Microsoft's layered-window discussion](https://learn.microsoft.com/en-us/archive/msdn-magazine/2014/june/windows-with-c-high-performance-window-layering-using-the-windows-composition-engine)
-  explains the GPU-to-CPU copy required by a GPU-rendered layered window, followed by a copy back
-  for composition. This is an architectural cost, not a Markdown layout optimization problem.
-  The [GLFW context guide](https://www.glfw.org/docs/latest/context_guide.html#context_offscreen)
-  warns that a hidden window's default framebuffer dimensions may be unusable or unmodifiable.
-  The restored implementation paints the native drawable while SWP_HIDEWINDOW is in effect,
-  before SWP_SHOWWINDOW in `finishDiscretePlacement`; a valid offscreen FBO does not validate
-  that destination. This is a contract gap, not proof of a particular driver's behavior.
-- Comparable reports: [GLFW's programmatic resize report](https://discourse.glfw.org/t/glfw-window-flickers-despite-blitting-to-it-immediately-after-resizing-it/1389)
-  describes flicker even when drawing immediately after resizing. Its proposed buffer-size
-  explanation is a maintainer hypothesis, not a WGL guarantee.
-  [SDL issue 12528](https://github.com/libsdl-org/SDL/issues/12528) reports similar symptoms with
-  DX12/Vulkan and backend-dependent results from DwmFlush; it does not establish this app's cause.
-- Design boundary: retain one visible native window and one presentation owner. Separate the
-  final document render target from the window's current drawable; remove snapshot readback and
-  visibility tricks from a future replacement. First audit the native placement/message order,
-  actual drawable dimensions and buffer publication contract against the ordinary Windows path.
-  Do not equate a correctly sized offscreen frame or a successful SwapBuffers with a correctly
-  composed desktop frame.
-- Architectural option, not a chosen migration: [DirectComposition transactions](https://learn.microsoft.com/en-us/windows/win32/directcomp/basic-concepts#transactional-composition)
-  explicitly synchronize visual properties and surface content. A GPU composition presenter could
-  consume the existing renderer's output instead of copying it through a layered HWND. That
-  guarantee applies to the composition tree, not automatically to SetWindowPos; HWND resizing,
-  alpha, adapter support and OpenGL interoperability need a complete design before implementation.
-- Next: establish that presentation contract before another code change. Any reduced reproducer
-  must test one stated hypothesis and a predicted message/frame sequence. Validate the eventual
-  implementation with the actual manuscript, starting from a normal window, and correlate
-  native geometry and submitted frame sizes with a verified display-cadence recording.
-- Capture constraint: earlier probes captured the wrong application or output, missed the GL
-  surface, or sampled too slowly. Their images cannot establish visual correctness. Control only
-  a verified Swag Scope HWND or its internal commands; never send global full-screen shortcuts.
-- Complete when: repeated full-screen and maximize/restore captures show no old-size, clipped,
-  hidden or blank frame, including when document layout exceeds one refresh, with no added
-  multi-second presentation stall and a repeatable native visual boundary. Preserve the border
-  drag latency measured in std.gui.056.
+- Updated: 2026-10-07 10:42 — One persistent layered HWND now publishes bounds and pixels together; cross-display and physical-drag validation remain.
+- Implemented boundary: GUI rendering uses an offscreen OpenGL target and a fixed-size hidden
+  context host. The visible HWND stays layered throughout its lifetime. Its complete premultiplied
+  BGRA frame, position and size reach USER32 through one
+  [UpdateLayeredWindow operation](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow).
+  Discrete placement prepares the destination before publishing it from WM_NCCALCSIZE. There is
+  no alternating snapshot window, visibility change, composition acknowledgement or timed delay.
+- Evidence: three captured cycles with the actual `manuscrit.md`, each starting from a normal
+  window and also exercising maximized/full-screen/maximized, showed complete old and new frames
+  without the previous clipped, hidden or original-size intermediate state. The observer checked
+  the test HWND and its monitor; 378 captured frames were reviewed. Capture cadence under load
+  was approximately 12–30 fps, so this does not prove the absence of a one-refresh artifact.
+  A separate quiet run without capture measured six entries at 58–134 ms and six exits at
+  46–107 ms. Five native GUI placement/ownership tests and the manuscript integration passed.
+- Rejected alternative: a GPU DirectComposition presenter avoided readback but did not bind the
+  HWND geometry transaction to its content commit. Repeated captures exposed cropped content
+  whether Commit occurred after placement, during WM_NCCALCSIZE, or with WaitForCommitCompletion;
+  the latter also exposed new content in the old bounds. These APIs acknowledge the composition
+  batch, not an atomic USER32 geometry/content transaction.
+- Cost: layered presentation copies the full frame from GPU memory into a persistent CPU bitmap
+  and back into desktop composition. This is an architectural bandwidth cost on every repaint.
+  The OpenGL host no longer resizes with the visible window, removing its drawable-reallocation
+  coupling. The compiler's lost native stack arguments were independently fixed in `3c6d17a98`.
+- Next: measure physical border-drag latency against std.gui.056 on both displays, and capture
+  discrete placement at verified display cadence across DPI/adapter boundaries. Measure sustained
+  repaint cost before optimizing the GPU readback or its temporary allocation. Retain the single
+  HWND publication contract when evaluating any faster presenter.
+- Capture constraint: target the verified Swag Scope HWND or call its own window commands;
+  never send global full-screen shortcuts. Always include normal/full-screen/normal first.
+- Complete when: display-cadence captures across the supported monitors show only complete old
+  and new frames, and physical border dragging preserves the responsiveness measured in
+  std.gui.056 with an explicit sustained-presentation budget.
 - Related: std.gui.056
 
 ### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face

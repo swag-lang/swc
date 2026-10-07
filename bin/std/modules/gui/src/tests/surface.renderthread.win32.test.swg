@@ -6,7 +6,10 @@ using Core, Win32, Ogl
 
 struct PlacementObservation
 {
-    hides: u32
+    hides:              u32
+    expected:           Math.Rectangle
+    watchBounds:        bool
+    intermediateBounds: u32
 }
 
 #[Swag.CallingConvention(.C)]
@@ -18,6 +21,13 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
         let next = cast(*WINDOWPOS) cast #bit (u64) lParam
         if next.flags & SWP_HIDEWINDOW do
             observation.hides += 1
+    }
+    elif msg == WM_WINDOWPOSCHANGED and observation.watchBounds
+    {
+        var rect: RECT
+        Swag.assert(GetWindowRect(hWnd, &rect))
+        if rect.left != cast(s32) observation.expected.x or rect.top != cast(s32) observation.expected.y or rect.right != cast(s32) observation.expected.right() or rect.bottom != cast(s32) observation.expected.bottom() do
+            observation.intermediateBounds += 1
     }
 
     return DefSubclassProc(hWnd, msg, wParam, lParam)
@@ -39,6 +49,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
     Swag.assert(GetWindowPlacement(surface.win32Handle(), &normal))
     let bounds = surface.position
     surface.showMaximized()
+    let maximizedBounds = surface.position
     var maximized: WINDOWPLACEMENT
     maximized.length = #sizeof(maximized)
     Swag.assert(GetWindowPlacement(surface.win32Handle(), &maximized))
@@ -49,6 +60,11 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, sub
     Swag.assert(maximized.rcNormalPosition.bottom == normal.rcNormalPosition.bottom)
     surface.showNormal()
     surface.showNormalAt(Env.monitorForRectangle(bounds).physicalBounds)
+    observation.expected    = maximizedBounds
+    observation.watchBounds = true
+    surface.showMaximized(bounds)
+    observation.watchBounds = false
+    Swag.assert(observation.intermediateBounds == 0, "returning to maximized must not visit the normal restore bounds")
     surface.showNormalAt(bounds)
     Swag.assert(observation.hides == 0, "placement must preserve native visibility throughout the transaction")
     Swag.assert(surface.position == bounds)

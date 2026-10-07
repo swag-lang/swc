@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [std.gui.md](std.gui.md) | `std/gui` | 2026-10-07 08:27 |
+| [std.gui.md](std.gui.md) | `std/gui` | 2026-10-07 08:32 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-07 08:02 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-10-07 07:03 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-06 21:14 |

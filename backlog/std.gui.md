@@ -37,7 +37,7 @@ prove it. Operating-system integrations live in
 ### std.gui.057 — Prevent stale compositor frames during maximize and restore
 
 - Recorded: 2026-09-26 18:37
-- Updated: 2026-10-07 08:27 — Restore the October 6 placement code and replace the overlay assumption with a composition-contract investigation.
+- Updated: 2026-10-07 08:32 — Restore the October 6 placement code, record its minimized-position test failure, and establish the composition-contract investigation.
 - Evidence: a 30 fps, 3680x1970 screen recording of Swag Scope viewing a large Markdown
   manuscript shows one visibly broken restore frame at frame 84 (2.8 s): the old maximized
   document is cropped over the desktop at the restored window's location, with no window chrome.
@@ -47,6 +47,10 @@ prove it. Operating-system integrations live in
   and requested a return to the previous day's code. The affected implementations were restored
   from `77bedb326` (whose latest placement change is `81f3a02c7`). Unrelated non-null API changes
   remain. This baseline still contains the earlier placement overlay and is not a verified fix.
+- Rollback validation: the devmode app builds and all 52 `viewerwindow.test.swg` tests pass.
+  `surface.renderthread.win32.test.swg` reports three passes and one failure: after minimizing a
+  maximized surface, `surface.position == maximized` fails at line 102. This is a result on the
+  restored implementation; do not report the rollback as a clean native or visual validation.
 - Reproduction: open the large `manuscrit.md` document in Swag Scope and start from a normal,
   non-maximized window. Cover normal/full-screen/normal and normal/maximized/normal, then the
   maximized/full-screen/maximized path. Starting maximized reduces the reported symptom.
@@ -61,6 +65,11 @@ prove it. Operating-system integrations live in
   [Microsoft's layered-window discussion](https://learn.microsoft.com/en-us/archive/msdn-magazine/2014/june/windows-with-c-high-performance-window-layering-using-the-windows-composition-engine)
   explains the GPU-to-CPU copy required by a GPU-rendered layered window, followed by a copy back
   for composition. This is an architectural cost, not a Markdown layout optimization problem.
+  The [GLFW context guide](https://www.glfw.org/docs/latest/context_guide.html#context_offscreen)
+  warns that a hidden window's default framebuffer dimensions may be unusable or unmodifiable.
+  The restored implementation paints the native drawable while SWP_HIDEWINDOW is in effect,
+  before SWP_SHOWWINDOW in `finishDiscretePlacement`; a valid offscreen FBO does not validate
+  that destination. This is a contract gap, not proof of a particular driver's behavior.
 - Comparable reports: [GLFW's programmatic resize report](https://discourse.glfw.org/t/glfw-window-flickers-despite-blitting-to-it-immediately-after-resizing-it/1389)
   describes flicker even when drawing immediately after resizing. Its proposed buffer-size
   explanation is a maintainer hypothesis, not a WGL guarantee.

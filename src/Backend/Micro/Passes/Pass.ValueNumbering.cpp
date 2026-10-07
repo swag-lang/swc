@@ -491,7 +491,12 @@ namespace
             if (info.flags.has(MicroInstrFlagsE::WritesMemory) && ops &&
                 info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 ops[info.memBaseOperandIndex].reg.isInstructionPointer() && !relocations.contains(it.current))
+            {
+                // An unbound RIP write blocks both global segments. No later
+                // call or relocation can make any target safe to preserve.
                 result.blockedKinds = ~0u;
+                return result;
+            }
         }
         for (const MicroRelocation& relocation : context.builder->codeRelocations())
         {
@@ -656,7 +661,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     uint32_t                          memoryEpoch           = 0;
     uint32_t                          lastEpoch             = 0;
 
-    const bool readOnlySelfCalls = selfCallsOnlyReadMemory(context);
+    std::optional<bool> readOnlySelfCalls;
 
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the
@@ -673,8 +678,16 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         if (inst->op == MicroInstrOpcode::Label && cfg.predecessors(i).size() == 1 && cfg.predecessors(i)[0] < i)
             memoryEpoch = epochAt[cfg.predecessors(i)[0]];
-        else if (advancesMemoryEpoch(*inst) && !(readOnlySelfCalls && inst->op == MicroInstrOpcode::CallLocal))
-            memoryEpoch = ++lastEpoch;
+        else if (advancesMemoryEpoch(*inst))
+        {
+            const bool localCall = inst->op == MicroInstrOpcode::CallLocal;
+            // The proof scans relocations and the body. Only a local call can
+            // consume it, and queued rewrites leave that body unchanged.
+            if (localCall && !readOnlySelfCalls)
+                readOnlySelfCalls = selfCallsOnlyReadMemory(context);
+            if (!localCall || !*readOnlySelfCalls)
+                memoryEpoch = ++lastEpoch;
+        }
         epochAt[i] = memoryEpoch;
         if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             ++callCount;

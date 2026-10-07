@@ -1009,10 +1009,15 @@ func createSoundViewer(host: Viewer.Host)
         let view = try SoundViewer.create(host)
         host.attachView(view)
         host.setDetails(view.details.toString())
-        host.setLifecycle({
-            retire: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).retire(),
-            isLoading: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).isLoading(),
-            needsLoadingOverlay: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).needsLoadingOverlay()})
+
+        with var lifecycle: Viewer.LifecycleApi
+        {
+            .retire    = func(wnd)->bool => (cast #assume (*SoundViewer) wnd).retire()
+            .isLoading = func(wnd)->bool => (cast #assume (*SoundViewer) wnd).isLoading()
+            .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*SoundViewer) wnd).needsLoadingOverlay()
+        }
+
+        host.setLifecycle(lifecycle)
     } as createError
     if createError != null do
         host.reject(Errors.message(createError))

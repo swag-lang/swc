@@ -164,14 +164,21 @@ func createHtmlViewer(host: Viewer.Host)
     host.attachView(result)
     DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(htmlStrings().ui_Details)
-    host.setSearch({
-        revealMatch: func(wnd, match, text)->bool => (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text),
-        matchBounds: func(wnd, match, bounds)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard match
-        return (cast #assume (*HtmlViewer) wnd).view.searchMatchRect(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*HtmlViewer) wnd).view.clearSearch() }})
+        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text)
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*HtmlViewer) wnd).view.searchMatchRect(bounds)
+        }
+
+        .clear = func(wnd) { (cast #assume (*HtmlViewer) wnd).view.clearSearch() }
+    }
+
+    host.setSearch(search)
+
     host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*HtmlViewer) wnd).view.isLoading()})
     result.view.sigLinkActivated += func(html, url)
     {

@@ -269,24 +269,32 @@ func createSubtitleViewer(host: Viewer.Host)
         let view = try SubtitleViewer.create(host)
         host.attachView(view)
         host.setDetails(subtitleFormatText(view.track!.sourceFormat()))
-        host.setSearch({
-            collectMatches: func(wnd, text, options, progress, matches)->bool
+
+        with var search: Viewer.SearchApi
         {
-            discard progress
-            (cast #assume (*SubtitleViewer) wnd).collectMatches(text, options, matches)
-            return true
-        },
-            revealMatch: func(wnd, match, text)->bool
-        {
-            discard text
-            return (cast #assume (*SubtitleViewer) wnd).revealMatch(match)
-        },
-            matchBounds: func(wnd, match, bounds)->bool
-        {
-            discard match
-            return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
-        },
-            clear: func(wnd) { Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor) }})
+            .collectMatches = func(wnd, text, options, progress, matches)->bool
+            {
+                discard progress
+                (cast #assume (*SubtitleViewer) wnd).collectMatches(text, options, matches)
+                return true
+            }
+
+            .revealMatch = func(wnd, match, text)->bool
+            {
+                discard text
+                return (cast #assume (*SubtitleViewer) wnd).revealMatch(match)
+            }
+
+            .matchBounds = func(wnd, match, bounds)->bool
+            {
+                discard match
+                return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
+            }
+
+            .clear = func(wnd) { Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor) }
+        }
+
+        host.setSearch(search)
     } as createError
     if createError != null do
         host.reject(Errors.message(createError))

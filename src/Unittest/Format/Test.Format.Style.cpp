@@ -269,6 +269,40 @@ SWC_TEST_BEGIN(FormatStyle_DescribeRendersEveryOption)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagIndentsNamedClosureFieldsUnderTheirName)
+{
+    // A closure given as a named literal field opens its body under the field
+    // that names it, exactly like an unnamed closure argument does.
+    static constexpr std::string_view SOURCE =
+        "func run()\n"
+        "{\n"
+        "    target({\n"
+        "        first: func(x: s32)\n"
+        "    {\n"
+        "        work(x)\n"
+        "        work(x)\n"
+        "    },\n"
+        "        second: func(x: s32) { work(x) }})\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run()\n"
+        "{\n"
+        "    target({\n"
+        "        first: func(x: s32)\n"
+        "        {\n"
+        "            work(x)\n"
+        "            work(x)\n"
+        "        },\n"
+        "        second: func(x: s32) { work(x) }})\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

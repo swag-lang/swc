@@ -395,19 +395,34 @@ func createMarkdownViewer(host: Viewer.Host)
     applyMarkdownViewerStyle(view, g_MarkdownViewerSettings.themeIndex, g_MarkdownViewerSettings.widthIndex, zoomButton.zoomPercent)
     host.attachView(view)
     host.setDetails(markdownStrings().ui_Details)
-    host.setSearch({
-        revealMatch: func(wnd, match, text)->bool => (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text),
-        matchBounds: func(wnd, match, bounds)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard match
-        return (cast #assume (*Markdown.View) wnd).searchMatchRect(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*Markdown.View) wnd).clearSearchHighlight() }})
+        .revealMatch = func(wnd, match, text)->bool => (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text)
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*Markdown.View) wnd).searchMatchRect(bounds)
+        }
+
+        .clear = func(wnd) { (cast #assume (*Markdown.View) wnd).clearSearchHighlight() }
+    }
+
+    host.setSearch(search)
+
     view.userData = zoomButton
     zoomButton.reportDetails = services.reportDetails
     zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8)
     zoomButton.statisticsTimer = zoomButton.addTimer(Viewer.BackgroundPollInterval)
-    host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*Markdown.View) wnd).isLoading(), retire: func(wnd)->bool => (cast(*MarkdownZoomButton) wnd.userData!).retire()})
+
+    with var lifecycle: Viewer.LifecycleApi
+    {
+        .isLoading = func(wnd)->bool => (cast #assume (*Markdown.View) wnd).isLoading()
+        .retire    = func(wnd)->bool => (cast(*MarkdownZoomButton) wnd.userData!).retire()
+    }
+
+    host.setLifecycle(lifecycle)
+
     themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
     {
         discard combo

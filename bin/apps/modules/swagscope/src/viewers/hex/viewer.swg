@@ -739,24 +739,36 @@ func createHexViewer(host: Viewer.Host)
 
     host.attachView(view)
     host.setDetails(view.details.toString())
-    host.setSearch({
-        revealMatch: func(wnd, match, text)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard text
-        return (cast #assume (*HexViewer) wnd).revealOffset(match.offset, match.length)
-    },
-        matchBounds: func(wnd, match, bounds)->bool
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            discard text
+            return (cast #assume (*HexViewer) wnd).revealOffset(match.offset, match.length)
+        }
+
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*HexViewer) wnd).grid.matchBounds(bounds)
+        }
+
+        .clear              = func(wnd) { (cast #assume (*HexViewer) wnd).grid.clearSearchMatch() }
+        .describe           = func(wnd, presentation) { (cast #assume (*HexViewer) wnd).describeSearch(presentation) }
+        .prepare            = func(wnd, query, plan)->EditBoxCheckResult => (cast #assume (*HexViewer) wnd).prepareSearch(query, plan)
+        .collectFileMatches = func(wnd, source, baseOffset, matches) { (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) }
+        .useMatches         = func(wnd, matches) { (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches) }
+    }
+
+    host.setSearch(search)
+
+    with var lifecycle: Viewer.LifecycleApi
     {
-        discard match
-        return (cast #assume (*HexViewer) wnd).grid.matchBounds(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*HexViewer) wnd).grid.clearSearchMatch() },
-        describe: func(wnd, presentation) { (cast #assume (*HexViewer) wnd).describeSearch(presentation) },
-        prepare: func(wnd, query, plan)->EditBoxCheckResult => (cast #assume (*HexViewer) wnd).prepareSearch(query, plan),
-        collectFileMatches: func(wnd, source, baseOffset, matches) { (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) },
-        useMatches: func(wnd, matches) { (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches) }})
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null,
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null,
-        retire: func(wnd)->bool => (cast #assume (*HexViewer) wnd).retire()})
+        .isLoading = func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null
+        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null
+        .retire    = func(wnd)->bool => (cast #assume (*HexViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

@@ -1415,10 +1415,22 @@ namespace
             return result;
         }
 
+        // What an item holds: a named argument or literal field starts with its
+        // name, and it is the value after the `:` that can open a block.
+        uint32_t itemValue(const uint32_t item) const
+        {
+            const uint32_t colon = nextCodePiece(item);
+            if (colon == INVALID_PIECE || !model_->piece(colon).hasRole(FormatRoleE::NamedArgumentColon))
+                return item;
+            const uint32_t value = nextCodePiece(colon);
+            return value == INVALID_PIECE ? item : value;
+        }
+
         void alignMultilineItemContents(const ListState& state, const size_t itemIndex) const
         {
-            const uint32_t item = state.items[itemIndex];
-            if (!isMultilineLiteralItem(item))
+            const uint32_t item  = state.items[itemIndex];
+            const uint32_t value = itemValue(item);
+            if (!isMultilineLiteralItem(value))
                 return;
 
             // A hugged block keeps its opening token on the call line, so its own
@@ -1436,7 +1448,7 @@ namespace
             const uint32_t itemCols        = FormatModel::textColumns(model_->lineIndentOf(item), tabWidth);
             const uint32_t itemDepth       = model_->piece(item).depth;
             const uint32_t itemInlineDepth = inlineBodyDepthAt(item);
-            const bool     bracketItem     = model_->piece(item).is(TokenId::SymLeftBracket) || model_->piece(item).is(TokenId::SymLeftCurly);
+            const bool     bracketItem     = model_->piece(value).is(TokenId::SymLeftBracket) || model_->piece(value).is(TokenId::SymLeftCurly);
             int32_t        lastDelta       = 0;
 
             for (uint32_t lineStart = model_->nextPiece(item); lineStart != INVALID_PIECE && lineStart <= rangeEnd; lineStart = model_->nextPiece(lineStart))

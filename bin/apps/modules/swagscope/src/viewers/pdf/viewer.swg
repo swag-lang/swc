@@ -417,13 +417,23 @@ func createPdfViewer(host: Viewer.Host)
     // PDF text lives compressed inside the file, so the viewer extracts every page's text and
     // hands the host stable logical matches for counting and bidirectional navigation, a page at
     // a time as the extraction progresses on its worker.
-    host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool => (cast #assume (*PdfViewer) wnd).collectMatches(text, options, progress, matches),
-        revealMatch: func(wnd, match, text)->bool => (cast #assume (*PdfViewer) wnd).revealMatch(match, text),
-        matchBounds: func(wnd, match, bounds)->bool => (cast #assume (*PdfViewer) wnd).searchBounds(match, bounds),
-        clear: func(wnd) { (cast #assume (*PdfViewer) wnd).pdfView.clearSelection() }})
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null,
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null,
-        retire: func(wnd)->bool => (cast #assume (*PdfViewer) wnd).retire()})
+
+    with var search: Viewer.SearchApi
+    {
+        .collectMatches = func(wnd, text, options, progress, matches)->bool => (cast #assume (*PdfViewer) wnd).collectMatches(text, options, progress, matches)
+        .revealMatch    = func(wnd, match, text)->bool => (cast #assume (*PdfViewer) wnd).revealMatch(match, text)
+        .matchBounds    = func(wnd, match, bounds)->bool => (cast #assume (*PdfViewer) wnd).searchBounds(match, bounds)
+        .clear          = func(wnd) { (cast #assume (*PdfViewer) wnd).pdfView.clearSelection() }
+    }
+
+    host.setSearch(search)
+
+    with var lifecycle: Viewer.LifecycleApi
+    {
+        .isLoading = func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null
+        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null
+        .retire    = func(wnd)->bool => (cast #assume (*PdfViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

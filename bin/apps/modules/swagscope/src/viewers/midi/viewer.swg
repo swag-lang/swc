@@ -236,8 +236,13 @@ impl MidiViewer
 func createMidiViewer(host: Viewer.Host)
 {
     host.attachView(MidiViewer.create(host))
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading(),
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading(),
-        retire: func(wnd)->bool => (cast #assume (*MidiViewer) wnd).retire()})
+
+    with var lifecycle: Viewer.LifecycleApi
+    {
+        .isLoading = func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading()
+        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading()
+        .retire    = func(wnd)->bool => (cast #assume (*MidiViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

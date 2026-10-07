@@ -1342,22 +1342,34 @@ func createIndesignViewer(host: Viewer.Host)
 {
     let view = IndesignViewer.create(host)
     host.attachView(view)
-    host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard progress
-        (cast #assume (*IndesignViewer) wnd).collectMatches(text, options, matches)
-        return true
-    },
-        revealMatch: func(wnd, match, text)->bool => (cast #assume (*IndesignViewer) wnd).revealMatch(match, text),
-        matchBounds: func(wnd, match, bounds)->bool
+        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        {
+            discard progress
+            (cast #assume (*IndesignViewer) wnd).collectMatches(text, options, matches)
+            return true
+        }
+
+        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*IndesignViewer) wnd).revealMatch(match, text)
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*IndesignViewer) wnd).searchBounds(bounds)
+        }
+
+        .clear = func(wnd) { (cast #assume (*IndesignViewer) wnd).clearSearch() }
+    }
+
+    host.setSearch(search)
+
+    with var lifecycle: Viewer.LifecycleApi
     {
-        discard match
-        return (cast #assume (*IndesignViewer) wnd).searchBounds(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*IndesignViewer) wnd).clearSearch() }})
-    host.setLifecycle({
-        isLoading: func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) },
-        retire: func(wnd)->bool => (cast #assume (*IndesignViewer) wnd).retire()})
+        .isLoading = func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null }
+        .needsLoadingOverlay = func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) }
+        .retire    = func(wnd)->bool => (cast #assume (*IndesignViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

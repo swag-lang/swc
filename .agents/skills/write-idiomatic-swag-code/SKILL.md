@@ -321,6 +321,10 @@ else, judge whether naming the receiver once makes the operation easier to follo
 - Choose by coherence and repetition, not a fixed statement count. Two meaningful settings can
   belong together; one ordinary assignment usually reads better without a block. Prefer a small
   aggregate literal when it states the complete value more clearly than incremental setup.
+- Keep an aggregate literal passed as an argument on one line. When its fields need lines of
+  their own — a callback table, a closure with a block body — build the value in
+  `with var x: T` with one `.field = value` per line, then pass `x`. A literal spread across a
+  call's parentheses buries the call and every closure body in it.
 - Move owning fields directly in that literal: `Block{kind, #move text}` or
   `{header, #move previews}`. A conditional can mix a newly constructed value, a copyable
   lvalue, and an explicit transfer: `flag ? String.from("rule") : #move block.text`.
@@ -344,6 +348,14 @@ with let rail = Wnd.create'Wnd(view, {0, 0, 4})
     .backgroundStyle = .Window
     .style.addStyleSheetColors("wnd_Bk $hilight")
 }
+
+with var search: Viewer.SearchApi
+{
+    .revealMatch = func(wnd, match, text)->bool => (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text)
+    .clear       = func(wnd) { Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor) }
+}
+
+host.setSearch(search)
 ```
 
 ## Group Statements and Comment the Reasons

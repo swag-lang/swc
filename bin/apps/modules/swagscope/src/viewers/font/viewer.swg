@@ -284,8 +284,13 @@ func createFontViewer(host: Viewer.Host)
     let services = host.services()
     let view     = FontViewer.create(host.contentParent(), host.createCommandGroup(FontCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*FontViewer) wnd).loadTimer != null,
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*FontViewer) wnd).loadTimer != null,
-        retire: func(wnd)->bool => (cast #assume (*FontViewer) wnd).retire()})
+
+    with var lifecycle: Viewer.LifecycleApi
+    {
+        .isLoading = func(wnd)->bool => (cast #assume (*FontViewer) wnd).loadTimer != null
+        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*FontViewer) wnd).loadTimer != null
+        .retire    = func(wnd)->bool => (cast #assume (*FontViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

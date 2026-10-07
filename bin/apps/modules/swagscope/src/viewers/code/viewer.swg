@@ -531,13 +531,20 @@ func createCodeViewer(host: Viewer.Host)
 
     host.attachView(view)
     host.setDetails(Format.toString(codeStrings().ui_Details, view.languageName).toString())
-    host.setSearch({
-        revealMatch: func(wnd, match, text)->bool => (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text),
-        matchBounds: func(wnd, match, bounds)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard match
-        return Viewer.richEditMatchBounds((cast #assume (*CodeViewer) wnd).editor, bounds)
-    },
-        clear: func(wnd) { Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor) }})
+        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text)
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return Viewer.richEditMatchBounds((cast #assume (*CodeViewer) wnd).editor, bounds)
+        }
+
+        .clear = func(wnd) { Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor) }
+    }
+
+    host.setSearch(search)
+
     host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*CodeViewer) wnd).loadTimer != null})
 }

@@ -2126,22 +2126,34 @@ func createOpenDocumentViewer(host: Viewer.Host)
     view.outline = DocumentOutline.create(host)
     host.attachView(view)
     host.setDetails(openDocumentStrings().ui_Name)
-    host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard progress
-        (cast #assume (*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
-        return true
-    },
-        revealMatch: func(wnd, match, text)->bool => (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text),
-        matchBounds: func(wnd, match, bounds)->bool
+        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        {
+            discard progress
+            (cast #assume (*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
+            return true
+        }
+
+        .revealMatch = func(wnd, match, text)->bool => (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text)
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*OpenDocumentViewer) wnd).searchBounds(bounds)
+        }
+
+        .clear = func(wnd) { (cast #assume (*OpenDocumentViewer) wnd).clearSearch() }
+    }
+
+    host.setSearch(search)
+
+    with var lifecycle: Viewer.LifecycleApi
     {
-        discard match
-        return (cast #assume (*OpenDocumentViewer) wnd).searchBounds(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*OpenDocumentViewer) wnd).clearSearch() }})
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null,
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null,
-        retire: func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).retire()})
+        .isLoading = func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null
+        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null
+        .retire    = func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

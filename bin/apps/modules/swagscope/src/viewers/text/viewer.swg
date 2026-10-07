@@ -871,11 +871,21 @@ func createTextViewer(host: Viewer.Host)
     let view = TextViewer.create(host)
     host.attachView(view)
     host.setDetails(view.detailsText().toString())
-    host.setSearch({
-        revealMatch: &textRevealMatch,
-        matchBounds: &textSearchBounds,
-        clear: &textClearSearch})
-    host.setLifecycle({
-        isLoading: &textIsLoading,
-        retire: func(wnd)->bool => (cast #assume (*TextViewer) wnd).retire()})
+
+    with var search: Viewer.SearchApi
+    {
+        .revealMatch = &textRevealMatch
+        .matchBounds = &textSearchBounds
+        .clear       = &textClearSearch
+    }
+
+    host.setSearch(search)
+
+    with var lifecycle: Viewer.LifecycleApi
+    {
+        .isLoading = &textIsLoading
+        .retire    = func(wnd)->bool => (cast #assume (*TextViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

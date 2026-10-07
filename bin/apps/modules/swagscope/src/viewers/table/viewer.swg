@@ -557,26 +557,39 @@ func createTableViewer(host: Viewer.Host)
     let services = host.services()
     let view     = TableViewer.create(host.contentParent(), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
-    host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool
+
+    with var search: Viewer.SearchApi
     {
-        discard progress
-        (cast #assume (*TableViewer) wnd).collectMatches(text, options, matches)
-        return true
-    },
-        revealMatch: func(wnd, match, text)->bool
+        .collectMatches = func(wnd, text, options, progress, matches)->bool
+        {
+            discard progress
+            (cast #assume (*TableViewer) wnd).collectMatches(text, options, matches)
+            return true
+        }
+
+        .revealMatch = func(wnd, match, text)->bool
+        {
+            discard text
+            return (cast #assume (*TableViewer) wnd).revealMatch(match)
+        }
+
+        .matchBounds = func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*TableViewer) wnd).searchBounds(bounds)
+        }
+
+        .clear = func(wnd) { (cast #assume (*TableViewer) wnd).clearSearch() }
+    }
+
+    host.setSearch(search)
+
+    with var lifecycle: Viewer.LifecycleApi
     {
-        discard text
-        return (cast #assume (*TableViewer) wnd).revealMatch(match)
-    },
-        matchBounds: func(wnd, match, bounds)->bool
-    {
-        discard match
-        return (cast #assume (*TableViewer) wnd).searchBounds(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*TableViewer) wnd).clearSearch() }})
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null,
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null,
-        retire: func(wnd)->bool => (cast #assume (*TableViewer) wnd).retire()})
+        .isLoading = func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null
+        .needsLoadingOverlay = func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null
+        .retire    = func(wnd)->bool => (cast #assume (*TableViewer) wnd).retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

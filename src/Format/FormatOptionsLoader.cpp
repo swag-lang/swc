@@ -182,6 +182,11 @@ namespace
         schema.addEnum("align-fat-arrows", &options.alignFatArrows, alignChoices, "Align `=>` of adjacent short function bodies");
         schema.addEnum("align-case-bodies", &options.alignCaseBodies, alignChoices, "Align the bodies of consecutive one-line `case` arms");
 
+        schema.add("uniform-branch-bodies", &options.uniformBranchBodies, "Give every branch of an `if` / `elif` / `else` chain the same `do` or `{ }` body");
+        schema.addEnum("uniform-guard-bodies", &options.uniformGuardBodies, alignChoices, "Give consecutive `if` statements without `else` the same `do` or `{ }` body");
+        schema.addEnum("uniform-closure-bodies", &options.uniformClosureBodies, alignChoices, "Lay out sibling closures alike: all on one line, or all expanded");
+        schema.addEnum("uniform-function-bodies", &options.uniformFunctionBodies, alignChoices, "Put sibling single-statement functions on one line when some already are");
+
         schema.add("align-trailing-comments", &options.alignTrailingComments, "Align trailing `//` comments into a shared column");
         schema.add("trailing-comment-min-spaces", &options.trailingCommentMinSpaces, "Set the minimum spaces between code and a trailing `//` comment");
         schema.add("trailing-comment-max-column", &options.trailingCommentMaxColumn, "Set the maximum trailing-comment column; use 0 to disable the cap");

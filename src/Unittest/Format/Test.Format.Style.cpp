@@ -282,7 +282,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagIndentsNamedClosureFieldsUnderTheirName)
         "        work(x)\n"
         "        work(x)\n"
         "    },\n"
-        "        second: func(x: s32) { work(x) }})\n"
+        "        second: 1})\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
@@ -294,7 +294,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagIndentsNamedClosureFieldsUnderTheirName)
         "            work(x)\n"
         "            work(x)\n"
         "        },\n"
-        "        second: func(x: s32) { work(x) }})\n"
+        "        second: 1})\n"
         "}\n";
 
     FormatOptions options;

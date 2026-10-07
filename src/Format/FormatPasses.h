@@ -28,6 +28,11 @@ namespace FormatPass
     void comments(FormatModel& model); // comment rewriting options
     void align(FormatModel& model);    // align-* options
 
+    // Rewrites the syntax of sibling bodies so they share one form (uniform-*).
+    // Runs before every other pass, and when it returns true the caller parses
+    // the rendered text again and formats that instead.
+    bool uniformSiblings(FormatModel& model);
+
     void runAll(FormatModel& model);
 }
 

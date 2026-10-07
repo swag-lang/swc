@@ -40,6 +40,17 @@ namespace
         }
     }
 
+    // A comment between a branch and the `else` or `elif` after it introduces
+    // that branch: the chain is one statement, and a blank line would cut it
+    // in two.
+    bool introducesElse(const FormatModel& model, const uint32_t pieceIndex)
+    {
+        uint32_t next = pieceIndex;
+        while (next != INVALID_PIECE && model.piece(next).isComment)
+            next = model.nextPiece(next);
+        return next != INVALID_PIECE && model.piece(next).hasRole(FormatRoleE::ElseKeyword);
+    }
+
     void applyBlankLineAfterUsingBlock(FormatModel& model)
     {
         const FormatOptions& options = model.options();
@@ -231,6 +242,12 @@ namespace
                 nextCode = model.nextPiece(nextCode);
             if (nextCode == INVALID_PIECE)
                 continue;
+            if (introducesElse(model, nextCode))
+            {
+                applyBlankLineStyle(model, lineStart, FormatBlankLineStyle::Never);
+                continue;
+            }
+
             const FormatPiece& nextPiece = model.piece(nextCode);
             if (!nextPiece.is(TokenId::SymRightCurly) &&
                 !nextPiece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::FieldDeclStart,
@@ -353,6 +370,9 @@ namespace
 
             const uint32_t next = model.nextPiece(block.closePiece);
             if (next == INVALID_PIECE || !model.gapHasNewline(next))
+                continue;
+
+            if (introducesElse(model, next))
                 continue;
 
             const FormatPiece& nextPiece        = model.piece(next);

@@ -138,6 +138,9 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     blocks_.clear();
     inlineBodies_.clear();
     logicalExpressions_.clear();
+    hangingLines_.clear();
+    branchChains_.clear();
+    functionBodies_.clear();
     ownedTexts_.clear();
 
     const auto& tokens = srcView.tokens();

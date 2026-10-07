@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Format/FormatPassUtil.h"
 #include "Format/FormatPasses.h"
+#include "Format/FormatSiblings.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -172,10 +173,23 @@ namespace
 
         void runShortBlocks() const
         {
+            const std::unordered_map<uint32_t, SiblingLayout> siblings = siblingLayouts();
             for (const FormatBlock& block : model_->blocks())
             {
                 if (!rangeEditable(*model_, block.openPiece, block.closePiece))
                     continue;
+
+                if (const auto it = siblings.find(block.openPiece); it != siblings.end())
+                {
+                    if (blockIsEmpty(*model_, block))
+                        continue;
+                    const bool singleLine = blockIsSingleLine(*model_, block);
+                    if (it->second == SiblingLayout::Split && singleLine)
+                        splitBlock(block);
+                    else if (it->second == SiblingLayout::Join && !singleLine)
+                        tryJoinBlock(block);
+                    continue;
+                }
 
                 const FormatShortBlockStyle style = configuredShortStyle(*model_, block);
                 if (style == FormatShortBlockStyle::Preserve)
@@ -254,6 +268,88 @@ namespace
         }
 
     private:
+        enum class SiblingLayout : uint8_t
+        {
+            Split,
+            Join,
+        };
+
+        // Braced bodies whose siblings decide their layout: a group that mixes
+        // one-line and expanded bodies takes a single layout, whatever the
+        // short-block options would say for each body alone.
+        std::unordered_map<uint32_t, SiblingLayout> siblingLayouts() const
+        {
+            std::unordered_map<uint32_t, SiblingLayout> result;
+            const auto&                                 bodies = model_->functionBodies();
+
+            // Closures all go on one line when every body can, and all expand otherwise.
+            for (const auto& group : FormatSiblings::closureGroups(*model_, options_->uniformClosureBodies))
+            {
+                bool oneLine  = false;
+                bool expanded = false;
+                bool compact  = true;
+                for (const uint32_t i : group)
+                {
+                    const FormatSiblings::BodyShape shape = FormatSiblings::functionShape(*model_, bodies[i]);
+                    oneLine                               = oneLine || shape.oneLine;
+                    expanded                              = expanded || !shape.oneLine;
+                    compact                               = compact && shape.compact;
+                }
+                if (!oneLine || !expanded)
+                    continue;
+                for (const uint32_t i : group)
+                {
+                    if (bodies[i].openPiece != INVALID_PIECE)
+                        result[bodies[i].openPiece] = compact ? SiblingLayout::Join : SiblingLayout::Split;
+                }
+            }
+
+            // Functions only ever join, and only when every one of them can.
+            for (const auto& group : FormatSiblings::functionGroups(*model_, options_->uniformFunctionBodies))
+            {
+                bool oneLine  = false;
+                bool expanded = false;
+                bool compact  = true;
+                for (const uint32_t i : group)
+                {
+                    const FormatSiblings::BodyShape shape = FormatSiblings::functionShape(*model_, bodies[i]);
+                    oneLine                               = oneLine || shape.oneLine;
+                    expanded                              = expanded || !shape.oneLine;
+                    compact                               = compact && shape.compact && shape.valid;
+                }
+                if (!oneLine || !expanded || !compact)
+                    continue;
+                for (const uint32_t i : group)
+                {
+                    if (bodies[i].openPiece != INVALID_PIECE)
+                        result[bodies[i].openPiece] = SiblingLayout::Join;
+                }
+            }
+
+            // Braced branches of one chain all expand once one of them is.
+            const bool chains = options_->uniformBranchBodies.value_or(false);
+            for (const auto& group : FormatSiblings::branchGroups(*model_, chains, FormatAlignMode::Preserve))
+            {
+                bool braced   = true;
+                bool oneLine  = false;
+                bool expanded = false;
+                for (const auto& [chain, index] : group)
+                {
+                    const FormatBranch& branch = model_->branchChains()[chain].branches[index];
+                    const auto          shape  = FormatSiblings::branchShape(*model_, branch);
+                    braced                     = braced && shape.braced && shape.valid;
+                    oneLine                    = oneLine || shape.oneLine;
+                    expanded                   = expanded || !shape.oneLine;
+                }
+                if (!braced || !oneLine || !expanded)
+                    continue;
+                for (const auto& [chain, index] : group)
+                    result[model_->branchChains()[chain].branches[index].openPiece] = SiblingLayout::Split;
+            }
+
+            return result;
+        }
+
         void splitBlock(const FormatBlock& block) const
         {
             const Utf8 base(model_->lineIndentOf(block.headPiece));

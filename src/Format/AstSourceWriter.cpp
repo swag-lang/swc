@@ -22,6 +22,14 @@ void AstSourceWriter::write() const
     FormatModel model;
     model.build(*formatCtx_->srcView, *formatCtx_->options);
     FormatClassifier::classify(model, *formatCtx_->ast);
+
+    if (formatCtx_->rewriteSyntax && FormatPass::uniformSiblings(model))
+    {
+        model.render(formatCtx_->output);
+        formatCtx_->syntaxRewritten = true;
+        return;
+    }
+
     FormatPass::runAll(model);
     model.render(formatCtx_->output);
 }

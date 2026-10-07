@@ -209,6 +209,12 @@ Never hand-align a continuation line, a declaration column, or a trailing commen
 `swc format` and let it place them; manual padding is what drifts when a neighbouring line
 changes. Follow [validate-swag-changes](../validate-swag-changes/SKILL.md) for the formatting and validation workflow.
 
+The formatter also reads siblings as one pattern. The branches of an `if` / `elif` / `else`
+chain all take `do` or all take braces, consecutive guards share the `do` form, closures assigned
+or passed side by side are all one-line or all expanded, and a single-statement function beside
+one-line siblings joins them. Change the shape of the whole group, not of one member: the next
+format puts a lone exception back in line.
+
 ## Return Values Directly
 
 - Return the operation's primary result. Do not make a caller declare an uninitialized value and

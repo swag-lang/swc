@@ -17,7 +17,12 @@ Formatter::Formatter(FormatOptions options) :
 {
 }
 
-void Formatter::prepare(const SourceFile& file)
+void Formatter::prepare(const Global& global, const SourceFile& file)
+{
+    prepareParsed(global, file, true);
+}
+
+void Formatter::prepareParsed(const Global& global, const SourceFile& file, const bool rewriteSyntax)
 {
     file_ = &file;
     if (file.mustSkipFormat())
@@ -29,13 +34,30 @@ void Formatter::prepare(const SourceFile& file)
     }
 
     FormatContext formatCtx = {
-        .ast     = &file.ast(),
-        .srcView = file.ast().hasSourceView() ? &file.ast().srcView() : nullptr,
-        .options = &options_,
+        .ast           = &file.ast(),
+        .srcView       = file.ast().hasSourceView() ? &file.ast().srcView() : nullptr,
+        .options       = &options_,
+        .rewriteSyntax = rewriteSyntax,
     };
 
     const AstSourceWriter writer(formatCtx);
     writer.write();
+
+    // Rewritten tokens need their own AST before they can be laid out. A
+    // rewrite the parser rejects is dropped, and the file is formatted as
+    // it was written.
+    if (formatCtx.syntaxRewritten)
+    {
+        Formatter rewritten(options_);
+        if (rewritten.prepareSource(global, formatCtx.output.view(), false) == Result::Continue)
+            formatCtx.output = std::move(rewritten.text_);
+        else
+        {
+            formatCtx.rewriteSyntax   = false;
+            formatCtx.syntaxRewritten = false;
+            writer.write();
+        }
+    }
 
     text_    = std::move(formatCtx.output);
     changed_ = text_.view() != file.sourceView();
@@ -44,12 +66,18 @@ void Formatter::prepare(const SourceFile& file)
 
 Result Formatter::prepare(const Global& global, const std::string_view source)
 {
+    return prepareSource(global, source, true);
+}
+
+Result Formatter::prepareSource(const Global& global, const std::string_view source, const bool rewriteSyntax)
+{
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Syntax;
     cmdLine.name    = "formatter_inline";
 
     CompilerInstance compiler(global, cmdLine);
     TaskContext      ctx(compiler);
+    ctx.setMuteOutput(!rewriteSyntax);
 
     const fs::path path       = "formatter_inline.swg";
     SourceFile&    sourceFile = compiler.addLoadedFile(path, FileFlagsE::CustomSrc, source);
@@ -64,7 +92,7 @@ Result Formatter::prepare(const Global& global, const std::string_view source)
     if (ctx.hasError())
         return Result::Error;
 
-    prepare(sourceFile);
+    prepareParsed(global, sourceFile, rewriteSyntax);
     file_ = nullptr;
     return Result::Continue;
 }

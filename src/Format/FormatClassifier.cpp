@@ -583,6 +583,110 @@ namespace
             }
         }
 
+        // The branch a control body forms once it is classified: braced, or
+        // inline after `do`. A body the classifier could not place yields a
+        // branch without a last piece, which keeps its chain out of reach.
+        FormatBranch branchOf(const uint32_t keyword, const AstNodeRef bodyRef)
+        {
+            FormatBranch branch;
+            branch.keyword = keyword;
+
+            const NodeSpan bodySpan = spanOf(bodyRef);
+            if (!bodySpan.valid())
+                return branch;
+
+            const uint32_t open = isDestructuringAssignStmt(bodyRef) ? INVALID_PIECE : bodyOpenBrace(bodySpan);
+            if (open != INVALID_PIECE && model_->blockOfOpen(open))
+            {
+                branch.openPiece = open;
+                branch.lastPiece = model_->piece(open).match;
+                return branch;
+            }
+
+            branch.doPiece = prevCodeIf(bodySpan.minPiece, TokenId::KwdDo);
+            for (const FormatInlineBody& body : model_->inlineBodies())
+            {
+                if (body.doPiece == branch.doPiece)
+                    branch.lastPiece = body.lastPiece;
+            }
+            return branch;
+        }
+
+        // Records the branches of an `if` statement. An `elif` is the `else`
+        // of the statement before it and is classified after it, so its
+        // branches join the chain that statement started.
+        void recordBranches(const AstNodeRef nodeRef, const uint32_t keyword, const AstNodeRef bodyRef, const AstNodeRef elseRef)
+        {
+            size_t chainIndex = model_->branchChains().size();
+            if (const auto it = pendingElifs_.find(nodeRef.get()); it != pendingElifs_.end())
+                chainIndex = it->second;
+            else
+                model_->branchChains().push_back({.stmtPiece = keyword});
+
+            model_->branchChains()[chainIndex].branches.push_back(branchOf(keyword, bodyRef));
+
+            if (!shouldVisit(elseRef))
+                return;
+            const NodeSpan elseSpan = spanOf(elseRef);
+            if (!elseSpan.valid())
+                return;
+            if (model_->piece(elseSpan.minPiece).is(TokenId::KwdElseIf))
+            {
+                pendingElifs_[elseRef.get()] = static_cast<uint32_t>(chainIndex);
+                return;
+            }
+
+            uint32_t elseKeyword = prevCode(elseSpan.minPiece);
+            if (elseKeyword != INVALID_PIECE && model_->piece(elseKeyword).is(TokenId::KwdDo))
+                elseKeyword = prevCode(elseKeyword);
+            if (elseKeyword != INVALID_PIECE && model_->piece(elseKeyword).isNot(TokenId::KwdElse))
+                elseKeyword = INVALID_PIECE;
+            model_->branchChains()[chainIndex].branches.push_back(branchOf(elseKeyword, elseRef));
+        }
+
+        // Records a function or closure body, braced or written as `=> expr`.
+        void recordFunctionBody(const NodeSpan& span, const AstNodeRef bodyRef, const AstNodeRef returnTypeRef, const bool closure)
+        {
+            const NodeSpan bodySpan = spanOf(bodyRef);
+            if (!span.valid() || !bodySpan.valid())
+                return;
+
+            FormatFunctionBody body;
+            body.headPiece     = span.minPiece;
+            body.hasReturnType = spanOf(returnTypeRef).valid();
+            body.closure       = closure;
+
+            const uint32_t open = bodyOpenBrace(bodySpan);
+            if (open != INVALID_PIECE && model_->blockOfOpen(open))
+            {
+                body.openPiece = open;
+                body.lastPiece = model_->piece(open).match;
+            }
+            else
+            {
+                if (model_->piece(bodySpan.minPiece).is(TokenId::SymEqualGreater))
+                    body.arrowPiece = bodySpan.minPiece;
+                else
+                    body.arrowPiece = prevCodeBeforeOperandIf(bodySpan.minPiece, TokenId::SymEqualGreater);
+                if (body.arrowPiece == INVALID_PIECE)
+                    return;
+
+                // A function expression's own span runs past its body; the body
+                // ends on its last piece, or on a bracket that closes inside it.
+                body.lastPiece = bodySpan.maxPiece;
+                for (uint32_t next = nextCode(body.lastPiece); next != INVALID_PIECE; next = nextCode(next))
+                {
+                    const FormatPiece& close = model_->piece(next);
+                    if (close.match == INVALID_PIECE || close.match < bodySpan.minPiece ||
+                        (close.isNot(TokenId::SymRightParen) && close.isNot(TokenId::SymRightBracket) && close.isNot(TokenId::SymRightCurly)))
+                        break;
+                    body.lastPiece = next;
+                }
+            }
+
+            model_->functionBodies().push_back(body);
+        }
+
         void markStatementStarts(const AstNode& node)
         {
             SmallVector<AstNodeRef> children;
@@ -833,6 +937,8 @@ namespace
                             addRole(prevCodeBeforeOperandIf(bodySpan.minPiece, TokenId::SymEqualGreater), FormatRoleE::FatArrow);
                         }
                     }
+
+                    recordFunctionBody(span, fn.nodeBodyRef, fn.nodeReturnTypeRef, false);
                     break;
                 }
 
@@ -841,6 +947,7 @@ namespace
                     const auto&    fn       = node.cast<AstFunctionExpr>();
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
                     registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece, true);
+                    recordFunctionBody(span, fn.nodeBodyRef, fn.nodeReturnTypeRef, true);
                     addRole(nextCodeIf(span.minPiece, TokenId::SymLeftParen), FormatRoleE::DeclOpenParen);
 
                     const NodeSpan returnSpan = spanOf(fn.nodeReturnTypeRef);
@@ -854,6 +961,7 @@ namespace
                     const auto&    fn       = node.cast<AstClosureExpr>();
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
                     registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece, true);
+                    recordFunctionBody(span, fn.nodeBodyRef, fn.nodeReturnTypeRef, true);
 
                     SmallVector<AstNodeRef> captures;
                     ast_->appendNodes(captures, fn.nodeCaptureArgsRef);
@@ -1040,6 +1148,8 @@ namespace
 
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
                     classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
+                    if (span.valid())
+                        recordBranches(nodeRef, span.minPiece, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
                 }
 
@@ -1052,6 +1162,8 @@ namespace
 
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
                     classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
+                    if (span.valid())
+                        recordBranches(nodeRef, span.minPiece, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
                 }
 
@@ -1438,6 +1550,7 @@ namespace
         const Ast*                             ast_;
         std::unordered_map<uint32_t, NodeSpan> spans_;
         std::unordered_map<uint32_t, uint32_t> statementLimits_;
+        std::unordered_map<uint32_t, uint32_t> pendingElifs_; // `elif` statement node -> chain it continues
     };
 }
 

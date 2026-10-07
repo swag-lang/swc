@@ -156,6 +156,7 @@
         <ClCompile Include="src\Unittest\Format\Test.Format.Off.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Spacing.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Style.cpp"/>
+        <ClCompile Include="src\Unittest\Format\Test.Format.Uniform.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Using.cpp"/>
         <ClCompile Include="src\Unittest\Format\Test.Format.Wrap.cpp"/>
         <ClCompile Include="src\Unittest\JIT\Test.JIT.Execution.cpp"/>
@@ -377,6 +378,7 @@
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
         <ClCompile Include="src\Format\AstSourceWriter.cpp"/>
         <ClCompile Include="src\Format\FormatClassifier.cpp"/>
+        <ClCompile Include="src\Format\FormatSiblings.cpp"/>
         <ClCompile Include="src\Format\FormatModel.cpp"/>
         <ClCompile Include="src\Format\FormatPasses.cpp"/>
         <ClCompile Include="src\Format\Pass.Align.cpp"/>
@@ -387,6 +389,7 @@
         <ClCompile Include="src\Format\Pass.Indent.cpp"/>
         <ClCompile Include="src\Format\Pass.Spacing.cpp"/>
         <ClCompile Include="src\Format\Pass.Using.cpp"/>
+        <ClCompile Include="src\Format\Pass.Uniform.cpp"/>
         <ClCompile Include="src\Format\Pass.Wrap.cpp"/>
         <ClCompile Include="src\Format\FormatJob.cpp"/>
         <ClCompile Include="src\Format\FormatOptionsLoader.cpp"/>
@@ -735,6 +738,7 @@
         <ClInclude Include="src\Compiler\Lexer\Token.h"/>
         <ClInclude Include="src\Format\AstSourceWriter.h"/>
         <ClInclude Include="src\Format\FormatClassifier.h"/>
+        <ClInclude Include="src\Format\FormatSiblings.h"/>
         <ClInclude Include="src\Format\FormatModel.h"/>
         <ClInclude Include="src\Format\FormatPasses.h"/>
         <ClInclude Include="src\Format\FormatPassUtil.h"/>

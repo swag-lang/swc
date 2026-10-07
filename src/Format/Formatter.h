@@ -14,7 +14,7 @@ class Formatter
 public:
     explicit Formatter(FormatOptions options = {});
 
-    void   prepare(const SourceFile& file);
+    void   prepare(const Global& global, const SourceFile& file);
     Result prepare(const Global& global, std::string_view source);
     Result write(TaskContext& ctx) const;
 
@@ -23,6 +23,8 @@ public:
     std::string_view text() const { return text_.view(); }
 
 private:
+    void          prepareParsed(const Global& global, const SourceFile& file, bool rewriteSyntax);
+    Result        prepareSource(const Global& global, std::string_view source, bool rewriteSyntax);
     static Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because);
 
     FormatOptions     options_;

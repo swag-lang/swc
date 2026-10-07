@@ -247,6 +247,16 @@ struct FormatOptions
     FormatAlignMode      alignCaseBodies       = FormatAlignMode::Preserve;      // Align the bodies of consecutive one-line `case` arms
 
     // -----------------------------------------------------------------------
+    // Uniform siblings
+    // -----------------------------------------------------------------------
+    // Bodies read as a pattern when their siblings share one shape. Each option
+    // names a family of siblings; the grouping modes are the alignment ones.
+    std::optional<bool> uniformBranchBodies;                               // Give every branch of an `if` / `elif` / `else` chain the same `do` or `{ }` body
+    FormatAlignMode     uniformGuardBodies    = FormatAlignMode::Preserve; // Give consecutive `if` statements without `else` the same `do` or `{ }` body
+    FormatAlignMode     uniformClosureBodies  = FormatAlignMode::Preserve; // Give sibling closures one body layout: all on one line, or all expanded
+    FormatAlignMode     uniformFunctionBodies = FormatAlignMode::Preserve; // Put sibling single-statement functions on one line when some already are
+
+    // -----------------------------------------------------------------------
     // Statements
     // -----------------------------------------------------------------------
     std::optional<bool> removeRedundantSemicolons;  // Drop `;` at end of line (same-line separators stay)

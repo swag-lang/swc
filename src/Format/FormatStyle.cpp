@@ -93,6 +93,12 @@ namespace
         o.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
         o.alignCaseBodies       = FormatAlignMode::Consecutive;
 
+        // Uniform siblings
+        o.uniformBranchBodies   = true;
+        o.uniformGuardBodies    = FormatAlignMode::Consecutive;
+        o.uniformClosureBodies  = FormatAlignMode::AcrossBlanks;
+        o.uniformFunctionBodies = FormatAlignMode::AcrossBlanks;
+
         // Statements
         o.removeRedundantSemicolons  = true;
         o.removeTrailingCommas       = true;

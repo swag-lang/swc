@@ -40,7 +40,7 @@ JobResult FormatJob::exec()
     }
 
     Formatter formatter(formatOptions_);
-    formatter.prepare(*file_);
+    formatter.prepare(jobCtx.global(), *file_);
     skippedFmt_ = formatter.skipped();
 
     auto writeResult = Result::Continue;

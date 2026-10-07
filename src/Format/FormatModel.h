@@ -92,6 +92,36 @@ struct FormatInlineBody
     uint32_t lastPiece = 0;
 };
 
+// One branch of an `if` / `elif` / `else` chain, or a lone `if`. A branch body
+// is either inline after `do` or braced.
+struct FormatBranch
+{
+    uint32_t keyword   = 0xFFFFFFFFu; // `if`, `elif`, or `else`
+    uint32_t doPiece   = 0xFFFFFFFFu; // `do` introducing an inline body
+    uint32_t openPiece = 0xFFFFFFFFu; // `{` opening a braced body
+    uint32_t lastPiece = 0xFFFFFFFFu; // last piece of the body: the `}` of a braced one
+};
+
+// The branches of one `if` statement, in source order. `stmtPiece` is the
+// first piece of the whole statement.
+struct FormatBranchChain
+{
+    uint32_t                  stmtPiece = 0xFFFFFFFFu;
+    std::vector<FormatBranch> branches;
+};
+
+// The body of a function declaration or of a closure, braced or written as
+// `=> expr`.
+struct FormatFunctionBody
+{
+    uint32_t headPiece     = 0xFFFFFFFFu; // first piece of the declaration, or the closure's `func`
+    uint32_t openPiece     = 0xFFFFFFFFu; // `{` of a braced body
+    uint32_t arrowPiece    = 0xFFFFFFFFu; // `=>` of an expression body
+    uint32_t lastPiece     = 0xFFFFFFFFu; // last piece of the body
+    bool     hasReturnType = false;       // the signature spells `->T`
+    bool     closure       = false;       // a function expression rather than a declaration
+};
+
 struct FormatLogicalExpression
 {
     uint32_t firstPiece        = 0;
@@ -161,6 +191,10 @@ public:
     const std::vector<FormatLogicalExpression>& logicalExpressions() const { return logicalExpressions_; }
     std::vector<FormatHangingLine>&             hangingLines() { return hangingLines_; }
     const std::vector<FormatHangingLine>&       hangingLines() const { return hangingLines_; }
+    std::vector<FormatBranchChain>&             branchChains() { return branchChains_; }
+    const std::vector<FormatBranchChain>&       branchChains() const { return branchChains_; }
+    std::vector<FormatFunctionBody>&            functionBodies() { return functionBodies_; }
+    const std::vector<FormatFunctionBody>&      functionBodies() const { return functionBodies_; }
 
     const SourceView&    srcView() const { return *srcView_; }
     const FormatOptions& options() const { return *options_; }
@@ -226,6 +260,8 @@ private:
     std::vector<FormatInlineBody>        inlineBodies_;
     std::vector<FormatLogicalExpression> logicalExpressions_;
     std::vector<FormatHangingLine>       hangingLines_;
+    std::vector<FormatBranchChain>       branchChains_;
+    std::vector<FormatFunctionBody>      functionBodies_;
     std::vector<uint32_t>                tokenToPiece_;
     std::deque<Utf8>                     ownedTexts_;
     std::string_view                     eol_ = "\n";

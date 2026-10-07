@@ -125,7 +125,7 @@ namespace MicroPeephole
         MicroInstr* inst = ctx.storage->ptr(action.ref);
         SWC_ASSERT(inst != nullptr);
 
-        if (action.allocOps)
+        if (action.allocOps || action.numOps > inst->numOperands)
         {
             inst->opsRef = ctx.operands->append(std::span(action.ops, action.numOps));
         }

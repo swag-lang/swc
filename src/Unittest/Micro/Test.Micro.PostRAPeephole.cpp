@@ -12,6 +12,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -122,6 +123,39 @@ namespace
         return false;
     }
 }
+
+SWC_TEST_BEGIN(PostRAPeephole_GrowingRewritePreservesAdjacentOperands)
+{
+    constexpr MicroReg value    = MicroReg::intReg(0);
+    constexpr MicroReg source   = MicroReg::intReg(3);
+    constexpr MicroReg neighbor = MicroReg::intReg(8);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegReg(value, source, MicroOpBits::B64);
+    const MicroInstrRef copyRef = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(neighbor, value, MicroOpBits::B64);
+    const MicroInstrRef neighborRef = builder.instructions().lastInstructionRef();
+
+    PostRaPeephole::Context rewrite;
+    rewrite.storage             = &builder.instructions();
+    rewrite.operands            = &builder.operands();
+    MicroInstrOperand extend[4] = {};
+    extend[0].reg               = value;
+    extend[1].reg               = source;
+    extend[2].opBits            = MicroOpBits::B32;
+    extend[3].opBits            = MicroOpBits::B16;
+    rewrite.emitRewrite(copyRef, MicroInstrOpcode::LoadZeroExtRegReg, extend);
+    MicroPeephole::applyAction(rewrite, rewrite.actions.front());
+
+    const auto* adjacent = builder.instructions().ptr(neighborRef)->ops(builder.operands());
+    if (adjacent[0].reg != neighbor || adjacent[1].reg != value || adjacent[2].opBits != MicroOpBits::B64)
+        return Result::Error;
+    const auto* grown = builder.instructions().ptr(copyRef)->ops(builder.operands());
+    if (builder.instructions().ptr(copyRef)->numOperands != 4 || grown[0].reg != value || grown[1].reg != source ||
+        grown[2].opBits != MicroOpBits::B32 || grown[3].opBits != MicroOpBits::B16)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 {

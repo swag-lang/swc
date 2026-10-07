@@ -925,7 +925,7 @@ impl VideoViewer
     mtd selectAudioTrack(index: u32) fail
     {
         if index >= .video.audioTrackCount() do
-            fail BadParameterError{"video audio-track index exceeds the track count"}
+            fail BadParameterError{videoStrings().err_AudioTrack}
 
         let sound = .video.audioTrack(index)!
         if .voice and index == .audioTrackIndex and .audio == sound do
@@ -1942,7 +1942,7 @@ private impl VideoViewer
             .muteButton.enable(true)
             .volumeSlider.enable(true)
             if not acquireSoundEngine() do
-                fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
+                fail UnsupportedFormatError{videoStrings().err_AudioEngine}
             .audioEngineAcquired = true
             try .selectAudioTrack(0)
         }

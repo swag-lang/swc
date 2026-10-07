@@ -240,10 +240,10 @@ private func idmlReadEntry(fileName: string, archive: const *ZipArchive, path: s
 {
     let entry = archive.tryFindEntry(path)
     if not entry or entry.isDirectory do
-        fail InvalidFormatError{Errors.mkString(Format.toString("IDML package is missing '%'", path).toString())}
+        fail InvalidFormatError{Errors.mkString(Format.toString(indesignStrings().err_MissingPart, path))}
     let bytes = try loadZipEntry(fileName, entry)
     if not Utf8.isValid(bytes.toSlice()) do
-        fail InvalidFormatError{Errors.mkString(Format.toString("IDML entry '%' is not UTF-8 XML", path).toString())}
+        fail InvalidFormatError{Errors.mkString(Format.toString(indesignStrings().err_PartNotXml, path))}
     return String.from(cast(string, bytes.toSlice()))
 }
 
@@ -1608,10 +1608,10 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
 {
     let archive = try loadZipArchive(fileName)
     if archive.uncompressedSize > IdmlDocumentByteLimit do
-        fail UnsupportedFormatError{"IDML package expands beyond the document reader limit"}
+        fail UnsupportedFormatError{indesignStrings().err_TooLarge}
     let mimetype = try idmlReadEntry(fileName, &archive, "mimetype")
     if Latin1.trim(mimetype) != "application/vnd.adobe.indesign-idml-package" do
-        fail InvalidFormatError{"the ZIP package is not an InDesign Markup document"}
+        fail InvalidFormatError{indesignStrings().err_NotIdml}
 
     let designMap  = try idmlReadEntry(fileName, &archive, "designmap.xml")
     let colors     = idmlLoadColors(fileName, &archive)
@@ -1662,7 +1662,7 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
     }
 
     if result.pages.isEmpty() do
-        fail InvalidFormatError{"IDML document contains no readable pages"}
+        fail InvalidFormatError{indesignStrings().err_NoPages}
     idmlFlowTextStories(&result.pages, &stories)
     return result
 }

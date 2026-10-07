@@ -304,11 +304,8 @@ private func addMarkdownWidths(combo: *ComboBox)
 private func addMarkdownThemes(combo: *ComboBox)
 {
     combo.addItem(markdownStrings().ui_ThemeApp)
-    combo.addItem("GitHub")
-    combo.addItem("Newsprint")
-    combo.addItem("Night")
-    combo.addItem("Pixyll")
-    combo.addItem("Whitey")
+    for name in ["GitHub", "Newsprint", "Night", "Pixyll", "Whitey"] do
+        combo.addItem(name)
 }
 
 // Creates the integrated Markdown view.

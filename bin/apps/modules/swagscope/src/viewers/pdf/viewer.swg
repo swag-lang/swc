@@ -58,7 +58,7 @@ private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
     if not result.reader.pageCount() do
-        fail Errors.InvalidFormatError{"PDF document contains no page"}
+        fail Errors.InvalidFormatError{pdfStrings().err_NoPage}
     result.page    = #move try result.reader.loadPage(0)
     result.details = "PDF"
     return #move result

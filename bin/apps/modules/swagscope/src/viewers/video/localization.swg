@@ -52,7 +52,9 @@ struct VideoStrings
     word_Frames:               string = "frames"     // Several video frames.
 
     // Summary the host shows beside the file size: geometry, frame count, frame rate, and duration.
-    ui_Details: string = "% × % px · % · %{f2} fps · % · Swag CPU"
+    ui_Details:      string = "% × % px · % · %{f2} fps · % · Swag CPU"
+    err_AudioTrack:  string = "video audio-track index exceeds the track count"     // Diagnostics of a video that cannot play.
+    err_AudioEngine: string = "cannot create the audio engine for video playback"
 }
 
 private const FrenchStringsName = "lang/fr/scope.video.tweak"

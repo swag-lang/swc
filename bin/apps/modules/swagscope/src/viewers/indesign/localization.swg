@@ -25,6 +25,11 @@ struct IndesignStrings
     ui_PageRange:            string = "Page number from 1 to %."                                         // Direct page-navigation prompt.
     err_Header:              string = "the file does not contain a valid InDesign document header"       // Error for a malformed or truncated header.
     err_Preview:             string = "the document does not contain a readable saved page preview"      // Error when no visual page preview can be decoded.
+    err_MissingPart:         string = "IDML package is missing '%'"                                      // Placeholder: the missing part name.
+    err_PartNotXml:          string = "IDML entry '%' is not UTF-8 XML"                                  // Placeholder: the entry name.
+    err_TooLarge:            string = "IDML package expands beyond the document reader limit"
+    err_NotIdml:             string = "the ZIP package is not an InDesign Markup document"
+    err_NoPages:             string = "IDML document contains no readable pages"
 }
 
 private const FrenchStringsName = "lang/fr/scope.indesign.tweak"

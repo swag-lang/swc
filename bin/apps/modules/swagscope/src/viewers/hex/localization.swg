@@ -68,6 +68,8 @@ struct HexStrings
     ui_CopyBytesMax: string = "Copy the first % as bytes"
     ui_CopyTextMax:  string = "Copy the first % as text"
     ui_CopyDumpMax:  string = "Copy the first % as a dump"
+    err_Read:        string = "file stream could not be read"     // Diagnostics of a file the viewer cannot read.
+    err_Truncated:   string = "file ends before its reported size"
 }
 
 private const FrenchStringsName = "lang/fr/scope.hex.tweak"

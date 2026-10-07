@@ -245,12 +245,10 @@ func reportUnknownBinary(image: *BinaryImage, report: *BinaryReport)
 {
     let s    = binaryStrings()
     let name = binarySignatureName(image)
-
-    if name.count
+    if not name.isEmpty()
     {
-        report.formatName = String.from(name)
-        let size = StrConv.toDisplaySize(image.fileSize)
-        report.summary = Format.toString("% · %", name, size)
+        report.summary    = Format.toString("% · %", name, StrConv.toDisplaySize(image.fileSize))
+        report.formatName = #move name
         return
     }
 
@@ -258,42 +256,44 @@ func reportUnknownBinary(image: *BinaryImage, report: *BinaryReport)
     report.summary    = String.from(image.fileSize ? s.rep_UnknownDesc : s.rep_Empty)
 }
 
-// Returns the name of the format a file's leading bytes belong to, or an empty name.
+// Returns the name, in the active language, of the format a file's leading bytes belong to, or an
+// empty name.
 //
 // These are the containers a binary viewer is most often pointed at by mistake. Nothing here is
 // taken apart; naming it is what lets a reader stop looking.
-func binarySignatureName(image: *BinaryImage)->string
+func binarySignatureName(image: *BinaryImage)->String
 {
-    const Signatures = [BinarySignature{0, "\x1F\x8B", "gzip stream"},
-                        BinarySignature{0, "BZh", "bzip2 stream"},
-                        BinarySignature{0, "\xFD7zXZ", "XZ stream"},
-                        BinarySignature{0, "\x28\xB5\x2F\xFD", "Zstandard stream"},
-                        BinarySignature{0, "7z\xBC\xAF\x27\x1C", "7-Zip archive"},
-                        BinarySignature{0, "Rar!", "RAR archive"},
-                        BinarySignature{0, "MSCF", "Windows cabinet"},
-                        BinarySignature{0, "\xD0\xCF\x11\xE0", "OLE compound file"},
-                        BinarySignature{257, "ustar", "TAR archive"},
-                        BinarySignature{0, "%PDF-", "PDF document"},
-                        BinarySignature{0, "%!PS", "PostScript program"},
-                        BinarySignature{0, "\x89PNG\r\n\x1A\n", "PNG image"},
-                        BinarySignature{0, "GIF8", "GIF image"},
-                        BinarySignature{0, "\xFF\xD8\xFF", "JPEG image"},
-                        BinarySignature{0, "BM", "BMP image"},
-                        BinarySignature{0, "II*\0", "TIFF image"},
-                        BinarySignature{0, "MM\0*", "TIFF image"},
-                        BinarySignature{0, "OggS", "Ogg stream"},
-                        BinarySignature{0, "fLaC", "FLAC sound"},
-                        BinarySignature{0, "ID3", "MP3 sound"},
-                        BinarySignature{0, "\x1A\x45\xDF\xA3", "Matroska media container"},
-                        BinarySignature{4, "ftyp", "ISO media container"},
-                        BinarySignature{0, "\xCA\xFE\xBA\xBE", "Java class"},
-                        BinarySignature{0, "dex\n", "Dalvik executable"},
-                        BinarySignature{0, "SQLite format 3", "SQLite database"},
-                        BinarySignature{0, "Microsoft C/C++ MSF 7.00", "Program database"},
-                        BinarySignature{0, "wOF2", "WOFF2 font"},
-                        BinarySignature{0, "wOFF", "WOFF font"}]
+    let s = binaryStrings()
+    let signatures = [BinarySignature{0, "\x1F\x8B", s.sig_Gzip},
+                      BinarySignature{0, "BZh", s.sig_Bzip2},
+                      BinarySignature{0, "\xFD7zXZ", s.sig_Xz},
+                      BinarySignature{0, "\x28\xB5\x2F\xFD", s.sig_Zstd},
+                      BinarySignature{0, "7z\xBC\xAF\x27\x1C", s.sig_SevenZip},
+                      BinarySignature{0, "Rar!", s.sig_Rar},
+                      BinarySignature{0, "MSCF", s.sig_Cabinet},
+                      BinarySignature{0, "\xD0\xCF\x11\xE0", s.sig_Ole},
+                      BinarySignature{257, "ustar", s.sig_Tar},
+                      BinarySignature{0, "%PDF-", s.sig_Pdf},
+                      BinarySignature{0, "%!PS", s.sig_PostScript},
+                      BinarySignature{0, "\x89PNG\r\n\x1A\n", s.sig_Png},
+                      BinarySignature{0, "GIF8", s.sig_Gif},
+                      BinarySignature{0, "\xFF\xD8\xFF", s.sig_Jpeg},
+                      BinarySignature{0, "BM", s.sig_Bmp},
+                      BinarySignature{0, "II*\0", s.sig_Tiff},
+                      BinarySignature{0, "MM\0*", s.sig_Tiff},
+                      BinarySignature{0, "OggS", s.sig_Ogg},
+                      BinarySignature{0, "fLaC", s.sig_Flac},
+                      BinarySignature{0, "ID3", s.sig_Mp3},
+                      BinarySignature{0, "\x1A\x45\xDF\xA3", s.sig_Matroska},
+                      BinarySignature{4, "ftyp", s.sig_IsoMedia},
+                      BinarySignature{0, "\xCA\xFE\xBA\xBE", s.sig_JavaClass},
+                      BinarySignature{0, "dex\n", s.sig_Dalvik},
+                      BinarySignature{0, "SQLite format 3", s.sig_Sqlite},
+                      BinarySignature{0, "Microsoft C/C++ MSF 7.00", s.sig_Pdb},
+                      BinarySignature{0, "wOF2", s.sig_Woff2},
+                      BinarySignature{0, "wOFF", s.sig_Woff}]
 
-    for signature in Signatures where image.matches(signature.offset, signature.magic) do
-        return signature.name
-    return ""
+    for signature in signatures where image.matches(signature.offset, signature.magic) do
+        return String.from(signature.name)
+    return {}
 }

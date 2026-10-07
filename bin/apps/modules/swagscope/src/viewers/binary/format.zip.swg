@@ -130,7 +130,7 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
         let folder = nameLen and (name.toString()[nameLen - 1] == '/'u8 or name.toString()[nameLen - 1] == '\\'u8)
         report.beginGroup(name, folder ? s.zip_Folder : stored, zipMethodName(method), offset: folder ? Swag.U64.Max : localAt, length: folder ? 0 : compressed + 30 + nameLen)
 
-        report.field(scan + 12, 4, "Modified", stamp)
+        report.field(scan + 12, 4, s.fld_Modified, stamp)
         report.numField(scan + 10, 2, s.zip_Method, cast(u64, method), zipMethodName(method))
         report.hexField(scan + 16, 4, "CRC-32", cast(u64, crc))
         report.sizeField(scan + 20, 4, "CompressedSize", compressed)

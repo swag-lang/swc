@@ -39,9 +39,10 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
     image.bigEndian = false
     let count      = cast(u64, image.u16At(4))
     let kind       = image.u16At(2)
-    let formatName = kind == 1 ? "Windows icon" : "Windows cursor"
+    let s          = binaryStrings()
+    let formatName = kind == 1 ? s.fmt_Icon : s.fmt_Cursor
     report.formatName = formatName
-    report.summary    = Format.toString("% · % image%", formatName, count, count == 1 ? "" : "s")
+    report.summary    = Format.toString("% · % %", formatName, count, count == 1 ? s.word_Image : s.word_Images)
     report.beginGroup("ICONDIR", "", "", offset: 0, length: 6 + count * 16, open: true)
     report.numField(0, 2, "Reserved", 0)
     report.numField(2, 2, "Type", cast(u64, kind), kind == 1 ? "Icon" : "Cursor")
@@ -60,7 +61,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
         let offset = cast(u64, image.u32At(at + 12))
         let label  = Format.toString("%×% · %b", width, height, bits)
 
-        report.beginGroup(Format.toString("Image %", index + 1).toString(), label, "", offset: offset, length: size)
+        report.beginGroup(Format.toString(s.rep_ImageNumber, index + 1), label, "", offset: offset, length: size)
         report.sizeField(at + 8, 4, "StoredSize", size)
         report.hexField(at + 12, 4, "Offset", offset)
         report.endGroup()

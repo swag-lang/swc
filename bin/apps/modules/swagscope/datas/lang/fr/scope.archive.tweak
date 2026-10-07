@@ -9,3 +9,40 @@ ui_Previewing        Préparation de l'aperçu…
 ui_PreviewError      Impossible d'afficher l'aperçu de cette entrée.
 ui_Details           % entrées · % décompressés · % compressés
 ui_SearchPlaceholder Filtrer les entrées de l'archive
+
+err_ShortField16       un enregistrement ZIP s'arrête avant un champ de 16 bits
+err_ShortField32       un enregistrement ZIP s'arrête avant un champ de 32 bits
+err_ExtraField         un champ supplémentaire ZIP déborde de son entrée de répertoire
+err_Zip64Uncompressed  il manque à une entrée ZIP64 sa taille décompressée
+err_Zip64Compressed    il manque à une entrée ZIP64 sa taille compressée
+err_Zip64Offset        il manque à une entrée ZIP64 la position de son en-tête local
+err_Zip64Disk          il manque à une entrée ZIP64 son numéro de disque
+err_Zip64Locator       le localisateur de fin ZIP64 est absent
+err_Zip64MultiDisk     les archives ZIP64 sur plusieurs disques ne sont pas prises en charge
+err_Zip64EndOutside    l'enregistrement de fin ZIP64 se trouve hors du fichier
+err_Zip64EndSignature  l'enregistrement de fin ZIP64 porte une signature incorrecte
+err_TooShort           le fichier est trop court pour contenir un enregistrement de fin ZIP
+err_EndMissing         l'enregistrement de fin ZIP est absent
+err_MultiDisk          les archives ZIP sur plusieurs disques ne sont pas prises en charge
+err_TooManyEntries     l'archive ZIP contient trop d'entrées
+err_DirectoryTooLarge  le répertoire central ZIP est trop volumineux
+err_DirectoryOutside   le répertoire central ZIP se trouve hors du fichier
+err_DirectoryTruncated le répertoire central ZIP s'arrête au milieu d'une entrée
+err_EntrySignature     une entrée du répertoire central ZIP porte une signature incorrecte
+err_EntryOverflow      une entrée du répertoire central ZIP déborde du répertoire
+err_MultiDiskEntry     les entrées ZIP sur plusieurs disques ne sont pas prises en charge
+err_EntrySizes         les tailles d'une entrée ZIP dépassent la plage prise en charge
+err_DirectoryContent   un dossier ZIP n'a pas de contenu de fichier
+err_Encrypted          les entrées ZIP chiffrées ne sont pas prises en charge
+err_EntryTooLarge      l'entrée ZIP est trop volumineuse pour un aperçu
+err_PackedTooLarge     l'entrée ZIP compressée est trop volumineuse pour un aperçu
+err_Method             la méthode de compression ZIP % n'est pas prise en charge
+err_LocalOutside       l'en-tête local ZIP se trouve hors du fichier
+err_LocalTruncated     l'en-tête local ZIP est tronqué
+err_LocalSignature     l'en-tête local ZIP porte une signature incorrecte
+err_LocalFields        les champs de l'en-tête local ZIP se trouvent hors du fichier
+err_PayloadOutside     les données d'une entrée ZIP se trouvent hors du fichier
+err_PayloadTruncated   les données d'une entrée ZIP sont tronquées
+err_SizeMismatch       une entrée ZIP se décompresse à une autre taille que celle annoncée par son répertoire
+err_Checksum           la somme de contrôle d'une entrée ZIP ne correspond pas à son répertoire
+err_TempWrite          le fichier d'aperçu temporaire n'a pas été écrit entièrement

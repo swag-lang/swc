@@ -10,7 +10,9 @@ struct CodeStrings
 {
     ui_ZoomMenu: string = "Code zoom options"     // Tooltip of the zoom value menu.
     // Summary the host shows beside the file size. `%` takes the name of the language.
-    ui_Details: string = "% · UTF-8"
+    ui_Details:   string = "% · UTF-8"
+    err_Read:     string = "source stream could not be read"     // Diagnostics of a source the viewer cannot show.
+    err_ZeroByte: string = "source contains a zero byte and is not supported UTF-8 text"
 }
 
 private const FrenchStringsName = "lang/fr/scope.code.tweak"

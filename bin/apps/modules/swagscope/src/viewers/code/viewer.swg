@@ -138,7 +138,7 @@ impl CodeViewer
         .stopLoading()
         .failureReason = reason
         if .failureReason.isEmpty() do
-            .failureReason = "source stream could not be read"
+            .failureReason = codeStrings().err_Read
         .editor.setEstimatedDocumentHeight(0)
         if .hasText and .reportFailure do
             .reportFailure(me, .failureReason.toString())
@@ -161,7 +161,7 @@ impl CodeViewer
 
         if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
         {
-            .showReadError("source contains a zero byte and is not supported UTF-8 text")
+            .showReadError(codeStrings().err_ZeroByte)
             return
         }
 

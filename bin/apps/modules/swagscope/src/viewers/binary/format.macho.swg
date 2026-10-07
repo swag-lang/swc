@@ -183,7 +183,7 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
     report.listCut(shown, count)
     report.endGroup()
 
-    report.formatName = String.from("Mach-O universal")
+    report.formatName = String.from(s.fmt_MachOUniversal)
     report.summary    = Format.toString("% · %", report.formatName, names)
 }
 

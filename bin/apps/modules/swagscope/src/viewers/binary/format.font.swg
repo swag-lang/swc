@@ -44,7 +44,7 @@ private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 
     report.beginGroup(s.font_Collection, total, "", offset: 0, length: 12 + count * 4, open: true)
     let version = Format.toString("%.%", image.u16At(4), image.u16At(6))
-    report.field(4, 4, "Version", version)
+    report.field(4, 4, s.fld_Version, version)
     report.numField(8, 4, "numFonts", count)
 
     for index in shown

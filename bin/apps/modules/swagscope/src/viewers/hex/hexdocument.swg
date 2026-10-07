@@ -35,7 +35,7 @@ impl HexDocument
             return
         .failureReason = reason
         if .failureReason.isEmpty() do
-            .failureReason = "file stream could not be read"
+            .failureReason = hexStrings().err_Read
         .readFailed = true
         if .reportFailure do
             .reportFailure(.failureReason.toString())
@@ -119,7 +119,7 @@ impl HexDocument
 
         if read < wanted
         {
-            .failRead("file ends before its reported size")
+            .failRead(hexStrings().err_Truncated)
             .window.clear()
             return false
         }
@@ -173,7 +173,7 @@ impl HexDocument
 
         if read < wanted
         {
-            .failRead("file ends before its reported size")
+            .failRead(hexStrings().err_Truncated)
             result.clear()
             return result
         }

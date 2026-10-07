@@ -57,3 +57,6 @@ ui_CopyDump      Copier le dump
 ui_CopyBytesMax  Copier les % premiers en octets
 ui_CopyTextMax   Copier les % premiers en texte
 ui_CopyDumpMax   Copier les % premiers en dump
+
+err_Read      impossible de lire le fichier
+err_Truncated le fichier s'arrête avant la taille annoncée

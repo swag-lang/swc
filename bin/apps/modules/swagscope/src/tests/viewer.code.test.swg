@@ -48,7 +48,7 @@ struct CodeLanguageSample
 
     var result = openTestViewer(codeViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(Utf8.contains(result.failureReason.toSlice(), "zero byte"))
+    Swag.assert(Utf8.contains(result.failureReason.toSlice(), codeStrings().err_ZeroByte))
 }
 
 // The code zoom value keeps the shared information-band air outside its button frame.

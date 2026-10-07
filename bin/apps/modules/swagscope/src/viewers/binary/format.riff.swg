@@ -20,7 +20,7 @@ func reportRiffContainer(image: *BinaryImage, report: *BinaryReport)
     let stored = StrConv.toDisplaySize(size)
 
     report.beginGroup(s.riff_Container, form, stored, offset: 0, length: Math.min(size + 8, image.bytes.count), open: true)
-    report.field(0, 4, "Signature", image.fixedTextAt(0, 4).toString())
+    report.field(0, 4, s.fld_Signature, image.fixedTextAt(0, 4).toString())
     report.sizeField(4, 4, "Size", size)
     report.field(8, 4, s.riff_Form, form)
     report.endGroup()
@@ -113,7 +113,7 @@ private func reportRiffKnownChunk(image: *BinaryImage, report: *BinaryReport, id
     {
         let text = image.fixedTextAt(at, size)
         if not text.isEmpty() do
-            report.field(at, size, "Text", text)
+            report.field(at, size, binaryStrings().fld_Text, text)
     }
 }
 

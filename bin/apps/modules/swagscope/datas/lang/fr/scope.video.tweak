@@ -47,3 +47,6 @@ ui_SubtitleDelayReset      Réinitialiser le décalage
 
 word_Frame       image
 word_Frames      images
+
+err_AudioTrack  l'index de piste audio dépasse le nombre de pistes de la vidéo
+err_AudioEngine impossible de créer le moteur audio de la lecture vidéo

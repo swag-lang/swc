@@ -14,15 +14,15 @@ using Core, Pixel, Gui
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let failure = operation.finish()
-    Swag.assert(failure == "ZIP compression method 99 is not supported")
+    Swag.assert(failure == Format.toString(archiveStrings().err_Method, 99))
     Swag.assert(not File.exists(destination))
 
     entry.method = 100
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let replacement = operation.finish()
-    Swag.assert(replacement == "ZIP compression method 100 is not supported")
-    Swag.assert(failure == "ZIP compression method 99 is not supported")
+    Swag.assert(replacement == Format.toString(archiveStrings().err_Method, 100))
+    Swag.assert(failure == Format.toString(archiveStrings().err_Method, 99))
 }
 
 func archiveViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")

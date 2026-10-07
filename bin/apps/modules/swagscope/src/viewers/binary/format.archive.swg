@@ -92,7 +92,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     report.listCut(offsets.count, offsets.count)
     report.endGroup()
 
-    report.formatName = String.from(imports > objects ? "Import library" : "Static library")
+    report.formatName = String.from(imports > objects ? s.fmt_ImportLibrary : s.fmt_StaticLibrary)
     report.summary    = Format.toString("% · %", report.formatName, members)
 }
 
@@ -174,8 +174,8 @@ private func reportArImportMember(image: *BinaryImage, report: *BinaryReport, at
     report.sizeField(at + 12, 4, "SizeOfData", cast(u64, image.u32At(at + 12)))
     report.numField(at + 16, 2, "OrdinalOrHint", cast(u64, ordinal))
     report.hexField(at + 18, 2, "Type", cast(u64, flags), arImportTypeName(flags))
-    report.field(at + 20, symbol.length + 1, "Symbol", symbol)
-    report.field(at + 20 + symbol.length + 1, library.length + 1, "Library", library)
+    report.field(at + 20, symbol.length + 1, s.fld_Symbol, symbol)
+    report.field(at + 20 + symbol.length + 1, library.length + 1, s.fld_Library, library)
     report.endGroup()
 }
 

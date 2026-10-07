@@ -22,13 +22,13 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
     let headerSize = image.u64At(16)
 
     report.beginGroup(s.scc_Prefix, SccMagic, "", offset: 0, length: Scc.PrefixSize, open: true)
-    report.field(8, 4, "Version", "", "")
+    report.field(8, 4, s.fld_Version, "", "")
     report.numField(8, 2, "FormatMajor", cast(u64, major))
     report.numField(10, 2, "FormatMinor", cast(u64, minor))
     report.hexField(12, 4, "Flags", cast(u64, image.u32At(12)))
     report.sizeField(16, 8, "HeaderSize", headerSize)
     report.hexField(24, 4, "HeaderChecksum", cast(u64, image.u32At(24)))
-    report.field(Scc.PrefixSize, headerSize, "Header", "", s.scc_Manifest)
+    report.field(Scc.PrefixSize, headerSize, s.fld_Header, "", s.scc_Manifest)
     report.endGroup()
 
     report.formatName = String.from("SCC")
@@ -67,7 +67,7 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
 
     let version = Format.toString("%", manifest.version)
     let profile = Format.toString("%", manifest.profileVersion)
-    report.derived("Version", version)
+    report.derived(s.fld_Version, version)
     report.derived("ProfileVersion", profile)
     if not manifest.description.isEmpty() do
         report.derived("Description", manifest.description)

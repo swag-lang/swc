@@ -247,3 +247,56 @@ font_Version      Version
 font_Glyphs       Glyphes
 font_UnitsPerEm   Unités par cadratin
 font_Collection   Collection de polices
+
+sig_Gzip       flux gzip
+sig_Bzip2      flux bzip2
+sig_Xz         flux XZ
+sig_Zstd       flux Zstandard
+sig_SevenZip   archive 7-Zip
+sig_Rar        archive RAR
+sig_Cabinet    cabinet Windows
+sig_Ole        fichier composé OLE
+sig_Tar        archive TAR
+sig_Pdf        document PDF
+sig_PostScript programme PostScript
+sig_Png        image PNG
+sig_Gif        image GIF
+sig_Jpeg       image JPEG
+sig_Bmp        image BMP
+sig_Tiff       image TIFF
+sig_Ogg        flux Ogg
+sig_Flac       son FLAC
+sig_Mp3        son MP3
+sig_Matroska   conteneur multimédia Matroska
+sig_IsoMedia   conteneur multimédia ISO
+sig_JavaClass  classe Java
+sig_Dalvik     exécutable Dalvik
+sig_Sqlite     base de données SQLite
+sig_Pdb        base de données de programme
+sig_Woff2      police WOFF2
+sig_Woff       police WOFF
+
+fmt_Icon        icône Windows
+fmt_Cursor      curseur Windows
+rep_ImageNumber Image %
+
+fmt_ImportLibrary bibliothèque d'importation
+fmt_StaticLibrary bibliothèque statique
+fld_Symbol        Symbole
+fld_Library       Bibliothèque
+
+fmt_MachOUniversal Mach-O universel
+
+fld_ChunkType Type de bloc
+
+fld_Signature Signature
+fld_Text      Texte
+
+fld_Version Version
+
+fld_Header En-tête
+
+fld_Modified Modifié
+
+word_Image  image
+word_Images images

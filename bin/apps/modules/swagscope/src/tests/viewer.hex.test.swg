@@ -804,7 +804,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     doc.fileSize += 4096
     Swag.assert(not doc.ensure(0, doc.fileSize))
     Swag.assert(doc.readFailed and doc.window.isEmpty())
-    Swag.assert(doc.failureReason == "file ends before its reported size")
+    Swag.assert(doc.failureReason == hexStrings().err_Truncated)
     Swag.assert(not doc.ensure(0, 1) and doc.read(0, 1).isEmpty())
 }
 

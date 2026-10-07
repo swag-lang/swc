@@ -8715,13 +8715,25 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchElse</span>(<span class="SKwd">null</span>) == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
-<p><span class="code-inline">expect</span> asserts that a fallible operation succeeds. An unexpected failure panics while the <span class="code-inline">.Expect</span> safety guard is enabled; when that guard is disabled, the result uses its type's default. Use it for an invariant, not for an ordinary failure that the caller should recover from.</p>
-<p>Forms that need a default result, including <span class="code-inline">catch</span> and <span class="code-inline">expect</span>, require a result type with a safe default. A non-null pointer has none; propagate such a result with <span class="code-inline">try</span>, or design the failure-handling boundary to return a type that can represent absence.</p>
+<p><span class="code-inline">expect</span> returns the successful result or panics. This contract holds in every build configuration, including release and code with safety guards disabled. A panic hook may report the error or transfer control, but returning from the hook terminates the process. Use <span class="code-inline">expect</span> for an invariant, not for an ordinary failure that the caller should recover from.</p>
+<p>A failed function produces no result. <span class="code-inline">try</span> propagates its error without constructing a replacement, and <span class="code-inline">expect</span> stops without one. Both accept result types with no default, including non-null pointers. A successful nullable result remains nullable: <span class="code-inline">expect</span> checks success, not presence.</p>
+<p><span class="code-inline">catch</span> resumes with a default result and therefore needs a result type with a safe default. A non-null pointer has none; propagate it with <span class="code-inline">try</span> or require success with <span class="code-inline">expect</span>.</p>
 <p>Inside <span class="code-inline">#test</span>, <span class="code-inline">try</span> is equivalent to <span class="code-inline">expect</span>, so both forms keep the success path concise when failure is not expected. An inlined function keeps its own error propagation: <span class="code-inline">try</span> in its body still passes failures to the caller's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value = <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SStr">"swag"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">4</span>)
+}
+
+<span class="SKwd">var</span> requiredValue: <span class="STpe">s32</span> = <span class="SNum">42</span>
+
+<span class="SKwd">func</span> <span class="SFct">loadRequiredValue</span>()-&gt;*<span class="STpe">s32</span> <span class="SKwd">fail</span> =&gt; &amp;requiredValue
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> value = <span class="SKwd">expect</span> <span class="SFct">loadRequiredValue</span>()
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(value) == *<span class="STpe">s32</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value[] == <span class="SNum">42</span>)
 }
 
 <span class="SFct">#test</span>

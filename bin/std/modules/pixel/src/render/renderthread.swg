@@ -83,7 +83,7 @@ impl RenderThread
     // Waits until the pending presentation is complete; does nothing before start or after close.
     //
     // A native wait or completion-signal failure is consumed once, after the worker releases
-    // borrowed state. With the Expect safety check enabled, it invokes the panic hook.
+    // borrowed state, then panics in every build configuration.
     // When both fail, the wait failure takes precedence.
     mtd wait()
     {
@@ -176,7 +176,7 @@ private impl RenderThread
         let signalStatus = .completionStatus
         .completionStatus = {}
 
-        // Consume before reporting so a returning hook or another wait cannot report twice.
+        // Consume before reporting so the panic hook observes the retired request.
         if not waitStatus.isSuccess() do
             expect waitStatus.raise()
         else do

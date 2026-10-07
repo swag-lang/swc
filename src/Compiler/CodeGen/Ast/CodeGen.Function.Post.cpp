@@ -297,16 +297,6 @@ namespace
         return scalarStoreBitsForType(codeGen, typeInfo) == MicroOpBits::Zero;
     }
 
-    bool hasExpectRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        const AstNodeRef resolvedNodeRef = codeGen.resolvedNodeRef(nodeRef);
-        if (!resolvedNodeRef.isValid())
-            return false;
-
-        const auto* payload = codeGen.loweringPayload(resolvedNodeRef);
-        return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
-    }
-
     bool hasNotNullRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         const AstNodeRef resolvedNodeRef = codeGen.resolvedNodeRef(nodeRef);
@@ -586,8 +576,12 @@ namespace
 
             case FallibleHandlerKind::Expect:
             {
-                if (failurePath && hasExpectRuntimeSafety(codeGen, nodeRef))
+                if (failurePath)
+                {
                     SWC_RESULT(emitFailedExpectRuntimeCall(codeGen, nodeRef));
+                    codeGen.builder().emitTrap();
+                    return Result::Continue;
+                }
 
                 return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr, "missing runtime helper '__popErr'", nodeRef);
             }
@@ -1200,106 +1194,14 @@ namespace
         };
     }
 
-    Result emitFallibleFailureReturnNoDefers(CodeGen& codeGen, const SymbolFunction& symbolFunc, const CodeGenNodePayload* exprPayload)
-    {
-        MicroBuilder&                          builder                            = codeGen.builder();
-        const CallConvKind                     callConvKind                       = symbolFunc.callConvKind();
-        const CallConv&                        callConv                           = CallConv::get(callConvKind);
-        const TypeRef                          returnTypeRef                      = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet                      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
-        const bool                             needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
-        const bool                             needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
-
-        if (isCompilerRunBlockFunction(codeGen))
-        {
-            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
-            if (!normalizedRet.isVoid)
-            {
-                SWC_ASSERT(exprPayload != nullptr);
-                if (normalizedRet.isIndirect)
-                {
-                    if (needsPersistentCompilerBlockReturn)
-                        CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-                    else if (exprPayload->isAddress())
-                        CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                    else
-                        emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                }
-                else
-                {
-                    ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, exprPayload->reg, exprPayload->isAddress(), normalizedRet);
-                    if (needsPersistentCompilerBlockReturn)
-                        CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-                }
-            }
-
-            const ScopedDebugNoStep noStep(builder, true);
-            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
-            builder.emitRet();
-            return Result::Continue;
-        }
-
-        if (normalizedRet.isVoid)
-        {
-            const ScopedDebugNoStep noStep(builder, true);
-            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
-            builder.emitRet();
-            return Result::Continue;
-        }
-
-        SWC_ASSERT(exprPayload != nullptr);
-        if (normalizedRet.isIndirect)
-        {
-            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
-            if (needsPersistentCompilerReturn)
-                CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-            else if (exprPayload->isAddress())
-                CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-            else
-                emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-
-            builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
-        }
-        else
-        {
-            const MicroReg    returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
-            const MicroOpBits retBits        = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
-            SWC_ASSERT(retBits != MicroOpBits::Zero);
-            if (exprPayload->isAddress())
-                builder.emitLoadRegMem(returnValueReg, exprPayload->reg, 0, retBits);
-            else
-                builder.emitLoadRegReg(returnValueReg, exprPayload->reg, retBits);
-            ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
-        }
-
-        {
-            const ScopedDebugNoStep noStep(builder, true);
-            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
-            builder.emitRet();
-        }
-
-        return Result::Continue;
-    }
-
     Result emitFallibleFunctionFailureReturn(CodeGen& codeGen)
     {
-        const SymbolFunction&                  symbolFunc    = codeGen.function();
-        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
-        if (normalizedRet.isVoid)
-            return emitFallibleFailureReturnNoDefers(codeGen, symbolFunc, nullptr);
-
-        ConstantRef zeroCstRef = ConstantRef::invalid();
-        SWC_RESULT(makeZeroConstantRefForType(codeGen, zeroCstRef, symbolFunc.returnTypeRef()));
-
-        CodeGenNodePayload zeroPayload;
-        if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, symbolFunc.returnTypeRef(), zeroCstRef))
-            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized fallible error return payload");
-
-        // A failed call has no live result to copy. The zero payload only keeps the ABI return
-        // bytes deterministic; running 'opPostCopy' here would manufacture ownership for a
-        // value that the error path immediately discards.
-        return emitFallibleFailureReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
+        // A failed call produces no value. In particular, its indirect result storage
+        // is not initialized, copied, or made into an owner on the propagation path.
+        const ScopedDebugNoStep noStep(codeGen.builder(), true);
+        CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, codeGen.function().callConvKind());
+        codeGen.builder().emitRet();
+        return Result::Continue;
     }
 
     Result emitFallibleDeferredActions(CodeGen& codeGen, const FallibleTarget& target)
@@ -1543,7 +1445,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         codeGen.registerImplicitDrop(*lowering->errHandlerOwnerSym);
     }
     SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
-    if (hasResult)
+    if (hasResult && kind == FallibleHandlerKind::Catch)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
         const SymbolVariable*     resultStorage = resultPayload.runtimeStorageSym;
@@ -1701,10 +1603,12 @@ Result AstFailExpr::codeGenPostNode(CodeGen& codeGen) const
     const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
     if (resultTypeRef.isValid() && resultTypeRef != codeGen.typeMgr().typeVoid())
     {
-        const CodeGenNodePayload& resultPayload = usesAddressBackedFallibleExprResult(codeGen, resultTypeRef)
-                                                      ? codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.runtimeStorageAddressReg(codeGen.curNodeRef()), resultTypeRef)
-                                                      : codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultTypeRef));
+        // Enclosing expressions still need a typed payload while being lowered, but
+        // the failure jump makes every use unreachable. There is no value to fill.
+        if (usesAddressBackedFallibleExprResult(codeGen, resultTypeRef))
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.runtimeStorageAddressReg(codeGen.curNodeRef()), resultTypeRef);
+        else
+            codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
     }
 
     const SemaNodeView        exprView    = codeGen.viewType(nodeExprRef);

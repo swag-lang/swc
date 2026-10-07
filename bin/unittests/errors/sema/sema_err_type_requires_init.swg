@@ -70,7 +70,8 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 
 #test
 {
-    let value = expect nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = expect nonNullRequiresInitFallible()
+    #assert(#typeof(value) == *NonNullRequiresInitItem)
 }
 
 #test

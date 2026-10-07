@@ -1002,7 +1002,7 @@ impl Application
             flags &= ~.Resizable
         if not borders do
             flags &= ~.Border
-        let surface = (expect app.createSurface(x, y, width, height, flags, view, hook))!
+        let surface = expect app.createSurface(x, y, width, height, flags, view, hook)
         surface.setTitle(title)
         if init do
             init(&app)
@@ -1021,9 +1021,9 @@ impl Application
     // `view` becomes the root view of the surface, or a plain [[Gui.Wnd]] is created when it is
     // `null`; `hook` intercepts the events of that view. `surfaceId` names the native window, so
     // another process can reach it through [[Gui.Surface.sendCustomMessage]]. Fails when the
-    // native window or its rendering context cannot be created. The result is never `null` on
-    // success; it is nullable only so the failure path has a default value.
-    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: *Wnd? = null, hook: HookEvent? = null, surfaceId: string? = null)->*Surface? fail
+    // native window or its rendering context cannot be created. Returns a non-null surface
+    // owned by the application; the pointer remains valid until that surface is destroyed.
+    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: *Wnd? = null, hook: HookEvent? = null, surfaceId: string? = null)->*Surface fail
     {
         let surface = Memory.new'Surface()
         var surfaceCreated: bool

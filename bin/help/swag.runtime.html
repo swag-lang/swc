@@ -3740,7 +3740,7 @@ task.<span class="SFct">wait</span>()</span></div>
 </td></tr>
 <tr><td id="Swag_SafetyWhat_DynCast" class="code-type">DynCast</td><td><p>Type invariant asserted by 'cast #assume'</p>
 </td></tr>
-<tr><td id="Swag_SafetyWhat_Expect" class="code-type">Expect</td><td><p>Panic when an <span class="code-inline">expect</span> meets an error</p>
+<tr><td id="Swag_SafetyWhat_Expect" class="code-type">Expect</td><td><p>Check presence for the postfix <span class="code-inline">!</span> assertion; <span class="code-inline">expect</span> always panics on error</p>
 </td></tr>
 <tr><td id="Swag_SafetyWhat_Lifecycle" class="code-type">Lifecycle</td><td><p>Use of moved-from values, and poisoning of abandoned or dropped storage</p>
 </td></tr>
@@ -5465,12 +5465,12 @@ task.<span class="SFct">wait</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compiler</span>()-&gt;<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_ICompiler">ICompiler</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_compilerError" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerError</span> <a class="api-item-permalink" href="#Swag_compilerError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L718">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_compilerError" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerError</span> <a class="api-item-permalink" href="#Swag_compilerError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L717">src</a></div>
 <p>Raise a compiler error at the given source location</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compilerError</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_compilerWarning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerWarning</span> <a class="api-item-permalink" href="#Swag_compilerWarning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L728">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_compilerWarning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerWarning</span> <a class="api-item-permalink" href="#Swag_compilerWarning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L727">src</a></div>
 <p>Raise a compiler warning at the given source location</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compilerWarning</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
@@ -5808,7 +5808,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">attr</span> <span class="SFct">Pack</span>(value: <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_panic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.panic</span> <a class="api-item-permalink" href="#Swag_panic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L792">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_panic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.panic</span> <a class="api-item-permalink" href="#Swag_panic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L791">src</a></div>
 <p>Stop the execution and panic</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.All, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">panic</span>(message: <span class="STpe">string</span>?, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
@@ -5916,7 +5916,7 @@ task.<span class="SFct">wait</span>()</span></div>
 <span class="SKwd">attr</span> <span class="SFct">Safety</span>(what: <span class="SCst"><a href="#Swag_SafetyWhat">SafetyWhat</a></span>, value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_safetyPanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.safetyPanic</span> <a class="api-item-permalink" href="#Swag_safetyPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L823">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_safetyPanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.safetyPanic</span> <a class="api-item-permalink" href="#Swag_safetyPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L822">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.All, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">safetyPanic</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
@@ -7110,7 +7110,7 @@ task.<span class="SFct">wait</span>()</span></div>
 "k|Swag.SafetyWhat.Bool|Swag_SafetyWhat_Bool|'bool' holding neither 'true' nor 'false'",
 "k|Swag.SafetyWhat.BoundCheck|Swag_SafetyWhat_BoundCheck|Out-of-bounds index or slice",
 "k|Swag.SafetyWhat.DynCast|Swag_SafetyWhat_DynCast|Type invariant asserted by 'cast #assume'",
-"k|Swag.SafetyWhat.Expect|Swag_SafetyWhat_Expect|Panic when an 'expect' meets an error",
+"k|Swag.SafetyWhat.Expect|Swag_SafetyWhat_Expect|Check presence for the postfix '!' assertion; 'expect' always panics on error",
 "k|Swag.SafetyWhat.Lifecycle|Swag_SafetyWhat_Lifecycle|Use of moved-from values, and poisoning of abandoned or dropped storage",
 "k|Swag.SafetyWhat.Math|Swag_SafetyWhat_Math|Math functions called outside their domain, such as a negative 'Swag.sqrt'",
 "k|Swag.SafetyWhat.Memory|Swag_SafetyWhat_Memory|Memory misuse, mostly found by the sanity pass",

@@ -163,7 +163,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             continue;
         }
 
-        if (inst->op == MicroInstrOpcode::Ret)
+        if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::Trap)
             continue;
 
         if (MicroInstrInfo::isTerminatorInstruction(*inst))

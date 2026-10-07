@@ -102,15 +102,15 @@ func checkedInjection() fail
 #[Swag.Inline]
 func identity(value: s32)->s32 => value
 
-// With the expect guard disabled, a test-owned 'try' yields the default result and
-// continues. Argument substitution and code injection must preserve that context.
+// Successful test-owned 'try' calls also work with safety guards disabled.
+// Terminal failures through substitution and injection run in subprocess tests.
 #[Swag.Safety(.Expect, false)]
 #test
 {
     var reached = false
     defer Swag.assert(reached)
-    let value = identity(try checkedValue(false))
-    Swag.assert(value == 0)
+    let value = identity(try checkedValue(true))
+    Swag.assert(value == 42)
     reached = true
 }
 
@@ -119,6 +119,6 @@ func identity(value: s32)->s32 => value
 {
     var reached = false
     defer Swag.assert(reached)
-    injectStatement(#code { try checkedVoid(false) })
+    injectStatement(#code { try checkedVoid(true) })
     reached = true
 }

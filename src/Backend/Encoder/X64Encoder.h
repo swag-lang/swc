@@ -46,6 +46,7 @@ protected:
     void encodeNop() override;
     void encodeNopPadding(uint32_t numBytes) override;
     void encodeBreakpoint() override;
+    void encodeTrap() override;
     void encodePrefetch(MicroReg memReg) override;
     void encodeRet() override;
     void setUnwindFrameRegister(MicroReg reg) override;

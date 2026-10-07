@@ -425,45 +425,6 @@ func dismissAggregateFailureInfo()->AggregateInfo
     return result
 }
 
-func recordExpectPanic(message: string?, loc: SourceCodeLocation)
-{
-    let cxt = Swag.getContext()
-    cxt.user0 += 1
-    cxt.user1 = cast(u64) loc.lineStart
-}
-
-#[Swag.Safety(.Expect, true)]
-func expectFailureInfo()->CatchInfo
-{
-    let cxt = Swag.getContext()
-    cxt.user0 = 0
-    cxt.user1 = 0
-    cxt.panic = &recordExpectPanic
-    defer cxt.panic = null
-
-    var result: CatchInfo
-    result.value  = expect alwaysFailValue(29)
-    result.hasErr = cxt.user0 == 1
-    result.code   = cast(s32) cxt.user1
-    return result
-}
-
-#[Swag.Safety(.Expect, false)]
-func expectFailureNoSafety()->CatchInfo
-{
-    let cxt = Swag.getContext()
-    cxt.user0 = 0
-    cxt.user1 = 0
-    cxt.panic = &recordExpectPanic
-    defer cxt.panic = null
-
-    var result: CatchInfo
-    result.value  = expect alwaysFailValue(30)
-    result.hasErr = cxt.user0 == 1
-    result.code   = cast(s32) cxt.user1
-    return result
-}
-
 func repeatedCatchFailureSum()->s32
 {
     var result: s32 = 0
@@ -835,21 +796,6 @@ func notNullSliceSuccess()->s32
 #test
 {
     Swag.assert(notNullSliceSuccess() == 8)
-}
-
-#test
-{
-    let info = expectFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-}
-
-#test
-{
-    let info = expectFailureNoSafety()
-    Swag.assert(info.value == 0)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
 }
 
 #test

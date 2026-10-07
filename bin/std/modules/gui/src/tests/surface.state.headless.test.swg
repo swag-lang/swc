@@ -11,7 +11,7 @@ using Core
     var app: Application
     app.setRenderer(&cpu)
 
-    let surface = expect app.createSurface(40, 40, 320, 180)!
+    let surface = expect app.createSurface(40, 40, 320, 180)
     Swag.assert(not surface.hWnd)
     surface.show()
     let normal = surface.position
@@ -39,7 +39,7 @@ using Core
     var app: Application
     app.setRenderer(&cpu)
 
-    let surface = expect app.createSurface(40, 40, 640, 400)!
+    let surface = expect app.createSurface(40, 40, 640, 400)
     Swag.assert(not surface.hWnd)
     surface.show()
 

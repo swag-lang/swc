@@ -22635,45 +22635,45 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">absolute</span>(path: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_combine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.combine</span> <a class="api-item-permalink" href="#Core_Path_combine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L263">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_combine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.combine</span> <a class="api-item-permalink" href="#Core_Path_combine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L259">src</a></div>
 <p>Joins path segments, inserting a directory separator after a segment that does not end with one.</p>
 <p>Null and empty segments are skipped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">combine</span>(parts: (<span class="STpe">string</span>?)...)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_directoryName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.directoryName</span> <a class="api-item-permalink" href="#Core_Path_directoryName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L160">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_directoryName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.directoryName</span> <a class="api-item-permalink" href="#Core_Path_directoryName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L162">src</a></div>
 <p>Returns the directory part of <span class="code-inline">path</span>, or null when the path names no directory.</p>
-<p>A root such as <span class="code-inline">/</span> or <span class="code-inline">C:/</span> is not a directory part: <span class="code-inline">directoryName("/file")</span> is null.</p>
+<p>A root has no directory part of its own, but it is the directory part of what sits directly under it: <span class="code-inline">directoryName("C:/file")</span> is <span class="code-inline">C:/</span> and <span class="code-inline">directoryName("/file")</span> is <span class="code-inline">/</span>, while <span class="code-inline">directoryName("C:/")</span> is null.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">directoryName</span>(path: <span class="STpe">string</span>?)-&gt;<span class="STpe">string</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_equals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.equals</span> <a class="api-item-permalink" href="#Core_Path_equals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L285">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_equals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.equals</span> <a class="api-item-permalink" href="#Core_Path_equals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L281">src</a></div>
 <p>Returns whether two paths are equal under the selected target's case policy.</p>
 <p>Case-insensitive targets compare Unicode simple-uppercase values without normalizing paths. Malformed UTF-8 is compared byte-for-byte.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">equals</span>(path1, path2: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_extension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.extension</span> <a class="api-item-permalink" href="#Core_Path_extension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L225">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_extension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.extension</span> <a class="api-item-permalink" href="#Core_Path_extension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L221">src</a></div>
 <p>Returns the extension of the file name part of <span class="code-inline">path</span>, including its <span class="code-inline">.</span> character.</p>
 <p>Returns null when the file name has no extension.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">extension</span>(path: <span class="STpe">string</span>?)-&gt;<span class="STpe">string</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_fileName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.fileName</span> <a class="api-item-permalink" href="#Core_Path_fileName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L180">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_fileName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.fileName</span> <a class="api-item-permalink" href="#Core_Path_fileName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L176">src</a></div>
 <p>Returns the file name part of <span class="code-inline">path</span>, or null when the path ends with a separator.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">fileName</span>(path: <span class="STpe">string</span>?)-&gt;<span class="STpe">string</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_fileNameWithoutExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.fileNameWithoutExtension</span> <a class="api-item-permalink" href="#Core_Path_fileNameWithoutExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L198">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_fileNameWithoutExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.fileNameWithoutExtension</span> <a class="api-item-permalink" href="#Core_Path_fileNameWithoutExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L194">src</a></div>
 <p>Returns the file name part of <span class="code-inline">path</span> without its extension, or null when the path ends with a separator.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">fileNameWithoutExtension</span>(path: <span class="STpe">string</span>?)-&gt;<span class="STpe">string</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_hasExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.hasExtension</span> <a class="api-item-permalink" href="#Core_Path_hasExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L249">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_hasExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.hasExtension</span> <a class="api-item-permalink" href="#Core_Path_hasExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L245">src</a></div>
 <p>Returns whether the path has <span class="code-inline">expectedExtension</span> under the target's case policy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasExtension</span>(path, expectedExtension: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns whether the file name part of <span class="code-inline">path</span> has an extension.</p>
@@ -22703,13 +22703,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isValidPathName</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_lowercaseExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.lowercaseExtension</span> <a class="api-item-permalink" href="#Core_Path_lowercaseExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L246">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_lowercaseExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.lowercaseExtension</span> <a class="api-item-permalink" href="#Core_Path_lowercaseExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L242">src</a></div>
 <p>Returns the file name extension in Unicode lowercase, including the <span class="code-inline">.</span> character.</p>
 <p>Returns an empty string if no extension was found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lowercaseExtension</span>(path: <span class="STpe">string</span>?)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Path_normalize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.normalize</span> <a class="api-item-permalink" href="#Core_Path_normalize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L309">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Path_normalize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Path.normalize</span> <a class="api-item-permalink" href="#Core_Path_normalize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L305">src</a></div>
 <p>Replaces the target's alternate separator with its preferred separator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">normalize</span>(path: *<span class="SCst"><a href="#Core_String">String</a></span>)</span></div>
 </section>

@@ -11,7 +11,7 @@ using Swag, Core, Pixel
     var app: Application
     app.setRenderer(&cpu)
 
-    let surface = expect app.createSurface(0, 0, 160, 96)!
+    let surface = expect app.createSurface(0, 0, 160, 96)
     Swag.assert(not app.renderer.needsNativeWindow())
     Swag.assert(not surface.hWnd)
 

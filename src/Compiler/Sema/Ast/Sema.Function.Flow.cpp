@@ -268,7 +268,7 @@ namespace
 
     bool errorManagementSynthesizesDefaultResult(const TokenId tokenId)
     {
-        return tokenId == TokenId::KwdCatch || tokenId == TokenId::KwdExpect;
+        return tokenId == TokenId::KwdCatch;
     }
 
     bool canPropagateFallibleResult(const Sema& sema)
@@ -660,12 +660,7 @@ namespace
 
             case TokenId::KwdExpect:
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
-                if (sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Expect))
-                {
-                    auto& codeGenPayload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
-                    codeGenPayload.addRuntimeSafety(Runtime::SafetyWhat::Expect);
-                    SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedExpect, sema.curNode().codeRef()));
-                }
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedExpect, sema.curNode().codeRef()));
                 break;
 
             default:
@@ -1736,8 +1731,8 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     }
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
-    // A nullable `notnull` never synthesizes a default result (it checks for null and
-    // panics); only the error-management forms need an implicit default for the type.
+    // Only 'catch' resumes with a default result. 'expect' terminates on failure,
+    // so its successful value may have a type with no implicit default.
     const bool    isNotNullUnwrap = codeGenPayload && codeGenPayload->notNullUnwrap;
     const TokenId tokenId         = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
     if (!isNotNullUnwrap && errorManagementSynthesizesDefaultResult(tokenId) && resultTypeRef.isValid())

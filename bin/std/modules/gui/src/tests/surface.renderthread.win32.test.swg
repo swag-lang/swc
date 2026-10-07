@@ -11,7 +11,7 @@ using Core, Win32, Ogl
 #test
 {
     var app: Application
-    let surface = (expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-render-owner-test"))!
+    let surface = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-render-owner-test")
     let context = Ogl.wglGetCurrentContext()
     Swag.assert(context != null, "the window owner must own the default OpenGL context")
 
@@ -35,7 +35,7 @@ using Core, Win32, Ogl
 #test
 {
     var app: Application
-    let surface = (expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-discrete-placement-test"))!
+    let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-discrete-placement-test")
     surface.show()
 
     let normal = surface.position
@@ -62,7 +62,7 @@ using Core, Win32, Ogl
 #test
 {
     var app: Application
-    let surface = (expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-normal-at-placement-test"))!
+    let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-normal-at-placement-test")
     surface.show()
 
     for fromMaximized in [false, true]
@@ -89,7 +89,7 @@ using Core, Win32, Ogl
 #test
 {
     var app: Application
-    let surface = (expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-minimized-restore-test"))!
+    let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-minimized-restore-test")
     surface.show()
 
     let normal = surface.position

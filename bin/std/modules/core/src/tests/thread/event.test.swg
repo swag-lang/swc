@@ -30,7 +30,7 @@ func observeEventStatusPanic(_message: string?, _location: SourceCodeLocation)
 }
 
 // A genuine invalid-handle failure stays inert until the caller explicitly reports it.
-// Error code zero still represents failure; a returning panic hook runs only after retirement.
+// Error code zero still represents failure; catching a status releases its error storage.
 #[Swag.Safety(.Expect, true)]
 #test
 {
@@ -104,14 +104,11 @@ func observeEventStatusPanic(_message: string?, _location: SourceCodeLocation)
 
     let afterNoDetailCatch = allocator.stats().countAlloc
 
-    expect wait.raise()
     context.panic = previous.panic
-    let afterReport = allocator.stats().countAlloc
 
     Swag.assert(not signal.isSuccess() and not reset.isSuccess() and not wait.isSuccess())
     Swag.assert(beforeReport == baseline and hooksBeforeReport == 0)
     Swag.assert(validCodes, "event status must preserve the native failure codes")
     Swag.assert(afterSignalCatch == baseline and afterResetCatch == baseline and afterWaitCatch == baseline and afterNoDetailCatch == baseline, "caught event failures must release their storage")
-    Swag.assert(afterReport == baseline, "expect must release its failure storage when the panic hook returns")
-    Swag.assert(eventStatusPanicCount == 1 and not eventStatusObservedBorrow)
+    Swag.assert(eventStatusPanicCount == 0 and not eventStatusObservedBorrow)
 }

@@ -12,10 +12,10 @@ using Swag, Core
     Swag.assert(glyphIndex > 0)
 
     let faceData     = getFaceData(face)
-    let glyf         = expect tableSlice(faceData, TAG_GLYF, 0x10)!
+    let glyf         = expect getTableSlice(faceData, TAG_GLYF, 0x10)
     let glyphStart   = faceData.glyphLocations[glyphIndex]
     let glyphEnd     = faceData.glyphLocations[glyphIndex + 1]
-    let glyphData    = expect sliceRange(glyf, glyphStart, glyphEnd - glyphStart)!
+    let glyphData    = expect getSlice(glyf, glyphStart, glyphEnd - glyphStart)
     let contourCount = expect readS16(glyphData, 0)
     Swag.assert(contourCount < 0)
 

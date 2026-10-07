@@ -15,8 +15,8 @@ The following are already available and are not new feature requests:
 
 - Non-null required fields and definite initialization, including rejection of incomplete
   aggregates: [the initialization fixture](../bin/unittests/errors/sema/sema_err_type_requires_init.swg).
-  The remaining construction obstacles are error fallback (language.design.031) and moved-source
-  reset (language.design.035), not the absence of constructors or safe initialization.
+  The remaining construction obstacle is moved-source reset (language.design.035), not the absence
+  of constructors or safe initialization. `expect` accepts results without a default value.
 - Aggregate literals construct directly in the return slot, retval supports incremental filling,
   and eligible named-local returns transfer ownership. See
   [return storage](../bin/reference/modules/language/src/007_008_retval.swg) and
@@ -36,6 +36,98 @@ Public API consistency remains a module-by-module design requirement under
 [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md): value returns,
 options structs, slices and ownership contracts are available today. A concrete API defect belongs
 in its module backlog; a general request for better names is not a missing language feature.
+
+### language.design.032 — Produce values directly from a switch
+
+- Recorded: 2026-09-16 16:06
+- Updated: 2026-10-07 07:03 — removed the dependency on the now-implemented terminal expect contract
+- Evidence: the [switch reference](../bin/reference/modules/language/src/005_005_switch.swg)
+  and [statement parser](../src/Compiler/Parser/Parser/Parser.Stmt.cpp) expose a statement;
+  [expression parsing](../src/Compiler/Parser/Parser/Parser.Expression.cpp) does not introduce
+  switch expressions. Ternaries and expression-bodied functions already produce values, so
+  this request is specifically for multi-arm selection, not expression-oriented code in general.
+- Proposed contract: evaluate the subject once, select one arm using the existing case/pattern
+  rules, and use that arm's value as the result. Conceptually, `let label = switch kind { ... }`
+  should replace an auxiliary mutable local assigned in every arm; this is illustrative proposed
+  syntax, not accepted Swag. Every reachable path must yield a compatible value or exit.
+  An unselected arm must not run effects, transfer ownership, allocate, or drop its payload.
+- Decisions: choose how a multi-statement arm yields its value; keep return as a return from the
+  enclosing function. Define contextual typing, non-returning arms, failure propagation and
+  whether the result borrows or owns. Reject fallthrough in a value-producing switch unless a
+  precise single-result rule is justified. Do not require tagged unions for the first version.
+- Elsewhere: Rust [match expressions](https://doc.rust-lang.org/reference/expressions/match-expr.html)
+  select an arm value and combine arm types. This is a comparison for value selection, not a
+  requirement to import all Rust patterns or coercion rules.
+- Next: prototype enum-to-string selection, an owning String factory and a borrowed pointer
+  result using existing cases. Verify side-effect counters, a failing arm, a non-returning arm,
+  and source lifetime before migrating real helpers. Coordinate exhaustiveness with
+  language.design.001; use the terminal failure contract of `expect` for non-returning arms.
+- Complete when: a local initializer and a function return can use a total multi-arm expression
+  without a mutable relay; JIT/native tests cover type inference, evaluation order, cleanup and
+  borrowed-result escapes, and the formatter/reference/editor agree on the chosen syntax.
+- Related: language.design.001, language.design.002, language.design.006.
+
+### language.design.035 — Move a non-defaultable owner without resetting its consumed source
+
+- Recorded: 2026-09-16 16:06
+- Updated: 2026-10-07 07:03 — removed the dependency on the now-implemented terminal expect contract
+- Evidence: safe definite initialization and non-defaultable fields already exist. The remaining
+  obstacle is [sema_err_nonull_move_source_no_default.swg](../bin/unittests/errors/sema/sema_err_nonull_move_source_no_default.swg):
+  an owner with opDrop and a required non-null field rejects assignment, initialization and call
+  transfers with #move, plus #fwd, because the source cannot be reset. The
+  [copy/move reference](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg)
+  documents this contract. A dummy default weakens the type's invariant just to make it movable.
+- Proposed contract: a consuming move transfers ownership and leaves the source uninitialized,
+  unavailable to reads or drop until assigned a complete replacement. It does not construct a
+  new empty owner behind the caller's back. Use the existing definite-initialization and borrow
+  machinery to describe that state. Keep an explicit replace/take operation when a caller really
+  needs the source immediately reset to a chosen valid value.
+- Decisions: start with whole locals. Specify branch merges, deferred/captured observations,
+  aliases, failure after a completed transfer, and exactly-once destruction. Moving a field or
+  array element is a separate capability: either track partially consumed storage or reject it
+  until whole-value restoration is proven. opPostMove invariant repair is distinct from source
+  reinitialization and must not be lost by changing the latter.
+- Elsewhere: Rust's [moved values](https://doc.rust-lang.org/reference/expressions.html#moved-and-copied-types)
+  leave the source location logically uninitialized. The comparison concerns the consumed state;
+  it does not prescribe changing Swag's borrowed by-value parameters into consuming ones.
+- Next: use the existing rejection fixture as the design witness and define the exact new
+  accepted/rejected cases before changing it. Prototype whole-local transfers with a required
+  non-null field and a counted resource; cover reinitialization, a conditional move, deferred
+  observations, a throwing later operand and outstanding borrows in JIT and native execution.
+- Complete when: a valid non-defaultable owner can be transferred without a dummy default,
+  consumed storage cannot be read/dropped twice, and failures/branch merges preserve ownership.
+- Related: language.design.024 owns implicit copies at consuming boundaries. `expect` already
+  accepts non-defaultable results; this entry concerns resetting consumed sources.
+
+### language.design.010 — `catch` without a capture substitutes the type default and says nothing
+
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-10-07 07:03 — removed the dependency on the now-implemented terminal expect contract
+- Area: language
+- Found while: the same pass
+- Observation: `catch f()` handles the error, drops it, and yields the default value for the result
+  type
+  ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
+  It is a one-word conversion of a failure into a zero, with no `discard`-style ceremony — while the
+  language elsewhere refuses to let an ordinary return value be ignored without `discard`
+  ([007_007_discard.swg](../bin/reference/modules/language/src/007_007_discard.swg)). The two
+  policies point in opposite directions: an unread `s32` is an error, an unread *failure* is a zero.
+- Evidence: `func swallow()->s32 { return catch mustFail() }` returns 0 with no diagnostic.
+- Elsewhere: Swift's `try?` preserves failure as an optional result, while `try!` asserts success
+  ([Swift error handling](https://raw.githubusercontent.com/swiftlang/swift-book/main/TSPL.docc/LanguageGuide/ErrorHandling.md)).
+  These make different promises from substituting the ordinary result type's default.
+- Proposed contract: A handler either supplies an explicit replacement of the result type, propagates or
+  exits, or deliberately discards a failure from an operation whose result is not needed.
+  It never synthesizes zero/null as successful output. The error should be accessible inside
+  the handler and fallback evaluation must be lazy. Existing fail/try/catch and error-as-value
+  support remain the baseline; this entry does not add a second Result/exception system.
+- Next: Specify value-producing catch handlers using safeCount, blockCatchElse and GUI font
+  loading as before/after cases. Classify bare catches as discard, fallback or preserved error.
+  Define owned-result adoption and failed-path cleanup, including non-defaultable results.
+  Coordinate local capture scope with language.design.025 and preserve the terminal failure
+  contract of `expect`.
+- Complete when: fallback, propagation, termination and explicit discard cannot be confused, a successful
+  result never requires a fabricated failure value, and side effects/lifetimes are tested.
 
 ### language.design.037 — A struct parameter is documented as a private value and used as a live reference
 
@@ -81,35 +173,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: decide the contract, then align the reference, the constant fold, and codegen together.
 - Complete when: the reference and every compile-time and run-time comparison of a float-bearing
   struct or array give the same answer, with JIT and native tests for `-0.0` and NaN members.
-
-### language.design.032 — Produce values directly from a switch
-
-- Recorded: 2026-09-16 16:06
-- Evidence: the [switch reference](../bin/reference/modules/language/src/005_005_switch.swg)
-  and [statement parser](../src/Compiler/Parser/Parser/Parser.Stmt.cpp) expose a statement;
-  [expression parsing](../src/Compiler/Parser/Parser/Parser.Expression.cpp) does not introduce
-  switch expressions. Ternaries and expression-bodied functions already produce values, so
-  this request is specifically for multi-arm selection, not expression-oriented code in general.
-- Proposed contract: evaluate the subject once, select one arm using the existing case/pattern
-  rules, and use that arm's value as the result. Conceptually, `let label = switch kind { ... }`
-  should replace an auxiliary mutable local assigned in every arm; this is illustrative proposed
-  syntax, not accepted Swag. Every reachable path must yield a compatible value or exit.
-  An unselected arm must not run effects, transfer ownership, allocate, or drop its payload.
-- Decisions: choose how a multi-statement arm yields its value; keep return as a return from the
-  enclosing function. Define contextual typing, non-returning arms, failure propagation and
-  whether the result borrows or owns. Reject fallthrough in a value-producing switch unless a
-  precise single-result rule is justified. Do not require tagged unions for the first version.
-- Elsewhere: Rust [match expressions](https://doc.rust-lang.org/reference/expressions/match-expr.html)
-  select an arm value and combine arm types. This is a comparison for value selection, not a
-  requirement to import all Rust patterns or coercion rules.
-- Next: prototype enum-to-string selection, an owning String factory and a borrowed pointer
-  result using existing cases. Verify side-effect counters, a failing arm, a non-returning arm,
-  and source lifetime before migrating real helpers. Coordinate exhaustiveness with
-  language.design.001 and non-returning result typing with language.design.031.
-- Complete when: a local initializer and a function return can use a total multi-arm expression
-  without a mutable relay; JIT/native tests cover type inference, evaluation order, cleanup and
-  borrowed-result escapes, and the formatter/reference/editor agree on the chosen syntax.
-- Related: language.design.001, language.design.002, language.design.006, language.design.031.
 
 ### language.design.033 — Choose one canonical instance-method declaration
 
@@ -167,37 +230,6 @@ in its module backlog; a general request for better names is not a missing langu
   consumer loop forms still behave correctly, and owning/borrowed/fallible providers have a
   tested lifetime and cost contract with a migration path for opVisit.
 - Related: language.design.018; compiler.safety.014 in [compiler.safety.md](compiler.safety.md).
-
-### language.design.035 — Move a non-defaultable owner without resetting its consumed source
-
-- Recorded: 2026-09-16 16:06
-- Evidence: safe definite initialization and non-defaultable fields already exist. The remaining
-  obstacle is [sema_err_nonull_move_source_no_default.swg](../bin/unittests/errors/sema/sema_err_nonull_move_source_no_default.swg):
-  an owner with opDrop and a required non-null field rejects assignment, initialization and call
-  transfers with #move, plus #fwd, because the source cannot be reset. The
-  [copy/move reference](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg)
-  documents this contract. A dummy default weakens the type's invariant just to make it movable.
-- Proposed contract: a consuming move transfers ownership and leaves the source uninitialized,
-  unavailable to reads or drop until assigned a complete replacement. It does not construct a
-  new empty owner behind the caller's back. Use the existing definite-initialization and borrow
-  machinery to describe that state. Keep an explicit replace/take operation when a caller really
-  needs the source immediately reset to a chosen valid value.
-- Decisions: start with whole locals. Specify branch merges, deferred/captured observations,
-  aliases, failure after a completed transfer, and exactly-once destruction. Moving a field or
-  array element is a separate capability: either track partially consumed storage or reject it
-  until whole-value restoration is proven. opPostMove invariant repair is distinct from source
-  reinitialization and must not be lost by changing the latter.
-- Elsewhere: Rust's [moved values](https://doc.rust-lang.org/reference/expressions.html#moved-and-copied-types)
-  leave the source location logically uninitialized. The comparison concerns the consumed state;
-  it does not prescribe changing Swag's borrowed by-value parameters into consuming ones.
-- Next: use the existing rejection fixture as the design witness and define the exact new
-  accepted/rejected cases before changing it. Prototype whole-local transfers with a required
-  non-null field and a counted resource; cover reinitialization, a conditional move, deferred
-  observations, a throwing later operand and outstanding borrows in JIT and native execution.
-- Complete when: a valid non-defaultable owner can be transferred without a dummy default,
-  consumed storage cannot be read/dropped twice, and failures/branch merges preserve ownership.
-- Related: language.design.024 owns implicit copies at consuming boundaries;
-  language.design.031 owns non-defaultable results at error-handling boundaries.
 
 ### language.design.006 — Positional destructuring binds by position even when every name matches a field
 
@@ -411,35 +443,6 @@ in its module backlog; a general request for better names is not a missing langu
   that try already supports outside tests. Update the documented alias only with runner coverage.
 - Complete when: try has the same propagation meaning inside and outside tests, the runner reports its
   failures with source context, and cleanup and successful result types remain unchanged.
-
-### language.design.010 — `catch` without a capture substitutes the type default and says nothing
-
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
-- Area: language
-- Found while: the same pass
-- Observation: `catch f()` handles the error, drops it, and yields the default value for the result
-  type
-  ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
-  It is a one-word conversion of a failure into a zero, with no `discard`-style ceremony — while the
-  language elsewhere refuses to let an ordinary return value be ignored without `discard`
-  ([007_007_discard.swg](../bin/reference/modules/language/src/007_007_discard.swg)). The two
-  policies point in opposite directions: an unread `s32` is an error, an unread *failure* is a zero.
-- Evidence: `func swallow()->s32 { return catch mustFail() }` returns 0 with no diagnostic.
-- Elsewhere: Swift's `try?` preserves failure as an optional result, while `try!` asserts success
-  ([Swift error handling](https://raw.githubusercontent.com/swiftlang/swift-book/main/TSPL.docc/LanguageGuide/ErrorHandling.md)).
-  These make different promises from substituting the ordinary result type's default.
-- Proposed contract: A handler either supplies an explicit replacement of the result type, propagates or
-  exits, or deliberately discards a failure from an operation whose result is not needed.
-  It never synthesizes zero/null as successful output. The error should be accessible inside
-  the handler and fallback evaluation must be lazy. Existing fail/try/catch and error-as-value
-  support remain the baseline; this entry does not add a second Result/exception system.
-- Next: Specify value-producing catch handlers using safeCount, blockCatchElse and GUI font
-  loading as before/after cases. Classify bare catches as discard, fallback or preserved error.
-  Define owned-result adoption and failed-path cleanup, including non-defaultable results.
-  Coordinate local capture scope with language.design.025 and divergence with language.design.031.
-- Complete when: fallback, propagation, termination and explicit discard cannot be confused, a successful
-  result never requires a fabricated failure value, and side effects/lifetimes are tested.
 
 ### language.design.019 — `if let` combines binding with an implicit truthiness test
 
@@ -831,38 +834,6 @@ in its module backlog; a general request for better names is not a missing langu
   migrate intentional f32 data explicitly and define rounding at contextual conversion.
 - Complete when: the default no longer depends on the literal's exact representability, its cost and
   migration are recorded, and contextual/suffixed/defaulted literals have executable rules.
-
-### language.design.031 — Let expect consume a result without inventing a default value
-
-- Recorded: 2026-09-16 15:52
-- Evidence: the error-management reference specifies that expect panics only while the Expect
-  safety guard is enabled and otherwise yields the result type's default. It consequently rejects
-  non-null pointer results. The clean pass found adapters whose only job is to weaken a successful
-  pointer to nullable: createCorpusTypeFace in
-  [pdf.corpus.test.swg](../bin/std/modules/gui/src/tests/pdf.corpus.test.swg) wraps TypeFace.create,
-  and its caller immediately writes `(expect createCorpusTypeFace(...))!`.
-  [pdf.fontprogram.test.swg](../bin/std/modules/gui/src/tests/pdf.fontprogram.test.swg) has the same
-  nullable adapter for catch-based recovery. The restriction is documented in
-  [error management](../bin/reference/modules/language/src/013_001_error_management.swg);
-  this is a design limitation, not a newly reproduced compiler defect.
-- Proposed direction: expect returns the successful T or does not return, in every configuration.
-  Its failure path must not require T to have a default. Model non-returning expressions in typing
-  so a panic or an early exit can inhabit a handler without a dummy value. Keep a deliberately
-  unchecked assumption separate from ordinary expect.
-- Elsewhere: Rust's [Result::expect](https://doc.rust-lang.org/std/result/enum.Result.html#method.expect)
-  returns T or panics and does not require T: Default; its
-  [never type](https://doc.rust-lang.org/reference/types/never.html) represents computations that
-  do not complete and can coerce to another type. These are specific contracts to compare, not a
-  recommendation to copy Rust's complete error model.
-- Next: specify the always-diverging failure contract and its cost, including the deliberate break
-  with disabling the Expect guard. Prototype a direct `expect TypeFace.create(...)` and a handler
-  that exits on failure, then remove the adapters only after the compiler supports them. Test
-  non-null pointers, non-defaultable owning results, successful ownership transfer, and cleanup
-  during failure in JIT, native devmode, and native release.
-- Complete when: expect can produce a non-defaultable result without nullable adapters, its failure
-  cannot continue with a fabricated value, and the reference and lifecycle tests enforce that
-  contract in every supported configuration.
-- Related: language.design.010, language.design.025, language.design.030; compiler.safety.011.
 
 ### language.design.027 — Loop index types follow different count, range, and collection rules
 

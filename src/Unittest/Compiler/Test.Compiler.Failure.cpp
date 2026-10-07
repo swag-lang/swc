@@ -246,6 +246,12 @@ func failRecoveryError() fail
     fail RecoveryError{}
 }
 
+func failRecoveryPanic() fail
+{
+    fail Swag.BaseError{"intentional first-test panic with a live captured error"}
+}
+
+#[Swag.Safety(.All, false)]
 #test
 {
     let previous = Swag.getContext()
@@ -263,7 +269,7 @@ func failRecoveryError() fail
     catch failRecoveryError() as error
     if error is RecoveryError as value do
         recoveryGeneration = value.generation
-    Swag.panic("intentional first-test panic with a live captured error", #curlocation)
+    expect failRecoveryPanic()
 }
 
 #test
@@ -309,6 +315,125 @@ func failRecoveryError() fail
             output.find("hardware exception") != std::string::npos)
         {
             std::println(stderr, "[native panic recovery, local context={}] {}", switchContext, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExpectTerminatesWithReturningPanicHook)
+{
+    const RecoveryTestDirectory directory;
+    for (const std::string_view configuration : {"devmode", "release"})
+    {
+        const fs::path caseDirectory = directory.path() / configuration;
+        const fs::path sourcePath    = caseDirectory / "expect.swg";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, R"SWAG(
+#global private
+
+func failValue()->s32 fail { fail Swag.BaseError{"terminal expect"} }
+func hook(message: string?, location: Swag.SourceCodeLocation)
+{
+    if message == null or location.lineStart == 0 do return
+    discard catch failValue() as error
+    if error != null do Swag.print("expect hook observed the error\n")
+}
+
+#[Swag.Safety(.All, false)]
+#test
+{
+    if Swag.jit() do return
+    Swag.getContext().panic = &hook
+    discard expect failValue()
+    Swag.print("expect resumed after failure\n")
+}
+)SWAG"));
+        const std::vector<Utf8> args = {
+            "test",
+            "--file",
+            Utf8(sourcePath),
+            "--out-dir",
+            Utf8(caseDirectory / "output"),
+            "--work-dir",
+            Utf8(caseDirectory / "work"),
+            "--build-cfg",
+            Utf8(configuration),
+            "--no-test-jit",
+            "--num-cores",
+            "1",
+            "--no-log-color",
+        };
+        std::string                 output;
+        uint32_t                    exitCode = UINT32_MAX;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, caseDirectory, &options);
+        if (result != Os::ProcessRunResult::Ok || exitCode == 0 ||
+            output.find("expect hook observed the error") == std::string::npos ||
+            output.find("expect resumed after failure") != std::string::npos ||
+            output.find("hardware exception") != std::string::npos)
+        {
+            std::println(stderr, "[terminal expect, {}] {}", configuration, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_TestOwnedTryTerminatesThroughInlineExpansion)
+{
+    const RecoveryTestDirectory directory;
+    for (const bool injection : {false, true})
+    {
+        const fs::path caseDirectory = directory.path() / (injection ? "injection" : "argument");
+        const fs::path sourcePath    = caseDirectory / "expect_inline.swg";
+        std::string    source        = R"SWAG(
+#global private
+#[Swag.NoInline]
+func raiseError()->s32 fail { fail Swag.BaseError{"terminal test-owned try"} }
+#[Swag.Inline]
+func propagate()->s32 fail => try raiseError()
+#[Swag.Inline]
+func identity(value: s32)->s32 => value
+#[Swag.Macro]
+func injectStatement(statement: #code) { #inject(statement) }
+#[Swag.Safety(.Expect, false)]
+#test
+{
+)SWAG";
+        source += injection ? "    injectStatement(#code { discard try propagate() })\n" : "    discard identity(try propagate())\n";
+        source += R"SWAG(
+    Swag.print("test-owned try resumed\n")
+}
+#test { Swag.print("test-owned try recovery completed\n") }
+)SWAG";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+        const std::vector<Utf8> args = {
+            "test",
+            "--file",
+            Utf8(sourcePath),
+            "--out-dir",
+            Utf8(caseDirectory / "output"),
+            "--work-dir",
+            Utf8(caseDirectory / "work"),
+            "--build-cfg",
+            "release",
+            "--no-test-jit",
+            "--num-cores",
+            "1",
+            "--no-log-color",
+        };
+        std::string                 output;
+        uint32_t                    exitCode = UINT32_MAX;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, caseDirectory, &options);
+        if (result != Os::ProcessRunResult::Ok || exitCode == 0 ||
+            output.find("terminal test-owned try") == std::string::npos ||
+            output.find("test-owned try resumed") != std::string::npos ||
+            output.find("test-owned try recovery completed") == std::string::npos ||
+            output.find("generated executable '#test' result: 1 did not pass") == std::string::npos ||
+            output.find("hardware exception") != std::string::npos)
+        {
+            std::println(stderr, "[terminal test-owned try, injection={}] {}", injection, output);
             return Result::Error;
         }
     }

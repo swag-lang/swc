@@ -668,11 +668,11 @@ impl Surface
 
         discard DwmFlush()
 
-        // Cloaking keeps the native visibility and focus while DWM continues composing the
-        // resized drawable. The unchanged overlay is already on screen, so there is no gap.
-        var cloak = TRUE
-        if DwmSetWindowAttribute(.hWnd, DWMWA_CLOAK, cast(LPCVOID) &cloak, #sizeof(cloak)) != 0
+        let region = CreateRectRgn(0, 0, 0, 0)
+        if not region or not SetWindowRgn(.hWnd, region, FALSE)
         {
+            if region do
+                catch DeleteObject(cast(Gdi32.HGDIOBJ) region)
             catch DestroyWindow(overlay)
             return false
         }
@@ -722,8 +722,8 @@ impl Surface
                 discard updatePlacementOverlay(me, .placementOverlay, cast(s32) .position.x, cast(s32) .position.y, .rc.width, .rc.height)
                 Console.println("finish overlay us ", finishWatch.elapsedMicroseconds())
                 discard DwmFlush()
-                var cloak = FALSE
-                discard DwmSetWindowAttribute(.hWnd, DWMWA_CLOAK, cast(LPCVOID) &cloak, #sizeof(cloak))
+                catch Ogl.wglMakeCurrent(null, null)
+                discard SetWindowRgn(.hWnd, null, FALSE)
             }
 
             .presentPreparedFrame()

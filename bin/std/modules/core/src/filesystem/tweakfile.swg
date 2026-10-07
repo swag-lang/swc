@@ -40,7 +40,7 @@ private struct FieldPath
 impl TweakFile
 {
     // Reads a value name, which walks into a nested struct at each '.'.
-    private func parseName(str: string)->string? fail
+    private func parseName(str: string)->string fail
     {
         var count = (try StrConv.parseIdentifier(str)).count
         while count + 1 < str.count and str[count] == '.'u8
@@ -136,7 +136,8 @@ impl TweakFile
             if one[0] == '/'
             {
                 one = Tokenize.eatCount(one, 1)
-                let folderName = catch StrConv.parseIdentifier(one) as folderErr
+                var folderName = ""
+                catch { folderName = try StrConv.parseIdentifier(one) } as folderErr
                 if folderErr != null do
                     fail SyntaxError{"invalid folder name", line: idx + 1}
 
@@ -162,10 +163,10 @@ impl TweakFile
 
             // Value declaration
             one = Tokenize.eatSpaces(one)
-            let name = catch parseName(one) as nameErr
+            var id = ""
+            catch { id = try parseName(one) } as nameErr
             if nameErr != null do
                 fail SyntaxError{"invalid value name", line: idx + 1}
-            let id = name!
 
             // Search value in folder type
             let path = resolveName(currentFolder.type, id)
@@ -180,10 +181,10 @@ impl TweakFile
             if one[0] == '$'
             {
                 one = Tokenize.eatCount(one, 1)
-                let refName = catch parseName(one) as refErr
+                var other = ""
+                catch { other = try parseName(one) } as refErr
                 if refErr != null do
                     fail SyntaxError{"invalid reference name", line: idx + 1}
-                let other = refName!
 
                 let otherPath = resolveName(currentFolder.type, other)
                 if not otherPath.type do
@@ -199,10 +200,9 @@ impl TweakFile
             }
 
             // Parse and assign value to field
-            let parsedOne: string? = catch StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type, one) as valueErr
+            catch { one = try StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type, one) } as valueErr
             if valueErr != null do
                 fail SyntaxError{"invalid value", line: idx + 1}
-            one = parsedOne orelse ""
 
             // Ensure nothing invalid follows the value
             if one.count and not Latin1.isSpace(one[0]) and one[0] != '#' do

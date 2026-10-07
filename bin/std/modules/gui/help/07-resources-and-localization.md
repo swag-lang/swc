@@ -17,7 +17,7 @@ var app: Application
     // theme sheets, and language files of the same name.
     app.resources.addFolder("datas")
 
-    let surface = (try app.createSurface(100, 100, 640, 420))!
+    let surface = try app.createSurface(100, 100, 640, 420)
     surface.show()
     return app.run()
 }

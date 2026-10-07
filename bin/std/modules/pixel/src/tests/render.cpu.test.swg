@@ -769,7 +769,7 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: {0.1640625, 0, 0.1484375, 0.15
 #test
 {
     var cache: FontCache
-    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
+    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
     let font = cache.createFont(face, 40, .Msdf)
     var run  = Painter.shapeRun("e", font)
     run.glyphs[0].desc = &g_MsdfRoundingGlyph

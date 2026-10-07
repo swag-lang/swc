@@ -840,30 +840,28 @@ impl LibraryWnd
         // the latest landed version of the file.
         .main.flushCaptureSave(file)
 
-        let loaded: *Capture? = catch Capture.load(file) as err
-        if err != null
+        catch
         {
+            let capture = try Capture.load(file)
+            defer Memory.delete(capture)
+            if tags do
+                capture.tags = tags[]
+            if favorite do
+                capture.favorite = favorite[]
+            if rating do
+                capture.rating = rating[]
+            capture.changed = true
+            discard catch capture.save() as saveErr
+            if saveErr != null
+            {
+                MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, saveErr)
+                return
+            }
+
+            .refreshPreviewMetadata(file, capture)
+        } as err
+        if err != null do
             MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, err)
-            return
-        }
-
-        let capture = loaded!
-        defer Memory.delete(capture)
-        if tags do
-            capture.tags = tags[]
-        if favorite do
-            capture.favorite = favorite[]
-        if rating do
-            capture.rating = rating[]
-        capture.changed = true
-        discard catch capture.save() as saveErr
-        if saveErr != null
-        {
-            MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, saveErr)
-            return
-        }
-
-        .refreshPreviewMetadata(file, capture)
     }
 
     mtd editSelectedTags()
@@ -937,7 +935,7 @@ impl LibraryWnd
         // The exported image must include edits a background save is still writing.
         .main.flushCaptureSave(file)
 
-        let capture = (try Capture.load(file))!
+        let capture = try Capture.load(file)
         defer Memory.delete(capture)
 
         capture.editView = .main.editWnd.editView

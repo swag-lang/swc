@@ -100,7 +100,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     buffer.makeLinear()
     Swag.assert(buffer.toString().contains("core.test.tagbin-array-thing"))
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let loaded = expect decoder.readAll'TagBinArrayHolder(buffer.toSlice()!)!
+    let loaded = expect decoder.readAll'TagBinArrayHolder(buffer.toSlice()!)
     defer releaseTagBinArrayHolder(loaded)
 
     Swag.assert(loaded.things.count == 3)

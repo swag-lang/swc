@@ -25,7 +25,7 @@ struct XmlPayload
     let source: String = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<payload>\n  <id>7</id>\n  <active>true</active>\n  <name>a &lt;b&gt; &amp; &quot;c&apos;</name>\n  <counts> -1 0 4 </counts>\n  <pair><x>3</x><y>-2</y></pair>\n</payload>\n"
 
     var decoder: Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlPayload(source.toSlice())!
+    let decoded = expect decoder.readAll'XmlPayload(source.toSlice())
     defer Memory.delete(decoded)
     Swag.assert(decoded.id == 7)
     Swag.assert(decoded.active)
@@ -46,8 +46,7 @@ struct XmlPayload
     for input in InvalidXml
     {
         var decoder: Serialization.Decoder'Serialization.Read.Xml
-        let decoded = catch decoder.readAll'XmlPayload(cast(const [..] u8) input) as err
-        Swag.assert(decoded == null)
+        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8) input) as err
         Swag.assert(err != null)
     }
 }

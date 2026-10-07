@@ -82,7 +82,7 @@ func updatePlayer()
     if kb.isKeyJustPressed(.Space)
     {
         g_Lasers.add({g_Player.x + g_PlayerImg.width / 2, g_Player.y, player: true})
-        catch Audio.Voice.play(&g_SoundLaser)
+        catch { try Audio.Voice.play(&g_SoundLaser) }
     }
 }
 
@@ -155,7 +155,7 @@ func checkCollisions()
                 obs.dead   = true
                 if not laser.player do
                     g_NumAlienLasers -= 1
-                catch Audio.Voice.play(&g_SoundExplosion)
+                catch { try Audio.Voice.play(&g_SoundExplosion) }
                 continue
             }
         }
@@ -171,7 +171,7 @@ func checkCollisions()
                     laser.dead = true
                     alien.dead = true
                     g_Score    += 1
-                    catch Audio.Voice.play(&g_SoundExplosion)
+                    catch { try Audio.Voice.play(&g_SoundExplosion) }
                 }
             }
         }
@@ -184,7 +184,7 @@ func checkCollisions()
             {
                 g_NumAlienLasers -= 1
                 laser.dead       = true
-                catch Audio.Voice.play(&g_SoundExplosion)
+                catch { try Audio.Voice.play(&g_SoundExplosion) }
             }
         }
     }
@@ -267,7 +267,7 @@ func startGame()
     g_Player.x = (g_Rect.width / 2) - g_PlayerImg.width / 2
     g_Player.y = g_Rect.height - g_PlayerImg.height - 50
 
-    catch Audio.Voice.play(&g_SoundMusic, playFlags: .Loop)
+    catch { try Audio.Voice.play(&g_SoundMusic, playFlags: .Loop) }
 }
 
 func display()

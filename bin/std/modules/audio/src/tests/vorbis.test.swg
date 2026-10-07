@@ -82,7 +82,7 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
 
     var sound  = expect SoundFile.load(audioGetTestDataPath("vorbis-transient-44100.ogg").toString())
     let wanted = expect vorbisDecodeAll(&sound)
-    let voice  = (expect Voice.create(&sound))!
+    let voice  = expect Voice.create(&sound)
     defer voice.destroy()
 
     const Target = 44_100'u64

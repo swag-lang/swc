@@ -30,7 +30,7 @@ func loadFonts() fail
     let path = g_FontPath.toString()
 
     g_FontBytes = try File.readAllBytes(path)
-    let face = (try Face.load(g_FontBytes.toSlice()))!
+    let face = try Face.load(g_FontBytes.toSlice())
     g_Face = face
 
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", face.familyName, face.styleName, face.glyphCount, g_FontBytes.count)

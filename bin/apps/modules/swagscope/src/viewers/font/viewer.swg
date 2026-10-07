@@ -58,7 +58,7 @@ private func loadFontViewerContent(fileName: string)->FontViewerContent fail
     var result: retval
     result.bytes = try File.readAllBytes(fileName)
     let faceCount = try Face.countFaces(result.bytes.toSlice())
-    result.face = (try Face.load(result.bytes.toSlice()))!
+    result.face = try Face.load(result.bytes.toSlice())
 
     let cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
     result.typeFace = try TypeFace.create(cacheKey.toString(), result.bytes.toSlice())

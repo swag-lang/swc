@@ -74,7 +74,7 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
 
     var sound  = expect SoundFile.load(audioGetTestDataPath("adpcm-ms-stereo-22050.wav").toString())
     let wanted = expect adpcmDecodeAll(&sound)
-    let voice  = (expect Voice.create(&sound))!
+    let voice  = expect Voice.create(&sound)
     defer voice.destroy()
 
     const Target = 1500'u64

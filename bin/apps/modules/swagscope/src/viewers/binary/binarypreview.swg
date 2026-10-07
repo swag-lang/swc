@@ -103,15 +103,16 @@ private func captureOriginalRole()->Guid128   => previewGuid("7206ea20-cd74-4832
 private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array'BinaryPreview)
 {
     var decoder: Decoder'Read.TagBin
-    let image = catch decoder.readAll'Image(bytes) as decodeError
-    if decodeError != null or image == null do
-        return
-    defer Memory.delete(image)
+    catch
+    {
+        let image = try decoder.readAll'Image(bytes)
+        defer Memory.delete(image)
 
-    var preview: BinaryPreview
-    preview.image = #move image[]
-    preview.label = label
-    previews.add(#move preview)
+        var preview: BinaryPreview
+        preview.image = #move image[]
+        preview.label = label
+        previews.add(#move preview)
+    }
 }
 
 // Adds a preview of every picture a Swag Capture container holds, up to `BinaryPreviewLimit`.

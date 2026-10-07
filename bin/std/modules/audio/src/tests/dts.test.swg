@@ -193,7 +193,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
 
@@ -262,9 +262,9 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let coreVoice = (expect Voice.create(&core))!
+    let coreVoice = expect Voice.create(&core)
     defer coreVoice.destroy()
-    let extendedVoice = (expect Voice.create(&extended))!
+    let extendedVoice = expect Voice.create(&extended)
     defer extendedVoice.destroy()
     let coreDecoded     = expect coreVoice.readBuffer()
     let extendedDecoded = expect extendedVoice.readBuffer()
@@ -289,7 +289,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     var sound = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, config.toSlice(), {speakerMask: info.speakerMask})
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == cast(u64) info.frames * #sizeof(s16))
@@ -310,7 +310,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     var sound = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, config.toSlice(), {speakerMask: info.speakerMask})
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     let samples = Swag.makeSlice(cast(const [*] s16) decoded.buffer!, decoded.size / #sizeof(s16))

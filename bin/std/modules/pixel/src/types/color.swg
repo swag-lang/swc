@@ -658,7 +658,7 @@ impl Core.StrConv.IPokeValue for Color
         }
         else
         {
-            let id = (try parseIdentifier(one)) orelse ""
+            let id = try parseIdentifier(one)
             one   = Tokenize.eatCount(one, id.count)
             .argb = cast(u32) Argb.fromName(id)
         }

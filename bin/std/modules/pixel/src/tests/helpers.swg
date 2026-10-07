@@ -30,8 +30,6 @@ func makeTempIcoPath()->String  => makeTempImagePath(".ico")
 
 func nnBytes(bytes: const [..] u8?)->const [..] u8 => bytes!
 
-func loadTestTypeFace(fullName: string)->*TypeFace? fail => try TypeFace.load(fullName)
-
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {
     let expectedSize = cast(u64) (width * height * cast(s32) (pf.bitsPerPixel() >> 3))

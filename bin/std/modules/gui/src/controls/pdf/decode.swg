@@ -759,7 +759,7 @@ private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: 
 //
 // The group's marks are read into a page of the same dimensions as the one being decoded, so its
 // coverage is expressed in the same coordinates as the marks it covers.
-private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, depth: u32)->*SoftMaskGroup? fail
+private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, depth: u32)->*SoftMaskGroup fail
 {
     let key    = mask.cacheKey()
     let cached = parser.softMaskCache.tryFind(key)
@@ -848,21 +848,19 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
 //
 // A mask that cannot be built leaves the mark at full strength, which is what the page showed
 // before masks were read at all: losing a shadow's softness beats losing the mark under it.
-private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef, item: *Item, depth: u32)
+private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef, item: *Item, depth: u32) fail
 {
     if item.kind == .Text and item.invisibleText do
         return
-    let group = catch softMaskGroup(parser, page, mask, depth) as groupError
-    if groupError != null do
-        return
+    let group = try softMaskGroup(parser, page, mask, depth)
 
     item.refreshPaintBounds()
     let region = item.maskRegion()
     if not region.known do
         return
 
-    var coverage = catch softMaskCoverage(group!, region.rect) as coverageError
-    if coverageError != null or not coverage.isValid() do
+    var coverage = try softMaskCoverage(group, region.rect)
+    if not coverage.isValid() do
         return
 
     switch item.kind
@@ -894,7 +892,7 @@ private func appendPaintedItem(parser: *PdfParser, page: *Page, state: const *Gr
 {
     item.blend = state.blend
     if decode == .Complete and state.softMask.isActive() do
-        maskItem(parser, page, &state.softMask, &item, depth)
+        catch maskItem(parser, page, &state.softMask, &item, depth)
     page.appendItem(#move item)
 }
 
@@ -919,7 +917,7 @@ private func applyGroupTransparency(parser: *PdfParser, page: *Page, first: u64,
         }
 
         if mask.isActive() do
-            maskItem(parser, page, mask, item, depth)
+            catch maskItem(parser, page, mask, item, depth)
     }
 }
 

@@ -96,7 +96,7 @@ using Swag, Core
     expect container.initialize(path)
     Swag.assert(container.kind() == expect Guid128.parse("4a67acc2-5930-4e81-81dc-d12675bc6deb"))
     container.close()
-    let loaded = expect Capture.load(path)!
+    let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
     Swag.assert(loaded.width == 64)
     Swag.assert(loaded.height == 48)
@@ -196,7 +196,7 @@ using Swag, Core
     f.capture.changed = true
 
     expect f.capture.save()
-    let loaded = expect Capture.load(path, preview: true)!
+    let loaded = expect Capture.load(path, preview: true)
     defer Memory.delete(loaded)
     Swag.assert(loaded.forms.count == 0)
     Swag.assert(not loaded.backImg.isValid())
@@ -205,7 +205,7 @@ using Swag, Core
     Swag.assert(loaded.preview.height == 6)
     Swag.assert(loaded.title == "Preview Title")
 
-    let deferred = expect Capture.load(path, preview: true, deferPreviewDecode: true)!
+    let deferred = expect Capture.load(path, preview: true, deferPreviewDecode: true)
     defer Memory.delete(deferred)
     Swag.assert(not deferred.preview.isValid())
     Swag.assert(not deferred.previewBytes.isEmpty())
@@ -250,7 +250,7 @@ using Swag, Core
     f.capture.changed = true
 
     expect f.capture.save()
-    let preview = expect Capture.load(path, preview: true)!
+    let preview = expect Capture.load(path, preview: true)
     defer Memory.delete(preview)
     Swag.assert(preview.sourceApplication.isEmpty())
     Swag.assert(preview.sourceExecutable.isEmpty())

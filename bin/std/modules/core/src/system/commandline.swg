@@ -292,7 +292,8 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
              Reflection.isEnum(typeField)
         {
             try checkNext(typeField)
-            let rest = catch StrConv.parseValue(addr, typeField, allArgs[itp + 1].value) as err
+            var rest = ""
+            catch { rest = try StrConv.parseValue(addr, typeField, allArgs[itp + 1].value) } as err
             itp += 1
 
             if err != null do
@@ -337,7 +338,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
             if not collect.isEmpty()
             {
-                discard catch StrConv.parseValue(addr, typeField, collect.toString()) as err
+                catch { discard try StrConv.parseValue(addr, typeField, collect.toString()) } as err
                 if err != null do
                     fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
             }

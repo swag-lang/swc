@@ -639,7 +639,7 @@ impl Track
     // A successful call returns a non-null pointer. Call [[Video.Subtitle.Track.destroy]] when the
     // track is no longer needed.
     #[Swag.NoInline]
-    func loadOwned(fileName: string)->*Track? fail
+    func loadOwned(fileName: string)->*Track fail
     {
         let allocator   = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
         with let result = Memory.new'Track(allocator)

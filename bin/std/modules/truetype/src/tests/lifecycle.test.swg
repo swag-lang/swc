@@ -26,11 +26,11 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
 #test
 {
-    let badFace0: *Face? = catch Face.load(BrokenFontBytes) as err3
+    catch checkFaceLoad(BrokenFontBytes) as err3
     Swag.assert(err3 != null)
 
-    var empty:    Array'u8
-    let badFace1: *Face? = catch Face.load(empty.toSlice()) as err4
+    var empty: Array'u8
+    catch checkFaceLoad(empty.toSlice()) as err4
     Swag.assert(err4 != null)
 }
 
@@ -99,7 +99,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     context.allocator = allocatorA
 
     let face = expect Face.load(bytes.toSlice(), allocatorA)
-    Swag.assert(face != null)
+    #assert(#typeof(face) == *Face)
 
     context.allocator = allocatorB
     face.destroy()

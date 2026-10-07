@@ -395,18 +395,19 @@ impl MainWnd
             // reads the latest landed version of the file.
             .flushCaptureSave(file)
 
-            let full: *Capture? = catch Capture.load(file) as err
+            catch
+            {
+                let loaded = try Capture.load(file)
+                defer Memory.delete(loaded)
+                loaded.title   = title
+                loaded.changed = true
+                .saveCapture(loaded)
+            } as err
             if err != null
             {
                 MessageDlg.error(.surface!, appStrings().msg_FailedRename, err)
                 return
             }
-
-            let loaded = full!
-            defer Memory.delete(loaded)
-            loaded.title   = title
-            loaded.changed = true
-            .saveCapture(loaded)
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
@@ -426,17 +427,15 @@ impl MainWnd
     {
         Cursor.activateWait()
         .flushCaptureSave(file)
-        let full: *Capture? = catch Capture.load(file) as err
-        if err != null
+        catch
         {
+            let loaded = try Capture.load(file)
+            defer Memory.delete(loaded)
+            loaded.editView = .editWnd.editView
+            Clipboard.addImage(loaded.toImage())
+        } as err
+        if err != null do
             MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, err)
-            return
-        }
-
-        let loaded = full!
-        defer Memory.delete(loaded)
-        loaded.editView = .editWnd.editView
-        Clipboard.addImage(loaded.toImage())
     }
 
     mtd loadExternalImage(arg: String)
@@ -453,8 +452,7 @@ impl MainWnd
         {
             if md.isTag(CaptureFileMetadataTag)
             {
-                let dupCapture = catch .recentWnd.addRecent(cast(string) md.toSlice(), true, true)
-                Memory.delete(dupCapture)
+                catch { Memory.delete(try .recentWnd.addRecent(cast(string) md.toSlice(), true, true)) }
                 done = true
                 break
             }

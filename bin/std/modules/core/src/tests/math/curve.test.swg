@@ -404,7 +404,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     let bytes = buffer.toString()
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'Math.Curve(bytes.toSlice())!
+    let decoded = expect decoder.readAll'Math.Curve(bytes.toSlice())
     defer Memory.delete(decoded)
 
     Swag.assert(decoded.keys.count == curve.keys.count)

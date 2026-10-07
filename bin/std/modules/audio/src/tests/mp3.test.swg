@@ -62,7 +62,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     defer destroyEngine()
 
     var sound = expect SoundFile.load(audioGetTestDataPath("mp3-stereo-44100.mp3").toString())
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     discard expect voice.play(.Loop)
     discard expect voice.updateNoSound()

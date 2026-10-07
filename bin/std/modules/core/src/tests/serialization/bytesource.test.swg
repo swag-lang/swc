@@ -13,8 +13,8 @@ func sourceMatches(bytes: const [..] u8, start: u64)->bool
     return true
 }
 
-// A captured failure needs a nullable fallback; successful peeks use the non-null API directly.
-func peekBytes(source: *ByteSource, count: u64)->const [..] u8? fail => try source.peek(count)
+// A test can catch a rejected peek without asking for a replacement slice.
+func checkPeek(source: *ByteSource, count: u64) fail { discard try source.peek(count) }
 
 // Writes a fixture of `count` pattern bytes and returns its path.
 func writeSourceFixture(name: string, count: u64)->String
@@ -61,7 +61,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(pastEnd is InvalidFormatError)
     discard catch source.seek(9) as pastSeek
     Swag.assert(pastSeek is InvalidFormatError)
-    discard catch peekBytes(&source, 1) as pastPeek
+    catch checkPeek(&source, 1) as pastPeek
     Swag.assert(pastPeek is InvalidFormatError)
     expect source.seek(6)
     discard catch source.skip(3) as pastSkip
@@ -218,7 +218,7 @@ func writeSourceFixture(name: string, count: u64)->String
     let tail = expect source.peek(3)
     Swag.assert(tail.count == 3)
     Swag.assert(sourceMatches(tail, Count - 3))
-    discard catch peekBytes(&source, 4) as pastEnd
+    catch checkPeek(&source, 4) as pastEnd
     Swag.assert(pastEnd is InvalidFormatError)
 
     // A peek consumes nothing, so the read that follows starts where the peek looked.

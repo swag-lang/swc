@@ -15,7 +15,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 #test
 {
     let bytes = expect File.readAllBytes(fontFixturePath())
-    let face  = (expect Face.load(bytes.toSlice()))!
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     let page = fontCharacterPage(face, 0x20, 192)

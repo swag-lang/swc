@@ -77,7 +77,7 @@ using Swag, Core
 
     f.main.setCaptureTitle(path, "Renamed")
 
-    let loaded = expect Capture.load(path)!
+    let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
     Swag.assert(loaded.title == "Renamed")
     Swag.assert(loaded.width == 8)

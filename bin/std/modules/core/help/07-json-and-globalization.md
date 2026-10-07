@@ -16,7 +16,7 @@ struct Settings
 
 let source: String = #raw """{"futureOption":true,"title":"Workbench"}"""
 var decoder: Serialization.Decoder'Serialization.Read.Json
-let settings = try decoder.readAll'Settings(source.toSlice())!
+let settings = try decoder.readAll'Settings(source.toSlice())
 defer Memory.delete(settings)
 
 var encoder: Serialization.Encoder'Serialization.Write.Json

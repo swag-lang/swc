@@ -25,10 +25,10 @@ using Swag, Core
 
 #test
 {
-    let badFace0: *Face? = catch Face.load(BrokenFontBytes) as err7
+    catch checkFaceLoad(BrokenFontBytes) as err7
     Swag.assert(err7 != null)
 
-    var empty:    Array'u8
-    let badFace1: *Face? = catch Face.load(empty.toSlice()) as err8
+    var empty: Array'u8
+    catch checkFaceLoad(empty.toSlice()) as err8
     Swag.assert(err8 != null)
 }

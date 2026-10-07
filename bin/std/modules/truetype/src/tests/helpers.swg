@@ -229,3 +229,7 @@ const CmapVariationFixture: [101] u8 = [
 const OpenTypeCffBytes: [12] u8 = ['O'u8, 'T'u8, 'T'u8, 'O'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 const WoffBytes:        [12] u8 = ['w'u8, 'O'u8, 'F'u8, 'F'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 const Woff2Bytes:       [12] u8 = ['w'u8, 'O'u8, 'F'u8, '2'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+// Rejected loads are caught by tests without weakening the successful face type.
+func checkFaceLoad(bytes: const [..] u8) fail { (try Face.load(bytes)).destroy() }
+func checkFaceLoadAt(bytes: const [..] u8, index: u32) fail { (try Face.loadAt(bytes, index)).destroy() }

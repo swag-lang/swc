@@ -23,9 +23,6 @@ struct RenderOptions
 
 using Core.Math
 
-private func loadTypeface(name: string)->*TypeFace? fail => try TypeFace.load(name)
-private func createTypeface(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
-
 // Faces a page falls back to, grouped by the shape of the font the document asked for.
 //
 // A substitute that ignores the requested shape is what makes a rendered page read as the
@@ -78,23 +75,17 @@ private func substituteTypeface(fallbackFontFile: string, resource: const *FontR
     // at all: a missing italic must not cost the reader the serif shape as well.
     for candidate in family[style]
     {
-        let result = catch loadTypeface(candidate) as loadError
-        if loadError == null do
-            return result!
+        catch { return try TypeFace.load(candidate) }
     }
 
     for candidate in family[0]
     {
-        let result = catch loadTypeface(candidate) as loadError
-        if loadError == null do
-            return result!
+        catch { return try TypeFace.load(candidate) }
     }
 
     for candidate in SubstituteSans[0]
     {
-        let result = catch loadTypeface(candidate) as loadError
-        if loadError == null do
-            return result!
+        catch { return try TypeFace.load(candidate) }
     }
 
     fail Errors.UnsupportedFormatError{"no substitute font is available"}
@@ -160,9 +151,7 @@ internal impl RenderFontCache
             .embeddedResolved[index] = true
             if not resource.bytes.isEmpty()
             {
-                let result = catch createTypeface(resource.programKey.toString(), resource.bytes.toSlice()) as loadError
-                if loadError == null do
-                    .embedded[index] = result
+                catch { .embedded[index] = try TypeFace.create(resource.programKey.toString(), resource.bytes.toSlice()) }
             }
         }
 

@@ -22,8 +22,8 @@ private func subtitleFixturePath()->String => Path.combine(Path.directoryName(#c
 #test
 {
     let track = expect Subtitle.Track.loadOwned(subtitleFixturePath().toString())
-    Swag.assert(track != null)
-    defer Subtitle.Track.destroy(track!)
+    #assert(#typeof(track) == *Subtitle.Track)
+    defer Subtitle.Track.destroy(track)
     var text: String
     track.copyCueContent(0, &text)
     Swag.assert(text == "First caption.")

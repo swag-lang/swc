@@ -416,7 +416,8 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
         if one[0] == '#' do
             continue
 
-        let id = catch StrConv.parseIdentifier(one) as idErr
+        var id = ""
+        catch { id = try StrConv.parseIdentifier(one) } as idErr
         if idErr != null do
             fail SyntaxError{"invalid string key", line: idx + 1}
 

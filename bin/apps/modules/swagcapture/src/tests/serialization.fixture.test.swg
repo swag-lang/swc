@@ -20,7 +20,7 @@ func serializationFixturePath(name: string)->String => Path.combine(Path.directo
     Swag.assert(container.manifest().profileVersion == 1)
     container.close()
 
-    let capture = expect Capture.load(path)!
+    let capture = expect Capture.load(path)
     defer Memory.delete(capture)
     Swag.assert(capture.loadIssues == 0)
     Swag.assert(capture.width == 128)
@@ -122,7 +122,7 @@ func serializationFixturePath(name: string)->String => Path.combine(Path.directo
     let path = serializationFixturePath("capture-library-metadata.scc")
     Swag.assert(File.exists(path))
 
-    let preview = expect Capture.load(path, preview: true)!
+    let preview = expect Capture.load(path, preview: true)
     defer Memory.delete(preview)
     Swag.assert(preview.loadIssues == 0)
     Swag.assert(preview.width == 12 and preview.height == 10)
@@ -141,7 +141,7 @@ func serializationFixturePath(name: string)->String => Path.combine(Path.directo
     Swag.assert(preview.favorite)
     Swag.assert(preview.rating == 3)
 
-    let full = expect Capture.load(path)!
+    let full = expect Capture.load(path)
     defer Memory.delete(full)
     Swag.assert(full.loadIssues == 0)
     Swag.assert(full.forms.count == 0)

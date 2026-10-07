@@ -3,6 +3,9 @@
 
 using Swag, Core
 
+func checkBusCreation(channelCount: u32, parent: *Bus? = null) fail { (try Bus.create(channelCount, parent)).destroy() }
+func checkVoiceCreation(file: const *SoundFile) fail { (try Voice.create(file)).destroy() }
+
 func audioStartNoSoundEngine()
 {
     discard expect createNoSoundEngine()
@@ -22,11 +25,11 @@ func audioStartNoSoundEngine()
     discard catch createEngine(.NoSound) as errDuplicate
     Swag.assert((errDuplicate is Errors.BadParameterError))
 
-    discard catch Bus.create(0) as errChannels
+    catch checkBusCreation(0) as errChannels
     Swag.assert((errChannels is Errors.BadParameterError))
 
     var emptyFile: SoundFile
-    discard catch Voice.create(&emptyFile) as errFile
+    catch checkVoiceCreation(&emptyFile) as errFile
     Swag.assert((errFile is Errors.BadParameterError))
 
     destroyEngine()
@@ -56,11 +59,10 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    let rootResult = expect Bus.create(2)
-    let root       = rootResult!
+    let root = expect Bus.create(2)
+    #assert(#typeof(root) == *Bus)
 
-    let childResult = expect Bus.create(1, root)
-    let child       = childResult!
+    let child = expect Bus.create(1, root)
 
     let rootHandle  = cast(*NoSoundBus) root.handle!
     let childHandle = cast(*NoSoundBus) child.handle!
@@ -80,7 +82,7 @@ func audioStartNoSoundEngine()
     audioAssertFloat(expect child.volume(), 0.5, 0.0002)
     audioAssertFloat(expect child.volumeDb(), -6.0206, 0.0002)
     var invalidParent: Bus
-    discard catch Bus.create(1, &invalidParent) as err12
+    catch checkBusCreation(1, &invalidParent) as err12
     Swag.assert((err12 is Errors.BadParameterError))
 
     child.destroy()
@@ -93,10 +95,10 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file        = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
-    let voiceResult = expect Voice.create(&file)
-    let voice       = voiceResult!
-    let handle      = cast(*NoSoundVoice) voice.handle!
+    var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice = expect Voice.create(&file)
+    #assert(#typeof(voice) == *Voice)
+    let handle = cast(*NoSoundVoice) voice.handle!
     Swag.assert(voice.requestedEncoding == .Pcm16)
     Swag.assert(not voice.isPlaying())
 
@@ -113,11 +115,9 @@ func audioStartNoSoundEngine()
     discard catch voice.setFrequencyRatio(0) as errInvalidRatio
     Swag.assert((errInvalidRatio is Errors.BadParameterError))
 
-    let bus0Result = expect Bus.create(2)
-    let safeBus0   = bus0Result!
+    let safeBus0 = expect Bus.create(2)
 
-    let bus1Result = expect Bus.create(2, safeBus0)
-    let safeBus1   = bus1Result!
+    let safeBus1 = expect Bus.create(2, safeBus0)
     discard expect voice.setRouting([safeBus0, safeBus1])
     Swag.assert(handle.busCount == 2)
     Swag.assert(handle.buses[0] == safeBus0)
@@ -170,12 +170,8 @@ func audioStartNoSoundEngine()
     let scratchAllocator: IAllocator = &scratch
     context.allocator = scratchAllocator
 
-    let busResult   = catch Bus.create(2) as errBus
-    let voiceResult = catch Voice.create(&file) as errVoice
-    Swag.assert(errBus == null)
-    Swag.assert(errVoice == null)
-    Swag.assert(busResult != null)
-    Swag.assert(voiceResult != null)
+    discard expect Bus.create(2)
+    discard expect Voice.create(&file)
 
     context.allocator = originalAllocator
     destroyEngine()
@@ -189,7 +185,7 @@ func audioStartNoSoundEngine()
     defer destroyEngine()
 
     var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
-    let voice = (expect Voice.create(&file))!
+    let voice = expect Voice.create(&file)
     discard expect voice.play()
     discard expect voice.updateNoSound()
     Swag.assert(voice.stream.isOpen())
@@ -205,10 +201,9 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file        = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
-    let voiceResult = expect Voice.create(&file)
-    let voice       = voiceResult!
-    let handle      = cast(*NoSoundVoice) voice.handle!
+    var file   = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice  = expect Voice.create(&file)
+    let handle = cast(*NoSoundVoice) voice.handle!
 
     discard expect voice.play()
     let shouldKeepUpdating = expect voice.updateNoSound()

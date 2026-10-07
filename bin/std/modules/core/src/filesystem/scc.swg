@@ -282,7 +282,7 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
 private func decodeHeader(bytes: const [..] u8)->Header fail
 {
     var decoder: Decoder'Read.TagBin
-    let decoded = try decoder.readAll'Header(bytes)!
+    let decoded = try decoder.readAll'Header(bytes)
     defer Memory.delete(decoded)
     return #move decoded[]
 }

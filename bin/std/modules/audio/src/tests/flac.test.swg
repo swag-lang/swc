@@ -105,7 +105,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size != 0)

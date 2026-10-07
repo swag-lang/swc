@@ -15,7 +15,7 @@ using Swag, Core.Errors
 //
 // When `type` is a static array or a [[Core.Array]] of those types, `buf` holds several values
 // separated with blanks, up to its end or a '#'.
-public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
+public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
 {
     let patch = cast(*u8) addr
     var one   = Tokenize.eatSpaces(buf)
@@ -28,7 +28,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         while one.count and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
-            one = (try parseValue(addrVal!, safeValueType, one) orelse "")
+            one = try parseValue(addrVal!, safeValueType, one)
             one = Tokenize.eatSpaces(one)
         }
 
@@ -45,7 +45,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         {
             if cpt == arrayType.totalCount do
                 fail InvalidFormatError{"too many static array values"}
-            one     = (try parseValue(addrVal, arrayType.finalType, one) orelse "")
+            one     = try parseValue(addrVal, arrayType.finalType, one)
             one     = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
             cpt     += 1
@@ -66,7 +66,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         for
         {
             one = Tokenize.eatSpaces(one)
-            let id = try parseIdentifier(one) orelse ""
+            let id = try parseIdentifier(one)
             let v  = Reflection.enumValue(type, id)
             if not v do
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
@@ -136,7 +136,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         {
             if not one.count or one[0] == '}' do
                 break
-            one = (try parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one) orelse "")
+            one = try parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one)
             one = Tokenize.eatSpaces(one)
             if one.count and one[0] == ','
             {

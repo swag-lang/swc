@@ -73,7 +73,7 @@ func makeLegacyImage()->LegacyImage
     expect encoder.writeAll(&buffer, legacy)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'Image(buffer.toString().toSlice())!
+    let decoded = expect decoder.readAll'Image(buffer.toString().toSlice())
     defer Memory.delete(decoded)
 
     Swag.assert(decoded.width == 3)

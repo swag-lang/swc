@@ -3,6 +3,8 @@
 
 using Swag
 
+func checkParseValue(addr: *void, type: typeinfo, text: string) fail { discard try StrConv.parseValue(addr, type, text) }
+
 struct ParseInner
 {
     x, y: f32
@@ -27,7 +29,7 @@ struct ParseOuter
     Swag.assert(value.rect.h == 27)
     Swag.assert(value.corner == 13)
     Swag.assert(not value.keep)
-    Swag.assert(Tokenize.eatSpaces(rest orelse "") == "tail")
+    Swag.assert(Tokenize.eatSpaces(rest) == "tail")
 }
 
 // Commas between field values are accepted, and an early '}' keeps the remaining defaults.
@@ -44,11 +46,11 @@ struct ParseOuter
 #test
 {
     var value: ParseOuter
-    discard catch StrConv.parseValue(&value, #typeof(ParseOuter), "1 2 3") as err
+    catch checkParseValue(&value, #typeof(ParseOuter), "1 2 3") as err
     Swag.assert(err != null)
     Swag.assert(err is Errors.InvalidFormatError)
 
-    discard catch StrConv.parseValue(&value, #typeof(ParseOuter), "{{1 2 3 4} 5") as err2
+    catch checkParseValue(&value, #typeof(ParseOuter), "{{1 2 3 4} 5") as err2
     Swag.assert(err2 != null)
     Swag.assert(err2 is Errors.InvalidFormatError)
 }

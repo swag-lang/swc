@@ -7,7 +7,7 @@ play; a compressed file, ADPCM WAV included, is always indexed and read while it
 
 ```swag
 let music = try Audio.SoundFile.load("assets/music.wav", preloadData: false)
-let voice = try Audio.Voice.create(&music)!
+let voice = try Audio.Voice.create(&music)
 defer voice.destroy()
 
 try voice.setVolume(0.35)

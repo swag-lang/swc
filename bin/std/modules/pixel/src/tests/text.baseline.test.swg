@@ -11,7 +11,7 @@ using Swag, Core
 
 private func makeBaselineTestFont(cache: *FontCache)->*Font
 {
-    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
+    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
     return cache.createFont(face, 20, .Bitmap)
 }
 

@@ -5,7 +5,7 @@ using Core
 // Reuse our own fixture's outlines with a deliberately small Unicode map. No test depends
 // on an optional installed font. The supplementary rune deliberately maps to V so a mistaken
 // cross-face A/V kerning lookup is observable, independently of any system font's coverage.
-private func fallbackTestFace(symbols: bool)->*TypeFace? fail
+private func fallbackTestFace(symbols: bool)->*TypeFace fail
 {
     let original = try TypeFace.load(getTestDataPath("segoeui.ttf"))
     var bytes    = try File.readAllBytes(getTestDataPath("segoeui.ttf"))
@@ -78,8 +78,8 @@ private func fallbackTestFace(symbols: bool)->*TypeFace? fail
 #test
 {
     var cache: FontCache
-    cache.setFallbackTypeFaces([(expect fallbackTestFace(true)!)])
-    let font = cache.createFont((expect fallbackTestFace(false)!), 19, .Bitmap, true, true)
+    cache.setFallbackTypeFaces([expect fallbackTestFace(true)])
+    let font = cache.createFont(expect fallbackTestFace(false), 19, .Bitmap, true, true)
     for c in [0'rune, '\t'rune, '\n'rune, '\r'rune, '\u007F'rune, '\u0085'rune, '\u009F'rune, '\U0010FFFF'rune]
     {
         let resolved = font.resolveRune(c)
@@ -95,8 +95,8 @@ private func fallbackTestFace(symbols: bool)->*TypeFace? fail
 #test
 {
     var cache: FontCache
-    let primary = (expect fallbackTestFace(false)!)
-    let symbols = (expect fallbackTestFace(true)!)
+    let primary = expect fallbackTestFace(false)
+    let symbols = expect fallbackTestFace(true)
     var empty: Array'(*TypeFace)
     cache.setFallbackTypeFaces(empty.toSlice(), false)
     let font = cache.createFont(primary, 24, .Bitmap)
@@ -144,8 +144,8 @@ private func fallbackTestFace(symbols: bool)->*TypeFace? fail
 #test
 {
     var cache: FontCache
-    let primary = (expect fallbackTestFace(false)!)
-    cache.setFallbackTypeFaces([(expect fallbackTestFace(true)!)], false)
+    let primary = expect fallbackTestFace(false)
+    cache.setFallbackTypeFaces([expect fallbackTestFace(true)], false)
     let font = cache.createFont(primary, 19, .Auto, true, true)
     let run  = Painter.shapeRun("A\u2192 V\t\U0001F680", font, 8, 1.5, 3)
     for mode in [FontRenderMode.Bitmap, FontRenderMode.Msdf]
@@ -177,8 +177,8 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
     let renderer: IRenderer = &cpu
     renderer.init()
     let cache = renderer.fontCache()
-    cache.setFallbackTypeFaces([(try fallbackTestFace(true)!)], false)
-    let font     = cache.createFont((try fallbackTestFace(false)!), 24, mode)
+    cache.setFallbackTypeFaces([try fallbackTestFace(true)], false)
+    let font     = cache.createFont(try fallbackTestFace(false), 24, mode)
     let fallback = font.resolveRune('\u2192'rune)
     var target   = renderer.createRenderTarget(160, 64)
     defer renderer.deleteRenderTarget(&target)
@@ -219,7 +219,7 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
 #test
 {
     var cache: FontCache
-    let font  = cache.createFont((expect fallbackTestFace(false)!), 19, .Bitmap, true, true)
+    let font  = cache.createFont(expect fallbackTestFace(false), 19, .Bitmap, true, true)
     let arrow = font.resolveRune('\u2192'rune)
     Swag.assert(arrow != font and arrow.glyphIndex('\u2192'rune) != 0)
     Swag.assert(arrow.cache.typeFace.isBold() or arrow.cache.typeFace.forceBold or arrow.forceBold)

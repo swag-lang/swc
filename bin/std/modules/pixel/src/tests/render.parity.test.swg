@@ -236,7 +236,7 @@ private func renderParityScene(renderer: IRenderer)->Image
 
 private func makeRenderParityFont(renderer: IRenderer, size: u32, mode: FontRenderMode)->*Font
 {
-    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
+    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
     return renderer.fontCache().createFont(face, size, mode)
 }
 

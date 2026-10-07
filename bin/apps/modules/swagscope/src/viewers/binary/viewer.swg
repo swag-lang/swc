@@ -1155,7 +1155,7 @@ impl BinaryViewer
     }
 
     // Creates the viewer of the file `host` opens, and starts reading that file in the background.
-    func create(host: Viewer.Host)->*BinaryViewer? fail
+    func create(host: Viewer.Host)->*BinaryViewer fail
     {
         let services    = host.services()
         with let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
@@ -1199,42 +1199,41 @@ private func runBinaryViewerLoad(thread: Threading.Thread)
 // Creates the integrated binary format view.
 func createBinaryViewer(host: Viewer.Host)
 {
-    let view = catch BinaryViewer.create(host) as createError
-    if createError != null
+    catch
     {
+        let view = try BinaryViewer.create(host)
+        host.attachView(view)
+        host.setDetails(view.details.toString())
+        host.setSearch({
+            describe: func(wnd, presentation)
+        {
+            discard wnd
+            presentation.canFilter         = true
+            presentation.filterPlaceholder = binaryStrings().ui_Filter
+            presentation.filterToolTip     = binaryStrings().ui_FilterTip
+        },
+            filter: func(wnd, text, options) { (cast #assume (*BinaryViewer) wnd).applyFilter(text, options) },
+            collectMatches: func(wnd, text, options, progress, matches)->bool
+        {
+            discard progress
+            (cast #assume (*BinaryViewer) wnd).collectMatches(text, options, matches)
+            return true
+        },
+            revealMatch: func(wnd, match, text)->bool
+        {
+            discard text
+            return (cast #assume (*BinaryViewer) wnd).revealMatch(match)
+        },
+            matchBounds: func(wnd, match, bounds)->bool
+        {
+            discard match
+            return (cast #assume (*BinaryViewer) wnd).searchBounds(bounds)
+        },
+            clear: func(wnd) { (cast #assume (*BinaryViewer) wnd).clearSearch() }})
+        host.setLifecycle({
+            isLoading: func(wnd)->bool => (cast #assume (*BinaryViewer) wnd).loadTimer != null,
+            retire: func(wnd)->bool => (cast #assume (*BinaryViewer) wnd).retire()})
+    } as createError
+    if createError != null do
         host.reject(Errors.message(createError))
-        return
-    }
-
-    host.attachView(view!)
-    host.setDetails(view.details.toString())
-    host.setSearch({
-        describe: func(wnd, presentation)
-    {
-        discard wnd
-        presentation.canFilter         = true
-        presentation.filterPlaceholder = binaryStrings().ui_Filter
-        presentation.filterToolTip     = binaryStrings().ui_FilterTip
-    },
-        filter: func(wnd, text, options) { (cast #assume (*BinaryViewer) wnd).applyFilter(text, options) },
-        collectMatches: func(wnd, text, options, progress, matches)->bool
-    {
-        discard progress
-        (cast #assume (*BinaryViewer) wnd).collectMatches(text, options, matches)
-        return true
-    },
-        revealMatch: func(wnd, match, text)->bool
-    {
-        discard text
-        return (cast #assume (*BinaryViewer) wnd).revealMatch(match)
-    },
-        matchBounds: func(wnd, match, bounds)->bool
-    {
-        discard match
-        return (cast #assume (*BinaryViewer) wnd).searchBounds(bounds)
-    },
-        clear: func(wnd) { (cast #assume (*BinaryViewer) wnd).clearSearch() }})
-    host.setLifecycle({
-        isLoading: func(wnd)->bool => (cast #assume (*BinaryViewer) wnd).loadTimer != null,
-        retire: func(wnd)->bool => (cast #assume (*BinaryViewer) wnd).retire()})
 }

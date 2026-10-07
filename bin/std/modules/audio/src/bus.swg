@@ -28,7 +28,7 @@ public impl Bus
     // otherwise it sends to the mastering output. The caller owns the returned
     // allocation and must eventually call [[Audio.Bus.destroy]]. The parent
     // must outlive this bus. Success returns a non-null pointer.
-    func create(channelCount: u32, parent: *Bus? = null)->*Bus? fail
+    func create(channelCount: u32, parent: *Bus? = null)->*Bus fail
     {
         if not g_Driver.isCreated do
             fail BadParameterError{"audio engine is not created"}

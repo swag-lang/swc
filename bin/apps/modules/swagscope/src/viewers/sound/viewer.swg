@@ -676,11 +676,13 @@ impl SoundViewer
     {
         if .voice do
             return true
-        .voice = catch Voice.create(&.sound)! as createError
-        if createError != null or not .voice do
-            return false
-        catch .voice.setVolume(.muted ? 0 : .volume)
-        return true
+        catch
+        {
+            .voice = try Voice.create(&.sound)
+            catch .voice.setVolume(.muted ? 0 : .volume)
+            return true
+        }
+        return false
     }
 
     mtd seekSeconds(seconds: f32)
@@ -998,23 +1000,19 @@ private func runSoundViewerOpen(thread: Thread)
     Atomic.exchange(&view.openState, 1)
 }
 
-// Returns the created viewer as a nullable pointer, which gives `catch` a fallback value.
-private func loadSoundViewer(host: Viewer.Host)->*SoundViewer? fail => try SoundViewer.create(host)
-
 // Creates the integrated sound playback and waveform view and connects it to the host.
 func createSoundViewer(host: Viewer.Host)
 {
-    let view = catch loadSoundViewer(host) as createError
-    if createError != null
+    catch
     {
+        let view = try SoundViewer.create(host)
+        host.attachView(view)
+        host.setDetails(view.details.toString())
+        host.setLifecycle({
+            retire: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).retire(),
+            isLoading: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).isLoading(),
+            needsLoadingOverlay: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).needsLoadingOverlay()})
+    } as createError
+    if createError != null do
         host.reject(Errors.message(createError))
-        return
-    }
-
-    host.attachView(view!)
-    host.setDetails(view.details.toString())
-    host.setLifecycle({
-        retire: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).retire(),
-        isLoading: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).isLoading(),
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).needsLoadingOverlay()})
 }

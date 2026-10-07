@@ -91,7 +91,7 @@ Decodes reflected Swag values through a format backend such as [[Core.Serializat
 ```swag
 let bytes   = try File.readAllBytes(fileName)
 var decoder: Decoder'Read.TagBin
-let value   = try decoder.readAll'MyStruct(bytes.toSlice())!
+let value   = try decoder.readAll'MyStruct(bytes.toSlice())
 defer Memory.delete(value)
 ```
 */
@@ -349,8 +349,8 @@ impl Decoder
 
     // Reads a whole document whose root is a `TR` struct and returns it in a new allocation.
     //
-    // The caller owns the result and releases it with [[Core.Memory.delete]].
-    mtd(TR) readAll(input: const [..] u8)->*TR? fail
+    // Success returns a non-null pointer. The caller owns it and releases it with [[Core.Memory.delete]].
+    mtd(TR) readAll(input: const [..] u8)->*TR fail
     {
         Swag.assert(Reflection.isStruct(TR))
 

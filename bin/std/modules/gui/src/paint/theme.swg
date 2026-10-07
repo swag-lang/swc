@@ -66,10 +66,6 @@ private const CjkFontCandidates: [5] string = ["YuGothR.ttc", "msgothic.ttc", "m
 
 private var g_DefaultThemeImages: ThemeImages
 
-// Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
-// with a null result instead of a non-defaultable pointer.
-private func defaultTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
-
 // Registers the embedded theme art and fonts as the fallback providers of `bundle`.
 //
 // The application calls this before the first surface exists, so a disk folder added
@@ -94,7 +90,7 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 // The process-wide typeface cache is keyed by name. Include the override's digest so
 // distinct bundles and edits to the same file cannot reuse an older face. An override
 // that cannot be read or parsed falls back to the embedded face.
-private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->*TypeFace? fail
+private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->*TypeFace fail
 {
     if res.isOverridden(name)
     {
@@ -105,13 +101,11 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
             overrideName += "#override"
             for word in Hash.Sha256.compute(bytes.toSlice()) do
                 overrideName += Format.toString("#%", word)
-            let face = catch defaultTypeFace(overrideName.toString(), bytes.toSlice()) as faceErr
-            if faceErr == null and face != null do
-                return face
+            catch { return try TypeFace.create(overrideName.toString(), bytes.toSlice()) }
         }
     }
 
-    return try defaultTypeFace(name, embedded)
+    return try TypeFace.create(name, embedded)
 }
 
 private func systemCjkTypeFace()->*TypeFace? fail
@@ -469,15 +463,15 @@ impl Theme
             if .defaultTypeFaceR != null do
                 return
 
-            .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)!
-            .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName, DefaultFontBold)!
-            .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName, DefaultFontItalic)!
-            .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName, DefaultFontBoldItalic)!
+            .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)
+            .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName, DefaultFontBold)
+            .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName, DefaultFontItalic)
+            .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName, DefaultFontBoldItalic)
 
-            .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName, DefaultFontFsRegular)!
-            .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName, DefaultFontFsBold)!
-            .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName, DefaultFontFsItalic)!
-            .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName, DefaultFontFsBoldItalic)!
+            .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName, DefaultFontFsRegular)
+            .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName, DefaultFontFsBold)
+            .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName, DefaultFontFsItalic)
+            .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
             .fontDefault.regular    = me.fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = me.fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)

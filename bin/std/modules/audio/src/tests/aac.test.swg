@@ -71,7 +71,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice   = (expect Voice.create(&sound))!
+    let voice   = expect Voice.create(&sound)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 4 * 1024 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
@@ -97,7 +97,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     Swag.assert(sound.numChannels() == 6 and sound.speakerChannelMask() == 0x3F)
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
 
     let decoded = expect voice.readBuffer()
@@ -143,9 +143,9 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let fullVoice = (expect Voice.create(&full))!
+    let fullVoice = expect Voice.create(&full)
     defer fullVoice.destroy()
-    let trimmedVoice = (expect Voice.create(&trimmed))!
+    let trimmedVoice = expect Voice.create(&trimmed)
     defer trimmedVoice.destroy()
     discard expect fullVoice.seekSampleFrame(Trim)
     let expected = expect fullVoice.readBuffer()
@@ -167,7 +167,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var sound = expect aacTestSound()
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     discard expect voice.play()
     discard expect voice.updateNoSound()
     Swag.assert(voice.playbackSampleFrame() == sound.sampleFrameCount())
@@ -184,7 +184,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var sound = expect aacTestSound()
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
 
     discard expect voice.play()

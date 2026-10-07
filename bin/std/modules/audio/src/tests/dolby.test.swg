@@ -75,7 +75,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
 
@@ -102,7 +102,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 3 * 1536 * 2 * #sizeof(s16))
@@ -123,7 +123,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&sound))!
+    let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))

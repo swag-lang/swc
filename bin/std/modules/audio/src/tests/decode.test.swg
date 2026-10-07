@@ -40,7 +40,7 @@ func audioPcmPacketSound()->SoundFile fail
     var file = expect audioPcmPacketSound()
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = (expect Voice.create(&file))!
+    let voice = expect Voice.create(&file)
     defer voice.destroy()
 
     discard expect voice.seekSampleFrame(1)

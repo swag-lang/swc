@@ -103,7 +103,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 
     var sound  = expect SoundFile.load(audioGetTestDataPath("opus-transient-48000.opus").toString())
     let wanted = expect opusDecodeAll(&sound)
-    let voice  = (expect Voice.create(&sound))!
+    let voice  = expect Voice.create(&sound)
     defer voice.destroy()
 
     const Target = 30_000'u64

@@ -49,7 +49,7 @@ func observePlacementVisibility(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: L
 #test
 {
     var app: Application
-    let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-placement-visibility-test")!
+    let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-placement-visibility-test")
     surface.show()
     let normal      = surface.position
     let monitor     = Env.monitorForRectangle(normal).physicalBounds

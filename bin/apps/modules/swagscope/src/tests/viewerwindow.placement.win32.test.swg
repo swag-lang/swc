@@ -11,7 +11,7 @@ using Core, Gui, Win32
 {
     var app: Application
     registerAppStrings(&app.resources)
-    let surface = expect app.createSurface(80, 50, ViewerMinWidth, 680, surfaceId: "scope-placement-test")!
+    let surface = expect app.createSurface(80, 50, ViewerMinWidth, 680, surfaceId: "scope-placement-test")
     let window  = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
     surface.show()
     let normal = surface.position

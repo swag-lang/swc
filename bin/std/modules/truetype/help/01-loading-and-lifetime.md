@@ -8,7 +8,7 @@ remain alive.
 using Core, TrueType
 
 let bytes = try File.readAllBytes("Inter-Regular.ttf")
-let face  = (try Face.load(bytes.toSlice()))!
+let face  = try Face.load(bytes.toSlice())
 defer face.destroy()
 ```
 
@@ -26,7 +26,7 @@ tables are still validated normally. Without a character map, address glyphs by
 index or through the document's own encoding.
 
 ```swag
-let face = (try Face.loadSubset(embeddedBytes, "DocumentSans"))!
+let face = try Face.loadSubset(embeddedBytes, "DocumentSans")
 defer face.destroy()
 ```
 
@@ -52,7 +52,7 @@ for index in count
     if (try Face.familyNameAt(bytes.toSlice(), index)) != "MS PGothic" do
         continue
 
-    let face = (try Face.loadAt(bytes.toSlice(), index))!
+    let face = try Face.loadAt(bytes.toSlice(), index)
     defer face.destroy()
     break
 }

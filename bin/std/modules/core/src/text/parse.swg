@@ -374,7 +374,7 @@ func parseRune(str: string)->{ value: rune, eat: u32 } fail
 // An identifier starts with '_' or a letter and continues with '_', letters and digits, each byte
 // classified by [[Core.Latin1.isLetter]] and [[Core.Latin1.isLetterOrDigit]]. Fails with
 // [[Core.Errors.SyntaxError]] when `str` does not start with one.
-func parseIdentifier(str: string)->string? fail
+func parseIdentifier(str: string)->string fail
 {
     let countof = str.count
     if not countof do

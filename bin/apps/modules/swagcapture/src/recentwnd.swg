@@ -106,9 +106,7 @@ impl RecentView
         // read the previous version.
         .main.flushCaptureSave(item.file)
 
-        let capture: *Capture? = catch Capture.load(item.file)
-        if capture do
-            .selectLoaded(idx, capture)
+        catch { .selectLoaded(idx, try Capture.load(item.file)) }
     }
 
     // Paints one capture cell. The recent strip and the library grid share it, so a capture
@@ -471,11 +469,11 @@ impl RecentWnd
         if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
 
-        let file               = .pendingRecentFiles[.pendingRecentIndex]
-        let initialLoad        = not .main.editWnd.editView.capture
-        let capture: *Capture? = catch Capture.load(file, preview: not initialLoad)
-        if capture
+        let file        = .pendingRecentFiles[.pendingRecentIndex]
+        let initialLoad = not .main.editWnd.editView.capture
+        catch
         {
+            let capture = try Capture.load(file, preview: not initialLoad)
             .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage)
             g_Library.addFile(capture.file)
 
@@ -526,12 +524,12 @@ impl RecentWnd
         g_Library.removeFile(item.file)
     }
 
-    mtd addRecent(file: String, front = true, sel = false)->*Capture? fail
+    mtd addRecent(file: String, front = true, sel = false)->*Capture fail
     {
         // The strip shows thumbnails: a preview load reads the SCC header and the
         // preview chunk alone, never the image payloads. The full capture is loaded
         // by RecentView.select only, when an item actually becomes the edited one.
-        let loaded = (try Capture.load(file, preview: true))!
+        let loaded = try Capture.load(file, preview: true)
         .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
         return loaded
     }

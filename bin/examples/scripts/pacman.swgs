@@ -1590,7 +1590,7 @@ func soundState()
 
         if not g_VoiceSiren
         {
-            let siren = expect Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)!
+            let siren = expect Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
             g_VoiceSiren = siren
             expect siren.setVolume(0.4)
         }

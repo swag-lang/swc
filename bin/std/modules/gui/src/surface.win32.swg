@@ -1141,9 +1141,8 @@ impl Surface
     // maximized window is the case that exists, and that intermediate picture is what it looked
     // like. `pos` is in physical screen pixels and becomes the bounds a later restore uses.
     //
-    // A visible window moves the way a maximize does: the frame for the new bounds is painted
-    // and shown before the window changes size, so the compositor never stretches or crops the
-    // previous picture to the new rectangle.
+    // A visible surface preserves its current frame until the final frame and its bounds can
+    // be published together, without exposing an intermediate placement.
     mtd showNormalAt(pos: Math.Rectangle)
     {
         let clampPos     = .clampToSizeLimits(pos)

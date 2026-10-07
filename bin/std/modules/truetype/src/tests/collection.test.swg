@@ -9,7 +9,7 @@ using Swag, Core
     let count = expect Face.countFaces(bytes.toSlice())
     Swag.assert(count == 1)
 
-    let face = (expect Face.loadAt(bytes.toSlice(), 0))!
+    let face = expect Face.loadAt(bytes.toSlice(), 0)
     defer face.destroy()
     Swag.assert(face.familyName == "Arial")
 }
@@ -21,9 +21,9 @@ using Swag, Core
     let count = expect Face.countFaces(bytes.toSlice())
     Swag.assert(count == 2)
 
-    let regular = (expect Face.loadAt(bytes.toSlice(), 0))!
+    let regular = expect Face.loadAt(bytes.toSlice(), 0)
     defer regular.destroy()
-    let bold = (expect Face.loadAt(bytes.toSlice(), 1))!
+    let bold = expect Face.loadAt(bytes.toSlice(), 1)
     defer bold.destroy()
 
     Swag.assert(regular.familyName == "Arial")
@@ -41,7 +41,7 @@ using Swag, Core
 {
     let bytes = buildFontCollection(["arialbd.ttf", "arial.ttf"])
 
-    let first = (expect Face.load(bytes.toSlice()))!
+    let first = expect Face.load(bytes.toSlice())
     defer first.destroy()
     Swag.assert(first.isBold())
 }
@@ -55,7 +55,7 @@ using Swag, Core
     Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
     Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 1)) == "Segoe UI")
 
-    let second = (expect Face.loadAt(bytes.toSlice(), 1))!
+    let second = expect Face.loadAt(bytes.toSlice(), 1)
     defer second.destroy()
     Swag.assert(second.familyName == (expect Face.familyNameAt(bytes.toSlice(), 1)))
 }
@@ -73,32 +73,28 @@ using Swag, Core
 // An index beyond the collection is reported rather than read out of bounds.
 #test
 {
-    let bytes    = buildFontCollection(["arial.ttf", "arialbd.ttf"])
-    let outOfEnd = catch Face.loadAt(bytes.toSlice(), 2) as errRange
+    let bytes = buildFontCollection(["arial.ttf", "arialbd.ttf"])
+    catch checkFaceLoadAt(bytes.toSlice(), 2) as errRange
     Swag.assert(errRange != null)
-    Swag.assert(outOfEnd == null)
 }
 
 // A bare font file holds no face beyond the first.
 #test
 {
-    let bytes    = loadFontBytes("arial.ttf")
-    let outOfEnd = catch Face.loadAt(bytes.toSlice(), 1) as errSingle
+    let bytes = loadFontBytes("arial.ttf")
+    catch checkFaceLoadAt(bytes.toSlice(), 1) as errSingle
     Swag.assert(errSingle != null)
-    Swag.assert(outOfEnd == null)
 }
 
 // A WOFF container is rejected on sight, and counting its faces fails for the same
 // reason loading it does.
 #test
 {
-    let woff = catch Face.load(WoffBytes) as errWoff
+    catch checkFaceLoad(WoffBytes) as errWoff
     Swag.assert(errWoff != null)
-    Swag.assert(woff == null)
 
-    let woff2 = catch Face.load(Woff2Bytes) as errWoff2
+    catch checkFaceLoad(Woff2Bytes) as errWoff2
     Swag.assert(errWoff2 != null)
-    Swag.assert(woff2 == null)
 
     discard catch Face.countFaces(WoffBytes) as errCount
     Swag.assert(errCount != null)
@@ -108,9 +104,8 @@ using Swag, Core
 // on its signature, and still counts as the one face its header declares.
 #test
 {
-    let cff = catch Face.load(OpenTypeCffBytes) as errCff
+    catch checkFaceLoad(OpenTypeCffBytes) as errCff
     Swag.assert(errCff != null)
-    Swag.assert(cff == null)
 
     let count = expect Face.countFaces(OpenTypeCffBytes)
     Swag.assert(count == 1)

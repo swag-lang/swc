@@ -12,7 +12,7 @@ var app: Application
 
 #main
 {
-    let surface = (try app.createSurface(100, 100, 640, 420))!
+    let surface = try app.createSurface(100, 100, 640, 420)
     surface.setTitle("Tasks")
 
     let view = surface.view()
@@ -32,7 +32,7 @@ the application:
 var cpu: Pixel.RenderCpu
 var app: Application
 app.setRenderer(&cpu)
-let surface = (try app.createSurface(0, 0, 640, 420))!
+let surface = try app.createSurface(0, 0, 640, 420)
 ```
 
 Additional surfaces use the same renderer and participate in the same event loop.

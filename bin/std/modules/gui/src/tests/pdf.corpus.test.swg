@@ -2,8 +2,6 @@
 
 using Core, Pixel, Pdf
 
-private func createCorpusTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
-
 private struct CorpusPdf
 {
     name:      string
@@ -101,7 +99,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     var found  = false
     for font in page.fonts where font.bytes.count == 11_148
     {
-        let typeface = (expect createCorpusTypeFace("FKFJSD+DejaVuSans", font.bytes.toSlice()))!
+        let typeface = expect TypeFace.create("FKFJSD+DejaVuSans", font.bytes.toSlice())
         Swag.assert(typeface.familyName() == "FKFJSD+DejaVuSans")
         Swag.assert(font.identityGlyphs)
         found = true

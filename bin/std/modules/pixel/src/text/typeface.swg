@@ -98,8 +98,7 @@ public impl TypeFace
         defer #fail Memory.delete(tf, allocator)
         tf.fullName = fullName
 
-        let face = try Face.loadSubset(bytes, fullName, allocator)
-        tf.face       = face!
+        tf.face       = try Face.loadSubset(bytes, fullName, allocator)
         tf.faceLoaded = true
 
         g_HashTypeFace.add(fullName, tf)
@@ -158,8 +157,7 @@ public impl TypeFace
             buffer = try File.readAllBytes(fullName)
         }
 
-        let face = try Face.load(buffer.toSlice(), allocator)
-        tf.face       = face!
+        tf.face       = try Face.load(buffer.toSlice(), allocator)
         tf.faceLoaded = true
 
         g_HashTypeFace.add(fullName, tf)

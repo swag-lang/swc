@@ -2,8 +2,6 @@
 
 using Core, Pixel, Pdf
 
-private func createProgramTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
-
 private struct ProgramReport
 {
     fonts:    u64     // Font resources the page refers to.
@@ -28,12 +26,11 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
         if not font.bytes.isEmpty()
         {
             result.embedded += 1
-            let key    = Format.toString("probe-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
-            let opened = catch createProgramTypeFace(key.toString(), font.bytes.toSlice()) as loadError
-            if loadError == null
+            let key = Format.toString("probe-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
+            catch
             {
+                face = try TypeFace.create(key.toString(), font.bytes.toSlice())
                 result.loaded += 1
-                face = opened
             }
         }
 

@@ -81,7 +81,7 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
     return result
 }
 
-private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?)->*Face? fail
+private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?)->*Face fail
 {
     if bytes.count == 0 do
         try fault(0x06)
@@ -166,7 +166,7 @@ public impl Face
     // Loads a TrueType face from an in-memory font file.
     //
     // The face owns a private copy of `bytes`, so the input may be released after
-    // this call. Release the returned pointer with [[TrueType.Face.destroy]]. When
+    // this call. Success returns a non-null face. Release the returned pointer with [[TrueType.Face.destroy]]. When
     // `allocator` is null, the allocator active at the start of the call owns the
     // face allocation.
     //
@@ -177,10 +177,10 @@ public impl Face
     //
     // ```swag
     // let bytes = try File.readAllBytes("Inter-Regular.ttf")
-    // let face  = (try TrueType.Face.load(bytes.toSlice()))!
+    // let face  = try TrueType.Face.load(bytes.toSlice())
     // defer face.destroy()
     // ```
-    func load(bytes: const [..] u8, allocator: IAllocator? = null)->*Face? fail => try Face.loadAt(bytes, 0, allocator)
+    func load(bytes: const [..] u8, allocator: IAllocator? = null)->*Face fail => try Face.loadAt(bytes, 0, allocator)
 
     // Loads a rendering-only TrueType subset from an in-memory font program.
     //
@@ -193,7 +193,7 @@ public impl Face
     // [[TrueType.Face.load]] for standalone font files, where missing metadata is an error.
     //
     // Ownership and cleanup match [[TrueType.Face.load]].
-    func loadSubset(bytes: const [..] u8, familyName: string, allocator: IAllocator? = null)->*Face? fail
+    func loadSubset(bytes: const [..] u8, familyName: string, allocator: IAllocator? = null)->*Face fail
     {
         if not familyName.count do
             try fault(0x06)
@@ -213,11 +213,11 @@ public impl Face
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for index in count
     // {
-    //     let face = (try TrueType.Face.loadAt(bytes.toSlice(), index))!
+    //     let face = try TrueType.Face.loadAt(bytes.toSlice(), index)
     //     defer face.destroy()
     // }
     // ```
-    func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face? fail => try loadFaceBytes(bytes, faceIndex, "", allocator)
+    func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face fail => try loadFaceBytes(bytes, faceIndex, "", allocator)
 
     // Returns how many faces an in-memory font file holds.
     //
@@ -351,7 +351,7 @@ public impl Face
     // is, and for a name it does not carry.
     //
     // ```swag
-    // let face  = (try TrueType.Face.load(bytes))!
+    // let face  = try TrueType.Face.load(bytes)
     // let glyph = face.glyphIndexByName("fi")
     // ```
     mtd glyphIndexByName(name: string)->u32

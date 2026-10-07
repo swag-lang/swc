@@ -261,37 +261,33 @@ func subtitleTimeSeconds(text: string, result: *f64)->bool
     return true
 }
 
-// Returns the created viewer as a nullable pointer, which gives `catch` a fallback value.
-private func loadSubtitleViewer(host: Viewer.Host)->*SubtitleViewer? fail => try SubtitleViewer.create(host)
-
 // Creates the integrated timed-subtitle document view and connects it to the host.
 func createSubtitleViewer(host: Viewer.Host)
 {
-    let view = catch loadSubtitleViewer(host) as createError
-    if createError != null
+    catch
     {
+        let view = try SubtitleViewer.create(host)
+        host.attachView(view)
+        host.setDetails(subtitleFormatText(view.track!.sourceFormat()))
+        host.setSearch({
+            collectMatches: func(wnd, text, options, progress, matches)->bool
+        {
+            discard progress
+            (cast #assume (*SubtitleViewer) wnd).collectMatches(text, options, matches)
+            return true
+        },
+            revealMatch: func(wnd, match, text)->bool
+        {
+            discard text
+            return (cast #assume (*SubtitleViewer) wnd).revealMatch(match)
+        },
+            matchBounds: func(wnd, match, bounds)->bool
+        {
+            discard match
+            return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
+        },
+            clear: func(wnd) { Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor) }})
+    } as createError
+    if createError != null do
         host.reject(Errors.message(createError))
-        return
-    }
-
-    host.attachView(view!)
-    host.setDetails(subtitleFormatText(view.track!.sourceFormat()))
-    host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool
-    {
-        discard progress
-        (cast #assume (*SubtitleViewer) wnd).collectMatches(text, options, matches)
-        return true
-    },
-        revealMatch: func(wnd, match, text)->bool
-    {
-        discard text
-        return (cast #assume (*SubtitleViewer) wnd).revealMatch(match)
-    },
-        matchBounds: func(wnd, match, bounds)->bool
-    {
-        discard match
-        return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
-    },
-        clear: func(wnd) { Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor) }})
 }

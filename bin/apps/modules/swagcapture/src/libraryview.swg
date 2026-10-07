@@ -705,8 +705,9 @@ impl LibraryView
     {
         if it.kind == .Capture
         {
-            let capture:       *Capture? = catch Capture.load(it.fi.fullName, preview: true, deferPreviewDecode: true)
-            var haar:          ImageStatistics.HaarFeatures
+            var capture: *Capture?
+            catch { capture = try Capture.load(it.fi.fullName, preview: true, deferPreviewDecode: true) }
+            var haar: ImageStatistics.HaarFeatures
             var width, height: s32
             if capture
             {

@@ -447,8 +447,7 @@ private func hasSubtitleExtension(fileName: string)->bool
 
 private func addVideoSidecar(fileName: string, result: *Array'*Subtitle.Track) fail
 {
-    let track = try Subtitle.Track.loadOwned(fileName)
-    result.add(track!)
+    result.add(try Subtitle.Track.loadOwned(fileName))
 }
 
 // Finds VLC-style sidecars: `movie.srt`, `movie.en.srt`, and other dotted qualifiers.
@@ -938,7 +937,7 @@ impl VideoViewer
         let coversRange   = videoSoundCovers(sound, position)
         let shouldPlay    = wasPlaying and coversRange and not .resumeAudioAfterSeek
         let restoreOld    = wasPlaying and .voice != null and not .audioRangePending and not .resumeAudioAfterSeek
-        let newVoice      = try Voice.create(sound)!
+        let newVoice      = try Voice.create(sound)
         let oldVoice      = .voice
         var restoreNeeded = restoreOld
         defer #fail
@@ -2213,23 +2212,19 @@ private func runVideoViewerDecode(thread: Threading.Thread)
         view.pendingVideo.close()
 }
 
-// Returns the created viewer as a nullable pointer, which gives `catch` a fallback value.
-private func loadVideoViewer(host: Viewer.Host)->*VideoViewer? fail => try VideoViewer.create(host)
-
 // Creates the integrated video playback view and connects it to the host.
 func createVideoViewer(host: Viewer.Host)
 {
-    let view = catch loadVideoViewer(host) as createError
-    if createError != null
+    catch
     {
+        let view = try VideoViewer.create(host)
+        host.attachView(view)
+        host.setDetails(view.details.toString())
+        host.setLifecycle({
+            retire: func(wnd)->bool => (cast #assume (*VideoViewer) wnd).retire(),
+            isLoading: func(wnd)->bool => (cast #assume (*VideoViewer) wnd).isLoading(),
+            needsLoadingOverlay: func(wnd)->bool => (cast #assume (*VideoViewer) wnd).needsLoadingOverlay()})
+    } as createError
+    if createError != null do
         host.reject(Errors.message(createError))
-        return
-    }
-
-    host.attachView(view!)
-    host.setDetails(view.details.toString())
-    host.setLifecycle({
-        retire: func(wnd)->bool => (cast #assume (*VideoViewer) wnd).retire(),
-        isLoading: func(wnd)->bool => (cast #assume (*VideoViewer) wnd).isLoading(),
-        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*VideoViewer) wnd).needsLoadingOverlay()})
 }

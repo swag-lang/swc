@@ -75,7 +75,7 @@ impl TypeFace
     // whose names cannot be read is skipped rather than allowed to fail the load, and
     // a collection stating no match falls back to its first face, which is what a
     // system whose enumerated names are localized away from the `name` table gets.
-    func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face? fail
+    func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
     {
         let count = try Face.countFaces(bytes)
         if count > 1 and family.count != 0
@@ -109,7 +109,7 @@ impl TypeFace
         // instead of reporting the failure.
         var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)
-        let face   = (try loadFaceForFamily(buffer.toSlice(), family, allocator))!
+        let face   = try loadFaceForFamily(buffer.toSlice(), family, allocator)
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator

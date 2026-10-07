@@ -912,7 +912,11 @@ impl Capture
         try writer.saveAtomic(job.file)
     }
 
-    private func loadScc(file: String, preview: bool, deferPreviewDecode: bool)->*Capture fail
+    // Loads an SCC capture, or its library metadata and preview when `preview` is set.
+    //
+    // The caller owns the non-null result and releases it with [[Core.Memory.delete]].
+    // `deferPreviewDecode` keeps the encoded preview until it is needed.
+    func load(file: String, preview = false, deferPreviewDecode = false)->*Capture fail
     {
         var reader: Scc.Reader
         try reader.initialize(file)
@@ -925,7 +929,7 @@ impl Capture
         if preview
         {
             var decoder: Decoder'Read.TagBin
-            let metadata = try decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())!
+            let metadata = try decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
             defer Memory.delete(metadata)
             metadata.sanitize()
             capture = fromLibraryMetadata(metadata[], reader.manifest())
@@ -938,7 +942,7 @@ impl Capture
             var bytes = try reader.readChunk(info.id)
             var decoder: Decoder'Read.TagBin
             decoder.flags |= .IgnoreStructFieldError
-            let model = try decoder.readAll'CaptureFileModel(bytes.toSlice())!
+            let model = try decoder.readAll'CaptureFileModel(bytes.toSlice())
             defer Memory.delete(model)
             capture = fromFileModel(model)
 
@@ -950,7 +954,7 @@ impl Capture
             {
                 var imageBytes = try reader.readChunk(background.id)
                 var imageDecoder: Decoder'Read.TagBin
-                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())!
+                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())
                 defer Memory.delete(image)
                 capture.backImg = #move image[]
                 let imageDiag = imageDecoder.serializer.diag
@@ -962,7 +966,7 @@ impl Capture
             {
                 var imageBytes = try reader.readChunk(original.id)
                 var imageDecoder: Decoder'Read.TagBin
-                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())!
+                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())
                 defer Memory.delete(image)
                 capture.backImgOriginal = #move image[]
                 let imageDiag = imageDecoder.serializer.diag
@@ -986,8 +990,6 @@ impl Capture
         reader.close()
         return capture
     }
-
-    func load(file: String, preview = false, deferPreviewDecode = false)->*Capture? fail => try loadScc(file, preview, deferPreviewDecode)
 
     //////////////////////////////
     // CLIPBOARD

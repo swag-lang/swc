@@ -26,7 +26,7 @@ using Swag, Core
 private func testAtlasUpload(mode: FontRenderMode)
 {
     var cache: FontCache
-    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
+    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
     let font = cache.createFont(face, 24, mode)
     discard font.getGlyphDesc('A')
     let atlas = &font.cache.atlases[0]

@@ -140,7 +140,7 @@ func scenarioDeleteCaptureFiles(path: String)
     let failedSave = g_CaptureSaves.flush()
     Swag.assert(failedSave.isEmpty())
 
-    let saved = expect Capture.load(path)!
+    let saved = expect Capture.load(path)
     Swag.assert(saved.title == "Persisted scenario")
     Swag.assert(saved.forms.count == 1)
     Memory.delete(saved)

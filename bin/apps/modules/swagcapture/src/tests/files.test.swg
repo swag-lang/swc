@@ -74,7 +74,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(failedSave.isEmpty())
     Swag.assert(g_CaptureSaves.pending == null)
 
-    let saved = expect Capture.load(path)!
+    let saved = expect Capture.load(path)
     defer Memory.delete(saved)
     Swag.assert(saved.title == "Scheduled title")
 }
@@ -446,7 +446,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.capture.linkedImage == linkedPath)
     Swag.assert(f.capture.linkedUpToDate)
 
-    let loaded = expect Capture.load(capturePath)!
+    let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
     Swag.assert(loaded.linkedImage == linkedPath)
     Swag.assert(loaded.linkedUpToDate)
@@ -479,7 +479,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(testSamePath(f.capture.linkedImage, linkedPath))
     Swag.assert(f.capture.linkedUpToDate)
 
-    let loaded = expect Capture.load(capturePath)!
+    let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
     Swag.assert(testSamePath(loaded.linkedImage, linkedPath))
     Swag.assert(loaded.linkedUpToDate)
@@ -518,7 +518,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(linked.height == 16)
     Swag.assert(testHasCaptureFileMetadata(linked, capturePath))
 
-    let loaded = expect Capture.load(capturePath)!
+    let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
     Swag.assert(loaded.linkedImage == linkedPath)
     Swag.assert(loaded.linkedUpToDate)
@@ -560,7 +560,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(linked.height == 26)
     Swag.assert(testHasCaptureFileMetadata(linked, capturePath))
 
-    let loaded = expect Capture.load(capturePath)!
+    let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
     Swag.assert(testSamePath(loaded.linkedImage, linkedPath))
     Swag.assert(loaded.linkedUpToDate)
@@ -596,7 +596,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.capture.linkedImage.isEmpty())
     Swag.assert(not f.capture.linkedUpToDate)
 
-    let loaded = expect Capture.load(capturePath)!
+    let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
     Swag.assert(loaded.linkedImage.isEmpty())
     Swag.assert(not loaded.linkedUpToDate)
@@ -631,7 +631,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(not testSamePath(duplicatedPath, originalPath))
     Swag.assert(File.exists(duplicatedPath))
 
-    let duplicated = expect Capture.load(duplicatedPath)!
+    let duplicated = expect Capture.load(duplicatedPath)
     defer Memory.delete(duplicated)
     Swag.assert(duplicated.forms.count == 1)
     Swag.assert(duplicated.linkedImage == null)
@@ -730,7 +730,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.main.recentWnd.recentView.select(0)
 
-    let saved = expect Capture.load(editorPath)!
+    let saved = expect Capture.load(editorPath)
     defer Memory.delete(saved)
     Swag.assert(saved.title == "Unsaved editor title")
     Swag.assert(f.main.editWnd.getCapture()!.file == otherPath)

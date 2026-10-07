@@ -186,7 +186,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     g_VideoSubtitleSettings = {}
 
     let standalone = expect Subtitle.Track.loadOwned(sidecar.toString())
-    Swag.assert(standalone != null)
+    #assert(#typeof(standalone) == *Subtitle.Track)
     let standaloneText = standalone.cueContent(0)
     Swag.assert(standaloneText == "Opening caption")
     Subtitle.Track.destroy(standalone)

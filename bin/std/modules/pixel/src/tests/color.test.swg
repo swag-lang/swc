@@ -2,6 +2,8 @@
 
 using Swag, Core
 
+private func checkColorValue(color: *Color, text: string) fail { discard try StrConv.parseValue(color, Color, text) }
+
 #test
 {
     let red = Color.fromHsl(0, 1, 0.5)
@@ -45,6 +47,6 @@ using Swag, Core
     Swag.assert(bytes.a == 255 and bytes.r == 16 and bytes.g == 32 and bytes.b == 48)
 
     var single: Color
-    discard catch StrConv.parseValue(&single, Color, "0") as incomplete
+    catch checkColorValue(&single, "0") as incomplete
     Swag.assert(incomplete != null)
 }

@@ -27,20 +27,20 @@ impl IActionUI for ActionAbout
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = mainWndOf(cxt)
-        let view = main.editWnd.editView
-
+        // Dated and versioned by the compilation of this executable.
         const BuildDate = #run Time.DateTime.now()
         let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
-        let dlg     = AboutDlg.createApplication(view.surface!, {
-            productName: ProductName,
-            version: version.toString(),
-            buildDate: BuildDate,
-            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagcapture",
-            copyrightHolder: "Christophe Beaudet"})
 
-        discard dlg.doModal()
+        with var about: ApplicationAboutDlgParams
+        {
+            .productName     = ProductName
+            .version         = version
+            .buildDate       = BuildDate
+            .sourceUrl       = "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagcapture"
+            .copyrightHolder = "Christophe Beaudet"
+        }
 
+        discard AboutDlg.createApplication(mainWndOf(cxt).surface!, about).doModal()
         return true
     }
 }

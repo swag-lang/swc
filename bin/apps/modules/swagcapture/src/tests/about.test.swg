@@ -13,14 +13,18 @@ using Swag, Core, Pixel
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let appIcon = expect Image.decode(".png", AppIcon)
-    host.app.setAppIcon(appIcon)
-    let dlg = Gui.AboutDlg.createApplication(&host.surface, {
-        productName: ProductName,
-        version: "1.2.3",
-        buildDate: {year: 2026, month: 9, day: 1},
-        sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagcapture",
-        copyrightHolder: "Christophe Beaudet"})
+    host.app.setAppIcon(expect Image.decode(".png", AppIcon))
+
+    with var about: Gui.ApplicationAboutDlgParams
+    {
+        .productName     = ProductName
+        .version         = "1.2.3"
+        .buildDate       = {year: 2026, month: 9, day: 1}
+        .sourceUrl       = "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagcapture"
+        .copyrightHolder = "Christophe Beaudet"
+    }
+
+    let dlg = Gui.AboutDlg.createApplication(&host.surface, about)
 
     dlg.applyLayout()
     Swag.assert(dlg.labelMessage.dockStyle == .None)

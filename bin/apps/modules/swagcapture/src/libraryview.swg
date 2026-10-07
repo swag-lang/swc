@@ -379,7 +379,7 @@ impl IWnd for LibraryView
 
             if label.count
             {
-                let font = me .font().regular!
+                let font = me.font().regular!
                 let cx   = it.rect.horzCenter()
                 let by   = it.rect.bottom() - 8
                 painter.drawStringCenter(cx + 1, by + 1, label, font, Color.fromArgb(0xC0, Argb.Black))
@@ -388,7 +388,7 @@ impl IWnd for LibraryView
 
             if it.kind == .Image
             {
-                let font = me .theme().res.fontDefaultFs.regular!
+                let font = me.theme().res.fontDefaultFs.regular!
                 let text = appStrings().ui_ImageBadge
                 let ms   = Painter.measureString(text, font)
                 let rc   = Math.Rectangle{it.rect.x + 8, it.rect.y + 8, ms.width + 12, font.height + 4}
@@ -398,7 +398,7 @@ impl IWnd for LibraryView
 
             if capture and capture.favorite
             {
-                let font = me .theme().res.fontDefault.bold!
+                let font = me.theme().res.fontDefault.bold!
                 let text = "♥"
                 let ms   = Painter.measureString(text, font)
                 painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)

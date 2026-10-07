@@ -1307,11 +1307,21 @@ namespace
                 case AstNodeId::ContinueStmt:
                 case AstNodeId::FallThroughStmt:
                 case AstNodeId::UnreachableStmt:
-                case AstNodeId::ErrorManagementExpr:
                 case AstNodeId::FailExpr:
                 case AstNodeId::DiscardExpr:
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
                     break;
+
+                case AstNodeId::ErrorManagementExpr:
+                {
+                    // The policy is the node's own token: a prefix keyword ('try x', 'catch x'),
+                    // or the postfix '!' of 'x!', where the expression starts with its operand
+                    // and that operand - 'me', say - is not a control keyword.
+                    const uint32_t policy = pieceOfNodeToken(node);
+                    if (policy != INVALID_PIECE && Token::isKeyword(model_->piece(policy).id))
+                        addRole(policy, FormatRoleE::ControlKeyword);
+                    break;
+                }
 
                 case AstNodeId::ErrorManagementStmt:
                 {

@@ -424,6 +424,32 @@ SWC_TEST_BEGIN(FormatSpacing_PostfixDereference)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatSpacing_PostfixBangKeepsReceiverKeyword)
+{
+    // A postfix '!' expression starts with its operand. When that operand is 'me', the
+    // keyword is a receiver, not the error policy, and gains no space after it; a
+    // prefix policy keyword in front of the same chain keeps its own.
+    static constexpr std::string_view SOURCE =
+        "impl A\n"
+        "{\n"
+        "    mtd f()\n"
+        "    {\n"
+        "        let cap = me.capture!\n"
+        "        let font = me.font().regular!\n"
+        "        let size = &me.bar.items[0]!.size\n"
+        "        let item = try me.bar.load()!\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.spaceAfterKeyword = true;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options));
+
+    options.normalizeHorizontalWhitespace = true;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatSpacing_BeforeParenthesesControl)
 {
     // Swag forbids a blank before call / declaration parentheses, so the

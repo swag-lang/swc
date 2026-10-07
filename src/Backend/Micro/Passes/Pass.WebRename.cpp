@@ -213,7 +213,9 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
     std::unordered_set<MicroReg> excluded;
     for (const auto& phi : ssa->phis())
     {
-        if (!phi.reg.isVirtualFloat() || !ssa->transitiveInstructionUseCount(phi.resultValueId, 1))
+        // A web only connects versions of its own register. Other registers
+        // cannot affect the names of the stored-value candidates.
+        if (!phi.reg.isVirtualFloat() || !candidates.contains(phi.reg) || !ssa->transitiveInstructionUseCount(phi.resultValueId, 1))
             continue;
         for (const uint32_t incoming : phi.incomingValueIds)
         {
@@ -232,7 +234,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
         for (size_t operand = 0; operand < modes.size(); ++operand)
         {
-            if (modes[operand] == MicroInstrRegMode::None || !ops[operand].reg.isVirtualFloat())
+            if (modes[operand] == MicroInstrRegMode::None || !ops[operand].reg.isVirtualFloat() || !candidates.contains(ops[operand].reg))
                 continue;
             const MicroReg reg = ops[operand].reg;
             if (!hasScalarDoubleWidth(*it, ops))
@@ -266,7 +268,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         }
     }
 
-    uint32_t                               nextFloat = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+    uint32_t                               nextFloat = 0;
     std::unordered_set<MicroReg>           namedRegs;
     std::unordered_map<uint32_t, MicroReg> names;
     for (uint32_t id = 0; id < values.size(); ++id)
@@ -280,11 +282,17 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
             continue;
         if (!namedRegs.insert(value.reg).second)
         {
+            if (!nextFloat)
+                nextFloat = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
             if (nextFloat >= MicroReg::K_MAX_INDEX)
                 return Result::Continue;
             name->second = MicroReg::virtualFloatReg(nextFloat++);
         }
     }
+
+    // With one web per candidate, every name is still the original register.
+    if (!nextFloat)
+        return Result::Continue;
 
     struct Rewrite
     {

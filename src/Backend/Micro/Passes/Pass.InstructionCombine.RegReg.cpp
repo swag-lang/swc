@@ -143,8 +143,7 @@ namespace InstructionCombine
                     ctx.ssa->reachingValueId(source, ref) != sourceValue)
                     continue;
 
-                if (!ctx.nextVirtualFloatRegIndex)
-                    MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+                ctx.ensureVirtualIndices();
                 if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
                     !ctx.claimAll({ref, nonZero.compareRef, nonZero.setRef, nonZero.copyRef.isValid() ? nonZero.copyRef : ref,
                                    zero.compareRef, zero.setRef, zero.copyRef.isValid() ? zero.copyRef : ref,
@@ -1296,8 +1295,7 @@ namespace InstructionCombine
                         !ctx.ssa->sameValueAt(normal, inputRefs[1 - negatedIndex], ref) ||
                         !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                         continue;
-                    if (!ctx.nextVirtualFloatRegIndex)
-                        MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+                    ctx.ensureVirtualIndices();
                     if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
                         !ctx.claimAll({ref, def.instRef, initial.instRef, resultCopy.isValid() ? resultCopy : ref, otherCopy.isValid() ? otherCopy : ref}))
                         continue;
@@ -1634,8 +1632,7 @@ namespace InstructionCombine
                 ProductBit bit{.reg = input, .index = topShift ? topBit : 0};
                 if (!topShift)
                     recoverProductBit(ctx, bit, initial.instRef, ref);
-                if (!ctx.nextVirtualFloatRegIndex)
-                    MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+                ctx.ensureVirtualIndices();
                 if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
                     !ctx.claimAll({ref, mask.instRef, initial.instRef, maskCopy.isValid() ? maskCopy : ref, bit.shiftRef.isValid() ? bit.shiftRef : ref, bit.copyRef.isValid() ? bit.copyRef : ref}))
                     continue;
@@ -1752,8 +1749,7 @@ namespace InstructionCombine
                     if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
                         !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
                         continue;
-                    if (!ctx.nextVirtualFloatRegIndex)
-                        MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+                    ctx.ensureVirtualIndices();
                     if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
                         !ctx.claimAll({ref, product.instRef, initial.instRef, productCopy.isValid() ? productCopy : ref, otherCopy.isValid() ? otherCopy : ref}))
                         continue;
@@ -1793,12 +1789,12 @@ namespace InstructionCombine
             const bool    arithmetic = outer == MicroOp::Add || outer == MicroOp::Subtract;
             if (!ctx.ssa || (!arithmetic && outer != MicroOp::Xor && outer != MicroOp::Or && outer != MicroOp::And) || !ops[1].reg.isVirtualInt())
                 return false;
-            const MicroOp inner = arithmetic ? MicroOp::MultiplySigned : outer == MicroOp::And ? MicroOp::Or
-                                                                                               : MicroOp::And;
-            if (arithmetic && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
-                return false;
-            const MicroOpBits bits = ops[2].opBits;
+            const MicroOp     inner = arithmetic ? MicroOp::MultiplySigned : outer == MicroOp::And ? MicroOp::Or
+                                                                                                   : MicroOp::And;
+            const MicroOpBits bits  = ops[2].opBits;
             if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            if (arithmetic && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
 
             std::array    regs{ops[0].reg, ops[1].reg};

@@ -491,7 +491,12 @@ namespace
             if (info.flags.has(MicroInstrFlagsE::WritesMemory) && ops &&
                 info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 ops[info.memBaseOperandIndex].reg.isInstructionPointer() && !relocations.contains(it.current))
+            {
+                // An unbound RIP write blocks both global segments. No later
+                // call or relocation can make any target safe to preserve.
                 result.blockedKinds = ~0u;
+                return result;
+            }
         }
         for (const MicroRelocation& relocation : context.builder->codeRelocations())
         {
@@ -656,7 +661,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     uint32_t                          memoryEpoch           = 0;
     uint32_t                          lastEpoch             = 0;
 
-    const bool readOnlySelfCalls = selfCallsOnlyReadMemory(context);
+    std::optional<bool> readOnlySelfCalls;
 
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the
@@ -673,8 +678,16 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         if (inst->op == MicroInstrOpcode::Label && cfg.predecessors(i).size() == 1 && cfg.predecessors(i)[0] < i)
             memoryEpoch = epochAt[cfg.predecessors(i)[0]];
-        else if (advancesMemoryEpoch(*inst) && !(readOnlySelfCalls && inst->op == MicroInstrOpcode::CallLocal))
-            memoryEpoch = ++lastEpoch;
+        else if (advancesMemoryEpoch(*inst))
+        {
+            const bool localCall = inst->op == MicroInstrOpcode::CallLocal;
+            // The proof scans relocations and the body. Only a local call can
+            // consume it, and queued rewrites leave that body unchanged.
+            if (localCall && !readOnlySelfCalls)
+                readOnlySelfCalls = selfCallsOnlyReadMemory(context);
+            if (!localCall || !*readOnlySelfCalls)
+                memoryEpoch = ++lastEpoch;
+        }
         epochAt[i] = memoryEpoch;
         if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             ++callCount;
@@ -776,22 +789,6 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 continue;
         }
 
-        bool immutableLoad = false;
-        if (ripLoad && instReloc->privateGlobal)
-        {
-            if (!privateGlobalFacts)
-                privateGlobalFacts = collectPrivateGlobalFacts(context, relocationByInstruction);
-            immutableLoad = privateGlobalFacts->preserves(*instReloc, ops[3].valueU64, getNumBytes(ops[2].opBits));
-        }
-        if (shape.readsMemory && !ripLoad)
-        {
-            if (!immutableBasesReady)
-            {
-                MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
-                immutableBasesReady = true;
-            }
-            immutableLoad = immutableBases.contains(ops[shape.useSlots[0]].reg);
-        }
         const MicroOpBits movBits = ops[shape.movBitsSlot].opBits;
         const MicroOpBits useBits = shape.readsMemory ? MicroOpBits::B64 : movBits;
         const MicroOpBits srcBits = shape.readsMemory ? ops[shape.srcBitsSlot].opBits : movBits;
@@ -856,14 +853,42 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         auto& bucket = table[hashKey(key)];
 
-        bool replaced = false;
+        bool replaced           = false;
+        bool immutableLoad      = false;
+        bool immutableLoadReady = false;
         for (const NumberingEntry& cand : bucket)
         {
             if (cand.key.size() != key.size() || !std::equal(cand.key.begin(), cand.key.end(), key.begin()))
                 continue;
-            if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch &&
-                (!immutableLoad || cand.callCount != callCount))
-                continue;
+            if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch)
+            {
+                if (cand.callCount != callCount)
+                    continue;
+                // Only a matching load across memory epochs needs an
+                // immutability proof. Ordinary reads and same-epoch matches
+                // never need either whole-function analysis.
+                if (!immutableLoadReady)
+                {
+                    if (ripLoad && instReloc->privateGlobal)
+                    {
+                        if (!privateGlobalFacts)
+                            privateGlobalFacts = collectPrivateGlobalFacts(context, relocationByInstruction);
+                        immutableLoad = privateGlobalFacts->preserves(*instReloc, ops[3].valueU64, getNumBytes(ops[2].opBits));
+                    }
+                    else if (!ripLoad)
+                    {
+                        if (!immutableBasesReady)
+                        {
+                            MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
+                            immutableBasesReady = true;
+                        }
+                        immutableLoad = immutableBases.contains(ops[shape.useSlots[0]].reg);
+                    }
+                    immutableLoadReady = true;
+                }
+                if (!immutableLoad)
+                    continue;
+            }
             // The SSA rename walk already describes the entry's dominator
             // subtrees. Only an unusual nonzero entry needs its own tree.
             if (entry == 0)

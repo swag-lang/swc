@@ -2039,6 +2039,51 @@ SWC_TEST_BEGIN(RegAlloc_PackedInputsKeepScalarSpillSlots)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_FreeFallbackKeepsItsCallBoundary)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        const auto&  conv = CallConv::get(callConvKind);
+        MicroBuilder builder(ctx);
+        builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+        constexpr MicroReg owner   = MicroReg::virtualIntReg(7000);
+        constexpr MicroReg current = MicroReg::virtualIntReg(7001);
+        for (const MicroReg reg : conv.intRegs)
+        {
+            if (reg != conv.intReturn)
+            {
+                builder.addVirtualRegForbiddenPhysReg(owner, reg);
+                builder.addVirtualRegForbiddenPhysReg(current, reg);
+            }
+        }
+
+        // The owner has a lifetime hole around the call. Its later definition
+        // prevents eviction, so current must use the free register only up to
+        // the call, then spill until the owner has finished its second range.
+        builder.emitLoadRegMem(owner, conv.stackPointer, 0, MicroOpBits::B64);
+        builder.emitLoadMemReg(conv.stackPointer, 8, owner, MicroOpBits::B64);
+        builder.emitLoadRegMem(current, conv.stackPointer, 16, MicroOpBits::B64);
+        builder.emitCallReg(conv.intArgRegs[0], callConvKind, 0, 0);
+        builder.emitLoadRegMem(owner, conv.stackPointer, 24, MicroOpBits::B64);
+        builder.emitLoadMemReg(conv.stackPointer, 32, owner, MicroOpBits::B64);
+        builder.emitLoadMemReg(conv.stackPointer, 40, current, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroRegisterAllocationPass pass;
+        MicroPassManager            passes;
+        passes.addStartPass(pass);
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        SWC_RESULT(verifyCallConvConformity(builder, conv));
+        if (!passCtx.intervalAllocated)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_ScalarSpillIgnoresNonWidthOperands)
 {
     struct Case

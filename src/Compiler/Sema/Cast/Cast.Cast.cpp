@@ -1778,19 +1778,23 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
     if (effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::Assume}))
     {
-        bool assumedAnyValue = false;
+        bool assumedValueCast = false;
         if (effectiveFlags.has(CastFlagsE::Assume) && !effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::BitCast, CastFlagsE::NoOverflow, CastFlagsE::UnConst}))
         {
+            // A contextual assumption can fold before its enclosing binding casts
+            // the result again. That identity must not reopen the original operand
+            // as a dynamic type query.
+            assumedValueCast           = srcTypeRef == dstTypeRef;
             const TypeInfo& sourceType = SemaHelpers::aliasEnumType(sema, view);
             if (sourceType.isAny())
             {
                 const TypeInfo& declaredTarget = sema.typeMgr().get(dstTypeRef);
                 const TypeInfo* unwrappedType  = declaredTarget.unwrapAliasEnumType(sema.ctx());
                 const TypeInfo& targetType     = unwrappedType ? *unwrappedType : declaredTarget;
-                assumedAnyValue                = !targetType.isValuePointer() && !targetType.isInterface() && !targetType.isTypeInfo();
+                assumedValueCast |= !targetType.isValuePointer() && !targetType.isInterface() && !targetType.isTypeInfo();
             }
         }
-        if (!assumedAnyValue)
+        if (!assumedValueCast)
             return castDynamic(sema, view, dstTypeRef, effectiveFlags);
     }
 

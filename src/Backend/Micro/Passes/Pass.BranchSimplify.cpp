@@ -264,8 +264,9 @@ namespace
     struct BranchScanCache
     {
         BranchScan scan;
-        bool       built       = false;
-        bool       layoutBuilt = false;
+        bool       built         = false;
+        bool       layoutBuilt   = false;
+        const bool countMentions = true;
 
         void invalidate()
         {
@@ -390,7 +391,7 @@ namespace
                 if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, ops))
                     ++scan.labelReferences[labelId];
 
-                if (ops)
+                if (cache.countMentions && ops)
                 {
                     const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                     for (size_t i = 0; i < modes.size(); ++i)
@@ -1915,10 +1916,8 @@ namespace
 
         // The preceding speculation pass has already built this layout when it
         // left the instruction stream unchanged.
-        thread_local ProgramLayout fallbackLayout;
-        ProgramLayout&             layout = scanCache.layoutBuilt ? scanCache.scan.layout : fallbackLayout;
-        if (!scanCache.layoutBuilt)
-            buildProgramLayout(layout, storage, operands);
+        scanCache.ensureLayout(storage, operands);
+        const ProgramLayout& layout = scanCache.scan.layout;
 
         struct ConstantEdge
         {
@@ -2057,9 +2056,15 @@ namespace
         bool     changed   = false;
         for (size_t ordinal = 0; ordinal + 9 < layout.order.size(); ++ordinal)
         {
-            const MicroInstrOperand* limit     = at(ordinal, MicroInstrOpcode::LoadRegImm);
-            const MicroInstrOperand* upper     = at(ordinal + 1, MicroInstrOpcode::CmpRegReg);
-            const MicroInstrOperand* upperSet  = at(ordinal + 2, MicroInstrOpcode::SetCondReg);
+            const MicroInstrOperand* limit = at(ordinal, MicroInstrOpcode::LoadRegImm);
+            if (!limit)
+                continue;
+            const MicroInstrOperand* upper = at(ordinal + 1, MicroInstrOpcode::CmpRegReg);
+            if (!upper)
+                continue;
+            const MicroInstrOperand* upperSet = at(ordinal + 2, MicroInstrOpcode::SetCondReg);
+            if (!upperSet)
+                continue;
             const MicroInstrOperand* upperCopy = at(ordinal + 3, MicroInstrOpcode::LoadRegReg);
             const MicroInstrOperand* exit      = at(ordinal + 4, MicroInstrOpcode::JumpCond);
             const MicroInstrOperand* negLimit  = at(ordinal + 5, MicroInstrOpcode::LoadRegImm);
@@ -2067,7 +2072,7 @@ namespace
             const MicroInstrOperand* lowerSet  = at(ordinal + 7, MicroInstrOpcode::SetCondReg);
             const MicroInstrOperand* lowerCopy = at(ordinal + 8, MicroInstrOpcode::LoadRegReg);
             const MicroInstrOperand* joinMark  = at(ordinal + 9, MicroInstrOpcode::Label);
-            if (!limit || !upper || !upperSet || !upperCopy || !exit || !negLimit || !lower || !lowerSet || !lowerCopy || !joinMark)
+            if (!upperCopy || !exit || !negLimit || !lower || !lowerSet || !lowerCopy || !joinMark)
                 continue;
 
             const MicroOpBits bits = upper[2].opBits;
@@ -7450,7 +7455,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     if (late_)
     {
-        thread_local BranchScanCache scanCache;
+        // Late transforms consult label counts, never register mentions.
+        thread_local BranchScanCache scanCache{.countMentions = false};
         scanCache.invalidate();
         scanCache.ensureLayout(storage, operands);
         const bool hasSetCondition = scanCache.scan.layout.hasSetCondition;

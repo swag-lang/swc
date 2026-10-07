@@ -510,6 +510,7 @@ namespace
         uint32_t next = node.firstUseAfter(from);
         if (!walk.loops)
             return next;
+        uint32_t lastAccess = K_IV_INVALID;
         for (const LoopRange& loop : *walk.loops)
         {
             const uint32_t headPos = loop.head * 2;
@@ -518,8 +519,15 @@ namespace
                 continue;
             if (!node.covers(headPos) || !node.covers(tailPos))
                 continue;
-            const uint32_t lastAccess = node.lastAccessBefore(from);
-            if (lastAccess == K_IV_INVALID || lastAccess < headPos)
+            // All enclosing loops ask about the same interval and position.
+            // Resolve its previous access only when one loop needs it.
+            if (lastAccess == K_IV_INVALID)
+            {
+                lastAccess = node.lastAccessBefore(from);
+                if (lastAccess == K_IV_INVALID)
+                    return next;
+            }
+            if (lastAccess < headPos)
                 continue;
             next = tailPos;
         }
@@ -684,8 +692,15 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     for (uint32_t nodeIndex = 0; nodeIndex < out.nodes.size(); ++nodeIndex)
     {
         if (!out.nodes[nodeIndex].ranges.empty() && nodeIndex != pinnedIndex)
-            pushUnhandled(walk, nodeIndex);
+            walk.unhandled.push_back(nodeIndex);
     }
+    // Repeated ordered insertion shifts the initial queue for every interval.
+    // Dense-index ties preserve the order upper_bound gave those insertions.
+    std::ranges::sort(walk.unhandled, [&](const uint32_t a, const uint32_t b) {
+        const uint32_t startA = out.nodes[a].start();
+        const uint32_t startB = out.nodes[b].start();
+        return startA != startB ? startA > startB : a < b;
+    });
 
     SmallVector<uint32_t, 32> electionPositions(poolCount);
     const auto&               forbiddenRegsByVirtual = context_->builder->virtualRegForbiddenPhysRegs();
@@ -792,14 +807,25 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             MicroReg hint = out.nodes[currentIndex].hintPhys;
             if (!hint.isValid() && out.nodes[currentIndex].hintDense != std::numeric_limits<uint32_t>::max())
             {
-                const uint32_t at = out.nodes[currentIndex].start() & ~1u;
-                for (const LiveInterval& other : out.nodes)
+                const uint32_t      at        = out.nodes[currentIndex].start() & ~1u;
+                const uint32_t      hintDense = out.nodes[currentIndex].hintDense;
+                const LiveInterval& root      = out.nodes[hintDense];
+                if (!root.spilled && root.assignedReg.isValid() && root.covers(at))
                 {
-                    if (other.denseIndex == out.nodes[currentIndex].hintDense &&
-                        !other.spilled && other.assignedReg.isValid() && other.covers(at))
+                    hint = root.assignedReg;
+                }
+                else
+                {
+                    // Original intervals have their dense register's index. Only
+                    // appended split children can hold another piece of this value.
+                    for (size_t otherIndex = denseVirtualRegs_.regs().size(); otherIndex < out.nodes.size(); ++otherIndex)
                     {
-                        hint = other.assignedReg;
-                        break;
+                        const LiveInterval& other = out.nodes[otherIndex];
+                        if (other.denseIndex == hintDense && !other.spilled && other.assignedReg.isValid() && other.covers(at))
+                        {
+                            hint = other.assignedReg;
+                            break;
+                        }
                     }
                 }
             }
@@ -817,21 +843,22 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // call even when a less-used value occupies a persistent register.
         // Try the blocked election first in that case; retain the partial
         // free register as a fallback when no owner can be displaced.
-        const bool freeServesWhole = bestFree < poolCount && freeUntilPos[bestFree] >= out.nodes[currentIndex].end();
-        const bool freeSplittable  = bestFree < poolCount && (freeUntilPos[bestFree] & ~1u) > position;
-        bool       freeEndsAtCall  = false;
-        if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty() &&
-            fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == freeUntilPos[bestFree])
+        const uint32_t bestFreeUntil   = bestFree < poolCount ? freeUntilPos[bestFree] : 0;
+        const bool     freeServesWhole = bestFree < poolCount && bestFreeUntil >= out.nodes[currentIndex].end();
+        const bool     freeSplittable  = bestFree < poolCount && (bestFreeUntil & ~1u) > position;
+        bool           freeEndsAtCall  = false;
+        if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty())
         {
-            const uint32_t    blockIndex = freeUntilPos[bestFree] / 2;
+            const uint32_t    blockIndex = bestFreeUntil / 2;
             const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
-            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction);
+            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+                             fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == bestFreeUntil;
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
-            if (freeUntilPos[bestFree] < out.nodes[currentIndex].end())
+            if (bestFreeUntil < out.nodes[currentIndex].end())
             {
-                const uint32_t splitPos   = chooseSplitPos(walk, position + 1, freeUntilPos[bestFree]);
+                const uint32_t splitPos   = chooseSplitPos(walk, position + 1, bestFreeUntil);
                 const uint32_t childIndex = splitNodeAt(walk, currentIndex, splitPos);
                 if (childIndex != K_IV_INVALID)
                     pushUnhandled(walk, childIndex);
@@ -853,7 +880,8 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // INPUT slot: an owner the very same instruction still reads must
         // never win the election, since its register cannot be vacated
         // between the read and the write.
-        // The free election is finished; this phase overwrites every position.
+        // This phase overwrites every position. The fallback retains its chosen
+        // free boundary in bestFreeUntil even when a candidate is disqualified.
         auto&          nextUsePos   = electionPositions;
         const uint32_t electionFrom = position & ~1u;
         for (size_t i = 0; i < poolCount; ++i)
@@ -1396,21 +1424,30 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                         // emitted after this branch. Writing the register
                         // first would store the wrong value - which is what
                         // sent an MP4 sample table through the wrong bounds.
-                        for (uint32_t other = 0; plainOk && other < virtualCount; ++other)
+                        // Input-slot coverage comes from live-in. Values absent
+                        // from this row cannot own the fall-through register.
+                        const auto fallThroughLive = DenseBits::row(liveInVirtualBits_, p + 1, wordCount);
+                        for (size_t wordIndex = 0; plainOk && wordIndex < fallThroughLive.size(); ++wordIndex)
                         {
-                            if (other == move.denseIndex)
-                                continue;
-                            const LiveInterval* node = locate(other, p * 2 + 2);
-                            if (!node)
-                                continue; // dead on the fall-through side: the register is free
-                            if (!node->spilled && node->assignedReg == toReg)
+                            uint64_t wordBits = fallThroughLive[wordIndex];
+                            while (plainOk && wordBits)
                             {
-                                plainOk = false;
-                                break;
+                                const auto other = static_cast<uint32_t>(wordIndex * 64ull + std::countr_zero(wordBits));
+                                wordBits &= wordBits - 1ull;
+                                if (other == move.denseIndex)
+                                    continue;
+                                const LiveInterval* node = locate(other, p * 2 + 2);
+                                if (!node)
+                                    continue;
+                                if (!node->spilled && node->assignedReg == toReg)
+                                {
+                                    plainOk = false;
+                                    break;
+                                }
+                                const LiveInterval* atBranch = locate(other, predEndPos);
+                                if (atBranch && !atBranch->spilled && atBranch->assignedReg == toReg)
+                                    plainOk = false;
                             }
-                            const LiveInterval* atBranch = locate(other, predEndPos);
-                            if (atBranch && !atBranch->spilled && atBranch->assignedReg == toReg)
-                                plainOk = false;
                         }
                         if (!plainOk)
                             break;

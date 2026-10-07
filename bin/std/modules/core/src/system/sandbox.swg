@@ -206,26 +206,11 @@ func enterSandbox(root: string) fail
         fail BadParameterError{"the sandbox root cannot change once armed"}
     }
 
-    try createDirectoryTree(normalized.toString())
+    // A sandbox root normally sits two or more levels below the temporary directory.
+    try Directory.create(normalized, recurse: true)
 
     g_SandboxRoot = normalized
     g_Sandboxed   = true
-}
-
-// Creates `path` along with every missing directory above it.
-//
-// The platform call only creates one level, and a sandbox root normally sits two or more
-// below the temporary directory.
-private func createDirectoryTree(path: string) fail
-{
-    if path.count == 0 or Directory.exists(path) do
-        return
-
-    let parent = Path.directoryName(path)
-    if parent != null and parent.count != 0 and parent != path do
-        try createDirectoryTree(parent)
-
-    try Directory.create(path)
 }
 
 // Grants `root` as the corpus: the one directory outside the sandbox a run may still write.

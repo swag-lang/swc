@@ -45,10 +45,12 @@ impl IWnd for PreviewCanvas
             return
         let point = .surfaceToLocal(evt.surfacePos)
         let rect  = .frameRect()
-        if point.x < rect.x or point.y < rect.y or point.x >= rect.right() or point.y >= rect.bottom() do
+        if not rect.contains(point) do
             return
-        .sigClick.call(Math.Point{(point.x - rect.x) * Pipeline.FrameChannel.Width / rect.width,
-                                  (point.y - rect.y) * Pipeline.FrameChannel.Height / rect.height})
+
+        let x = (point.x - rect.x) * Pipeline.FrameChannel.Width / rect.width
+        let y = (point.y - rect.y) * Pipeline.FrameChannel.Height / rect.height
+        .sigClick.call(Math.Point{x, y})
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)

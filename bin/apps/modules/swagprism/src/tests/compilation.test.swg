@@ -188,7 +188,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     panel.selectViewer(.Render2D)
     panel.options.reset()
     Swag.assert(panel.optimCombo.selectedIndex == 0 and panel.options.presetCombo.selectedIndex == 0)
-    Swag.assert(panel.options.editor.text().toString() == Pipeline.BuildSettings.DefaultConfiguration)
+    Swag.assert(panel.options.editor.text() == Pipeline.BuildSettings.DefaultConfiguration)
     Swag.assert(window.panels[1].optimCombo.selectedIndex == 2)
     panel.showOptions(false)
     Swag.assert(panel.viewer.window().isVisible() and not panel.optionsButton.isChecked)
@@ -223,12 +223,12 @@ func waitBuild(lease: *Pipeline.BuildLease)
     Swag.assert(request.kind == .Microcode and not request.needsDependency())
     Swag.assert(not request.moduleSource().contains("#import"))
 
-    request.source = String.from("using Core\nfunc value()->f32 => Math.sqrt(2'f32)")
+    request.source = "using Core\nfunc value()->f32 => Math.sqrt(2'f32)"
     Swag.assert(request.needsDependency())
     Swag.assert(request.moduleSource().contains("#import(\"core\""))
 
     request.kind   = .Render2D
-    request.source = String.from("func shade(x, y, time: f32)->u32 => 0")
+    request.source = "func shade(?: f32, ?: f32, ?: f32)->u32 => 0"
     Swag.assert(request.needsDependency())
     Swag.assert(request.moduleSource().contains("#import(\"pixel\""))
 

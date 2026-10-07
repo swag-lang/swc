@@ -18,11 +18,30 @@ struct EnumerationOptions
     }
 }
 
-// Creates one directory after enforcing the process sandbox.
-func create(dirName: string) fail
+// Creates `dirName` after enforcing the process sandbox.
+//
+// With `recurse`, every missing directory above it is created first and a directory that
+// already exists is accepted, so the call states where the directory must be rather than how
+// many levels are missing.
+func create(dirName: string, recurse = false) fail
 {
     try Env.guardWrite(dirName)
-    try createNative(dirName)
+    if not recurse
+    {
+        try createNative(dirName)
+        return
+    }
+
+    if dirName.count == 0 or exists(dirName) do
+        return
+    let parent = Path.directoryName(dirName)
+    if parent != null and parent.count != 0 and parent != dirName do
+        try create(parent, recurse: true)
+
+    // Another process may create the same directory between the check and the call.
+    catch createNative(dirName) as err
+    if err != null and not exists(dirName) do
+        fail err
 }
 
 // Deletes `dirName`, optionally deleting its complete contents first.

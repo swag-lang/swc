@@ -8,7 +8,7 @@ using Core, Gui, Pixel
 {
     var output: CompilerOutput
     output.parse("plain \x1B[38;2;90;180;255mré\nrax\x1B[0m end")
-    Swag.assert(output.text.toString() == "plain ré\nrax end")
+    Swag.assert(output.text == "plain ré\nrax end")
     Swag.assert(output.colors.count == 1)
     Swag.assert(output.colors[0] == Color.fromRgb(90, 180, 255))
     Swag.assert(output.runs.count == 3)
@@ -24,7 +24,7 @@ using Core, Gui, Pixel
     editor.setLexer(&output)
     output.show(editor)
     editor.lexAll()
-    Swag.assert(editor.text().toString() == output.text.toString())
+    Swag.assert(editor.text() == output.text)
     Swag.assert(editor.runeAt({lineIndex: 0, charPosInLine: 7}).char == 'é')
     Swag.assert(editor.runeAt({lineIndex: 0, charPosInLine: 7}).style == 1)
     Swag.assert(editor.runeAt({lineIndex: 1, charPosInLine: 0}).style == 1)
@@ -39,7 +39,7 @@ using Core, Gui, Pixel
     output.parse("next result")
     output.show(editor)
     Swag.assert(output.colors.isEmpty())
-    Swag.assert(editor.text().toString() == "next result")
+    Swag.assert(editor.text() == "next result")
     Swag.assert(editor.runeAt({}).style == 0)
 }
 
@@ -48,16 +48,16 @@ using Core, Gui, Pixel
 {
     var output: CompilerOutput
     output.parse("  0 | mov rax, [rsp+8]\n  1 | ret\n")
-    Swag.assert(output.text.toString() == "  0 | mov rax, [rsp+8]\n  1 | ret\n")
+    Swag.assert(output.text == "  0 | mov rax, [rsp+8]\n  1 | ret\n")
     Swag.assert(output.colors.isEmpty())
 
     output.parse("\x1B[38;2;90;180;255ma\x1B[38;2;90;180;255mb\x1B[39mc\x1B[")
-    Swag.assert(output.text.toString() == "abc")
+    Swag.assert(output.text == "abc")
     Swag.assert(output.colors.count == 1)
     Swag.assert(output.runs[1].style == 1)
     Swag.assert(output.runs[2].style == 0)
 
     output.parse("value\x1B[38;2;999;0;0m text\x1B[K\x1B")
-    Swag.assert(output.text.toString() == "value text")
+    Swag.assert(output.text == "value text")
     Swag.assert(output.colors.isEmpty())
 }

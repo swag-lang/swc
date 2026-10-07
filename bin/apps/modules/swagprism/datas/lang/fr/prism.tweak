@@ -15,7 +15,6 @@ ui_Ready          Prêt
 ui_NoOutput       Aucune sortie pour cette étape.
 ui_Stopped        Compilation interrompue.
 ui_Done           Compilé en % ms
-ui_ProbeStopped   Impossible de lancer le compilateur.
 ui_OutputHint     Compilez pour voir les instructions.
 
 ui_StageGenerated       Généré

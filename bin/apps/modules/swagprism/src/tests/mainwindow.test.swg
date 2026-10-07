@@ -96,10 +96,10 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     Swag.assert(first.position.width > comparisonWidth)
     host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(window.panels[1].optimCombo.selectedIndex == 1 and second.stageCombo.selectedIndex == 0)
-    Swag.assert(second.output.text().toString() == "comparison result")
+    Swag.assert(second.output.text() == "comparison result")
     window.panels[1].selectViewer(.Microcode)
     Swag.assert(microcode(window, 1) == second)
-    Swag.assert(second.output.text().toString() == "comparison result")
+    Swag.assert(second.output.text() == "comparison result")
 }
 
 // A shared compile feeds both visible viewers the same snapshot and retains their distinct levels.
@@ -114,7 +114,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     window.compile()
     Swag.assert(window.spinner.isVisible())
     Swag.assert(left.status.name != appStrings().ui_Working and right.status.name != appStrings().ui_Working)
-    Swag.assert(left.job.request.source.toString() == right.job.request.source.toString())
+    Swag.assert(left.job.request.source == right.job.request.source)
     Swag.assert(left.job.request.settings.optimization == .O0 and right.job.request.settings.optimization == .O2)
     var watch: Time.Stopwatch
     watch.start()
@@ -130,7 +130,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     for viewer in [left, right]
     {
         Swag.assert(not viewer.job.running and viewer.job.timer == null)
-        Swag.assert(not viewer.job.stopped and not viewer.job.result.failed)
+        Swag.assert(not viewer.job.result.failed)
         Swag.assert(not viewer.outputIsHint and not viewer.outputText.colors.isEmpty())
         let plain    = viewer.output.text()
         let expected = Format.toString("  optimize : O%", cast(u8, viewer.job.request.settings.optimization))
@@ -214,7 +214,7 @@ func assertSurface(comparison: bool)
             window.applyLayout()
             Swag.assert(left.stageCombo.selectedIndex == 3 and window.panels[0].optimCombo.selectedIndex == 0)
             Testing.assertContentFits(window)
-            for message in [StatusMessage.NoOutput, StatusMessage.Stopped, StatusMessage.ProbeStopped]
+            for message in [StatusMessage.NoOutput, StatusMessage.Stopped]
             {
                 left.setStatus(message)
                 window.applyLayout()

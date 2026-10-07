@@ -125,7 +125,7 @@ using Core, Gui, Pixel
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
-    viewer.compileSource("func shade(x, y, time: f32)->u32 { discard x; discard y; discard time; for {} }")
+    viewer.compileSource("func shade(?: f32, ?: f32, ?: f32)->u32 { for {} }")
     var watch: Time.Stopwatch
     watch.start()
     while not Atomic.get(&viewer.probe.ready) and not viewer.probe.task.isDone() and watch.elapsedMilliseconds() < 90000 do
@@ -144,7 +144,7 @@ using Core, Gui, Pixel
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
-    viewer.compileSource("using Gui\nfunc shade(x, y, time: f32)->u32 { discard x; discard y; discard time; return 0 }")
+    viewer.compileSource("using Gui\nfunc shade(?: f32, ?: f32, ?: f32)->u32 => 0")
     var watch: Time.Stopwatch
     watch.start()
     while viewer.running and watch.elapsedMilliseconds() < 90000
@@ -166,7 +166,7 @@ using Core, Gui, Pixel
     }
 
     awaitFrame(viewer)
-    Swag.assert(viewer.source.toString() == exampleSource(.Plasma))
+    Swag.assert(viewer.source == exampleSource(.Plasma))
     window.shutdown()
 }
 
@@ -207,24 +207,28 @@ func assertPreviewSurface(gui: bool)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
+
     let panel  = window.panels[0]
     let render = assume cast(*PreviewViewer, panel.viewer!.window())
     panel.optimCombo.setSelectedIndex(1, notify: false)
     host.click(panel.pauseButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(render.paused and panel.pauseButton.isChecked)
+
     panel.selectViewer(.Microcode)
-    let micro = assume cast (*MicrocodeViewer, panel.viewer.window())
-    Swag.assert(micro.level == .O1 and not panel.pauseButton.isVisible())
+    let micro = assume cast(*MicrocodeViewer, panel.viewer.window())
+    Swag.assert(panel.request("").settings.optimization == .O1 and not panel.pauseButton.isVisible())
     panel.optimCombo.setSelectedIndex(2, notify: false)
     micro.stageCombo.setSelectedIndex(3, notify: false)
+
     panel.selectViewer(.Gui)
-    let gui = assume cast (*PreviewViewer, panel.viewer.window())
-    Swag.assert(gui != render and gui.level == .O2 and not gui.paused and not panel.pauseButton.isChecked)
+    let gui = assume cast(*PreviewViewer, panel.viewer.window())
+    Swag.assert(gui != render and panel.request("").settings.optimization == .O2 and not gui.paused and not panel.pauseButton.isChecked)
+
     panel.selectViewer(.Render2D)
-    Swag.assert(panel.viewer.window() == &render.wnd and render.level == .O2 and panel.pauseButton.isChecked and panel.pauseButton.isVisible())
+    Swag.assert(panel.viewer.window() == &render.wnd and panel.pauseButton.isChecked and panel.pauseButton.isVisible())
+
     panel.selectViewer(.Microcode)
-    Swag.assert(panel.viewer.window() == &micro.wnd)
-    Swag.assert(micro.level == .O2 and micro.stageCombo.selectedIndex == 3)
+    Swag.assert(panel.viewer.window() == &micro.wnd and micro.stageCombo.selectedIndex == 3)
 }
 
 // The idle timer compiles the last edit once and can be disabled without a pending compilation.
@@ -241,7 +245,7 @@ func assertPreviewSurface(gui: bool)
     host.fireTimer(window.editTimer)
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     Swag.assert(window.editTimer == null)
-    Swag.assert(viewer.source.toString() == window.editor.text().toString())
+    Swag.assert(viewer.source == window.editor.text().toString())
     window.editor.setFocus()
     host.sendRune(.Space, ' ')
     window.commandBar.liveEdit.setState(.Unchecked)

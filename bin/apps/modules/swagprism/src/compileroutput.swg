@@ -21,11 +21,8 @@ impl CompilerOutput
     // Style zero follows the theme; the other entries keep the colors sent by the compiler.
     mtd colorStyle(color: Color)->RichEditStyleRef
     {
-        for i in .colors.count
-        {
-            if .colors[i] == color do
-                return cast(RichEditStyleRef, (i + 1))
-        }
+        for i in .colors.count where .colors[i] == color do
+            return cast(RichEditStyleRef, i + 1)
 
         if .colors.count == 255 do
             return 0
@@ -142,10 +139,7 @@ impl IRichEditLexer for CompilerOutput
 
     mtd impl setupTheme(ed: *RichEditCtrl) { .applyColors(ed) }
 
-    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool
-    {
-        return false
-    }
+    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool => false
 
     // Styles were supplied with the text and survive subsequent layout passes.
     mtd impl compute(?: *RichEditLine?, ?: *RichEditLine, ?: *RichEditLine?) {}

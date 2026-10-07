@@ -120,10 +120,7 @@ impl MainWindow
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.theme().icon(.Play, 18))
             .setIconSize(18, 18)
-            .sigPressed += func|window = me|(?)
-            {
-                window.compile(force: true)
-            }
+            .sigPressed += func|window = me|(?) { window.compile(force: true) }
         }
 
         with .commandBar.formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
@@ -131,28 +128,19 @@ impl MainWindow
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.icon(.Format))
             .setIconSize(18, 18)
-            .sigPressed += func|window = me|(?)
-            {
-                window.format()
-            }
+            .sigPressed += func|window = me|(?) { window.format() }
         }
 
         with .commandBar.liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
         {
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setState(.Checked)
-            .sigChanged += func|window = me|(?)
-            {
-                window.scheduleCompile()
-            }
+            .sigChanged += func|window = me|(?) { window.scheduleCompile() }
         }
 
         with .commandBar.exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
         {
-            .sigChanged += func|window = me|(?, index)
-            {
-                window.openExample(cast(ExampleKind, index))
-            }
+            .sigChanged += func|window = me|(?, index) { window.openExample(cast(ExampleKind, index)) }
         }
     }
 
@@ -218,23 +206,21 @@ impl MainWindow
         }
 
         // The first viewer opens on unoptimized code, the comparison on optimized code.
-        .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
-        .viewerSplit.backgroundStyle = .Transparent
+        with .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
+        {
+            .backgroundStyle = .Transparent
+        }
+
         .createViewerPanel(.O0)
         .createViewerPanel(.O2)
 
-        let sourcePane = .sourceSplit.addPane(.sourcePanel, 480)
-        sourcePane.minimumSize = 360
-        let viewersPane = .sourceSplit.addPane(.viewerSplit, 960)
-        viewersPane.minimumSize = ViewerPanel.MinWidth
+        .sourceSplit.addPane(.sourcePanel, 480).minimumSize = 360
+        .sourceSplit.addPane(.viewerSplit, 960).minimumSize = ViewerPanel.MinWidth
         .viewerSplit.setPaneVisible(1, false)
         .panels[0].selectViewer(.Render2D)
         .createLayoutButton()
         .refreshPaneLayout()
-        .editor.sigChanged += func|window = me|(?)
-        {
-            window.scheduleCompile()
-        }
+        .editor.sigChanged += func|window = me|(?) { window.scheduleCompile() }
     }
 
     // Creates one viewer panel in the viewer split and routes its requests to the window.
@@ -242,25 +228,13 @@ impl MainWindow
     {
         with let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
         {
-            .sigChanged += func|window = me|(?)
-            {
-                window.refreshStatus()
-            }
-
-            .sigCompileRequested += func|window = me|(?)
-            {
-                window.compile()
-            }
-
-            .sigOptionsChanged += func|window = me|(?)
-            {
-                window.scheduleCompile()
-            }
+            .sigChanged          += func|window = me|(?) { window.refreshStatus() }
+            .sigCompileRequested += func|window = me|(?) { window.compile() }
+            .sigOptionsChanged   += func|window = me|(?) { window.scheduleCompile() }
         }
 
         .panels.add(panel)
-        let pane = .viewerSplit.addPane(panel, 540)
-        pane.minimumSize = ViewerPanel.MinWidth
+        .viewerSplit.addPane(panel, 540).minimumSize = ViewerPanel.MinWidth
     }
 
     mtd refreshPaneLayout()
@@ -296,7 +270,7 @@ impl MainWindow
         let source = .editor.text()
         var requests: [2] Pipeline.BuildRequest
         for panel, index in .panels where index == 0 or .comparisonEnabled do
-            requests[index] = panel.request(source.toString())
+            requests[index] = panel.request(source)
         if .comparisonEnabled
         {
             // One native build can print the inspected function and run the same program.
@@ -349,11 +323,9 @@ impl MainWindow
         .formatTimer = .app().addTimer(20'ms, me)
         .formatTask.submit(func|window = me|()
         {
-            let result = catch window.formatter.format(window.formatSource.toString(), &window.formatCancelled) as error
+            window.formatResult = catch window.formatter.format(window.formatSource, &window.formatCancelled) as error
             if error != null do
-                window.formatResult = {failed: true}
-            else do
-                window.formatResult = result
+                window.formatResult.failed = true
         })
         .refreshStatus()
     }
@@ -380,7 +352,7 @@ impl MainWindow
                 .editor.pushUndo()
                 .editor.selectAll()
                 .editor.deleteSelection()
-                .editor.insertText(.formatResult.text.toString())
+                .editor.insertText(.formatResult.text)
                 .editor.popUndo()
                 .editor.setCursorPos(.editor.cursorFromLogicalPosition(cursor.lineIndex, cursor.charPosInLine))
                 .editor.clearSelection()
@@ -424,7 +396,7 @@ impl MainWindow
         .status.toolTip = ""
         if running > 1
         {
-            .status.setText(Format.toString(appStrings().ui_RunningViewers, running).toString())
+            .status.setText(Format.toString(appStrings().ui_RunningViewers, running))
         }
         elif running
         {
@@ -449,7 +421,7 @@ impl MainWindow
             case .Failed:
                 .status.setText(appStrings().ui_FormatFailed)
                 var output: CompilerOutput
-                output.parse(.formatResult.text.toString())
+                output.parse(.formatResult.text)
                 .status.toolTip = output.text
             }
         }
@@ -470,7 +442,7 @@ impl MainWindow
     // Applies the persisted language, or the language of the account when none was picked.
     mtd applyLanguage()
     {
-        discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
+        discard catch .appearanceButton.setAppearanceLanguage(.language)
     }
 
     // Applies the persisted standard application palette.
@@ -480,17 +452,22 @@ impl MainWindow
         .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
     }
 
+    // Opens the standard About box, dated and versioned by the compilation of this executable.
     mtd showAbout()
     {
         const BuildDate = #run Time.DateTime.now()
         let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
-        let dlg     = AboutDlg.createApplication(.surface!, {
-            productName: ProductName,
-            version: version.toString(),
-            buildDate: BuildDate,
-            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagprism",
-            copyrightHolder: "Christophe Beaudet"})
-        discard dlg.doModal()
+
+        with var about: ApplicationAboutDlgParams
+        {
+            .productName     = ProductName
+            .version         = version
+            .buildDate       = BuildDate
+            .sourceUrl       = "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagprism"
+            .copyrightHolder = "Christophe Beaudet"
+        }
+
+        discard AboutDlg.createApplication(.surface!, about).doModal()
     }
 }
 

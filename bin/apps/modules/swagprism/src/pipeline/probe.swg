@@ -31,7 +31,7 @@ impl Probe
     {
         if .session.isEmpty() do
             return
-        discard catch Directory.delete(.session.toString(), recurse: true)
+        discard catch Directory.delete(.session, recurse: true)
         .session.clear()
         .root.clear()
     }
@@ -42,25 +42,17 @@ impl Probe
         if not .root.isEmpty() do
             return
 
-        // Each level is created in turn because `Directory.create` makes one directory and not the
-        // path leading to it, and none of these is there on a first run.
+        // Every viewer shares this parent, and any of them may be the one that creates it.
         let owned = Path.combine(Env.getSpecialDirectory(.Temp), "swagprism")
-        if not Directory.exists(owned)
-        {
-            catch Directory.create(owned.toString()) as createError
-
-            // Another viewer may have created the shared parent since the existence check.
-            if createError != null and not Directory.exists(owned) do
-                fail createError
-        }
+        try Directory.create(owned, recurse: true)
 
         // Claim a directory before writing: concurrent artifacts and application instances must
         // never share mutable sources or outputs.
         var session: String
         for
         {
-            session = Path.combine(owned, Format.toString("%", Guid64.highEntropy()))
-            catch Directory.create(session.toString()) as createError
+            session = Path.combine(owned, Guid64.highEntropy().toString())
+            catch Directory.create(session) as createError
             if createError == null do
                 break
 
@@ -73,8 +65,7 @@ impl Probe
         // reports. The session identifier goes in the folder above so the pane says `Prismprobe.dot`
         // rather than pinning the reader's own function under a random string.
         var root = Path.combine(session, ProbeModuleName)
-        try Directory.create(root.toString())
-        try Directory.create(Path.combine(root, "src").toString())
+        try Directory.create(Path.combine(root, "src"), recurse: true)
 
         .session = #move session
         .root    = #move root
@@ -106,11 +97,11 @@ func compilerPath()->String
     while not folder.isEmpty()
     {
         let candidate = Path.combine(folder, CompilerName)
-        if File.exists(candidate.toString()) do
+        if File.exists(candidate) do
             return candidate
 
-        let parent = Path.directoryName(folder.toString())
-        if parent == null or Path.equals(parent, folder.toString()) do
+        let parent = Path.directoryName(folder)
+        if parent == null or Path.equals(parent, folder) do
             break
         folder = String.from(parent)
     }
@@ -215,7 +206,7 @@ cache away for nothing. A file that cannot be read back is written.
 func writeIfChanged(path: string, content: string) fail
 {
     let existing = catch File.readAllText(path) as readError
-    if readError == null and existing.toString() == content do
+    if readError == null and existing == content do
         return
     discard try File.writeAllBytes(path, cast(const [..] u8, content))
 }

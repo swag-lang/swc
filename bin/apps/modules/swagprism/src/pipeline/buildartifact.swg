@@ -25,9 +25,9 @@ impl BuildArtifact
     {
         try .folder.open()
         let module = .request.moduleSource()
-        try writeIfChanged(Path.combine(.folder.root, "module.swg"), module.toString())
-        let inspected = .request.stage.isEmpty() ? .request.source : inspectedSource(.request.source.toString(), .request.stage.toString())
-        try writeIfChanged(Path.combine(.folder.root, "src", "probe.swg"), inspected.toString())
+        try writeIfChanged(Path.combine(.folder.root, "module.swg"), module)
+        let inspected = .request.stage.isEmpty() ? .request.source : inspectedSource(.request.source, .request.stage)
+        try writeIfChanged(Path.combine(.folder.root, "src", "probe.swg"), inspected)
         let native = .request.kind != .Microcode
         if native
         {
@@ -38,7 +38,7 @@ impl BuildArtifact
         let outDir    = Path.combine(.folder.session, "out")
         let arguments = Format.toString("build --num-cores % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview", compilerWorkerCount(), .folder.root, outDir)
         let compiler  = compilerPath()
-        var process   = try Env.startProcess(Env.StartInfo{fileName: compiler.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+        var process   = try Env.startProcess(Env.StartInfo{fileName: compiler, arguments: arguments, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&process)
         var watch: Time.Stopwatch
         watch.start()

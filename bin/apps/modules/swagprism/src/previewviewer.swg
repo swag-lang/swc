@@ -29,7 +29,6 @@ struct PreviewViewer
     pending:    Pipeline.BuildRequest
     request:    Pipeline.BuildRequest
     generation: u64
-    level:      Swag.BuildCfgBackendOptimLevel
     outputText: CompilerOutput
     image:      Image
     frameCount: u32
@@ -39,7 +38,7 @@ struct PreviewViewer
 
 impl PreviewViewer
 {
-    func create(parent: *ViewerPanel, editor: *RichEditCtrl, gui: bool, level: Swag.BuildCfgBackendOptimLevel)->*PreviewViewer
+    func create(parent: *ViewerPanel, editor: *RichEditCtrl, gui: bool)->*PreviewViewer
     {
         with let result = Wnd.create'PreviewViewer(parent, "prism.preview")
         {
@@ -49,11 +48,12 @@ impl PreviewViewer
             .cache           = parent.cache
             .sourceEditor    = editor
             .gui             = gui
-            .level           = level
         }
 
-        result.status = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
-        result.status.dockStyle = .Bottom
+        with result.status = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
+        {
+            .dockStyle = .Bottom
+        }
 
         with result.canvas = Wnd.create'PreviewCanvas(result, "prism.preview.canvas")
         {
@@ -188,7 +188,7 @@ impl PreviewViewer
                 else
                 {
                     .queued = false
-                    .outputText.parse(candidate.diagnostics.toString())
+                    .outputText.parse(candidate.diagnostics)
                     .outputText.show(.output)
                     .output.show()
                     .canvas.hide()
@@ -226,7 +226,7 @@ impl PreviewViewer
 
             if .probe.failed
             {
-                .outputText.parse(.probe.diagnostics.toString())
+                .outputText.parse(.probe.diagnostics)
                 .outputText.show(.output)
                 .output.show()
                 .canvas.hide()
@@ -295,7 +295,7 @@ impl PreviewViewer
     mtd refreshStatus()
     {
         if .running and .frameCount do
-            .status.setText((.probe.reused ? Format.toString(appStrings().ui_ReusedStats, .renderUs) : Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs)).toString())
+            .status.setText(.probe.reused ? Format.toString(appStrings().ui_ReusedStats, .renderUs) : Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs))
         elif .running do
             .status.setText("")
         elif .probe.failed do
@@ -307,7 +307,7 @@ impl PreviewViewer
     mtd retranslate()
     {
         if not .running and not .probe.failed and not .frameCount do
-            .output.setText(Format.toString("%\n\n%", .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint, appStrings().ui_ChooseExample).toString())
+            .output.setText(Format.toString("%\n\n%", .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint, appStrings().ui_ChooseExample))
         .refreshStatus()
         .applyLayout()
     }
@@ -318,7 +318,6 @@ impl IViewer for PreviewViewer
     mtd impl window()->*Wnd => &.wnd
     mtd impl compile(request: Pipeline.BuildRequest) { .compileRequest(request) }
     mtd impl inspectionStage()->string => ""
-    mtd impl setOptimization(level: Swag.BuildCfgBackendOptimLevel) { .level = level }
     mtd impl isPaused()->bool => .paused
     mtd impl setPaused(paused: bool) { .paused = paused }
     mtd impl shutdown() { .stop() }

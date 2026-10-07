@@ -8,12 +8,11 @@ using Core, Gui
 // the window having kept a copy of the sentence.
 enum StatusMessage
 {
-    Ready            // Nothing has been compiled yet.
-    Working          // The compiler is running.
-    Done             // The compiler printed the requested stage.
-    NoOutput         // The compilation succeeded and printed nothing for this stage.
-    Stopped          // The compiler reported an error, which the pane is showing.
-    ProbeStopped     // The compiler process could not be started at all.
+    Ready        // Nothing has been compiled yet.
+    Working      // The compiler is running.
+    Done         // The compiler printed the requested stage.
+    NoOutput     // The compilation succeeded and printed nothing for this stage.
+    Stopped      // The compiler reported an error, which the pane is showing.
 }
 
 /*
@@ -41,8 +40,7 @@ struct CompileJob
 
     // What the task left behind. The interface thread reads these only once the task is done.
     result:  Pipeline.Result
-    stopped: bool     // Whether the compiler could not be started at all.
-    elapsed: u64      // Milliseconds the compilation took, reported on the status line.
+    elapsed: u64     // Milliseconds the compilation took, reported on the status line.
 
     running: bool     // Whether a task is in flight, which is what makes a new request wait.
     queued:  bool     // Whether a request arrived while one was, and runs as soon as it ends.
@@ -63,7 +61,6 @@ struct MicrocodeViewer
         status:       *Label
     }
 
-    level:          Swag.BuildCfgBackendOptimLevel
     sigChanged:     SigArray'func||(*Wnd)
     outputText:     CompilerOutput
     job:            CompileJob
@@ -74,7 +71,7 @@ struct MicrocodeViewer
 
 impl MicrocodeViewer
 {
-    func create(parent: *ViewerPanel, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel)->*MicrocodeViewer
+    func create(parent: *ViewerPanel, sourceEditor: *RichEditCtrl)->*MicrocodeViewer
     {
         with let result = Wnd.create'MicrocodeViewer(parent, "prism.microcode")
         {
@@ -82,19 +79,13 @@ impl MicrocodeViewer
             .panel           = parent
             .cache           = parent.cache
             .sourceEditor    = sourceEditor
-            .level           = level
         }
 
         with result.stageCombo = ComboBox.create(result, {0, 0, 0, 36}, "prism.stage")
         {
-            .dockStyle = .Top
-            .margin    = {0, 0, 0, 8}
-        }
-
-        result.fillStages()
-        result.stageCombo.sigChanged += func|viewer = result|(?, ?)
-        {
-            viewer.optionsChanged()
+            .dockStyle  = .Top
+            .margin     = {0, 0, 0, 8}
+            .sigChanged += func|viewer = result|(?, ?) { viewer.optionsChanged() }
         }
 
         with let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
@@ -122,6 +113,7 @@ impl MicrocodeViewer
         return result
     }
 
+    // Recompiles after the reader picked another stage.
     mtd optionsChanged()
     {
         .panel.requestCompile()
@@ -134,8 +126,7 @@ impl MicrocodeViewer
         let selected = .stageCombo.items.isEmpty() ? Pipeline.DefaultStage : .stageCombo.selectedIndex
 
         .stageCombo.clear()
-        let labels = Pipeline.stageLabels()
-        for label in labels do
+        for label in Pipeline.stageLabels() do
             .stageCombo.addItem(label)
         .stageCombo.setSelectedIndex(selected, notify: false)
     }
@@ -180,7 +171,6 @@ impl MicrocodeViewer
     mtd runCompile()
     {
         var lease = .cache.acquire(.job.request)
-        .job.stopped = false
         if not lease.wait(&.job.cancelled) do
             return
         .job.result     = lease.artifact!.result
@@ -202,23 +192,16 @@ impl MicrocodeViewer
             return
         }
 
-        if .job.stopped
-        {
-            .setStatus(.ProbeStopped)
-        }
-        else
-        {
-            .outputText.parse(.job.result.text.toString())
-            .outputText.show(.output)
-            .outputIsHint = false
+        .outputText.parse(.job.result.text)
+        .outputText.show(.output)
+        .outputIsHint = false
 
-            if .job.result.failed do
-                .setStatus(.Stopped)
-            elif .job.result.text.isEmpty() do
-                .setStatus(.NoOutput)
-            else do
-                .setStatus(.Done)
-        }
+        if .job.result.failed do
+            .setStatus(.Stopped)
+        elif .job.result.text.isEmpty() do
+            .setStatus(.NoOutput)
+        else do
+            .setStatus(.Done)
     }
 
     // Waits for a compilation still in flight, so the probe it reads is not destroyed under it.
@@ -249,7 +232,7 @@ impl MicrocodeViewer
     mtd refreshStatus()
     {
         let strings = appStrings()
-        switch .statusMessage
+        switch #complete .statusMessage
         {
         case .Ready:
             .status.setText(strings.ui_Ready)
@@ -260,16 +243,13 @@ impl MicrocodeViewer
         // An application about what the compiler does says how long it took to do it: the number
         // is the reader's own measurement of the tool they came here to judge.
         case .Done:
-            .status.setText(Format.toString(.job.reused ? strings.ui_ReusedBuild : strings.ui_Done, .job.elapsed).toString())
+            .status.setText(Format.toString(.job.reused ? strings.ui_ReusedBuild : strings.ui_Done, .job.elapsed))
 
         case .NoOutput:
             .status.setText(strings.ui_NoOutput)
 
         case .Stopped:
             .status.setText(strings.ui_Stopped)
-
-        case .ProbeStopped:
-            .status.setText(strings.ui_ProbeStopped)
         }
     }
 
@@ -289,7 +269,6 @@ impl IViewer for MicrocodeViewer
     mtd impl window()->*Wnd => &.wnd
     mtd impl compile(request: Pipeline.BuildRequest) { .compileRequest(request) }
     mtd impl inspectionStage()->string => Pipeline.Stages[.stageCombo.selectedIndex]
-    mtd impl setOptimization(level: Swag.BuildCfgBackendOptimLevel) { .level = level }
     mtd impl isPaused()->bool => false
     mtd impl setPaused(?: bool) {}
     mtd impl shutdown() { .stopCompile() }

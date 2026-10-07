@@ -736,7 +736,7 @@ namespace InstructionCombine
             return false;
 
         const auto shift = ctx.ssa->reachingDef(scaled, ref);
-        if (!shift.valid() || shift.isPhi || !shift.inst || ctx.isClaimed(shift.instRef) || ctx.ssa->transitiveInstructionUseCount(shift.valueId, 2) != 1)
+        if (!shift.valid() || shift.isPhi || !shift.inst || ctx.isClaimed(shift.instRef))
             return false;
 
         // The shift of a small scale is often already an address, `X = &[I + I]` or
@@ -750,6 +750,8 @@ namespace InstructionCombine
             const bool     indexed = leaOps[1].reg.isNoBase() && (leaOps[5].valueU64 == 2 || leaOps[5].valueU64 == 4 || leaOps[5].valueU64 == 8);
             const MicroReg source  = leaOps[2].reg;
             if ((!doubled && !indexed) || !source.isVirtualInt() || source == scaled)
+                return false;
+            if (ctx.ssa->transitiveInstructionUseCount(shift.valueId, 2) != 1)
                 return false;
 
             IndexPeel      peel;
@@ -797,6 +799,8 @@ namespace InstructionCombine
         const MicroInstrOperand* shiftOps = shift.inst->ops(*ctx.operands);
         if (!shiftOps || shiftOps[0].reg != scaled || shiftOps[1].opBits != MicroOpBits::B64 || shiftOps[2].microOp != MicroOp::ShiftLeft ||
             shiftOps[3].valueU64 == 0 || shiftOps[3].valueU64 > 27)
+            return false;
+        if (ctx.ssa->transitiveInstructionUseCount(shift.valueId, 2) != 1)
             return false;
 
         const auto copy = ctx.ssa->reachingDef(scaled, shift.instRef);
@@ -858,8 +862,7 @@ namespace InstructionCombine
                 continue;
 
             const auto def = ctx.ssa->reachingDef(reg, ref);
-            if (!def.valid() || def.isPhi || !def.inst || ctx.isClaimed(def.instRef) || def.inst->numOperands > Action::K_MAX_OPS ||
-                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+            if (!def.valid() || def.isPhi || !def.inst || ctx.isClaimed(def.instRef) || def.inst->numOperands > Action::K_MAX_OPS)
                 continue;
             const MicroInstrOperand* defOps = def.inst->ops(*ctx.operands);
             if (!defOps || defOps[0].reg != reg)
@@ -885,6 +888,9 @@ namespace InstructionCombine
                 continue;
             const int64_t moved = static_cast<int64_t>(ops[6].valueU64 + constant * multiplier);
             if (moved != static_cast<int32_t>(moved))
+                continue;
+            // Only an address with an encodable displacement can consume this SSA query.
+            if (ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                 continue;
             if (!ctx.claimAll({ref, def.instRef}))
                 return false;

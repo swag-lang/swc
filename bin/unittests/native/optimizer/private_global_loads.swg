@@ -111,10 +111,10 @@ func countAcrossCalls(slots: [*] u64)->u64
 // A straight-line pointer store and a write of another private global do not
 // invalidate this cell. Both branch outcomes must still observe the writes.
 #[Swag.NoInline]
-func readPrivateAroundStores(target: *u64, alternate: bool) -> u64
+func readPrivateAroundStores(target: *u64, alternate: bool)->u64
 {
     let before = g_PrivateCount
-    target[] = before + 7
+    target[]      = before + 7
     g_DirectCount = 99
     if alternate do target[] = before + 11
     return before + g_PrivateCount
@@ -122,13 +122,13 @@ func readPrivateAroundStores(target: *u64, alternate: bool) -> u64
 
 // The call follows both reads in source order, but reaches them on the next trip.
 #[Swag.NoInline]
-func readBeforeLaterCall(slots: [*] u64) -> u64
+func readBeforeLaterCall(slots: [*] u64)->u64
 {
     var sum = 0'u64
     for i in 4
     {
         slots[i] = g_CalledCount
-        sum += g_CalledCount
+        sum      += g_CalledCount
         bumpCalledCount()
     }
     return sum

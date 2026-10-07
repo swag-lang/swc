@@ -24,7 +24,7 @@ func signedReference(value, divisor: s64)->s64 => value / divisor
         let narrow = cast #wrap (u32) value
         Swag.assert(quotient32(narrow) == unsignedReference(narrow, 7))
         Swag.assert(quotient64(value) == unsignedReference(value, 7))
-        let second = value ^ 0x123456789ABCDEF0
+        let second   = value ^ 0x123456789ABCDEF0
         let expected = unsignedReference(value, 7) ^ unsignedReference(second, 11) ^ value ^ second
         Swag.assert(carriedInputs(value, second) == expected)
     }

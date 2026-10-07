@@ -52,7 +52,7 @@ func changed(values: [16] u64)->u64
 #test
 {
     var values: [16] u64
-    values[0] = 7
+    values[0]  = 7
     values[15] = 11
     // The first argument is a value snapshot, taken before evaluating the second.
     Swag.assert(choose(values, mutateFirst(&values)) == 18)

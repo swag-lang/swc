@@ -34,5 +34,5 @@ func canDiscard()->s32
 
 func ignoredCallbackResult(callback: func()->s32)
 {
-    callback() // swc-expected-error {{sema_err_return_value_must_be_used}}
+    callback()     // swc-expected-error {{sema_err_return_value_must_be_used}}
 }

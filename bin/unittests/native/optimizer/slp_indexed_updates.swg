@@ -4,7 +4,7 @@ using Swag
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedXor4(values: [*] u32, index: u64, mask: u32)
 {
-    values[index] ^= mask
+    values[index]     ^= mask
     values[index + 1] ^= mask
     values[index + 2] ^= mask
     values[index + 3] ^= mask
@@ -19,7 +19,7 @@ func indexedXor16(values: [*] u32, index: u64, mask: u32)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedAddImmediate4(values: [*] u32, index: u64)
 {
-    values[index] += #wrap 3
+    values[index]     += #wrap 3
     values[index + 1] += #wrap 3
     values[index + 2] += #wrap 3
     values[index + 3] += #wrap 3
@@ -28,7 +28,7 @@ func indexedAddImmediate4(values: [*] u32, index: u64)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedChain4(values: [*] u32, index: u64)
 {
-    values[index] += #wrap values[index + 1]
+    values[index]     += #wrap values[index + 1]
     values[index + 1] ^= values[index + 2]
     values[index + 2] += #wrap values[index + 3]
     values[index + 3] ^= values[index]
@@ -37,7 +37,7 @@ func indexedChain4(values: [*] u32, index: u64)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedAlias4(values, source: [*] u32, index: u64)
 {
-    values[index] ^= source[0]
+    values[index]     ^= source[0]
     values[index + 1] ^= source[1]
     values[index + 2] ^= source[2]
     values[index + 3] ^= source[3]
@@ -49,9 +49,9 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
     values[index] ^= mask
     let bytes = cast([*] u8) values
     bytes[(index + 1) * 4] = 0xA7
-    values[index + 1] ^= mask
-    values[index + 2] ^= mask
-    values[index + 3] ^= mask
+    values[index + 1]      ^= mask
+    values[index + 2]      ^= mask
+    values[index + 3]      ^= mask
 }
 
 #test
@@ -68,14 +68,14 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
             for i in 12 do Swag.assert(actual[i] == expected[i])
 
             indexedChain4(&actual[0], offset)
-            expected[offset] += #wrap expected[offset + 1]
+            expected[offset]     += #wrap expected[offset + 1]
             expected[offset + 1] ^= expected[offset + 2]
             expected[offset + 2] += #wrap expected[offset + 3]
             expected[offset + 3] ^= expected[offset]
             for i in 12 do Swag.assert(actual[i] == expected[i])
 
             indexedMixedWidth4(&actual[0], offset, mask)
-            expected[offset] ^= mask
+            expected[offset]     ^= mask
             expected[offset + 1] = (expected[offset + 1] & 0xFFFF_FF00) | 0xA7
             for i in 3 do expected[offset + i + 1] ^= mask
             for i in 12 do Swag.assert(actual[i] == expected[i])
@@ -135,10 +135,10 @@ func indexedCapturedBlocks(values: [*] u32, count: u64, mask: u32)
 }
 
 #[Swag.NoInline]
-func indexedBorrow(values: [*] u32) -> [*] u32 => values
+func indexedBorrow(values: [*] u32)->[*] u32 => values
 
 #[Swag.Optimize(true), Swag.NoInline]
-func indexedEscapedFrame(source: [*] u32, seed: u32) -> [8] u32
+func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
 {
     var local: [8] u32
     for i in 8 do local[i] = seed + cast(u32) i
@@ -149,7 +149,7 @@ func indexedEscapedFrame(source: [*] u32, seed: u32) -> [8] u32
         values[1] ^= local[1]
         values[2] ^= local[2]
         values[3] ^= local[3]
-        values = indexedBorrow(&local[1])
+        values    = indexedBorrow(&local[1])
     }
     return local
 }
@@ -170,8 +170,8 @@ func indexedEscapedFrame(source: [*] u32, seed: u32) -> [8] u32
     }
     for seed in [0'u32, 17, 0x8000_0000]
     {
-        var source: [4] u32 = [3, 9, 27, 81]
-        var expectedSource = source
+        var source:   [4] u32 = [3, 9, 27, 81]
+        var expectedSource    = source
         var expected: [8] u32
         for i in 8 do expected[i] = seed + cast(u32) i
         for i in 4 do expectedSource[i] ^= expected[i]
@@ -183,7 +183,7 @@ func indexedEscapedFrame(source: [*] u32, seed: u32) -> [8] u32
 }
 
 #[Swag.NoInline]
-func indexedSummary(values: u32...) -> u32
+func indexedSummary(values: u32...)->u32
 {
     var result = 0'u32
     for value in values do result += value
@@ -191,13 +191,13 @@ func indexedSummary(values: u32...) -> u32
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
-func indexedCopiedState(input: [*] u32, count: u64, seed: u32) -> u32
+func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
 {
     Swag.assert(count % 16 == 0)
     let values = indexedBorrow(input)
     var initial: [16] u32
     for i in 16 do initial[i] = seed + cast(u32) i
-    var offset = 0'u64
+    var offset  = 0'u64
     var counter = 1'u32
     while offset < count
     {
@@ -206,7 +206,7 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32) -> u32
         for 10 do
             for i in 16 do state[i] = (state[i] + 1) ^ 0x10203
         for i in 16 do values[offset + i] ^= state[i] + initial[i]
-        offset += 16
+        offset  += 16
         counter += 1
     }
     return indexedSummary(seed, cast(u32) count)
@@ -223,7 +223,7 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32) -> u32
         for lane in 16
         {
             let initial = lane == 12 ? cast(u32) (block + 1) : 37 + cast(u32) lane
-            var state = initial
+            var state   = initial
             for 10 do state = (state + 1) ^ 0x10203
             expected[block * 16 + lane] ^= state + initial
         }

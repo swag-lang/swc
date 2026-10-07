@@ -4,19 +4,19 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func mix(values: [*] u64, seed: u64)->u64
 {
-    var a = seed
-    var b = seed ^ 0x123456789ABCDEF0
-    var c = seed + 17
-    var d = seed - 29
+    var a    = seed
+    var b    = seed ^ 0x123456789ABCDEF0
+    var c    = seed + 17
+    var d    = seed - 29
     var last = 0'u64
     for i in 64'u64
     {
         let x = values[i] + ((a << 7) ^ (a >> 13))
         let y = (b ^ c) + d + i
-        d = c
-        c = b
-        b = a
-        a = (x + y) ^ ((c << 11) | (c >> 53))
+        d    = c
+        c    = b
+        b    = a
+        a    = (x + y) ^ ((c << 11) | (c >> 53))
         last = a + b + c + d
         values[i + 1] ^= last
     }
@@ -26,19 +26,19 @@ func mix(values: [*] u64, seed: u64)->u64
 #[Swag.Optimize(false), Swag.NoInline]
 func reference(values: [*] u64, seed: u64)->u64
 {
-    var a = seed
-    var b = seed ^ 0x123456789ABCDEF0
-    var c = seed + 17
-    var d = seed - 29
+    var a    = seed
+    var b    = seed ^ 0x123456789ABCDEF0
+    var c    = seed + 17
+    var d    = seed - 29
     var last = 0'u64
     for i in 64'u64
     {
         let x = values[i] + ((a << 7) ^ (a >> 13))
         let y = (b ^ c) + d + i
-        d = c
-        c = b
-        b = a
-        a = (x + y) ^ ((c << 11) | (c >> 53))
+        d    = c
+        c    = b
+        b    = a
+        a    = (x + y) ^ ((c << 11) | (c >> 53))
         last = a + b + c + d
         values[i + 1] ^= last
     }
@@ -48,18 +48,18 @@ func reference(values: [*] u64, seed: u64)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func strided(seed: u32)->u32
 {
-    var a = seed
-    var b = seed + 19
-    var c = seed ^ 0x87654321
+    var a    = seed
+    var b    = seed + 19
+    var c    = seed ^ 0x87654321
     var last = 0'u32
     for var i = 5's32; i < 197; i += 3
     {
         let value = cast(u32) i
-        let x = (a << 5) ^ (a >> 17) ^ b
-        let y = c + value * 17
-        c = b
-        b = a
-        a = x + y
+        let x     = (a << 5) ^ (a >> 17) ^ b
+        let y     = c + value * 17
+        c    = b
+        b    = a
+        a    = x + y
         last = a ^ b ^ c
     }
     return a + b + c + last
@@ -68,18 +68,18 @@ func strided(seed: u32)->u32
 #[Swag.Optimize(false), Swag.NoInline]
 func stridedReference(seed: u32)->u32
 {
-    var a = seed
-    var b = seed + 19
-    var c = seed ^ 0x87654321
+    var a    = seed
+    var b    = seed + 19
+    var c    = seed ^ 0x87654321
     var last = 0'u32
     for var i = 5's32; i < 197; i += 3
     {
         let value = cast(u32) i
-        let x = (a << 5) ^ (a >> 17) ^ b
-        let y = c + value * 17
-        c = b
-        b = a
-        a = x + y
+        let x     = (a << 5) ^ (a >> 17) ^ b
+        let y     = c + value * 17
+        c    = b
+        b    = a
+        a    = x + y
         last = a ^ b ^ c
     }
     return a + b + c + last

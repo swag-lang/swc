@@ -32,7 +32,7 @@ func countBitsReference(value: u16)->u16
 #[Swag.Optimize(true), Swag.NoInline]
 func countWrapping32(value: u32)->u32
 {
-    var mask = 0x80000000'u32
+    var mask  = 0x80000000'u32
     var count = 0'u32
     for 16
     {
@@ -45,7 +45,7 @@ func countWrapping32(value: u32)->u32
 #[Swag.Optimize(true), Swag.NoInline]
 func countWrapping64(value: u64)->u64
 {
-    var mask = 0x8000000000000000'u64
+    var mask  = 0x8000000000000000'u64
     var count = 0'u64
     for 16
     {

@@ -10,7 +10,7 @@ struct MessageCycleSize { width: s32 }
 impl MessageCyclePicture
 {
     mtd crop(width: s32) {}
-    mtd crop(size: MessageCycleSize) => .crop(size.width) // swc-expected-error {{sema_err_cyclic_dependency}}
+    mtd crop(size: MessageCycleSize) => .crop(size.width)     // swc-expected-error {{sema_err_cyclic_dependency}}
 }
 
 #test

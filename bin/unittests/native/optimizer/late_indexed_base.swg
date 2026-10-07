@@ -3,9 +3,9 @@
 struct Table
 {
     prefix: [19] u64
-    bytes: [32] u8
-    words: [32] s32
-    wide: [32] u64
+    bytes:  [32] u8
+    words:  [32] s32
+    wide:   [32] u64
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
@@ -14,7 +14,7 @@ func update(table: *Table, index: u32, value: u64)->u64
     let previous = table.wide[index]
     table.bytes[index] = cast #bit (u8) value
     table.words[index] = cast(s32) value
-    table.wide[index] = value + previous
+    table.wide[index]  = value + previous
     return table.wide[index] + table.bytes[index] + cast(u64) table.words[index]
 }
 
@@ -41,7 +41,7 @@ func redirected(first, second: *Table, index: u32)->u64
 func acrossJoin(first, second: *Table, index: u32, redirect: bool)->u64
 {
     var selected = first
-    let saved = &selected.wide[0]
+    let saved    = &selected.wide[0]
     if redirect do selected = second
     saved[] += selected.wide[index]
     return first.wide[0]
@@ -65,7 +65,7 @@ func acrossJoin(first, second: *Table, index: u32, redirect: bool)->u64
     {
         other.wide[i] = i * 2
         Swag.assert(redirected(&table, &other, i) == table.wide[i] + i * 2)
-        let before = table.wide[0]
+        let before    = table.wide[0]
         let increment = table.wide[i]
         Swag.assert(acrossJoin(&table, &other, i, false) == before + increment)
         Swag.assert(acrossJoin(&table, &other, i, true) == before + increment + other.wide[i])

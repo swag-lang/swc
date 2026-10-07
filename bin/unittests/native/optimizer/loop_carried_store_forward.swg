@@ -67,7 +67,7 @@ func aliasedStore(row, other: [*] u64, n: u64)->u64
     {
         let v = row[y] + 2
         row[y + 1] = v
-        other[y] = v * 10
+        other[y]   = v * 10
     }
     return row[n]
 }
@@ -79,7 +79,7 @@ func aliasedStoreRef(row, other: [*] u64, n: u64)->u64
     {
         let v = row[y] + 2
         row[y + 1] = v
-        other[y] = v * 10
+        other[y]   = v * 10
     }
     return row[n]
 }
@@ -142,11 +142,11 @@ func windowRef(row: const [*] u64, n: u64)->u64
 func reverseWindow(row: const [*] u64, n: u64)->u64
 {
     var sum = 0'u64
-    var i = n
+    var i   = n
     while i > 0
     {
         sum += row[i] ^ row[i - 1]
-        i -= 1
+        i   -= 1
     }
     return sum
 }
@@ -155,11 +155,11 @@ func reverseWindow(row: const [*] u64, n: u64)->u64
 func reverseWindowRef(row: const [*] u64, n: u64)->u64
 {
     var sum = 0'u64
-    var i = n
+    var i   = n
     while i > 0
     {
         sum += row[i] ^ row[i - 1]
-        i -= 1
+        i   -= 1
     }
     return sum
 }
@@ -170,7 +170,7 @@ func modifiedWindow(row, other: [*] u64, n: u64)->u64
     var sum = 0'u64
     for i in n
     {
-        sum += row[i] ^ row[i + 1]
+        sum      += row[i] ^ row[i + 1]
         other[i] = i * 17
     }
     return sum
@@ -182,7 +182,7 @@ func modifiedWindowRef(row, other: [*] u64, n: u64)->u64
     var sum = 0'u64
     for i in n
     {
-        sum += row[i] ^ row[i + 1]
+        sum      += row[i] ^ row[i + 1]
         other[i] = i * 17
     }
     return sum

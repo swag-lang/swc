@@ -684,8 +684,15 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     for (uint32_t nodeIndex = 0; nodeIndex < out.nodes.size(); ++nodeIndex)
     {
         if (!out.nodes[nodeIndex].ranges.empty() && nodeIndex != pinnedIndex)
-            pushUnhandled(walk, nodeIndex);
+            walk.unhandled.push_back(nodeIndex);
     }
+    // Repeated ordered insertion shifts the initial queue for every interval.
+    // Dense-index ties preserve the order upper_bound gave those insertions.
+    std::ranges::sort(walk.unhandled, [&](const uint32_t a, const uint32_t b) {
+        const uint32_t startA = out.nodes[a].start();
+        const uint32_t startB = out.nodes[b].start();
+        return startA != startB ? startA > startB : a < b;
+    });
 
     SmallVector<uint32_t, 32> electionPositions(poolCount);
     const auto&               forbiddenRegsByVirtual = context_->builder->virtualRegForbiddenPhysRegs();
@@ -792,14 +799,25 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             MicroReg hint = out.nodes[currentIndex].hintPhys;
             if (!hint.isValid() && out.nodes[currentIndex].hintDense != std::numeric_limits<uint32_t>::max())
             {
-                const uint32_t at = out.nodes[currentIndex].start() & ~1u;
-                for (const LiveInterval& other : out.nodes)
+                const uint32_t      at        = out.nodes[currentIndex].start() & ~1u;
+                const uint32_t      hintDense = out.nodes[currentIndex].hintDense;
+                const LiveInterval& root      = out.nodes[hintDense];
+                if (!root.spilled && root.assignedReg.isValid() && root.covers(at))
                 {
-                    if (other.denseIndex == out.nodes[currentIndex].hintDense &&
-                        !other.spilled && other.assignedReg.isValid() && other.covers(at))
+                    hint = root.assignedReg;
+                }
+                else
+                {
+                    // Original intervals have their dense register's index. Only
+                    // appended split children can hold another piece of this value.
+                    for (size_t otherIndex = denseVirtualRegs_.regs().size(); otherIndex < out.nodes.size(); ++otherIndex)
                     {
-                        hint = other.assignedReg;
-                        break;
+                        const LiveInterval& other = out.nodes[otherIndex];
+                        if (other.denseIndex == hintDense && !other.spilled && other.assignedReg.isValid() && other.covers(at))
+                        {
+                            hint = other.assignedReg;
+                            break;
+                        }
                     }
                 }
             }

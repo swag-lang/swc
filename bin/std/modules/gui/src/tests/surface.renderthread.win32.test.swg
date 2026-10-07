@@ -4,6 +4,56 @@
 
 using Core, Win32, Ogl
 
+struct PlacementObservation
+{
+    hides: u32
+}
+
+#[Swag.CallingConvention(.C)]
+func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, subclassId: UINT_PTR, data: DWORD_PTR)->LRESULT
+{
+    let observation = cast(*PlacementObservation) data
+    if msg == WM_WINDOWPOSCHANGING
+    {
+        let next = cast(*WINDOWPOS) cast #bit (u64) lParam
+        if next.flags & SWP_HIDEWINDOW do
+            observation.hides += 1
+    }
+
+    return DefSubclassProc(hWnd, msg, wParam, lParam)
+}
+
+// Native placement owns the restore rectangle, and changing state never hides the window.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-placement-transaction-test")
+    surface.show()
+    var observation: PlacementObservation
+    Swag.assert(SetWindowSubclass(surface.win32Handle(), &observePlacement, 1, cast(u64) &observation))
+    defer discard RemoveWindowSubclass(surface.win32Handle(), &observePlacement, 1)
+
+    var normal: WINDOWPLACEMENT
+    normal.length = #sizeof(normal)
+    Swag.assert(GetWindowPlacement(surface.win32Handle(), &normal))
+    let bounds = surface.position
+    surface.showMaximized()
+    var maximized: WINDOWPLACEMENT
+    maximized.length = #sizeof(maximized)
+    Swag.assert(GetWindowPlacement(surface.win32Handle(), &maximized))
+    Swag.assert(maximized.showCmd == SW_SHOWMAXIMIZED)
+    Swag.assert(maximized.rcNormalPosition.left == normal.rcNormalPosition.left)
+    Swag.assert(maximized.rcNormalPosition.top == normal.rcNormalPosition.top)
+    Swag.assert(maximized.rcNormalPosition.right == normal.rcNormalPosition.right)
+    Swag.assert(maximized.rcNormalPosition.bottom == normal.rcNormalPosition.bottom)
+    surface.showNormal()
+    surface.showNormalAt(Env.monitorForRectangle(bounds).physicalBounds)
+    surface.showNormalAt(bounds)
+    Swag.assert(observation.hides == 0, "placement must preserve native visibility throughout the transaction")
+    Swag.assert(surface.position == bounds)
+}
+
 // The window's rendering context must stay on its owner thread. Delegating synchronous WGL
 // calls to another thread lets drawable reallocation overlap USER32's geometry transaction;
 // the driver can then stall for seconds even when the surface contains no controls.

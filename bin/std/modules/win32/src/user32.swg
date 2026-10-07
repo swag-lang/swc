@@ -1250,6 +1250,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func FillRect(hDC: HDC, lprc: const *RECT, hbr: HBRUSH)->s32
     func GetClientRect(hWnd: HWND, lpRect: *RECT)->BOOL
     func GetWindowRect(hWnd: HWND, lpRect: *RECT)->BOOL
+    func GetWindowPlacement(hWnd: HWND, lpwndpl: *WINDOWPLACEMENT)->BOOL
     func GetWindowTextA(hWnd: HWND, lpString: LPSTR, nMaxCount: s32)->s32
     func GetWindowTextW(hWnd: HWND, lpString: LPWSTR, nMaxCount: s32)->s32
     func GetClassNameA(hWnd: HWND, lpClassName: LPSTR, nMaxCount: s32)->s32

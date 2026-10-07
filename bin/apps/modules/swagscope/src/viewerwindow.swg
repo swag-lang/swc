@@ -704,10 +704,8 @@ impl ViewerWindow
             .infoContentGroup.sideButton = null
             .fullScreenTopVisible        = false
             .fullScreenBottomVisible     = false
-            .applyLayout()
 
-            // One geometry transaction that shows the full-screen frame before the window grows,
-            // as a maximize does, from a maximized window as well as from a regular one.
+            // Commit the final chrome and bounds together through the native placement path.
             srfn.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
         }
         else
@@ -731,11 +729,9 @@ impl ViewerWindow
             .infoContentGroup.sideButton = .currentSidePanelButton
             .fullScreenTopVisible        = false
             .fullScreenBottomVisible     = false
-            .applyLayout()
 
             // Going straight back to the maximized state keeps the window out of its restored
-            // bounds, which would otherwise be shown for one transaction on the way. Both paths
-            // show the restored frame before the window shrinks.
+            // bounds, which would otherwise be shown for one transaction on the way.
             if .fullScreenWasMaximized do
                 srfn.showMaximized(.fullScreenRestorePosition)
             else do

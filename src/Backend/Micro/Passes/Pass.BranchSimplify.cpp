@@ -264,8 +264,9 @@ namespace
     struct BranchScanCache
     {
         BranchScan scan;
-        bool       built       = false;
-        bool       layoutBuilt = false;
+        bool       built         = false;
+        bool       layoutBuilt   = false;
+        const bool countMentions = true;
 
         void invalidate()
         {
@@ -390,7 +391,7 @@ namespace
                 if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, ops))
                     ++scan.labelReferences[labelId];
 
-                if (ops)
+                if (cache.countMentions && ops)
                 {
                     const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                     for (size_t i = 0; i < modes.size(); ++i)
@@ -7454,7 +7455,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     if (late_)
     {
-        thread_local BranchScanCache scanCache;
+        // Late transforms consult label counts, never register mentions.
+        thread_local BranchScanCache scanCache{.countMentions = false};
         scanCache.invalidate();
         scanCache.ensureLayout(storage, operands);
         const bool hasSetCondition = scanCache.scan.layout.hasSetCondition;

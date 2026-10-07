@@ -712,8 +712,10 @@ namespace
     // until it rewrites the slot or leaves the function; one that reads any
     // byte of it, or changes the stack pointer the offsets are relative to,
     // keeps the store, except the epilogue releasing the frame on its way to
-    // the return. Calls neither read the caller's spill area nor move the
-    // stack pointer across themselves. Every dead store goes in one run.
+    // the return. A displacement inside the spill range can also name an outgoing
+    // argument after a call-frame adjustment. Without a frame-relative ownership
+    // proof, calls must therefore count as possible readers. Every dead store goes
+    // in one run.
     bool eraseDeadSpillStore(MicroPassContext& context)
     {
         if (!context.builder || context.spillAreaLo >= context.spillAreaHi ||
@@ -854,6 +856,11 @@ namespace
                     break;
                 }
                 const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                if (useDef.isCall)
+                {
+                    live = true;
+                    break;
+                }
                 if (std::ranges::find(useDef.defs, stack) != useDef.defs.end())
                 {
                     if (releasesFrame(index))

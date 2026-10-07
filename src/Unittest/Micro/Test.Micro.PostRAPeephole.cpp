@@ -595,6 +595,31 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesSpillStoreOverwrittenOnEveryPath)
 }
 SWC_TEST_END()
 
+// An outgoing argument can have the same RSP displacement as a spill slot.
+// The call reads it even when the following epilogue never reloads the slot.
+SWC_TEST_BEGIN(PostRAPeephole_KeepsStackArgumentBeforeCallAndReturn)
+{
+    const MicroReg stack  = CallConv::get(CallConvKind::Swag).stackPointer;
+    const MicroReg value  = MicroReg::intReg(12);
+    const MicroReg target = MicroReg::intReg(10);
+    for (const auto convention : {CallConvKind::Swag, CallConvKind::WindowsX64, CallConvKind::C})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x58, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadMemReg(stack, 0x20, value, MicroOpBits::B64);
+        builder.emitCallReg(target, convention);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x58, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 0x20, 0x28));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A vector's sixteen-byte home follows the same rule with its own width: the
 // overwrite has to cover both halves, a read of either half keeps the store,
 // and a read of the slot beside it does not.

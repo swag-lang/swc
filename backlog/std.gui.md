@@ -37,26 +37,57 @@ prove it. Operating-system integrations live in
 ### std.gui.057 — Prevent stale compositor frames during maximize and restore
 
 - Recorded: 2026-09-26 18:37
-- Updated: 2026-10-06 21:12 — Credit the shipped prepared frame and placement overlay; only capture validation remains.
+- Updated: 2026-10-07 08:27 — Restore the October 6 placement code and replace the overlay assumption with a composition-contract investigation.
 - Evidence: a 30 fps, 3680x1970 screen recording of Swag Scope viewing a large Markdown
   manuscript shows one visibly broken restore frame at frame 84 (2.8 s): the old maximized
   document is cropped over the desktop at the restored window's location, with no window chrome.
   Frame 85 has the correctly laid-out restored window. The reverse transition at frames 199-200
   jumps directly to the maximized frame. The reporter has also seen worse instances.
-- Current boundary: `c9eef3a58` and `2c7c3dbb4` (2026-09-27) prepare the new-size frame before
-  the native geometry commit and cover the transition with a topmost DWM placement overlay
-  (`Surface.showDiscretePlacement` in `surface.win32.swg`). The native tests assert only that
-  surface and window sizes agree; no display-cadence capture has confirmed that the stale frame
-  is gone.
-- Capture constraint: an initial automated desktop capture sampled only about five frames per
-  second and recorded a different foreground window, so it cannot validate this one-frame defect.
-- Next: capture repeated maximize/restore at display cadence on a controlled foreground desktop,
-  with a large reflowing document, and confirm no old-size frame; then turn that capture into a
-  repeatable native visual boundary. Keep the physical border-drag latency measured in
-  std.gui.056 within its existing range.
-- Complete when: repeated maximize/restore captures show no old-size, clipped or blank frame,
-  including when document layout exceeds one refresh, and the regression has a repeatable native
-  visual boundary.
+- Current boundary: the user reported worsening full-screen and restore artifacts on October 7
+  and requested a return to the previous day's code. The affected implementations were restored
+  from `77bedb326` (whose latest placement change is `81f3a02c7`). Unrelated non-null API changes
+  remain. This baseline still contains the earlier placement overlay and is not a verified fix.
+- Reproduction: open the large `manuscrit.md` document in Swag Scope and start from a normal,
+  non-maximized window. Cover normal/full-screen/normal and normal/maximized/normal, then the
+  maximized/full-screen/maximized path. Starting maximized reduces the reported symptom.
+- Rejected approach: the October 7 experiments alternated a WGL window and a layered snapshot,
+  with hiding, cloaking, region changes or extra flushes. None established a shared presentation
+  transaction. Timing probes with the manuscript observed multi-second synchronous readback
+  waits in some transitions even when preparing the offscreen frame took only tens of
+  milliseconds. These observations localize an added stall, not the original artifact's cause.
+- Documented contracts: [DwmFlush](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmflush)
+  waits for queued DirectX updates from the caller; it does not document an atomic transaction
+  spanning USER32 geometry, WGL presentation and a second layered HWND.
+  [Microsoft's layered-window discussion](https://learn.microsoft.com/en-us/archive/msdn-magazine/2014/june/windows-with-c-high-performance-window-layering-using-the-windows-composition-engine)
+  explains the GPU-to-CPU copy required by a GPU-rendered layered window, followed by a copy back
+  for composition. This is an architectural cost, not a Markdown layout optimization problem.
+- Comparable reports: [GLFW's programmatic resize report](https://discourse.glfw.org/t/glfw-window-flickers-despite-blitting-to-it-immediately-after-resizing-it/1389)
+  describes flicker even when drawing immediately after resizing. Its proposed buffer-size
+  explanation is a maintainer hypothesis, not a WGL guarantee.
+  [SDL issue 12528](https://github.com/libsdl-org/SDL/issues/12528) reports similar symptoms with
+  DX12/Vulkan and backend-dependent results from DwmFlush; it does not establish this app's cause.
+- Design boundary: retain one visible native window and one presentation owner. Separate the
+  final document render target from the window's current drawable; remove snapshot readback and
+  visibility tricks from a future replacement. First audit the native placement/message order,
+  actual drawable dimensions and buffer publication contract against the ordinary Windows path.
+  Do not equate a correctly sized offscreen frame or a successful SwapBuffers with a correctly
+  composed desktop frame.
+- Architectural option, not a chosen migration: [DirectComposition transactions](https://learn.microsoft.com/en-us/windows/win32/directcomp/basic-concepts#transactional-composition)
+  explicitly synchronize visual properties and surface content. A GPU composition presenter could
+  consume the existing renderer's output instead of copying it through a layered HWND. That
+  guarantee applies to the composition tree, not automatically to SetWindowPos; HWND resizing,
+  alpha, adapter support and OpenGL interoperability need a complete design before implementation.
+- Next: establish that presentation contract before another code change. Any reduced reproducer
+  must test one stated hypothesis and a predicted message/frame sequence. Validate the eventual
+  implementation with the actual manuscript, starting from a normal window, and correlate
+  native geometry and submitted frame sizes with a verified display-cadence recording.
+- Capture constraint: earlier probes captured the wrong application or output, missed the GL
+  surface, or sampled too slowly. Their images cannot establish visual correctness. Control only
+  a verified Swag Scope HWND or its internal commands; never send global full-screen shortcuts.
+- Complete when: repeated full-screen and maximize/restore captures show no old-size, clipped,
+  hidden or blank frame, including when document layout exceeds one refresh, with no added
+  multi-second presentation stall and a repeatable native visual boundary. Preserve the border
+  drag latency measured in std.gui.056.
 - Related: std.gui.056
 
 ### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face

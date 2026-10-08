@@ -151,10 +151,17 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
     if not bytes.count or not channels do
         return result
 
-    let bytesPerSample = encoding == .Pcm8 ? 1'u64 : (encoding == .Pcm16 ? 2 : (encoding == .Pcm24 ? 3 : 4))
-    let bytesPerFrame  = bytesPerSample * channels
-    let frameCount     = bytes.count / bytesPerFrame
-    let pointCount     = Math.min(frameCount, WaveformPointCount)
+    var bytesPerSample = 4'u64
+    switch encoding
+    {
+    case .Pcm8:  bytesPerSample = 1
+    case .Pcm16: bytesPerSample = 2
+    case .Pcm24: bytesPerSample = 3
+    }
+
+    let bytesPerFrame = bytesPerSample * channels
+    let frameCount    = bytes.count / bytesPerFrame
+    let pointCount    = Math.min(frameCount, WaveformPointCount)
     if not pointCount do
         return result
     result.resize(pointCount)
@@ -229,7 +236,8 @@ impl WaveformReducer
             let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
             if target != .currentPoint
             {
-                .points[][.currentPoint] = {.peak, .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0}
+                let body = .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0
+                .points[][.currentPoint] = {.peak, body}
                 .readyCount   = .currentPoint + 1
                 .currentPoint = target
                 .peak         = 0
@@ -514,7 +522,11 @@ impl SoundViewer
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), soundDurationText(.duration))
+        .details = Format.toString(soundStrings().ui_Details,
+                                   .sound.sampleRateHz(),
+                                   channelCountText(.sound.numChannels()),
+                                   .sound.sampleStorageBits(),
+                                   soundDurationText(.duration))
         if .reportDetails do
             .reportDetails(me, .details.toString())
     }
@@ -644,7 +656,8 @@ impl SoundViewer
         if not pointCount do
             return
         .waveform.samples.resize(pointCount)
-        catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread) }, priority: .BelowNormal) as initError
+        catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread) },
+                                   priority: .BelowNormal) as initError
         if initError != null do
             return
         catch .waveformThread.start() as startError

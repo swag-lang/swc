@@ -214,35 +214,35 @@ public impl BitArray
     mtd set(index: u64, value: bool)
     {
         Swag.assert(index < .count)
-        let val    = index >> 5
-        let bit    = index - (val << 5)
-        let shift  = 1'u32 << cast(u32, bit)
-        let buffer = .dataPtr()
+        let wordIndex = index >> 5
+        let bitIndex  = index - (wordIndex << 5)
+        let mask      = 1'u32 << cast(u32, bitIndex)
+        let buffer    = .dataPtr()
         if value do
-            buffer[val] |= shift
+            buffer[wordIndex] |= mask
         else do
-            buffer[val] &= ~shift
+            buffer[wordIndex] &= ~mask
     }
 
     // Returns the bit at `index`.
     mtd const get(index: u64)->bool
     {
         Swag.assert(index < .count)
-        let val   = index >> 5
-        let bit   = index - (val << 5)
-        let shift = 1'u32 << cast(u32, bit)
-        return cast(bool, (.constDataPtr()[val] & shift))
+        let wordIndex = index >> 5
+        let bitIndex  = index - (wordIndex << 5)
+        let mask      = 1'u32 << cast(u32, bitIndex)
+        return cast(bool, (.constDataPtr()[wordIndex] & mask))
     }
 
     // Inverts the bit at `index`.
     mtd invert(index: u64)
     {
         Swag.assert(index < .count)
-        let val    = index >> 5
-        let bit    = index - (val << 5)
-        let shift  = 1'u32 << cast(u32, bit)
-        let buffer = .dataPtr()
-        buffer[val] ^= shift
+        let wordIndex = index >> 5
+        let bitIndex  = index - (wordIndex << 5)
+        let mask      = 1'u32 << cast(u32, bitIndex)
+        let buffer    = .dataPtr()
+        buffer[wordIndex] ^= mask
     }
 
     // Inverts every bit.

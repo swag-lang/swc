@@ -5,11 +5,11 @@ struct ConcatBufferBucket
 {
     public readonly
     {
-        data:        [*] u8?                  // Pointer to the raw memory of the bucket.
+        data:        [*] u8?     // Pointer to the raw memory of the bucket.
         next:        *ConcatBufferBucket?     // Pointer to the next bucket in the chain.
-        count:       u64                      // Number of bytes used in this bucket.
-        size:        u64                      // Total allocated size of this bucket in bytes.
-        countBefore: u64                      // Total number of bytes in all preceding buckets.
+        count:       u64         // Number of bytes used in this bucket.
+        size:        u64         // Total allocated size of this bucket in bytes.
+        countBefore: u64         // Total number of bytes in all preceding buckets.
     }
 }
 
@@ -21,7 +21,7 @@ struct ConcatBufferPosition
     public readonly
     {
         bucket:  *ConcatBufferBucket?     // The bucket containing the position.
-        pointer: [*] u8?                  // The exact memory address of the position.
+        pointer: [*] u8?     // The exact memory address of the position.
     }
 }
 
@@ -367,7 +367,15 @@ impl ConcatBuffer
     }
 
     // Returns the absolute byte offset represented by `position`.
-    func offsetOf(position: ConcatBufferPosition)->u64 => position.bucket ? position.bucket.countBefore + cast(u64, (position.pointer - position.bucket.data)) : 0
+    func offsetOf(position: ConcatBufferPosition)->u64
+    {
+        if not position.bucket do
+            return 0
+
+        let bucket         = position.bucket
+        let offsetInBucket = cast(u64, (position.pointer - bucket.data))
+        return bucket.countBefore + offsetInBucket
+    }
 
     // Returns the current write position, including after restoring an earlier position.
     mtd const position()->ConcatBufferPosition
@@ -400,7 +408,8 @@ impl ConcatBuffer
 
         let bucket = .curBucket!
         let offset = cast(u64, (.currentSP - bucket.data))
-        if count <= bucket.count - offset or (.curBucket == .lastBucket and count <= bucket.size - offset)
+        if count <= bucket.count - offset or
+           (.curBucket == .lastBucket and count <= bucket.size - offset)
         {
             let result = .currentSP!
             .currentSP   += count
@@ -654,21 +663,22 @@ impl ConcatBuffer
     {
         let total = .count()
         Swag.assert(capacity >= total)
-        let newDatas = cast([*] u8, Memory.alloc(capacity, .allocator))
+        let newData = cast([*] u8, Memory.alloc(capacity, .allocator))
 
-        var curPtr = newDatas
-        for b in me
+        // Copy the active bytes before releasing any bucket.
+        var destination = newData
+        for bucket in me
         {
-            Memory.copy(curPtr, b.data, b.count)
-            curPtr += b.count
+            Memory.copy(destination, bucket.data, bucket.count)
+            destination += bucket.count
         }
 
-        Swag.assert(curPtr == newDatas + total)
+        Swag.assert(destination == newData + total)
         .release()
 
-        // Make one single bucket
+        // Install the contiguous storage as the sole active bucket.
         .firstBucket            = Memory.new'ConcatBufferBucket(.allocator)
-        .firstBucket.data       = newDatas
+        .firstBucket.data       = newData
         .firstBucket.size       = capacity
         .firstBucket.count      = total
         .curBucket, .lastBucket = .firstBucket

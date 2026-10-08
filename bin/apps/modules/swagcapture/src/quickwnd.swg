@@ -913,9 +913,9 @@ impl QuickWnd
             .formItf = form
             .setForm(.Rectangle)
             .setCheckIndicator(.None)
-            .style.addStyleSheetColors("btnIcon_Bk          0x0")
-            .style.addStyleSheetColors("btnIcon_HotBk       0x0")
-            .style.addStyleSheetColors("btnIcon_PressedBk   0x0")
+            .style.addStyleSheetColors("""btnIcon_Bk          0x0
+                                          btnIcon_HotBk       0x0
+                                          btnIcon_PressedBk   0x0""")
         }
 
         .layout.sendResizeEvent()
@@ -933,9 +933,9 @@ impl QuickWnd
         // a preset is a convenience, not the primary action of the surface.
         with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
         {
-            .style.addStyleSheetColors("btnIcon_Bk          $veilMedium")
-            .style.addStyleSheetColors("btnIcon_HotBk       $veilStrong")
-            .style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
+            .style.addStyleSheetColors("""btnIcon_Bk          $veilMedium
+                                          btnIcon_HotBk       $veilStrong
+                                          btnIcon_PressedBk   $btnIcon_PressedBk""")
             .setForm(.Rectangle)
         }
 

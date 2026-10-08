@@ -416,6 +416,214 @@ private func matchesAt(line: *RichEditLine, at: u64, text: string)->bool
 private func isIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 private func isIdentifierRune(value: rune)->bool  => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 
+private impl GenericLexer
+{
+    // Whether a comment that runs to the end of the line starts at `seek`, whose rune is `value`.
+    mtd startsLineComment(line: *RichEditLine, seek: u64, value: rune)->bool
+    {
+        return (.isHashComment() and value == '#') or
+               (.isDashComment() and matchesAt(line, seek, "--")) or
+               (.isSemicolonComment() and value == ';') or
+               (.isPercentComment() and value == '%') or
+               (.isBangComment() and value == '!') or
+               (.isQuoteComment() and value == '"') or
+               (.language == .VisualBasic and value == '\'') or
+               (.language == .Batch and matchesAt(line, seek, "rem ")) or
+               (.isSlashComment() and matchesAt(line, seek, "//"))
+    }
+
+    // Colors the word between `first` and `seek`: a keyword, a function when a call follows, a type
+    // when it is capitalized or names a data key.
+    mtd paintWord(line: *RichEditLine, first, seek: u64)
+    {
+        let length = line.length()
+        let value  = line.runeAt(first)
+        var word: String
+        for index in first until seek do
+            word += line.runeAt(index)
+        if .isCaseInsensitive() do
+            word = word.toLower()
+        if .keywords.tryFind(word)
+        {
+            paintRange(line, first, seek, .Keyword)
+            return
+        }
+
+        var next = seek
+        while next < length and Unicode.isSpace(line.runeAt(next)) do
+            next += 1
+        if next < length and line.runeAt(next) == '(' do
+            paintRange(line, first, seek, .Function)
+        elif Latin1.isUpper(cast(u8, value)) do
+            paintRange(line, first, seek, .Type)
+        elif next < length and (line.runeAt(next) == ':' or line.runeAt(next) == '=') and .hasDataKeys() do
+            paintRange(line, first, seek, .Type)
+    }
+
+    // Colors one line of XML or HTML from the state the previous line left, and returns its own.
+    mtd computeMarkup(line: *RichEditLine, entry: State)->State
+    {
+        let length = line.length()
+        var state  = entry
+        var seek   = 0'u64
+        while seek < length
+        {
+            if state == .MarkupComment
+            {
+                let first = seek
+                while seek < length and not matchesAt(line, seek, "-->") do
+                    seek += 1
+                if seek < length
+                {
+                    seek  += 3
+                    state = .Default
+                }
+
+                paintRange(line, first, seek, .Comment)
+                continue
+            }
+
+            if matchesAt(line, seek, "<!--")
+            {
+                state = .MarkupComment
+                continue
+            }
+
+            if line.runeAt(seek) == '<'
+            {
+                let first = seek
+                seek += 1
+                while seek < length and line.runeAt(seek) != '>' do
+                    seek += 1
+                if seek < length do
+                    seek += 1
+                paintRange(line, first, seek, .Keyword)
+
+                var scan = first
+                while scan < seek
+                {
+                    if line.runeAt(scan) != '"' and line.runeAt(scan) != '\''
+                    {
+                        scan += 1
+                        continue
+                    }
+
+                    let quote       = line.runeAt(scan)
+                    let stringFirst = scan
+                    scan += 1
+                    while scan < seek and line.runeAt(scan) != quote do
+                        scan += 1
+                    if scan < seek do
+                        scan += 1
+                    paintRange(line, stringFirst, scan, .String)
+                }
+
+                continue
+            }
+
+            seek += 1
+        }
+
+        return state
+    }
+
+    // Colors one line of source code from the state the previous line left, and returns its own.
+    mtd computeCode(line: *RichEditLine, entry: State)->State
+    {
+        let length = line.length()
+        var state  = entry
+        var seek   = 0'u64
+        while seek < length
+        {
+            if state == .BlockComment
+            {
+                let first = seek
+                while seek < length and not matchesAt(line, seek, "*/") do
+                    seek += 1
+                if seek < length
+                {
+                    seek  += 2
+                    state = .Default
+                }
+
+                paintRange(line, first, seek, .Comment)
+                continue
+            }
+
+            let value = line.runeAt(seek)
+            if .startsLineComment(line, seek, value)
+            {
+                paintRange(line, seek, length, .Comment)
+                seek = length
+                continue
+            }
+
+            if .hasBlockComment() and matchesAt(line, seek, "/*")
+            {
+                state = .BlockComment
+                continue
+            }
+
+            if value == '"' or value == '\'' or (value == '`' and .hasBacktickString())
+            {
+                let quote = value
+                let first = seek
+                seek += 1
+                while seek < length
+                {
+                    if line.runeAt(seek) == '\\'
+                    {
+                        seek = Math.min(seek + 2, length)
+                        continue
+                    }
+
+                    if line.runeAt(seek) == quote
+                    {
+                        seek += 1
+                        break
+                    }
+
+                    seek += 1
+                }
+
+                paintRange(line, first, seek, .String)
+                continue
+            }
+
+            if Unicode.isNumber(value)
+            {
+                let first = seek
+                seek += 1
+                while seek < length and (Unicode.isLetterOrDigit(line.runeAt(seek)) or line.runeAt(seek) == '.' or line.runeAt(seek) == '_') do
+                    seek += 1
+                paintRange(line, first, seek, .Number)
+                continue
+            }
+
+            if value == '#' and .hasPreprocessor()
+            {
+                paintRange(line, seek, length, .Preprocessor)
+                seek = length
+                continue
+            }
+
+            if isIdentifierStart(value)
+            {
+                let first = seek
+                seek += 1
+                while seek < length and isIdentifierRune(line.runeAt(seek)) do
+                    seek += 1
+                .paintWord(line, first, seek)
+                continue
+            }
+
+            seek += 1
+        }
+
+        return state
+    }
+}
+
 impl IRichEditLexer for GenericLexer
 {
     mtd impl setup(?: *RichEditCtrl) {}
@@ -450,191 +658,9 @@ impl IRichEditLexer for GenericLexer
 
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
-        let length = line.length()
-        paintRange(line, 0, length, .Default)
-        var state = linePrev ? cast(State, linePrev.lexerState()) : State.Default
-        var seek  = 0'u64
-
-        if .language == .Xml or .language == .Html
-        {
-            while seek < length
-            {
-                if state == .MarkupComment
-                {
-                    let first = seek
-                    while seek < length and not matchesAt(line, seek, "-->") do
-                        seek += 1
-                    if seek < length
-                    {
-                        seek  += 3
-                        state = .Default
-                    }
-
-                    paintRange(line, first, seek, .Comment)
-                    continue
-                }
-
-                if matchesAt(line, seek, "<!--")
-                {
-                    state = .MarkupComment
-                    continue
-                }
-
-                if line.runeAt(seek) == '<'
-                {
-                    let first = seek
-                    seek += 1
-                    while seek < length and line.runeAt(seek) != '>' do
-                        seek += 1
-                    if seek < length do
-                        seek += 1
-                    paintRange(line, first, seek, .Keyword)
-
-                    var scan = first
-                    while scan < seek
-                    {
-                        if line.runeAt(scan) != '"' and line.runeAt(scan) != '\''
-                        {
-                            scan += 1
-                            continue
-                        }
-
-                        let quote       = line.runeAt(scan)
-                        let stringFirst = scan
-                        scan += 1
-                        while scan < seek and line.runeAt(scan) != quote do
-                            scan += 1
-                        if scan < seek do
-                            scan += 1
-                        paintRange(line, stringFirst, scan, .String)
-                    }
-
-                    continue
-                }
-
-                seek += 1
-            }
-        }
-        else
-        {
-            while seek < length
-            {
-                if state == .BlockComment
-                {
-                    let first = seek
-                    while seek < length and not matchesAt(line, seek, "*/") do
-                        seek += 1
-                    if seek < length
-                    {
-                        seek  += 2
-                        state = .Default
-                    }
-
-                    paintRange(line, first, seek, .Comment)
-                    continue
-                }
-
-                let value = line.runeAt(seek)
-                if (.isHashComment() and value == '#') or
-                   (.isDashComment() and matchesAt(line, seek, "--")) or
-                   (.isSemicolonComment() and value == ';') or
-                   (.isPercentComment() and value == '%') or
-                   (.isBangComment() and value == '!') or
-                   (.isQuoteComment() and value == '"') or
-                   (.language == .VisualBasic and value == '\'') or
-                   (.language == .Batch and matchesAt(line, seek, "rem ")) or
-                   (.isSlashComment() and matchesAt(line, seek, "//"))
-                {
-                    paintRange(line, seek, length, .Comment)
-                    seek = length
-                    continue
-                }
-
-                if .hasBlockComment() and matchesAt(line, seek, "/*")
-                {
-                    state = .BlockComment
-                    continue
-                }
-
-                if value == '"' or value == '\'' or (value == '`' and .hasBacktickString())
-                {
-                    let quote = value
-                    let first = seek
-                    seek += 1
-                    while seek < length
-                    {
-                        if line.runeAt(seek) == '\\'
-                        {
-                            seek = Math.min(seek + 2, length)
-                            continue
-                        }
-
-                        if line.runeAt(seek) == quote
-                        {
-                            seek += 1
-                            break
-                        }
-
-                        seek += 1
-                    }
-
-                    paintRange(line, first, seek, .String)
-                    continue
-                }
-
-                if Unicode.isNumber(value)
-                {
-                    let first = seek
-                    seek += 1
-                    while seek < length and (Unicode.isLetterOrDigit(line.runeAt(seek)) or line.runeAt(seek) == '.' or line.runeAt(seek) == '_') do
-                        seek += 1
-                    paintRange(line, first, seek, .Number)
-                    continue
-                }
-
-                if value == '#' and .hasPreprocessor()
-                {
-                    paintRange(line, seek, length, .Preprocessor)
-                    seek = length
-                    continue
-                }
-
-                if isIdentifierStart(value)
-                {
-                    let first = seek
-                    seek += 1
-                    while seek < length and isIdentifierRune(line.runeAt(seek)) do
-                        seek += 1
-                    var word: String
-                    for index in first until seek do
-                        word += line.runeAt(index)
-                    if .isCaseInsensitive() do
-                        word = word.toLower()
-                    let found = .keywords.tryFind(word)
-                    if found
-                    {
-                        paintRange(line, first, seek, .Keyword)
-                    }
-                    else
-                    {
-                        var next = seek
-                        while next < length and Unicode.isSpace(line.runeAt(next)) do
-                            next += 1
-                        if next < length and line.runeAt(next) == '(' do
-                            paintRange(line, first, seek, .Function)
-                        elif Latin1.isUpper(cast(u8, value)) do
-                            paintRange(line, first, seek, .Type)
-                        elif next < length and (line.runeAt(next) == ':' or line.runeAt(next) == '=') and .hasDataKeys() do
-                            paintRange(line, first, seek, .Type)
-                    }
-
-                    continue
-                }
-
-                seek += 1
-            }
-        }
-
+        paintRange(line, 0, line.length(), .Default)
+        let previous = linePrev ? cast(State, linePrev.lexerState()) : State.Default
+        let state    = .language == .Xml or .language == .Html ? .computeMarkup(line, previous) : .computeCode(line, previous)
         if line.setLexerState(cast(s32, state)) and lineNext do
             lineNext.markStyleDirty()
     }

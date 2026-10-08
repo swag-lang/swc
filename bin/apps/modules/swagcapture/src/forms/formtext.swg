@@ -68,6 +68,84 @@ impl FormText
             return borderPath
         return &.paths[idx]
     }
+
+    // The typeface of the form: the one its font names, loaded once and again when the font
+    // changes, or the interface face of the same style when it names none or cannot be found.
+    mtd resolveFace()->*TypeFace
+    {
+        if not .typeFace or .isDirtyFont
+        {
+            .isDirtyFont = false
+            if not .fontName.length
+            {
+                .typeFace = null
+            }
+            else
+            {
+                let en = FontFamily.findSystemFont(.fontName)
+                .typeFace = catch FontFamily.createTypeFace(en, .fontStyle)
+            }
+        }
+
+        var result = .typeFace
+        if not result
+        {
+            switch .fontStyle
+            {
+            case .Regular:    result = g_App.theme.res.defaultTypeFaceR
+            case .Bold:       result = g_App.theme.res.defaultTypeFaceB
+            case .Italic:     result = g_App.theme.res.defaultTypeFaceI
+            case .BoldItalic: result = g_App.theme.res.defaultTypeFaceBI
+            }
+        }
+
+        return result!
+    }
+
+    // Builds the outline of each line of `text`, and of its border when it has one, and measures
+    // the height the lines stack to.
+    mtd rebuildOutlines(text: string, face: *TypeFace, bSize, fSize, sSize: f32)
+    {
+        let tokens = Tokenize.split(text, '\n'rune)
+        .cacheFace    = face
+        .cachesSize   = sSize
+        .cachebSize   = bSize
+        .cachefSize   = fSize
+        .cacheStyle   = .joinStyle
+        .cacheFontN   = .fontName
+        .cacheFontS   = .fontStyle
+        .cacheBColorA = .borderColor.a
+
+        .paths.clear()
+        .borderPaths.clear()
+        .paths.resize(tokens.count)
+        .borderPaths.resize(tokens.count)
+
+        .totalY = 0
+        for t, idx in tokens
+        {
+            let pathl = &.paths[idx]
+            pathl[] = expect face.buildStringOutline(t, cast(fSize), cast(sSize))
+            pathl.flatten(.High)
+            pathl.clean()
+
+            let borderPath = &.borderPaths[idx]
+            if not Math.isZeroEpsilon(bSize) and .borderColor.a
+            {
+                borderPath[] = expect face.buildStringOutline(t, cast(fSize), cast(sSize))
+                borderPath.flatten(.Normal)
+                borderPath.clean()
+                borderPath.offset(bSize, .joinStyle, 0.25)
+                borderPath.clean()
+            }
+
+            // With no border, the line is as tall as the glyph outline itself.
+            if borderPath.count() do
+                .totalY += (borderPath.maxBounds.y - borderPath.minBounds.y)
+            else do
+                .totalY += (pathl.maxBounds.y - pathl.minBounds.y)
+        }
+    }
 }
 
 impl IForm for FormText
@@ -108,9 +186,9 @@ impl IForm for FormText
         let xb = cast(s32, localPos.x / zoom)
         let yb = cast(s32, localPos.y / zoom)
         .setBaseForm(xa, ya, xb - xa, yb - ya)
-        if evt.kind == .Released and evt.button == .Left do
-            return false
-        return true
+
+        // The edit goes on until the left button is released.
+        return evt.kind != .Released or evt.button != .Left
     }
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32) => .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
@@ -175,32 +253,7 @@ impl IForm for FormText
             .isDirty   = true
         }
 
-        // Font
-        if not .typeFace or .isDirtyFont
-        {
-            .isDirtyFont = false
-            if not .fontName.length
-            {
-                .typeFace = null
-            }
-            else
-            {
-                let en = FontFamily.findSystemFont(.fontName)
-                .typeFace = catch FontFamily.createTypeFace(en, .fontStyle)
-            }
-        }
-
-        var face = .typeFace
-        if not face
-        {
-            switch .fontStyle
-            {
-            case .Regular:    face = g_App.theme.res.defaultTypeFaceR
-            case .Bold:       face = g_App.theme.res.defaultTypeFaceB
-            case .Italic:     face = g_App.theme.res.defaultTypeFaceI
-            case .BoldItalic: face = g_App.theme.res.defaultTypeFaceBI
-            }
-        }
+        let face = .resolveFace()
 
         if face != .cacheFace or
            bSize != .cachebSize or
@@ -214,48 +267,10 @@ impl IForm for FormText
             .isDirty = true
         }
 
-        let tokens = Tokenize.split(renderText, '\n'rune)
         if .isDirty
         {
-            .isDirty      = false
-            .cacheFace    = face
-            .cachesSize   = sSize
-            .cachebSize   = bSize
-            .cachefSize   = fSize
-            .cacheStyle   = .joinStyle
-            .cacheFontN   = .fontName
-            .cacheFontS   = .fontStyle
-            .cacheBColorA = .borderColor.a
-
-            .paths.clear()
-            .borderPaths.clear()
-            .paths.resize(tokens.count)
-            .borderPaths.resize(tokens.count)
-
-            .totalY = 0
-            for t, idx in tokens
-            {
-                let pathl = &.paths[idx]
-                pathl[] = expect face!.buildStringOutline(t, cast(fSize), cast(sSize))
-                pathl.flatten(.High)
-                pathl.clean()
-
-                let borderPath = &.borderPaths[idx]
-                if not Math.isZeroEpsilon(bSize) and .borderColor.a
-                {
-                    borderPath[] = expect face.buildStringOutline(t, cast(fSize), cast(sSize))
-                    borderPath.flatten(.Normal)
-                    borderPath.clean()
-                    borderPath.offset(bSize, .joinStyle, 0.25)
-                    borderPath.clean()
-                }
-
-                // With no border, the line is as tall as the glyph outline itself.
-                if borderPath.count() do
-                    .totalY += (borderPath.maxBounds.y - borderPath.minBounds.y)
-                else do
-                    .totalY += (pathl.maxBounds.y - pathl.minBounds.y)
-            }
+            .isDirty = false
+            .rebuildOutlines(renderText, face, bSize, fSize, sSize)
         }
 
         let zscale  = z * (cxt.quickMode ? 1 : Math.map(.scale, 0, 100, 1'f32, 2'f32))

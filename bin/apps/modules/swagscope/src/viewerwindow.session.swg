@@ -479,6 +479,53 @@ impl ViewerWindow
         }
     }
 
+    // Brings back the session of `index`, created by an earlier visit, without loading it again.
+    mtd showCreatedChoice(index: u32)->bool
+    {
+        if not .retireActiveLoadingChoice(index) do
+            return false
+
+        let instance = &.instances[index]
+        .hideCurrentSession()
+        .adoptSession(instance)
+        .currentView!.show()
+        .currentInfo?.show()
+        .currentCommands?.show()
+        .updateViewerBar()
+        .activeChoiceIndex = index
+        .viewerCombo.setSelectedIndex(index, notify: false)
+        .updateFileInfo(instance.details)
+        .updateSearchAvailability()
+        .applyLayout()
+        .updateLoadingIndicator()
+        .invalidate()
+        return true
+    }
+
+    // Lays the incoming session under the outgoing one, at its place, so the transition reveals it
+    // without a frame where neither shows.
+    mtd stageIncoming(next: *ViewerSession)
+    {
+        let view = next.view!
+        view.dockStyle = .None
+        view.setPosition(.outgoingView!.position, computeLayout: false)
+        next.actions?.hide()
+        next.info?.hide()
+        if next.commands
+        {
+            next.commands.dockStyle = .None
+            if .outgoingCommands do
+                next.commands.setPosition(.outgoingCommands.position, computeLayout: false)
+        }
+
+        .outgoingView.bringToFront()
+        .outgoingActions?.bringToFront()
+        .outgoingInfo?.bringToFront()
+        .outgoingCommands?.bringToFront()
+        .outgoingSidePanelHost?.bringToFront()
+        .outgoingSidePanelButton?.bringToFront()
+    }
+
     mtd activateChoice(index: u32)->bool
     {
         if index >= .choices.count do
@@ -486,25 +533,8 @@ impl ViewerWindow
 
         let choice   = &.choices[index]
         let instance = &.instances[index]
-        if instance.view
-        {
-            if not .retireActiveLoadingChoice(index) do
-                return false
-            .hideCurrentSession()
-            .adoptSession(instance)
-            .currentView!.show()
-            .currentInfo?.show()
-            .currentCommands?.show()
-            .updateViewerBar()
-            .activeChoiceIndex = index
-            .viewerCombo.setSelectedIndex(index, notify: false)
-            .updateFileInfo(instance.details)
-            .updateSearchAvailability()
-            .applyLayout()
-            .updateLoadingIndicator()
-            .invalidate()
-            return true
-        }
+        if instance.view do
+            return .showCreatedChoice(index)
 
         if choice.pluginIndex >= .index.plugins.count do
             return false
@@ -560,23 +590,7 @@ impl ViewerWindow
         let stage = .outgoingView != null
         if stage
         {
-            next.view.dockStyle = .None
-            next.view.setPosition(.outgoingView!.position, computeLayout: false)
-            next.actions?.hide()
-            next.info?.hide()
-            if next.commands
-            {
-                next.commands.dockStyle = .None
-                if .outgoingCommands do
-                    next.commands.setPosition(.outgoingCommands.position, computeLayout: false)
-            }
-
-            .outgoingView.bringToFront()
-            .outgoingActions?.bringToFront()
-            .outgoingInfo?.bringToFront()
-            .outgoingCommands?.bringToFront()
-            .outgoingSidePanelHost?.bringToFront()
-            .outgoingSidePanelButton?.bringToFront()
+            .stageIncoming(&next)
         }
         else
         {

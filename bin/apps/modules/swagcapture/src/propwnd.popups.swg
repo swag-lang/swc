@@ -7,11 +7,11 @@ impl PropWnd
         with let button = IconButton.create(stack, {}, {0, 0, StyleCellSize, StyleCellSize})
         {
             .setForm(.Rectangle)
-            .style.addStyleSheetColors("btnIcon_Bk                  $veilSoft")
-            .style.addStyleSheetColors("btnIcon_HotBk               $veilMedium")
-            .style.addStyleSheetColors("btnIcon_PressedBk           $veilStrong")
-            .style.addStyleSheetColors("btnIcon_CheckedPressedIcon  $btnIcon_Text")
-            .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_Text")
+            .style.addStyleSheetColors("""btnIcon_Bk                  $veilSoft
+                                          btnIcon_HotBk               $veilMedium
+                                          btnIcon_PressedBk           $veilStrong
+                                          btnIcon_CheckedPressedIcon  $btnIcon_Text
+                                          btnIcon_CheckedPressedText  $btnIcon_Text""")
 
             .updateFlags(.Popup | .Toggle)
             .setArrowPosition(.None)

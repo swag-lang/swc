@@ -328,3 +328,32 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
     Swag.assert(narrowTernaryJoinStillNullable(&node, &node2) == 42)
     Swag.assert(narrowTernaryJoinStillNullable(null, null) == -1)
 }
+
+func lendOwner(owner: *NarrowOwner) { discard owner }
+
+// Lending a struct in the true branch drops what was proven about its fields there, and after
+// the `if`. The false branch never lends it, so the proof made before the `if` still holds in it.
+func narrowElseKeepsProof(lend: bool)->s32
+{
+    var node:  NarrowNode = {value: 7}
+    var owner: NarrowOwner = {node: &node}
+    if not owner.node do
+        return 0
+
+    if lend
+    {
+        lendOwner(&owner)
+    }
+    else
+    {
+        return owner.node.value
+    }
+
+    return 1
+}
+
+#test
+{
+    Swag.assert(narrowElseKeepsProof(false) == 7)
+    Swag.assert(narrowElseKeepsProof(true) == 1)
+}

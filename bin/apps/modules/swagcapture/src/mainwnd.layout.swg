@@ -172,14 +172,14 @@ impl MainWnd
 
                 // A vertical tool rail keeps the leading rule: it reads beside the glyph rather
                 // than as part of it, and the reserved lane prevents the content from moving.
-                .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
-                .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_Text")
-                .style.addStyleSheetColors("btnIcon_CheckedHotText      $btnIcon_Text")
-                .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_Text")
-                .style.addStyleSheetColors("btnIcon_CheckedIcon         $btnIcon_CheckedMark")
-                .style.addStyleSheetColors("btnIcon_CheckedHotBk        $btnIcon_HotBk")
-                .style.addStyleSheetColors("btnIcon_CheckedHotIcon      $btnIcon_CheckedHotMark")
-                .style.addStyleSheetColors("btnIcon_CheckedPressedIcon  $btnIcon_CheckedMark")
+                .style.addStyleSheetColors("""btnIcon_CheckedBk           $btnIcon_HotBk
+                                              btnIcon_CheckedText         $btnIcon_Text
+                                              btnIcon_CheckedHotText      $btnIcon_Text
+                                              btnIcon_CheckedPressedText  $btnIcon_Text
+                                              btnIcon_CheckedIcon         $btnIcon_CheckedMark
+                                              btnIcon_CheckedHotBk        $btnIcon_HotBk
+                                              btnIcon_CheckedHotIcon      $btnIcon_CheckedHotMark
+                                              btnIcon_CheckedPressedIcon  $btnIcon_CheckedMark""")
 
                 .updateFlags(.Radio)
                 .setTextPosition(.Right)

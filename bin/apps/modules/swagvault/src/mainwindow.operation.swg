@@ -487,7 +487,12 @@ impl MainWindow
         if .operation.progress.isCanceled() do
             return
         .statusProgress = cast(s32, .operation.progress.ratio() * 100)
-        .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : (.operation.camouflageOnly ? StatusMessage.Camouflaging : StatusMessage.Resizing))
+        if .operation.kind == .Create do
+            .setStatus(.Randomizing)
+        elif .operation.camouflageOnly do
+            .setStatus(.Camouflaging)
+        else do
+            .setStatus(.Resizing)
     }
 
     // Waits for the worker, then hands the outcome to the finish step of the operation kind.
@@ -555,7 +560,7 @@ impl MainWindow
             // the reader with a stack of them before the window is even readable.
             if not .operation.fromStartup and not .operation.securityStopped do
                 .showError(appStrings().msg_MountFailed, operationError)
-            .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
+            .setStatus(.operation.securityStopped ? .AutoUnmounted : .MountStopped)
         }
         elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch
         {
@@ -576,7 +581,12 @@ impl MainWindow
         {
             .rememberMountedDrive()
             .statusDrive = .operation.mountLabel
-            .setStatus(.operation.readOnly ? .MountedReadOnly : (.operation.protectHidden ? .MountedProtected : .Mounted))
+            if .operation.readOnly do
+                .setStatus(.MountedReadOnly)
+            elif .operation.protectHidden do
+                .setStatus(.MountedProtected)
+            else do
+                .setStatus(.Mounted)
         }
 
         .fillDriveChoice()
@@ -621,7 +631,7 @@ impl MainWindow
         {
             let keyFiles = .operation.accessChange == .KeyFiles
             .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, operationError)
-            .setStatus(keyFiles ? StatusMessage.KeyFilesStopped : StatusMessage.PasswordStopped)
+            .setStatus(keyFiles ? .KeyFilesStopped : .PasswordStopped)
         }
         else
         {
@@ -633,7 +643,7 @@ impl MainWindow
             }
             else
             {
-                .setStatus(.operation.removesPassword ? StatusMessage.PasswordRemoved : StatusMessage.PasswordChanged)
+                .setStatus(.operation.removesPassword ? .PasswordRemoved : .PasswordChanged)
             }
         }
     }

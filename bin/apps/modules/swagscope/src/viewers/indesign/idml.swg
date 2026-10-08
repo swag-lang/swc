@@ -122,6 +122,17 @@ impl Page
         return result
     }
 
+    // The style sheet of a page. Its `%` take, in pixels: the page margin, the item font size and
+    // padding, and the font size and top padding of a missing image.
+    const PageStyle = """<style>
+                         html, body { margin: 0; padding: 0; background: #343438 }
+                         .idml-page { position: relative; margin: %px auto; background: #fff; color: #101014; box-shadow: 0 2px 12px #0008; overflow: hidden }
+                         .idml-item { position: absolute; box-sizing: border-box; overflow: hidden; font: %px/1.25 sans-serif; padding: %px }
+                         .idml-text-column { position: absolute; box-sizing: border-box; overflow: hidden }
+                         .idml-image { position: absolute; display: block }
+                         .idml-missing-image { display: block; width: 100%%; height: 100%%; background: #e5e5e5; color: #777; font: %px sans-serif; text-align: center; padding-top: %px }
+                         </style>"""
+
     // Builds one offline page scene from positioned IDML items, at `scale` clamped to 0.25..3.
     //
     // The HTML engine is used solely as the local paint and text-layout backend; all package
@@ -132,7 +143,7 @@ impl Page
         let factor   = Math.clamp(scale, 0.25, 3)
         let itemFont = 12 * factor
         let inset    = 2 * factor
-        result += Format.toString("<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:%px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;font:%px/1.25 sans-serif;padding:%px}.idml-text-column{position:absolute;box-sizing:border-box;overflow:hidden}.idml-image{position:absolute;display:block}.idml-missing-image{display:block;width:100%%;height:100%%;background:#e5e5e5;color:#777;font:%px sans-serif;text-align:center;padding-top:%px}</style>", 24 * factor, itemFont, inset, 18 * factor, 8 * factor)
+        result += Format.toString(PageStyle, 24 * factor, itemFont, inset, 18 * factor, 8 * factor)
         result += Format.toString("<div class=\"idml-page\" style=\"width:%px;height:%px\">", .bounds.width * factor, .bounds.height * factor)
         for item in .items
         {
@@ -1440,10 +1451,8 @@ private func appendItems(fileName, source: string, colors: const *HashTable'(Str
 
 private func appendMasterItems(masters: const *Array'Master, pages: *Array'Page)
 {
-    for &page, pageIndex in pages
+    for &page, pageIndex in pages where not page.master.isEmpty()
     {
-        if page.master.isEmpty() do
-            continue
         for master in masters where master.self == page.master
         {
             if master.pages.isEmpty() do
@@ -1551,10 +1560,8 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
 
     for &page in pages
     {
-        for &item in page.items
+        for &item in page.items where not item.story.isEmpty() and item.previousFrame == "n"
         {
-            if item.story.isEmpty() or item.previousFrame != "n" do
-                continue
             let story = stories.tryFind(item.story)
             if not story do
                 continue

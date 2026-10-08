@@ -174,6 +174,28 @@ using Swag, Core
     Swag.assert(f.capture.height == 20)
 }
 
+// Trim Capture finds the opaque pixels of the image: the canvas shrinks to the box they cover, and
+// a part of the image outside the canvas does not count.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 100
+    f.capture.height  = 80
+    f.capture.backImg = Image.create(40, 20, .BGRA8)
+    f.capture.backImg.fill(Argb.Red)
+    f.capture.backImagePos = {-10, 30}
+
+    f.main.sendCommandEvent(ActionImage.TrimCapture)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
+
+    f.capture.undo()
+    Swag.assert(f.capture.width == 100)
+    Swag.assert(f.capture.height == 80)
+}
+
 // Trim Capture can be exercised entirely in memory: it crops to visible content,
 // removes out-of-canvas forms, crops the backing image and can be undone.
 #test

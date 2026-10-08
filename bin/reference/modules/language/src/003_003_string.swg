@@ -289,9 +289,9 @@ Equivalent strings can be written using escape sequences or raw notation.
 /**
 # Multiline Raw Strings
 
-A raw string spans several lines with the '"""' delimiters. Leading spaces up to the
-opening delimiter column are removed from each line, exactly as for an ordinary
-multiline string: re-indentation is layout, not escaping.
+A raw string spans several lines with the '"""' delimiters. Its lines lose the same
+leading spaces as the lines of an ordinary multiline string, described below:
+re-indentation is layout, not escaping.
 */
 #test
 {
@@ -306,13 +306,18 @@ multiline string: re-indentation is layout, not escaping.
 
 Multiline strings start and end with '"""'. Unlike raw strings, escape sequences
 are still processed.
+
+Every line after the first loses its leading spaces up to the column just after the
+opening '"""', so the lines line up under the text that starts the string. Spaces
+beyond that column are kept, which is how a nested block keeps its indentation.
 */
 #test
 {
     const a = """this is
                  a
-                 string
+                   string
                  """
+    #assert(a == "this is\na\n  string\n")
 }
 
 /**

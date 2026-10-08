@@ -245,6 +245,8 @@ public:
     static bool                     queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     std::span<const SemaNarrowFact> narrowFacts() const { return narrowFacts_.span(); }
     bool                            hasNarrowFacts() const { return !narrowFacts_.empty(); }
+    uint32_t                        narrowFactCount() const { return static_cast<uint32_t>(narrowFacts_.size()); }
+    void                            truncateNarrowFacts(uint32_t count) { narrowFacts_.resize(count); }
     void                            clearNarrowFacts() { narrowFacts_.clear(); }
     void                            killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
 

@@ -172,11 +172,8 @@ impl Volume
         if (try .findKeySlot(additional)) != Swag.U64.Max do
             try failWith("That password already opens this container.", .AlreadyExists)
 
-        for index in KeySlotCount
+        for index in KeySlotCount where (.keySlotMask & keySlotBit(index)) == 0
         {
-            if (.keySlotMask & keySlotBit(index)) != 0 do
-                continue
-
             // The slot is reserved before it is written, so an interrupted add
             // wastes a slot instead of letting a later one overwrite a password
             // that already works.

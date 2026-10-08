@@ -214,10 +214,8 @@ impl LibraryWnd
                     }
                 }
 
-                for item, i in libWnd.view.allItems
+                for item, i in libWnd.view.allItems where item!.fi.fullName == file
                 {
-                    if item!.fi.fullName != file do
-                        continue
                     libWnd.view.allItems.deleteAt(i)
                     break
                 }

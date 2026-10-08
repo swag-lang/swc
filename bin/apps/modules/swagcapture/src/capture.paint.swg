@@ -445,6 +445,37 @@ impl Capture
         view.invalidateRect(local)
     }
 
+    // Draws a dashed box around every group with a selected member.
+    mtd paintGroupOutlines(painter: *Painter, rect: Math.Rectangle, zoom: f32)
+    {
+        var ids: Array'u64
+        for s in .selection
+        {
+            let g = formOuterGroup(.forms[s])
+            if g != 0 and not ids.contains(g) do
+                ids.add(g)
+        }
+
+        for gid in ids
+        {
+            var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
+            for f in .forms where formOuterGroup(f) == gid
+            {
+                let br = f.boundRect()
+                bound.x = Math.min(bound.x, br.x)
+                bound.y = Math.min(bound.y, br.y)
+                bound.setRight(Math.max(bound.right(), br.right()))
+                bound.setBottom(Math.max(bound.bottom(), br.bottom()))
+            }
+
+            var vr = bound * zoom
+            vr.offset(rect.x, rect.y)
+            vr.inflate(6)
+            painter.drawRect(vr, Pen.createDash(.Dash, Argb.DarkGray, 3))
+            painter.drawRect(vr, Pen.createDash(.Dash, Argb.White, 1))
+        }
+    }
+
     mtd paint(painter: *Painter, clip, rect: Math.Rectangle)
     {
         painter.fillRect(rect, Argb.LightGray)
@@ -492,20 +523,18 @@ impl Capture
             if not cull.intersects(cullClip) do
                 continue
 
-            if f.mustClipToBound()
+            let clipped = f.mustClipToBound()
+            if clipped
             {
                 var pp = f.boundRect() * zoom
                 pp.offset(rect.x, rect.y)
                 painter.pushClippingRect(pp)
-                if not .paintFormCached(painter, rect, f, zoom) do
-                    paintForm(painter, clip, rect, f, zoom)
+            }
+
+            if not .paintFormCached(painter, rect, f, zoom) do
+                paintForm(painter, clip, rect, f, zoom)
+            if clipped do
                 painter.popClippingRect()
-            }
-            else
-            {
-                if not .paintFormCached(painter, rect, f, zoom) do
-                    paintForm(painter, clip, rect, f, zoom)
-            }
         }
 
         // Gizmos
@@ -525,49 +554,12 @@ impl Capture
 
         // Group outline: a dashed, embossed box around each selected group communicates
         // that its forms move as one unit (the individual member gizmos still show).
-        if not .selection.isEmpty()
-        {
-            var ids: Array'u64
-            for s in .selection
-            {
-                let g = formOuterGroup(.forms[s])
-                if g != 0 and not ids.contains(g) do
-                    ids.add(g)
-            }
-
-            for gid in ids
-            {
-                var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
-                for f in .forms
-                {
-                    if formOuterGroup(f) != gid do
-                        continue
-                    let br = f.boundRect()
-                    bound.x = Math.min(bound.x, br.x)
-                    bound.y = Math.min(bound.y, br.y)
-                    bound.setRight(Math.max(bound.right(), br.right()))
-                    bound.setBottom(Math.max(bound.bottom(), br.bottom()))
-                }
-
-                var vr = bound * zoom
-                vr.offset(rect.x, rect.y)
-                vr.inflate(6)
-                painter.drawRect(vr, Pen.createDash(.Dash, Argb.DarkGray, 3))
-                painter.drawRect(vr, Pen.createDash(.Dash, Argb.White, 1))
-            }
-        }
+        .paintGroupOutlines(painter, rect, zoom)
 
         // Selection rectangle
         if .drawSelRect
         {
-            with var r: Math.Rectangle
-            {
-                .x      = me.movingStart.x
-                .y      = me.movingStart.y
-                .width  = me.movingEnd.x - me.movingStart.x
-                .height = me.movingEnd.y - me.movingStart.y
-            }
-
+            var r = Math.Rectangle{.movingStart.x, .movingStart.y, .movingEnd.x - .movingStart.x, .movingEnd.y - .movingStart.y}
             r.offset(.paintRect.x, .paintRect.y)
             painter.fillRect(r, Color.fromArgb(0x1F, Argb.Cyan))
             painter.drawRect(r, Argb.Cyan, 2)

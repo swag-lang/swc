@@ -168,79 +168,84 @@ impl IWnd for LibraryView
             .openItem(.items[.focusItem])
         }
 
-        if evt.kind == .Pressed and evt.button == .Right and (.hotItem < .items.count or .focusItem < .items.count)
+        if evt.kind == .Pressed and evt.button == .Right and (.hotItem < .items.count or .focusItem < .items.count) do
+            .showItemMenu(evt.surfacePos)
+    }
+
+    // Opens the context menu of the cell under the pointer, or of the focused one: trash actions in
+    // the trash, file actions for an image, and the full capture menu otherwise.
+    mtd showItemMenu(surfacePos: Math.Point)
+    {
+        if .hotItem < .items.count and not .selModel.isSelected(.hotItem)
         {
-            if .hotItem < .items.count and not .selModel.isSelected(.hotItem)
+            .setFocusItem(.hotItem)
+            .focusItem = .hotItem
+        }
+
+        let focused        = .items[.focusItem]
+        let focusedCapture = focused.capture
+
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            if me.libWnd.trashMode
             {
-                .setFocusItem(.hotItem)
-                .focusItem = .hotItem
+                .addItem(ActionLibTrash.Restore)
+                .addSeparator()
+                .addItem(ActionLibTrash.DeleteForever)
             }
-
-            let focused        = .items[.focusItem]
-            let focusedCapture = focused.capture
-
-            with let menu = MenuCtrl.createPopup(me)
+            elif focused.kind == .Image
             {
-                if me.libWnd.trashMode
-                {
-                    .addItem(ActionLibTrash.Restore)
-                    .addSeparator()
-                    .addItem(ActionLibTrash.DeleteForever)
-                }
-                elif focused.kind == .Image
-                {
-                    .addItem(appStrings().act_OpenSelected, "capture.library.open")
-                    .addSeparator()
-                    .addItem(appStrings().act_LocateImage, "capture.library.reveal")
-                }
-                else
-                {
-                    .addItem(appStrings().act_OpenSelected, "capture.library.open")
-                    .addSeparator()
-                    .addItem(ActionFile.CopyImage)
-                    .addItem(appStrings().act_ExportSelected, "capture.library.export")
-                    .addItem(ActionFile.RenameCapture)
-                    .addItem(appStrings().act_EditTags, "capture.library.tags")
-                    .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", checked: focusedCapture and focusedCapture.favorite)
-
-                    with let rating = MenuCtrl.createPopup(menu, owner: me)
-                    {
-                        .addItem(appStrings().act_NoRating, "capture.library.rating.0", checked: focusedCapture and focusedCapture.rating == 0)
-                        .addItem(appStrings().act_Rating1, "capture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
-                        .addItem(appStrings().act_Rating2, "capture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
-                        .addItem(appStrings().act_Rating3, "capture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
-                        .addItem(appStrings().act_Rating4, "capture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
-                        .addItem(appStrings().act_Rating5, "capture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
-                        menu.addPopup(appStrings().act_Rating, rating)
-                    }
-
-                    .addSeparator()
-                    .addItem(ActionFile.DeleteCapture)
-                    .addSeparator()
-                    .addItem(ActionFile.CaptureFileLocation)
-                    .addItem(ActionFile.LinkedFileLocation)
-                    .addSeparator()
-                    .addItem(ActionFile.FileDetails)
-                }
+                .addItem(appStrings().act_OpenSelected, "capture.library.open")
+                .addSeparator()
+                .addItem(appStrings().act_LocateImage, "capture.library.reveal")
             }
-
-            let result = menu.doModal(evt.surfacePos, autoDestroy: true)
-            if not result do
-                return
-            switch result
+            else
             {
-            case "capture.library.open":     .openItem(focused)
-            case "capture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullName)
-            case "capture.library.tags":     .libWnd.editSelectedTags()
-            case "capture.library.export":   .libWnd.exportSelected()
-            case "capture.library.favorite": .libWnd.toggleSelectedFavorite()
-            case "capture.library.rating.0": .libWnd.rateSelected(0)
-            case "capture.library.rating.1": .libWnd.rateSelected(1)
-            case "capture.library.rating.2": .libWnd.rateSelected(2)
-            case "capture.library.rating.3": .libWnd.rateSelected(3)
-            case "capture.library.rating.4": .libWnd.rateSelected(4)
-            case "capture.library.rating.5": .libWnd.rateSelected(5)
+                .addItem(appStrings().act_OpenSelected, "capture.library.open")
+                .addSeparator()
+                .addItem(ActionFile.CopyImage)
+                .addItem(appStrings().act_ExportSelected, "capture.library.export")
+                .addItem(ActionFile.RenameCapture)
+                .addItem(appStrings().act_EditTags, "capture.library.tags")
+                .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", checked: focusedCapture and focusedCapture.favorite)
+
+                with let rating = MenuCtrl.createPopup(menu, owner: me)
+                {
+                    .addItem(appStrings().act_NoRating, "capture.library.rating.0", checked: focusedCapture and focusedCapture.rating == 0)
+                    .addItem(appStrings().act_Rating1, "capture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
+                    .addItem(appStrings().act_Rating2, "capture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
+                    .addItem(appStrings().act_Rating3, "capture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
+                    .addItem(appStrings().act_Rating4, "capture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
+                    .addItem(appStrings().act_Rating5, "capture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
+                    menu.addPopup(appStrings().act_Rating, rating)
+                }
+
+                .addSeparator()
+                .addItem(ActionFile.DeleteCapture)
+                .addSeparator()
+                .addItem(ActionFile.CaptureFileLocation)
+                .addItem(ActionFile.LinkedFileLocation)
+                .addSeparator()
+                .addItem(ActionFile.FileDetails)
             }
+        }
+
+        let result = menu.doModal(surfacePos, autoDestroy: true)
+        if not result do
+            return
+        switch result
+        {
+        case "capture.library.open":     .openItem(focused)
+        case "capture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullName)
+        case "capture.library.tags":     .libWnd.editSelectedTags()
+        case "capture.library.export":   .libWnd.exportSelected()
+        case "capture.library.favorite": .libWnd.toggleSelectedFavorite()
+        case "capture.library.rating.0": .libWnd.rateSelected(0)
+        case "capture.library.rating.1": .libWnd.rateSelected(1)
+        case "capture.library.rating.2": .libWnd.rateSelected(2)
+        case "capture.library.rating.3": .libWnd.rateSelected(3)
+        case "capture.library.rating.4": .libWnd.rateSelected(4)
+        case "capture.library.rating.5": .libWnd.rateSelected(5)
         }
     }
 
@@ -561,32 +566,23 @@ impl LibraryView
         }
     }
 
-    // Case-insensitive substring test used by the library search box. Matches the
-    // capture title, the linked image path and the capture file name so the user can
+    // Case-insensitive substring test used by the library search box. Matches the file name, and
+    // for a capture its title, its linked image, where it was taken, and its tags, so the user can
     // find a capture by any of the names it is known under.
     mtd const matchSearch(it: *LibraryItem, capture: *Capture?, search: String)->bool
     {
-        if search.isEmpty() do
-            return true
-        if capture
-        {
-            if Utf8.indexOf(capture.title.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-            if Utf8.indexOf(capture.linkedImage.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-            if Utf8.indexOf(capture.sourceApplication.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-            if Utf8.indexOf(capture.sourceExecutable.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-            if Utf8.indexOf(capture.sourceWindowTitle.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-            if Utf8.indexOf(capture.sourceWindowClass.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-            for tag in capture.tags where Utf8.indexOf(tag.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-                return true
-        }
+        func contains(text: const [..] u8, search: string)->bool => Utf8.indexOf(text, search, 0, .Latin1NoCase) != Swag.U64.Max
 
-        if Utf8.indexOf(it.fi.fullName.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+        if search.isEmpty() or contains(it.fi.fullName.toSlice(), search) do
+            return true
+        if not capture do
+            return false
+
+        let names = [capture.title.toSlice(), capture.linkedImage.toSlice(), capture.sourceApplication.toSlice(),
+                     capture.sourceExecutable.toSlice(), capture.sourceWindowTitle.toSlice(), capture.sourceWindowClass.toSlice()]
+        for name in names where contains(name, search) do
+            return true
+        for tag in capture.tags where contains(tag.toSlice(), search) do
             return true
         return false
     }

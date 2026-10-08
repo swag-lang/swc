@@ -23,7 +23,7 @@ private func createAlignButton(line: *Wnd, vert: bool, width, height: f32, index
         // (the headless fixtures build panels without a full application).
         if g_Main
         {
-            let base = vert ? CaptureIcons.AlignTop : CaptureIcons.TextAlignLeft
+            let base = vert ? CaptureIcons.AlignTop : .TextAlignLeft
             .setIcon(g_Main!.icon(cast(CaptureIcons, (cast(s32, base) + index))))
         }
         else

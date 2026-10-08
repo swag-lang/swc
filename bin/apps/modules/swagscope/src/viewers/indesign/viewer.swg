@@ -248,11 +248,8 @@ private impl Panel
 
     mtd showCachedPreview(index: u64)->bool
     {
-        for &preview in .cachedPreviews
+        for &preview in .cachedPreviews where preview.index == index
         {
-            if preview.index != index do
-                continue
-
             preview.lastUsed = .nextPreviewUse()
             .imageView.setImage(preview.image)
             .hasPreviewContent = true

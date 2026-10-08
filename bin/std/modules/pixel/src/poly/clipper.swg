@@ -1978,14 +1978,14 @@ impl Transform
                 // 2. promote horizontal edges, otherwise update curr.x and curr.y ...
                 if isIntermediate(nnEdge(e), topY) and isHorizontal(nnEdge(nnEdge(e).nextInLML))
                 {
-                    e = .updateEdgeIntoAEL(e!)
+                    e = .updateEdgeIntoAEL(e)
                     if e.outIdx >= 0 do
                         .addOutPt(nnEdge(e), nnEdge(e).bot)
                     .addEdgeToSEL(nnEdge(e))
                 }
                 else
                 {
-                    let ec2 = e!
+                    let ec2 = e
                     ec2.curr.x = topX(ec2, topY)
                     ec2.curr.y = topY
                 }
@@ -2415,7 +2415,7 @@ impl Transform
         }
         elif .isEvenOddFillType(edge)
         {
-            let en = e!
+            let en = e
             if edge.windDelta == 0
             {
                 var inside = true
@@ -2439,7 +2439,7 @@ impl Transform
         }
         else
         {
-            let en = e!
+            let en = e
             if en.windCnt * en.windDelta < 0
             {
                 if Math.abs(en.windCnt) > 1

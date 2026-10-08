@@ -254,10 +254,12 @@ Similarly, `Math.byteAt(word, 0)` names extraction of the least significant byte
 range contract before replacing an arbitrary shift with this helper. Keep bit masks and shifts
 for non-byte fields and SIMD operations; do not force a scalar byte API onto another domain.
 When decoding a narrow unit into a wider working value, perform endian conversion at the encoded
-width before widening. For example, assemble a UTF-16 unit with `Math.make16`, apply `Math.byteswap`
-to that `u16` for big-endian input, then cast to `u32` for scalar comparisons. Swapping after the
-cast would exchange four bytes instead of two. Keep a boundary test when the decoded unit decides
-whether a chunk must retain a complete surrogate pair.
+width before widening. Be explicit about the initial byte order: `Math.make16(bytes[1], bytes[0])`
+assembles a little-endian baseline. A reader supporting both orders can keep that `u16` for
+little-endian input or swap it for big-endian input, then cast to `u32` for scalar comparisons.
+By contrast, `Math.make16(bytes[0], bytes[1])` already assembles big-endian input and needs no swap.
+Swapping after a cast to `u32` would exchange four bytes instead of two. Keep a boundary test when
+the decoded unit decides whether a chunk must retain a complete surrogate pair.
 For example, Unicode case mapping uses a low bit to select a member of an upper/lower pair.
 Keep that bit operation explicit, and name the pair offset and case offset when their combination
 otherwise needs a long explanatory comment. Retain the explanation of the invariant; remove

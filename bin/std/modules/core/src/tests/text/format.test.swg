@@ -149,3 +149,16 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.assert(Format.toString("%{f2}", 1.005) == "1.00")
     Swag.assert(Format.toString("%", 0.00012) == "0.00012")
 }
+
+// Format views need no terminator, including at a final placeholder or escaped percent.
+#test
+{
+    let storage = "text %% % trailing"
+    let view    = storage[until 9]
+    Swag.assert(Format.toString(view, 42) == "text % 42")
+    Swag.assert(Format.toString("plain text") == "plain text")
+    Swag.assert(Format.toString("%%") == "%")
+    Swag.assert(Format.toString("%% tail") == "% tail")
+    Swag.assert(Format.toString("%", 42) == "42")
+    Swag.assert(Format.toString("%{#1} % tail", "first", "second") == "second first tail")
+}

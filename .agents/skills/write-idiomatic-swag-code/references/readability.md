@@ -184,6 +184,12 @@ counts. Exercise complete and truncated names as well as optional validation.
 
 ## Extract A Decision Without Eager Evaluation
 
+For a scanner with a small ordinary-byte path and a large marker path, advance and `continue`
+for ordinary bytes before entering the marker's phases. This can remove an indentation level
+without fragmenting the state machine into helpers. Keep cursor advancement on the same paths,
+preserve cleanup scopes, and check the final literal, escaped markers, and bounded string views.
+Use separate names for the scan cursor, the pending literal's start, and the next argument index.
+
 A loop should expose when it flushes a block, not require its reader to reconstruct a buffer
 threshold, a size threshold, and a compression estimate from one nested condition. A private
 `shouldFlushBlock` predicate can own that coherent decision even when it has one caller. Keep

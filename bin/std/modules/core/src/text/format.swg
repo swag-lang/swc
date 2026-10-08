@@ -8,11 +8,14 @@ using Swag
 // `fct` names the formatting function in the message, which points at `values`.
 func checkFormat(fct: string, fmt: string, values: ...)
 {
-    let cptPercent = countPercent(fmt)
-    if cptPercent != values.count
+    let placeholderCount = countPercent(fmt)
+    if placeholderCount != values.count
     {
-        let str = toString("bad number of arguments to [[%]] ([[%]] requested, [[%]] provided)", fct, cptPercent, values.count)
-        Swag.compilerError(str, #location(values))
+        let message = toString("bad number of arguments to [[%]] ([[%]] requested, [[%]] provided)",
+                               fct,
+                               placeholderCount,
+                               values.count)
+        Swag.compilerError(message, #location(values))
     }
 }
 
@@ -22,19 +25,19 @@ func checkFormat(fct: string, fmt: string, values: ...)
 #[ConstExpr]
 func countPercent(fmt: string)->u32
 {
-    var cptPercent = 0'u32
-    for var i = 0; i < fmt.count; i += 1
+    var placeholderCount = 0'u32
+    for var byteIndex = 0; byteIndex < fmt.count; byteIndex += 1
     {
-        if fmt[i] != '%'u8 do
+        if fmt[byteIndex] != '%'u8 do
             continue
 
-        if i == fmt.count - 1 or fmt[i + 1] != '%'u8 do
-            cptPercent += 1
+        if byteIndex == fmt.count - 1 or fmt[byteIndex + 1] != '%'u8 do
+            placeholderCount += 1
         else do
-            i += 1
+            byteIndex += 1
     }
 
-    return cptPercent
+    return placeholderCount
 }
 
 // Replaces `dest` with `fmt` formatted with `values`, reusing its capacity when sufficient.
@@ -82,88 +85,88 @@ func toString(fmt: string, values: ...)->String
 // Appends `fmt` formatted with `values` to `buf`, following the rules of [[Core.Format.toString]].
 func append(buf: *ConcatBuffer, fmt: string, values: ...)
 {
-    let ptr = fmt.buffer
-    let cpt = fmt.count
+    let bytes     = fmt.buffer
+    let byteCount = fmt.count
 
-    var idx       = 0'u32
-    var nextIdx   = 0'u32
-    var paramIdx  = 0'u32
-    let numParams = values.count
+    var literalStart  = 0'u32
+    var cursor        = 0'u32
+    var nextArgument  = 0'u32
+    let argumentCount = values.count
 
-    let convFmt: StrConv.ConvertFormat
+    let defaultFormat: StrConv.ConvertFormat
 
-    while nextIdx < cpt
+    while cursor < byteCount
     {
-        if ptr[nextIdx] == '%'u8
+        if bytes[cursor] != '%'u8
         {
-            // Add the text before the mark, and start again after it.
-            buf.addBytes(fmt[idx until nextIdx])
-            idx     = nextIdx + 1
-            nextIdx = idx
+            cursor += 1
+            continue
+        }
 
-            // Deal with the parameter. %% is for one % only. The format is a view with no
-            // guaranteed terminator: every read past a mark checks the end first.
-            if nextIdx < cpt and ptr[nextIdx] == '%'u8
+        // Add the text before the mark, and start again after it.
+        buf.addBytes(fmt[literalStart until cursor])
+        literalStart = cursor + 1
+        cursor       = literalStart
+
+        // An escaped percent consumes no argument. This view has no guaranteed terminator;
+        // check the end before reading beyond a percent or a format delimiter.
+        if cursor < byteCount and bytes[cursor] == '%'u8
+        {
+            buf.addNative('%'u8)
+            cursor       += 1
+            literalStart += 1
+            continue
+        }
+
+        // Optional string format, like '%{whatever}'
+        var formatOptions: const [..] u8?
+        if cursor < byteCount and bytes[cursor] == '{'u8
+        {
+            cursor += 1
+            let optionStart  = bytes + cursor
+            var optionLength = 0'u32
+            while cursor < byteCount and bytes[cursor] != '}'u8
             {
-                buf.addNative('%'u8)
-                nextIdx += 1
-                idx     += 1
-                continue
+                optionLength += 1
+                cursor       += 1
             }
 
-            // Optional string format, like '%{whatever}'
-            var strFormat: const [..] u8?
-            if nextIdx < cpt and ptr[nextIdx] == '{'u8
-            {
-                nextIdx += 1
-                let ptrFormat   = ptr + nextIdx
-                var countFormat = 0'u32
-                while nextIdx < cpt and ptr[nextIdx] != '}'u8
-                {
-                    countFormat += 1
-                    nextIdx     += 1
-                }
+            if cursor < byteCount do
+                cursor += 1
+            literalStart  = cursor
+            formatOptions = Swag.makeSlice(optionStart, cast(u64, optionLength))
+        }
 
-                if nextIdx < cpt do
-                    nextIdx += 1
-                idx       = nextIdx
-                strFormat = Swag.makeSlice(ptrFormat, cast(u64, countFormat))
-            }
+        // '#' starts an explicit 0-based argument index, so a translation can reorder
+        // its arguments. It targets one placeholder only and leaves the running
+        // position of the plain '%' placeholders untouched.
+        var argumentIndex = nextArgument
+        if formatOptions != null and formatOptions.count and formatOptions[0] == '#'u8
+        {
+            let indexSpec = cast(string, Swag.makeSlice(formatOptions.buffer + 1, formatOptions.count - 1))
+            let {parsedIndex, consumedBytes, ?} = expect StrConv.parseU64(indexSpec)
+            Swag.assert(consumedBytes != 0, "missing argument index after '#'")
+            argumentIndex = cast(u32, parsedIndex)
 
-            // '#' starts an explicit 0-based argument index, so a translation can reorder
-            // its arguments. It targets one placeholder only and leaves the running
-            // position of the plain '%' placeholders untouched.
-            var useIdx = paramIdx
-            if strFormat != null and strFormat.count and strFormat[0] == '#'u8
-            {
-                let spec = cast(string, Swag.makeSlice(strFormat.buffer + 1, strFormat.count - 1))
-                let {argIdx, eatCount, ?} = expect StrConv.parseU64(spec)
-                Swag.assert(eatCount != 0, "missing argument index after '#'")
-                useIdx = cast(u32, argIdx)
-
-                // An optional conversion format follows ':'.
-                strFormat = null
-                if eatCount < spec.count and spec[eatCount] == ':'u8 do
-                    strFormat = Swag.makeSlice(spec.buffer + eatCount + 1, spec.count - eatCount - 1)
-            }
-            else
-            {
-                paramIdx += 1
-            }
-
-            // Deal with the parameter
-            Swag.assert(useIdx < numParams, "not enough 'format' parameters")
-            StrConv.convertAny(buf, values[useIdx], convFmt, cast(string?, strFormat))
+            // An optional conversion format follows ':'.
+            formatOptions = null
+            if consumedBytes < indexSpec.count and indexSpec[consumedBytes] == ':'u8 do
+                formatOptions = Swag.makeSlice(indexSpec.buffer + consumedBytes + 1,
+                                               indexSpec.count - consumedBytes - 1)
         }
         else
         {
-            nextIdx += 1
+            nextArgument += 1
         }
+
+        // Convert the selected argument with this placeholder's options.
+        Swag.assert(argumentIndex < argumentCount, "not enough 'format' parameters")
+        StrConv.convertAny(buf, values[argumentIndex], defaultFormat, cast(string?, formatOptions))
     }
 
     // Add the remaining text.
-    if idx < nextIdx do
-        buf.addBytes(fmt[idx until nextIdx])
+    if literalStart < cursor do
+        buf.addBytes(fmt[literalStart until cursor])
 }
 
 // Appends `exp` to `buf`, with each `{expr}` or `{expr:format}` replaced by the value of `expr`.

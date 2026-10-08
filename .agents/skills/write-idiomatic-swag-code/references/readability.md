@@ -178,6 +178,13 @@ instead of moving the whole group's comments. Prefer this to padding short field
 literal or shrinking useful names. Keep genuine data rows intact when their horizontal pattern
 helps comparison.
 
+Several long rows can form a legitimate width cluster rather than a single outlier. If a table
+mixes different semantic families, separate those families with one blank line before formatting.
+For example, group vector constants `Zero`, `One`, and `UnitX` together, then put numeric limits
+such as `Max` and `Min` in their own paragraph. The comments can align close to each group without
+teaching the formatter to guess what the constants mean. Do not split a coherent table solely to
+obtain a lower line-width count.
+
 Before changing an automatic rule, inspect representative declarations, guards, closures,
 tables, comments, and deliberately unusual compiler fixtures. Verify the intended output and
 second-pass stability, then follow `validate-swag-changes` for the real source formatting pass.

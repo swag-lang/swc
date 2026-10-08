@@ -12,17 +12,18 @@ struct Vector3
 
 impl Vector3
 {
-    const Zero     = Vector3{0, 0, 0}                                         // Zero vector (0, 0, 0)
-    const One      = Vector3{1, 1, 1}                                         // All components set to one (1, 1, 1)
-    const UnitX    = Vector3{1, 0, 0}                                         // Unit vector along the X axis (1, 0, 0)
-    const UnitY    = Vector3{0, 1, 0}                                         // Unit vector along the Y axis (0, 1, 0)
-    const UnitZ    = Vector3{0, 0, 1}                                         // Unit vector along the Z axis (0, 0, 1)
-    const NegUnitX = Vector3{-1, 0, 0}                                        // Unit vector along the negative X axis (-1, 0, 0)
-    const NegUnitY = Vector3{0, -1, 0}                                        // Unit vector along the negative Y axis (0, -1, 0)
-    const NegUnitZ = Vector3{0, 0, -1}                                        // Unit vector along the negative Z axis (0, 0, -1)
-    const Max      = Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}        // Largest finite `f32` in every component
-    const NegMax   = Vector3{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
-    const Min      = Vector3{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}        // Smallest positive normalized `f32` in every component, not the most negative value
+    const Zero     = Vector3{0, 0, 0}      // Zero vector (0, 0, 0)
+    const One      = Vector3{1, 1, 1}      // All components set to one (1, 1, 1)
+    const UnitX    = Vector3{1, 0, 0}      // Unit vector along the X axis (1, 0, 0)
+    const UnitY    = Vector3{0, 1, 0}      // Unit vector along the Y axis (0, 1, 0)
+    const UnitZ    = Vector3{0, 0, 1}      // Unit vector along the Z axis (0, 0, 1)
+    const NegUnitX = Vector3{-1, 0, 0}     // Unit vector along the negative X axis (-1, 0, 0)
+    const NegUnitY = Vector3{0, -1, 0}     // Unit vector along the negative Y axis (0, -1, 0)
+    const NegUnitZ = Vector3{0, 0, -1}     // Unit vector along the negative Z axis (0, 0, -1)
+
+    const Max    = Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}        // Largest finite `f32` in every component
+    const NegMax = Vector3{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
+    const Min    = Vector3{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}        // Smallest positive normalized `f32` in every component, not the most negative value
 
     // Sets every component to `value`.
     //
@@ -157,7 +158,13 @@ impl Vector3
     // The result is perpendicular to both vectors, and its length is the area of the parallelogram
     // they span. The orientation follows the axes: `UnitX.cross(UnitY)` is `UnitZ`.
     #[Swag.Inline]
-    mtd const cross(other: Vector3)->Vector3 => Vector3{(.y * other.z) - (.z * other.y), (.z * other.x) - (.x * other.z), (.x * other.y) - (.y * other.x)}
+    mtd const cross(other: Vector3)->Vector3
+    {
+        return Vector3{
+            (.y * other.z) - (.z * other.y),
+            (.z * other.x) - (.x * other.z),
+            (.x * other.y) - (.y * other.x)}
+    }
 
     // Sets every component to zero.
     #[Swag.Inline]
@@ -182,10 +189,20 @@ impl Vector3
     mtd const isZero()->bool => .x == 0 and .y == 0 and .z == 0
 
     // Returns whether every component is closer to zero than `eps`.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps) and Math.isZeroEpsilon(.z, eps)
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isZeroEpsilon(.x, eps) and
+               Math.isZeroEpsilon(.y, eps) and
+               Math.isZeroEpsilon(.z, eps)
+    }
 
     // Returns whether every component is closer than `eps` to the matching component of `other`.
-    mtd const isEqualEpsilon(other: Vector3, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps) and Math.isEqualEpsilon(.z, other.z, eps)
+    mtd const isEqualEpsilon(other: Vector3, eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isEqualEpsilon(.x, other.x, eps) and
+               Math.isEqualEpsilon(.y, other.y, eps) and
+               Math.isEqualEpsilon(.z, other.z, eps)
+    }
 
     // Returns the Euclidean distance between this vector and `dest`.
     mtd const distanceTo(dest: Vector3)->f32
@@ -282,21 +299,13 @@ impl Vector3
     // Returns the component-wise minimum of `a` and `b`.
     func min(a, b: Vector3)->Vector3
     {
-        var result: retval
-        result.x = Math.min(a.x, b.x)
-        result.y = Math.min(a.y, b.y)
-        result.z = Math.min(a.z, b.z)
-        return result
+        return Vector3{Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z)}
     }
 
     // Returns the component-wise maximum of `a` and `b`.
     func max(a, b: Vector3)->Vector3
     {
-        var result: retval
-        result.x = Math.max(a.x, b.x)
-        result.y = Math.max(a.y, b.y)
-        result.z = Math.max(a.z, b.z)
-        return result
+        return Vector3{Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z)}
     }
 
     // Rounds every component down to an integer value in place.
@@ -362,7 +371,13 @@ impl Vector3
     }
 
     // Returns this vector with every component clamped between the matching components of `min` and `max`.
-    mtd const clamped(min, max: Vector3)->Vector3 => Vector3{Math.clamp(.x, min.x, max.x), Math.clamp(.y, min.y, max.y), Math.clamp(.z, min.z, max.z)}
+    mtd const clamped(min, max: Vector3)->Vector3
+    {
+        return Vector3{
+            Math.clamp(.x, min.x, max.x),
+            Math.clamp(.y, min.y, max.y),
+            Math.clamp(.z, min.z, max.z)}
+    }
 
     // Scales this vector in place so that its length lies between `minLength` and `maxLength`.
     //

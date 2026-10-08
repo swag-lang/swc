@@ -251,6 +251,9 @@ if it destroys a useful reading boundary, investigate the formatter.
   preserve documentation ownership and comment directives when moving it.
 - Compare related operations in the same order and shape when their contracts match. Keep a
   complex sibling expanded and make exceptions visible instead of hiding them for symmetry.
+- In component-wise calculations, use one component per line when each component has its own
+  arithmetic or call arguments. Keep short coordinate tuples compact. A long Boolean comparison
+  reads similarly: one component check per line, preserving short-circuit order.
 
 ## Return Values Directly
 
@@ -259,6 +262,10 @@ if it destroys a useful reading boundary, investigate the formatter.
 - Construct non-trivial returned values in `retval` storage. Use `var result: retval` or
   `with var result: retval` when fields are filled incrementally, so ownership and return-slot
   construction stay explicit.
+- For a plain value such as a vector of scalars, return an aggregate literal when it shows the
+  complete result directly. Remove a temporary plus repetitive field writes only when defaults,
+  ownership, evaluation order, and side effects remain unchanged. Keep effectful per-component
+  updates explicit, as in `smoothDamp` with its mutable velocity argument.
 - Return a tuple or a named result struct for several cohesive results. Keep output parameters
   only for genuine in-place mutation, caller-provided reusable storage, or a low-level/native ABI.
 - A successful `create` or `load` must return a valid value. Report recoverable failure with
@@ -413,6 +420,9 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   describing one value together. Separate a guard group from the main operation when that makes
   the transition clearer; do not add a blank line after every declaration or early exit.
 - Do not open or close a block with a blank line, and never use two blank lines to group.
+- Group constants by meaning before aligning them: ordinary vectors and numeric limits are
+  separate families. A blank line lets each family keep nearby comments; do not split coherent
+  data merely because several rows are longer. See the [review guide](references/readability.md).
 - Use short comments as reading landmarks for substantial phases, even when no subtle trick is
   involved: `// Resolve names before publishing the entries.` gives the next paragraph a purpose.
   Put one blank line before the comment and keep it attached to its code. Avoid banners, numbered

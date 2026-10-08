@@ -13,15 +13,16 @@ struct Vector2
 
 impl Vector2
 {
-    const Zero     = Vector2{0, 0}                             // Zero vector (0, 0)
-    const One      = Vector2{1, 1}                             // Both components set to one (1, 1)
-    const UnitX    = Vector2{1, 0}                             // Unit vector along the X axis (1, 0)
-    const UnitY    = Vector2{0, 1}                             // Unit vector along the Y axis (0, 1)
-    const NegUnitX = Vector2{-1, 0}                            // Unit vector along the negative X axis (-1, 0)
-    const NegUnitY = Vector2{0, -1}                            // Unit vector along the negative Y axis (0, -1)
-    const Max      = Vector2{Swag.F32.Max, Swag.F32.Max}       // Largest finite `f32` in every component
-    const NegMax   = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
-    const Min      = Vector2{Swag.F32.Min, Swag.F32.Min}       // Smallest positive normalized `f32` in every component, not the most negative value
+    const Zero     = Vector2{0, 0}      // Zero vector (0, 0)
+    const One      = Vector2{1, 1}      // Both components set to one (1, 1)
+    const UnitX    = Vector2{1, 0}      // Unit vector along the X axis (1, 0)
+    const UnitY    = Vector2{0, 1}      // Unit vector along the Y axis (0, 1)
+    const NegUnitX = Vector2{-1, 0}     // Unit vector along the negative X axis (-1, 0)
+    const NegUnitY = Vector2{0, -1}     // Unit vector along the negative Y axis (0, -1)
+
+    const Max    = Vector2{Swag.F32.Max, Swag.F32.Max}       // Largest finite `f32` in every component
+    const NegMax = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
+    const Min    = Vector2{Swag.F32.Min, Swag.F32.Min}       // Smallest positive normalized `f32` in every component, not the most negative value
 
     // Sets both components to `value`.
     //
@@ -178,10 +179,18 @@ impl Vector2
     mtd const isZero()->bool => .x == 0 and .y == 0
 
     // Returns whether both components are closer to zero than `eps`.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps)
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isZeroEpsilon(.x, eps) and
+               Math.isZeroEpsilon(.y, eps)
+    }
 
     // Returns whether every component is closer than `eps` to the matching component of `other`.
-    mtd const isEqualEpsilon(other: Vector2, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
+    mtd const isEqualEpsilon(other: Vector2, eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isEqualEpsilon(.x, other.x, eps) and
+               Math.isEqualEpsilon(.y, other.y, eps)
+    }
 
     // Returns the Euclidean distance between this vector and `dest`.
     mtd const distanceTo(dest: Vector2)->f32
@@ -272,19 +281,13 @@ impl Vector2
     // Returns the component-wise minimum of `a` and `b`.
     func min(a, b: Vector2)->Vector2
     {
-        var result: retval
-        result.x = Math.min(a.x, b.x)
-        result.y = Math.min(a.y, b.y)
-        return result
+        return Vector2{Math.min(a.x, b.x), Math.min(a.y, b.y)}
     }
 
     // Returns the component-wise maximum of `a` and `b`.
     func max(a, b: Vector2)->Vector2
     {
-        var result: retval
-        result.x = Math.max(a.x, b.x)
-        result.y = Math.max(a.y, b.y)
-        return result
+        return Vector2{Math.max(a.x, b.x), Math.max(a.y, b.y)}
     }
 
     // Rounds both components down to integer values in place.
@@ -371,7 +374,12 @@ impl Vector2
     }
 
     // Returns this vector with every component clamped between the matching components of `min` and `max`.
-    mtd const clamped(min, max: Vector2)->Vector2 => Vector2{Math.clamp(.x, min.x, max.x), Math.clamp(.y, min.y, max.y)}
+    mtd const clamped(min, max: Vector2)->Vector2
+    {
+        return Vector2{
+            Math.clamp(.x, min.x, max.x),
+            Math.clamp(.y, min.y, max.y)}
+    }
 
     // Scales this vector in place so that its length lies between `minLength` and `maxLength`.
     //

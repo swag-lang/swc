@@ -13,19 +13,20 @@ struct Vector4
 
 impl Vector4
 {
-    const Zero     = Vector4{0, 0, 0, 0}                                                     // Zero vector (0, 0, 0, 0)
-    const One      = Vector4{1, 1, 1, 1}                                                     // All components set to one (1, 1, 1, 1)
-    const UnitX    = Vector4{1, 0, 0, 0}                                                     // Unit vector along the X axis (1, 0, 0, 0)
-    const UnitY    = Vector4{0, 1, 0, 0}                                                     // Unit vector along the Y axis (0, 1, 0, 0)
-    const UnitZ    = Vector4{0, 0, 1, 0}                                                     // Unit vector along the Z axis (0, 0, 1, 0)
-    const UnitW    = Vector4{0, 0, 0, 1}                                                     // Unit vector along the W axis (0, 0, 0, 1)
-    const NegUnitX = Vector4{-1, 0, 0, 0}                                                    // Unit vector along the negative X axis (-1, 0, 0, 0)
-    const NegUnitY = Vector4{0, -1, 0, 0}                                                    // Unit vector along the negative Y axis (0, -1, 0, 0)
-    const NegUnitZ = Vector4{0, 0, -1, 0}                                                    // Unit vector along the negative Z axis (0, 0, -1, 0)
-    const NegUnitW = Vector4{0, 0, 0, -1}                                                    // Unit vector along the negative W axis (0, 0, 0, -1)
-    const Max      = Vector4{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}         // Largest finite `f32` in every component
-    const NegMax   = Vector4{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
-    const Min      = Vector4{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}         // Smallest positive normalized `f32` in every component, not the most negative value
+    const Zero     = Vector4{0, 0, 0, 0}      // Zero vector (0, 0, 0, 0)
+    const One      = Vector4{1, 1, 1, 1}      // All components set to one (1, 1, 1, 1)
+    const UnitX    = Vector4{1, 0, 0, 0}      // Unit vector along the X axis (1, 0, 0, 0)
+    const UnitY    = Vector4{0, 1, 0, 0}      // Unit vector along the Y axis (0, 1, 0, 0)
+    const UnitZ    = Vector4{0, 0, 1, 0}      // Unit vector along the Z axis (0, 0, 1, 0)
+    const UnitW    = Vector4{0, 0, 0, 1}      // Unit vector along the W axis (0, 0, 0, 1)
+    const NegUnitX = Vector4{-1, 0, 0, 0}     // Unit vector along the negative X axis (-1, 0, 0, 0)
+    const NegUnitY = Vector4{0, -1, 0, 0}     // Unit vector along the negative Y axis (0, -1, 0, 0)
+    const NegUnitZ = Vector4{0, 0, -1, 0}     // Unit vector along the negative Z axis (0, 0, -1, 0)
+    const NegUnitW = Vector4{0, 0, 0, -1}     // Unit vector along the negative W axis (0, 0, 0, -1)
+
+    const Max    = Vector4{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}         // Largest finite `f32` in every component
+    const NegMax = Vector4{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
+    const Min    = Vector4{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}         // Smallest positive normalized `f32` in every component, not the most negative value
 
     // Sets every component to `value`.
     //
@@ -188,10 +189,22 @@ impl Vector4
     mtd const isZero()->bool => .x == 0 and .y == 0 and .z == 0 and .w == 0
 
     // Returns whether every component is closer to zero than `eps`.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps) and Math.isZeroEpsilon(.z, eps) and Math.isZeroEpsilon(.w, eps)
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isZeroEpsilon(.x, eps) and
+               Math.isZeroEpsilon(.y, eps) and
+               Math.isZeroEpsilon(.z, eps) and
+               Math.isZeroEpsilon(.w, eps)
+    }
 
     // Returns whether every component is closer than `eps` to the matching component of `other`.
-    mtd const isEqualEpsilon(other: Vector4, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps) and Math.isEqualEpsilon(.z, other.z, eps) and Math.isEqualEpsilon(.w, other.w, eps)
+    mtd const isEqualEpsilon(other: Vector4, eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isEqualEpsilon(.x, other.x, eps) and
+               Math.isEqualEpsilon(.y, other.y, eps) and
+               Math.isEqualEpsilon(.z, other.z, eps) and
+               Math.isEqualEpsilon(.w, other.w, eps)
+    }
 
     // Returns the Euclidean distance between this vector and `dest`.
     mtd const distanceTo(dest: Vector4)->f32
@@ -294,23 +307,13 @@ impl Vector4
     // Returns the component-wise minimum of `a` and `b`.
     func min(a, b: Vector4)->Vector4
     {
-        var result: retval
-        result.x = Math.min(a.x, b.x)
-        result.y = Math.min(a.y, b.y)
-        result.z = Math.min(a.z, b.z)
-        result.w = Math.min(a.w, b.w)
-        return result
+        return Vector4{Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z), Math.min(a.w, b.w)}
     }
 
     // Returns the component-wise maximum of `a` and `b`.
     func max(a, b: Vector4)->Vector4
     {
-        var result: retval
-        result.x = Math.max(a.x, b.x)
-        result.y = Math.max(a.y, b.y)
-        result.z = Math.max(a.z, b.z)
-        result.w = Math.max(a.w, b.w)
-        return result
+        return Vector4{Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z), Math.max(a.w, b.w)}
     }
 
     // Rounds every component down to an integer value in place.
@@ -381,7 +384,14 @@ impl Vector4
     }
 
     // Returns this vector with every component clamped between the matching components of `min` and `max`.
-    mtd const clamped(min, max: Vector4)->Vector4 => Vector4{Math.clamp(.x, min.x, max.x), Math.clamp(.y, min.y, max.y), Math.clamp(.z, min.z, max.z), Math.clamp(.w, min.w, max.w)}
+    mtd const clamped(min, max: Vector4)->Vector4
+    {
+        return Vector4{
+            Math.clamp(.x, min.x, max.x),
+            Math.clamp(.y, min.y, max.y),
+            Math.clamp(.z, min.z, max.z),
+            Math.clamp(.w, min.w, max.w)}
+    }
 
     // Scales this vector in place so that its length lies between `minLength` and `maxLength`.
     //

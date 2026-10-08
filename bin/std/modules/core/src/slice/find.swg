@@ -1,17 +1,21 @@
 #global export
 #global namespace Slice
 
+using Math
+
 private func findByte(values: const [*] u8, count: u64, value: u8)->u64
 {
-    const VectorSize = #sizeof(Math.Simd.U8x16)
-    let needle = Math.Simd.splat(value)
+    const VectorSize = #sizeof(Simd.U8x16)
+    let needle = Simd.splat(value)
     var offset = 0'u64
     while count - offset >= 4 * VectorSize
     {
-        let matches0 = Math.Simd.bitmask(Math.Simd.load(values + offset) == needle)
-        let matches1 = Math.Simd.bitmask(Math.Simd.load(values + offset + VectorSize) == needle)
-        let matches2 = Math.Simd.bitmask(Math.Simd.load(values + offset + 2 * VectorSize) == needle)
-        let matches3 = Math.Simd.bitmask(Math.Simd.load(values + offset + 3 * VectorSize) == needle)
+        let block    = values + offset
+        let matches0 = Simd.bitmask(Simd.load(block) == needle)
+        let matches1 = Simd.bitmask(Simd.load(block + VectorSize) == needle)
+        let matches2 = Simd.bitmask(Simd.load(block + 2 * VectorSize) == needle)
+        let matches3 = Simd.bitmask(Simd.load(block + 3 * VectorSize) == needle)
+
         if matches0 do
             return offset + Math.trailingZeros(matches0)
         if matches1 do
@@ -23,9 +27,10 @@ private func findByte(values: const [*] u8, count: u64, value: u8)->u64
         offset += 4 * VectorSize
     }
 
+    // Finish with whole vectors, then individual bytes.
     while count - offset >= VectorSize
     {
-        let matches = Math.Simd.bitmask(Math.Simd.load(values + offset) == needle)
+        let matches = Simd.bitmask(Simd.load(values + offset) == needle)
         if matches do
             return offset + Math.trailingZeros(matches)
         offset += VectorSize
@@ -119,9 +124,11 @@ func findSubslice(values, subslice: const [..] u8)->u64
     let subData        = subslice.buffer
     let lastStart      = valueCount - subCount
     let candidateCount = lastStart + 1
-    const VectorSize = #sizeof(Math.Simd.U8x16)
-    let needle = Math.Simd.splat(subData[0])
+    const VectorSize = #sizeof(Simd.U8x16)
+    let needle = Simd.splat(subData[0])
     var offset = 0'u64
+
+    // Filter candidate starts by their first byte before comparing the complete subslice.
     while offset <= lastStart
     {
         let relative = findByte(valueData + offset, candidateCount - offset, subData[0])
@@ -130,7 +137,7 @@ func findSubslice(values, subslice: const [..] u8)->u64
         offset += relative
         if candidateCount - offset >= VectorSize
         {
-            let mask   = Math.Simd.bitmask(Math.Simd.load(valueData + offset) == needle)
+            let mask   = Simd.bitmask(Simd.load(valueData + offset) == needle)
             let result = verifyByteCandidates(valueData, subData, subCount, offset, mask)
             if result != Swag.U64.Max do
                 return result
@@ -156,7 +163,8 @@ func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
     if subslice.count > values.count do
         return Swag.U64.Max
 
-    for start in 0 to values.count - subslice.count where equals(values[start until start + subslice.count], subslice) do
+    for start in 0 to values.count - subslice.count
+        where equals(values[start until start + subslice.count], subslice) do
         return start
     return Swag.U64.Max
 }

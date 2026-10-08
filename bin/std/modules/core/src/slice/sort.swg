@@ -36,10 +36,8 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
             return
         }
 
-        // Order the first, middle and last values, then partition around the median of the
-        // three, which this leaves at 'begin'. Taking the front value itself is the quadratic
-        // case for a range that is already sorted, or exactly reversed — and re-sorting an
-        // array that is already in order is an ordinary thing for a caller to do.
+        // Order the endpoints and midpoint, then place their median at 'begin'.
+        // This avoids quadratic partitioning of sorted or reversed input.
         let mid = begin + (end - begin) / 2
         if compare(buffer[mid], buffer[begin]) < 0 do
             swap(&buffer[mid], &buffer[begin])
@@ -49,9 +47,7 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
             swap(&buffer[end], &buffer[mid])
         swap(&buffer[begin], &buffer[mid])
 
-        // Both scans stop on a value equal to the pivot, so a run of equal values is split
-        // down the middle. A scan that walked over its equals instead would peel one element
-        // per level, which is the same quadratic case reached from the other side.
+        // Stop both scans on equal values so duplicates split across the two partitions.
         let pivot = begin
         var low   = begin
         var high  = end + 1
@@ -72,12 +68,12 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
         swap(&buffer[pivot], &buffer[high])
 
         // Recursing only into the smaller partition bounds the recursion depth to a logarithm of the count.
-        let set1 = (high - 1) - begin
-        let set2 = end - (high + 1)
-        if set1 > 0 and set2 > 0
+        let leftSpan  = (high - 1) - begin
+        let rightSpan = end - (high + 1)
+        if leftSpan > 0 and rightSpan > 0
         {
             var first, last: s64
-            if set1 <= set2
+            if leftSpan <= rightSpan
             {
                 first = begin
                 last  = high - 1
@@ -92,11 +88,11 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 
             quickSort(Swag.makeSlice(buffer + first, (last - first) + 1), compare)
         }
-        elif set1 > 0
+        elif leftSpan > 0
         {
             end = high - 1
         }
-        elif set2 > 0
+        elif rightSpan > 0
         {
             begin = high + 1
         }

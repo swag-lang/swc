@@ -12,20 +12,25 @@ using Swag
 #[Swag.Safety(.Overflow, false)]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 {
-    const mask32 = (1'u64 << 32) - 1
-    let x0 = x & mask32
-    let x1 = x >> 32
-    let y0 = y & mask32
-    let y1 = y >> 32
-    let w0 = x0 * y0
-    let t  = (x1 * y0) + (w0 >> 32)
-    var w1 = t & mask32
-    let w2 = t >> 32
-    w1 += x0 * y1
+    const Low32Mask = (1'u64 << 32) - 1
+    let xLow  = x & Low32Mask
+    let xHigh = x >> 32
+    let yLow  = y & Low32Mask
+    let yHigh = y >> 32
 
-    var result: retval
-    result.hi = (x1 * y1) + w2 + (w1 >> 32)
-    result.lo = x * y
+    // Carry each partial product into the next 32-bit column.
+    let lowProduct    = xLow * yLow
+    let middleProduct = (xHigh * yLow) + (lowProduct >> 32)
+    var middleLow     = middleProduct & Low32Mask
+    let middleHigh    = middleProduct >> 32
+    middleLow += xLow * yHigh
+
+    with var result: retval
+    {
+        .hi = (xHigh * yHigh) + middleHigh + (middleLow >> 32)
+        .lo = x * y
+    }
+
     return result
 }
 
@@ -74,33 +79,33 @@ impl Int128
     #[Swag.Safety(.Overflow, false)]
     func mul(x, y: s64)->Int128
     {
-        var lhs = x
-        var rhs = y
-
+        var lhs    = x
+        var rhs    = y
         var result: retval
-
         let negate = (lhs < 0) != (rhs < 0)
 
         if lhs < 0 do
             lhs = -lhs
-        let int1Hi = cast(u64, lhs) >> 32
-        let int1Lo = cast(u64, (lhs & 0xFFFFFFFF))
+        let lhsHigh = cast(u64, lhs) >> 32
+        let lhsLow  = cast(u64, (lhs & 0xFFFFFFFF))
 
         if rhs < 0 do
             rhs = -rhs
-        let int2Hi = cast(u64, rhs) >> 32
-        let int2Lo = cast(u64, (rhs & 0xFFFFFFFF))
+        let rhsHigh = cast(u64, rhs) >> 32
+        let rhsLow  = cast(u64, (rhs & 0xFFFFFFFF))
 
-        let a = int1Hi * int2Hi
-        let b = int1Lo * int2Lo
-        let c = int1Hi * int2Lo + int1Lo * int2Hi
+        let highProduct  = lhsHigh * rhsHigh
+        let lowProduct   = lhsLow * rhsLow
+        let crossProduct = lhsHigh * rhsLow + lhsLow * rhsHigh
 
-        result.hi = cast(s64, (a + (c >> 32)))
-        result.lo = c << 32
-        result.lo += b
-        if result.lo < b do
+        // Combine the magnitude, carrying overflow from the low half.
+        result.hi = cast(s64, (highProduct + (crossProduct >> 32)))
+        result.lo = crossProduct << 32
+        result.lo += lowProduct
+        if result.lo < lowProduct do
             result.hi += 1
 
+        // Restore the sign in two's complement.
         if negate
         {
             if result.lo == 0

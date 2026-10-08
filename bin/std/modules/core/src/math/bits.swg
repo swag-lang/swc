@@ -84,7 +84,7 @@ private const Rev8Arr: [256] u8 = [
 func reverse(x: u8)->u8 => Rev8Arr[x]
 
 #[ConstExpr]
-func reverse(x: u16)->u16 => cast(u16, Rev8Arr[x >> 8]) | cast(u16, Rev8Arr[x & 0xFF]) << 8
+func reverse(x: u16)->u16 => make16(Rev8Arr[byteAt(x, 0)], Rev8Arr[byteAt(x, 1)])
 
 #[ConstExpr, Safety(.Overflow, false)]
 func reverse(x: u32)->u32
@@ -134,7 +134,21 @@ func reverse(x: Simd.U8x16)->Simd.U8x16
 // A lane wider than a byte reverses its bytes as well as the bits of each byte.
 #[Inline]
 {
-    func reverse(x: Simd.U16x8)->Simd.U16x8 => Swag.byteSwap(cast #bit (Simd.U16x8, reverse(cast #bit (Simd.U8x16, x))))
-    func reverse(x: Simd.U32x4)->Simd.U32x4 => Swag.byteSwap(cast #bit (Simd.U32x4, reverse(cast #bit (Simd.U8x16, x))))
-    func reverse(x: Simd.U64x2)->Simd.U64x2 => Swag.byteSwap(cast #bit (Simd.U64x2, reverse(cast #bit (Simd.U8x16, x))))
+    func reverse(x: Simd.U16x8)->Simd.U16x8
+    {
+        let reversedBytes = reverse(cast #bit (Simd.U8x16, x))
+        return Swag.byteSwap(cast #bit (Simd.U16x8, reversedBytes))
+    }
+
+    func reverse(x: Simd.U32x4)->Simd.U32x4
+    {
+        let reversedBytes = reverse(cast #bit (Simd.U8x16, x))
+        return Swag.byteSwap(cast #bit (Simd.U32x4, reversedBytes))
+    }
+
+    func reverse(x: Simd.U64x2)->Simd.U64x2
+    {
+        let reversedBytes = reverse(cast #bit (Simd.U8x16, x))
+        return Swag.byteSwap(cast #bit (Simd.U64x2, reversedBytes))
+    }
 }

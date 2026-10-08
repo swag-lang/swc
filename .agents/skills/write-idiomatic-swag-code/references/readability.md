@@ -190,6 +190,11 @@ add boundary coverage when the refactoring crosses a previously untested contrac
 generalize an unrelated reader merely because its statements look similar: JSON, for example,
 also checks complete token consumption and reports its own syntax errors.
 
+When branches already produce the same result record, a typed local can make the dispatch a
+small table followed by one common completion step. Keep branches with different contracts, such
+as textual values or Boolean parsing, separate. Preserve the chosen parser, cursor advancement,
+and overflow policy; verify each numeric width rather than only the most common integer case.
+
 A shared complete-number conversion check can remove repeated overflow/trailing-text guards from each numeric width,
 but must still report overflow first when both conditions hold. Name that contract in the
 helper (`requireCompleteNumber`), keep the parse operation visible at each caller, and test the

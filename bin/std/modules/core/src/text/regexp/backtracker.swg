@@ -51,7 +51,13 @@ impl Backtracker
     // The budget bounds how far the branches are explored. A caller that has another engine to
     // fall back on passes a small one and treats a refusal as "ask the other engine"; the
     // default is large enough that only a genuinely pathological pattern reaches it.
-    mtd run(program: const *Program, hay: const [..] u8, start, limit: u64, anchored, wholeSubject: bool, budget = BacktrackBudget)->bool
+    mtd run(program: const *Program,
+            hay: const [..] u8,
+            start: u64,
+            limit: u64,
+            anchored: bool,
+            wholeSubject: bool,
+            budget = BacktrackBudget)->bool
     {
         .slots.resize(program.slotCount)
         .budget       = budget
@@ -94,11 +100,11 @@ impl Backtracker
         // The program and the capture slots are read once per instruction, so they are read
         // through pointers: an indexed container access is a call, and this loop turns once per
         // instruction of the pattern for every byte of the span.
-        let insts     = program.insts.storage()
-        let byteSets  = program.byteSets.buffer
-        let slots     = .slots.buffer
-        let slotCount = .slots.count
-        let data      = hay.buffer
+        let instructions = program.insts.storage()
+        let byteSets     = program.byteSets.buffer
+        let slots        = .slots.buffer
+        let slotCount    = .slots.count
+        let data         = hay.buffer
 
         var pc  = startPc
         var pos = startPos
@@ -113,33 +119,34 @@ impl Backtracker
 
             .budget -= 1
 
-            var failed = false
-            switch insts[pc].kind
+            let instruction = instructions + pc
+            var failed      = false
+            switch instruction.kind
             {
             case .ByteRange:
-                if pos >= .limit or data[pos] < insts[pc].lo or data[pos] > insts[pc].hi
+                if pos >= .limit or data[pos] < instruction.lo or data[pos] > instruction.hi
                 {
                     failed = true
                 }
                 else
                 {
-                    pc  = insts[pc].next
+                    pc  = instruction.next
                     pos += 1
                 }
 
             case .ByteSet:
-                if pos >= .limit or not byteSets![insts[pc].slot].contains(data[pos])
+                if pos >= .limit or not byteSets![instruction.slot].contains(data[pos])
                 {
                     failed = true
                 }
                 else
                 {
-                    pc  = insts[pc].next
+                    pc  = instruction.next
                     pos += 1
                 }
 
             case .Save:
-                let slot = insts[pc].slot
+                let slot = instruction.slot
                 if slot < slotCount
                 {
                     if .trailTop >= .trail.count do
@@ -152,27 +159,27 @@ impl Backtracker
                     slots[slot] = pos
                 }
 
-                pc = insts[pc].next
+                pc = instruction.next
 
             case .Assert:
-                if not assertionHolds(insts[pc].assertion, hay, pos) do
+                if not assertionHolds(instruction.assertion, hay, pos) do
                     failed = true
                 else do
-                    pc = insts[pc].next
+                    pc = instruction.next
 
             case .Split:
                 if .choicesTop >= .choices.count do
                     me.growChoices()
 
                 let choice = .choices.storage() + .choicesTop
-                choice.pc   = insts[pc].alt
+                choice.pc   = instruction.alt
                 choice.pos  = pos
                 choice.mark = .trailTop
                 .choicesTop += 1
-                pc          = insts[pc].next
+                pc          = instruction.next
 
             case .Backref:
-                let opening = 2 * cast(u64, insts[pc].slot)
+                let opening = 2 * cast(u64, instruction.slot)
                 let closing = opening + 1
                 if closing >= slotCount
                 {
@@ -182,20 +189,20 @@ impl Backtracker
                 {
                     // A group that did not take part in the match stands for the empty string,
                     // so a reference to a group behind a `{0}` or an unused branch still matches.
-                    pc = insts[pc].next
+                    pc = instruction.next
                 }
                 else
                 {
-                    let referenced = Swag.makeSlice(data + slots![opening], slots[closing] - slots[opening])
-                    let eaten      = .matchReference(hay, referenced, pos)
-                    if eaten == NoSlot
+                    let referenced   = Swag.makeSlice(data + slots![opening], slots[closing] - slots[opening])
+                    let matchedBytes = .matchReference(hay, referenced, pos)
+                    if matchedBytes == NoSlot
                     {
                         failed = true
                     }
                     else
                     {
-                        pos += eaten
-                        pc  = insts[pc].next
+                        pos += matchedBytes
+                        pc  = instruction.next
                     }
                 }
 
@@ -247,41 +254,43 @@ impl Backtracker
     // it does not appear there.
     mtd matchReference(hay: const [..] u8, referenced: const [..] u8, pos: u64)->u64
     {
-        let wanted = referenced.count
-        if wanted == 0 do
+        let referenceBytes = referenced.count
+        if referenceBytes == 0 do
             return 0
 
         if not .ignoreCase
         {
-            if pos + wanted > .limit do
+            if pos + referenceBytes > .limit do
                 return NoSlot
-            for var i = 0'u64; i < wanted; i += 1
+            for var i = 0'u64; i < referenceBytes; i += 1
             {
                 if hay[pos + i] != referenced[i] do
                     return NoSlot
             }
 
-            return wanted
+            return referenceBytes
         }
 
         // Case-insensitively, the repeat may take a different number of bytes than the
         // capture did, because two spellings of one letter can have different encodings.
-        var here  = pos
-        var there = 0'u64
-        while there < wanted
+        var subjectOffset   = pos
+        var referenceOffset = 0'u64
+        while referenceOffset < referenceBytes
         {
-            if here >= .limit do
+            if subjectOffset >= .limit do
                 return NoSlot
 
-            let left  = Utf8.decodeRune(Swag.makeSlice(hay.buffer + here, .limit - here))
-            let right = Utf8.decodeRune(Swag.makeSlice(referenced.buffer + there, wanted - there))
-            if Unicode.toUpper(left.c) != Unicode.toUpper(right.c) do
+            let subjectRune = Utf8.decodeRune(Swag.makeSlice(hay.buffer + subjectOffset,
+                                                             .limit - subjectOffset))
+            let referenceRune = Utf8.decodeRune(Swag.makeSlice(referenced.buffer + referenceOffset,
+                                                               referenceBytes - referenceOffset))
+            if Unicode.toUpper(subjectRune.c) != Unicode.toUpper(referenceRune.c) do
                 return NoSlot
 
-            here  += left.eat
-            there += right.eat
+            subjectOffset   += subjectRune.eat
+            referenceOffset += referenceRune.eat
         }
 
-        return here - pos
+        return subjectOffset - pos
     }
 }

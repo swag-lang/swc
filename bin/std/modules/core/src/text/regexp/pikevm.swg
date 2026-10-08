@@ -79,21 +79,23 @@ impl PikeVm
     {
         .resize(program)
 
-        var frame: Frame
-        frame.insts     = program.insts.storage()
-        frame.byteSets  = program.byteSets.buffer
-        frame.hay       = hay
-        frame.limit     = limit
-        frame.slotCount = program.slotCount
-        frame.pcs       = [.pcsCurrent.storage(), .pcsNext.storage()]
-        frame.slots     = [.slotsCurrent.storage(), .slotsNext.storage()]
-        frame.counts    = [0'u64, 0]
-        frame.gens      = [0'u32, 0]
-        frame.work      = .work.storage()
-        frame.visited   = .visited.storage()
-        frame.stack     = .stack.storage()
-        frame.stackTop  = 0
-        frame.lastGen   = .lastGen
+        with var frame: Frame
+        {
+            .insts     = program.insts.storage()
+            .byteSets  = program.byteSets.buffer
+            .hay       = hay
+            .limit     = limit
+            .slotCount = program.slotCount
+            .pcs       = [me.pcsCurrent.storage(), me.pcsNext.storage()]
+            .slots     = [me.slotsCurrent.storage(), me.slotsNext.storage()]
+            .counts    = [0'u64, 0]
+            .gens      = [0'u32, 0]
+            .work      = me.work.storage()
+            .visited   = me.visited.storage()
+            .stack     = me.stack.storage()
+            .stackTop  = 0
+            .lastGen   = me.lastGen
+        }
 
         let matched = frame.run(program, start, anchored, wholeSubject, .matchSlots.storage())
         .lastGen = frame.lastGen
@@ -104,24 +106,24 @@ impl PikeVm
     // program has instructions, since a program counter joins it at most once.
     mtd resize(program: const *Program)
     {
-        let insts = program.insts.count
-        let slots = program.slotCount
-        if .sizedInsts == insts and .sizedSlots == slots do
+        let instructionCount = program.insts.count
+        let slotsPerBranch   = program.slotCount
+        if .sizedInsts == instructionCount and .sizedSlots == slotsPerBranch do
             return
 
-        .pcsCurrent.resize(insts)
-        .pcsNext.resize(insts)
-        .slotsCurrent.resize(insts * slots + slots)
-        .slotsNext.resize(insts * slots + slots)
-        .visited.resize(insts)
+        .pcsCurrent.resize(instructionCount)
+        .pcsNext.resize(instructionCount)
+        .slotsCurrent.resize(instructionCount * slotsPerBranch + slotsPerBranch)
+        .slotsNext.resize(instructionCount * slotsPerBranch + slotsPerBranch)
+        .visited.resize(instructionCount)
         .visited.fill(0)
-        .stack.resize(2 * insts + 8)
-        .work.resize(slots)
-        .matchSlots.resize(slots)
+        .stack.resize(2 * instructionCount + 8)
+        .work.resize(slotsPerBranch)
+        .matchSlots.resize(slotsPerBranch)
 
         .lastGen    = 0
-        .sizedInsts = insts
-        .sizedSlots = slots
+        .sizedInsts = instructionCount
+        .sizedSlots = slotsPerBranch
     }
 }
 
@@ -149,8 +151,8 @@ impl Frame
 
         for
         {
-            let cur  = current
-            let next = 1 - current
+            let currentList = current
+            let nextList    = 1 - current
 
             // A new branch starts at every offset until something matches, which is what makes
             // the reported match the leftmost one. It joins the list last, because every branch
@@ -159,24 +161,24 @@ impl Frame
             {
                 for var s = 0'u64; s < .slotCount; s += 1 do
                     .work[s] = NoSlot
-                .addBranch(program.start, pos, cur)
+                .addBranch(program.start, pos, currentList)
             }
 
-            if .counts[cur] == 0 and (matched or anchored) do
+            if .counts[currentList] == 0 and (matched or anchored) do
                 break
 
             let readable = pos < .limit
             let byte     = readable ? .hay[pos] : 0'u8
 
-            .counts[next] = 0
-            .lastGen      += 1
-            .gens[next]   = .lastGen
+            .counts[nextList] = 0
+            .lastGen          += 1
+            .gens[nextList]   = .lastGen
 
-            let live      = .counts[cur]
-            let livePcs   = .pcs[cur]
-            let liveSlots = .slots[cur]
+            let liveCount = .counts[currentList]
+            let livePcs   = .pcs[currentList]
+            let liveSlots = .slots[currentList]
 
-            for var i = 0'u64; i < live; i += 1
+            for var i = 0'u64; i < liveCount; i += 1
             {
                 // Only the fields the step needs are read: a branch that does not match the
                 // byte costs two loads and a comparison.
@@ -200,14 +202,14 @@ impl Frame
 
                 for var s = 0'u64; s < .slotCount; s += 1 do
                     .work[s] = liveSlots[i * .slotCount + s]
-                .addBranch(.insts[pc].next, pos + 1, next)
+                .addBranch(.insts[pc].next, pos + 1, nextList)
             }
 
             if pos >= .limit do
                 break
 
             pos     += 1
-            current = next
+            current = nextList
         }
 
         return matched
@@ -217,9 +219,10 @@ impl Frame
     #[Swag.Inline]
     mtd const accepts(pc: u32, value: u8)->bool
     {
-        if .insts[pc].kind == InstKind.ByteSet do
-            return .byteSets![.insts[pc].slot].contains(value)
-        return value >= .insts[pc].lo and value <= .insts[pc].hi
+        let instruction = .insts + pc
+        if instruction.kind == InstKind.ByteSet do
+            return .byteSets![instruction.slot].contains(value)
+        return value >= instruction.lo and value <= instruction.hi
     }
 
     // Adds one branch to a list, along with everything it reaches without consuming a byte.
@@ -237,29 +240,30 @@ impl Frame
         while .stackTop != 0
         {
             .stackTop -= 1
-            let what = .stack[.stackTop].what
+            let stepCode = .stack[.stackTop].what
 
-            if (what & RestoreStep) != 0
+            if (stepCode & RestoreStep) != 0
             {
-                .work[what & ~RestoreStep] = .stack[.stackTop].value
+                .work[stepCode & ~RestoreStep] = .stack[.stackTop].value
                 continue
             }
 
-            if .visited[what] == generation do
+            if .visited[stepCode] == generation do
                 continue
-            .visited[what] = generation
+            .visited[stepCode] = generation
 
-            switch .insts[what].kind
+            let instruction = .insts + stepCode
+            switch instruction.kind
             {
             case .Split:
 
                 // The lower-priority branch goes in first, so the other one comes out first.
-                .stack[.stackTop].what     = .insts[what].alt
-                .stack[.stackTop + 1].what = .insts[what].next
+                .stack[.stackTop].what     = instruction.alt
+                .stack[.stackTop + 1].what = instruction.next
                 .stackTop += 2
 
             case .Save:
-                let slot = .insts[what].slot
+                let slot = instruction.slot
                 if slot < .slotCount
                 {
                     .stack[.stackTop].what  = slot | RestoreStep
@@ -268,13 +272,13 @@ impl Frame
                     .work[slot]             = pos
                 }
 
-                .stack[.stackTop].what = .insts[what].next
+                .stack[.stackTop].what = instruction.next
                 .stackTop += 1
 
             case .Assert:
-                if assertionHolds(.insts[what].assertion, .hay, pos)
+                if assertionHolds(instruction.assertion, .hay, pos)
                 {
-                    .stack[.stackTop].what = .insts[what].next
+                    .stack[.stackTop].what = instruction.next
                     .stackTop += 1
                 }
 
@@ -282,10 +286,10 @@ impl Frame
 
                 // A byte to read, or the match: the branch waits here until the next offset.
                 let index = .counts[list]
-                .pcs[list][index] = what
-                let target = index * .slotCount
+                .pcs[list][index] = stepCode
+                let slotOffset = index * .slotCount
                 for var s = 0'u64; s < .slotCount; s += 1 do
-                    .slots[list][target + s] = .work[s]
+                    .slots[list][slotOffset + s] = .work[s]
                 .counts[list] = index + 1
             }
         }

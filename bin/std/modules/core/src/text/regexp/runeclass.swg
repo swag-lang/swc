@@ -37,26 +37,26 @@ impl RuneClass
     // Adds every interval of another class.
     mtd addClass(other: RuneClass)
     {
-        for r in other.ranges do
-            .ranges.add(r)
+        for range in other.ranges do
+            .ranges.add(range)
     }
 
     // Adds a Unicode table, expanding the strided entries the tables use for scattered blocks.
     mtd addTable(table: const [..] Unicode.Range)
     {
-        for &r in table
+        for &range in table
         {
-            if r.stride == 1
+            if range.stride == 1
             {
-                .ranges.add({r.lo, r.hi})
+                .ranges.add({range.lo, range.hi})
                 continue
             }
 
-            var c = r.lo
-            while c <= r.hi
+            var scalar = range.lo
+            while scalar <= range.hi
             {
-                .ranges.add({c, c})
-                c += r.stride
+                .ranges.add({scalar, scalar})
+                scalar += range.stride
             }
         }
     }
@@ -71,22 +71,22 @@ impl RuneClass
 
         .ranges.sort(func||(left, right) { return left.lo <=> right.lo })
 
-        var write = 0'u64
-        for var read = 1'u64; read < .ranges.count; read += 1
+        var writeIndex = 0'u64
+        for var readIndex = 1'u64; readIndex < .ranges.count; readIndex += 1
         {
-            let cur = .ranges[read]
-            if cur.lo <= .ranges[write].hi + 1
+            let currentRange = .ranges[readIndex]
+            if currentRange.lo <= .ranges[writeIndex].hi + 1
             {
-                if cur.hi > .ranges[write].hi do
-                    .ranges[write].hi = cur.hi
+                if currentRange.hi > .ranges[writeIndex].hi do
+                    .ranges[writeIndex].hi = currentRange.hi
                 continue
             }
 
-            write += 1
-            .ranges[write] = cur
+            writeIndex += 1
+            .ranges[writeIndex] = currentRange
         }
 
-        .ranges.resize(write + 1)
+        .ranges.resize(writeIndex + 1)
     }
 
     // Replaces the class with its complement over the whole scalar range.
@@ -95,21 +95,21 @@ impl RuneClass
         .normalize()
 
         var result: Array'RuneRange
-        var next = 0'rune
-        for &r in .ranges
+        var nextScalar = 0'rune
+        for &range in .ranges
         {
-            if r.lo > next do
-                result.add({next, r.lo - 1})
-            if r.hi >= Utf8.MaxRune
+            if range.lo > nextScalar do
+                result.add({nextScalar, range.lo - 1})
+            if range.hi >= Utf8.MaxRune
             {
                 .ranges = #move result
                 return
             }
 
-            next = r.hi + 1
+            nextScalar = range.hi + 1
         }
 
-        result.add({next, Utf8.MaxRune})
+        result.add({nextScalar, Utf8.MaxRune})
         .ranges = #move result
     }
 
@@ -125,21 +125,21 @@ impl RuneClass
         const WidestFoldedRange = 4096'rune
 
         var folded: RuneClass
-        for &r in .ranges
+        for &range in .ranges
         {
-            if r.hi - r.lo >= WidestFoldedRange do
+            if range.hi - range.lo >= WidestFoldedRange do
                 continue
 
-            var c = r.lo
-            while c <= r.hi
+            var scalar = range.lo
+            while scalar <= range.hi
             {
-                let upper = Unicode.toUpper(c)
-                let lower = Unicode.toLower(c)
-                if upper != c do
+                let upper = Unicode.toUpper(scalar)
+                let lower = Unicode.toLower(scalar)
+                if upper != scalar do
                     folded.addRune(upper)
-                if lower != c do
+                if lower != scalar do
                     folded.addRune(lower)
-                c += 1
+                scalar += 1
             }
         }
 
@@ -157,12 +157,12 @@ impl RuneClass
         var high = .ranges.count
         while low < high
         {
-            let mid = (low + high) / 2
-            let r   = .ranges[mid]
-            if value < r.lo do
-                high = mid
-            elif value > r.hi do
-                low = mid + 1
+            let middle = (low + high) / 2
+            let range  = .ranges[middle]
+            if value < range.lo do
+                high = middle
+            elif value > range.hi do
+                low = middle + 1
             else do
                 return true
         }
@@ -189,69 +189,73 @@ impl RuneClass
     {
         var result: retval
 
-        switch name
+        with let value = &result.value
         {
-        case "digit":
-            result.value.add('0', '9')
+            switch name
+            {
+            case "digit":
+                .add('0', '9')
 
-        case "xdigit":
-            result.value.add('0', '9')
-            result.value.add('a', 'f')
-            result.value.add('A', 'F')
+            case "xdigit":
+                .add('0', '9')
+                .add('a', 'f')
+                .add('A', 'F')
 
-        case "alpha":
-            result.value.add('a', 'z')
-            result.value.add('A', 'Z')
+            case "alpha":
+                .add('a', 'z')
+                .add('A', 'Z')
 
-        case "alnum":
-            result.value.add('0', '9')
-            result.value.add('a', 'z')
-            result.value.add('A', 'Z')
+            case "alnum":
+                .add('0', '9')
+                .add('a', 'z')
+                .add('A', 'Z')
 
-        case "lower":
-            result.value.add('a', 'z')
+            case "lower":
+                .add('a', 'z')
 
-        case "upper":
-            result.value.add('A', 'Z')
+            case "upper":
+                .add('A', 'Z')
 
-        case "blank":
-            result.value.addRune(' ')
-            result.value.addRune('\t')
+            case "blank":
+                .addRune(' ')
+                .addRune('\t')
 
-        case "space":
-            result.value.add('\t', '\r')
-            result.value.addRune(' ')
+            case "space":
+                .add('\t', '\r')
+                .addRune(' ')
 
-        case "word":
-            result.value.add('0', '9')
-            result.value.add('a', 'z')
-            result.value.add('A', 'Z')
-            result.value.addRune('_')
+            case "word":
+                .add('0', '9')
+                .add('a', 'z')
+                .add('A', 'Z')
+                .addRune('_')
 
-        case "ascii":
-            result.value.add(0, 0x7F)
+            case "ascii":
+                .add(0, 0x7F)
 
-        case "punct":
-            result.value.add('!', '/')
-            result.value.add(':', '@')
-            result.value.add('[', '`')
-            result.value.add('{', '~')
+            case "punct":
+                .add('!', '/')
+                .add(':', '@')
+                .add('[', '`')
+                .add('{', '~')
 
-        case "cntrl":
-            result.value.add(0, 0x1F)
-            result.value.addRune(0x7F)
+            case "cntrl":
+                .add(0, 0x1F)
+                .addRune(0x7F)
 
-        case "graph":
-            result.value.add('!', '~')
+            case "graph":
+                .add('!', '~')
 
-        case "print":
-            result.value.add(' ', '~')
+            case "print":
+                .add(' ', '~')
 
-        default:
-            return result
+            default:
+                return result
+            }
+
+            .normalize()
         }
 
-        result.value.normalize()
         result.known = true
         return result
     }
@@ -262,22 +266,26 @@ impl RuneClass
     {
         var result: retval
 
-        switch name
+        with let value = &result.value
         {
-        case "L", "Letter":            result.value.addTable(Unicode.TableLetter)
-        case "Ll", "Lowercase_Letter": result.value.addTable(Unicode.TableLower)
-        case "Lu", "Uppercase_Letter": result.value.addTable(Unicode.TableUpper)
-        case "Lt", "Titlecase_Letter": result.value.addTable(Unicode.TableTitle)
-        case "N", "Number":            result.value.addTable(Unicode.TableNumber)
-        case "Nd", "Decimal_Number":   result.value.addTable(Unicode.TableDigit)
-        case "S", "Symbol":            result.value.addTable(Unicode.TableSymbol)
-        case "Sm", "Math_Symbol":      result.value.addTable(Unicode.TableSymbolMath)
-        case "Z", "Separator":         result.value.addTable(Unicode.TableSeparator)
-        case "White_Space":            result.value.addTable(Unicode.TableWhiteSpace)
-        default: return result
+            switch name
+            {
+            case "L", "Letter":            .addTable(Unicode.TableLetter)
+            case "Ll", "Lowercase_Letter": .addTable(Unicode.TableLower)
+            case "Lu", "Uppercase_Letter": .addTable(Unicode.TableUpper)
+            case "Lt", "Titlecase_Letter": .addTable(Unicode.TableTitle)
+            case "N", "Number":            .addTable(Unicode.TableNumber)
+            case "Nd", "Decimal_Number":   .addTable(Unicode.TableDigit)
+            case "S", "Symbol":            .addTable(Unicode.TableSymbol)
+            case "Sm", "Math_Symbol":      .addTable(Unicode.TableSymbolMath)
+            case "Z", "Separator":         .addTable(Unicode.TableSeparator)
+            case "White_Space":            .addTable(Unicode.TableWhiteSpace)
+            default: return result
+            }
+
+            .normalize()
         }
 
-        result.value.normalize()
         result.known = true
         return result
     }

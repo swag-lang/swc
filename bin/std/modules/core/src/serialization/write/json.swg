@@ -219,10 +219,6 @@ impl Json
         .writeIndent()
     }
 
-    /////////////////////////////////
-    // VALUES
-    /////////////////////////////////
-
     // Writes a Boolean, a number, or a string as a JSON value.
     mtd(NT) writeNative(value: NT)
     {

@@ -100,11 +100,14 @@ public impl Json
         if first < 0xD800 or first > 0xDBFF do
             return first
 
+        // A high surrogate must be followed by a second Unicode escape.
         if .stream.readU8() != '\\' or .stream.readU8() != 'u' do
             fail .getError("JSON Unicode escape is missing the low surrogate")
+
         let second = try .readHexQuad()
         if second < 0xDC00 or second > 0xDFFF do
             fail .getError("JSON Unicode escape contains an invalid low surrogate")
+
         return 0x10000 + ((first - 0xD800) << 10) + second - 0xDC00
     }
 
@@ -266,9 +269,11 @@ public impl Json
             if names.contains(ignored) do
                 fail .getError("JSON object contains a duplicate property")
             names.add(ignored)
+
             .zapBlanks()
             try .expectByte(':', "JSON property is missing a colon after its name")
             try .skipValue(depth)
+
             .zapBlanks()
             let separator = .stream.readU8()
             if separator == '}' do
@@ -291,6 +296,8 @@ public impl Json
         let index = .containerDepth
         .containerKinds[index] = 1
         .contentStarts[index]  = .stream.position()
+
+        // Validate the whole object, then rewind so fields can be requested in any order.
         try .skipObjectContent(1)
         .endPositions[index] = .stream.position()
         .stream.setPosition(.contentStarts[index])
@@ -383,6 +390,7 @@ public impl Json
         if .stream.peekU8() == '}' do
             return false
 
+        // Remember the match while checking the remaining properties for duplicates.
         var foundPosition = Swag.U64.Max
         while true
         {

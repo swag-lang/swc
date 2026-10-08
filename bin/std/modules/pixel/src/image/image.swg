@@ -163,22 +163,40 @@ internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelVa
         result = {cast(f32, source[0]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[2]) / 255.0, cast(f32, source[3]) / 255.0}
 
     case .RGB16:
-        result = {cast(f32, cast(const *u16, source)[]) / 65535.0, cast(f32, cast(const *u16, (source + 2))[]) / 65535.0, cast(f32, cast(const *u16, (source + 4))[]) / 65535.0, 1}
+        let samples = cast(const [*] u16, source)
+        result = {cast(f32, samples[0]) / 65535.0,
+                  cast(f32, samples[1]) / 65535.0,
+                  cast(f32, samples[2]) / 65535.0,
+                  1}
 
     case .RGBA16:
-        result = {cast(f32, cast(const *u16, source)[]) / 65535.0, cast(f32, cast(const *u16, (source + 2))[]) / 65535.0, cast(f32, cast(const *u16, (source + 4))[]) / 65535.0, cast(f32, cast(const *u16, (source + 6))[]) / 65535.0}
+        let samples = cast(const [*] u16, source)
+        result = {cast(f32, samples[0]) / 65535.0,
+                  cast(f32, samples[1]) / 65535.0,
+                  cast(f32, samples[2]) / 65535.0,
+                  cast(f32, samples[3]) / 65535.0}
 
     case .RGBF16:
-        result = {halfToFloat(cast(const *u16, source)[]), halfToFloat(cast(const *u16, (source + 2))[]), halfToFloat(cast(const *u16, (source + 4))[]), 1}
+        let samples = cast(const [*] u16, source)
+        result = {halfToFloat(samples[0]),
+                  halfToFloat(samples[1]),
+                  halfToFloat(samples[2]),
+                  1}
 
     case .RGBAF16:
-        result = {halfToFloat(cast(const *u16, source)[]), halfToFloat(cast(const *u16, (source + 2))[]), halfToFloat(cast(const *u16, (source + 4))[]), halfToFloat(cast(const *u16, (source + 6))[])}
+        let samples = cast(const [*] u16, source)
+        result = {halfToFloat(samples[0]),
+                  halfToFloat(samples[1]),
+                  halfToFloat(samples[2]),
+                  halfToFloat(samples[3])}
 
     case .RGBF32:
-        result = {cast(const *f32, source)[], cast(const *f32, (source + 4))[], cast(const *f32, (source + 8))[], 1}
+        let samples = cast(const [*] f32, source)
+        result = {samples[0], samples[1], samples[2], 1}
 
     case .RGBAF32:
-        result = {cast(const *f32, source)[], cast(const *f32, (source + 4))[], cast(const *f32, (source + 8))[], cast(const *f32, (source + 12))[]}
+        let samples = cast(const [*] f32, source)
+        result = {samples[0], samples[1], samples[2], samples[3]}
 
     case .Yuv420, .Yuv444:
         Swag.assert(false, "a planar pixel cannot be read from packed storage")
@@ -498,6 +516,16 @@ impl Image
         }
     }
 
+    // Selects the packed 8-bit color path with unassociated alpha.
+    internal mtd const hasStraightByteColors()->bool
+    {
+        return (.pixelFormat == .BGR8 or
+                .pixelFormat == .BGRA8 or
+                .pixelFormat == .RGB8 or
+                .pixelFormat == .RGBA8) and
+               .alphaMode == .Straight
+    }
+
     // Visits logical RGBA values in parallel and writes them back through the image's storage
     // format and alpha association. This is the common scalar fallback for filters whose packed
     // 8-bit specialization cannot represent a high-precision or grayscale image.
@@ -660,40 +688,39 @@ impl Image
         return result
     }
 
+    #[Swag.Inline]
+    private mtd const logicalPixelColor(pixX, pixY: s32)->Color
+    {
+        let x      = Math.clamp(pixX, 0, .width - 1)
+        let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
+        let source = .pixels.storage() + cast(u64, y) * .rowStride + cast(u64, x) * .bytesPerPixel
+        let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
+
+        with var result: retval
+        {
+            .r = normalizedToU8(value.r)
+            .g = normalizedToU8(value.g)
+            .b = normalizedToU8(value.b)
+            .a = normalizedToU8(value.a)
+        }
+
+        return result
+    }
+
     // Returns the color at a top-left pixel coordinate, clamped to the image bounds.
     //
     // Pixels of any format and alpha association are returned as straight-alpha 8-bit colors.
     mtd const pixelColor(pixX, pixY: s32)->Color
     {
         Swag.assert(.isValid(), "image is invalid")
-        if .alphaMode == .Premultiplied
-        {
-            let x      = Math.clamp(pixX, 0, .width - 1)
-            let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
-            let source = .pixels.storage() + cast(u64, y) * .rowStride + cast(u64, x) * .bytesPerPixel
-            let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
-            var result: Color
-            result.r = normalizedToU8(value.r)
-            result.g = normalizedToU8(value.g)
-            result.b = normalizedToU8(value.b)
-            result.a = normalizedToU8(value.a)
-            return result
-        }
+        if .alphaMode == .Premultiplied do
+            return .logicalPixelColor(pixX, pixY)
 
         switch #complete .pixelFormat
         {
         case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
              .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
-            let x      = Math.clamp(pixX, 0, .width - 1)
-            let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
-            let source = .pixels.storage() + cast(u64, y) * .rowStride + cast(u64, x) * .bytesPerPixel
-            let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
-            var result: Color
-            result.r = normalizedToU8(value.r)
-            result.g = normalizedToU8(value.g)
-            result.b = normalizedToU8(value.b)
-            result.a = normalizedToU8(value.a)
-            return result
+            return .logicalPixelColor(pixX, pixY)
 
         case .RGBA8:
             return .pixelColorDirect'RGBA8(pixX, pixY)

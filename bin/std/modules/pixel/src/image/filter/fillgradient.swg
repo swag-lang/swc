@@ -13,8 +13,7 @@ public impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if not legacy
+        if not .hasStraightByteColors()
         {
             var context = {color0: color0, color1: color1}
             .transformLogicalPixels(&context)
@@ -72,9 +71,8 @@ public impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        var ctx    = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
-        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if not legacy
+        var ctx = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
+        if not .hasStraightByteColors()
         {
             .transformLogicalPixels(&ctx)
             {

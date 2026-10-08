@@ -216,6 +216,14 @@ For example, group vector constants `Zero`, `One`, and `UnitX` together, then pu
 such as `Max` and `Min` in their own paragraph. The comments can align close to each group without
 teaching the formatter to guess what the constants mean. Do not split a coherent table solely to
 obtain a lower line-width count.
+The same grouping applies to enum values: `one-enum-value-per-line` separates values that share
+a line while retaining authored blank lines between groups. It does not require a dense enum.
+
+A flat literal can encode a two-dimensional object. When a long convolution kernel is difficult
+to inspect, preserve its size and divisor first, then put each row of weights on one source line.
+The authored rows expose symmetry and the center coefficient without changing the flat data.
+Keep small neighbouring kernels compact when they remain easy to compare; do not expand every
+literal just to obtain uniform heights. Verify that the formatter preserves the row boundaries.
 
 Before changing an automatic rule, inspect representative declarations, guards, closures,
 tables, comments, and deliberately unusual compiler fixtures. Verify the intended output and

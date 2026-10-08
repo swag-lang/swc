@@ -209,6 +209,10 @@ of a reader's brain. Apply these rules to all edited Swag code:
   A callback or effectful call is also a boundary: do not reuse an earlier read across it unless
   the contract guarantees that the value remains unchanged. Wrapping the repeated expression
   can be safer and clearer than factoring away the read.
+- Name values by the representation actually being processed. A convolution radius is not its
+  kernel width; a row stride is measured in bytes. In code shared by RGB and BGR storage, use
+  `channel0`, `channel1`, and `channel2` for physical slots instead of implying a fixed color order.
+  Reserve `red`, `green`, and `blue` names for logical colors or a path whose format guarantees them.
 - Use a conditional expression only when the condition and both values read at a glance.
   Expand nested choices or branches with substantial work into control flow. Preserve lazy
   evaluation: do not hoist a guarded access, fallible call, or side effect out of its branch.

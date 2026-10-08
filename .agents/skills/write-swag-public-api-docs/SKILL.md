@@ -53,6 +53,7 @@ requested.
 - For an attributed declaration, put the documentation before the first `#[...]` line so the comment describes the whole declaration rather than an attribute.
 - For `using name: struct` or `using name: union` fields, prefer a same-line comment after `struct` or `union`; the aggregate body remains implementation detail.
 - Use a leading comment for a member when its contract needs multiple paragraphs, code, a table, or an admonition.
+- Also use a leading comment when a member has a multiline initializer, such as a matrix. Keep the description next to the member name rather than after the last row of its data, and verify its attachment in the generated member table.
 - Make the first comment line a short, complete summary. The generator uses that line alone in API summary tables, so do not wrap it onto another comment line.
 - When more detail follows, put one empty `//` line immediately after the summary, then write the long description. For example:
 

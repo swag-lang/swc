@@ -28,9 +28,8 @@ public impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        let hsl    = color.toHsl()
-        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
-        if not legacy
+        let hsl = color.toHsl()
+        if not .hasStraightByteColors()
         {
             var context = {fillType: fillType, color: color, hsl: hsl}
             .transformLogicalPixels(&context)

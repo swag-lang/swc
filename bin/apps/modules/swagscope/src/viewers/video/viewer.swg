@@ -39,6 +39,7 @@ private
     const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 }
 
+// Where the subtitles shown come from: none, a track of the container, or a sidecar file.
 enum SubtitleSource
 {
     Off
@@ -46,12 +47,14 @@ enum SubtitleSource
     Sidecar
 }
 
+// The typeface subtitles are drawn in.
 enum SubtitleFont
 {
     Sans
     Monospace
 }
 
+// The size of subtitle text, one of the steps the subtitle menu offers.
 enum SubtitleSize
 {
     Small
@@ -60,6 +63,7 @@ enum SubtitleSize
     VeryLarge
 }
 
+// What keeps subtitle text readable over the picture.
 enum SubtitleEffect
 {
     Outline
@@ -68,6 +72,7 @@ enum SubtitleEffect
     None
 }
 
+// Where subtitles sit over the picture.
 enum SubtitlePosition
 {
     Bottom
@@ -75,12 +80,15 @@ enum SubtitlePosition
     Top
 }
 
+// The color of subtitle text.
 enum SubtitleColor
 {
     White
     Yellow
 }
 
+// How subtitles look and how far they are shifted in time; shared by every video and saved
+// with the window state.
 struct SubtitleSettings
 {
     font:     SubtitleFont
@@ -264,16 +272,14 @@ private impl IWnd for SeekOverlay
             return
         }
 
-        .removeTimer(evt.timer)
-        .timer = null
+        .stopTimer(&.timer)
         .hide()
         .resetPresentation()
     }
 
     mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        if .timer do
-            .removeTimer(.timer)
+        .stopTimer(&.timer)
     }
 }
 
@@ -304,8 +310,7 @@ impl SeekOverlay
             animator.cancel(.scaleAni)
         if animator.isActive(.opacityAni) do
             animator.cancel(.opacityAni)
-        if .timer do
-            .removeTimer(.timer)
+        .stopTimer(&.timer)
 
         .direction = seconds < 0 ? -1 : 1
         .text      = Format.toString(seconds < 0 ? "-%" : "+%", cast(u64, Math.round(Math.abs(seconds))))
@@ -608,26 +613,23 @@ struct Panel
     resumeAudioAfterSeek: bool
     audioRangePending:    bool     // The progressive sound index does not reach the picture yet.
 
-    timer:                *Timer?
-    clock:                Time.Stopwatch
-    elapsed:              f64
-    frameIndex:           u64
-    playing:              bool
-    autoPlayPending:      bool = true
-    muted:                bool
-    playbackRate:         f64  = 1
+    timer:            *Timer?
+    clock:            Time.Stopwatch
+    elapsed:          f64
+    frameIndex:       u64
+    playing:          bool
+    autoPlayPending:  bool = true
+    muted:            bool
+    playbackRate:     f64  = 1
     volume = 1'f32
-    details:              String
-    metadataReady:        bool
-    audioReady:           bool
-    timelineReady:        bool
-    timelineChanging:     bool
-    reportDetails:        Viewer.ReportDetails?
-    reportFailure:        Viewer.ReportFailure?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    reportFinished:       Viewer.ReportFinished?
-    retireRequested:      bool
-    retired:              bool
+    details:          String
+    metadataReady:    bool
+    audioReady:       bool
+    timelineReady:    bool
+    timelineChanging: bool
+    services:         Viewer.HostServices
+    retireRequested:  bool
+    retired:          bool
 
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
@@ -680,11 +682,7 @@ private impl Panel
         if not .retireRequested
         {
             .retireRequested = true
-            if .timer
-            {
-                .removeTimer(.timer)
-                .timer = null
-            }
+            .stopTimer(&.timer)
 
             // A voice borrows its SoundFile from the reader. Release it before the decoder
             // thread closes that reader in the background.
@@ -832,8 +830,7 @@ impl Panel
                 .playing = false
                 .audioRangePending    = false
                 catch .voice.pause()
-                if .reportFailure do
-                    .reportFailure(me, Errors.message(seekError))
+                .services.failed(me, Errors.message(seekError))
                 return
             }
         }
@@ -845,8 +842,7 @@ impl Panel
         {
             .playing = false
             .refreshTransport()
-            if .reportFailure do
-                .reportFailure(me, Errors.message(playError))
+            .services.failed(me, Errors.message(playError))
             return
         }
 
@@ -1014,8 +1010,8 @@ impl Panel
         for index in .video.audioTrackCount() where chosen == commands[index].toString()
         {
             catch .selectAudioTrack(index) as trackError
-            if trackError != null and .reportFailure do
-                .reportFailure(me, Errors.message(trackError))
+            if trackError != null do
+                .services.failed(me, Errors.message(trackError))
             return
         }
     }
@@ -1271,8 +1267,8 @@ impl Panel
             .anchorPending = true
         }
 
-        if notify and .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        if notify do
+            .services.loadingChanged(me)
     }
 
     // Gives up every picture between here and `index`, and moves playback there.
@@ -1412,8 +1408,7 @@ impl Panel
             .playing       = false
             .awaitingFrame = false
             .clock.reset()
-            if .reportFailure do
-                .reportFailure(me, failure)
+            .services.failed(me, failure)
             return false
         }
 
@@ -1425,9 +1420,9 @@ impl Panel
         .hasFrame      = true
         .awaitingFrame = false
         catch .finishMetadata() as metadataError
-        if metadataError != null and .reportFailure
+        if metadataError != null
         {
-            .reportFailure(me, Errors.message(metadataError))
+            .services.failed(me, Errors.message(metadataError))
             return false
         }
 
@@ -1469,8 +1464,8 @@ impl Panel
 
         .decodeWake.signal()
         .refreshTransport()
-        if notifyLoading and .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        if notifyLoading do
+            .services.loadingChanged(me)
 
         // A transport seek holds the audio clock until its target picture is on screen. This
         // avoids showing the previous picture while sound has already jumped to the new time.
@@ -1523,8 +1518,7 @@ impl Panel
                     .playing = false
                     .audioRangePending = false
                     catch .voice.pause()
-                    if .reportFailure do
-                        .reportFailure(me, Errors.message(seekError))
+                    .services.failed(me, Errors.message(seekError))
                     return
                 }
             }
@@ -1562,8 +1556,7 @@ impl Panel
                     .playing = false
                     catch .voice.pause()
                     .refreshTransport()
-                    if .reportFailure do
-                        .reportFailure(me, Errors.message(seekError))
+                    .services.failed(me, Errors.message(seekError))
                     return
                 }
 
@@ -1641,8 +1634,8 @@ impl Panel
         if not .openFinished
         {
             catch .completeOpen() as openError
-            if openError != null and .reportFailure do
-                .reportFailure(me, Errors.message(openError))
+            if openError != null do
+                .services.failed(me, Errors.message(openError))
             return
         }
 
@@ -1650,9 +1643,9 @@ impl Panel
             return
 
         catch .finishMetadata() as metadataError
-        if metadataError != null and .reportFailure
+        if metadataError != null
         {
-            .reportFailure(me, Errors.message(metadataError))
+            .services.failed(me, Errors.message(metadataError))
             return
         }
 
@@ -1712,7 +1705,7 @@ impl Panel
         let count = .video.frameCount()
         if count and clock >= count and .frameIndex + 1 >= count
         {
-            let continuation = .reportFinished ? .reportFinished(me) : Viewer.Continuation.Stop
+            let continuation = .services.finished(me)
             if continuation == .Replay
             {
                 .restartForLoop()
@@ -1877,8 +1870,7 @@ private impl Panel
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
-        if .reportDetails do
-            .reportDetails(me, .details)
+        .services.showDetails(me, .details)
     }
 
     // Publishes the reader opened by the background worker and starts picture production.
@@ -1919,8 +1911,7 @@ private impl Panel
         .refreshTransport()
         .refreshDetails()
         discard .showFrame(0)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     // Applies what progressive indexing has discovered so far to the information panel, the timeline, the summary, and the sound.
@@ -2119,11 +2110,8 @@ private impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.video")
         {
-            .backgroundStyle      = .View
-            .reportDetails        = services.reportDetails
-            .reportFailure        = services.reportFailure
-            .reportLoadingChanged = services.reportLoadingChanged
-            .reportFinished       = services.reportFinished
+            .backgroundStyle = .View
+            .services        = services
         }
 
         result.commands    = host.createCommandGroup(CommandWidth)

@@ -59,6 +59,49 @@ struct HostServices
     }
 }
 
+// Each method forwards to its callback, and does nothing when the host left that callback unset.
+impl HostServices
+{
+    mtd failed(view: *Wnd, reason: string)
+    {
+        if .reportFailure do
+            .reportFailure(view, reason)
+    }
+
+    mtd showDetails(view: *Wnd, details: string)
+    {
+        if .reportDetails do
+            .reportDetails(view, details)
+    }
+
+    mtd loadingChanged(view: *Wnd)
+    {
+        if .reportLoadingChanged do
+            .reportLoadingChanged(view)
+    }
+
+    mtd chromeChanged(view: *Wnd)
+    {
+        if .reportChromeChanged do
+            .reportChromeChanged(view)
+    }
+
+    mtd shown(view: *Wnd)
+    {
+        if .reportShown do
+            .reportShown(view)
+    }
+
+    mtd navigate(view: *Wnd, delta: s32)
+    {
+        if .navigateFile do
+            .navigateFile(view, delta)
+    }
+
+    // Reports the end of `view`'s file; without a host that listens, the view stays where it ended.
+    mtd finished(view: *Wnd)->Continuation => .reportFinished ? .reportFinished(view) : .Stop
+}
+
 // Hosts one file through the same viewer registry inside another viewer.
 //
 // The returned interface borrows a host-owned child window. Its parent owns that window, while

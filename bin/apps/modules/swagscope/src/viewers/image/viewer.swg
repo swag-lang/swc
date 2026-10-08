@@ -140,6 +140,8 @@ private impl ViewerFacts
     }
 }
 
+// The picture viewer: a still or animated image, its frame and zoom controls, the transform menu,
+// and the media information panel.
 struct Panel
 {
     using wnd: Wnd
@@ -162,18 +164,11 @@ struct Panel
         information:     *MediaInfoPanel
     }
 
-    navigateFile:         Viewer.NavigateFile?
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportChromeChanged:  Viewer.ReportChromeChanged?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    reportFinished:       Viewer.ReportFinished?
-    reportShown:          Viewer.ReportShown?
-    lastCompletedLoops:   u32      // Playback cycles observed by the latest frame refresh.
-    handedOff:            bool     // The host was told the animation has run its cycle, and answered that it moves on.
-    load:                 Viewer.BackgroundLoad'ViewerContent
-    loadTimer:            *Timer?
-    failureReason:        String
+    services:           Viewer.HostServices
+    lastCompletedLoops: u32      // Playback cycles observed by the latest frame refresh.
+    handedOff:          bool     // The host was told the animation has run its cycle, and answered that it moves on.
+    load:               Viewer.BackgroundLoad'ViewerContent
+    failureReason:      String
 }
 
 impl Panel
@@ -194,8 +189,7 @@ impl Panel
             .zoomLabel.setText(Viewer.zoomText(zoom))
         }
 
-        if .reportChromeChanged do
-            .reportChromeChanged(me)
+        .services.chromeChanged(me)
     }
 
     mtd refreshFrame()
@@ -218,9 +212,9 @@ impl Panel
     // Keeps the completed cycle's last frame until the host explicitly requests another cycle.
     mtd finishCycle()
     {
-        if .handedOff or not .reportFinished do
+        if .handedOff or not .services.reportFinished do
             return
-        switch #complete .reportFinished(me)
+        switch #complete .services.finished(me)
         {
         case .Stop:
             break
@@ -245,15 +239,10 @@ impl Panel
         .frameLabel.show()
         .timeline.setBounds(0, cast(f32, .imageView.movie.frameCount) - 1, 1)
         .refreshFrame()
-        if .reportChromeChanged do
-            .reportChromeChanged(me)
+        .services.chromeChanged(me)
     }
 
-    mtd navigate(delta: s32)
-    {
-        if .navigateFile do
-            .navigateFile(me, delta)
-    }
+    mtd navigate(delta: s32) => .services.navigate(me, delta)
 
     mtd rotateClockwise()
     {
@@ -342,8 +331,7 @@ private impl IWnd for Panel
             if not .facts.width.isEmpty()
             {
                 .details = .facts.text()
-                if .reportDetails do
-                    .reportDetails(me, .details)
+                .services.showDetails(me, .details)
             }
         }
 
@@ -352,29 +340,26 @@ private impl IWnd for Panel
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
         var content: ViewerContent
         .failureReason = .load.finish(&content)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
         if content.movie.isValid()
         {
-            if .reportFinished do
+            if .services.reportFinished do
                 content.movie.loops = false
             .imageView.exchangeMovie(&content.movie)
             if .imageView.movie.frameCount > 1 do
@@ -395,15 +380,13 @@ private impl IWnd for Panel
         .refreshZoom()
         .applyLayout()
         .setInitialFocus(.imageView)
-        if .reportDetails do
-            .reportDetails(me, .details)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.showDetails(me, .details)
+        .services.loadingChanged(me)
 
         // A still picture has no end of its own; the host's slideshow gives it one.
         let still = not .imageView.movie.isValid() or .imageView.movie.frameCount <= 1
-        if still and .reportShown do
-            .reportShown(me)
+        if still do
+            .services.shown(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -417,13 +400,13 @@ private impl IWnd for Panel
         switch evt.key
         {
         case .Left where evt.modifiers == .None:
-            if .navigateFile do
+            if .services.navigateFile do
                 .navigate(-1)
             else do
                 evt.accepted = false
 
         case .Right where evt.modifiers == .None:
-            if .navigateFile do
+            if .services.navigateFile do
                 .navigate(1)
             else do
                 evt.accepted = false
@@ -469,32 +452,16 @@ private impl Panel
 {
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 
     func create(host: Viewer.Host)->*Panel
     {
-        let services     = host.services()
-        let navigateFile = services.navigateFile
-
+        let services    = host.services()
         with let result = Wnd.create'Panel(host.contentParent(), "scope.image")
         {
-            .backgroundStyle      = .View
-            .navigateFile         = navigateFile
-            .reportFailure        = services.reportFailure
-            .reportDetails        = services.reportDetails
-            .reportChromeChanged  = services.reportChromeChanged
-            .reportLoadingChanged = services.reportLoadingChanged
-            .reportFinished       = services.reportFinished
-            .reportShown          = services.reportShown
+            .backgroundStyle = .View
+            .services        = services
         }
 
         result.actions     = host.createCommandGroup(commandWidth(result.themeMetrics()))
@@ -508,8 +475,7 @@ private impl Panel
 
         result.applyLayout()
         result.setInitialFocus(result.imageView)
-        result.load.start(host.fileName(), &loadViewerContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, host.fileName(), &loadViewerContent)
         return result
     }
 
@@ -520,7 +486,7 @@ private impl Panel
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPrevious
-            .enable(me.navigateFile != null)
+            .enable(me.services.navigateFile != null)
             .sigPressed += func|view = me|(?) { view.navigate(-1) }
         }
 
@@ -528,7 +494,7 @@ private impl Panel
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipNext
-            .enable(me.navigateFile != null)
+            .enable(me.services.navigateFile != null)
             .sigPressed += func|view = me|(?) { view.navigate(1) }
         }
 
@@ -605,8 +571,7 @@ private impl Panel
 
             .sigDecodeFailed += func|view = me|(imageView)
             {
-                if view.reportFailure do
-                    view.reportFailure(view, imageView.movie.failureReason)
+                view.services.failed(view, imageView.movie.failureReason)
             }
         }
     }
@@ -618,12 +583,5 @@ func createViewer(host: Viewer.Host)
     let view = Panel.create(host)
     host.attachView(view)
 
-    with var lifecycle: Viewer.LifecycleApi
-    {
-        .isLoading = func|view|()->bool => view.loadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-        .retire    = func|view|()->bool => view.retire()
-    }
-
-    host.setLifecycle(lifecycle)
+    host.setLifecycle(Viewer.loadLifecycle(view))
 }

@@ -286,30 +286,28 @@ private func countText(count: u64, one, many: string)->String
     return Format.toString(many, count)
 }
 
+// The table viewer: the parsed table in a virtual list, and where the current search match lies.
 struct Panel
 {
     using wnd: Wnd
 
     late list: *ListCtrl
 
-    document:             Document
-    searchRow:            u64 = Swag.U64.Max
-    searchColumn:         u64
-    searchOffset:         u64
-    searchLength:         u64
-    load:                 Viewer.BackgroundLoad'Document
-    loadTimer:            *Timer?
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    document:      Document
+    searchRow:     u64 = Swag.U64.Max
+    searchColumn:  u64
+    searchOffset:  u64
+    searchLength:  u64
+    load:          Viewer.BackgroundLoad'Document
+    services:      Viewer.HostServices
+    failureReason: String
 }
 
 private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged and .loadTimer == null and .failureReason.isEmpty()
+        if evt.kind == .LanguageChanged and not .load.isPending() and .failureReason.isEmpty()
         {
             .refreshColumnNames()
             .refreshDetails()
@@ -320,28 +318,24 @@ private impl IWnd for Panel
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer     = null
         .failureReason = .load.finish(&.document)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
         .publishDocument()
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 }
 
@@ -384,21 +378,12 @@ private impl Panel
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
         let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
         let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
-        if .reportDetails do
-            .reportDetails(me, Format.toString(texts().ui_Details, kind, rows, columns))
+        .services.showDetails(me, Format.toString(texts().ui_Details, kind, rows, columns))
     }
 
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 
     mtd fillLine(line: *ListLine, index: u32)
@@ -474,7 +459,7 @@ impl Panel
         }
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
     {
         if match.major >= .document.rows.count or match.minor >= .document.rows[match.major].cells.count do
             return false
@@ -524,15 +509,12 @@ impl Panel
         .list.invalidate()
     }
 
-    func create(parent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*Panel
+    func create(parent: *Wnd, fileName: string, services: Viewer.HostServices)->*Panel
     {
         with let result = Panel.createBase(parent)
         {
-            .reportFailure        = reportFailure
-            .reportDetails        = reportDetails
-            .reportLoadingChanged = reportLoadingChanged
-            .load.start(fileName, &loadDocument)
-            .loadTimer = .addTimer(Viewer.BackgroundPollInterval)
+            .services = services
+            .load.startPolled(result, fileName, &loadDocument)
         }
 
         return result
@@ -562,38 +544,10 @@ private func fillVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = Panel.create(host.contentParent(), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = Panel.create(host.contentParent(), host.fileName(), services)
     host.attachView(view)
 
-    with var search: Viewer.SearchApi
-    {
-        .collectMatches = func|view|(text, options, ?, matches)->bool
-        {
-            view.collectMatches(text, options, matches)
-            return true
-        }
+    host.setSearch(Viewer.searchApi(view))
 
-        .revealMatch = func|view|(match, ?)->bool
-        {
-            return view.revealMatch(match)
-        }
-
-        .matchBounds = func|view|(?, bounds)->bool
-        {
-            return view.searchBounds(bounds)
-        }
-
-        .clear = func|view|() => view.clearSearch()
-    }
-
-    host.setSearch(search)
-
-    with var lifecycle: Viewer.LifecycleApi
-    {
-        .isLoading = func|view|()->bool => view.loadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-        .retire    = func|view|()->bool => view.retire()
-    }
-
-    host.setLifecycle(lifecycle)
+    host.setLifecycle(Viewer.loadLifecycle(view))
 }

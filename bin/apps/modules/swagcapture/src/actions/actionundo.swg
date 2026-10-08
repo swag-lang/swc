@@ -1,5 +1,6 @@
 using Gui
 
+// The undo and redo commands.
 struct ActionUndo {}
 
 impl ActionUndo

@@ -448,12 +448,12 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     let segmentSize = 72 + 80'u64
     let dylibSize   = 56'u64
-    poke(&bytes, 0, 0xFEEDFACF, 4)                   // MH_MAGIC_64.
-    poke(&bytes, 4, 0x01000007, 4)                   // cputype: x86-64.
-    poke(&bytes, 12, 2, 4)                           // filetype: MH_EXECUTE.
-    poke(&bytes, 16, 2, 4)                           // ncmds.
+    poke(&bytes, 0, 0xFEEDFACF, 4)      // MH_MAGIC_64.
+    poke(&bytes, 4, 0x01000007, 4)      // cputype: x86-64.
+    poke(&bytes, 12, 2, 4)              // filetype: MH_EXECUTE.
+    poke(&bytes, 16, 2, 4)              // ncmds.
     poke(&bytes, 20, segmentSize + dylibSize, 4)     // sizeofcmds.
-    poke(&bytes, 24, 0x00200085, 4)                  // NOUNDEFS | DYLDLINK | TWOLEVEL | PIE.
+    poke(&bytes, 24, 0x00200085, 4)     // NOUNDEFS | DYLDLINK | TWOLEVEL | PIE.
 
     let segmentAt = 32'u64
     poke(&bytes, segmentAt, 0x19, 4)     // LC_SEGMENT_64.
@@ -477,7 +477,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let dylibAt = segmentAt + segmentSize
     poke(&bytes, dylibAt, 0x0C, 4)     // LC_LOAD_DYLIB.
     poke(&bytes, dylibAt + 4, dylibSize, 4)
-    poke(&bytes, dylibAt + 8, 24, 4)              // Offset of the name inside the command.
+    poke(&bytes, dylibAt + 8, 24, 4)     // Offset of the name inside the command.
     poke(&bytes, dylibAt + 16, 0x00010203, 4)     // current_version 1.2.3.
     pokeText(&bytes, dylibAt + 24, "/usr/lib/libSystem.B.dylib")
 
@@ -886,7 +886,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.assert(matches.count == 1)
     Swag.assert(matches[0].minor == cast(u64, Binary.Column.Detail))
-    let revealed = view.revealMatch(matches[0])
+    let revealed = view.revealMatch(matches[0], "")
     Swag.assert(revealed)
     Swag.assert(view.list.selectedLine() != null)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")

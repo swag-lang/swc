@@ -80,7 +80,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     infoBar.centerGroup    = result.info
 
     let viewer = assume cast(*Midi.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
     assertViewerInfoButton(viewer.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
     Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
@@ -123,6 +123,6 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     var result = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let viewer = assume cast(*Midi.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

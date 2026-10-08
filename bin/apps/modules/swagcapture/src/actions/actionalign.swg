@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that align the selected forms and move them through the stacking order.
 struct ActionAlign {}
 
 impl ActionAlign

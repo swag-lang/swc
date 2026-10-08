@@ -1,3 +1,5 @@
+// The commands on a pixel selection: clear it, fill it, fill it from its border, or lift its
+// pixels into a movable image and fill the hole they leave.
 struct ActionPixSel {}
 
 impl ActionPixSel

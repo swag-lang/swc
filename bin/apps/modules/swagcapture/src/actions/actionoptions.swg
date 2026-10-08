@@ -1,5 +1,6 @@
 using Gui
 
+// The command that opens the options.
 struct ActionOptions {}
 
 // Fills the options grid with the three reflected sections, in display order.

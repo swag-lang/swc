@@ -1199,7 +1199,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
     let view = assume cast(*PdfDocument.Panel, window.currentView)
-    Swag.assert(view.loadTimer == null and view.pdfView.pageCount() == 2)
+    Swag.assert(not view.load.isPending() and view.pdfView.pageCount() == 2)
 
     window.searchBox.setFocus()
     window.searchBox.setText("second")

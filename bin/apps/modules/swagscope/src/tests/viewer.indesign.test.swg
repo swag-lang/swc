@@ -23,8 +23,8 @@ using Core, Pixel, Gui, Viewers
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, path, commandParent: &host.root)
     Swag.assert(result.view != null)
     let viewer = assume cast(*InDesign.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
+    completeViewerBackgroundLoad(&host, &viewer.previewLoad)
     Swag.assert(viewer.failureReason == InDesign.texts().err_Preview)
     Swag.assert(not viewer.hasPreviewContent)
 }
@@ -176,7 +176,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: &host.root)
     let viewer = assume cast(*InDesign.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
@@ -244,7 +244,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
     let viewer = assume cast(*InDesign.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
     viewer.info.dockStyle     = .None
@@ -320,7 +320,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     infoBar.centerGroup    = result.info
 
     let viewer = assume cast(*InDesign.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and not viewer.imageView.isVisible())
     Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == InDesign.texts().ui_Fit)
     Swag.assert(Utf8.contains(viewer.details, "InDesign Markup page") and Utf8.contains(viewer.details, "missing images"))
@@ -392,8 +392,8 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     infoBar.centerGroup    = result.info
 
     let viewer = assume cast(*InDesign.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
+    completeViewerBackgroundLoad(&host, &viewer.previewLoad)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
     viewer.info.dockStyle     = .None
@@ -417,7 +417,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     Pixel.Testing.assertImageGolden(&image, "viewer.indesign.document.page1")
 
     host.clickWnd(viewer.nextButton)
-    completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.previewLoad)
     Swag.assert(viewer.previewIndex == 1 and viewer.details == "InDesign · page 2 of 2 · saved preview 460 × 320")
     Swag.assert(viewer.pageLabel.text() == "Page 2 / 2")
     Swag.assert(viewer.previousButton.isEnabled() and not viewer.nextButton.isEnabled())
@@ -457,6 +457,6 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let viewer = assume cast(*InDesign.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

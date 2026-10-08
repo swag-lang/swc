@@ -53,25 +53,6 @@ that proves it.
 
 ## Entries
 
-### app.scope.viewers.014 — Viewers repeat the poll-timer cycle around a background load
-- Recorded: 2026-10-08 10:40
-
-**Evidence.** Font, image, MIDI, hexadecimal, OpenDocument, PDF, table, archive, InDesign, and
-the document outline each declare `load: Viewer.BackgroundLoad'T` beside `loadTimer: *Timer?`,
-and repeat the same three pieces: an `onTimerEvent` that ignores foreign timers, waits for
-`load.isDone()`, removes the timer and calls `load.finish`; a `retire` that retires the load and
-removes the timer; and lifecycle closures that answer `isLoading` and `needsLoadingOverlay` with
-`loadTimer != null`. Code, text, and binary poll a timer of their own around streamed reads. The
-tests drive the cycle through about fifty `completeViewerBackgroundLoad(&host, &view.load,
-view.loadTimer)` calls.
-
-**Next step.** Give the polling to the load itself: a `Viewer.PolledLoad'T` (or an option of
-`BackgroundLoad`) that owns its timer, starts it with `start(owner, fileName, load)`, answers
-`isLoading`, finishes through `poll(evt)->bool` once the worker is done, and removes its timer in
-`retire`. Migrate every owner and the test helper together so one scheme remains, and keep the
-viewer-specific part of each `onTimerEvent` (building the view from the loaded value) in a named
-method.
-
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Recorded: 2026-08-29 08:36

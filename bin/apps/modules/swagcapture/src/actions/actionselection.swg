@@ -1,5 +1,6 @@
 using Gui
 
+// The commands on the form selection: select, invert, delete, and the snap and freeze toggles.
 struct ActionSelection {}
 
 impl ActionSelection

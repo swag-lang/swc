@@ -1,5 +1,7 @@
 using Gui
 
+// The commands on capture files: saving and linking images, duplicating, renaming, deleting,
+// and showing where a file lives.
 struct ActionFile {}
 
 impl ActionFile
@@ -66,7 +68,7 @@ impl IActionUI for ActionFile
         case .UnlinkImage:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_UnlinkImage
-            evt.disabled      = not capture or capture.linkedImage.length == 0
+            evt.disabled      = not capture or capture.linkedImage.isEmpty()
 
         case .DeleteCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
@@ -223,14 +225,14 @@ impl IActionUI for ActionFile
 // The overwrite is confirmed unless the reader turned that question off.
 private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 {
-    if capture.linkedImage.length == 0
+    if capture.linkedImage.isEmpty()
     {
         main.saveAsImage(linked: true)
 
         // `saveAsImage` returns silently when the user cancels the dialog, leaving
         // `linkedImage` empty; only mark up-to-date and persist when a linked path
         // was actually set, otherwise we'd record a linked image that doesn't exist.
-        if capture.linkedImage.length != 0
+        if not capture.linkedImage.isEmpty()
         {
             capture.linkedUpToDate = true
             main.saveCapture(capture)

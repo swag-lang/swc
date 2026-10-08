@@ -251,13 +251,12 @@ func analyzeRange(fileName: string, range: AnalysisRange, cancelled: *u32? = nul
 // Owns one cancellable analysis whose worker borrows this value until completion.
 struct AnalysisOperation
 {
-    task:            Swag.Task
+    using operation: Viewer.BackgroundOperation
     fileName:        String
     range:           AnalysisRange
     result:          AnalysisResult
     cancelRequested: u32
     processed:       u64
-    started:         bool
 }
 
 impl AnalysisOperation
@@ -289,37 +288,32 @@ impl AnalysisOperation
             Atomic.exchange(&.cancelRequested, 1)
     }
 
-    mtd const isDone()->bool => .started and .task.isDone()
-    mtd progress()->u64      => Atomic.get(&.processed)
+    mtd progress()->u64 => Atomic.get(&.processed)
 
     // Returns the result of a finished analysis, and makes the operation ready to start again.
     mtd finish()->AnalysisResult
     {
         Swag.assert(.isDone())
-        .task.wait()
-        .started = false
+        .wait()
         return #move .result
     }
 
     // Cancels active work, and reports whether the worker has let go of this operation so it can be destroyed.
+    //
+    // A retired analysis is no longer polled.
     mtd retire()->bool
     {
-        if not .started do
-            return true
         .cancel()
-        if not .isDone() do
+        if .started and not .isDone() do
             return false
-        .task.wait()
-        .started = false
+        .wait()
+        .stopPolling()
         return true
     }
 
     mtd opDrop()
     {
-        if .started
-        {
-            .cancel()
-            .task.wait()
-        }
+        .cancel()
+        .wait()
     }
 }

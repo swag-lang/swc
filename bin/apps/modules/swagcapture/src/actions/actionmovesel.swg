@@ -1,5 +1,6 @@
 using Gui
 
+// The keyboard commands that nudge the selected forms by five pixels, or by one.
 struct ActionMoveSel {}
 
 impl ActionMoveSel

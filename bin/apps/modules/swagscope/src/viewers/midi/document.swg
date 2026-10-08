@@ -122,6 +122,8 @@ impl Document
     }
 }
 
+// A MIDI variable-length quantity: its value, the offset that follows it, and whether it ended
+// within the four bytes the format allows.
 private struct Vlq
 {
     value: u64

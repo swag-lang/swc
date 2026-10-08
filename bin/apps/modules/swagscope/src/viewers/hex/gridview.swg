@@ -794,11 +794,7 @@ impl GridView
     mtd stopSelection()
     {
         .selecting = false
-        if .selectionTimer
-        {
-            .removeTimer(.selectionTimer)
-            .selectionTimer = null
-        }
+        .stopTimer(&.selectionTimer)
 
         if .mouseCapture() == me do
             .releaseMouse()
@@ -833,8 +829,7 @@ impl GridView
         }
         elif not above and not below and .selectionTimer
         {
-            .removeTimer(.selectionTimer)
-            .selectionTimer = null
+            .stopTimer(&.selectionTimer)
         }
     }
 

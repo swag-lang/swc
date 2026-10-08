@@ -1,5 +1,7 @@
 using Gui
 
+// The commands that take a screenshot: the capture modes, the per-monitor captures, and where
+// the result goes.
 struct ActionCapture {}
 
 impl ActionCapture

@@ -29,6 +29,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
+// The HTML viewer: the document view and its zoom readout.
 struct Panel
 {
     using wnd: Wnd

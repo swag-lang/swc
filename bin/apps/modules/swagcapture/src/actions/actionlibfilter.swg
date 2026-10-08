@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that filter the library by kind, favorite, rating, and linked-image state.
 struct ActionLibFilter {}
 
 impl ActionLibFilter

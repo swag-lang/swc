@@ -947,7 +947,12 @@ private func containsCjk(text: string)->bool
     while cursor < text.count
     {
         let {c, eat} = Utf8.decodeRune(text[cursor to])
-        if c >= 0x2E80 and c <= 0x9FFF or c >= 0xAC00 and c <= 0xD7A3 or c >= 0xF900 and c <= 0xFAFF or c >= 0xFE30 and c <= 0xFE4F or c >= 0xFF00 and c <= 0xFFEF or c >= 0x20000 and c <= 0x3FFFD do
+        if (c >= 0x2E80 and c <= 0x9FFF) or
+           (c >= 0xAC00 and c <= 0xD7A3) or
+           (c >= 0xF900 and c <= 0xFAFF) or
+           (c >= 0xFE30 and c <= 0xFE4F) or
+           (c >= 0xFF00 and c <= 0xFFEF) or
+           (c >= 0x20000 and c <= 0x3FFFD) do
             return true
         cursor += eat
     }

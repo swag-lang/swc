@@ -392,32 +392,28 @@ impl IWnd for ViewerWindow
 
         if evt.timer == .loadingTimer
         {
-            .removeTimer(evt.timer)
-            .loadingTimer = null
+            .stopTimer(&.loadingTimer)
             .updateLoadingIndicator()
             return
         }
 
         if evt.timer == .searchTimer
         {
-            .removeTimer(evt.timer)
-            .searchTimer = null
+            .stopTimer(&.searchTimer)
             .searchStep()
             return
         }
 
         if evt.timer == .searchBoundsTimer
         {
-            .removeTimer(evt.timer)
-            .searchBoundsTimer = null
+            .stopTimer(&.searchBoundsTimer)
             .refreshSearchHighlight()
             return
         }
 
         if evt.timer == .slideTimer
         {
-            .removeTimer(evt.timer)
-            .slideTimer = null
+            .stopTimer(&.slideTimer)
             .continueSlide()
             return
         }
@@ -428,8 +424,7 @@ impl IWnd for ViewerWindow
             return
         }
 
-        .removeTimer(.startupTimer!)
-        .startupTimer = null
+        .stopTimer(&.startupTimer)
         if not .pendingFile.isEmpty()
         {
             .processQueuedFile()
@@ -449,19 +444,11 @@ impl IWnd for ViewerWindow
         .stopSearch()
         .stopLoadingIndicator()
         .stopSlide()
-        if .fileWatchTimer
-        {
-            .removeTimer(.fileWatchTimer)
-            .fileWatchTimer = null
-        }
+        .stopTimer(&.fileWatchTimer)
 
         for &set in .pluginIcons do
             set.icons.free()
-        if .startupTimer
-        {
-            .removeTimer(.startupTimer)
-            .startupTimer = null
-        }
+        .stopTimer(&.startupTimer)
     }
 
     mtd impl onStateEvent(evt: *StateEvent)
@@ -599,8 +586,14 @@ impl ViewerWindow
     // In full screen the bars step aside; the pointer within this distance of an edge brings them
     // back. The surface loses its frame and stays above other windows.
     const FullScreenRevealEdge   = 32.0
-    const FullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-    const FullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
+    const FullScreenRemovedFlags = SurfaceFlags.LargeCaption |
+                                   SurfaceFlags.SmallCaption |
+                                   SurfaceFlags.MinimizeButton |
+                                   SurfaceFlags.MaximizeButton |
+                                   SurfaceFlags.CloseButton |
+                                   SurfaceFlags.Border |
+                                   SurfaceFlags.Resizable
+    const FullScreenAddedFlags = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
 
     // The smoke review gives a viewer at most `SmokeStepLimit` readiness checks, keeps every viewer
     // on screen for `SmokeMinimumSteps`, and one that is still loading for `SmokeExposureSteps`.
@@ -1420,11 +1413,7 @@ impl ViewerWindow
     {
         if message.count do
             Console.println(message)
-        if .smokeTimer
-        {
-            .removeTimer(.smokeTimer)
-            .smokeTimer = null
-        }
+        .stopTimer(&.smokeTimer)
 
         .smokeRunning = false
         .app().postQuitEvent(exitCode)
@@ -1561,11 +1550,7 @@ impl ViewerWindow
         .resetFolderReading()
         .stopSlide()
         .stillView = null
-        if .fileWatchTimer
-        {
-            .removeTimer(.fileWatchTimer)
-            .fileWatchTimer = null
-        }
+        .stopTimer(&.fileWatchTimer)
 
         .searchBox.setText("", notify: false)
         .closeButton.enable(false)
@@ -1848,11 +1833,7 @@ impl ViewerWindow
     // Ends the wait presentation at once, whatever its clocks say: the document it announced is gone.
     mtd stopLoadingIndicator()
     {
-        if .loadingTimer
-        {
-            .removeTimer(.loadingTimer)
-            .loadingTimer = null
-        }
+        .stopTimer(&.loadingTimer)
 
         .loadingWantedSince = 0
         .hideLoadingOverlay()
@@ -1919,8 +1900,7 @@ impl ViewerWindow
         }
         elif not watching and .loadingTimer
         {
-            .removeTimer(.loadingTimer)
-            .loadingTimer = null
+            .stopTimer(&.loadingTimer)
         }
     }
 
@@ -2589,11 +2569,7 @@ impl ViewerWindow
 
     mtd stopSearch(clearPresentation = true)
     {
-        if .searchTimer
-        {
-            .removeTimer(.searchTimer)
-            .searchTimer = null
-        }
+        .stopTimer(&.searchTimer)
 
         .searchStream.close()
         .searchCarry.clear()
@@ -2606,11 +2582,7 @@ impl ViewerWindow
                 instance.clearSearch()
         }
 
-        if .searchBoundsTimer
-        {
-            .removeTimer(.searchBoundsTimer)
-            .searchBoundsTimer = null
-        }
+        .stopTimer(&.searchBoundsTimer)
 
         .searchOverlay.hide()
     }
@@ -3367,8 +3339,7 @@ impl ViewerWindow
     {
         if not .slideTimer do
             return
-        .removeTimer(.slideTimer)
-        .slideTimer = null
+        .stopTimer(&.slideTimer)
     }
 
     // Moves the slideshow on once its pace has elapsed on the picture that started it.

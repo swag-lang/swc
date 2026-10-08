@@ -1,15 +1,6 @@
 using Core, Gui, Pixel
 
-enum AppState
-{
-    Ready
-    Creating
-    Mounting
-    Unmounting
-    Resizing
-    ChangingAccess
-}
-
+// The long operation the window runs on its worker; `None` while the window waits for the reader.
 enum OperationKind
 {
     None
@@ -20,6 +11,7 @@ enum OperationKind
     ChangeAccess
 }
 
+// What an access change replaces: the password, or the set of key files.
 enum AccessChangeKind
 {
     Password
@@ -312,7 +304,6 @@ struct MainWindow
 
     fileDlgState: FileDlgState     // Session browse state; serialized only when privacy mode is off.
     privacyMode:  bool = true
-    state:        AppState
     shuttingDown: bool
     operation:    VaultOperation
 
@@ -586,7 +577,7 @@ impl MainWindow
         result.watchFormState()
         result.applyLanguage()
         result.applyLayout()
-        result.setState(.Ready)
+        result.showOperation()
         result.setStatus(.Ready)
 
         // The window opens on the first thing there is to fill in, so it can be driven from the
@@ -775,7 +766,7 @@ impl MainWindow
     // for the same reason, so Enter says exactly what the button says.
     mtd submitCreate()
     {
-        if .state != .Ready or not .canCreate() do
+        if .operation.kind != .None or not .canCreate() do
             return
         .createContainer()
     }
@@ -783,7 +774,7 @@ impl MainWindow
     // Mounts the drive when the open form holds everything it needs.
     mtd submitMount()
     {
-        if .state != .Ready or not .canMount() do
+        if .operation.kind != .None or not .canMount() do
             return
         .mountContainer()
     }
@@ -1178,7 +1169,7 @@ impl MainWindow
             .setIcon(me.theme().icon(.SaveAs, themeActionIconSize(me.themeMetrics())))
             .sigPressed += func|window = me|(?)
             {
-                if window.state == .Creating do
+                if window.operation.kind == .Create do
                     window.stopLongOperation()
                 else do
                     window.createContainer()
@@ -1252,7 +1243,7 @@ impl MainWindow
         {
             .sigPressed += func|window = me|(?)
             {
-                if window.state == .Resizing do
+                if window.operation.kind == .Resize do
                     window.stopLongOperation()
                 else do
                     window.resizeVault()
@@ -1346,7 +1337,7 @@ impl MainWindow
     // capacity out of range — is still reported when the operation runs.
     mtd refreshActions()
     {
-        if .state != .Ready do
+        if .operation.kind != .None do
             return
         .createButton.enable(.canCreate())
         .mountButton.enable(.canMount())
@@ -1357,12 +1348,13 @@ impl MainWindow
         .mountedDrives.unmountButton.enable(.mountedDrives.selectedIndex() != Swag.U64.Max)
     }
 
-    mtd setState(state: AppState)
+    // Enables what the running operation leaves usable, and lets the create and resize buttons
+    // stop their own operation.
+    mtd showOperation()
     {
-        .state = state
-        let ready    = state == .Ready
-        let creating = state == .Creating
-        let resizing = state == .Resizing
+        let ready    = .operation.kind == .None
+        let creating = .operation.kind == .Create
+        let resizing = .operation.kind == .Resize
 
         // The create and resize buttons stay live through their own long operation, because
         // during it they are what stops it. They are put in their new state before the forms go
@@ -1448,7 +1440,7 @@ impl MainWindow
 
         // The create and resize buttons say what they do *now*, so their captions are the
         // state's to write, not this method's: during a creation the first reads "stop".
-        .setState(.state)
+        .showOperation()
         .refreshStatus()
 
         .applyLayout()
@@ -1574,6 +1566,7 @@ impl MainWindow
     {
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
+        .showOperation()
         .operation.error.reset()
         .operation.timer = .addTimer(50'ms)
 
@@ -1629,7 +1622,6 @@ impl MainWindow
         .confirmPassword.clear()
         .statusProgress = 0
         .setStatus(.Randomizing)
-        .setState(.Creating)
         .beginOperation(.Create)
     }
 
@@ -1687,7 +1679,6 @@ impl MainWindow
         .mountPassword.clear()
         .statusProgress = 0
         .setStatus(.Randomizing)
-        .setState(.Creating)
         .showTab(0)
         .beginOperation(.Create)
     }
@@ -1723,7 +1714,7 @@ impl MainWindow
     // button goes down immediately so a second press cannot start anything while that happens.
     mtd stopLongOperation()
     {
-        if .state != .Creating and .state != .Resizing do
+        if .operation.kind != .Create and .operation.kind != .Resize do
             return
         .operation.progress.cancel()
         .createButton.enable(false)
@@ -1775,13 +1766,12 @@ impl MainWindow
         .operation.usedProtection = .operation.access.isProtected() or .operation.protectHidden
         .operation.securityEpoch  = .securityEpoch
         .setStatus(.StartingDriver)
-        .setState(.Mounting)
         .beginOperation(.Mount)
     }
 
     mtd unmountSelectedDrive()
     {
-        if .state != .Ready do
+        if .operation.kind != .None do
             return
         let index = .mountedDrives.selectedIndex()
         if index == Swag.U64.Max do
@@ -1792,7 +1782,6 @@ impl MainWindow
         .operation.mountLabel = .mountedDrives.drives[index].mountLabel
         .operation.volume     = .mountedDrives.detach(index)
         .setStatus(.Unmounting)
-        .setState(.Unmounting)
         .beginOperation(.Unmount)
     }
 
@@ -1802,7 +1791,7 @@ impl MainWindow
     // driver would corrupt what the drive is reading.
     mtd canChangeVault()->bool
     {
-        if .state != .Ready or not .canModifyVault() do
+        if .operation.kind != .None or not .canModifyVault() do
             return false
         if .isMounted(.mountPath.text())
         {
@@ -1847,7 +1836,6 @@ impl MainWindow
         .operation.leavesUnprotected = not .operation.replacement.isProtected()
         .operation.removesPassword   = fields.replacement.isEmpty()
         .setStatus(.ChangingPassword)
-        .setState(.ChangingAccess)
         .beginOperation(.ChangeAccess)
     }
 
@@ -1877,7 +1865,6 @@ impl MainWindow
         .operation.accessChange      = .KeyFiles
         .operation.leavesUnprotected = not .operation.replacement.isProtected()
         .setStatus(.ChangingKeyFiles)
-        .setState(.ChangingAccess)
         .beginOperation(.ChangeAccess)
     }
 
@@ -1928,7 +1915,6 @@ impl MainWindow
         .mountPassword.clear()
         .statusProgress = 0
         .setStatus(camouflageOnly ? .Camouflaging : .Resizing)
-        .setState(.Resizing)
         .beginOperation(.Resize)
     }
 
@@ -2077,8 +2063,8 @@ impl MainWindow
         case .ChangeAccess: .finishAccessChange(operationError)
         }
 
-        .setState(.Ready)
         .operation.forgetRequest()
+        .showOperation()
 
         if .startupQueue.count do
             .pumpStartupQueue()

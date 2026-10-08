@@ -259,7 +259,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         defer host.shutdown()
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
-        completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+        completeViewerBackgroundLoad(&host, &view.load)
         Swag.assert(view.html != null and Utf8.contains(view.document.html, "Document with Tables") and result.info!.isVisible())
     }
 
@@ -269,7 +269,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         defer host.shutdown()
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
-        completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+        completeViewerBackgroundLoad(&host, &view.load)
         Swag.assert(view.table != null and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
     }
 
@@ -279,7 +279,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         defer host.shutdown()
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
-        completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+        completeViewerBackgroundLoad(&host, &view.load)
         Swag.assert(view.html != null and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html, "Sample Presentation") and result.info!.isVisible())
     }
 }
@@ -294,7 +294,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer flatHost.shutdown()
     var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
     let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
-    completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
+    completeViewerBackgroundLoad(&flatHost, &flatView.load)
     Swag.assert(flatView.table != null and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
 
     let templateFileName = writeOpenDocumentFixture(".ott", .Text, textOpenDocumentXml(), true)
@@ -304,7 +304,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer templateHost.shutdown()
     var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
     let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
-    completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
+    completeViewerBackgroundLoad(&templateHost, &templateView.load)
     Swag.assert(templateView.html != null and Utf8.contains(templateView.document.html, "Quarterly report"))
 }
 
@@ -318,7 +318,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer flatHost.shutdown()
     var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
     let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
-    completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
+    completeViewerBackgroundLoad(&flatHost, &flatView.load)
     Swag.assert(flatView.html != null and flatView.table == null and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
     Swag.assert(flatResult.info != null and flatResult.info.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == OpenDocument.texts().ui_TipPage)
 
@@ -343,7 +343,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer templateHost.shutdown()
     var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
     let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
-    completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
+    completeViewerBackgroundLoad(&templateHost, &templateView.load)
     Swag.assert(templateView.html != null and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html, "Read-only drawing page"))
 }
 
@@ -362,7 +362,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(result.view != null and result.isLoading != null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null)
 
     let view = assume cast(*OpenDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.html != null and view.table == null)
     let navigated = view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1")
     Swag.assert(navigated)
@@ -407,7 +407,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = assume cast(*OpenDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     host.root.applyLayout()
     discard host.render(&host.root)
     Swag.assert(view.table != null and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
@@ -454,7 +454,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = assume cast(*OpenDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.html != null and view.table == null and view.document.slides.count == 2)
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == OpenDocument.texts().ui_TipSlide)
 
@@ -534,7 +534,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     commandBar.centerGroup = result.commands
 
     let view = assume cast(*OpenDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
     host.root.applyLayout()
@@ -591,7 +591,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     infoBar.centerGroup    = result.info
 
     let view = assume cast(*OpenDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None
     result.info.dockStyle   = .None
@@ -635,7 +635,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(result.info != null)
     infoBar.centerGroup = result.info
     let view = assume cast(*OpenDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle        = .Center
     result.info.dockStyle = .None
     host.root.applyLayout()

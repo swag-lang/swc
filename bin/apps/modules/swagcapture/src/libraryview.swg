@@ -652,7 +652,13 @@ impl LibraryView
                 // Nothing is known about an item until its preview loads. While a search
                 // is active hide it (it re-appears once loaded if it matches) so results
                 // are not padded with unloaded, possibly non-matching, captures.
-                if search.count != 0 or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures or .libWnd.favoritesOnly or .libWnd.minimumRating or not .libWnd.applicationFilter.isEmpty() or not .libWnd.tagFilter.isEmpty() do
+                if search.count != 0 or
+                   .libWnd.contentFilter == .ScreenCaptures or
+                   .libWnd.contentFilter == .ImportedCaptures or
+                   .libWnd.favoritesOnly or
+                   .libWnd.minimumRating or
+                   not .libWnd.applicationFilter.isEmpty() or
+                   not .libWnd.tagFilter.isEmpty() do
                     continue
                 itn.filtered = false
                 .items.add(itn)

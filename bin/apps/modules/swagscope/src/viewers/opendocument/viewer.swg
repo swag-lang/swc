@@ -63,6 +63,7 @@ struct Slide
     html: String
 }
 
+// The baseline a run of text sits on.
 private enum TextPosition
 {
     Normal
@@ -130,6 +131,8 @@ struct Content
     slides:   Array'Slide
 }
 
+// One XML tag read from the content: its name, its raw attribute text, and whether it closes an
+// element or closes itself.
 private struct Tag
 {
     name:        String
@@ -254,6 +257,7 @@ private func attribute(attributes, wanted: string)->String
     return {}
 }
 
+// The document property an element of the metadata stream fills, if any.
 private enum MetadataField
 {
     None
@@ -1568,52 +1572,44 @@ struct Panel
         zoomLabel: *IconButton
     }
 
-    document:             Content
-    outline:              *DocumentOutline?
-    sheetIndex:           u64
-    slideIndex:           u64
-    zoomPercent:          u32 = 100
-    load:                 Viewer.BackgroundLoad'Content
-    loadTimer:            *Timer?
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportChromeChanged:  Viewer.ReportChromeChanged?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    document:      Content
+    outline:       *DocumentOutline?
+    sheetIndex:    u64
+    slideIndex:    u64
+    zoomPercent:   u32 = 100
+    load:          Viewer.BackgroundLoad'Content
+    services:      Viewer.HostServices
+    failureReason: String
 }
 
 private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer     = null
         .failureReason = .load.finish(&.document)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
         .publishDocument()
         .reportDocumentDetails()
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged and .loadTimer == null and .failureReason.isEmpty()
+        if evt.kind == .LanguageChanged and not .load.isPending() and .failureReason.isEmpty()
         {
             .fillPageChoices()
             .zoomLabel.toolTip = texts().ui_ZoomMenu
@@ -1670,8 +1666,7 @@ private impl Panel
         .info.show(visible)
         if visible do
             .setZoom(.zoomPercent)
-        if .reportChromeChanged do
-            .reportChromeChanged(me)
+        .services.chromeChanged(me)
     }
 
     mtd kindName()->string
@@ -1694,22 +1689,20 @@ private impl Panel
 
     mtd reportDocumentDetails()
     {
-        if not .reportDetails do
-            return
         if .document.kind == .Spreadsheet and .sheetIndex < .document.sheets.count
         {
-            .reportDetails(me, .documentDetails(Format.toString(texts().ui_DetailsSheet, .sheetName(.sheetIndex))))
+            .services.showDetails(me, .documentDetails(Format.toString(texts().ui_DetailsSheet, .sheetName(.sheetIndex))))
             return
         }
 
         if (.document.kind == .Presentation or .document.kind == .Drawing) and .slideIndex < .document.slides.count
         {
             let details = .document.kind == .Presentation ? texts().ui_DetailsSlide : texts().ui_DetailsPage
-            .reportDetails(me, .documentDetails(Format.toString(details, .slideName(.slideIndex))))
+            .services.showDetails(me, .documentDetails(Format.toString(details, .slideName(.slideIndex))))
             return
         }
 
-        .reportDetails(me, .documentDetails(Format.toString(texts().ui_Details, .kindName())))
+        .services.showDetails(me, .documentDetails(Format.toString(texts().ui_Details, .kindName())))
     }
 
     // Returns the source name of a sheet, or a numbered label when the sheet has none.
@@ -1768,8 +1761,7 @@ private impl Panel
         let hasChoices = count > 1
         .pageCombo.show(hasChoices)
         .commands.show(hasChoices)
-        if .reportChromeChanged do
-            .reportChromeChanged(me)
+        .services.chromeChanged(me)
     }
 
     mtd showSheet(index: u64, clearSearch: bool)->bool
@@ -1964,7 +1956,7 @@ private impl Panel
             var tableMatch = match
             tableMatch.major = match.minor >> 32
             tableMatch.minor = match.minor & 0xFFFF_FFFF'u64
-            return .table.revealMatch(tableMatch)
+            return .table.revealMatch(tableMatch, text)
         }
 
         if .document.kind == .Presentation or .document.kind == .Drawing
@@ -2008,15 +2000,7 @@ private impl Panel
 
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 
     func create(host: Viewer.Host)->*Panel
@@ -2025,11 +2009,8 @@ private impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.opendocument")
         {
-            .backgroundStyle      = .View
-            .reportFailure        = services.reportFailure
-            .reportDetails        = services.reportDetails
-            .reportChromeChanged  = services.reportChromeChanged
-            .reportLoadingChanged = services.reportLoadingChanged
+            .backgroundStyle = .View
+            .services        = services
         }
 
         result.createZoomButton(host)
@@ -2050,8 +2031,7 @@ private impl Panel
         }
 
         result.createPageSelector(host)
-        result.load.start(host.fileName(), &loadContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, host.fileName(), &loadContent)
         return result
     }
 
@@ -2087,35 +2067,7 @@ func createViewer(host: Viewer.Host)
     host.attachView(view)
     host.setDetails(texts().ui_Name)
 
-    with var search: Viewer.SearchApi
-    {
-        .collectMatches = func|view|(text, options, ?, matches)->bool
-        {
-            view.collectMatches(text, options, matches)
-            return true
-        }
+    host.setSearch(Viewer.searchApi(view))
 
-        .revealMatch = func|view|(match, text)->bool
-        {
-            return view.revealMatch(match, text)
-        }
-
-        .matchBounds = func|view|(?, bounds)->bool
-        {
-            return view.searchBounds(bounds)
-        }
-
-        .clear = func|view|() => view.clearSearch()
-    }
-
-    host.setSearch(search)
-
-    with var lifecycle: Viewer.LifecycleApi
-    {
-        .isLoading = func|view|()->bool => view.loadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-        .retire    = func|view|()->bool => view.retire()
-    }
-
-    host.setLifecycle(lifecycle)
+    host.setLifecycle(Viewer.loadLifecycle(view))
 }

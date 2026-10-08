@@ -84,9 +84,7 @@ struct Panel
     filterTimer:             *Timer?
     loadState:               u32
     loadPublished:           bool
-    reportFailure:           Viewer.ReportFailure?
-    reportDetails:           Viewer.ReportDetails?
-    reportLoadingChanged:    Viewer.ReportLoadingChanged?
+    services:                Viewer.HostServices
     retireRequested:         bool
     retired:                 bool
     reloadLanguageRequested: bool
@@ -437,7 +435,7 @@ impl Panel
     }
 
     // Selects the row of `match` and outlines its text, and returns whether it could be revealed.
-    mtd revealMatch(match: Viewer.SearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
     {
         if match.major >= .doc.report.rows.count or match.minor > cast(u64, Column.Detail) do
             return false
@@ -555,11 +553,7 @@ impl Panel
             return
 
         .rebuildFilterIndex()
-        if .filterTimer
-        {
-            .removeTimer(.filterTimer)
-            .filterTimer = null
-        }
+        .stopTimer(&.filterTimer)
 
         .beginFillList()
         if .fillListStep()
@@ -894,8 +888,7 @@ impl IWnd for Panel
         {
             if not .fillListStep() do
                 return
-            .removeTimer(evt.timer)
-            .filterTimer = null
+            .stopTimer(&.filterTimer)
             .layoutColumns()
             .invalidate()
             return
@@ -928,8 +921,7 @@ impl IWnd for Panel
             {
                 .finishLoadTimer()
                 .failureReason = #move .pendingDoc.image.failureReason
-                if .reportFailure do
-                    .reportFailure(me, .failureReason)
+                .services.failed(me, .failureReason)
                 return
             }
 
@@ -947,8 +939,7 @@ impl IWnd for Panel
             .loadPublished      = true
             .rebuildFilterIndex()
             .beginFillList()
-            if .reportDetails do
-                .reportDetails(me, .details)
+            .services.showDetails(me, .details)
         }
 
         if not .fillListStep() do
@@ -1044,34 +1035,24 @@ impl Panel
         try .loadThread.start()
         if not .loadTimer do
             .loadTimer = .addTimer(1'ms)
-        if notify and .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        if notify do
+            .services.loadingChanged(me)
     }
 
     private mtd publishLoadFailure(reason: string)
     {
         .failureReason = reason
         .finishLoadTimer()
-        if .reportFailure do
-            .reportFailure(me, .failureReason)
+        .services.failed(me, .failureReason)
     }
 
     private mtd finishLoadTimer()
     {
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
+        .stopTimer(&.loadTimer)
 
-        if .filterTimer
-        {
-            .removeTimer(.filterTimer)
-            .filterTimer = null
-        }
+        .stopTimer(&.filterTimer)
 
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     // Asks the background read to stop, and returns whether it has ended so the viewer can be released.
@@ -1082,11 +1063,7 @@ impl Panel
         if not .retireRequested
         {
             .retireRequested = true
-            if .loadTimer
-            {
-                .removeTimer(.loadTimer)
-                .loadTimer = null
-            }
+            .stopTimer(&.loadTimer)
 
             if .loadThread.isValid() do
                 .loadThread.safeForceEnd()
@@ -1164,9 +1141,7 @@ impl Panel
         {
             .backgroundStyle = .View
             .registerAction'Action()
-            .reportDetails        = services.reportDetails
-            .reportFailure        = services.reportFailure
-            .reportLoadingChanged = services.reportLoadingChanged
+            .services = services
         }
 
         result.createCommandBar(host)
@@ -1207,7 +1182,7 @@ func createViewer(host: Viewer.Host)
         host.attachView(view)
         host.setDetails(view.details)
 
-        with var search: Viewer.SearchApi
+        with var search = Viewer.searchApi(view)
         {
             .describe = func(presentation)
             {
@@ -1217,24 +1192,6 @@ func createViewer(host: Viewer.Host)
             }
 
             .filter = func|view|(text, options) => view.applyFilter(text, options)
-
-            .collectMatches = func|view|(text, options, ?, matches)->bool
-            {
-                view.collectMatches(text, options, matches)
-                return true
-            }
-
-            .revealMatch = func|view|(match, ?)->bool
-            {
-                return view.revealMatch(match)
-            }
-
-            .matchBounds = func|view|(?, bounds)->bool
-            {
-                return view.searchBounds(bounds)
-            }
-
-            .clear = func|view|() => view.clearSearch()
         }
 
         host.setSearch(search)

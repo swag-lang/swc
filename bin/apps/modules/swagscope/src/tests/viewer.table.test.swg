@@ -45,7 +45,7 @@ using Core, Pixel, Gui, Viewers
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     let view = assume cast(*Table.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
     view.fillLine(&line, 1)
@@ -111,8 +111,8 @@ using Core, Pixel, Gui, Viewers
     let document = expect Table.parseDocument(";Column 2\nfirst;second;third\n", ';')
     let view     = Table.Panel.createDocument(&host.root, document)
     var details: String
-    view.userData      = &details
-    view.reportDetails = func(wnd, value) { cast(*String, wnd.userData!)[] = value }
+    view.userData = &details
+    view.services.reportDetails = func(wnd, value) { cast(*String, wnd.userData!)[] = value }
     view.list.selectLine(0)
     let list       = view.list
     let oldHeading = String.from(view.list.header.items[0]!.name.raw)
@@ -147,7 +147,7 @@ using Core, Pixel, Gui, Viewers
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
     let view = assume cast(*Table.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle = .Center
 
     host.root.applyLayout()

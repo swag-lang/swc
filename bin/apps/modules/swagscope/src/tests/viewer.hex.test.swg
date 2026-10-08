@@ -59,7 +59,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
     var viewerSession = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view          = assume cast(*Hex.Panel, viewerSession.view)
-    completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(host, &view.load)
     assertViewerInfoButton(view.zoomLabel!)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -110,14 +110,14 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*Hex.P
 func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 {
     var steps = 0'u32
-    while view.analysisTimer and steps < 4_096
+    while view.analysis.isPending() and steps < 4_096
     {
         Threading.Thread.sleep(1'ms)
-        host.fireTimer(view.analysisTimer)
+        host.fireTimer(view.analysis.timer)
         steps += 1
     }
 
-    Swag.assert(view.analysisTimer == null)
+    Swag.assert(not view.analysis.isPending())
 }
 
 // A file-open error crosses the viewer boundary instead of appearing as an empty byte grid.
@@ -130,7 +130,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     var result = openTestViewer(Hex.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let view = assume cast(*Hex.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(not view.failureReason.isEmpty())
 }
 

@@ -67,7 +67,7 @@ enum SourceLanguage
 // The language an interpreter line names.
 struct Shebang
 {
-    found:    bool               // Whether the source opens with an interpreter line.
+    found:    bool     // Whether the source opens with an interpreter line.
     language: SourceLanguage     // Language that line names, meaningful only when `found` is set.
 }
 
@@ -272,6 +272,8 @@ func displayName(language: SourceLanguage)->string
     }
 }
 
+// A line lexer for the languages Swag Scope has no dedicated lexer for: comments, strings,
+// numbers, and the keywords and types of the language the file name or head selected.
 struct GenericLexer
 {
     enum Style: RichEditStyleRef
@@ -532,7 +534,15 @@ impl IRichEditLexer for GenericLexer
                 }
 
                 let value = line.runeAt(seek)
-                if (.isHashComment() and value == '#') or (.isDashComment() and matchesAt(line, seek, "--")) or (.isSemicolonComment() and value == ';') or (.isPercentComment() and value == '%') or (.isBangComment() and value == '!') or (.isQuoteComment() and value == '"') or (.language == .VisualBasic and value == '\'') or (.language == .Batch and matchesAt(line, seek, "rem ")) or (.isSlashComment() and matchesAt(line, seek, "//"))
+                if (.isHashComment() and value == '#') or
+                   (.isDashComment() and matchesAt(line, seek, "--")) or
+                   (.isSemicolonComment() and value == ';') or
+                   (.isPercentComment() and value == '%') or
+                   (.isBangComment() and value == '!') or
+                   (.isQuoteComment() and value == '"') or
+                   (.language == .VisualBasic and value == '\'') or
+                   (.language == .Batch and matchesAt(line, seek, "rem ")) or
+                   (.isSlashComment() and matchesAt(line, seek, "//"))
                 {
                     paintRange(line, seek, length, .Comment)
                     seek = length

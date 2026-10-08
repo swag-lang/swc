@@ -19,6 +19,8 @@ enum CmdNeed
     PixSel        // at least one selected pixel-selection form
 }
 
+// One row of a command table: the command, its menu name, what it needs to be enabled, and
+// whether it hides instead of greying out.
 struct CmdDesc
 {
     id:           WndId

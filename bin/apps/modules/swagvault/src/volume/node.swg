@@ -126,7 +126,12 @@ impl Node
             let logical  = try reader.readLittleEndian'u64()
             let physical = try reader.readLittleEndian'u64()
             let count    = try reader.readLittleEndian'u64()
-            if not count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (not result.blocks.isEmpty() and logical < previousLogical) do
+            if not count or
+               physical >= blockCount or
+               count > blockCount - physical or
+               count > blockCount - mapped or
+               logical > Swag.U64.Max - count or
+               (not result.blocks.isEmpty() and logical < previousLogical) do
                 try failWith("A block run falls outside the container.", .Corrupted)
 
             result.appendMapping({logical, physical, count})

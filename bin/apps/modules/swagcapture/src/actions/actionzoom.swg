@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that zoom the editor.
 struct ActionZoom {}
 
 impl ActionZoom

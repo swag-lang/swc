@@ -14,7 +14,7 @@ using Core, Pixel, Gui, Viewers
         defer host.shutdown()
         var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
         let view    = assume cast(*Picture.Panel, session.view)
-        completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+        completeViewerBackgroundLoad(&host, &view.load)
         let movie = &view.imageView.movie
         Swag.assert(view.failureReason.isEmpty() and movie.isValid() and movie.frameCount > 1)
         Swag.assert(view.timeline.isLocallyVisible() and view.frameLabel.isLocallyVisible())

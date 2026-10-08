@@ -1,5 +1,6 @@
 using Gui
 
+// The command that hides what lies outside the capture box.
 struct ActionView {}
 
 impl ActionView

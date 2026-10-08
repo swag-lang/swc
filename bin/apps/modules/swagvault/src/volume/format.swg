@@ -101,13 +101,11 @@ struct HeaderCandidate
     plain:    Array'u8
 }
 
-// Reads the fixed prefix of a decrypted header slot and returns its checkpoint
-// counter. Failing here means the slot is unusable, not that the password is
-// wrong: the caller decides how to report it.
-func parseHeaderSequence(plain: const [..] u8)->u64 fail
+// Reads the fixed prefix of a decrypted header slot from `reader` and returns its
+// checkpoint counter. Failing here means the slot is unusable, not that the
+// password is wrong: the caller decides how to report it.
+func readHeaderPrefix(reader: *ByteStream)->u64 fail
 {
-    var reader = ByteStream.openRead(plain)
-
     var magic: [#sizeof(HeaderMagic)] u8
     try reader.readBytes(&magic[0], #sizeof(magic))
     if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
@@ -118,4 +116,11 @@ func parseHeaderSequence(plain: const [..] u8)->u64 fail
         try failWith("The container format version is not supported.", .Corrupted)
 
     return try reader.readLittleEndian'u64()
+}
+
+// Returns the checkpoint counter of a decrypted header slot, see [[readHeaderPrefix]].
+func parseHeaderSequence(plain: const [..] u8)->u64 fail
+{
+    var reader = ByteStream.openRead(plain)
+    return try readHeaderPrefix(&reader)
 }

@@ -12,7 +12,7 @@ using Core, Pixel, Gui, Viewers
     defer host.shutdown()
     var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Picture.Panel, session.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     let movie = &view.imageView.movie
     Swag.assert(view.failureReason.isEmpty() and movie.isValid())
     Swag.assert(movie.frameCount == 33 and movie.frame.width == 512 and movie.frame.height == 512)

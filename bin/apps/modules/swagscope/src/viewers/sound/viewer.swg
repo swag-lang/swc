@@ -460,11 +460,8 @@ struct Panel
     retireRequested: bool
     retired:         bool
 
-    details:              String
-    reportDetails:        Viewer.ReportDetails?
-    reportFailure:        Viewer.ReportFailure?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    reportFinished:       Viewer.ReportFinished?
+    details:  String
+    services: Viewer.HostServices
 }
 
 impl Panel
@@ -519,8 +516,7 @@ impl Panel
         if not .engineReady do
             .playButton.toolTip = texts().ui_NoEngine
         .refreshDetails()
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     // Rebuilds the host summary in the active language and reports it.
@@ -531,8 +527,7 @@ impl Panel
                                    channelCountText(.sound.numChannels()),
                                    .sound.sampleStorageBits(),
                                    durationText(.duration))
-        if .reportDetails do
-            .reportDetails(me, .details)
+        .services.showDetails(me, .details)
     }
 
     mtd retranslate()
@@ -572,11 +567,7 @@ impl Panel
         if not .retireRequested
         {
             .retireRequested = true
-            if .timer
-            {
-                .removeTimer(.timer)
-                .timer = null
-            }
+            .stopTimer(&.timer)
 
             if .voice
             {
@@ -781,7 +772,7 @@ impl Panel
     // one that is to be replayed starts again from its first sample.
     mtd finishPlayback()
     {
-        let continuation = .reportFinished ? .reportFinished(me) : Viewer.Continuation.Stop
+        let continuation = .services.finished(me)
         .stopPlayback()
         if continuation == .Replay do
             .togglePlayback()
@@ -808,8 +799,8 @@ impl IWnd for Panel
         if not .openFinished
         {
             catch .completeOpen() as openError
-            if openError != null and .reportFailure do
-                .reportFailure(me, Errors.message(openError))
+            if openError != null do
+                .services.failed(me, Errors.message(openError))
             return
         }
 
@@ -941,11 +932,8 @@ impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.sound")
         {
-            .backgroundStyle      = .View
-            .reportDetails        = services.reportDetails
-            .reportFinished       = services.reportFinished
-            .reportFailure        = services.reportFailure
-            .reportLoadingChanged = services.reportLoadingChanged
+            .backgroundStyle = .View
+            .services        = services
         }
 
         defer #fail result.destroy()

@@ -17,6 +17,8 @@ struct FrameHeader
     reserved:  [9] u32
 }
 
+// The file both processes map to exchange frames: a [[FrameHeader]] followed by one BGRA frame,
+// and the named event the producer waits on until the consumer has taken the frame.
 #[Swag.NoCopy]
 struct FrameChannel
 {

@@ -44,7 +44,6 @@ struct DocumentOutline
     rows:         Array'(*ListLine)
     levels:       Array'u32
     load:         Viewer.BackgroundLoad'(Array'DocumentHeading)
-    loadTimer:    *Timer?
     failure:      String
     markdownFile: String
     loaded:       bool
@@ -195,7 +194,7 @@ impl DocumentOutline
         .title.setText(g_DocumentOutlineStrings.title)
         .toggle.toolTip      = g_DocumentOutlineStrings.title
         .closeButton.toolTip = g_DocumentOutlineStrings.close
-        .status.setText(not .failure.isEmpty() ? .failure.toString() : .loadTimer ? g_DocumentOutlineStrings.loading : g_DocumentOutlineStrings.empty)
+        .status.setText(not .failure.isEmpty() ? .failure.toString() : .load.isPending() ? g_DocumentOutlineStrings.loading : g_DocumentOutlineStrings.empty)
         .status.show(.levels.isEmpty())
         .list.computeLayout()
         .applyLayout()
@@ -236,22 +235,13 @@ impl DocumentOutline
     {
         if .loaded or .load.started do
             return
-        .load.start(.markdownFile, &loadMarkdownHeadings)
-        .loadTimer = .addTimer(Viewer.BackgroundPollInterval)
+        .load.startPolled(me, .markdownFile, &loadMarkdownHeadings)
         .refresh()
     }
 
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 }
 
@@ -259,10 +249,8 @@ impl IWnd for DocumentOutline
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer or not .load.isDone() do
+        if evt.timer != .load.timer or not .load.poll() do
             return
-        .removeTimer(evt.timer)
-        .loadTimer = null
         var headings: Array'DocumentHeading
         .failure = .load.finish(&headings)
         .loaded  = true

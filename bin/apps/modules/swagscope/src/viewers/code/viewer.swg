@@ -38,6 +38,8 @@ private
     const RevealContextSize  = 64 * 1024'u64
 }
 
+// The source-code viewer: a read-only editor colored by the Swag lexer or the generic one,
+// over a bounded window of the file streamed in the background.
 struct Panel
 {
     using wnd: Wnd
@@ -63,7 +65,7 @@ struct Panel
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
-    reportFailure:     Viewer.ReportFailure?
+    services:          Viewer.HostServices
     failureReason:     String
 }
 
@@ -120,11 +122,7 @@ impl Panel
 
     mtd stopLoading()
     {
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
+        .stopTimer(&.loadTimer)
 
         .stream.close()
     }
@@ -144,8 +142,8 @@ impl Panel
         if .failureReason.isEmpty() do
             .failureReason = texts().err_Read
         .editor.setEstimatedDocumentHeight(0)
-        if .hasText and .reportFailure do
-            .reportFailure(me, .failureReason)
+        if .hasText do
+            .services.failed(me, .failureReason)
     }
 
     mtd loadNextChunk()
@@ -248,14 +246,14 @@ impl Panel
     // Creates the streamed, syntax-colored view of `fileName` under `contentParent`.
     //
     // `info` receives the zoom control when the view is hosted with an information group, and
-    // `reportFailure` hears about read errors discovered once text is already shown.
-    func create(contentParent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, info: *Wnd? = null)->*Panel
+    // `services` hear about read errors discovered once text is already shown.
+    func create(contentParent: *Wnd, fileName: string, services: Viewer.HostServices = {}, info: *Wnd? = null)->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.code")
         {
             .backgroundStyle = .View
             .fileName        = fileName
-            .reportFailure   = reportFailure
+            .services        = services
             .info            = info
         }
 
@@ -471,8 +469,7 @@ impl IWnd for Panel
             return
         }
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
+        .stopTimer(&.loadTimer)
         if .pendingSeek
         {
             let offset = .pendingSeekOffset
@@ -491,7 +488,7 @@ impl IWnd for Panel
 // Creates the integrated syntax-colored source view.
 func createViewer(host: Viewer.Host)
 {
-    let view = Panel.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(Viewer.ZoomSlotWidth))
+    let view = Panel.create(host.contentParent(), host.fileName(), host.services(), host.createInfoGroup(Viewer.ZoomSlotWidth))
     if not view.failureReason.isEmpty()
     {
         host.reject(view.failureReason)

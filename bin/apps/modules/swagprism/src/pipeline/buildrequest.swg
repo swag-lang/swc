@@ -3,12 +3,16 @@
 
 using Core
 
+// The compiler configuration a snippet is built in: `Release` as shipped, `Devmode` with the
+// runtime checks of development builds.
 enum BuildPreset
 {
     Release
     Devmode
 }
 
+// How one panel builds the snippet: its preset, its backend optimization level, and the module
+// configuration fragment the reader edits.
 struct BuildSettings
 {
     preset:        BuildPreset

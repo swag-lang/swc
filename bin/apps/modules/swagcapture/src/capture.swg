@@ -1222,7 +1222,15 @@ impl Capture
         case .Capture: return fi.texture.isValid() and fi.textureKind == fi.kind
         }
 
-        return fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty and fi.xc == fi.x and fi.yc == fi.y and fi.wc == fi.w and fi.hc == fi.h and fi.stc == fi.strength and fi.serial == fi.capture!.serialBackTexture
+        return fi.texture.isValid() and
+               fi.textureKind == fi.kind and
+               not fi.dirty and
+               fi.xc == fi.x and
+               fi.yc == fi.y and
+               fi.wc == fi.w and
+               fi.hc == fi.h and
+               fi.stc == fi.strength and
+               fi.serial == fi.capture!.serialBackTexture
     }
 
     // Paints one form through its retained rendering, or returns false to use the

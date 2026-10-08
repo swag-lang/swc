@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that choose how many seconds a capture waits before it is taken.
 struct ActionCaptureDelay {}
 
 impl ActionCaptureDelay

@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that burn the selected forms, or all of them, into the capture image.
 struct ActionFlatten {}
 
 impl ActionFlatten

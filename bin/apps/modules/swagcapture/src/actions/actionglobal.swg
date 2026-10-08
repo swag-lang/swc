@@ -1,5 +1,6 @@
 using Gui
 
+// The application commands that switch between the library and the editor, minimize, and exit.
 struct ActionGlobal {}
 
 impl ActionGlobal

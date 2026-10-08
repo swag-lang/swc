@@ -281,3 +281,37 @@ func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string,
     result[] = list.listView.localToSurface(local)
     return not result.isEmpty()
 }
+
+// Returns the search hooks of a viewer that holds its whole text.
+//
+// The viewer collects every match at once with `collectMatches`, reveals one with `revealMatch`,
+// reports where the revealed match is drawn with `searchBounds`, and removes that highlight with
+// `clearSearch`. Hooks of its own, such as a filter, are added to the result.
+func(T) searchApi(view: *T)->SearchApi
+{
+    with var result: retval
+    {
+        .collectMatches = func|view|(text, options, ?, matches)->bool
+        {
+            view.collectMatches(text, options, matches)
+            return true
+        }
+
+        .revealMatch = func|view|(match, text)->bool
+        {
+            return view.revealMatch(match, text)
+        }
+
+        .matchBounds = func|view|(?, bounds)->bool
+        {
+            return view.searchBounds(bounds)
+        }
+
+        .clear = func|view|()
+        {
+            view.clearSearch()
+        }
+    }
+
+    return result
+}

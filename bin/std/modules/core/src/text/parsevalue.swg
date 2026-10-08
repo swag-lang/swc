@@ -2,6 +2,15 @@
 
 using Swag, Core.Errors
 
+// Reject overflow before touching the destination, and return the consumed byte count.
+private func(T) storeParsedNumber(destination: *u8, parsed: {value: T, eat: u32, ovf: bool})->u32 fail
+{
+    if parsed.ovf do
+        fail OverflowError{}
+    cast(*T, destination)[] = parsed.value
+    return parsed.eat
+}
+
 // Parses a value of type `type` from the start of `buf` into `addr`, and returns the rest of `buf`.
 //
 // `addr` must point to initialized storage that can hold a `type`. Accepted types are:
@@ -155,7 +164,6 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     // different typeinfo instance, so the dispatch reads the native kind instead of
     // switching on typeinfo identity.
     var eat = 0'u32
-    var ovf = false
     if type == String
     {
         eat = try parseString(cast(*String, patch), one)
@@ -168,75 +176,18 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     let nativeType = assume cast(const *TypeInfoNative, type)
     switch nativeType.nativeKind
     {
-    case .S8:
-        var val: s8
-        {val, eat, ovf} = try parseS8(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*s8, patch)[] = val
+    case .S8: eat = try storeParsedNumber(patch, try parseS8(one))
+    case .S16: eat = try storeParsedNumber(patch, try parseS16(one))
+    case .S32: eat = try storeParsedNumber(patch, try parseS32(one))
+    case .S64: eat = try storeParsedNumber(patch, try parseS64(one))
 
-    case .S16:
-        var val: s16
-        {val, eat, ovf} = try parseS16(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*s16, patch)[] = val
+    case .U8: eat = try storeParsedNumber(patch, try parseU8(one))
+    case .U16: eat = try storeParsedNumber(patch, try parseU16(one))
+    case .U32: eat = try storeParsedNumber(patch, try parseU32(one))
+    case .U64: eat = try storeParsedNumber(patch, try parseU64(one))
 
-    case .S32:
-        var val: s32
-        {val, eat, ovf} = try parseS32(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*s32, patch)[] = val
-
-    case .S64:
-        var val: s64
-        {val, eat, ovf} = try parseS64(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*s64, patch)[] = val
-
-    case .U8:
-        var val: u8
-        {val, eat, ovf} = try parseU8(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*u8, patch)[] = val
-
-    case .U16:
-        var val: u16
-        {val, eat, ovf} = try parseU16(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*u16, patch)[] = val
-
-    case .U32:
-        var val: u32
-        {val, eat, ovf} = try parseU32(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*u32, patch)[] = val
-
-    case .U64:
-        var val: u64
-        {val, eat, ovf} = try parseU64(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*u64, patch)[] = val
-
-    case .F32:
-        var val: f32
-        {val, eat, ovf} = try parseF32(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*f32, patch)[] = val
-
-    case .F64:
-        var val: f64
-        {val, eat, ovf} = try parseF64(one)
-        if ovf do
-            fail OverflowError{}
-        cast(*f64, patch)[] = val
+    case .F32: eat = try storeParsedNumber(patch, try parseF32(one))
+    case .F64: eat = try storeParsedNumber(patch, try parseF64(one))
 
     case .Bool:
         var val: bool

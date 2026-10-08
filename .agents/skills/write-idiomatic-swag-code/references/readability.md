@@ -126,6 +126,20 @@ Run the formatter to align these assignments. Here the conditionals are small an
 adding three helpers would increase navigation. Keep the enclosing receiver explicit as `me`
 inside a method's `with` block, and do not nest subjects merely to remove more prefixes.
 
+## Factor A Repeated Policy, Keep The Choice Visible
+
+When several branches parse different numeric types but all reject overflow before writing the
+destination, the repeated check and write belong in one private helper. Keep the type-to-parser
+dispatch at the call site: a small table of explicit choices is easier to verify than a mode
+parameter or a second dispatch hidden inside the helper. Name the helper after the operation,
+such as `storeParsedNumber`, and keep it with the parser that owns the policy.
+
+Preserve the failure boundary: the destination must stay untouched when parsing fails or the
+value overflows. Check the existing tests for that property and for the consumed byte count;
+add boundary coverage when the refactoring crosses a previously untested contract. Do not
+generalize an unrelated reader merely because its statements look similar: JSON, for example,
+also checks complete token consumption and reports its own syntax errors.
+
 ## Use Comments As Landmarks, Not Filler
 
 In a decoder, `// Validate the directory before allocating entries.` can identify a whole phase

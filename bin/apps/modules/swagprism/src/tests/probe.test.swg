@@ -101,7 +101,7 @@ using Core
 // Microcode does not import the rendering stack implicitly.
 #test
 {
-    var artifact = Pipeline.BuildArtifact{request: {source: String.from("using Pixel\nfunc value()->u32 => 0"), stage: String.from("pre-emit"), kind: .Microcode}}
+    var artifact = Pipeline.BuildArtifact{request: {source: "using Pixel\nfunc value()->u32 => 0", stage: "pre-emit", kind: .Microcode}}
     expect artifact.run()
     let result = &artifact.result
     Swag.assert(result.failed)

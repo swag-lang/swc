@@ -139,3 +139,18 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool => Sli
     Swag.assert(Unicode.compare(upper, tail, len: 3) == 0)
     Swag.assert(Unicode.compare(upper, tail) == -1)
 }
+
+// Alternating case ranges select the right member of both their first and last pair.
+#test
+{
+    for upper in [0x0100'rune, 0x012E'rune]
+    {
+        let lower = upper + 1
+        Swag.assert(Unicode.toLower(upper) == lower)
+        Swag.assert(Unicode.toLower(lower) == lower)
+        Swag.assert(Unicode.toUpper(lower) == upper)
+        Swag.assert(Unicode.toUpper(upper) == upper)
+        Swag.assert(Unicode.toTitle(lower) == upper)
+        Swag.assert(Unicode.toTitle(upper) == upper)
+    }
+}

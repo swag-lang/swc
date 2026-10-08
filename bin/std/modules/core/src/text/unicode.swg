@@ -254,7 +254,7 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
     return length <=> otherLength
 }
 
-////////// TABLES ////////
+// Marks a range of alternating uppercase and lowercase code points.
 const UpperLower = Swag.S32.Max
 
 // A range of code points, every `stride`-th one of which belongs to a table.
@@ -333,17 +333,11 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
             let delta = cr.delta[wCase]
             if delta == UpperLower
             {
-                // In an Upper-Lower sequence, which always starts with
-                // an UpperCase letter, the real deltas always look like:
-                //     {0, 1, 0}    UpperCase (Lower is next)
-                //     {-1, 0, -1}  LowerCase (Upper, Title are previous)
-                // The characters at even offsets from the beginning of the
-                // sequence are upper case; the ones at odd offsets are lower.
-                // The correct mapping can be done by clearing or setting the low
-                // bit in the sequence offset.
-                // The constants UpperCase and TitleCase are even while LowerCase
-                // is odd so we take the low bit from wCase.
-                result.mappedRune   = cr.lo + #wrap ((r - cr.lo) & ~1'u32 | (cast(rune, wCase) & 1))
+                // Alternating ranges start with uppercase: even offsets are upper/title,
+                // odd offsets are lower. The low bit of WantedCase selects the pair member.
+                let pairOffset = (r - cr.lo) & ~1'u32
+                let caseOffset = cast(rune, wCase) & 1
+                result.mappedRune   = cr.lo + #wrap (pairOffset | caseOffset)
                 result.foundMapping = true
                 return result
             }

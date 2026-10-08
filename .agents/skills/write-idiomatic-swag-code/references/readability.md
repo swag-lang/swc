@@ -179,6 +179,10 @@ let word = Math.make32(bytes[0], bytes[1], bytes[2], bytes[3])
 Similarly, `Math.byteAt(word, 0)` names extraction of the least significant byte. Check the
 range contract before replacing an arbitrary shift with this helper. Keep bit masks and shifts
 for non-byte fields and SIMD operations; do not force a scalar byte API onto another domain.
+For example, Unicode case mapping uses a low bit to select a member of an upper/lower pair.
+Keep that bit operation explicit, and name the pair offset and case offset when their combination
+otherwise needs a long explanatory comment. Retain the explanation of the invariant; remove
+only narration that the new names make redundant.
 Adding or adopting such helpers is a semantic refactoring with focused tests, outside the
 strictly visual campaign in `backlog/repo.prompts.md`.
 

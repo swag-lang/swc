@@ -248,7 +248,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   plan, interpret an intentional compiler error, locate the matching local reference entry, and
   distinguish a source error from an unavailable host capability without hard-coded Swag knowledge.
 - Related: compiler.command.doc.003, compiler.distribution.004, compiler.distribution.006,
-  compiler.distribution.009, compiler.core.008, compiler.core.009.
+  compiler.distribution.009, compiler.language.service.001, compiler.language.service.002.
 
 ### compiler.distribution.010 — The distributed compiler does not expose a ready editor/agent endpoint
 
@@ -257,7 +257,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   services, but a programmer who receives only a release has no documented, discoverable way to
   launch that endpoint, identify its version, or ensure that its hover documentation and imported
   standard APIs match the shipped payload.
-- Intent: once compiler.core.008 through compiler.core.014 exist, package them as a documented
+- Intent: once compiler.language.service.001 through compiler.language.service.007 exist, package them as a documented
   `swc lsp` release command. Its initialization response and diagnostics identify the compiler and
   payload versions; its document links resolve to the same local documentation index used by CLI
   and agent queries. An editor remains optional: a text editor and the normal CLI always suffice.
@@ -265,8 +265,8 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   discover the exact endpoint/version without repository files, open an unsaved workspace document,
   receive diagnostics/completion/hover with local documentation, and shut down without leaving
   release or cache state ambiguous.
-- Related: compiler.core.008, compiler.core.009, compiler.core.010, compiler.core.011,
-  compiler.core.013, compiler.core.014, compiler.distribution.006, compiler.distribution.008.
+- Related: compiler.language.service.001, compiler.language.service.002, compiler.language.service.006, compiler.language.service.003,
+  compiler.language.service.005, compiler.language.service.007, compiler.distribution.006, compiler.distribution.008.
 
 ### compiler.distribution.011 — No release gate proves the first-use contract
 

@@ -25,13 +25,23 @@ private const MsAdaptation: [16] s32 = [230, 230, 230, 230, 307, 409, 512, 614, 
 
 // The seven predictor pairs the Microsoft format defines, in the 8.8 fixed point the `fmt `
 // chunk carries them in. A file may state its own table; this is what it states by default.
-private const MsCoefficients: [14] s32 = [256, 0, 512, -256, 0, 0, 192, 64, 240, 0, 460, -208, 392, -232]
+private const MsCoefficients: [14] s32 = [
+    256, 0,
+    512, -256,
+    0, 0,
+    192, 64,
+    240, 0,
+    460, -208,
+    392, -232]
 
 // The IMA step table and the index adjustment every nibble applies, indexed by the nibble.
 private const ImaSteps: [89] s32 = [
-    7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45, 50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
-    130, 143, 157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658, 724, 796, 876, 963, 1_060, 1_166, 1_282, 1_411, 1_552, 1_707, 1_878, 2_066,
-    2_272, 2_499, 2_749, 3_024, 3_327, 3_660, 4_026, 4_428, 4_871, 5_358, 5_894, 6_484, 7_132, 7_845, 8_630, 9_493, 10_442, 11_487, 12_635, 13_899, 15_289, 16_818, 18_500, 20_350, 22_385, 24_623, 27_086, 29_794, 32_767]
+    7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31,
+    34, 37, 41, 45, 50, 55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143,
+    157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658,
+    724, 796, 876, 963, 1_060, 1_166, 1_282, 1_411, 1_552, 1_707, 1_878, 2_066, 2_272, 2_499, 2_749, 3_024,
+    3_327, 3_660, 4_026, 4_428, 4_871, 5_358, 5_894, 6_484, 7_132, 7_845, 8_630, 9_493, 10_442, 11_487, 12_635, 13_899,
+    15_289, 16_818, 18_500, 20_350, 22_385, 24_623, 27_086, 29_794, 32_767]
 private const ImaIndexSteps: [16] s32 = [-1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
 
 // Returns the number of sample frames a block of `blockBytes` decodes to, or zero for a block
@@ -42,18 +52,18 @@ private const ImaIndexSteps: [16] s32 = [-1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1,
 // final block cut short by the writer decodes to what it holds.
 internal func blockFrameCount(encoding: SoundFileEncoding, channels: u32, blockBytes: u64)->u64
 {
-    let width = cast(u64, channels)
+    let channelCount = cast(u64, channels)
     switch encoding
     {
     case .AdpcmMs:
-        if blockBytes < MsHeaderBytes * width do
+        if blockBytes < MsHeaderBytes * channelCount do
             return 0
-        return 2 + (blockBytes - MsHeaderBytes * width) * 2 / width
+        return 2 + (blockBytes - MsHeaderBytes * channelCount) * 2 / channelCount
 
     case .AdpcmIma:
-        if blockBytes < ImaHeaderBytes * width do
+        if blockBytes < ImaHeaderBytes * channelCount do
             return 0
-        return 1 + (blockBytes - ImaHeaderBytes * width) / (ImaGroupBytes * width) * ImaGroupSamples
+        return 1 + (blockBytes - ImaHeaderBytes * channelCount) / (ImaGroupBytes * channelCount) * ImaGroupSamples
 
     default:
         return 0
@@ -62,18 +72,20 @@ internal func blockFrameCount(encoding: SoundFileEncoding, channels: u32, blockB
 
 private func readS16(bytes: const [..] u8, offset: u64)->s32
 {
-    let raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8)
-    return cast(s32, cast #bit (s16, cast(u16, raw)))
+    let low  = bytes[offset]
+    let high = bytes[offset + 1]
+    let raw  = Math.make16(high, low)
+    return cast(s32, cast #bit (s16, raw))
 }
 
 // The adaptive state of one Microsoft ADPCM channel inside a block.
 private struct MsChannel
 {
-    coefficient1: s32
-    coefficient2: s32
-    delta:        s32
-    sample1:      s32
-    sample2:      s32
+    previousCoefficient: s32
+    olderCoefficient:    s32
+    delta:               s32
+    previousSample:      s32
+    olderSample:         s32
 }
 
 private impl MsChannel
@@ -84,17 +96,20 @@ private impl MsChannel
     // one on negative products and the error would then feed every following sample.
     mtd expand(nibble: u32)->s16
     {
-        let signed    = nibble & 8 ? cast(s32, nibble) - 16 : cast(s32, nibble)
-        var predicted = (.sample1 * .coefficient1 + .sample2 * .coefficient2) / 256
-        predicted += signed * .delta
-        .sample2  = .sample1
-        .sample1  = Math.clamp(predicted, -32_768, 32_767)
-        .delta    = (MsAdaptation[nibble] * .delta) >> 8
+        let signedNibble = nibble & 8 ? cast(s32, nibble) - 16 : cast(s32, nibble)
+        var predicted    = (.previousSample * .previousCoefficient +
+                            .olderSample * .olderCoefficient) / 256
+        predicted       += signedNibble * .delta
+        .olderSample    = .previousSample
+        .previousSample = Math.clamp(predicted, -32_768, 32_767)
+
+        // Adapt the next step after publishing the reconstructed sample.
+        .delta = (MsAdaptation[nibble] * .delta) >> 8
         if .delta < 16 do
             .delta = 16
         elif .delta > Swag.S32.Max / 768 do
             .delta = Swag.S32.Max / 768
-        return cast(s16, .sample1)
+        return cast(s16, .previousSample)
     }
 }
 
@@ -122,7 +137,9 @@ private impl ImaChannel
             difference += step >> 1
         if nibble & 1 do
             difference += step >> 2
-        .predictor = Math.clamp(nibble & 8 ? .predictor - difference : .predictor + difference, -32_768, 32_767)
+
+        let nextPredictor = nibble & 8 ? .predictor - difference : .predictor + difference
+        .predictor = Math.clamp(nextPredictor, -32_768, 32_767)
         .stepIndex = Math.clamp(.stepIndex + ImaIndexSteps[nibble], 0, 88)
         return cast(s16, .predictor)
     }
@@ -165,67 +182,71 @@ private impl Codec
 
     mtd decodeMs(destination: [*] s16, packet: const [..] u8, frames: u64) fail
     {
-        let width = cast(u64, .channels)
+        let channelCount = cast(u64, .channels)
         var states: [MaxChannels] MsChannel
-        for channel in width
+        for channel in channelCount
         {
             let choice = cast(u64, packet[channel])
             if choice * 2 + 1 >= .coefficients.count do
                 fail InvalidFormatError{"Microsoft ADPCM block selects a predictor outside its table"}
-            states[channel].coefficient1 = .coefficients[choice * 2]
-            states[channel].coefficient2 = .coefficients[choice * 2 + 1]
-            states[channel].delta        = readS16(packet, width + channel * 2)
-            states[channel].sample1      = readS16(packet, width * 3 + channel * 2)
-            states[channel].sample2      = readS16(packet, width * 5 + channel * 2)
+            with let state = &states[channel]
+            {
+                .previousCoefficient = me.coefficients[choice * 2]
+                .olderCoefficient    = me.coefficients[choice * 2 + 1]
+                .delta               = readS16(packet, channelCount + channel * 2)
+                .previousSample      = readS16(packet, channelCount * 3 + channel * 2)
+                .olderSample         = readS16(packet, channelCount * 5 + channel * 2)
+            }
         }
 
         // The seed samples are output oldest first, then every byte carries one nibble for the
         // first channel and one for the last, which are the same channel in mono.
-        for channel in width
+        for channel in channelCount
         {
-            destination[channel]         = cast(s16, states[channel].sample2)
-            destination[width + channel] = cast(s16, states[channel].sample1)
+            destination[channel] = cast(s16, states[channel].olderSample)
+            destination[channelCount + channel] = cast(s16, states[channel].previousSample)
         }
 
-        var written = 2 * width
-        var offset  = MsHeaderBytes * width
-        let total   = frames * width
-        while written < total
+        var writtenSamples = 2 * channelCount
+        var offset         = MsHeaderBytes * channelCount
+        let totalSamples   = frames * channelCount
+        while writtenSamples < totalSamples
         {
             let byte = cast(u32, packet[offset])
-            destination[written]     = states[0].expand(byte >> 4)
-            destination[written + 1] = states[width - 1].expand(byte & 15)
-            written                  += 2
-            offset                   += 1
+            destination[writtenSamples]     = states[0].expand(byte >> 4)
+            destination[writtenSamples + 1] = states[channelCount - 1].expand(byte & 15)
+            writtenSamples                  += 2
+            offset                          += 1
         }
     }
 
     mtd decodeIma(destination: [*] s16, packet: const [..] u8, frames: u64) fail
     {
-        let width = cast(u64, .channels)
+        let channelCount = cast(u64, .channels)
         var states: [MaxChannels] ImaChannel
-        for channel in width
+        for channel in channelCount
         {
-            let at = channel * ImaHeaderBytes
-            states[channel].predictor = readS16(packet, at)
-            states[channel].stepIndex = cast(s32, packet[at + 2])
+            let headerOffset = channel * ImaHeaderBytes
+            states[channel].predictor = readS16(packet, headerOffset)
+            states[channel].stepIndex = cast(s32, packet[headerOffset + 2])
             if states[channel].stepIndex > 88 do
                 fail InvalidFormatError{"IMA ADPCM block states a step index outside its table"}
             destination[channel] = cast(s16, states[channel].predictor)
         }
 
         // After the seed sample, nibbles come in four-byte groups per channel, low nibble first.
-        var offset = ImaHeaderBytes * width
+        var offset = ImaHeaderBytes * channelCount
         var frame  = 1'u64
         while frame < frames
         {
-            for channel in width
+            for channel in channelCount
             {
                 for index in ImaGroupBytes
                 {
-                    let byte = cast(u32, packet[offset])
-                    destination[(frame + index * 2) * width + channel]     = states[channel].expand(byte & 15)
-                    destination[(frame + index * 2 + 1) * width + channel] = states[channel].expand(byte >> 4)
+                    let byte       = cast(u32, packet[offset])
+                    let firstFrame = frame + index * 2
+                    destination[firstFrame * channelCount + channel]       = states[channel].expand(byte & 15)
+                    destination[(firstFrame + 1) * channelCount + channel] = states[channel].expand(byte >> 4)
                     offset += 1
                 }
             }
@@ -255,8 +276,8 @@ impl IPacketCodec for Codec
         let frames = blockFrameCount(.sourceEncoding, .channels, packet.count)
         if not frames do
             fail InvalidFormatError{"ADPCM block is shorter than its header"}
-        let produced = frames * .channels * #sizeof(s16)
-        if destinationSize < produced do
+        let producedBytes = frames * .channels * #sizeof(s16)
+        if destinationSize < producedBytes do
             fail BadParameterError{"ADPCM destination buffer is too small"}
 
         let samples = cast([*] s16, destination)
@@ -264,7 +285,7 @@ impl IPacketCodec for Codec
             try .decodeMs(samples, packet, frames)
         else do
             try .decodeIma(samples, packet, frames)
-        return produced
+        return producedBytes
     }
 }
 

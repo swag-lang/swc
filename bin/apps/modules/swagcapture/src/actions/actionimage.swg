@@ -396,6 +396,21 @@ impl MainWnd
         capture.pushUndo(undo)
     }
 
+    // Whether column `x`, or row `y`, of `img` holds a pixel that is not fully transparent.
+    func columnOpaque(img: const *Image, x: s32)->bool
+    {
+        for y in img.height where img.pixelColor(x, y).a do
+            return true
+        return false
+    }
+
+    func rowOpaque(img: const *Image, y: s32)->bool
+    {
+        for x in img.width where img.pixelColor(x, y).a do
+            return true
+        return false
+    }
+
     mtd trimCapture()
     {
         let capture = .getCapture()!
@@ -428,64 +443,31 @@ impl MainWnd
             }
         }
 
-        #scope(Left)
-        for x in capture.backImg.width
+        // The opaque pixels of the image inside the canvas widen the box too.
+        let img = &capture.backImg
+        let pos = capture.backImagePos
+        for x in img.width where x + pos.x >= 0 and columnOpaque(img, x)
         {
-            if x + capture.backImagePos.x < 0 do
-                continue
-            for y in capture.backImg.height
-            {
-                if capture.backImg.pixelColor(x, y).a
-                {
-                    minX = Math.min(minX, x + capture.backImagePos.x)
-                    break to Left
-                }
-            }
+            minX = Math.min(minX, x + pos.x)
+            break
         }
 
-        #scope(Right)
-        for x in capture.backImg.width.reversed()
+        for x in img.width.reversed() where x + pos.x < capture.width and columnOpaque(img, x)
         {
-            if x + capture.backImagePos.x >= capture.width do
-                continue
-            for y in capture.backImg.height
-            {
-                if capture.backImg.pixelColor(x, y).a
-                {
-                    maxX = Math.max(maxX, x + capture.backImagePos.x + 1)
-                    break to Right
-                }
-            }
+            maxX = Math.max(maxX, x + pos.x + 1)
+            break
         }
 
-        #scope(Up)
-        for y in capture.backImg.height
+        for y in img.height where y + pos.y >= 0 and rowOpaque(img, y)
         {
-            if y + capture.backImagePos.y < 0 do
-                continue
-            for x in capture.backImg.width
-            {
-                if capture.backImg.pixelColor(x, y).a
-                {
-                    minY = Math.min(minY, y + capture.backImagePos.y)
-                    break to Up
-                }
-            }
+            minY = Math.min(minY, y + pos.y)
+            break
         }
 
-        #scope(Down)
-        for y in capture.backImg.height.reversed()
+        for y in img.height.reversed() where y + pos.y < capture.height and rowOpaque(img, y)
         {
-            if y + capture.backImagePos.y >= capture.height do
-                continue
-            for x in capture.backImg.width
-            {
-                if capture.backImg.pixelColor(x, y).a
-                {
-                    maxY = Math.max(maxY, y + capture.backImagePos.y + 1)
-                    break to Down
-                }
-            }
+            maxY = Math.max(maxY, y + pos.y + 1)
+            break
         }
 
         let serial = capture.undoMgr.newSerial()

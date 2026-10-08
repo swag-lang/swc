@@ -303,10 +303,8 @@ impl ViewerWindow
     {
         .siblings.clear()
         .siblingIndex = 0
-        for file in .folderFiles
+        for file in .folderFiles where not .folderSameKind or .index.sharesViewer(.currentFile, file[])
         {
-            if .folderSameKind and not .index.sharesViewer(.currentFile, file[]) do
-                continue
             .siblings.add(file[])
         }
 

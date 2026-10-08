@@ -287,10 +287,8 @@ impl BaseForm
 
         painter.end()
 
-        for cmd in painter.commandBuffer
+        for cmd in painter.commandBuffer where cmd.id == .DrawTriangles
         {
-            if cmd.id != .DrawTriangles do
-                continue
             for var i = 0; i < cmd.drawTriangles.count; i += 3
             {
                 let tri = cmd.drawTriangles.start + i

@@ -184,10 +184,8 @@ impl RollView
         let plotLeft  = KeyboardWidth + ContentInset
         let alternate = .theme().palette.alternate.mark
 
-        for note in .document.notes
+        for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
         {
-            if .selectedTrack != Swag.U32.Max and note.track != .selectedTrack do
-                continue
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
             if x > .scrollPos.x + .clientRect().width do
                 break

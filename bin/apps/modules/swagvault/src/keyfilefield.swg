@@ -46,10 +46,8 @@ impl IWnd for KeyFileField
         let cell = room.height
 
         var right = room.right()
-        for button in [.remove, .generate, .add]
+        for button in [.remove, .generate, .add] where button.isVisible()
         {
-            if not button.isVisible() do
-                continue
             right -= cell
             button.arrange({right, room.y, cell, cell})
             right -= gap
@@ -92,10 +90,8 @@ private impl KeyFileField
     mtd addPaths(paths: Array'String)
     {
         var firstAdded = Swag.U32.Max
-        for path in paths
+        for path in paths where not .hasPath(path.toString())
         {
-            if .hasPath(path.toString()) do
-                continue
             if firstAdded == Swag.U32.Max do
                 firstAdded = cast(u32, .paths.count)
             .paths.add(path[])

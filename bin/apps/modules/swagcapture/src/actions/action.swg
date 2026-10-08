@@ -35,11 +35,8 @@ struct CmdDesc
 // its custom commands afterwards.
 func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [..] CmdDesc)->bool
 {
-    for &d in table
+    for &d in table where d.id == cxt.id
     {
-        if d.id != cxt.id do
-            continue
-
         let main    = mainWndOf(cxt)
         let capture = main.getCapture()
 

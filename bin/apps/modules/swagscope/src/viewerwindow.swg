@@ -325,42 +325,18 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if evt.key == .F11 and evt.modifiers == .None
+        let plain = evt.modifiers == .None
+        switch evt.key
         {
-            .setFullScreen(not .fullScreen)
-        }
-        elif evt.key == .Escape and evt.modifiers == .None and .fullScreen
-        {
-            .setFullScreen(false)
-        }
-        elif evt.key == .O and evt.modifiers.has(.Control)
-        {
-            .chooseFile()
-        }
-        elif evt.key == .F and evt.modifiers.has(.Control)
-        {
-            .showSearch()
-        }
-        elif evt.key == .F3 and evt.modifiers.has(.Shift)
-        {
-            .findPrevious()
-        }
-        elif evt.key == .F3 and evt.modifiers == .None
-        {
-            .findNext()
-        }
-        elif (evt.key == .Left or evt.key == .Right) and evt.modifiers == .None
-        {
-            if .forwardingViewerKey or not .forwardKeyToViewer(evt) do
-                evt.accepted = false
-        }
-        elif evt.key == .F5 and not .currentFile.isEmpty()
-        {
-            .reloadCurrentFile()
-        }
-        else
-        {
-            evt.accepted = false
+        case .F11 where plain:                     .setFullScreen(not .fullScreen)
+        case .Escape where plain and .fullScreen:  .setFullScreen(false)
+        case .O where evt.modifiers.has(.Control): .chooseFile()
+        case .F where evt.modifiers.has(.Control): .showSearch()
+        case .F3 where evt.modifiers.has(.Shift):  .findPrevious()
+        case .F3 where plain:                      .findNext()
+        case .F5 where not .currentFile.isEmpty(): .reloadCurrentFile()
+        case .Left, .Right where plain:            evt.accepted = not .forwardingViewerKey and .forwardKeyToViewer(evt)
+        default: evt.accepted = false
         }
     }
 

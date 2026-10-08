@@ -193,10 +193,8 @@ impl Report
         var bestLevel = 0'u32
         var bestSpan  = Swag.U64.Max
 
-        for row, index in .rows
+        for row, index in .rows where row.offset != Swag.U64.Max and row.length
         {
-            if row.offset == Swag.U64.Max or not row.length do
-                continue
             if offset < row.offset or offset - row.offset >= row.length do
                 continue
             if best != Swag.U64.Max and row.level < bestLevel do

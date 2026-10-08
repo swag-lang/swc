@@ -216,10 +216,8 @@ private impl Panel
             let parts = Tokenize.split(entry.path, '/'rune)
             var prefix: String
             var parent: *ListLine?
-            for part, partIndex in parts
+            for part, partIndex in parts where part.count
             {
-                if not part.count do
-                    continue
                 if not prefix.isEmpty() do
                     prefix += '/'u8
                 prefix += part

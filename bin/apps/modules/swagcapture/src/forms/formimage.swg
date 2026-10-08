@@ -100,6 +100,93 @@ impl FormImage
             .texture = g_App.renderer.addImage(.image)
         }
     }
+
+    // The glyph of a kind of image form, in the quick-style cells.
+    func kindIcon(kind: FormImageKind)->CaptureIcons
+    {
+        switch #complete kind
+        {
+        case .Image:    return .Image
+        case .Blur:     return .Blur
+        case .Pixelate: return .Pixelate
+        case .Zoom:     return .Zoom
+        case .Capture:  return .Cube
+        }
+    }
+
+    // Whether the effect texture no longer matches the form: moved, resized, retuned, or computed
+    // from a capture image that changed since.
+    mtd effectIsStale(capture: *Capture)->bool
+    {
+        return not .texture.isValid() or .xc != .x or .yc != .y or .wc != .w or .hc != .h or .textureKind != .kind or .dirty or .stc != .strength or .serial != capture.serialBackTexture
+    }
+
+    // The effect computed from the capture image under the form: a blurred or pixelated copy, or a
+    // magnified middle part.
+    mtd effectImage(capture: *Capture)->Image
+    {
+        let x = cast(s32, .x - capture.backImagePos.x)
+        let y = cast(s32, .y - capture.backImagePos.y)
+        if .kind == .Zoom
+        {
+            const ZoomFactor = 2.5
+            let stw    = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .w / ZoomFactor))
+            let sth    = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .h / ZoomFactor))
+            var result = capture.backImg.cropped(x + stw, y + sth, .w - stw * 2, .h - sth * 2)
+            result.resize(.w, .h, .Nearest)
+            return result
+        }
+
+        var result = capture.backImg.cropped(x, y, .w, .h)
+        let st     = Math.map(cast(f32, .strength), 0, 100, 1, 16)
+        let nw     = Math.max(cast(s32, result.width / st), 4)
+        let nh     = Math.max(cast(s32, result.height / st), 4)
+        result.resize(nw, nh, .Quadratic)
+        result.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
+        return result
+    }
+
+    // Brings the texture up to date with what the form shows: its picture, the capture it copies,
+    // or the effect it applies.
+    mtd refreshTexture()
+    {
+        let renderer = g_App.renderer
+        let capture  = .capture!
+        switch .kind
+        {
+        case .Image:
+            if (not .texture.isValid() or .textureKind != .kind or .dirty) and .image.isValid()
+            {
+                .dirty       = false
+                .textureKind = .kind
+                renderer.removeTexture(&.texture)
+                .texture = renderer.addImage(.image)
+                if not .freePos.width do
+                    .freePos.width = .image.width
+                if not .freePos.height do
+                    .freePos.height = .image.height
+            }
+
+        case .Capture:
+            if not .texture.isValid() or .textureKind != .kind do
+                .backCapture()
+
+        case .Blur, .Pixelate, .Zoom:
+            if .effectIsStale(capture) and .w > 1 and .h > 1
+            {
+                .dirty       = false
+                .serial      = capture.serialBackTexture
+                .textureKind = .kind
+                .stc         = .strength
+                .xc          = .x
+                .yc          = .y
+                .wc          = .w
+                .hc          = .h
+                renderer.removeTexture(&.texture)
+                .texture = renderer.addImage(.effectImage(capture))
+            }
+        }
+    }
 }
 
 impl IForm for FormImage
@@ -283,99 +370,8 @@ impl IForm for FormImage
         var pp    = .boundRect() * z
         let pen   = Pen.createSolid(.borderColor, bSize)
 
-        if not cxt.quickMode
-        {
-            let renderer = g_App.renderer
-            let capture  = .capture!
-            let x1       = cast(s32, .x - capture.backImagePos.x)
-            let y1       = cast(s32, .y - capture.backImagePos.y)
-
-            switch .kind
-            {
-            case .Image:
-                if (not .texture.isValid() or .textureKind != .kind or .dirty) and .image.isValid()
-                {
-                    .dirty       = false
-                    .textureKind = .kind
-                    renderer.removeTexture(&.texture)
-                    .texture = renderer.addImage(.image)
-                    if not .freePos.width do
-                        .freePos.width = .image.width
-                    if not .freePos.height do
-                        .freePos.height = .image.height
-                }
-
-            case .Capture:
-                if not .texture.isValid() or
-                   .textureKind != .kind
-                {
-                    .backCapture()
-                }
-
-            case .Blur, .Pixelate:
-                if not .texture.isValid() or
-                   .xc != .x or
-                   .yc != .y or
-                   .wc != .w or
-                   .hc != .h or
-                   .textureKind != .kind or
-                   .dirty or
-                   .stc != .strength or
-                   .serial != capture.serialBackTexture
-                {
-                    if .w > 1 and .h > 1
-                    {
-                        .dirty       = false
-                        .serial      = capture.serialBackTexture
-                        .textureKind = .kind
-                        .stc         = .strength
-                        .xc          = .x
-                        .yc          = .y
-                        .wc          = .w
-                        .hc          = .h
-                        renderer.removeTexture(&.texture)
-                        var image = capture.backImg.cropped(x1, y1, .w, .h)
-                        let st    = Math.map(cast(f32, .strength), 0, 100, 1, 16)
-                        let nw    = Math.max(cast(s32, image.width / st), 4)
-                        let nh    = Math.max(cast(s32, image.height / st), 4)
-                        image.resize(nw, nh, .Quadratic)
-                        image.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
-                        .texture = g_App.renderer.addImage(image)
-                    }
-                }
-
-            case .Zoom:
-                if not .texture.isValid() or
-                   .xc != .x or
-                   .yc != .y or
-                   .wc != .w or
-                   .hc != .h or
-                   .textureKind != .kind or
-                   .dirty or
-                   .stc != .strength or
-                   .serial != capture.serialBackTexture
-                {
-                    if .w > 1 and .h > 1
-                    {
-                        .dirty       = false
-                        .serial      = capture.serialBackTexture
-                        .textureKind = .kind
-                        .stc         = .strength
-                        .xc          = .x
-                        .yc          = .y
-                        .wc          = .w
-                        .hc          = .h
-                        renderer.removeTexture(&.texture)
-                        const ZoomFactor = 2.5
-                        let stw   = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .w / ZoomFactor))
-                        let sth   = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .h / ZoomFactor))
-                        var image = capture.backImg.cropped(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
-                        image.resize(.w, .h, .Nearest)
-                        .texture = g_App.renderer.addImage(image)
-                    }
-                }
-            }
-        }
+        if not cxt.quickMode do
+            .refreshTexture()
 
         let iconColor = g_App.theme.colors.btnIcon_Icon
 
@@ -384,84 +380,64 @@ impl IForm for FormImage
         {
             painter.fillRect(pp, .borderColor)
         }
+        elif cxt.quickMode
+        {
+            // Reserve room below the icon, but never let a tiny thumbnail's height go
+            // negative and invert the rect.
+            pp.height = Math.max(pp.height - 10, 1'f32)
+
+            if .kind == .Image do
+                painter.fillRect(pp, .backColor)
+            var icon = g_Main!.icon(kindIcon(.kind), 48)
+            icon.sizeX, icon.sizeY = 32
+            icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
+            pp.inflate(-bSize * 0.5)
+            painter.drawRect(pp, pen)
+        }
+        elif .kind == .Capture and not .texture.isValid()
+        {
+            painter.drawRect(pp, Argb.White, 4)
+        }
+        elif .kind == .Image and not .image.isValid()
+        {
+            painter.fillRect(pp, .backColor)
+            let icon = g_Main!.icon(.Image, 48)
+            icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
+            pp.inflate(-bSize * 0.5)
+            painter.drawRect(pp, pen)
+        }
+        elif .kind == .Image
+        {
+            painter.fillRect(pp, .backColor)
+            switch .place
+            {
+            case .Frame:
+                painter.drawTexture(pp, .texture)
+
+            case .Center:
+                var pp1 = pp
+                pp1.x      = pp.horzCenter() - (.texture.width / 2) * z
+                pp1.y      = pp.vertCenter() - (.texture.height / 2) * z
+                pp1.width  = .texture.width * z
+                pp1.height = .texture.height * z
+                painter.drawTexture(pp1, .texture)
+
+            case .Free:
+                var pp1 = pp
+                pp1.offset(.freePos.x * z, .freePos.y * z)
+                pp1.width  = .freePos.width * z
+                pp1.height = .freePos.height * z
+                painter.drawTexture(pp1, .texture)
+            }
+
+            pp.inflate(-bSize * 0.5)
+            painter.drawRect(pp, pen)
+        }
         else
         {
-            if cxt.quickMode
-            {
-                // Reserve room below the icon, but never let a tiny thumbnail's height go
-                // negative and invert the rect.
-                pp.height = Math.max(pp.height - 10, 1'f32)
-
-                var icon: Icon
-                switch .kind
-                {
-                case .Image:
-                    painter.fillRect(pp, .backColor)
-                    icon = g_Main!.icon(.Image, 48)
-
-                case .Blur:
-                    icon = g_Main!.icon(.Blur, 48)
-
-                case .Pixelate:
-                    icon = g_Main!.icon(.Pixelate, 48)
-
-                case .Zoom:
-                    icon = g_Main!.icon(.Zoom, 48)
-
-                case .Capture:
-                    icon = g_Main!.icon(.Cube, 48)
-                }
-
-                icon.sizeX, icon.sizeY = 32
-                icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
-                pp.inflate(-bSize * 0.5)
-                painter.drawRect(pp, pen)
-            }
-            elif .kind == .Capture and not .texture.isValid()
-            {
-                painter.drawRect(pp, Argb.White, 4)
-            }
-            elif .kind == .Image and not .image.isValid()
-            {
-                painter.fillRect(pp, .backColor)
-                let icon = g_Main!.icon(.Image, 48)
-                icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
-                pp.inflate(-bSize * 0.5)
-                painter.drawRect(pp, pen)
-            }
-            elif .kind == .Image
-            {
-                painter.fillRect(pp, .backColor)
-                switch .place
-                {
-                case .Frame:
-                    painter.drawTexture(pp, .texture)
-
-                case .Center:
-                    var pp1 = pp
-                    pp1.x      = pp.horzCenter() - (.texture.width / 2) * z
-                    pp1.y      = pp.vertCenter() - (.texture.height / 2) * z
-                    pp1.width  = .texture.width * z
-                    pp1.height = .texture.height * z
-                    painter.drawTexture(pp1, .texture)
-
-                case .Free:
-                    var pp1 = pp
-                    pp1.offset(.freePos.x * z, .freePos.y * z)
-                    pp1.width  = .freePos.width * z
-                    pp1.height = .freePos.height * z
-                    painter.drawTexture(pp1, .texture)
-                }
-
-                pp.inflate(-bSize * 0.5)
-                painter.drawRect(pp, pen)
-            }
-            else
-            {
-                painter.drawTexture(pp, .texture)
-                pp.inflate(-bSize * 0.5)
-                painter.drawRect(pp, pen)
-            }
+            painter.drawTexture(pp, .texture)
+            pp.inflate(-bSize * 0.5)
+            painter.drawRect(pp, pen)
         }
     }
 

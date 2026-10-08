@@ -63,6 +63,21 @@ struct BuildRequest
 
 impl BuildRequest
 {
+    // The build setup of the probe module. Its `%` take, in order: the preset, the optimization
+    // level, the configuration the reader wrote, and the backend.
+    const ModuleTemplate = """%
+                              #run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }
+                              %
+                              #run
+                              {
+                                  with let cfg = Swag.compiler().getBuildCfg()!
+                                  {
+                                      .backendKind = .%
+                                      .publishDependencies = true
+                                  }
+                              }
+                              """
+
     mtd matches(other: BuildRequest)->bool     => .kind == other.kind and .stage == other.stage and .sameProgram(other)
     mtd sameProgram(other: BuildRequest)->bool => .source == other.source and .settings.matches(other.settings)
     mtd satisfies(other: BuildRequest)->bool   => .kind == other.kind and .sameProgram(other) and (.stage == other.stage or other.stage.isEmpty())
@@ -85,13 +100,20 @@ impl BuildRequest
     // The `module.swg` of the probe: its dependency, backend, optimization, and configuration.
     mtd moduleSource()->String
     {
-        let dependency = .kind == .Microcode ? "core" : (.kind == .Render2D ? "pixel" : "gui")
-        let backend    = .kind == .Microcode ? "StaticLibrary" : "SharedLibrary"
+        var dependency: string
+        switch #complete .kind
+        {
+        case .Microcode: dependency = "core"
+        case .Render2D:  dependency = "pixel"
+        case .Gui:       dependency = "gui"
+        }
+
+        let backend = .kind == .Microcode ? "StaticLibrary" : "SharedLibrary"
 
         var result: retval
         if .needsDependency() do
             result.appendFormat("#import(\"%\", location: \"swag@std\")\n", dependency)
-        result.appendFormat("%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n", .settings.presetSource(), cast(u8, .settings.optimization), .settings.configuration, backend)
+        result.appendFormat(ModuleTemplate, .settings.presetSource(), cast(u8, .settings.optimization), .settings.configuration, backend)
         return result
     }
 }

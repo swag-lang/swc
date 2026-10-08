@@ -20,18 +20,23 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct IfVarDeclWhereSemaPayload
+    struct IfSemaPayload
     {
         Symbol*     maskedConditionSymbol = nullptr;
         ConstantRef maskedConditionCstRef = ConstantRef::invalid();
+
+        // How many flow facts the frame around the 'if' held when the true branch started. A kill
+        // that branch records reaches every live frame, so it outlives the branch for the code
+        // after the 'if'; the false branch never runs it, and starts from this count again.
+        uint32_t narrowFactsAtThen = UINT32_MAX;
     };
 
-    IfVarDeclWhereSemaPayload& ensureIfVarDeclWhereSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    IfSemaPayload& ensureIfSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
-        if (auto* payload = sema.semaPayload<IfVarDeclWhereSemaPayload>(nodeRef))
+        if (auto* payload = sema.semaPayload<IfSemaPayload>(nodeRef))
             return *payload;
 
-        auto* payload = sema.compiler().allocate<IfVarDeclWhereSemaPayload>();
+        auto* payload = sema.compiler().allocate<IfSemaPayload>();
         sema.setSemaPayload(nodeRef, payload);
         return *payload;
     }
@@ -112,12 +117,13 @@ namespace
 
     void restoreMaskedIfVarDeclCondition(const Sema& sema, AstNodeRef nodeRef)
     {
-        auto* payload = sema.semaPayload<IfVarDeclWhereSemaPayload>(nodeRef);
+        auto* payload = sema.semaPayload<IfSemaPayload>(nodeRef);
         if (!payload || !payload->maskedConditionSymbol)
             return;
 
         setConditionSymbolConstantRef(*payload->maskedConditionSymbol, payload->maskedConditionCstRef);
-        *payload = {};
+        payload->maskedConditionSymbol = nullptr;
+        payload->maskedConditionCstRef = ConstantRef::invalid();
     }
 
     void maybeMaskIfVarDeclConditionForWhere(Sema& sema, AstNodeRef ifRef, AstNodeRef varDeclRef)
@@ -130,7 +136,7 @@ namespace
         if (conditionCstRef.isInvalid())
             return;
 
-        auto& payload                 = ensureIfVarDeclWhereSemaPayload(sema, ifRef);
+        auto& payload                 = ensureIfSemaPayload(sema, ifRef);
         payload.maskedConditionSymbol = conditionSym;
         payload.maskedConditionCstRef = conditionCstRef;
         setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
@@ -328,9 +334,20 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
         // bare statement, so the region frame is pushed here, or its fact outlives the branch
         // and narrows code the other path reaches.
         const bool bodyOwnsFrame = sema.node(childRef).is(AstNodeId::EmbeddedBlock);
-        if (!facts.empty() || !bodyOwnsFrame)
+
+        // The false branch starts from the facts that held before the true one, without the kills
+        // the true branch recorded on its own path.
+        uint32_t factsAtThen = UINT32_MAX;
+        if (childRef == nodeIfBlockRef)
+            ensureIfSemaPayload(sema, sema.curNodeRef()).narrowFactsAtThen = sema.frame().narrowFactCount();
+        else if (const auto* payload = sema.semaPayload<IfSemaPayload>(sema.curNodeRef()); payload && payload->narrowFactsAtThen < sema.frame().narrowFactCount())
+            factsAtThen = payload->narrowFactsAtThen;
+
+        if (!facts.empty() || !bodyOwnsFrame || factsAtThen != UINT32_MAX)
         {
             SemaFrame frame = sema.frame();
+            if (factsAtThen != UINT32_MAX)
+                frame.truncateNarrowFacts(factsAtThen);
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
             sema.pushFramePopOnPostChild(frame, childRef);
         }

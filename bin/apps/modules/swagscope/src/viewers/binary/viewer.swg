@@ -219,11 +219,8 @@ impl Panel
     {
         let end = Math.min(.fillIndex + FillRows, .doc.report.rows.count)
 
-        for index in .fillIndex until end
+        for index in .fillIndex until end where .filterIncluded.isEmpty() or .filterIncluded[index]
         {
-            if not .filterIncluded.isEmpty() and not .filterIncluded[index] do
-                continue
-
             let row   = &.doc.report.rows[index]
             let depth = cast(u64, row.level)
             var parent: *ListLine? = null
@@ -418,10 +415,8 @@ impl Panel
     // see.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
-        for row, rowIndex in .doc.report.rows
+        for row, rowIndex in .doc.report.rows where .filterIncluded.isEmpty() or .filterIncluded[rowIndex]
         {
-            if not .filterIncluded.isEmpty() and not .filterIncluded[rowIndex] do
-                continue
             Viewer.collectTextMatches(row.label, text, options, rowIndex, cast(u64, Column.Field), 0, result)
             Viewer.collectTextMatches(row.value, text, options, rowIndex, cast(u64, Column.Value), 0, result)
             if row.offset != Swag.U64.Max
@@ -964,20 +959,19 @@ impl IWnd for Panel
             return
         }
 
-        if evt.key == .E and evt.modifiers.has(.Control) and evt.modifiers.has(.Shift) do
-            .sendCommandEvent(Action.CollapseAll)
-        elif evt.key == .E and evt.modifiers.has(.Control) do
-            .sendCommandEvent(Action.ExpandAll)
-        elif evt.key == .C and evt.modifiers.has(.Control) do
-            .sendCommandEvent(Action.CopyAll)
-        elif evt.key == .G and evt.modifiers.has(.Control) do
-            .sendCommandEvent(Action.GoTo)
-        elif evt.key == .Left and evt.modifiers.has(.Alt) do
-            .sendCommandEvent(Action.Back)
-        elif evt.key == .Right and evt.modifiers.has(.Alt) do
-            .sendCommandEvent(Action.Forward)
-        else do
-            evt.accepted = false
+        let control      = evt.modifiers.has(.Control)
+        let alt          = evt.modifiers.has(.Alt)
+        let controlShift = control and evt.modifiers.has(.Shift)
+        switch evt.key
+        {
+        case .E where controlShift: .sendCommandEvent(Action.CollapseAll)
+        case .E where control:      .sendCommandEvent(Action.ExpandAll)
+        case .C where control:      .sendCommandEvent(Action.CopyAll)
+        case .G where control:      .sendCommandEvent(Action.GoTo)
+        case .Left where alt:       .sendCommandEvent(Action.Back)
+        case .Right where alt:      .sendCommandEvent(Action.Forward)
+        default: evt.accepted = false
+        }
     }
 
     mtd impl onDestroyEvent(?: *DestroyEvent)

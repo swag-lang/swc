@@ -22,10 +22,8 @@ const SurfaceId     = "swag.capture"
 #main
 {
     let args = Env.arguments()
-    for arg in args
+    for arg in args where Path.isValidPathName(arg)
     {
-        if not Path.isValidPathName(arg) do
-            continue
         if not Image.canLoad(arg) do
             continue
         Clipboard.addString(arg)
@@ -60,10 +58,8 @@ const SurfaceId     = "swag.capture"
     Env.associateFileExtension(".png", ApplicationId, Env.executablePath())
     Env.associateFileExtension(".jpg", ApplicationId, Env.executablePath())
 
-    for arg in args
+    for arg in args where Path.isValidPathName(arg)
     {
-        if not Path.isValidPathName(arg) do
-            continue
         if not Image.canLoad(arg) do
             continue
         mainWnd.loadExternalImage(arg)

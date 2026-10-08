@@ -463,83 +463,6 @@ func parseCapacity(text: string, unitIndex: u32)->ContainerSize
     return result
 }
 
-// What the change-password box asks for after the open card already states current access.
-struct PasswordChangeFields
-{
-    replacement: *PasswordEdit     // Password it opens with from now on, or empty to remove it.
-    confirm:     *PasswordEdit     // `replacement`, entered again.
-}
-
-// What the resize box asks for.
-struct VaultResizeFields
-{
-    capacity:     *EditBox         // Capacity the vault should hold from now on.
-    unit:         *ComboBox        // Unit `capacity` is written in; `parseCapacity` reads this order.
-    keepCapacity: *CheckButton     // Whether only the physical camouflage is refreshed.
-}
-
-// Fills `dialog` with what a password change asks for, and returns its fields.
-//
-// Built apart from the gesture that opens the box so the shape of the form can be measured in
-// every language without running a modal loop.
-func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
-{
-    let texts = appStrings()
-    let form  = dialog.form
-    VaultForm.configure(form)
-
-    let replacement = form.addPasswordField(texts.ui_NewPassword, placeholder: texts.ui_OptionalPassword, help: texts.ui_RemovePasswordHelp)
-    let confirm     = form.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
-
-    VaultForm.finish(form)
-    return {replacement, confirm}
-}
-
-// Fills `dialog` with the work-specific choices for resizing a vault, and returns its fields.
-func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
-{
-    let texts = appStrings()
-    let form  = dialog.form
-    VaultForm.configure(form)
-
-    with let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
-    {
-        .setUnsignedIntegerRange(1, 1024 * 1024)
-        .selectAll()
-        .enable(false)
-        setMachineFont(capacity)
-    }
-
-    let unit = VaultForm.addCapacityUnit(form)
-    unit.enable(false)
-
-    with let keepCapacity = form.addOptionField(texts.ui_KeepCapacity, help: texts.ui_KeepCapacityHelp)
-    {
-        .setState(.Checked)
-        .sigChanged += func|capacity, unit|(button)
-        {
-            let enabled = not button.isChecked()
-            capacity.enable(enabled)
-            unit.enable(enabled)
-        }
-    }
-
-    VaultForm.finish(form)
-    return {capacity, unit, keepCapacity}
-}
-
-// Builds the complete replacement key-file set from the current selection. The current files
-// remain on the open card; the box contains only the list being changed.
-func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String)->*KeyFileField
-{
-    VaultForm.configure(dialog.form)
-    let result = KeyFileField.create(dialog.form)
-    result.setPaths(current)
-    discard dialog.form.addField(appStrings().ui_KeyFiles, result, help: appStrings().ui_KeyFilesHelp)
-    VaultForm.finish(dialog.form)
-    return result
-}
-
 impl MainWindow
 {
     // Keep a stable wrapping width; fitToContent measures the tallest translated panel.
@@ -677,10 +600,8 @@ impl MainWindow
     mtd requiredClientHeight(width: f32)->f32
     {
         var height = 0'f32
-        for child in .children
+        for child in .children where child.isLocallyVisible()
         {
-            if not child.isLocallyVisible() do
-                continue
             let margin = child.layoutMargin()
             let room   = Math.max(0, width - margin.x - margin.z)
             if child == .tabs
@@ -776,18 +697,6 @@ impl MainWindow
         .mountContainer()
     }
 
-    // Puts the spinner in the glyph's place while an operation runs, and takes it back when the
-    // operation ends. A spinner is the honest report for work whose remaining time is unknown;
-    // creation and growth additionally write their percentage onto the status line.
-    mtd showBusy(busy: bool)
-    {
-        if .statusBusy.isLocallyVisible() == busy do
-            return
-        .statusIcon.show(not busy)
-        .statusBusy.show(busy)
-        .statusView.applyLayout()
-    }
-
     // Applies the persisted language, or the language of the account when none was picked.
     mtd applyLanguage()
     {
@@ -799,126 +708,6 @@ impl MainWindow
     {
         .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
         .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
-    }
-
-    // Reports the outcome of the latest step on the single status line.
-    //
-    // One glyph, three colors: the theme atlas has no monochrome success or failure glyph, and
-    // borrowing a colored one would put a third hue on a two-color surface. The color alone
-    // separates a line that is waiting from one that reports work, or one that stopped.
-    mtd setStatus(message: StatusMessage)
-    {
-        .statusMessage = message
-        .refreshStatus()
-    }
-
-    // Writes the current status message on the line in the active language.
-    mtd refreshStatus()
-    {
-        let colors = .themeColors()
-
-        var glyphColor, textColor: Color
-        switch #complete .statusTone()
-        {
-        case .Idle:
-            glyphColor = colors.label_TextLight
-            textColor  = colors.label_TextLight
-
-        case .Active:
-            glyphColor = colors.hilight
-            textColor  = colors.label_Text
-
-        case .Stopped:
-            glyphColor = colors.error
-            textColor  = colors.error
-        }
-
-        var glyph = .theme().icon(ThemeIcons.About, themeActionIconSize(.themeMetrics()))
-        glyph.color = glyphColor
-        .statusIcon.setIcon(glyph)
-        .status.setTextColor(textColor)
-        .status.setText(.statusText())
-    }
-
-    // Returns the emphasis the current status message carries.
-    mtd statusTone()->StatusTone
-    {
-        switch #complete .statusMessage
-        {
-        case .Randomizing,
-             .StopRequested,
-             .StartingDriver,
-             .Unmounting,
-             .Mounted,
-             .MountedReadOnly,
-             .MountedProtected,
-             .Resizing,
-             .Camouflaging,
-             .ChangingPassword,
-             .ChangingKeyFiles: return .Active
-
-        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped, .AutoUnmountStopped: return .Stopped
-
-        case .Ready,
-             .CreateCanceled,
-             .HiddenCreateCanceled,
-             .Created,
-             .Unmounted,
-             .ResizeCanceled,
-             .Resized,
-             .Camouflaged,
-             .AutoUnmounted,
-             .PasswordChanged,
-             .PasswordRemoved,
-             .KeyFilesChanged: return .Idle
-        }
-    }
-
-    // Returns the current status message in the active language.
-    mtd statusText()->String
-    {
-        let texts = appStrings()
-        switch #complete .statusMessage
-        {
-        case .Ready:                return texts.msg_Ready
-        case .Randomizing:          return Format.toString(texts.msg_Randomizing, .statusProgress)
-        case .StopRequested:        return texts.msg_StopRequested
-        case .HiddenCreateCanceled: return texts.msg_HiddenCreateCanceled
-        case .CreateCanceled:       return texts.msg_CreateCanceled
-        case .StartingDriver:       return texts.msg_StartingDriver
-        case .Unmounting:           return texts.msg_Unmounting
-        case .CreateStopped:        return texts.msg_CreateStopped
-        case .Created:              return texts.msg_Created
-        case .MountStopped:         return texts.msg_MountStopped
-        case .Mounted:              return Format.toString(texts.msg_Mounted, .statusDrive)
-        case .MountedProtected:     return Format.toString(texts.msg_MountedProtected, .statusDrive)
-        case .MountedReadOnly:      return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
-        case .Unmounted:            return texts.msg_Unmounted
-        case .Resizing:             return Format.toString(texts.msg_Resizing, .statusProgress)
-        case .Camouflaging:         return Format.toString(texts.msg_Camouflaging, .statusProgress)
-        case .ResizeCanceled:       return texts.msg_ResizeCanceled
-        case .ResizeStopped:        return texts.msg_ResizeStopped
-        case .Resized:              return Format.toString(texts.msg_Resized, .statusDrive)
-        case .Camouflaged:          return texts.msg_Camouflaged
-        case .AutoUnmounted:        return texts.msg_AutoUnmounted
-        case .AutoUnmountStopped:   return texts.msg_AutoUnmountStopped
-        case .ChangingPassword:     return texts.msg_ChangingPassword
-        case .PasswordChanged:      return texts.msg_PasswordChanged
-        case .PasswordRemoved:      return texts.msg_PasswordRemoved
-        case .PasswordStopped:      return texts.msg_PasswordStopped
-        case .ChangingKeyFiles:     return texts.msg_ChangingPassword
-        case .KeyFilesChanged:      return texts.msg_KeyFilesChanged
-        case .KeyFilesStopped:      return texts.msg_KeyFilesStopped
-        }
-    }
-
-    // Opens an error box saying `message`, followed by the sentence for `err` when there is one.
-    mtd showError(message: string, err: any? = null)
-    {
-        if err == null do
-            MessageDlg.error(.surface!, message)
-        else do
-            MessageDlg.error(.surface!, Format.toString("%\n\n%", message, caughtMessage(err)))
     }
 
     // Whether the create form holds everything a container needs.

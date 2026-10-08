@@ -143,17 +143,101 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     return result
 }
 
+// The theme-sheet colors of the imported appearances, one color per line.
+private
+{
+    const GitHubColors = """view_Bk              0xFFFFFFFF
+                            label_Text           0xFF333333
+                            label_TextLight      0xFF666666
+                            label_TextFaint      0xFF777777
+                            edit_Bk              0xFFF8F8F8
+                            edit_Border          0xFFDFE2E5
+                            edit_SelectedBk      0xFFCCE5FF
+                            url_Text             0xFF4183C4
+                            url_HotText          0xFF2B6DA8
+                            richColor1           0xFF777777
+                            scrollBar_Bk         0xFFFFFFFF
+                            scrollBar_HotBk      0xFFF5F5F5
+                            scrollBar_Box        0xFFC5C5C5
+                            scrollBar_HotBox     0xFFA5A5A5
+                            scrollBar_PressedBox 0xFF888888"""
+
+    const NewsprintColors = """view_Bk              0xFFF3F2EE
+                               label_Text           0xFF1F0909
+                               label_TextLight      0xFF656565
+                               label_TextFaint      0xFF656565
+                               edit_Bk              0xFFDADADA
+                               edit_Border          0xFFC5C5C5
+                               edit_SelectedBk      0xFFBBCBD2
+                               url_Text             0xFF065588
+                               url_HotText          0xFF043A5D
+                               richColor1           0xFFBABABA
+                               scrollBar_Bk         0xFFF3F2EE
+                               scrollBar_HotBk      0xFFE8E6E0
+                               scrollBar_Box        0xFFBAB6AE
+                               scrollBar_HotBox     0xFF8F8980
+                               scrollBar_PressedBox 0xFF6F6961"""
+
+    const NightColors = """view_Bk              0xFF363B40
+                           label_Text           0xFFB8BFC6
+                           label_TextLight      0xFF9CA4AC
+                           label_TextFaint      0xFF8E969E
+                           edit_Bk              0xFF333333
+                           edit_Border          0xFF474D54
+                           edit_SelectedBk      0xFF4A6073
+                           url_Text             0xFF6DC1E7
+                           url_HotText          0xFFA3D5FE
+                           richColor1           0xFFDEDEDE
+                           scrollBar_Bk         0xFF363B40
+                           scrollBar_HotBk      0xFF3D4349
+                           scrollBar_Box        0xFF596169
+                           scrollBar_HotBox     0xFF707A84
+                           scrollBar_PressedBox 0xFF89949F"""
+
+    const PixyllColors = """view_Bk              0xFFFFFFFF
+                            label_Text           0xFF333333
+                            label_TextLight      0xFF666666
+                            label_TextFaint      0xFF7A7A7A
+                            edit_Bk              0xFFF8F8F8
+                            edit_Border          0xFFD8D8D8
+                            edit_SelectedBk      0xFFDDE7F2
+                            url_Text             0xFF463F5C
+                            url_HotText          0xFF6A6086
+                            richColor1           0xFF7A7A7A
+                            scrollBar_Bk         0xFFFFFFFF
+                            scrollBar_HotBk      0xFFF4F4F4
+                            scrollBar_Box        0xFFC6C6C6
+                            scrollBar_HotBox     0xFFA6A6A6
+                            scrollBar_PressedBox 0xFF8A8A8A"""
+
+    const WhiteyColors = """view_Bk              0xFFFEFEFE
+                            label_Text           0xFF333333
+                            label_TextLight      0xFF666666
+                            label_TextFaint      0xFF777777
+                            edit_Bk              0xFFFFFFFF
+                            edit_Border          0xFFDDDDDD
+                            edit_SelectedBk      0xFFD9EAF5
+                            url_Text             0xFF2484C1
+                            url_HotText          0xFF17618F
+                            richColor1           0xFF777777
+                            scrollBar_Bk         0xFFFEFEFE
+                            scrollBar_HotBk      0xFFF3F3F3
+                            scrollBar_Box        0xFFC8C8C8
+                            scrollBar_HotBox     0xFFA8A8A8
+                            scrollBar_PressedBox 0xFF8B8B8B"""
+}
+
 // Returns the theme-sheet colors of one appearance, or nothing for the application's own.
 func viewerColors(themeIndex: u32)->string
 {
     switch themeIndex
     {
     case 0:  return ""
-    case 2:  return "view_Bk 0xFFF3F2EE\nlabel_Text 0xFF1F0909\nlabel_TextLight 0xFF656565\nlabel_TextFaint 0xFF656565\nedit_Bk 0xFFDADADA\nedit_Border 0xFFC5C5C5\nedit_SelectedBk 0xFFBBCBD2\nurl_Text 0xFF065588\nurl_HotText 0xFF043A5D\nrichColor1 0xFFBABABA\nscrollBar_Bk 0xFFF3F2EE\nscrollBar_HotBk 0xFFE8E6E0\nscrollBar_Box 0xFFBAB6AE\nscrollBar_HotBox 0xFF8F8980\nscrollBar_PressedBox 0xFF6F6961"
-    case 3:  return "view_Bk 0xFF363B40\nlabel_Text 0xFFB8BFC6\nlabel_TextLight 0xFF9CA4AC\nlabel_TextFaint 0xFF8E969E\nedit_Bk 0xFF333333\nedit_Border 0xFF474D54\nedit_SelectedBk 0xFF4A6073\nurl_Text 0xFF6DC1E7\nurl_HotText 0xFFA3D5FE\nrichColor1 0xFFDEDEDE\nscrollBar_Bk 0xFF363B40\nscrollBar_HotBk 0xFF3D4349\nscrollBar_Box 0xFF596169\nscrollBar_HotBox 0xFF707A84\nscrollBar_PressedBox 0xFF89949F"
-    case 4:  return "view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333\nlabel_TextLight 0xFF666666\nlabel_TextFaint 0xFF7A7A7A\nedit_Bk 0xFFF8F8F8\nedit_Border 0xFFD8D8D8\nedit_SelectedBk 0xFFDDE7F2\nurl_Text 0xFF463F5C\nurl_HotText 0xFF6A6086\nrichColor1 0xFF7A7A7A\nscrollBar_Bk 0xFFFFFFFF\nscrollBar_HotBk 0xFFF4F4F4\nscrollBar_Box 0xFFC6C6C6\nscrollBar_HotBox 0xFFA6A6A6\nscrollBar_PressedBox 0xFF8A8A8A"
-    case 5:  return "view_Bk 0xFFFEFEFE\nlabel_Text 0xFF333333\nlabel_TextLight 0xFF666666\nlabel_TextFaint 0xFF777777\nedit_Bk 0xFFFFFFFF\nedit_Border 0xFFDDDDDD\nedit_SelectedBk 0xFFD9EAF5\nurl_Text 0xFF2484C1\nurl_HotText 0xFF17618F\nrichColor1 0xFF777777\nscrollBar_Bk 0xFFFEFEFE\nscrollBar_HotBk 0xFFF3F3F3\nscrollBar_Box 0xFFC8C8C8\nscrollBar_HotBox 0xFFA8A8A8\nscrollBar_PressedBox 0xFF8B8B8B"
-    default: return "view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333\nlabel_TextLight 0xFF666666\nlabel_TextFaint 0xFF777777\nedit_Bk 0xFFF8F8F8\nedit_Border 0xFFDFE2E5\nedit_SelectedBk 0xFFCCE5FF\nurl_Text 0xFF4183C4\nurl_HotText 0xFF2B6DA8\nrichColor1 0xFF777777\nscrollBar_Bk 0xFFFFFFFF\nscrollBar_HotBk 0xFFF5F5F5\nscrollBar_Box 0xFFC5C5C5\nscrollBar_HotBox 0xFFA5A5A5\nscrollBar_PressedBox 0xFF888888"
+    case 2:  return NewsprintColors
+    case 3:  return NightColors
+    case 4:  return PixyllColors
+    case 5:  return WhiteyColors
+    default: return GitHubColors
     }
 }
 

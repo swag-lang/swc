@@ -121,9 +121,8 @@ impl IForm for FormLine
         .xb += xbu
         .yb += ybu
 
-        if evt.kind == .Released and evt.button == .Left do
-            return false
-        return true
+        // The edit goes on until the left button is released.
+        return evt.kind != .Released or evt.button != .Left
     }
 
     mtd impl moveBaseForm(newPosX, newPosY, ?, ?: s32)

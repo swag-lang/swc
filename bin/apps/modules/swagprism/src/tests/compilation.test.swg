@@ -237,6 +237,13 @@ func waitBuild(lease: *Pipeline.BuildLease)
     Swag.assert(request.moduleSource().contains("#import(\"gui\""))
 }
 
+// The module template keeps its layout once the indentation of its source is stripped: one line
+// per statement, the nested block indented, and the closing brace ending the last line.
+#test
+{
+    Swag.assert(Pipeline.BuildRequest.ModuleTemplate == "%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n")
+}
+
 // A snippet that reaches into `core` still reaches the compiler with the import the scan asked for.
 #test
 {

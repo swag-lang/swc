@@ -15,10 +15,8 @@ impl LibraryWnd
     mtd selectedFiles()->Array'String
     {
         var result: retval
-        for it, i in .view.items
+        for it, i in .view.items where not it.filtered
         {
-            if it.filtered do
-                continue
             if .view.selModel.isSelected(cast(i)) do
                 result.add(it.fi.fullName)
         }

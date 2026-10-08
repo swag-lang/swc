@@ -86,10 +86,8 @@ impl Capture
         for f in forms
         {
             let b = assume cast(*BaseForm, f)
-            for gid in b.groups
+            for gid in b.groups where gid != 0 and not oldIds.contains(gid)
             {
-                if gid == 0 or oldIds.contains(gid) do
-                    continue
                 oldIds.add(gid)
                 newIds.add(.newGroupId())
             }

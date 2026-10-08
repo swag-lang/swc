@@ -206,11 +206,7 @@ impl Undo
         if .mdlType == null do
             return true
         let mdlType = .mdlType orelse type
-        if mdlType == type do
-            return true
-        if mdlType == FormLine and type == FormArrow do
-            return true
-        return false
+        return mdlType == type or (mdlType == FormLine and type == FormArrow)
     }
 
     mtd init()

@@ -318,3 +318,35 @@ struct CodeLanguageSample
     Swag.assert(view.editor.runeAt({0, 40}).style == RichEditLexerSwag.Style.Keyword)
     Swag.assert(view.editor.runeAt({0, 45}).style == RichEditLexerSwag.Style.Control)
 }
+
+// The generic lexer colors strings, numbers, calls, and types in code, and the tags, attribute
+// values, and comments of markup.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 180)
+    defer host.shutdown()
+    let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
+
+    var code: Code.GenericLexer
+    code.configure(.TypeScript)
+    editor.setLexer(&code)
+    editor.setText("let s = \"x\"; f(12); Box")
+    editor.lexAll()
+    let codeStyles = editor.textAndStyles().styles
+    Swag.assert(codeStyles[8] == Code.GenericLexer.Style.String)
+    Swag.assert(codeStyles[13] == Code.GenericLexer.Style.Function)
+    Swag.assert(codeStyles[15] == Code.GenericLexer.Style.Number)
+    Swag.assert(codeStyles[20] == Code.GenericLexer.Style.Type)
+
+    var markup: Code.GenericLexer
+    markup.configure(.Html)
+    editor.setLexer(&markup)
+    editor.setText("<a href=\"u\">t</a><!-- c -->")
+    editor.lexAll()
+    let markupStyles = editor.textAndStyles().styles
+    Swag.assert(markupStyles[0] == Code.GenericLexer.Style.Keyword)
+    Swag.assert(markupStyles[8] == Code.GenericLexer.Style.String)
+    Swag.assert(markupStyles[12] == Code.GenericLexer.Style.Default)
+    Swag.assert(markupStyles[17] == Code.GenericLexer.Style.Comment)
+}

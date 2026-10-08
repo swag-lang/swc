@@ -24,6 +24,11 @@ test('LSP uses compiler semantics across files and unsaved document versions', {
         const initial = 'func inspect()\n{\n    let result = choose(42)\n    discard result\n}\n';
         await fs.writeFile(file, initial);
         const uri = pathToFileURL(file).href.replace(/^file:\/\/\/([A-Z]):/, (_, drive) => `file:///${drive.toLowerCase()}%3A`);
+        const indexed = await analyze(await projectFor(uri), [TextDocument.create(uri, 'swag', 1, initial)],
+            {compilerPath: process.env.SWAG_TEST_COMPILER}, new AbortController().signal);
+        const indexedPaths = indexed.snapshot.files.map(source => pathKey(source.path));
+        assert.ok(indexedPaths.every(filePath => filePath === pathKey(root) || filePath.startsWith(`${pathKey(root)}/`)),
+            `the editor index should contain the analyzed module only: ${indexedPaths.join(', ')}`);
         child = spawn(process.execPath, [path.join(__dirname, '../src/server.js'), '--stdio'], {windowsHide: true});
         let stderr = '';
         child.stderr.on('data', chunk => { stderr += chunk; });

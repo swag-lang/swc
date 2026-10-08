@@ -29,6 +29,8 @@ semantic features. Build tasks use `swc` from PATH.
 Run `npm ci`, open this directory in VS Code, and launch the `Extension` configuration with
 F5. In the development window, open a Swag module or an existing `.swg`/`.swgs` file.
 Enable VS Code's **Editor: Inlay Hints** setting to show inferred types beside declarations.
+To show hints only while holding `Ctrl+Alt`, set `"[swag]": { "editor.inlayHints.enabled": "offUnlessPressed" }`;
+use `onUnlessPressed` to show them by default and hide them while holding the keys.
 Use **Swag: Restart Language Server** after rebuilding the compiler. The **Swag Language
 Server** output channel contains the client log.
 
@@ -45,6 +47,8 @@ a module is analyzed on its own. Open buffers in that module replace the compile
 contents in memory. Unsaved buffers, the editor index, and the requested module working/output
 directories live in a per-analysis system temporary directory. Dependencies use the compiler's
 usual caches.
+The index contains this module's sources and only imported API files needed by referenced
+declarations, so unrelated dependency and runtime sources are not copied into editor snapshots.
 The server uses the standard LSP protocol and can also run as `node src/server.js --stdio`
 with a `compilerPath` initialization option in another editor.
 

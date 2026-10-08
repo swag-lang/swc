@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 func countImageNavigation(wnd: *Wnd, delta: s32)
 {
@@ -52,7 +52,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 {
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
 
-    let image = expect loadViewerImage(fileName)
+    let image = expect Picture.loadViewerImage(fileName)
     Swag.assert(image.width == 128 and image.height == 64)
 }
 
@@ -70,9 +70,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         }
 
         let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
-        var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName)
+        var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
         Swag.assert(session.view != null)
-        let view = assume cast(*ImageViewer, session.view)
+        let view = assume cast(*Picture.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         view.imageView.setPaused(true)
         if view.imageView.movie.frameCount > 1 do
@@ -87,9 +87,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         Swag.assert(selectedFact != null)
         expect host.app.setLanguage("fr")
         host.notify(.LanguageChanged)
-        Swag.assert(view.transformButton.toolTip == imageStrings().ui_TipTransform and view.transformButton.toolTip != oldTip)
-        Swag.assert(view.zoomLabel.toolTip == imageStrings().ui_ZoomMenu and view.playButton.toolTip == imageStrings().ui_TipPlay)
-        Swag.assert(Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
+        Swag.assert(view.transformButton.toolTip == Picture.texts().ui_TipTransform and view.transformButton.toolTip != oldTip)
+        Swag.assert(view.zoomLabel.toolTip == Picture.texts().ui_ZoomMenu and view.playButton.toolTip == Picture.texts().ui_TipPlay)
+        Swag.assert(Utf8.contains(view.zoomLabel.text(), Picture.texts().word_Mirrored))
         Swag.assert(view.details != oldDetails)
         Swag.assert(view.information.list.selectedLine() == selectedFact)
         Swag.assert(view.imageView.zoom == 1.5 and view.imageView.isMirrored and view.imageView.movie.frameIndex == frameIndex)
@@ -128,14 +128,14 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: actionBar, actionParent: &host.root, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
+    var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: actionBar, actionParent: &host.root, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
     actionBar.centerGroup = result.commands
     infoBar.centerGroup   = result.info
 
-    let view = assume cast(*ImageViewer, result.view)
+    let view = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * ViewerInfoControlInset)
+    assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * Viewer.ZoomButtonInset)
     var navigation: s32
     view.userData = &navigation
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
@@ -146,7 +146,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(view.transformButton.position.right() <= view.actions.clientRect().right())
     let transformMenu = view.createTransformMenu()
     defer transformMenu.destroy()
-    Swag.assert(transformMenu.itemAt(0).name.raw == imageStrings().ui_RotateCounterClockwise)
+    Swag.assert(transformMenu.itemAt(0).name.raw == Picture.texts().ui_RotateCounterClockwise)
     Swag.assert(transformMenu.itemAt(0).rightName.raw == "Shift+R")
     Swag.assert(transformMenu.itemAt(1).rightName.raw == "R")
     Swag.assert(transformMenu.itemAt(3).rightName.raw == "H")
@@ -159,7 +159,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     view.rotateCounterClockwise()
     Swag.assert(view.imageView.rotationQuarterTurns == 3 and Utf8.contains(view.zoomLabel.text(), "270"))
     view.mirrorHorizontally()
-    Swag.assert(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
+    Swag.assert(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), Picture.texts().word_Mirrored))
     view.resetTransform()
     Swag.assert(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
     var rotate = KeyEvent{kind: .Pressed, key: .R}
@@ -194,9 +194,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.setup(640, 420)
     defer host.shutdown()
 
-    var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
+    var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
-    let view = assume cast(*ImageViewer, result.view)
+    let view = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -219,11 +219,11 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(window.currentActions == null)
     Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.infoContentGroup)
     Swag.assert(window.currentSidePanelButton != null)
-    Swag.assert(window.currentInfo.position.right() + ViewerInfoSideButtonSpacing == window.currentSidePanelButton.position.x)
+    Swag.assert(window.currentInfo.position.right() + ViewerInfoLayout.SideButtonSpacing == window.currentSidePanelButton.position.x)
     Swag.assert(window.currentInfo.themeColors().label_TextLight == window.themeColors().label_TextFaint)
-    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo.position.x) < 0.01)
+    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoLayout.GroupSpacing - window.currentInfo.position.x) < 0.01)
     Swag.assert(window.currentCommands != null and window.currentCommands.parent == window.viewerBar)
-    Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerBarHeight)
+    Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerWindow.BarHeight)
     Swag.assert(not window.searchGroup.isLocallyVisible())
     Swag.assert(Math.abs(window.currentCommands.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
 }
@@ -237,9 +237,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     defer host.shutdown()
 
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
-    var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
+    var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
     Swag.assert(session.view != null)
-    let view = assume cast(*ImageViewer, session.view)
+    let view = assume cast(*Picture.Panel, session.view)
     var reports: ImageReports
     view.userData = &reports
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -259,9 +259,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
             defer host.shutdown()
 
             let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
-            var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
+            var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
             Swag.assert(session.view != null)
-            let view    = assume cast(*ImageViewer, session.view)
+            let view    = assume cast(*Picture.Panel, session.view)
             var reports = ImageReports{answer: answer}
             view.userData = &reports
             completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

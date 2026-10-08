@@ -1,23 +1,23 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui, Gui.Testing
+using Core, Pixel, Gui, Gui.Testing, Viewers
 
 // A missing optional family must fall back without installing or loading an application asset.
 #test
 {
-    let absent = markdownSystemFaces(["Swag Scope unavailable font family 794501"])
+    let absent = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
     for face in absent do
         Swag.assert(face == null)
-    let absentAgain = markdownSystemFaces(["Swag Scope unavailable font family 794501"])
+    let absentAgain = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
     Swag.assert(absent == absentAgain)
 
     let installed = FontFamily.enumerateSystemFonts()
     if not installed.isEmpty()
     {
         let name     = installed[0].name.toString()
-        let direct   = markdownSystemFaces([name])
-        let fallback = markdownSystemFaces(["Swag Scope unavailable font family 794501", name])
+        let direct   = MarkdownText.systemFaces([name])
+        let fallback = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501", name])
         Swag.assert(direct == fallback)
     }
 }
@@ -31,7 +31,7 @@ using Core, Pixel, Gui, Gui.Testing
     defer host.shutdown()
     let view = Markdown.View.createText(&host.root, "> ***530 → 780 → 470 → 580 → 600 → 500 → 420 → 560 → 650 → 520***")
     view.resize(960, 200)
-    applyMarkdownViewerStyle(view, 5, 1)
+    MarkdownText.applyViewerStyle(view, 5, 1)
     view.applyLayout()
     Testing.assertContentFits(view)
     var image = host.render(view)
@@ -42,9 +42,9 @@ using Core, Pixel, Gui, Gui.Testing
 #[Swag.TestTag("golden")]
 #test
 {
-    let previous = g_MarkdownViewerSettings
-    defer g_MarkdownViewerSettings = previous
-    g_MarkdownViewerSettings = {themeIndex: 1}
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {themeIndex: 1}
     var host: Testing.HeadlessHost
     host.setup(1280, 720, 1.5)
     defer host.shutdown()
@@ -81,17 +81,17 @@ using Core, Pixel, Gui, Gui.Testing
 #[Swag.TestTag("golden")]
 #test
 {
-    let previous = g_MarkdownViewerSettings
-    defer g_MarkdownViewerSettings = previous
-    g_MarkdownViewerSettings = {}
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {}
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
-    var result = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath())
+    var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath())
     let view   = assume cast(*Markdown.View, result.view)
-    let zoom   = assume cast(*MarkdownZoomButton, result.info!.children[0])
+    let zoom   = assume cast(*MarkdownText.ZoomButton, result.info!.children[0])
     view.resize(960, 680)
     view.applyLayout()
     for 64 where view.isLoading() do
@@ -117,8 +117,8 @@ using Core, Pixel, Gui, Gui.Testing
     Testing.assertContentFits(view)
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.zoom")
-    var second     = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath())
-    let secondZoom = assume cast(*MarkdownZoomButton, second.info!.children[0])
+    var second     = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath())
+    let secondZoom = assume cast(*MarkdownText.ZoomButton, second.info!.children[0])
     Swag.assert(secondZoom.zoomPercent == 150)
     Swag.assert(assume cast(*Markdown.View, second.view).documentStyle.bodyFontSize == 24)
 }
@@ -128,9 +128,9 @@ using Core, Pixel, Gui, Gui.Testing
 #[Swag.TestTag("golden")]
 #test
 {
-    let previous = g_MarkdownViewerSettings
-    defer g_MarkdownViewerSettings = previous
-    g_MarkdownViewerSettings = {}
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {}
 
     // The golden shows the file name, so it is fixed rather than unique.
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp), "markdown-statistics.md")
@@ -152,7 +152,7 @@ using Core, Pixel, Gui, Gui.Testing
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let button = assume cast(*MarkdownZoomButton, window.currentInfo!.children[0])
+    let button = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     if button.statisticsLoad.started do
         button.statisticsLoad.task.wait()
     if button.statisticsTimer do
@@ -181,10 +181,10 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     host.notify(.ThemeChanged)
 
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
-    var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName)
+    var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     Swag.assert(result.view != null and result.failureReason.isEmpty())
     let view = assume cast(*Markdown.View, result.view)
-    applyMarkdownViewerStyle(view, themeIndex, 1)
+    MarkdownText.applyViewerStyle(view, themeIndex, 1)
     view.resize(960, 680)
     view.applyLayout()
     for 64 where view.hasUnloadedSource() do
@@ -209,16 +209,15 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 #[Swag.TestTag("golden")]
 #test { assertMarkdownImages(1, 1.5, "viewer.markdown.images.hidpi") }
 
-private func markdownFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
-
+private func markdownFixturePath()->String       => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
 private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
 
 // Theme and line width are viewer preferences, not properties of one Markdown file.
 #test
 {
-    let previous = g_MarkdownViewerSettings
-    defer g_MarkdownViewerSettings = previous
-    g_MarkdownViewerSettings = {themeIndex: 3, widthIndex: 2}
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {themeIndex: 3, widthIndex: 2}
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -228,18 +227,18 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
         host.shutdown()
     }
 
-    var first      = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath(), commandParent: &host.root)
+    var first      = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath(), commandParent: &host.root)
     let firstWidth = assume cast(*ComboBox, first.commands!.children[0])
     let firstTheme = assume cast(*ComboBox, first.commands.children[1])
-    let firstZoom  = assume cast(*MarkdownZoomButton, first.info!.children[0])
+    let firstZoom  = assume cast(*MarkdownText.ZoomButton, first.info!.children[0])
     assertViewerInfoButton(firstZoom)
-    Swag.assert(first.info.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(first.info.preferredSize.x == Viewer.ZoomSlotWidth)
     Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
     firstWidth.setSelectedIndex(0)
     firstTheme.setSelectedIndex(5)
-    Swag.assert(g_MarkdownViewerSettings.widthIndex == 0 and g_MarkdownViewerSettings.themeIndex == 5)
+    Swag.assert(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
 
-    var second      = openTestViewer(markdownViewerPlugin(), &host.root, markdownWhiteyFixturePath(), commandParent: &host.root)
+    var second      = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownWhiteyFixturePath(), commandParent: &host.root)
     let secondWidth = assume cast(*ComboBox, second.commands!.children[0])
     let secondTheme = assume cast(*ComboBox, second.commands.children[1])
     Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)
@@ -247,13 +246,13 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     let oldWidth = String.from(firstWidth.items[0]!.name.raw)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(firstWidth.items[0]!.name.raw == markdownStrings().ui_Narrow and firstWidth.items[0]!.name.raw != oldWidth)
+    Swag.assert(firstWidth.items[0]!.name.raw == MarkdownText.texts().ui_Narrow and firstWidth.items[0]!.name.raw != oldWidth)
     Swag.assert(secondWidth.items[0]!.name.raw == firstWidth.items[0]!.name.raw)
-    Swag.assert(firstTheme.items[0]!.name.raw == markdownStrings().ui_ThemeApp)
-    Swag.assert(firstWidth.toolTip == markdownStrings().ui_TipWidth and firstTheme.toolTip == markdownStrings().ui_TipTheme)
-    Swag.assert(firstZoom.toolTip == markdownStrings().ui_ZoomMenu)
+    Swag.assert(firstTheme.items[0]!.name.raw == MarkdownText.texts().ui_ThemeApp)
+    Swag.assert(firstWidth.toolTip == MarkdownText.texts().ui_TipWidth and firstTheme.toolTip == MarkdownText.texts().ui_TipTheme)
+    Swag.assert(firstZoom.toolTip == MarkdownText.texts().ui_ZoomMenu)
     Swag.assert(firstWidth.selectedIndex == 0 and firstTheme.selectedIndex == 5)
-    Swag.assert(g_MarkdownViewerSettings.widthIndex == 0 and g_MarkdownViewerSettings.themeIndex == 5)
+    Swag.assert(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
     Swag.assert(firstWidth.items[0]!.name.raw == oldWidth)
@@ -267,7 +266,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     defer host.shutdown()
 
     let fileName = Gui.Testing.tempFilePath("scope-markdown-missing-", ".md")
-    var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(not result.failureReason.isEmpty())
 }
@@ -291,7 +290,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     let infoBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 40})
     infoBar.dockStyle = .Bottom
 
-    var result = openTestViewer(markdownViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
+    var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
     let wnd    = result.view
     Swag.assert(wnd != null)
     Swag.assert(result.commands != null)
@@ -392,9 +391,9 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     host.notify(.ThemeChanged)
 
     let source = expect File.readAllText(markdownFixturePath())
-    let style  = markdownViewerStyle(0, 1)
+    let style  = MarkdownText.viewerStyle(0, 1)
     let view   = Markdown.View.createText(&host.root, source, style)
-    applyMarkdownViewerStyle(view, 0, 1)
+    MarkdownText.applyViewerStyle(view, 0, 1)
     view.resize(960, 680)
     view.applyLayout()
 
@@ -428,7 +427,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     {
         let view = Markdown.View.createText(&host.root, source)
         view.resize(960, 680)
-        applyMarkdownViewerStyle(view, themeIndex, 1)
+        MarkdownText.applyViewerStyle(view, themeIndex, 1)
         view.applyLayout()
         view.computeStyle()
         Swag.assert(view.themeColors().view_Bk.argb == backgrounds[themeIndex])
@@ -456,7 +455,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     let source = expect File.readAllText(markdownWhiteyFixturePath())
     let view   = Markdown.View.createText(&host.root, source)
     view.resize(960, 900)
-    applyMarkdownViewerStyle(view, 5, 1)
+    MarkdownText.applyViewerStyle(view, 5, 1)
     view.applyLayout()
     Testing.assertContentFits(view)
     var image = host.render(view)
@@ -475,7 +474,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     let source = "L'unité que cet étalon porte a été prise au pays lui-même. Le mètre est le **dix-millionième** d'un **quart de méridien**, l'arc du pôle à l'équateur. On l'a mesuré sur le terrain du nord au sud, de Dunkerque à Barcelone **par Paris**, le long de cette ligne que le premier chant avait chiffrée sous *Devin* et que la flèche de Roncevaux avait ensuite abandonnée comme axe. Le bec du coq ouvrait un quart dès le premier matin, sans qu'on pût savoir lequel, et la géodésie, la science qui mesure la Terre, n'en connaît qu'un. Congédié comme direction, le méridien de Paris revient comme étalon. Il ne tient plus la carte, il tient l'unité avec quoi on la mesure."
     let view   = Markdown.View.createText(&host.root, source)
     view.resize(1160, 260)
-    applyMarkdownViewerStyle(view, 5, 3)
+    MarkdownText.applyViewerStyle(view, 5, 3)
     view.applyLayout()
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.whitey.justified")

@@ -85,14 +85,14 @@ using Core
     const Levels: [?] Swag.BuildCfgBackendOptimLevel = [.O0, .O1, .O2]
     for level in Levels
     {
-        var artifact = Pipeline.BuildArtifact{request: {source: String.from("using Core\nfunc value()->s32 => 42"), stage: String.from("pre-emit"), kind: .Microcode, settings: {optimization: level}}}
+        var artifact = Pipeline.BuildArtifact{request: {source: "using Core\nfunc value()->s32 => 42", stage: "pre-emit", kind: .Microcode, settings: {optimization: level}}}
         expect artifact.run()
         let result = &artifact.result
-        Swag.assert(not result.failed, result.text.toString())
+        Swag.assert(not result.failed, result.text)
         Swag.assert(result.text.contains("\x1B[38;2;"))
 
         var output: CompilerOutput
-        output.parse(result.text.toString())
+        output.parse(result.text)
         let expected = Format.toString("  optimize : O%", cast(u8, level))
         Swag.assert(output.text.contains(expected.toString()))
     }
@@ -101,11 +101,11 @@ using Core
 // Microcode does not import the rendering stack implicitly.
 #test
 {
-    var artifact = Pipeline.BuildArtifact{request: {source: String.from("using Pixel\nfunc value()->u32 => 0"), stage: String.from("pre-emit"), kind: .Microcode}}
+    var artifact = Pipeline.BuildArtifact{request: {source: "using Pixel\nfunc value()->u32 => 0", stage: "pre-emit", kind: .Microcode}}
     expect artifact.run()
     let result = &artifact.result
     Swag.assert(result.failed)
-    Swag.assert(result.text.contains("Pixel"), result.text.toString())
+    Swag.assert(result.text.contains("Pixel"), result.text)
 }
 
 // Every offered stage names a side and a pass, which is the only spelling the attribute takes.
@@ -156,18 +156,18 @@ using Core
 
     let path     = Path.combine(probe.root, "module.swg")
     let original = "// original module setup\n"
-    discard expect File.writeAllText(path.toString(), original)
-    let before = expect File.info(path.toString())
+    discard expect File.writeAllText(path, original)
+    let before = expect File.info(path)
 
     Threading.Thread.sleep(5'ms)
-    expect Pipeline.writeIfChanged(path.toString(), original)
-    let kept = expect File.info(path.toString())
+    expect Pipeline.writeIfChanged(path, original)
+    let kept = expect File.info(path)
     Swag.assert(kept.lastWriteTime == before.lastWriteTime)
 
     Threading.Thread.sleep(5'ms)
-    expect Pipeline.writeIfChanged(path.toString(), "// replaced\n")
-    let rewritten = expect File.info(path.toString())
-    let content   = expect File.readAllText(path.toString())
+    expect Pipeline.writeIfChanged(path, "// replaced\n")
+    let rewritten = expect File.info(path)
+    let content   = expect File.readAllText(path)
     Swag.assert(content == "// replaced\n")
     Swag.assert(rewritten.lastWriteTime != before.lastWriteTime)
 }

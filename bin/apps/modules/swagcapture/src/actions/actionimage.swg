@@ -107,22 +107,22 @@ impl MainWnd
 
         let serial = capture.undoMgr.newSerial()
 
-        var img  = capture.backImg
-        let oldW = img.width
-        let oldH = img.height
+        var image = capture.backImg
+        let oldW  = image.width
+        let oldH  = image.height
 
         switch cmdId
         {
-        case ActionImage.ResizeImage:      img.resize(w, h, .Bilinear)
-        case ActionImage.ExpandImage:      img.expand(l, t, r, b)
-        case ActionImage.FlipImage:        img.flip()
-        case ActionImage.MirrorImage:      img.mirror()
-        case ActionImage.RotateImageRight: img.rotate(.Clockwise90)
-        case ActionImage.RotateImageLeft:  img.rotate(.Clockwise270)
+        case ActionImage.ResizeImage:      image.resize(w, h, .Bilinear)
+        case ActionImage.ExpandImage:      image.expand(l, t, r, b)
+        case ActionImage.FlipImage:        image.flip()
+        case ActionImage.MirrorImage:      image.mirror()
+        case ActionImage.RotateImageRight: image.rotate(.Clockwise90)
+        case ActionImage.RotateImageLeft:  image.rotate(.Clockwise270)
         }
 
         let undo1 = capture.newUndo(.SetImage)
-        undo1.newImg = img
+        undo1.newImg = image
         capture.pushUndo(undo1, serial)
 
         switch cmdId
@@ -130,7 +130,7 @@ impl MainWnd
         case ActionImage.ResizeImage:
             with let undo2 = capture.newUndo(.MoveCapture)
             {
-                .newImg   = img
+                .newImg   = image
                 .newSizeX = w - capture.width
                 .newSizeY = h - capture.height
             }
@@ -140,9 +140,9 @@ impl MainWnd
         case ActionImage.RotateImageRight, ActionImage.RotateImageLeft:
             with let undo2 = capture.newUndo(.MoveCapture)
             {
-                .newImg   = img
-                .newSizeX = img.width - oldW
-                .newSizeY = img.height - oldH
+                .newImg   = image
+                .newSizeX = image.width - oldW
+                .newSizeY = image.height - oldH
             }
 
             capture.pushUndo(undo2, serial)
@@ -154,17 +154,17 @@ impl MainWnd
         let capture = .getCapture()!
         let ratio   = cast(f32, capture.width) / capture.height
 
-        with let dlg = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
+        with let dialog = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
         {
             .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         }
 
-        let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {120, 85})
+        let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {120, 85})
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
 
         edit0.edit.sigTextChanged += func|ratio, btnRatio, edit1|(edt)
@@ -187,9 +187,9 @@ impl MainWnd
             }
         }
 
-        let res = dlg.doModal()
+        let result = dialog.doModal()
         g_KeepRatio = btnRatio.isChecked()
-        if res != Dialog.BtnOk do
+        if result != Dialog.BtnOk do
             return
 
         let w = catch StrConv.toS32(edit0.edit.text())
@@ -208,18 +208,18 @@ impl MainWnd
     {
         func createBtn(dlg: *Wnd, pos: Math.Rectangle, id: u64)
         {
-            let btn = CheckButton.create(dlg, " ", pos)
-            btn.setState(g_ResizeMode == id ? .Indeterminate : .Unchecked)
-            btn.userData   = cast(*void, id)
-            btn.sigChanged += func(btn)
+            let button = CheckButton.create(dlg, " ", pos)
+            button.setState(g_ResizeMode == id ? .Indeterminate : .Unchecked)
+            button.userData   = cast(*void, id)
+            button.sigChanged += func(button)
             {
-                for c in btn.parent!.children
+                for c in button.parent!.children
                 {
                     if c.userData
                     {
                         with let btnc = assume cast(*CheckButton, c)
                         {
-                            .setState(c != btn ? .Unchecked : .Indeterminate)
+                            .setState(c != button ? .Unchecked : .Indeterminate)
                             .invalidate()
                         }
                     }
@@ -244,7 +244,7 @@ impl MainWnd
 
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
-        with let dlg = Dialog.create(.surface!, 350, 265, title: title)
+        with let dialog = Dialog.create(.surface!, 350, 265, title: title)
         {
             .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
@@ -254,8 +254,8 @@ impl MainWnd
 
         g_Width  = w
         g_Height = h
-        let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
 
@@ -279,17 +279,17 @@ impl MainWnd
             }
         }
 
-        with let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {70, 85})
+        with let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {70, 85})
         {
             .setState(g_KeepRatio ? .Checked : .Unchecked)
             .sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }
         }
 
-        dlg.createBtnGrid()
+        dialog.createBtnGrid()
 
-        let res = dlg.doModal()
+        let result = dialog.doModal()
 
-        for c in dlg.children
+        for c in dialog.children
         {
             if c.userData
             {
@@ -302,14 +302,14 @@ impl MainWnd
             }
         }
 
-        return res
+        return result
     }
 
     mtd expandImage()
     {
         let capture = .getCapture()!
-        let res     = .createExpandDialog(appStrings().dlg_TitleExpandImage, capture.backImg.width, capture.backImg.height)
-        if res != Dialog.BtnOk do
+        let result  = .createExpandDialog(appStrings().dlg_TitleExpandImage, capture.backImg.width, capture.backImg.height)
+        if result != Dialog.BtnOk do
             return
 
         let w = g_Width
@@ -357,8 +357,8 @@ impl MainWnd
     mtd expandCapture()
     {
         let capture = .getCapture()!
-        let res     = .createExpandDialog(appStrings().dlg_TitleExpandCapture, capture.width, capture.height)
-        if res != Dialog.BtnOk do
+        let result  = .createExpandDialog(appStrings().dlg_TitleExpandCapture, capture.width, capture.height)
+        if result != Dialog.BtnOk do
             return
 
         let w = g_Width

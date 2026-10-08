@@ -19,16 +19,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Whether a statement of 'blockRef' provably ends the block's local flow. A trailing
-    // block written after a call is that call's '#code' argument rather than a statement of
-    // the block, and whether it runs at all is the callee's decision, so it never ends the
-    // flow. A warning that can be promoted to an error has to be trustworthy, so a statement
-    // that merely promises to leave the block ('Swag.panic', 'unreachable') does not count.
+    // Whether a statement of 'blockRef' ends the block's local flow. A trailing block written
+    // after a call is that call's '#code' argument rather than a statement of the block, and
+    // whether it runs at all is the callee's decision, so it never ends the flow.
     bool stopsBlockFlow(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef)
     {
         if (childRef.isInvalid() || sema.isImplicitCodeBlockArg(blockRef, childRef))
             return false;
-        return SemaHelpers::stopsLocalFlow(sema, childRef, SemaHelpers::LocalFlowStop::Guaranteed);
+        return SemaHelpers::stopsLocalFlow(sema, childRef, SemaHelpers::LocalFlowStop::Block);
     }
 
     // The written return type of a function, a lambda or a closure. Invalid when the return
@@ -985,16 +983,50 @@ void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef chil
     diag.report(sema.ctx());
 }
 
+namespace
+{
+    // Callers report the code after a '#[Swag.NoReturn]' call as unreachable, so a body that
+    // can reach its end would run code its callers were told to delete. A returned value
+    // would have no caller to receive it.
+    Result checkNoReturnBody(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
+    {
+        const TypeRef returnTypeRef = sym.returnTypeRef();
+        if (returnTypeRef.isValid() && !sema.typeMgr().get(returnTypeRef).isVoid())
+        {
+            const AstNodeRef returnTypeNodeRef = functionReturnTypeNodeRef(sym.decl());
+            auto             diag              = SemaError::report(sema, DiagnosticId::sema_err_noreturn_return_type, returnTypeNodeRef.isValid() ? returnTypeNodeRef : bodyRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(returnTypeRef).toName(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (SemaHelpers::stopsLocalFlow(sema, bodyRef, SemaHelpers::LocalFlowStop::Function))
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_noreturn_reaches_end, sym);
+        if (sym.name(sema.ctx()).empty())
+            diag.removeArgument(Diagnostic::ARG_SYM);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+}
+
 Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
 {
-    // A body that is not a block is the returned expression itself, whatever spelling brought
-    // it here: '=> expr' on a declaration, and a short lambda, which carries no flag at all.
-    if (bodyRef.isInvalid() || sym.isForeign() || sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock))
+    if (bodyRef.isInvalid() || sym.isForeign())
         return Result::Continue;
 
     // A macro or a mixin has no frame of its own: its body is spliced into the caller, which
     // is where the flow question belongs.
     if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        return Result::Continue;
+
+    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::NoReturn))
+        return checkNoReturnBody(sema, sym, bodyRef);
+
+    // A body that is not a block is the returned expression itself, whatever spelling brought
+    // it here: '=> expr' on a declaration, and a short lambda, which carries no flag at all.
+    if (sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock))
         return Result::Continue;
 
     const TypeRef returnTypeRef = sym.returnTypeRef();

@@ -119,7 +119,7 @@ impl Viewer.Embedded for EmbeddedViewer
         .viewerCombo.hide()
         .infoLane.hide()
         .infoLane.position.width = 0
-        .titleLabel.setText(archiveStrings().ui_Select)
+        .titleLabel.setText(Viewers.Archive.texts().ui_Select)
         .activeIndex                = Swag.U32.Max
         .currentView                = null
         .currentActions             = null
@@ -162,7 +162,7 @@ private impl EmbeddedViewer
         .currentSideButton          = instance.sidePanelButton
         .activeIndex                = index
         .commandBar.centerGroup     = .currentCommands
-        .commandBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
+        .commandBar.position.height = .currentCommands ? ViewerWindow.BarHeight : .themeMetrics().panel_GutterSize
 
         var infoWidth: f32
         if instance.info do
@@ -293,7 +293,7 @@ private impl EmbeddedViewer
             .hide()
         }
 
-        with result.titleLabel = Label.create(result.header, archiveStrings().ui_Select, {}, null, .Ellipsis)
+        with result.titleLabel = Label.create(result.header, Viewers.Archive.texts().ui_Select, {}, null, .Ellipsis)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent

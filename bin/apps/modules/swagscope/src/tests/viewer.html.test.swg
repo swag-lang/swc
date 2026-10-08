@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 func htmlViewerFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.html")
 
@@ -31,12 +31,12 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         host.shutdown()
     }
 
-    var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
     Swag.assert(result.commands == null and result.info != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     Swag.assert(result.isLoading())
     Swag.assert(Utf8.contains(result.details, "HTML"))
-    let view = assume cast(*HtmlViewer, result.view)
+    let view = assume cast(*Html.Panel, result.view)
     finishHtmlViewer(&host, &result)
     Swag.assert(result.view != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
@@ -58,7 +58,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel.toolTip == htmlStrings().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
+    Swag.assert(view.zoomLabel.toolTip == Html.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
     Swag.assert(view.zoomPercent == 100 and result.searchBounds(match, &bounds))
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -85,12 +85,12 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(htmlViewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: infoBar)
+    var result = openTestViewer(Html.viewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: infoBar)
     Swag.assert(result.view != null and result.info != null)
     infoBar.centerGroup = result.info
-    let view = assume cast(*HtmlViewer, result.view)
+    let view = assume cast(*Html.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
     finishHtmlViewer(&host, &result)
     Swag.assert(result.info != null)
     view.dockStyle        = .Center
@@ -111,7 +111,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     defer host.shutdown()
 
     let fileName = Gui.Testing.tempFilePath("scope-html-missing-", ".html")
-    var result   = openTestViewer(htmlViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result   = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(not result.failureReason.isEmpty())
 }

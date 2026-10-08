@@ -43,6 +43,27 @@ namespace A.B.C
 }
 
 /**
+The dotted form is shorthand for the blocks it names. Inside 'A.B.C', what 'A' and 'A.B'
+declare is reachable without qualification, and a name declared closer shadows the same name
+further out.
+*/
+namespace A
+{
+    func unit() => 10
+}
+
+namespace A.B.C
+{
+    // 'unit' comes from 'A'; 'a' is the closer 'A.B.C.a'.
+    func scaled() => unit() * a()
+}
+
+#test
+{
+    Swag.assert(A.B.C.scaled() == 20)
+}
+
+/**
 # Qualified Namespace Access
 
 Symbols from a namespace are accessed through their qualified name.

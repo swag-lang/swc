@@ -1,15 +1,19 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
-// Header signatures a Mach-O file can begin with. The `CIGAM` spellings are the same words read by
-// a machine of the other byte order, which is how a file says its own order without a flag.
-private const MachMagic32    = 0xFEEDFACE'u32
-private const MachMagic64    = 0xFEEDFACF'u32
-private const MachCigam32    = 0xCEFAEDFE'u32
-private const MachCigam64    = 0xCFFAEDFE'u32
-private const MachFatMagic   = 0xCAFEBABE'u32
-private const MachFatMagic64 = 0xCAFEBABF'u32
+private
+{
+    // Header signatures a Mach-O file can begin with. The `CIGAM` spellings are the same words read by
+    // a machine of the other byte order, which is how a file says its own order without a flag.
+    const MachMagic32    = 0xFEEDFACE'u32
+    const MachMagic64    = 0xFEEDFACF'u32
+    const MachCigam32    = 0xCEFAEDFE'u32
+    const MachCigam64    = 0xCFFAEDFE'u32
+    const MachFatMagic   = 0xCAFEBABE'u32
+    const MachFatMagic64 = 0xCAFEBABF'u32
+}
 
 // Returns the processor a Mach-O CPU type names.
 func machCpuName(value: u32)->string
@@ -117,7 +121,7 @@ private func isMachFat(image: *BinaryImage)->bool
 }
 
 // Adds everything a Mach-O image says about itself, one slice at a time when it carries several.
-func reportMachO(image: *BinaryImage, report: *BinaryReport)
+func reportMachO(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
     let magic = image.u32At(0)
@@ -128,7 +132,7 @@ func reportMachO(image: *BinaryImage, report: *BinaryReport)
     }
 
     let summary = reportMachImage(image, report, 0, open: true)
-    report.formatName = String.from(summary.wide ? "Mach-O 64" : "Mach-O 32")
+    report.formatName = summary.wide ? "Mach-O 64" : "Mach-O 32"
     report.summary    = Format.toString("% · % · %", report.formatName, machFileTypeName(summary.kind), machCpuName(summary.cpu))
 }
 
@@ -140,18 +144,18 @@ private struct MachImageInfo
     wide: bool
 }
 
-private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: bool)
+private func reportMachFat(image: *BinaryImage, report: *Report, wide: bool)
 {
     // The wrapper itself is always big endian, whatever the slices inside it are.
     image.bigEndian = true
 
-    let s     = binaryStrings()
+    let texts = texts()
     let count = cast(u64, image.u32At(4))
     let step  = wide ? 32'u64 : 20
-    let shown = Math.min(count, BinaryListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let shown = Math.min(count, ListLimit)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.mo_Fat, total, s.mo_FatDesc, offset: 0, length: 8 + count * step, open: true)
+    report.beginGroup(texts.mo_Fat, total, texts.mo_FatDesc, offset: 0, length: 8 + count * step, open: true)
 
     var names: String
     for index in shown
@@ -160,7 +164,7 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
         let cpu     = image.u32At(entryAt)
         let sliceAt = wide ? image.u64At(entryAt + 8) : cast(u64, image.u32At(entryAt + 8))
         let size    = wide ? image.u64At(entryAt + 16) : cast(u64, image.u32At(entryAt + 12))
-        let label   = Format.toString(s.mo_Slice, index)
+        let label   = Format.toString(texts.mo_Slice, index)
         let stored  = StrConv.toDisplaySize(size)
 
         if not names.isEmpty() do
@@ -183,12 +187,12 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
     report.listCut(shown, count)
     report.endGroup()
 
-    report.formatName = String.from(s.fmt_MachOUniversal)
+    report.formatName = texts.fmt_MachOUniversal
     report.summary    = Format.toString("% · %", report.formatName, names)
 }
 
 // Adds one complete Mach-O image found at `at`.
-private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64, open: bool)->MachImageInfo
+private func reportMachImage(image: *BinaryImage, report: *Report, at: u64, open: bool)->MachImageInfo
 {
     var result: retval
 
@@ -197,7 +201,7 @@ private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64
     image.bigEndian = magic == MachCigam32 or magic == MachCigam64
     result.wide     = magic == MachMagic64 or magic == MachCigam64
 
-    let s        = binaryStrings()
+    let texts    = texts()
     let headerAt = at
     result.cpu  = image.u32At(headerAt + 4)
     result.kind = image.u32At(headerAt + 12)
@@ -206,8 +210,8 @@ private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64
     let flags   = image.u32At(headerAt + 24)
     let names   = machFlagsText(flags)
 
-    report.beginGroup(s.mo_Header, machFileTypeName(result.kind), machCpuName(result.cpu), offset: headerAt, length: result.wide ? 32 : 28, open: open)
-    report.hexField(headerAt, 4, "magic", cast(u64, magic), result.wide ? s.pe_Image64 : s.pe_Image32)
+    report.beginGroup(texts.mo_Header, machFileTypeName(result.kind), machCpuName(result.cpu), offset: headerAt, length: result.wide ? 32 : 28, open: open)
+    report.hexField(headerAt, 4, "magic", cast(u64, magic), result.wide ? texts.pe_Image64 : texts.pe_Image32)
     report.hexField(headerAt + 4, 4, "cputype", cast(u64, result.cpu), machCpuName(result.cpu))
     report.hexField(headerAt + 8, 4, "cpusubtype", cast(u64, image.u32At(headerAt + 8)))
     report.hexField(headerAt + 12, 4, "filetype", cast(u64, result.kind), machFileTypeName(result.kind))
@@ -220,13 +224,13 @@ private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64
     return result
 }
 
-private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imageAt, at, count, totalSize: u64, wide, open: bool)
+private func reportMachCommands(image: *BinaryImage, report: *Report, imageAt, at, count, totalSize: u64, wide, open: bool)
 {
-    let s     = binaryStrings()
-    let shown = Math.min(count, BinaryListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let texts = texts()
+    let shown = Math.min(count, ListLimit)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.mo_Commands, total, s.mo_CommandsDesc, offset: at, length: totalSize, open: open)
+    report.beginGroup(texts.mo_Commands, total, texts.mo_CommandsDesc, offset: at, length: totalSize, open: open)
 
     var libraries: Array'String
     var scan = at
@@ -253,8 +257,8 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
 
     if not libraries.isEmpty()
     {
-        let counted = countText(libraries.count, s.word_Library, s.word_Libraries)
-        report.beginGroup(s.shr_Libraries, counted, "", open: open)
+        let counted = countText(libraries.count, texts.word_Library, texts.word_Libraries)
+        report.beginGroup(texts.shr_Libraries, counted, "", open: open)
         for one in libraries do
             report.derived(one.toString(), "")
         report.endGroup()
@@ -262,10 +266,10 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
 }
 
 // Adds the payload of one load command, for the commands that carry something a reader wants.
-private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, imageAt, at, size: u64, command: u32, wide: bool, libraries: *Array'String)
+private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt, at, size: u64, command: u32, wide: bool, libraries: *Array'String)
 {
-    let s    = binaryStrings()
-    let kind = command & 0x7FFFFFFF
+    let texts = texts()
+    let kind  = command & 0x7FFFFFFF
 
     switch kind
     {
@@ -283,7 +287,7 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
         let sections = cast(u64, image.u32At(valueAt + step * 4 + 8))
         let maxText  = machProtectionText(maxProt)
         let iniText  = machProtectionText(initial)
-        let guard    = Format.toString(s.mo_Protection, maxText, iniText)
+        let guard    = Format.toString(texts.mo_Protection, maxText, iniText)
 
         report.field(at + 8, 16, "segname", name, guard)
         report.hexField(valueAt, step, "vmaddr", image.scalarAt(valueAt, step))
@@ -305,14 +309,14 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
     case 0x0E, 0x0F, 0x1C:
         let offset = cast(u64, image.u32At(at + 8))
         let path   = image.cstringAt(at + offset, size > offset ? size - offset : 0)
-        report.field(at + offset, path.length, kind == 0x1C ? "path" : "name", path, kind == 0x1C ? "" : s.shr_Interpreter)
+        report.field(at + offset, path.length, kind == 0x1C ? "path" : "name", path, kind == 0x1C ? "" : texts.shr_Interpreter)
 
     case 0x1B:
         let identity = image.uuidTextAt(at + 8)
-        report.field(at + 8, 16, "uuid", identity, s.shr_BuildId)
+        report.field(at + 8, 16, "uuid", identity, texts.shr_BuildId)
 
     case 0x28:
-        report.hexField(at + 8, 8, "entryoff", image.u64At(at + 8), s.shr_Entry)
+        report.hexField(at + 8, 8, "entryoff", image.u64At(at + 8), texts.shr_Entry)
         report.sizeField(at + 16, 8, "stacksize", image.u64At(at + 16))
 
     case 0x02:
@@ -330,17 +334,17 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
     }
 }
 
-private func reportMachSections(image: *BinaryImage, report: *BinaryReport, imageAt, at, count: u64, wide: bool)
+private func reportMachSections(image: *BinaryImage, report: *Report, imageAt, at, count: u64, wide: bool)
 {
     if not count do
         return
 
-    let s     = binaryStrings()
+    let texts = texts()
     let step  = wide ? 80'u64 : 68
-    let shown = Math.min(count, BinaryListLimit)
-    let total = countText(count, s.word_Section, s.word_Sections)
+    let shown = Math.min(count, ListLimit)
+    let total = countText(count, texts.word_Section, texts.word_Sections)
 
-    report.beginGroup(s.shr_Sections, total, "", offset: at, length: count * step)
+    report.beginGroup(texts.shr_Sections, total, "", offset: at, length: count * step)
 
     for index in shown
     {
@@ -370,27 +374,27 @@ private func reportMachSections(image: *BinaryImage, report: *BinaryReport, imag
 
 private func machFlagsText(value: u32)->String
 {
-    let names = [BinaryFlagName{0x000001, "NOUNDEFS"},
-                 BinaryFlagName{0x000002, "INCRLINK"},
-                 BinaryFlagName{0x000004, "DYLDLINK"},
-                 BinaryFlagName{0x000008, "BINDATLOAD"},
-                 BinaryFlagName{0x000010, "PREBOUND"},
-                 BinaryFlagName{0x000020, "SPLIT_SEGS"},
-                 BinaryFlagName{0x000080, "NOFIXPREBINDING"},
-                 BinaryFlagName{0x000100, "PREBINDABLE"},
-                 BinaryFlagName{0x000200, "ALLMODSBOUND"},
-                 BinaryFlagName{0x000800, "CANONICAL"},
-                 BinaryFlagName{0x001000, "WEAK_DEFINES"},
-                 BinaryFlagName{0x002000, "BINDS_TO_WEAK"},
-                 BinaryFlagName{0x008000, "TWOLEVEL"},
-                 BinaryFlagName{0x200000, "PIE"},
-                 BinaryFlagName{0x800000, "HAS_TLV_DESCRIPTORS"}]
+    let names = [FlagName{0x000001, "NOUNDEFS"},
+                 FlagName{0x000002, "INCRLINK"},
+                 FlagName{0x000004, "DYLDLINK"},
+                 FlagName{0x000008, "BINDATLOAD"},
+                 FlagName{0x000010, "PREBOUND"},
+                 FlagName{0x000020, "SPLIT_SEGS"},
+                 FlagName{0x000080, "NOFIXPREBINDING"},
+                 FlagName{0x000100, "PREBINDABLE"},
+                 FlagName{0x000200, "ALLMODSBOUND"},
+                 FlagName{0x000800, "CANONICAL"},
+                 FlagName{0x001000, "WEAK_DEFINES"},
+                 FlagName{0x002000, "BINDS_TO_WEAK"},
+                 FlagName{0x008000, "TWOLEVEL"},
+                 FlagName{0x200000, "PIE"},
+                 FlagName{0x800000, "HAS_TLV_DESCRIPTORS"}]
     return flagsText(cast(u64, value), names)
 }
 
 private func machProtectionText(value: u32)->String
 {
-    let names = [BinaryFlagName{1, "READ"}, BinaryFlagName{2, "WRITE"}, BinaryFlagName{4, "EXECUTE"}]
+    let names = [FlagName{1, "READ"}, FlagName{2, "WRITE"}, FlagName{4, "EXECUTE"}]
     return flagsText(cast(u64, value), names)
 }
 

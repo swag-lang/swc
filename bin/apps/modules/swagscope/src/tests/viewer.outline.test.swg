@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui, Gui.Testing
+using Core, Pixel, Gui, Gui.Testing, Viewers
 
 // Heading whitespace is normalized as Unicode, without consuming UTF-8 continuation bytes.
 #test
@@ -13,8 +13,8 @@ using Core, Pixel, Gui, Gui.Testing
     var host: HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var session = openTestViewer(markdownViewerPlugin(), &host.root, fileName)
-    let zoom    = assume cast(*MarkdownZoomButton, session.info!.children[0])
+    var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
+    let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
     let outline = zoom.outline!
     outline.startMarkdown()
     completeViewerBackgroundLoad(&host, &outline.load, outline.loadTimer)
@@ -36,8 +36,8 @@ using Core, Pixel, Gui, Gui.Testing
     var host: HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var session = openTestViewer(htmlViewerPlugin(), &host.root, fileName)
-    let view    = assume cast(*HtmlViewer, session.view)
+    var session = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*Html.Panel, session.view)
     for 128 where session.isLoading!() do
         host.fireTimers()
     let outline = assume cast(*DocumentOutline, session.sidePanel!.children[0])
@@ -68,8 +68,8 @@ using Core, Pixel, Gui, Gui.Testing
         var host: HeadlessHost
         host.setup(640, 360)
         defer host.shutdown()
-        var session = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName)
-        let view    = assume cast(*OpenDocumentViewer, session.view)
+        var session = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName)
+        let view    = assume cast(*OpenDocument.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.failureReason.isEmpty())
         let outline = view.outline!
@@ -88,9 +88,9 @@ using Core, Pixel, Gui, Gui.Testing
 #[Swag.TestTag("golden")]
 #test
 {
-    let previous = g_MarkdownViewerSettings
-    defer g_MarkdownViewerSettings = previous
-    g_MarkdownViewerSettings = {}
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {}
     let fileName = Testing.tempFilePath("scope-outline-", ".md")
     let source   = "# Document guide\n\nAn introduction to this document.\n\n## Getting started\n\nRead the first steps.\n\n### Installation\n\nInstall the application.\n\n### Configuration\n\nChoose your preferences.\n\n## Reference\n\nThe complete reference.\n\n### Commands\n\nThe available commands.\n"
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
@@ -110,7 +110,7 @@ using Core, Pixel, Gui, Gui.Testing
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let zoom    = assume cast(*MarkdownZoomButton, window.currentInfo!.children[0])
+    let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     let outline = zoom.outline!
     Swag.assert(not outline.load.started)
     outline.toggle.setChecked(true)
@@ -173,8 +173,8 @@ using Core, Pixel, Gui, Gui.Testing
     host.setup(640, 360)
     defer host.shutdown()
     let path    = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/document-outline.pdf")
-    var session = openTestViewer(pdfViewerPlugin(), &host.root, path)
-    let view    = assume cast(*PdfViewer, session.view)
+    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, path)
+    let view    = assume cast(*PdfDocument.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     let outline = view.outline!
     Swag.assert(outline.rows.count == 4 and outline.rows[1].level == 1 and not outline.rows[0].canExpand())

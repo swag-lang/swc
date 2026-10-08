@@ -268,12 +268,15 @@ namespace
     CastRequest makeFieldCastRequest(const CastAggregateArgs& args, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
         // Recursive aggregate casts need the literal's children to retarget their runtime
-        // storage. A named-argument wrapper carries the diagnostic site, not those children.
+        // storage, so the request targets the value a named-argument wrapper holds. A literal
+        // field also reports a conversion it cannot make at that value, whatever its nesting.
         const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
+        const bool       ownValue     = valueNodeRef.isValid() && fieldNodeRef != args.castRequest->errorNodeRef;
         CastRequest      elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = valueNodeRef.isValid() ? valueNodeRef : args.castRequest->errorNodeRef;
-        elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
+        if (!ownValue)
+            elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
         elemCtx.probing      = args.castRequest->probing;
         elemCtx.applyAutoCast(*args.sema, valueNodeRef);
         return elemCtx;
@@ -592,14 +595,29 @@ namespace
         return Result::Continue;
     }
 
+    // A value that does not convert to its field names that field and its struct. A field value
+    // that is itself a literal has already named the innermost field that failed.
+    void nameFailedField(const CastAggregateArgs& args, const SymbolVariable& dstField)
+    {
+        CastFailure& failure = args.castRequest->failure;
+        if (failure.diagId != DiagnosticId::sema_err_cannot_cast || failure.hasArgument(Diagnostic::ARG_VALUE))
+            return;
+
+        failure.addArgument(Diagnostic::ARG_VALUE, dstField.name(args.sema->ctx()));
+        failure.addArgument(Diagnostic::ARG_DECL_SYM, args.dstTypeRef);
+    }
+
     Result validateAggregateStructElementCasts(const CastAggregateArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
     {
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
-            const size_t        dstIndex  = srcToDst[i];
-            const AstNodeRef    fieldNode = aggregateFieldNodeRef(args, i, srcTypes.size());
-            const SourceCodeRef fieldRef  = aggregateFieldRef(args, i, srcTypes.size());
-            SWC_RESULT(checkElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef));
+            const SymbolVariable& dstField  = *dstFields[srcToDst[i]];
+            const AstNodeRef      fieldNode = aggregateFieldNodeRef(args, i, srcTypes.size());
+            const SourceCodeRef   fieldRef  = aggregateFieldRef(args, i, srcTypes.size());
+            const Result          res       = checkElemCast(args, srcTypes[i], dstField.typeRef(), fieldNode, fieldRef);
+            if (res == Result::Error)
+                nameFailedField(args, dstField);
+            SWC_RESULT(res);
         }
 
         return Result::Continue;

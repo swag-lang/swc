@@ -930,12 +930,12 @@ impl LibraryView
         // folder uses the in-memory index (so the date sidebar and delete handlers stay in
         // sync, honouring the date filter); any other folder (the recycle bin included) is
         // listed straight from disk.
-        var res: Array'File.FileInfo
+        var result: Array'File.FileInfo
         let cf = .libWnd.currentFolder()
         if Library.getFolder() == cf do
-            res = g_Library.files
+            result = g_Library.files
         else do
-            res = catch Library.enumerateSupportedFiles(cf)
+            result = catch Library.enumerateSupportedFiles(cf)
 
         // 'items' only borrows pointers owned by 'allItems'. Drop those borrows before their
         // owners so filter() never snapshots selection state through destroyed LibraryItems.
@@ -943,8 +943,8 @@ impl LibraryView
         .hotItem = Swag.U32.Max
         .clearSelection()
         .allItems.clear()
-        .allItems.reserve(res.count)
-        for fi in res
+        .allItems.reserve(result.count)
+        for fi in result
         {
             with let ptr = .allItems.addNew()
             {

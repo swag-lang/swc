@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // Scroll and paint only queue work. Rapid gestures retain one request and publish the latest
 // destination after the worker finishes, without synchronously reading at a resident edge.
@@ -17,9 +17,9 @@ using Core, Pixel, Gui
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
-    var session  = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
+    var session  = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
-    with let view = assume cast(*TextViewer, session.view)
+    with let view = assume cast(*PlainText.Panel, session.view)
     {
         .resize(640, 360)
         .applyLayout()
@@ -66,7 +66,7 @@ using Core, Pixel, Gui
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    with let view = CodeViewer.create(&host.root, fileName)
+    with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
         .applyLayout()

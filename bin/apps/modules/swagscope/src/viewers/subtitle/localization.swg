@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Captions
 
 using Core, Gui
 
 // Visible strings of the subtitle document viewer.
-struct SubtitleStrings
+struct Texts
 {
     ui_OneCue:    string = "1 cue"                                  // Count of one subtitle cue.
     ui_Cues:      string = "% cues"                                 // Count of several subtitle cues.
@@ -16,19 +17,19 @@ struct SubtitleStrings
 private const FrenchStringsName = "lang/fr/scope.subtitle.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.subtitle.tweak")
 
-private var g_SubtitleStrings: SubtitleStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the subtitle viewer in the active language.
-func subtitleStrings()->const *SubtitleStrings => &g_SubtitleStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
-func registerSubtitleStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'SubtitleStrings(&g_SubtitleStrings, "scope.subtitle")
+    Gui.registerStrings'Texts(&g_Texts, "scope.subtitle")
 }
 
 #run
 {
-    expect Gui.validateStrings'SubtitleStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

@@ -37,7 +37,6 @@ func unreachableSafetyEnabled()->bool
     func hitUnreachable()->s32
     {
         unreachable     // swc-expected-error {{safety_err_runtime}}
-        return 42
     }
 
     const value = #run hitUnreachable()
@@ -46,7 +45,9 @@ func unreachableSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.Unreachable, false)]
+    // Without its guard, 'unreachable' emits nothing: the code after it is what this test
+    // observes, so the warning that it cannot run is silenced here.
+    #[Swag.Safety(.Unreachable, false), Swag.Warning("sema_warn_unreachable_code", .Disable)]
     func ignoreUnreachable()->s32
     {
         unreachable

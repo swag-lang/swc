@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -15,12 +16,12 @@ func isArchive(image: *BinaryImage)->bool => image.matches(0, ArMagic)
 //
 // A library is a directory before it is a container: what a linker actually reads first is the
 // symbol index, because that is what says which member has to be pulled in at all.
-func reportArchive(image: *BinaryImage, report: *BinaryReport)
+func reportArchive(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
 
-    let s = binaryStrings()
-    report.beginGroup(s.ar_Archive, ArMagic[0 until 7], "", offset: 0, length: 8, open: true)
+    let texts = texts()
+    report.beginGroup(texts.ar_Archive, ArMagic[0 until 7], "", offset: 0, length: 8, open: true)
     report.endGroup()
 
     // The members are counted first: the group above the list has to name how many there are, and
@@ -28,7 +29,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     var offsets: Array'u64
     var scan     = 8'u64
     var complete = true
-    while scan + ArHeaderSize <= image.bytes.count and offsets.count < BinaryListLimit
+    while scan + ArHeaderSize <= image.bytes.count and offsets.count < ListLimit
     {
         let size = arDecimalAt(image, scan + 48, 10)
         if not image.matches(scan + 58, "`\n")
@@ -41,15 +42,15 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         scan += ArHeaderSize + size + (size & 1)
     }
 
-    if scan < image.fileSize and offsets.count < BinaryListLimit and complete and not image.isBounded() do
+    if scan < image.fileSize and offsets.count < ListLimit and complete and not image.isBounded() do
         complete = false
 
     let longNamesAt = arLongNamesAt(image, offsets.toSlice())
-    let members     = countText(offsets.count, s.word_Member, s.word_Members)
+    let members     = countText(offsets.count, texts.word_Member, texts.word_Members)
     var objects     = 0'u64
     var imports     = 0'u64
 
-    report.beginGroup(s.ar_Members, members, "", offset: 8, length: image.bytes.count - 8, open: true)
+    report.beginGroup(texts.ar_Members, members, "", offset: 8, length: image.bytes.count - 8, open: true)
 
     for at in offsets
     {
@@ -68,7 +69,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         }
         elif rawName == "//"
         {
-            report.derived(s.ar_LongNames, stored)
+            report.derived(texts.ar_LongNames, stored)
         }
         elif image.u16At(dataAt) == 0 and image.u16At(dataAt + 2) == 0xFFFF
         {
@@ -88,35 +89,35 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     }
 
     if not complete do
-        report.note(s.ar_Malformed)
+        report.note(texts.ar_Malformed)
     report.listCut(offsets.count, offsets.count)
     report.endGroup()
 
-    report.formatName = String.from(imports > objects ? s.fmt_ImportLibrary : s.fmt_StaticLibrary)
+    report.formatName = imports > objects ? texts.fmt_ImportLibrary : texts.fmt_StaticLibrary
     report.summary    = Format.toString("% · %", report.formatName, members)
 }
 
 // Adds the fields of the fixed header in front of one member.
-private func reportArHeader(image: *BinaryImage, report: *BinaryReport, at, size: u64)
+private func reportArHeader(image: *BinaryImage, report: *Report, at, size: u64)
 {
-    let s        = binaryStrings()
+    let texts    = texts()
     let modified = epochText(arDecimalAt(image, at + 16, 12))
     let owner    = image.fixedTextAt(at + 28, 12)
     let mode     = image.fixedTextAt(at + 40, 8)
 
-    report.field(at + 16, 12, s.ar_Modified, modified)
+    report.field(at + 16, 12, texts.ar_Modified, modified)
     if not owner.isEmpty() do
-        report.field(at + 28, 12, s.ar_Owner, owner)
+        report.field(at + 28, 12, texts.ar_Owner, owner)
     if not mode.isEmpty() do
-        report.field(at + 40, 8, s.ar_Mode, mode)
+        report.field(at + 40, 8, texts.ar_Mode, mode)
     report.numField(at + 48, 10, "Size", size)
 }
 
 // Adds the symbol index a linker reads before anything else in the archive.
-private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at, size: u64, first: bool)
+private func reportArLinkerMember(image: *BinaryImage, report: *Report, at, size: u64, first: bool)
 {
-    let s = binaryStrings()
-    report.beginGroup(s.ar_Linker, "", s.ar_LinkerDesc, offset: at, length: size)
+    let texts = texts()
+    report.beginGroup(texts.ar_Linker, "", texts.ar_LinkerDesc, offset: at, length: size)
 
     // The first directory is written big endian whatever the target, and the second little endian.
     // They are two views of the same index, so only one of them is ever read.
@@ -136,10 +137,10 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
         report.numField(at, 4, "NumberOfMembers", memberCount)
     }
 
-    let symbols = countText(count, s.word_Symbol, s.word_Symbols)
+    let symbols = countText(count, texts.word_Symbol, texts.word_Symbols)
     report.field(at, 4, "NumberOfSymbols", symbols)
 
-    let shown  = Math.min(count, BinaryListLimit)
+    let shown  = Math.min(count, ListLimit)
     var nameAt = namesAt
     for index in shown
     {
@@ -157,25 +158,25 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
 }
 
 // Adds one short import record, the member form a linker turns into a thunk rather than into code.
-private func reportArImportMember(image: *BinaryImage, report: *BinaryReport, at: u64)
+private func reportArImportMember(image: *BinaryImage, report: *Report, at: u64)
 {
-    let s       = binaryStrings()
+    let texts   = texts()
     let machine = image.u16At(at + 6)
     let ordinal = image.u16At(at + 16)
     let flags   = image.u16At(at + 18)
     let symbol  = image.cstringAt(at + 20)
     let library = image.cstringAt(at + 20 + symbol.length + 1)
     let stamp   = epochText(cast(u64, image.u32At(at + 8)))
-    let origin  = Format.toString(s.ar_ImportDll, library)
+    let origin  = Format.toString(texts.ar_ImportDll, library)
 
-    report.beginGroup(s.ar_Import, symbol, origin, offset: at, length: 20)
+    report.beginGroup(texts.ar_Import, symbol, origin, offset: at, length: 20)
     report.hexField(at + 6, 2, "Machine", cast(u64, machine), peMachineName(machine))
     report.field(at + 8, 4, "TimeDateStamp", stamp)
     report.sizeField(at + 12, 4, "SizeOfData", cast(u64, image.u32At(at + 12)))
     report.numField(at + 16, 2, "OrdinalOrHint", cast(u64, ordinal))
     report.hexField(at + 18, 2, "Type", cast(u64, flags), arImportTypeName(flags))
-    report.field(at + 20, symbol.length + 1, s.fld_Symbol, symbol)
-    report.field(at + 20 + symbol.length + 1, library.length + 1, s.fld_Library, library)
+    report.field(at + 20, symbol.length + 1, texts.fld_Symbol, symbol)
+    report.field(at + 20 + symbol.length + 1, library.length + 1, texts.fld_Library, library)
     report.endGroup()
 }
 
@@ -208,12 +209,12 @@ private func arLongNamesAt(image: *BinaryImage, offsets: const [..] u64)->u64
 private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->String
 {
     if raw.count == 0 do
-        return String.from(BinaryNoValue)
+        return NoValue
 
     if raw[0] == '/'u8 and raw.count > 1 and raw[1] >= '0'u8 and raw[1] <= '9'u8
     {
         if longNamesAt == Swag.U64.Max do
-            return String.from(raw)
+            return raw
 
         var offset = 0'u64
         for index in 1 until raw.count
@@ -224,13 +225,13 @@ private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->S
         }
 
         let name = image.cstringAt(longNamesAt + offset)
-        return name.isEmpty() ? String.from(raw) : name
+        return name.isEmpty() ? raw : name
     }
 
     // GNU archives close a short name with a slash so a trailing blank cannot be part of it.
     if raw[raw.count - 1] == '/'u8 and raw.count > 1 do
-        return String.from(raw[0 until raw.count - 1])
-    return String.from(raw)
+        return raw[0 until raw.count - 1]
+    return raw
 }
 
 // Returns the decimal number written in ASCII across `length` bytes, blanks ignored.

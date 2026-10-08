@@ -260,7 +260,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     Swag.assert(border.sliderBox.label.name == "Outline")
     Swag.assert(border.sliderBox.slider.minimum() == MinTextBorderSize)
     Swag.assert(border.sliderBox.slider.maximum() == MaxTextBorderSize)
-    let labelWidth = Math.ceil(Painter.measureString(border.sliderBox.label.name.raw.toString(), border.sliderBox.label.font().regular!).width)
+    let labelWidth = Math.ceil(Painter.measureString(border.sliderBox.label.name.raw, border.sliderBox.label.font().regular!).width)
     Swag.assert(border.sliderBox.labelWidth >= labelWidth)
 
     // The joins row is a generated combo omitting JoinStyle.None: Round selects index 1
@@ -513,7 +513,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     f.gui.pump()
 
     let thickness     = testFindItem(prop, #nameof(BaseForm.borderSize))!.sliderBox
-    let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.raw.toString(), thickness.label.font().regular!).width)
+    let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.raw, thickness.label.font().regular!).width)
     Swag.assert(thickness.label.name == "Épaisseur")
     Swag.assert(thickness.labelWidth == expectedWidth)
     Swag.assert(testFindItem(prop, "Effects") == null)
@@ -533,7 +533,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     discard testAddShape(f.capture, 10, 10, 40, 40)
     let text = testAddText(f.capture, 60, 10, 100, 40)
-    text.text = String.from("Swag")
+    text.text = "Swag"
 
     f.capture.selection.add(0)
     prop.selectionHasChanged()

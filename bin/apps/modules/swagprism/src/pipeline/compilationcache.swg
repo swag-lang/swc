@@ -100,7 +100,7 @@ impl CompilationCache
         {
             catch entry.run() as error
             if error != null do
-                entry.result = {text: String.from(appStrings().msg_BuildFailed), failed: true}
+                entry.result = {text: appStrings().msg_BuildFailed, failed: true}
         })
         return {cache: me, artifact: entry}
     }

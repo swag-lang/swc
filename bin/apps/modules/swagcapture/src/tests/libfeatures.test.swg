@@ -104,10 +104,10 @@ using Swag, Core
 
     f.main.copyLibraryImage(path)
 
-    let img = Clipboard.getImage()
-    Swag.assert(img.isValid())
-    Swag.assert(img.width == 20)
-    Swag.assert(img.height == 14)
+    let image = Clipboard.getImage()
+    Swag.assert(image.isValid())
+    Swag.assert(image.width == 20)
+    Swag.assert(image.height == 14)
 }
 
 // The library breadcrumb mirrors the real on-disk folder: it ends at the library folder

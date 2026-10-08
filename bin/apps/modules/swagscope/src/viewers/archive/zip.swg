@@ -1,30 +1,7 @@
 #global internal
+#global namespace Viewers.Archive
 
 using Core
-
-private const ZipLocalSignature     = 0x04034B50'u32
-private const ZipDirectorySignature = 0x02014B50'u32
-private const ZipEndSignature       = 0x06054B50'u32
-private const Zip64EndSignature     = 0x06064B50'u32
-private const Zip64LocatorSignature = 0x07064B50'u32
-private const ZipEndSearch          = 0xFFFF + 22'u64
-private const ZipEntryLimit         = 250_000'u64
-private const ZipDirectoryLimit     = 512 * 1024 * 1024'u64
-private const ZipPreviewLimit       = 256 * 1024 * 1024'u64
-private const ZipFlagEncrypted      = 1'u16
-private const ZipFlagUtf8           = 1'u16 << 11
-private const ZipValue32Overflow    = 0xFFFF_FFFF'u64
-private const ZipValue16Overflow    = 0xFFFF'u64
-
-private const ZipCp437High: [128] rune = [
-    0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7, 0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
-    0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9, 0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192,
-    0x00E1, 0x00ED, 0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA, 0x00BF, 0x2310, 0x00AC, 0x00BD, 0x00BC, 0x00A1, 0x00AB, 0x00BB, 0x2591, 0x2592,
-    0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551, 0x2557, 0x255D, 0x255C, 0x255B, 0x2510, 0x2514, 0x2534,
-    0x252C, 0x251C, 0x2500, 0x253C, 0x255E, 0x255F, 0x255A, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256C, 0x2567, 0x2568, 0x2564,
-    0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256B, 0x256A, 0x2518, 0x250C, 0x2588, 0x2584, 0x258C, 0x2590, 0x2580, 0x03B1, 0x00DF,
-    0x0393, 0x03C0, 0x03A3, 0x03C3, 0x00B5, 0x03C4, 0x03A6, 0x0398, 0x03A9, 0x03B4, 0x221E, 0x03C6, 0x03B5, 0x2229, 0x2261, 0x00B1,
-    0x2265, 0x2264, 0x2320, 0x2321, 0x00F7, 0x2248, 0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0]
 
 // One file or directory recorded in the central directory of a ZIP archive.
 struct ZipEntry
@@ -40,7 +17,7 @@ struct ZipEntry
 }
 
 // The central directory of a ZIP archive, with its entries sorted by path.
-struct ZipArchive
+struct Zip
 {
     entries:          Array'ZipEntry
     compressedSize:   u64     // Sum over the file entries; directories do not count
@@ -48,7 +25,7 @@ struct ZipArchive
     comment:          String
 }
 
-impl ZipArchive
+impl Zip
 {
     // Returns the entry stored at `path`, or null when the archive has none.
     mtd const tryFindEntry(path: string)->const *ZipEntry?
@@ -57,365 +34,404 @@ impl ZipArchive
             return entry
         return null
     }
-}
 
-private func zipU16(bytes: const [..] u8, at: u64)->u16 fail
-{
-    if at > bytes.count or 2 > bytes.count - at do
-        fail Errors.InvalidFormatError{archiveStrings().err_ShortField16}
-    return Math.make16(bytes[at + 1], bytes[at])
-}
-
-private func zipU32(bytes: const [..] u8, at: u64)->u32 fail
-{
-    if at > bytes.count or 4 > bytes.count - at do
-        fail Errors.InvalidFormatError{archiveStrings().err_ShortField32}
-    return Math.make32(bytes[at + 3], bytes[at + 2], bytes[at + 1], bytes[at])
-}
-
-private func zipU64(bytes: const [..] u8, at: u64)->u64 fail
-{
-    let low  = try zipU32(bytes, at)
-    let high = try zipU32(bytes, at + 4)
-    return Math.make64(high, low)
-}
-
-// Decodes a stored name or comment: as UTF-8 when `utf8` is set and the bytes are valid, as CP437 otherwise.
-func zipText(bytes: const [..] u8, utf8: bool)->String
-{
-    if not bytes.count do
-        return {}
-    if utf8 and Utf8.isValid(bytes) do
-        return String.from(cast(string, bytes))
-
-    var result: retval
-    for value in bytes
+    // Decodes a stored name or comment: as UTF-8 when `utf8` is set and the bytes are valid, as CP437 otherwise.
+    func text(bytes: const [..] u8, utf8: bool)->String
     {
-        if value < 0x80 do
-            result += value
-        else do
-            result += ZipCp437High[value - 0x80]
-    }
+        if not bytes.count do
+            return {}
+        if utf8 and Utf8.isValid(bytes) do
+            return cast(string, bytes)
 
-    return result
-}
-
-// Normalizes a stored path to single forward slashes, without a leading or trailing one.
-//
-// Control characters become U+FFFD, so a name cannot disturb the tree that shows it.
-private func cleanZipPath(path: string)->String
-{
-    var result: retval
-    var previousSlash = false
-    for value in path
-    {
-        let slash = value == '/' or value == '\\'
-        if slash
+        var result: retval
+        for value in bytes
         {
-            if result.isEmpty() or previousSlash do
-                continue
-            result        += '/'u8
-            previousSlash = true
-            continue
+            if value < 0x80 do
+                result += value
+            else do
+                result += Cp437High[value - 0x80]
         }
 
-        if value < 32 do
-            result += cast(rune, 0xFFFD)
-        else do
-            result += value
-        previousSlash = false
-    }
-
-    while not result.isEmpty() and result.back() == '/' do
-        result.removeBack()
-    return result
-}
-
-// Replaces each directory field saturated at its 16- or 32-bit maximum with its ZIP64 extra-field value.
-private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *u64) fail
-{
-    var at = 0'u64
-    while at + 4 <= extra.count
-    {
-        let kind   = try zipU16(extra, at)
-        let length = cast(u64, try zipU16(extra, at + 2))
-        at += 4
-        if length > extra.count - at do
-            fail Errors.InvalidFormatError{archiveStrings().err_ExtraField}
-        if kind == 1
-        {
-            var valueAt = at
-            let end     = at + length
-            if plain[] == ZipValue32Overflow
-            {
-                if valueAt + 8 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Uncompressed}
-                plain[] = try zipU64(extra, valueAt)
-                valueAt += 8
-            }
-
-            if packed[] == ZipValue32Overflow
-            {
-                if valueAt + 8 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Compressed}
-                packed[] = try zipU64(extra, valueAt)
-                valueAt  += 8
-            }
-
-            if local[] == ZipValue32Overflow
-            {
-                if valueAt + 8 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Offset}
-                local[] = try zipU64(extra, valueAt)
-                valueAt += 8
-            }
-
-            if disk[] == ZipValue16Overflow
-            {
-                if valueAt + 4 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Disk}
-                disk[] = cast(u64, try zipU32(extra, valueAt))
-            }
-
-            return
-        }
-
-        at += length
-    }
-}
-
-// Returns where the central directory lies and how many entries it holds.
-//
-// `tail` is the mapped end of the file starting at `tailOffset`, and `endAt` locates the end
-// record inside it. A saturated field sends the lookup through the ZIP64 locator and end record.
-private func zipDirectoryLocation(file: *File.MappedFile,
-                                  tailOffset: u64,
-                                  tail: const [..] u8,
-                                  endAt: u64)->{ offset, size, count: u64 } fail
-{
-    with var result: retval
-    {
-        .count  = cast(u64, try zipU16(tail, endAt + 10))
-        .size   = cast(u64, try zipU32(tail, endAt + 12))
-        .offset = cast(u64, try zipU32(tail, endAt + 16))
-    }
-
-    if result.count != ZipValue16Overflow and
-       result.size != ZipValue32Overflow and
-       result.offset != ZipValue32Overflow do
         return result
-    if tailOffset + endAt < 20 do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64Locator}
-
-    let locatorOffset = tailOffset + endAt - 20
-    let locator       = try file.map(locatorOffset, 20)
-    if try zipU32(locator.bytes(), 0) != Zip64LocatorSignature do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64Locator}
-    if try zipU32(locator.bytes(), 4) or try zipU32(locator.bytes(), 16) != 1 do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Zip64MultiDisk}
-    let recordOffset = try zipU64(locator.bytes(), 8)
-    let fileSize     = try file.size()
-    if recordOffset > fileSize or 56 > fileSize - recordOffset do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64EndOutside}
-
-    let record = try file.map(recordOffset, 56)
-    if try zipU32(record.bytes(), 0) != Zip64EndSignature do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64EndSignature}
-    if try zipU32(record.bytes(), 16) or try zipU32(record.bytes(), 20) do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Zip64MultiDisk}
-    if try zipU64(record.bytes(), 24) != try zipU64(record.bytes(), 32) do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Zip64MultiDisk}
-    result.count  = try zipU64(record.bytes(), 32)
-    result.size   = try zipU64(record.bytes(), 40)
-    result.offset = try zipU64(record.bytes(), 48)
-    return result
-}
-
-// Reads the central directory of a ZIP file.
-//
-// The end record must close the file exactly. Multi-disk archives and directories beyond the
-// entry and size limits fail before any entry is decoded.
-func loadZipArchive(fileName: string)->ZipArchive fail
-{
-    var result: retval
-    var file     = try File.MappedFile.open(fileName)
-    let fileSize = try file.size()
-    if fileSize < 22 do
-        fail Errors.InvalidFormatError{archiveStrings().err_TooShort}
-
-    // Search backward for an end record that accounts for the trailing comment.
-    let tailSize   = Math.min(fileSize, ZipEndSearch)
-    let tailOffset = fileSize - tailSize
-    let tail       = try file.map(tailOffset, tailSize)
-    let bytes      = tail.bytes()
-    var endAt      = Swag.U64.Max
-    for scan in reversed(tailSize - 21)
-    {
-        if try zipU32(bytes, scan) != ZipEndSignature do
-            continue
-        let commentLength = cast(u64, try zipU16(bytes, scan + 20))
-        if scan + 22 + commentLength == tailSize
-        {
-            endAt = scan
-            break
-        }
     }
 
-    if endAt == Swag.U64.Max do
-        fail Errors.InvalidFormatError{archiveStrings().err_EndMissing}
-
-    let disk      = try zipU16(bytes, endAt + 4)
-    let startDisk = try zipU16(bytes, endAt + 6)
-    if disk or startDisk do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_MultiDisk}
-    let diskEntries = try zipU16(bytes, endAt + 8)
-    let allEntries  = try zipU16(bytes, endAt + 10)
-    if diskEntries != allEntries do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_MultiDisk}
-
-    let commentLength = cast(u64, try zipU16(bytes, endAt + 20))
-    if commentLength do
-        result.comment = zipText(bytes[endAt + 22 until endAt + 22 + commentLength], true)
-
-    // Validate the directory bounds before mapping its entries.
-    let directory = try zipDirectoryLocation(&file, tailOffset, bytes, endAt)
-    if directory.count > ZipEntryLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_TooManyEntries}
-    if directory.size > ZipDirectoryLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_DirectoryTooLarge}
-    if directory.offset > fileSize or directory.size > fileSize - directory.offset do
-        fail Errors.InvalidFormatError{archiveStrings().err_DirectoryOutside}
-
-    let region = try file.map(directory.offset, directory.size)
-    let data   = region.bytes()
-    var at     = 0'u64
-    for directory.count
+    // Reads the central directory of a ZIP file.
+    //
+    // The end record must close the file exactly. Multi-disk archives and directories beyond the
+    // entry and size limits fail before any entry is decoded.
+    func load(fileName: string)->Zip fail
     {
-        if at > data.count or 46 > data.count - at do
-            fail Errors.InvalidFormatError{archiveStrings().err_DirectoryTruncated}
-        if try zipU32(data, at) != ZipDirectorySignature do
-            fail Errors.InvalidFormatError{archiveStrings().err_EntrySignature}
+        var result: retval
+        var file     = try File.MappedFile.open(fileName)
+        let fileSize = try file.size()
+        if fileSize < 22 do
+            fail Errors.InvalidFormatError{texts().err_TooShort}
 
-        let nameLength    = cast(u64, try zipU16(data, at + 28))
-        let extraLength   = cast(u64, try zipU16(data, at + 30))
-        let commentLength = cast(u64, try zipU16(data, at + 32))
-        let totalLength   = 46 + nameLength + extraLength + commentLength
-        if totalLength > data.count - at do
-            fail Errors.InvalidFormatError{archiveStrings().err_EntryOverflow}
-
-        with var entry: ZipEntry
+        // Search backward for an end record that accounts for the trailing comment.
+        let tailSize   = Math.min(fileSize, EndSearch)
+        let tailOffset = fileSize - tailSize
+        let tail       = try file.map(tailOffset, tailSize)
+        let bytes      = tail.bytes()
+        var endAt      = Swag.U64.Max
+        for scan in reversed(tailSize - 21)
         {
-            .flags            = try zipU16(data, at + 8)
-            .method           = try zipU16(data, at + 10)
-            .crc32            = try zipU32(data, at + 16)
-            .compressedSize   = cast(u64, try zipU32(data, at + 20))
-            .uncompressedSize = cast(u64, try zipU32(data, at + 24))
+            if try readU32(bytes, scan) != EndSignature do
+                continue
+            let commentLength = cast(u64, try readU16(bytes, scan + 20))
+            if scan + 22 + commentLength == tailSize
+            {
+                endAt = scan
+                break
+            }
         }
 
-        var diskNumber = cast(u64, try zipU16(data, at + 34))
-        entry.localOffset = cast(u64, try zipU32(data, at + 42))
+        if endAt == Swag.U64.Max do
+            fail Errors.InvalidFormatError{texts().err_EndMissing}
 
-        let nameBytes  = data[at + 46 until at + 46 + nameLength]
-        let extraBytes = data[at + 46 + nameLength until at + 46 + nameLength + extraLength]
-        try applyZip64Extra(extraBytes, &entry.uncompressedSize, &entry.compressedSize, &entry.localOffset, &diskNumber)
-        if diskNumber do
-            fail Errors.UnsupportedFormatError{archiveStrings().err_MultiDiskEntry}
+        let disk      = try readU16(bytes, endAt + 4)
+        let startDisk = try readU16(bytes, endAt + 6)
+        if disk or startDisk do
+            fail Errors.UnsupportedFormatError{texts().err_MultiDisk}
+        let diskEntries = try readU16(bytes, endAt + 8)
+        let allEntries  = try readU16(bytes, endAt + 10)
+        if diskEntries != allEntries do
+            fail Errors.UnsupportedFormatError{texts().err_MultiDisk}
 
-        let decoded = zipText(nameBytes, cast(bool, entry.flags & ZipFlagUtf8))
-        entry.path = cleanZipPath(decoded)
-        if entry.path.isEmpty()
+        let commentLength = cast(u64, try readU16(bytes, endAt + 20))
+        if commentLength do
+            result.comment = text(bytes[endAt + 22 until endAt + 22 + commentLength], true)
+
+        // Validate the directory bounds before mapping its entries.
+        let directory = try directoryLocation(&file, tailOffset, bytes, endAt)
+        if directory.count > EntryLimit do
+            fail Errors.UnsupportedFormatError{texts().err_TooManyEntries}
+        if directory.size > DirectoryLimit do
+            fail Errors.UnsupportedFormatError{texts().err_DirectoryTooLarge}
+        if directory.offset > fileSize or directory.size > fileSize - directory.offset do
+            fail Errors.InvalidFormatError{texts().err_DirectoryOutside}
+
+        let region = try file.map(directory.offset, directory.size)
+        let data   = region.bytes()
+        var at     = 0'u64
+        for directory.count
         {
+            if at > data.count or 46 > data.count - at do
+                fail Errors.InvalidFormatError{texts().err_DirectoryTruncated}
+            if try readU32(data, at) != DirectorySignature do
+                fail Errors.InvalidFormatError{texts().err_EntrySignature}
+
+            let nameLength    = cast(u64, try readU16(data, at + 28))
+            let extraLength   = cast(u64, try readU16(data, at + 30))
+            let commentLength = cast(u64, try readU16(data, at + 32))
+            let totalLength   = 46 + nameLength + extraLength + commentLength
+            if totalLength > data.count - at do
+                fail Errors.InvalidFormatError{texts().err_EntryOverflow}
+
+            with var entry: ZipEntry
+            {
+                .flags            = try readU16(data, at + 8)
+                .method           = try readU16(data, at + 10)
+                .crc32            = try readU32(data, at + 16)
+                .compressedSize   = cast(u64, try readU32(data, at + 20))
+                .uncompressedSize = cast(u64, try readU32(data, at + 24))
+            }
+
+            var diskNumber = cast(u64, try readU16(data, at + 34))
+            entry.localOffset = cast(u64, try readU32(data, at + 42))
+
+            let nameBytes  = data[at + 46 until at + 46 + nameLength]
+            let extraBytes = data[at + 46 + nameLength until at + 46 + nameLength + extraLength]
+            try applyZip64Extra(extraBytes, &entry.uncompressedSize, &entry.compressedSize, &entry.localOffset, &diskNumber)
+            if diskNumber do
+                fail Errors.UnsupportedFormatError{texts().err_MultiDiskEntry}
+
+            let decoded = text(nameBytes, cast(bool, entry.flags & FlagUtf8))
+            entry.path = cleanPath(decoded)
+            if entry.path.isEmpty()
+            {
+                at += totalLength
+                continue
+            }
+
+            let external = try readU32(data, at + 38)
+            let hasDirectorySuffix = nameBytes.count and
+                                     (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)
+            entry.isDirectory = hasDirectorySuffix or cast(bool, external & 0x10)
+            if not entry.isDirectory
+            {
+                if entry.compressedSize > Swag.U64.Max - result.compressedSize or
+                   entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
+                    fail Errors.InvalidFormatError{texts().err_EntrySizes}
+                result.compressedSize   += entry.compressedSize
+                result.uncompressedSize += entry.uncompressedSize
+            }
+
+            result.entries.add(#move entry)
             at += totalLength
-            continue
         }
 
-        let external = try zipU32(data, at + 38)
-        let hasDirectorySuffix = nameBytes.count and
-                                 (nameBytes[nameBytes.count - 1] == '/'u8 or
-                                  nameBytes[nameBytes.count - 1] == '\\'u8)
-        entry.isDirectory = hasDirectorySuffix or cast(bool, external & 0x10)
-        if not entry.isDirectory
+        result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
+        return result
+    }
+
+    // Reads and validates one bounded archive entry without materializing a temporary file.
+    //
+    // Archive previews write this result to a disposable path, while container readers such as ODF
+    // and IDML consume their XML in memory. Both paths therefore share the same size, compression,
+    // and CRC boundary.
+    func loadEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
+    {
+        if entry.isDirectory do
+            fail Errors.BadParameterError{texts().err_DirectoryContent}
+        if entry.flags & FlagEncrypted do
+            fail Errors.UnsupportedFormatError{texts().err_Encrypted}
+        if entry.uncompressedSize > PreviewLimit do
+            fail Errors.UnsupportedFormatError{texts().err_EntryTooLarge}
+        if entry.compressedSize > PreviewLimit do
+            fail Errors.UnsupportedFormatError{texts().err_PackedTooLarge}
+        if entry.method != 0 and entry.method != 8 do
+            fail Errors.UnsupportedFormatError{Errors.mkString(Format.toString(texts().err_Method, entry.method))}
+
+        var stream   = try File.openReadLive(archiveFileName)
+        let fileSize = try stream.size()
+        if entry.localOffset > fileSize or 30 > fileSize - entry.localOffset do
+            fail Errors.InvalidFormatError{texts().err_LocalOutside}
+        var header: [30] u8
+        if not (try stream.readExactAt(entry.localOffset, header)) do
+            fail Errors.InvalidFormatError{texts().err_LocalTruncated}
+        if try readU32(header, 0) != LocalSignature do
+            fail Errors.InvalidFormatError{texts().err_LocalSignature}
+
+        let nameLength  = cast(u64, try readU16(header, 26))
+        let extraLength = cast(u64, try readU16(header, 28))
+        let headerEnd   = entry.localOffset + 30
+        if nameLength > fileSize - headerEnd or extraLength > fileSize - headerEnd - nameLength do
+            fail Errors.InvalidFormatError{texts().err_LocalFields}
+        let dataOffset = headerEnd + nameLength + extraLength
+        if dataOffset > fileSize or entry.compressedSize > fileSize - dataOffset do
+            fail Errors.InvalidFormatError{texts().err_PayloadOutside}
+
+        var packed: Array'u8
+        packed.resize(entry.compressedSize)
+        if entry.compressedSize and not (try stream.readExactAt(dataOffset, packed.toSlice())) do
+            fail Errors.InvalidFormatError{texts().err_PayloadTruncated}
+
+        var plain: retval
+        if entry.method == 0
         {
-            if entry.compressedSize > Swag.U64.Max - result.compressedSize or
-               entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
-                fail Errors.InvalidFormatError{archiveStrings().err_EntrySizes}
-            result.compressedSize   += entry.compressedSize
-            result.uncompressedSize += entry.uncompressedSize
+            plain = #move packed
+        }
+        else
+        {
+            plain.reserve(entry.uncompressedSize)
+            var inflater: Compress.Inflate
+            try inflater.decompress(&plain, packed.toSlice(), maxOutputSize: entry.uncompressedSize)
         }
 
-        result.entries.add(#move entry)
-        at += totalLength
+        if plain.count != entry.uncompressedSize do
+            fail Errors.InvalidFormatError{texts().err_SizeMismatch}
+        if Hash.Crc32.compute(plain.toSlice()) != entry.crc32 do
+            fail Errors.InvalidFormatError{texts().err_Checksum}
+        return plain
     }
 
-    result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
-    return result
+    // Writes one validated archive entry to `destination`, where an embedded file viewer opens it.
+    func extractEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
+    {
+        let plain = try loadEntry(archiveFileName, entry)
+        if try File.writeAllBytes(destination, plain.toSlice()) != plain.count do
+            fail Swag.SystemError{texts().err_TempWrite}
+    }
 }
 
-// Reads and validates one bounded archive entry without materializing a temporary file.
-//
-// Archive previews write this result to a disposable path, while container readers such as ODF
-// and IDML consume their XML in memory. Both paths therefore share the same size, compression,
-// and CRC boundary.
-func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
+// The fixed values of the ZIP format, and the readers the loader is built from.
+private impl Zip
 {
-    if entry.isDirectory do
-        fail Errors.BadParameterError{archiveStrings().err_DirectoryContent}
-    if entry.flags & ZipFlagEncrypted do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Encrypted}
-    if entry.uncompressedSize > ZipPreviewLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_EntryTooLarge}
-    if entry.compressedSize > ZipPreviewLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_PackedTooLarge}
-    if entry.method != 0 and entry.method != 8 do
-        fail Errors.UnsupportedFormatError{Errors.mkString(Format.toString(archiveStrings().err_Method, entry.method))}
+    // Signatures of the records the reader walks.
+    const LocalSignature        = 0x04034B50'u32
+    const DirectorySignature    = 0x02014B50'u32
+    const EndSignature          = 0x06054B50'u32
+    const Zip64EndSignature     = 0x06064B50'u32
+    const Zip64LocatorSignature = 0x07064B50'u32
 
-    var stream   = try File.openReadLive(archiveFileName)
-    let fileSize = try stream.size()
-    if entry.localOffset > fileSize or 30 > fileSize - entry.localOffset do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalOutside}
-    var header: [30] u8
-    if not (try stream.readExactAt(entry.localOffset, header)) do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalTruncated}
-    if try zipU32(header, 0) != ZipLocalSignature do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalSignature}
+    // The end record is 22 bytes followed by a comment of at most 64 KiB, so it lies within this
+    // distance of the end of the file.
+    const EndSearch = 0xFFFF + 22'u64
 
-    let nameLength  = cast(u64, try zipU16(header, 26))
-    let extraLength = cast(u64, try zipU16(header, 28))
-    let headerEnd   = entry.localOffset + 30
-    if nameLength > fileSize - headerEnd or extraLength > fileSize - headerEnd - nameLength do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalFields}
-    let dataOffset = headerEnd + nameLength + extraLength
-    if dataOffset > fileSize or entry.compressedSize > fileSize - dataOffset do
-        fail Errors.InvalidFormatError{archiveStrings().err_PayloadOutside}
+    // Bounds that keep a hostile directory or entry from exhausting memory: the directory is read
+    // whole, and an entry is inflated whole to be previewed.
+    const EntryLimit     = 250_000'u64
+    const DirectoryLimit = 512 * 1024 * 1024'u64
+    const PreviewLimit   = 256 * 1024 * 1024'u64
 
-    var packed: Array'u8
-    packed.resize(entry.compressedSize)
-    if entry.compressedSize and not (try stream.readExactAt(dataOffset, packed.toSlice())) do
-        fail Errors.InvalidFormatError{archiveStrings().err_PayloadTruncated}
+    // General-purpose flags of an entry.
+    const FlagEncrypted = 1'u16
+    const FlagUtf8      = 1'u16 << 11
 
-    var plain: retval
-    if entry.method == 0
+    // A size, offset, or count saturated at its field's maximum is stored in the ZIP64 extra field.
+    const Value32Overflow = 0xFFFF_FFFF'u64
+    const Value16Overflow = 0xFFFF'u64
+
+    // The upper half of code page 437, the encoding of names stored without the UTF-8 flag.
+    const Cp437High: [128] rune = [
+        0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7, 0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
+        0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9, 0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192,
+        0x00E1, 0x00ED, 0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA, 0x00BF, 0x2310, 0x00AC, 0x00BD, 0x00BC, 0x00A1, 0x00AB, 0x00BB,
+        0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551, 0x2557, 0x255D, 0x255C, 0x255B, 0x2510,
+        0x2514, 0x2534, 0x252C, 0x251C, 0x2500, 0x253C, 0x255E, 0x255F, 0x255A, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256C, 0x2567,
+        0x2568, 0x2564, 0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256B, 0x256A, 0x2518, 0x250C, 0x2588, 0x2584, 0x258C, 0x2590, 0x2580,
+        0x03B1, 0x00DF, 0x0393, 0x03C0, 0x03A3, 0x03C3, 0x00B5, 0x03C4, 0x03A6, 0x0398, 0x03A9, 0x03B4, 0x221E, 0x03C6, 0x03B5, 0x2229,
+        0x2261, 0x00B1, 0x2265, 0x2264, 0x2320, 0x2321, 0x00F7, 0x2248, 0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0]
+
+    func readU16(bytes: const [..] u8, at: u64)->u16 fail
     {
-        plain = #move packed
-    }
-    else
-    {
-        plain.reserve(entry.uncompressedSize)
-        var inflater: Compress.Inflate
-        try inflater.decompress(&plain, packed.toSlice(), maxOutputSize: entry.uncompressedSize)
+        if at > bytes.count or 2 > bytes.count - at do
+            fail Errors.InvalidFormatError{texts().err_ShortField16}
+        return Math.make16(bytes[at + 1], bytes[at])
     }
 
-    if plain.count != entry.uncompressedSize do
-        fail Errors.InvalidFormatError{archiveStrings().err_SizeMismatch}
-    if Hash.Crc32.compute(plain.toSlice()) != entry.crc32 do
-        fail Errors.InvalidFormatError{archiveStrings().err_Checksum}
-    return plain
-}
+    func readU32(bytes: const [..] u8, at: u64)->u32 fail
+    {
+        if at > bytes.count or 4 > bytes.count - at do
+            fail Errors.InvalidFormatError{texts().err_ShortField32}
+        return Math.make32(bytes[at + 3], bytes[at + 2], bytes[at + 1], bytes[at])
+    }
 
-// Writes one validated archive entry to `destination`, where an embedded file viewer opens it.
-func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
-{
-    let plain = try loadZipEntry(archiveFileName, entry)
-    if try File.writeAllBytes(destination, plain.toSlice()) != plain.count do
-        fail Swag.SystemError{archiveStrings().err_TempWrite}
+    func readU64(bytes: const [..] u8, at: u64)->u64 fail
+    {
+        let low  = try readU32(bytes, at)
+        let high = try readU32(bytes, at + 4)
+        return Math.make64(high, low)
+    }
+
+    // Normalizes a stored path to single forward slashes, without a leading or trailing one.
+    //
+    // Control characters become U+FFFD, so a name cannot disturb the tree that shows it.
+    func cleanPath(path: string)->String
+    {
+        var result: retval
+        var previousSlash = false
+        for value in path
+        {
+            let slash = value == '/' or value == '\\'
+            if slash
+            {
+                if result.isEmpty() or previousSlash do
+                    continue
+                result        += '/'u8
+                previousSlash = true
+                continue
+            }
+
+            if value < 32 do
+                result += cast(rune, 0xFFFD)
+            else do
+                result += value
+            previousSlash = false
+        }
+
+        while not result.isEmpty() and result.back() == '/' do
+            result.removeBack()
+        return result
+    }
+
+    // Replaces each directory field saturated at its 16- or 32-bit maximum with its ZIP64 extra-field value.
+    func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *u64) fail
+    {
+        var at = 0'u64
+        while at + 4 <= extra.count
+        {
+            let kind   = try readU16(extra, at)
+            let length = cast(u64, try readU16(extra, at + 2))
+            at += 4
+            if length > extra.count - at do
+                fail Errors.InvalidFormatError{texts().err_ExtraField}
+            if kind == 1
+            {
+                var valueAt = at
+                let end     = at + length
+                if plain[] == Value32Overflow
+                {
+                    if valueAt + 8 > end do
+                        fail Errors.InvalidFormatError{texts().err_Zip64Uncompressed}
+                    plain[] = try readU64(extra, valueAt)
+                    valueAt += 8
+                }
+
+                if packed[] == Value32Overflow
+                {
+                    if valueAt + 8 > end do
+                        fail Errors.InvalidFormatError{texts().err_Zip64Compressed}
+                    packed[] = try readU64(extra, valueAt)
+                    valueAt  += 8
+                }
+
+                if local[] == Value32Overflow
+                {
+                    if valueAt + 8 > end do
+                        fail Errors.InvalidFormatError{texts().err_Zip64Offset}
+                    local[] = try readU64(extra, valueAt)
+                    valueAt += 8
+                }
+
+                if disk[] == Value16Overflow
+                {
+                    if valueAt + 4 > end do
+                        fail Errors.InvalidFormatError{texts().err_Zip64Disk}
+                    disk[] = cast(u64, try readU32(extra, valueAt))
+                }
+
+                return
+            }
+
+            at += length
+        }
+    }
+
+    // Returns where the central directory lies and how many entries it holds.
+    //
+    // `tail` is the mapped end of the file starting at `tailOffset`, and `endAt` locates the end
+    // record inside it. A saturated field sends the lookup through the ZIP64 locator and end record.
+    func directoryLocation(file: *File.MappedFile,
+                           tailOffset: u64,
+                           tail: const [..] u8,
+                           endAt: u64)->{ offset, size, count: u64 } fail
+    {
+        with var result: retval
+        {
+            .count  = cast(u64, try readU16(tail, endAt + 10))
+            .size   = cast(u64, try readU32(tail, endAt + 12))
+            .offset = cast(u64, try readU32(tail, endAt + 16))
+        }
+
+        if result.count != Value16Overflow and
+           result.size != Value32Overflow and
+           result.offset != Value32Overflow do
+            return result
+        if tailOffset + endAt < 20 do
+            fail Errors.InvalidFormatError{texts().err_Zip64Locator}
+
+        let locatorOffset = tailOffset + endAt - 20
+        let locator       = try file.map(locatorOffset, 20)
+        if try readU32(locator.bytes(), 0) != Zip64LocatorSignature do
+            fail Errors.InvalidFormatError{texts().err_Zip64Locator}
+        if try readU32(locator.bytes(), 4) or try readU32(locator.bytes(), 16) != 1 do
+            fail Errors.UnsupportedFormatError{texts().err_Zip64MultiDisk}
+        let recordOffset = try readU64(locator.bytes(), 8)
+        let fileSize     = try file.size()
+        if recordOffset > fileSize or 56 > fileSize - recordOffset do
+            fail Errors.InvalidFormatError{texts().err_Zip64EndOutside}
+
+        let record = try file.map(recordOffset, 56)
+        if try readU32(record.bytes(), 0) != Zip64EndSignature do
+            fail Errors.InvalidFormatError{texts().err_Zip64EndSignature}
+        if try readU32(record.bytes(), 16) or try readU32(record.bytes(), 20) do
+            fail Errors.UnsupportedFormatError{texts().err_Zip64MultiDisk}
+        if try readU64(record.bytes(), 24) != try readU64(record.bytes(), 32) do
+            fail Errors.UnsupportedFormatError{texts().err_Zip64MultiDisk}
+        result.count  = try readU64(record.bytes(), 32)
+        result.size   = try readU64(record.bytes(), 40)
+        result.offset = try readU64(record.bytes(), 48)
+        return result
+    }
 }

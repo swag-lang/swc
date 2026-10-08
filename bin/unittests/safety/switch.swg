@@ -41,8 +41,6 @@ func switchSafetyEnabled()->bool
         case 1 to 3:
             return 10
         }
-
-        return 77
     }
 
     const value = #run completeScalarSwitchPanic(9)
@@ -59,8 +57,6 @@ func switchSafetyEnabled()->bool
         case 1 where false:
             return 10
         }
-
-        return 77
     }
 
     const value = #run completeWhereSwitchPanic(1)
@@ -69,7 +65,9 @@ func switchSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.Switch, false)]
+    // Without its guard, a value no case matches walks past the switch: the code after it is
+    // what this test observes, so the warning that it cannot run is silenced here.
+    #[Swag.Safety(.Switch, false), Swag.Warning("sema_warn_unreachable_code", .Disable)]
     func completeScalarSwitchDisabled(v: s32)->s32
     {
         switch #complete v
@@ -100,8 +98,6 @@ func switchSafetyEnabled()->bool
         case 6:
             return 30
         }
-
-        return 0
     }
 
     const value = #run completeScalarSwitchValid(3)

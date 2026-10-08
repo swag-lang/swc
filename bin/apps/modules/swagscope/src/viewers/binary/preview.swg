@@ -1,12 +1,13 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core, Pixel, Serialization
 
 // Most images of one container that get a preview.
-private const BinaryPreviewLimit = 8'u64
+private const PreviewLimit = 8'u64
 
 // One image understood inside a binary container, with the short label shown under it.
-struct BinaryPreview
+struct Preview
 {
     image: Image
     label: String
@@ -34,21 +35,21 @@ func isIconContainer(image: *BinaryImage)->bool
 //
 // Each directory entry is rebuilt as a one-image ICO so the existing decoder can expose every size,
 // rather than selecting only the largest image from the original container.
-func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *Array'BinaryPreview)
+func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array'Preview)
 {
     image.bigEndian = false
     let count      = cast(u64, image.u16At(4))
     let kind       = image.u16At(2)
-    let s          = binaryStrings()
-    let formatName = kind == 1 ? s.fmt_Icon : s.fmt_Cursor
+    let texts      = texts()
+    let formatName = kind == 1 ? texts.fmt_Icon : texts.fmt_Cursor
     report.formatName = formatName
-    report.summary    = Format.toString("% · % %", formatName, count, count == 1 ? s.word_Image : s.word_Images)
+    report.summary    = Format.toString("% · % %", formatName, count, count == 1 ? texts.word_Image : texts.word_Images)
     report.beginGroup("ICONDIR", "", "", offset: 0, length: 6 + count * 16, open: true)
     report.numField(0, 2, "Reserved", 0)
     report.numField(2, 2, "Type", cast(u64, kind), kind == 1 ? "Icon" : "Cursor")
     report.numField(4, 2, "ImageCount", count)
 
-    let shown = Math.min(count, BinaryPreviewLimit)
+    let shown = Math.min(count, PreviewLimit)
     for index in shown
     {
         let at = 6 + index * 16
@@ -61,7 +62,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
         let offset = cast(u64, image.u32At(at + 12))
         let label  = Format.toString("%×% · %b", width, height, bits)
 
-        report.beginGroup(Format.toString(s.rep_ImageNumber, index + 1), label, "", offset: offset, length: size)
+        report.beginGroup(Format.toString(texts.rep_ImageNumber, index + 1), label, "", offset: offset, length: size)
         report.sizeField(at + 8, 4, "StoredSize", size)
         report.hexField(at + 12, 4, "Offset", offset)
         report.endGroup()
@@ -78,7 +79,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
         let decoded = catch Image.decode(kind == 1 ? "entry.ico" : "entry.cur", one.toSlice()) as decodeError
         if decodeError != null do
             continue
-        var preview: BinaryPreview
+        var preview: Preview
         preview.image = #move decoded
         preview.label = #move label
         previews.add(#move preview)
@@ -101,7 +102,7 @@ private func captureBackgroundRole()->Guid128 => previewGuid("648e64f2-ca4b-43ef
 private func captureOriginalRole()->Guid128   => previewGuid("7206ea20-cd74-4832-afa9-0ce33c7699cd")
 
 // Adds the image a TagBin payload serializes as one preview labelled `label`.
-private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array'BinaryPreview)
+private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array'Preview)
 {
     var decoder: Decoder'Read.TagBin
     catch
@@ -109,26 +110,26 @@ private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Arra
         let image = try decoder.readAll'Image(bytes)
         defer Memory.delete(image)
 
-        var preview: BinaryPreview
+        var preview: Preview
         preview.image = #move image[]
         preview.label = label
         previews.add(#move preview)
     }
 }
 
-// Adds a preview of every picture a Swag Capture container holds, up to `BinaryPreviewLimit`.
+// Adds a preview of every picture a Swag Capture container holds, up to `PreviewLimit`.
 //
 // Swag Capture declares the role of every picture. `Scc.Reader.readChunk` performs the registered
 // deflate step first, so compressed background and original images reach the same decoder as stored
 // ones.
-func loadSccImagePreviews(fileName: string, previews: *Array'BinaryPreview)
+func loadSccImagePreviews(fileName: string, previews: *Array'Preview)
 {
     var reader: Scc.Reader
     catch reader.initialize(fileName) as openError
     if openError != null or reader.kind() != captureContainerKind() do
         return
 
-    for chunk in reader.chunks() where previews.count < BinaryPreviewLimit
+    for chunk in reader.chunks() where previews.count < PreviewLimit
     {
         if chunk.roleId != capturePreviewRole() and chunk.roleId != captureBackgroundRole() and chunk.roleId != captureOriginalRole() do
             continue
@@ -141,9 +142,9 @@ func loadSccImagePreviews(fileName: string, previews: *Array'BinaryPreview)
             let image = catch Image.decode("preview.png", bytes.toSlice()) as decodeError
             if decodeError != null do
                 continue
-            var preview: BinaryPreview
+            var preview: Preview
             preview.image = #move image
-            preview.label = binaryStrings().ui_Preview
+            preview.label = texts().ui_Preview
             previews.add(#move preview)
         }
         elif chunk.roleId == captureBackgroundRole()

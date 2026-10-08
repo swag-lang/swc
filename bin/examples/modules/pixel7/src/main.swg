@@ -179,8 +179,6 @@ func pageTitle(page: s32)->string
     case PageWebp: return "WebP encoder and decoder"
     default:       unreachable
     }
-
-    return ""
 }
 
 func pageDescription(page: s32)->string
@@ -197,8 +195,6 @@ func pageDescription(page: s32)->string
     case PageWebp: return "The bundled WebP is regenerated as lossless VP8L data from RGB, BGR and alpha-bearing layouts."
     default:       unreachable
     }
-
-    return ""
 }
 
 func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)

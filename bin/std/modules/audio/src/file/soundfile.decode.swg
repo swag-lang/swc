@@ -35,7 +35,7 @@ impl SoundFile
                 fail UnsupportedFormatError{"unsupported packetized encoding"}
 
             let allocator   = Swag.getContext().allocator!
-            let decoderData = Memory.new(desc.type, allocator)!
+            let decoderData = Memory.new(desc.type, allocator)
             let decoder     = cast(*Codec, decoderData)
             decoder.configure(.encoding, .Pcm16, desc.type, allocator)
             let packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)

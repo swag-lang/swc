@@ -147,11 +147,8 @@ using Swag
         if not destination or not source or not type or destination == source do
             return
 
-        if not canCopy(type)
-        {
+        if not canCopy(type) do
             Swag.panic("Reflection.assign cannot copy this type", #curlocation)
-            return
-        }
 
         Memory.dropType(destination, type)
         Memory.copyValueStorage(destination, source, type)
@@ -163,17 +160,10 @@ using Swag
     // Panics when `destination` or `type` is null, or when `type` has no default initialization.
     func reset(destination: *void?, type: typeinfo?)
     {
-        if not destination or not type
-        {
+        if not destination or not type do
             Swag.panic("Reflection.reset cannot reset a null type", #curlocation)
-            return
-        }
-
-        if not Memory.canDefaultInit(type)
-        {
+        if not Memory.canDefaultInit(type) do
             Swag.panic("Reflection.reset cannot default-initialize this type", #curlocation)
-            return
-        }
 
         Memory.resetValueStorage(destination, type)
     }

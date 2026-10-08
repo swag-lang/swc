@@ -23,10 +23,13 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CommandWidth   = 640.0
-private const ComboWidth     = 120.0
-private const InspectorWidth = 420.0
-private const InfoWidth      = InspectorWidth + ViewerZoomSlotWidth
+private
+{
+    const CommandWidth   = 640.0
+    const ComboWidth     = 120.0
+    const InspectorWidth = 420.0
+    const InfoWidth      = InspectorWidth + Viewer.ZoomSlotWidth
+}
 
 // Returns `value`, a `bits`-bit scalar, as `0b` and one binary digit per bit, as the inspector spells it.
 private func formatBinaryScalar(value, bits: u64)->String
@@ -41,7 +44,7 @@ private func formatBinaryScalar(value, bits: u64)->String
         text.add(value & (1'u64 << shift) ? '1'u8 : '0'u8)
     }
 
-    return String.from(cast(string, text.toSlice()))
+    return cast(string, text.toSlice())
 }
 
 // Returns `value`, a `bits`-bit scalar, as `0o` and its octal digits, as the inspector spells it.
@@ -58,7 +61,7 @@ private func formatOctalScalar(value, bits: u64)->String
         text.add('0'u8 + cast(u8, ((value >> shift) & 7)))
     }
 
-    return String.from(cast(string, text.toSlice()))
+    return cast(string, text.toSlice())
 }
 
 // Opens `fileName` and makes its first window resident, outside the GUI thread.
@@ -144,7 +147,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -230,7 +233,7 @@ impl Panel
         .analysisView.show()
         .analysisView.begin(range, selection, .grid.offsetDigits)
         .applyLayout()
-        .analysis.start(.fileName.toString(), range)
+        .analysis.start(.fileName, range)
         .analysisTimer = .addTimer(Viewer.BackgroundPollInterval)
     }
 
@@ -364,7 +367,7 @@ impl Panel
         .analysisView.retranslate()
         .details.clear()
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
         .fitCommandBar()
         .grid.invalidate()
         .refreshInspector()
@@ -372,35 +375,29 @@ impl Panel
 
     private mtd offsetText(offset: u64)->String => formatDigits(offset, .grid.offsetDigits)
 
-    private mtd refreshZoom()
+    // Returns the zoom in use, read back from the font size of the grid.
+    private mtd zoomPercent()->u32
     {
-        let base    = .themeMetrics().defaultFixedFontSize
-        let percent = cast(u32, Math.round(cast(f32, .grid.fontSize) * 100 / cast(f32, base)))
-        .zoomLabel?.setText(Format.toString("% %", percent, "%"))
+        let base = .themeMetrics().defaultFixedFontSize
+        return cast(u32, Math.round(cast(f32, .grid.fontSize) * 100 / cast(f32, base)))
     }
+
+    private mtd refreshZoom() => .zoomLabel?.setText(Viewer.zoomText(.zoomPercent()))
 
     private mtd showZoomMenu()
     {
         if not .zoomLabel do
             return
-        let base = .themeMetrics().defaultFixedFontSize
 
-        with let menu = MenuCtrl.createPopup(me, owner: me)
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent())
+        if percent == 100
         {
-            .addItem("75%", "scope.hex.zoom75")
-            .addItem("100%", "scope.hex.zoom100")
-            .addItem("125%", "scope.hex.zoom125")
-            .addItem("150%", "scope.hex.zoom150")
-            .addItem("200%", "scope.hex.zoom200")
+            .grid.resetFontSize()
         }
-
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
+        elif percent
         {
-        case "scope.hex.zoom75":  .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * 0.75), 1)))
-        case "scope.hex.zoom100": .grid.resetFontSize()
-        case "scope.hex.zoom125": .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * 1.25), 1)))
-        case "scope.hex.zoom150": .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * 1.5), 1)))
-        case "scope.hex.zoom200": .grid.setFontSize(base * 2)
+            let base = .themeMetrics().defaultFixedFontSize
+            .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, percent) / 100), 1)))
         }
     }
 
@@ -624,7 +621,7 @@ impl Panel
     // Creates the analysis side panel, and wires the host toggle that opens it.
     private mtd createAnalysisPanel(host: Viewer.Host)
     {
-        let sidePanel = host.createSidePanel(AnalysisPanelWidth, .theme().icon(.Information, themeActionIconSize(.themeMetrics())), texts().ui_AnalysisTip)
+        let sidePanel = host.createSidePanel(AnalysisView.PanelWidth, .theme().icon(.Information, themeActionIconSize(.themeMetrics())), texts().ui_AnalysisTip)
         with .analysisButton = sidePanel.toggle
         {
             .enable(false)
@@ -667,15 +664,9 @@ impl Panel
     private mtd createInfoGroup(host: Viewer.Host)
     {
         let info = host.createInfoGroup(InfoWidth)
-        with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
+        with .zoomLabel = Viewer.createZoomButton(info, "scope.hex.zoom", texts().ui_ZoomMenu)
         {
-            .dockStyle = .Right
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
+            .dockStyle  = .Right
             .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
 

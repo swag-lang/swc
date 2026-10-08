@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.mid")
 
@@ -9,7 +9,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
 {
     let fileName = midiViewerFixturePath()
 
-    let document = expect loadMidiDocument(fileName)
+    let document = expect Midi.loadDocument(fileName)
     Swag.assert(document.format == 0 and document.division == 480)
     Swag.assert(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
     Swag.assert(document.notes.count == 7 and document.tracks[0].noteCount == 7)
@@ -33,13 +33,13 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
         let fileName = Gui.Testing.tempFilePath("scope-midi-pitch-", ".mid")
         defer discard catch File.delete(fileName)
         expect File.writeAllBytes(fileName, bytes.toSlice())
-        var document = expect loadMidiDocument(fileName)
+        var document = expect Midi.loadDocument(fileName)
         Swag.assert(document.notes.count == 1 and document.minKey == key and document.maxKey == key)
 
         var host: Testing.HeadlessHost
         host.setup(640, 360)
         defer host.shutdown()
-        let roll = MidiRollView.create(&host.root, #move document)
+        let roll = Midi.RollView.create(&host.root, #move document)
         roll.refreshLayout()
         Swag.assert(roll.lowKey <= key and roll.highKey >= key and roll.highKey >= roll.lowKey)
         let image = host.render(&host.root)
@@ -74,15 +74,15 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     }
 
     let fileName = midiViewerFixturePath()
-    var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
+    var result   = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = assume cast(*MidiViewer, result.view)
+    let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     assertViewerInfoButton(viewer.zoomLabel)
-    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
     Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
@@ -120,9 +120,9 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var result = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = assume cast(*MidiViewer, result.view)
+    let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

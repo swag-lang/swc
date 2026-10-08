@@ -1110,8 +1110,6 @@ impl RenderOgl
         case .RGBA8, .RGBA16, .RGBAF16, .RGBAF32:
             return GL_RGBA
         }
-
-        return GL_RGBA
     }
 
     // Maps a Pixel sample representation to its OpenGL transfer type.

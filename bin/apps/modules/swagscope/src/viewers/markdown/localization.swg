@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.MarkdownText
 
 using Core, Gui
 
@@ -6,7 +7,7 @@ using Core, Gui
 //
 // The appearance names are the names the styles are known by — `GitHub`, `Pixyll` — so they are
 // proper names rather than sentences, and only `Application` names something this program owns.
-struct MarkdownStrings
+struct Texts
 {
     ui_TipWidth: string = "Reading width"             // Tooltip of the reading-measure selector.
     ui_Narrow:   string = "Narrow"                    // Narrowest reading measure.
@@ -26,22 +27,22 @@ struct MarkdownStrings
 private const FrenchStringsName = "lang/fr/scope.markdown.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.markdown.tweak")
 
-private var g_MarkdownStrings: MarkdownStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the Markdown viewer in the active language.
-func markdownStrings()->const *MarkdownStrings => &g_MarkdownStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerMarkdownStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'MarkdownStrings(&g_MarkdownStrings, "scope.markdown")
+    Gui.registerStrings'Texts(&g_Texts, "scope.markdown")
 }
 
 #run
 {
-    expect Gui.validateStrings'MarkdownStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

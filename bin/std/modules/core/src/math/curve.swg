@@ -231,8 +231,6 @@ private impl Curve
         case .Hermite:  return hermiteValue(k0.y, k1.y, k0.outTangent * span, k1.inTangent * span, t)
         case .Bezier:   return bezierValue(k0, k1, span, t)
         }
-
-        unreachable
     }
 
     // Returns the cubic Hermite value, with both tangents already scaled by the segment width.
@@ -345,8 +343,6 @@ impl Curve
         case .EaseOutElastic: return makeElastic()
         case .EaseOutBounce:  return makeBounce()
         }
-
-        unreachable
     }
 
     // Returns the process-wide instance of a classic curve, borrowed rather than owned.

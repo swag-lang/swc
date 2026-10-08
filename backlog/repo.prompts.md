@@ -1174,6 +1174,10 @@ WORK IN COHERENT BATCHES
      the new layout still reads naturally. Keep only improvements that survive that reread.
   6. Continue through every file in the inventory. Send regular before/after examples explaining
      the reading benefit and why logic is preserved. Report remaining coverage honestly.
+  7. Commit each coherent validated batch. When integration into master has been requested,
+     integrate those batches regularly instead of keeping all completed work until the end.
+     Reconcile concurrent changes in the separate worktree, validate affected resolutions, and
+     preserve the target checkout's unrelated uncommitted work.
 
 STOPPING CONDITION
 

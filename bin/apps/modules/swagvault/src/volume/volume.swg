@@ -2258,9 +2258,7 @@ impl Volume
         try .commit()
     }
 
-    mtd freeBytes()->u64 => .blocks.freeBlockCount() * BlockSize
-
+    mtd freeBytes()->u64      => .blocks.freeBlockCount() * BlockSize
     mtd freeBlockCount()->u64 => .blocks.freeBlockCount()
-
-    mtd totalBytes()->u64 => .blockCount * BlockSize
+    mtd totalBytes()->u64     => .blockCount * BlockSize
 }

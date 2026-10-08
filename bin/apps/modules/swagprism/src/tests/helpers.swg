@@ -32,6 +32,6 @@ func awaitFrame(viewer: *PreviewViewer, after: u32 = 0)
     }
 
     if viewer.probe.failed do
-        Console.print(viewer.probe.diagnostics.toString())
+        Console.print(viewer.probe.diagnostics)
     Swag.assert(viewer.running and viewer.frameCount > after)
 }

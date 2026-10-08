@@ -1,18 +1,19 @@
 #global internal
+#global namespace Viewers.OpenDocument
 
 using Core, Core.Errors, Gui
 
 // Describes OpenDocument text, spreadsheet, presentation, and drawing files to the host.
-func openDocumentViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "opendocument"
-        .resolveName  = func()->string => openDocumentStrings().ui_Name
-        .attach       = &registerOpenDocumentStrings
+        .resolveName  = func()->string => texts().ui_Name
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.OpenDocument)
-        .create       = &createOpenDocumentViewer
+        .create       = &createViewer
         .smokeFixture = "viewer.odt"
         .addSelectors(".odt;.ott;.fodt;.ods;.ots;.fods;.odp;.otp;.fodp;.odg;.otg;.fodg")
     }
@@ -20,24 +21,27 @@ func openDocumentViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const OpenDocumentContentLimit            = 32 * 1024 * 1024'u64
-private const OpenDocumentTableColumnLimit        = 256'u64
-private const OpenDocumentTableRowLimit           = 100_000'u64
-private const OpenDocumentTableCellLimit          = 1_000_000'u64
-private const OpenDocumentRepeatedCellLimit       = 4_096'u64
-private const OpenDocumentTextStyleLimit          = 4_096'u64
-private const OpenDocumentBookmarkLimit           = 4_096'u64
-private const OpenDocumentImageLimit              = 16 * 1024 * 1024'u64
-private const OpenDocumentImageCountLimit         = 256'u64
-private const OpenDocumentInlineImagePayloadLimit = ((OpenDocumentImageLimit + 2) / 3) * 4
-private const OpenDocumentImageDimensionLimit     = 4_096.0
-private const OpenDocumentMetadataLimit           = 256 * 1024'u64
-private const OpenDocumentMetadataValueLimit      = 512'u64
-private const OpenDocumentApostrophe              = 39'u8
-private const OpenDocumentPageComboWidth          = 224.0
+private
+{
+    const ContentLimit            = 32 * 1024 * 1024'u64
+    const TableColumnLimit        = 256'u64
+    const TableRowLimit           = 100_000'u64
+    const TableCellLimit          = 1_000_000'u64
+    const RepeatedCellLimit       = 4_096'u64
+    const TextStyleLimit          = 4_096'u64
+    const BookmarkLimit           = 4_096'u64
+    const ImageLimit              = 16 * 1024 * 1024'u64
+    const ImageCountLimit         = 256'u64
+    const InlineImagePayloadLimit = ((ImageLimit + 2) / 3) * 4
+    const ImageDimensionLimit     = 4_096.0
+    const MetadataLimit           = 256 * 1024'u64
+    const MetadataValueLimit      = 512'u64
+    const Apostrophe              = 39'u8
+    const PageComboWidth          = 224.0
+}
 
 // Distinguishes the document surfaces that share the OpenDocument container.
-enum OpenDocumentKind
+enum Kind
 {
     Text
     Spreadsheet
@@ -46,20 +50,20 @@ enum OpenDocumentKind
 }
 
 // One spreadsheet sheet, retaining its source name beside its reusable table model.
-struct OpenDocumentSheet
+struct Sheet
 {
     name:  String
-    table: TableDocument
+    table: Table.Document
 }
 
 // One presentation slide, retaining its source name beside the isolated reader markup.
-struct OpenDocumentSlide
+struct Slide
 {
     name: String
     html: String
 }
 
-private enum OpenDocumentTextPosition
+private enum TextPosition
 {
     Normal
     Subscript
@@ -67,34 +71,34 @@ private enum OpenDocumentTextPosition
 }
 
 // Captures the portable text emphasis that the offline HTML surface can render without a style engine.
-private struct OpenDocumentTextStyle
+private struct TextStyle
 {
     name:      String
     bold:      bool
     italic:    bool
     underline: bool
     strike:    bool
-    position:  OpenDocumentTextPosition
+    position:  TextPosition
     alignment: String
     fontSize:  String
 }
 
 // Records whether a named ODF list asks the reader for ordered markers.
-private struct OpenDocumentListStyle
+private struct ListStyle
 {
     name:     String
     numbered: bool
 }
 
 // Maps a source bookmark name to an HTML-only fragment identifier.
-private struct OpenDocumentBookmark
+private struct Bookmark
 {
     name:   String
     target: String
 }
 
 // One validated picture of the ODF package, converted to a data URI and keyed by its entry path.
-private struct OpenDocumentImage
+private struct EmbeddedImage
 {
     path:      String
     uri:       String
@@ -102,14 +106,14 @@ private struct OpenDocumentImage
 }
 
 // The frame size of an image, reduced to a known safe pixel spelling before it becomes HTML attributes.
-private struct OpenDocumentImageSize
+private struct ImageSize
 {
     width:  String
     height: String
 }
 
 // Preserves the display-safe document properties without treating metadata as executable content.
-struct OpenDocumentMetadata
+struct Metadata
 {
     title:   String
     subject: String
@@ -117,16 +121,16 @@ struct OpenDocumentMetadata
 }
 
 // One decoded document, ready for the reader surface appropriate to its kind.
-struct OpenDocumentContent
+struct Content
 {
-    kind:     OpenDocumentKind
-    metadata: OpenDocumentMetadata
+    kind:     Kind
+    metadata: Metadata
     html:     String
-    sheets:   Array'OpenDocumentSheet
-    slides:   Array'OpenDocumentSlide
+    sheets:   Array'Sheet
+    slides:   Array'Slide
 }
 
-private struct OpenDocumentTag
+private struct Tag
 {
     name:        String
     attributes:  String
@@ -134,10 +138,10 @@ private struct OpenDocumentTag
     selfClosing: bool
 }
 
-private func openDocumentXmlSpace(value: u8)->bool => value == ' ' or value == '\t' or value == '\r' or value == '\n'
+private func xmlSpace(value: u8)->bool => value == ' ' or value == '\t' or value == '\r' or value == '\n'
 
 // Finds a closing angle bracket without mistaking one inside a quoted XML attribute for a tag end.
-private func openDocumentTagEnd(source: string, start: u64)->u64 fail
+private func tagEnd(source: string, start: u64)->u64 fail
 {
     var at = start + 1
     var quoted: u8
@@ -149,7 +153,7 @@ private func openDocumentTagEnd(source: string, start: u64)->u64 fail
             if value == quoted do
                 quoted = 0
         }
-        elif value == '"' or value == OpenDocumentApostrophe
+        elif value == '"' or value == Apostrophe
         {
             quoted = value
         }
@@ -161,15 +165,15 @@ private func openDocumentTagEnd(source: string, start: u64)->u64 fail
         at += 1
     }
 
-    fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Xml)}
+    fail InvalidFormatError{Errors.mkString(texts().err_Xml)}
 }
 
 // Splits one XML element into the qualified name and the raw attribute text it carries.
-private func parseOpenDocumentTag(raw: string)->OpenDocumentTag
+private func parseTag(raw: string)->Tag
 {
     var result: retval
     var at = 0'u64
-    while at < raw.count and openDocumentXmlSpace(raw[at]) do
+    while at < raw.count and xmlSpace(raw[at]) do
         at += 1
     if at == raw.count or raw[at] == '!' or raw[at] == '?' do
         return result
@@ -178,21 +182,21 @@ private func parseOpenDocumentTag(raw: string)->OpenDocumentTag
     {
         result.closing = true
         at += 1
-        while at < raw.count and openDocumentXmlSpace(raw[at]) do
+        while at < raw.count and xmlSpace(raw[at]) do
             at += 1
     }
 
     let nameStart = at
-    while at < raw.count and not openDocumentXmlSpace(raw[at]) and raw[at] != '/' do
+    while at < raw.count and not xmlSpace(raw[at]) and raw[at] != '/' do
         at += 1
     if at == nameStart do
         return result
 
-    result.name       = String.from(raw[nameStart until at])
-    result.attributes = String.from(raw[at to])
+    result.name       = raw[nameStart until at]
+    result.attributes = raw[at to]
 
     var tail = raw.count
-    while tail > at and openDocumentXmlSpace(raw[tail - 1]) do
+    while tail > at and xmlSpace(raw[tail - 1]) do
         tail -= 1
     result.selfClosing = not result.closing and tail > at and raw[tail - 1] == '/'
     return result
@@ -202,35 +206,35 @@ private func parseOpenDocumentTag(raw: string)->OpenDocumentTag
 //
 // HTML output retains its entities; plain model values decode them before reaching a table cell,
 // page label, or other non-HTML surface.
-private func openDocumentAttribute(attributes, wanted: string)->String
+private func attribute(attributes, wanted: string)->String
 {
     var at = 0'u64
     while at < attributes.count
     {
-        while at < attributes.count and openDocumentXmlSpace(attributes[at]) do
+        while at < attributes.count and xmlSpace(attributes[at]) do
             at += 1
         if at == attributes.count or attributes[at] == '/' do
             break
 
         let nameStart = at
-        while at < attributes.count and not openDocumentXmlSpace(attributes[at]) and attributes[at] != '=' and attributes[at] != '/' do
+        while at < attributes.count and not xmlSpace(attributes[at]) and attributes[at] != '=' and attributes[at] != '/' do
             at += 1
         let nameEnd = at
-        while at < attributes.count and openDocumentXmlSpace(attributes[at]) do
+        while at < attributes.count and xmlSpace(attributes[at]) do
             at += 1
         if at == attributes.count or attributes[at] != '='
         {
-            while at < attributes.count and not openDocumentXmlSpace(attributes[at]) do
+            while at < attributes.count and not xmlSpace(attributes[at]) do
                 at += 1
             continue
         }
 
         at += 1
-        while at < attributes.count and openDocumentXmlSpace(attributes[at]) do
+        while at < attributes.count and xmlSpace(attributes[at]) do
             at += 1
-        if at == attributes.count or attributes[at] != '"' and attributes[at] != OpenDocumentApostrophe
+        if at == attributes.count or attributes[at] != '"' and attributes[at] != Apostrophe
         {
-            while at < attributes.count and not openDocumentXmlSpace(attributes[at]) do
+            while at < attributes.count and not xmlSpace(attributes[at]) do
                 at += 1
             continue
         }
@@ -243,14 +247,14 @@ private func openDocumentAttribute(attributes, wanted: string)->String
         if at == attributes.count do
             break
         if attributes[nameStart until nameEnd] == wanted do
-            return String.from(attributes[valueStart until at])
+            return attributes[valueStart until at]
         at += 1
     }
 
     return {}
 }
 
-private enum OpenDocumentMetadataField
+private enum MetadataField
 {
     None
     Title
@@ -259,7 +263,7 @@ private enum OpenDocumentMetadataField
 }
 
 // Decodes the XML character references legal in document properties without accepting markup.
-private func openDocumentDecodeXmlText(source: string)->String
+private func decodeXmlText(source: string)->String
 {
     var result: retval
     var at = 0'u64
@@ -345,9 +349,9 @@ private func openDocumentDecodeXmlText(source: string)->String
 }
 
 // Collapses metadata whitespace after XML entity decoding, keeping a title suitable for window chrome.
-private func openDocumentMetadataValue(source: string)->String
+private func metadataValue(source: string)->String
 {
-    let decoded = openDocumentDecodeXmlText(source)
+    let decoded = decodeXmlText(source)
     var result:       retval
     var pendingSpace: bool
     for character in decoded
@@ -366,7 +370,7 @@ private func openDocumentMetadataValue(source: string)->String
         }
 
         result.append(character)
-        if result.count >= OpenDocumentMetadataValueLimit do
+        if result.count >= MetadataValueLimit do
             return result
     }
 
@@ -374,17 +378,17 @@ private func openDocumentMetadataValue(source: string)->String
 }
 
 // Collects the small display-safe property set that applies to every OpenDocument family.
-private struct OpenDocumentMetadataReader
+private struct MetadataReader
 {
-    metadata: OpenDocumentMetadata
-    field:    OpenDocumentMetadataField
+    metadata: Metadata
+    field:    MetadataField
     depth:    u64
     text:     String
 }
 
-private impl OpenDocumentMetadataReader
+private impl MetadataReader
 {
-    mtd startTag(tag: const *OpenDocumentTag)
+    mtd startTag(tag: const *Tag)
     {
         if .field != .None
         {
@@ -406,13 +410,13 @@ private impl OpenDocumentMetadataReader
 
     mtd appendText(text: string)
     {
-        if .field == .None or .text.count >= OpenDocumentMetadataValueLimit do
+        if .field == .None or .text.count >= MetadataValueLimit do
             return
-        let count = Math.min(text.count, OpenDocumentMetadataValueLimit - .text.count)
+        let count = Math.min(text.count, MetadataValueLimit - .text.count)
         .text += text[0 until count]
     }
 
-    mtd endTag(?: const *OpenDocumentTag)
+    mtd endTag(?: const *Tag)
     {
         if .field == .None do
             return
@@ -420,7 +424,7 @@ private impl OpenDocumentMetadataReader
         if .depth do
             return
 
-        let value = openDocumentMetadataValue(.text.toString())
+        let value = metadataValue(.text)
         switch .field
         {
         case .Title where .metadata.title.isEmpty():     .metadata.title = #move value
@@ -436,9 +440,9 @@ private impl OpenDocumentMetadataReader
 // Reads the document properties of a `meta.xml` payload or of a flat XML document.
 //
 // The same tag boundary checks apply as for document content.
-private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fail
+private func parseMetadata(source: string)->Metadata fail
 {
-    var reader: OpenDocumentMetadataReader
+    var reader: MetadataReader
     var textStart = 0'u64
     var at        = 0'u64
     while at < source.count
@@ -451,8 +455,8 @@ private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fai
 
         if at > textStart do
             reader.appendText(source[textStart until at])
-        let end = try openDocumentTagEnd(source, at)
-        let tag = parseOpenDocumentTag(source[at + 1 until end])
+        let end = try tagEnd(source, at)
+        let tag = parseTag(source[at + 1 until end])
         if not tag.name.isEmpty()
         {
             if tag.closing
@@ -477,9 +481,9 @@ private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fai
 }
 
 // Returns a positive integer attribute clamped to `maximum`, or 1 when it is absent or malformed.
-private func openDocumentPositiveAttribute(attributes, name: string, maximum: u64)->u64
+private func positiveAttribute(attributes, name: string, maximum: u64)->u64
 {
-    let value = openDocumentAttribute(attributes, name)
+    let value = attribute(attributes, name)
     if value.isEmpty() do
         return 1
     let parsed = catch StrConv.parseU64(value) as parseError
@@ -488,13 +492,13 @@ private func openDocumentPositiveAttribute(attributes, name: string, maximum: u6
     return Math.min(parsed.value, maximum)
 }
 
-private func openDocumentRepeated(attributes, name: string)->u64 => openDocumentPositiveAttribute(attributes, name, OpenDocumentRepeatedCellLimit)
+private func repeatCount(attributes, name: string)->u64 => positiveAttribute(attributes, name, RepeatedCellLimit)
 
-private func openDocumentCellValue(attributes: string)->String
+private func cellValue(attributes: string)->String
 {
     for name in ["office:string-value", "office:value", "office:date-value", "office:time-value", "office:boolean-value"]
     {
-        let value = openDocumentAttribute(attributes, name)
+        let value = attribute(attributes, name)
         if not value.isEmpty() do
             return value
     }
@@ -502,9 +506,9 @@ private func openDocumentCellValue(attributes: string)->String
     return {}
 }
 
-private func openDocumentImageDimension(attributes, name: string)->String
+private func imageDimension(attributes, name: string)->String
 {
-    let value = openDocumentAttribute(attributes, name)
+    let value = attribute(attributes, name)
     if value.isEmpty() do
         return {}
 
@@ -539,21 +543,21 @@ private func openDocumentImageDimension(attributes, name: string)->String
     default:       return {}
     }
 
-    if pixels < 1 or pixels > OpenDocumentImageDimensionLimit do
+    if pixels < 1 or pixels > ImageDimensionLimit do
         return {}
     return Format.toString("%px", Math.round(cast(f32, pixels)))
 }
 
-private func openDocumentImageSize(attributes: string)->OpenDocumentImageSize
+private func imageSize(attributes: string)->ImageSize
 {
     var result: retval
-    result.width  = openDocumentImageDimension(attributes, "svg:width")
-    result.height = openDocumentImageDimension(attributes, "svg:height")
+    result.width  = imageDimension(attributes, "svg:width")
+    result.height = imageDimension(attributes, "svg:height")
     return result
 }
 
 // Returns the media type of a base64 raster data URI the offline image decoder renders, or an empty string.
-private func openDocumentInlineImageMediaType(uri: string)->string
+private func inlineImageMediaType(uri: string)->string
 {
     let lowercase = String.from(uri).toLower()
     for mediaType in ["bmp", "gif", "x-icon", "jpeg", "png", "tiff", "webp"]
@@ -567,9 +571,9 @@ private func openDocumentInlineImageMediaType(uri: string)->string
 }
 
 // Re-encodes XML text as one generated HTML attribute without preserving markup syntax.
-private func openDocumentHtmlAttribute(value: string)->String
+private func htmlAttribute(value: string)->String
 {
-    let decoded = openDocumentDecodeXmlText(value)
+    let decoded = decodeXmlText(value)
     var result: retval
     for character in decoded
     {
@@ -587,9 +591,9 @@ private func openDocumentHtmlAttribute(value: string)->String
 }
 
 // Keeps user-activated outbound links to ordinary web URLs; all other URI schemes stay inert.
-private func openDocumentExternalHref(href: string)->String
+private func externalHref(href: string)->String
 {
-    let decoded = openDocumentDecodeXmlText(href)
+    let decoded = decodeXmlText(href)
     if not Utf8.startsWith(decoded, "http://", .Latin1NoCase) and not Utf8.startsWith(decoded, "https://", .Latin1NoCase) do
         return {}
     for character in decoded
@@ -598,13 +602,13 @@ private func openDocumentExternalHref(href: string)->String
             return {}
     }
 
-    return openDocumentHtmlAttribute(href)
+    return htmlAttribute(href)
 }
 
 // Converts common ODF absolute sizes to relative HTML sizes, allowing the reader zoom to scale them.
-private func openDocumentFontSize(attributes: string)->String
+private func fontSize(attributes: string)->String
 {
-    let value = openDocumentAttribute(attributes, "fo:font-size")
+    let value = attribute(attributes, "fo:font-size")
     if value.isEmpty() do
         return {}
 
@@ -646,10 +650,10 @@ private func openDocumentFontSize(attributes: string)->String
 }
 
 // Turns one ODF body into reading HTML, one virtual table model per sheet, or isolated slide markup.
-private struct OpenDocumentReader
+private struct Reader
 {
-    kind:     OpenDocumentKind
-    metadata: OpenDocumentMetadata
+    kind:     Kind
+    metadata: Metadata
     html:     String
 
     inBody:          bool
@@ -663,62 +667,62 @@ private struct OpenDocumentReader
     cell:            String
     cellFallback:    String
     sheetCellCount:  u64
-    row:             TableRow
-    sheet:           OpenDocumentSheet
-    sheets:          Array'OpenDocumentSheet
-    slide:           OpenDocumentSlide
-    slides:          Array'OpenDocumentSlide
+    row:             Table.Row
+    sheet:           Sheet
+    sheets:          Array'Sheet
+    slide:           Slide
+    slides:          Array'Slide
     styleActive:     bool
-    style:           OpenDocumentTextStyle
-    textStyles:      Array'OpenDocumentTextStyle
-    styleStack:      Array'OpenDocumentTextStyle
+    style:           TextStyle
+    textStyles:      Array'TextStyle
+    styleStack:      Array'TextStyle
     listStyleActive: bool
-    listStyle:       OpenDocumentListStyle
-    listStyles:      Array'OpenDocumentListStyle
+    listStyle:       ListStyle
+    listStyles:      Array'ListStyle
     listStack:       Array'bool
-    bookmarks:       Array'OpenDocumentBookmark
+    bookmarks:       Array'Bookmark
     tableHeaderRows: u64
-    imageSizeStack:  Array'OpenDocumentImageSize
-    images:          Array'OpenDocumentImage
+    imageSizeStack:  Array'ImageSize
+    images:          Array'EmbeddedImage
     imageByteCount:  u64
     imageCount:      u64
 }
 
-private impl OpenDocumentReader
+private impl Reader
 {
-    mtd namedTextStyle(name: string)->OpenDocumentTextStyle
+    mtd namedTextStyle(name: string)->TextStyle
     {
         for style in .textStyles where style.name == name do
             return style
         return {}
     }
 
-    mtd namedListStyle(name: string)->OpenDocumentListStyle
+    mtd namedListStyle(name: string)->ListStyle
     {
         for style in .listStyles where style.name == name do
             return style
         return {}
     }
 
-    mtd applyTextStyleProperties(style: *OpenDocumentTextStyle, attributes: string)
+    mtd applyTextStyleProperties(style: *TextStyle, attributes: string)
     {
-        let weight = openDocumentAttribute(attributes, "fo:font-weight")
+        let weight = attribute(attributes, "fo:font-weight")
         if not weight.isEmpty() do
             style.bold = weight == "bold" or weight == "bolder" or weight == "600" or weight == "700" or weight == "800" or weight == "900"
 
-        let fontStyle = openDocumentAttribute(attributes, "fo:font-style")
+        let fontStyle = attribute(attributes, "fo:font-style")
         if not fontStyle.isEmpty() do
             style.italic = fontStyle == "italic" or fontStyle == "oblique"
 
-        let underline = openDocumentAttribute(attributes, "style:text-underline-style")
+        let underline = attribute(attributes, "style:text-underline-style")
         if not underline.isEmpty() do
             style.underline = underline != "none"
 
-        let strike = openDocumentAttribute(attributes, "style:text-line-through-style")
+        let strike = attribute(attributes, "style:text-line-through-style")
         if not strike.isEmpty() do
             style.strike = strike != "none"
 
-        let position = openDocumentAttribute(attributes, "style:text-position")
+        let position = attribute(attributes, "style:text-position")
         if Utf8.startsWith(position, "sub") do
             style.position = .Subscript
         elif Utf8.startsWith(position, "super") do
@@ -726,14 +730,14 @@ private impl OpenDocumentReader
         elif not position.isEmpty() do
             style.position = .Normal
 
-        let fontSize = openDocumentFontSize(attributes)
+        let fontSize = fontSize(attributes)
         if not fontSize.isEmpty() do
             style.fontSize = #move fontSize
     }
 
-    mtd applyParagraphStyleProperties(style: *OpenDocumentTextStyle, attributes: string)
+    mtd applyParagraphStyleProperties(style: *TextStyle, attributes: string)
     {
-        switch openDocumentAttribute(attributes, "fo:text-align").toString()
+        switch attribute(attributes, "fo:text-align").toString()
         {
         case "left", "start": style.alignment = "left"
         case "center":        style.alignment = "center"
@@ -742,11 +746,11 @@ private impl OpenDocumentReader
         }
     }
 
-    mtd startTextStyle(tag: const *OpenDocumentTag)
+    mtd startTextStyle(tag: const *Tag)
     {
         if tag.name == "text:list-style"
         {
-            let name = openDocumentAttribute(tag.attributes, "style:name")
+            let name = attribute(tag.attributes, "style:name")
             if name.isEmpty() do
                 return
             .listStyleActive = true
@@ -764,13 +768,13 @@ private impl OpenDocumentReader
         if tag.name == "style:style"
         {
             let attributes = tag.attributes.toString()
-            let family     = openDocumentAttribute(attributes, "style:family")
-            let name       = openDocumentAttribute(attributes, "style:name")
+            let family     = attribute(attributes, "style:family")
+            let name       = attribute(attributes, "style:name")
             if (family != "text" and family != "paragraph") or name.isEmpty() do
                 return
 
             .styleActive = true
-            .style       = .namedTextStyle(openDocumentAttribute(attributes, "style:parent-style-name"))
+            .style       = .namedTextStyle(attribute(attributes, "style:parent-style-name"))
             .style.name  = name
             .applyTextStyleProperties(&.style, attributes)
             return
@@ -784,11 +788,11 @@ private impl OpenDocumentReader
             .applyParagraphStyleProperties(&.style, tag.attributes)
     }
 
-    mtd finishTextStyle(tag: const *OpenDocumentTag)
+    mtd finishTextStyle(tag: const *Tag)
     {
         if tag.name == "text:list-style" and .listStyleActive
         {
-            if .listStyles.count < OpenDocumentTextStyleLimit do
+            if .listStyles.count < TextStyleLimit do
                 .listStyles.add(#move .listStyle)
             .listStyleActive = false
             .listStyle       = {}
@@ -797,7 +801,7 @@ private impl OpenDocumentReader
 
         if tag.name != "style:style" or not .styleActive do
             return
-        if .textStyles.count < OpenDocumentTextStyleLimit do
+        if .textStyles.count < TextStyleLimit do
             .textStyles.add(#move .style)
         .styleActive = false
         .style       = {}
@@ -805,7 +809,7 @@ private impl OpenDocumentReader
 
     mtd appendTextStyleStart(attributes: string)
     {
-        let style = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name"))
+        let style = .namedTextStyle(attribute(attributes, "text:style-name"))
         .styleStack.add(style)
         if not style.fontSize.isEmpty()
         {
@@ -856,7 +860,7 @@ private impl OpenDocumentReader
 
     mtd listUsesNumbers(attributes: string)->bool
     {
-        let style = .namedListStyle(openDocumentAttribute(attributes, "text:style-name"))
+        let style = .namedListStyle(attribute(attributes, "text:style-name"))
         return style.numbered
     }
 
@@ -866,12 +870,12 @@ private impl OpenDocumentReader
             return {}
         for bookmark in .bookmarks where bookmark.name == name do
             return bookmark.target
-        if .bookmarks.count == OpenDocumentBookmarkLimit do
+        if .bookmarks.count == BookmarkLimit do
             return {}
 
         let target = Format.toString("odf-bookmark-%", .bookmarks.count + 1)
-        var bookmark: OpenDocumentBookmark
-        bookmark.name   = String.from(name)
+        var bookmark: Bookmark
+        bookmark.name   = name
         bookmark.target = target
         .bookmarks.add(#move bookmark)
         return target
@@ -879,14 +883,14 @@ private impl OpenDocumentReader
 
     mtd appendBookmark(attributes: string)
     {
-        let target = .bookmarkTarget(openDocumentAttribute(attributes, "text:name"))
+        let target = .bookmarkTarget(attribute(attributes, "text:name"))
         if not target.isEmpty() do
             .appendHtml(Format.toString("<span id=\"%\"></span>", target))
     }
 
     mtd linkHref(attributes: string)->String
     {
-        let href = openDocumentAttribute(attributes, "xlink:href")
+        let href = attribute(attributes, "xlink:href")
         if href.isEmpty() do
             return {}
         if Utf8.startsWith(href, "#")
@@ -895,12 +899,12 @@ private impl OpenDocumentReader
             return target.isEmpty() ? "" : Format.toString("#%", target)
         }
 
-        return openDocumentExternalHref(href)
+        return externalHref(href)
     }
 
     mtd appendParagraphAlignment(attributes: string)
     {
-        let alignment = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name")).alignment
+        let alignment = .namedTextStyle(attribute(attributes, "text:style-name")).alignment
         if not alignment.isEmpty()
         {
             .appendHtml(" align=\"")
@@ -912,27 +916,27 @@ private impl OpenDocumentReader
     // Validates inline images before they cross from XML into generated HTML.
     mtd inlineImageUri(href: string)->String
     {
-        let mediaType = openDocumentInlineImageMediaType(href)
-        if mediaType == "" or .imageCount == OpenDocumentImageCountLimit do
+        let mediaType = inlineImageMediaType(href)
+        if mediaType == "" or .imageCount == ImageCountLimit do
             return {}
 
         let prefix  = Format.toString("data:image/%;base64,", mediaType)
         let payload = href[prefix.count to]
-        if payload.count > OpenDocumentInlineImagePayloadLimit do
+        if payload.count > InlineImagePayloadLimit do
             return {}
 
         let bytes = catch Base64.decode(payload) as decodeError
-        if decodeError != null or bytes.isEmpty() or bytes.count > OpenDocumentImageLimit or bytes.count > OpenDocumentImageLimit - .imageByteCount do
+        if decodeError != null or bytes.isEmpty() or bytes.count > ImageLimit or bytes.count > ImageLimit - .imageByteCount do
             return {}
 
         .imageCount     += 1
         .imageByteCount += bytes.count
-        return String.from(href)
+        return href
     }
 
     mtd imageUri(attributes: string)->String
     {
-        let href = openDocumentAttribute(attributes, "xlink:href")
+        let href = attribute(attributes, "xlink:href")
         if Utf8.startsWith(href, "data:image/", .Latin1NoCase) do
             return .inlineImageUri(href)
         for image in .images where image.path == href do
@@ -945,7 +949,7 @@ private impl OpenDocumentReader
         let uri = .imageUri(attributes)
         if uri.isEmpty() do
             return
-        var size: OpenDocumentImageSize
+        var size: ImageSize
         if not .imageSizeStack.isEmpty() do
             size = .imageSizeStack.back()
         .appendHtml("<img src=\"")
@@ -980,7 +984,7 @@ private impl OpenDocumentReader
 
     mtd appendSpaces(attributes: string)
     {
-        let count = openDocumentRepeated(attributes, "text:c")
+        let count = repeatCount(attributes, "text:c")
         if .kind == .Spreadsheet and .cellActive
         {
             for count do
@@ -992,12 +996,12 @@ private impl OpenDocumentReader
             .appendHtml("&#160;")
     }
 
-    mtd startHtml(tag: const *OpenDocumentTag)
+    mtd startHtml(tag: const *Tag)
     {
         switch tag.name.toString()
         {
         case "text:h":
-            .headingLevel = openDocumentPositiveAttribute(tag.attributes, "text:outline-level", 6)
+            .headingLevel = positiveAttribute(tag.attributes, "text:outline-level", 6)
             .appendHtml(Format.toString("<h%", .headingLevel))
             .appendParagraphAlignment(tag.attributes)
             .appendHtml(">")
@@ -1046,13 +1050,13 @@ private impl OpenDocumentReader
             .appendSpaces(tag.attributes)
 
         case "draw:frame":
-            .imageSizeStack.add(openDocumentImageSize(tag.attributes))
+            .imageSizeStack.add(imageSize(tag.attributes))
 
         case "draw:image":
             .appendImage(tag.attributes)
 
         case "table:table":
-            let name = openDocumentAttribute(tag.attributes, "table:name")
+            let name = attribute(tag.attributes, "table:name")
             .appendHtml("<section><h2>")
             .appendHtml(name)
             .appendHtml("</h2><table>")
@@ -1064,25 +1068,25 @@ private impl OpenDocumentReader
             .appendHtml("<tr>")
 
         case "table:table-cell", "table:covered-table-cell":
-            let repeated = openDocumentRepeated(tag.attributes, "table:number-columns-repeated")
+            let repeated = repeatCount(tag.attributes, "table:number-columns-repeated")
             if .tableHeaderRows do
                 .appendHtml(repeated == 1 ? "<th>" : Format.toString("<th colspan=\"%\">", repeated))
             else do
                 .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
             if tag.selfClosing do
-                .appendHtml(openDocumentCellValue(tag.attributes))
+                .appendHtml(cellValue(tag.attributes))
 
         case "draw:page":
             if not .slideActive
             {
                 .slideActive = true
-                .slide.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "draw:name"))
+                .slide.name  = decodeXmlText(attribute(tag.attributes, "draw:name"))
                 .appendHtml("<article><section>")
             }
         }
     }
 
-    mtd endHtml(tag: const *OpenDocumentTag)
+    mtd endHtml(tag: const *Tag)
     {
         switch tag.name.toString()
         {
@@ -1146,8 +1150,8 @@ private impl OpenDocumentReader
     {
         if not .cellActive do
             return
-        if .cellRepeat > OpenDocumentTableColumnLimit - .row.cells.count do
-            fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_Columns)}
+        if .cellRepeat > TableColumnLimit - .row.cells.count do
+            fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
         if .cell.isEmpty() do
             .cell = #move .cellFallback
         for .cellRepeat do
@@ -1162,10 +1166,10 @@ private impl OpenDocumentReader
     {
         if .row.cells.isEmpty() do
             return
-        if .rowRepeat > OpenDocumentTableRowLimit - .sheet.table.rows.count do
-            fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_Rows)}
-        if .rowRepeat > (OpenDocumentTableCellLimit - .sheetCellCount) / .row.cells.count do
-            fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_Cells)}
+        if .rowRepeat > TableRowLimit - .sheet.table.rows.count do
+            fail UnsupportedFormatError{Errors.mkString(texts().err_Rows)}
+        if .rowRepeat > (TableCellLimit - .sheetCellCount) / .row.cells.count do
+            fail UnsupportedFormatError{Errors.mkString(texts().err_Cells)}
         let cells = .row.cells.count
         .sheet.table.rows.add(#move .row)
         for .rowRepeat - 1 do
@@ -1175,7 +1179,7 @@ private impl OpenDocumentReader
         .rowRepeat      = 1
     }
 
-    mtd startSheet(tag: const *OpenDocumentTag)
+    mtd startSheet(tag: const *Tag)
     {
         switch tag.name.toString()
         {
@@ -1183,18 +1187,18 @@ private impl OpenDocumentReader
             if not .activeSheet
             {
                 .activeSheet = true
-                .sheet.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "table:name"))
+                .sheet.name  = decodeXmlText(attribute(tag.attributes, "table:name"))
             }
 
         case "table:table-row" where .activeSheet:
             .row       = {}
-            .rowRepeat = openDocumentRepeated(tag.attributes, "table:number-rows-repeated")
+            .rowRepeat = repeatCount(tag.attributes, "table:number-rows-repeated")
 
         case "table:table-cell", "table:covered-table-cell" where .activeSheet:
             .cell.clear()
-            .cellFallback = openDocumentDecodeXmlText(openDocumentCellValue(tag.attributes))
+            .cellFallback = decodeXmlText(cellValue(tag.attributes))
             .cellActive   = true
-            .cellRepeat   = openDocumentRepeated(tag.attributes, "table:number-columns-repeated")
+            .cellRepeat   = repeatCount(tag.attributes, "table:number-columns-repeated")
             if tag.selfClosing do
                 .cell += .cellFallback
 
@@ -1209,7 +1213,7 @@ private impl OpenDocumentReader
         }
     }
 
-    mtd endSheet(tag: const *OpenDocumentTag) fail
+    mtd endSheet(tag: const *Tag) fail
     {
         if not .activeSheet do
             return
@@ -1229,7 +1233,7 @@ private impl OpenDocumentReader
         }
     }
 
-    mtd startTag(tag: const *OpenDocumentTag)
+    mtd startTag(tag: const *Tag)
     {
         .startTextStyle(tag)
         if tag.name == "office:body"
@@ -1250,7 +1254,7 @@ private impl OpenDocumentReader
             .startHtml(tag)
     }
 
-    mtd endTag(tag: const *OpenDocumentTag) fail
+    mtd endTag(tag: const *Tag) fail
     {
         .finishTextStyle(tag)
         if tag.name == "office:body"
@@ -1277,14 +1281,14 @@ private impl OpenDocumentReader
         if .kind == .Spreadsheet
         {
             if .cellActive do
-                .cell += openDocumentDecodeXmlText(text)
+                .cell += decodeXmlText(text)
             return
         }
 
         .appendHtml(text)
     }
 
-    mtd normalizeSheet(sheet: *OpenDocumentSheet) fail
+    mtd normalizeSheet(sheet: *Sheet) fail
     {
         if sheet.table.rows.isEmpty() do
             return
@@ -1294,22 +1298,22 @@ private impl OpenDocumentReader
         var count = sheet.table.columns.count
         for row in sheet.table.rows do
             count = Math.max(count, row.cells.count)
-        if count > OpenDocumentTableColumnLimit do
-            fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_Columns)}
+        if count > TableColumnLimit do
+            fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
 
         while sheet.table.columns.count < count do
             sheet.table.columns.add(String{})
         for column, columnIndex in sheet.table.columns where column.isEmpty()
         {
-            sheet.table.columns[columnIndex] = Format.toString(openDocumentStrings().ui_Column, columnIndex + 1)
+            sheet.table.columns[columnIndex] = Format.toString(texts().ui_Column, columnIndex + 1)
             sheet.table.generatedColumns.add(cast(u32, columnIndex))
         }
     }
 
-    mtd finish()->OpenDocumentContent fail
+    mtd finish()->Content fail
     {
         if not .sawBody or .inBody do
-            fail InvalidFormatError{Errors.mkString(.sawBody ? openDocumentStrings().err_Xml : openDocumentStrings().err_Body)}
+            fail InvalidFormatError{Errors.mkString(.sawBody ? texts().err_Xml : texts().err_Body)}
 
         var result: retval
         result.kind     = .kind
@@ -1317,9 +1321,9 @@ private impl OpenDocumentReader
         if .kind == .Presentation or .kind == .Drawing
         {
             if .slideActive do
-                fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Xml)}
+                fail InvalidFormatError{Errors.mkString(texts().err_Xml)}
             if .slides.isEmpty() do
-                fail InvalidFormatError{Errors.mkString(.kind == .Presentation ? openDocumentStrings().err_Slide : openDocumentStrings().err_Page)}
+                fail InvalidFormatError{Errors.mkString(.kind == .Presentation ? texts().err_Slide : texts().err_Page)}
             result.slides = #move .slides
             return result
         }
@@ -1331,9 +1335,9 @@ private impl OpenDocumentReader
         }
 
         if .activeSheet do
-            fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Xml)}
+            fail InvalidFormatError{Errors.mkString(texts().err_Xml)}
         if .sheets.isEmpty() do
-            fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Sheet)}
+            fail InvalidFormatError{Errors.mkString(texts().err_Sheet)}
         for &sheet in .sheets do
             try .normalizeSheet(sheet)
         result.sheets = #move .sheets
@@ -1342,14 +1346,14 @@ private impl OpenDocumentReader
 }
 
 // Parses ODF's XML body without executing linked resources, macros, or scripts.
-func parseOpenDocumentContent(source: string, kind: OpenDocumentKind)->OpenDocumentContent fail
+func parseContent(source: string, kind: Kind)->Content fail
 {
-    var images: Array'OpenDocumentImage
-    let metadata = try parseOpenDocumentMetadata(source)
-    return try parseOpenDocumentContentWithImages(source, "", kind, #move images, #move metadata)
+    var images: Array'EmbeddedImage
+    let metadata = try parseMetadata(source)
+    return try parseContentWithImages(source, "", kind, #move images, #move metadata)
 }
 
-private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) fail
+private func appendXml(reader: *Reader, source: string) fail
 {
     var textStart = 0'u64
     var at        = 0'u64
@@ -1363,8 +1367,8 @@ private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) 
 
         if at > textStart do
             reader.appendText(source[textStart until at])
-        let end = try openDocumentTagEnd(source, at)
-        let tag = parseOpenDocumentTag(source[at + 1 until end])
+        let end = try tagEnd(source, at)
+        let tag = parseTag(source[at + 1 until end])
         if not tag.name.isEmpty()
         {
             if tag.closing
@@ -1388,9 +1392,9 @@ private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) 
 }
 
 // Parses ODF XML after package-resident images have been reduced to safe data URIs.
-private func parseOpenDocumentContentWithImages(source, styles: string, kind: OpenDocumentKind, images: Array'OpenDocumentImage, metadata: OpenDocumentMetadata)->OpenDocumentContent fail
+private func parseContentWithImages(source, styles: string, kind: Kind, images: Array'EmbeddedImage, metadata: Metadata)->Content fail
 {
-    with var reader: OpenDocumentReader
+    with var reader: Reader
     {
         .kind     = kind
         .images   = #move images
@@ -1403,12 +1407,12 @@ private func parseOpenDocumentContentWithImages(source, styles: string, kind: Op
     }
 
     if styles.count do
-        try appendOpenDocumentXml(&reader, styles)
-    try appendOpenDocumentXml(&reader, source)
+        try appendXml(&reader, styles)
+    try appendXml(&reader, source)
     return try reader.finish()
 }
 
-private func openDocumentKindFromMime(mimeType: string)->OpenDocumentKind fail
+private func kindFromMime(mimeType: string)->Kind fail
 {
     switch mimeType
     {
@@ -1416,11 +1420,11 @@ private func openDocumentKindFromMime(mimeType: string)->OpenDocumentKind fail
     case "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.spreadsheet-template":   return .Spreadsheet
     case "application/vnd.oasis.opendocument.presentation", "application/vnd.oasis.opendocument.presentation-template": return .Presentation
     case "application/vnd.oasis.opendocument.graphics", "application/vnd.oasis.opendocument.graphics-template":         return .Drawing
-    default: fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
+    default: fail InvalidFormatError{Errors.mkString(texts().err_MimeType)}
     }
 }
 
-private func openDocumentFlatKind(fileName: string)->OpenDocumentKind fail
+private func flatKind(fileName: string)->Kind fail
 {
     switch Path.lowercaseExtension(fileName).toString()
     {
@@ -1428,25 +1432,25 @@ private func openDocumentFlatKind(fileName: string)->OpenDocumentKind fail
     case ".fods": return .Spreadsheet
     case ".fodp": return .Presentation
     case ".fodg": return .Drawing
-    default:      fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
+    default:      fail InvalidFormatError{Errors.mkString(texts().err_MimeType)}
     }
 }
 
-private func loadOpenDocumentFlatContent(fileName: string)->OpenDocumentContent fail
+private func loadFlatContent(fileName: string)->Content fail
 {
     let info = try File.info(fileName)
-    if info.size > OpenDocumentContentLimit do
-        fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_TooLarge)}
+    if info.size > ContentLimit do
+        fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
 
     let bytes = try File.readAllBytes(fileName)
-    if bytes.count > OpenDocumentContentLimit do
-        fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_TooLarge)}
+    if bytes.count > ContentLimit do
+        fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
     if not Utf8.isValid(bytes.toSlice()) do
-        fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Encoding)}
-    return try parseOpenDocumentContent(cast(string, bytes.toSlice()), try openDocumentFlatKind(fileName))
+        fail InvalidFormatError{Errors.mkString(texts().err_Encoding)}
+    return try parseContent(cast(string, bytes.toSlice()), try flatKind(fileName))
 }
 
-private func openDocumentImageMediaType(path: string)->string
+private func imageMediaType(path: string)->string
 {
     switch Path.lowercaseExtension(path).toString()
     {
@@ -1462,25 +1466,25 @@ private func openDocumentImageMediaType(path: string)->string
 }
 
 // Converts only bounded picture-package entries into data URIs; external references stay inert.
-private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive)->Array'OpenDocumentImage
+private func loadImages(fileName: string, archive: const *Archive.Zip)->Array'EmbeddedImage
 {
     var result: retval
     var total = 0'u64
     for &entry in archive.entries
     {
-        if result.count == OpenDocumentImageCountLimit do
+        if result.count == ImageCountLimit do
             break
         if not entry.path.startsWith("Pictures/", .Latin1NoCase) do
             continue
-        let mediaType = openDocumentImageMediaType(entry.path)
-        if mediaType == "" or entry.uncompressedSize > OpenDocumentImageLimit or entry.uncompressedSize > OpenDocumentImageLimit - total do
+        let mediaType = imageMediaType(entry.path)
+        if mediaType == "" or entry.uncompressedSize > ImageLimit or entry.uncompressedSize > ImageLimit - total do
             continue
 
-        let bytes = catch loadZipEntry(fileName, entry) as imageError
+        let bytes = catch Archive.Zip.loadEntry(fileName, entry) as imageError
         if imageError != null do
             continue
 
-        var image: OpenDocumentImage
+        var image: EmbeddedImage
         image.path      = entry.path
         image.uri       = Format.toString("data:image/%;base64,%", mediaType, Base64.encode(bytes.toSlice()))
         image.byteCount = bytes.count
@@ -1491,18 +1495,18 @@ private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive
     return result
 }
 
-private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
+private func loadContent(fileName: string)->Content fail
 {
     switch Path.lowercaseExtension(fileName).toString()
     {
-    case ".fodt", ".fods", ".fodp", ".fodg": return try loadOpenDocumentFlatContent(fileName)
+    case ".fodt", ".fods", ".fodp", ".fodg": return try loadFlatContent(fileName)
     }
 
-    let archive = try loadZipArchive(fileName)
-    var mime:    *ZipEntry?
-    var content: *ZipEntry?
-    var styles:  *ZipEntry?
-    var meta:    *ZipEntry?
+    let archive = try Archive.Zip.load(fileName)
+    var mime:    *Archive.ZipEntry?
+    var content: *Archive.ZipEntry?
+    var styles:  *Archive.ZipEntry?
+    var meta:    *Archive.ZipEntry?
     for &entry in archive.entries
     {
         if entry.path == "mimetype" do
@@ -1516,60 +1520,60 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
     }
 
     if mime == null do
-        fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
+        fail InvalidFormatError{Errors.mkString(texts().err_MimeType)}
     if content == null do
-        fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Content)}
-    if content.uncompressedSize > OpenDocumentContentLimit do
-        fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_TooLarge)}
+        fail InvalidFormatError{Errors.mkString(texts().err_Content)}
+    if content.uncompressedSize > ContentLimit do
+        fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
 
-    let mimeBytes = try loadZipEntry(fileName, mime)
-    let kind      = try openDocumentKindFromMime(cast(string, mimeBytes.toSlice()))
-    let bytes     = try loadZipEntry(fileName, content)
+    let mimeBytes = try Archive.Zip.loadEntry(fileName, mime)
+    let kind      = try kindFromMime(cast(string, mimeBytes.toSlice()))
+    let bytes     = try Archive.Zip.loadEntry(fileName, content)
     if not Utf8.isValid(bytes.toSlice()) do
-        fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_Encoding)}
-    var images: Array'OpenDocumentImage
+        fail InvalidFormatError{Errors.mkString(texts().err_Encoding)}
+    var images: Array'EmbeddedImage
     if kind != .Spreadsheet do
-        images = loadOpenDocumentImages(fileName, &archive)
+        images = loadImages(fileName, &archive)
     var styleSource: String
-    if styles != null and styles.uncompressedSize <= OpenDocumentContentLimit
+    if styles != null and styles.uncompressedSize <= ContentLimit
     {
-        let styleBytes = catch loadZipEntry(fileName, styles) as stylesError
+        let styleBytes = catch Archive.Zip.loadEntry(fileName, styles) as stylesError
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
-            styleSource = String.from(cast(string, styleBytes.toSlice()))
+            styleSource = cast(string, styleBytes.toSlice())
     }
 
-    var metadata: OpenDocumentMetadata
-    if meta != null and meta.uncompressedSize <= OpenDocumentMetadataLimit
+    var metadata: Metadata
+    if meta != null and meta.uncompressedSize <= MetadataLimit
     {
-        let metadataBytes = catch loadZipEntry(fileName, meta) as metadataError
+        let metadataBytes = catch Archive.Zip.loadEntry(fileName, meta) as metadataError
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
-            metadata = catch parseOpenDocumentMetadata(cast(string, metadataBytes.toSlice()))
+            metadata = catch parseMetadata(cast(string, metadataBytes.toSlice()))
     }
 
-    return try parseOpenDocumentContentWithImages(cast(string, bytes.toSlice()), styleSource, kind, #move images, #move metadata)
+    return try parseContentWithImages(cast(string, bytes.toSlice()), styleSource, kind, #move images, #move metadata)
 }
 
 // Shows an OpenDocument file on the reader surface of its kind, decoding it away from the GUI thread.
-struct OpenDocumentViewer
+struct Panel
 {
     using wnd: Wnd
 
     late
     {
         html:      *HtmlView
-        table:     *TableViewer
+        table:     *Table.Panel
         commands:  *Wnd
         pageCombo: *ComboBox
         info:      *Wnd
         zoomLabel: *IconButton
     }
 
-    document:             OpenDocumentContent
+    document:             Content
     outline:              *DocumentOutline?
     sheetIndex:           u64
     slideIndex:           u64
     zoomPercent:          u32 = 100
-    load:                 Viewer.BackgroundLoad'OpenDocumentContent
+    load:                 Viewer.BackgroundLoad'Content
     loadTimer:            *Timer?
     reportFailure:        Viewer.ReportFailure?
     reportDetails:        Viewer.ReportDetails?
@@ -1578,7 +1582,7 @@ struct OpenDocumentViewer
     failureReason:        String
 }
 
-private impl IWnd for OpenDocumentViewer
+private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -1597,7 +1601,7 @@ private impl IWnd for OpenDocumentViewer
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -1612,7 +1616,7 @@ private impl IWnd for OpenDocumentViewer
         if evt.kind == .LanguageChanged and .loadTimer == null and .failureReason.isEmpty()
         {
             .fillPageChoices()
-            .zoomLabel.toolTip = openDocumentStrings().ui_ZoomMenu
+            .zoomLabel.toolTip = texts().ui_ZoomMenu
             .reportDocumentDetails()
         }
 
@@ -1627,27 +1631,14 @@ private impl IWnd for OpenDocumentViewer
             return
         }
 
-        if evt.modifiers.has(.Control) and .document.kind != .Spreadsheet
-        {
-            switch evt.key
-            {
-            case .Add, .OemPlus:       .setZoom(.zoomPercent + 25)
-            case .Subtract, .OemMinus: .setZoom(.zoomPercent > 50 ? .zoomPercent - 25 : 50)
-            case .D0:                  .setZoom(100)
-            default:                   evt.accepted = false
-            }
-
-            return
-        }
-
-        if evt.modifiers != .None or not .navigatePagedDocument(evt.key)
-        {
+        if Viewer.isZoomKey(evt) and .document.kind != .Spreadsheet do
+            .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
+        elif evt.modifiers != .None or not .navigatePagedDocument(evt.key) do
             evt.accepted = false
-        }
     }
 }
 
-private impl OpenDocumentViewer
+private impl Panel
 {
     mtd applyZoom()
     {
@@ -1661,30 +1652,16 @@ private impl OpenDocumentViewer
 
     internal mtd setZoom(percent: u32)
     {
-        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        .zoomPercent = Viewer.clampZoom(percent)
         .applyZoom()
-        .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
     }
 
     mtd showZoomMenu()
     {
-        with let menu = MenuCtrl.createPopup(me, owner: me)
-        {
-            .addItem("75%", "scope.opendocument.zoom75")
-            .addItem("100%", "scope.opendocument.zoom100")
-            .addItem("125%", "scope.opendocument.zoom125")
-            .addItem("150%", "scope.opendocument.zoom150")
-            .addItem("200%", "scope.opendocument.zoom200")
-        }
-
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
-        {
-        case "scope.opendocument.zoom75":  .setZoom(75)
-        case "scope.opendocument.zoom100": .setZoom(100)
-        case "scope.opendocument.zoom125": .setZoom(125)
-        case "scope.opendocument.zoom150": .setZoom(150)
-        case "scope.opendocument.zoom200": .setZoom(200)
-        }
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
     }
 
     mtd refreshZoomChrome()
@@ -1701,17 +1678,17 @@ private impl OpenDocumentViewer
     {
         switch #complete .document.kind
         {
-        case .Text:         return openDocumentStrings().ui_Text
-        case .Spreadsheet:  return openDocumentStrings().ui_Spreadsheet
-        case .Presentation: return openDocumentStrings().ui_Presentation
-        case .Drawing:      return openDocumentStrings().ui_Drawing
+        case .Text:         return texts().ui_Text
+        case .Spreadsheet:  return texts().ui_Spreadsheet
+        case .Presentation: return texts().ui_Presentation
+        case .Drawing:      return texts().ui_Drawing
         }
     }
 
     mtd documentDetails(details: string)->String
     {
         if .document.metadata.title.isEmpty() do
-            return String.from(details)
+            return details
         return Format.toString("% · %", details, .document.metadata.title)
     }
 
@@ -1721,18 +1698,18 @@ private impl OpenDocumentViewer
             return
         if .document.kind == .Spreadsheet and .sheetIndex < .document.sheets.count
         {
-            .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex))))
+            .reportDetails(me, .documentDetails(Format.toString(texts().ui_DetailsSheet, .sheetName(.sheetIndex))))
             return
         }
 
         if (.document.kind == .Presentation or .document.kind == .Drawing) and .slideIndex < .document.slides.count
         {
-            let details = .document.kind == .Presentation ? openDocumentStrings().ui_DetailsSlide : openDocumentStrings().ui_DetailsPage
+            let details = .document.kind == .Presentation ? texts().ui_DetailsSlide : texts().ui_DetailsPage
             .reportDetails(me, .documentDetails(Format.toString(details, .slideName(.slideIndex))))
             return
         }
 
-        .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName())))
+        .reportDetails(me, .documentDetails(Format.toString(texts().ui_Details, .kindName())))
     }
 
     // Returns the source name of a sheet, or a numbered label when the sheet has none.
@@ -1741,7 +1718,7 @@ private impl OpenDocumentViewer
         let name = .document.sheets[index].name
         if not name.isEmpty() do
             return name
-        return Format.toString(openDocumentStrings().ui_Sheet, index + 1)
+        return Format.toString(texts().ui_Sheet, index + 1)
     }
 
     // Returns the source name of a slide or drawing page, or a numbered label when it has none.
@@ -1750,7 +1727,7 @@ private impl OpenDocumentViewer
         let name = .document.slides[index].name
         if not name.isEmpty() do
             return name
-        return Format.toString(.document.kind == .Drawing ? openDocumentStrings().ui_Page : openDocumentStrings().ui_Slide, index + 1)
+        return Format.toString(.document.kind == .Drawing ? texts().ui_Page : texts().ui_Slide, index + 1)
     }
 
     mtd fillPageChoices()
@@ -1762,21 +1739,21 @@ private impl OpenDocumentViewer
         switch .document.kind
         {
         case .Spreadsheet:
-            .pageCombo.toolTip = openDocumentStrings().ui_TipSheet
+            .pageCombo.toolTip = texts().ui_TipSheet
             count  = .document.sheets.count
             active = .sheetIndex
             for index in count do
                 .pageCombo.addItem(.sheetName(index))
 
         case .Presentation:
-            .pageCombo.toolTip = openDocumentStrings().ui_TipSlide
+            .pageCombo.toolTip = texts().ui_TipSlide
             count  = .document.slides.count
             active = .slideIndex
             for index in count do
                 .pageCombo.addItem(.slideName(index))
 
         case .Drawing:
-            .pageCombo.toolTip = openDocumentStrings().ui_TipPage
+            .pageCombo.toolTip = texts().ui_TipPage
             count  = .document.slides.count
             active = .slideIndex
             for index in count do
@@ -1809,7 +1786,7 @@ private impl OpenDocumentViewer
         .document.sheets[.sheetIndex].table = #move .table.document
         .table.destroy()
         .sheetIndex      = index
-        .table           = TableViewer.createDocument(me, #move .document.sheets[index].table)
+        .table           = Table.Panel.createDocument(me, #move .document.sheets[index].table)
         .table.dockStyle = .Center
         .pageCombo.setSelectedIndex(cast(u32, index), notify: false)
         if clearSearch do
@@ -1846,7 +1823,7 @@ private impl OpenDocumentViewer
         if .html != null do
             .html.destroy()
         .slideIndex = index
-        .createHtmlView(.document.slides[index].html.toString())
+        .createHtmlView(.document.slides[index].html)
         .pageCombo.setSelectedIndex(cast(u32, index), notify: false)
         if clearSearch do
             .html.clearSearch()
@@ -1884,7 +1861,7 @@ private impl OpenDocumentViewer
         }
     }
 
-    mtd collectTableMatches(document: const *TableDocument, sheetIndex: u64, text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    mtd collectTableMatches(document: const *Table.Document, sheetIndex: u64, text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for row, rowIndex in document.rows
         {
@@ -1914,7 +1891,7 @@ private impl OpenDocumentViewer
     {
         if .document.kind == .Spreadsheet
         {
-            .table = TableViewer.createDocument(me, #move .document.sheets[0].table)
+            .table = Table.Panel.createDocument(me, #move .document.sheets[0].table)
             .table.dockStyle = .Center
             .fillPageChoices()
             .setInitialFocus(.table)
@@ -1926,7 +1903,7 @@ private impl OpenDocumentViewer
         }
         else
         {
-            .createHtmlView(.document.html.toString())
+            .createHtmlView(.document.html)
             .setInitialFocus(.html)
         }
 
@@ -1975,7 +1952,7 @@ private impl OpenDocumentViewer
         }
 
         if .html != null do
-            Viewer.collectTextMatches(.document.html.toString(), text, options, 0, 0, 0, result)
+            Viewer.collectTextMatches(.document.html, text, options, 0, 0, 0, result)
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
@@ -2042,11 +2019,11 @@ private impl OpenDocumentViewer
         return true
     }
 
-    func create(host: Viewer.Host)->*OpenDocumentViewer
+    func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'OpenDocumentViewer(host.contentParent(), "scope.opendocument")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.opendocument")
         {
             .backgroundStyle      = .View
             .reportFailure        = services.reportFailure
@@ -2060,16 +2037,8 @@ private impl OpenDocumentViewer
         {
             switch evt
             {
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
-                view.setZoom(view.zoomPercent + 25)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus):
-                view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and keyEvt.key == .D0:
-                view.setZoom(100)
+            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt) and view.document.kind != .Spreadsheet:
+                view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
@@ -2081,7 +2050,7 @@ private impl OpenDocumentViewer
         }
 
         result.createPageSelector(host)
-        result.load.start(host.fileName(), &loadOpenDocumentContent)
+        result.load.start(host.fileName(), &loadContent)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
@@ -2089,43 +2058,34 @@ private impl OpenDocumentViewer
     // Creates the reading-zoom button, hidden until a document that can zoom is published.
     mtd createZoomButton(host: Viewer.Host)
     {
-        .info = host.createInfoGroup(ViewerZoomSlotWidth)
+        .info = host.createInfoGroup(Viewer.ZoomSlotWidth)
         .info.hide()
-        with .zoomLabel = IconButton.create(me.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.opendocument.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = openDocumentStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
-        }
+        .zoomLabel = Viewer.createZoomButton(me.info, "scope.opendocument.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
     }
 
     // Creates the sheet, slide, or page selector, hidden until a document offers several.
     mtd createPageSelector(host: Viewer.Host)
     {
-        .commands = host.createCommandGroup(OpenDocumentPageComboWidth)
+        .commands = host.createCommandGroup(PageComboWidth)
         .commands.hide()
-        with .pageCombo = ComboBox.create(me.commands, {0, 0, OpenDocumentPageComboWidth, 36})
+        with .pageCombo = ComboBox.create(me.commands, {0, 0, PageComboWidth, 36})
         {
             .dockStyle = .Left
             .hide()
-            .toolTip    = openDocumentStrings().ui_TipSheet
+            .toolTip    = texts().ui_TipSheet
             .sigChanged += func|view = me|(?, index) { discard view.showPage(index, true) }
         }
     }
 }
 
 // Creates the integrated reader for OpenDocument files.
-func createOpenDocumentViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = OpenDocumentViewer.create(host)
+    let view = Panel.create(host)
     view.outline = DocumentOutline.create(host)
     host.attachView(view)
-    host.setDetails(openDocumentStrings().ui_Name)
+    host.setDetails(texts().ui_Name)
 
     with var search: Viewer.SearchApi
     {

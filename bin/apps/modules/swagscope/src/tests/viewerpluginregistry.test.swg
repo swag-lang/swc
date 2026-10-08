@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui
+using Core, Gui, Viewers
 
 func viewerRegistryFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
@@ -50,7 +50,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let unknown = registry.choices(textFile)
     Swag.assert(unknown.count == 3)
-    Swag.assert(unknown[0].key == TextViewerKey)
+    Swag.assert(unknown[0].key == PlainText.ViewerKey)
     Swag.assert(choiceName(&registry, &unknown[1]) == "Binary")
     Swag.assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
     Swag.assert(registry.explicitlySupports("clip.gif"))
@@ -129,8 +129,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let registry = createViewerPluginRegistry()
     let choices  = registry.choices(fileName)
-    Swag.assert(choices[0].key == "code" and choices[1].key == TextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
-    Swag.assert(codeLanguage(fileName) == .Python)
+    Swag.assert(choices[0].key == "code" and choices[1].key == PlainText.ViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
+    Swag.assert(Code.detectLanguage(fileName) == .Python)
 }
 
 // A format whose bytes are text is offered twice: as the document it is, then as the source it is
@@ -141,24 +141,24 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let markdown = registry.choices(viewerRegistryFixturePath("comprehensive.md"))
     Swag.assert(markdown.count == 4)
-    Swag.assert(markdown[0].key == "markdown" and markdown[1].key == TextViewerKey and markdown[2].key == "binary" and markdown[3].key == "hex")
+    Swag.assert(markdown[0].key == "markdown" and markdown[1].key == PlainText.ViewerKey and markdown[2].key == "binary" and markdown[3].key == "hex")
 
     let source = registry.choices(viewerRegistryFixturePath("sample.cpp"))
-    Swag.assert(source[0].key == "code" and source[1].key == TextViewerKey)
+    Swag.assert(source[0].key == "code" and source[1].key == PlainText.ViewerKey)
 
     let table = registry.choices(viewerRegistryFixturePath("viewer.csv"))
-    Swag.assert(table[0].key == "table" and table[1].key == TextViewerKey)
+    Swag.assert(table[0].key == "table" and table[1].key == PlainText.ViewerKey)
 
     let subtitles = registry.choices(viewerRegistryFixturePath("viewer.srt"))
-    Swag.assert(subtitles[0].key == "subtitle" and subtitles[1].key == TextViewerKey)
+    Swag.assert(subtitles[0].key == "subtitle" and subtitles[1].key == PlainText.ViewerKey)
 
     let page = registry.choices(viewerRegistryFixturePath("viewer.html"))
-    Swag.assert(page[0].key == "html" and page[1].key == "code" and page[2].key == TextViewerKey)
+    Swag.assert(page[0].key == "html" and page[1].key == "code" and page[2].key == PlainText.ViewerKey)
 
     for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf")) do
-        Swag.assert(choice.key != TextViewerKey)
+        Swag.assert(choice.key != PlainText.ViewerKey)
     for choice in registry.choices(viewerRegistryFixturePath("segoeui.ttf")) do
-        Swag.assert(choice.key != TextViewerKey)
+        Swag.assert(choice.key != PlainText.ViewerKey)
 }
 
 // A name that says nothing leaves the file to say it. Every format that opens on a signature is
@@ -196,7 +196,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     expect File.writeAllBytes(fileName, utf16.toSlice())
 
     let registry = createViewerPluginRegistry()
-    Swag.assert(registry.choices(fileName)[0].key == TextViewerKey)
+    Swag.assert(registry.choices(fileName)[0].key == PlainText.ViewerKey)
 
     // Deciding an encoding is not accepting the file: bytes that decode into control characters
     // are not offered as a page of text.
@@ -229,7 +229,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     defer discard catch File.delete(plain)
     expect File.writeAllBytes(plain, "plain UTF-8 text")
     let readable = registry.choices(plain)
-    Swag.assert(readable[0].key == TextViewerKey)
+    Swag.assert(readable[0].key == PlainText.ViewerKey)
     Swag.assert(cast(ViewerIcons, choicePlugin(&registry, &readable[0]).iconIndex) == .Text)
 }
 

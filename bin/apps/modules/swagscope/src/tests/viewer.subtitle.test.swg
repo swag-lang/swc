@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
 
@@ -9,19 +9,19 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
 #test
 {
     var seconds: f64
-    Swag.assert(subtitleTimeSeconds("90", &seconds) and seconds == 90)
-    Swag.assert(subtitleTimeSeconds("1:30", &seconds) and seconds == 90)
-    Swag.assert(subtitleTimeSeconds("1:02:03.5", &seconds) and seconds == 3_723.5)
-    Swag.assert(not subtitleTimeSeconds("", &seconds))
-    Swag.assert(not subtitleTimeSeconds("1:", &seconds))
-    Swag.assert(not subtitleTimeSeconds("1:2:3:4", &seconds))
-    Swag.assert(not subtitleTimeSeconds("-1", &seconds))
-    Swag.assert(not subtitleTimeSeconds("NaN", &seconds))
-    Swag.assert(not subtitleTimeSeconds("Infinity", &seconds))
-    Swag.assert(not subtitleTimeSeconds("1e308:00", &seconds))
-    Swag.assert(not subtitleTimeSeconds("1:60", &seconds))
-    Swag.assert(not subtitleTimeSeconds("1:99", &seconds))
-    Swag.assert(not subtitleTimeSeconds("1.5:30", &seconds))
+    Swag.assert(Captions.timeSeconds("90", &seconds) and seconds == 90)
+    Swag.assert(Captions.timeSeconds("1:30", &seconds) and seconds == 90)
+    Swag.assert(Captions.timeSeconds("1:02:03.5", &seconds) and seconds == 3_723.5)
+    Swag.assert(not Captions.timeSeconds("", &seconds))
+    Swag.assert(not Captions.timeSeconds("1:", &seconds))
+    Swag.assert(not Captions.timeSeconds("1:2:3:4", &seconds))
+    Swag.assert(not Captions.timeSeconds("-1", &seconds))
+    Swag.assert(not Captions.timeSeconds("NaN", &seconds))
+    Swag.assert(not Captions.timeSeconds("Infinity", &seconds))
+    Swag.assert(not Captions.timeSeconds("1e308:00", &seconds))
+    Swag.assert(not Captions.timeSeconds("1:60", &seconds))
+    Swag.assert(not Captions.timeSeconds("1:99", &seconds))
+    Swag.assert(not Captions.timeSeconds("1.5:30", &seconds))
 }
 
 // The dedicated viewer presents a searchable timed transcript rather than raw subtitle syntax.
@@ -36,12 +36,12 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     }
 
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
+    var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     Swag.assert(result.details == "SubRip")
 
-    let view = assume cast(*SubtitleViewer, result.view)
+    let view = assume cast(*Captions.Panel, result.view)
     Swag.assert(view.track!.cueCount() == 2)
     Swag.assert(view.cueButton.text() == "2 cues" and view.durationButton.text().count)
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
@@ -61,11 +61,11 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     let oldCount = String.from(view.cueButton.text())
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    let expectedCount = Format.toString(subtitleStrings().ui_Cues, 2)
+    let expectedCount = Format.toString(Captions.texts().ui_Cues, 2)
     Swag.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
                 Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount))
-    Swag.assert(view.cueButton.toolTip == subtitleStrings().ui_GoToCue)
-    Swag.assert(view.durationButton.toolTip == subtitleStrings().ui_GoToTime)
+    Swag.assert(view.cueButton.toolTip == Captions.texts().ui_GoToCue)
+    Swag.assert(view.durationButton.toolTip == Captions.texts().ui_GoToTime)
     Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -92,7 +92,7 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     }
 
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
+    var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
     Swag.assert(result.view != null)
     infoBar.centerGroup    = result.info
     result.info!.dockStyle = .None

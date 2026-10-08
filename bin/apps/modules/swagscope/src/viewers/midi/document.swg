@@ -1,12 +1,13 @@
 #global internal
+#global namespace Viewers.Midi
 
 using Core, Core.Errors
 
-private const MidiFileLimit = 32 * 1024 * 1024'u64
-private const MidiNoteLimit = 1_000_000'u64
+private const FileLimit = 32 * 1024 * 1024'u64
+private const NoteLimit = 1_000_000'u64
 
 // One sounding note, from its note-on tick to its note-off tick.
-struct MidiNote
+struct Note
 {
     startTick: u64
     endTick:   u64
@@ -17,7 +18,7 @@ struct MidiNote
 }
 
 // Name and event counts of one track chunk.
-struct MidiTrack
+struct Track
 {
     name:       String
     eventCount: u64
@@ -26,14 +27,14 @@ struct MidiTrack
 }
 
 // A tempo change, in microseconds per quarter note from `tick` on.
-struct MidiTempo
+struct Tempo
 {
     tick: u64
     microsPerQuarter: u32
 }
 
 // A meter change, such as 3/4, from `tick` on.
-struct MidiTimeSignature
+struct TimeSignature
 {
     tick:        u64
     numerator:   u8
@@ -41,7 +42,7 @@ struct MidiTimeSignature
 }
 
 // A key change from `tick` on: sharps are positive and flats negative.
-struct MidiKeySignature
+struct KeySignature
 {
     tick:   u64
     sharps: s32
@@ -49,16 +50,16 @@ struct MidiKeySignature
 }
 
 // A Standard MIDI File reduced to what the piano roll shows: its notes, tracks, and timing.
-struct MidiDocument
+struct Document
 {
     format:          u16
     division:        u16
     declaredTracks:  u16
-    tracks:          Array'MidiTrack
-    notes:           Array'MidiNote
-    tempos:          Array'MidiTempo
-    timeSignatures:  Array'MidiTimeSignature
-    keySignatures:   Array'MidiKeySignature
+    tracks:          Array'Track
+    notes:           Array'Note
+    tempos:          Array'Tempo
+    timeSignatures:  Array'TimeSignature
+    keySignatures:   Array'KeySignature
     durationTicks:   u64
     durationSeconds: f64
     minKey:          u8 = 127
@@ -66,7 +67,7 @@ struct MidiDocument
 }
 
 // Names the major key of a signature with `sharps` sharps, or flats when negative.
-private func midiKeySignatureName(sharps: s32)->string
+private func keySignatureName(sharps: s32)->string
 {
     switch sharps
     {
@@ -90,13 +91,13 @@ private func midiKeySignatureName(sharps: s32)->string
     return "?"
 }
 
-impl MidiDocument
+impl Document
 {
     // Returns the first time signature as numerator/denominator, or 4/4 when the file declares none.
     mtd const meterText()->String
     {
         if .timeSignatures.isEmpty() do
-            return String.from("4/4")
+            return "4/4"
         let meter = &.timeSignatures[0]
         return Format.toString("%/%", meter.numerator, meter.denominator)
     }
@@ -105,11 +106,11 @@ impl MidiDocument
     mtd const keyText()->String
     {
         if .keySignatures.isEmpty() do
-            return Format.toString("C %", midiStrings().ui_Major)
+            return Format.toString("C %", texts().ui_Major)
         let key = &.keySignatures[0]
         return Format.toString("% %",
-                               midiKeySignatureName(key.sharps),
-                               key.minor ? midiStrings().ui_Minor : midiStrings().ui_Major)
+                               keySignatureName(key.sharps),
+                               key.minor ? texts().ui_Minor : texts().ui_Major)
     }
 
     // Returns the first tempo in beats per minute, or 120 when the file declares none.
@@ -121,30 +122,31 @@ impl MidiDocument
     }
 }
 
-private struct MidiVlq
+private struct Vlq
 {
     value: u64
     next:  u64
     valid: bool
 }
 
-private func midiHas(bytes: const [..] u8, offset, count: u64)->bool => offset <= bytes.count and count <= bytes.count - offset
+// Bounded readers over the raw file: MIDI stores every multi-byte number big-endian.
+private func hasBytes(bytes: const [..] u8, offset, count: u64)->bool => offset <= bytes.count and count <= bytes.count - offset
 
-private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool
+private func matchesAt(bytes: const [..] u8, offset: u64, tag: string)->bool
 {
-    if not midiHas(bytes, offset, value.count) do
+    if not hasBytes(bytes, offset, tag.count) do
         return false
-    return Slice.equals(bytes[offset until offset + value.count], cast(const [..] u8, value))
+    return Slice.equals(bytes[offset until offset + tag.count], cast(const [..] u8, tag))
 }
 
-private func midiU16(bytes: const [..] u8, offset: u64)->u16 => Math.make16(bytes[offset], bytes[offset + 1])
+private func readU16(bytes: const [..] u8, offset: u64)->u16 => Math.make16(bytes[offset], bytes[offset + 1])
 
-private func midiU32(bytes: const [..] u8, offset: u64)->u32
+private func readU32(bytes: const [..] u8, offset: u64)->u32
 {
     return Math.make32(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
 }
 
-private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
+private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
 {
     var result: retval
     result.next = at
@@ -165,7 +167,7 @@ private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
     return result
 }
 
-private func midiText(bytes: const [..] u8, at, length: u64)->String
+private func readText(bytes: const [..] u8, at, length: u64)->String
 {
     if not length do
         return {}
@@ -178,14 +180,14 @@ private func midiText(bytes: const [..] u8, at, length: u64)->String
     }
 
     if Utf8.isValid(text.toSlice()) do
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     for &value in text where value[] >= 128 do
         value[] = '.'u8
-    return String.from(cast(string, text.toSlice()))
+    return cast(string, text.toSlice())
 }
 
 // Ends the note an `active` slot holds, as a one-based index into the notes, and frees the slot.
-private func closeMidiNote(document: *MidiDocument, active: *u64, tick: u64)
+private func closeNote(document: *Document, active: *u64, tick: u64)
 {
     if not active[] do
         return
@@ -194,9 +196,9 @@ private func closeMidiNote(document: *MidiDocument, active: *u64, tick: u64)
     active[]     = 0
 }
 
-private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, trackIndex: u32, at, end: u64) fail
+private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u32, at, end: u64) fail
 {
-    var track:   MidiTrack
+    var track:   Track
     var active:  [16 * 128] u64
     var scan = at
     var tick:    u64
@@ -204,15 +206,15 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
 
     while scan < end
     {
-        let delta = midiVlq(bytes, scan, end)
+        let delta = readVlq(bytes, scan, end)
         if not delta.valid do
-            fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+            fail InvalidFormatError{Errors.mkString(texts().err_Event)}
         tick += delta.value
         scan = delta.next
         if scan >= end do
-            fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+            fail InvalidFormatError{Errors.mkString(texts().err_Event)}
 
-        // A data byte reuses the previous channel status.
+        // An event may reuse the last channel status instead of spelling it again.
         let first = bytes[scan]
         var status: u8
         if first & 0x80
@@ -226,7 +228,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         }
 
         if status < 0x80 do
-            fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+            fail InvalidFormatError{Errors.mkString(texts().err_Event)}
 
         if status < 0xF0
         {
@@ -234,12 +236,12 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
             running = status
             let kind  = status >> 4
             let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
-            if not midiHas(bytes, scan, count) or scan + count > end do
-                fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+            if not hasBytes(bytes, scan, count) or scan + count > end do
+                fail InvalidFormatError{Errors.mkString(texts().err_Event)}
             let data1 = bytes[scan]
             let data2 = count == 2 ? bytes[scan + 1] : 0
             if data1 & 0x80 or data2 & 0x80 do
-                fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+                fail InvalidFormatError{Errors.mkString(texts().err_Event)}
             scan += count
 
             if kind == 0x8 or kind == 0x9
@@ -249,13 +251,13 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 let index   = cast(u64, channel) * 128 + key
                 if kind == 0x8 or data2 == 0
                 {
-                    closeMidiNote(document, &active[index], tick)
+                    closeNote(document, &active[index], tick)
                 }
                 else
                 {
-                    closeMidiNote(document, &active[index], tick)
-                    if document.notes.count >= MidiNoteLimit do
-                        fail UnsupportedFormatError{Errors.mkString(midiStrings().err_TooManyNotes)}
+                    closeNote(document, &active[index], tick)
+                    if document.notes.count >= NoteLimit do
+                        fail UnsupportedFormatError{Errors.mkString(texts().err_TooManyNotes)}
                     document.notes.add({tick, Swag.U64.Max, trackIndex, channel, key, data2})
                     active[index]   = document.notes.count
                     track.noteCount += 1
@@ -269,17 +271,17 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
             // Meta events carry a kind and a variable-length payload.
             running = 0
             if scan >= end do
-                fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+                fail InvalidFormatError{Errors.mkString(texts().err_Event)}
             let kind   = bytes[scan]
-            let length = midiVlq(bytes, scan + 1, end)
+            let length = readVlq(bytes, scan + 1, end)
             if not length.valid or length.value > end - length.next do
-                fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+                fail InvalidFormatError{Errors.mkString(texts().err_Event)}
             let body = length.next
 
             switch kind
             {
             case 0x03 where track.name.isEmpty():
-                track.name = midiText(bytes, body, length.value)
+                track.name = readText(bytes, body, length.value)
 
             case 0x51 where length.value == 3:
                 let micros = Math.make32(0, bytes[body], bytes[body + 1], bytes[body + 2])
@@ -301,14 +303,14 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         {
             // Skip system-exclusive data and clear the running status.
             running = 0
-            let length = midiVlq(bytes, scan, end)
+            let length = readVlq(bytes, scan, end)
             if not length.valid or length.value > end - length.next do
-                fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+                fail InvalidFormatError{Errors.mkString(texts().err_Event)}
             scan = length.next + length.value
         }
         else
         {
-            fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
+            fail InvalidFormatError{Errors.mkString(texts().err_Event)}
         }
 
         track.eventCount += 1
@@ -316,15 +318,15 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
 
     track.lastTick = tick
     for &slot in active do
-        closeMidiNote(document, slot, tick)
+        closeNote(document, slot, tick)
 
     if track.name.isEmpty() do
-        track.name = Format.toString(midiStrings().ui_TrackName, trackIndex + 1)
+        track.name = Format.toString(texts().ui_TrackName, trackIndex + 1)
     document.durationTicks = Math.max(document.durationTicks, tick)
     document.tracks.add(#move track)
 }
 
-private func computeMidiDuration(document: *MidiDocument)
+private func computeDuration(document: *Document)
 {
     if not document.durationTicks do
         return
@@ -347,54 +349,54 @@ private func computeMidiDuration(document: *MidiDocument)
     var micros = 500_000'u64
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
-        document.durationSeconds += cast(f64, tempo.tick - previous) * cast(f64, micros) /
-                                    (cast(f64, quarter) * 1_000_000)
+        document.durationSeconds += cast(f64, tempo.tick - previous) * cast(f64, micros)
+                                    / (cast(f64, quarter) * 1_000_000)
         previous = tempo.tick
         micros   = tempo.microsPerQuarter
     }
 
-    document.durationSeconds += cast(f64, document.durationTicks - previous) * cast(f64, micros) /
-                                (cast(f64, quarter) * 1_000_000)
+    document.durationSeconds += cast(f64, document.durationTicks - previous) * cast(f64, micros)
+                                / (cast(f64, quarter) * 1_000_000)
 }
 
 // Loads and parses a Standard MIDI File.
 //
 // Fails when the file cannot be read, is over 32 MiB, has a malformed header, track chain, or
 // event, or holds more notes than the viewer can display safely.
-func loadMidiDocument(fileName: string)->MidiDocument fail
+func loadDocument(fileName: string)->Document fail
 {
     let info = try File.info(fileName)
-    if info.size > MidiFileLimit do
-        fail UnsupportedFormatError{Errors.mkString(midiStrings().err_TooLarge)}
+    if info.size > FileLimit do
+        fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
     let content = try File.readAllBytes(fileName)
     let bytes   = content.toSlice()
-    if not midiHas(bytes, 0, 14) or not midiMatches(bytes, 0, "MThd") do
-        fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
+    if not hasBytes(bytes, 0, 14) or not matchesAt(bytes, 0, "MThd") do
+        fail InvalidFormatError{Errors.mkString(texts().err_Header)}
 
-    let headerLength = cast(u64, midiU32(bytes, 4))
-    if headerLength < 6 or not midiHas(bytes, 8, headerLength) do
-        fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
+    let headerLength = cast(u64, readU32(bytes, 4))
+    if headerLength < 6 or not hasBytes(bytes, 8, headerLength) do
+        fail InvalidFormatError{Errors.mkString(texts().err_Header)}
 
     with var result: retval
     {
-        .format         = midiU16(bytes, 8)
-        .declaredTracks = midiU16(bytes, 10)
-        .division       = midiU16(bytes, 12)
+        .format         = readU16(bytes, 8)
+        .declaredTracks = readU16(bytes, 10)
+        .division       = readU16(bytes, 12)
     }
 
     if result.format > 2 or not result.declaredTracks or not result.division do
-        fail InvalidFormatError{Errors.mkString(midiStrings().err_Header)}
+        fail InvalidFormatError{Errors.mkString(texts().err_Header)}
 
     var scan = 8 + headerLength
     for trackIndex in result.declaredTracks
     {
-        if not midiHas(bytes, scan, 8) or not midiMatches(bytes, scan, "MTrk") do
-            fail InvalidFormatError{Errors.mkString(midiStrings().err_Track)}
-        let length = cast(u64, midiU32(bytes, scan + 4))
+        if not hasBytes(bytes, scan, 8) or not matchesAt(bytes, scan, "MTrk") do
+            fail InvalidFormatError{Errors.mkString(texts().err_Track)}
+        let length = cast(u64, readU32(bytes, scan + 4))
         let body   = scan + 8
         if length > bytes.count - body do
-            fail InvalidFormatError{Errors.mkString(midiStrings().err_Track)}
-        try parseMidiTrack(&result, bytes, trackIndex, body, body + length)
+            fail InvalidFormatError{Errors.mkString(texts().err_Track)}
+        try parseTrack(&result, bytes, trackIndex, body, body + length)
         scan = body + length
     }
 
@@ -405,6 +407,6 @@ func loadMidiDocument(fileName: string)->MidiDocument fail
     }
 
     result.notes.sort(func(a, b) => a.startTick <=> b.startTick)
-    computeMidiDuration(&result)
+    computeDuration(&result)
     return result
 }

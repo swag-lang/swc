@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Typeface
 
 using Core, Pixel, Gui, TrueType
 
@@ -8,7 +9,7 @@ using Core, Pixel, Gui, TrueType
 // signature is four bytes rather than four letters. `ttcf` opens a collection of them, and `true`
 // is what an older Apple font writes in the same place. The probe leaves the `OTTO` signature of
 // CFF-flavoured OpenType fonts unclaimed, although the shared font engine can load them.
-private func fontPluginProbe(content: Viewer.ProbeContent)->bool
+private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
     if content.startsWith("ttcf") or content.startsWith("true") do
         return true
@@ -16,17 +17,17 @@ private func fontPluginProbe(content: Viewer.ProbeContent)->bool
 }
 
 // Describes the font viewer to the host.
-func fontViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "font"
         .staticName   = "Font"
-        .attach       = &registerFontStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Font)
-        .create       = &createFontViewer
-        .probe        = &fontPluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .smokeFixture = "segoeui.ttf"
         .addSelectors(".ttf;.ttc")
     }
@@ -34,10 +35,10 @@ func fontViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const FontCommandWidth = 456.0
+private const CommandWidth = 456.0
 
 #[Swag.NoCopy]
-struct FontViewerContent
+struct ViewerContent
 {
     bytes:    Array'u8
     face:     *Face?
@@ -45,7 +46,7 @@ struct FontViewerContent
     details:  String
 }
 
-impl FontViewerContent
+impl ViewerContent
 {
     mtd opDrop()
     {
@@ -53,7 +54,7 @@ impl FontViewerContent
     }
 }
 
-private func loadFontViewerContent(fileName: string)->FontViewerContent fail
+private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: retval
     result.bytes = try File.readAllBytes(fileName)
@@ -62,15 +63,15 @@ private func loadFontViewerContent(fileName: string)->FontViewerContent fail
 
     let cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
     result.typeFace = try TypeFace.create(cacheKey, result.bytes.toSlice())
-    let style = result.face.styleName.isEmpty() ? fontStrings().ui_Regular : result.face.styleName.toString()
+    let style = result.face.styleName.isEmpty() ? texts().ui_Regular : result.face.styleName.toString()
     if faceCount == 1 do
-        result.details = Format.toString(fontStrings().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
+        result.details = Format.toString(texts().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
     else do
-        result.details = Format.toString(fontStrings().ui_DetailsCollection, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm, faceCount)
+        result.details = Format.toString(texts().ui_DetailsCollection, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm, faceCount)
     return result
 }
 
-struct FontViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -81,12 +82,12 @@ struct FontViewer
         previousButton: *IconButton
         nextButton:     *IconButton
         pageLabel:      *IconButton
-        document:       *FontDocumentView
+        document:       *DocumentView
     }
 
     details:              String
     sampleDefault:        String
-    load:                 Viewer.BackgroundLoad'FontViewerContent
+    load:                 Viewer.BackgroundLoad'ViewerContent
     loadTimer:            *Timer?
     reportFailure:        Viewer.ReportFailure?
     reportDetails:        Viewer.ReportDetails?
@@ -94,7 +95,7 @@ struct FontViewer
     failureReason:        String
 }
 
-private impl FontViewer
+private impl Panel
 {
     mtd refreshPageCommands()
     {
@@ -106,13 +107,13 @@ private impl FontViewer
     mtd retranslate()
     {
         let replaceSample = .sampleEdit.text() == .sampleDefault.toString()
-        .sampleDefault = fontStrings().ui_DefaultSample
+        .sampleDefault = texts().ui_DefaultSample
         if replaceSample do
-            .sampleEdit.setText(.sampleDefault.toString())
+            .sampleEdit.setText(.sampleDefault)
 
-        .sampleEdit.setPlaceholder(fontStrings().ui_SamplePlaceholder)
-        .previousButton.toolTip = fontStrings().ui_PreviousPage
-        .nextButton.toolTip     = fontStrings().ui_NextPage
+        .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
+        .previousButton.toolTip = texts().ui_PreviousPage
+        .nextButton.toolTip     = texts().ui_NextPage
         if not .loadTimer do
             .document.invalidate()
     }
@@ -121,11 +122,11 @@ private impl FontViewer
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(fontStrings().ui_BasicLatin, "scope.font.range.basic")
-            .addItem(fontStrings().ui_Latin1, "scope.font.range.latin1")
-            .addItem(fontStrings().ui_Greek, "scope.font.range.greek")
-            .addItem(fontStrings().ui_Cyrillic, "scope.font.range.cyrillic")
-            .addItem(fontStrings().ui_Symbols, "scope.font.range.symbols")
+            .addItem(texts().ui_BasicLatin, "scope.font.range.basic")
+            .addItem(texts().ui_Latin1, "scope.font.range.latin1")
+            .addItem(texts().ui_Greek, "scope.font.range.greek")
+            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic")
+            .addItem(texts().ui_Symbols, "scope.font.range.symbols")
         }
 
         switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""
@@ -141,7 +142,7 @@ private impl FontViewer
     }
 }
 
-private impl IWnd for FontViewer
+private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -156,23 +157,23 @@ private impl IWnd for FontViewer
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        var content: FontViewerContent
+        var content: ViewerContent
         .failureReason = .load.finish(&content)
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
-        .document    = FontDocumentView.create(me, content.face!, content.typeFace!, #move content.bytes, .sampleEdit)
+        .document    = DocumentView.create(me, content.face!, content.typeFace!, #move content.bytes, .sampleEdit)
         content.face = null
         .details     = #move content.details
         .refreshPageCommands()
         .applyLayout()
         .setInitialFocus(.document)
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
     }
@@ -186,7 +187,7 @@ private impl IWnd for FontViewer
     }
 }
 
-impl FontViewer
+impl Panel
 {
     mtd retire()->bool
     {
@@ -203,22 +204,22 @@ impl FontViewer
 
     // Creates the specimen view of `fileName`, with its sample field and character-page controls
     // in `commands`, and starts loading the font in the background.
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*FontViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*Panel
     {
-        with let result = Wnd.create'FontViewer(contentParent, "scope.font")
+        with let result = Wnd.create'Panel(contentParent, "scope.font")
         {
             .backgroundStyle      = .View
             .reportFailure        = reportFailure
             .reportDetails        = reportDetails
             .reportLoadingChanged = reportLoadingChanged
             .commands             = commands
-            .sampleDefault        = fontStrings().ui_DefaultSample
+            .sampleDefault        = texts().ui_DefaultSample
         }
 
         result.createCommandBar()
 
         result.applyLayout()
-        result.load.start(fileName, &loadFontViewerContent)
+        result.load.start(fileName, &loadViewerContent)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
@@ -226,11 +227,11 @@ impl FontViewer
     // Creates the sample field and the character-page controls in the command group.
     private mtd createCommandBar()
     {
-        with .sampleEdit = EditBox.create(.commands, .sampleDefault.toString(), {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with .sampleEdit = EditBox.create(.commands, .sampleDefault, {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .dockStyle = .Left
             .setMaximumLength(128)
-            .setPlaceholder(fontStrings().ui_SamplePlaceholder)
+            .setPlaceholder(texts().ui_SamplePlaceholder)
             .sigTextChanged += func|view = me|(?)
             {
                 if not view.loadTimer do
@@ -242,7 +243,7 @@ impl FontViewer
         {
             .dockStyle  = .Left
             .margin.x   = 8
-            .toolTip    = fontStrings().ui_PreviousPage
+            .toolTip    = texts().ui_PreviousPage
             .sigPressed += func|view = me|(?)
             {
                 view.document.previousPage()
@@ -253,7 +254,7 @@ impl FontViewer
         with .nextButton = IconButton.create(.commands, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle  = .Left
-            .toolTip    = fontStrings().ui_NextPage
+            .toolTip    = texts().ui_NextPage
             .sigPressed += func|view = me|(?)
             {
                 view.document.nextPage()
@@ -268,17 +269,17 @@ impl FontViewer
             .setArrowPosition(.RightUpward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().res.fontDefaultFs)
-            .toolTip    = fontStrings().ui_CharacterRange
+            .toolTip    = texts().ui_CharacterRange
             .sigPressed += func|view = me|(?) { view.showRangeMenu() }
         }
     }
 }
 
 // Creates the integrated TrueType specimen and character-map view.
-func createFontViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = FontViewer.create(host.contentParent(), host.createCommandGroup(FontCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = Panel.create(host.contentParent(), host.createCommandGroup(CommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
 
     with var lifecycle: Viewer.LifecycleApi

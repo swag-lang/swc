@@ -87,3 +87,34 @@ namespace A.B.C
     Swag.assert(A.B.C.X == 42)
     Swag.assert(A.B.C.getX() == 42)
 }
+
+// A dotted namespace opens every segment, like the nested blocks it abbreviates: its body sees
+// what the enclosing namespaces declare, and its own names still shadow theirs.
+namespace Dotted
+{
+    const SCALE = 3
+
+    func triple(value: s32)->s32 => value * SCALE
+}
+
+namespace Dotted.Leaf
+{
+    const VALUE = 7
+
+    func scaled()->s32 => triple(VALUE)
+    func scale()->s32  => SCALE
+}
+
+namespace Dotted.Leaf.Tip
+{
+    const SCALE = 5
+
+    func scale()->s32 => SCALE
+}
+
+#test
+{
+    Swag.assert(Dotted.Leaf.scaled() == 21)
+    Swag.assert(Dotted.Leaf.scale() == 3)
+    Swag.assert(Dotted.Leaf.Tip.scale() == 5)
+}

@@ -84,6 +84,7 @@ public:
         Operators,
         OperatorIgnore,
         CalleeReturn,
+        NoReturn,
         Foreign,
         Discardable,
         NoCopy,

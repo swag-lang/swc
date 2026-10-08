@@ -173,7 +173,7 @@ impl ViewerPanel
         .applyLayout()
     }
 
-    mtd request(source: string)->Pipeline.BuildRequest => {source: String.from(source), stage: String.from(.viewer!.inspectionStage()), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))}
+    mtd request(source: string)->Pipeline.BuildRequest => {source: source, stage: .viewer!.inspectionStage(), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))}
 
     mtd requestCompile() { .sigCompileRequested.call(me) }
 

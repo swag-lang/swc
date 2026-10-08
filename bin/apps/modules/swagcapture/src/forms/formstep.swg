@@ -75,23 +75,9 @@ impl IForm for FormStep
         return false
     }
 
-    mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
-    {
-        .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
-    }
-
-    mtd impl scaleBaseForm(scale: f32)
-    {
-        .x = cast(s32, .x * scale)
-        .y = cast(s32, .y * scale)
-        .w = cast(s32, .w * scale)
-        .h = cast(s32, .h * scale)
-    }
-
-    mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
-    {
-        .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
-    }
+    mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32) => .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
+    mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)  => .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
+    mtd impl scaleBaseForm(scale: f32) => .scaleRectForm(scale)
 
     mtd impl moveForm(newPosX, newPosY: s32)
     {
@@ -114,8 +100,7 @@ impl IForm for FormStep
         }
     }
 
-    mtd impl isInside(?: Math.Point)->bool => false
-
+    mtd impl isInside(?: Math.Point)->bool         => false
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

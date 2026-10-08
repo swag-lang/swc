@@ -14,10 +14,10 @@ impl SourceFormatter
     mtd format(source: string, cancelled: *u32)->Result fail
     {
         try .folder.open()
-        let directory = Path.combine(.folder.root, "src")
-        let file      = Path.combine(directory, "source.swg")
+        let file = Path.combine(.folder.root, "src", "source.swg")
         discard try File.writeAllBytes(file, cast(const [..] u8, source))
         let compiler = compilerPath()
+        let workers  = Format.toString("%", compilerWorkerCount())
 
         // The formatter skips parse errors by design. Syntax supplies the diagnostics before
         // formatting so an unchanged invalid document is never reported as formatted.
@@ -26,18 +26,18 @@ impl SourceFormatter
         {
             if Atomic.get(cancelled) do
                 return {}
-            let workers   = Format.toString("%", compilerWorkerCount())
             let arguments = Env.joinArguments([command, "--num-cores", workers, "--file", file])
             var process   = try Env.startProcess(Env.StartInfo{fileName: compiler, arguments: arguments, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
             defer retireProcess(&process)
+
             var watch: Time.Stopwatch
             watch.start()
             while not try process.tryWaitForExit(20'ms)
             {
                 if Atomic.get(cancelled) do
                     return {}
-                if watch.elapsedMilliseconds() > 60000 do
-                    return {text: String.from(appStrings().msg_FormatTimeout), failed: true}
+                if watch.elapsedMilliseconds() > CompilerTimeoutMs do
+                    return {text: appStrings().msg_FormatTimeout, failed: true}
             }
 
             if process.exitCode() != 0
@@ -49,10 +49,8 @@ impl SourceFormatter
             }
         }
 
-        let bytes = try File.readAllBytes(file)
-        result.text = cast(string, bytes.toSlice())
-
         // The editor stores LF; its undo records must count the same runes it inserts.
+        result.text = try File.readAllText(file)
         result.text.replace("\r\n", "\n")
 
         return result

@@ -733,6 +733,14 @@ namespace
         return lastRef.isValid() && sema.node(lastRef).is(AstNodeId::FallThroughStmt);
     }
 
+    bool callsNoReturnFunction(Sema& sema, AstNodeRef callRef)
+    {
+        const SemaNodeView view = sema.viewSymbol(callRef);
+        if (!view.hasSymbol() || !view.sym()->isFunction())
+            return false;
+        return view.sym()->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::NoReturn);
+    }
+
     // A 'switch' leaves the function when no value can walk past it: every case body leaves,
     // and some case always matches. '#complete' is that second half for an enum - the promise
     // the language lets the user make, and the reason the dispatch carries no range test once
@@ -789,10 +797,15 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             return stop != LocalFlowStop::Function;
 
         case AstNodeId::UnreachableStmt:
-            return stop != LocalFlowStop::Guaranteed;
+            return true;
 
         case AstNodeId::IntrinsicCallExpr:
-            return stop != LocalFlowStop::Guaranteed && node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicPanic;
+            if (node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicPanic)
+                return true;
+            return callsNoReturnFunction(sema, nodeRef);
+
+        case AstNodeId::CallExpr:
+            return callsNoReturnFunction(sema, nodeRef);
 
         case AstNodeId::IfStmt:
         {
@@ -806,8 +819,10 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             return ifVarDecl.nodeElseBlockRef.isValid() && stopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef, stop) && stopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef, stop);
         }
 
+        // Its case bodies are judged on the function question: a 'break' in one of them leaves
+        // the switch, not the block holding it.
         case AstNodeId::SwitchStmt:
-            return stop == LocalFlowStop::Function && switchStopsFunctionFlow(sema, nodeRef, node);
+            return switchStopsFunctionFlow(sema, nodeRef, node);
 
         case AstNodeId::InfiniteLoopStmt:
             return stop == LocalFlowStop::Function && !loopBodyBreaksOut(sema, node.cast<AstInfiniteLoopStmt>().nodeBodyRef);

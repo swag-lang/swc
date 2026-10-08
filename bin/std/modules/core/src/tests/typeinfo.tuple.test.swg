@@ -52,8 +52,6 @@ func testCoreTupleRuntimeLifecycle()->bool
 
     let source = Memory.new(tupleType)
     let target = Memory.new(tupleType)
-    if not source or not target do
-        return false
     defer Memory.free(cast([*] void?, source), cast(u64, tupleType.sizeof))
     defer Memory.free(cast([*] void?, target), cast(u64, tupleType.sizeof))
 
@@ -109,8 +107,6 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
 
     let tupleStruct = assume cast(const *TypeInfoStruct, arrayStruct.pointedType)
     let values      = Memory.new(arrayType)
-    if not values do
-        return false
     defer Memory.free(cast([*] void?, values), cast(u64, arrayType.sizeof))
 
     let tuple0  = cast([*] u8, (values))
@@ -157,8 +153,6 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 
     let tupleStruct = assume cast(const *TypeInfoStruct, rawType)
     let value       = Memory.new(aliasType)
-    if not value do
-        return false
     defer Memory.free(cast([*] void?, value), cast(u64, aliasType.sizeof))
 
     let first  = coreTupleLifecycleProbeAt(cast([*] u8, (value)), tupleStruct, 0)

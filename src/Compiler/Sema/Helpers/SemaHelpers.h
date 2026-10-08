@@ -67,26 +67,23 @@ namespace SemaHelpers
     bool    extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
     void    collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuards& out);
     TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
-    // Which statements count as leaving the enclosing block. 'Guaranteed' keeps only the
-    // ones that always do; 'Declared' adds the two that merely promise to and can still fall
-    // through. 'Swag.panic' returns to its caller whenever a panic hook is installed — which is
-    // exactly what the '#test' runner does, so one failing test does not end the run — and
-    // under '#run', where the compiler decides whether execution continues
-    // ('Swag.panic' in bin/runtime/error.swg). 'unreachable' lowers to nothing once
-    // '#[Swag.Safety(.Unreachable, false)]' turns its guard off.
+    // Which statements count as leaving the enclosing block. 'Swag.panic', a call to a
+    // '#[Swag.NoReturn]' function, 'unreachable' and a '#complete' switch whose every case
+    // leaves count by what they declare: an 'unreachable' lowers to nothing once its guard is
+    // off, and an enum value outside its cases walks past a switch with no range test, but
+    // reaching either is a broken program, not a path the code after should be written for.
     //
     // 'Function' asks the stronger question: does control leave the FUNCTION. 'break',
     // 'continue' and 'fallthrough' leave a block and stay in the frame, so they answer no;
-    // a 'switch' and an infinite loop answer yes when no path out of them reaches the
-    // statement after. It is what decides whether a body can complete without returning.
+    // an infinite loop answers yes when no path out of it reaches the statement after. It is
+    // what decides whether a body can complete without returning.
     enum class LocalFlowStop : uint8_t
     {
-        Guaranteed,
-        Declared,
+        Block,
         Function,
     };
 
-    bool stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Declared);
+    bool stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Block);
     void addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts);
     void killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
     void killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);

@@ -149,9 +149,9 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     Swag.assert(window.privacyModeControl.isChecked())
     Swag.assert(not window.mountedDrives.startupEnabled)
 
-    window.mountSettings.path = String.from("C:\\private\\unlisted")
-    window.startupVaults.add({String.from("C:\\private\\startup"), String.from("mount-x"), true, false})
-    window.fileDlgState.currentFolder = String.from("C:\\private\\browse-private")
+    window.mountSettings.path = "C:\\private\\unlisted"
+    window.startupVaults.add({"C:\\private\\startup", "mount-x", true, false})
+    window.fileDlgState.currentFolder = "C:\\private\\browse-private"
     var state = saveMainWindowState(window)
     Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "unlisted")))
     Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "startup")))
@@ -201,7 +201,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     for &one in languages()
     {
-        expect g_App.setLanguage(one.tag.toString())
+        expect g_App.setLanguage(one.tag)
         host.notify(.LanguageChanged)
         Testing.assertContentFits(window)
 
@@ -289,7 +289,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let drive = window.selectedMountPoint()
     Swag.assert(not drive.isEmpty())
 
-    window.operation.path     = String.from("C:\\vaults\\remembered")
+    window.operation.path     = "C:\\vaults\\remembered"
     window.operation.mount    = drive
     window.operation.readOnly = true
     window.rememberMountedDrive()
@@ -303,7 +303,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let secretBytes = cast(const [..] u8, secret)
     Swag.assert(not containsStateBytes(state.toSlice(), secretBytes))
 
-    window.mountKeyFiles.paths.add(String.from("C:\\private\\access.key"))
+    window.mountKeyFiles.paths.add("C:\\private\\access.key")
     state = saveMainWindowState(window)
     Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "access.key")))
 
@@ -360,8 +360,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\protected"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
-    window.mountedDrives.drives.add({null, String.from("C:\\open"), String.from("mount-y"), String.from("Y:"), false, false, false, 0, 0})
+    window.mountedDrives.drives.add({null, "C:\\protected", "mount-x", "X:", true, false, true, 0, 0})
+    window.mountedDrives.drives.add({null, "C:\\open", "mount-y", "Y:", false, false, false, 0, 0})
     window.mountedDrives.refresh()
     window.handleAutoUnmount(.SessionLock)
 
@@ -370,7 +370,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(window.statusMessage == .AutoUnmounted)
 
     window.autoUnmount.onSessionLock = false
-    window.mountedDrives.drives.add({null, String.from("C:\\second"), String.from("mount-z"), String.from("Z:"), true, false, false, 0, 0})
+    window.mountedDrives.drives.add({null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0})
     window.handleAutoUnmount(.SessionLock)
     Swag.assert(window.mountedDrives.drives.count == 2)
 }
@@ -660,7 +660,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     openAndDismiss(&host, resize)
 
     var currentFiles: Array'String
-    currentFiles.add(String.from("C:\\keys\\first.key"))
+    currentFiles.add("C:\\keys\\first.key")
     let keyFiles      = FormDlg.create(&host.surface, options)
     let keyFileFields = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
     Swag.assert(keyFiles.form.rows.count == 1)
@@ -695,7 +695,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     for &one in languages()
     {
-        expect g_App.setLanguage(one.tag.toString())
+        expect g_App.setLanguage(one.tag)
         host.notify(.LanguageChanged)
 
         var options: FormDlgOptions
@@ -709,7 +709,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         assertFormFits(&host, resize)
 
         var currentFiles: Array'String
-        currentFiles.add(String.from("C:\\keys\\first.key"))
+        currentFiles.add("C:\\keys\\first.key")
         let keyFiles = FormDlg.create(&host.surface, options)
         discard buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
         assertFormFits(&host, keyFiles)
@@ -743,8 +743,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
     Swag.assert(not window.mountedDrives.unmountButton.isEnabled())
 
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one"), String.from("mount-x"), String.from("X:"), true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two"), String.from("mount-y"), String.from("Y:"), false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
+    window.mountedDrives.drives.add({null, "C:\\vaults\\one", "mount-x", "X:", true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
+    window.mountedDrives.drives.add({null, "C:\\vaults\\two", "mount-y", "Y:", false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
     window.mountedDrives.refresh()
 
     Swag.assert(window.mountedDrives.list.isLocallyVisible())
@@ -790,7 +790,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.privacyMode = false
     window.applyPrivacyControl()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one"), String.from("mount-x"), String.from("X:"), true, false, false, 0, 0})
+    window.mountedDrives.drives.add({null, "C:\\one", "mount-x", "X:", true, false, false, 0, 0})
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
@@ -802,7 +802,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     discard window.mountedDrives.detach(0)
     Swag.assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
+    window.mountedDrives.drives.add({null, "C:\\one", "mount-x", "X:", true, false, true, 0, 0})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     Swag.assert(window.startupVaults.isEmpty())
@@ -1007,7 +1007,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     // The snapshot owns its mount destination; occupied host drives must not change the image.
     window.mountDestinations.clear()
-    window.mountDestinations.add({String.from("D:"), String.from("D:")})
+    window.mountDestinations.add({"D:", "D:"})
     window.drive.clear()
     window.drive.addItem("D:")
     window.drive.setSelectedIndex(0, notify: false)
@@ -1027,7 +1027,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     window.privacyMode = false
-    window.startupVaults.add({String.from("C:\\vault.bin"), String.from("mount-x"), true, false, true})
+    window.startupVaults.add({"C:\\vault.bin", "mount-x", true, false, true})
     var keyFiles: Array'String
     window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
     window.protectHidden.setState(.Checked)
@@ -1051,7 +1051,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         defer host.shutdown()
         for &one in languages()
         {
-            expect g_App.setLanguage(one.tag.toString())
+            expect g_App.setLanguage(one.tag)
             host.notify(.LanguageChanged)
             let height    = host.surface.position.height
             var tallest   = 0'f32

@@ -1,44 +1,48 @@
 #global internal
+#global namespace Viewers.Typeface
 
 using Core, Pixel, Gui, TrueType
 
-// Air around the document, and the width the pixel-size label reserves beside a specimen line.
-private const FontContentInset     = 32.0
-private const FontSampleLabelWidth = 48.0
+private
+{
+    // Air around the document, and the width the pixel-size label reserves beside a specimen line.
+    const ContentInset     = 32.0
+    const SampleLabelWidth = 48.0
 
-// Air between the two bands of the page, between a caption and what it names, and between two
-// specimen lines.
-private const FontSectionGap = 40.0
-private const FontCaptionGap = 18.0
-private const FontSampleGap  = 12.0
+    // Air between the two bands of the page, between a caption and what it names, and between two
+    // specimen lines.
+    const SectionGap = 40.0
+    const CaptionGap = 18.0
+    const SampleGap  = 12.0
 
-// One character cell: its width, the air between two of them, and the air it keeps inside its own
-// edges. Its height is measured rather than fixed, because it is whatever the glyph and the code
-// label need.
-private const FontCellWidth   = 88.0
-private const FontCellGap     = 8.0
-private const FontCellPadding = 8.0
+    // One character cell: its width, the air between two of them, and the air it keeps inside its own
+    // edges. Its height is measured rather than fixed, because it is whatever the glyph and the code
+    // label need.
+    const CellWidth   = 88.0
+    const CellGap     = 8.0
+    const CellPadding = 8.0
 
-// Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
-private const FontNameSize    = 32'u32
-private const FontGlyphSize   = 40'u32
-private const FontCaptionSize = 12'u32
-private const FontCodeSize    = 11'u32
-private const FontSampleCount = 4
-private const FontSampleSizes: [FontSampleCount] u32 = [22, 32, 46, 64]
+    // Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
+    const NameSize    = 32'u32
+    const GlyphSize   = 40'u32
+    const CaptionSize = 12'u32
+    const CodeSize    = 11'u32
+    const SampleCount = 4
+    const SampleSizes: [SampleCount] u32 = [22, 32, 46, 64]
 
-private const FontCharacterPageSize = 192'u64
-private const FontFirstCharacter    = 0x20'u32
-private const FontCharacterLimit    = 0x110000'u32
+    const CharacterPageSize = 192'u64
+    const FirstCharacter    = 0x20'u32
+    const CharacterLimit    = 0x110000'u32
+}
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
-func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
+func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
 {
     var result: retval
-    var code = Math.max(start, FontFirstCharacter)
+    var code = Math.max(start, FirstCharacter)
     result.end = code
 
-    while code < FontCharacterLimit
+    while code < CharacterLimit
     {
         let character = cast(rune, code)
         if Utf8.isValidRune(character) and face.hasChar(character)
@@ -64,7 +68,7 @@ func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacterPageSize
 // The texts are built when the page loads rather than when a cell is painted: the map repaints on
 // every scroll notch, and formatting a page of code points again per frame would make scrolling
 // allocate.
-struct FontDocumentCell
+struct DocumentCell
 {
     character: rune
     glyph:     String
@@ -76,12 +80,12 @@ struct FontDocumentCell
 // The page is measured rather than assembled from fixed offsets. A specimen line is as tall as the
 // face makes it at that size, so the character map below can only be placed once the lines above
 // have been measured; a constant would work for one face and let a tall one overlap.
-struct FontDocumentLayout
+struct DocumentLayout
 {
     nameTop:    f32         // Top of the family name.
     metricsTop: f32         // Top of the style, glyph count and units-per-em line.
     captionTop: f32         // Top of the specimen caption.
-    sampleTops: [FontSampleCount] f32     // Top of each specimen line, one per entry of `FontSampleSizes`.
+    sampleTops: [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
     mapTop:     f32         // Top of the character-map caption.
     gridTop:    f32         // Top of the first row of cells.
     gridLeft:   f32         // Left edge of the first column.
@@ -92,7 +96,7 @@ struct FontDocumentLayout
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.
-struct FontDocumentView
+struct DocumentView
 {
     using wnd: Wnd
 
@@ -110,41 +114,41 @@ struct FontDocumentView
     fontBytes: Array'u8
     face:      *Face?
 
-    cells:     Array'FontDocumentCell
-    layout:    FontDocumentLayout
+    cells:     Array'DocumentCell
+    layout:    DocumentLayout
     history:   Array'u32
     pageStart: u32
     pageEnd:   u32
     hasNext:   bool
 }
 
-private impl FontDocumentView
+private impl DocumentView
 {
     // Returns the view the inspected face is drawn at for one specimen size.
     //
     // A font cache hands out views of shared glyph storage and walks a handful of entries to do it,
     // so resolving one on the draw path costs a lookup and no allocation. Caching four of them in
-    // the view would only duplicate `FontSampleSizes` in a second place.
+    // the view would only duplicate `SampleSizes` in a second place.
     mtd sampleFont(size: u32)->*Font => .app().renderer.fontCache().createFont(.typeFace, size)
 
     mtd paintSpecimen(painter: *Painter)
     {
         let colors = .themeColors()
         let family = .face!.familyName
-        let style  = .face.styleName.isEmpty() ? fontStrings().ui_Regular : .face.styleName.toString()
+        let style  = .face.styleName.isEmpty() ? texts().ui_Regular : .face.styleName.toString()
 
-        painter.drawString(FontContentInset, .layout.nameTop, family, .fontName, colors.label_Text)
-        let metrics = Format.toString(fontStrings().ui_Metrics, style, .face.glyphCount, .face.unitsPerEm)
-        painter.drawString(FontContentInset, .layout.metricsTop, metrics, .fontCode, colors.label_TextFaint)
-        painter.drawString(FontContentInset, .layout.captionTop, fontStrings().ui_Specimen, .fontLabel, colors.label_TextFaint)
+        painter.drawString(ContentInset, .layout.nameTop, family, .fontName, colors.label_Text)
+        let metrics = Format.toString(texts().ui_Metrics, style, .face.glyphCount, .face.unitsPerEm)
+        painter.drawString(ContentInset, .layout.metricsTop, metrics, .fontCode, colors.label_TextFaint)
+        painter.drawString(ContentInset, .layout.captionTop, texts().ui_Specimen, .fontLabel, colors.label_TextFaint)
 
         let sample = .sampleEdit.text()
-        for size, index in FontSampleSizes
+        for size, index in SampleSizes
         {
             let top      = .layout.sampleTops[index]
             let sizeText = Format.toString("% px", size)
-            painter.drawString(FontContentInset, top + FontCellPadding, sizeText, .fontCode, colors.label_TextFaint)
-            painter.drawString(FontContentInset + FontSampleLabelWidth, top, sample, .sampleFont(size), colors.label_Text)
+            painter.drawString(ContentInset, top + CellPadding, sizeText, .fontCode, colors.label_TextFaint)
+            painter.drawString(ContentInset + SampleLabelWidth, top, sample, .sampleFont(size), colors.label_Text)
         }
     }
 
@@ -152,17 +156,17 @@ private impl FontDocumentView
     mtd paintCharacterMap(painter: *Painter, band: Math.Rectangle)
     {
         let colors = .themeColors()
-        painter.drawString(FontContentInset, .layout.mapTop, fontStrings().ui_CharacterMap, .fontLabel, colors.label_TextFaint)
+        painter.drawString(ContentInset, .layout.mapTop, texts().ui_CharacterMap, .fontLabel, colors.label_TextFaint)
 
         if .cells.isEmpty()
         {
-            painter.drawString(FontContentInset, .layout.gridTop, fontStrings().ui_NoCharacters, .fontCode, colors.label_TextLight)
+            painter.drawString(ContentInset, .layout.gridTop, texts().ui_NoCharacters, .fontCode, colors.label_TextLight)
             return
         }
 
         // A page holds far more cells than a viewport shows, so the band names the rows to draw
         // instead of the loop walking every cell to reject it.
-        let pitch = .layout.cellHeight + FontCellGap
+        let pitch = .layout.cellHeight + CellGap
         let first = Math.min(cast(u64, (Math.max(band.y - .layout.gridTop, 0) / pitch)), .layout.rows)
         let last  = Math.min(cast(u64, Math.ceil(Math.max(band.bottom() - .layout.gridTop, 0) / pitch)), .layout.rows)
 
@@ -177,10 +181,10 @@ private impl FontDocumentView
                     break
 
                 let cell = &.cells[index]
-                let box  = Math.Rectangle{.layout.gridLeft + cast(f32, column) * (FontCellWidth + FontCellGap), top, FontCellWidth, .layout.cellHeight}
+                let box  = Math.Rectangle{.layout.gridLeft + cast(f32, column) * (CellWidth + CellGap), top, CellWidth, .layout.cellHeight}
                 painter.fillRoundRect(box, corner, corner, colors.wnd_Bk)
 
-                let codeTop   = box.bottom() - FontCellPadding - .fontCode.height
+                let codeTop   = box.bottom() - CellPadding - .fontCode.height
                 let codeWidth = Painter.measureString(cell.code, .fontCode).width
                 painter.drawString(box.horzCenter() - codeWidth * 0.5, codeTop, cell.code, .fontCode, colors.label_TextFaint)
 
@@ -188,14 +192,14 @@ private impl FontDocumentView
                 // face that reserves room for accents it is not showing does not sit low in the cell
                 // while a compact one sits high.
                 let glyphWidth = Painter.measureString(cell.glyph, .fontGlyph).width
-                let glyphTop   = .fontGlyph.opticalLineTop((box.y + FontCellPadding + codeTop) * 0.5)
+                let glyphTop   = .fontGlyph.opticalLineTop((box.y + CellPadding + codeTop) * 0.5)
                 painter.drawString(box.horzCenter() - glyphWidth * 0.5, glyphTop, cell.glyph, .fontGlyph, colors.label_Text)
             }
         }
     }
 }
 
-impl IWnd for FontDocumentView
+impl IWnd for DocumentView
 {
     mtd impl onDestroyEvent(?: *DestroyEvent)
     {
@@ -223,8 +227,8 @@ impl IWnd for FontDocumentView
 
         // Both captions and every code label are set in the theme's own faces, so a theme change
         // replaces them and moves every band measured under them.
-        .fontLabel = .theme().createDefaultFont(FontCaptionSize, .Bold)
-        .fontCode  = .theme().createDefaultFontFs(FontCodeSize)
+        .fontLabel = .theme().createDefaultFont(CaptionSize, .Bold)
+        .fontCode  = .theme().createDefaultFontFs(CodeSize)
         .refreshLayout()
     }
 
@@ -236,7 +240,7 @@ impl IWnd for FontDocumentView
             return
         }
 
-        let line = .layout.cellHeight + FontCellGap
+        let line = .layout.cellHeight + CellGap
         let page = Math.max(.clientRect().height - line, line)
         switch evt.key
         {
@@ -267,11 +271,11 @@ impl IWnd for FontDocumentView
     }
 }
 
-impl FontDocumentView
+impl DocumentView
 {
     // Creates the scrollable specimen of `face` under `parent`, taking ownership of `face` and of
     // the bytes it was loaded from; `sampleEdit` supplies the specimen text.
-    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: Array'u8, sampleEdit: *EditBox)->*FontDocumentView
+    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: Array'u8, sampleEdit: *EditBox)->*DocumentView
     {
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
         {
@@ -279,7 +283,7 @@ impl FontDocumentView
             .updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)
         }
 
-        with let result = scroll.createView'FontDocumentView()
+        with let result = scroll.createView'DocumentView()
         {
             .scroll          = scroll
             .fontBytes       = #move fontBytes
@@ -292,12 +296,12 @@ impl FontDocumentView
         }
 
         let cache = result.app().renderer.fontCache()
-        result.fontName  = cache.createFont(typeFace, FontNameSize)
-        result.fontGlyph = cache.createFont(typeFace, FontGlyphSize)
-        result.fontLabel = result.theme().createDefaultFont(FontCaptionSize, .Bold)
-        result.fontCode  = result.theme().createDefaultFontFs(FontCodeSize)
+        result.fontName  = cache.createFont(typeFace, NameSize)
+        result.fontGlyph = cache.createFont(typeFace, GlyphSize)
+        result.fontLabel = result.theme().createDefaultFont(CaptionSize, .Bold)
+        result.fontCode  = result.theme().createDefaultFontFs(CodeSize)
 
-        result.loadPage(FontFirstCharacter)
+        result.loadPage(FirstCharacter)
         return result
     }
 
@@ -312,38 +316,38 @@ impl FontDocumentView
     // Measures every band of the page for the current width, then republishes the scrollable height.
     mtd refreshLayout()
     {
-        var y = FontContentInset
+        var y = ContentInset
         .layout.nameTop = y
         y += .fontName.height
 
         .layout.metricsTop = y
-        y += .fontCode.height + FontSectionGap
+        y += .fontCode.height + SectionGap
 
         .layout.captionTop = y
-        y += .fontLabel.height + FontCaptionGap
+        y += .fontLabel.height + CaptionGap
 
-        for size, index in FontSampleSizes
+        for size, index in SampleSizes
         {
             .layout.sampleTops[index] = y
-            y += .sampleFont(size).height + FontSampleGap
+            y += .sampleFont(size).height + SampleGap
         }
 
-        .layout.mapTop     = y - FontSampleGap + FontSectionGap
-        .layout.gridTop    = .layout.mapTop + .fontLabel.height + FontCaptionGap
-        .layout.cellHeight = 3 * FontCellPadding + .fontGlyph.height + .fontCode.height
+        .layout.mapTop     = y - SampleGap + SectionGap
+        .layout.gridTop    = .layout.mapTop + .fontLabel.height + CaptionGap
+        .layout.cellHeight = 3 * CellPadding + .fontGlyph.height + .fontCode.height
 
         let client = .clientRect()
-        let usable = Math.max(client.width - 2 * FontContentInset, FontCellWidth)
-        .layout.columns = Math.max(1, cast(u32, ((usable + FontCellGap) / (FontCellWidth + FontCellGap))))
+        let usable = Math.max(client.width - 2 * ContentInset, CellWidth)
+        .layout.columns = Math.max(1, cast(u32, ((usable + CellGap) / (CellWidth + CellGap))))
         .layout.rows    = (.cells.count + .layout.columns - 1) / .layout.columns
 
-        let gridWidth = cast(f32, .layout.columns) * FontCellWidth + cast(f32, .layout.columns - 1) * FontCellGap
-        .layout.gridLeft = Math.max(FontContentInset, (client.width - gridWidth) * 0.5)
+        let gridWidth = cast(f32, .layout.columns) * CellWidth + cast(f32, .layout.columns - 1) * CellGap
+        .layout.gridLeft = Math.max(ContentInset, (client.width - gridWidth) * 0.5)
 
         var grid = .fontCode.height
         if .layout.rows do
-            grid = cast(f32, .layout.rows) * (.layout.cellHeight + FontCellGap) - FontCellGap
-        .layout.height = .layout.gridTop + grid + FontContentInset
+            grid = cast(f32, .layout.rows) * (.layout.cellHeight + CellGap) - CellGap
+        .layout.height = .layout.gridTop + grid + ContentInset
 
         .scroll.setScrollSize(0, .layout.height)
         .invalidate()
@@ -351,7 +355,7 @@ impl FontDocumentView
 
     mtd loadPage(start: u32)
     {
-        let page = fontCharacterPage(.face!, start)
+        let page = characterPage(.face!, start)
         .pageStart = not page.characters.isEmpty() ? cast(u32, page.characters[0]) : start
         .pageEnd   = page.end
         .hasNext   = page.hasNext
@@ -360,7 +364,7 @@ impl FontDocumentView
         .cells.reserve(page.characters.count)
         for character in page.characters
         {
-            var cell: FontDocumentCell
+            var cell: DocumentCell
             cell.character = character
             cell.glyph.append(character)
             cell.code = Format.toString("U+%{X04}", cast(u32, character))
@@ -399,6 +403,6 @@ impl FontDocumentView
     // turned a page is looking.
     mtd revealCharacterMap()
     {
-        .scroll.setScrollPos(0, .layout.mapTop - FontCaptionGap)
+        .scroll.setScrollPos(0, .layout.mapTop - CaptionGap)
     }
 }

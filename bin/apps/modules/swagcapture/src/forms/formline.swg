@@ -212,8 +212,7 @@ impl IForm for FormLine
         }
     }
 
-    mtd impl isInside(?: Math.Point)->bool => false
-
+    mtd impl isInside(?: Math.Point)->bool         => false
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

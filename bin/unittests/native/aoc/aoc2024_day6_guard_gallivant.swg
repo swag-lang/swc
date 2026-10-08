@@ -131,8 +131,6 @@ func turnRight(dir: Direction)->Direction
     case Direction.Down:  return Direction.Left
     case Direction.Left:  return Direction.Up
     }
-
-    return Direction.Up
 }
 
 func directionDelta(outDx: *s32, outDy: *s32, dir: Direction)

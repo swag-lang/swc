@@ -296,7 +296,7 @@ impl Undo
                 if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
-                let storage = Memory.new(mdlType)!
+                let storage = Memory.new(mdlType)
                 let view    = Swag.makeInterface(storage, mdlType, IForm)!
                 let save    = assume cast(*BaseForm, view)
                 itf.copy(save, form)
@@ -409,10 +409,10 @@ impl Undo
                 .backImg       = .backImgOriginal
                 .width         = .widthOrg
                 .height        = .heightOrg
+                .dirtyBackImg  = true
+                .backImagePos.clear()
                 .selection.clear()
                 .forms.clear()
-                .dirtyBackImg = true
-                .backImagePos.clear()
                 .selectionHasChanged()
             }
 
@@ -422,10 +422,10 @@ impl Undo
                 // On redo, undo has cleared capture.selection, so bake from the command's
                 // OWN saved selection (the same set removeSelection deletes). Restoring it
                 // here keeps toImage(onlySel) and removeSelection consistent on every replay.
-                .selection = me.selection
-                .backImg   = .toImage(onlySel: true)
-                .backImagePos.clear()
+                .selection    = me.selection
+                .backImg      = .toImage(onlySel: true)
                 .dirtyBackImg = true
+                .backImagePos.clear()
             }
 
             .removeSelection()
@@ -433,12 +433,12 @@ impl Undo
         case .FlattenAll:
             with capture
             {
-                .backImg = capture.toImage()
-                .backImagePos.clear()
+                .backImg       = .toImage()
                 me.toFreeForms = .forms
+                .dirtyBackImg  = true
+                .backImagePos.clear()
                 .selection.clear()
                 .forms.clear()
-                .dirtyBackImg = true
                 .selectionHasChanged()
             }
 
@@ -560,8 +560,7 @@ impl Undo
             }
 
         case .MovePoint:
-            let baseForm = .baseForm!
-            baseForm.movePoint(.pointIdx, .newPosX, .newPosY)
+            .baseForm!.movePoint(.pointIdx, .newPosX, .newPosY)
 
         case .MoveBaseForm:
             .baseForm!.moveBaseForm(.newPosX, .newPosY, .newSizeX, .newSizeY)
@@ -576,12 +575,15 @@ impl Undo
             // exceeds it, and trimming then undoing must not truncate it. The size the
             // deltas can reach is bounded where they are authored — the resize gizmo and
             // those dialogs.
-            capture.backImagePos.x += .newPosX
-            capture.backImagePos.y += .newPosY
-            for f in capture.forms do
-                f.moveForm(.newPosX, .newPosY)
-            capture.width  += .newSizeX
-            capture.height += .newSizeY
+            with capture
+            {
+                .backImagePos.x += me.newPosX
+                .backImagePos.y += me.newPosY
+                .width          += me.newSizeX
+                .height         += me.newSizeY
+                for f in .forms do
+                    f.moveForm(me.newPosX, me.newPosY)
+            }
 
         case .OffsetSelection:
             foreachSelected'BaseForm(capture, .selection)
@@ -592,7 +594,7 @@ impl Undo
         case .MoveToFront:
             capture.hotForm = Swag.U64.Max
             var dstIdx = capture.forms.count - 1
-            for i in (.selection).count.reversed()
+            for i in .selection.count.reversed()
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx -= 1
@@ -601,7 +603,7 @@ impl Undo
         case .MoveToBack:
             capture.hotForm = Swag.U64.Max
             var dstIdx = 0'u64
-            for i in (.selection).count
+            for i in .selection.count
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx += 1
@@ -609,7 +611,7 @@ impl Undo
 
         case .MoveForward:
             capture.hotForm = Swag.U64.Max
-            for i in (.selection).count.reversed()
+            for i in .selection.count.reversed()
             {
                 let srcIdx = .selection[i]
                 if srcIdx != capture.forms.count - 1 do
@@ -618,7 +620,7 @@ impl Undo
 
         case .MoveBackward:
             capture.hotForm = Swag.U64.Max
-            for i in (.selection).count
+            for i in .selection.count
             {
                 let srcIdx = .selection[i]
                 if srcIdx != 0 do
@@ -648,13 +650,13 @@ impl Undo
             with capture
             {
                 me.toFreeForms.clear()
-                .width   = me.oldS32[0]
-                .height  = me.oldS32[1]
-                .backImg = me.oldImg
-                .forms   = me.oldForms
-                .selection.clear()
-                .dirtyBackImg = true
+                .width        = me.oldS32[0]
+                .height       = me.oldS32[1]
+                .backImg      = me.oldImg
+                .forms        = me.oldForms
                 .backImagePos = me.oldImagePos
+                .dirtyBackImg = true
+                .selection.clear()
                 .selectionHasChanged()
             }
 
@@ -665,8 +667,8 @@ impl Undo
                 .backImg      = me.oldImg
                 .backImagePos = me.oldImagePos
                 .forms        = me.oldForms
-                .selection.clear()
                 .dirtyBackImg = true
+                .selection.clear()
                 .selectionHasChanged()
             }
 
@@ -780,19 +782,21 @@ impl Undo
             }
 
         case .MovePoint:
-            let baseForm = .baseForm!
-            baseForm.movePoint(.pointIdx, -.newPosX, -.newPosY)
+            .baseForm!.movePoint(.pointIdx, -.newPosX, -.newPosY)
 
         case .MoveBaseForm:
             .baseForm!.moveBaseForm(-.newPosX, -.newPosY, -.newSizeX, -.newSizeY)
 
         case .MoveCapture:
-            capture.backImagePos.x -= .newPosX
-            capture.backImagePos.y -= .newPosY
-            for f in capture.forms do
-                f.moveForm(-.newPosX, -.newPosY)
-            capture.width  -= .newSizeX
-            capture.height -= .newSizeY
+            with capture
+            {
+                .backImagePos.x -= me.newPosX
+                .backImagePos.y -= me.newPosY
+                .width          -= me.newSizeX
+                .height         -= me.newSizeY
+                for f in .forms do
+                    f.moveForm(-me.newPosX, -me.newPosY)
+            }
 
         case .OffsetSelection:
             foreachSelected'BaseForm(capture, .selection)

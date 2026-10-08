@@ -32,7 +32,7 @@ struct CollectionDynamicChild
 #test
 {
     let type: typeinfo = CollectionDynamicChild
-    let storage        = Memory.new(type)!
+    let storage        = Memory.new(type)
     defer Memory.delete(storage, type)
     let value = cast(*CollectionDynamicChild, storage)
     let base: *CollectionDynamicBase = value

@@ -16,7 +16,7 @@ func viewerStartupFile(arguments: const [..] string)->String
         return {}
 
     for argument in arguments[1 to] where Path.isValidPathName(argument) and File.exists(argument) do
-        return String.from(argument)
+        return argument
     return {}
 }
 
@@ -27,7 +27,7 @@ func viewerSmokeDirectory(arguments: const [..] string)->String
         return {}
 
     for argument in arguments[1 to] where Utf8.startsWith(cast(const [..] u8, argument), ViewerSmokeArgument) do
-        return String.from(argument[ViewerSmokeArgument.count to])
+        return argument[ViewerSmokeArgument.count to]
     return {}
 }
 
@@ -61,7 +61,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "settings.scc"))
     registerAppStrings(&g_App.resources)
 
-    let surface = try g_App.createSurface(80, 50, ViewerMinWidth, 680, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
+    let surface = try g_App.createSurface(80, 50, ViewerWindow.MinWidth, 680, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     surface.setTitle(appStrings().ui_WindowTitle)

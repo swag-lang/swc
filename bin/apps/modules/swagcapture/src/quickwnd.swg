@@ -194,8 +194,8 @@ func quickStyleTip(itf: IForm)->string
     if Swag.kindOf(itf) != FormImage do
         return ""
 
-    let img = assume cast(*FormImage, itf)
-    switch #complete img.kind
+    let image = assume cast(*FormImage, itf)
+    switch #complete image.kind
     {
     case .Image:    return appStrings().prop_KindImage
     case .Blur:     return appStrings().prop_KindBlur
@@ -336,8 +336,8 @@ impl QuickWnd
             .addItem(ActionQuickStyle.Reset)
         }
 
-        let res = menu.doModal(pos, autoDestroy: true)
-        if res == "0" and btn
+        let result = menu.doModal(pos, autoDestroy: true)
+        if result == "0" and btn
         {
             let qbtn = assume cast(*QuickButton, btn)
             .currentStyle!.remove(qbtn.formItf!)
@@ -752,11 +752,11 @@ impl QuickWnd
         // button is ever hidden), so form 'i' maps directly to child 'i'.
         for it, i in .currentStyle.forms
         {
-            let btn = assume cast(*IconButton, .layout.children[i])
-            let mdl = .main.modelFor(Swag.kindOf(it))
-            btn.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(assume cast(*BaseForm, mdl)))
+            let button = assume cast(*IconButton, .layout.children[i])
+            let mdl    = .main.modelFor(Swag.kindOf(it))
+            button.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(assume cast(*BaseForm, mdl)))
 
-            if btn.isChecked do
+            if button.isChecked do
                 done = true
         }
 
@@ -875,7 +875,7 @@ impl QuickWnd
 
         for it in .currentStyle.forms
         {
-            with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
+            with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
             {
                 .updateFlags(.Radio)
                 .setForm(.Rectangle)
@@ -888,16 +888,16 @@ impl QuickWnd
                 .quickWnd = me
                 .toolTip  = quickStyleTip(it)
 
-                .iconPainter     = func(btn, bc, pos, flags) { paintForm(bc.painter, assume cast(*QuickButton, btn)) }
-                .sigRightPressed += func(btn) { assume cast(*QuickButton, btn).quickWnd.btnPopup(btn, btn.surfaceRect().center()) }
+                .iconPainter     = func(button, bc, pos, flags) { paintForm(bc.painter, assume cast(*QuickButton, button)) }
+                .sigRightPressed += func(button) { assume cast(*QuickButton, button).quickWnd.btnPopup(button, button.surfaceRect().center()) }
             }
 
-            btn.sigCheckedChanged += func(btn)
+            button.sigCheckedChanged += func(button)
             {
-                if not btn.isChecked do
+                if not button.isChecked do
                     return
 
-                let quickBtn = assume cast(*QuickButton, btn)
+                let quickBtn = assume cast(*QuickButton, button)
                 let quick    = quickBtn.quickWnd
                 let it       = quickBtn.formItf!
                 quick.main.updateModel(it)

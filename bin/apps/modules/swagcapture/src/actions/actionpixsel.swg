@@ -136,8 +136,8 @@ impl MainWnd
 
             if masks
             {
-                var img = Image.create(1 + cast(s32, br.width), 1 + cast(s32, br.height), .RGBA8)
-                masks.add(#move img)
+                var image = Image.create(1 + cast(s32, br.width), 1 + cast(s32, br.height), .RGBA8)
+                masks.add(#move image)
             }
 
             // Compute colors at the start and at the end of the column, to interpolate

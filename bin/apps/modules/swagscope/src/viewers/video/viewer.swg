@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Film
 
 using Core, Pixel, Gui, Video, Audio
 
@@ -6,16 +7,16 @@ using Core, Pixel, Gui, Video, Audio
 //
 // It offers itself for every container the video module can read, so a demuxer added there reaches
 // the player without a list to update here.
-func videoViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "video"
         .staticName   = "Video"
-        .attach       = &registerVideoStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Video)
-        .create       = &createVideoViewer
+        .create       = &createViewer
         .smokeFixture = "glint-aac-mjpeg.mp4"
     }
 
@@ -24,31 +25,34 @@ func videoViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const VideoSeekSeconds        = 10.0
-private const VideoCommandWidth       = 1080.0
-private const VideoSeekOverlaySize    = Math.Point{112, 64}
-private const VideoSeekOverlayOffsetY = 56.0
-private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
-private const VideoNoSubtitle         = Swag.U32.Max
+private
+{
+    const SeekSeconds        = 10.0
+    const CommandWidth       = 1080.0
+    const SeekOverlaySize    = Math.Point{112, 64}
+    const SeekOverlayOffsetY = 56.0
+    const SeekOverlayLifetime: Time.Duration = 650'ms
+    const NoSubtitle         = Swag.U32.Max
 
-// The playback rates the settings menu offers. XAudio2 creates every voice with the default
-// maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
-private const VideoPlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+    // The playback rates the settings menu offers. XAudio2 creates every voice with the default
+    // maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
+    const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+}
 
-enum VideoSubtitleSource
+enum SubtitleSource
 {
     Off
     Embedded
     Sidecar
 }
 
-enum VideoSubtitleFont
+enum SubtitleFont
 {
     Sans
     Monospace
 }
 
-enum VideoSubtitleSize
+enum SubtitleSize
 {
     Small
     Normal
@@ -56,7 +60,7 @@ enum VideoSubtitleSize
     VeryLarge
 }
 
-enum VideoSubtitleEffect
+enum SubtitleEffect
 {
     Outline
     Shadow
@@ -64,32 +68,41 @@ enum VideoSubtitleEffect
     None
 }
 
-enum VideoSubtitlePosition
+enum SubtitlePosition
 {
     Bottom
     Center
     Top
 }
 
-enum VideoSubtitleColor
+enum SubtitleColor
 {
     White
     Yellow
 }
 
-struct VideoSubtitleSettings
+struct SubtitleSettings
 {
-    font:     VideoSubtitleFont
-    size:     VideoSubtitleSize = .Normal
-    effect:   VideoSubtitleEffect
-    position: VideoSubtitlePosition
-    color:    VideoSubtitleColor
+    font:     SubtitleFont
+    size:     SubtitleSize = .Normal
+    effect:   SubtitleEffect
+    position: SubtitlePosition
+    color:    SubtitleColor
     delay:    f64
 }
 
-var g_VideoSubtitleSettings: VideoSubtitleSettings
+impl SubtitleSettings
+{
+    // Brings preferences read back from a saved state into the ranges the menus offer.
+    mtd sanitize()
+    {
+        .delay = Math.clamp(.delay, -60, 60)
+    }
+}
 
-private func videoSubtitleFontSize(size: VideoSubtitleSize)->u32
+var g_SubtitleSettings: SubtitleSettings
+
+private func subtitleFontSize(size: SubtitleSize)->u32
 {
     switch #complete size
     {
@@ -114,7 +127,7 @@ private func drawStringKeyline(painter: *Painter, x, y: f32, text: string, font:
 }
 
 // Timed text painted over the picture without taking part in input or layout.
-struct VideoSubtitleOverlay
+struct SubtitleOverlay
 {
     using wnd: Wnd
 
@@ -122,7 +135,7 @@ struct VideoSubtitleOverlay
     sidecars: Array'*Subtitle.Track
 }
 
-private impl IWnd for VideoSubtitleOverlay
+private impl IWnd for SubtitleOverlay
 {
     mtd impl onDestroyEvent(?: *DestroyEvent)
     {
@@ -139,7 +152,7 @@ private impl IWnd for VideoSubtitleOverlay
         let painter = evt.paintContext.painter
         let rect    = .clientRect()
         let font    = .font().regular!
-        let lines   = Tokenize.splitLines(.text.toString())
+        let lines   = Tokenize.splitLines(.text)
         if lines.isEmpty() do
             return
 
@@ -147,7 +160,7 @@ private impl IWnd for VideoSubtitleOverlay
         let height  = cast(f32, lines.count) * font.height + cast(f32, lines.count - 1) * lineGap
         let inset   = Math.max(24'f32, rect.height * 0.06)
         var y: f32
-        switch g_VideoSubtitleSettings.position
+        switch g_SubtitleSettings.position
         {
         case .Bottom: y = rect.height - inset - height
         case .Center: y = (rect.height - height) * 0.5
@@ -156,18 +169,18 @@ private impl IWnd for VideoSubtitleOverlay
 
         y = Math.max(y, 0)
 
-        let ink  = g_VideoSubtitleSettings.color == .Yellow ? Color.fromArgb(0xFFFFE66D) : Color.fromArgb(Argb.White)
+        let ink  = g_SubtitleSettings.color == .Yellow ? Color.fromArgb(0xFFFFE66D) : Color.fromArgb(Argb.White)
         let edge = Color.fromArgb(0xE6000000)
         painter.setAntialiased(true)
         for line in lines
         {
             let size = Painter.measureString(line, font)
             let x    = Math.floor(rect.horzCenter() - size.width * 0.5)
-            if g_VideoSubtitleSettings.effect == .Background do
+            if g_SubtitleSettings.effect == .Background do
                 painter.fillRect(x - 8, y - 3, size.width + 16, font.height + 6, Color.fromArgb(0xA6000000))
-            elif g_VideoSubtitleSettings.effect == .Shadow do
+            elif g_SubtitleSettings.effect == .Shadow do
                 painter.drawString(x + 2, y + 2, line, font, edge)
-            elif g_VideoSubtitleSettings.effect == .Outline do
+            elif g_SubtitleSettings.effect == .Outline do
                 drawStringKeyline(painter, x, y, line, font, edge, 1.5)
 
             painter.drawString(x, y, line, font, ink)
@@ -176,11 +189,11 @@ private impl IWnd for VideoSubtitleOverlay
     }
 }
 
-impl VideoSubtitleOverlay
+impl SubtitleOverlay
 {
-    func create(parent: *Wnd)->*VideoSubtitleOverlay
+    func create(parent: *Wnd)->*SubtitleOverlay
     {
-        with let result = Wnd.create'VideoSubtitleOverlay(parent, "scope.video.subtitle")
+        with let result = Wnd.create'SubtitleOverlay(parent, "scope.video.subtitle")
         {
             .dockStyle       = .Center
             .wndFlags        |= .TopMost | .Disabled
@@ -193,8 +206,8 @@ impl VideoSubtitleOverlay
 
     mtd applySettings()
     {
-        let size = videoSubtitleFontSize(g_VideoSubtitleSettings.size)
-        let font = g_VideoSubtitleSettings.font == .Monospace ? .theme().createDefaultFontFs(size, .Bold) : .theme().createDefaultFont(size, .Bold)
+        let size = subtitleFontSize(g_SubtitleSettings.size)
+        let font = g_SubtitleSettings.font == .Monospace ? .theme().createDefaultFontFs(size, .Bold) : .theme().createDefaultFont(size, .Bold)
         .style.setFont(font, .Regular)
         .invalidate()
     }
@@ -214,7 +227,7 @@ impl VideoSubtitleOverlay
 // The Voltage mark carries an Ink keyline rather than a tile, so it remains legible over both
 // bright and dark frames without covering the picture. Presentation transforms move the complete
 // sign in the direction of travel without disturbing layout or hit testing.
-struct VideoSeekOverlay
+struct SeekOverlay
 {
     using wnd: Wnd
 
@@ -227,20 +240,20 @@ struct VideoSeekOverlay
     opacityAni: AnimationHandle
 }
 
-private impl IWnd for VideoSeekOverlay
+private impl IWnd for SeekOverlay
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter  = evt.paintContext.painter
         let rect     = .clientRect()
         let font     = .font().regular!
-        let textSize = Painter.measureString(.text.toString(), font)
+        let textSize = Painter.measureString(.text, font)
         let textX    = Math.floor(rect.horzCenter() - textSize.width * 0.5)
         let textY    = Math.floor(rect.vertCenter() - font.height * 0.5)
 
         painter.setAntialiased(true)
-        drawStringKeyline(painter, textX, textY, .text.toString(), font, Ink, 1)
-        painter.drawString(textX, textY, .text.toString(), font, Voltage)
+        drawStringKeyline(painter, textX, textY, .text, font, Ink, 1)
+        painter.drawString(textX, textY, .text, font, Voltage)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -264,11 +277,11 @@ private impl IWnd for VideoSeekOverlay
     }
 }
 
-impl VideoSeekOverlay
+impl SeekOverlay
 {
-    func create(parent: *Wnd)->*VideoSeekOverlay
+    func create(parent: *Wnd)->*SeekOverlay
     {
-        with let result = Wnd.create'VideoSeekOverlay(parent, "scope.video.seek", {0, 0, VideoSeekOverlaySize.x, VideoSeekOverlaySize.y})
+        with let result = Wnd.create'SeekOverlay(parent, "scope.video.seek", {0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
         {
             .wndFlags        |= .TopMost | .Disabled
             .backgroundStyle = .Transparent
@@ -305,12 +318,12 @@ impl VideoSeekOverlay
         let rect = .parent!.clientRect()
         let size = .preferredSize
         let x    = Math.floor((rect.width - size.x) * 0.5)
-        let y    = Math.floor(Math.clamp((rect.height - size.y) * 0.5 + VideoSeekOverlayOffsetY, 0, Math.max(rect.height - size.y, 0)))
+        let y    = Math.floor(Math.clamp((rect.height - size.y) * 0.5 + SeekOverlayOffsetY, 0, Math.max(rect.height - size.y, 0)))
         .setPosition({x, y, size.x, size.y}, computeLayout: false)
         .resetPresentation()
         .show()
         .bringToFront()
-        .timer = .addTimer(VideoSeekOverlayLifetime)
+        .timer = .addTimer(SeekOverlayLifetime)
 
         // Reduced motion keeps the information but removes its travel and zoom.
         if .app().isReducedMotion() do
@@ -326,62 +339,65 @@ impl VideoSeekOverlay
     }
 }
 
-// How far behind the clock playback is allowed to fall before it gives up and jumps.
-//
-// Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
-// it also falls behind for as long as it plays. Past this much, playback skips to the next sync
-// frame, which is the one place a jump costs a single decoded picture rather than the decode of
-// every picture in between.
-private const VideoResyncSeconds = 2.0
+private
+{
+    // How far behind the clock playback is allowed to fall before it gives up and jumps.
+    //
+    // Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
+    // it also falls behind for as long as it plays. Past this much, playback skips to the next sync
+    // frame, which is the one place a jump costs a single decoded picture rather than the decode of
+    // every picture in between.
+    const ResyncSeconds = 2.0
 
-// How far the picture may drift from the sound before the timeline is pulled back onto it.
-//
-// The sound is the master clock, but reading its position on every tick and following it exactly
-// would jitter the presentation by the size of one output buffer. Playback therefore runs its own
-// clock and only re-anchors it when the two have actually separated.
-private const VideoAudioDriftSeconds = 0.1
-private const VideoBackdropColors    = "view_Bk 0xFF000000"
+    // How far the picture may drift from the sound before the timeline is pulled back onto it.
+    //
+    // The sound is the master clock, but reading its position on every tick and following it exactly
+    // would jitter the presentation by the size of one output buffer. Playback therefore runs its own
+    // clock and only re-anchors it when the two have actually separated.
+    const AudioDriftSeconds = 0.1
+    const BackdropColors    = "view_Bk 0xFF000000"
 
-// How far past the clock a resync jump may land.
-//
-// A stream whose sync frames are seconds apart would turn a resync into a scene change; past
-// this bound the player keeps walking below speed instead of teleporting.
-private const VideoResyncMaxJumpSeconds = 15.0
+    // How far past the clock a resync jump may land.
+    //
+    // A stream whose sync frames are seconds apart would turn a resync into a scene change; past
+    // this bound the player keeps walking below speed instead of teleporting.
+    const ResyncMaxJumpSeconds = 15.0
 
-// How many pictures the queue holds again before the clock restarts after a jump.
-//
-// A decoder that has just restarted on a key picture has nothing in hand, and starting the
-// clock on the first one it produces asks it for real time from a standing start: it falls
-// behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
-// few pictures costs a fraction of a second once and buys a queue to play out of.
-private const VideoRebufferPictures = 4'u64
+    // How many pictures the queue holds again before the clock restarts after a jump.
+    //
+    // A decoder that has just restarted on a key picture has nothing in hand, and starting the
+    // clock on the first one it produces asks it for real time from a standing start: it falls
+    // behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
+    // few pictures costs a fraction of a second once and buys a queue to play out of.
+    const RebufferPictures = 4'u64
 
-// How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
-//
-// A frame-threaded decoder delivers pictures in runs separated by the cost of one key picture,
-// which at 4K is well over a hundred milliseconds. The queue exists to cover exactly that gap,
-// so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
-// gets a deeper one for the same memory.
-private const VideoPrefetchBytes = 64 * 1024 * 1024'u64
-private const VideoPrefetchMax   = 12'u64
-private const VideoPrefetchMin   = 2'u64
+    // How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
+    //
+    // A frame-threaded decoder delivers pictures in runs separated by the cost of one key picture,
+    // which at 4K is well over a hundred milliseconds. The queue exists to cover exactly that gap,
+    // so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
+    // gets a deeper one for the same memory.
+    const PrefetchBytes = 64 * 1024 * 1024'u64
+    const PrefetchMax   = 12'u64
+    const PrefetchMin   = 2'u64
 
-// Names the absence of a queue slot.
-private const VideoNoSlot = Swag.U32.Max
+    // Names the absence of a queue slot.
+    const NoSlot = Swag.U32.Max
+}
 
 // Returns the decoded-picture count that fits the run-ahead budget.
-func videoPrefetchSlotCount(width, height: s32, planar: bool)->u32
+func prefetchSlotCount(width, height: s32, planar: bool)->u32
 {
     let bytes = cast(u64, width) * cast(u64, height) * (planar ? 3 : 6) / 2
-    let count = bytes ? VideoPrefetchBytes / bytes : VideoPrefetchMax
-    return cast(u32, Math.clamp(count, VideoPrefetchMin, VideoPrefetchMax))
+    let count = bytes ? PrefetchBytes / bytes : PrefetchMax
+    return cast(u32, Math.clamp(count, PrefetchMin, PrefetchMax))
 }
 
 // Returns the queue depth required after a seek without exceeding the available slots.
-func videoRebufferPictureCount(slotCount: u32)->u64 => Math.min(VideoRebufferPictures, cast(u64, slotCount))
+func rebufferPictureCount(slotCount: u32)->u64 => Math.min(RebufferPictures, cast(u64, slotCount))
 
 // Reports whether the samples indexed so far reach the movie time `seconds`.
-func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
+func soundCovers(sound: const *SoundFile, seconds: f64)->bool
 {
     let local = seconds - sound.timelineStartSeconds()
     if local < 0 do
@@ -391,23 +407,22 @@ func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
 }
 
 // Returns the sample frame that plays at the movie time `seconds`, counted from the sound's own timeline start.
-func videoSoundSample(sound: const *SoundFile, seconds: f64)->u64
+func soundSample(sound: const *SoundFile, seconds: f64)->u64
 {
     let local = Math.max(seconds - sound.timelineStartSeconds(), 0)
     return cast(u64, Math.round(local * cast(f64, sound.sampleRateHz())))
 }
 
-private func videoAudioTrackCommand(index: u32)->String => Format.toString("scope.video.audioTrack.%", index)
-
-private func videoPlaybackRateCommand(index: u32)->String => Format.toString("scope.video.player.speed.%", index)
+// Menu identifiers of the audio track, playback speed, and subtitle track choices.
+private func audioTrackCommand(index: u32)->String   => Format.toString("scope.video.audioTrack.%", index)
+private func playbackRateCommand(index: u32)->String => Format.toString("scope.video.player.speed.%", index)
+private func subtitleTrackCommand(sidecar: bool, index: u32)->String => Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
 
 // Names one selectable playback rate; the source rate keeps its word rather than a number.
-private func videoPlaybackRateText(rate: f64)->String => rate == 1 ? String.from(videoStrings().ui_PlayerSpeedNormal) : Format.toString("%×", rate)
-
-private func videoSubtitleTrackCommand(sidecar: bool, index: u32)->String => Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
+private func playbackRateText(rate: f64)->String => rate == 1 ? texts().ui_PlayerSpeedNormal : Format.toString("%×", rate)
 
 // Replaces `result` with the cues showing at `seconds`, one per line, and returns the next time that text changes.
-private func videoSubtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
+private func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
 {
     result.clear()
     var nextChange = Swag.F64.Inf
@@ -434,7 +449,7 @@ private func videoSubtitlePresentationAt(track: const *Subtitle.Track, seconds: 
 
 private func hasSubtitleExtension(fileName: string)->bool
 {
-    let extension = String.toLower(Path.extension(fileName) orelse "")
+    let extension = String.toLower(Path.extension(fileName))
     switch extension.toString()
     {
     case ".srt", ".vtt", ".ass", ".ssa", ".lrc", ".sub": return true
@@ -442,13 +457,13 @@ private func hasSubtitleExtension(fileName: string)->bool
     }
 }
 
-private func addVideoSidecar(fileName: string, result: *Array'*Subtitle.Track) fail
+private func addSidecar(fileName: string, result: *Array'*Subtitle.Track) fail
 {
     result.add(try Subtitle.Track.loadOwned(fileName))
 }
 
 // Finds VLC-style sidecars: `movie.srt`, `movie.en.srt`, and other dotted qualifiers.
-private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
+private func loadSidecars(fileName: string, result: *Array'*Subtitle.Track)
 {
     let folder = Path.directoryName(fileName)
     let stem   = Path.fileNameWithoutExtension(fileName)
@@ -469,7 +484,7 @@ private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
         if not exactName and (candidate.count <= stem.count or candidate[stem.count] != '.') do
             continue
 
-        candidates.add(String.from(file.fullName))
+        candidates.add(file.fullName)
     }
 
     // Sort paths before loading: subtitle tracks own their decoded cues and are moved only once.
@@ -477,7 +492,7 @@ private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
     // while keeping the language variants deterministic.
     candidates.sort(func(a, b) => Utf8.compare(a, b, .Latin1NoCase))
     for candidate in candidates do
-        discard catch addVideoSidecar(candidate.toString(), result)
+        discard catch addSidecar(candidate.toString(), result)
 }
 
 // One decoded picture of the run-ahead queue.
@@ -485,7 +500,7 @@ private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
 // A codec reconstructs planar 4:2:0 and the renderer converts where it draws, so a queued picture
 // is the planes themselves. That is both the cheaper decode and the smaller queue: three planes
 // are half the bytes of the packed picture they would have become.
-struct VideoSlot
+struct Slot
 {
     planes: PlanarFrame
     image:  Image     // Used only by a stream whose codec does not reconstruct planes.
@@ -494,7 +509,7 @@ struct VideoSlot
 
 // Plays a movie with its sound and subtitle tracks, decoding pictures ahead of the clock on a worker thread.
 #[Swag.NoCopy]
-struct VideoViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -514,11 +529,11 @@ struct VideoViewer
         muteButton:      *IconButton
         volumeSlider:    *Slider
         imageView:       *ImageView
-        subtitleOverlay: *VideoSubtitleOverlay
+        subtitleOverlay: *SubtitleOverlay
         information:     *MediaInfoPanel
     }
 
-    seekOverlay: *VideoSeekOverlay?
+    seekOverlay: *SeekOverlay?
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
     // thread affinity. `openState` is zero while opening, one on success and two on failure.
@@ -539,8 +554,8 @@ struct VideoViewer
     voice:               *Voice?
     audioTrackIndex:     u32
     audioEngineAcquired: bool
-    subtitleSource:      VideoSubtitleSource
-    subtitleTrackIndex:  u32 = VideoNoSubtitle
+    subtitleSource:      SubtitleSource
+    subtitleTrackIndex:  u32 = NoSubtitle
     subtitleReady:       bool
     subtitleLastSeconds: f64 = -1
     subtitleNextChange:  f64
@@ -553,7 +568,7 @@ struct VideoViewer
     // Presenting straight off the decoder therefore stutters even when the average rate is
     // several times what the clock asks for. The run-ahead absorbs that: the decoder fills the
     // queue while it is fast and the clock drains it while the key picture is being decoded.
-    slots:     Array'VideoSlot
+    slots:     Array'Slot
     slotCount: u32
 
     // Exactly one decode owns `video` and one free slot at a time. It runs on a persistent Swag
@@ -574,8 +589,8 @@ struct VideoViewer
     //
     // Both sides of this queue mutate it. Fixed storage keeps a decoder thread from reallocating
     // an array owned by the GUI allocator when the queue grows from two entries to four.
-    ready:       StaticArray'(u32, VideoPrefetchMax)
-    freeSlots:   StaticArray'(u32, VideoPrefetchMax)
+    ready:       StaticArray'(u32, PrefetchMax)
+    freeSlots:   StaticArray'(u32, PrefetchMax)
     nextDecode:  u64     // Frame the producer takes next.
     produceFrom: u64     // Frame the producer was last aimed at.
     inFlight:    u32     // Pictures being decoded right now.
@@ -619,7 +634,7 @@ struct VideoViewer
     timelinePixel: s32 = -1
 }
 
-private impl VideoViewer
+private impl Panel
 {
     // Finishes teardown after the decoder thread has stopped touching the reader and frame queue.
     mtd finishRetire()
@@ -648,7 +663,7 @@ private impl VideoViewer
 
         if .audioEngineAcquired
         {
-            releaseSoundEngine()
+            Sound.releaseEngine()
             .audioEngineAcquired = false
         }
 
@@ -683,7 +698,7 @@ private impl VideoViewer
 
             if .audioEngineAcquired
             {
-                releaseSoundEngine()
+                Sound.releaseEngine()
                 .audioEngineAcquired = false
             }
 
@@ -710,23 +725,23 @@ private impl VideoViewer
 
     mtd retranslate()
     {
-        .playButton.toolTip     = .playing ? videoStrings().ui_TipPause : videoStrings().ui_TipPlay
-        .stopButton.toolTip     = videoStrings().ui_TipStop
-        .backwardButton.toolTip = videoStrings().ui_TipBackward
-        .forwardButton.toolTip  = videoStrings().ui_TipForward
-        .timeline.toolTip       = videoStrings().ui_TipSeek
-        .muteButton.toolTip     = videoStrings().ui_TipMute
-        .volumeSlider.toolTip   = videoStrings().ui_TipVolume
+        .playButton.toolTip     = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        .stopButton.toolTip     = texts().ui_TipStop
+        .backwardButton.toolTip = texts().ui_TipBackward
+        .forwardButton.toolTip  = texts().ui_TipForward
+        .timeline.toolTip       = texts().ui_TipSeek
+        .muteButton.toolTip     = texts().ui_TipMute
+        .volumeSlider.toolTip   = texts().ui_TipVolume
 
-        .audioButton.toolTip    = videoStrings().ui_TipAudio
-        .subtitleButton.toolTip = videoStrings().ui_TipSubtitles
-        .speedButton.toolTip    = videoStrings().ui_TipPlaybackSpeed
+        .audioButton.toolTip    = texts().ui_TipAudio
+        .subtitleButton.toolTip = texts().ui_TipSubtitles
+        .speedButton.toolTip    = texts().ui_TipPlaybackSpeed
 
         .refreshDetails()
     }
 }
 
-impl VideoViewer
+impl Panel
 {
     mtd frameSeconds(index: u64)->f64 => .video.frameTimestamp(index)
 
@@ -786,7 +801,7 @@ impl VideoViewer
             return
 
         .audioClockLast = position
-        if Math.abs(position - .currentSeconds()) <= VideoAudioDriftSeconds do
+        if Math.abs(position - .currentSeconds()) <= AudioDriftSeconds do
             return
 
         .elapsed = position
@@ -801,7 +816,7 @@ impl VideoViewer
             return
         }
 
-        if not videoSoundCovers(.audio, .currentSeconds())
+        if not soundCovers(.audio, .currentSeconds())
         {
             .audioRangePending = true
             return
@@ -809,7 +824,7 @@ impl VideoViewer
 
         if .resumeAudioAfterSeek
         {
-            let sample = videoSoundSample(.audio, .currentSeconds())
+            let sample = soundSample(.audio, .currentSeconds())
             catch .voice.seekSampleFrame(sample) as seekError
             if seekError != null
             {
@@ -843,7 +858,7 @@ impl VideoViewer
     mtd refreshTransport()
     {
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .playButton.toolTip = .playing ? videoStrings().ui_TipPause : videoStrings().ui_TipPlay
+        .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
         .playButton.enable(.hasFrame)
         .stopButton.enable(.hasFrame and (.frameIndex != 0 or .playing))
         .refreshTime()
@@ -897,7 +912,7 @@ impl VideoViewer
     mtd showSeekFeedback(seconds: f64)
     {
         if not .seekOverlay do
-            .seekOverlay = VideoSeekOverlay.create(me)
+            .seekOverlay = SeekOverlay.create(me)
         .seekOverlay.showSeek(seconds)
     }
 
@@ -924,14 +939,14 @@ impl VideoViewer
     mtd selectAudioTrack(index: u32) fail
     {
         if index >= .video.audioTrackCount() do
-            fail BadParameterError{videoStrings().err_AudioTrack}
+            fail BadParameterError{texts().err_AudioTrack}
 
         let sound = .video.audioTrack(index)!
         if .voice and index == .audioTrackIndex and .audio == sound do
             return
         let position      = .currentSeconds()
         let wasPlaying    = .playing
-        let coversRange   = videoSoundCovers(sound, position)
+        let coversRange   = soundCovers(sound, position)
         let shouldPlay    = wasPlaying and coversRange and not .resumeAudioAfterSeek
         let restoreOld    = wasPlaying and .voice != null and not .audioRangePending and not .resumeAudioAfterSeek
         let newVoice      = try Voice.create(sound)
@@ -948,7 +963,7 @@ impl VideoViewer
         if .playbackRate != 1 do
             catch newVoice.setFrequencyRatio(cast(f32, .playbackRate))
         if coversRange do
-            try newVoice.seekSampleFrame(videoSoundSample(sound, position))
+            try newVoice.seekSampleFrame(soundSample(sound, position))
         if oldVoice do
             try oldVoice.pause()
         if shouldPlay do
@@ -988,8 +1003,8 @@ impl VideoViewer
         for index in .video.audioTrackCount()
         {
             let sound = .video.audioTrack(index)!
-            commands.add(videoAudioTrackCommand(index))
-            menu.addRadioItem(videoAudioTrackText(index, sound), commands[index].toString(), checked: index == .audioTrackIndex)
+            commands.add(audioTrackCommand(index))
+            menu.addRadioItem(audioTrackText(index, sound), commands[index], checked: index == .audioTrackIndex)
         }
 
         let chosen = menu.doModal(.audioButton, autoDestroy: true)
@@ -1011,17 +1026,17 @@ impl VideoViewer
         let menu = MenuCtrl.createPopup(.speedButton, owner: me)
 
         var commands: Array'String
-        commands.reserve(VideoPlaybackRates.count)
-        for rate, index in VideoPlaybackRates
+        commands.reserve(PlaybackRates.count)
+        for rate, index in PlaybackRates
         {
-            commands.add(videoPlaybackRateCommand(cast(u32, index)))
-            menu.addRadioItem(videoPlaybackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
+            commands.add(playbackRateCommand(cast(u32, index)))
+            menu.addRadioItem(playbackRateText(rate), commands[index], checked: rate == .playbackRate)
         }
 
         let chosen = menu.doModal(.speedButton, autoDestroy: true)
         if not chosen do
             return
-        for rate, index in VideoPlaybackRates where chosen == commands[index].toString()
+        for rate, index in PlaybackRates where chosen == commands[index].toString()
         {
             .setPlaybackRate(rate)
             return
@@ -1038,7 +1053,7 @@ impl VideoViewer
         }
     }
 
-    mtd selectSubtitle(source: VideoSubtitleSource, index: u32 = VideoNoSubtitle)
+    mtd selectSubtitle(source: SubtitleSource, index: u32 = NoSubtitle)
     {
         .subtitleSource      = source
         .subtitleTrackIndex  = index
@@ -1056,12 +1071,12 @@ impl VideoViewer
             return
         }
 
-        let seconds = .currentSeconds() + g_VideoSubtitleSettings.delay
+        let seconds = .currentSeconds() + g_SubtitleSettings.delay
         if .subtitleLastSeconds >= 0 and seconds >= .subtitleLastSeconds and seconds < .subtitleNextChange do
             return
         var text: String
         .subtitleLastSeconds = seconds
-        .subtitleNextChange  = videoSubtitlePresentationAt(track, seconds, &text)
+        .subtitleNextChange  = subtitlePresentationAt(track, seconds, &text)
         .subtitleOverlay.setSubtitle(text)
     }
 
@@ -1077,30 +1092,30 @@ impl VideoViewer
     {
         switch command
         {
-        case "scope.video.subtitle.font.sans":       g_VideoSubtitleSettings.font = .Sans
-        case "scope.video.subtitle.font.mono":       g_VideoSubtitleSettings.font = .Monospace
-        case "scope.video.subtitle.size.small":      g_VideoSubtitleSettings.size = .Small
-        case "scope.video.subtitle.size.normal":     g_VideoSubtitleSettings.size = .Normal
-        case "scope.video.subtitle.size.large":      g_VideoSubtitleSettings.size = .Large
-        case "scope.video.subtitle.size.veryLarge":  g_VideoSubtitleSettings.size = .VeryLarge
-        case "scope.video.subtitle.effect.outline":  g_VideoSubtitleSettings.effect = .Outline
-        case "scope.video.subtitle.effect.shadow":   g_VideoSubtitleSettings.effect = .Shadow
-        case "scope.video.subtitle.effect.backdrop": g_VideoSubtitleSettings.effect = .Background
-        case "scope.video.subtitle.effect.none":     g_VideoSubtitleSettings.effect = .None
-        case "scope.video.subtitle.position.bottom": g_VideoSubtitleSettings.position = .Bottom
-        case "scope.video.subtitle.position.center": g_VideoSubtitleSettings.position = .Center
-        case "scope.video.subtitle.position.top":    g_VideoSubtitleSettings.position = .Top
-        case "scope.video.subtitle.color.white":     g_VideoSubtitleSettings.color = .White
-        case "scope.video.subtitle.color.yellow":    g_VideoSubtitleSettings.color = .Yellow
-        case "scope.video.subtitle.delay.minus1":    g_VideoSubtitleSettings.delay -= 1
-        case "scope.video.subtitle.delay.minus01":   g_VideoSubtitleSettings.delay -= 0.1
-        case "scope.video.subtitle.delay.reset":     g_VideoSubtitleSettings.delay = 0
-        case "scope.video.subtitle.delay.plus01":    g_VideoSubtitleSettings.delay += 0.1
-        case "scope.video.subtitle.delay.plus1":     g_VideoSubtitleSettings.delay += 1
+        case "scope.video.subtitle.font.sans":       g_SubtitleSettings.font = .Sans
+        case "scope.video.subtitle.font.mono":       g_SubtitleSettings.font = .Monospace
+        case "scope.video.subtitle.size.small":      g_SubtitleSettings.size = .Small
+        case "scope.video.subtitle.size.normal":     g_SubtitleSettings.size = .Normal
+        case "scope.video.subtitle.size.large":      g_SubtitleSettings.size = .Large
+        case "scope.video.subtitle.size.veryLarge":  g_SubtitleSettings.size = .VeryLarge
+        case "scope.video.subtitle.effect.outline":  g_SubtitleSettings.effect = .Outline
+        case "scope.video.subtitle.effect.shadow":   g_SubtitleSettings.effect = .Shadow
+        case "scope.video.subtitle.effect.backdrop": g_SubtitleSettings.effect = .Background
+        case "scope.video.subtitle.effect.none":     g_SubtitleSettings.effect = .None
+        case "scope.video.subtitle.position.bottom": g_SubtitleSettings.position = .Bottom
+        case "scope.video.subtitle.position.center": g_SubtitleSettings.position = .Center
+        case "scope.video.subtitle.position.top":    g_SubtitleSettings.position = .Top
+        case "scope.video.subtitle.color.white":     g_SubtitleSettings.color = .White
+        case "scope.video.subtitle.color.yellow":    g_SubtitleSettings.color = .Yellow
+        case "scope.video.subtitle.delay.minus1":    g_SubtitleSettings.delay -= 1
+        case "scope.video.subtitle.delay.minus01":   g_SubtitleSettings.delay -= 0.1
+        case "scope.video.subtitle.delay.reset":     g_SubtitleSettings.delay = 0
+        case "scope.video.subtitle.delay.plus01":    g_SubtitleSettings.delay += 0.1
+        case "scope.video.subtitle.delay.plus1":     g_SubtitleSettings.delay += 1
         default: return false
         }
 
-        g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
+        g_SubtitleSettings.delay = Math.clamp(g_SubtitleSettings.delay, -60, 60)
         .subtitleSettingsChanged()
         return true
     }
@@ -1108,7 +1123,7 @@ impl VideoViewer
     // Offers embedded and VLC-style sidecar tracks together with persistent render controls.
     mtd showSubtitleMenu()
     {
-        let strings = videoStrings()
+        let strings = texts()
         let menu    = MenuCtrl.createPopup(.subtitleButton, owner: me)
         menu.setSubmenuDirection(.Left)
         menu.addRadioItem(strings.ui_SubtitleOff, "scope.video.subtitle.off", checked: .subtitleSource == .Off)
@@ -1121,58 +1136,58 @@ impl VideoViewer
         for index in embeddedCount
         {
             let track = .video.subtitleTrack(index)!
-            embeddedCommands.add(videoSubtitleTrackCommand(false, index))
-            menu.addRadioItem(videoSubtitleTrackText(index, track, false), embeddedCommands[index].toString(), checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
+            embeddedCommands.add(subtitleTrackCommand(false, index))
+            menu.addRadioItem(subtitleTrackText(index, track, false), embeddedCommands[index], checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
         }
 
         for track, index in .subtitleOverlay.sidecars
         {
-            sidecarCommands.add(videoSubtitleTrackCommand(true, cast(u32, index)))
-            menu.addRadioItem(videoSubtitleTrackText(cast(u32, index), track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
+            sidecarCommands.add(subtitleTrackCommand(true, cast(u32, index)))
+            menu.addRadioItem(subtitleTrackText(cast(u32, index), track, true), sidecarCommands[index], checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
         }
 
         menu.addSeparator()
         with let fontMenu = MenuCtrl.createPopup(menu, owner: me)
         {
-            .addRadioItem(strings.ui_SubtitleFontSans, "scope.video.subtitle.font.sans", checked: g_VideoSubtitleSettings.font == .Sans)
-            .addRadioItem(strings.ui_SubtitleFontMono, "scope.video.subtitle.font.mono", checked: g_VideoSubtitleSettings.font == .Monospace)
+            .addRadioItem(strings.ui_SubtitleFontSans, "scope.video.subtitle.font.sans", checked: g_SubtitleSettings.font == .Sans)
+            .addRadioItem(strings.ui_SubtitleFontMono, "scope.video.subtitle.font.mono", checked: g_SubtitleSettings.font == .Monospace)
         }
 
         menu.addPopup(strings.ui_SubtitleFont, fontMenu)
 
         with let sizeMenu = MenuCtrl.createPopup(menu, owner: me)
         {
-            .addRadioItem(strings.ui_SubtitleSizeSmall, "scope.video.subtitle.size.small", checked: g_VideoSubtitleSettings.size == .Small)
-            .addRadioItem(strings.ui_SubtitleSizeNormal, "scope.video.subtitle.size.normal", checked: g_VideoSubtitleSettings.size == .Normal)
-            .addRadioItem(strings.ui_SubtitleSizeLarge, "scope.video.subtitle.size.large", checked: g_VideoSubtitleSettings.size == .Large)
-            .addRadioItem(strings.ui_SubtitleSizeVeryLarge, "scope.video.subtitle.size.veryLarge", checked: g_VideoSubtitleSettings.size == .VeryLarge)
+            .addRadioItem(strings.ui_SubtitleSizeSmall, "scope.video.subtitle.size.small", checked: g_SubtitleSettings.size == .Small)
+            .addRadioItem(strings.ui_SubtitleSizeNormal, "scope.video.subtitle.size.normal", checked: g_SubtitleSettings.size == .Normal)
+            .addRadioItem(strings.ui_SubtitleSizeLarge, "scope.video.subtitle.size.large", checked: g_SubtitleSettings.size == .Large)
+            .addRadioItem(strings.ui_SubtitleSizeVeryLarge, "scope.video.subtitle.size.veryLarge", checked: g_SubtitleSettings.size == .VeryLarge)
         }
 
         menu.addPopup(strings.ui_SubtitleSize, sizeMenu)
 
         with let effectMenu = MenuCtrl.createPopup(menu, owner: me)
         {
-            .addRadioItem(strings.ui_SubtitleEffectOutline, "scope.video.subtitle.effect.outline", checked: g_VideoSubtitleSettings.effect == .Outline)
-            .addRadioItem(strings.ui_SubtitleEffectShadow, "scope.video.subtitle.effect.shadow", checked: g_VideoSubtitleSettings.effect == .Shadow)
-            .addRadioItem(strings.ui_SubtitleEffectBackdrop, "scope.video.subtitle.effect.backdrop", checked: g_VideoSubtitleSettings.effect == .Background)
-            .addRadioItem(strings.ui_SubtitleEffectNone, "scope.video.subtitle.effect.none", checked: g_VideoSubtitleSettings.effect == .None)
+            .addRadioItem(strings.ui_SubtitleEffectOutline, "scope.video.subtitle.effect.outline", checked: g_SubtitleSettings.effect == .Outline)
+            .addRadioItem(strings.ui_SubtitleEffectShadow, "scope.video.subtitle.effect.shadow", checked: g_SubtitleSettings.effect == .Shadow)
+            .addRadioItem(strings.ui_SubtitleEffectBackdrop, "scope.video.subtitle.effect.backdrop", checked: g_SubtitleSettings.effect == .Background)
+            .addRadioItem(strings.ui_SubtitleEffectNone, "scope.video.subtitle.effect.none", checked: g_SubtitleSettings.effect == .None)
         }
 
         menu.addPopup(strings.ui_SubtitleEffect, effectMenu)
 
         with let positionMenu = MenuCtrl.createPopup(menu, owner: me)
         {
-            .addRadioItem(strings.ui_SubtitlePositionBottom, "scope.video.subtitle.position.bottom", checked: g_VideoSubtitleSettings.position == .Bottom)
-            .addRadioItem(strings.ui_SubtitlePositionCenter, "scope.video.subtitle.position.center", checked: g_VideoSubtitleSettings.position == .Center)
-            .addRadioItem(strings.ui_SubtitlePositionTop, "scope.video.subtitle.position.top", checked: g_VideoSubtitleSettings.position == .Top)
+            .addRadioItem(strings.ui_SubtitlePositionBottom, "scope.video.subtitle.position.bottom", checked: g_SubtitleSettings.position == .Bottom)
+            .addRadioItem(strings.ui_SubtitlePositionCenter, "scope.video.subtitle.position.center", checked: g_SubtitleSettings.position == .Center)
+            .addRadioItem(strings.ui_SubtitlePositionTop, "scope.video.subtitle.position.top", checked: g_SubtitleSettings.position == .Top)
         }
 
         menu.addPopup(strings.ui_SubtitlePosition, positionMenu)
 
         with let colorMenu = MenuCtrl.createPopup(menu, owner: me)
         {
-            .addRadioItem(strings.ui_SubtitleColorWhite, "scope.video.subtitle.color.white", checked: g_VideoSubtitleSettings.color == .White)
-            .addRadioItem(strings.ui_SubtitleColorYellow, "scope.video.subtitle.color.yellow", checked: g_VideoSubtitleSettings.color == .Yellow)
+            .addRadioItem(strings.ui_SubtitleColorWhite, "scope.video.subtitle.color.white", checked: g_SubtitleSettings.color == .White)
+            .addRadioItem(strings.ui_SubtitleColorYellow, "scope.video.subtitle.color.yellow", checked: g_SubtitleSettings.color == .Yellow)
         }
 
         menu.addPopup(strings.ui_SubtitleColor, colorMenu)
@@ -1181,7 +1196,7 @@ impl VideoViewer
         {
             .addItem("-1.0 s", "scope.video.subtitle.delay.minus1")
             .addItem("-0.1 s", "scope.video.subtitle.delay.minus01")
-            .addItem(strings.ui_SubtitleDelayReset, "scope.video.subtitle.delay.reset", rightName: Format.toString("%{f1} s", g_VideoSubtitleSettings.delay))
+            .addItem(strings.ui_SubtitleDelayReset, "scope.video.subtitle.delay.reset", rightName: Format.toString("%{f1} s", g_SubtitleSettings.delay))
             .addItem("+0.1 s", "scope.video.subtitle.delay.plus01")
             .addItem("+1.0 s", "scope.video.subtitle.delay.plus1")
         }
@@ -1221,7 +1236,7 @@ impl VideoViewer
     {
         // A planar picture costs half of what the packed one would, so the same budget buys twice
         // the run-ahead on exactly the streams whose key pictures are the most expensive.
-        .slotCount = videoPrefetchSlotCount(.video.width(), .video.height(), .planar)
+        .slotCount = prefetchSlotCount(.video.width(), .video.height(), .planar)
         .slots.resize(.slotCount)
         .freeSlots.clear()
         for index in .slotCount do
@@ -1279,7 +1294,7 @@ impl VideoViewer
         .clock.reset()
         .audioClockLast = -1
         if .voice and .audio do
-            .audioRangePending = not videoSoundCovers(.audio, .elapsed)
+            .audioRangePending = not soundCovers(.audio, .elapsed)
 
         .repositionTo(index)
         .decodeWake.signal()
@@ -1363,7 +1378,7 @@ impl VideoViewer
     // and the loss is bounded to pictures whose time has already gone.
     mtd publishHead(catchUpTo: u64 = 0, catchUp = false)->bool
     {
-        var chosen = VideoNoSlot
+        var chosen = NoSlot
         var failure: String
         {
             Sync.scopedLock(&.queueLock)
@@ -1402,7 +1417,7 @@ impl VideoViewer
             return false
         }
 
-        if chosen == VideoNoSlot do
+        if chosen == NoSlot do
             return false
 
         let notifyLoading = .awaitingFrame
@@ -1494,14 +1509,14 @@ impl VideoViewer
 
         if .voice and .audio
         {
-            let coversRange = videoSoundCovers(.audio, .elapsed)
+            let coversRange = soundCovers(.audio, .elapsed)
             .audioRangePending = not coversRange
 
             // A paused transport has no later resume point at which to position the sound.
             // Playing seeks wait for the requested picture and are handled by `resumeAudio`.
             if coversRange and not resumeAudio
             {
-                let sample = videoSoundSample(.audio, .elapsed)
+                let sample = soundSample(.audio, .elapsed)
                 catch .voice.seekSampleFrame(sample) as seekError
                 if seekError != null
                 {
@@ -1538,10 +1553,10 @@ impl VideoViewer
 
         if .voice and .audio
         {
-            .audioRangePending = not videoSoundCovers(.audio, 0)
+            .audioRangePending = not soundCovers(.audio, 0)
             if not .audioRangePending
             {
-                catch .voice.seekSampleFrame(videoSoundSample(.audio, 0)) as seekError
+                catch .voice.seekSampleFrame(soundSample(.audio, 0)) as seekError
                 if seekError != null
                 {
                     .playing = false
@@ -1648,7 +1663,7 @@ impl VideoViewer
         }
 
         // A jump left the sound waiting on the queue rather than on the first picture; see
-        // `VideoRebufferPictures`. Until it fills, the clock stands where the jump put it.
+        // `RebufferPictures`. Until it fills, the clock stands where the jump put it.
         if .resumeAudioAfterSeek and .voice and .hasFrame
         {
             let count = .video.frameCount()
@@ -1661,13 +1676,13 @@ impl VideoViewer
             }
 
             // The end of the stream is the one place where the queue never reaches the mark.
-            if depth < videoRebufferPictureCount(.slotCount) and more do
+            if depth < rebufferPictureCount(.slotCount) and more do
                 return
             .resumeAudio()
         }
 
         .followAudioClock()
-        if .audioRangePending and .audio and videoSoundCovers(.audio, .currentSeconds()) do
+        if .audioRangePending and .audio and soundCovers(.audio, .currentSeconds()) do
             .resumeAudio()
 
         var head  = 0'u64
@@ -1724,12 +1739,12 @@ impl VideoViewer
         // The queue is empty: the decoder is behind. Past the resync bound, skip to the next
         // sync frame instead of walking pictures the viewer will never catch up with.
         let rate      = .video.frameRate()
-        let resyncLag = cast(u64, (rate.framesPerSecond() * VideoResyncSeconds))
+        let resyncLag = cast(u64, (rate.framesPerSecond() * ResyncSeconds))
         if clock < .frameIndex + resyncLag do
             return
 
         let sync = .video.syncFrameAt(clock)
-        let cap  = cast(u64, (rate.framesPerSecond() * VideoResyncMaxJumpSeconds))
+        let cap  = cast(u64, (rate.framesPerSecond() * ResyncMaxJumpSeconds))
         if (count and sync >= count) or sync - clock > cap do
             return
 
@@ -1737,7 +1752,7 @@ impl VideoViewer
     }
 }
 
-private impl IWnd for VideoViewer
+private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
@@ -1782,8 +1797,8 @@ private impl IWnd for VideoViewer
         switch evt.key
         {
         case .Space, .MediaPlayPause: .togglePlayback()
-        case .Left:                   .seekRelative(-VideoSeekSeconds)
-        case .Right:                  .seekRelative(VideoSeekSeconds)
+        case .Left:                   .seekRelative(-SeekSeconds)
+        case .Right:                  .seekRelative(SeekSeconds)
         case .M, .VolumeMute:         .setMuted(not .muted)
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
@@ -1791,7 +1806,7 @@ private impl IWnd for VideoViewer
     }
 }
 
-private impl VideoViewer
+private impl Panel
 {
     // Refreshes the snapshot when progressive indexing discovers stream or track properties.
     mtd refreshInformation()
@@ -1855,15 +1870,15 @@ private impl VideoViewer
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(.video.durationInSeconds()))
+        .details = Format.toString(texts().ui_Details, .video.width(), .video.height(), frameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(.video.durationInSeconds()))
         if .audio do
-            .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio))
+            .details = Format.toString("% · %", .details, audioDetailsText(.audio))
 
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
-            .details = Format.toString("% · %", .details.toString(), videoPlaybackRateText(.playbackRate))
+            .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     // Publishes the reader opened by the background worker and starts picture production.
@@ -1889,11 +1904,11 @@ private impl VideoViewer
 
         .openFinished = true
         if not .openFailure.isEmpty() do
-            fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
+            fail InvalidFormatError{Errors.mkString(.openFailure)}
 
         .video  = #move .pendingVideo
         .planar = .video.hasPlanarFrames()
-        loadVideoSidecars(.openFileName.toString(), &.subtitleOverlay.sidecars)
+        loadSidecars(.openFileName, &.subtitleOverlay.sidecars)
         .prepareSlots()
 
         // A stream whose samples are not square is stored with fewer columns than it is shown
@@ -1940,8 +1955,8 @@ private impl VideoViewer
             .audioButton.enable(audioCount > 1)
             .muteButton.enable(true)
             .volumeSlider.enable(true)
-            if not acquireSoundEngine() do
-                fail UnsupportedFormatError{videoStrings().err_AudioEngine}
+            if not Sound.acquireEngine() do
+                fail UnsupportedFormatError{texts().err_AudioEngine}
             .audioEngineAcquired = true
             try .selectAudioTrack(0)
         }
@@ -1979,7 +1994,7 @@ private impl VideoViewer
         with .playButton = IconButton.create(.commands, .theme().icon(.Play, iconSize), {0, 0, buttonSize, buttonSize})
         {
             .dockStyle = .Left
-            .toolTip   = videoStrings().ui_TipPlay
+            .toolTip   = texts().ui_TipPlay
             .enable(false)
             .sigPressed += func|view = me|(?) { view.togglePlayback() }
         }
@@ -1988,7 +2003,7 @@ private impl VideoViewer
         {
             .dockStyle = .Left
             .margin.x  = 4
-            .toolTip   = videoStrings().ui_TipStop
+            .toolTip   = texts().ui_TipStop
             .enable(false)
             .sigPressed += func|view = me|(?) { view.stopPlayback() }
         }
@@ -2000,16 +2015,16 @@ private impl VideoViewer
             // Play/stop drive the transport and the two relative seeks move it: two families,
             // one block of air between them.
             .margin.x   = 16
-            .toolTip    = videoStrings().ui_TipBackward
-            .sigPressed += func|view = me|(?) { view.seekRelative(-VideoSeekSeconds) }
+            .toolTip    = texts().ui_TipBackward
+            .sigPressed += func|view = me|(?) { view.seekRelative(-SeekSeconds) }
         }
 
         with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
         {
             .dockStyle  = .Left
             .margin.x   = 4
-            .toolTip    = videoStrings().ui_TipForward
-            .sigPressed += func|view = me|(?) { view.seekRelative(VideoSeekSeconds) }
+            .toolTip    = texts().ui_TipForward
+            .sigPressed += func|view = me|(?) { view.seekRelative(SeekSeconds) }
         }
 
         with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
@@ -2023,7 +2038,7 @@ private impl VideoViewer
         {
             .dockStyle = .Right
             .margin.x  = 4
-            .toolTip   = videoStrings().ui_TipPlaybackSpeed
+            .toolTip   = texts().ui_TipPlaybackSpeed
             .setArrowPosition(.RightUpward)
             .sigPressed += func|view = me|(?) { view.showPlaybackSpeedMenu() }
         }
@@ -2037,7 +2052,7 @@ private impl VideoViewer
         with .audioButton = IconButton.create(.commands, .theme().icon(.AudioTracks, iconSize), {0, 0, dropDownWidth, buttonSize}, flags: .CenterContent)
         {
             .dockStyle = .Right
-            .toolTip   = videoStrings().ui_TipAudio
+            .toolTip   = texts().ui_TipAudio
             .setArrowPosition(.RightUpward)
             .enable(false)
             .sigPressed += func|view = me|(?) { view.showAudioTrackMenu() }
@@ -2047,7 +2062,7 @@ private impl VideoViewer
         {
             .dockStyle = .Right
             .margin.x  = 4
-            .toolTip   = videoStrings().ui_TipSubtitles
+            .toolTip   = texts().ui_TipSubtitles
             .setText("CC")
             .setArrowPosition(.RightUpward)
             .style.setFont(me.theme().createDefaultFont(10, .Bold), .Regular)
@@ -2059,7 +2074,7 @@ private impl VideoViewer
         {
             .dockStyle = .Right
             .margin    = {0, 1, 4, 1}
-            .toolTip   = videoStrings().ui_TipVolume
+            .toolTip   = texts().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
             .enable(false)
@@ -2070,7 +2085,7 @@ private impl VideoViewer
         {
             .dockStyle = .Right
             .margin.x  = 4
-            .toolTip   = videoStrings().ui_TipMute
+            .toolTip   = texts().ui_TipMute
             .setCheckIndicator(.Frame)
             .enable(false)
             .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
@@ -2080,7 +2095,7 @@ private impl VideoViewer
         {
             .dockStyle = .Center
             .margin    = {8, 1, 8, 1}
-            .toolTip   = videoStrings().ui_TipSeek
+            .toolTip   = texts().ui_TipSeek
             .enable(false)
 
             // A drag may cross hundreds of frames. Decode its final position once instead of
@@ -2098,11 +2113,11 @@ private impl VideoViewer
         }
     }
 
-    func create(host: Viewer.Host)->*VideoViewer fail
+    func create(host: Viewer.Host)->*Panel fail
     {
         let services = host.services()
 
-        with let result = Wnd.create'VideoViewer(host.contentParent(), "scope.video")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.video")
         {
             .backgroundStyle      = .View
             .reportDetails        = services.reportDetails
@@ -2111,24 +2126,24 @@ private impl VideoViewer
             .reportFinished       = services.reportFinished
         }
 
-        result.commands    = host.createCommandGroup(VideoCommandWidth)
+        result.commands    = host.createCommandGroup(CommandWidth)
         result.information = MediaInfoPanel.create(host)
         result.createTransportBar(services.playback)
 
         result.imageView = ImageView.create(result)
         result.imageView.dockStyle = .Center
-        result.style.setStyleSheetColors(VideoBackdropColors)
-        result.imageView.style.setStyleSheetColors(VideoBackdropColors)
-        result.subtitleOverlay = VideoSubtitleOverlay.create(result)
+        result.style.setStyleSheetColors(BackdropColors)
+        result.imageView.style.setStyleSheetColors(BackdropColors)
+        result.subtitleOverlay = SubtitleOverlay.create(result)
 
         result.refreshTransport()
         result.openFileName = host.fileName()
 
         // The sound device comes online while the file opens, so the first picture does not
-        // wait for it; see [[warmSoundEngine]].
-        warmSoundEngine()
+        // wait for it; see [[Sound.warmEngine]].
+        Sound.warmEngine()
         result.decodeWake.init()
-        try result.decodeThread.init(&runVideoViewerDecode, result, priority: .Normal)
+        try result.decodeThread.init(&runViewerDecode, result, priority: .Normal)
         try result.decodeThread.start()
         result.timer = result.addTimer(10'ms)
         result.applyLayout()
@@ -2140,9 +2155,9 @@ private impl VideoViewer
 // Opens the container and keeps its run-ahead queue full on the same persistent thread.
 //
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
-private func runVideoViewerDecode(thread: Threading.Thread)
+private func runViewerDecode(thread: Threading.Thread)
 {
-    let view  = cast(*VideoViewer, thread.userParam!)
+    let view  = cast(*Panel, thread.userParam!)
     var video = catch Reader.open(view.openFileName) as openError
     if openError != null
     {
@@ -2177,11 +2192,11 @@ private func runVideoViewerDecode(thread: Threading.Thread)
 }
 
 // Creates the integrated video playback view and connects it to the host.
-func createVideoViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
     catch
     {
-        let view = try VideoViewer.create(host)
+        let view = try Panel.create(host)
         host.attachView(view)
         host.setDetails(view.details)
 

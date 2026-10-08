@@ -13,6 +13,32 @@ struct ViewerPluginRegistry
     plugins: Array'Viewer.Plugin
 }
 
+// The parts of a file name that select a viewer, lowered once: selectors are written in lower case.
+private struct NameKey
+{
+    name:      String
+    extension: String
+}
+
+private impl NameKey
+{
+    func from(fileName: string)->NameKey => {String.toLower(Path.fileName(fileName)), String.toLower(Path.extension(fileName))}
+
+    // Reports whether `plugin` claims this name through an extension or an exact name, or, with
+    // `wildcard`, through its `*` fallback.
+    mtd const selectedBy(plugin: const *Viewer.Plugin, wildcard: bool)->bool
+    {
+        for selector in plugin.selectors
+        {
+            let wanted: string = wildcard ? "*" : selector[][0] == '.' ? .extension : .name
+            if selector[] == wanted do
+                return true
+        }
+
+        return false
+    }
+}
+
 // Reads the beginning of a file, which is what every content probe decides from.
 //
 // A file that cannot be opened or read yields no bytes rather than an error: not being able to
@@ -44,52 +70,28 @@ private func readProbeHead(fileName: string)->Array'u8
 func createViewerPluginRegistry()->ViewerPluginRegistry
 {
     var result: retval
-    expect result.register(htmlViewerPlugin())
-    expect result.register(codeViewerPlugin())
-    expect result.register(markdownViewerPlugin())
-    expect result.register(subtitleViewerPlugin())
-    expect result.register(imageViewerPlugin())
-    expect result.register(videoViewerPlugin())
-    expect result.register(pdfViewerPlugin())
-    expect result.register(indesignViewerPlugin())
-    expect result.register(soundViewerPlugin())
-    expect result.register(fontViewerPlugin())
-    expect result.register(midiViewerPlugin())
-    expect result.register(tableViewerPlugin())
-    expect result.register(openDocumentViewerPlugin())
-    expect result.register(archiveViewerPlugin())
-    expect result.register(textViewerPlugin())
-    expect result.register(binaryViewerPlugin())
+    expect result.register(Viewers.Html.viewerPlugin())
+    expect result.register(Viewers.Code.viewerPlugin())
+    expect result.register(Viewers.MarkdownText.viewerPlugin())
+    expect result.register(Viewers.Captions.viewerPlugin())
+    expect result.register(Viewers.Picture.viewerPlugin())
+    expect result.register(Viewers.Film.viewerPlugin())
+    expect result.register(Viewers.PdfDocument.viewerPlugin())
+    expect result.register(Viewers.InDesign.viewerPlugin())
+    expect result.register(Viewers.Sound.viewerPlugin())
+    expect result.register(Viewers.Typeface.viewerPlugin())
+    expect result.register(Viewers.Midi.viewerPlugin())
+    expect result.register(Viewers.Table.viewerPlugin())
+    expect result.register(Viewers.OpenDocument.viewerPlugin())
+    expect result.register(Viewers.Archive.viewerPlugin())
+    expect result.register(Viewers.PlainText.viewerPlugin())
+    expect result.register(Viewers.Binary.viewerPlugin())
     expect result.register(Viewers.Hex.viewerPlugin())
     return result
 }
 
 impl ViewerPluginRegistry
 {
-    private mtd const matches(plugin: const *Viewer.Plugin, baseName, extension: string, wildcard: bool)->bool
-    {
-        for supported in plugin.selectors
-        {
-            if wildcard and supported[] == "*" do
-                return true
-            if wildcard do
-                continue
-
-            let selector = supported[].toString()
-            if selector[0] == '.'
-            {
-                if selector == extension do
-                    return true
-            }
-            elif selector == baseName
-            {
-                return true
-            }
-        }
-
-        return false
-    }
-
     // Registers one plugin after validating the host-facing contract.
     mtd register(plugin: Viewer.Plugin) fail
     {
@@ -134,16 +136,14 @@ impl ViewerPluginRegistry
     // is worth looking inside.
     mtd const namePlugin(fileName: string, pluginIndex: *u64)->bool
     {
-        let extension = String.from(Path.extension(fileName) orelse "").toLower()
-        let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
-
-        for plugin, index in .plugins where .matches(plugin, baseName, extension, wildcard: false)
+        let key = NameKey.from(fileName)
+        for plugin, index in .plugins where key.selectedBy(plugin, wildcard: false)
         {
             pluginIndex[] = index
             return true
         }
 
-        for plugin, index in .plugins where .matches(plugin, baseName, extension, wildcard: true)
+        for plugin, index in .plugins where key.selectedBy(plugin, wildcard: true)
         {
             pluginIndex[] = index
             return true
@@ -162,13 +162,12 @@ impl ViewerPluginRegistry
         var result:  retval
         var matched: Array'bool
         matched.resize(.plugins.count)
-        let extension = String.from(Path.extension(fileName) orelse "").toLower()
-        let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
+        let key = NameKey.from(fileName)
 
         let head    = readProbeHead(fileName)
         var content = Viewer.ProbeContent{fileName: fileName, head: head.toSlice(), claimedText: true}
 
-        for plugin, index in .plugins where plugin.matchNames and .matches(plugin, baseName, extension, wildcard: false)
+        for plugin, index in .plugins where plugin.matchNames and key.selectedBy(plugin, wildcard: false)
         {
             result.add({index, plugin.key})
             matched[index]      = true
@@ -184,7 +183,7 @@ impl ViewerPluginRegistry
             content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where not matched[index] and .matches(plugin, baseName, extension, wildcard: true) do
+        for plugin, index in .plugins where not matched[index] and key.selectedBy(plugin, wildcard: true) do
             result.add({index, plugin.key})
         return result
     }
@@ -193,33 +192,28 @@ impl ViewerPluginRegistry
     // when neither has a format-specific viewer.
     mtd const sharesViewer(a, b: string)->bool
     {
-        let extensionA = String.from(Path.extension(a) orelse "").toLower()
-        let extensionB = String.from(Path.extension(b) orelse "").toLower()
-        let baseA      = String.from(Path.fileName(a) orelse "").toLower()
-        let baseB      = String.from(Path.fileName(b) orelse "").toLower()
+        let keyA = NameKey.from(a)
+        let keyB = NameKey.from(b)
 
         var anyA, anyB: bool
         for plugin in .plugins where plugin.matchNames
         {
-            let matchA = .matches(plugin, baseA, extensionA, wildcard: false)
-            let matchB = .matches(plugin, baseB, extensionB, wildcard: false)
+            let matchA = keyA.selectedBy(plugin, wildcard: false)
+            let matchB = keyB.selectedBy(plugin, wildcard: false)
             if matchA and matchB do
                 return true
             anyA = anyA or matchA
             anyB = anyB or matchB
         }
 
-        if not anyA and not anyB do
-            return extensionA == extensionB
-        return false
+        return not anyA and not anyB and keyA.extension == keyB.extension
     }
 
     // Reports whether `fileName` has an explicitly registered extension or exact name.
     mtd const explicitlySupports(fileName: string)->bool
     {
-        let extension = String.from(Path.extension(fileName) orelse "").toLower()
-        let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
-        for plugin in .plugins where plugin.matchNames and .matches(plugin, baseName, extension, wildcard: false) do
+        let key = NameKey.from(fileName)
+        for plugin in .plugins where plugin.matchNames and key.selectedBy(plugin, wildcard: false) do
             return true
         return false
     }

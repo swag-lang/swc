@@ -37,7 +37,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         while one.count and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
-            one = try parseValue(addrVal!, safeValueType, one)
+            one = try parseValue(addrVal, safeValueType, one)
             one = Tokenize.eatSpaces(one)
         }
 
@@ -176,18 +176,35 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     let nativeType = assume cast(const *TypeInfoNative, type)
     switch nativeType.nativeKind
     {
-    case .S8: eat = try storeParsedNumber(patch, try parseS8(one))
-    case .S16: eat = try storeParsedNumber(patch, try parseS16(one))
-    case .S32: eat = try storeParsedNumber(patch, try parseS32(one))
-    case .S64: eat = try storeParsedNumber(patch, try parseS64(one))
+    case .S8:
+        eat = try storeParsedNumber(patch, try parseS8(one))
 
-    case .U8: eat = try storeParsedNumber(patch, try parseU8(one))
-    case .U16: eat = try storeParsedNumber(patch, try parseU16(one))
-    case .U32: eat = try storeParsedNumber(patch, try parseU32(one))
-    case .U64: eat = try storeParsedNumber(patch, try parseU64(one))
+    case .S16:
+        eat = try storeParsedNumber(patch, try parseS16(one))
 
-    case .F32: eat = try storeParsedNumber(patch, try parseF32(one))
-    case .F64: eat = try storeParsedNumber(patch, try parseF64(one))
+    case .S32:
+        eat = try storeParsedNumber(patch, try parseS32(one))
+
+    case .S64:
+        eat = try storeParsedNumber(patch, try parseS64(one))
+
+    case .U8:
+        eat = try storeParsedNumber(patch, try parseU8(one))
+
+    case .U16:
+        eat = try storeParsedNumber(patch, try parseU16(one))
+
+    case .U32:
+        eat = try storeParsedNumber(patch, try parseU32(one))
+
+    case .U64:
+        eat = try storeParsedNumber(patch, try parseU64(one))
+
+    case .F32:
+        eat = try storeParsedNumber(patch, try parseF32(one))
+
+    case .F64:
+        eat = try storeParsedNumber(patch, try parseF64(one))
 
     case .Bool:
         var val: bool

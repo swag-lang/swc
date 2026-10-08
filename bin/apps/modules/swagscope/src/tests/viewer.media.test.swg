@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // A real PNG contributes its metadata to the host side panel, with localized chrome and copyable values.
 #[Swag.TestTag("golden")]
@@ -27,8 +27,8 @@ using Core, Pixel, Gui
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
-    var session = openTestViewer(imageViewerPlugin(), &host.root, fileName)
-    let view    = assume cast(*ImageViewer, session.view)
+    var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*Picture.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     session.commands!.hide()

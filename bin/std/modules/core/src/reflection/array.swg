@@ -128,19 +128,12 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
 // deserialization does; this supports element types without an implicit default, such as
 // non-null interfaces. Panics when a pointer is null or when a default value is requested
 // for a type that has none.
-func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, initialize: bool = true)->*void?
+func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, initialize: bool = true)->*void
 {
-    if not arrayPointer or not elementType
-    {
+    if not arrayPointer or not elementType do
         Swag.panic("Reflection.appendDynamicArrayElement cannot append to a null array or null type", #curlocation)
-        return null
-    }
-
-    if initialize and not Memory.canDefaultInit(elementType)
-    {
+    if initialize and not Memory.canDefaultInit(elementType) do
         Swag.panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
-        return null
-    }
 
     // Views the array as a buffer of bytes to reach its fields without the element type.
     let arr       = cast(*Array'u8, arrayPointer)
@@ -174,12 +167,13 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         arr.capacity = newCapacity
     }
 
-    let result = arr.buffer + (arr.count * sizeValue)
+    // The buffer holds at least one free slot here.
+    let result = arr.buffer! + (arr.count * sizeValue)
     arr.count += 1
     if initialize do
         Memory.defaultInit(result, elementType)
     else do
-        Memory.clear(result!, sizeValue)
+        Memory.clear(result, sizeValue)
 
     return result
 }

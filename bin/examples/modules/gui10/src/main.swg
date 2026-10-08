@@ -70,8 +70,6 @@ func variantName(variant: ThemeVariant)->string
     case .SwagDark: return "Swag Dark"
     case .Sheet:    return "Sheet"
     }
-
-    unreachable
 }
 
 // Applies `variant` to `theme`, colors and geometry both.

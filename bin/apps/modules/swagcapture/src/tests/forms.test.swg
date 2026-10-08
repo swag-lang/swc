@@ -58,7 +58,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     shape.borderSize = 5
     let shapeItf: IForm = &shape
     Swag.assert(BaseForm.paintOverdraw(shapeItf, false) == 10)
-    Swag.assert(BaseForm.paintOverdraw(shapeItf, true) == QuickPaintOverdraw)
+    Swag.assert(BaseForm.paintOverdraw(shapeItf, true) == BaseForm.QuickPaintOverdraw)
 
     // The line ends are shaped from the stroke and the contour is pushed out around them, so
     // the anchor reserves 5/2 * 20 and the contour adds its own 3 once: 50 + 3, plus the

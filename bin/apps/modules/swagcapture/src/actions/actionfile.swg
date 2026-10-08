@@ -135,8 +135,7 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case .UnlinkImage:
-            let res = MessageDlg.confirm(main.surface!, appStrings().msg_RemoveAssociation)
-            if res == MessageDlg.BtnYes
+            if MessageDlg.confirm(main.surface!, appStrings().msg_RemoveAssociation) == Dialog.BtnYes
             {
                 capture.linkedImage.clear()
                 capture.changed        = true
@@ -146,46 +145,10 @@ impl IActionUI for ActionFile
             }
 
         case .UpdateLinkedImage:
-            if capture.linkedImage.length == 0
-            {
-                main.saveAsImage(linked: true)
-
-                // `saveAsImage` returns silently when the user cancels the dialog, leaving
-                // `linkedImage` empty; only mark up-to-date and persist when a linked path
-                // was actually set, otherwise we'd record a linked image that doesn't exist.
-                if capture.linkedImage.length != 0
-                {
-                    capture.linkedUpToDate = true
-                    main.saveCapture(capture)
-                    main.recentWnd.updateRecent()
-                }
-
-                break
-            }
-
-            if main.editorOptions.confirmLinkedOverwrite
-            {
-                let txt = Format.toString("%\n<i>%</i>", appStrings().msg_OverwriteLinked, capture.linkedImage)
-
-                var opt: MessageDlgOptions
-                opt.onCreated = func|main|(dlg)
-                {
-                    let chk = CheckButton.create(dlg.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
-                    chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = not btn.isChecked() }
-                    dlg.setExtension(chk)
-                }
-
-                if MessageDlg.confirm(main.surface!, txt, options: opt) != Dialog.BtnYes do
-                    break
-            }
-
-            Cursor.activateWait()
-            var img = capture.toImage()
-            main.doSaveImage(capture, &img, capture.linkedImage)
+            updateLinkedImage(main, capture)
 
         case .DeleteCapture:
-            let res = MessageDlg.confirm(main.surface!, appStrings().msg_DeleteCaptures)
-            if res == MessageDlg.BtnYes
+            if MessageDlg.confirm(main.surface!, appStrings().msg_DeleteCaptures) == Dialog.BtnYes
             {
                 if main.libraryMode do
                     main.libWnd.removeSelected()
@@ -229,9 +192,9 @@ impl IActionUI for ActionFile
             editOptions.title   = appStrings().dlg_TitleRenameCapture
             editOptions.message = appStrings().ui_CaptureName
             editOptions.text    = capture.title
-            let dlg = EditDlg.createSingleLine(main.surface!, editOptions)
-            if dlg.doModal() == Dialog.BtnOk do
-                main.setCaptureTitle(file, dlg.text())
+            let dialog = EditDlg.createSingleLine(main.surface!, editOptions)
+            if dialog.doModal() == Dialog.BtnOk do
+                main.setCaptureTitle(file, dialog.text())
 
         case .CopyImage:
             if main.libraryMode do
@@ -248,65 +211,113 @@ impl IActionUI for ActionFile
                 MessageDlg.error(main.surface!, appStrings().msg_FailedLocateLinked)
 
         case .FileDetails:
-
-            func addLine(lt: *Wnd, title, val: String)
-            {
-                with let wnd = Wnd.create'StackLayoutCtrl(lt)
-                {
-                    .mode = .Left
-                    .position.height = 20
-                }
-
-                let lbl1 = Label.create(wnd, title, {0, 0, 100, 0})
-                lbl1.setTextHorizontalAlignment(.Left)
-                let lbl2 = Label.create(wnd, val, {0, 0, 1000, 0})
-                lbl2.setTextHorizontalAlignment(.Left)
-            }
-
-            let dlg = Dialog.create(main.surface!, 600, 400, title: appStrings().dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
-            dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
-            with let lt = StackLayoutCtrl.create(dlg)
-            {
-                .dockStyle = .Center
-                .padding   = 5
-            }
-
-            addLine(lt, appStrings().ui_DetailFile, Format.toString("%", capture.file))
-            if capture.linkedImage != null do
-                addLine(lt, appStrings().ui_DetailLinkedImage, Format.toString("%", capture.linkedImage))
-            addLine(lt, appStrings().ui_DetailImageSize, Format.toString("%x%", capture.width, capture.height))
-            if capture.capturedAt.isValid() do
-                addLine(lt, appStrings().ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
-            if not capture.sourceApplication.isEmpty() do
-                addLine(lt, appStrings().ui_DetailApplication, capture.sourceApplication)
-            if not capture.sourceWindowTitle.isEmpty() do
-                addLine(lt, appStrings().ui_DetailWindowTitle, capture.sourceWindowTitle)
-            if not capture.sourceExecutable.isEmpty() do
-                addLine(lt, appStrings().ui_DetailExecutable, capture.sourceExecutable)
-            if not capture.sourceWindowClass.isEmpty() do
-                addLine(lt, appStrings().ui_DetailWindowClass, capture.sourceWindowClass)
-            if not capture.tags.isEmpty()
-            {
-                var tags: String
-                for tag in capture.tags
-                {
-                    if not tags.isEmpty() do
-                        tags += ", "
-                    tags += tag[]
-                }
-
-                addLine(lt, appStrings().ui_DetailTags, tags)
-            }
-
-            if capture.rating do
-                addLine(lt, appStrings().ui_DetailRating, ratingLabel(capture.rating))
-            addLine(lt, appStrings().ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
-            lt.computeLayout()
-            discard dlg.doModal()
+            showFileDetails(main, capture)
         }
 
         return true
     }
+}
+
+// Writes the capture over its linked image, first asking for one when it has none.
+//
+// The overwrite is confirmed unless the reader turned that question off.
+private func updateLinkedImage(main: *MainWnd, capture: *Capture)
+{
+    if capture.linkedImage.length == 0
+    {
+        main.saveAsImage(linked: true)
+
+        // `saveAsImage` returns silently when the user cancels the dialog, leaving
+        // `linkedImage` empty; only mark up-to-date and persist when a linked path
+        // was actually set, otherwise we'd record a linked image that doesn't exist.
+        if capture.linkedImage.length != 0
+        {
+            capture.linkedUpToDate = true
+            main.saveCapture(capture)
+            main.recentWnd.updateRecent()
+        }
+
+        return
+    }
+
+    if main.editorOptions.confirmLinkedOverwrite
+    {
+        let message = Format.toString("%\n<i>%</i>", appStrings().msg_OverwriteLinked, capture.linkedImage)
+
+        var options: MessageDlgOptions
+        options.onCreated = func|main|(dialog)
+        {
+            let askAgain = CheckButton.create(dialog.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
+            askAgain.sigChanged += func|main|(button) { main.editorOptions.confirmLinkedOverwrite = not button.isChecked() }
+            dialog.setExtension(askAgain)
+        }
+
+        if MessageDlg.confirm(main.surface!, message, options: options) != Dialog.BtnYes do
+            return
+    }
+
+    Cursor.activateWait()
+    var image = capture.toImage()
+    main.doSaveImage(capture, &image, capture.linkedImage)
+}
+
+// Shows what is known of `capture` in a modal box: its files, its size, and what it was taken from.
+private func showFileDetails(main: *MainWnd, capture: *Capture)
+{
+    let texts  = appStrings()
+    let dialog = Dialog.create(main.surface!, 600, 400, title: texts.dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
+    dialog.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
+    with let rows = StackLayoutCtrl.create(dialog)
+    {
+        .dockStyle = .Center
+        .padding   = 5
+    }
+
+    addDetail(rows, texts.ui_DetailFile, capture.file)
+    if not capture.linkedImage.isEmpty() do
+        addDetail(rows, texts.ui_DetailLinkedImage, capture.linkedImage)
+    addDetail(rows, texts.ui_DetailImageSize, Format.toString("%x%", capture.width, capture.height))
+    if capture.capturedAt.isValid() do
+        addDetail(rows, texts.ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
+    if not capture.sourceApplication.isEmpty() do
+        addDetail(rows, texts.ui_DetailApplication, capture.sourceApplication)
+    if not capture.sourceWindowTitle.isEmpty() do
+        addDetail(rows, texts.ui_DetailWindowTitle, capture.sourceWindowTitle)
+    if not capture.sourceExecutable.isEmpty() do
+        addDetail(rows, texts.ui_DetailExecutable, capture.sourceExecutable)
+    if not capture.sourceWindowClass.isEmpty() do
+        addDetail(rows, texts.ui_DetailWindowClass, capture.sourceWindowClass)
+    if not capture.tags.isEmpty()
+    {
+        var tags: String
+        for tag in capture.tags
+        {
+            if not tags.isEmpty() do
+                tags += ", "
+            tags += tag[]
+        }
+
+        addDetail(rows, texts.ui_DetailTags, tags)
+    }
+
+    if capture.rating do
+        addDetail(rows, texts.ui_DetailRating, ratingLabel(capture.rating))
+    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
+    rows.computeLayout()
+    discard dialog.doModal()
+}
+
+// Adds one row to the details box: a title and its value, both left aligned.
+private func addDetail(rows: *Wnd, title, value: string)
+{
+    with let row = Wnd.create'StackLayoutCtrl(rows)
+    {
+        .mode = .Left
+        .position.height = 20
+    }
+
+    Label.create(row, title, {0, 0, 100, 0}).setTextHorizontalAlignment(.Left)
+    Label.create(row, value, {0, 0, 1000, 0}).setTextHorizontalAlignment(.Left)
 }
 
 // Offers exactly the image formats the pixel codec registry supports, so a codec added
@@ -339,15 +350,15 @@ impl MainWnd
         let formats = Image.decodableFormats()
         addImageFilters(&opt, formats.toSlice())
 
-        let dlg = FileDlg.create(.surface!, opt)
-        if dlg.doModal() != Dialog.BtnOk do
+        let dialog = FileDlg.create(.surface!, opt)
+        if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let img = catch Image.load(dlg.selectedPath()) as err
+        let image = catch Image.load(dialog.selectedPath()) as err
         if err != null do
             MessageDlg.error(.surface, appStrings().msg_FailedLoadImage, err)
         else do
-            .newCapture(img, dlg.selectedPath())
+            .newCapture(image, dialog.selectedPath())
     }
 
     // Whether a dragged payload holds anything this editor can open.
@@ -383,9 +394,9 @@ impl MainWnd
         if opened do
             return
 
-        let img = data.image()
-        if img do
-            .newCapture(img[])
+        let image = data.image()
+        if image do
+            .newCapture(image[])
     }
 
     // Returns the file name the capture travels under when it leaves the application.
@@ -436,10 +447,10 @@ impl MainWnd
             return
 
         Cursor.activateWait()
-        var img = capture.toImage()
+        var image = capture.toImage()
 
         var data: DragData
-        .fillDragData(&data, capture, &img)
+        .fillDragData(&data, capture, &image)
         discard from.startDrag(&data, .Copy)
     }
 
@@ -483,8 +494,8 @@ impl MainWnd
         if .recentWnd != null do
             .recentWnd.updateRecent()
 
-        let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
-        let emb = InfoBar.create(.editWnd.view, txt, .Information, flags: .Bottom | .AutoDismiss)
+        let text = Format.toString("Image <url>%</url> has been saved", nameFile)
+        let emb  = InfoBar.create(.editWnd.view, text, .Information, flags: .Bottom | .AutoDismiss)
         emb.label.sigLinkActivated += func(?, msg) { Env.showInFileExplorer(msg) }
     }
 
@@ -522,43 +533,43 @@ impl MainWnd
         let formats = Image.encodableFormats()
         addImageFilters(&opt, formats.toSlice(), preferred)
 
-        let dlg = FileDlg.create(.surface!, opt)
+        let dialog = FileDlg.create(.surface!, opt)
         if .inPlaceEdit do
-            dlg.surface?.setTopMost()
-        if dlg.doModal() != Dialog.BtnOk do
+            dialog.surface?.setTopMost()
+        if dialog.doModal() != Dialog.BtnOk do
             return ""
-        return dlg.selectedPath()
+        return dialog.selectedPath()
     }
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
         let capture = .getCapture()!
         Cursor.activateWait()
-        var img = capture.toImage()
+        var image = capture.toImage()
         if linked do
             capture.linkedImage = fileName
-        .doSaveImage(capture, &img, fileName)
+        .doSaveImage(capture, &image, fileName)
     }
 
     mtd newImage()
     {
-        with let dlg = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)
+        with let dialog = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)
         {
             .addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         }
 
-        let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(16, 4096)
         edit1.edit.setUnsignedIntegerRange(16, 4096)
-        if dlg.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk do
             return
 
         let {w, ?, ?} = catch StrConv.parseS32(edit0.edit.text())
         let {h, ?, ?} = catch StrConv.parseS32(edit1.edit.text())
-        var img       = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
-        img.fill(Argb.White)
-        .newCapture(img, sourceKind: .BlankCanvas)
+        var image     = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
+        image.fill(Argb.White)
+        .newCapture(image, sourceKind: .BlankCanvas)
     }
 }

@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Midi
 
 using Core, Gui
 
 // Visible strings of the MIDI viewer.
-struct MidiStrings
+struct Texts
 {
     ui_AllTracks:     string = "All tracks"
     ui_TrackName:     string = "Track %"
@@ -28,19 +29,19 @@ struct MidiStrings
 private const FrenchStringsName = "lang/fr/scope.midi.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.midi.tweak")
 
-private var g_MidiStrings: MidiStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the MIDI viewer in the active language.
-func midiStrings()->const *MidiStrings => &g_MidiStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
-func registerMidiStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'MidiStrings(&g_MidiStrings, "scope.midi")
+    Gui.registerStrings'Texts(&g_Texts, "scope.midi")
 }
 
 #run
 {
-    expect Gui.validateStrings'MidiStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Table
 
 using Core, Gui
 
 // Visible strings of the tabular-text viewer.
-struct TableStrings
+struct Texts
 {
     ui_Column:          string = "Column %"
     ui_Details:         string = "% · % · %"
@@ -19,19 +20,19 @@ struct TableStrings
 private const FrenchStringsName = "lang/fr/scope.table.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.table.tweak")
 
-private var g_TableStrings: TableStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the tabular-text viewer in the active language.
-func tableStrings()->const *TableStrings => &g_TableStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
-func registerTableStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'TableStrings(&g_TableStrings, "scope.table")
+    Gui.registerStrings'Texts(&g_Texts, "scope.table")
 }
 
 #run
 {
-    expect Gui.validateStrings'TableStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

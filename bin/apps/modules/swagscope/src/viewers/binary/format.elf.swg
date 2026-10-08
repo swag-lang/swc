@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -179,9 +180,9 @@ func elfDynamicTagName(value: u64)->string
 
 // Adds everything an ELF file says about itself: how it is loaded, how it is linked, and what it
 // needs at run time.
-func reportElfImage(image: *BinaryImage, report: *BinaryReport)
+func reportElfImage(image: *BinaryImage, report: *Report)
 {
-    let s     = binaryStrings()
+    let texts = texts()
     let is64  = image.u8At(4) == 2
     let order = image.u8At(5)
     image.bigEndian = order == 2
@@ -200,10 +201,10 @@ func reportElfImage(image: *BinaryImage, report: *BinaryReport)
     let shnum    = cast(u64, image.u16At(tailAt + 12))
     let shstrndx = cast(u64, image.u16At(tailAt + 14))
 
-    report.beginGroup(s.elf_Header, "", "", offset: 0, length: tailAt + 16, open: true)
-    report.beginGroup(s.elf_Identity, "ELF", "", offset: 0, length: 16)
-    report.numField(4, 1, "EI_CLASS", cast(u64, image.u8At(4)), is64 ? s.elf_Class64 : s.elf_Class32)
-    report.numField(5, 1, "EI_DATA", cast(u64, order), order == 2 ? s.elf_Big : s.elf_Little)
+    report.beginGroup(texts.elf_Header, "", "", offset: 0, length: tailAt + 16, open: true)
+    report.beginGroup(texts.elf_Identity, "ELF", "", offset: 0, length: 16)
+    report.numField(4, 1, "EI_CLASS", cast(u64, image.u8At(4)), is64 ? texts.elf_Class64 : texts.elf_Class32)
+    report.numField(5, 1, "EI_DATA", cast(u64, order), order == 2 ? texts.elf_Big : texts.elf_Little)
     report.numField(6, 1, "EI_VERSION", cast(u64, image.u8At(6)))
     report.numField(7, 1, "EI_OSABI", cast(u64, image.u8At(7)), elfOsAbiName(image.u8At(7)))
     report.numField(8, 1, "EI_ABIVERSION", cast(u64, image.u8At(8)))
@@ -231,21 +232,21 @@ func reportElfImage(image: *BinaryImage, report: *BinaryReport)
     reportElfDynamic(image, report, sections.toSlice(), is64)
     reportElfNotes(image, report, sections.toSlice())
 
-    let counted = countText(shnum, s.word_Section, s.word_Sections)
-    report.formatName = String.from(is64 ? "ELF64" : "ELF32")
+    let counted = countText(shnum, texts.word_Section, texts.word_Sections)
+    report.formatName = is64 ? "ELF64" : "ELF32"
     report.summary    = Format.toString("% · % · % · %", report.formatName, elfTypeName(kind), elfMachineName(machine), counted)
 }
 
-private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, entrySize, count: u64, is64: bool)
+private func reportElfSegments(image: *BinaryImage, report: *Report, at, entrySize, count: u64, is64: bool)
 {
     if not at or not count do
         return
 
-    let s     = binaryStrings()
-    let shown = Math.min(count, BinaryListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let texts = texts()
+    let shown = Math.min(count, ListLimit)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.elf_Programs, total, s.elf_ProgramsDesc, offset: at, length: count * entrySize, open: true)
+    report.beginGroup(texts.elf_Programs, total, texts.elf_ProgramsDesc, offset: at, length: count * entrySize, open: true)
 
     for index in shown
     {
@@ -276,22 +277,22 @@ private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, e
 
 private func elfSegmentFlagsText(value: u32)->String
 {
-    let names = [BinaryFlagName{1, "PF_X"}, BinaryFlagName{2, "PF_W"}, BinaryFlagName{4, "PF_R"}]
+    let names = [FlagName{1, "PF_X"}, FlagName{2, "PF_W"}, FlagName{4, "PF_R"}]
     return flagsText(cast(u64, value), names)
 }
 
 private func elfSectionFlagsText(value: u64)->String
 {
-    let names = [BinaryFlagName{0x001, "SHF_WRITE"},
-                 BinaryFlagName{0x002, "SHF_ALLOC"},
-                 BinaryFlagName{0x004, "SHF_EXECINSTR"},
-                 BinaryFlagName{0x010, "SHF_MERGE"},
-                 BinaryFlagName{0x020, "SHF_STRINGS"},
-                 BinaryFlagName{0x040, "SHF_INFO_LINK"},
-                 BinaryFlagName{0x080, "SHF_LINK_ORDER"},
-                 BinaryFlagName{0x200, "SHF_GROUP"},
-                 BinaryFlagName{0x400, "SHF_TLS"},
-                 BinaryFlagName{0x800, "SHF_COMPRESSED"}]
+    let names = [FlagName{0x001, "SHF_WRITE"},
+                 FlagName{0x002, "SHF_ALLOC"},
+                 FlagName{0x004, "SHF_EXECINSTR"},
+                 FlagName{0x010, "SHF_MERGE"},
+                 FlagName{0x020, "SHF_STRINGS"},
+                 FlagName{0x040, "SHF_INFO_LINK"},
+                 FlagName{0x080, "SHF_LINK_ORDER"},
+                 FlagName{0x200, "SHF_GROUP"},
+                 FlagName{0x400, "SHF_TLS"},
+                 FlagName{0x800, "SHF_COMPRESSED"}]
     return flagsText(value, names)
 }
 
@@ -306,7 +307,7 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
     let namesAt   = at + stringIndex * entrySize
     let stringsAt = stringIndex < count ? image.scalarAt(namesAt + 8 + wide * 2, wide) : 0
 
-    for index in Math.min(count, BinaryListLimit)
+    for index in Math.min(count, ListLimit)
     {
         let entryAt = at + index * entrySize
 
@@ -329,18 +330,18 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
     return result
 }
 
-private func reportElfSections(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection, at, entrySize: u64, is64: bool)
+private func reportElfSections(image: *BinaryImage, report: *Report, sections: const [..] ElfSection, at, entrySize: u64, is64: bool)
 {
-    let s = binaryStrings()
+    let texts = texts()
     if not at
     {
-        report.note(s.elf_NoSections)
+        report.note(texts.elf_NoSections)
         return
     }
 
     let wide  = is64 ? 8'u64 : 4
-    let total = countText(sections.count, s.word_Section, s.word_Sections)
-    report.beginGroup(s.shr_Sections, total, s.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
+    let total = countText(sections.count, texts.word_Section, texts.word_Sections)
+    report.beginGroup(texts.shr_Sections, total, texts.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
 
     for section, index in sections
     {
@@ -370,7 +371,7 @@ private func reportElfSections(image: *BinaryImage, report: *BinaryReport, secti
 }
 
 // Adds the dynamic section, which is the whole of what a shared library asks of its loader.
-private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection, is64: bool)
+private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: const [..] ElfSection, is64: bool)
 {
     var dynamic: const *ElfSection?
     for section in sections where section.kind == 6
@@ -383,7 +384,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
         return
 
     // The strings a dynamic entry names live in the section it links to, which is `.dynstr`.
-    let s         = binaryStrings()
+    let texts     = texts()
     let wide      = is64 ? 8'u64 : 4
     let at        = dynamic.offset
     var stringsAt = 0'u64
@@ -392,7 +393,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
 
     var entries: Array'u64
     var needed:  Array'String
-    while entries.count < BinaryListLimit
+    while entries.count < ListLimit
     {
         let entryAt = at + entries.count * wide * 2
         if not image.has(entryAt, wide * 2) do
@@ -402,8 +403,8 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
             break
     }
 
-    let total = countText(entries.count, s.word_Entry, s.word_Entries)
-    report.beginGroup(s.elf_Dynamic, total, s.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
+    let total = countText(entries.count, texts.word_Entry, texts.word_Entries)
+    report.beginGroup(texts.elf_Dynamic, total, texts.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
 
     for entryAt in entries
     {
@@ -428,8 +429,8 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
 
     if not needed.isEmpty()
     {
-        let count = countText(needed.count, s.word_Library, s.word_Libraries)
-        report.beginGroup(s.shr_Libraries, count, "", open: true)
+        let count = countText(needed.count, texts.word_Library, texts.word_Libraries)
+        report.beginGroup(texts.shr_Libraries, count, "", open: true)
         for one in needed do
             report.derived(one.toString(), "")
         report.endGroup()
@@ -437,15 +438,15 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
 }
 
 // Adds the two notes worth naming: the interpreter a program is started by, and the build identity.
-private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection)
+private func reportElfNotes(image: *BinaryImage, report: *Report, sections: const [..] ElfSection)
 {
-    let s = binaryStrings()
+    let texts = texts()
     for section in sections
     {
         if section.name == ".interp"
         {
             let path = image.cstringAt(section.offset, 512)
-            report.field(section.offset, section.size, s.shr_Interpreter, path)
+            report.field(section.offset, section.size, texts.shr_Interpreter, path)
             continue
         }
 
@@ -468,6 +469,6 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
 
         if text.isEmpty() do
             continue
-        report.field(payloadAt, payloadSize, s.shr_BuildId, cast(string, text.toSlice()))
+        report.field(payloadAt, payloadSize, texts.shr_BuildId, cast(string, text.toSlice()))
     }
 }

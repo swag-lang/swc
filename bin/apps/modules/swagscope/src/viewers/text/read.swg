@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.PlainText
 
 using Core
 
 // One background read of part of a text file. The GUI consumes its result only once the task has finished.
-struct TextRead
+struct Read
 {
     using operation: Viewer.BackgroundOperation
     fileName:        String
@@ -20,12 +21,12 @@ struct TextRead
     text:            String
 }
 
-impl TextRead
+impl Read
 {
     // Reads the requested chunk on the worker, moving a random seek off a split character.
     mtd read() fail
     {
-        var stream = try File.openReadLive(.fileName.toString())
+        var stream = try File.openReadLive(.fileName)
         defer stream.close()
         if .replace
         {

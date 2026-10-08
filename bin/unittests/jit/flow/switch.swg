@@ -528,8 +528,6 @@ const SwitchPointerValues = [11, 22, 33]
         case SwitchCompleteKind.Second: return "second"
         case SwitchCompleteKind.Third:  return "third"
         }
-
-        unreachable
     }
 
     Swag.assert(nameOf(SwitchCompleteKind.First) == "first")

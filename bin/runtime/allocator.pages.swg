@@ -239,13 +239,13 @@ private func allocatorNextKey(seed: u64)->u64
 }
 
 // Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.
-#[Swag.NoInline]
+#[Swag.NoInline, Swag.NoReturn]
 func allocatorCorruptedFreeList()
 {
     Swag.panic("allocator free list is corrupted", #curlocation)
 }
 
-#[Swag.NoInline]
+#[Swag.NoInline, Swag.NoReturn]
 func allocatorFreedBlockWritten()
 {
     Swag.panic("memory block was written after being freed", #curlocation)

@@ -1,22 +1,23 @@
 #global internal
+#global namespace Viewers.Midi
 
 using Core, Pixel, Gui
 
 // Offers the score surface for a Standard MIDI File, whatever it is called.
-private func midiPluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("MThd")
+private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("MThd")
 
 // Describes the MIDI viewer to the host.
-func midiViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "midi"
         .staticName   = "MIDI"
-        .attach       = &registerMidiStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Midi)
-        .create       = &createMidiViewer
-        .probe        = &midiPluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .smokeFixture = "viewer.mid"
         .addSelectors(".mid;.midi")
     }
@@ -24,10 +25,10 @@ func midiViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const MidiCommandWidth = 224.0
+private const CommandWidth = 224.0
 
 // Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
-struct MidiViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -37,11 +38,11 @@ struct MidiViewer
         info:       *Wnd
         trackCombo: *ComboBox
         zoomLabel:  *IconButton
-        roll:       *MidiRollView
+        roll:       *RollView
     }
 
     details:              String
-    load:                 Viewer.BackgroundLoad'MidiDocument
+    load:                 Viewer.BackgroundLoad'Document
     loadTimer:            *Timer?
     reportFailure:        Viewer.ReportFailure?
     reportDetails:        Viewer.ReportDetails?
@@ -49,7 +50,7 @@ struct MidiViewer
     failureReason:        String
 }
 
-private impl MidiViewer
+private impl Panel
 {
     mtd refreshZoom()
     {
@@ -60,10 +61,10 @@ private impl MidiViewer
     {
         let selected = .trackCombo.selectedIndex
         .trackCombo.clear()
-        .trackCombo.addItem(midiStrings().ui_AllTracks)
+        .trackCombo.addItem(texts().ui_AllTracks)
         for track in .roll.document.tracks
         {
-            let label = Format.toString(midiStrings().ui_TrackChoice, track.name, track.noteCount)
+            let label = Format.toString(texts().ui_TrackChoice, track.name, track.noteCount)
             .trackCombo.addItem(label)
         }
 
@@ -72,17 +73,17 @@ private impl MidiViewer
 
     mtd retranslate()
     {
-        .trackCombo.toolTip = midiStrings().ui_AllTracks
-        .zoomLabel.toolTip  = midiStrings().ui_ZoomMenu
+        .trackCombo.toolTip = texts().ui_AllTracks
+        .zoomLabel.toolTip  = texts().ui_ZoomMenu
         if .isLoading() do
             return
         .fillTracks()
         .roll.invalidate()
     }
 
-    mtd publishDocument(document: *MidiDocument)
+    mtd publishDocument(document: *Document)
     {
-        .roll = MidiRollView.create(me, #move document[])
+        .roll = RollView.create(me, #move document[])
         .roll.sigZoomChanged += func|view = me|(?) { view.refreshZoom() }
         .fillTracks()
         .trackCombo.setSelectedIndex(0, notify: false)
@@ -96,9 +97,9 @@ private impl MidiViewer
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(midiStrings().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
+        .details = Format.toString(texts().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     mtd showZoomMenu()
@@ -109,7 +110,7 @@ private impl MidiViewer
         menu.addItem("100%", "scope.midi.zoom100")
         menu.addItem("200%", "scope.midi.zoom200")
         menu.addSeparator()
-        menu.addItem(midiStrings().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.midi.zoom25":  .roll.applyZoom(0.25)
@@ -138,7 +139,7 @@ private impl MidiViewer
     }
 }
 
-private impl IWnd for MidiViewer
+private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -153,12 +154,12 @@ private impl IWnd for MidiViewer
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        var document: MidiDocument
+        var document: Document
         .failureReason = .load.finish(&document)
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -176,15 +177,15 @@ private impl IWnd for MidiViewer
     }
 }
 
-impl MidiViewer
+impl Panel
 {
-    func create(host: Viewer.Host)->*MidiViewer
+    func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
-        let commands = host.createCommandGroup(MidiCommandWidth)
-        let info     = host.createInfoGroup(ViewerZoomSlotWidth)
+        let commands = host.createCommandGroup(CommandWidth)
+        let info     = host.createInfoGroup(Viewer.ZoomSlotWidth)
 
-        with let result = Wnd.create'MidiViewer(host.contentParent(), "scope.midi")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
             .backgroundStyle      = .View
             .reportFailure        = services.reportFailure
@@ -194,36 +195,27 @@ impl MidiViewer
             .info                 = info
         }
 
-        with result.trackCombo = ComboBox.create(result.commands, {0, 0, MidiCommandWidth, 36})
+        with result.trackCombo = ComboBox.create(result.commands, {0, 0, CommandWidth, 36})
         {
             .dockStyle  = .Left
-            .toolTip    = midiStrings().ui_AllTracks
+            .toolTip    = texts().ui_AllTracks
             .sigChanged += func|view = result|(?, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.midi.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = midiStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(?) { view.showZoomMenu() }
-        }
+        result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)
+        result.zoomLabel.sigPressed += func|view = result|(?) { view.showZoomMenu() }
 
         result.applyLayout()
-        result.load.start(host.fileName(), &loadMidiDocument)
+        result.load.start(host.fileName(), &loadDocument)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated MIDI score view and connects it to the host.
-func createMidiViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = MidiViewer.create(host)
+    let view = Panel.create(host)
     host.attachView(view)
 
     with var lifecycle: Viewer.LifecycleApi

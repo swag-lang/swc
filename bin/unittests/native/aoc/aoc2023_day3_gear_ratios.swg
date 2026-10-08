@@ -63,8 +63,6 @@ func dirName(d: Dir)->string
     case Dir.W:  return "W"
     case Dir.NW: return "NW"
     }
-
-    return "?"
 }
 
 // ---------------------------------------------------------------------------

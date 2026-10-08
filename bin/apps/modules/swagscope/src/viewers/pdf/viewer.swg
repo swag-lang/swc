@@ -1,22 +1,23 @@
 #global internal
+#global namespace Viewers.PdfDocument
 
 using Core, Pixel, Gui
 
 // Offers the page surface for a document that carries the PDF header, whatever it is called.
-private func pdfPluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("%PDF-")
+private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("%PDF-")
 
 // Describes the PDF viewer to the host.
-func pdfViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "pdf"
         .staticName   = "PDF"
-        .attach       = &registerPdfStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Pdf)
-        .create       = &createPdfViewer
-        .probe        = &pdfPluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .smokeFixture = "viewer.pdf"
         .addSelectors(".pdf")
     }
@@ -24,24 +25,24 @@ func pdfViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const PdfPageWidth = 76.0
+private const PageWidth = 76.0
 
-private func pdfInfoWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + PdfPageWidth + ViewerZoomSlotWidth + 16
+private func infoWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + PageWidth + Viewer.ZoomSlotWidth + 16
 
 // Keeps the page controls and zoom selector in one fixed-width run. Their authored cells are
 // wider than their current text and icons, so measuring each child by its contents would let the
 // host shrink the group until the left- and right-docked controls overlap.
-private struct PdfInfoControls
+private struct InfoControls
 {
     using wnd: Wnd
 }
 
-private impl IWnd for PdfInfoControls
+private impl IWnd for InfoControls
 {
     mtd impl measureContent(?: Math.Point)->Math.Point => .preferredSize
 }
 
-struct PdfViewerContent
+struct ViewerContent
 {
     reader:  Pdf.Reader
     page:    Pdf.Page
@@ -49,26 +50,26 @@ struct PdfViewerContent
     outline: Array'Pdf.OutlineEntry
 }
 
-private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
+private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: retval
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
     if not result.reader.pageCount() do
-        fail Errors.InvalidFormatError{pdfStrings().err_NoPage}
+        fail Errors.InvalidFormatError{texts().err_NoPage}
     result.page    = #move try result.reader.loadPage(0)
     result.details = "PDF"
     return result
 }
 
-struct PdfViewer
+struct Panel
 {
     using wnd:            Wnd
     details:              String
     reportFailure:        Viewer.ReportFailure?
     reportDetails:        Viewer.ReportDetails?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
-    load:                 Viewer.BackgroundLoad'PdfViewerContent
+    load:                 Viewer.BackgroundLoad'ViewerContent
     loadTimer:            *Timer?
     failureReason:        String
     outline:              *DocumentOutline?
@@ -85,16 +86,16 @@ struct PdfViewer
     }
 }
 
-private impl IWnd for PdfViewer
+private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged
         {
-            .previousButton.toolTip = pdfStrings().ui_Previous
-            .nextButton.toolTip     = pdfStrings().ui_Next
-            .pageLabel.toolTip      = pdfStrings().ui_GoToPage
-            .zoomLabel.toolTip      = pdfStrings().ui_ZoomMenu
+            .previousButton.toolTip = texts().ui_Previous
+            .nextButton.toolTip     = texts().ui_Next
+            .pageLabel.toolTip      = texts().ui_GoToPage
+            .zoomLabel.toolTip      = texts().ui_ZoomMenu
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -113,12 +114,12 @@ private impl IWnd for PdfViewer
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        var content: PdfViewerContent
+        var content: ViewerContent
         .failureReason = .load.finish(&content)
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -137,7 +138,7 @@ private impl IWnd for PdfViewer
         .refreshNavigation()
         .setInitialFocus(.pdfView)
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
     }
@@ -162,7 +163,7 @@ private impl IWnd for PdfViewer
     }
 }
 
-private impl PdfViewer
+private impl Panel
 {
     mtd retire()->bool
     {
@@ -225,8 +226,8 @@ private impl PdfViewer
         if not .surface or not .pdfView.pageCount() do
             return
         var options: EditDlgOptions
-        options.title   = pdfStrings().ui_GoToPage
-        options.message = Format.toString(pdfStrings().ui_PageRange, .pdfView.pageCount()).toString()
+        options.title   = texts().ui_GoToPage
+        options.message = Format.toString(texts().ui_PageRange, .pdfView.pageCount()).toString()
         options.text    = Format.toString("%", .pdfView.pageIndex + 1).toString()
         let dialog = EditDlg.createSingleLine(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
@@ -239,16 +240,16 @@ private impl PdfViewer
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("50%", "scope.pdf.zoom50")
-        menu.addItem(pdfStrings().ui_Actual, "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts().ui_Actual, "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
         menu.addItem("125%", "scope.pdf.zoom125")
         menu.addItem("150%", "scope.pdf.zoom150")
         menu.addItem("200%", "scope.pdf.zoom200")
         menu.addSeparator()
-        menu.addItem(pdfStrings().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
-        menu.addItem(pdfStrings().ui_FitWidth, "scope.pdf.zoomFitWidth", rightName: "W", checked: .pdfView.zoomMode == .FitWidth)
+        menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
+        menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", rightName: "W", checked: .pdfView.zoomMode == .FitWidth)
         menu.addSeparator()
-        menu.addItem(pdfStrings().ui_Continuous, "scope.pdf.layoutContinuous", checked: .pdfView.pageLayout == .Continuous)
-        menu.addItem(pdfStrings().ui_SinglePage, "scope.pdf.layoutSingle", checked: .pdfView.pageLayout == .Single)
+        menu.addItem(texts().ui_Continuous, "scope.pdf.layoutContinuous", checked: .pdfView.pageLayout == .Continuous)
+        menu.addItem(texts().ui_SinglePage, "scope.pdf.layoutSingle", checked: .pdfView.pageLayout == .Single)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.pdf.zoom50":           .pdfView.setZoom(0.5)
@@ -265,9 +266,9 @@ private impl PdfViewer
 
     // Creates the page view of `fileName`, with its page and zoom controls in `info`, and starts
     // opening the document in the background.
-    func create(contentParent, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, reportDetails: Viewer.ReportDetails? = null, reportLoadingChanged: Viewer.ReportLoadingChanged? = null)->*PdfViewer
+    func create(contentParent, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, reportDetails: Viewer.ReportDetails? = null, reportLoadingChanged: Viewer.ReportLoadingChanged? = null)->*Panel
     {
-        with let result = Wnd.create'PdfViewer(contentParent, "scope.pdf")
+        with let result = Wnd.create'Panel(contentParent, "scope.pdf")
         {
             .backgroundStyle      = .View
             .reportFailure        = reportFailure
@@ -282,7 +283,7 @@ private impl PdfViewer
 
         result.applyLayout()
         result.refreshZoom()
-        result.load.start(fileName, &loadPdfViewerContent)
+        result.load.start(fileName, &loadViewerContent)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
@@ -296,18 +297,18 @@ private impl PdfViewer
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
-            .toolTip         = pdfStrings().ui_Previous
+            .toolTip         = texts().ui_Previous
             .sigPressed      += func|view = me|(?) { view.pdfView.previousPage() }
         }
 
-        with .pageLabel = IconButton.create(.info, {}, {0, 0, PdfPageWidth, 32}, "scope.pdf.page", .CenterContent)
+        with .pageLabel = IconButton.create(.info, {}, {0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
         {
             .dockStyle       = .Left
-            .preferredSize.x = PdfPageWidth
+            .preferredSize.x = PageWidth
             .margin.x        = 8
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = pdfStrings().ui_GoToPage
+            .toolTip    = texts().ui_GoToPage
             .sigPressed += func|view = me|(?) { view.promptGoToPage() }
         }
 
@@ -315,7 +316,7 @@ private impl PdfViewer
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
-            .toolTip         = pdfStrings().ui_Next
+            .toolTip         = texts().ui_Next
             .sigPressed      += func|view = me|(?) { view.pdfView.nextPage() }
         }
     }
@@ -323,17 +324,12 @@ private impl PdfViewer
     // Creates the zoom menu button at the end of the information group.
     mtd createZoomControl()
     {
-        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.pdf.zoom", .CenterContent)
+        with .zoomLabel = Viewer.createZoomButton(.info, "scope.pdf.zoom", texts().ui_ZoomMenu)
         {
             .dockStyle       = .Right
-            .preferredSize.x = ViewerZoomButtonWidth
-            .margin          = {ViewerInfoControlInset + 8, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = pdfStrings().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
+            .preferredSize.x = Viewer.ZoomButtonWidth
+            .margin          = {Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
+            .sigPressed      += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 
@@ -363,19 +359,19 @@ private impl PdfViewer
 }
 
 // Creates the integrated PDF view.
-func createPdfViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
     let services  = host.services()
-    let infoWidth = pdfInfoWidth(host.contentParent().themeMetrics())
+    let infoWidth = infoWidth(host.contentParent().themeMetrics())
 
-    with let info = Wnd.create'PdfInfoControls(host.createInfoGroup(infoWidth), {0, 0, infoWidth, 36})
+    with let info = Wnd.create'InfoControls(host.createInfoGroup(infoWidth), {0, 0, infoWidth, 36})
     {
         .dockStyle       = .Left
         .backgroundStyle = .Transparent
         .preferredSize.x = infoWidth
     }
 
-    let view = PdfViewer.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view = Panel.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(?, index)

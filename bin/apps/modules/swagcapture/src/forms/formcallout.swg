@@ -50,7 +50,7 @@ impl FormCallout
     // which is what left a gap/overshoot when the tip pointed toward a corner.
     func tailSpan(tipCoord, tailLen, edgeLo, edgeHi, minWH, cr: f32)->{ hb: f32, c: f32 }
     {
-        var res: retval
+        var result: retval
 
         var hb = Math.max(Math.min(18.0, minWH * 0.3), 2'f32)
         hb = Math.max(Math.min(hb, tailLen * 0.6), 2'f32)
@@ -61,9 +61,9 @@ impl FormCallout
 
         let lo = sLo + hb
         let hi = sHi - hb
-        res.hb = hb
-        res.c  = lo > hi ? (edgeLo + edgeHi) * 0.5 : Math.clamp(tipCoord, lo, hi)
-        return res
+        result.hb = hb
+        result.c  = lo > hi ? (edgeLo + edgeHi) * 0.5 : Math.clamp(tipCoord, lo, hi)
+        return result
     }
 
     // Base of the tail on the body edge nearest the tip, returned in form space.
@@ -228,24 +228,15 @@ impl IForm for FormCallout
         return true
     }
 
-    mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
-    {
-        .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
-    }
+    mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32) => .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
+    mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)  => .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
 
+    // The tail is a point of its own, so it scales with the box.
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x     = cast(s32, .x * scale)
-        .y     = cast(s32, .y * scale)
-        .w     = cast(s32, .w * scale)
-        .h     = cast(s32, .h * scale)
+        .scaleRectForm(scale)
         .tailX *= scale
         .tailY *= scale
-    }
-
-    mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
-    {
-        .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
@@ -296,8 +287,7 @@ impl IForm for FormCallout
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool => .rectFormBound().contains(pt.x, pt.y)
-
+    mtd impl isInside(pt: Math.Point)->bool        => .rectFormBound().contains(pt.x, pt.y)
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

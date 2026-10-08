@@ -46,7 +46,7 @@ impl NodeIndex
             return false
         if node.id != RootNodeId
         {
-            let key = childKey(node.parentId, node.name.toString())
+            let key = childKey(node.parentId, node.name)
             if .byParent.contains(key) do
                 return false
             .byParent.add(#move key, node.id)
@@ -80,7 +80,7 @@ impl NodeIndex
         if node.id == RootNodeId do
             return
 
-        .byParent.remove(childKey(node.parentId, node.name.toString()))
+        .byParent.remove(childKey(node.parentId, node.name))
         let links    = .siblings.tryFind(node.id)
         let children = .childLists.tryFind(node.parentId)
         Swag.assert(links != null and children != null)

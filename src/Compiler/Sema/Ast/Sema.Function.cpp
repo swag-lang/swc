@@ -2068,6 +2068,19 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
     if (inParallelForBody(sema))
         return SemaError::raise(sema, DiagnosticId::sema_err_return_leaves_parallel_for, sema.curNodeRef());
 
+    // A callee inlined here keeps its own 'return', which goes back to this body.
+    const SymbolFunction* currentFn = sema.currentFunction();
+    if (currentFn && currentFn->attributes().hasRtFlag(RtAttributeFlagsE::NoReturn) && !nearestReturnContextPayload(sema))
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_noreturn_return, sema.curNodeRef());
+        if (currentFn->name(sema.ctx()).empty())
+            diag.removeArgument(Diagnostic::ARG_SYM);
+        else
+            diag.addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     TypeRef returnTypeRef = TypeRef::invalid();
     SWC_RESULT(resolveReturnTypeRef(sema, nodeExprRef, returnTypeRef));
     return validateReturnStatementValue(sema, sema.curNodeRef(), nodeExprRef, returnTypeRef);

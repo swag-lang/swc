@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // Every multi-image codec reaches the same viewer navigation, including unequal image dimensions.
 #test
@@ -12,8 +12,8 @@ using Core, Pixel, Gui
         var host: Testing.HeadlessHost
         host.setup(960, 540)
         defer host.shutdown()
-        var session = openTestViewer(imageViewerPlugin(), &host.root, fileName)
-        let view    = assume cast(*ImageViewer, session.view)
+        var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
+        let view    = assume cast(*Picture.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         let movie = &view.imageView.movie
         Swag.assert(view.failureReason.isEmpty() and movie.isValid() and movie.frameCount > 1)

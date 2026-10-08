@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.InDesign
 
 using Core, Gui
 
 // Visible strings of the InDesign document viewer.
-struct IndesignStrings
+struct Texts
 {
     ui_Name:                 string = "InDesign"                                                         // Name of this viewer in the viewer selector.
     ui_Details:              string = "InDesign · page % of % · saved preview % × %"                     // Short visual-preview summary in the information band.
@@ -35,19 +36,19 @@ struct IndesignStrings
 private const FrenchStringsName = "lang/fr/scope.indesign.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.indesign.tweak")
 
-private var g_IndesignStrings: IndesignStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the InDesign document viewer in the active language.
-func indesignStrings()->const *IndesignStrings => &g_IndesignStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's strings before the registry names its plugin.
-func registerIndesignStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'IndesignStrings(&g_IndesignStrings, "scope.indesign")
+    Gui.registerStrings'Texts(&g_Texts, "scope.indesign")
 }
 
 #run
 {
-    expect Gui.validateStrings'IndesignStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

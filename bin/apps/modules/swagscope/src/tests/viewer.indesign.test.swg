@@ -1,13 +1,13 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // A preview worker keeps its failure message until the viewer publishes the completed result.
 #test
 {
     let source   = indesignFixturePath()
-    let document = expect loadIndesignDocument(source)
+    let document = expect InDesign.loadDocument(source)
     var bytes    = expect File.readAllBytes(source)
     let preview  = &document.previews[0]
     for index in preview.payloadStart until preview.payloadEnd do
@@ -20,31 +20,31 @@ using Core, Pixel, Gui
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var result = openTestViewer(indesignViewerPlugin(), &host.root, path, commandParent: &host.root)
+    var result = openTestViewer(InDesign.viewerPlugin(), &host.root, path, commandParent: &host.root)
     Swag.assert(result.view != null)
-    let viewer = assume cast(*IndesignViewer, result.view)
+    let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
-    Swag.assert(viewer.failureReason == indesignStrings().err_Preview)
+    Swag.assert(viewer.failureReason == InDesign.texts().err_Preview)
     Swag.assert(not viewer.hasPreviewContent)
 }
 
 // A file URI is checked after percent decoding, before any linked-image probe can run.
 #test
 {
-    Swag.assert(idmlFileUriPath("file:///images/title%20page.png") == "/images/title page.png")
-    Swag.assert(idmlFileUriPath("file://localhost/images/title.png") == "/images/title.png")
-    Swag.assert(idmlFileUriPath("file://server/share/image.png").isEmpty())
-    Swag.assert(idmlFileUriPath("file:////server/share/image.png").isEmpty())
-    Swag.assert(idmlFileUriPath("file:%2F%2Fserver/share/image.png").isEmpty())
-    Swag.assert(idmlFileUriPath("file:///images/bad%00.png").isEmpty())
-    Swag.assert(idmlFileUriPath("file:///images/bad%2.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:///images/title%20page.png") == "/images/title page.png")
+    Swag.assert(InDesign.Idml.fileUriPath("file://localhost/images/title.png") == "/images/title.png")
+    Swag.assert(InDesign.Idml.fileUriPath("file://server/share/image.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:////server/share/image.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:%2F%2Fserver/share/image.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:///images/bad%00.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:///images/bad%2.png").isEmpty())
     if WINDOWS
     {
-        Swag.assert(idmlFileUriPath("file:%5C%5Cserver/share/image.png").isEmpty())
-        Swag.assert(idmlFileUriPath("file:%2F%5Cserver/share/image.png").isEmpty())
-        Swag.assert(idmlFileUriPath("file:%5C%5C%3F%5CUNC%5Cserver%5Cshare%5Cimage.png").isEmpty())
-        Swag.assert(idmlFileUriPath("file:///C:/images/title%20page.png") == "C:/images/title page.png")
+        Swag.assert(InDesign.Idml.fileUriPath("file:%5C%5Cserver/share/image.png").isEmpty())
+        Swag.assert(InDesign.Idml.fileUriPath("file:%2F%5Cserver/share/image.png").isEmpty())
+        Swag.assert(InDesign.Idml.fileUriPath("file:%5C%5C%3F%5CUNC%5Cserver%5Cshare%5Cimage.png").isEmpty())
+        Swag.assert(InDesign.Idml.fileUriPath("file:///C:/images/title%20page.png") == "C:/images/title page.png")
     }
 }
 
@@ -68,14 +68,14 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 #test
 {
     let image = "<Image ImageTypeName=\"$ID/PNG\"><Contents><![CDATA[QUJD]]></Contents></Image>"
-    Swag.assert(idmlEmbeddedGraphicDataUri(image) == "data:image/png;base64,QUJD")
-    Swag.assert(idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/EPS\"><Contents><![CDATA[QUJD]]></Contents></Image>").isEmpty())
-    Swag.assert(idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/PNG\"><MetadataPacketPreference><Contents><![CDATA[<?xpacket begin=\"\"?>]]></Contents></MetadataPacketPreference></Image>").isEmpty())
+    Swag.assert(InDesign.Idml.embeddedGraphicDataUri(image) == "data:image/png;base64,QUJD")
+    Swag.assert(InDesign.Idml.embeddedGraphicDataUri("<Image ImageTypeName=\"$ID/EPS\"><Contents><![CDATA[QUJD]]></Contents></Image>").isEmpty())
+    Swag.assert(InDesign.Idml.embeddedGraphicDataUri("<Image ImageTypeName=\"$ID/PNG\"><MetadataPacketPreference><Contents><![CDATA[<?xpacket begin=\"\"?>]]></Contents></MetadataPacketPreference></Image>").isEmpty())
 }
 
 #test
 {
-    let document = expect loadIndesignDocument(indesignFixturePath())
+    let document = expect InDesign.loadDocument(indesignFixturePath())
     Swag.assert(document.header.offset == IndesignFixtureHeaderSize)
     Swag.assert(not document.header.bigEndian and document.header.formatVersion == 7)
     Swag.assert(document.header.sequence == 2)
@@ -90,7 +90,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 // from the package, and this fixture was authored outside the repository.
 #test
 {
-    let document = expect loadIdmlDocument(idmlFixturePath())
+    let document = expect InDesign.Idml.load(idmlFixturePath())
     Swag.assert(document.pages.count >= 1)
     Swag.assert(document.pages[0].bounds.width > 400 and document.pages[0].bounds.height > 500)
     Swag.assert(document.pages[0].textFrameCount >= 19)
@@ -115,7 +115,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 // graphic exercises the same-folder recovery that keeps a moved document renderable offline.
 #test
 {
-    let document = expect loadIdmlDocument(linkedIdmlFixturePath())
+    let document = expect InDesign.Idml.load(linkedIdmlFixturePath())
     Swag.assert(document.pages.count >= 2)
     var linkedImages:        u64
     var flowedArticleFrames: u64
@@ -174,22 +174,22 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     host.setup(800, 520)
     defer host.shutdown()
 
-    var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: &host.root)
-    let viewer = assume cast(*IndesignViewer, result.view)
+    var result = openTestViewer(InDesign.viewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: &host.root)
+    let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
-    Swag.assert(Path.fileName(firstPageImages[0].toString()) == "title.png")
+    Swag.assert(Path.fileName(firstPageImages[0]) == "title.png")
     Swag.assert(not viewer.goToTypedPage("0") and not viewer.goToTypedPage("5") and not viewer.goToTypedPage("page 1"))
     Swag.assert(viewer.goToTypedPage("2") and viewer.previewIndex == 1)
     Swag.assert(viewer.goToTypedPage("1") and viewer.previewIndex == 0)
     viewer.setMarkupZoom(125)
     Swag.assert(viewer.zoomLabel.text() == "125 %")
     viewer.fitMarkupWidth()
-    Swag.assert(viewer.markupFit and viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_FitWidth)
+    Swag.assert(viewer.markupFit and viewer.markupFitWidth and viewer.zoomLabel.text() == InDesign.texts().ui_FitWidth)
     viewer.fitMarkupPage()
-    Swag.assert(viewer.markupFit and not viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
+    Swag.assert(viewer.markupFit and not viewer.markupFitWidth and viewer.zoomLabel.text() == InDesign.texts().ui_Fit)
     var qrcodePage = Swag.U64.Max
     for page, index in viewer.markupPages
     {
@@ -201,7 +201,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     viewer.selectMarkupPage(qrcodePage)
     let selectedPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(selectedPageImages.count == 1)
-    Swag.assert(Path.fileName(selectedPageImages[0].toString()) == "qrcode.png")
+    Swag.assert(Path.fileName(selectedPageImages[0]) == "qrcode.png")
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(viewer)
@@ -240,10 +240,10 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: commandBar, infoParent: infoBar)
+    var result = openTestViewer(InDesign.viewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: commandBar, infoParent: infoBar)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let viewer = assume cast(*IndesignViewer, result.view)
+    let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
@@ -281,7 +281,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 // A real native document validates the binary header path separately from the synthetic fixture.
 #test
 {
-    let document = expect loadIndesignDocument(nativeFixturePath())
+    let document = expect InDesign.loadDocument(nativeFixturePath())
     Swag.assert(document.fileSize > 2 * 1024 * 1024)
     Swag.assert(document.header.storagePages > 0)
     Swag.assert(document.xmpObjectStreams == 1)
@@ -314,15 +314,15 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(indesignViewerPlugin(), &host.root, idmlFixturePath(), commandParent: commandBar, infoParent: infoBar)
+    var result = openTestViewer(InDesign.viewerPlugin(), &host.root, idmlFixturePath(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = assume cast(*IndesignViewer, result.view)
+    let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and not viewer.imageView.isVisible())
-    Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
+    Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == InDesign.texts().ui_Fit)
     Swag.assert(Utf8.contains(viewer.details, "InDesign Markup page") and Utf8.contains(viewer.details, "missing images"))
     Swag.assert(viewer.pageLabel.toolTip == "Choose page")
     var matches: Array'Viewer.SearchMatch
@@ -386,12 +386,12 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(indesignViewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
+    var result = openTestViewer(InDesign.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = assume cast(*IndesignViewer, result.view)
+    let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
     viewer.dockStyle          = .Center
@@ -454,9 +454,9 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var result = openTestViewer(indesignViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(InDesign.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = assume cast(*IndesignViewer, result.view)
+    let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

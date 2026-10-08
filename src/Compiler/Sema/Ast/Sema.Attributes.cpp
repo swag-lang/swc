@@ -162,6 +162,7 @@ namespace
             {.name = IdentifierManager::PredefinedName::NoDuplicate, .flag = RtAttributeFlagsE::NoDuplicate},
             {.name = IdentifierManager::PredefinedName::FullInit, .flag = RtAttributeFlagsE::FullInit},
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
+            {.name = IdentifierManager::PredefinedName::NoReturn, .flag = RtAttributeFlagsE::NoReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
             {.name = IdentifierManager::PredefinedName::DynCast, .flag = RtAttributeFlagsE::DynCast},

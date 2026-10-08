@@ -158,13 +158,7 @@ impl IForm for FormImage
         }
     }
 
-    mtd impl scaleBaseForm(scale: f32)
-    {
-        .x = cast(s32, .x * scale)
-        .y = cast(s32, .y * scale)
-        .w = cast(s32, .w * scale)
-        .h = cast(s32, .h * scale)
-    }
+    mtd impl scaleBaseForm(scale: f32) => .scaleRectForm(scale)
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
@@ -335,13 +329,13 @@ impl IForm for FormImage
                         .wc          = .w
                         .hc          = .h
                         renderer.removeTexture(&.texture)
-                        var img = capture.backImg.cropped(x1, y1, .w, .h)
-                        let st  = Math.map(cast(f32, .strength), 0, 100, 1, 16)
-                        let nw  = Math.max(cast(s32, img.width / st), 4)
-                        let nh  = Math.max(cast(s32, img.height / st), 4)
-                        img.resize(nw, nh, .Quadratic)
-                        img.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
-                        .texture = g_App.renderer.addImage(img)
+                        var image = capture.backImg.cropped(x1, y1, .w, .h)
+                        let st    = Math.map(cast(f32, .strength), 0, 100, 1, 16)
+                        let nw    = Math.max(cast(s32, image.width / st), 4)
+                        let nh    = Math.max(cast(s32, image.height / st), 4)
+                        image.resize(nw, nh, .Quadratic)
+                        image.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
+                        .texture = g_App.renderer.addImage(image)
                     }
                 }
 
@@ -368,11 +362,11 @@ impl IForm for FormImage
                         .hc          = .h
                         renderer.removeTexture(&.texture)
                         const ZoomFactor = 2.5
-                        let stw = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .w / ZoomFactor))
-                        let sth = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .h / ZoomFactor))
-                        var img = capture.backImg.cropped(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
-                        img.resize(.w, .h, .Nearest)
-                        .texture = g_App.renderer.addImage(img)
+                        let stw   = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .w / ZoomFactor))
+                        let sth   = cast(s32, Math.map(cast(f32, .strength), 0, 100, 1, .h / ZoomFactor))
+                        var image = capture.backImg.cropped(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
+                        image.resize(.w, .h, .Nearest)
+                        .texture = g_App.renderer.addImage(image)
                     }
                 }
             }

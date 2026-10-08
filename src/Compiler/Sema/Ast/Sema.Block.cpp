@@ -155,6 +155,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
     const SourceView& srcView = ctx.compiler().srcView(node->srcViewRef());
     SymbolMap*        symMap  = SemaFrame::currentSymMap(sema);
 
+    SmallVector<SymbolMap*> segmentSymMaps;
     for (const auto& tokRef : namesRef)
     {
         if (!srcView.isRuntimeFile())
@@ -180,14 +181,22 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
         }
 
         symMap = res->asSymMap();
+        segmentSymMaps.push_back(symMap);
     }
 
-    if (node->is(AstNodeId::CompilerGlobal))
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel, sema.visit().parentNodeRef(0));
-    else
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
+    // One scope per segment, as nested blocks would open them: the body of 'namespace A.B' sees
+    // what 'A' declares, exactly like the body of 'namespace A { namespace B {} }'. The last scope
+    // is the namespace that receives the declarations.
+    if (segmentSymMaps.empty())
+        segmentSymMaps.push_back(symMap);
 
-    sema.curScope().setSymMap(symMap);
+    const AstNodeRef popNodeRef = node->is(AstNodeId::CompilerGlobal) ? sema.visit().parentNodeRef(0) : AstNodeRef::invalid();
+    for (SymbolMap* segmentSymMap : segmentSymMaps)
+    {
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel, popNodeRef);
+        sema.curScope().setSymMap(segmentSymMap);
+    }
+
     return Result::Continue;
 }
 

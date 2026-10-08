@@ -55,7 +55,7 @@ impl ViewerChoiceLoad
                 }
             }
 
-            for one in operation.recent where File.exists(one[].toString()) do
+            for one in operation.recent where File.exists(one[]) do
                 operation.result.recent.add(one[])
 
             let folder = Path.directoryName(operation.result.absoluteFileName)

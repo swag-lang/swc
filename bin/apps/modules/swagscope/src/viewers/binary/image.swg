@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -7,7 +8,7 @@ using Core
 // A header-driven format puts everything a report reads within a few hundred kilobytes of one end
 // or the other, so this bound only ever cuts the tail of a very large archive. When it does, the
 // report says so instead of quietly reading short.
-const BinaryLoadLimit = 64 * 1024 * 1024'u64
+const LoadLimit = 64 * 1024 * 1024'u64
 
 // Loaded prefix of a file, read at absolute offsets in the byte order its format is written in.
 //
@@ -19,7 +20,7 @@ struct BinaryImage
 {
     fileSize:      u64        // Size the file system reports.
     region:        File.MappedRegion     // Read-only mapping that owns `bytes`.
-    bytes:         const [..] u8 = cast(const [..] u8, "")     // Mapped prefix, at most `BinaryLoadLimit` bytes.
+    bytes:         const [..] u8 = cast(const [..] u8, "")     // Mapped prefix, at most `LoadLimit` bytes.
     bigEndian:     bool       // Byte order every multi-byte read uses; a parser sets it once.
     truncated:     bool       // Whether a read asked for bytes the prefix does not hold.
     failureReason: String     // File-system explanation when loading stops before any byte is available.
@@ -38,7 +39,7 @@ impl BinaryImage
         .truncated = false
         .failureReason.clear()
 
-        var file = catch File.MappedFile.openSnapshot(fileName, BinaryLoadLimit) as openError
+        var file = catch File.MappedFile.openSnapshot(fileName, LoadLimit) as openError
         if openError != null
         {
             .failureReason = Errors.message(openError)
@@ -185,11 +186,11 @@ impl BinaryImage
     // Returns the sixteen bytes at `offset` in the hexadecimal 8-4-4-4-12 grouping of an identifier.
     //
     // `mixedEndian` reads the first three fields little endian. A prefix too short to hold the bytes
-    // gives [[BinaryNoValue]].
+    // gives [[NoValue]].
     private mtd const identifierTextAt(offset: u64, mixedEndian: bool)->String
     {
         if not .has(offset, 16) do
-            return String.from(BinaryNoValue)
+            return NoValue
 
         const MixedOrder = [3'u64, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15]
 
@@ -204,7 +205,7 @@ impl BinaryImage
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     }
 
     // Returns `length` bytes at `offset` with every unprintable byte shown as a dot.
@@ -221,6 +222,6 @@ impl BinaryImage
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     }
 }

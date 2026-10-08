@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Sound
 
 using Core, Pixel, Gui, Audio, Threading
 
@@ -6,16 +7,16 @@ using Core, Pixel, Gui, Audio, Threading
 //
 // It offers itself for every extension the audio module can decode, so a codec added there reaches
 // the player without a list to update here.
-func soundViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "sound"
         .staticName   = "Sound"
-        .attach       = &registerSoundStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Sound)
-        .create       = &createSoundViewer
+        .create       = &createViewer
         .smokeFixture = "pacman_beginning.wav"
     }
 
@@ -24,18 +25,21 @@ func soundViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const SoundSeekSeconds  = 10.0
-private const SoundCommandWidth = 820.0
+private
+{
+    const SeekSeconds  = 10.0
+    const CommandWidth = 820.0
 
-// Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
-// has to stay ahead of the widest plot a window can give it; past that the columns repeat.
-private const WaveformPointCount = 4096'u64
+    // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
+    // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
+    const WaveformPointCount = 4096'u64
 
-// Air around the plot, and the band the time scale is read in.
-private const WaveformInsetX      = 24.0
-private const WaveformInsetY      = 32.0
-private const WaveformScaleHeight = 26.0
-private const WaveformTickHeight  = 5.0
+    // Air around the plot, and the band the time scale is read in.
+    const WaveformInsetX      = 24.0
+    const WaveformInsetY      = 32.0
+    const WaveformScaleHeight = 26.0
+    const WaveformTickHeight  = 5.0
+}
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
 // body the ear hears. Drawing both is what separates a waveform from a silhouette.
@@ -45,27 +49,27 @@ struct WaveformPoint
     body: f32     // Mean absolute level of the slice.
 }
 
-private var g_SoundEngineUsers:      u32
-private var g_SoundViewerOwnsEngine: bool
+private var g_EngineUsers:      u32
+private var g_ViewerOwnsEngine: bool
 
 // Creation of the audio engine started ahead of the first voice, on a runtime worker.
-private var g_SoundEngineWarmUp:  Swag.Task
-private var g_SoundEngineWarming: bool
+private var g_EngineWarmUp:  Swag.Task
+private var g_EngineWarming: bool
 
 // Starts creating the audio engine without waiting for it.
 //
 // Opening the output device is the better part of a second, and a player that only asks for
 // the engine once its first picture is ready to be shown adds that second to the wait for
 // the picture. Starting it here lets the device come online while the file is being opened
-// and its first picture decoded; [[acquireSoundEngine]] then joins the work instead of doing
+// and its first picture decoded; [[acquireEngine]] then joins the work instead of doing
 // it. Call it from the GUI thread, which is the only one that acquires the engine.
-func warmSoundEngine()
+func warmEngine()
 {
-    if g_SoundEngineWarming or g_SoundEngineUsers or isEngineCreated() do
+    if g_EngineWarming or g_EngineUsers or isEngineCreated() do
         return
 
-    g_SoundEngineWarming = true
-    g_SoundEngineWarmUp.submit(func()
+    g_EngineWarming = true
+    g_EngineWarmUp.submit(func()
     {
         discard catch createEngine()
     })
@@ -73,21 +77,21 @@ func warmSoundEngine()
 
 // Takes a reference on the shared audio engine, creating it on first use, and reports whether the engine is available.
 //
-// Call [[releaseSoundEngine]] once for every successful acquisition.
-func acquireSoundEngine(kind = DriverKind.Default)->bool
+// Call [[releaseEngine]] once for every successful acquisition.
+func acquireEngine(kind = DriverKind.Default)->bool
 {
-    if g_SoundEngineUsers
+    if g_EngineUsers
     {
-        g_SoundEngineUsers += 1
+        g_EngineUsers += 1
         return true
     }
 
-    if g_SoundEngineWarming
+    if g_EngineWarming
     {
-        g_SoundEngineWarmUp.wait()
-        g_SoundEngineWarming = false
+        g_EngineWarmUp.wait()
+        g_EngineWarming = false
         if isEngineCreated() do
-            g_SoundViewerOwnsEngine = true
+            g_ViewerOwnsEngine = true
     }
 
     if not isEngineCreated()
@@ -95,27 +99,27 @@ func acquireSoundEngine(kind = DriverKind.Default)->bool
         catch createEngine(kind) as createError
         if createError != null do
             return false
-        g_SoundViewerOwnsEngine = true
+        g_ViewerOwnsEngine = true
     }
 
-    g_SoundEngineUsers = 1
+    g_EngineUsers = 1
     return true
 }
 
-// Drops a reference taken by [[acquireSoundEngine]], destroying the engine with the last one when a viewer created it.
-func releaseSoundEngine()
+// Drops a reference taken by [[acquireEngine]], destroying the engine with the last one when a viewer created it.
+func releaseEngine()
 {
-    if not g_SoundEngineUsers do
+    if not g_EngineUsers do
         return
-    g_SoundEngineUsers -= 1
-    if g_SoundEngineUsers or not g_SoundViewerOwnsEngine do
+    g_EngineUsers -= 1
+    if g_EngineUsers or not g_ViewerOwnsEngine do
         return
     destroyEngine()
-    g_SoundViewerOwnsEngine = false
+    g_ViewerOwnsEngine = false
 }
 
 // Reads the PCM sample at `offset` as a level between -1 and 1, or 0 for an encoding that is not PCM.
-func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f32
+func sampleAt(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f32
 {
     switch encoding
     {
@@ -178,7 +182,7 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
             for channel in channels
             {
                 let offset = frame * bytesPerFrame + channel * bytesPerSample
-                mixed += soundSample(bytes, offset, encoding)
+                mixed += sampleAt(bytes, offset, encoding)
             }
 
             mixed /= channels
@@ -194,7 +198,7 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
 }
 
 // Formats the length of a sound for the host summary: milliseconds below one second, seconds with two decimals from there on.
-func soundDurationText(seconds: f32)->String
+func durationText(seconds: f32)->String
 {
     if seconds < 1 do
         return Format.toString("% ms", cast(u32, Math.max(Math.round(seconds * 1000), 1)))
@@ -202,7 +206,7 @@ func soundDurationText(seconds: f32)->String
 }
 
 // Plots the waveform of a sound above its time scale, the played part apart from the rest.
-struct SoundWaveformView
+struct WaveformView
 {
     using wnd:  Wnd
     samples:    Array'WaveformPoint
@@ -294,7 +298,7 @@ func waveformTickText(seconds, step: f32)->String
     return Format.toString("%", cast(u32, Math.round(seconds)))
 }
 
-private impl SoundWaveformView
+private impl WaveformView
 {
     // Returns the band the wave is drawn in, above the band the time scale is read in.
     mtd const plotRect()->Math.Rectangle
@@ -346,7 +350,7 @@ private impl SoundWaveformView
     }
 }
 
-private impl IWnd for SoundWaveformView
+private impl IWnd for WaveformView
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
@@ -413,7 +417,7 @@ private impl IWnd for SoundWaveformView
 }
 
 // Plays a sound file over its waveform, with the transport in the host's command bar.
-struct SoundViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -428,7 +432,7 @@ struct SoundViewer
         timeLabel:      *Label
         muteButton:     *IconButton
         volumeSlider:   *Slider
-        waveform:       *SoundWaveformView
+        waveform:       *WaveformView
     }
 
     // Opening runs on a worker. `openState` is zero while opening, one on success and two on failure.
@@ -463,7 +467,7 @@ struct SoundViewer
     reportFinished:       Viewer.ReportFinished?
 }
 
-impl SoundViewer
+impl Panel
 {
     // Reports whether work remains whose result has not reached the waveform yet.
     mtd isLoading()->bool
@@ -494,7 +498,7 @@ impl SoundViewer
 
         .openFinished = true
         if state == 2 do
-            fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
+            fail InvalidFormatError{Errors.mkString(.openFailure)}
 
         .sound    = #move .pendingSound
         .duration = .sound.durationInSeconds()
@@ -503,7 +507,7 @@ impl SoundViewer
             .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
         .startWaveform()
 
-        .engineReady = acquireSoundEngine()
+        .engineReady = acquireEngine()
         if .engineReady do
             .playButton.enable(true)
         .backwardButton.enable(.engineReady and .duration > 0)
@@ -513,7 +517,7 @@ impl SoundViewer
         .volumeSlider.enable(.engineReady)
         .refreshTransport()
         if not .engineReady do
-            .playButton.toolTip = soundStrings().ui_NoEngine
+            .playButton.toolTip = texts().ui_NoEngine
         .refreshDetails()
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
@@ -522,29 +526,29 @@ impl SoundViewer
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(soundStrings().ui_Details,
+        .details = Format.toString(texts().ui_Details,
                                    .sound.sampleRateHz(),
                                    channelCountText(.sound.numChannels()),
                                    .sound.sampleStorageBits(),
-                                   soundDurationText(.duration))
+                                   durationText(.duration))
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     mtd retranslate()
     {
-        .playButton.toolTip     = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
-        .stopButton.toolTip     = soundStrings().ui_TipStop
-        .backwardButton.toolTip = soundStrings().ui_TipBackward
-        .forwardButton.toolTip  = soundStrings().ui_TipForward
-        .volumeSlider.toolTip   = soundStrings().ui_TipVolume
-        .muteButton.toolTip     = soundStrings().ui_TipMute
-        .timeline.toolTip       = soundStrings().ui_TipSeek
+        .playButton.toolTip     = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        .stopButton.toolTip     = texts().ui_TipStop
+        .backwardButton.toolTip = texts().ui_TipBackward
+        .forwardButton.toolTip  = texts().ui_TipForward
+        .volumeSlider.toolTip   = texts().ui_TipVolume
+        .muteButton.toolTip     = texts().ui_TipMute
+        .timeline.toolTip       = texts().ui_TipSeek
         if not .openFinished or .openState != 1 do
             return
 
         if not .engineReady do
-            .playButton.toolTip = soundStrings().ui_NoEngine
+            .playButton.toolTip = texts().ui_NoEngine
         .refreshDetails()
     }
 
@@ -583,7 +587,7 @@ impl SoundViewer
 
             if .engineReady
             {
-                releaseSoundEngine()
+                releaseEngine()
                 .engineReady = false
             }
 
@@ -677,7 +681,7 @@ impl SoundViewer
     mtd refreshTransport()
     {
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
+        .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
         .stopButton.enable(.voice != null)
         .timeline.setValueWithoutGesture(.elapsed)
         .timeLabel.setText(Viewer.timeRangeText(.elapsed, .duration))
@@ -784,7 +788,7 @@ impl SoundViewer
     }
 }
 
-impl IWnd for SoundViewer
+impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
@@ -838,8 +842,8 @@ impl IWnd for SoundViewer
         switch evt.key
         {
         case .Space, .MediaPlayPause: .togglePlayback()
-        case .Left:                   .seekRelative(-SoundSeekSeconds)
-        case .Right:                  .seekRelative(SoundSeekSeconds)
+        case .Left:                   .seekRelative(-SeekSeconds)
+        case .Right:                  .seekRelative(SeekSeconds)
         case .M, .VolumeMute:         .setMuted(not .muted)
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
@@ -847,7 +851,7 @@ impl IWnd for SoundViewer
     }
 }
 
-impl SoundViewer
+impl Panel
 {
     // Creates the transport in the command group: transport and seek buttons on the left, the
     // sound controls and the clock on the right, and the timeline between them.
@@ -861,7 +865,7 @@ impl SoundViewer
         with .playButton = IconButton.create(.commands, .theme().icon(.Play, iconSize), {0, 0, buttonSize, buttonSize})
         {
             .dockStyle = .Left
-            .toolTip   = soundStrings().ui_TipPlay
+            .toolTip   = texts().ui_TipPlay
             .enable(false)
             .sigPressed += func|view = me|(?) { view.togglePlayback() }
         }
@@ -870,7 +874,7 @@ impl SoundViewer
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = soundStrings().ui_TipStop
+            .toolTip   = texts().ui_TipStop
             .enable(false)
             .sigPressed += func|view = me|(?) { view.stopPlayback() }
         }
@@ -879,25 +883,25 @@ impl SoundViewer
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = soundStrings().ui_TipBackward
+            .toolTip   = texts().ui_TipBackward
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.seekRelative(-SoundSeekSeconds) }
+            .sigPressed += func|view = me|(?) { view.seekRelative(-SeekSeconds) }
         }
 
         with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = soundStrings().ui_TipForward
+            .toolTip   = texts().ui_TipForward
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.seekRelative(SoundSeekSeconds) }
+            .sigPressed += func|view = me|(?) { view.seekRelative(SeekSeconds) }
         }
 
         with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
         {
             .dockStyle = .Right
             .margin    = {8, 1, 0, 1}
-            .toolTip   = soundStrings().ui_TipVolume
+            .toolTip   = texts().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
             .enable(false)
@@ -908,7 +912,7 @@ impl SoundViewer
         {
             .dockStyle = .Right
             .margin.x  = 8
-            .toolTip   = soundStrings().ui_TipMute
+            .toolTip   = texts().ui_TipMute
             .setCheckIndicator(.Frame)
             .enable(false)
             .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
@@ -925,17 +929,17 @@ impl SoundViewer
         {
             .dockStyle = .Center
             .margin    = {12, 1, 12, 1}
-            .toolTip   = soundStrings().ui_TipSeek
+            .toolTip   = texts().ui_TipSeek
             .enable(false)
             .sigEndChange += func|view = me|(slider) { view.seekSeconds(slider.value()) }
         }
     }
 
-    func create(host: Viewer.Host)->*SoundViewer fail
+    func create(host: Viewer.Host)->*Panel fail
     {
         let services = host.services()
 
-        with let result = Wnd.create'SoundViewer(host.contentParent(), "scope.sound")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.sound")
         {
             .backgroundStyle      = .View
             .reportDetails        = services.reportDetails
@@ -946,10 +950,10 @@ impl SoundViewer
 
         defer #fail result.destroy()
 
-        result.commands = host.createCommandGroup(SoundCommandWidth)
+        result.commands = host.createCommandGroup(CommandWidth)
         result.createTransportBar()
 
-        with result.waveform = Wnd.create'SoundWaveformView(result, "scope.sound.waveform")
+        with result.waveform = Wnd.create'WaveformView(result, "scope.sound.waveform")
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
@@ -960,7 +964,7 @@ impl SoundViewer
         result.applyLayout()
         result.setInitialFocus(result.playButton)
         result.openFileName = host.fileName()
-        try result.openThread.init(&runSoundViewerOpen, result, priority: .Normal)
+        try result.openThread.init(&runViewerOpen, result, priority: .Normal)
         try result.openThread.start()
         return result
     }
@@ -970,9 +974,9 @@ impl SoundViewer
 //
 // The default allocator makes the owned packet table safe to publish to the GUI thread once
 // loading completes.
-private func runSoundViewerOpen(thread: Thread)
+private func runViewerOpen(thread: Thread)
 {
-    let view    = cast(*SoundViewer, thread.userParam!)
+    let view    = cast(*Panel, thread.userParam!)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
     var sound = catch SoundFile.load(view.openFileName, preloadData: false) as openError
@@ -990,11 +994,11 @@ private func runSoundViewerOpen(thread: Thread)
 }
 
 // Creates the integrated sound playback and waveform view and connects it to the host.
-func createSoundViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
     catch
     {
-        let view = try SoundViewer.create(host)
+        let view = try Panel.create(host)
         host.attachView(view)
         host.setDetails(view.details)
 

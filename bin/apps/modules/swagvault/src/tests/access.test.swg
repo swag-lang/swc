@@ -4,7 +4,6 @@
 using Core
 
 func accessTestPassword()->const [..] u8 => cast(const [..] u8, "panel password")
-
 func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("vault_access_%_%.bin", tag, Guid64.random()))
 
 // Password-only access uses the password bytes directly.
@@ -33,23 +32,23 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     discard expect File.writeAllBytes(secondPath, [5'u8, 6, 7])
 
     var firstFiles: Array'String
-    firstFiles.add(String.from(firstPath))
-    firstFiles.add(String.from(secondPath))
+    firstFiles.add(firstPath)
+    firstFiles.add(secondPath)
     var first: VaultAccess
     first.setInputs(accessTestPassword(), firstFiles.toSlice())
     var firstCredential = expect first.derive()
 
     var movedFiles: Array'String
-    movedFiles.add(String.from(movedPath))
-    movedFiles.add(String.from(secondPath))
+    movedFiles.add(movedPath)
+    movedFiles.add(secondPath)
     var moved: VaultAccess
     moved.setInputs(accessTestPassword(), movedFiles.toSlice())
     var movedCredential = expect moved.derive()
     Swag.assert(Slice.equals(firstCredential.toSlice(), movedCredential.toSlice()))
 
     var reversedFiles: Array'String
-    reversedFiles.add(String.from(secondPath))
-    reversedFiles.add(String.from(firstPath))
+    reversedFiles.add(secondPath)
+    reversedFiles.add(firstPath)
     var reversed: VaultAccess
     reversed.setInputs(accessTestPassword(), reversedFiles.toSlice())
     var reversedCredential = expect reversed.derive()
@@ -75,13 +74,13 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     discard expect File.writeAllBytes(newKey, [20'u8, 21, 22])
 
     var oldFiles: Array'String
-    oldFiles.add(String.from(oldKey))
+    oldFiles.add(oldKey)
     var oldAccess: VaultAccess
     oldAccess.setInputs(accessTestPassword(), oldFiles.toSlice())
     var oldCredential = expect oldAccess.derive()
 
     var newFiles: Array'String
-    newFiles.add(String.from(newKey))
+    newFiles.add(newKey)
     var newAccess: VaultAccess
     newAccess.setInputs(accessTestPassword(), newFiles.toSlice())
     var newCredential = expect newAccess.derive()

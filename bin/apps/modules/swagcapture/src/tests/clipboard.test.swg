@@ -11,9 +11,9 @@ func testSetClipboardImage(width, height: s32)
 
 func testResetClipboardToImage()
 {
-    var img = Image.create(1, 1, .BGRA8)
-    img.clear()
-    Clipboard.addImage(img)
+    var image = Image.create(1, 1, .BGRA8)
+    image.clear()
+    Clipboard.addImage(image)
 }
 
 // Copy and Cut go through the clipboard typed-value format (the process-local fake

@@ -1,9 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-var AllocationFailureMatched:  bool
-var AllocationFailureFallback: u8
-
 struct RejectAllocationAllocator {}
 
 struct RecordingAllocationAllocator
@@ -31,24 +28,12 @@ impl Swag.IAllocator for RecordingAllocationAllocator
 
 impl Swag.IAllocator for RejectAllocationAllocator
 {
-    mtd impl alloc(request: *Swag.AllocatorRequest)
-    {
-        Swag.getContext().user0 = cast(u64, request)
-        request.address         = null
-    }
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
     mtd impl free(?: *Swag.AllocatorRequest) {}
     mtd impl freeAll(?: *Swag.AllocatorRequest) {}
     mtd impl assertAllocated(?: *Swag.AllocatorRequest) {}
-}
-
-func recordAllocationFailure(message: string?, ?: Swag.SourceCodeLocation)
-{
-    AllocationFailureMatched = message == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]"
-    let request = cast(*Swag.AllocatorRequest?, Swag.getContext().user0)
-    if request do
-        request.address = &AllocationFailureFallback
 }
 
 func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, includeOldAllocation: bool)->String
@@ -79,22 +64,14 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     Swag.assert(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
 }
 
+// An allocator that returns nothing makes the allocation panic with the complete request.
 #test
 {
-    let cxt = Swag.getContext()
-    let previousPanic = cxt.panic
-    let previousUser0 = cxt.user0
-    defer cxt.panic = previousPanic
-    defer cxt.user0 = previousUser0
-
-    AllocationFailureMatched = false
-    cxt.panic = &recordAllocationFailure
-
     var reject:    RejectAllocationAllocator
     let allocator: Swag.IAllocator = &reject
-    let result = Memory.alloc(777, allocator, 32, "asset cache")
-    Swag.assert(AllocationFailureMatched)
-    Swag.assert(result == &AllocationFailureFallback)
+    let caught = Swag.catchPanic(func|allocator|() { discard Memory.alloc(777, allocator, 32, "asset cache") })
+    Swag.assert(caught.raised)
+    Swag.assert(caught.message() == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]")
 }
 
 // Both explicit and context-selected custom allocators receive the complete request.

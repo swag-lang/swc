@@ -183,7 +183,7 @@ impl MainWnd
         // Clone the model of the given mode, whatever its concrete type
         let mdlItf  = .editModeToModel(mode)
         let mdlType = Swag.kindOf(mdlItf)
-        let storage = Memory.new(mdlType)!
+        let storage = Memory.new(mdlType)
         let result  = Swag.makeInterface(storage, mdlType, IForm)!
         let mdl     = assume cast(*BaseForm, result)
         mdlItf.copy(mdl, assume cast(*BaseForm, mdlItf))
@@ -217,7 +217,7 @@ impl MainWnd
     func newFormFromForm(it: IForm)->*BaseForm
     {
         let type     = Swag.kindOf(it)
-        let storage  = Memory.new(type)!
+        let storage  = Memory.new(type)
         let view     = Swag.makeInterface(storage, type, IForm)!
         let mdlValue = assume cast(*BaseForm, view)
         it.copy(mdlValue, assume cast(*BaseForm, it))

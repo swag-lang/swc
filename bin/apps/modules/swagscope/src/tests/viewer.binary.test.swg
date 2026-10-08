@@ -1,12 +1,12 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // Returns the path of one immutable fixture of this test suite.
 func binaryFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
-func finishBinaryViewer(host: *Testing.HeadlessHost, view: *BinaryViewer)
+func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
 {
     var attempts: u32
     while view.loadTimer and attempts < 10_000
@@ -184,20 +184,20 @@ func writeFixture(name: string, bytes: const [..] u8)->String
 }
 
 // Returns the first row carrying `label`, or `null` when the report never wrote one.
-func findRow(report: const *BinaryReport, label: string)->const *BinaryRow?
+func findRow(report: const *Binary.Report, label: string)->const *Binary.Row?
 {
     for row in report.rows where row.label == label do
         return row
     return null
 }
 
-func rowValue(report: const *BinaryReport, label: string)->string
+func rowValue(report: const *Binary.Report, label: string)->string
 {
     let row = findRow(report, label)
     return row ? row.value.toString() : ""
 }
 
-func rowDetail(report: const *BinaryReport, label: string)->string
+func rowDetail(report: const *Binary.Report, label: string)->string
 {
     let row = findRow(report, label)
     return row ? row.detail.toString() : ""
@@ -212,7 +212,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("pe", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .PeImage)
@@ -263,7 +263,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     let fileName = binaryFixturePath("appicon.ico")
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Icon)
@@ -275,8 +275,8 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(860, 520)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
-    var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName, actionParent: commands)
-    let view          = assume cast(*BinaryViewer, viewerSession.view)
+    var viewerSession = openTestViewer(Binary.viewerPlugin(), &host.root, fileName, actionParent: commands)
+    let view          = assume cast(*Binary.Panel, viewerSession.view)
     finishBinaryViewer(&host, view)
     view.resize(860, 520)
     view.applyLayout()
@@ -304,7 +304,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     discard expect writer.addChunk(png.toSlice(), options)
     expect writer.saveAtomic(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Scc and doc.previews.count == 1)
@@ -318,7 +318,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("pe_map", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
 
@@ -343,7 +343,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("pe_text", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
 
@@ -370,7 +370,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("obj", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .CoffObject)
@@ -402,7 +402,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("lib", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Archive)
@@ -422,22 +422,22 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var writer: Scc.Writer
     writer.initialize(Guid128.random())
     writer.manifest().name = "fixture container"
-    writer.manifest().tags.add(String.from("probe"))
+    writer.manifest().tags.add("probe")
 
     let payload = [1'u8, 2, 3, 4, 5, 6, 7, 8]
     discard expect writer.addChunk(payload, {})
     expect writer.saveAtomic(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Scc)
     Swag.assert(doc.report.formatName == "SCC")
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "1 chunk"))
     Swag.assert(rowValue(&doc.report, "FormatMajor") == "1")
-    Swag.assert(rowValue(&doc.report, binaryStrings().scc_Manifest) == "fixture container")
+    Swag.assert(rowValue(&doc.report, Binary.texts().scc_Manifest) == "fixture container")
     Swag.assert(rowValue(&doc.report, "StoredSize") == "0x0000000000000008 (8)")
-    Swag.assert(rowValue(&doc.report, binaryStrings().scc_Tags) == "probe")
+    Swag.assert(rowValue(&doc.report, Binary.texts().scc_Tags) == "probe")
 }
 
 // A Mach-O image is read down to the segment it maps and the library it needs.
@@ -484,7 +484,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("macho", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .MachO)
@@ -506,7 +506,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(library != null)
     Swag.assert(library.value == "/usr/lib/libSystem.B.dylib")
     Swag.assert(rowValue(&doc.report, "current_version") == "1.2.3")
-    Swag.assert(findRow(&doc.report, binaryStrings().shr_Libraries) != null)
+    Swag.assert(findRow(&doc.report, Binary.texts().shr_Libraries) != null)
 }
 
 // A ZIP archive is read through the index it keeps of itself, without decompressing anything.
@@ -541,7 +541,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("zip", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Zip)
@@ -588,7 +588,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("wasm", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Wasm)
@@ -598,11 +598,11 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     let imported = findRow(&doc.report, "env.puts")
     Swag.assert(imported != null)
-    Swag.assert(imported.detail == binaryStrings().wasm_Function)
+    Swag.assert(imported.detail == Binary.texts().wasm_Function)
 
     let exported = findRow(&doc.report, "memory")
     Swag.assert(exported != null)
-    Swag.assert(exported.detail == binaryStrings().wasm_Memory)
+    Swag.assert(exported.detail == Binary.texts().wasm_Memory)
 }
 
 // A RIFF container is one chunk chain, and the header chunks inside it are read as headers.
@@ -630,7 +630,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("riff", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Riff)
@@ -673,11 +673,11 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("midi", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Midi)
-    Swag.assert(doc.report.formatName == binaryStrings().midi_File)
+    Swag.assert(doc.report.formatName == Binary.texts().midi_File)
     Swag.assert(rowDetail(&doc.report, "Division") == "480 ticks per quarter note")
     Swag.assert(rowValue(&doc.report, "Sequence/Track Name") == "Piano")
     Swag.assert(rowValue(&doc.report, "Set Tempo") == "120 BPM")
@@ -724,13 +724,13 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("font", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Font)
     Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "Fixtura"))
-    Swag.assert(rowValue(&doc.report, binaryStrings().font_UnitsPerEm) == "2048")
-    Swag.assert(rowValue(&doc.report, binaryStrings().font_Family) == "Fixtura")
+    Swag.assert(rowValue(&doc.report, Binary.texts().font_UnitsPerEm) == "2048")
+    Swag.assert(rowValue(&doc.report, Binary.texts().font_Family) == "Fixtura")
 
     let table = findRow(&doc.report, "head")
     Swag.assert(table != null)
@@ -747,7 +747,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = writeFixture("png", bytes.toSlice())
     defer discard catch File.delete(fileName)
 
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.kind == .Unknown)
@@ -755,16 +755,16 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(doc.image.region.isOpen() and doc.image.bytes.count == bytes.count)
 
     // A run of zeros carries no information at all, and the reading says so.
-    let entropy = findRow(&doc.report, binaryStrings().rep_Entropy)
+    let entropy = findRow(&doc.report, Binary.texts().rep_Entropy)
     Swag.assert(entropy != null)
-    Swag.assert(entropy.detail == binaryStrings().rep_EntropyLow)
-    Swag.assert(findRow(&doc.report, binaryStrings().rep_FirstBytes) != null)
+    Swag.assert(entropy.detail == Binary.texts().rep_EntropyLow)
+    Swag.assert(findRow(&doc.report, Binary.texts().rep_FirstBytes) != null)
 }
 
 // A file the reader cannot open crosses the viewer boundary without a local error view.
 #test
 {
-    var doc: BinaryDocument
+    var doc: Binary.Document
     let documentOpened = doc.open("this-file-does-not-exist.bin")
     Swag.assert(not documentOpened)
     Swag.assert(not doc.image.failureReason.isEmpty())
@@ -772,17 +772,17 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
+    var result = openTestViewer(Binary.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
-    let view = assume cast(*BinaryViewer, result.view)
+    let view = assume cast(*Binary.Panel, result.view)
     finishBinaryViewer(&host, view)
     Swag.assert(not view.failureReason.isEmpty())
 }
 
-func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
+func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Binary.Panel
 {
-    var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName)
-    let view = assume cast(*BinaryViewer, viewerSession.view)
+    var viewerSession = openTestViewer(Binary.viewerPlugin(), &host.root, fileName)
+    let view = assume cast(*Binary.Panel, viewerSession.view)
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -791,7 +791,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     return view
 }
 
-func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw.toString())
+func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw)
 
 // The tree the view builds is the report, and the search the host runs lands in it.
 #[Swag.TestTag("golden")]
@@ -814,17 +814,17 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     let opened = view.list.lineCount()
     Swag.assert(opened > 4 and opened < cast(u32, view.doc.report.rows.count))
 
-    let expandState = view.sendComputeCommandStateEvent(ActionBinary.ExpandAll)
-    Swag.assert(expandState.name == binaryStrings().ui_MenuExpand)
+    let expandState = view.sendComputeCommandStateEvent(Binary.Action.ExpandAll)
+    Swag.assert(expandState.name == Binary.texts().ui_MenuExpand)
     Swag.assert(expandState.shortcut == "Ctrl+E")
     Swag.assert(not expandState.updatedFields.has(.Checked))
-    let collapseState = view.sendComputeCommandStateEvent(ActionBinary.CollapseAll)
+    let collapseState = view.sendComputeCommandStateEvent(Binary.Action.CollapseAll)
     Swag.assert(collapseState.shortcut == "Ctrl+Shift+E")
     Swag.assert(not collapseState.updatedFields.has(.Checked))
 
-    view.sendCommandEvent(ActionBinary.ExpandAll)
+    view.sendCommandEvent(Binary.Action.ExpandAll)
     Swag.assert(view.list.lineCount() == cast(u32, view.doc.report.rows.count))
-    view.sendCommandEvent(ActionBinary.CollapseAll)
+    view.sendCommandEvent(Binary.Action.CollapseAll)
     Swag.assert(view.list.lineCount() < opened)
 
     // An offset inside the code section reveals the section that owns those bytes, opening whatever
@@ -885,12 +885,12 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     var matches: Array'Viewer.SearchMatch
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.assert(matches.count == 1)
-    Swag.assert(matches[0].minor == cast(u64, BinaryColumn.Detail))
+    Swag.assert(matches[0].minor == cast(u64, Binary.Column.Detail))
     let revealed = view.revealMatch(matches[0])
     Swag.assert(revealed)
     Swag.assert(view.list.selectedLine() != null)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")
-    let item = view.list.selectedLine()!.itemAt(cast(u32, BinaryColumn.Detail))
+    let item = view.list.selectedLine()!.itemAt(cast(u32, Binary.Column.Detail))
     Swag.assert(item.name.raw == "file offset of the PE signature")
     Swag.assert(not item.colorBk.a)
 
@@ -965,7 +965,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     Swag.assert(window.currentActions == null)
     Swag.assert(window.searchGroup.isLocallyVisible())
     Swag.assert(window.currentCommands != null and window.viewerBar.isLocallyVisible())
-    Swag.assert(window.viewerBar.position.height == ViewerBarHeight)
+    Swag.assert(window.viewerBar.position.height == ViewerWindow.BarHeight)
 
     host.settleAnimations(window.commandBar, 4)
     var image = host.render(window.commandBar)
@@ -979,7 +979,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     window.searchFilterMode = true
     window.updateSearchAvailability()
     window.searchBox.setText("header")
-    while assume cast(*BinaryViewer, window.currentView).filterTimer do
+    while assume cast(*Binary.Panel, window.currentView).filterTimer do
         host.pump()
     host.settleAnimations(window.commandBar, 4)
     image = host.render(window.commandBar)
@@ -1013,7 +1013,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
 
     Swag.assert(findRow(&view.doc.report, "Fichier") != null)
     Swag.assert(findRow(&view.doc.report, "En-tête DOS") != null)
-    Swag.assert(view.list.header.itemAt(cast(u32, BinaryColumn.Detail)).name.raw == "Signification")
+    Swag.assert(view.list.header.itemAt(cast(u32, Binary.Column.Detail)).name.raw == "Signification")
     Swag.assert(view.list.selectedLine() != null)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
 }

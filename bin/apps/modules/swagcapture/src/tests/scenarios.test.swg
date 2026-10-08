@@ -78,7 +78,7 @@ func scenarioNewCapture(main: *MainWnd, application: string)->String
     }
 
     main.saveCapture(capture)
-    return String.from(capture.file)
+    return capture.file
 }
 
 func scenarioDeleteCaptureFiles(path: String)

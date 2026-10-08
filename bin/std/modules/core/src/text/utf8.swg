@@ -1336,8 +1336,6 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
             return 1
         return 0
     }
-
-    return 0
 }
 
 // Runs `stmt` for each rune of `buffer`, in order.

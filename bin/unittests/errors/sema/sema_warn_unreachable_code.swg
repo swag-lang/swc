@@ -54,12 +54,75 @@ func namedBeatsBlanket()->s32
     return dead
 }
 
-// 'Swag.panic' and 'unreachable' announce that control never reaches them, but neither is
-// guaranteed to leave the block — a panic hook returns to the caller, and 'unreachable'
-// lowers to nothing with its guard off — so nothing after them is reported.
-func notGuaranteed()->s32
+// 'Swag.panic' and 'unreachable' declare that control never gets past them. A panic hook can
+// return and an 'unreachable' without its guard lowers to nothing, but either is a broken
+// program, so what follows is reported like code after a 'return'.
+func afterPanic()->s32
 {
     Swag.panic("stop", #curlocation)
+    return 2     // swc-expected-warning {{sema_warn_unreachable_code}}
+}
+
+func afterUnreachable()->s32
+{
+    unreachable
+    return 2     // swc-expected-warning {{sema_warn_unreachable_code}}
+}
+
+#[Swag.NoReturn]
+func stop()
+{
+    Swag.panic("stop", #curlocation)
+}
+
+// So does a call to a '#[Swag.NoReturn]' function.
+func afterNoReturnCall()->s32
+{
+    stop()
+    return 2     // swc-expected-warning {{sema_warn_unreachable_code}}
+}
+
+enum Kind
+{
+    First
+    Second
+}
+
+// A '#complete' switch whose every case leaves the function lets nothing past it: a value
+// outside the enum is the same broken program as a reached 'unreachable'.
+func afterCompleteSwitch(kind: Kind)->s32
+{
+    switch #complete kind
+    {
+    case .First:  return 1
+    case .Second: return 2
+    }
+
+    return 0     // swc-expected-warning {{sema_warn_unreachable_code}}
+}
+
+// A 'default' always matches, so it closes the switch the same way.
+func afterDefaultSwitch(value: s32)->s32
+{
+    switch value
+    {
+    case 0:  return 1
+    default: return 2
+    }
+
+    return 0     // swc-expected-warning {{sema_warn_unreachable_code}}
+}
+
+// A case that does not leave lets its value walk past the switch, and a 'break' leaves the
+// switch rather than the function.
+func pastSwitch(kind: Kind)->s32
+{
+    switch #complete kind
+    {
+    case .First:  return 1
+    case .Second: break
+    }
+
     return 2
 }
 
@@ -107,6 +170,9 @@ func codeBlockArgument(flag: bool)->s32
     Swag.assert(promoted() == 1)
     Swag.assert(blanket() == 1)
     Swag.assert(namedBeatsBlanket() == 1)
+    Swag.assert(afterCompleteSwitch(.Second) == 2)
+    Swag.assert(afterDefaultSwitch(3) == 2)
+    Swag.assert(pastSwitch(.Second) == 2)
     Swag.assert(nestedJump() == 1)
     Swag.assert(codeBlockArgument(true) == 7)
     Swag.assert(codeBlockArgument(false) == 9)

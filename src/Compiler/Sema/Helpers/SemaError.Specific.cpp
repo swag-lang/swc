@@ -225,6 +225,16 @@ Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNo
     return Result::Error;
 }
 
+Result SemaError::raiseConditionalBranchTypes(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef trueTypeRef, TypeRef falseTypeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_conditional_branch_types, atNodeRef, ReportLocation::Token);
+    diag.addArgument(Diagnostic::ARG_LEFT, trueTypeRef);
+    diag.addArgument(Diagnostic::ARG_RIGHT, falseTypeRef);
+    addTypedOperandSpan(sema, diag.last(), nodeValueRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, atNodeRef, ReportLocation::Token);

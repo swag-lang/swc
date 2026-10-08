@@ -1,18 +1,19 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
 // Written where a structure names a value the file does not hold.
-const BinaryNoValue = "--"
+const NoValue = "--"
 
 // Longest run of repeated entries a report writes before it says how many were left out.
 //
 // An import table with twelve thousand symbols is a scroll bar, not information. Every list stops
 // here and records the remainder, so a report stays readable whatever the file's size.
-const BinaryListLimit = 512'u64
+const ListLimit = 512'u64
 
 // Kinds of row a report is read in.
-enum BinaryRowKind
+enum RowKind
 {
     Group     // A named structure whose fields are the rows under it.
     Field     // One decoded value.
@@ -20,9 +21,9 @@ enum BinaryRowKind
 }
 
 // One row of an extracted report.
-struct BinaryRow
+struct Row
 {
-    kind:   BinaryRowKind
+    kind:   RowKind
     level:  u32        // Depth in the structure tree.
     label:  String     // Field or structure name.
     value:  String     // The value, in the spelling its type is read in.
@@ -37,20 +38,20 @@ struct BinaryRow
 // A tree of owning nodes would carry the same information, but every consumer walks the rows in
 // order — the view builds its lines in one pass, the clipboard writes them in one pass, and a
 // jump maps a file offset by scanning them — so the depth is carried on the rows themselves.
-struct BinaryReport
+struct Report
 {
     formatName: String     // Short name of the format that was recognized.
     summary:    String     // One line for the host's information bar.
-    rows:       Array'BinaryRow
+    rows:       Array'Row
     level:      u32     // Depth the next row is written at.
 }
 
-impl BinaryReport
+impl Report
 {
-    // Opens a structure that every row added until the matching [[BinaryReport.endGroup]] sits under.
+    // Opens a structure that every row added until the matching [[Report.endGroup]] sits under.
     mtd beginGroup(label: string, value: string = "", detail: string = "", offset = Swag.U64.Max, length = 0'u64, open = false)
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind   = .Group
             .level  = me.level
@@ -66,7 +67,7 @@ impl BinaryReport
         .level += 1
     }
 
-    // Closes the structure the last unmatched [[BinaryReport.beginGroup]] opened.
+    // Closes the structure the last unmatched [[Report.beginGroup]] opened.
     mtd endGroup()
     {
         Swag.assert(.level > 0, "a report closed a group it never opened")
@@ -79,7 +80,7 @@ impl BinaryReport
     // formatting consistent across readers.
     mtd field(offset, length: u64, label, value: string, detail: string = "")
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind   = .Field
             .level  = me.level
@@ -96,7 +97,7 @@ impl BinaryReport
     // Adds a value read as a hexadecimal number as wide as the field that holds it.
     mtd hexField(offset, length: u64, label: string, value: u64, detail: string = "")
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind   = .Field
             .level  = me.level
@@ -113,7 +114,7 @@ impl BinaryReport
     // Adds a value read as a plain count.
     mtd numField(offset, length: u64, label: string, value: u64, detail: string = "")
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind   = .Field
             .level  = me.level
@@ -130,7 +131,7 @@ impl BinaryReport
     // Adds a size or an address, in the two readings either is always wanted in at once.
     mtd sizeField(offset, length: u64, label: string, value: u64, detail: string = "")
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind   = .Field
             .level  = me.level
@@ -147,7 +148,7 @@ impl BinaryReport
     // Adds one value that no single byte range produced, such as a total or a computed address.
     mtd derived(label, value: string, detail: string = "")
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind   = .Field
             .level  = me.level
@@ -162,7 +163,7 @@ impl BinaryReport
     // Records what the file did not let the reader see, where the reader would have looked.
     mtd note(text: string)
     {
-        with var row: BinaryRow
+        with var row: Row
         {
             .kind  = .Note
             .level = me.level
@@ -177,7 +178,7 @@ impl BinaryReport
     {
         if total <= shown do
             return
-        let text = Format.toString(binaryStrings().rep_NotListed, total - shown)
+        let text = Format.toString(texts().rep_NotListed, total - shown)
         .note(text)
     }
 
@@ -221,23 +222,23 @@ impl BinaryReport
             for row.level do
                 result += "    "
 
-            result += row.label.toString()
+            result += row.label
             if not row.value.isEmpty()
             {
                 result += ": "
-                result += row.value.toString()
+                result += row.value
             }
 
             if not row.detail.isEmpty()
             {
                 result += "  "
-                result += row.detail.toString()
+                result += row.detail
             }
 
             if row.offset != Swag.U64.Max
             {
                 result += "  @"
-                result += hexText(row.offset, 8).toString()
+                result += hexText(row.offset, 8)
             }
 
             result += "\n"
@@ -248,7 +249,7 @@ impl BinaryReport
 }
 
 // One bit of a flags field and the name it carries.
-struct BinaryFlagName
+struct FlagName
 {
     bit:  u64
     name: string
@@ -267,14 +268,14 @@ func hexText(value: u64, digits: u64)->String
         text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(cast(string, text.toSlice()))
+    return cast(string, text.toSlice())
 }
 
 // Returns a value in the two readings a size or an address is always wanted in at once.
 func hexAndDecimalText(value: u64, digits: u64)->String => Format.toString("% (%)", hexText(value, digits), value)
 
 // Returns the names of every set bit of `value`, and the bits no name accounted for.
-func flagsText(value: u64, names: const [..] BinaryFlagName)->String
+func flagsText(value: u64, names: const [..] FlagName)->String
 {
     var result: retval
     var rest = value
@@ -301,12 +302,12 @@ func flagsText(value: u64, names: const [..] BinaryFlagName)->String
 func epochText(seconds: u64)->String
 {
     if not seconds do
-        return String.from(binaryStrings().ui_NotSet)
+        return texts().ui_NotSet
 
     // A stamp beyond the calendar the runtime spells is a reproducible-build cookie or a corrupt
     // field. Either way it is a number, and saying so beats printing a year in the far future.
     if seconds > 253_370_764_800 do
-        return String.from(binaryStrings().ui_NotDate)
+        return texts().ui_NotDate
 
     let epoch = Time.Timestamp.fromDateTime({1970, 1, 1})
     let stamp = Time.Timestamp.fromTicks(epoch.ticks + seconds * Time.TicksPerSecond)

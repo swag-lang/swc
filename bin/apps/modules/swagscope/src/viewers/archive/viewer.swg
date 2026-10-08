@@ -1,13 +1,14 @@
 #global internal
+#global namespace Viewers.Archive
 
 using Core, Gui
 
-private const ArchiveTreeWidth = 380.0
+private const TreeWidth = 380.0
 
 // Orders archive tree rows with directories before files at every level, then by natural name.
 //
 // Directory rows carry no entry payload, including empty explicit directories.
-func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
+func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 {
     if not a or not b do
         return 0
@@ -32,7 +33,7 @@ func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s
 //
 // An archive opens either on the header of its first entry or, when it holds nothing at all, on
 // its end record.
-private func archivePluginProbe(content: Viewer.ProbeContent)->bool
+private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
     if not content.startsWith("PK") or content.head.count < 4 do
         return false
@@ -40,18 +41,18 @@ private func archivePluginProbe(content: Viewer.ProbeContent)->bool
 }
 
 // Describes the ZIP archive viewer to the host.
-func archiveViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "archive"
         .staticName   = "Archive"
-        .resolveName  = func()->string => archiveStrings().ui_Name
-        .attach       = &registerArchiveStrings
+        .resolveName  = func()->string => texts().ui_Name
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Archive)
-        .create       = &createArchiveViewer
-        .probe        = &archivePluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .smokeFixture = "viewer.archive.zip"
         .addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
     }
@@ -83,7 +84,7 @@ impl ZipEntryExtract
         let operation = me
         .task.submit(func|operation|()
         {
-            catch extractZipEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
+            catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
             operation.error = Errors.message(extractError)
         })
     }
@@ -114,7 +115,7 @@ impl ZipEntryExtract
 // Shows the entries of a ZIP archive as a folder tree beside a preview of the selected file.
 //
 // The preview opens the extracted entry through the ordinary viewer registry.
-struct ArchiveViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -128,9 +129,9 @@ struct ArchiveViewer
     }
 
     late embedded:        Viewer.Embedded
-    archive:              ZipArchive
+    archive:              Zip
     entryLines:           Array'(*ListLine?)
-    load:                 Viewer.BackgroundLoad'ZipArchive
+    load:                 Viewer.BackgroundLoad'Zip
     extract:              ZipEntryExtract
     loadTimer:            *Timer?
     previewTimer:         *Timer?
@@ -144,7 +145,7 @@ struct ArchiveViewer
     failureReason:        String
 }
 
-private impl IWnd for ArchiveViewer
+private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -158,7 +159,7 @@ private impl IWnd for ArchiveViewer
             if not .failureReason.isEmpty()
             {
                 if .reportFailure do
-                    .reportFailure(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason)
                 return
             }
 
@@ -192,13 +193,13 @@ private impl IWnd for ArchiveViewer
     }
 }
 
-private impl ArchiveViewer
+private impl Panel
 {
     mtd publishArchiveDetails()
     {
         if not .reportDetails do
             return
-        let text = Format.toString(archiveStrings().ui_Details,
+        let text = Format.toString(texts().ui_Details,
                                    .archive.entries.count,
                                    StrConv.toDisplaySize(.archive.uncompressedSize),
                                    StrConv.toDisplaySize(.archive.compressedSize))
@@ -271,9 +272,9 @@ private impl ArchiveViewer
         .list.sort(0, persistent: true)
         .list.computeLayout()
         if .archive.entries.isEmpty() do
-            .showPreviewStatus(archiveStrings().ui_Empty)
+            .showPreviewStatus(texts().ui_Empty)
         else do
-            .showPreviewStatus(archiveStrings().ui_Select)
+            .showPreviewStatus(texts().ui_Select)
         .publishArchiveDetails()
     }
 
@@ -299,7 +300,7 @@ private impl ArchiveViewer
         if index == .pendingPreview or index == .activePreview do
             return
         .pendingPreview = index
-        .showPreviewStatus(archiveStrings().ui_Previewing)
+        .showPreviewStatus(texts().ui_Previewing)
         if not .previewTimer do
             .previewTimer = .addTimer(Viewer.BackgroundPollInterval)
         .continuePreview()
@@ -309,7 +310,7 @@ private impl ArchiveViewer
     {
         if .previewFile.isEmpty() do
             return
-        catch File.delete(.previewFile.toString())
+        catch File.delete(.previewFile)
         .previewFile.clear()
         .activePreview = Swag.U64.Max
     }
@@ -324,7 +325,7 @@ private impl ArchiveViewer
             if not error.isEmpty()
             {
                 .clearPreviewFile()
-                .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, error))
+                .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, error))
                 return
             }
 
@@ -335,10 +336,10 @@ private impl ArchiveViewer
             else
             {
                 let entry = &.archive.entries[.activePreview]
-                catch .embedded.open(.previewFile.toString(), entry.path) as openError
+                catch .embedded.open(.previewFile, entry.path) as openError
                 if openError != null
                 {
-                    .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, Errors.message(openError)))
+                    .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, Errors.message(openError)))
                     return
                 }
 
@@ -372,7 +373,7 @@ private impl ArchiveViewer
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
         .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), tempName)
-        .extract.start(.sourceFile.toString(), entry, .previewFile.toString())
+        .extract.start(.sourceFile, entry, .previewFile)
     }
 
     mtd showPreviewStatus(text: string)
@@ -423,7 +424,7 @@ private impl ArchiveViewer
         let line = .list.lineAt(.list.focusIndex)
         if not line or line.items.isEmpty() do
             return false
-        let name = Pixel.RichString.plainText(line.items[0]!.name.raw.toString())
+        let name = Pixel.RichString.plainText(line.items[0]!.name.raw)
         return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.length, result)
     }
 
@@ -440,17 +441,17 @@ private impl ArchiveViewer
 
     mtd describeSearch(result: *Viewer.SearchPresentation)
     {
-        result.placeholder = archiveStrings().ui_SearchPlaceholder
+        result.placeholder = texts().ui_SearchPlaceholder
         result.canFilter   = false
     }
 
     mtd retranslate()
     {
-        .list.header.itemAt(0).name = archiveStrings().ui_ColName
-        .list.header.itemAt(1).name = archiveStrings().ui_ColSize
+        .list.header.itemAt(0).name = texts().ui_ColName
+        .list.header.itemAt(1).name = texts().ui_ColSize
         .list.header.invalidate()
         if .activePreview == Swag.U64.Max and not .extract.started do
-            .showPreviewStatus(.archive.entries.isEmpty() and not .loadTimer ? archiveStrings().ui_Empty : archiveStrings().ui_Select)
+            .showPreviewStatus(.archive.entries.isEmpty() and not .loadTimer ? texts().ui_Empty : texts().ui_Select)
     }
 
     mtd retire()->bool
@@ -473,11 +474,11 @@ private impl ArchiveViewer
         return true
     }
 
-    func create(host: Viewer.Host)->*ArchiveViewer
+    func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'ArchiveViewer(host.contentParent(), "scope.archive")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.archive")
         {
             .backgroundStyle      = .View
             .sourceFile           = host.fileName()
@@ -491,16 +492,16 @@ private impl ArchiveViewer
         result.createEntryTree()
         result.createPreviewPane(host)
 
-        with let treeItem = result.splitter.addPane(result.treePane, ArchiveTreeWidth)
+        with let treeItem = result.splitter.addPane(result.treePane, TreeWidth)
         {
-            .size         = ArchiveTreeWidth
+            .size         = TreeWidth
             .minimumSize  = 260
             .maximumSize  = 560
             .preserveSize = true
         }
 
         result.splitter.addPane(result.previewPane).minimumSize = 320
-        result.load.start(host.fileName(), &loadZipArchive)
+        result.load.start(host.fileName(), &Zip.load)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         result.applyLayout()
         return result
@@ -518,14 +519,14 @@ private impl ArchiveViewer
         with .list = ListCtrl.createMultiColumns(me.treePane)
         {
             .dockStyle    = .Center
-            .compareLines = &compareArchiveTreeLines
+            .compareLines = &compareTreeLines
             .setSelectionMode(.Single)
             .setIconSize(themeRowIconSize(me.themeMetrics()))
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.updateFlags(.DisableHorizontal)
             .header.form = .Transparent
-            .addColumn(archiveStrings().ui_ColName, 170)
-            .addColumn(archiveStrings().ui_ColSize, 60)
+            .addColumn(texts().ui_ColName, 170)
+            .addColumn(texts().ui_ColSize, 60)
             .sigSelectionChanged += func|viewer = me|(?)
             {
                 viewer.previewSelectedEntry()
@@ -556,7 +557,7 @@ private impl ArchiveViewer
         }
 
         .embedded = host.createEmbedded(.previewPane)
-        with .previewStatus = Label.create(me.previewPane, archiveStrings().ui_Select, {}, null, .WordWrap)
+        with .previewStatus = Label.create(me.previewPane, texts().ui_Select, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
             .wndFlags        |= .TopMost
@@ -568,9 +569,9 @@ private impl ArchiveViewer
 }
 
 // Creates the integrated archive viewer and connects its search and lifecycle to the host.
-func createArchiveViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = ArchiveViewer.create(host)
+    let view = Panel.create(host)
     host.attachView(view)
 
     with var search: Viewer.SearchApi

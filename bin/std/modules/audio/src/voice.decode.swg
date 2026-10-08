@@ -116,7 +116,7 @@ impl Voice
         if not desc do
             fail UnsupportedFormatError{"unsupported encoding"}
         let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
-        let decoderData = Memory.new(desc.type, allocator)!
+        let decoderData = Memory.new(desc.type, allocator)
         let decoder     = cast(*Codec, decoderData)
         decoder.configure(file.encoding, .requestedEncoding, desc.type, allocator)
         .codec = Swag.makeInterface(decoder, desc.type, ICodec)
@@ -141,7 +141,7 @@ impl Voice
         if not desc do
             fail UnsupportedFormatError{"unsupported packetized encoding"}
         let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
-        let decoderData = Memory.new(desc.type, allocator)!
+        let decoderData = Memory.new(desc.type, allocator)
         let decoder     = cast(*Codec, decoderData)
         decoder.configure(file.encoding, .Pcm16, desc.type, allocator)
         .packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)

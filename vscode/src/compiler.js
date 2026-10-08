@@ -29,6 +29,62 @@ async function projectFor(uri)
     return {key: pathKey(file), directory: path.dirname(file), args: ['--file', file]};
 }
 
+async function standardApiDirectories(project, compilerPath)
+{
+    const directories = new Map();
+    const add = async directory =>
+    {
+        if (!directory) return;
+        const normalized = path.resolve(directory);
+        try
+        {
+            if ((await fs.stat(normalized)).isDirectory()) directories.set(pathKey(normalized), normalized);
+        }
+        catch (error) { if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error; }
+    };
+
+    const addInstallRoot = async root =>
+    {
+        if (root) await add(path.join(root, 'std', '.output'));
+    };
+    await addInstallRoot(process.env.SWAG_PATH);
+
+    for (let directory = project.directory; ; directory = path.dirname(directory))
+    {
+        if (path.basename(directory).toLowerCase() === 'std')
+        {
+            try
+            {
+                await fs.access(path.join(directory, 'modules'));
+                await add(path.join(directory, '.output'));
+            }
+            catch (error) { if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error; }
+        }
+        if (path.dirname(directory) === directory) break;
+    }
+
+    let executablePaths = [];
+    if (path.isAbsolute(compilerPath) || compilerPath.includes(path.sep) || compilerPath.includes('/'))
+        executablePaths.push(path.resolve(compilerPath));
+    else
+    {
+        const executable = process.platform === 'win32' && !path.extname(compilerPath) ? `${compilerPath}.exe` : compilerPath;
+        executablePaths = (process.env.PATH || '').split(path.delimiter).filter(Boolean).map(directory => path.join(directory, executable));
+    }
+    for (const executable of executablePaths)
+    {
+        try
+        {
+            await fs.access(executable);
+            await addInstallRoot(path.dirname(executable));
+            break;
+        }
+        catch (error) { if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error; }
+    }
+
+    return [...directories.values()];
+}
+
 function overlayBuffer(documents)
 {
     const parts = [Buffer.from('SWAG-EDITOR-1\n')];
@@ -95,10 +151,13 @@ async function analyze(project, documents, options, signal)
             return project.args[0] === '--file' ? key === project.key : key.startsWith(project.key + '/');
         });
         await fs.writeFile(overlay, overlayBuffer(selected));
-        const args = ['sema', ...project.args,
+        const args = ['sema', ...project.args];
+        for (const directory of await standardApiDirectories(project, options.compilerPath || 'swc'))
+            args.push('--import-api-dir', directory);
+        args.push(
             '--editor-overlay', overlay, '--editor-index', index,
             '--out-dir', path.join(directory, 'output'), '--work-dir', path.join(directory, 'work'),
-            '--num-cores', '6', '--diagnostic-one-line', '--path-display', 'absolute', '--no-log-color'];
+            '--num-cores', '6', '--diagnostic-one-line', '--path-display', 'absolute', '--no-log-color');
         let execution;
         try { execution = await runCompiler(options.compilerPath || 'swc', args, project.directory, signal); }
         catch (error)
@@ -125,4 +184,4 @@ async function analyze(project, documents, options, signal)
     }
 }
 
-module.exports = {analyze, projectFor, pathKey, overlayBuffer, pathToFileURL, runCompiler};
+module.exports = {analyze, projectFor, standardApiDirectories, pathKey, overlayBuffer, pathToFileURL, runCompiler};

@@ -46,7 +46,9 @@ The server finds the nearest ancestor `module.swg` and analyzes that module; a f
 a module is analyzed on its own. Open buffers in that module replace the compiler's source
 contents in memory. Unsaved buffers, the editor index, and the requested module working/output
 directories live in a per-analysis system temporary directory. Dependencies use the compiler's
-usual caches.
+usual caches. Generated standard-library APIs are discovered from `SWAG_PATH`, the selected
+compiler's adjacent `std` directory, or a checkout's `bin/std` tree, so imported standard types
+remain navigable without hand-entering an API root.
 The index contains this module's sources and only imported API files needed by referenced
 declarations, so unrelated dependency and runtime sources are not copied into editor snapshots.
 The server uses the standard LSP protocol and can also run as `node src/server.js --stdio`

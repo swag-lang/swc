@@ -35,19 +35,17 @@ impl FrameTiming
 
         .frameCount += 1
 
-        // First frame
+        // The first update establishes the clock reference.
         if not .previousTick
         {
             .previousTick = newTick
             return
         }
 
-        // Delta time
-        let diff = newTick - .previousTick
-        .deltaSeconds = cast(f32, (cast(f64, diff) / monotonicFrequency()))
+        let elapsedTicks = newTick - .previousTick
+        .deltaSeconds = cast(f32, (cast(f64, elapsedTicks) / monotonicFrequency()))
         .deltaSeconds = Math.clamp(.deltaSeconds, .minimumDeltaSeconds, .maximumDeltaSeconds)
 
-        // Setup for next frame
         .previousTick = newTick
     }
 

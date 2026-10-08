@@ -64,19 +64,27 @@ impl Timer
 
         .callback = callback
         .context  = Swag.getContext()[]
-        let tempCapacity  = .context.tempAllocator.capacity
-        let errorCapacity = .context.errorAllocator.capacity
-        Swag.init(&.context.tempAllocator, 1)
-        Swag.init(&.context.errorAllocator, 1)
-        Swag.init(.context.errors.buffer, .context.errors.count)
-        .context.curError      = null
-        .context.errorCaptures = null
-        .context.hasError      = 0
-        .context.errorIndex    = 0
-        .context.traceIndex    = 0
-        let allocator = .context.allocator!
-        .context.tempAllocator.setCapacity(tempCapacity, allocator)
-        .context.errorAllocator.setCapacity(errorCapacity, allocator)
+
+        // Keep the inherited policy, but give callbacks independent mutable storage.
+        with .context
+        {
+            let tempCapacity  = .tempAllocator.capacity
+            let errorCapacity = .errorAllocator.capacity
+
+            Swag.init(&.tempAllocator, 1)
+            Swag.init(&.errorAllocator, 1)
+            Swag.init(.errors.buffer, .errors.count)
+            .curError      = null
+            .errorCaptures = null
+            .hasError      = 0
+            .errorIndex    = 0
+            .traceIndex    = 0
+
+            let allocator = .allocator!
+            .tempAllocator.setCapacity(tempCapacity, allocator)
+            .errorAllocator.setCapacity(errorCapacity, allocator)
+        }
+
         .handle = try createTimerNative(me, cast(u32, delayMs), periodic)
     }
 

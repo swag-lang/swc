@@ -52,7 +52,14 @@ func failTimerMessage(text: string) fail
 func timerOwnedContextCallback(?: *Time.Timer)
 {
     let context = Swag.getContext()
-    if context.errorIndex != 0 or context.hasError != 0 or context.curError != null or context.errorCaptures != null or context.tempAllocator.block != null or context.tempAllocator.firstLeak != null or context.errorAllocator.block != null or context.errorAllocator.firstLeak != null do
+    if context.errorIndex != 0 or
+       context.hasError != 0 or
+       context.curError != null or
+       context.errorCaptures != null or
+       context.tempAllocator.block != null or
+       context.tempAllocator.firstLeak != null or
+       context.errorAllocator.block != null or
+       context.errorAllocator.firstLeak != null do
         g_timerOwnedBad.add(1)
 
     catch failTimerMessage("the callback owns this copied error message") as error

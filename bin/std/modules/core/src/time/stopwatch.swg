@@ -50,7 +50,12 @@ public impl Stopwatch
     mtd const isRunning()->bool => .running
 
     // Returns the elapsed time in ticks of [[Core.Time.monotonicFrequency]], including the current running period.
-    mtd const elapsedTicks()->u64 => .running ? .accumulated + monotonicTicks() - .startTimestamp : .accumulated
+    mtd const elapsedTicks()->u64
+    {
+        if not .running do
+            return .accumulated
+        return .accumulated + monotonicTicks() - .startTimestamp
+    }
 
     // Returns total elapsed time in milliseconds.
     mtd const elapsedMilliseconds()->u64

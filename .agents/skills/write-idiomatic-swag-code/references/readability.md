@@ -150,6 +150,14 @@ For example, a 16-byte PCM24 load requires six available three-byte samples even
 produces only four output samples. Name source bytes and output samples distinctly, and retain
 tests around that threshold and odd destination capacities.
 
+In an interleaved stream, distinguish encoded byte offsets, decoded byte counts, channel samples,
+and sample frames in local names. A frame contains one sample per channel; `writtenBytes`,
+`totalFrames`, and `channelCount` make their conversions inspectable. Keep source-file positions
+distinct from logical playback positions. When trimming decoded output, name the portion that
+actually exists in the buffer separately from an expected-but-missing prefix, and compute it only
+after the bounds check that makes the subtraction valid. Do not merge codec-specific trimming
+policies merely because their counters have the same units.
+
 For a simulation, name the state and its rate separately: `angle` and `angularVelocity` explain
 more than numbered abbreviations. Name a damping multiplier after the value it retains, rather
 than implying that it is the amount removed. Keep familiar coordinates and short coefficients
@@ -186,6 +194,11 @@ A shared complete-number conversion check can remove repeated overflow/trailing-
 but must still report overflow first when both conditions hold. Name that contract in the
 helper (`requireCompleteNumber`), keep the parse operation visible at each caller, and test the
 error precedence through the public conversions before and after factoring.
+
+A large alternative path can also earn one helper when it owns a complete resource lifetime.
+Keep acquisition, initialization, callbacks, and cleanup together in that helper, with the choice
+between paths visible at the entry point. Preserve when cleanup runs on success, failure, and
+early consumer cancellation; moving only the allocation or only the loop obscures that contract.
 
 Check the caller's publication contract before extracting a private helper. Bodies of implicit
 operations and inline functions travel to consuming modules; a generated API does not include

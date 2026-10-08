@@ -72,11 +72,20 @@ impl ReversedHashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &table[tableIndex].key), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &table[tableIndex].key),
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            break = break to Up,
+                            continue = break to Down)
             }
 
             remain -= 1
@@ -102,7 +111,11 @@ impl HashSet
     mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K), 1'u64)
 
     #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashSetEntry => cast(const [*] HashSetEntry'(K), (.table orelse cast([*] HashSetEntry'(K), 1'u64)))
+    mtd const constTablePtr()->const [*] HashSetEntry
+    {
+        let table = .table orelse cast([*] HashSetEntry'(K), 1'u64)
+        return cast(const [*] HashSetEntry'(K), table)
+    }
 
     // Returns the number of elements in the set.
     #[Inline]
@@ -135,12 +148,14 @@ impl HashSet
         if not .allocator do
             .allocator = Swag.getContext().allocator
 
-        let oldTable = .tablePtr()
-        let newTable = cast([*] HashSetEntry'(K), Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator))
+        let storageBytes = .capacity * #sizeof(HashSetEntry'(K))
+        let oldTable     = .tablePtr()
+        let newTable     = cast([*] HashSetEntry'(K), Memory.alloc(storageBytes, .allocator))
         #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
             Swag.init(newTable, .capacity)
         else do
-            Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
+            Memory.clear(newTable, storageBytes)
+
         #static if Reflection.hasPostCopy(K)
         {
             for i in .capacity
@@ -155,7 +170,7 @@ impl HashSet
         }
         else
         {
-            Memory.copy(newTable, oldTable, .capacity * #sizeof(HashSetEntry'(K)))
+            Memory.copy(newTable, oldTable, storageBytes)
         }
 
         .table = newTable
@@ -182,11 +197,20 @@ impl HashSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &table[tableIndex].key), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &table[tableIndex].key),
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            break = break to Up,
+                            continue = break to Down)
             }
 
             remain -= 1

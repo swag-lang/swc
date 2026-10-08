@@ -200,6 +200,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
 - Prefer a named local when its name explains a unit, bound, decision, or transformation. Wrap
   when the expression already reads naturally and only needs space. Do not manufacture relay
   locals, abbreviate useful names, or add a helper merely to meet a column target.
+  In storage code, make units visible: `storageBytes` can name a repeated byte-size calculation,
+  while `capacity` remains an element count. Reuse that local only while its inputs stay unchanged;
+  allocation, initialization, copying, and release must keep their original order and sizes.
   For repeated accesses within a block, naming its base addresses once can reveal the relative
   offsets, as in an unrolled SIMD comparison. Preserve load order and the guard establishing the
   block's bounds; do not hoist the addresses or loads outside their valid scope.

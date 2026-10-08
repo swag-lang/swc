@@ -74,15 +74,35 @@ impl ReversedHashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &table[tableIndex].key), value = cast(*V, &table[tableIndex].value), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &table[tableIndex].key),
+                            value = cast(*V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
             }
 
             remain -= 1
@@ -108,7 +128,11 @@ impl HashTable
     mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
 
     #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashTableEntry => cast(const [*] HashTableEntry'(K, V), (.table orelse cast([*] HashTableEntry'(K, V), 1'u64)))
+    mtd const constTablePtr()->const [*] HashTableEntry
+    {
+        let table = .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
+        return cast(const [*] HashTableEntry'(K, V), table)
+    }
 
     // Returns the number of key-value pairs in the table.
     #[Inline]
@@ -150,12 +174,14 @@ impl HashTable
             if not .allocator do
                 .allocator = Swag.getContext().allocator
 
-            let oldTable = .tablePtr()
-            let newTable = cast([*] HashTableEntry'(K, V), Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator))
+            let storageBytes = .capacity * #sizeof(HashTableEntry'(K, V))
+            let oldTable     = .tablePtr()
+            let newTable     = cast([*] HashTableEntry'(K, V), Memory.alloc(storageBytes, .allocator))
             #static if Reflection.hasDynamicStorage(HashTableEntry'(K, V)) do
                 Swag.init(newTable, .capacity)
             else do
-                Memory.clear(newTable, .capacity * #sizeof(HashTableEntry'(K, V)))
+                Memory.clear(newTable, storageBytes)
+
             #static if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
             {
                 for i in .capacity
@@ -171,7 +197,7 @@ impl HashTable
             }
             else
             {
-                Memory.copy(newTable, oldTable, .capacity * #sizeof(HashTableEntry'(K, V)))
+                Memory.copy(newTable, oldTable, storageBytes)
             }
 
             .table = newTable
@@ -216,15 +242,35 @@ impl HashTable
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &table[tableIndex].key), value = cast(*V, &table[tableIndex].value), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &table[tableIndex].key),
+                            value = cast(*V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &table[tableIndex].key), value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = table[tableIndex].key, value = cast(const *V, &table[tableIndex].value), break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
             }
 
             remain -= 1

@@ -9,11 +9,11 @@ func isDynamicArray(t: typeinfo?)->bool
     if not t or not isStruct(t) do
         return false
 
-    let tt = assume cast(const *TypeInfoStruct, t)
+    let typeStruct   = assume cast(const *TypeInfoStruct, t)
     let arrayGeneric = assume cast(const *TypeInfoStruct, #typeof(Array'u8)).fromGeneric
-    if not tt.fromGeneric do
+    if not typeStruct.fromGeneric do
         return false
-    return tt.fromGeneric.fullname == arrayGeneric.fullname
+    return typeStruct.fromGeneric.fullname == arrayGeneric.fullname
 }
 
 // Returns the element type of a [[Core.Array]] type, or null when `t` is not one.
@@ -22,8 +22,8 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
     if not isDynamicArray(t) do
         return null
 
-    let tt       = assume cast(const *TypeInfoStruct, t)
-    let generics = tt.generics!
+    let typeStruct = assume cast(const *TypeInfoStruct, t)
+    let generics   = typeStruct.generics!
     return generics[0].pointedType
 }
 
@@ -35,18 +35,18 @@ func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
     if not arrayPointer or not elementType do
         return
 
-    let arr = cast(*Array'u8, arrayPointer)
+    let arrayView = cast(*Array'u8, arrayPointer)
     if hasDrop(elementType)
     {
-        var scan = arr.buffer
-        for arr.count
+        var scan = arrayView.buffer
+        for arrayView.count
         {
             Memory.dropType(scan, elementType)
             scan += elementType.sizeof
         }
     }
 
-    arr.count = 0
+    arrayView.count = 0
 }
 
 // Removes the element at `index` from the [[Core.Array]] at `arrayPointer`, whose element type is `elementType`.
@@ -58,37 +58,39 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
     if not arrayPointer or not elementType do
         return
 
-    let arr       = cast(*Array'u8, arrayPointer)
-    let sizeValue = elementType.sizeof
+    let arrayView    = cast(*Array'u8, arrayPointer)
+    let elementBytes = elementType.sizeof
 
-    if index >= arr.count
+    if index >= arrayView.count
     {
         Swag.assert(false)
         return
     }
 
-    let removed = arr.buffer + index * sizeValue
+    let removed = arrayView.buffer + index * elementBytes
     Memory.dropType(removed, elementType)
 
-    if index != arr.count - 1
+    if index != arrayView.count - 1
     {
-        let countMove = arr.count - index - 1
+        let movedElements = arrayView.count - index - 1
         if hasPostMove(elementType)
         {
-            for i in index until arr.count - 1
+            for i in index until arrayView.count - 1
             {
-                Memory.copy(arr.buffer + i * sizeValue, arr.buffer + (i + 1) * sizeValue, sizeValue)
-                Memory.postMoveType(arr.buffer + (i * sizeValue), elementType)
+                Memory.copy(arrayView.buffer + i * elementBytes,
+                            arrayView.buffer + (i + 1) * elementBytes,
+                            elementBytes)
+                Memory.postMoveType(arrayView.buffer + (i * elementBytes), elementType)
             }
         }
         else
         {
-            Memory.copyOverlapping(removed, removed + sizeValue, countMove * sizeValue)
+            Memory.copyOverlapping(removed, removed + elementBytes, movedElements * elementBytes)
         }
     }
 
-    arr.count -= 1
-    Memory.clear((arr.buffer + arr.count * sizeValue)!, sizeValue)
+    arrayView.count -= 1
+    Memory.clear((arrayView.buffer + arrayView.count * elementBytes)!, elementBytes)
 }
 
 // Swaps the values at `indexA` and `indexB` in a contiguous buffer of `valueType` values.
@@ -100,24 +102,24 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
     if not basePointer or not valueType or indexA == indexB do
         return
 
-    let size = valueType.sizeof
-    let base = cast([*] u8, basePointer)
-    let pa   = base + indexA * size
-    let pb   = base + indexB * size
+    let valueBytes = valueType.sizeof
+    let base       = cast([*] u8, basePointer)
+    let leftValue  = base + indexA * valueBytes
+    let rightValue = base + indexB * valueBytes
 
     let allocator = Swag.getContext().allocator
-    let tmp       = cast([*] u8, Memory.alloc(size, allocator))
-    defer Memory.free(tmp, size, allocator)
+    let temporary = cast([*] u8, Memory.alloc(valueBytes, allocator))
+    defer Memory.free(temporary, valueBytes, allocator)
 
-    Memory.copy(tmp, pa, size)
-    Memory.copy(pa, pb, size)
-    Memory.copy(pb, tmp, size)
+    Memory.copy(temporary, leftValue, valueBytes)
+    Memory.copy(leftValue, rightValue, valueBytes)
+    Memory.copy(rightValue, temporary, valueBytes)
 
     // Each element kept its own bytes but landed at a new address: fix up self-references.
     if hasPostMove(valueType)
     {
-        Memory.postMoveType(pa, valueType)
-        Memory.postMoveType(pb, valueType)
+        Memory.postMoveType(leftValue, valueType)
+        Memory.postMoveType(rightValue, valueType)
     }
 }
 
@@ -136,44 +138,44 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         Swag.panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
 
     // Views the array as a buffer of bytes to reach its fields without the element type.
-    let arr       = cast(*Array'u8, arrayPointer)
-    let sizeValue = elementType.sizeof
+    let arrayView    = cast(*Array'u8, arrayPointer)
+    let elementBytes = elementType.sizeof
 
     // Growing relocates every value, so values with a post-move hook are fixed up afterwards.
-    if arr.count >= arr.capacity
+    if arrayView.count >= arrayView.capacity
     {
-        if arr.allocator == null do
-            arr.allocator = Swag.getContext().allocator
+        if arrayView.allocator == null do
+            arrayView.allocator = Swag.getContext().allocator
 
-        let oldBuffer   = arr.buffer
-        let oldCapacity = arr.capacity
-        let newCapacity = Math.max(arr.count + 1, arr.capacity * 2)
-        let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * sizeValue, arr.allocator))
-        Memory.clear(newBuffer, newCapacity * sizeValue)
+        let oldBuffer   = arrayView.buffer
+        let oldCapacity = arrayView.capacity
+        let newCapacity = Math.max(arrayView.count + 1, arrayView.capacity * 2)
+        let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * elementBytes, arrayView.allocator))
+        Memory.clear(newBuffer, newCapacity * elementBytes)
 
-        Memory.copy(newBuffer, oldBuffer, arr.count * sizeValue)
+        Memory.copy(newBuffer, oldBuffer, arrayView.count * elementBytes)
         if hasPostMove(elementType)
         {
-            var buf = newBuffer
-            for arr.count
+            var movedElement = newBuffer
+            for arrayView.count
             {
-                Memory.postMoveType(buf, elementType)
-                buf += sizeValue
+                Memory.postMoveType(movedElement, elementType)
+                movedElement += elementBytes
             }
         }
 
-        Memory.free(oldBuffer, oldCapacity * sizeValue, arr.allocator)
-        arr.buffer   = newBuffer
-        arr.capacity = newCapacity
+        Memory.free(oldBuffer, oldCapacity * elementBytes, arrayView.allocator)
+        arrayView.buffer   = newBuffer
+        arrayView.capacity = newCapacity
     }
 
     // The buffer holds at least one free slot here.
-    let result = arr.buffer! + (arr.count * sizeValue)
-    arr.count += 1
+    let result = arrayView.buffer! + (arrayView.count * elementBytes)
+    arrayView.count += 1
     if initialize do
         Memory.defaultInit(result, elementType)
     else do
-        Memory.clear(result, sizeValue)
+        Memory.clear(result, elementBytes)
 
     return result
 }

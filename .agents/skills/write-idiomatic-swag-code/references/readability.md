@@ -152,6 +152,11 @@ introduce an unavailable dependency. Other methods whose compiled implementation
 module can still share the private helper. Do not widen its public API solely to shorten a caller,
 and verify a real importer when changing one of these published bodies.
 
+For repeated named-token scans, keep the lookup family explicit at the call site. A shared
+scanner can consume one exact name and return its index; the caller still maps that index to a
+weekday or a month. Preserve delimiter checks, index bases, cursor movement, and consumed-byte
+counts. Exercise complete and truncated names as well as optional validation.
+
 ## Extract A Decision Without Eager Evaluation
 
 A loop should expose when it flushes a block, not require its reader to reconstruct a buffer

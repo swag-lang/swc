@@ -174,3 +174,30 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     let fine = expect Time.DateTime.parse("2024-02-29 01:02:03.4567")
     assertDateTime(fine.value, 2024, 2, 29, 1, 2, 3, 456)
 }
+
+// Every English month name keeps its index and its consumed byte count.
+#test
+{
+    for month in 1'u16 to 12'u16
+    {
+        let original = Time.DateTime{2024, month, 1, 12, 34, 56, 789}
+        let text     = original.toString(.DateTimeMs)
+        let parsed   = expect Time.DateTime.parse(text.toString())
+        Swag.assert(parsed.value == original)
+        Swag.assert(parsed.eat == text.count)
+    }
+}
+
+// Name matching remains exact, and weekday validation remains optional.
+#test
+{
+    for text in ["Thursda", "Thursday Feb 29 2024", "ThursdayFebruary 29 2024", "Friday February 29 2024"]
+    {
+        discard catch Time.DateTime.parse(text) as error
+        Swag.assert(error is Errors.SyntaxError)
+    }
+
+    let unchecked = expect Time.DateTime.parse("Friday February 29 2024", checkDate: false)
+    assertDateTime(unchecked.value, 2024, 2, 29, 0, 0, 0, 0)
+    Swag.assert(unchecked.eat == 23)
+}

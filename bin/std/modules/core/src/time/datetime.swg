@@ -127,11 +127,13 @@ impl DateTime
     // Returns the day of the week of this date.
     mtd const dayOfWeek()->DayOfWeek
     {
-        let m: u32 = (.month + 9) % 12
-        let y: u32 = .year - m / 10
-        var dn     = 365 * y + #wrap y / 4 + #wrap y / 400 + #wrap (m * 306 + 5) / 10 + #wrap .day - 1 - #wrap y / 100
-        dn += 3
-        return cast(DayOfWeek, (dn % 7))
+        // Count from March so the leap day falls at the end of the year.
+        let marchMonth: u32 = (.month + 9) % 12
+        let marchYear:  u32 = .year - marchMonth / 10
+        var dayNumber       = 365 * marchYear + #wrap marchYear / 4 + #wrap marchYear / 400 +
+                              #wrap (marchMonth * 306 + 5) / 10 + #wrap .day - 1 - #wrap marchYear / 100
+        dayNumber += 3
+        return cast(DayOfWeek, (dayNumber % 7))
     }
 
     // Returns the English name of `month`, numbered from 1 to 12.
@@ -147,22 +149,22 @@ impl DateTime
     // Parses an 8-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
     {
-        let {value, eat0, ovf} = try StrConv.parseU8(buf[])
+        let {value, consumedBytes, ovf} = try StrConv.parseU8(buf[])
         if ovf do
             fail SyntaxError{}
-        eat[] += eat0
-        buf[] = Tokenize.eatCount(buf[], cast(u64, eat0))
+        eat[] += consumedBytes
+        buf[] = Tokenize.eatCount(buf[], cast(u64, consumedBytes))
         return value
     }
 
     // Parses a 16-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU16(buf: *string, eat: *u32)->u16 fail
     {
-        let {value, eat0, ovf} = try StrConv.parseU16(buf[])
+        let {value, consumedBytes, ovf} = try StrConv.parseU16(buf[])
         if ovf do
             fail SyntaxError{}
-        eat[] += eat0
-        buf[] = Tokenize.eatCount(buf[], cast(u64, eat0))
+        eat[] += consumedBytes
+        buf[] = Tokenize.eatCount(buf[], cast(u64, consumedBytes))
         return value
     }
 
@@ -174,6 +176,23 @@ impl DateTime
             fail SyntaxError{}
         buf[] = Tokenize.eatCount(view, 1)
         eat[] += 1
+    }
+
+    // Consumes one exact English name and returns its index in the supplied family.
+    private func parseName(buf: *string, names: const [..] string, eat: *u32)->u64 fail
+    {
+        for name, index in names
+        {
+            let length = name.count
+            if buf[][until Math.min(buf[].count, length)] != name do
+                continue
+
+            buf[] = Tokenize.eatCount(buf[], length)
+            eat[] += cast(u32, length)
+            return index
+        }
+
+        fail SyntaxError{}
     }
 
     // Parses a date, optionally followed by a time, at the start of `str` and returns it with the number of bytes consumed.
@@ -194,51 +213,16 @@ impl DateTime
         if buf.count >= 1 and
            Latin1.isLetter(buf[0])
         {
-            // Day of week name
-            var done = false
-            var dayOfWeek: DayOfWeek
-            for dow, idx in DayOfWeekNames
-            {
-                let len = dow.count
-                if buf[until Math.min(buf.count, len)] == dow
-                {
-                    dayOfWeek  = cast(idx)
-                    buf        = Tokenize.eatCount(buf, cast(u64, len))
-                    result.eat += cast(u32, len)
-                    done       = true
-                    break
-                }
-            }
-
-            if not done do
-                fail SyntaxError{}
-
-            done = false
+            let dayOfWeek = cast(DayOfWeek, (try parseName(&buf, DayOfWeekNames, &result.eat)))
             try parseSep(&buf, ' ', &result.eat)
-
-            // Month name
-            for name, idx in MonthNames
-            {
-                let len = name.count
-                if buf[until Math.min(buf.count, len)] == name
-                {
-                    result.value.month = cast(u16, idx) + 1
-                    buf                = Tokenize.eatCount(buf, cast(u64, len))
-                    result.eat         += cast(u32, len)
-                    done               = true
-                    break
-                }
-            }
-
-            if not done do
-                fail SyntaxError{}
+            result.value.month = cast(u16, (try parseName(&buf, MonthNames, &result.eat))) + 1
 
             try parseSep(&buf, ' ', &result.eat)
             result.value.day = try parseU8(&buf, &result.eat)
             try parseSep(&buf, ' ', &result.eat)
             result.value.year = try parseU16(&buf, &result.eat)
 
-            // Check day of week
+            // The written weekday must agree with the numeric date.
             if checkDate and dayOfWeek != result.value.dayOfWeek() do
                 fail SyntaxError{}
         }
@@ -329,15 +313,53 @@ impl DateTime
     {
         switch #complete fmt
         {
-        case .DateIso:       return Format.toString("%-%{02}-%{02}", .year, .month, .day)
-        case .TimeIso:       return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
-        case .TimeIsoMs:     return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
-        case .TimeIsoHm:     return Format.toString("%{02}:%{02}", .hour, .minute)
-        case .Date:          return Format.toString("% % % %", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year)
-        case .DateTime:      return Format.toString("% % % % %{02}:%{02}:%{02}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second)
-        case .DateTimeMs:    return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second, .millisecond)
-        case .DateTimeIso:   return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", .year, .month, .day, .hour, .minute, .second)
-        case .DateTimeIsoMs: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}", .year, .month, .day, .hour, .minute, .second, .millisecond)
+        case .DateIso:   return Format.toString("%-%{02}-%{02}", .year, .month, .day)
+        case .TimeIso:   return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
+        case .TimeIsoMs: return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
+        case .TimeIsoHm: return Format.toString("%{02}:%{02}", .hour, .minute)
+
+        case .Date: return Format.toString("% % % %",
+                                           dayOfWeekName(.dayOfWeek()),
+                                           monthName(.month),
+                                           .day,
+                                           .year)
+
+        case .DateTime: return Format.toString("% % % % %{02}:%{02}:%{02}",
+                                               dayOfWeekName(.dayOfWeek()),
+                                               monthName(.month),
+                                               .day,
+                                               .year,
+                                               .hour,
+                                               .minute,
+                                               .second)
+
+        case .DateTimeMs: return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}",
+                                                 dayOfWeekName(.dayOfWeek()),
+                                                 monthName(.month),
+                                                 .day,
+                                                 .year,
+                                                 .hour,
+                                                 .minute,
+                                                 .second,
+                                                 .millisecond)
+
+        case .DateTimeIso: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}",
+                                                  .year,
+                                                  .month,
+                                                  .day,
+                                                  .hour,
+                                                  .minute,
+                                                  .second)
+
+        case .DateTimeIsoMs: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}",
+                                                    .year,
+                                                    .month,
+                                                    .day,
+                                                    .hour,
+                                                    .minute,
+                                                    .second,
+                                                    .millisecond)
+
         case .DateTimeIsoHm: return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
         }
     }

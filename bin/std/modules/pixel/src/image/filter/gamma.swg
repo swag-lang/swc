@@ -11,10 +11,10 @@ public impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        let g = 1.0 / Math.clamp(level, Math.ConstF32.Epsilon, 5.0)
+        let inverseGamma = 1.0 / Math.clamp(level, Math.ConstF32.Epsilon, 5.0)
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
-            var context = g
+            var context = inverseGamma
             .transformLogicalPixels(&context)
             {
                 let exponent = cast(const *f32, userData!)[]
@@ -26,11 +26,11 @@ public impl Image
             return
         }
 
-        var convArr: [256] u8
+        var channelLut: [256] u8
         for i in 256 do
-            convArr[i] = cast(u8, (Math.pow(i / 255.0, g) * 255))
+            channelLut[i] = cast(u8, (Math.pow(i / 255.0, inverseGamma) * 255))
 
-        let table = cast(const [*] u8, &convArr[0])
+        let table = cast(const [*] u8, &channelLut[0])
         .applyColorLuts(table, table, table)
     }
 }

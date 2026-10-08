@@ -37,7 +37,12 @@ public impl Image
             return
         }
 
-        var replacement = .pixelFormat == .BGRA8 ? cast(u32, color.b) | (cast(u32, color.g) << 8) | (cast(u32, color.r) << 16) : cast(u32, color.r) | (cast(u32, color.g) << 8) | (cast(u32, color.b) << 16)
+        var replacement: u32
+        if .pixelFormat == .BGRA8 do
+            replacement = Math.make32(0, color.r, color.g, color.b)
+        else do
+            replacement = Math.make32(0, color.b, color.g, color.r)
+
         .visitVectorBytes(&replacement) #code(block, data)
         {
             let replacementWord = cast(*u32, data!)

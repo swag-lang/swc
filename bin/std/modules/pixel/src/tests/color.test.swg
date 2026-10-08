@@ -4,6 +4,24 @@ using Swag, Core
 
 private func checkColorValue(color: *Color, text: string) fail { discard try StrConv.parseValue(color, Color, text) }
 
+// Packed ABGR uses byte significance, including during constant evaluation.
+#test
+{
+    const Packed = Color.fromAbgr(0x12_34_56_78)
+    #assert(Packed.a == 0x12 and Packed.b == 0x34 and Packed.g == 0x56 and Packed.r == 0x78)
+    Swag.assert(Packed.argb == 0x12_78_56_34)
+}
+
+// Values on both sides of the sRGB threshold round-trip with their alpha intact.
+#test
+{
+    for value in [0'u8, 10, 11, 128, 255]
+    {
+        let original = Color.fromArgb(73, value, value, value)
+        Swag.assert(Color.fromLinear(original.toLinear()) == original)
+    }
+}
+
 #test
 {
     let red = Color.fromHsl(0, 1, 0.5)

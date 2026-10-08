@@ -210,11 +210,14 @@ impl Color
     #[Inline, ConstExpr]
     func fromAbgr(abgr: u32)->Color
     {
-        var result: retval
-        result.a = cast((abgr >> 24))
-        result.b = cast(((abgr >> 16) & 0xFF))
-        result.g = cast(((abgr >> 8) & 0xFF))
-        result.r = cast((abgr & 0xFF))
+        with var result: retval
+        {
+            .a = Math.byteAt(abgr, 3)
+            .b = Math.byteAt(abgr, 2)
+            .g = Math.byteAt(abgr, 1)
+            .r = Math.byteAt(abgr, 0)
+        }
+
         return result
     }
 
@@ -252,44 +255,49 @@ impl Color
     mtd setHsl(h, s, l: f32)
     {
         // Convert hue component to RGB color value.
-        func hueToCol(m1, m2, hue: f32)->u8
+        func hueToChannel(channelMin, channelMax, hue: f32)->u8
         {
-            var h = hue
-            if h < 0 do
-                h += 1
-            if h > 1 do
-                h -= 1
+            var wrappedHue = hue
+            if wrappedHue < 0 do
+                wrappedHue += 1
+            if wrappedHue > 1 do
+                wrappedHue -= 1
 
-            var v: f32
-            if 6 * h < 1 do
-                v = m1 + (m2 - m1) * h * 6
-            elif 2 * h < 1 do
-                v = m2
-            elif 3 * h < 2 do
-                v = m1 + (m2 - m1) * ((2.0 / 3.0) - h) * 6
+            var channel: f32
+            if 6 * wrappedHue < 1 do
+                channel = channelMin + (channelMax - channelMin) * wrappedHue * 6
+            elif 2 * wrappedHue < 1 do
+                channel = channelMax
+            elif 3 * wrappedHue < 2 do
+                channel = channelMin + (channelMax - channelMin) * ((2.0 / 3.0) - wrappedHue) * 6
             else do
-                v = m1
+                channel = channelMin
 
-            return cast(u8, (v * 255))
+            return cast(u8, (channel * 255))
         }
 
-        var _h = Math.saturate(h)
-        var _l = Math.saturate(l)
-        var _s = Math.saturate(s)
+        var clampedHue        = Math.saturate(h)
+        var clampedLightness  = Math.saturate(l)
+        var clampedSaturation = Math.saturate(s)
 
-        if _s == 0
+        if clampedSaturation == 0
         {
-            .r = cast(u8, (255 * _l))
+            .r = cast(u8, (255 * clampedLightness))
             .g = .r
             .b = .r
         }
         else
         {
-            let m2 = _l < 0.5 ? _l * (1 + _s) : (_l + _s) - (_l * _s)
-            let m1 = 2 * _l - m2
-            .r = hueToCol(m1, m2, _h + (1.0 / 3.0))
-            .g = hueToCol(m1, m2, _h)
-            .b = hueToCol(m1, m2, _h - (1.0 / 3.0))
+            var channelMax: f32
+            if clampedLightness < 0.5 do
+                channelMax = clampedLightness * (1 + clampedSaturation)
+            else do
+                channelMax = (clampedLightness + clampedSaturation) - (clampedLightness * clampedSaturation)
+
+            let channelMin = 2 * clampedLightness - channelMax
+            .r = hueToChannel(channelMin, channelMax, clampedHue + (1.0 / 3.0))
+            .g = hueToChannel(channelMin, channelMax, clampedHue)
+            .b = hueToChannel(channelMin, channelMax, clampedHue - (1.0 / 3.0))
         }
     }
 
@@ -298,11 +306,11 @@ impl Color
     {
         var result: retval
 
-        let {rf, gf, bf} = .toRgbF32()
-        let max = Math.max(rf, gf, bf)
-        let min = Math.min(rf, gf, bf)
-        result.l = (max + min) * 0.5
-        let delta = max - min
+        let {red, green, blue} = .toRgbF32()
+        let maxChannel         = Math.max(red, green, blue)
+        let minChannel         = Math.min(red, green, blue)
+        result.l = (maxChannel + minChannel) * 0.5
+        let delta = maxChannel - minChannel
         if delta == 0
         {
             result.s = 0
@@ -311,20 +319,20 @@ impl Color
         }
 
         if result.l < 0.5 do
-            result.s = delta / (max + min)
+            result.s = delta / (maxChannel + minChannel)
         else do
-            result.s = delta / (2 - max - min)
+            result.s = delta / (2 - maxChannel - minChannel)
 
-        let delr = (((max - rf) / 6) + (delta * 0.5)) / delta
-        let delg = (((max - gf) / 6) + (delta * 0.5)) / delta
-        let delb = (((max - bf) / 6) + (delta * 0.5)) / delta
+        let redOffset   = (((maxChannel - red) / 6) + (delta * 0.5)) / delta
+        let greenOffset = (((maxChannel - green) / 6) + (delta * 0.5)) / delta
+        let blueOffset  = (((maxChannel - blue) / 6) + (delta * 0.5)) / delta
 
-        if rf == max do
-            result.h = delb - delg
-        elif gf == max do
-            result.h = (1.0 / 3.0) + delr - delb
+        if red == maxChannel do
+            result.h = blueOffset - greenOffset
+        elif green == maxChannel do
+            result.h = (1.0 / 3.0) + redOffset - blueOffset
         else do
-            result.h = (2.0 / 3.0) + delg - delr
+            result.h = (2.0 / 3.0) + greenOffset - redOffset
 
         if result.h < 0 do
             result.h += 1
@@ -343,7 +351,12 @@ impl Color
     mtd const toLinear()->Math.Vector4
     {
         // Convert a normalized sRGB channel [0,1] to linear light.
-        func srgbToLinear(c: f32)->f32 => c <= 0.04045 ? (c / 12.92) : Math.pow((c + 0.055) / 1.055, 2.4)
+        func srgbToLinear(c: f32)->f32
+        {
+            if c <= 0.04045 do
+                return c / 12.92
+            return Math.pow((c + 0.055) / 1.055, 2.4)
+        }
 
         var result: retval
         result.w = .a / 255.0     // alpha channel
@@ -362,7 +375,12 @@ impl Color
     func fromLinear(vec: Math.Vector4)->Color
     {
         // Convert a linear-light channel [0,1] to gamma-encoded sRGB.
-        func linearToSrgb(c: f32)->f32 => c <= 0.0031308 ? (c * 12.92) : (1.055 * Math.pow(c, 1.0 / 2.4) - 0.055)
+        func linearToSrgb(c: f32)->f32
+        {
+            if c <= 0.0031308 do
+                return c * 12.92
+            return 1.055 * Math.pow(c, 1.0 / 2.4) - 0.055
+        }
 
         var result: retval
         result.a = cast(u8, Math.round(Math.saturate(vec.w) * 255.0))
@@ -423,12 +441,12 @@ impl Color
     // Returns the Euclidean distance between the color components of two colors, normalized to [0, 1].
     mtd const rgbDistanceTo(other: Color)->f32
     {
-        let x1   = cast(f32, .r) - other.r
-        let x2   = cast(f32, .g) - other.g
-        let x3   = cast(f32, .b) - other.b
-        var dist = Math.sqrt((x1 * x1) + (x2 * x2) + (x3 * x3))
-        dist /= Math.sqrt(cast(f32, (255.0 * 255.0 * 3.0)))     // Normalize to [0, 1]
-        return dist
+        let redDelta   = cast(f32, .r) - other.r
+        let greenDelta = cast(f32, .g) - other.g
+        let blueDelta  = cast(f32, .b) - other.b
+        var distance   = Math.sqrt((redDelta * redDelta) + (greenDelta * greenDelta) + (blueDelta * blueDelta))
+        distance /= Math.sqrt(cast(f32, (255.0 * 255.0 * 3.0)))     // Normalize to [0, 1]
+        return distance
     }
 
     // Returns whether [[Pixel.Color.grayscaleValue]] is below one half.
@@ -445,7 +463,10 @@ impl Color
 
     // Returns the perceived brightness in [0, 1], using BT.601 luma weights on the gamma-encoded components.
     #[Inline, ConstExpr]
-    mtd const grayscaleValue()->f32 => (cast(f32, .r) * 0.299 + cast(f32, .g) * 0.587 + cast(f32, .b) * 0.114) / 255.0
+    mtd const grayscaleValue()->f32
+    {
+        return (cast(f32, .r) * 0.299 + cast(f32, .g) * 0.587 + cast(f32, .b) * 0.114) / 255.0
+    }
 
     // Returns the gray of the same perceived brightness, keeping alpha.
     #[Inline, ConstExpr]
@@ -504,29 +525,24 @@ impl Color
         Swag.assert(maxSteps >= 0)
 
         let initialContrast = .contrastRatio(target)
-
-        // If already meets the contrast requirement, return unchanged
         if initialContrast >= requiredContrast do
             return
 
-        // Decide direction: should we go lighter or darker?
-        // Try both directions and see which one increases contrast more.
-        let astep             = Math.abs(step)
-        let lighter           = .adjustBrightness(astep)
-        let darker            = .adjustBrightness(-astep)
+        // Choose the lightness step that raises contrast the most.
+        let stepMagnitude     = Math.abs(step)
+        let lighter           = .adjustBrightness(stepMagnitude)
+        let darker            = .adjustBrightness(-stepMagnitude)
         let contrastIfLighter = lighter.contrastRatio(target)
         let contrastIfDarker  = darker.contrastRatio(target)
 
-        // Direction that improves contrast more
-        let direction: f32 = (contrastIfLighter > contrastIfDarker) ? astep : -astep
+        let signedStep: f32 = (contrastIfLighter > contrastIfDarker) ? stepMagnitude : -stepMagnitude
 
         var steps    = 0
         var contrast = initialContrast
 
-        // Iterate until we reach or exceed required contrast
         while contrast < requiredContrast and steps < maxSteps
         {
-            me[]     = .adjustBrightness(direction)
+            me[]     = .adjustBrightness(signedStep)
             contrast = .contrastRatio(target)
             steps    += 1
         }
@@ -549,7 +565,10 @@ impl Color
 
     // Returns the color with its alpha replaced by a normalized value, clamped to [0, 1].
     #[Inline, ConstExpr]
-    mtd const withAlphaF32(alpha: f32)->Color => fromArgb(cast(u8, (Math.clamp(alpha, 0.0, 1.0) * 255)), .r, .g, .b)
+    mtd const withAlphaF32(alpha: f32)->Color
+    {
+        return fromArgb(cast(u8, (Math.clamp(alpha, 0.0, 1.0) * 255)), .r, .g, .b)
+    }
 
     // Returns the color on the opposite side of the color wheel, keeping alpha.
     #[ConstExpr]
@@ -590,18 +609,14 @@ impl Color
         if n == 0 do
             return colors
 
-        const G    = 0.61803398875     // Golden ratio conjugate for low-discrepancy hue sampling
-        const LVAR = 0.05     // tiny alternation to separate neighbors
+        const GoldenRatioConjugate = 0.61803398875
+        const LightnessVariation   = 0.05
 
         for i in n
         {
-            // Evenly jump around the hue circle with the golden angle
-            let h = Math.fract(startHue + cast(f32, i) * G)
-
-            // Slight alternating lightness to enhance contrast between adjacent colors
-            let l = lum + ((i & 1) == 0 ? -LVAR : LVAR)
-
-            colors.add(fromHsl(h, sat, l))
+            let hue       = Math.fract(startHue + cast(f32, i) * GoldenRatioConjugate)
+            let lightness = lum + ((i & 1) == 0 ? -LightnessVariation : LightnessVariation)
+            colors.add(fromHsl(hue, sat, lightness))
         }
 
         return colors
@@ -617,52 +632,52 @@ impl Core.StrConv.IPokeValue for Color
     // blue order, or an [[Pixel.Argb]] name. An unknown name reads as black.
     mtd impl poke(buf: string)->string fail
     {
-        var eat: u64
-        var ovf: bool
+        var consumedBytes: u64
+        var overflow:      bool
 
-        var one = Tokenize.eatSpaces(buf)
-        if one.count == 0 do
+        var remaining = Tokenize.eatSpaces(buf)
+        if remaining.count == 0 do
             fail SyntaxError{}
 
-        if one.count >= 2 and one[0] == '0' and one[1] | 32 == 'x'
+        if remaining.count >= 2 and remaining[0] == '0' and remaining[1] | 32 == 'x'
         {
-            {.argb, eat, ovf} = try parseU32(one)
-            if ovf do
+            {.argb, consumedBytes, overflow} = try parseU32(remaining)
+            if overflow do
                 fail OverflowError{}
-            one = Tokenize.eatCount(one, eat)
+            remaining = Tokenize.eatCount(remaining, consumedBytes)
         }
-        elif Latin1.isDigit(one[0])
+        elif Latin1.isDigit(remaining[0])
         {
-            {.a, eat, ovf} = try parseU8(one)
-            if ovf do
+            {.a, consumedBytes, overflow} = try parseU8(remaining)
+            if overflow do
                 fail OverflowError{}
-            one = Tokenize.eatCount(one, eat)
+            remaining = Tokenize.eatCount(remaining, consumedBytes)
 
-            one = Tokenize.eatSpaces(one)
-            {.r, eat, ovf} = try parseU8(one)
-            if ovf do
+            remaining = Tokenize.eatSpaces(remaining)
+            {.r, consumedBytes, overflow} = try parseU8(remaining)
+            if overflow do
                 fail OverflowError{}
-            one = Tokenize.eatCount(one, eat)
+            remaining = Tokenize.eatCount(remaining, consumedBytes)
 
-            one = Tokenize.eatSpaces(one)
-            {.g, eat, ovf} = try parseU8(one)
-            if ovf do
+            remaining = Tokenize.eatSpaces(remaining)
+            {.g, consumedBytes, overflow} = try parseU8(remaining)
+            if overflow do
                 fail OverflowError{}
-            one = Tokenize.eatCount(one, eat)
+            remaining = Tokenize.eatCount(remaining, consumedBytes)
 
-            one = Tokenize.eatSpaces(one)
-            {.b, eat, ovf} = try parseU8(one)
-            if ovf do
+            remaining = Tokenize.eatSpaces(remaining)
+            {.b, consumedBytes, overflow} = try parseU8(remaining)
+            if overflow do
                 fail OverflowError{}
-            one = Tokenize.eatCount(one, eat)
+            remaining = Tokenize.eatCount(remaining, consumedBytes)
         }
         else
         {
-            let id = try parseIdentifier(one)
-            one   = Tokenize.eatCount(one, id.count)
-            .argb = cast(u32, Argb.fromName(id))
+            let name = try parseIdentifier(remaining)
+            remaining = Tokenize.eatCount(remaining, name.count)
+            .argb     = cast(u32, Argb.fromName(name))
         }
 
-        return one
+        return remaining
     }
 }

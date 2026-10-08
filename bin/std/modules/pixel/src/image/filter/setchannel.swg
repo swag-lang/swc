@@ -72,18 +72,18 @@ public impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8) and .alphaMode == .Straight
-        if not legacy
+        let hasStraightBgrStorage = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8) and .alphaMode == .Straight
+        if not hasStraightBgrStorage
         {
-            var rmode = mode
+            var selectedChannels = mode
             if not .pixelFormat.hasAlpha()
             {
-                rmode &= ~.Alpha
-                if rmode == 0 or value == .Alpha do
+                selectedChannels &= ~.Alpha
+                if selectedChannels == 0 or value == .Alpha do
                     return
             }
 
-            var context = {mode: rmode, valueMode: value, color: color / 255.0}
+            var context = {mode: selectedChannels, valueMode: value, color: color / 255.0}
             .transformLogicalPixels(&context)
             {
                 let params = cast(const *#decltype(context), userData!)[]
@@ -110,25 +110,25 @@ public impl Image
             return
         }
 
-        // Remove alpha change if it does not exists
-        var rmode = mode
+        // A three-channel pixel has no alpha byte to read or write.
+        var selectedChannels = mode
         if .pixelFormat == .BGR8
         {
-            rmode &= ~.Alpha
-            if rmode == 0 or value == .Alpha do
+            selectedChannels &= ~.Alpha
+            if selectedChannels == 0 or value == .Alpha do
                 return
         }
 
         if value == .Color and .bytesPerPixel == 4
         {
             var mask = 0'u32
-            if rmode & .Blue do
+            if selectedChannels & .Blue do
                 mask |= 0x0000_00FF
-            if rmode & .Green do
+            if selectedChannels & .Green do
                 mask |= 0x0000_FF00
-            if rmode & .Red do
+            if selectedChannels & .Red do
                 mask |= 0x00FF_0000
-            if rmode & .Alpha do
+            if selectedChannels & .Alpha do
                 mask |= 0xFF00_0000
 
             var context = {mask: mask, color: color}
@@ -154,7 +154,7 @@ public impl Image
             return
         }
 
-        var context = {image: me, rmode: rmode, value: value, color: color}
+        var context = {image: me, selectedChannels: selectedChannels, value: value, color: color}
         parallel for |&context| parIndex in cast(u64, .height)
         {
             let row    = cast(u32, parIndex)
@@ -164,7 +164,7 @@ public impl Image
             for x in image.width
             {
                 let pix  = pixels + cast(u64, x) * image.bytesPerPixel
-                let mode = params.rmode
+                let mode = params.selectedChannels
 
                 var channelValue: u8
                 switch #complete params.value

@@ -27,29 +27,30 @@ public impl Image
             return
         }
 
-        var convArrR: [256] u8
-        var convArrG: [256] u8
-        var convArrB: [256] u8
+        // Tables follow storage order: the first channel can be blue or red.
+        var channel0Lut: [256] u8
+        var channel1Lut: [256] u8
+        var channel2Lut: [256] u8
 
         if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {
             for i in 256
             {
-                convArrR[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.b), factor))
-                convArrG[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.g), factor))
-                convArrB[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.r), factor))
+                channel0Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.b), factor))
+                channel1Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.g), factor))
+                channel2Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.r), factor))
             }
         }
         elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
             for i in 256
             {
-                convArrR[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.r), factor))
-                convArrG[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.g), factor))
-                convArrB[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.b), factor))
+                channel0Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.r), factor))
+                channel1Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.g), factor))
+                channel2Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.b), factor))
             }
         }
 
-        .applyColorLuts(&convArrR[0], &convArrG[0], &convArrB[0])
+        .applyColorLuts(&channel0Lut[0], &channel1Lut[0], &channel2Lut[0])
     }
 }

@@ -19,13 +19,13 @@ public impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        let f = Math.saturate(factor)
-        if f == 0 do
+        let blendFactor = Math.saturate(factor)
+        if blendFactor == 0 do
             return
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
-            var context = f
+            var context = blendFactor
             .transformLogicalPixels(&context)
             {
                 let blend = cast(const *f32, userData!)[]
@@ -38,7 +38,7 @@ public impl Image
             return
         }
 
-        if f == 1
+        if blendFactor == 1
         {
             var context = {image: me}
             parallel for |&context| parIndex in cast(u64, .height)
@@ -101,8 +101,11 @@ public impl Image
 
                 while x < image.width
                 {
-                    let pixel = rowPixels + cast(u64, x) * image.bytesPerPixel
-                    let gray  = cast(u8, (((pixel[0] * cast(s32, weight0) + pixel[1] * 183's32 + pixel[2] * cast(s32, weight2)) >> 8) & 0xFF))
+                    let pixel    = rowPixels + cast(u64, x) * image.bytesPerPixel
+                    let weighted = pixel[0] * cast(s32, weight0) +
+                                   pixel[1] * 183's32 +
+                                   pixel[2] * cast(s32, weight2)
+                    let gray = cast(u8, ((weighted >> 8) & 0xFF))
                     pixel[0] = gray
                     pixel[1] = gray
                     pixel[2] = gray
@@ -113,14 +116,15 @@ public impl Image
             return
         }
 
-        var context = f
+        var context = blendFactor
         .visitPixels(&context)
         {
             let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
             let blend     = cast(const *f32, userData!)[]
             let weight0   = blueFirst ? 19's32 : 54's32
             let weight2   = blueFirst ? 54's32 : 19's32
-            let gray      = cast(f32, ((((pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)) >> 8) & 0xFF))
+            let weighted  = (pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)
+            let gray      = cast(f32, ((weighted >> 8) & 0xFF))
             pix[0] = cast(u8, Math.lerp(cast(f32, pix[0]), gray, blend))
             pix[1] = cast(u8, Math.lerp(cast(f32, pix[1]), gray, blend))
             pix[2] = cast(u8, Math.lerp(cast(f32, pix[2]), gray, blend))

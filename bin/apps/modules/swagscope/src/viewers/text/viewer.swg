@@ -1,15 +1,16 @@
 #global internal
+#global namespace Viewers.PlainText
 
 using Core, Pixel, Gui
 
 // Stable identity and smoke input of the text plugin.
-const TextViewerKey    = "text"
-const TextSmokeFixture = "comprehensive.txt"
+const ViewerKey    = "text"
+const SmokeFixture = "comprehensive.txt"
 
 // What the text surface owns by name, like every other format-specific viewer.
 private const NamedExtensions = ".txt;.text;.log;.nfo;.diz;.rst;.adoc;.asc;.srt;.vtt;.sub;.ssa;.ass;.lrc;.diff;.patch;readme;license;licence;changelog;authors;copying;install;news;todo"
 
-private func textPluginName()->string => textStrings().ui_Name
+private func pluginName()->string => texts().ui_Name
 
 // Offers the text surface for whatever reads as text, once the formats have had their turn.
 //
@@ -19,54 +20,54 @@ private func textPluginName()->string => textStrings().ui_Name
 // reaches this probe is either a file nothing claimed — an extensionless note, a log named `.dat`,
 // a UTF-16 export — or a document whose viewer reads text anyway, where the raw source is a second
 // reading of the same thing rather than a contradiction of the first.
-private func textPluginProbe(content: Viewer.ProbeContent)->bool
+private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
     if content.claimed and not content.claimedText do
         return false
     if not content.head.count do
         return false
-    return TextViewer.probeHead(content.head).accepted
+    return Panel.probeHead(content.head).accepted
 }
 
 // Describes the text viewer to the host.
 //
 // The surface registers the extensions and extensionless names it owns, and answers for any other
 // file whose beginning reads as text, whichever encoding spells it.
-func textViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
-        .key          = TextViewerKey
-        .resolveName  = &textPluginName
-        .attach       = &registerTextStrings
+        .key          = ViewerKey
+        .resolveName  = &pluginName
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Text)
-        .create       = &createTextViewer
-        .probe        = &textPluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .textual      = true
-        .smokeFixture = TextSmokeFixture
+        .smokeFixture = SmokeFixture
         .addSelectors(NamedExtensions)
     }
 
     return result
 }
 
-private const TextStreamChunkSize = 16 * 1024'u64
+private const StreamChunkSize = 16 * 1024'u64
 
 // Viewport heights of text kept loaded from the top of the visible one: it and five more.
-private const TextStreamLookAhead    = 6.0
-private const TextResidentWindowSize = 256 * 1024'u64
-private const TextRevealContextSize  = 16 * 1024'u64
+private const StreamLookAhead    = 6.0
+private const ResidentWindowSize = 256 * 1024'u64
+private const RevealContextSize  = 16 * 1024'u64
 
 // The encodings offered in the action bar, in the order the selector lists them.
-private const TextEncodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
+private const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
 
 // Names of those encodings. They are the standard spelling of a format rather than prose, so they
 // read the same in every language.
-private const TextEncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
+private const EncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
 
 // What the head of a file says about how it spells its characters.
-struct TextProbe
+struct Probe
 {
     encoding:     Text.Encoding     // How the bytes read as characters.
     contentStart: u64               // First byte of text, past a byte-order mark.
@@ -74,7 +75,7 @@ struct TextProbe
 }
 
 // Text view available for readable content independently of the format-specific viewers.
-struct TextViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -88,7 +89,7 @@ struct TextViewer
         zoomLabel:     *IconButton
     }
 
-    read:               TextRead
+    read:               Read
     residentText:       String
     pendingMatch:       String
     pendingNavigation:  Input.Key
@@ -120,9 +121,9 @@ struct TextViewer
     reportDetails:      Viewer.ReportDetails?
 }
 
-private func runTextStatistics(thread: Threading.Thread)
+private func runStatistics(thread: Threading.Thread)
 {
-    let view    = cast(*TextViewer, thread.userParam!)
+    let view    = cast(*Panel, thread.userParam!)
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
 
@@ -139,7 +140,7 @@ private func runTextStatistics(thread: Threading.Thread)
     var counter: TextStatisticsCounter
     while not thread.requestEnd
     {
-        let chunk = catch stream.readTextChunk(TextStreamChunkSize, view.statisticsEncoding) as readError
+        let chunk = catch stream.readTextChunk(StreamChunkSize, view.statisticsEncoding) as readError
         if readError != null
         {
             Atomic.exchange(&view.statisticsState, 2)
@@ -158,7 +159,7 @@ private func runTextStatistics(thread: Threading.Thread)
     Atomic.exchange(&view.statisticsState, 1)
 }
 
-impl TextViewer
+impl Panel
 {
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
@@ -181,10 +182,10 @@ impl TextViewer
         // keeps the already finished worker available for retirement, but its totals must not be
         // presented as facts about the newly decoded document.
         if Atomic.get(&.statisticsState) != 1 or .statisticsEncoding != .encoding or .statisticsStart != .contentStart do
-            return Format.toString(textStrings().ui_Details, encoding)
-        let lines = .statistics.lines == 1 ? String.from(textStrings().ui_OneLine) : Format.toString(textStrings().ui_Lines, .statistics.lines)
-        let words = .statistics.words == 1 ? String.from(textStrings().ui_OneWord) : Format.toString(textStrings().ui_Words, .statistics.words)
-        return Format.toString(textStrings().ui_DetailsStats, encoding, lines, words)
+            return Format.toString(texts().ui_Details, encoding)
+        let lines = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
+        let words = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
+        return Format.toString(texts().ui_DetailsStats, encoding, lines, words)
     }
 
     mtd reportStatistics()
@@ -195,9 +196,9 @@ impl TextViewer
 
     mtd retranslate()
     {
-        .wrapButton.toolTip    = .wrapping ? textStrings().ui_WrapOn : textStrings().ui_WrapOff
-        .encodingCombo.toolTip = textStrings().ui_Encoding
-        .zoomLabel.toolTip     = textStrings().ui_ZoomMenu
+        .wrapButton.toolTip    = .wrapping ? texts().ui_WrapOn : texts().ui_WrapOff
+        .encodingCombo.toolTip = texts().ui_Encoding
+        .zoomLabel.toolTip     = texts().ui_ZoomMenu
         .reportStatistics()
     }
 
@@ -206,7 +207,7 @@ impl TextViewer
         .statisticsState    = 0
         .statisticsEncoding = .encoding
         .statisticsStart    = .contentStart
-        catch .statisticsThread.init(&runTextStatistics, me, priority: .BelowNormal) as initError
+        catch .statisticsThread.init(&runStatistics, me, priority: .BelowNormal) as initError
         if initError != null do
             return
         catch .statisticsThread.start() as startError
@@ -245,15 +246,15 @@ impl TextViewer
 
     mtd encodingName()->string
     {
-        for candidate, index in TextEncodings where candidate == .encoding do
-            return TextEncodingNames[index]
-        return TextEncodingNames[0]
+        for candidate, index in Encodings where candidate == .encoding do
+            return EncodingNames[index]
+        return EncodingNames[0]
     }
 
     // Reads the head of a file once and reports how it spells its characters.
     //
     // A file that cannot be read reports the default probe, which accepts nothing.
-    func probe(fileName: string)->TextProbe
+    func probe(fileName: string)->Probe
     {
         var stream = catch File.openReadLive(fileName) as openError
         if openError != null do
@@ -274,7 +275,7 @@ impl TextViewer
     // Deciding and accepting are two questions: code page 1252 gives every byte a meaning, so an
     // executable also decodes into characters. The encoding answers the first, and what those
     // characters are answers the second.
-    func probeHead(head: const [..] u8)->TextProbe
+    func probeHead(head: const [..] u8)->Probe
     {
         var result: retval
         result.encoding     = Text.detectEncoding(head)
@@ -297,11 +298,11 @@ impl TextViewer
             return false
         if .pauseStreaming do
             return false
-        if .bytesRead - .residentStart >= TextResidentWindowSize do
+        if .bytesRead - .residentStart >= ResidentWindowSize do
             return false
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
-        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * TextStreamLookAhead >= .residentOffsetY + loadedHeight
+        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * StreamLookAhead >= .residentOffsetY + loadedHeight
     }
 
     mtd updateEstimatedHeight()
@@ -363,7 +364,7 @@ impl TextViewer
     {
         .stopLoading()
         .readFailed = true
-        let message = textStrings().ui_NotText
+        let message = texts().ui_NotText
         if not .hasText do
             .editor.setText(message)
         else do
@@ -453,13 +454,13 @@ impl TextViewer
         {
             .pendingSeek = false
             let requested = Math.min(.pendingSeekOffset, .fileSize)
-            let start     = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
+            let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
             .read.startRead(.fileName.toString(), .encoding, start, 64 * 1024, true)
         }
         elif .needsMore()
         {
             .read.contentStart = .contentStart
-            .read.startRead(.fileName.toString(), .encoding, .bytesRead, TextStreamChunkSize, false)
+            .read.startRead(.fileName.toString(), .encoding, .bytesRead, StreamChunkSize, false)
         }
 
         .scheduleMore()
@@ -491,7 +492,7 @@ impl TextViewer
     {
         .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
         .wrapButton.setChecked(.wrapping)
-        .wrapButton.toolTip = .wrapping ? textStrings().ui_WrapOn : textStrings().ui_WrapOff
+        .wrapButton.toolTip = .wrapping ? texts().ui_WrapOn : texts().ui_WrapOff
         .scheduleMore()
     }
 
@@ -511,7 +512,7 @@ impl TextViewer
             .statisticsThread.safeForceEnd()
         if not .statisticsTimer do
             .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
-        for candidate, index in TextEncodings where candidate == encoding do
+        for candidate, index in Encodings where candidate == encoding do
             .encodingCombo.setSelectedIndex(cast(u32, index), notify: false)
         .reportStatistics()
     }
@@ -555,7 +556,7 @@ impl TextViewer
     }
 }
 
-impl IWnd for TextViewer
+impl IWnd for Panel
 {
     mtd impl onDestroyEvent(?: *DestroyEvent)
     {
@@ -621,12 +622,12 @@ impl IWnd for TextViewer
     }
 }
 
-impl TextViewer
+impl Panel
 {
     // Creates the streamed text view of the host's file, with its commands and zoom control.
-    func create(host: Viewer.Host)->*TextViewer
+    func create(host: Viewer.Host)->*Panel
     {
-        with let result = Wnd.create'TextViewer(host.contentParent(), "scope.text")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.text")
         {
             // The document host owns the rounded view ground. Keeping the viewer transparent lets
             // those antialiased corners remain visible instead of repainting them with a square view.
@@ -667,8 +668,8 @@ impl TextViewer
 
         let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
-        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * TextStreamLookAhead
-        let after          = .hasMore() and .bytesRead - .residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
+        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+        let after          = .hasMore() and .bytesRead - .residentStart >= ResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * StreamLookAhead > residentEnd
         let outside        = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .displayedEncoding != .encoding or (.virtualHeight > 0 and (before or after or outside))
         .pendingMatch.clear()
@@ -694,7 +695,7 @@ impl TextViewer
         with .wrapButton = IconButton.create(.commands, .theme().icon(.Wrap, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Left
-            .toolTip   = textStrings().ui_WrapOn
+            .toolTip   = texts().ui_WrapOn
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|view = me|(?) { view.toggleWrap() }
         }
@@ -705,12 +706,12 @@ impl TextViewer
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = textStrings().ui_Encoding
-            for name in TextEncodingNames do
+            .toolTip   = texts().ui_Encoding
+            for name in EncodingNames do
                 .addItem(name)
-            for candidate, index in TextEncodings where candidate == me.encoding do
+            for candidate, index in Encodings where candidate == me.encoding do
                 .setSelectedIndex(cast(u32, index), notify: false)
-            .sigChanged += func|view = me|(?, index) { view.applyEncoding(TextEncodings[index]) }
+            .sigChanged += func|view = me|(?, index) { view.applyEncoding(Encodings[index]) }
         }
     }
 
@@ -727,7 +728,7 @@ impl TextViewer
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = textStrings().ui_ZoomMenu
+            .toolTip    = texts().ui_ZoomMenu
             .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
@@ -843,9 +844,9 @@ impl TextViewer
 }
 
 // Creates the streamed plain-text view.
-func createTextViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = TextViewer.create(host)
+    let view = Panel.create(host)
     host.attachView(view)
     host.setDetails(view.detailsText())
 

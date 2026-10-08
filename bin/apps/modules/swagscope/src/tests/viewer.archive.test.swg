@@ -1,28 +1,28 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // Extraction owns a formatted worker failure after the task's caught error has been released.
 #test
 {
-    var operation: ZipEntryExtract
-    var entry:     ZipEntry
+    var operation: Archive.ZipEntryExtract
+    var entry:     Archive.ZipEntry
     entry.method = 99
     let destination = Testing.tempFilePath("scope-extract-failure-", ".bin")
     defer discard catch File.delete(destination)
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let failure = operation.finish()
-    Swag.assert(failure == Format.toString(archiveStrings().err_Method, 99))
+    Swag.assert(failure == Format.toString(Archive.texts().err_Method, 99))
     Swag.assert(not File.exists(destination))
 
     entry.method = 100
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let replacement = operation.finish()
-    Swag.assert(replacement == Format.toString(archiveStrings().err_Method, 100))
-    Swag.assert(failure == Format.toString(archiveStrings().err_Method, 99))
+    Swag.assert(replacement == Format.toString(Archive.texts().err_Method, 100))
+    Swag.assert(failure == Format.toString(Archive.texts().err_Method, 99))
 }
 
 func archiveViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")
@@ -140,7 +140,7 @@ func writeZipFixture()->String
     {
         .addColumn("Name", 200)
         .addColumn("Size", 80)
-        .compareLines = &compareArchiveTreeLines
+        .compareLines = &Archive.compareTreeLines
     }
 
     with let rootFile = list.createLine(null)
@@ -176,7 +176,7 @@ func writeZipFixture()->String
 #test
 {
     const EncodedName: [8] u8 = ['c', 'a', 'f', 0x82, '.', 't', 'x', 't']
-    Swag.assert(zipText(EncodedName, false) == "café.txt")
+    Swag.assert(Archive.zipText(EncodedName, false) == "café.txt")
 }
 
 // ZIP discovery reads the real hierarchy and both stored and Deflate entries round-trip through
@@ -186,7 +186,7 @@ func writeZipFixture()->String
     let archiveFile = writeZipFixture()
     defer discard catch File.delete(archiveFile)
 
-    let archive = expect loadZipArchive(archiveFile)
+    let archive = expect Archive.loadZip(archiveFile)
     Swag.assert(archive.entries.count == 2)
     Swag.assert(archive.entries[0].path == "data/sample.json")
     Swag.assert(archive.entries[1].path == "docs/readme.txt")
@@ -196,7 +196,7 @@ func writeZipFixture()->String
         let extension = Path.extension(entry.path) orelse ".bin"
         let output    = Gui.Testing.tempFilePath("scope-archive-entry-", extension)
         defer discard catch File.delete(output)
-        expect extractZipEntry(archiveFile, entry, output)
+        expect Archive.extractZipEntry(archiveFile, entry, output)
         let decoded = expect File.readAllBytes(output)
         if entry.path == "data/sample.json" do
             Swag.assert(cast(string, decoded.toSlice()) == "{\"answer\": 42}\n")
@@ -214,7 +214,7 @@ func writeZipFixture()->String
     defer discard catch File.delete(archiveFile)
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
-    discard catch loadZipArchive(archiveFile) as archiveError
+    discard catch Archive.loadZip(archiveFile) as archiveError
     Swag.assert(archiveError is Errors.UnsupportedFormatError)
 }
 
@@ -227,10 +227,10 @@ func writeZipFixture()->String
     defer discard catch File.delete(archiveFile)
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
-    let archive = expect loadZipArchive(archiveFile)
+    let archive = expect Archive.loadZip(archiveFile)
     let output  = Gui.Testing.tempFilePath("scope-archive-crc-entry-", ".txt")
     defer discard catch File.delete(output)
-    catch extractZipEntry(archiveFile, &archive.entries[1], output) as extractError
+    catch Archive.extractZipEntry(archiveFile, &archive.entries[1], output) as extractError
     Swag.assert(extractError is Errors.InvalidFormatError)
 }
 
@@ -259,7 +259,7 @@ func writeZipFixture()->String
 
     completeViewerWindowClassification(&host, window)
 
-    let viewer = assume cast(*ArchiveViewer, window.currentView)
+    let viewer = assume cast(*Archive.Panel, window.currentView)
     while not viewer.load.isDone() do
         Threading.Thread.sleep(1'ms)
     host.fireTimer(viewer.loadTimer)
@@ -300,7 +300,7 @@ func writeZipFixture()->String
     Swag.assert(embedded.choices[0].key == "text")
     Swag.assert(embedded.currentView != null)
 
-    let textView = assume cast(*TextViewer, embedded.currentView)
+    let textView = assume cast(*PlainText.Panel, embedded.currentView)
     completeTextReads(&host, textView)
     host.fireTimer(textView.loadTimer)
 
@@ -322,8 +322,8 @@ func writeZipFixture()->String
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(viewer.list.header.itemAt(0).name.raw == archiveStrings().ui_ColName)
-    Swag.assert(viewer.list.header.itemAt(1).name.raw == archiveStrings().ui_ColSize)
+    Swag.assert(viewer.list.header.itemAt(0).name.raw == Archive.texts().ui_ColName)
+    Swag.assert(viewer.list.header.itemAt(1).name.raw == Archive.texts().ui_ColSize)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
 }

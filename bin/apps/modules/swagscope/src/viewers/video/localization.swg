@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Film
 
 using Core, Gui, Audio
 
 // Visible strings of the video viewer.
-struct VideoStrings
+struct Texts
 {
     ui_TipPlay:                string = "Play"                                         // Tooltip while playback is stopped or paused.
     ui_TipPause:               string = "Pause"                                        // Tooltip while playback is running.
@@ -60,27 +61,27 @@ struct VideoStrings
 private const FrenchStringsName = "lang/fr/scope.video.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.video.tweak")
 
-private var g_VideoStrings: VideoStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the video viewer in the active language.
-func videoStrings()->const *VideoStrings => &g_VideoStrings
+func texts()->const *Texts => &g_Texts
 
 // Returns `count` followed by the frame noun in the form that count calls for.
-func videoFrameCountText(count: u64)->String => Format.toString("% %", count, count == 1 ? videoStrings().word_Frame : videoStrings().word_Frames)
+func frameCountText(count: u64)->String => Format.toString("% %", count, count == 1 ? texts().word_Frame : texts().word_Frames)
 
 // Formats one sound-track selector entry from the properties its decoder validated.
-func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
+func audioTrackText(index: u32, sound: const *Audio.SoundFile)->String
 {
-    let strings = videoStrings()
+    let strings = texts()
     let name    = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
     var language: String
     if sound.language().count and sound.language() != "und" do
         language = Format.toString(strings.ui_AudioTrackLang, sound.language())
-    return Format.toString(strings.ui_AudioTrack, name, language, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
+    return Format.toString(strings.ui_AudioTrack, name, language, audioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 }
 
 // Returns the established technical name of an audio payload encoding.
-func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
+func audioEncodingText(encoding: Audio.SoundFileEncoding)->string
 {
     switch encoding
     {
@@ -104,12 +105,12 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
 }
 
 // Formats the active sound track for the information bar.
-func videoAudioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
+func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(texts().ui_AudioDetails, audioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 
 // Formats one embedded or sidecar subtitle-track entry.
-func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, sidecar: bool)->String
+func subtitleTrackText(index: u32, track: const *Video.Subtitle.Track, sidecar: bool)->String
 {
-    let strings     = videoStrings()
+    let strings     = texts()
     let displayName = track.displayName()
     let language    = track.languageTag()
     let name        = displayName.count ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
@@ -120,13 +121,13 @@ func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, side
 }
 
 // Registers this viewer's string table with the application.
-func registerVideoStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'VideoStrings(&g_VideoStrings, "scope.video")
+    Gui.registerStrings'Texts(&g_Texts, "scope.video")
 }
 
 #run
 {
-    expect Gui.validateStrings'VideoStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

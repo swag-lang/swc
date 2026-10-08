@@ -1712,12 +1712,8 @@ impl Allocator
         #static if #safety(Swag.SafetyWhat.Memory)
         {
             .checkPageAddress(page, address, request.callerLoc)
-            if page.looksFree(address) and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address))
-            {
-                // A panic hook may resume; the block is already free, so there is nothing left to do.
+            if page.looksFree(address) and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address)) do
                 Swag.panic("memory block is freed twice", request.callerLoc)
-                return
-            }
         }
 
         if .fillFree do

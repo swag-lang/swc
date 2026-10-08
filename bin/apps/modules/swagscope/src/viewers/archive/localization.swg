@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Archive
 
 using Core, Gui
 
 // Visible strings of the archive viewer.
-struct ArchiveStrings
+struct Texts
 {
     ui_Name:                string = "Archive"
     ui_ColName:             string = "Name"
@@ -55,19 +56,19 @@ struct ArchiveStrings
 private const FrenchStringsName = "lang/fr/scope.archive.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.archive.tweak")
 
-private var g_ArchiveStrings: ArchiveStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the archive viewer in the active language.
-func archiveStrings()->const *ArchiveStrings => &g_ArchiveStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's strings before the registry names its plugin.
-func registerArchiveStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'ArchiveStrings(&g_ArchiveStrings, "scope.archive")
+    Gui.registerStrings'Texts(&g_Texts, "scope.archive")
 }
 
 #run
 {
-    expect Gui.validateStrings'ArchiveStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

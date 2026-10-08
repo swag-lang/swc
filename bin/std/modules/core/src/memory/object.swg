@@ -5,16 +5,12 @@ using Swag
 
 // Allocates a value of the runtime type `type` and default-initializes it.
 //
-// Raises a panic, and returns null if the panic handler returns, when the type cannot be
-// default-initialized.
-func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8?
+// Panics when the type cannot be default-initialized.
+func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8
 {
     let userHint = hint orelse type.fullname
-    if not canDefaultInit(type)
-    {
+    if not canDefaultInit(type) do
         Swag.panic("Memory.new cannot default-initialize this type", loc)
-        return null
-    }
 
     let ptr = alloc(cast(u64, type.sizeof), allocator, alignment, userHint, loc)
     defaultInit(ptr, type)

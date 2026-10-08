@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.InDesign
 
 using Core, Core.Errors, Pixel
 
@@ -236,14 +237,14 @@ struct IdmlDocument
 }
 
 // Returns the text of the package entry stored at `path`, failing when it is missing or not UTF-8.
-private func idmlReadEntry(fileName: string, archive: const *ZipArchive, path: string)->String fail
+private func idmlReadEntry(fileName: string, archive: const *Viewers.Archive.Zip, path: string)->String fail
 {
     let entry = archive.tryFindEntry(path)
     if not entry or entry.isDirectory do
-        fail InvalidFormatError{Errors.mkString(Format.toString(indesignStrings().err_MissingPart, path))}
-    let bytes = try loadZipEntry(fileName, entry)
+        fail InvalidFormatError{Errors.mkString(Format.toString(texts().err_MissingPart, path))}
+    let bytes = try Viewers.Archive.loadZipEntry(fileName, entry)
     if not Utf8.isValid(bytes.toSlice()) do
-        fail InvalidFormatError{Errors.mkString(Format.toString(indesignStrings().err_PartNotXml, path))}
+        fail InvalidFormatError{Errors.mkString(Format.toString(texts().err_PartNotXml, path))}
     return String.from(cast(string, bytes.toSlice()))
 }
 
@@ -927,8 +928,7 @@ private func idmlTextAlignment(value: string)->string
     return "left"
 }
 
-private func idmlFontStyleBold(value: string)->bool => Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
-
+private func idmlFontStyleBold(value: string)->bool   => Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
 private func idmlFontStyleItalic(value: string)->bool => Utf8.contains(value, "Italic") or Utf8.contains(value, "italic") or Utf8.contains(value, "Oblique") or Utf8.contains(value, "oblique")
 
 private func idmlContainsCjk(text: string)->bool
@@ -1112,7 +1112,7 @@ private func idmlCssColor(space, value: string)->String
     return {}
 }
 
-private func idmlLoadColors(fileName: string, archive: const *ZipArchive)->HashTable'(String, String)
+private func idmlLoadColors(fileName: string, archive: const *Viewers.Archive.Zip)->HashTable'(String, String)
 {
     var result: retval
     let entry = archive.tryFindEntry("Resources/Graphic.xml")
@@ -1183,7 +1183,7 @@ private func idmlColor(colors: const *HashTable'(String, String), name: string, 
     return found ? idmlTintedColor(found.value, tint) : ""
 }
 
-private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, colors: const *HashTable'(String, String))->HashTable'(String, IdmlTextStyle)
+private func idmlLoadTextStyles(fileName: string, archive: const *Viewers.Archive.Zip, colors: const *HashTable'(String, String))->HashTable'(String, IdmlTextStyle)
 {
     var result: retval
     let entry = archive.tryFindEntry("Resources/Styles.xml")
@@ -1562,7 +1562,7 @@ private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTab
     }
 }
 
-private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, designMap: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64)->Array'IdmlMaster
+private func idmlLoadMasters(fileName: string, archive: const *Viewers.Archive.Zip, designMap: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64)->Array'IdmlMaster
 {
     var result: retval
     var cursor = 0'u64
@@ -1606,12 +1606,12 @@ private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, desig
 // fetch it.
 func loadIdmlDocument(fileName: string)->IdmlDocument fail
 {
-    let archive = try loadZipArchive(fileName)
+    let archive = try Viewers.Archive.loadZip(fileName)
     if archive.uncompressedSize > IdmlDocumentByteLimit do
-        fail UnsupportedFormatError{indesignStrings().err_TooLarge}
+        fail UnsupportedFormatError{texts().err_TooLarge}
     let mimetype = try idmlReadEntry(fileName, &archive, "mimetype")
     if Latin1.trim(mimetype) != "application/vnd.adobe.indesign-idml-package" do
-        fail InvalidFormatError{indesignStrings().err_NotIdml}
+        fail InvalidFormatError{texts().err_NotIdml}
 
     let designMap  = try idmlReadEntry(fileName, &archive, "designmap.xml")
     let colors     = idmlLoadColors(fileName, &archive)
@@ -1662,7 +1662,7 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
     }
 
     if result.pages.isEmpty() do
-        fail InvalidFormatError{indesignStrings().err_NoPages}
+        fail InvalidFormatError{texts().err_NoPages}
     idmlFlowTextStories(&result.pages, &stories)
     return result
 }

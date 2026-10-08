@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 func codeFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
@@ -31,7 +31,7 @@ func swagSampleSource()->String
 
 struct CodeLanguageSample
 {
-    language: CodeLanguage
+    language: Code.SourceLanguage
     source:   string
 }
 
@@ -46,9 +46,9 @@ struct CodeLanguageSample
     host.setup(640, 420)
     defer host.shutdown()
 
-    var result = openTestViewer(codeViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(Utf8.contains(result.failureReason.toSlice(), codeStrings().err_ZeroByte))
+    Swag.assert(Utf8.contains(result.failureReason.toSlice(), Code.texts().err_ZeroByte))
 }
 
 // The code zoom value keeps the shared information-band air outside its button frame.
@@ -64,9 +64,9 @@ struct CodeLanguageSample
         host.shutdown()
     }
 
-    var result = openTestViewer(codeViewerPlugin(), &host.root, fileName, infoParent: &host.root)
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
-    let view = assume cast(*CodeViewer, result.view)
+    let view = assume cast(*Code.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel!)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
 
@@ -75,7 +75,7 @@ struct CodeLanguageSample
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel.toolTip == codeStrings().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
+    Swag.assert(view.zoomLabel.toolTip == Code.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
     Swag.assert(view.zoomPercent == 150 and view.editor == editor)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -97,7 +97,7 @@ struct CodeLanguageSample
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
-    let view = CodeViewer.create(&host.root, fileName)
+    let view = Code.Panel.create(&host.root, fileName)
     view.setZoom(150)
     Swag.assert(view.zoomPercent == 150)
     view.setZoom(100)
@@ -136,7 +136,7 @@ struct CodeLanguageSample
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    with let view = CodeViewer.create(&host.root, fileName)
+    with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
         .applyLayout()
@@ -164,7 +164,7 @@ struct CodeLanguageSample
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    with let view = CodeViewer.create(&host.root, fileName)
+    with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
         .applyLayout()
@@ -209,42 +209,42 @@ struct CodeLanguageSample
 {
     Swag.assert(File.exists(codeFixturePath("sample.cpp")))
     Swag.assert(File.exists(codeFixturePath("sample.json")))
-    Swag.assert(codeLanguage("sample.cpp") == .Cpp)
-    Swag.assert(codeLanguage("sample.cs") == .CSharp)
-    Swag.assert(codeLanguage("sample.tsx") == .TypeScript)
-    Swag.assert(codeLanguage("sample.py") == .Python)
-    Swag.assert(codeLanguage("sample.rs") == .Rust)
-    Swag.assert(codeLanguage("sample.sql") == .Sql)
-    Swag.assert(codeLanguage("sample.yaml") == .Yaml)
-    Swag.assert(codeLanguage("sample.csproj") == .Xml)
-    Swag.assert(codeLanguage("sample.html") == .Html)
-    Swag.assert(codeLanguage("sample.asm") == .Assembly)
-    Swag.assert(codeLanguage("sample.zig") == .Zig)
-    Swag.assert(codeLanguage("sample.nim") == .Nim)
-    Swag.assert(codeLanguage("sample.hs") == .Haskell)
-    Swag.assert(codeLanguage("sample.scala") == .Scala)
-    Swag.assert(codeLanguage("sample.groovy") == .Groovy)
-    Swag.assert(codeLanguage("sample.exs") == .Elixir)
-    Swag.assert(codeLanguage("sample.erl") == .Erlang)
-    Swag.assert(codeLanguage("sample.clj") == .Clojure)
-    Swag.assert(codeLanguage("sample.jl") == .Julia)
-    Swag.assert(codeLanguage("sample.f90") == .Fortran)
-    Swag.assert(codeLanguage("sample.pas") == .Pascal)
-    Swag.assert(codeLanguage("sample.d") == .D)
-    Swag.assert(codeLanguage("sample.mm") == .ObjectiveC)
-    Swag.assert(codeLanguage("sample.m") == .Matlab)
-    Swag.assert(codeLanguage("sample.tcl") == .Tcl)
-    Swag.assert(codeLanguage("sample.awk") == .Awk)
-    Swag.assert(codeLanguage("sample.vim") == .Vim)
-    Swag.assert(codeLanguage("sample.tex") == .Latex)
-    Swag.assert(codeLanguage("sample.proto") == .Protobuf)
-    Swag.assert(codeLanguage("sample.graphql") == .GraphQl)
-    Swag.assert(codeLanguage("sample.gradle") == .Gradle)
-    Swag.assert(codeLanguage("Makefile") == .Makefile)
-    Swag.assert(codeLanguage("Dockerfile") == .Dockerfile)
-    Swag.assert(codeLanguage("sample.nix") == .Nix)
+    Swag.assert(Code.detectLanguage("sample.cpp") == .Cpp)
+    Swag.assert(Code.detectLanguage("sample.cs") == .CSharp)
+    Swag.assert(Code.detectLanguage("sample.tsx") == .TypeScript)
+    Swag.assert(Code.detectLanguage("sample.py") == .Python)
+    Swag.assert(Code.detectLanguage("sample.rs") == .Rust)
+    Swag.assert(Code.detectLanguage("sample.sql") == .Sql)
+    Swag.assert(Code.detectLanguage("sample.yaml") == .Yaml)
+    Swag.assert(Code.detectLanguage("sample.csproj") == .Xml)
+    Swag.assert(Code.detectLanguage("sample.html") == .Html)
+    Swag.assert(Code.detectLanguage("sample.asm") == .Assembly)
+    Swag.assert(Code.detectLanguage("sample.zig") == .Zig)
+    Swag.assert(Code.detectLanguage("sample.nim") == .Nim)
+    Swag.assert(Code.detectLanguage("sample.hs") == .Haskell)
+    Swag.assert(Code.detectLanguage("sample.scala") == .Scala)
+    Swag.assert(Code.detectLanguage("sample.groovy") == .Groovy)
+    Swag.assert(Code.detectLanguage("sample.exs") == .Elixir)
+    Swag.assert(Code.detectLanguage("sample.erl") == .Erlang)
+    Swag.assert(Code.detectLanguage("sample.clj") == .Clojure)
+    Swag.assert(Code.detectLanguage("sample.jl") == .Julia)
+    Swag.assert(Code.detectLanguage("sample.f90") == .Fortran)
+    Swag.assert(Code.detectLanguage("sample.pas") == .Pascal)
+    Swag.assert(Code.detectLanguage("sample.d") == .D)
+    Swag.assert(Code.detectLanguage("sample.mm") == .ObjectiveC)
+    Swag.assert(Code.detectLanguage("sample.m") == .Matlab)
+    Swag.assert(Code.detectLanguage("sample.tcl") == .Tcl)
+    Swag.assert(Code.detectLanguage("sample.awk") == .Awk)
+    Swag.assert(Code.detectLanguage("sample.vim") == .Vim)
+    Swag.assert(Code.detectLanguage("sample.tex") == .Latex)
+    Swag.assert(Code.detectLanguage("sample.proto") == .Protobuf)
+    Swag.assert(Code.detectLanguage("sample.graphql") == .GraphQl)
+    Swag.assert(Code.detectLanguage("sample.gradle") == .Gradle)
+    Swag.assert(Code.detectLanguage("Makefile") == .Makefile)
+    Swag.assert(Code.detectLanguage("Dockerfile") == .Dockerfile)
+    Swag.assert(Code.detectLanguage("sample.nix") == .Nix)
 
-    var lexer: GenericCodeLexer
+    var lexer: Code.GenericLexer
     var host:  Testing.HeadlessHost
     host.setup(640, 180)
     defer host.shutdown()
@@ -255,10 +255,10 @@ struct CodeLanguageSample
     editor.lexAll()
 
     let content = editor.textAndStyles()
-    Swag.assert(content.styles[0] == GenericCodeLexer.Style.Keyword)
-    Swag.assert(content.styles[7] == GenericCodeLexer.Style.Keyword)
-    Swag.assert(content.styles[13] == GenericCodeLexer.Style.Keyword)
-    Swag.assert(content.styles[content.styles.count - 1] == GenericCodeLexer.Style.Comment)
+    Swag.assert(content.styles[0] == Code.GenericLexer.Style.Keyword)
+    Swag.assert(content.styles[7] == Code.GenericLexer.Style.Keyword)
+    Swag.assert(content.styles[13] == Code.GenericLexer.Style.Keyword)
+    Swag.assert(content.styles[content.styles.count - 1] == Code.GenericLexer.Style.Comment)
 
     const Samples: [26] CodeLanguageSample = [
         {.Html,       "<main>content</main>"},
@@ -290,12 +290,12 @@ struct CodeLanguageSample
 
     for sample in Samples
     {
-        var sampleLexer: GenericCodeLexer
+        var sampleLexer: Code.GenericLexer
         sampleLexer.configure(sample.language)
         editor.setLexer(&sampleLexer)
         editor.setText(sample.source)
         editor.lexAll()
-        Swag.assert(editor.textAndStyles().styles[0] == GenericCodeLexer.Style.Keyword)
+        Swag.assert(editor.textAndStyles().styles[0] == Code.GenericLexer.Style.Keyword)
     }
 }
 
@@ -308,7 +308,7 @@ struct CodeLanguageSample
     var host: Testing.HeadlessHost
     host.setup(640, 160)
     defer host.shutdown()
-    let view = CodeViewer.create(&host.root, fileName)
+    let view = Code.Panel.create(&host.root, fileName)
     view.editor.lexAll()
     Swag.assert(view.editor.runeAt({0, 0}).style == RichEditLexerSwag.Style.Keyword)
     Swag.assert(view.editor.runeAt({0, 15}).style == RichEditLexerSwag.Style.Intrinsic)

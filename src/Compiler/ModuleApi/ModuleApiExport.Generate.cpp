@@ -707,6 +707,9 @@ namespace
         // importer has to write 'discard' where a caller inside the module does not.
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Discardable, "Discardable");
 
+        // So is 'NoReturn': an importer judges the flow after the call by it.
+        appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::NoReturn, "NoReturn");
+
         // The borrow summaries are computed facts, not source attributes: re-emit them
         // so importers can judge their call sites against this function's parameters.
         // The export runs after the final sema drain, so the masks include the

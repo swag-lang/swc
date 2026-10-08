@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Picture
 
 using Core, Pixel, Gui
 
@@ -6,16 +7,16 @@ using Core, Pixel, Gui
 //
 // It offers itself for every raster format the imaging module can decode, plus SVG, so a decoder
 // added there reaches the viewer without a list to update here.
-func imageViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "image"
         .staticName   = "Image"
-        .attach       = &registerImageStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Image)
-        .create       = &createImageViewer
+        .create       = &createViewer
         .smokeFixture = "sample.svg"
     }
 
@@ -25,20 +26,19 @@ func imageViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const ImageInfoWidth = 156.0
+private const InfoWidth      = 156.0
 private const SvgRasterLimit = 2048.0
 
-private func imageCommandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
-
-private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32 => imageCommandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
+private func commandWidth(metrics: const *ThemeMetrics)->f32         => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
+private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32 => commandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
 
 // What the worker decodes for the picture viewer, handed to the view in one move.
-struct ImageViewerContent
+struct ViewerContent
 {
     image:       Image
     movie:       Movie
     drawing:     Svg.Drawing     // Vector document, for a format that has no pixels of its own.
-    facts:       ImageViewerFacts
+    facts:       ViewerFacts
     information: MediaInfoData
 }
 
@@ -72,7 +72,7 @@ func loadViewerDrawing(fileName: string)->Svg.Drawing fail
     return try Svg.Drawing.parse(cast(string, region.bytes()))
 }
 
-private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
+private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: retval
     let extension = String.from(Path.extension(fileName) orelse "").toLower()
@@ -120,7 +120,7 @@ private func formatViewBoxExtent(value: f32)->String
 }
 
 // Keeps decoded facts independent of the language active while the worker was running.
-struct ImageViewerFacts
+struct ViewerFacts
 {
     width, height: String
     bits:          u32
@@ -128,23 +128,23 @@ struct ImageViewerFacts
     vector:        bool
 }
 
-private impl ImageViewerFacts
+private impl ViewerFacts
 {
     mtd const text()->String
     {
         if .vector do
-            return Format.toString(imageStrings().ui_DetailsVector, .width, .height)
+            return Format.toString(texts().ui_DetailsVector, .width, .height)
         if .frames > 1 do
-            return Format.toString(imageStrings().ui_DetailsMovie, .width, .height, frameCountText(.frames))
-        return Format.toString(imageStrings().ui_DetailsStill, .width, .height, .bits)
+            return Format.toString(texts().ui_DetailsMovie, .width, .height, frameCountText(.frames))
+        return Format.toString(texts().ui_DetailsStill, .width, .height, .bits)
     }
 }
 
-struct ImageViewer
+struct Panel
 {
     using wnd: Wnd
     details:   String
-    facts:     ImageViewerFacts
+    facts:     ViewerFacts
 
     late
     {
@@ -171,12 +171,12 @@ struct ImageViewer
     reportShown:          Viewer.ReportShown?
     lastCompletedLoops:   u32      // Playback cycles observed by the latest frame refresh.
     handedOff:            bool     // The host was told the animation has run its cycle, and answered that it moves on.
-    load:                 Viewer.BackgroundLoad'ImageViewerContent
+    load:                 Viewer.BackgroundLoad'ViewerContent
     loadTimer:            *Timer?
     failureReason:        String
 }
 
-impl ImageViewer
+impl Panel
 {
     mtd refreshZoom()
     {
@@ -185,7 +185,7 @@ impl ImageViewer
         {
             let angle = .imageView.rotationQuarterTurns * 90
             if .imageView.isMirrored do
-                .zoomLabel.setText(Format.toString("% % · %° · %", zoom, "%", angle, imageStrings().word_Mirrored))
+                .zoomLabel.setText(Format.toString("% % · %° · %", zoom, "%", angle, texts().word_Mirrored))
             else do
                 .zoomLabel.setText(Format.toString("% % · %°", zoom, "%", angle))
         }
@@ -282,7 +282,7 @@ impl ImageViewer
 
     mtd createTransformMenu()->*MenuCtrl
     {
-        let texts = imageStrings()
+        let texts = texts()
         let menu  = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(texts.ui_RotateCounterClockwise, "scope.image.rotateLeft", .theme().icon(.Undo, themeRowIconSize(.themeMetrics())), rightName: "Shift+R")
         menu.addItem(texts.ui_RotateClockwise, "scope.image.rotateRight", .theme().icon(.Redo, themeRowIconSize(.themeMetrics())), rightName: "R")
@@ -315,7 +315,7 @@ impl ImageViewer
         menu.addItem("100%", "scope.image.zoom100")
         menu.addItem("200%", "scope.image.zoom200")
         menu.addSeparator()
-        menu.addItem(imageStrings().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.image.zoom25":  .imageView.setZoom(0.25)
@@ -327,17 +327,17 @@ impl ImageViewer
     }
 }
 
-private impl IWnd for ImageViewer
+private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged
         {
-            .previousButton.toolTip  = imageStrings().ui_TipPrevious
-            .nextButton.toolTip      = imageStrings().ui_TipNext
-            .transformButton.toolTip = imageStrings().ui_TipTransform
-            .playButton.toolTip      = imageStrings().ui_TipPlay
-            .zoomLabel.toolTip       = imageStrings().ui_ZoomMenu
+            .previousButton.toolTip  = texts().ui_TipPrevious
+            .nextButton.toolTip      = texts().ui_TipNext
+            .transformButton.toolTip = texts().ui_TipTransform
+            .playButton.toolTip      = texts().ui_TipPlay
+            .zoomLabel.toolTip       = texts().ui_ZoomMenu
             .refreshZoom()
             if not .facts.width.isEmpty()
             {
@@ -363,7 +363,7 @@ private impl IWnd for ImageViewer
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        var content: ImageViewerContent
+        var content: ViewerContent
         .failureReason = .load.finish(&content)
         if not .failureReason.isEmpty()
         {
@@ -465,7 +465,7 @@ private impl IWnd for ImageViewer
     }
 }
 
-private impl ImageViewer
+private impl Panel
 {
     mtd retire()->bool
     {
@@ -480,12 +480,12 @@ private impl ImageViewer
         return true
     }
 
-    func create(host: Viewer.Host)->*ImageViewer
+    func create(host: Viewer.Host)->*Panel
     {
         let services     = host.services()
         let navigateFile = services.navigateFile
 
-        with let result = Wnd.create'ImageViewer(host.contentParent(), "scope.image")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.image")
         {
             .backgroundStyle      = .View
             .navigateFile         = navigateFile
@@ -497,8 +497,8 @@ private impl ImageViewer
             .reportShown          = services.reportShown
         }
 
-        result.actions     = host.createCommandGroup(imageCommandWidth(result.themeMetrics()))
-        result.info        = host.createInfoGroup(ImageInfoWidth)
+        result.actions     = host.createCommandGroup(commandWidth(result.themeMetrics()))
+        result.info        = host.createInfoGroup(InfoWidth)
         result.information = MediaInfoPanel.create(host)
 
         result.createCommandBar(services.playback)
@@ -508,7 +508,7 @@ private impl ImageViewer
 
         result.applyLayout()
         result.setInitialFocus(result.imageView)
-        result.load.start(host.fileName(), &loadImageViewerContent)
+        result.load.start(host.fileName(), &loadViewerContent)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
@@ -519,7 +519,7 @@ private impl ImageViewer
         with .previousButton = IconButton.create(.actions, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
-            .toolTip   = imageStrings().ui_TipPrevious
+            .toolTip   = texts().ui_TipPrevious
             .enable(me.navigateFile != null)
             .sigPressed += func|view = me|(?) { view.navigate(-1) }
         }
@@ -527,7 +527,7 @@ private impl ImageViewer
         with .nextButton = IconButton.create(.actions, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
-            .toolTip   = imageStrings().ui_TipNext
+            .toolTip   = texts().ui_TipNext
             .enable(me.navigateFile != null)
             .sigPressed += func|view = me|(?) { view.navigate(1) }
         }
@@ -536,7 +536,7 @@ private impl ImageViewer
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = imageStrings().ui_TipTransform
+            .toolTip   = texts().ui_TipTransform
             .setArrowPosition(.RightUpward)
             .sigPressed += func|view = me|(?) { view.showTransformMenu() }
         }
@@ -555,7 +555,7 @@ private impl ImageViewer
         {
             .dockStyle = .Left
             .margin.x  = 10
-            .toolTip   = imageStrings().ui_TipPlay
+            .toolTip   = texts().ui_TipPlay
             .hide()
             .sigPressed += func|view = me|(?)
             {
@@ -583,7 +583,7 @@ private impl ImageViewer
     // Creates the zoom menu button in the information group.
     mtd createZoomControl()
     {
-        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ImageInfoWidth - 2 * ViewerInfoControlInset, 32}, "scope.image.zoom", .CenterContent)
+        with .zoomLabel = IconButton.create(.info, {}, {0, 0, InfoWidth - 2 * ViewerInfoControlInset, 32}, "scope.image.zoom", .CenterContent)
         {
             .dockStyle = .Center
             .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
@@ -591,7 +591,7 @@ private impl ImageViewer
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = imageStrings().ui_ZoomMenu
+            .toolTip    = texts().ui_ZoomMenu
             .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
@@ -622,9 +622,9 @@ private impl ImageViewer
 }
 
 // Creates the integrated image view.
-func createImageViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = ImageViewer.create(host)
+    let view = Panel.create(host)
     host.attachView(view)
 
     with var lifecycle: Viewer.LifecycleApi

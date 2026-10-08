@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Code
 
 using Core, Gui
 
@@ -6,7 +7,7 @@ using Core, Gui
 //
 // A language is named by its own name — `Swag`, `C++`, `Python` — and an encoding by its
 // standard spelling, so the summary below is the only sentence this viewer writes.
-struct CodeStrings
+struct Texts
 {
     ui_ZoomMenu: string = "Code zoom options"     // Tooltip of the zoom value menu.
     // Summary the host shows beside the file size. `%` takes the name of the language.
@@ -18,22 +19,22 @@ struct CodeStrings
 private const FrenchStringsName = "lang/fr/scope.code.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.code.tweak")
 
-private var g_CodeStrings: CodeStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the source viewer in the active language.
-func codeStrings()->const *CodeStrings => &g_CodeStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerCodeStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'CodeStrings(&g_CodeStrings, "scope.code")
+    Gui.registerStrings'Texts(&g_Texts, "scope.code")
 }
 
 #run
 {
-    expect Gui.validateStrings'CodeStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

@@ -2554,7 +2554,6 @@ impl Capture
     }
 
     mtd canUndo()->bool => .undoMgr.canUndo()
-
     mtd canRedo()->bool => .undoMgr.canRedo()
 
     mtd undo()

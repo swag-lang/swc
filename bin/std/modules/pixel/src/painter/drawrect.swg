@@ -41,8 +41,6 @@ impl Painter
         case .Inside:
             return pen.size * 0.5
         }
-
-        return 0
     }
 
     mtd drawRect(left, top, width, height: f32, pen: Pen)

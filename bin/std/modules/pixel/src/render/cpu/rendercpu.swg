@@ -570,8 +570,6 @@ private impl RenderCpu
         case .DstIn:  return dst * srcAlpha
         case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity: return src
         }
-
-        return src
     }
 
     // Applies byte alpha with one exact division, truncating the final channel toward zero.
@@ -1053,8 +1051,6 @@ private impl RenderCpu
         case .DiagonalBackwardLight: return Hatch.DiagonalBackwardLight[idx] != 0
         case .DiagonalCross:         return Hatch.DiagonalCross[idx] != 0
         }
-
-        return false
     }
 
     func smoothStep(edge0, edge1, value: f32)->f32

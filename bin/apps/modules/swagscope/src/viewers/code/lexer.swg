@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Code
 
 using Core, Pixel, Gui
 
 // Languages the generic lexer knows how to color.
-enum CodeLanguage
+enum SourceLanguage
 {
     C
     Cpp
@@ -64,17 +65,17 @@ enum CodeLanguage
 }
 
 // The language an interpreter line names.
-struct CodeShebang
+struct Shebang
 {
-    found:    bool             // Whether the source opens with an interpreter line.
-    language: CodeLanguage     // Language that line names, meaningful only when `found` is set.
+    found:    bool               // Whether the source opens with an interpreter line.
+    language: SourceLanguage     // Language that line names, meaningful only when `found` is set.
 }
 
 // Reads the interpreter named by an extensionless script, from the beginning of its source.
 //
 // The line is what a script without a suffix uses to name the language it is written in, so it is
 // read from the bytes rather than from the file: the classifier has already read them.
-func codeShebang(source: string)->CodeShebang
+func shebang(source: string)->Shebang
 {
     if not Utf8.startsWith(source, "#!") do
         return {}
@@ -97,7 +98,7 @@ func codeShebang(source: string)->CodeShebang
 }
 
 // Reads the interpreter line of a file without retaining it.
-private func codeFileShebang(fileName: string)->CodeShebang
+private func fileShebang(fileName: string)->Shebang
 {
     var stream = catch File.openReadLive(fileName) as openError
     if openError != null do
@@ -107,11 +108,11 @@ private func codeFileShebang(fileName: string)->CodeShebang
     let head = catch stream.readUtf8Chunk(512) as readError
     if readError != null do
         return {}
-    return codeShebang(head)
+    return shebang(head)
 }
 
 // Reports whether the head of a `.m` file reads as Objective-C rather than MATLAB.
-private func codeLooksLikeObjectiveC(fileName: string)->bool
+private func looksLikeObjectiveC(fileName: string)->bool
 {
     var stream = catch File.openReadLive(fileName) as openError
     if openError != null do
@@ -128,7 +129,7 @@ private func codeLooksLikeObjectiveC(fileName: string)->bool
 }
 
 // Returns the language of a source file from its name, reading its head when the name is ambiguous or missing.
-func codeLanguage(fileName: string)->CodeLanguage
+func detectLanguage(fileName: string)->SourceLanguage
 {
     let baseName = String.from(Path.fileName(fileName) orelse "").toLower()
     switch baseName.toString()
@@ -190,7 +191,7 @@ func codeLanguage(fileName: string)->CodeLanguage
     case ".pas", ".pp", ".lpr":                                        return .Pascal
     case ".d", ".di":                                                  return .D
     case ".mm":                                                        return .ObjectiveC
-    case ".m":                                                         return codeLooksLikeObjectiveC(fileName) ? .ObjectiveC : .Matlab
+    case ".m":                                                         return looksLikeObjectiveC(fileName) ? .ObjectiveC : .Matlab
     case ".tcl", ".tk":                                                return .Tcl
     case ".awk":                                                       return .Awk
     case ".vim":                                                       return .Vim
@@ -203,12 +204,12 @@ func codeLanguage(fileName: string)->CodeLanguage
     case ".nix":                                                       return .Nix
     }
 
-    let shebang = codeFileShebang(fileName)
+    let shebang = fileShebang(fileName)
     return shebang.found ? shebang.language : .C
 }
 
 // Returns the name a language is known by.
-func codeLanguageName(language: CodeLanguage)->string
+func displayName(language: SourceLanguage)->string
 {
     switch #complete language
     {
@@ -278,7 +279,7 @@ private enum GenericCodeState: s32
     MarkupComment
 }
 
-struct GenericCodeLexer
+struct GenericLexer
 {
     enum Style: RichEditStyleRef
     {
@@ -292,11 +293,11 @@ struct GenericCodeLexer
         Preprocessor
     }
 
-    language: CodeLanguage
+    language: SourceLanguage
     keywords: HashTable'(string, bool)
 }
 
-private impl GenericCodeLexer
+private impl GenericLexer
 {
     mtd addWords(words: const [..] string)
     {
@@ -304,7 +305,7 @@ private impl GenericCodeLexer
             .keywords.add(word, true)
     }
 
-    mtd configure(language: CodeLanguage)
+    mtd configure(language: SourceLanguage)
     {
         .language = language
         switch language
@@ -389,13 +390,13 @@ private impl GenericCodeLexer
     mtd hasDataKeys()->bool       => .language == .Json or .language == .Yaml or .language == .Toml or .language == .Config or .language == .Css or .language == .GraphQl
 }
 
-private func codePaint(line: *RichEditLine, first, last: u64, style: GenericCodeLexer.Style)
+private func paintRange(line: *RichEditLine, first, last: u64, style: GenericLexer.Style)
 {
     for index in first until Math.min(last, line.length()) do
         line.setStyleAt(index, cast(RichEditStyleRef, style))
 }
 
-private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
+private func matchesAt(line: *RichEditLine, at: u64, text: string)->bool
 {
     if at + text.count > line.length() do
         return false
@@ -408,10 +409,10 @@ private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
     return true
 }
 
-private func codeIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@' or value == '\\'
-private func codeIdentifier(value: rune)->bool      => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
+private func isIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@' or value == '\\'
+private func isIdentifierRune(value: rune)->bool  => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 
-impl IRichEditLexer for GenericCodeLexer
+impl IRichEditLexer for GenericLexer
 {
     mtd impl setup(?: *RichEditCtrl) {}
 
@@ -446,7 +447,7 @@ impl IRichEditLexer for GenericCodeLexer
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
         let length = line.length()
-        codePaint(line, 0, length, .Default)
+        paintRange(line, 0, length, .Default)
         var state = linePrev ? cast(GenericCodeState, linePrev.lexerState()) : GenericCodeState.Default
         var seek  = 0'u64
 
@@ -457,7 +458,7 @@ impl IRichEditLexer for GenericCodeLexer
                 if state == .MarkupComment
                 {
                     let first = seek
-                    while seek < length and not codeMatches(line, seek, "-->") do
+                    while seek < length and not matchesAt(line, seek, "-->") do
                         seek += 1
                     if seek < length
                     {
@@ -465,11 +466,11 @@ impl IRichEditLexer for GenericCodeLexer
                         state = .Default
                     }
 
-                    codePaint(line, first, seek, .Comment)
+                    paintRange(line, first, seek, .Comment)
                     continue
                 }
 
-                if codeMatches(line, seek, "<!--")
+                if matchesAt(line, seek, "<!--")
                 {
                     state = .MarkupComment
                     continue
@@ -483,7 +484,7 @@ impl IRichEditLexer for GenericCodeLexer
                         seek += 1
                     if seek < length do
                         seek += 1
-                    codePaint(line, first, seek, .Keyword)
+                    paintRange(line, first, seek, .Keyword)
 
                     var scan = first
                     while scan < seek
@@ -501,7 +502,7 @@ impl IRichEditLexer for GenericCodeLexer
                             scan += 1
                         if scan < seek do
                             scan += 1
-                        codePaint(line, stringFirst, scan, .String)
+                        paintRange(line, stringFirst, scan, .String)
                     }
 
                     continue
@@ -517,7 +518,7 @@ impl IRichEditLexer for GenericCodeLexer
                 if state == .BlockComment
                 {
                     let first = seek
-                    while seek < length and not codeMatches(line, seek, "*/") do
+                    while seek < length and not matchesAt(line, seek, "*/") do
                         seek += 1
                     if seek < length
                     {
@@ -525,19 +526,19 @@ impl IRichEditLexer for GenericCodeLexer
                         state = .Default
                     }
 
-                    codePaint(line, first, seek, .Comment)
+                    paintRange(line, first, seek, .Comment)
                     continue
                 }
 
                 let value = line.runeAt(seek)
-                if (.isHashComment() and value == '#') or (.isDashComment() and codeMatches(line, seek, "--")) or (.isSemicolonComment() and value == ';') or (.isPercentComment() and value == '%') or (.isBangComment() and value == '!') or (.isQuoteComment() and value == '"') or (.language == .VisualBasic and value == '\'') or (.language == .Batch and codeMatches(line, seek, "rem ")) or (.isSlashComment() and codeMatches(line, seek, "//"))
+                if (.isHashComment() and value == '#') or (.isDashComment() and matchesAt(line, seek, "--")) or (.isSemicolonComment() and value == ';') or (.isPercentComment() and value == '%') or (.isBangComment() and value == '!') or (.isQuoteComment() and value == '"') or (.language == .VisualBasic and value == '\'') or (.language == .Batch and matchesAt(line, seek, "rem ")) or (.isSlashComment() and matchesAt(line, seek, "//"))
                 {
-                    codePaint(line, seek, length, .Comment)
+                    paintRange(line, seek, length, .Comment)
                     seek = length
                     continue
                 }
 
-                if .hasBlockComment() and codeMatches(line, seek, "/*")
+                if .hasBlockComment() and matchesAt(line, seek, "/*")
                 {
                     state = .BlockComment
                     continue
@@ -565,7 +566,7 @@ impl IRichEditLexer for GenericCodeLexer
                         seek += 1
                     }
 
-                    codePaint(line, first, seek, .String)
+                    paintRange(line, first, seek, .String)
                     continue
                 }
 
@@ -575,22 +576,22 @@ impl IRichEditLexer for GenericCodeLexer
                     seek += 1
                     while seek < length and (Unicode.isLetterOrDigit(line.runeAt(seek)) or line.runeAt(seek) == '.' or line.runeAt(seek) == '_') do
                         seek += 1
-                    codePaint(line, first, seek, .Number)
+                    paintRange(line, first, seek, .Number)
                     continue
                 }
 
                 if value == '#' and .hasPreprocessor()
                 {
-                    codePaint(line, seek, length, .Preprocessor)
+                    paintRange(line, seek, length, .Preprocessor)
                     seek = length
                     continue
                 }
 
-                if codeIdentifierStart(value)
+                if isIdentifierStart(value)
                 {
                     let first = seek
                     seek += 1
-                    while seek < length and codeIdentifier(line.runeAt(seek)) do
+                    while seek < length and isIdentifierRune(line.runeAt(seek)) do
                         seek += 1
                     var word: String
                     for index in first until seek do
@@ -600,7 +601,7 @@ impl IRichEditLexer for GenericCodeLexer
                     let found = .keywords.tryFind(word)
                     if found
                     {
-                        codePaint(line, first, seek, .Keyword)
+                        paintRange(line, first, seek, .Keyword)
                     }
                     else
                     {
@@ -608,11 +609,11 @@ impl IRichEditLexer for GenericCodeLexer
                         while next < length and Unicode.isSpace(line.runeAt(next)) do
                             next += 1
                         if next < length and line.runeAt(next) == '(' do
-                            codePaint(line, first, seek, .Function)
+                            paintRange(line, first, seek, .Function)
                         elif Latin1.isUpper(cast(u8, value)) do
-                            codePaint(line, first, seek, .Type)
+                            paintRange(line, first, seek, .Type)
                         elif next < length and (line.runeAt(next) == ':' or line.runeAt(next) == '=') and .hasDataKeys() do
-                            codePaint(line, first, seek, .Type)
+                            paintRange(line, first, seek, .Type)
                     }
 
                     continue

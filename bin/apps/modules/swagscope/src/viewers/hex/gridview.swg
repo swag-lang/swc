@@ -385,14 +385,10 @@ impl GridView
         return rows > visible ? rows - visible : 0
     }
 
-    mtd gutterWidth()->f32 => cast(f32, .offsetDigits) * .charWidth + ColumnGap
-
-    mtd valueSize()->u64 => groupingSize(.grouping)
-
-    mtd displayGroupSize()->u64 => .grouping == .Bytes ? DefaultGroupSize : .valueSize()
-
-    mtd valueCellChars()->u64 => groupingChars(.grouping)
-
+    mtd gutterWidth()->f32           => cast(f32, .offsetDigits) * .charWidth + ColumnGap
+    mtd valueSize()->u64             => groupingSize(.grouping)
+    mtd displayGroupSize()->u64      => .grouping == .Bytes ? DefaultGroupSize : .valueSize()
+    mtd valueCellChars()->u64        => groupingChars(.grouping)
     mtd groupStart(offset: u64)->u64 => offset / .valueSize() * .valueSize()
 
     mtd hexCellX(column: u64)->f32
@@ -414,13 +410,10 @@ impl GridView
         return values ? cast(f32, (values * (.valueCellChars() + 1) - 1)) * .charWidth : 0
     }
 
-    mtd textColumnLeft()->f32 => ViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + ColumnGap
-
+    mtd textColumnLeft()->f32       => ViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + ColumnGap
     mtd textCellX(column: u64)->f32 => .textColumnLeft() + cast(f32, column) * .charWidth
-
     mtd contentWidthFor(bytesPerRow: u64)->f32 => ViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + ColumnGap + cast(f32, bytesPerRow) * .charWidth + ViewInset
-
-    mtd contentWidth()->f32 => .contentWidthFor(.bytesPerRow)
+    mtd contentWidth()->f32         => .contentWidthFor(.bytesPerRow)
 
     mtd setFontSize(size: u32)
     {
@@ -464,13 +457,10 @@ impl GridView
     // legitimate question, whose unsigned answer would wrap around 2^64.
     mtd rowTop(row: u64)->f32 => .headerHeight() + cast(f32, (cast(s64, row) - cast(s64, .topRow))) * .rowHeight
 
-    mtd selectionStart()->u64 => Math.min(.caret, .anchor)
-
-    mtd selectionEnd()->u64 => Math.max(.caret, .anchor)
-
+    mtd selectionStart()->u64  => Math.min(.caret, .anchor)
+    mtd selectionEnd()->u64    => Math.max(.caret, .anchor)
     mtd selectionLength()->u64 => .doc.fileSize ? .selectionEnd() - .selectionStart() + 1 : 0
-
-    mtd hasSelection()->bool => .caret != .anchor
+    mtd hasSelection()->bool   => .caret != .anchor
 
     // Writes the surface bounds of the visible text cells of the current match to `result`, and reports whether any are visible.
     //

@@ -296,7 +296,7 @@ impl Undo
                 if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
-                let storage = Memory.new(mdlType)!
+                let storage = Memory.new(mdlType)
                 let view    = Swag.makeInterface(storage, mdlType, IForm)!
                 let save    = assume cast(*BaseForm, view)
                 itf.copy(save, form)

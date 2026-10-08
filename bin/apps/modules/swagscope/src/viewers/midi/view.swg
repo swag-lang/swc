@@ -1,17 +1,18 @@
 #global internal
+#global namespace Viewers.Midi
 
 using Core, Pixel, Gui
 
-private const MidiHeaderHeight  = 76.0
-private const MidiAxisHeight    = 28.0
-private const MidiKeyboardWidth = 72.0
-private const MidiContentInset  = 24.0
-private const MidiQuarterWidth  = 64.0
-private const MidiMinZoom       = 0.01'f32
-private const MidiMaxZoom       = 16.0'f32
+private const HeaderHeight  = 76.0
+private const AxisHeight    = 28.0
+private const KeyboardWidth = 72.0
+private const ContentInset  = 24.0
+private const QuarterWidth  = 64.0
+private const MinZoom       = 0.01'f32
+private const MaxZoom       = 16.0'f32
 
 // Paints a MIDI document as a scrolling piano roll under a summary header.
-struct MidiRollView
+struct RollView
 {
     using wnd: Wnd
 
@@ -23,7 +24,7 @@ struct MidiRollView
         codeFont:  *Font
     }
 
-    document:       MidiDocument
+    document:       Document
     selectedTrack        = Swag.U32.Max
     zoom = 1'f32
     fit:            bool = true
@@ -34,11 +35,11 @@ struct MidiRollView
     beatTicks:      u64
     pixelsPerTick:  f32
     timelineWidth:  f32
-    sigZoomChanged: SigArray'func||(*MidiRollView)
+    sigZoomChanged: SigArray'func||(*RollView)
 }
 
 // Names a key in scientific pitch notation, where middle C, key 60, is C4.
-private func midiPitchName(key: u8)->String
+private func pitchName(key: u8)->String
 {
     const Names: [12] string = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     var result = String.from(Names[key % 12])
@@ -46,13 +47,13 @@ private func midiPitchName(key: u8)->String
     return result
 }
 
-private func midiIsBlackKey(key: u8)->bool
+private func isBlackKey(key: u8)->bool
 {
     let note = key % 12
     return note == 1 or note == 3 or note == 6 or note == 8 or note == 10
 }
 
-impl MidiRollView
+impl RollView
 {
     mtd selectedNoteCount()->u64
     {
@@ -63,15 +64,15 @@ impl MidiRollView
         return .document.tracks[.selectedTrack].noteCount
     }
 
-    mtd summaryText()->String => Format.toString(midiStrings().ui_Summary, .document.tracks.count, .selectedNoteCount(), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
+    mtd summaryText()->String => Format.toString(texts().ui_Summary, .document.tracks.count, .selectedNoteCount(), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
 
     mtd refreshLayout()
     {
         let client = .clientRect()
         .lowKey    = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
         .highKey   = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
-        .plotTop   = MidiHeaderHeight + MidiAxisHeight
-        .rowHeight = Math.max((client.height - .plotTop - MidiContentInset) / cast(f32, .highKey - .lowKey + 1), 3)
+        .plotTop   = HeaderHeight + AxisHeight
+        .rowHeight = Math.max((client.height - .plotTop - ContentInset) / cast(f32, .highKey - .lowKey + 1), 3)
 
         if .document.division & 0x8000
         {
@@ -85,13 +86,13 @@ impl MidiRollView
 
         .beatTicks = Math.max(.beatTicks, 1)
 
-        let viewport = Math.max(client.width - MidiKeyboardWidth - 2 * MidiContentInset, 1)
-        let natural  = Math.max(cast(f32, .document.durationTicks) / cast(f32, .beatTicks) * MidiQuarterWidth, 1)
+        let viewport = Math.max(client.width - KeyboardWidth - 2 * ContentInset, 1)
+        let natural  = Math.max(cast(f32, .document.durationTicks) / cast(f32, .beatTicks) * QuarterWidth, 1)
         if .fit do
-            .zoom = Math.clamp(viewport / natural, MidiMinZoom, 1)
+            .zoom = Math.clamp(viewport / natural, MinZoom, 1)
         .timelineWidth = Math.max(viewport, natural * .zoom)
         .pixelsPerTick = .timelineWidth / cast(f32, Math.max(.document.durationTicks, 1))
-        .scroll.setScrollSize(MidiKeyboardWidth + 2 * MidiContentInset + .timelineWidth, 0)
+        .scroll.setScrollSize(KeyboardWidth + 2 * ContentInset + .timelineWidth, 0)
         .invalidate()
         .sigZoomChanged.call(me)
     }
@@ -105,7 +106,7 @@ impl MidiRollView
     mtd applyZoom(value: f32)
     {
         .fit  = false
-        .zoom = Math.clamp(value, MidiMinZoom, MidiMaxZoom)
+        .zoom = Math.clamp(value, MinZoom, MaxZoom)
         .refreshLayout()
     }
 
@@ -130,18 +131,18 @@ impl MidiRollView
     mtd paintHeader(painter: *Painter)
     {
         let colors = .themeColors()
-        let left   = .scrollPos.x + MidiContentInset
+        let left   = .scrollPos.x + ContentInset
         let title  = Format.toString("MIDI · format %", .document.format)
         painter.drawString(left, 18, title, .titleFont, colors.label_Text)
         let summary = .summaryText()
         painter.drawString(left, 48, summary, .codeFont, colors.label_TextFaint)
-        painter.drawLine(left, MidiHeaderHeight - 1, .scrollPos.x + .clientRect().width - MidiContentInset, MidiHeaderHeight - 1, colors.border, 1)
+        painter.drawLine(left, HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, HeaderHeight - 1, colors.border, 1)
     }
 
     mtd paintGrid(painter: *Painter)
     {
         let colors     = .themeColors()
-        let plotLeft   = MidiKeyboardWidth + MidiContentInset
+        let plotLeft   = KeyboardWidth + ContentInset
         let plotRight  = plotLeft + .timelineWidth
         let plotBottom = .plotTop + cast(f32, .highKey - .lowKey + 1) * .rowHeight
 
@@ -149,7 +150,7 @@ impl MidiRollView
         {
             let key = cast(u8, (cast(u32, .highKey) - keyValue))
             let y   = .plotTop + cast(f32, keyValue) * .rowHeight
-            if midiIsBlackKey(key) do
+            if isBlackKey(key) do
                 painter.fillRect(plotLeft, y, .timelineWidth, .rowHeight, colors.edit_Bk)
             painter.drawLine(plotLeft, y, plotRight, y, colors.border, 1)
         }
@@ -167,9 +168,9 @@ impl MidiRollView
         while beat < Math.min(lastBeat, maxBeat + 1)
         {
             let x = plotLeft + cast(f32, beat * .beatTicks) * .pixelsPerTick
-            painter.drawLine(x, MidiHeaderHeight, x, plotBottom, colors.border, 1)
+            painter.drawLine(x, HeaderHeight, x, plotBottom, colors.border, 1)
             let label = Format.toString("%", beat + 1)
-            painter.drawString(x + 5, MidiHeaderHeight + 6, label, .codeFont, colors.label_TextFaint)
+            painter.drawString(x + 5, HeaderHeight + 6, label, .codeFont, colors.label_TextFaint)
             beat += stride
         }
     }
@@ -177,7 +178,7 @@ impl MidiRollView
     mtd paintNotes(painter: *Painter)
     {
         let colors    = .themeColors()
-        let plotLeft  = MidiKeyboardWidth + MidiContentInset
+        let plotLeft  = KeyboardWidth + ContentInset
         let alternate = .theme().palette.alternate.mark
 
         for note in .document.notes
@@ -188,7 +189,7 @@ impl MidiRollView
             if x > .scrollPos.x + .clientRect().width do
                 break
             let width = Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < .scrollPos.x + MidiKeyboardWidth do
+            if x + width < .scrollPos.x + KeyboardWidth do
                 continue
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
@@ -201,28 +202,28 @@ impl MidiRollView
     {
         let colors = .themeColors()
         let left   = .scrollPos.x
-        painter.fillRect(left, MidiHeaderHeight, MidiKeyboardWidth + MidiContentInset, .clientRect().height - MidiHeaderHeight, colors.view_Bk)
-        painter.drawString(left + MidiContentInset, MidiHeaderHeight + 6, midiStrings().ui_PianoRoll, .labelFont, colors.label_TextFaint)
+        painter.fillRect(left, HeaderHeight, KeyboardWidth + ContentInset, .clientRect().height - HeaderHeight, colors.view_Bk)
+        painter.drawString(left + ContentInset, HeaderHeight + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
 
         for keyValue in cast(u32, .highKey - .lowKey + 1)
         {
             let key = cast(u8, (cast(u32, .highKey) - keyValue))
             let y   = .plotTop + cast(f32, keyValue) * .rowHeight
-            if midiIsBlackKey(key) do
-                painter.fillRect(left + MidiContentInset, y, MidiKeyboardWidth, .rowHeight, colors.edit_Bk)
-            painter.drawLine(left + MidiContentInset, y, left + MidiContentInset + MidiKeyboardWidth, y, colors.border, 1)
+            if isBlackKey(key) do
+                painter.fillRect(left + ContentInset, y, KeyboardWidth, .rowHeight, colors.edit_Bk)
+            painter.drawLine(left + ContentInset, y, left + ContentInset + KeyboardWidth, y, colors.border, 1)
             if key % 12 == 0 and .rowHeight >= 7
             {
-                let label = midiPitchName(key)
-                painter.drawString(left + MidiContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label, .codeFont, colors.label_TextLight)
+                let label = pitchName(key)
+                painter.drawString(left + ContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label, .codeFont, colors.label_TextLight)
             }
         }
 
-        painter.drawLine(left + MidiContentInset + MidiKeyboardWidth, .plotTop, left + MidiContentInset + MidiKeyboardWidth, .clientRect().height - MidiContentInset, colors.border, 1)
+        painter.drawLine(left + ContentInset + KeyboardWidth, .plotTop, left + ContentInset + KeyboardWidth, .clientRect().height - ContentInset, colors.border, 1)
     }
 }
 
-impl IWnd for MidiRollView
+impl IWnd for RollView
 {
     mtd impl onResizeEvent(?: *ResizeEvent)
     {
@@ -277,16 +278,16 @@ impl IWnd for MidiRollView
         else
         {
             let colors = .themeColors()
-            painter.drawString(.scrollPos.x + MidiKeyboardWidth + 2 * MidiContentInset, .plotTop + 24, midiStrings().ui_NoNotes, .codeFont, colors.label_TextFaint)
+            painter.drawString(.scrollPos.x + KeyboardWidth + 2 * ContentInset, .plotTop + 24, texts().ui_NoNotes, .codeFont, colors.label_TextFaint)
         }
 
         .paintKeyboard(painter)
     }
 }
 
-impl MidiRollView
+impl RollView
 {
-    func create(parent: *Wnd, document: MidiDocument)->*MidiRollView
+    func create(parent: *Wnd, document: Document)->*RollView
     {
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
         {
@@ -294,7 +295,7 @@ impl MidiRollView
             .updateFlags(.CompactBars | .TransparentBars)
         }
 
-        with let result = scroll.createView'MidiRollView()
+        with let result = scroll.createView'RollView()
         {
             .scroll          = scroll
             .document        = #move document

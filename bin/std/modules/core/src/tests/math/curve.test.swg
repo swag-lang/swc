@@ -150,8 +150,6 @@ func referencePreset(preset: Math.CurvePreset, p: f32)->f32
         let q = p - 2.625 * BounceSegment
         return BounceSteepness * q * q + 0.984375
     }
-
-    unreachable
 }
 
 // Every preset but the spring is piecewise polynomial of degree three or less, so the key form

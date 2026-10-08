@@ -40,8 +40,7 @@ interface IForm
     mtd copy(dst, src: *BaseForm)
 
     mtd mustClipToBound()->bool => false
-
-    mtd canRotate()->bool => false
+    mtd canRotate()->bool       => false
 }
 
 // The property panel is generated from the fields carrying a Properties.Name attribute

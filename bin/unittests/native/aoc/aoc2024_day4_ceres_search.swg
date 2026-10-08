@@ -86,8 +86,6 @@ func directionVector(dir: Direction)->Vec2
     case Direction.UpRight:   return {dx: 1, dy: -1}
     case Direction.UpLeft:    return {dx: -1, dy: -1}
     }
-
-    return {dx: 0, dy: 0}
 }
 
 func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8

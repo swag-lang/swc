@@ -1,24 +1,25 @@
 #global internal
+#global namespace Viewers.Code
 
 using Core, Pixel, Gui
 
-private func codePluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and codeShebang(cast(string, content.head)).found
+private func pluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and shebang(cast(string, content.head)).found
 
 // Describes the source-code viewer to the host.
 //
 // A file with no known extension is still offered the viewer when it opens with an interpreter
 // line, which is how a script without a suffix names the language it is written in.
-func codeViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "code"
         .staticName   = "Code"
-        .attach       = &registerCodeStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Code)
-        .create       = &createCodeViewer
-        .probe        = &codePluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .textual      = true
         .smokeFixture = "sample.cpp"
         .addSelectors(".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
@@ -27,14 +28,14 @@ func codeViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CodeStreamChunkSize = 16 * 1024'u64
+private const StreamChunkSize = 16 * 1024'u64
 
 // Viewport heights of text kept loaded from the top of the visible one: it and five more.
-private const CodeStreamLookAhead    = 6.0
-private const CodeResidentWindowSize = 256 * 1024'u64
-private const CodeRevealContextSize  = 64 * 1024'u64
+private const StreamLookAhead    = 6.0
+private const ResidentWindowSize = 256 * 1024'u64
+private const RevealContextSize  = 64 * 1024'u64
 
-struct CodeViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -44,7 +45,7 @@ struct CodeViewer
     zoomLabel:         *IconButton?
     zoomPercent:       u32 = 100
     swagLexer:         RichEditLexerSwag
-    codeLexer:         GenericCodeLexer
+    codeLexer:         GenericLexer
     languageName:      String
     stream:            File.FileStream
     fileName:          String
@@ -63,7 +64,7 @@ struct CodeViewer
     failureReason:     String
 }
 
-impl CodeViewer
+impl Panel
 {
     mtd hasMore()->bool => .stream.isOpen() and .bytesRead < .fileSize
 
@@ -73,11 +74,11 @@ impl CodeViewer
             return false
         if .pauseStreaming do
             return false
-        if .bytesRead - .residentStart >= CodeResidentWindowSize do
+        if .bytesRead - .residentStart >= ResidentWindowSize do
             return false
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
-        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * CodeStreamLookAhead >= .residentOffsetY + loadedHeight
+        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * StreamLookAhead >= .residentOffsetY + loadedHeight
     }
 
     mtd updateEstimatedHeight()
@@ -138,7 +139,7 @@ impl CodeViewer
         .stopLoading()
         .failureReason = reason
         if .failureReason.isEmpty() do
-            .failureReason = codeStrings().err_Read
+            .failureReason = texts().err_Read
         .editor.setEstimatedDocumentHeight(0)
         if .hasText and .reportFailure do
             .reportFailure(me, .failureReason.toString())
@@ -146,13 +147,13 @@ impl CodeViewer
 
     mtd loadNextChunk()
     {
-        if .bytesRead - .residentStart >= CodeResidentWindowSize do
+        if .bytesRead - .residentStart >= ResidentWindowSize do
             return
         if not .hasMore() do
             return
 
         let oldPosition = .editor.scrollPosition()
-        let chunk       = catch .stream.readUtf8Chunk(CodeStreamChunkSize) as readError
+        let chunk       = catch .stream.readUtf8Chunk(StreamChunkSize) as readError
         if readError != null
         {
             .showReadError(Errors.message(readError))
@@ -161,7 +162,7 @@ impl CodeViewer
 
         if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
         {
-            .showReadError(codeStrings().err_ZeroByte)
+            .showReadError(texts().err_ZeroByte)
             return
         }
 
@@ -189,7 +190,7 @@ impl CodeViewer
         .repositioning = true
         defer .repositioning = false
         let requested = Math.min(offset, .fileSize)
-        let start     = requested > CodeRevealContextSize ? requested - CodeRevealContextSize : 0
+        let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
         for adjustment in 4
         {
             .stream = catch File.openReadLive(.fileName.toString()) as openError
@@ -197,7 +198,7 @@ impl CodeViewer
                 return false
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readUtf8Chunk(CodeResidentWindowSize) as readError
+            let chunk = catch .stream.readUtf8Chunk(ResidentWindowSize) as readError
             if readError != null
             {
                 .stream.close()
@@ -259,9 +260,9 @@ impl CodeViewer
     //
     // `info` receives the zoom control when the view is hosted with an information group, and
     // `reportFailure` hears about read errors discovered once text is already shown.
-    func create(contentParent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, info: *Wnd? = null)->*CodeViewer
+    func create(contentParent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, info: *Wnd? = null)->*Panel
     {
-        with let result = Wnd.create'CodeViewer(contentParent, "scope.code")
+        with let result = Wnd.create'Panel(contentParent, "scope.code")
         {
             .backgroundStyle = .View
             .fileName        = fileName
@@ -296,8 +297,8 @@ impl CodeViewer
 
         let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
-        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * CodeStreamLookAhead
-        let after          = .hasMore() and .bytesRead - .residentStart >= CodeResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * CodeStreamLookAhead > residentEnd
+        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+        let after          = .hasMore() and .bytesRead - .residentStart >= ResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * StreamLookAhead > residentEnd
         let outside        = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .virtualHeight > 0 and (before or after or outside)
         if .pendingSeek
@@ -348,7 +349,7 @@ impl CodeViewer
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = codeStrings().ui_ZoomMenu
+            .toolTip    = texts().ui_ZoomMenu
             .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
     }
@@ -365,8 +366,8 @@ impl CodeViewer
         }
         else
         {
-            let language = codeLanguage(.fileName.toString())
-            .languageName = codeLanguageName(language)
+            let language = detectLanguage(.fileName.toString())
+            .languageName = displayName(language)
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)
         }
@@ -470,7 +471,7 @@ impl CodeViewer
     }
 }
 
-impl IWnd for CodeViewer
+impl IWnd for Panel
 {
     mtd impl onPaint(?: *PaintEvent)
     {
@@ -481,7 +482,7 @@ impl IWnd for CodeViewer
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged and .zoomLabel do
-            .zoomLabel.toolTip = codeStrings().ui_ZoomMenu
+            .zoomLabel.toolTip = texts().ui_ZoomMenu
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -516,9 +517,9 @@ impl IWnd for CodeViewer
 }
 
 // Creates the integrated syntax-colored source view.
-func createCodeViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(ViewerZoomSlotWidth))
+    let view = Panel.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(ViewerZoomSlotWidth))
     if not view.failureReason.isEmpty()
     {
         host.reject(view.failureReason)
@@ -527,7 +528,7 @@ func createCodeViewer(host: Viewer.Host)
     }
 
     host.attachView(view)
-    host.setDetails(Format.toString(codeStrings().ui_Details, view.languageName))
+    host.setDetails(Format.toString(texts().ui_Details, view.languageName))
 
     with var search: Viewer.SearchApi
     {

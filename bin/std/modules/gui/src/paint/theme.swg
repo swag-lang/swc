@@ -522,8 +522,6 @@ impl Theme
         case .Italic:     return .fonts.createFont(.res.defaultTypeFaceI, size)
         case .BoldItalic: return .fonts.createFont(.res.defaultTypeFaceBI, size)
         }
-
-        unreachable
     }
 
     // Creates the `style` face of the fixed-width font at `size`.
@@ -536,8 +534,6 @@ impl Theme
         case .Italic:     return .fonts.createFont(.res.defaultFsTypeFaceI, size)
         case .BoldItalic: return .fonts.createFont(.res.defaultFsTypeFaceBI, size)
         }
-
-        unreachable
     }
 
     // Creates a document font with CJK coverage when the platform supplies one.
@@ -565,7 +561,5 @@ impl Theme
         case .Italic:     return .fonts.createFont(.res.cjkTypeFace, size, forceItalic: true)
         case .BoldItalic: return .fonts.createFont(.res.cjkTypeFace, size, forceBold: true, forceItalic: true)
         }
-
-        unreachable
     }
 }

@@ -54,6 +54,7 @@ namespace __Win32RT
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func RtlCaptureContext(contextRecord: *void)
+        #[Swag.NoReturn]
         func RtlRestoreContext(contextRecord: *void, exceptionRecord: *void?)
         func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: *ULONG?)->USHORT
         func GetModuleHandleA(lpModuleName: const *u8?)->*void?
@@ -67,6 +68,7 @@ namespace __Win32RT
         func GetCurrentProcess()->HANDLE
         func GetCurrentThreadId()->DWORD
         func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: *void?)->*void?
+        #[Swag.NoReturn]
         func ExitProcess(uExitCode: u32)
         func TerminateProcess(hProcess: HANDLE, uExitCode: u32)->BOOL
         func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void)
@@ -479,7 +481,6 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
         }
 
         Swag.panic(msg, loc)
-        return
     }
 
     let cxt = Swag.getContext()
@@ -494,12 +495,14 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
 ////////////////////////////////////////////////////////////
 func __loaddll(name: string) => __Win32RT.LoadLibraryA(name.buffer)
 
+#[Swag.NoReturn]
 func __exit()
 {
     __Win32RT.ExitProcess(0)
 }
 
 ////////////////////////////////////////////////////////////
+#[Swag.NoReturn]
 func __exitError()
 {
     __Win32RT.ExitProcess(cast #bit (u32, -666))
@@ -517,11 +520,13 @@ private func __hostTestResumeContext()->*void
     return cast(*void, ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0))
 }
 
+#[Swag.NoReturn]
 func __hostTestResume()
 {
     __Win32RT.RtlRestoreContext(__hostTestResumeContext(), null)
 }
 
+#[Swag.NoReturn]
 func __hostTestAbort()
 {
     // ExitProcess runs DLL detach hooks, which can wait for the very tasks whose owning frames
@@ -529,6 +534,30 @@ func __hostTestAbort()
     discard __Win32RT.TerminateProcess(__Win32RT.GetCurrentProcess(), cast #bit (u32, -666))
     for do
         __Win32RT.Sleep(__Win32RT.INFINITE)
+}
+
+// A resume point for 'catchPanic', in storage the caller keeps alive. RtlCaptureContext and
+// RtlRestoreContext need a 16-byte aligned CONTEXT, so the storage leaves room to align one.
+const HostResumeStorageSize = 1360 + 15
+
+private func __hostAlignResume(storage: *u8)->*void => cast(*void, (cast(u64, storage) + 15) & 0xFFFF_FFFF_FFFF_FFF0)
+
+// Calls `fn` with a resume point captured in this frame, which stays alive while `fn` runs.
+// [[__hostResume]] on the same storage comes back here as if `fn` had returned, with
+// `resumed` set by whoever resumed.
+#[Swag.Optimize(false)]
+func __hostCatchCall(storage: *u8, resumed: *bool, fn: func||())
+{
+    __Win32RT.RtlCaptureContext(__hostAlignResume(storage))
+    if resumed[] do
+        return
+    fn()
+}
+
+#[Swag.NoReturn]
+func __hostResume(storage: *u8)
+{
+    __Win32RT.RtlRestoreContext(__hostAlignResume(storage), null)
 }
 
 // Keeps the captured frame alive while a test runs. A panic or hardware fault restores this

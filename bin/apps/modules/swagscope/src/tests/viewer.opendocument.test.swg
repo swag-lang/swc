@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 var openDocumentReportedDetails: String
 const OpenDocumentFixtureImage    = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
@@ -70,7 +70,7 @@ func addOpenDocumentFixtureEntry(bytes: *Array'u8, entry: *OpenDocumentFixtureEn
     bytes.add(entry.plain.toSlice())
 }
 
-func openDocumentMimeType(kind: OpenDocumentKind, template = false)->string
+func openDocumentMimeType(kind: OpenDocument.Kind, template = false)->string
 {
     if template
     {
@@ -92,7 +92,7 @@ func openDocumentMimeType(kind: OpenDocumentKind, template = false)->string
     }
 }
 
-func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, template = false)->Array'u8
+func buildOpenDocumentFixture(kind: OpenDocument.Kind, content: string, template = false)->Array'u8
 {
     var entries: [5] OpenDocumentFixtureEntry
     entries[0].name = "mimetype"
@@ -145,7 +145,7 @@ func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, template 
     return result
 }
 
-func writeOpenDocumentFixture(extension: string, kind: OpenDocumentKind, content: string, template = false)->String
+func writeOpenDocumentFixture(extension: string, kind: OpenDocument.Kind, content: string, template = false)->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-opendocument-", extension)
     discard expect File.writeAllBytes(fileName, buildOpenDocumentFixture(kind, content, template).toSlice())
@@ -178,16 +178,14 @@ func inlineImageOpenDocumentXml()->String
     return openDocumentXml(Format.toString("<office:text><text:p>Inline raster images</text:p>%</office:text>", frames))
 }
 
-func spreadsheetOpenDocumentXml()->String => openDocumentXml("<office:spreadsheet><table:table table:name=\"Budget\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell office:value=\"42\"></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Berlin</text:p></table:table-cell><table:table-cell table:formula=\"of:=SUM([.B2])\" office:value=\"58\"></table:table-cell></table:table-row></table:table><table:table table:name=\"Forecast\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Lyon</text:p></table:table-cell><table:table-cell><text:p>73</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
-
+func spreadsheetOpenDocumentXml()->String  => openDocumentXml("<office:spreadsheet><table:table table:name=\"Budget\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell office:value=\"42\"></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Berlin</text:p></table:table-cell><table:table-cell table:formula=\"of:=SUM([.B2])\" office:value=\"58\"></table:table-cell></table:table-row></table:table><table:table table:name=\"Forecast\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Lyon</text:p></table:table-cell><table:table-cell><text:p>73</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
 func presentationOpenDocumentXml()->String => openDocumentXml("<office:presentation><draw:page draw:name=\"Launch\"><draw:text-box><text:h>Launch</text:h><text:p>Prepare the offline review.</text:p></draw:text-box><draw:frame><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Review\"><draw:text-box><text:h>Review</text:h><text:p>Offline review is ready.</text:p></draw:text-box></draw:page></office:presentation>")
-
-func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:page draw:name=\"Diagram\"><draw:text-box><text:h>Diagram</text:h><text:p>Read-only drawing page.</text:p></draw:text-box><draw:frame svg:width='48px' svg:height='48px'><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Delivery\"><draw:text-box><text:h>Delivery</text:h><text:p>Drawing handoff is ready.</text:p></draw:text-box></draw:page></office:drawing>")
+func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><draw:page draw:name=\"Diagram\"><draw:text-box><text:h>Diagram</text:h><text:p>Read-only drawing page.</text:p></draw:text-box><draw:frame svg:width='48px' svg:height='48px'><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Delivery\"><draw:text-box><text:h>Delivery</text:h><text:p>Drawing handoff is ready.</text:p></draw:text-box></draw:page></office:drawing>")
 
 // The container reader preserves the readable structures of each supported OpenDocument family.
 #test
 {
-    let text = expect parseOpenDocumentContent(textOpenDocumentXml(), .Text)
+    let text = expect OpenDocument.parseContent(textOpenDocumentXml(), .Text)
     Swag.assert(Utf8.contains(text.html, "<h1>Quarterly report</h1>"))
     Swag.assert(Utf8.contains(text.html, "Paris &amp; Berlin"))
     Swag.assert(Utf8.contains(text.html, "<span id=\"odf-bookmark-1\"></span>") and Utf8.contains(text.html, "href=\"#odf-bookmark-1\"") and not Utf8.contains(text.html, "javascript:"))
@@ -199,12 +197,12 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     Swag.assert(Utf8.contains(text.html, "<ol><li><p>Prioritized</p></li></ol>"))
     Swag.assert(not Utf8.contains(text.html, "example.com"))
 
-    let inlineImages = expect parseOpenDocumentContent(inlineImageOpenDocumentXml(), .Text)
+    let inlineImages = expect OpenDocument.parseContent(inlineImageOpenDocumentXml(), .Text)
     Swag.assert(countOpenDocumentImageTags(inlineImages.html) == 256)
     Swag.assert(Utf8.contains(inlineImages.html, "data:image/PNG;base64,"))
     Swag.assert(not Utf8.contains(inlineImages.html, "svg+xml") and not Utf8.contains(inlineImages.html, "not@base64"))
 
-    let spreadsheet = expect parseOpenDocumentContent(spreadsheetOpenDocumentXml(), .Spreadsheet)
+    let spreadsheet = expect OpenDocument.parseContent(spreadsheetOpenDocumentXml(), .Spreadsheet)
     Swag.assert(spreadsheet.sheets.count == 2)
     Swag.assert(spreadsheet.sheets[0].name == "Budget" and spreadsheet.sheets[0].table.columns.count == 2 and spreadsheet.sheets[0].table.rows.count == 2)
     Swag.assert(spreadsheet.sheets[0].table.columns[0] == "City" and spreadsheet.sheets[0].table.columns[1] == "Budget")
@@ -212,11 +210,11 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     Swag.assert(spreadsheet.sheets[0].table.rows[1].cells[0] == "Berlin" and spreadsheet.sheets[0].table.rows[1].cells[1] == "58")
     Swag.assert(spreadsheet.sheets[1].name == "Forecast" and spreadsheet.sheets[1].table.rows.count == 1 and spreadsheet.sheets[1].table.rows[0].cells[0] == "Lyon")
 
-    let presentation = expect parseOpenDocumentContent(presentationOpenDocumentXml(), .Presentation)
+    let presentation = expect OpenDocument.parseContent(presentationOpenDocumentXml(), .Presentation)
     Swag.assert(presentation.slides.count == 2 and presentation.slides[0].name == "Launch" and presentation.slides[1].name == "Review")
     Swag.assert(Utf8.contains(presentation.slides[0].html.toString(), "Prepare the offline review") and Utf8.contains(presentation.slides[1].html.toString(), "Offline review is ready"))
 
-    let drawing = expect parseOpenDocumentContent(drawingOpenDocumentXml(), .Drawing)
+    let drawing = expect OpenDocument.parseContent(drawingOpenDocumentXml(), .Drawing)
     Swag.assert(drawing.slides.count == 2 and drawing.slides[0].name == "Diagram" and drawing.slides[1].name == "Delivery")
     Swag.assert(Utf8.contains(drawing.slides[0].html.toString(), "Read-only drawing page") and Utf8.contains(drawing.slides[1].html.toString(), "Drawing handoff is ready"))
 }
@@ -225,14 +223,14 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
 #test
 {
     let source   = openDocumentXml("<office:spreadsheet><table:table table:name='Sales &amp; costs'><table:table-row><table:table-cell><text:p>Name &amp; label</text:p></table:table-cell><table:table-cell><text:p>Value</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris &amp; Berlin &#x1F600;</text:p></table:table-cell><table:table-cell office:string-value='&lt;img&gt; &amp;amp;'/></table:table-row></table:table></office:spreadsheet>")
-    let document = expect parseOpenDocumentContent(source, .Spreadsheet)
+    let document = expect OpenDocument.parseContent(source, .Spreadsheet)
     Swag.assert(document.sheets[0].name == "Sales & costs")
     Swag.assert(document.sheets[0].table.columns[0] == "Name & label")
     Swag.assert(document.sheets[0].table.rows[0].cells[0] == "Paris & Berlin 😀")
     Swag.assert(document.sheets[0].table.rows[0].cells[1] == "<img> &amp;")
 
     let slideSource = openDocumentXml("<office:presentation><draw:page draw:name='Review &amp; plan'><text:p>Visible &lt;img&gt;</text:p></draw:page></office:presentation>")
-    let slides      = expect parseOpenDocumentContent(slideSource, .Presentation)
+    let slides      = expect OpenDocument.parseContent(slideSource, .Presentation)
     Swag.assert(slides.slides[0].name == "Review & plan")
     Swag.assert(Utf8.contains(slides.slides[0].html.toString(), "Visible &lt;img&gt;"))
 }
@@ -244,11 +242,11 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     for 25 do
         repeatedRows += "<table:table-row table:number-rows-repeated='4096'><table:table-cell office:value='1'/></table:table-row>"
     let rowSource = openDocumentXml(Format.toString("<office:spreadsheet><table:table table:name='Bounded'>%</table:table></office:spreadsheet>", repeatedRows))
-    discard catch parseOpenDocumentContent(rowSource, .Spreadsheet) as rowError
+    discard catch OpenDocument.parseContent(rowSource, .Spreadsheet) as rowError
     Swag.assert(rowError != null and Utf8.contains(Errors.message(rowError), "100,000 rows"))
 
     let cellSource = openDocumentXml("<office:spreadsheet><table:table table:name='Bounded'><table:table-row table:number-rows-repeated='4096'><table:table-cell table:number-columns-repeated='256' office:value='1'/></table:table-row></table:table></office:spreadsheet>")
-    discard catch parseOpenDocumentContent(cellSource, .Spreadsheet) as cellError
+    discard catch OpenDocument.parseContent(cellSource, .Spreadsheet) as cellError
     Swag.assert(cellError != null and Utf8.contains(Errors.message(cellError), "1,000,000 cells"))
 }
 
@@ -259,8 +257,8 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         var host: Testing.HeadlessHost
         host.setup(820, 560)
         defer host.shutdown()
-        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt"))
-        let view   = assume cast(*OpenDocumentViewer, result.view)
+        var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt"))
+        let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.html != null and Utf8.contains(view.document.html, "Document with Tables") and result.info!.isVisible())
     }
@@ -269,8 +267,8 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         var host: Testing.HeadlessHost
         host.setup(820, 560)
         defer host.shutdown()
-        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods"))
-        let view   = assume cast(*OpenDocumentViewer, result.view)
+        var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods"))
+        let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.table != null and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
     }
@@ -279,8 +277,8 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         var host: Testing.HeadlessHost
         host.setup(820, 560)
         defer host.shutdown()
-        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp"))
-        let view   = assume cast(*OpenDocumentViewer, result.view)
+        var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp"))
+        let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.html != null and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html.toString(), "Sample Presentation") and result.info!.isVisible())
     }
@@ -294,8 +292,8 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     var flatHost: Testing.HeadlessHost
     flatHost.setup(820, 560)
     defer flatHost.shutdown()
-    var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName)
-    let flatView   = assume cast(*OpenDocumentViewer, flatResult.view)
+    var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
+    let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
     Swag.assert(flatView.table != null and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
 
@@ -304,8 +302,8 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     var templateHost: Testing.HeadlessHost
     templateHost.setup(820, 560)
     defer templateHost.shutdown()
-    var templateResult = openTestViewer(openDocumentViewerPlugin(), &templateHost.root, templateFileName)
-    let templateView   = assume cast(*OpenDocumentViewer, templateResult.view)
+    var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
+    let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
     completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
     Swag.assert(templateView.html != null and Utf8.contains(templateView.document.html, "Quarterly report"))
 }
@@ -318,11 +316,11 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     var flatHost: Testing.HeadlessHost
     flatHost.setup(820, 560)
     defer flatHost.shutdown()
-    var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName)
-    let flatView   = assume cast(*OpenDocumentViewer, flatResult.view)
+    var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
+    let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
     Swag.assert(flatView.html != null and flatView.table == null and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
-    Swag.assert(flatResult.info != null and flatResult.info.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == openDocumentStrings().ui_TipPage)
+    Swag.assert(flatResult.info != null and flatResult.info.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == OpenDocument.texts().ui_TipPage)
 
     flatView.pageCombo.setSelectedIndex(1)
     Swag.assert(flatView.slideIndex == 1 and Utf8.contains(flatView.document.slides[flatView.slideIndex].html.toString(), "Drawing handoff is ready"))
@@ -343,8 +341,8 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     var templateHost: Testing.HeadlessHost
     templateHost.setup(820, 560)
     defer templateHost.shutdown()
-    var templateResult = openTestViewer(openDocumentViewerPlugin(), &templateHost.root, templateFileName)
-    let templateView   = assume cast(*OpenDocumentViewer, templateResult.view)
+    var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
+    let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
     completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
     Swag.assert(templateView.html != null and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html.toString(), "Read-only drawing page"))
 }
@@ -360,10 +358,10 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     var host: Testing.HeadlessHost
     host.setup(820, 560)
     defer host.shutdown()
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
+    var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
     Swag.assert(result.view != null and result.isLoading != null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null)
 
-    let view = assume cast(*OpenDocumentViewer, result.view)
+    let view = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.html != null and view.table == null)
     let navigated = view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1")
@@ -407,14 +405,14 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         host.shutdown()
     }
 
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
-    let view   = assume cast(*OpenDocumentViewer, result.view)
+    var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
+    let view   = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     host.root.applyLayout()
     discard host.render(&host.root)
     Swag.assert(view.table != null and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
     Swag.assert(result.info != null and result.info.isHidden())
-    Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSheet)
+    Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == OpenDocument.texts().ui_TipSheet)
 
     view.pageCombo.setSelectedIndex(1)
     Swag.assert(view.sheetIndex == 1 and view.table.document.rows.count == 1 and view.table.document.rows[0].cells[0] == "Lyon")
@@ -454,11 +452,11 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         host.shutdown()
     }
 
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
-    let view   = assume cast(*OpenDocumentViewer, result.view)
+    var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
+    let view   = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.html != null and view.table == null and view.document.slides.count == 2)
-    Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSlide)
+    Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == OpenDocument.texts().ui_TipSlide)
 
     view.pageCombo.setSelectedIndex(1)
     Swag.assert(view.slideIndex == 1 and Utf8.contains(view.document.slides[view.slideIndex].html.toString(), "Offline review is ready"))
@@ -531,11 +529,11 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         .padding         = {16, 8, 16, 8}
     }
 
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName, commandParent: commandBar)
+    var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
     Swag.assert(result.view != null and result.commands != null)
     commandBar.centerGroup = result.commands
 
-    let view = assume cast(*OpenDocumentViewer, result.view)
+    let view = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
@@ -587,12 +585,12 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
+    var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let view = assume cast(*OpenDocumentViewer, result.view)
+    let view = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None
@@ -633,10 +631,10 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName, infoParent: infoBar)
+    var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, infoParent: infoBar)
     Swag.assert(result.info != null)
     infoBar.centerGroup = result.info
-    let view = assume cast(*OpenDocumentViewer, result.view)
+    let view = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle        = .Center
     result.info.dockStyle = .None

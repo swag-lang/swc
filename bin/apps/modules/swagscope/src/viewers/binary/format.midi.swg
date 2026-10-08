@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -24,11 +25,11 @@ private struct MidiTrackResult
 }
 
 // Adds an SMF header and every track event stream.
-func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
+func reportMidiFile(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = true
 
-    let s            = binaryStrings()
+    let s            = texts()
     let headerLength = cast(u64, image.u32At(4))
     let format       = image.u16At(8)
     let trackCount   = image.u16At(10)
@@ -67,7 +68,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
             break
         }
 
-        let shown = tracks < BinaryListLimit
+        let shown = tracks < ListLimit
         var trackRow: u64
         if shown
         {
@@ -95,7 +96,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
 
     if not complete do
         report.note(s.midi_Malformed)
-    report.listCut(Math.min(tracks, BinaryListLimit), cast(u64, trackCount))
+    report.listCut(Math.min(tracks, ListLimit), cast(u64, trackCount))
     report.endGroup()
 
     let countedTracks = countText(tracks, s.word_Track, s.word_Tracks)
@@ -105,7 +106,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
 }
 
 // Adds one track's events and returns its name, extent, and completeness.
-private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end: u64, show: bool)->MidiTrackResult
+private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64, show: bool)->MidiTrackResult
 {
     var result: retval
     result.complete = true
@@ -149,7 +150,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
             break
         }
 
-        let shown = show and result.events < BinaryListLimit
+        let shown = show and result.events < ListLimit
         if status < 0xF0
         {
             running = status
@@ -206,7 +207,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
             if shown
             {
                 let value  = StrConv.toDisplaySize(length.value)
-                let detail = Format.toString(binaryStrings().midi_At, result.lastTick)
+                let detail = Format.toString(texts().midi_At, result.lastTick)
                 report.field(scan, next - scan, status == 0xF0 ? "System Exclusive" : "System Exclusive continuation", value, detail)
             }
 
@@ -223,22 +224,22 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
 
     if show
     {
-        report.listCut(Math.min(result.events, BinaryListLimit), result.events)
+        report.listCut(Math.min(result.events, ListLimit), result.events)
         if result.complete and not result.ended do
-            report.note(binaryStrings().midi_NoEnd)
+            report.note(texts().midi_NoEnd)
     }
 
     return result
 }
 
 // Adds one channel event, preserving its MIDI name and the channel it addresses.
-private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, at, next: u64, status: u8, dataAt, tick: u64)
+private func reportMidiChannelEvent(image: *BinaryImage, report: *Report, at, next: u64, status: u8, dataAt, tick: u64)
 {
     let kind    = status >> 4
     let channel = cast(u64, status & 0x0F) + 1
     let first   = cast(u64, image.u8At(dataAt))
     let second  = next - dataAt == 2 ? cast(u64, image.u8At(dataAt + 1)) : 0
-    let detail  = Format.toString(binaryStrings().midi_AtChannel, tick, channel)
+    let detail  = Format.toString(texts().midi_AtChannel, tick, channel)
 
     var value: String
     switch kind
@@ -253,10 +254,10 @@ private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, 
 }
 
 // Adds one meta event, decoding the musical metadata readers look for first.
-private func reportMidiMetaEvent(image: *BinaryImage, report: *BinaryReport, track: *MidiTrackResult, at, next: u64, kind: u8, bodyAt, length, tick: u64)
+private func reportMidiMetaEvent(image: *BinaryImage, report: *Report, track: *MidiTrackResult, at, next: u64, kind: u8, bodyAt, length, tick: u64)
 {
     let label  = midiMetaEventName(kind)
-    let detail = Format.toString(binaryStrings().midi_At, tick)
+    let detail = Format.toString(texts().midi_At, tick)
     var value: String
 
     switch kind
@@ -298,7 +299,7 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *BinaryReport, tra
         {
             let encoded   = cast(s32, image.u8At(bodyAt))
             let signature = midiKeyName(encoded >= 128 ? encoded - 256 : encoded)
-            let mode      = image.u8At(bodyAt + 1) ? binaryStrings().midi_Minor : binaryStrings().midi_Major
+            let mode      = image.u8At(bodyAt + 1) ? texts().midi_Minor : texts().midi_Major
             value = Format.toString("% %", signature, mode)
         }
 
@@ -348,11 +349,11 @@ private func midiFormatName(value: u16)->string
 private func midiDivisionText(value: u16)->String
 {
     if not (value & 0x8000) do
-        return Format.toString(binaryStrings().midi_TicksQuarter, value)
+        return Format.toString(texts().midi_TicksQuarter, value)
 
     let frames = 256'u64 - cast(u64, value >> 8)
     let ticks  = cast(u64, value & 0xFF)
-    return Format.toString(binaryStrings().midi_Smpte, frames, ticks)
+    return Format.toString(texts().midi_Smpte, frames, ticks)
 }
 
 private func midiChannelEventName(kind: u8)->string

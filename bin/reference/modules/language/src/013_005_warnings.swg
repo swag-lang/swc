@@ -62,15 +62,15 @@ func everythingOffExceptOne()->s32
 # Unreachable Code
 
 'sema_warn_unreachable_code' reports a statement that follows a jump in the same
-block: 'return', 'break', 'continue', 'fallthrough', or 'fail'. The statement
+block: 'return', 'break', 'continue', 'fallthrough', 'fail', 'Swag.panic',
+'unreachable', or a call to a function marked '#[Swag.NoReturn]'. The statement
 compiles, but nothing can ever run it.
 
-Only those five count. 'Swag.panic' and 'unreachable' announce that control never
-reaches them, but neither is guaranteed to leave the block: 'Swag.panic' returns to
-its caller whenever a panic hook is installed, which is what the '#test' runner
-does so one failing test does not end the run, and 'unreachable' lowers to
-nothing once '#[Swag.Safety(.Unreachable, false)]' turns its guard off. The code
-after either one is not reported.
+A 'switch' counts too when every case leaves the function and some case always
+matches, which a 'default' or '#complete' guarantees. So the code after an
+exhaustive switch is not a fallback to write "just in case": a value outside the
+enum, like a reached 'unreachable', is a broken program, caught by the safety
+guards where they are on.
 
 ```swag
 func size()->s32

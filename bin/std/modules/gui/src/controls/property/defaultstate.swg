@@ -58,7 +58,7 @@ internal impl Properties
         let def = Memory.new(rootType)
         .defaultRoots.add({def, rootType})
 
-        let defBase  = cast([*] u8, def!)
+        let defBase  = cast([*] u8, def)
         let rootSize = cast(u64, rootType.sizeof)
 
         for i in fromIdx until .items.count

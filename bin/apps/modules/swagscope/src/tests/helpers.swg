@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global internal
 
-using Core, Gui
+using Core, Gui, Viewers
 
 // Verifies that an information-band control keeps its breathing room outside its own frame.
 func assertViewerInfoButton(button: *IconButton, width = ViewerZoomButtonWidth)
@@ -46,9 +46,9 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
 
     let host: Viewer.Host = &pluginHost
     plugin.create(host)
-    if waitForText and plugin.key == TextViewerKey and result.view
+    if waitForText and plugin.key == PlainText.ViewerKey and result.view
     {
-        let view = assume cast(*TextViewer, result.view)
+        let view = assume cast(*PlainText.Panel, result.view)
         if view.read.started
         {
             view.read.task.wait()
@@ -112,9 +112,9 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         for index in window.instances.count where index < window.choices.count
         {
             let instance = &window.instances[index]
-            if instance.view and window.choices[index].key == TextViewerKey
+            if instance.view and window.choices[index].key == PlainText.ViewerKey
             {
-                let view = assume cast(*TextViewer, instance.view)
+                let view = assume cast(*PlainText.Panel, instance.view)
                 if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
                     view.statisticsThread.wait()
             }
@@ -139,9 +139,9 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
         let instance = &window.instances[window.activeChoiceIndex]
         if not instance.view or not instance.isLoading or not instance.isLoading() do
             break
-        if window.choices[window.activeChoiceIndex].key == TextViewerKey
+        if window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey
         {
-            let view = assume cast(*TextViewer, instance.view)
+            let view = assume cast(*PlainText.Panel, instance.view)
             completeTextReads(host, view)
             host.fireTimer(view.loadTimer)
         }
@@ -159,7 +159,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
 }
 
 // Completes queued text reads at the GUI publication boundary, including superseded requests.
-func completeTextReads(host: *Testing.HeadlessHost, view: *TextViewer)
+func completeTextReads(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     for 64
     {

@@ -9,6 +9,7 @@ var g_TestsExecuted:  u32
 var g_TestsFailedCnt: u32
 var g_TestContext:    *Context?
 
+#[Swag.NoReturn]
 private func resumeFailedTest()
 {
     // Context recovery skips task destructors and deferred gate releases. Any unfinished node
@@ -17,7 +18,6 @@ private func resumeFailedTest()
     {
         Swag.print("#test cannot resume while submitted work is unfinished; stopping this test process\n")
         __hostTestAbort()
-        return
     }
 
     // The host restores the stack without language cleanup. Release capture owners before
@@ -37,6 +37,7 @@ private func resumeFailedTest()
     __hostTestResume()
 }
 
+#[Swag.NoReturn]
 func __testPanicHandler(message: string?, loc: Swag.SourceCodeLocation)
 {
     // Drop the hook first so a panic raised while printing takes the default path.

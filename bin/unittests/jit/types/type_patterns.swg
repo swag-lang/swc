@@ -286,7 +286,6 @@ func(T) patternGenericSwitch(value: IPatternValue, unused: *T)->s32
     {
     case T as item: return item.number
     }
-    return 0
 }
 
 #test

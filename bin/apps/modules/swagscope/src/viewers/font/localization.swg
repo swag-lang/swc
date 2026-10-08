@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Typeface
 
 using Core, Gui
 
 // Visible strings of the font viewer.
-struct FontStrings
+struct Texts
 {
     ui_DefaultSample:     string = "Sphinx of black quartz"
     ui_SamplePlaceholder: string = "Type sample text"
@@ -27,19 +28,19 @@ struct FontStrings
 private const FrenchStringsName = "lang/fr/scope.font.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.font.tweak")
 
-private var g_FontStrings: FontStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the font viewer in the active language.
-func fontStrings()->const *FontStrings => &g_FontStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
-func registerFontStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'FontStrings(&g_FontStrings, "scope.font")
+    Gui.registerStrings'Texts(&g_Texts, "scope.font")
 }
 
 #run
 {
-    expect Gui.validateStrings'FontStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

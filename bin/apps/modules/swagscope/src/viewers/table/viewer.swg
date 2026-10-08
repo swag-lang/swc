@@ -1,18 +1,19 @@
 #global internal
+#global namespace Viewers.Table
 
 using Core, Core.Errors, Pixel, Gui
 
 // Describes the delimited-text table viewer to the host.
-func tableViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "table"
         .staticName   = "Table"
-        .attach       = &registerTableStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Table)
-        .create       = &createTableViewer
+        .create       = &createViewer
         .textual      = true
         .smokeFixture = "viewer.csv"
         .addSelectors(".csv;.tsv;.tab")
@@ -21,20 +22,20 @@ func tableViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const TableFileLimit      = 32 * 1024 * 1024'u64
-private const TableColumnLimit    = 256'u64
-private const TableColumnMinWidth = 96.0
-private const TableColumnMaxWidth = 320.0
-private const TableCellWidth      = 8.0
-const TableCellPreviewBytes       = 1024'u64     // Most bytes of one cell handed to the list renderer.
+private const FileLimit      = 32 * 1024 * 1024'u64
+private const ColumnLimit    = 256'u64
+private const ColumnMinWidth = 96.0
+private const ColumnMaxWidth = 320.0
+private const CellWidth      = 8.0
+const CellPreviewBytes       = 1024'u64     // Most bytes of one cell handed to the list renderer.
 
 // One record of a table.
-struct TableRow
+struct Row
 {
     cells: Array'String
 }
 
-impl TableRow
+impl Row
 {
     // Closes the cell being read: its bytes become the next cell of the row, and `cell` is emptied.
     mtd finishCell(cell: *Array'u8)
@@ -46,18 +47,18 @@ impl TableRow
 
 // A parsed delimited-text table: the header row, the records below it, and the delimiter that
 // separated them.
-struct TableDocument
+struct Document
 {
     columns:          Array'String     // Column names, generated for the ones the header leaves empty.
-    rows:             Array'TableRow
+    rows:             Array'Row
     delimiter:        u8
     generatedColumns: Array'u32     // Columns whose name was generated rather than read.
 }
 
-impl TableDocument
+impl Document
 {
     // Closes the cell and the row being read, and appends the row to the document.
-    mtd finishRow(row: *TableRow, cell: *Array'u8)
+    mtd finishRow(row: *Row, cell: *Array'u8)
     {
         row.finishCell(cell)
         .rows.add(#move row[])
@@ -65,46 +66,46 @@ impl TableDocument
     }
 }
 
-private func loadTableDocument(fileName: string)->TableDocument fail
+private func loadDocument(fileName: string)->Document fail
 {
     let info = try File.info(fileName)
-    if info.size > TableFileLimit do
-        fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooLarge)}
+    if info.size > FileLimit do
+        fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
 
     let source    = try File.readAllText(fileName)
-    let delimiter = detectTableDelimiter(fileName, source)
-    return try parseTableDocument(source, delimiter)
+    let delimiter = detectDelimiter(fileName, source)
+    return try parseDocument(source, delimiter)
 }
 
 // Bounds the text handed to the single-line rich-text renderer. A table keeps the complete cell
 // for search, but shaping a megabyte-long CSV field merely to paint its first few glyphs makes
 // every virtual-row repaint linear in the hidden tail.
-func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
+func cellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
 {
     var result: retval
     result.end = value.count
-    if result.end <= TableCellPreviewBytes do
+    if result.end <= CellPreviewBytes do
         return result
 
-    if focus != Swag.U64.Max and focus < result.end and focus > TableCellPreviewBytes / 3 do
-        result.start = focus - TableCellPreviewBytes / 3
+    if focus != Swag.U64.Max and focus < result.end and focus > CellPreviewBytes / 3 do
+        result.start = focus - CellPreviewBytes / 3
 
     while result.start and (value[result.start] & 0xC0) == 0x80 do
         result.start -= 1
 
-    result.end = Math.min(result.start + TableCellPreviewBytes, value.count)
+    result.end = Math.min(result.start + CellPreviewBytes, value.count)
     while result.end < value.count and (value[result.end] & 0xC0) == 0x80 do
         result.end -= 1
     return result
 }
 
 // Parses RFC-4180 quoting and the line-ending forms commonly found in CSV and TSV files.
-func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
+func parseDocument(text: string, delimiter: u8)->Document fail
 {
     var result: retval
     result.delimiter = delimiter
 
-    var row:         TableRow
+    var row:         Row
     var cell:        Array'u8
     var quoted:      bool
     var closedQuote: bool
@@ -182,7 +183,7 @@ func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
     }
 
     if quoted do
-        fail InvalidFormatError{Errors.mkString(tableStrings().err_UnclosedQuote)}
+        fail InvalidFormatError{Errors.mkString(texts().err_UnclosedQuote)}
     if touched or not cell.isEmpty() or not row.cells.isEmpty() do
         result.finishRow(&row, &cell)
     if result.rows.isEmpty() do
@@ -194,14 +195,14 @@ func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
     var columnCount = result.columns.count
     for one in result.rows do
         columnCount = Math.max(columnCount, one.cells.count)
-    if columnCount > TableColumnLimit do
-        fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooManyColumns)}
+    if columnCount > ColumnLimit do
+        fail UnsupportedFormatError{Errors.mkString(texts().err_TooManyColumns)}
 
     while result.columns.count < columnCount do
         result.columns.add(String{})
     for column, index in result.columns where column.isEmpty()
     {
-        result.columns[index] = Format.toString(tableStrings().ui_Column, index + 1)
+        result.columns[index] = Format.toString(texts().ui_Column, index + 1)
         result.generatedColumns.add(cast(u32, index))
     }
 
@@ -252,7 +253,7 @@ private func delimiterCount(text: string, delimiter: u8)->u64
 }
 
 // Chooses the strongest delimiter in the first records; a TSV extension remains unambiguous.
-func detectTableDelimiter(fileName, text: string)->u8
+func detectDelimiter(fileName, text: string)->u8
 {
     let extension = Path.lowercaseExtension(fileName)
     if extension == ".tsv" or extension == ".tab" do
@@ -274,25 +275,25 @@ func detectTableDelimiter(fileName, text: string)->u8
     return result
 }
 
-private func tableCountText(count: u64, one, many: string)->String
+private func countText(count: u64, one, many: string)->String
 {
     if count == 1 do
         return String.from(one)
     return Format.toString(many, count)
 }
 
-struct TableViewer
+struct Panel
 {
     using wnd: Wnd
 
     late list: *ListCtrl
 
-    document:             TableDocument
+    document:             Document
     searchRow:            u64 = Swag.U64.Max
     searchColumn:         u64
     searchOffset:         u64
     searchLength:         u64
-    load:                 Viewer.BackgroundLoad'TableDocument
+    load:                 Viewer.BackgroundLoad'Document
     loadTimer:            *Timer?
     reportFailure:        Viewer.ReportFailure?
     reportDetails:        Viewer.ReportDetails?
@@ -300,7 +301,7 @@ struct TableViewer
     failureReason:        String
 }
 
-private impl IWnd for TableViewer
+private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
@@ -340,13 +341,13 @@ private impl IWnd for TableViewer
     }
 }
 
-private impl TableViewer
+private impl Panel
 {
     mtd refreshColumnNames()
     {
         for index in .document.generatedColumns
         {
-            .document.columns[index] = Format.toString(tableStrings().ui_Column, index + 1)
+            .document.columns[index] = Format.toString(texts().ui_Column, index + 1)
             if index < .list.header.items.count do
                 .list.header.items[index]!.name.set(.document.columns[index].toString())
         }
@@ -362,8 +363,8 @@ private impl TableViewer
             var longest = column.length
             for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count do
                 longest = Math.max(longest, row.cells[index].length)
-            let width = Math.clamp(cast(f32, longest) * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
-            let range = tableCellPreviewRange(column.toString())
+            let width = Math.clamp(cast(f32, longest) * CellWidth + 24, ColumnMinWidth, ColumnMaxWidth)
+            let range = cellPreviewRange(column.toString())
             .list.addColumn(column.toString()[range.start until range.end], width)
         }
 
@@ -376,11 +377,11 @@ private impl TableViewer
 
     mtd refreshDetails()
     {
-        let rows    = tableCountText(.document.rows.count, tableStrings().ui_Row, tableStrings().ui_Rows)
-        let columns = tableCountText(.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
+        let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
+        let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
         let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
         if .reportDetails do
-            .reportDetails(me, Format.toString(tableStrings().ui_Details, kind, rows, columns))
+            .reportDetails(me, Format.toString(texts().ui_Details, kind, rows, columns))
     }
 
     mtd retire()->bool
@@ -404,7 +405,7 @@ private impl TableViewer
         for column in .document.columns.count
         {
             let value = column < row.cells.count ? row.cells[column].toString() : ""
-            let range = tableCellPreviewRange(value, index == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
+            let range = cellPreviewRange(value, index == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
             let item  = line.setItem(cast(u32, column), value[range.start until range.end])
             if index == .searchRow and column == .searchColumn
             {
@@ -433,10 +434,10 @@ private impl TableViewer
         }
     }
 
-    func createBase(parent: *Wnd)->*TableViewer
+    func createBase(parent: *Wnd)->*Panel
     {
-        registerTableStrings(parent.app())
-        let result = Wnd.create'TableViewer(parent, "scope.table")
+        registerTexts(parent.app())
+        let result = Wnd.create'Panel(parent, "scope.table")
         result.backgroundStyle = .View
 
         with result.list = ListCtrl.createMultiColumns(result)
@@ -447,7 +448,7 @@ private impl TableViewer
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
             .header.form       = .Transparent
-            .onFillVirtualLine = &fillTableVirtualLine
+            .onFillVirtualLine = &fillVirtualLine
         }
 
         result.applyLayout()
@@ -458,7 +459,7 @@ private impl TableViewer
 
 // These operations let another format supply an already parsed table while preserving the same
 // virtual rows, matching, and highlighted result behavior as CSV and TSV files.
-impl TableViewer
+impl Panel
 {
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
@@ -495,7 +496,7 @@ impl TableViewer
         if .searchOffset + .searchLength > value.count do
             return false
 
-        let range       = tableCellPreviewRange(value, .searchOffset)
+        let range       = cellPreviewRange(value, .searchOffset)
         let markedStart = Math.max(.searchOffset, range.start)
         let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
         if markedEnd <= markedStart do
@@ -519,14 +520,14 @@ impl TableViewer
         .list.invalidate()
     }
 
-    func create(parent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*TableViewer
+    func create(parent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*Panel
     {
-        with let result = TableViewer.createBase(parent)
+        with let result = Panel.createBase(parent)
         {
             .reportFailure        = reportFailure
             .reportDetails        = reportDetails
             .reportLoadingChanged = reportLoadingChanged
-            .load.start(fileName, &loadTableDocument)
+            .load.start(fileName, &loadDocument)
             .loadTimer = .addTimer(Viewer.BackgroundPollInterval)
         }
 
@@ -534,9 +535,9 @@ impl TableViewer
     }
 
     // Hosts a table decoded by another reader without introducing a temporary CSV file.
-    func createDocument(parent: *Wnd, document: TableDocument)->*TableViewer
+    func createDocument(parent: *Wnd, document: Document)->*Panel
     {
-        with let result = TableViewer.createBase(parent)
+        with let result = Panel.createBase(parent)
         {
             .document = #move document
             .publishDocument()
@@ -546,18 +547,18 @@ impl TableViewer
     }
 }
 
-private func fillTableVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
+private func fillVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line == null do
         return
-    assume cast(*TableViewer, list.parent).fillLine(line, index)
+    assume cast(*Panel, list.parent).fillLine(line, index)
 }
 
 // Creates the integrated CSV/TSV table view.
-func createTableViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = TableViewer.create(host.contentParent(), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = Panel.create(host.contentParent(), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
 
     with var search: Viewer.SearchApi

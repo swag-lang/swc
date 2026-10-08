@@ -822,14 +822,6 @@ func freeOne(itf: IAllocator, address: *void?)
 // path then walks the list to confirm. A block handed out again no longer reads
 // as free, so freeing it once more is legal.
 // ----------------------------------------------------------------------------
-var g_DoubleFreePanics: u32
-
-func recordDoubleFreePanic(message: string?, ?: SourceCodeLocation)
-{
-    if message == "memory block is freed twice" do
-        g_DoubleFreePanics += 1
-}
-
 // Frees a block through its integer address, which the static analysis does not follow: the
 // double frees below are the point of the test.
 func freeAddress(itf: IAllocator, address: u64)
@@ -853,14 +845,13 @@ func freeAddress(itf: IAllocator, address: u64)
         freeOne(itf, second)
         freeOne(itf, third)
 
-        let cxt      = Swag.getContext()
-        let previous = cxt.panic
-        cxt.panic = &recordDoubleFreePanic
-        g_DoubleFreePanics = 0
-        freeAddress(itf, cast(u64, first))
-        freeAddress(itf, cast(u64, second))
-        cxt.panic = previous
-        Swag.assert(g_DoubleFreePanics == 2)
+        // The check runs before the free touches the lists.
+        let firstAddress  = cast(u64, first)
+        let secondAddress = cast(u64, second)
+        let firstAgain    = Swag.catchPanic(func|itf, firstAddress|() { freeAddress(itf, firstAddress) })
+        let secondAgain   = Swag.catchPanic(func|itf, secondAddress|() { freeAddress(itf, secondAddress) })
+        Swag.assert(firstAgain.raised and firstAgain.message() == "memory block is freed twice")
+        Swag.assert(secondAgain.raised and secondAgain.message() == "memory block is freed twice")
 
         // The lists are intact: the three blocks come back, and each can be freed again.
         let again0 = allocOne(itf, 64)
@@ -967,14 +958,6 @@ func freeAddress(itf: IAllocator, address: u64)
 // A write through a pointer kept past its free, at the start of the block, is
 // reported when the block is handed out again.
 // ----------------------------------------------------------------------------
-var g_FreedWritePanics: u32
-
-func recordFreedWritePanic(message: string?, ?: SourceCodeLocation)
-{
-    if message == "memory block was written after being freed" do
-        g_FreedWritePanics += 1
-}
-
 // Writes through an integer address, which the static analysis does not follow: the write
 // after free is the point of the test.
 func writeAt(address: u64, value: u64)
@@ -995,22 +978,22 @@ func writeAt(address: u64, value: u64)
         freeOne(itf, block)
         writeAt(cast(u64, block) + 8, 0x1234)
 
-        let cxt      = Swag.getContext()
-        let previous = cxt.panic
-        cxt.panic = &recordFreedWritePanic
-        g_FreedWritePanics = 0
-        let again = allocOne(itf, 48)
-        cxt.panic = previous
-        Swag.assert(g_FreedWritePanics == 1)
-        Swag.assert(again == block)
+        // The check runs before the block leaves the free list, so the written block stays
+        // at its head: this allocator is not used again.
+        let caught = Swag.catchPanic(func|itf|() { discard allocOne(itf, 48) })
+        Swag.assert(caught.raised and caught.message() == "memory block was written after being freed")
+        alloc.releaseAll()
 
         // A block written only while it is live is handed out again without a report.
-        cast([*] u8, again!)[47] = 1
-        freeOne(itf, again)
-        let third = allocOne(itf, 48)
-        Swag.assert(third == block)
-        freeOne(itf, third)
-        alloc.releaseAll()
+        var clean: Allocator
+        let cleanItf = makeAllocator(&clean, fillMemory: false)
+        let live     = allocOne(cleanItf, 48)
+        cast([*] u8, live!)[47] = 1
+        freeOne(cleanItf, live)
+        let again = allocOne(cleanItf, 48)
+        Swag.assert(again == live)
+        freeOne(cleanItf, again)
+        clean.releaseAll()
     }
 }
 

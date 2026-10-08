@@ -224,7 +224,7 @@ impl Decoder
                     while .serializer.toNextSequenceElement(&count)
                     {
                         let bufArr = Reflection.appendDynamicArrayElement(data, safeValueType, initialize: false)
-                        try .readTypedContent(bufArr!, safeValueType)
+                        try .readTypedContent(bufArr, safeValueType)
                     }
                 }
 

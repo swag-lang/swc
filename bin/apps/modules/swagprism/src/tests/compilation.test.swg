@@ -16,7 +16,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = {source: String.from(exampleSource(.Dot)), stage: String.from("pre-emit"), settings: {configuration: String.from(Pipeline.BuildSettings.DefaultConfiguration)}}
+    let request: Pipeline.BuildRequest = {source: exampleSource(.Dot), stage: "pre-emit", settings: {configuration: Pipeline.BuildSettings.DefaultConfiguration}}
     {
         var first  = cache.acquire(request)
         var second = cache.acquire(request)
@@ -43,7 +43,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    var request: Pipeline.BuildRequest = {source: String.from("func sum(a, b: s32)->s32 => a + b"), stage: String.from("pre-emit")}
+    var request: Pipeline.BuildRequest = {source: "func sum(a, b: s32)->s32 => a + b", stage: "pre-emit"}
     request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .All; cfg.backend.inlineMode = .Never }"
     {
         var guarded = cache.acquire(request)
@@ -76,7 +76,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = {source: String.from(exampleSource(.Dot)), stage: String.from("pre-emit")}
+    let request: Pipeline.BuildRequest = {source: exampleSource(.Dot), stage: "pre-emit"}
     var survivor = cache.acquire(request)
     {
         var cancelled = cache.acquire(request)
@@ -199,7 +199,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var artifact: Pipeline.BuildArtifact
-    artifact.request = {kind: .Render2D, source: String.from(exampleSource(.Plasma)), settings: {optimization: .O2}}
+    artifact.request = {kind: .Render2D, source: exampleSource(.Plasma), settings: {optimization: .O2}}
     expect artifact.run()
     if artifact.result.failed do
         Console.print(artifact.result.text.toString())
@@ -219,7 +219,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 // always is, because its host program calls into what the snippet declares.
 #test
 {
-    var request: Pipeline.BuildRequest = {source: String.from("func dot(a, b: f32)->f32 => a * b"), stage: String.from("pre-emit")}
+    var request: Pipeline.BuildRequest = {source: "func dot(a, b: f32)->f32 => a * b", stage: "pre-emit"}
     Swag.assert(request.kind == .Microcode and not request.needsDependency())
     Swag.assert(not request.moduleSource().contains("#import"))
 
@@ -241,7 +241,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = {source: String.from("using Core\nfunc value()->f32 => Math.sqrt(2'f32)"), stage: String.from("pre-emit")}
+    let request: Pipeline.BuildRequest = {source: "using Core\nfunc value()->f32 => Math.sqrt(2'f32)", stage: "pre-emit"}
     var lease = cache.acquire(request)
     waitBuild(&lease)
 

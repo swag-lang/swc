@@ -1,34 +1,34 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 #test
 {
-    registerTableStrings(&g_App)
+    Table.registerTexts(&g_App)
 
     const Source = "name;note;value\r\nalpha;\"two; parts\";1\r\nbeta;\"two\"\" quotes\";2\r\ngamma;\"two\r\nlines\";3\r\n"
-    let delimiter = detectTableDelimiter("sample.csv", Source)
+    let delimiter = Table.detectDelimiter("sample.csv", Source)
     Swag.assert(delimiter == ';')
 
-    let document = expect parseTableDocument(Source, delimiter)
+    let document = expect Table.parseDocument(Source, delimiter)
     Swag.assert(document.columns.count == 3 and document.rows.count == 3)
     Swag.assert(document.columns[0] == "name" and document.columns[2] == "value")
     Swag.assert(document.rows[0].cells[1] == "two; parts")
     Swag.assert(document.rows[1].cells[1] == "two\" quotes")
     Swag.assert(document.rows[2].cells[1] == "two\nlines")
-    Swag.assert(detectTableDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
+    Swag.assert(Table.detectDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
 }
 
 #test
 {
-    registerTableStrings(&g_App)
+    Table.registerTexts(&g_App)
 
-    let document = expect parseTableDocument(";second\n1;2;3\n", ';')
+    let document = expect Table.parseDocument(";second\n1;2;3\n", ';')
     Swag.assert(document.columns.count == 3 and document.rows.count == 1)
     Swag.assert(document.columns[0] == "Column 1" and document.columns[1] == "second" and document.columns[2] == "Column 3")
 
-    discard catch parseTableDocument("name,value\n\"unfinished", ',') as quoteError
+    discard catch Table.parseDocument("name,value\n\"unfinished", ',') as quoteError
     Swag.assert(quoteError != null)
 }
 
@@ -42,9 +42,9 @@ using Core, Pixel, Gui
     host.setup(760, 480)
     defer host.shutdown()
 
-    var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    let view = assume cast(*TableViewer, result.view)
+    let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
@@ -71,29 +71,29 @@ using Core, Pixel, Gui
     for 8 * 1024 do
         giant += "z"
 
-    let leading = tableCellPreviewRange(giant)
-    Swag.assert(leading.start == 0 and leading.end <= TableCellPreviewBytes)
+    let leading = Table.cellPreviewRange(giant)
+    Swag.assert(leading.start == 0 and leading.end <= Table.CellPreviewBytes)
 
-    let focused = tableCellPreviewRange(giant, 8 * 1024)
-    Swag.assert(focused.start > 0 and focused.end - focused.start <= TableCellPreviewBytes)
+    let focused = Table.cellPreviewRange(giant, 8 * 1024)
+    Swag.assert(focused.start > 0 and focused.end - focused.start <= Table.CellPreviewBytes)
     Swag.assert(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + ("needle").count)
 
     var unicode = String.from("x")
     for 400 do
         unicode += "\U0001F642"
-    let unicodeRange = tableCellPreviewRange(unicode)
+    let unicodeRange = Table.cellPreviewRange(unicode)
     Swag.assert(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
 
-    var view: TableViewer
+    var view: Table.Panel
     view.document.columns.add("payload")
-    var row: TableRow
+    var row: Table.Row
     row.cells.add(#move giant)
     view.document.rows.add(#move row)
 
     var line: ListLine
     view.fillLine(&line, 0)
     let displayed = line.itemAt(0).name.raw.toString()
-    Swag.assert(displayed.count <= TableCellPreviewBytes)
+    Swag.assert(displayed.count <= Table.CellPreviewBytes)
 }
 
 // Generated headings follow the language; authored labels and selected rows remain intact.
@@ -107,9 +107,9 @@ using Core, Pixel, Gui
         host.shutdown()
     }
 
-    registerTableStrings(&host.app)
-    let document = expect parseTableDocument(";Column 2\nfirst;second;third\n", ';')
-    let view     = TableViewer.createDocument(&host.root, document)
+    Table.registerTexts(&host.app)
+    let document = expect Table.parseDocument(";Column 2\nfirst;second;third\n", ';')
+    let view     = Table.Panel.createDocument(&host.root, document)
     var details: String
     view.userData      = &details
     view.reportDetails = func(wnd, value) { cast(*String, wnd.userData!)[] = value }
@@ -118,11 +118,11 @@ using Core, Pixel, Gui
     let oldHeading = String.from(view.list.header.items[0]!.name.raw)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.list.header.items[0]!.name.raw == Format.toString(tableStrings().ui_Column, 1))
+    Swag.assert(view.list.header.items[0]!.name.raw == Format.toString(Table.texts().ui_Column, 1))
     Swag.assert(view.list.header.items[0]!.name.raw != oldHeading)
     Swag.assert(view.list.header.items[1]!.name.raw == "Column 2")
-    Swag.assert(view.list.header.items[2]!.name.raw == Format.toString(tableStrings().ui_Column, 3))
-    Swag.assert(Utf8.contains(details, tableStrings().ui_Row))
+    Swag.assert(view.list.header.items[2]!.name.raw == Format.toString(Table.texts().ui_Column, 3))
+    Swag.assert(Utf8.contains(details, Table.texts().ui_Row))
     Swag.assert(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -144,9 +144,9 @@ using Core, Pixel, Gui
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
-    let view = assume cast(*TableViewer, result.view)
+    let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
 

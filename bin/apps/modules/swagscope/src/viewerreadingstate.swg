@@ -65,39 +65,39 @@ impl ViewerReadingState
         .captureScrolls(session.view!, &path)
         switch session.view
         {
-        case TextViewer as view:
+        case Viewers.PlainText.Panel as view:
             .zoom     = view.zoomPercent
             .wrapping = view.wrapping
 
-        case CodeViewer as view:
+        case Viewers.Code.Panel as view:
             .zoom = view.zoomPercent
 
-        case HtmlViewer as view:
+        case Viewers.Html.Panel as view:
             .zoom = view.zoomPercent
 
-        case OpenDocumentViewer as view:
+        case Viewers.OpenDocument.Panel as view:
             .zoom = view.zoomPercent
 
-        case PdfViewer as view:
+        case Viewers.PdfDocument.Panel as view:
             .pdfZoom     = view.pdfView.zoom
             .pdfZoomMode = view.pdfView.zoomMode
             .pdfLayout   = view.pdfView.pageLayout
             .page        = view.pdfView.pageIndex
 
-        case ImageViewer as view:
+        case Viewers.Picture.Panel as view:
             .imageZoom     = view.imageView.zoom
             .imageFitted   = view.imageView.isFitted
             .imagePan      = view.imageView.panOffset
             .imageRotation = view.imageView.rotationQuarterTurns
             .imageMirrored = view.imageView.isMirrored
 
-        case SoundViewer as view:
+        case Viewers.Sound.Panel as view:
             .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64, view.elapsed)
             .playing = view.playing
             .volume  = view.volume
             .muted   = view.muted
 
-        case VideoViewer as view:
+        case Viewers.Film.Panel as view:
             .seconds      = view.currentSeconds()
             .playing      = view.playing
             .volume       = view.volume
@@ -106,7 +106,7 @@ impl ViewerReadingState
         }
 
         if key == "markdown" and session.info do
-            .zoom = assume cast(*MarkdownZoomButton, session.info.children[0]).zoomPercent
+            .zoom = assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).zoomPercent
     }
 
     // Applies the recorded reading scale to the reloaded `session`, then arms [[ViewerReadingState.restore]].
@@ -114,23 +114,23 @@ impl ViewerReadingState
     {
         switch session.view!
         {
-        case TextViewer as view:
+        case Viewers.PlainText.Panel as view:
             view.setZoom(.zoom)
             if view.wrapping != .wrapping do
                 view.toggleWrap()
 
-        case CodeViewer as view:
+        case Viewers.Code.Panel as view:
             view.setZoom(.zoom)
 
-        case HtmlViewer as view:
+        case Viewers.Html.Panel as view:
             view.setZoom(.zoom)
 
-        case OpenDocumentViewer as view:
+        case Viewers.OpenDocument.Panel as view:
             view.setZoom(.zoom)
         }
 
         if .viewer == "markdown" and session.info do
-            assume cast(*MarkdownZoomButton, session.info.children[0]).applyZoom(.zoom)
+            assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).applyZoom(.zoom)
         .restoring = true
         .contentSettingsApplied = false
     }
@@ -152,13 +152,13 @@ impl ViewerReadingState
         .contentSettingsApplied = true
         switch session.view
         {
-        case PdfViewer as view:
+        case Viewers.PdfDocument.Panel as view:
             view.pdfView.setPageLayout(.pdfLayout)
             view.pdfView.setZoom(.pdfZoom)
             view.pdfView.setZoomMode(.pdfZoomMode)
             view.pdfView.showPage(.page)
 
-        case ImageViewer as view:
+        case Viewers.Picture.Panel as view:
             if .imageMirrored do
                 view.imageView.mirrorHorizontally()
             for .imageRotation do
@@ -169,14 +169,14 @@ impl ViewerReadingState
                 view.imageView.setZoom(.imageZoom)
             view.imageView.setPanOffset(.imagePan)
 
-        case SoundViewer as view:
+        case Viewers.Sound.Panel as view:
             view.setVolume(.volume)
             view.setMuted(.muted)
             view.seekSeconds(cast(f32, .seconds))
             if view.playing != .playing do
                 view.togglePlayback()
 
-        case VideoViewer as view:
+        case Viewers.Film.Panel as view:
             view.setVolume(.volume)
             view.setMuted(.muted)
             view.setPlaybackRate(.playbackRate)

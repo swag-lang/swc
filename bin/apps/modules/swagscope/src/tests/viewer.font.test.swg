@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui, TrueType
+using Core, Pixel, Gui, TrueType, Viewers
 
 func fontFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "segoeui.ttf")
 
@@ -18,7 +18,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
-    let page = fontCharacterPage(face, 0x20, 192)
+    let page = Typeface.characterPage(face, 0x20, 192)
     Swag.assert(page.characters.count == 192)
     Swag.assert(containsCharacter(page.characters.toSlice(), 'A'))
     Swag.assert(page.end >= cast(u32, 'A') and page.hasNext)
@@ -35,10 +35,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     }
 
     let fixture = fontFixturePath()
-    var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: &host.root)
+    var result  = openTestViewer(Typeface.viewerPlugin(), &host.root, fixture, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
 
-    let view = assume cast(*FontViewer, result.view)
+    let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.pageLabel.arrowPosition == .RightUpward)
     Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
@@ -54,9 +54,9 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let oldPlaceholder = String.from(view.sampleEdit.name.raw)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.sampleEdit.name.raw == fontStrings().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
-    Swag.assert(view.previousButton.toolTip == fontStrings().ui_PreviousPage)
-    Swag.assert(view.nextButton.toolTip == fontStrings().ui_NextPage)
+    Swag.assert(view.sampleEdit.name.raw == Typeface.texts().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
+    Swag.assert(view.previousButton.toolTip == Typeface.texts().ui_PreviousPage)
+    Swag.assert(view.nextButton.toolTip == Typeface.texts().ui_NextPage)
 }
 
 #[Swag.TestTag("golden")]
@@ -78,10 +78,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     }
 
     let fixture = fontFixturePath()
-    var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: commandBar)
+    var result  = openTestViewer(Typeface.viewerPlugin(), &host.root, fixture, commandParent: commandBar)
     Swag.assert(result.view != null)
     commandBar.centerGroup = result.commands
-    let view = assume cast(*FontViewer, result.view)
+    let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
@@ -110,9 +110,9 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.setup(640, 360)
     defer host.shutdown()
 
-    var result = openTestViewer(fontViewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(Typeface.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = assume cast(*FontViewer, result.view)
+    let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }

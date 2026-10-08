@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -12,11 +13,11 @@ func isSccContainer(image: *BinaryImage)->bool => image.matches(0, SccMagic) and
 //
 // The prefix is read from the loaded bytes and the rest through the container reader, so a file
 // whose header fails validation still shows the envelope that says why.
-func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: string)
+func reportSccContainer(image: *BinaryImage, report: *Report, fileName: string)
 {
     image.bigEndian = false
 
-    let s          = binaryStrings()
+    let s          = texts()
     let major      = image.u16At(8)
     let minor      = image.u16At(10)
     let headerSize = image.u64At(16)
@@ -60,9 +61,9 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
     report.summary = Format.toString("SCC %.% · %", major, minor, chunks)
 }
 
-private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manifest)
+private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
 {
-    let s = binaryStrings()
+    let s = texts()
     report.beginGroup(s.scc_Manifest, manifest.name, "", open: true)
 
     let version = Format.toString("%", manifest.version)
@@ -103,12 +104,12 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
     report.endGroup()
 }
 
-private func reportSccProperties(report: *BinaryReport, properties: const [..] Scc.Property)
+private func reportSccProperties(report: *Report, properties: const [..] Scc.Property)
 {
     if not properties.count do
         return
 
-    let s     = binaryStrings()
+    let s     = texts()
     let total = countText(properties.count, s.word_Property, s.word_Properties)
     report.beginGroup(s.scc_Properties, total, "")
 
@@ -134,16 +135,16 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
     case .Bytes:    return StrConv.toDisplaySize(value.bytesValue.count)
     }
 
-    return String.from(BinaryNoValue)
+    return String.from(NoValue)
 }
 
 // Adds the virtual hierarchy the manifest declares, parents before the entries they own.
-private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Entry)
+private func reportSccEntries(report: *Report, entries: const [..] Scc.Entry)
 {
     if not entries.count do
         return
 
-    let s     = binaryStrings()
+    let s     = texts()
     let total = countText(entries.count, s.word_Entry, s.word_Entries)
     report.beginGroup(s.scc_Entries, total, "", open: true)
 
@@ -179,9 +180,9 @@ private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Ent
     report.endGroup()
 }
 
-private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.ChunkInfo)
+private func reportSccChunks(report: *Report, chunks: const [..] Scc.ChunkInfo)
 {
-    let s     = binaryStrings()
+    let s     = texts()
     let total = countText(chunks.count, s.word_Chunk, s.word_Chunks)
     report.beginGroup(s.scc_Chunks, total, "", open: true)
 
@@ -224,7 +225,7 @@ private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.Chunk
 
 private func sccCodecName(codecId: Guid128)->string
 {
-    let s = binaryStrings()
+    let s = texts()
     if codecId.isNull() do
         return s.scc_Stored
     if codecId == Scc.deflateCodecId() do
@@ -234,9 +235,9 @@ private func sccCodecName(codecId: Guid128)->string
 
 private func sccChunkFlagsText(value: Scc.ChunkFlags)->String
 {
-    let names = [BinaryFlagName{1, "Required"},
-                 BinaryFlagName{2, "Metadata"},
-                 BinaryFlagName{4, "Streamable"},
-                 BinaryFlagName{8, "PreserveUnknown"}]
+    let names = [FlagName{1, "Required"},
+                 FlagName{2, "Metadata"},
+                 FlagName{4, "Streamable"},
+                 FlagName{8, "PreserveUnknown"}]
     return flagsText(cast(u64, value), names)
 }

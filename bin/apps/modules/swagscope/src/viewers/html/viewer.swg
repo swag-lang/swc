@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Html
 
 using Core, Gui
 
@@ -6,20 +7,20 @@ using Core, Gui
 //
 // The two spellings a document begins with are the only markers taken. Anything looser claims an
 // XML file, a template, or a source file that merely mentions a tag.
-private func htmlPluginProbe(content: Viewer.ProbeContent)->bool => content.opensWith("<!doctype html") or content.opensWith("<html")
+private func pluginProbe(content: Viewer.ProbeContent)->bool => content.opensWith("<!doctype html") or content.opensWith("<html")
 
 // Describes the HTML viewer to the host.
-func htmlViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "html"
         .staticName   = "HTML"
-        .attach       = &registerHtmlStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Html)
-        .create       = &createHtmlViewer
-        .probe        = &htmlPluginProbe
+        .create       = &createViewer
+        .probe        = &pluginProbe
         .textual      = true
         .smokeFixture = "viewer.html"
         .addSelectors(".htm;.html;.shtml;.xht;.xhtml")
@@ -28,7 +29,7 @@ func htmlViewerPlugin()->Viewer.Plugin
     return result
 }
 
-struct HtmlViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -41,17 +42,17 @@ struct HtmlViewer
     zoomPercent: u32 = 100
 }
 
-private impl IWnd for HtmlViewer
+private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged do
-            .zoomLabel.toolTip = htmlStrings().ui_ZoomMenu
+            .zoomLabel.toolTip = texts().ui_ZoomMenu
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
 
-private impl HtmlViewer
+private impl Panel
 {
     internal mtd setZoom(percent: u32)
     {
@@ -95,7 +96,7 @@ private impl HtmlViewer
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = htmlStrings().ui_ZoomMenu
+            .toolTip    = texts().ui_ZoomMenu
             .sigPressed += func|viewer = me|(?) { viewer.showZoomMenu() }
         }
     }
@@ -127,9 +128,9 @@ private impl HtmlViewer
 }
 
 // Creates the integrated reusable HTML view.
-func createHtmlViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    with let result = Wnd.create'HtmlViewer(host.contentParent(), "scope.html")
+    with let result = Wnd.create'Panel(host.contentParent(), "scope.html")
     {
         .backgroundStyle = .View
         .view = HtmlView.createFile(result, host.fileName())
@@ -157,7 +158,7 @@ func createHtmlViewer(host: Viewer.Host)
     result.setZoom(100)
     host.attachView(result)
     DocumentOutline.create(host).bindHtml(result.view)
-    host.setDetails(htmlStrings().ui_Details)
+    host.setDetails(texts().ui_Details)
 
     with var search: Viewer.SearchApi
     {

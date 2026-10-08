@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Archive
 
 using Core
 
@@ -40,7 +41,7 @@ struct ZipEntry
 }
 
 // The central directory of a ZIP archive, with its entries sorted by path.
-struct ZipArchive
+struct Zip
 {
     entries:          Array'ZipEntry
     compressedSize:   u64     // Sum over the file entries; directories do not count
@@ -48,7 +49,7 @@ struct ZipArchive
     comment:          String
 }
 
-impl ZipArchive
+impl Zip
 {
     // Returns the entry stored at `path`, or null when the archive has none.
     mtd const tryFindEntry(path: string)->const *ZipEntry?
@@ -62,14 +63,14 @@ impl ZipArchive
 private func zipU16(bytes: const [..] u8, at: u64)->u16 fail
 {
     if at > bytes.count or 2 > bytes.count - at do
-        fail Errors.InvalidFormatError{archiveStrings().err_ShortField16}
+        fail Errors.InvalidFormatError{texts().err_ShortField16}
     return cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8)
 }
 
 private func zipU32(bytes: const [..] u8, at: u64)->u32 fail
 {
     if at > bytes.count or 4 > bytes.count - at do
-        fail Errors.InvalidFormatError{archiveStrings().err_ShortField32}
+        fail Errors.InvalidFormatError{texts().err_ShortField32}
     return cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) | (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24)
 }
 
@@ -141,7 +142,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
         let length = cast(u64, try zipU16(extra, at + 2))
         at += 4
         if length > extra.count - at do
-            fail Errors.InvalidFormatError{archiveStrings().err_ExtraField}
+            fail Errors.InvalidFormatError{texts().err_ExtraField}
         if kind == 1
         {
             var valueAt = at
@@ -149,7 +150,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
             if plain[] == ZipValue32Overflow
             {
                 if valueAt + 8 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Uncompressed}
+                    fail Errors.InvalidFormatError{texts().err_Zip64Uncompressed}
                 plain[] = try zipU64(extra, valueAt)
                 valueAt += 8
             }
@@ -157,7 +158,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
             if packed[] == ZipValue32Overflow
             {
                 if valueAt + 8 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Compressed}
+                    fail Errors.InvalidFormatError{texts().err_Zip64Compressed}
                 packed[] = try zipU64(extra, valueAt)
                 valueAt  += 8
             }
@@ -165,7 +166,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
             if local[] == ZipValue32Overflow
             {
                 if valueAt + 8 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Offset}
+                    fail Errors.InvalidFormatError{texts().err_Zip64Offset}
                 local[] = try zipU64(extra, valueAt)
                 valueAt += 8
             }
@@ -173,7 +174,7 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
             if disk[] == ZipValue16Overflow
             {
                 if valueAt + 4 > end do
-                    fail Errors.InvalidFormatError{archiveStrings().err_Zip64Disk}
+                    fail Errors.InvalidFormatError{texts().err_Zip64Disk}
                 disk[] = cast(u64, try zipU32(extra, valueAt))
             }
 
@@ -198,26 +199,26 @@ private func zipDirectoryLocation(file: *File.MappedFile, tailOffset: u64, tail:
     if result.count != ZipValue16Overflow and result.size != ZipValue32Overflow and result.offset != ZipValue32Overflow do
         return result
     if tailOffset + endAt < 20 do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64Locator}
+        fail Errors.InvalidFormatError{texts().err_Zip64Locator}
 
     let locatorOffset = tailOffset + endAt - 20
     let locator       = try file.map(locatorOffset, 20)
     if try zipU32(locator.bytes(), 0) != Zip64LocatorSignature do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64Locator}
+        fail Errors.InvalidFormatError{texts().err_Zip64Locator}
     if try zipU32(locator.bytes(), 4) or try zipU32(locator.bytes(), 16) != 1 do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Zip64MultiDisk}
+        fail Errors.UnsupportedFormatError{texts().err_Zip64MultiDisk}
     let recordOffset = try zipU64(locator.bytes(), 8)
     let fileSize     = try file.size()
     if recordOffset > fileSize or 56 > fileSize - recordOffset do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64EndOutside}
+        fail Errors.InvalidFormatError{texts().err_Zip64EndOutside}
 
     let record = try file.map(recordOffset, 56)
     if try zipU32(record.bytes(), 0) != Zip64EndSignature do
-        fail Errors.InvalidFormatError{archiveStrings().err_Zip64EndSignature}
+        fail Errors.InvalidFormatError{texts().err_Zip64EndSignature}
     if try zipU32(record.bytes(), 16) or try zipU32(record.bytes(), 20) do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Zip64MultiDisk}
+        fail Errors.UnsupportedFormatError{texts().err_Zip64MultiDisk}
     if try zipU64(record.bytes(), 24) != try zipU64(record.bytes(), 32) do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Zip64MultiDisk}
+        fail Errors.UnsupportedFormatError{texts().err_Zip64MultiDisk}
     result.count  = try zipU64(record.bytes(), 32)
     result.size   = try zipU64(record.bytes(), 40)
     result.offset = try zipU64(record.bytes(), 48)
@@ -228,13 +229,13 @@ private func zipDirectoryLocation(file: *File.MappedFile, tailOffset: u64, tail:
 //
 // The end record must close the file exactly. Multi-disk archives and directories beyond the
 // entry and size limits fail before any entry is decoded.
-func loadZipArchive(fileName: string)->ZipArchive fail
+func loadZip(fileName: string)->Zip fail
 {
     var result: retval
     var file     = try File.MappedFile.open(fileName)
     let fileSize = try file.size()
     if fileSize < 22 do
-        fail Errors.InvalidFormatError{archiveStrings().err_TooShort}
+        fail Errors.InvalidFormatError{texts().err_TooShort}
 
     let tailSize   = Math.min(fileSize, ZipEndSearch)
     let tailOffset = fileSize - tailSize
@@ -254,16 +255,16 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     }
 
     if endAt == Swag.U64.Max do
-        fail Errors.InvalidFormatError{archiveStrings().err_EndMissing}
+        fail Errors.InvalidFormatError{texts().err_EndMissing}
 
     let disk      = try zipU16(bytes, endAt + 4)
     let startDisk = try zipU16(bytes, endAt + 6)
     if disk or startDisk do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_MultiDisk}
+        fail Errors.UnsupportedFormatError{texts().err_MultiDisk}
     let diskEntries = try zipU16(bytes, endAt + 8)
     let allEntries  = try zipU16(bytes, endAt + 10)
     if diskEntries != allEntries do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_MultiDisk}
+        fail Errors.UnsupportedFormatError{texts().err_MultiDisk}
 
     let commentLength = cast(u64, try zipU16(bytes, endAt + 20))
     if commentLength do
@@ -271,11 +272,11 @@ func loadZipArchive(fileName: string)->ZipArchive fail
 
     let directory = try zipDirectoryLocation(&file, tailOffset, bytes, endAt)
     if directory.count > ZipEntryLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_TooManyEntries}
+        fail Errors.UnsupportedFormatError{texts().err_TooManyEntries}
     if directory.size > ZipDirectoryLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_DirectoryTooLarge}
+        fail Errors.UnsupportedFormatError{texts().err_DirectoryTooLarge}
     if directory.offset > fileSize or directory.size > fileSize - directory.offset do
-        fail Errors.InvalidFormatError{archiveStrings().err_DirectoryOutside}
+        fail Errors.InvalidFormatError{texts().err_DirectoryOutside}
 
     let region = try file.map(directory.offset, directory.size)
     let data   = region.bytes()
@@ -283,16 +284,16 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     for directory.count
     {
         if at > data.count or 46 > data.count - at do
-            fail Errors.InvalidFormatError{archiveStrings().err_DirectoryTruncated}
+            fail Errors.InvalidFormatError{texts().err_DirectoryTruncated}
         if try zipU32(data, at) != ZipDirectorySignature do
-            fail Errors.InvalidFormatError{archiveStrings().err_EntrySignature}
+            fail Errors.InvalidFormatError{texts().err_EntrySignature}
 
         let nameLength    = cast(u64, try zipU16(data, at + 28))
         let extraLength   = cast(u64, try zipU16(data, at + 30))
         let commentLength = cast(u64, try zipU16(data, at + 32))
         let totalLength   = 46 + nameLength + extraLength + commentLength
         if totalLength > data.count - at do
-            fail Errors.InvalidFormatError{archiveStrings().err_EntryOverflow}
+            fail Errors.InvalidFormatError{texts().err_EntryOverflow}
 
         var entry: ZipEntry
         entry.flags            = try zipU16(data, at + 8)
@@ -307,7 +308,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         let extraBytes = data[at + 46 + nameLength until at + 46 + nameLength + extraLength]
         try applyZip64Extra(extraBytes, &entry.uncompressedSize, &entry.compressedSize, &entry.localOffset, &diskNumber)
         if diskNumber do
-            fail Errors.UnsupportedFormatError{archiveStrings().err_MultiDiskEntry}
+            fail Errors.UnsupportedFormatError{texts().err_MultiDiskEntry}
 
         let decoded = zipText(nameBytes, cast(bool, entry.flags & ZipFlagUtf8))
         entry.path = cleanZipPath(decoded)
@@ -322,7 +323,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         if not entry.isDirectory
         {
             if entry.compressedSize > Swag.U64.Max - result.compressedSize or entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
-                fail Errors.InvalidFormatError{archiveStrings().err_EntrySizes}
+                fail Errors.InvalidFormatError{texts().err_EntrySizes}
             result.compressedSize   += entry.compressedSize
             result.uncompressedSize += entry.uncompressedSize
         }
@@ -343,39 +344,39 @@ func loadZipArchive(fileName: string)->ZipArchive fail
 func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
 {
     if entry.isDirectory do
-        fail Errors.BadParameterError{archiveStrings().err_DirectoryContent}
+        fail Errors.BadParameterError{texts().err_DirectoryContent}
     if entry.flags & ZipFlagEncrypted do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_Encrypted}
+        fail Errors.UnsupportedFormatError{texts().err_Encrypted}
     if entry.uncompressedSize > ZipPreviewLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_EntryTooLarge}
+        fail Errors.UnsupportedFormatError{texts().err_EntryTooLarge}
     if entry.compressedSize > ZipPreviewLimit do
-        fail Errors.UnsupportedFormatError{archiveStrings().err_PackedTooLarge}
+        fail Errors.UnsupportedFormatError{texts().err_PackedTooLarge}
     if entry.method != 0 and entry.method != 8 do
-        fail Errors.UnsupportedFormatError{Errors.mkString(Format.toString(archiveStrings().err_Method, entry.method))}
+        fail Errors.UnsupportedFormatError{Errors.mkString(Format.toString(texts().err_Method, entry.method))}
 
     var stream   = try File.openReadLive(archiveFileName)
     let fileSize = try stream.size()
     if entry.localOffset > fileSize or 30 > fileSize - entry.localOffset do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalOutside}
+        fail Errors.InvalidFormatError{texts().err_LocalOutside}
     var header: [30] u8
     if not (try stream.readExactAt(entry.localOffset, header)) do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalTruncated}
+        fail Errors.InvalidFormatError{texts().err_LocalTruncated}
     if try zipU32(header, 0) != ZipLocalSignature do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalSignature}
+        fail Errors.InvalidFormatError{texts().err_LocalSignature}
 
     let nameLength  = cast(u64, try zipU16(header, 26))
     let extraLength = cast(u64, try zipU16(header, 28))
     let headerEnd   = entry.localOffset + 30
     if nameLength > fileSize - headerEnd or extraLength > fileSize - headerEnd - nameLength do
-        fail Errors.InvalidFormatError{archiveStrings().err_LocalFields}
+        fail Errors.InvalidFormatError{texts().err_LocalFields}
     let dataOffset = headerEnd + nameLength + extraLength
     if dataOffset > fileSize or entry.compressedSize > fileSize - dataOffset do
-        fail Errors.InvalidFormatError{archiveStrings().err_PayloadOutside}
+        fail Errors.InvalidFormatError{texts().err_PayloadOutside}
 
     var packed: Array'u8
     packed.resize(entry.compressedSize)
     if entry.compressedSize and not (try stream.readExactAt(dataOffset, packed.toSlice())) do
-        fail Errors.InvalidFormatError{archiveStrings().err_PayloadTruncated}
+        fail Errors.InvalidFormatError{texts().err_PayloadTruncated}
 
     var plain: retval
     if entry.method == 0
@@ -390,9 +391,9 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
     }
 
     if plain.count != entry.uncompressedSize do
-        fail Errors.InvalidFormatError{archiveStrings().err_SizeMismatch}
+        fail Errors.InvalidFormatError{texts().err_SizeMismatch}
     if Hash.Crc32.compute(plain.toSlice()) != entry.crc32 do
-        fail Errors.InvalidFormatError{archiveStrings().err_Checksum}
+        fail Errors.InvalidFormatError{texts().err_Checksum}
     return plain
 }
 
@@ -401,5 +402,5 @@ func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destinatio
 {
     let plain = try loadZipEntry(archiveFileName, entry)
     if try File.writeAllBytes(destination, plain.toSlice()) != plain.count do
-        fail Swag.SystemError{archiveStrings().err_TempWrite}
+        fail Swag.SystemError{texts().err_TempWrite}
 }

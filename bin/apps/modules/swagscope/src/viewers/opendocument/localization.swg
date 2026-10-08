@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.OpenDocument
 
 using Core, Gui
 
 // Visible strings of the OpenDocument viewer.
-struct OpenDocumentStrings
+struct Texts
 {
     ui_Name:         string = "OpenDocument"
     ui_ZoomMenu:     string = "Document zoom options"
@@ -39,19 +40,19 @@ struct OpenDocumentStrings
 private const FrenchStringsName = "lang/fr/scope.opendocument.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.opendocument.tweak")
 
-private var g_OpenDocumentStrings: OpenDocumentStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the OpenDocument viewer in the active language.
-func openDocumentStrings()->const *OpenDocumentStrings => &g_OpenDocumentStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's strings before the registry names its plugin.
-func registerOpenDocumentStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'OpenDocumentStrings(&g_OpenDocumentStrings, "scope.opendocument")
+    Gui.registerStrings'Texts(&g_Texts, "scope.opendocument")
 }
 
 #run
 {
-    expect Gui.validateStrings'OpenDocumentStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

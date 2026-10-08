@@ -1,11 +1,11 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 func textViewerFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "comprehensive.txt")
 
-func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
+func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     for 8
     {
@@ -33,15 +33,15 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     }
 
     let fileName = textViewerFixturePath()
-    var result   = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
+    var result   = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null and result.retire != null)
 
-    let view = assume cast(*TextViewer, result.view)
+    let view = assume cast(*PlainText.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishTextStatistics(&host, view)
-    let lineDetails = Format.toString(textStrings().ui_Lines, view.statistics.lines)
+    let lineDetails = Format.toString(PlainText.texts().ui_Lines, view.statistics.lines)
     Swag.assert(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))
 
     var toggleWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
@@ -53,14 +53,14 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
 
     view.applyEncoding(.Utf16Le)
     let changedDetails = view.detailsText()
-    Swag.assert(changedDetails == Format.toString(textStrings().ui_Details, "UTF-16 LE"))
+    Swag.assert(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE"))
 
     let oldEncodingTip = String.from(view.encodingCombo.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.wrapButton.toolTip == textStrings().ui_WrapOff)
-    Swag.assert(view.encodingCombo.toolTip == textStrings().ui_Encoding and view.encodingCombo.toolTip != oldEncodingTip)
-    Swag.assert(view.zoomLabel.toolTip == textStrings().ui_ZoomMenu)
+    Swag.assert(view.wrapButton.toolTip == PlainText.texts().ui_WrapOff)
+    Swag.assert(view.encodingCombo.toolTip == PlainText.texts().ui_Encoding and view.encodingCombo.toolTip != oldEncodingTip)
+    Swag.assert(view.zoomLabel.toolTip == PlainText.texts().ui_ZoomMenu)
 }
 
 // Basic text owns a focused visual contract just like every format-specific document surface.
@@ -89,11 +89,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
         .padding         = {16, 4, 16, 4}
     }
 
-    var result = openTestViewer(textViewerPlugin(), &host.root, textViewerFixturePath(), commandParent: commandBar, infoParent: infoBar)
+    var result = openTestViewer(PlainText.viewerPlugin(), &host.root, textViewerFixturePath(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let view = assume cast(*TextViewer, result.view)
+    let view = assume cast(*PlainText.Panel, result.view)
     finishTextStatistics(&host, view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .None
@@ -119,9 +119,9 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var session = openTestViewer(textViewerPlugin(), &host.root, fileName, waitForText: false)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, waitForText: false)
 
-    with let view = assume cast(*TextViewer, session.view)
+    with let view = assume cast(*PlainText.Panel, session.view)
     {
         .resize(640, 360)
         .applyLayout()
@@ -170,8 +170,8 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextViewer)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var session = openTestViewer(textViewerPlugin(), &host.root, fileName)
-    let view    = assume cast(*TextViewer, session.view)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*PlainText.Panel, session.view)
     Swag.assert(view.revealOffset(15, "needle"))
     Swag.assert(not view.read.started and not view.pendingSeek)
     Swag.assert(view.editor.selectedText() == "needle")

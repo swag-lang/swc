@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui
+using Core, Gui, Viewers
 
 func assertClassificationFolder(result: const *ViewerClassifiedFile, names: const [..] String)
 {
@@ -90,9 +90,9 @@ func holdClassificationStatistics(thread: Threading.Thread)
     }
 
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
+    Swag.assert(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
     let previousView = window.currentView!
-    let previous     = assume cast(*TextViewer, previousView)
+    let previous     = assume cast(*PlainText.Panel, previousView)
     Swag.assert(previous.loadTimer == null)
 
     // Replace completed statistics with a worker whose lifetime is controlled by this test.

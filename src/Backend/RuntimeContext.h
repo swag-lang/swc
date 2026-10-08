@@ -59,6 +59,7 @@ namespace Runtime
         uint64_t runtimeTlsIdPlusOne;
         void*    panicStack[64];
         uint32_t panicStackCount;
+        void*    panicCatch;
     };
 }
 

@@ -85,7 +85,7 @@ using Core
     const Levels: [?] Swag.BuildCfgBackendOptimLevel = [.O0, .O1, .O2]
     for level in Levels
     {
-        var artifact = Pipeline.BuildArtifact{request: {source: String.from("using Core\nfunc value()->s32 => 42"), stage: String.from("pre-emit"), kind: .Microcode, settings: {optimization: level}}}
+        var artifact = Pipeline.BuildArtifact{request: {source: "using Core\nfunc value()->s32 => 42", stage: "pre-emit", kind: .Microcode, settings: {optimization: level}}}
         expect artifact.run()
         let result = &artifact.result
         Swag.assert(not result.failed, result.text.toString())

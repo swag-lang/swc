@@ -162,6 +162,55 @@ namespace Swag
         }
     }
 
+    // What [[catchPanic]] reports about the call it made.
+    public struct CaughtPanic
+    {
+        public
+        {
+            raised: bool                   // Whether the call panicked
+            loc:    SourceCodeLocation     // Where the panic was raised
+        }
+
+        length: u32
+        buffer: [256] u8
+    }
+
+    public impl CaughtPanic
+    {
+        // Returns the panic message, cut to 256 bytes. It is empty when the call did not panic.
+        mtd message()->string => Swag.makeString(&.buffer[0], .length)
+    }
+
+    // Calls `fn` and reports whether it panicked.
+    //
+    // A panic abandons every frame between it and this call: their 'defer' statements and
+    // destructors do not run, and whatever they held stays as it was. Catch a panic to check
+    // that a test raised it, never to recover from one. Only a panic raised on the current
+    // context is caught.
+    //
+    // ```swag
+    // let caught = Swag.catchPanic(func() { Swag.panic("stop", #curlocation) })
+    // Swag.assert(caught.raised and caught.message() == "stop")
+    // ```
+    public func catchPanic(fn: func||())->CaughtPanic
+    {
+        var frame: PanicCatchFrame
+        let cxt = Swag.getContext()
+        frame.previousHook  = cxt.panic
+        frame.previousFrame = cxt.panicCatch
+        frame.errorCaptures = cxt.errorCaptures
+        frame.errorIndex    = cxt.errorIndex
+        frame.traceIndex    = cxt.traceIndex
+        frame.hasError      = cxt.hasError
+
+        cxt.panic      = &catchPanicHook
+        cxt.panicCatch = &frame
+        __hostCatchCall(&frame.resumeStorage[0], &frame.caught.raised, fn)
+        cxt.panic      = frame.previousHook
+        cxt.panicCatch = frame.previousFrame
+        return frame.caught
+    }
+
     impl Context
     {
         // Releases error state and copied messages after this context's work has finished.
@@ -175,6 +224,51 @@ namespace Swag
             __releaseErrContext(me)
         }
     }
+}
+
+private struct PanicCatchFrame
+{
+    resumeStorage: [HostResumeStorageSize] u8
+    caught:        CaughtPanic
+    previousHook:  (func(string?, SourceCodeLocation))?
+    previousFrame: *void?
+    errorCaptures: *ErrorCapture?
+    errorIndex:    u32
+    traceIndex:    u32
+    hasError:      u32
+}
+
+#[Swag.NoReturn]
+private func catchPanicHook(message: string?, loc: SourceCodeLocation)
+{
+    let cxt   = Swag.getContext()
+    let frame = cast(*PanicCatchFrame, cxt.panicCatch!)
+
+    // The message can live in a frame the resume abandons.
+    if message
+    {
+        let count = Swag.min(message.count, #sizeof(frame.caught.buffer))
+        Swag.memcpy(&frame.caught.buffer[0], message.buffer, count)
+        frame.caught.length = cast(u32, count)
+    }
+
+    frame.caught.loc = loc
+
+    // The abandoned frames own the captures pushed after the catch started, and their stack
+    // slots are about to be reused.
+    while cxt.errorCaptures != frame.errorCaptures
+    {
+        let capture = cxt.errorCaptures!
+        cxt.errorCaptures = capture.next
+        capture.opDrop()
+    }
+
+    cxt.errorIndex = frame.errorIndex
+    cxt.traceIndex = frame.traceIndex
+    cxt.hasError   = frame.hasError
+
+    frame.caught.raised = true
+    __hostResume(&frame.resumeStorage[0])
 }
 
 private func __allocateErrMemory(allocator: IAllocator, size: u64)->*void
@@ -652,6 +746,7 @@ func __failedCast() fail
     fail Swag.BaseError{"source value cannot be converted to the requested type"}
 }
 
+#[Swag.NoReturn]
 func __failedExpect(loc: SourceCodeLocation)
 {
     let cxt  = Swag.getContext()
@@ -702,9 +797,6 @@ func __failedExpect(loc: SourceCodeLocation)
 
     str[len] = 0
     Swag.panic(Swag.makeString(&str[0], len), loc)
-
-    // A hook may report or transfer control, but it cannot resume a failed 'expect'.
-    __exitError()
 }
 
 ////////////////////////////////////////////////////////////
@@ -794,49 +886,46 @@ func __printPanicReport(message: string?, loc: SourceCodeLocation)
 }
 
 // Stop the execution and panic
-#[Swag.Safety(.All, false)]
+#[Swag.Safety(.All, false), Swag.NoReturn]
 func panic(message: string?, loc: SourceCodeLocation)
 {
-    // Capture while the application caller is still immediately above this frame. A panic hook is
-    // free to resume execution (the native test runner does). Store it in the process context so a
-    // hook compiled into another Swag module sees the same capture.
+    // Capture while the application caller is still immediately above this frame, and store it in
+    // the process context so a hook compiled into another Swag module sees the same capture.
     let cxt = Swag.getContext()
     cxt.panicStackCount = __captureStack(0, cxt.panicStack)
 
-    // User function
-    if cxt.panic
-    {
+    // A hook can report the panic, or transfer control out of it as the native test runner and
+    // 'catchPanic' do. It cannot resume the caller: a panic reports a broken invariant, and the
+    // code after it is written for a program that never gets there. A hook that returns hands
+    // the panic back to the path below.
+    if cxt.panic do
         cxt.panic(message, loc)
-        return
-    }
 
-    // If we are running bytecode, then just let the runner deal with the message,
-    // we will have more usefull information
+    // Under the compiler, let it report the panic: it knows more about the code that raised it,
+    // and it abandons the run instead of continuing it.
     if Swag.jit()
     {
         __raiseException666(message, loc, .Panic)
-        return
+        unreachable
     }
 
-    // A panic reports a broken invariant, so the process stops here. Returning
-    // would resume the caller on state the panic just declared unusable, and the
-    // run would end with a success code that hides the report printed above.
     __printPanicReport(message, loc)
     __exitError()
 }
 
-#[Swag.Safety(.All, false)]
+#[Swag.Safety(.All, false), Swag.NoReturn]
 func safetyPanic(message: string, loc: SourceCodeLocation)
 {
     if Swag.jit()
     {
         __raiseException666(message, loc, .Safety)
-        return
+        unreachable
     }
 
     Swag.panic(message, loc)
 }
 
+#[Swag.NoReturn]
 func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation

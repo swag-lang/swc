@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.PlainText
 
 using Core, Gui
 
@@ -6,7 +7,7 @@ using Core, Gui
 //
 // An encoding is named by its standard spelling, so those names live in the viewer itself rather
 // than in this table.
-struct TextStrings
+struct Texts
 {
     ui_Name:         string = "Basic text"                                                                             // Name of this viewer in the viewer selector.
     ui_WrapOn:       string = "Line wrapping on (Ctrl+W)"                                                              // Tooltip while long lines are folded.
@@ -25,22 +26,22 @@ struct TextStrings
 private const FrenchStringsName = "lang/fr/scope.text.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.text.tweak")
 
-private var g_TextStrings: TextStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the text viewer in the active language.
-func textStrings()->const *TextStrings => &g_TextStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerTextStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'TextStrings(&g_TextStrings, "scope.text")
+    Gui.registerStrings'Texts(&g_Texts, "scope.text")
 }
 
 #run
 {
-    expect Gui.validateStrings'TextStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

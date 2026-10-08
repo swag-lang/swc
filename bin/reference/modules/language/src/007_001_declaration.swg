@@ -25,8 +25,8 @@ func toto1()->s32
 A function that declares a return type is rejected when its body can reach the end without
 returning: the promise is part of the signature, and a value the caller reads has to exist.
 
-What counts as leaving the function is 'return', 'fail', 'unreachable' and 'Swag.panic', an
-'if' whose branches all leave, a loop with no way out of it, and a 'switch' where every case
+What counts as leaving the function is 'return', 'fail', 'unreachable', 'Swag.panic' and a
+call to a function marked '#[Swag.NoReturn]', an 'if' whose branches all leave, a loop with no way out of it, and a 'switch' where every case
 leaves and some case always matches — a 'default' arm, or 'switch #complete' over an enum. A
 plain 'switch' is deliberately not exhaustive whatever its cases cover, so a value outside the
 set walks past it: writing '#complete' is what states the promise, and it stays free of any
@@ -51,6 +51,32 @@ func seasonLength(season: Season)->s32
 #test
 {
     Swag.assert(seasonLength(Season.Winter) == 90)
+}
+
+/**
+'#[Swag.NoReturn]' adds a function of your own to that list: a call to it ends the path the
+same way 'Swag.panic' does, so nothing has to follow it. The function keeps the promise
+itself: it has no return type, contains no 'return', and ends every path with a call that
+does not come back.
+*/
+#[Swag.NoReturn]
+func invalidSeason()
+{
+    Swag.panic("this index names no season", #curlocation)
+}
+
+func seasonAt(index: s32)->Season
+{
+    if index == 0 do
+        return .Summer
+    if index == 1 do
+        return .Winter
+    invalidSeason()
+}
+
+#test
+{
+    Swag.assert(seasonAt(1) == Season.Winter)
 }
 
 /**

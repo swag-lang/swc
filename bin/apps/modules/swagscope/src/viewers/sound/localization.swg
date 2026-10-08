@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Sound
 
 using Core, Gui
 
@@ -6,7 +7,7 @@ using Core, Gui
 //
 // Units keep their symbol in every language — `Hz`, `ms`, `s` and `bit` are read the same way
 // everywhere — so only the words around them are translated.
-struct SoundStrings
+struct Texts
 {
     ui_TipPlay:     string = "Play"                           // Tooltip of the transport button while stopped or paused.
     ui_TipPause:    string = "Pause"                          // Tooltip of the transport button while playing.
@@ -28,25 +29,25 @@ struct SoundStrings
 private const FrenchStringsName = "lang/fr/scope.sound.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.sound.tweak")
 
-private var g_SoundStrings: SoundStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the sound viewer in the active language.
-func soundStrings()->const *SoundStrings => &g_SoundStrings
+func texts()->const *Texts => &g_Texts
 
 // Returns `count` followed by the noun in the form that count calls for.
-func channelCountText(count: u32)->String => Format.toString("% %", count, count == 1 ? soundStrings().word_Channel : soundStrings().word_Channels)
+func channelCountText(count: u32)->String => Format.toString("% %", count, count == 1 ? texts().word_Channel : texts().word_Channels)
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerSoundStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'SoundStrings(&g_SoundStrings, "scope.sound")
+    Gui.registerStrings'Texts(&g_Texts, "scope.sound")
 }
 
 #run
 {
-    expect Gui.validateStrings'SoundStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

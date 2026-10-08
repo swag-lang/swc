@@ -180,8 +180,6 @@ namespace Swag
             case .ShlAssign:    return "<<="
             case .ShrAssign:    return ">>="
             }
-
-            unreachable
         }
     }
 
@@ -202,6 +200,15 @@ namespace Swag
     // Makes a 'return' in the macro or mixin leave the macro itself rather than its caller.
     #[AttrUsage(AttributeUsage.Function)]
     attr CalleeReturn()
+
+    // Declares that a call to the function never comes back, like 'Swag.panic'.
+    //
+    // The code after a call is reported as unreachable, and a function with a return type
+    // needs no 'return' after it. The function itself has no return type, contains no
+    // 'return', and ends every path with 'Swag.panic', 'unreachable', or a call to another
+    // 'NoReturn' function.
+    #[AttrUsage(AttributeUsage.Function)]
+    attr NoReturn()
 
     // Declares a function implemented outside the current module.
     //
@@ -673,6 +680,8 @@ namespace Swag
             panicStack: [64] (*void?)     // Native call stack captured before entering a panic hook.
             #[Swag.NoDoc]
             panicStackCount: u32     // Number of valid addresses in panicStack.
+            #[Swag.NoDoc]
+            panicCatch: *void?     // Innermost 'catchPanic' running on this context.
         }
     }
 

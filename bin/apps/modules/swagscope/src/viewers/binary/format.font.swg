@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -18,12 +19,12 @@ func isSfntFont(image: *BinaryImage)->bool
 }
 
 // Adds the table directory of a font, and the names the font calls itself by.
-func reportSfntFont(image: *BinaryImage, report: *BinaryReport)
+func reportSfntFont(image: *BinaryImage, report: *Report)
 {
     // Everything in an sfnt container is big endian, including the collection header.
     image.bigEndian = true
 
-    let s = binaryStrings()
+    let s = texts()
     if image.matches(0, "ttcf")
     {
         reportFontCollection(image, report)
@@ -35,11 +36,11 @@ func reportSfntFont(image: *BinaryImage, report: *BinaryReport)
     report.summary    = names.isEmpty() ? String.from(s.font_Font) : Format.toString("% · %", s.font_Font, names)
 }
 
-private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
+private func reportFontCollection(image: *BinaryImage, report: *Report)
 {
-    let s     = binaryStrings()
+    let s     = texts()
     let count = cast(u64, image.u32At(8))
-    let shown = Math.min(count, BinaryListLimit)
+    let shown = Math.min(count, ListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
     report.beginGroup(s.font_Collection, total, "", offset: 0, length: 12 + count * 4, open: true)
@@ -61,11 +62,11 @@ private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 }
 
 // Adds the tables of the font whose directory starts at `at`, and returns the family it names.
-private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u64, open: bool)->String
+private func reportFontTables(image: *BinaryImage, report: *Report, at: u64, open: bool)->String
 {
-    let s     = binaryStrings()
+    let s     = texts()
     let count = cast(u64, image.u16At(at + 4))
-    let shown = Math.min(count, BinaryListLimit)
+    let shown = Math.min(count, ListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
     var headAt = Swag.U64.Max
@@ -114,14 +115,14 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
 }
 
 // Adds the naming table, and returns the family the font calls itself.
-private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64, open: bool)->String
+private func reportFontNames(image: *BinaryImage, report: *Report, at: u64, open: bool)->String
 {
     var result: retval
 
-    let s         = binaryStrings()
+    let s         = texts()
     let count     = cast(u64, image.u16At(at + 2))
     let stringsAt = at + cast(u64, image.u16At(at + 4))
-    let shown     = Math.min(count, BinaryListLimit)
+    let shown     = Math.min(count, ListLimit)
     let total     = countText(count, s.word_Entry, s.word_Entries)
 
     report.beginGroup(s.font_Names, total, "", offset: at, length: 6 + count * 12, open: open)
@@ -157,7 +158,7 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
 // Returns which of the naming table's entries are worth showing, and under what heading.
 private func fontNameLabel(nameId: u16)->string
 {
-    let s = binaryStrings()
+    let s = texts()
     switch nameId
     {
     case 0: return "Copyright"

@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -15,11 +16,11 @@ func isArchive(image: *BinaryImage)->bool => image.matches(0, ArMagic)
 //
 // A library is a directory before it is a container: what a linker actually reads first is the
 // symbol index, because that is what says which member has to be pulled in at all.
-func reportArchive(image: *BinaryImage, report: *BinaryReport)
+func reportArchive(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
 
-    let s = binaryStrings()
+    let s = texts()
     report.beginGroup(s.ar_Archive, ArMagic[0 until 7], "", offset: 0, length: 8, open: true)
     report.endGroup()
 
@@ -28,7 +29,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     var offsets: Array'u64
     var scan     = 8'u64
     var complete = true
-    while scan + ArHeaderSize <= image.bytes.count and offsets.count < BinaryListLimit
+    while scan + ArHeaderSize <= image.bytes.count and offsets.count < ListLimit
     {
         let size = arDecimalAt(image, scan + 48, 10)
         if not image.matches(scan + 58, "`\n")
@@ -41,7 +42,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         scan += ArHeaderSize + size + (size & 1)
     }
 
-    if scan < image.fileSize and offsets.count < BinaryListLimit and complete and not image.isBounded() do
+    if scan < image.fileSize and offsets.count < ListLimit and complete and not image.isBounded() do
         complete = false
 
     let longNamesAt = arLongNamesAt(image, offsets.toSlice())
@@ -97,9 +98,9 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
 }
 
 // Adds the fields of the fixed header in front of one member.
-private func reportArHeader(image: *BinaryImage, report: *BinaryReport, at, size: u64)
+private func reportArHeader(image: *BinaryImage, report: *Report, at, size: u64)
 {
-    let s        = binaryStrings()
+    let s        = texts()
     let modified = epochText(arDecimalAt(image, at + 16, 12))
     let owner    = image.fixedTextAt(at + 28, 12)
     let mode     = image.fixedTextAt(at + 40, 8)
@@ -113,9 +114,9 @@ private func reportArHeader(image: *BinaryImage, report: *BinaryReport, at, size
 }
 
 // Adds the symbol index a linker reads before anything else in the archive.
-private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at, size: u64, first: bool)
+private func reportArLinkerMember(image: *BinaryImage, report: *Report, at, size: u64, first: bool)
 {
-    let s = binaryStrings()
+    let s = texts()
     report.beginGroup(s.ar_Linker, "", s.ar_LinkerDesc, offset: at, length: size)
 
     // The first directory is written big endian whatever the target, and the second little endian.
@@ -139,7 +140,7 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
     let symbols = countText(count, s.word_Symbol, s.word_Symbols)
     report.field(at, 4, "NumberOfSymbols", symbols)
 
-    let shown  = Math.min(count, BinaryListLimit)
+    let shown  = Math.min(count, ListLimit)
     var nameAt = namesAt
     for index in shown
     {
@@ -157,9 +158,9 @@ private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at
 }
 
 // Adds one short import record, the member form a linker turns into a thunk rather than into code.
-private func reportArImportMember(image: *BinaryImage, report: *BinaryReport, at: u64)
+private func reportArImportMember(image: *BinaryImage, report: *Report, at: u64)
 {
-    let s       = binaryStrings()
+    let s       = texts()
     let machine = image.u16At(at + 6)
     let ordinal = image.u16At(at + 16)
     let flags   = image.u16At(at + 18)
@@ -208,7 +209,7 @@ private func arLongNamesAt(image: *BinaryImage, offsets: const [..] u64)->u64
 private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->String
 {
     if raw.count == 0 do
-        return String.from(BinaryNoValue)
+        return String.from(NoValue)
 
     if raw[0] == '/'u8 and raw.count > 1 and raw[1] >= '0'u8 and raw[1] <= '9'u8
     {

@@ -215,6 +215,37 @@ or passed side by side are all one-line or all expanded, and a single-statement 
 one-line siblings joins them. Change the shape of the whole group, not of one member: the next
 format puts a lone exception back in line.
 
+### Shape sibling declarations into tables
+
+Swag code is meant to be pleasant to look at, not only correct. A run of sibling one-line
+declarations — expression-bodied functions, constants, aliases, enum values, fields — reads as a
+table when it is written as one block, and `swc format` then aligns its `=>`, `=`, or type column.
+Scattered with blank lines, the same declarations read as unrelated fragments.
+
+- Write sibling one-liners with no blank line between them. Keep blank lines for the boundary
+  between groups that differ in purpose.
+- Order declarations so siblings sit together. Gather the one-liners of one role (byte readers,
+  predicates, conversions) instead of interleaving them with block-bodied functions.
+- Put one comment above the group when it needs one. A comment between two lines brings back a
+  blank line and splits the table in two.
+- Alignment has a limit. The formatter leaves out a line whose natural column is more than
+  `align-outlier-gap` (8) columns from its neighbours, working in from both ends of the group,
+  so a long signature beside short ones stays ragged. Then split the run into groups of comparable
+  width, reorder it, or find a more precise name that also brings the lengths together. Never pad
+  by hand, and never accept a worse name just to make the columns work.
+- Read the block as a whole after formatting. The test is whether the shape helps the eye.
+
+```swag
+// Bounded readers over the raw file: MIDI stores every multi-byte number big-endian.
+private func hasBytes(bytes: const [..] u8, offset, count: u64)->bool        => offset <= bytes.count and count <= bytes.count - offset
+private func matchesAt(bytes: const [..] u8, offset: u64, tag: string)->bool => hasBytes(bytes, offset, tag.count) and Slice.equals(bytes[offset until offset + tag.count], cast(const [..] u8, tag))
+private func readU16(bytes: const [..] u8, offset: u64)->u16                 => (cast(u16, bytes[offset]) << 8) | cast(u16, bytes[offset + 1])
+```
+
+With `value: string` in place of `tag: string`, `matchesAt` sat 9 columns past `hasBytes`, and
+the formatter left both lines unaligned. The more precise name brought the group back within the
+limit.
+
 ## Return Values Directly
 
 - Return the operation's primary result. Do not make a caller declare an uninitialized value and
@@ -462,8 +493,9 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 
 1. Search again for the obsolete spelling or pattern across the entire repository.
    For a broad cleanup, review relay locals, guarded one-call receivers, separate declaration /
-   `with` pairs, repeated configuration prefixes, trivial return bodies, and redundant modifier
-   nesting throughout `bin/`. Search identifies candidates; it does not authorize a blind rewrite.
+   `with` pairs, repeated configuration prefixes, trivial return bodies, redundant modifier
+   nesting, and sibling one-liners scattered by blank lines throughout `bin/`. Search identifies
+   candidates; it does not authorize a blind rewrite.
 2. Compile early after representative migrations; do not assume a conversion or lifetime rule.
 3. Run the smallest sufficient validation selected by
    [validate-swag-changes](../validate-swag-changes/SKILL.md) for the final

@@ -174,6 +174,4 @@ func curveName(easing: AnimationEasing)->string
     case .EaseOutElastic: return "EaseOutElastic"
     case .EaseOutBounce:  return "EaseOutBounce"
     }
-
-    unreachable
 }

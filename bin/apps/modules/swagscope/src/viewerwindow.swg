@@ -573,8 +573,8 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.searchMatchCase", &me.searchMatchCaseOption)
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
-        catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &g_VideoSubtitleSettings)
-        catch evt.serializer.serialize("ViewerWindow.markdown", &g_MarkdownViewerSettings)
+        catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &Viewers.Film.g_SubtitleSettings)
+        catch evt.serializer.serialize("ViewerWindow.markdown", &Viewers.MarkdownText.g_ViewerSettings)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
@@ -590,10 +590,8 @@ impl IWnd for ViewerWindow
             if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle) do
                 .playMode = .Once
             .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
-            g_VideoSubtitleSettings.delay        = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
-            g_MarkdownViewerSettings.themeIndex  = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
-            g_MarkdownViewerSettings.widthIndex  = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
-            g_MarkdownViewerSettings.zoomPercent = Math.clamp(g_MarkdownViewerSettings.zoomPercent, 50'u32, 300'u32)
+            Viewers.Film.g_SubtitleSettings.sanitize()
+            Viewers.MarkdownText.g_ViewerSettings.sanitize()
         }
     }
 
@@ -2844,7 +2842,7 @@ impl ViewerWindow
         if not .activateChoice(selected)
         {
             selected = Swag.U32.Max
-            for choice, index in .choices where choice.key == TextViewerKey
+            for choice, index in .choices where choice.key == Viewers.PlainText.ViewerKey
             {
                 selected = cast(u32, index)
                 break

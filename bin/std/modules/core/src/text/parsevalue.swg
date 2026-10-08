@@ -28,7 +28,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         while one.count and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
-            one = try parseValue(addrVal!, safeValueType, one)
+            one = try parseValue(addrVal, safeValueType, one)
             one = Tokenize.eatSpaces(one)
         }
 

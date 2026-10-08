@@ -290,8 +290,7 @@ impl AnalysisOperation
     }
 
     mtd const isDone()->bool => .started and .task.isDone()
-
-    mtd progress()->u64 => Atomic.get(&.processed)
+    mtd progress()->u64      => Atomic.get(&.processed)
 
     // Returns the result of a finished analysis, and makes the operation ready to start again.
     mtd finish()->AnalysisResult

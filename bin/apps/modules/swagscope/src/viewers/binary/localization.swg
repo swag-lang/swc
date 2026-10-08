@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core, Gui
 
@@ -9,7 +10,7 @@ using Core, Gui
 // that format's documentation, so they are written exactly as the specification writes them in
 // every language. The same holds for the names of machines, subsystems and resource types: those
 // are proper names, not sentences.
-struct BinaryStrings
+struct Texts
 {
     ui_Filter:       string = "Filter report"                                                          // Placeholder of the structure filter.
     ui_FilterTip:    string = "Show matching rows and the parent structures that contain them"         // Tooltip explaining hierarchical filtering.
@@ -305,35 +306,35 @@ struct BinaryStrings
 private const FrenchStringsName = "lang/fr/scope.binary.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.binary.tweak")
 
-private var g_BinaryStrings: BinaryStrings
+private var g_Texts: Texts
 
 // A decoder keeps the language snapshot it started with even when the GUI changes language while
 // it is running. Only a borrowed pointer lives in TLS; the owning viewer waits for the worker
 // before replacing that snapshot.
-tls private var g_BinaryStringsOverride: const *BinaryStrings?
+tls private var g_TextsOverride: const *Texts?
 
 // Returns the visible strings of the binary viewer.
 //
 // A background decoder reads the snapshot its thread selected; every other caller reads the active
 // language.
-func binaryStrings()->const *BinaryStrings => g_BinaryStringsOverride ? g_BinaryStringsOverride! : &g_BinaryStrings
+func texts()->const *Texts => g_TextsOverride orelse &g_Texts
 
-// Makes `strings` the table [[binaryStrings]] returns on the calling thread.
+// Makes `texts` the table [[texts]] returns on the calling thread.
 //
 // Passing `null` restores the shared table of the active language.
-func setBinaryStringsOverride(strings: const *BinaryStrings?)
+func setTextsOverride(texts: const *Texts?)
 {
-    g_BinaryStringsOverride = strings
+    g_TextsOverride = texts
 }
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerBinaryStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'BinaryStrings(&g_BinaryStrings, "scope.binary")
+    Gui.registerStrings'Texts(&g_Texts, "scope.binary")
 }
 
 // Returns `count` followed by the noun in the form that count calls for.
@@ -341,5 +342,5 @@ func countText(count: u64, singular, plural: string)->String => Format.toString(
 
 #run
 {
-    expect Gui.validateStrings'BinaryStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

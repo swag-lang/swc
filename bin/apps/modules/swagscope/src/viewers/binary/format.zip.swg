@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -51,11 +52,11 @@ func zipMethodName(value: u16)->string
 //
 // Nothing is decompressed: the central directory is the whole of what an archive says it holds, and
 // reading it is what tells a reader whether opening the archive is worth it at all.
-func reportZipArchive(image: *BinaryImage, report: *BinaryReport)
+func reportZipArchive(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
 
-    let s     = binaryStrings()
+    let s     = texts()
     let endAt = zipEndAt(image)
     if endAt == Swag.U64.Max
     {
@@ -91,9 +92,9 @@ func reportZipArchive(image: *BinaryImage, report: *BinaryReport)
     reportZipEntries(image, report, at, size, declared)
 }
 
-private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, size, declared: u64)
+private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, declared: u64)
 {
-    let s     = binaryStrings()
+    let s     = texts()
     let end   = at + size
     let total = countText(declared, s.word_Entry, s.word_Entries)
 
@@ -104,7 +105,7 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
     var packed   = 0'u64
     var unpacked = 0'u64
 
-    while scan + 46 <= end and shown < BinaryListLimit
+    while scan + 46 <= end and shown < ListLimit
     {
         if image.u32At(scan) != ZipEntrySignature do
             break
@@ -181,6 +182,6 @@ private func zipEndAt(image: *BinaryImage)->u64
 private func zipTimeText(date, time: u16)->String
 {
     if not date do
-        return String.from(BinaryNoValue)
+        return String.from(NoValue)
     return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", 1980 + (date >> 9), (date >> 5) & 0xF, date & 0x1F, time >> 11, (time >> 5) & 0x3F, (time & 0x1F) * 2)
 }

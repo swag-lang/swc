@@ -1,18 +1,19 @@
 #global internal
+#global namespace Viewers.Captions
 
 using Core, Core.Errors, Pixel, Gui, Video
 
 // Describes the subtitle viewer to the host.
-func subtitleViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "subtitle"
         .staticName   = "Subtitles"
-        .attach       = &registerSubtitleStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Subtitle)
-        .create       = &createSubtitleViewer
+        .create       = &createViewer
         .textual      = true
         .smokeFixture = "viewer.srt"
         .addSelectors(".srt;.vtt;.ass;.ssa;.lrc;.sub")
@@ -22,14 +23,14 @@ func subtitleViewerPlugin()->Viewer.Plugin
 }
 
 // Locates the text of one cue inside the transcript.
-struct SubtitleViewerCue
+struct ViewerCue
 {
     textOffset: u64
     textLength: u64
 }
 
 // Presents a timed subtitle file as a searchable transcript of its cues.
-struct SubtitleViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -42,12 +43,12 @@ struct SubtitleViewer
 
     track:      *Subtitle.Track?
     transcript: String
-    cueText:    Array'SubtitleViewerCue
+    cueText:    Array'ViewerCue
     duration:   f64
 }
 
 // Formats a cue time as HH:MM:SS.mmm, a form the go-to-time dialog also accepts.
-private func subtitleClockText(seconds: f64)->String
+private func clockText(seconds: f64)->String
 {
     let millis   = cast(u64, Math.max(Math.round(seconds * 1_000), 0.0))
     let hours    = millis / 3_600_000
@@ -58,7 +59,7 @@ private func subtitleClockText(seconds: f64)->String
 }
 
 // Returns the established name of a subtitle syntax.
-private func subtitleFormatText(format: Subtitle.Format)->string
+private func formatText(format: Subtitle.Format)->string
 {
     switch #complete format
     {
@@ -72,9 +73,9 @@ private func subtitleFormatText(format: Subtitle.Format)->string
 }
 
 // Returns the cue count with the noun that count calls for.
-private func subtitleCueCountText(count: u64)->String => count == 1 ? String.from(subtitleStrings().ui_OneCue) : Format.toString(subtitleStrings().ui_Cues, count)
+private func cueCountText(count: u64)->String => count == 1 ? String.from(texts().ui_OneCue) : Format.toString(texts().ui_Cues, count)
 
-impl IWnd for SubtitleViewer
+impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
@@ -91,13 +92,13 @@ impl IWnd for SubtitleViewer
     }
 }
 
-private impl SubtitleViewer
+private impl Panel
 {
     mtd retranslate()
     {
-        .cueButton.setText(subtitleCueCountText(.track!.cueCount()))
-        .cueButton.toolTip      = subtitleStrings().ui_GoToCue
-        .durationButton.toolTip = subtitleStrings().ui_GoToTime
+        .cueButton.setText(cueCountText(.track!.cueCount()))
+        .cueButton.toolTip      = texts().ui_GoToCue
+        .durationButton.toolTip = texts().ui_GoToTime
     }
 
     mtd buildTranscript()
@@ -106,9 +107,9 @@ private impl SubtitleViewer
         {
             if not .transcript.isEmpty() do
                 .transcript += "\n\n"
-            .transcript += subtitleClockText(.track.cueStartTime(index))
+            .transcript += clockText(.track.cueStartTime(index))
             .transcript += "  →  "
-            .transcript += subtitleClockText(.track.cueEndTime(index))
+            .transcript += clockText(.track.cueEndTime(index))
             .transcript += "\n"
             let offset  = .transcript.length
             let content = .track.cueContent(index)
@@ -146,8 +147,8 @@ private impl SubtitleViewer
     {
         if .cueText.isEmpty() do
             return
-        let message = Format.toString(subtitleStrings().ui_CueRange, .cueText.count)
-        let dialog  = EditDlg.createSingleLine(.surface!, {title: subtitleStrings().ui_GoToCue, message: message, text: "1"})
+        let message = Format.toString(texts().ui_CueRange, .cueText.count)
+        let dialog  = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToCue, message: message, text: "1"})
         if dialog.doModal() != Dialog.BtnOk do
             return
         let cue = catch StrConv.toU64(dialog.text()) as parseError
@@ -159,12 +160,12 @@ private impl SubtitleViewer
     {
         if .cueText.isEmpty() do
             return
-        let dialog = EditDlg.createSingleLine(.surface!, {title: subtitleStrings().ui_GoToTime, message: subtitleStrings().ui_TimeRange, text: "00:00:00.000"})
+        let dialog = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00.000"})
         if dialog.doModal() != Dialog.BtnOk do
             return
 
         var seconds: f64
-        if not subtitleTimeSeconds(dialog.text(), &seconds) do
+        if not timeSeconds(dialog.text(), &seconds) do
             return
         for index in .track!.cueCount() where .track.cueEndTime(index) >= seconds
         {
@@ -175,9 +176,9 @@ private impl SubtitleViewer
         discard .revealCue(.cueText.count - 1)
     }
 
-    func create(host: Viewer.Host)->*SubtitleViewer fail
+    func create(host: Viewer.Host)->*Panel fail
     {
-        with let result = Wnd.create'SubtitleViewer(host.contentParent(), "scope.subtitle")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.subtitle")
         {
             .backgroundStyle = .View
             .track           = try Subtitle.Track.loadOwned(host.fileName())
@@ -192,16 +193,16 @@ private impl SubtitleViewer
             .margin.x  = 8
             .setText(Viewer.durationText(result.duration))
             .setForm(.Rectangle)
-            .toolTip    = subtitleStrings().ui_GoToTime
+            .toolTip    = texts().ui_GoToTime
             .sigPressed += func|view = result|(?) { view.promptGoToTime() }
         }
 
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
         {
             .dockStyle = .Right
-            .setText(subtitleCueCountText(result.track!.cueCount()))
+            .setText(cueCountText(result.track!.cueCount()))
             .setForm(.Rectangle)
-            .toolTip    = subtitleStrings().ui_GoToCue
+            .toolTip    = texts().ui_GoToCue
             .sigPressed += func|view = result|(?) { view.promptGoToCue() }
         }
 
@@ -225,7 +226,7 @@ private impl SubtitleViewer
 //
 // Once a colon is present, every field after the first is a base-60 component rather than an
 // unrestricted decimal number. `result` is left untouched when `text` is rejected.
-func subtitleTimeSeconds(text: string, result: *f64)->bool
+func timeSeconds(text: string, result: *f64)->bool
 {
     let parts = Tokenize.split(text, ':'u8, removeEmpty: false)
     if parts.isEmpty() or parts.count > 3 do
@@ -253,13 +254,13 @@ func subtitleTimeSeconds(text: string, result: *f64)->bool
 }
 
 // Creates the integrated timed-subtitle document view and connects it to the host.
-func createSubtitleViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
     catch
     {
-        let view = try SubtitleViewer.create(host)
+        let view = try Panel.create(host)
         host.attachView(view)
-        host.setDetails(subtitleFormatText(view.track!.sourceFormat()))
+        host.setDetails(formatText(view.track!.sourceFormat()))
 
         with var search: Viewer.SearchApi
         {

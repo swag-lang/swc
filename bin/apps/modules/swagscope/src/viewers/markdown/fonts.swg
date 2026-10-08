@@ -1,15 +1,16 @@
 #global internal
+#global namespace Viewers.MarkdownText
 
 using Core, Pixel
 
-private var g_MarkdownFontFamilies: HashTable'(String, [FontFamilyStyle.count] (*TypeFace?))
-private var g_MarkdownFontLock:     Sync.Mutex
+private var g_FontFamilies: HashTable'(String, [FontFamilyStyle.count] (*TypeFace?))
+private var g_FontLock:     Sync.Mutex
 
 // Returns the type faces of the first installed system family among `names`, one per style.
 //
 // Each family list is resolved once. Missing system fonts keep the viewer's embedded fallback;
 // no document theme installs, downloads or ships font files.
-func markdownSystemFaces(names: const [..] string)->[FontFamilyStyle.count] (*TypeFace?)
+func systemFaces(names: const [..] string)->[FontFamilyStyle.count] (*TypeFace?)
 {
     var key: String
     for name in names
@@ -18,8 +19,8 @@ func markdownSystemFaces(names: const [..] string)->[FontFamilyStyle.count] (*Ty
         key += ";"
     }
 
-    Sync.scopedLock(&g_MarkdownFontLock)
-    if let found = g_MarkdownFontFamilies.tryFind(key) do
+    Sync.scopedLock(&g_FontLock)
+    if let found = g_FontFamilies.tryFind(key) do
         return found.value
 
     var result: retval
@@ -34,6 +35,6 @@ func markdownSystemFaces(names: const [..] string)->[FontFamilyStyle.count] (*Ty
             break
     }
 
-    g_MarkdownFontFamilies.add(key, result)
+    g_FontFamilies.add(key, result)
     return result
 }

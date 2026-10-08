@@ -47,6 +47,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Operators, .str = "Operators"},
         {.name = PredefinedName::OperatorIgnore, .str = "OperatorIgnore"},
         {.name = PredefinedName::CalleeReturn, .str = "CalleeReturn"},
+        {.name = PredefinedName::NoReturn, .str = "NoReturn"},
         {.name = PredefinedName::Foreign, .str = "Foreign"},
         {.name = PredefinedName::Discardable, .str = "Discardable"},
         {.name = PredefinedName::NoCopy, .str = "NoCopy"},

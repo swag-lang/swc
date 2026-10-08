@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.PdfDocument
 
 using Core, Gui
 
 // Visible strings of the PDF viewer.
-struct PdfStrings
+struct Texts
 {
     ui_Previous:   string = "Previous page"                     // Tooltip of the previous-page button.
     ui_Next:       string = "Next page"                         // Tooltip of the next-page button.
@@ -23,17 +24,17 @@ struct PdfStrings
 private const FrenchStringsName = "lang/fr/scope.pdf.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.pdf.tweak")
 
-private var g_PdfStrings: PdfStrings
+private var g_Texts: Texts
 
-func pdfStrings()->const *PdfStrings => &g_PdfStrings
+func texts()->const *Texts => &g_Texts
 
-func registerPdfStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'PdfStrings(&g_PdfStrings, "scope.pdf")
+    Gui.registerStrings'Texts(&g_Texts, "scope.pdf")
 }
 
 #run
 {
-    expect Gui.validateStrings'PdfStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

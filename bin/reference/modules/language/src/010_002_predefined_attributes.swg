@@ -99,6 +99,7 @@ them explicitly for tests that need a GPU, a native window, or another host reso
 | 'CalleeReturn()' | Make 'return' in a macro or mixin return from the caller |
 | 'Implicit()' | Permit an 'opCast' overload as an implicit conversion |
 | 'Discardable()' | Permit a function result to be ignored |
+| 'NoReturn()' | Declare that a call never comes back, like 'Swag.panic' |
 | 'Deprecated(msg: string? = null)' | Mark an API as deprecated |
 
 # Operators, Matching, and Enums

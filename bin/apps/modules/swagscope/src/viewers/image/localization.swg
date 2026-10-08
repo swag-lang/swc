@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Picture
 
 using Core, Gui
 
@@ -6,7 +7,7 @@ using Core, Gui
 //
 // Units keep their symbol in every language — `px`, `%` and the `×` between two dimensions are
 // read the same way everywhere — so only the words around them are translated.
-struct ImageStrings
+struct Texts
 {
     ui_TipPrevious:            string = "Previous image"               // Tooltip of the previous-file button.
     ui_TipNext:                string = "Next image"                   // Tooltip of the next-file button.
@@ -34,25 +35,25 @@ struct ImageStrings
 private const FrenchStringsName = "lang/fr/scope.image.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.image.tweak")
 
-private var g_ImageStrings: ImageStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the image viewer in the active language.
-func imageStrings()->const *ImageStrings => &g_ImageStrings
+func texts()->const *Texts => &g_Texts
 
 // Returns `count` followed by the noun in the form that count calls for.
-func frameCountText(count: s32)->String => Format.toString("% %", count, count == 1 ? imageStrings().word_Frame : imageStrings().word_Frames)
+func frameCountText(count: s32)->String => Format.toString("% %", count, count == 1 ? texts().word_Frame : texts().word_Frames)
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerImageStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'ImageStrings(&g_ImageStrings, "scope.image")
+    Gui.registerStrings'Texts(&g_Texts, "scope.image")
 }
 
 #run
 {
-    expect Gui.validateStrings'ImageStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

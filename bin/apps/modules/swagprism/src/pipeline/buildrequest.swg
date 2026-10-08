@@ -61,8 +61,7 @@ impl BuildRequest
 {
     mtd matches(other: BuildRequest)->bool     => .kind == other.kind and .stage == other.stage and .sameProgram(other)
     mtd sameProgram(other: BuildRequest)->bool => .source == other.source and .settings.matches(other.settings)
-
-    mtd satisfies(other: BuildRequest)->bool => .kind == other.kind and .sameProgram(other) and (.stage == other.stage or other.stage.isEmpty())
+    mtd satisfies(other: BuildRequest)->bool   => .kind == other.kind and .sameProgram(other) and (.stage == other.stage or other.stage.isEmpty())
 
     /*
     Whether the snippet has to be compiled against the standard module its viewer builds on.

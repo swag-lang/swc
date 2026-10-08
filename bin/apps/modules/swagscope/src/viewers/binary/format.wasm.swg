@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Binary
 
 using Core
 
@@ -35,7 +36,7 @@ func wasmSectionName(value: u8)->string
 // Returns what one import or export names.
 func wasmKindName(value: u8)->string
 {
-    let s = binaryStrings()
+    let s = texts()
     switch value
     {
     case 0: return s.wasm_Function
@@ -52,11 +53,11 @@ func wasmKindName(value: u8)->string
 // A module is a chain of length-prefixed sections and nothing else, so the chain itself is the
 // structure. The two sections worth decoding further are the ones that name things: what the module
 // asks its host for, and what it offers back.
-func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
+func reportWasmModule(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
 
-    let s       = binaryStrings()
+    let s       = texts()
     let version = image.u32At(4)
 
     report.beginGroup(s.wasm_Module, WasmMagic[1 until 4], "", offset: 0, length: 8, open: true)
@@ -71,7 +72,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
 
     report.beginGroup(s.shr_Sections, "", "", offset: 8, length: image.bytes.count - 8, open: true)
 
-    while scan < image.bytes.count and sections < BinaryListLimit
+    while scan < image.bytes.count and sections < ListLimit
     {
         let kind   = image.u8At(scan)
         let header = wasmLeb(image, scan + 1)
@@ -117,15 +118,15 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
     report.summary    = Format.toString("% · % · %", s.wasm_Module, counted, traded)
 }
 
-private func reportWasmImports(image: *BinaryImage, report: *BinaryReport, at: u64)->u64
+private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u64
 {
-    let s      = binaryStrings()
+    let s      = texts()
     let header = wasmLeb(image, at)
     if not header.valid do
         return 0
 
     let count = header.value
-    let shown = Math.min(count, BinaryListLimit)
+    let shown = Math.min(count, ListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
     report.beginGroup(s.shr_Imports, total, "", offset: at, length: 0, open: true)
@@ -148,15 +149,15 @@ private func reportWasmImports(image: *BinaryImage, report: *BinaryReport, at: u
     return count
 }
 
-private func reportWasmExports(image: *BinaryImage, report: *BinaryReport, at: u64)->u64
+private func reportWasmExports(image: *BinaryImage, report: *Report, at: u64)->u64
 {
-    let s      = binaryStrings()
+    let s      = texts()
     let header = wasmLeb(image, at)
     if not header.valid do
         return 0
 
     let count = header.value
-    let shown = Math.min(count, BinaryListLimit)
+    let shown = Math.min(count, ListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
     report.beginGroup(s.shr_Exports, total, "", offset: at, length: 0, open: true)

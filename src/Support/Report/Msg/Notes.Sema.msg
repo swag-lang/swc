@@ -40,6 +40,7 @@ SWC_DIAG_DEF(sema_note_constant_declared_here, Note, "constant '{sym}' is declar
 SWC_DIAG_DEF(sema_note_let_variable_declared_here, Note, "'let' variable '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_function_declared_here, Note, "function '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_function_return_type_declared_here, Note, "function return type '{requested-type}' is declared here")
+SWC_DIAG_DEF(sema_note_catch_default_result, Note, "'catch' needs a default result when its operand fails; [help] initialize a local explicitly, then assign it inside a 'catch { ... }' block")
 SWC_DIAG_DEF(sema_note_expression_not_addressable, Note, "this expression is not addressable")
 SWC_DIAG_DEF(sema_note_assignment_target_here, Note, "while checking this assignment target")
 SWC_DIAG_DEF(sema_note_operand_has_type, Note, "operand has type '{type}'")

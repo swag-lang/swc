@@ -1784,7 +1784,13 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
         resultTypeRef.isValid() &&
         resultTypeRef != sema.typeMgr().typeVoid() &&
         SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))
-        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, codeRef(), resultTypeRef);
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_type_requires_init, codeRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);
+        diag.addNote(DiagnosticId::sema_note_catch_default_result);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 
     if (tokenId != TokenId::KwdTry && resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, resolvedExprRef, *this, resultTypeRef, "__errmgmt_runtime_storage"));

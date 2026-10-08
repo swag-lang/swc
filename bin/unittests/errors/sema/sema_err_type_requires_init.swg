@@ -60,11 +60,13 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 
 #test
 {
+    // swc-expected-note@* {{'catch' needs a default result when its operand fails}}
     let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
+    // swc-expected-note@* {{'catch' needs a default result when its operand fails}}
     let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
@@ -127,4 +129,17 @@ var NonNullLateGlobal: *NonNullLateStruct     // swc-expected-error {{sema_err_t
 struct NonNullLateStruct
 {
     required: *NonNullRequiresInitItem
+}
+
+func nonNullStringFallible()->string fail
+{
+    return "ready"
+}
+
+// Capturing the error does not provide a default for the successful result type.
+#test
+{
+    // swc-expected-note@* {{'catch' needs a default result when its operand fails}}
+    let name = catch nonNullStringFallible() as error     // swc-expected-error {{sema_err_type_requires_init}}
+    discard name, error
 }

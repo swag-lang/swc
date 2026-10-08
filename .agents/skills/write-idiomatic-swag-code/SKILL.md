@@ -465,6 +465,11 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Mark every fallible call explicitly with `try`, `catch`, `expect`, or `assume`, including calls inside
   a fallible function or an error-handling block. A function's `fail` declaration does not make
   propagation implicit. Choose the keyword for the intended failure path.
+- A `catch` expression supplies an implicit default on failure. Use
+  `let value = catch operation() as error` only when the result type has that default, and guard
+  the error before consuming the result. For a non-nullable `string` or pointer, keep an explicitly
+  initialized local and assign it inside `catch { value = try operation() }`. That initializer
+  represents a required state, not disposable boilerplate. Preserve translated errors and lifetimes.
 - Use `assume operation()` only when the caller guarantees success. `.Assume` safety checks
   that invariant; disabling it removes the caller's error check. Use `expect` when failure
   must terminate in every configuration. Neither form constructs a default result.

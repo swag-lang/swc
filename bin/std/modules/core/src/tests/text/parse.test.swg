@@ -62,3 +62,35 @@ using Swag
     let huge = expect StrConv.parseF32("1e39")
     Swag.assert(huge.value == Swag.F32.Max and huge.ovf)
 }
+
+func(T) checkCompleteNumberConversion(overflowText: string)
+{
+    let value = expect StrConv.toNum'T("12")
+    Swag.assert(value == cast(T, 12))
+
+    discard catch StrConv.toNum'T("12x") as trailing
+    Swag.assert(trailing is Errors.SyntaxError)
+
+    discard catch StrConv.toNum'T(overflowText) as overflow
+    Swag.assert(overflow is Errors.OverflowError)
+
+    // Overflow keeps priority when unconsumed text follows the number too.
+    var overflowWithSuffix = String.from(overflowText)
+    overflowWithSuffix.append("x")
+    discard catch StrConv.toNum'T(overflowWithSuffix.toString()) as both
+    Swag.assert(both is Errors.OverflowError)
+}
+
+#test
+{
+    checkCompleteNumberConversion's8("128")
+    checkCompleteNumberConversion's16("32768")
+    checkCompleteNumberConversion's32("2147483648")
+    checkCompleteNumberConversion's64("9223372036854775808")
+    checkCompleteNumberConversion'u8("256")
+    checkCompleteNumberConversion'u16("65536")
+    checkCompleteNumberConversion'u32("4294967296")
+    checkCompleteNumberConversion'u64("18446744073709551616")
+    checkCompleteNumberConversion'f32("1e39")
+    checkCompleteNumberConversion'f64("1e400")
+}

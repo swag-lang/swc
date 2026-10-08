@@ -140,6 +140,11 @@ add boundary coverage when the refactoring crosses a previously untested contrac
 generalize an unrelated reader merely because its statements look similar: JSON, for example,
 also checks complete token consumption and reports its own syntax errors.
 
+A shared complete-number conversion check can remove repeated overflow/trailing-text guards from each numeric width,
+but must still report overflow first when both conditions hold. Name that contract in the
+helper (`requireCompleteNumber`), keep the parse operation visible at each caller, and test the
+error precedence through the public conversions before and after factoring.
+
 Check the caller's publication contract before extracting a private helper. Bodies of implicit
 operations and inline functions travel to consuming modules; a generated API does not include
 file-private helpers. Keep an elementary check in such a published body when factoring it would

@@ -12,17 +12,17 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
 
-    var buffer = str.buffer
-    var cpt    = 0'u32
-    var value  = 0'u64
+    var buffer        = str.buffer
+    var consumedBytes = 0'u32
+    var value         = 0'u64
 
     if not Latin1.isHexDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isHexDigit(buffer[])
+    while consumedBytes < byteCount and Latin1.isHexDigit(buffer[])
     {
         if value & 0xF0000000_00000000
         {
@@ -31,20 +31,20 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         else
         {
             value <<= 4
-            let c = buffer[]
-            if Latin1.isDigit(c) do
-                value += cast(u64, (c - '0'u8))
-            elif c <= 'F'u8 do
-                value += 10'u64 + (c - 'A'u8)
+            let character = buffer[]
+            if Latin1.isDigit(character) do
+                value += cast(u64, (character - '0'u8))
+            elif character <= 'F'u8 do
+                value += 10'u64 + (character - 'A'u8)
             else do
-                value += 10'u64 + (c - 'a'u8)
+                value += 10'u64 + (character - 'a'u8)
         }
 
-        buffer, cpt += 1
+        buffer, consumedBytes += 1
     }
 
     result.value = value
-    result.eat   = cpt
+    result.eat   = consumedBytes
     return result
 }
 
@@ -57,17 +57,17 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
 
-    var buffer = str.buffer
-    var cpt    = 0'u32
-    var value  = 0'u64
+    var buffer        = str.buffer
+    var consumedBytes = 0'u32
+    var value         = 0'u64
 
     if not Latin1.isBinDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isBinDigit(buffer[])
+    while consumedBytes < byteCount and Latin1.isBinDigit(buffer[])
     {
         if value & 0x80000000_00000000
         {
@@ -79,11 +79,11 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
             value += cast(u64, (buffer[] - '0'u8))
         }
 
-        buffer, cpt += 1
+        buffer, consumedBytes += 1
     }
 
     result.value = value
-    result.eat   = cpt
+    result.eat   = consumedBytes
     return result
 }
 
@@ -92,10 +92,10 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 // A value above `Swag.U8.Max` saturates to it and sets `ovf`.
 func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseU64(str)
-    if res > Swag.U8.Max do
+    let {value, eat, ovf} = try parseU64(str)
+    if value > Swag.U8.Max do
         return {Swag.U8.Max, eat, true}
-    return {cast(u8, res), eat, ovf}
+    return {cast(u8, value), eat, ovf}
 }
 
 // Parses the unsigned integer at the start of `str` as a `u16`, like [[Core.StrConv.parseU64]].
@@ -103,10 +103,10 @@ func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } fail
 // A value above `Swag.U16.Max` saturates to it and sets `ovf`.
 func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseU64(str)
-    if res > Swag.U16.Max do
+    let {value, eat, ovf} = try parseU64(str)
+    if value > Swag.U16.Max do
         return {Swag.U16.Max, eat, true}
-    return {cast(u16, res), eat, ovf}
+    return {cast(u16, value), eat, ovf}
 }
 
 // Parses the unsigned integer at the start of `str` as a `u32`, like [[Core.StrConv.parseU64]].
@@ -114,10 +114,10 @@ func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
 // A value above `Swag.U32.Max` saturates to it and sets `ovf`.
 func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseU64(str)
-    if res > Swag.U32.Max do
+    let {value, eat, ovf} = try parseU64(str)
+    if value > Swag.U32.Max do
         return {Swag.U32.Max, eat, true}
-    return {cast(u32, res), eat, ovf}
+    return {cast(u32, value), eat, ovf}
 }
 
 // Parses the unsigned integer at the start of `str`.
@@ -129,22 +129,22 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
 
     // Detect 0x for hexadecimal, 0b for binary.
-    if countof > 2 and str[0] == '0'u8
+    if byteCount > 2 and str[0] == '0'u8
     {
-        let c = str[1] | 32
-        if c == 'x'u8
+        let prefix = str[1] | 32
+        if prefix == 'x'u8
         {
             {result.value, result.eat, result.ovf} = try parseX64(str[2 to])
             result.eat += 2
             return result
         }
 
-        if c == 'b'u8
+        if prefix == 'b'u8
         {
             {result.value, result.eat, result.ovf} = try parseB64(str[2 to])
             result.eat += 2
@@ -152,44 +152,44 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         }
     }
 
-    var buffer = str.buffer
-    var cpt    = 0'u32
-    var value  = 0'u64
+    var buffer        = str.buffer
+    var consumedBytes = 0'u32
+    var value         = 0'u64
 
     if not Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isDigit(buffer[])
+    while consumedBytes < byteCount and Latin1.isDigit(buffer[])
     {
-        let value1 = value * #wrap 10
-        if value1 < value
+        let scaledValue = value * #wrap 10
+        if scaledValue < value
         {
             result.ovf = true
             value      = Swag.U64.Max
         }
         else
         {
-            value = value1
+            value = scaledValue
         }
 
         if not result.ovf
         {
-            let add = cast(u64, (buffer[] - '0'u8))
-            if value + #wrap add < value
+            let digit = cast(u64, (buffer[] - '0'u8))
+            if value + #wrap digit < value
             {
                 result.ovf = true
                 value      = Swag.U64.Max
             }
             else
             {
-                value += add
+                value += digit
             }
         }
 
-        buffer, cpt += 1
+        buffer, consumedBytes += 1
     }
 
     result.value = value
-    result.eat   = cpt
+    result.eat   = consumedBytes
     return result
 }
 
@@ -198,12 +198,12 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 // A value outside the `s8` range saturates to the nearest bound and sets `ovf`.
 func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseS64(str)
-    if res < Swag.S8.Min do
+    let {value, eat, ovf} = try parseS64(str)
+    if value < Swag.S8.Min do
         return {Swag.S8.Min, eat, true}
-    if res > Swag.S8.Max do
+    if value > Swag.S8.Max do
         return {Swag.S8.Max, eat, true}
-    return {cast(s8, res), eat, ovf}
+    return {cast(s8, value), eat, ovf}
 }
 
 // Parses the signed decimal integer at the start of `str` as an `s16`, like [[Core.StrConv.parseS64]].
@@ -211,12 +211,12 @@ func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } fail
 // A value outside the `s16` range saturates to the nearest bound and sets `ovf`.
 func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseS64(str)
-    if res < Swag.S16.Min do
+    let {value, eat, ovf} = try parseS64(str)
+    if value < Swag.S16.Min do
         return {Swag.S16.Min, eat, true}
-    if res > Swag.S16.Max do
+    if value > Swag.S16.Max do
         return {Swag.S16.Max, eat, true}
-    return {cast(s16, res), eat, ovf}
+    return {cast(s16, value), eat, ovf}
 }
 
 // Parses the signed decimal integer at the start of `str` as an `s32`, like [[Core.StrConv.parseS64]].
@@ -224,12 +224,12 @@ func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
 // A value outside the `s32` range saturates to the nearest bound and sets `ovf`.
 func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseS64(str)
-    if res < Swag.S32.Min do
+    let {value, eat, ovf} = try parseS64(str)
+    if value < Swag.S32.Min do
         return {Swag.S32.Min, eat, true}
-    if res > Swag.S32.Max do
+    if value > Swag.S32.Max do
         return {Swag.S32.Max, eat, true}
-    return {cast(s32, res), eat, ovf}
+    return {cast(s32, value), eat, ovf}
 }
 
 // Parses the signed decimal integer at the start of `str`.
@@ -242,69 +242,69 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
 
-    var buffer = str.buffer
-    var value  = 0'u64
-    var cpt    = 0'u32
+    var buffer        = str.buffer
+    var value         = 0'u64
+    var consumedBytes = 0'u32
 
     // An optional sign comes first.
-    var signed   = false
-    let c        = str[0]
-    var maxValue = cast(u64, Swag.S64.Max)
-    if c == g_CultureInfo.numberFormat.negativeSign
+    var negative      = false
+    let signCharacter = str[0]
+    var maxValue      = cast(u64, Swag.S64.Max)
+    if signCharacter == g_CultureInfo.numberFormat.negativeSign
     {
-        buffer, cpt += 1
-        signed      = true
-        maxValue    += 1
-        if cpt == countof do
+        buffer, consumedBytes += 1
+        negative = true
+        maxValue += 1
+        if consumedBytes == byteCount do
             fail ParseIncompleteError{}
     }
-    elif c == g_CultureInfo.numberFormat.positiveSign
+    elif signCharacter == g_CultureInfo.numberFormat.positiveSign
     {
-        buffer, cpt += 1
-        if cpt == countof do
+        buffer, consumedBytes += 1
+        if consumedBytes == byteCount do
             fail ParseIncompleteError{}
     }
 
-    // Parse the rest.
+    // Accumulate the magnitude, continuing through overflowing digits.
     if not Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
-    while cpt < countof and Latin1.isDigit(buffer[])
+    while consumedBytes < byteCount and Latin1.isDigit(buffer[])
     {
-        let value1 = value * #wrap 10
-        if value1 < value
+        let scaledValue = value * #wrap 10
+        if scaledValue < value
         {
             result.ovf = true
             value      = Swag.U64.Max
         }
         else
         {
-            value = value1
+            value = scaledValue
         }
 
         if not result.ovf
         {
-            let toAdd = cast(u64, (buffer[] - '0'u8))
-            if value + toAdd > maxValue
+            let digit = cast(u64, (buffer[] - '0'u8))
+            if value + digit > maxValue
             {
                 result.ovf = true
                 value      = maxValue
             }
             else
             {
-                value += toAdd
+                value += digit
             }
         }
 
-        buffer, cpt += 1
+        buffer, consumedBytes += 1
     }
 
     if not result.ovf
     {
-        if signed
+        if negative
         {
             if value == maxValue do
                 result.value = Swag.S64.Min
@@ -317,7 +317,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
         }
     }
 
-    result.eat = cpt
+    result.eat = consumedBytes
     return result
 }
 
@@ -328,15 +328,15 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 // unchanged. A magnitude above `Swag.F32.Max` saturates to that bound and sets `ovf`.
 func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
 {
-    let {res, eat, ovf} = try parseF64(str)
-    if Math.abs(res) > Swag.F32.Max
+    let {value, eat, ovf} = try parseF64(str)
+    if Math.abs(value) > Swag.F32.Max
     {
-        if res < 0 do
+        if value < 0 do
             return {-Swag.F32.Max, eat, true}
         return {Swag.F32.Max, eat, true}
     }
 
-    return {cast(f32, res), eat, ovf}
+    return {cast(f32, value), eat, ovf}
 }
 
 // Parses the floating-point number at the start of `str`.
@@ -355,15 +355,15 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
 {
     var result: retval
 
-    let sub = Tokenize.alphanumericPrefix(str)
-    switch sub
+    let word = Tokenize.alphanumericPrefix(str)
+    switch word
     {
     case "1", "true", "TRUE", "True":    result.value = true
     case "0", "false", "FALSE", "False": result.value = false
     default: fail SyntaxError{}
     }
 
-    result.eat = cast(u32, sub.count)
+    result.eat = cast(u32, word.count)
     return result
 }
 
@@ -373,8 +373,8 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
 // [[Core.Errors.SyntaxError]] when `str` is empty.
 func parseRune(str: string)->{ value: rune, eat: u32 } fail
 {
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
     return Utf8.decodeRune(str)
 }
@@ -386,17 +386,17 @@ func parseRune(str: string)->{ value: rune, eat: u32 } fail
 // [[Core.Errors.SyntaxError]] when `str` does not start with one.
 func parseIdentifier(str: string)->string fail
 {
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
 
     if str[0] != '_'u8 and not Latin1.isLetter(str[0]) do
         fail SyntaxError{}
 
-    var cpt = 1'u64
-    while cpt < countof and (str[cpt] == '_'u8 or Latin1.isLetterOrDigit(str[cpt])) do
-        cpt += 1
-    return str[until cpt]
+    var endByte = 1'u64
+    while endByte < byteCount and (str[endByte] == '_'u8 or Latin1.isLetterOrDigit(str[endByte])) do
+        endByte += 1
+    return str[until endByte]
 }
 
 // Parses the text at the start of `str` into `result` and returns the number of bytes consumed.
@@ -406,52 +406,50 @@ func parseIdentifier(str: string)->string fail
 // [[Core.Errors.ParseIncompleteError]] when the closing quote is missing.
 func parseString(result: *String, str: string)->u32 fail
 {
-    let countof = str.count
-    if not countof do
+    let byteCount = str.count
+    if not byteCount do
         fail SyntaxError{}
 
     result.clear()
 
-    var isQuoted = false
-    var cpt      = 0
+    var isQuoted      = false
+    var consumedBytes = 0
     if str[0] == '"'u8
     {
-        isQuoted = true
-        cpt      += 1
+        isQuoted      = true
+        consumedBytes += 1
     }
 
-    while cpt < countof
+    while consumedBytes < byteCount
     {
-        // End delimiter.
-        if str[cpt] == '"'u8 and isQuoted do
+        if str[consumedBytes] == '"'u8 and isQuoted do
             break
 
-        // Escape character.
-        if str[cpt] == '\\'u8
+        if str[consumedBytes] == '\\'u8
         {
-            cpt += 1
-            if cpt == countof do
+            consumedBytes += 1
+            if consumedBytes == byteCount do
                 fail SyntaxError{}
-            switch str[cpt]
+            switch str[consumedBytes]
             {
             case 't'u8: result[] += '\t'u8
             case 'n'u8: result[] += '\n'u8
-            default:    result[] += str[cpt]
+            default:    result[] += str[consumedBytes]
             }
         }
         else
         {
-            result[] += str[cpt]
+            result[] += str[consumedBytes]
         }
 
-        cpt += 1
+        consumedBytes += 1
     }
 
-    if cpt == countof and isQuoted do
+    if consumedBytes == byteCount and isQuoted do
         fail ParseIncompleteError{}
     if isQuoted do
-        cpt += 1
-    return cast(u32, cpt)
+        consumedBytes += 1
+    return cast(u32, consumedBytes)
 }
 
 // Parses the text at the start of `str` and returns it with the number of bytes consumed.
@@ -464,117 +462,77 @@ func parseString(str: string)->{ value: String, eat: u32 } fail
     return result
 }
 
+// Require a complete number, preserving overflow priority over trailing text.
+private func(T) requireCompleteNumber(parsed: {value: T, eat: u32, ovf: bool}, byteCount: u64)->T fail
+{
+    if parsed.ovf do
+        fail OverflowError{}
+    if parsed.eat != byteCount do
+        fail SyntaxError{}
+    return parsed.value
+}
+
 // Converts the whole of `str` to an `s8`.
 //
 // Fails with [[Core.Errors.OverflowError]] when the value does not fit, and with
 // [[Core.Errors.SyntaxError]] when `str` holds anything after the number.
 func toS8(str: string)->s8 fail
 {
-    let {v, eat, ovf} = try parseS8(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseS8(str), str.count)
 }
 
 // Converts the whole of `str` to an `s16`, like [[Core.StrConv.toS8]].
 func toS16(str: string)->s16 fail
 {
-    let {v, eat, ovf} = try parseS16(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseS16(str), str.count)
 }
 
 // Converts the whole of `str` to an `s32`, like [[Core.StrConv.toS8]].
 func toS32(str: string)->s32 fail
 {
-    let {v, eat, ovf} = try parseS32(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseS32(str), str.count)
 }
 
 // Converts the whole of `str` to an `s64`, like [[Core.StrConv.toS8]].
 func toS64(str: string)->s64 fail
 {
-    let {v, eat, ovf} = try parseS64(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseS64(str), str.count)
 }
 
 // Converts the whole of `str` to a `u8`, like [[Core.StrConv.toS8]].
 func toU8(str: string)->u8 fail
 {
-    let {v, eat, ovf} = try parseU8(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseU8(str), str.count)
 }
 
 // Converts the whole of `str` to a `u16`, like [[Core.StrConv.toS8]].
 func toU16(str: string)->u16 fail
 {
-    let {v, eat, ovf} = try parseU16(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseU16(str), str.count)
 }
 
 // Converts the whole of `str` to a `u32`, like [[Core.StrConv.toS8]].
 func toU32(str: string)->u32 fail
 {
-    let {v, eat, ovf} = try parseU32(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseU32(str), str.count)
 }
 
 // Converts the whole of `str` to a `u64`, like [[Core.StrConv.toS8]].
 func toU64(str: string)->u64 fail
 {
-    let {v, eat, ovf} = try parseU64(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseU64(str), str.count)
 }
 
 // Converts the whole of `str` to an `f32`, like [[Core.StrConv.toS8]].
 func toF32(str: string)->f32 fail
 {
-    let {v, eat, ovf} = try parseF32(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseF32(str), str.count)
 }
 
 // Converts the whole of `str` to an `f64`, like [[Core.StrConv.toS8]].
 func toF64(str: string)->f64 fail
 {
-    let {v, eat, ovf} = try parseF64(str)
-    if ovf do
-        fail OverflowError{}
-    if eat != str.count do
-        fail SyntaxError{}
-    return v
+    return try requireCompleteNumber(try parseF64(str), str.count)
 }
 
 // Converts the whole of `str` to the integer or floating-point type `T`.

@@ -407,12 +407,12 @@ namespace
             alignGroup(inits);
         }
 
-        void alignGroup(const std::vector<std::pair<uint32_t, uint32_t>>& group) const
+        void alignGroup(const std::vector<std::pair<uint32_t, uint32_t>>& group, const uint32_t minimumSpaces = 1, const uint32_t maximumColumn = 0) const
         {
             std::vector<PieceColumn> columns;
 
             // Compute the natural (unpadded) anchor column of each line: the
-            // column the anchor would occupy with a single space before it.
+            // column the anchor would occupy with its minimum spacing.
             std::vector<uint32_t> naturalCols(group.size());
             std::vector<uint32_t> currentCols(group.size());
             uint32_t              target = 0;
@@ -434,7 +434,7 @@ namespace
                     prevEnd = pc.column + FormatModel::textColumns(model_->piece(pc.piece).text, std::max(options_->tabWidth, 1u), pc.column);
                 }
 
-                naturalCols[i] = prevEnd + 1;
+                naturalCols[i] = prevEnd + minimumSpaces;
                 currentCols[i] = anchorCol;
                 target         = std::max(target, naturalCols[i]);
             }
@@ -443,8 +443,7 @@ namespace
             // far away from all the others is not, and aligning on it turns the
             // column into a stripe of whitespace. Sort the group by anchor column
             // and drop an end while it is separated from the rest by a gap wider
-            // than the option allows. A dropped line keeps the single space it
-            // would have on its own.
+            // than the option allows. A dropped line keeps its minimum spacing.
             std::vector aligned(group.size(), true);
             if (options_->alignOutlierGap > 0 && group.size() >= 2)
             {
@@ -477,6 +476,9 @@ namespace
                 }
             }
 
+            if (maximumColumn > 0 && target > 0)
+                target = std::min(target, std::max(maximumColumn, target - minimumSpaces + 1));
+
             for (size_t i = 0; i < group.size(); ++i)
             {
                 const auto [lineStart, anchor] = group[i];
@@ -485,8 +487,11 @@ namespace
                 const uint32_t prevEndCol = currentCols[i] - model_->gapColumns(anchor);
                 if (!aligned[i])
                 {
-                    if (model_->gapColumns(anchor) != 1)
-                        model_->setGapSpaces(anchor, 1);
+                    uint32_t wanted = minimumSpaces;
+                    if (maximumColumn > 0)
+                        wanted = std::min(wanted, std::max(maximumColumn, prevEndCol + 1) - prevEndCol);
+                    if (model_->gapColumns(anchor) != wanted)
+                        model_->setGapSpaces(anchor, wanted);
                     continue;
                 }
 
@@ -679,31 +684,29 @@ namespace
             const bool     doAlign   = *options.alignTrailingComments;
             const uint32_t minSpaces = std::max(options.trailingCommentMinSpaces, 1u);
 
-            std::vector<std::pair<uint32_t, uint32_t>> group; // (comment piece, code end column)
+            std::vector<std::pair<uint32_t, uint32_t>> group; // (line start, comment piece)
             uint32_t                                   groupIndent = 0;
 
             auto flush = [&] {
                 if (group.empty())
                     return;
 
-                uint32_t maxEnd = 0;
-                for (const auto& endCol : group | std::views::values)
-                    maxEnd = std::max(maxEnd, endCol);
-
-                uint32_t target = maxEnd + minSpaces;
-                if (doAlign && options.trailingCommentMaxColumn > 0)
-                    target = std::min(target, std::max(options.trailingCommentMaxColumn, maxEnd + 1));
-
-                for (const auto& [comment, endCol] : group)
+                // Share declaration alignment's outlier rule: one long value
+                // must not push every neighbouring explanation off the screen.
+                if (doAlign)
+                    alignGroup(group, minSpaces, options.trailingCommentMaxColumn);
+                else
                 {
-                    const uint32_t wanted = doAlign ? target - endCol : minSpaces;
-                    if (model_->gapColumns(comment) != wanted)
-                        model_->setGapSpaces(comment, wanted);
+                    for (const auto& [lineStart, comment] : group)
+                    {
+                        SWC_UNUSED(lineStart);
+                        if (model_->gapColumns(comment) != minSpaces)
+                            model_->setGapSpaces(comment, minSpaces);
+                    }
                 }
                 group.clear();
             };
 
-            std::vector<PieceColumn> columns;
             for (const uint32_t lineStart : lineStarts_)
             {
                 if (model_->piece(lineStart).removed)
@@ -727,21 +730,12 @@ namespace
                     continue;
                 }
 
-                FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
-                uint32_t endCol = 0;
-                for (const PieceColumn& pc : columns)
-                {
-                    if (pc.piece == lineEnd)
-                        break;
-                    endCol = pc.column + FormatModel::textColumns(model_->piece(pc.piece).text, std::max(options_->tabWidth, 1u), pc.column);
-                }
-
                 const uint32_t indent = lineIndentColumn(lineStart);
                 if (!group.empty() && indent != groupIndent)
                     flush();
                 if (group.empty())
                     groupIndent = indent;
-                group.emplace_back(lineEnd, endCol);
+                group.emplace_back(lineStart, lineEnd);
             }
 
             flush();

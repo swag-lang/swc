@@ -1150,10 +1150,15 @@ namespace
                 if (!editable || operands.size() < 2)
                     continue;
 
-                // An explicit request for a single-line containing list takes precedence.
+                // Explicit single-line policies on containing constructs take precedence.
                 for (const ListState& list : lists_)
                 {
                     if (list.forceSingleLine.value_or(false) && expr.firstPiece > list.openPiece && expr.lastPiece < list.closePiece)
+                        editable = false;
+                }
+                for (const LogicalState& logical : logicalExpressions_)
+                {
+                    if (logical.forceSingleLine.value_or(false) && expr.firstPiece >= logical.firstPiece && expr.lastPiece <= logical.lastPiece)
                         editable = false;
                 }
                 if (!editable)

@@ -98,6 +98,20 @@ SWC_TEST_BEGIN(FormatWrap_BitwiseChainsPreserveAuthoredLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsHonorSingleLineConditions)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n"
+        "{\n"
+        "    let value = condition and (firstLongOperand | secondLongOperand | thirdLongOperand)\n"
+        "}\n";
+    FormatOptions options;
+    options.bitwiseChainColumnLimit           = 50;
+    options.forceSingleLineLogicalExpressions = true;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_BitwiseChainsLeaveShortMasksAndTables)
 {
     static constexpr std::string_view SOURCE =

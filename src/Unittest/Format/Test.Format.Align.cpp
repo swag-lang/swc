@@ -325,6 +325,40 @@ SWC_TEST_BEGIN(FormatAlign_TrailingCommentsBreakOnIndentation)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_TrailingCommentsIgnoreLongOutliers)
+{
+    static constexpr std::string_view SOURCE =
+        "const A = 1 // Small entry.\n"
+        "const Long = someFunctionWithManyArguments(1, 2, 3) // Long entry.\n"
+        "const B = 22 // Another small entry.\n";
+    static constexpr std::string_view EXPECTED =
+        "const A = 1   // Small entry.\n"
+        "const Long = someFunctionWithManyArguments(1, 2, 3)  // Long entry.\n"
+        "const B = 22  // Another small entry.\n";
+    FormatOptions options;
+    options.alignTrailingComments    = true;
+    options.trailingCommentMinSpaces = 2;
+    options.alignOutlierGap          = 8;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_TrailingCommentColumnLimitKeepsOneSpace)
+{
+    static constexpr std::string_view SOURCE =
+        "const A = 1 // First.\n"
+        "const B = 22 // Second.\n";
+    static constexpr std::string_view EXPECTED =
+        "const A = 1  // First.\n"
+        "const B = 22 // Second.\n";
+    FormatOptions options;
+    options.alignTrailingComments    = true;
+    options.trailingCommentMinSpaces = 5;
+    options.trailingCommentMaxColumn = 10;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_TrailingCommentsNormalized)
 {
     static constexpr std::string_view SOURCE =

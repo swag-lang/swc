@@ -119,3 +119,22 @@ func expectNear(actual, expected: f32)
     let collinearDisjoint = Math.Geometry.intersectSegments(Math.Vector2{0, 0}, Math.Vector2{10, 0}, Math.Vector2{12, 0}, Math.Vector2{15, 0})
     Swag.assert(not collinearDisjoint.intersects)
 }
+
+// Horizontal edges do not divide by zero, and winding does not change inside/outside.
+#test
+{
+    var polygon: Array'Math.Vector2
+    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
+
+    polygon.add({0, 0})
+    polygon.add({10, 0})
+    polygon.add({10, 10})
+    polygon.add({0, 10})
+    Swag.assert(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
+    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
+    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {5, -1}))
+
+    Slice.reverse(polygon.toSlice())
+    Swag.assert(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
+    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
+}

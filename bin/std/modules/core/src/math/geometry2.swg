@@ -34,7 +34,8 @@ func triangleContainsPoint(point, a, b, c: Vector2)->bool
     let cCrossAp = cx * apy - cy * apx
     let bCrossCp = bx * cpy - by * cpx
 
-    return ((aCrossBp >= 0) and (bCrossCp >= 0) and (cCrossAp >= 0)) or ((aCrossBp <= 0) and (bCrossCp <= 0) and (cCrossAp <= 0))
+    return ((aCrossBp >= 0) and (bCrossCp >= 0) and (cCrossAp >= 0)) or
+           ((aCrossBp <= 0) and (bCrossCp <= 0) and (cCrossAp <= 0))
 }
 
 // Returns the distance from `point` to the infinite line through `lineStart` and `lineEnd`.
@@ -53,24 +54,24 @@ func distanceFromPointToLine(point, lineStart, lineEnd: Vector2)->f32
 // A segment whose ends coincide is treated as the point `segmentStart`.
 func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 {
-    let ab = segmentEnd - segmentStart
-    if Math.isZeroEpsilon(ab.lengthSquared(), ConstF32.Epsilon * ConstF32.Epsilon) do
+    let direction = segmentEnd - segmentStart
+    if Math.isZeroEpsilon(direction.lengthSquared(), ConstF32.Epsilon * ConstF32.Epsilon) do
         return (point - segmentStart).length()
 
-    let be = point - segmentEnd
-    let ae = point - segmentStart
+    let fromEnd   = point - segmentEnd
+    let fromStart = point - segmentStart
 
-    let abbe = ab.dot(be)
-    if abbe > 0 do
-        return be.length()
+    let endProjection = direction.dot(fromEnd)
+    if endProjection > 0 do
+        return fromEnd.length()
 
-    let abae = ab.dot(ae)
-    if abae < 0 do
-        return ae.length()
+    let startProjection = direction.dot(fromStart)
+    if startProjection < 0 do
+        return fromStart.length()
 
     // The projection falls inside the segment: the parallelogram area over the base length is
     // the height.
-    return Math.abs(ab.cross(ae)) / ab.length()
+    return Math.abs(direction.cross(fromStart)) / direction.length()
 }
 
 // Returns the closest pair of points between two segments and the distance separating them.
@@ -82,7 +83,7 @@ func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 // @ORIGIN: Geometric Tools by David Eberly, https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
 // @MODIFIED: Adapted to Swag's two-dimensional vector API.
 // @NOTICE: /bin/THIRDPARTY.md#geometric-tools
-func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: Math.Vector2)->{ first: Math.Vector2, second: Math.Vector2, distance: f32 }
+func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, secondEnd: Vector2)->{ first: Vector2, second: Vector2, distance: f32 }
 {
     let p1p0 = firstEnd - firstStart
     let q1q0 = secondEnd - secondStart
@@ -94,6 +95,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
     let e    = q1q0.dot(p0q0)
     let det  = a * c - b * b
 
+    // Handle point-like segments before solving for two segment parameters.
     var result: retval
     let epsilonSquared = ConstF32.Epsilon * ConstF32.Epsilon
     if a <= epsilonSquared and c <= epsilonSquared
@@ -122,6 +124,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
         return result
     }
 
+    // s and t range from zero to one along the first and second segments.
     var s, t: f32
     if det > 0
     {
@@ -265,17 +268,20 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
 {
     var result: retval
 
-    let ua = (end1.x - start1.x) * (start0.y - start1.y) - (end1.y - start1.y) * (start0.x - start1.x)
-    let ub = (end0.x - start0.x) * (start0.y - start1.y) - (end0.y - start0.y) * (start0.x - start1.x)
-    let d  = (end1.y - start1.y) * (end0.x - start0.x) - (end1.x - start1.x) * (end0.y - start0.y)
+    let firstNumerator = (end1.x - start1.x) * (start0.y - start1.y) -
+                         (end1.y - start1.y) * (start0.x - start1.x)
+    let secondNumerator = (end0.x - start0.x) * (start0.y - start1.y) -
+                          (end0.y - start0.y) * (start0.x - start1.x)
+    let denominator = (end1.y - start1.y) * (end0.x - start0.x) -
+                      (end1.x - start1.x) * (end0.y - start0.y)
 
     // Parallel or coincident lines have no single crossing.
-    if Math.abs(d) < epsilon do
+    if Math.abs(denominator) < epsilon do
         return result
 
     result.intersects   = true
-    result.firstFactor  = ua / d
-    result.secondFactor = ub / d
+    result.firstFactor  = firstNumerator / denominator
+    result.secondFactor = secondNumerator / denominator
     return result
 }
 
@@ -337,6 +343,7 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
             return result
         }
 
+        // Compare collinear spans on the axis with the largest direction component.
         var a0, a1, b0, b1: f32
         if Math.abs(r.x) >= Math.abs(r.y)
         {
@@ -410,12 +417,14 @@ func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->boo
     var previous = polygon.count - 1
     for index in polygon.count
     {
-        let vi = polygon[index]
-        let vj = polygon[previous]
-        if ((vi.y > point.y) != (vj.y > point.y)) and
-           (point.x < (vj.x - vi.x) * (point.y - vi.y) / (vj.y - vi.y) + vi.x)
+        let vertex         = polygon[index]
+        let previousVertex = polygon[previous]
+        if (vertex.y > point.y) != (previousVertex.y > point.y)
         {
-            contains = not contains
+            let crossingX = (previousVertex.x - vertex.x) * (point.y - vertex.y) /
+                            (previousVertex.y - vertex.y) + vertex.x
+            if point.x < crossingX do
+                contains = not contains
         }
 
         previous = index

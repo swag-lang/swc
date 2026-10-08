@@ -45,18 +45,18 @@ impl Transform2
     // A positive angle turns the X axis toward the Y axis.
     func createRotation(angle: f32, centerX, centerY: f32)->Transform2
     {
-        let s  = Math.sin(angle)
-        let c  = Math.cos(angle)
-        let c1 = 1.0 - c
+        let sine           = Math.sin(angle)
+        let cosine         = Math.cos(angle)
+        let oneMinusCosine = 1.0 - cosine
 
         with var result: retval
         {
-            .tx  = (centerX * c1) + (centerY * s)
-            .ty  = (centerY * c1) - (centerX * s)
-            .m11 = c
-            .m12 = s
-            .m21 = -s
-            .m22 = c
+            .tx  = (centerX * oneMinusCosine) + (centerY * sine)
+            .ty  = (centerY * oneMinusCosine) - (centerX * sine)
+            .m11 = cosine
+            .m12 = sine
+            .m21 = -sine
+            .m22 = cosine
         }
 
         return result
@@ -118,13 +118,31 @@ impl Transform2
     //
     // Use it for directions and offsets, which a translation must not move, and
     // [[Core.Math.Transform2.transformPoint]] for positions.
-    mtd const transformVector(vector: Vector2)->Vector2 => Vector2{vector.x * .m11 + vector.y * .m21, vector.x * .m12 + vector.y * .m22}
+    mtd const transformVector(vector: Vector2)->Vector2
+    {
+        with var result: retval
+        {
+            .x = vector.x * me.m11 + vector.y * me.m21
+            .y = vector.x * me.m12 + vector.y * me.m22
+        }
+
+        return result
+    }
 
     // Returns how much the transform stretches each axis: the lengths of the transformed unit X
     // and unit Y vectors.
     //
     // A rotation or a reflection leaves both at 1; the translation plays no part.
-    mtd const axisScale()->Vector2 => {Math.sqrt(.m11 * .m11 + .m12 * .m12), Math.sqrt(.m21 * .m21 + .m22 * .m22)}
+    mtd const axisScale()->Vector2
+    {
+        with var result: retval
+        {
+            .x = Math.sqrt(me.m11 * me.m11 + me.m12 * me.m12)
+            .y = Math.sqrt(me.m21 * me.m21 + me.m22 * me.m22)
+        }
+
+        return result
+    }
 
     // Returns the axis-aligned rectangle enclosing `rect` once transformed.
     //
@@ -160,18 +178,21 @@ impl Transform2
     // ```
     mtd const inverse()->Transform2
     {
-        let det   = .m11 * .m22 - .m12 * .m21
-        let scale = 1.0 / det
-        if det == 0 or not isFinite(scale) do
+        let determinant        = .m11 * .m22 - .m12 * .m21
+        let inverseDeterminant = 1.0 / determinant
+        if determinant == 0 or not isFinite(inverseDeterminant) do
             return Identity
 
-        var result: retval
-        result.m11 = .m22 * scale
-        result.m12 = -.m12 * scale
-        result.m21 = -.m21 * scale
-        result.m22 = .m11 * scale
-        result.tx  = -(.tx * result.m11 + .ty * result.m21)
-        result.ty  = -(.tx * result.m12 + .ty * result.m22)
+        with var result: retval
+        {
+            .m11 = me.m22 * inverseDeterminant
+            .m12 = -me.m12 * inverseDeterminant
+            .m21 = -me.m21 * inverseDeterminant
+            .m22 = me.m11 * inverseDeterminant
+            .tx  = -(me.tx * .m11 + me.ty * .m21)
+            .ty  = -(me.tx * .m12 + me.ty * .m22)
+        }
+
         return result
     }
 

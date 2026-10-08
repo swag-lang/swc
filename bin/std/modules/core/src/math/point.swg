@@ -106,10 +106,7 @@ impl Point
     mtd(op: Swag.Operator) const opUnary()->Point
         where op == .Neg
     {
-        var result: retval
-        result.x = -.x
-        result.y = -.y
-        return result
+        return {-.x, -.y}
     }
 
     // Sets both coordinates to zero.
@@ -127,7 +124,11 @@ impl Point
     mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps)
 
     // Returns whether each coordinate is closer than `eps` to the matching coordinate of `other`.
-    mtd const isEqualEpsilon(other: Point, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
+    mtd const isEqualEpsilon(other: Point, eps = ConstF32.Epsilon)->bool
+    {
+        return Math.isEqualEpsilon(.x, other.x, eps) and
+               Math.isEqualEpsilon(.y, other.y, eps)
+    }
 
     // Adds `value` to both coordinates.
     mtd offset(value: f32)

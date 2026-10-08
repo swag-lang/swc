@@ -177,7 +177,10 @@ impl Rectangle
     //
     // The position and the size are all multiplied by `value`, which is how a rectangle addresses
     // a proportionally scaled grid, such as a texture atlas built at another density.
-    mtd const scaledFromOrigin(value: f32)->Rectangle => Rectangle{.x * value, .y * value, .width * value, .height * value}
+    mtd const scaledFromOrigin(value: f32)->Rectangle
+    {
+        return Rectangle{.x * value, .y * value, .width * value, .height * value}
+    }
 
     // Grows the rectangle by `value` on every side, keeping its center in place.
     //
@@ -202,7 +205,13 @@ impl Rectangle
     }
 
     // Returns whether the position and the size are all closer to zero than `eps`.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps) and isZeroEpsilon(.width, eps) and isZeroEpsilon(.height, eps)
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
+    {
+        return isZeroEpsilon(.x, eps) and
+               isZeroEpsilon(.y, eps) and
+               isZeroEpsilon(.width, eps) and
+               isZeroEpsilon(.height, eps)
+    }
 
     // Returns whether the width or the height is closer to zero than `eps`.
     mtd const isEmptyEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.width, eps) or isZeroEpsilon(.height, eps)
@@ -259,7 +268,11 @@ impl Rectangle
     // Returns whether `rect` lies entirely inside this rectangle.
     //
     // Shared edges count as inside, so a rectangle contains itself.
-    mtd const contains(rect: Rectangle)->bool => (rect.x >= .x and rect.right() <= .right()) and (rect.y >= .y and rect.bottom() <= .bottom())
+    mtd const contains(rect: Rectangle)->bool
+    {
+        return (rect.x >= .x and rect.right() <= .right()) and
+               (rect.y >= .y and rect.bottom() <= .bottom())
+    }
 
     // Replaces this rectangle with its intersection with `other`.
     //
@@ -276,19 +289,25 @@ impl Rectangle
     // rectangles that only share an edge.
     func intersect(a, b: Rectangle)->Rectangle
     {
-        let x1 = max(a.x, b.x)
-        let x2 = min(a.x + a.width, b.x + b.width)
-        let y1 = max(a.y, b.y)
-        let y2 = min(a.y + a.height, b.y + b.height)
-        if x2 > x1 and y2 > y1 do
-            return Rectangle{x1, y1, x2 - x1, y2 - y1}
+        let left   = max(a.x, b.x)
+        let right  = min(a.x + a.width, b.x + b.width)
+        let top    = max(a.y, b.y)
+        let bottom = min(a.y + a.height, b.y + b.height)
+        if right > left and bottom > top do
+            return Rectangle{left, top, right - left, bottom - top}
         return Zero
     }
 
     // Returns whether this rectangle and `rect` overlap.
     //
     // Rectangles that only share an edge do not intersect.
-    mtd const intersects(rect: Rectangle)->bool => (rect.x < .right()) and (.x < rect.right()) and (rect.y < .bottom()) and (.y < rect.bottom())
+    mtd const intersects(rect: Rectangle)->bool
+    {
+        return (rect.x < .right()) and
+               (.x < rect.right()) and
+               (rect.y < .bottom()) and
+               (.y < rect.bottom())
+    }
 
     // Replaces this rectangle with the smallest one containing both it and `other`.
     //
@@ -304,11 +323,11 @@ impl Rectangle
     // An empty rectangle is not ignored: its position still extends the result.
     func combined(a, b: Rectangle)->Rectangle
     {
-        let x1 = min(a.x, b.x)
-        let x2 = max(a.right(), b.right())
-        let y1 = min(a.y, b.y)
-        let y2 = max(a.bottom(), b.bottom())
-        return Rectangle{x1, y1, x2 - x1, y2 - y1}
+        let left   = min(a.x, b.x)
+        let right  = max(a.right(), b.right())
+        let top    = min(a.y, b.y)
+        let bottom = max(a.bottom(), b.bottom())
+        return Rectangle{left, top, right - left, bottom - top}
     }
 
     // Returns the area, `width * height`.
@@ -385,7 +404,10 @@ impl Rectangle
     // Returns the point of the rectangle closest to `pt`, edges included.
     //
     // A point inside is returned unchanged. The rectangle must be normalized.
-    mtd const clampPoint(pt: Point)->Point => Point{Math.clamp(pt.x, .x, .x + .width), Math.clamp(pt.y, .y, .y + .height)}
+    mtd const clampPoint(pt: Point)->Point
+    {
+        return Point{Math.clamp(pt.x, .x, .x + .width), Math.clamp(pt.y, .y, .y + .height)}
+    }
 
     // Returns the distance from `pt` to the rectangle, or 0 when the point is inside or on an edge.
     mtd const distanceToPoint(pt: Point)->f32

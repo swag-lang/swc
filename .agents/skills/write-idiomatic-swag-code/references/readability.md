@@ -126,6 +126,14 @@ Run the formatter to align these assignments. Here the conditionals are small an
 adding three helpers would increase navigation. Keep the enclosing receiver explicit as `me`
 inside a method's `with` block, and do not nest subjects merely to remove more prefixes.
 
+## Name Mathematical Roles Without Rewriting The Formula
+
+Prefer names such as `direction`, `startProjection`, `denominator`, and `inverseDeterminant`
+when they explain how a value is used. Retain conventional coefficients when expanding every
+symbol would bury the algorithm; describe the parameter domain and the exceptional cases once.
+Keep the original arithmetic order, widths, and wrapping operators. A named crossing coordinate
+belongs inside the height guard that makes its division valid, not before that guard.
+
 ## Factor A Repeated Policy, Keep The Choice Visible
 
 When several branches parse different numeric types but all reject overflow before writing the

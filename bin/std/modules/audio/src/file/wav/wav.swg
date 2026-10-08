@@ -122,8 +122,19 @@ private struct Format
     extra:         Array'u8     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
 }
 
-private func readU16(bytes: const [..] u8, offset: u64)->u32 => cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8)
-private func readU32(bytes: const [..] u8, offset: u64)->u32 => readU16(bytes, offset) | (readU16(bytes, offset + 2) << 16)
+private func readU16(bytes: const [..] u8, offset: u64)->u32
+{
+    let low  = bytes[offset]
+    let high = bytes[offset + 1]
+    return Math.make16(high, low)
+}
+
+private func readU32(bytes: const [..] u8, offset: u64)->u32
+{
+    let low  = cast(u16, readU16(bytes, offset))
+    let high = cast(u16, readU16(bytes, offset + 2))
+    return Math.make32(high, low)
+}
 
 private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 {
@@ -253,14 +264,14 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     var result: retval
     var stage:  Stage = FindRiff
     var header: ChunkHeader
-    let size = try stream.size()
+    let fileBytes     = try stream.size()
 
     for
     {
-        let seek = try stream.position()
-        if seek >= size do
+        let chunkOffset = try stream.position()
+        if chunkOffset >= fileBytes do
             fail InvalidFormatError{"invalid wav"}
-        if seek & 1 do
+        if chunkOffset & 1 do
             try stream.skip(1)
 
         if not (try stream.readValue(&header)) do
@@ -294,10 +305,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_fact:
             if header.chunkSize >= 4
             {
-                var count: u32
-                if not (try stream.readValue(&count)) do
+                var frameCount: u32
+                if not (try stream.readValue(&frameCount)) do
                     fail InvalidFormatError{"invalid wav"}
-                result.factFrames = count
+                result.factFrames = frameCount
                 try stream.skip(header.chunkSize - 4)
             }
             else
@@ -340,25 +351,32 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
         fail UnsupportedFormatError{"WAV ADPCM is only supported with one or two channels"}
 
     var packets: Array'SoundPacket
-    var total = 0'u64
-    var at    = 0'u64
-    while at < layout.dataSize
+    var totalFrames = 0'u64
+    var dataOffset  = 0'u64
+    while dataOffset < layout.dataSize
     {
-        let bytes  = Math.min(cast(u64, format.blockAlign), layout.dataSize - at)
-        let frames = Adpcm.blockFrameCount(format.encoding, format.channels, bytes)
-        if not frames do
+        let blockBytes  = Math.min(cast(u64, format.blockAlign), layout.dataSize - dataOffset)
+        let blockFrames = Adpcm.blockFrameCount(format.encoding, format.channels, blockBytes)
+        if not blockFrames do
             break
-        packets.add({layout.dataOffset + at, cast(u32, bytes), cast(u32, frames)})
-        total += frames
-        at    += bytes
+        packets.add({layout.dataOffset + dataOffset, cast(u32, blockBytes), cast(u32, blockFrames)})
+        totalFrames += blockFrames
+        dataOffset  += blockBytes
     }
 
     if not packets.count do
         fail InvalidFormatError{"WAV ADPCM data holds no complete block"}
-    if layout.factFrames > total do
+    if layout.factFrames > totalFrames do
         fail InvalidFormatError{"WAV fact chunk declares more sample frames than the blocks decode to"}
 
-    return try SoundFile.openPacketStream(path, format.encoding, format.sampleRate, format.channels, total, packets.toSlice(), format.extra.toSlice(), {speakerMask: format.speakerMask})
+    return try SoundFile.openPacketStream(path,
+                                          format.encoding,
+                                          format.sampleRate,
+                                          format.channels,
+                                          totalFrames,
+                                          packets.toSlice(),
+                                          format.extra.toSlice(),
+                                          {speakerMask: format.speakerMask})
 }
 
 // Opens a RIFF/WAVE file.

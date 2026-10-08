@@ -82,6 +82,7 @@ impl BuildRequest
     */
     mtd needsDependency()->bool => .kind != .Microcode or .source.contains("Core")
 
+    // The `module.swg` of the probe: its dependency, backend, optimization, and configuration.
     mtd moduleSource()->String
     {
         let dependency = .kind == .Microcode ? "core" : (.kind == .Render2D ? "pixel" : "gui")

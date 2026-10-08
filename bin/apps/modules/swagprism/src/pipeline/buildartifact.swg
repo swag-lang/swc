@@ -25,6 +25,8 @@ struct BuildArtifact
 
 impl BuildArtifact
 {
+    // Writes the probe module and builds it out of process, keeping the binary or the
+    // diagnostics.
     mtd run() fail
     {
         // Lays out the probe module. Unchanged files keep their time stamps, so the compiler
@@ -40,7 +42,7 @@ impl BuildArtifact
         // interface down, and gives up on a build the reader cancelled or that never ends.
         let outDir    = Path.combine(.folder.session, "out")
         let arguments = Format.toString("build --num-cores % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview", compilerWorkerCount(), .folder.root, outDir)
-        var process   = try Env.startProcess(Env.StartInfo{fileName: compilerPath(), arguments: arguments, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+        var process   = try startPiped(compilerPath(), arguments)
         defer retireProcess(&process)
 
         var watch: Time.Stopwatch

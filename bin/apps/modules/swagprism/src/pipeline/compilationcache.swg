@@ -20,6 +20,7 @@ impl BuildLease
             .cache!.release(.artifact)
     }
 
+    // Waits for the leased build to end; false when `cancelled` is raised first.
     mtd wait(cancelled: *u32)->bool
     {
         while not .artifact!.task.isDone()
@@ -50,6 +51,7 @@ impl CompilationCache
 
     mtd opDrop() { .close() }
 
+    // Makes every cached build stale, so the next request compiles again.
     mtd invalidate()
     {
         .mutex.lock()
@@ -57,6 +59,8 @@ impl CompilationCache
         .generation += 1
     }
 
+    // Leases a build of `request`: a current one that satisfies it, or a new one started on a
+    // worker after evicting idle finished builds beyond capacity.
     mtd acquire(request: BuildRequest)->BuildLease
     {
         .mutex.lock()
@@ -105,6 +109,7 @@ impl CompilationCache
         return {cache: me, artifact: entry}
     }
 
+    // Ends one lease, and cancels the build when nobody waits for it any more.
     mtd release(entry: *BuildArtifact)
     {
         .mutex.lock()

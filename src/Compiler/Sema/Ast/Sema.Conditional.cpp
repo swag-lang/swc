@@ -260,10 +260,23 @@ Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
         SemaHelpers::NarrowGuards guards;
         SemaHelpers::collectNarrowGuards(sema, nodeCondRef, guards);
         const auto& facts = childRef == nodeTrueRef ? guards.whenTrue : guards.whenFalse;
-        if (!facts.empty())
+
+        // `cond ? Kind.A : .B` where the expression itself has no expected type: the false branch
+        // names its members against the enum the true branch settled on, before the enum of an
+        // enclosing switch.
+        TypeRef enumTypeRef = TypeRef::invalid();
+        if (childRef == nodeFalseRef && !sema.frame().hasExpressionBindingTypes())
+        {
+            const SemaNodeView trueView = sema.viewNodeType(nodeTrueRef);
+            if (trueView.type() && trueView.type()->isEnum())
+                enumTypeRef = trueView.typeRef();
+        }
+
+        if (!facts.empty() || enumTypeRef.isValid())
         {
             SemaFrame frame = sema.frame();
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
+            frame.pushBindingType(enumTypeRef);
             sema.pushFramePopOnPostChild(frame, childRef);
         }
     }

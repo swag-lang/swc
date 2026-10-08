@@ -4,6 +4,7 @@ using Core, Win32
 
 namespace WinFsp
 {
+    // Whether this process was launched as the guardian of another Swag Vault.
     func isPortableGuardianInvocation()->bool
     {
         let args = Env.arguments()
@@ -21,11 +22,13 @@ namespace WinFsp
         return "The portable WinFsp helper failed."
     }
 
+    // Tells the waiting application how the guardian started, through the status file.
     func writeGuardianStatus(path, status: string) fail
     {
         discard try File.writeAllText(path, status)
     }
 
+    // Loads and registers the portable runtime, then reports `READY` with the path of its library.
     func startPortableGuardian(statusPath: string) fail
     {
         g_WinFsp.guardianProcess = true
@@ -34,6 +37,8 @@ namespace WinFsp
         try writeGuardianStatus(statusPath, Format.toString("READY\n%", g_WinFsp.dllPath))
     }
 
+    // The guardian process: elevated, it registers the portable driver, keeps it while the
+    // application that launched it lives, and removes it afterwards. Returns the process exit code.
     func runPortableGuardian()->s32
     {
         let args = Env.arguments()
@@ -83,6 +88,8 @@ namespace WinFsp
         return true
     }
 
+    // Launches the elevated guardian once, and waits for its status file to report the library to
+    // load, or why it could not.
     func ensurePortableGuardian() fail
     {
         // Checked before anything else, so no test run can reach ShellExecute.
@@ -141,6 +148,8 @@ namespace WinFsp
         try failWith("The portable WinFsp helper did not become ready in time.")
     }
 
+    // Deletes a staged runtime directory and everything below it; what Windows still holds is
+    // deleted at the next restart.
     func removeRuntimeTree(path: string)
     {
         if not Directory.exists(path) do
@@ -174,6 +183,8 @@ namespace WinFsp
             catch MoveFileExW(path16.buffer, null, MoveDelayUntilReboot)
     }
 
+    // Copies the portable library and driver into a fresh temporary directory, under an identity of
+    // their own, and returns the path of the library.
     func stagePortableWinFsp()->String fail
     {
         let executablePath      = try Env.Process.currentExecutablePath()
@@ -212,6 +223,7 @@ namespace WinFsp
         return dll
     }
 
+    // Registers the staged driver with Windows and starts it.
     func registerPortableWinFsp() fail
     {
         if not g_WinFsp.portable or g_WinFsp.registered or g_WinFsp.guardianManaged do

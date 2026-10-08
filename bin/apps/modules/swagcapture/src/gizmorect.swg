@@ -1,3 +1,15 @@
+// The edges of the box a resize handle moves.
+#[Swag.EnumFlags]
+enum GizmoEdges
+{
+    Zero
+    Left
+    Top
+    Right
+    Bottom
+}
+
+// The frame of handles that moves, resizes, and rotates a box-shaped form.
 struct GizmoRect
 {
     paintSimpleBorder: bool = true
@@ -14,7 +26,7 @@ struct GizmoRect
     firstMoving:   bool
     movingRect:    Math.Rectangle
     movingStart:   Math.Point
-    sigChanged:    (func||(*GizmoRect, bool, u32))?
+    sigChanged:    (func||(*GizmoRect, bool, GizmoEdges))?
     sigHasChanged: (func||())?
 
     // Rotation: the whole gizmo (box + anchors + handle) rotates with the form
@@ -39,11 +51,49 @@ struct GizmoRect
 // Distance of the rotation handle above the bounding box edge
 const RotateHandleDist = 26.0
 
+// The edges each handle moves, in the order of `GizmoRect.anchors`: the corners and the middle
+// of each side, from the top left to the bottom right.
+const AnchorEdges: [8] GizmoEdges = [.Left | .Top, .Top, .Top | .Right, .Left, .Right, .Left | .Bottom, .Bottom, .Right | .Bottom]
+
 impl GizmoRect
 {
+    // Moves the `edges` of `movingRect` by `diff`, never below the minimum size. With `keepRatio`,
+    // a corner follows its diagonal.
+    mtd resizeFrom(edges: GizmoEdges, diff: Math.Point, keepRatio: bool)
+    {
+        var delta = diff
+        if keepRatio and (edges & (.Left | .Right)) and (edges & (.Top | .Bottom))
+        {
+            // The top-left and bottom-right corners grow both ways at once, the others one
+            // against the other.
+            let sign = (edges == .Left | .Top or edges == .Right | .Bottom) ? 1'f32 : -1
+            if Math.abs(delta.x) > Math.abs(delta.y) do
+                delta.y = sign * delta.x
+            else do
+                delta.x = sign * delta.y
+        }
+
+        if edges & .Left
+        {
+            .movingRect.x     = Math.min(.startRect.right() - .minSizeX, .movingRect.x + delta.x)
+            .movingRect.width = .startRect.right() - .movingRect.x
+        }
+
+        if edges & .Top
+        {
+            .movingRect.y      = Math.min(.startRect.bottom() - .minSizeY, .movingRect.y + delta.y)
+            .movingRect.height = .startRect.bottom() - .movingRect.y
+        }
+
+        if edges & .Right do
+            .movingRect.width = Math.max(.movingRect.width + delta.x, .minSizeX)
+        if edges & .Bottom do
+            .movingRect.height = Math.max(.movingRect.height + delta.y, .minSizeY)
+    }
+
     mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
-        let prop = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
+        let keepRatio = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
 
         switch evt.kind
         {
@@ -115,7 +165,7 @@ impl GizmoRect
                     .hotAnchor = Swag.U32.Max
                     view.releaseMouse()
                     if not .trackChange and .sigChanged do
-                        .sigChanged(me, false, 0)
+                        .sigChanged(me, false, .Zero)
                     if .sigHasChanged do
                         .sigHasChanged()
                 }
@@ -154,10 +204,8 @@ impl GizmoRect
 
             if .moving
             {
-                var hitMove = 0'u32
                 if .firstMoving and .sigChanged and .trackChange do
-                    .sigChanged(me, true, 0)
-
+                    .sigChanged(me, true, .Zero)
                 .firstMoving = false
 
                 var diff = pos - .movingStart
@@ -167,85 +215,11 @@ impl GizmoRect
                 if .gizmoRad != 0 do
                     diff = GizmoRect.rotateVec(diff, -.gizmoRad)
 
-                switch .hotAnchor
-                {
-                case 0:
-                    if prop
-                    {
-                        if Math.abs(diff.x) > Math.abs(diff.y) do
-                            diff.y = diff.x
-                        else do
-                            diff.x = diff.y
-                    }
-
-                    .movingRect.x      = Math.min(.startRect.right() - .minSizeX, .movingRect.x + diff.x)
-                    .movingRect.y      = Math.min(.startRect.bottom() - .minSizeY, .movingRect.y + diff.y)
-                    .movingRect.width  = .startRect.right() - .movingRect.x
-                    .movingRect.height = .startRect.bottom() - .movingRect.y
-                    hitMove            = 1 | 2
-
-                case 1:
-                    .movingRect.y      = Math.min(.movingRect.y + diff.y, .startRect.bottom() - .minSizeY)
-                    .movingRect.height = .startRect.bottom() - .movingRect.y
-                    hitMove            = 2
-
-                case 2:
-                    if prop
-                    {
-                        if Math.abs(diff.x) > Math.abs(diff.y) do
-                            diff.y = -diff.x
-                        else do
-                            diff.x = -diff.y
-                    }
-
-                    .movingRect.y      = Math.min(.startRect.bottom() - .minSizeY, .movingRect.y + diff.y)
-                    .movingRect.width  = Math.max(.movingRect.width + diff.x, .minSizeX)
-                    .movingRect.height = .startRect.bottom() - .movingRect.y
-                    hitMove            = 2 | 4
-
-                case 3:
-                    .movingRect.x     = Math.min(.startRect.right() - .minSizeX, .movingRect.x + diff.x)
-                    .movingRect.width = .startRect.right() - .movingRect.x
-                    hitMove           = 1
-
-                case 4:
-                    .movingRect.width = Math.max(.movingRect.width + diff.x, .minSizeX)
-                    hitMove = 4
-
-                case 5:
-                    if prop
-                    {
-                        if Math.abs(diff.x) > Math.abs(diff.y) do
-                            diff.y = -diff.x
-                        else do
-                            diff.x = -diff.y
-                    }
-
-                    .movingRect.x      = Math.min(.startRect.right() - .minSizeX, .movingRect.x + diff.x)
-                    .movingRect.width  = .startRect.right() - .movingRect.x
-                    .movingRect.height = Math.max(.movingRect.height + diff.y, .minSizeY)
-                    hitMove            = 1 | 8
-
-                case 6:
-                    .movingRect.height = Math.max(.movingRect.height + diff.y, .minSizeY)
-                    hitMove = 8
-
-                case 7:
-                    if prop
-                    {
-                        if Math.abs(diff.x) > Math.abs(diff.y) do
-                            diff.y = diff.x
-                        else do
-                            diff.x = diff.y
-                    }
-
-                    .movingRect.width  = Math.max(.movingRect.width + diff.x, .minSizeX)
-                    .movingRect.height = Math.max(.movingRect.height + diff.y, .minSizeY)
-                    hitMove = 4 | 8
-                }
-
+                // A `Leave` drops the hot handle in the middle of a drag; the box then stays put.
+                let edges = .hotAnchor < AnchorEdges.count ? AnchorEdges[.hotAnchor] : .Zero
+                .resizeFrom(edges, diff, keepRatio)
                 if .trackChange and .sigChanged do
-                    .sigChanged(me, false, hitMove)
+                    .sigChanged(me, false, edges)
             }
             else
             {
@@ -412,7 +386,7 @@ impl GizmoRect
             painter.popTransform()
     }
 
-    mtd apply(iform: IForm, first: bool, hitMove: u32)
+    mtd apply(iform: IForm, first: bool, edges: GizmoEdges)
     {
         let form    = assume cast(*BaseForm, iform)
         let capture = form.capture!
@@ -454,23 +428,23 @@ impl GizmoRect
         let dy = cast(s32, ((.movingRect.y - .startRect.y) / zoom))
         undo.newPosX = dx
         undo.newPosY = dy
-        if hitMove & 1 do
+        if edges & .Left do
             capture.snap(&undo.newPosX, null, false, false)
-        if hitMove & 2 do
+        if edges & .Top do
             capture.snap(null, &undo.newPosY, false, false)
 
         let dsx = cast(s32, ((.movingRect.width - .startRect.width) / zoom))
         let dsy = cast(s32, ((.movingRect.height - .startRect.height) / zoom))
         undo.newSizeX = dsx
         undo.newSizeY = dsy
-        if hitMove & 4 do
+        if edges & .Right do
             capture.snap(&undo.newSizeX, null, true, true)
-        if hitMove & 8 do
+        if edges & .Bottom do
             capture.snap(null, &undo.newSizeY, true, true)
 
-        if hitMove & 1 do
+        if edges & .Left do
             undo.newSizeX -= (undo.newPosX - dx)
-        if hitMove & 2 do
+        if edges & .Top do
             undo.newSizeY -= (undo.newPosY - dy)
 
         capture.pushUndo(undo)
@@ -488,7 +462,7 @@ impl GizmoRect
         .paintSimpleBorder = false
         .paintBigBorder    = true
 
-        .sigChanged = func|form = iform|(g, first, hitMove) { g.apply(form, first, hitMove) }
+        .sigChanged = func|form = iform|(g, first, edges) { g.apply(form, first, edges) }
 
         if iform.canRotate()
         {

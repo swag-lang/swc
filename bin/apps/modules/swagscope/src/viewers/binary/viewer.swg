@@ -1092,7 +1092,7 @@ impl Panel
         .commands = host.createCommandGroup(CommandWidth)
 
         let texts = texts()
-        with .backButton = IconButton.create(.commands, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .backButton = Viewer.createActionButton(.commands, .ChevronLeft)
         {
             .dockStyle = .Left
             .toolTip   = texts.ui_MenuBack
@@ -1100,7 +1100,7 @@ impl Panel
             .sigPressed += func|view = me|(?) { discard view.navigateHistory(-1) }
         }
 
-        with .forwardButton = IconButton.create(.commands, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .forwardButton = Viewer.createActionButton(.commands, .ChevronRight)
         {
             .dockStyle = .Left
             .toolTip   = texts.ui_MenuForward

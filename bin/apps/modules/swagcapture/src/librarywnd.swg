@@ -12,6 +12,7 @@ const LibButtonGap = 12.0
 const LibCountWidth = 56.0
 const LibRowIndent  = 28.0
 
+// The size of library thumbnails.
 enum PreviewSize
 {
     Small
@@ -19,6 +20,7 @@ enum PreviewSize
     Big
 }
 
+// The order of the library.
 enum SortMethod
 {
     Recent
@@ -31,6 +33,7 @@ enum SortMethod
     Similar
 }
 
+// Which kinds of entries the library shows.
 enum LibraryContentFilter
 {
     All
@@ -40,6 +43,7 @@ enum LibraryContentFilter
     Images
 }
 
+// The groups the library sidebar filters by.
 enum LibrarySidebarFilter
 {
     Date
@@ -47,6 +51,8 @@ enum LibrarySidebarFilter
     Tag
 }
 
+// One entry of a sidebar group: its name, the executable it stands for when it groups by
+// application, and how many entries match it.
 struct LibraryNamedFilter
 {
     name:       String
@@ -61,6 +67,8 @@ impl LibraryNamedFilter
     mtd const opEquals(other: LibraryNamedFilter)->bool => .count == other.count and Utf8.compare(.name.toSlice(), other.name.toSlice(), .Latin1NoCase) == 0 and .executable == other.executable
 }
 
+// The library page: the sidebar, the command bar, the thumbnail grid, and the search and
+// folder they act on.
 struct LibraryWnd
 {
     using wnd: Wnd

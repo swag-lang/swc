@@ -252,6 +252,37 @@ SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksAlways)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBlanks_AccessBlockKeepsItsComment)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Record\n"
+        "{\n"
+        "    cached: bool\n"
+        "    // The fields set once the record is attached.\n"
+        "    late\n"
+        "    {\n"
+        "        owner: *Record\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Record\n"
+        "{\n"
+        "    cached: bool\n"
+        "\n"
+        "    // The fields set once the record is attached.\n"
+        "    late\n"
+        "    {\n"
+        "        owner: *Record\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Always;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksNever)
 {
     static constexpr std::string_view SOURCE =

@@ -214,6 +214,13 @@ func writeIfChanged(path: string, content: string) fail
     discard try File.writeAllBytes(path, cast(const [..] u8, content))
 }
 
+// Starts `fileName` without a console window, with both outputs piped back to Prism. Pair it
+// with [[retireProcess]].
+func startPiped(fileName: string, arguments: string, workingDirectory: string? = null)->Env.Process fail
+{
+    return try Env.startProcess(Env.StartInfo{fileName: fileName, arguments: arguments, workingDirectory: workingDirectory, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+}
+
 // Always reap an owned process before dropping its pipes or temporary files.
 func retireProcess(process: *Env.Process)
 {

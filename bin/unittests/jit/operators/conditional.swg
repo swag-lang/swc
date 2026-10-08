@@ -266,3 +266,18 @@ var g_CondSt: CondSt
     Swag.assert(pick(true, &values[0], 0, 7, -144) == 864)
     Swag.assert(pick(false, &values[0], 0, 7, -144) == 0)
 }
+
+// With no expected type, the false branch names its member against the enum of the true branch.
+#test
+{
+    func pick(cond: bool)->CondEnum
+    {
+        let value = cond ? CondEnum.A : .B
+        #assert(#typeof(value) == CondEnum)
+        return value
+    }
+
+    #assert(#run pick(true) == CondEnum.A)
+    #assert(#run pick(false) == CondEnum.B)
+    Swag.assert(pick(false) == .B)
+}

@@ -11,6 +11,8 @@ struct SourceFormatter
 
 impl SourceFormatter
 {
+    // Checks the syntax of `source` and formats it with the compiler, out of process; empty when
+    // `cancelled` is raised.
     mtd format(source: string, cancelled: *u32)->Result fail
     {
         try .folder.open()
@@ -27,7 +29,7 @@ impl SourceFormatter
             if Atomic.get(cancelled) do
                 return {}
             let arguments = Env.joinArguments([command, "--num-cores", workers, "--file", file])
-            var process   = try Env.startProcess(Env.StartInfo{fileName: compiler, arguments: arguments, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+            var process   = try startPiped(compiler, arguments)
             defer retireProcess(&process)
 
             var watch: Time.Stopwatch

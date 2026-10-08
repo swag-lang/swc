@@ -1,5 +1,6 @@
 var g_Library: Library
 
+// The captures and images in the library folder, and the folder itself.
 struct Library
 {
     files:        Array'File.FileInfo

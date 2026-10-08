@@ -4,6 +4,7 @@ using Core, Win32
 
 namespace WinFsp
 {
+    // The information Windows keeps about a file, laid out as WinFsp expects it.
     struct FileInfo
     {
         fileAttributes: u32
@@ -19,8 +20,10 @@ namespace WinFsp
         eaSize:         u32
     }
 
+    // Receives one directory entry; returns 0 once the caller has no room left.
     alias EmitDirFn = func(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
 
+    // Views a zero-terminated UTF-8 string as a `string`, without copying.
     func cString(value: const [*] u8?)->string
     {
         if not value do
@@ -31,6 +34,7 @@ namespace WinFsp
         return Swag.makeString(value, length)
     }
 
+    // The serial number Windows shows for the volume, taken from its creation time.
     func volumeSerialNumber(creationTime: u64)->u32
         => cast(u32, (creationTime & 0xFFFF_FFFF))
 
@@ -57,6 +61,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Reports the size, the free space, and the label of the volume, cut to `labelCapacity`.
     func callbackGetVolumeInfo(context: *void?, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
         let volume = cast(*Volume, context!)
@@ -71,6 +76,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Renames the volume and commits; a label holds at most 32 characters, so 128 UTF-8 bytes.
     func callbackSetVolumeLabel(context: *void?, label: const [*] u8?)->s32
     {
         let volume = cast(*Volume, context!)
@@ -97,6 +103,8 @@ namespace WinFsp
         return fillInfo(volume, nodeId[], info)
     }
 
+    // Creates a file or a directory at `path`. The record stays pending until cleanup, so the first
+    // data and times are journaled with it.
     func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
@@ -125,6 +133,7 @@ namespace WinFsp
         return fillInfo(volume, id, info)
     }
 
+    // Empties a file opened for overwrite, and replaces or merges its attributes.
     func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, ?: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
@@ -149,6 +158,8 @@ namespace WinFsp
         return err == null ? fillInfo(volume, nodeId, info) : statusFromError(err)
     }
 
+    // Runs when the last handle closes: deletes the node when asked, applies the requested time and
+    // attribute updates, and commits what is pending.
     func callbackCleanup(context: *void?, nodeId: u64, flags: u32)
     {
         let volume = cast(*Volume, context!)
@@ -210,6 +221,8 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Writes to a file, at its end or within its size when asked, once the blocks it needs are
+    // known to be free.
     func callbackWrite(context: *void?, nodeId: u64, buffer: const *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
     {
         if not length
@@ -257,6 +270,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
+    // Commits every pending change, which is how Windows learns of a durability failure.
     func callbackFlush(context: *void?, nodeId: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
@@ -278,6 +292,8 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
+    // Changes the attributes and times Windows passes; a zero time, or `U32.Max` attributes, keeps
+    // the current value.
     func callbackSetBasicInfo(context: *void?, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
@@ -330,6 +346,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
+    // Refuses to delete the root, a read-only node, or a directory that is not empty.
     func callbackCanDelete(context: *void?, nodeId: u64)->s32
     {
         let volume = cast(*Volume, context!)
@@ -348,6 +365,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Moves a node to `newPath`, over an existing target when `replace` allows it.
     func callbackRename(context: *void?, nodeId: u64, ?, newPath: const [*] u8?, replace: u8)->s32
     {
         let volume = cast(*Volume, context!)
@@ -357,6 +375,7 @@ namespace WinFsp
         return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
     }
 
+    // Copies the security descriptor of a node; without a buffer, only reports its size.
     func callbackGetSecurity(context: *void?, nodeId: u64, security: *void?, securitySize: *u32)->s32
     {
         let volume = cast(*Volume, context!)
@@ -393,8 +412,11 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Compares two names the way Windows does, ignoring case.
     func sameName(left: string, right: string)->bool => Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), .UnicodeNoCase) == 0
 
+    // Lists a directory from after `marker`, with `.` and `..` first except at the root, until
+    // `emit` has no room left.
     func callbackReadDirectory(context: *void?, nodeId: u64, marker: const [*] u8?, emit: EmitDirFn, emitContext: *void?, complete: *u8)->s32
     {
         let volume = cast(*Volume, context!)
@@ -457,6 +479,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Reports the entry `name` of a directory, `.` and `..` included.
     func callbackGetDirInfoByName(context: *void?, directoryId: u64, name: const [*] u8?, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)

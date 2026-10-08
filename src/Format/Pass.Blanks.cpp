@@ -401,10 +401,12 @@ namespace
             if (!model.piece(start).hasRole(FormatRoleE::BlockModifierStart))
                 continue;
 
-            const uint32_t prev = model.prevPiece(start);
+            // The blank goes before the comments and attributes attached to the group.
+            const uint32_t target = declGroupStart(model, start);
+            const uint32_t prev   = model.prevPiece(target);
             if (before != FormatBlankLineStyle::Preserve && prev != INVALID_PIECE &&
                 (!model.piece(prev).is(TokenId::SymLeftCurly) || before == FormatBlankLineStyle::Never))
-                applyBlankLineStyle(model, start, before);
+                applyBlankLineStyle(model, target, before);
 
             const uint32_t next = model.nextPiece(block.closePiece);
             if (after != FormatBlankLineStyle::Preserve && next != INVALID_PIECE &&

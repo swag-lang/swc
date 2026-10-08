@@ -15,11 +15,13 @@ struct VolumeStorage
 
 impl VolumeStorage
 {
+    // Forwarders to the host stream; a hidden view reports the size of its range, not of the host.
     mtd isOpen()->bool => .stream.isOpen()
     mtd close() { .stream.close() }
     mtd flush() fail { try .stream.flush() }
     mtd size()->u64 fail => .base ? .limit : try .stream.size()
 
+    // Resizes the host; hidden and protected views cannot.
     mtd resize(size: u64) fail
     {
         if .base or .protectedEnd do
@@ -27,6 +29,7 @@ impl VolumeStorage
         try .stream.resize(size)
     }
 
+    // Reads `bytes` at `offset` in the range; false when they would cross its end.
     mtd readExactAt(offset: u64, bytes: [..] u8)->bool fail
     {
         let size = try .size()
@@ -35,6 +38,8 @@ impl VolumeStorage
         return try .stream.readExactAt(.base + offset, bytes)
     }
 
+    // Writes `bytes` at `offset` in the range. A write reaching a protected hidden volume trips the
+    // protection, which then refuses every write until unmount.
     mtd writeAllAt(offset: u64, bytes: const [..] u8) fail
     {
         let size = try .size()

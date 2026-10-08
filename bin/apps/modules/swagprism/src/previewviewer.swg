@@ -38,6 +38,8 @@ struct PreviewViewer
 
 impl PreviewViewer
 {
+    // Builds a preview of the native renderer or of a GUI: a canvas for the frames, an output
+    // for the diagnostics, and a status line.
     func create(parent: *ViewerPanel, editor: *RichEditCtrl, gui: bool)->*PreviewViewer
     {
         with let result = Wnd.create'PreviewViewer(parent, "prism.preview")
@@ -107,6 +109,8 @@ impl PreviewViewer
                .request.sameProgram(request)
     }
 
+    // Starts `request`, or queues it behind the build in progress; a running animation keeps
+    // playing until its replacement has a first frame.
     mtd compileRequest(request: Pipeline.BuildRequest)
     {
         if .alreadyRuns(request) do
@@ -135,6 +139,7 @@ impl PreviewViewer
         .start()
     }
 
+    // Builds the pending request in a second probe, while the current animation keeps running.
     mtd startReplacement()
     {
         .request    = .pending
@@ -146,6 +151,7 @@ impl PreviewViewer
         .sigChanged.call(me)
     }
 
+    // Builds and runs the pending request in a fresh probe, and starts polling for frames.
     mtd start()
     {
         Memory.delete(.probe)
@@ -182,6 +188,8 @@ impl PreviewViewer
         }
     }
 
+    // Advances the preview at each timer tick: swaps in a replacement that has its first frame,
+    // reports a failed build, restarts a queued request, and copies the newest frame to the canvas.
     mtd poll()
     {
         .collectRetired()
@@ -272,6 +280,7 @@ impl PreviewViewer
             .refreshStatus()
     }
 
+    // Cancels every probe, waits for their workers, and closes the frame channel.
     mtd stop()
     {
         Atomic.exchange(&.probe.cancelled, 1)
@@ -299,6 +308,7 @@ impl PreviewViewer
         .probe.channel.close()
     }
 
+    // Shows the build and render times of the running preview, or why it is not running.
     mtd refreshStatus()
     {
         if .running and .frameCount do
@@ -311,6 +321,7 @@ impl PreviewViewer
             .status.setText(appStrings().ui_Ready)
     }
 
+    // Writes the hint shown before the first run, and the status, in the active language.
     mtd retranslate()
     {
         if not .running and not .probe.failed and not .frameCount do

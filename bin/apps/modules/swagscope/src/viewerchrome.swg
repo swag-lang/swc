@@ -351,8 +351,9 @@ impl ViewerLoadingOverlay
     // Covers `rect`, expressed in the shared parent coordinates; painting centers the activity mark.
     mtd cover(rect: Math.Rectangle)
     {
+        let size = ViewerLoadingSpinner.Size
         .setPosition(rect, computeLayout: false)
-        .spinner.setPosition({(rect.width - ViewerLoadingSpinner.Size) * 0.5, (rect.height - ViewerLoadingSpinner.Size) * 0.5, ViewerLoadingSpinner.Size, ViewerLoadingSpinner.Size}, computeLayout: false)
+        .spinner.setPosition({(rect.width - size) * 0.5, (rect.height - size) * 0.5, size, size}, computeLayout: false)
     }
 
     // Shows the mark, fading it in unless motion is reduced.

@@ -1058,10 +1058,27 @@ namespace
 {
     // A body cloned for a generic instance can keep a different set of '#static if' branches
     // per instance, so a name one instance leaves unused may be the one another needs.
-    bool isInGenericInstance(const SymbolFunction& sym)
+    //
+    // A closure the caller wrote in code it hands to a generic expansion, such as the body of a
+    // loop over a generic collection, sits in a scope the expansion owns. It is still the caller's
+    // own text, which no instance of the expansion varies, so the walk stops at the first function
+    // whose text does not hold it.
+    bool writtenInside(Sema& sema, const SymbolFunction& inner, const SymbolFunction& outer)
+    {
+        if (!outer.decl() || outer.srcViewRef() != inner.srcViewRef())
+            return false;
+        if (sema.ast().srcView().ref() != outer.srcViewRef())
+            return true;
+        const uint32_t tok = inner.tokRef().get();
+        return tok >= outer.decl()->tokRef().get() && tok <= outer.decl()->tokRefEnd(sema.ast()).get();
+    }
+
+    bool isInGenericInstance(Sema& sema, const SymbolFunction& sym)
     {
         for (const SymbolFunction* function = &sym; function; function = function->parentLexicalFunction())
         {
+            if (function != &sym && !writtenInside(sema, sym, *function))
+                return false;
             if (function->isGenericInstance())
                 return true;
             const SymbolStruct* owner = function->ownerStruct();
@@ -1105,7 +1122,7 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
 {
     // No body to search, or no single body to judge: a macro or mixin only exists where it
     // expands.
-    if (sym.isEmpty() || sym.isForeign() || isInGenericInstance(sym))
+    if (sym.isEmpty() || sym.isForeign() || isInGenericInstance(sema, sym))
         return Result::Continue;
     if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
         return Result::Continue;

@@ -5,6 +5,7 @@ using Core, Gui, Pixel
 // Keeps the compiler's RGB text runs separate from terminal control sequences.
 struct CompilerOutput
 {
+    // A span of `text` drawn in one style.
     struct Run
     {
         start, end: u64
@@ -30,6 +31,8 @@ impl CompilerOutput
         return cast(RichEditStyleRef, .colors.count)
     }
 
+    // Splits compiler output into plain text and styled runs, turning its ANSI color codes into
+    // editor styles.
     mtd parse(source: string)
     {
         .text.clear()
@@ -112,6 +115,7 @@ impl CompilerOutput
         }
     }
 
+    // Gives the editor one style per color met, adjusted to stay readable on its background.
     mtd applyColors(ed: *RichEditCtrl)
     {
         for i in .colors.count
@@ -122,6 +126,7 @@ impl CompilerOutput
         }
     }
 
+    // Replaces the editor content with the parsed output, in its colors.
     mtd show(editor: *RichEditCtrl)
     {
         editor.setText("")

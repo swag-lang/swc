@@ -667,7 +667,7 @@ impl Panel
     {
         .commands = host.createCommandGroup(200)
 
-        with .wrapButton = IconButton.create(.commands, .theme().icon(.Wrap, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .Toggle)
+        with .wrapButton = Viewer.createActionButton(.commands, .Wrap, .Toggle)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_WrapOn

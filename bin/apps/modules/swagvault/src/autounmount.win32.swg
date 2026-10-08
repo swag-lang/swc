@@ -24,6 +24,7 @@ struct AutoUnmountMonitor
 
 impl AutoUnmountMonitor
 {
+    // Watches the messages of `window` for a session lock or a suspend.
     mtd start(window: *MainWindow)
     {
         if .hwnd do

@@ -21,6 +21,7 @@ struct BuildOptions
 
 impl BuildOptions
 {
+    // Builds the preset list, the reset button, and the editor of the build configuration.
     func create(parent: *Wnd)->*BuildOptions
     {
         let result = Wnd.create'BuildOptions(parent)
@@ -65,6 +66,7 @@ impl BuildOptions
 
     mtd settings(level: Swag.BuildCfgBackendOptimLevel)->Pipeline.BuildSettings => {preset: cast(Pipeline.BuildPreset, .presetCombo.selectedIndex), optimization: level, configuration: .editor.text()}
 
+    // Restores the first preset and the default configuration.
     mtd reset()
     {
         .presetCombo.setSelectedIndex(0, notify: false)

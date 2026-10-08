@@ -1,3 +1,4 @@
+// The outline of a shape form.
 enum FormShapeKind
 {
     Ellipse
@@ -8,6 +9,7 @@ enum FormShapeKind
 const MinRoundSize = 10.0
 const MaxRoundSize = 50.0
 
+// An ellipse or a rectangle, with rounded corners when asked.
 #[Swag.Using(Properties)]
 #[Serialization.TypeKey("swag.capture.form.shape")]
 struct FormShape

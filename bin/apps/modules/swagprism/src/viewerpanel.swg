@@ -32,6 +32,7 @@ impl ViewerPanel
 {
     const MinWidth = 330.0
 
+    // Builds a panel showing the microcode viewer, with its header and build options.
     func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel, cache: *Pipeline.CompilationCache)->*ViewerPanel
     {
         with let result = Wnd.create'ViewerPanel(parent, "prism.viewerPanel")
@@ -128,6 +129,8 @@ impl ViewerPanel
         }
     }
 
+    // Switches the panel to the viewer of `kind`, creating it the first time and keeping it for
+    // later switches.
     mtd selectViewer(kind: ViewerKind)
     {
         if .viewer and .kind == kind do
@@ -155,6 +158,7 @@ impl ViewerPanel
         .sigChanged.call(me)
     }
 
+    // Shows the pause button for the animated viewers, in the state of the active one.
     mtd refreshPlayback()
     {
         .pauseButton.show(.viewer != null and .kind != .Microcode)
@@ -165,6 +169,7 @@ impl ViewerPanel
         .header.applyLayout()
     }
 
+    // Shows the build options in place of the viewer, or the viewer again.
     mtd showOptions(visible: bool)
     {
         .optionsButton.setChecked(visible)
@@ -173,10 +178,15 @@ impl ViewerPanel
         .applyLayout()
     }
 
-    mtd request(source: string)->Pipeline.BuildRequest => {source: source, stage: .viewer!.inspectionStage(), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex))}
+    // The request compiling `source` for this panel: its viewer, stage, and build settings.
+    mtd request(source: string)->Pipeline.BuildRequest
+    {
+        let level = cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex)
+        return {source: source, stage: .viewer!.inspectionStage(), kind: .kind, settings: .options.settings(level)}
+    }
 
+    // `requestCompile` asks the window to recompile; the others forward to the active viewer.
     mtd requestCompile() { .sigCompileRequested.call(me) }
-
     mtd compile(request: Pipeline.BuildRequest) { .viewer!.compile(request) }
     mtd shutdown() { .viewer!.shutdown() }
     mtd isRunning()->bool => .viewer!.isRunning()

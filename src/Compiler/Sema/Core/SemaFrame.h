@@ -213,6 +213,7 @@ public:
     // an enum whose members its cases name bare; the rest target one expression and stop at
     // the next statement.
     std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
+    bool                             hasExpressionBindingTypes() const { return bindingTypes_.size() > scopeBindingCount_; }
     void                             pushBindingType(TypeRef type);
     void                             pushScopeBindingType(TypeRef type);
     void                             popBindingType();

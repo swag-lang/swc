@@ -261,6 +261,20 @@ You can omit the enum name when the type is already known.
 }
 
 /**
+# Simplified Enum Syntax in a Conditional
+
+When nothing else says which type is expected, the second branch of a conditional takes the
+enum of the first one.
+*/
+#test
+{
+    enum Values { A, B }
+    let pickFirst = true
+    let x         = pickFirst ? Values.A : .B
+    Swag.assert(x == .A)
+}
+
+/**
 # Simplified Enum Flags Syntax
 
 This works with flags too.

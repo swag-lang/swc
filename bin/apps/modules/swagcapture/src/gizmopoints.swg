@@ -1,3 +1,4 @@
+// The handles that move the points of a line, a polygon, or a stroke.
 struct GizmoPoints
 {
     anchorSize: f32 = 12

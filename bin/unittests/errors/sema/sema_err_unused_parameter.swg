@@ -45,6 +45,38 @@ func lambdas()->s32
     return total
 }
 
+// A closure written in the body of a loop over a generic collection is the caller's own code,
+// even though the expansion of the generic visitor owns the scope it sits in.
+struct(T) Pair
+{
+    values: [2] T
+}
+
+impl Pair
+{
+    #[Swag.Macro]
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
+    {
+        for idx in 2
+        {
+            #inject(stmt, item = me.values[idx], index = idx)
+        }
+    }
+}
+
+func closuresInVisit()->s32
+{
+    let pair: Pair's32
+    var total = 0
+    for v in pair
+    {
+        total += v
+        total += apply(func(a, ?) => a)
+        total += apply(func(a, b) => a)     // swc-expected-error {{sema_err_unused_parameter}}
+    }
+    return total
+}
+
 // A '?' parameter takes no argument name: the note lists the named ones only.
 func namedOnly(a: s32, ?: s32)->s32 => a
 

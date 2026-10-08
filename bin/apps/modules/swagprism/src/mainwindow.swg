@@ -57,6 +57,8 @@ impl MainWindow
     const MinHeight    = 560.0
     const Gutter       = 16.0
 
+    // Builds the window: the appearance button, the status line, the source and viewer panes,
+    // and the texts of the active language.
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "prism.mainWindow")
@@ -237,6 +239,7 @@ impl MainWindow
         .viewerSplit.addPane(panel, 540).minimumSize = ViewerPanel.MinWidth
     }
 
+    // Applies the theme gutter, and keeps the viewer side wide enough for every visible panel.
     mtd refreshPaneLayout()
     {
         let gutter = .themeMetrics().panel_GutterSize
@@ -245,6 +248,8 @@ impl MainWindow
         .applyLayout()
     }
 
+    // Shows one viewer panel or two side by side, splitting the space evenly when the second
+    // appears.
     mtd setComparisonEnabled(enabled: bool)
     {
         if .comparisonEnabled == enabled do
@@ -293,6 +298,8 @@ impl MainWindow
         .refreshStatus()
     }
 
+    // Stops the edit timer, cancels a running format, and shuts every panel and the build cache
+    // down before the window closes.
     mtd shutdown()
     {
         .cancelEditTimer()
@@ -309,6 +316,8 @@ impl MainWindow
         .cache.close()
     }
 
+    // Formats the editor source on a worker; `finishFormat` applies the result once the timer sees
+    // the task done.
     mtd format()
     {
         if .formatStatus == .Working do
@@ -328,6 +337,8 @@ impl MainWindow
         .refreshStatus()
     }
 
+    // Applies a finished format as one undo step, unless it failed or the source changed while it
+    // ran, and recompiles what it rewrote.
     mtd finishFormat()
     {
         .stopTimer(&.formatTimer)
@@ -365,6 +376,7 @@ impl MainWindow
         .stopTimer(&.editTimer)
     }
 
+    // Recompiles shortly after the last keystroke, when live edit is on.
     mtd scheduleCompile()
     {
         .cancelEditTimer()
@@ -381,6 +393,8 @@ impl MainWindow
         .compile()
     }
 
+    // Shows the running viewers or the outcome of the last format in the status line, with the
+    // formatter diagnostics as its tooltip on failure.
     mtd refreshStatus()
     {
         var running = 0'u64
@@ -424,6 +438,7 @@ impl MainWindow
         .statusBar.applyLayout()
     }
 
+    // Writes the command bar, layout button, and window title in the active language.
     mtd retranslate()
     {
         .commandBar.retranslate(.selectedExample)

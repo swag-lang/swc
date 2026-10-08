@@ -1108,20 +1108,25 @@ private func escapeHtml(text: string)->String
     return result
 }
 
+// The CSS `rgb()` of components in 0..255, rounded and clamped.
+private func cssChannel(value: f32)->u32 => cast(u32, Math.round(Math.clamp(value, 0, 255)))
+private func cssRgb(red, green, blue: f32)->String => Format.toString("rgb(%, %, %)", cssChannel(red), cssChannel(green), cssChannel(blue))
+
+// The CSS color of an InDesign color value: RGB components, or CMYK percentages.
 private func cssColor(space, value: string)->String
 {
     var values: Array'f32
     if not parseNumbers(value, &values) do
         return {}
     if space == "RGB" and values.count == 3 do
-        return Format.toString("rgb(%, %, %)", cast(u32, Math.round(Math.clamp(values[0], 0, 255))), cast(u32, Math.round(Math.clamp(values[1], 0, 255))), cast(u32, Math.round(Math.clamp(values[2], 0, 255))))
+        return cssRgb(values[0], values[1], values[2])
     if space == "CMYK" and values.count == 4
     {
         let cyan    = Math.clamp(values[0] / 100, 0, 1)
         let magenta = Math.clamp(values[1] / 100, 0, 1)
         let yellow  = Math.clamp(values[2] / 100, 0, 1)
         let black   = Math.clamp(values[3] / 100, 0, 1)
-        return Format.toString("rgb(%, %, %)", cast(u32, Math.round(255 * (1 - cyan) * (1 - black))), cast(u32, Math.round(255 * (1 - magenta) * (1 - black))), cast(u32, Math.round(255 * (1 - yellow) * (1 - black))))
+        return cssRgb(255 * (1 - cyan) * (1 - black), 255 * (1 - magenta) * (1 - black), 255 * (1 - yellow) * (1 - black))
     }
 
     return {}

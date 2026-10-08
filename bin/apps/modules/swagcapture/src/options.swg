@@ -1,3 +1,5 @@
+// The capture settings shown in the options grid: what a screenshot includes, how long it waits,
+// and where the result goes.
 #[Swag.Using(Properties)]
 struct CaptureOptions
 {
@@ -35,6 +37,7 @@ enum EditorLanguage
     French
 }
 
+// The editor settings shown in the options grid, plus the theme and language the menus choose.
 #[Swag.Using(Properties)]
 struct EditorOptions
 {

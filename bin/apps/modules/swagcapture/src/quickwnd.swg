@@ -8,6 +8,7 @@ const QuickCellMargin = 6.0
 const AddCellSize  = 18.0
 const AddGlyphSize = 12.0
 
+// The preset forms one tool offers in the quick-style bar.
 struct QuickStyle
 {
     forms: Array'IForm
@@ -76,6 +77,7 @@ impl QuickStyle
     }
 }
 
+// One cell of the quick-style bar, painting the preset form it applies.
 struct QuickButton
 {
     using iconBtn: IconButton
@@ -205,6 +207,7 @@ func quickStyleTip(itf: IForm)->string
     }
 }
 
+// The quick-style bar: the presets of every tool, showing those of the current one.
 struct QuickWnd
 {
     using scrollWnd: ScrollWnd
@@ -810,61 +813,161 @@ impl QuickWnd
         .updateQuickStyles(forceRebuild: true)
     }
 
+    // The presets of the tool `mode`; the selection tool has none of its own.
+    mtd styleOf(mode: EditMode)->*QuickStyle?
+    {
+        switch #complete mode
+        {
+        case .Arrow:     return &.qsArrow
+        case .Shape:     return &.qsShape
+        case .Image:     return &.qsImage
+        case .Step:      return &.qsStep
+        case .Line:      return &.qsLine
+        case .Polygon:   return &.qsPolygon
+        case .Text:      return &.qsText
+        case .Favorites: return &.qsFavorites
+        case .Draw:      return &.qsDraw
+        case .Highlight: return &.qsHighlight
+        case .PixSel:    return &.qsPixSel
+        case .Callout:   return &.qsCallout
+        case .Selection: return null
+        }
+    }
+
+    // Whether the trailing cell offers to keep the style of `model` as a preset: the highlighter
+    // only keeps highlighter styles, and a pixel selection has no style worth keeping.
+    mtd offersModel(model: *BaseForm)->bool
+    {
+        switch .main.editMode
+        {
+        case .Highlight: return model.subKind == .Highlight
+        case .PixSel:    return false
+        default:         return model.subKind != .Highlight and model.subKind != .PixSel
+        }
+    }
+
+    // Paints the form of a cell as a preview of its style.
+    func paintPreset(painter: *Painter, btnp: *QuickButton)
+    {
+        painter.setParams(.Antialiased)
+        var paintForm = QuickStylePaintForm.create(btnp.formItf!)
+        defer paintForm.release()
+
+        Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paintForm.itf!, zoom: 1, quickMode: true)
+    }
+
+    // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
+    mtd addPresetButton(form: IForm)
+    {
+        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
+        {
+            .updateFlags(.Radio)
+            .setForm(.Rectangle)
+
+            // The picked preset is the cell that is lit, not the cell with a bar under it: a
+            // rule in the accent below a sample drawn in the user's own colors reads as one
+            // more thing painted in the cell rather than as the state of the cell.
+            .setCheckIndicator(.None)
+            .formItf  = form
+            .quickWnd = me
+            .toolTip  = quickStyleTip(form)
+
+            .iconPainter     = func(button, bc, ?, ?) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
+            .sigRightPressed += func(button) { assume cast(*QuickButton, button).quickWnd.btnPopup(button, button.surfaceRect().center()) }
+        }
+
+        button.sigCheckedChanged += func(button)
+        {
+            if not button.isChecked do
+                return
+
+            let quickBtn = assume cast(*QuickButton, button)
+            let quick    = quickBtn.quickWnd
+            let it       = quickBtn.formItf!
+            quick.main.updateModel(it)
+
+            let capture = quick.main.getCapture()!
+            if not capture.selection.isEmpty()
+            {
+                with let undo = capture.newUndo(.SetFormFromModel)
+                {
+                    .mdlType  = Swag.kindOf(it)
+                    .mdlValue = MainWnd.newFormFromForm(it)
+                }
+
+                capture.pushUndo(undo)
+            }
+
+            quick.updateSelection()
+            quick.main.updateState()
+        }
+    }
+
+    // Adds the trailing cell, which shows the current tool style and offers to keep it as a preset.
+    mtd addModelButton(form: IForm)
+    {
+        with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
+        {
+            .updateFlags(.Radio)
+            .isModel = true
+            .formItf = form
+            .setForm(.Rectangle)
+            .setCheckIndicator(.None)
+            .style.addStyleSheetColors("btnIcon_Bk          0x0")
+            .style.addStyleSheetColors("btnIcon_HotBk       0x0")
+            .style.addStyleSheetColors("btnIcon_PressedBk   0x0")
+        }
+
+        .layout.sendResizeEvent()
+
+        btn.iconPainter = func(btn, bc, ?, ?)
+        {
+            paintPreset(bc.painter, assume cast(*QuickButton, btn))
+            var rect = btn.clientRect()
+            rect.inflate(-2, -2)
+            bc.painter.setParams(.Antialiased)
+            bc.painter.drawRect(rect, Pen.createDash(.Dash, Argb.White, 1))
+        }
+
+        // The cell's own button adds its style as a new preset. Neutral, not Voltage: adding
+        // a preset is a convenience, not the primary action of the surface.
+        with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
+        {
+            .style.addStyleSheetColors("btnIcon_Bk          $veilMedium")
+            .style.addStyleSheetColors("btnIcon_HotBk       $veilStrong")
+            .style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
+            .setForm(.Rectangle)
+        }
+
+        .layout.sendResizeEvent()
+        .setScrollSize(0, .layout.contentHeight)
+
+        addBtn.sigPressed += func|quickWnd = me|(?)
+        {
+            let main = quickWnd.main
+            let mdl  = main.newFormFromModel(main.getEditMode())
+            quickWnd.currentStyle!.forms.add(mdl)
+            quickWnd.updateQuickStyles()
+        }
+    }
+
     mtd updateQuickStyles(forceRebuild = false)
     {
-        func paintForm(painter: *Painter, btnp: *QuickButton)
-        {
-            painter.setParams(.Antialiased)
-            var paintForm = QuickStylePaintForm.create(btnp.formItf!)
-            defer paintForm.release()
-
-            Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paintForm.itf!, zoom: 1, quickMode: true)
-        }
-
         let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
         let prevStyle = .currentStyle
-        switch #complete edMode
-        {
-        case .Arrow:     .currentStyle = &.qsArrow
-        case .Shape:     .currentStyle = &.qsShape
-        case .Image:     .currentStyle = &.qsImage
-        case .Step:      .currentStyle = &.qsStep
-        case .Line:      .currentStyle = &.qsLine
-        case .Polygon:   .currentStyle = &.qsPolygon
-        case .Text:      .currentStyle = &.qsText
-        case .Favorites: .currentStyle = &.qsFavorites
-        case .Draw:      .currentStyle = &.qsDraw
-        case .Highlight: .currentStyle = &.qsHighlight
-        case .PixSel:    .currentStyle = &.qsPixSel
-        case .Callout:   .currentStyle = &.qsCallout
-        case .Selection: return
-        }
-
-        if not .currentStyle do
+        let style     = .styleOf(edMode)
+        if not style do
             return
+        .currentStyle = style
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
-        let baseForm    = assume cast(*BaseForm, formItf)
-        var canAddModel = true
-        if .main.editMode == .Highlight
-        {
-            if baseForm.subKind != .Highlight do
-                canAddModel = false
-        }
-        elif .main.editMode == .PixSel
-        {
-            canAddModel = false
-        }
-        elif baseForm.subKind == .Highlight or baseForm.subKind == .PixSel
-        {
-            canAddModel = false
-        }
+        let canAddModel = .offersModel(assume cast(*BaseForm, formItf))
 
         // Light path: same style target and same button population. Destroying and
         // recreating every button is only needed when the style set itself changed;
         // check states and the model button repaint from live data.
-        let wantBtns = .currentStyle.forms.count + (canAddModel ? 1 : 0)
-        if not forceRebuild and .currentStyle == prevStyle and .layout.children.count == wantBtns
+        let wantBtns = style.forms.count + (canAddModel ? 1 : 0)
+        if not forceRebuild and style == prevStyle and .layout.children.count == wantBtns
         {
             .updateSelection()
             return
@@ -872,99 +975,10 @@ impl QuickWnd
 
         for c in .layout.children do
             c.destroy()
-
-        for it in .currentStyle.forms
-        {
-            with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
-            {
-                .updateFlags(.Radio)
-                .setForm(.Rectangle)
-
-                // The picked preset is the cell that is lit, not the cell with a bar under it: a
-                // rule in the accent below a sample drawn in the user's own colors reads as one
-                // more thing painted in the cell rather than as the state of the cell.
-                .setCheckIndicator(.None)
-                .formItf  = it
-                .quickWnd = me
-                .toolTip  = quickStyleTip(it)
-
-                .iconPainter     = func(button, bc, pos, flags) { paintForm(bc.painter, assume cast(*QuickButton, button)) }
-                .sigRightPressed += func(button) { assume cast(*QuickButton, button).quickWnd.btnPopup(button, button.surfaceRect().center()) }
-            }
-
-            button.sigCheckedChanged += func(button)
-            {
-                if not button.isChecked do
-                    return
-
-                let quickBtn = assume cast(*QuickButton, button)
-                let quick    = quickBtn.quickWnd
-                let it       = quickBtn.formItf!
-                quick.main.updateModel(it)
-
-                let capture = quick.main.getCapture()!
-                if not capture.selection.isEmpty()
-                {
-                    with let undo = capture.newUndo(.SetFormFromModel)
-                    {
-                        .mdlType  = Swag.kindOf(it)
-                        .mdlValue = MainWnd.newFormFromForm(it)
-                    }
-
-                    capture.pushUndo(undo)
-                }
-
-                quick.updateSelection()
-                quick.main.updateState()
-            }
-        }
-
-        if canAddModel
-        {
-            with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
-            {
-                .updateFlags(.Radio)
-                .isModel = true
-                .formItf = formItf
-                .setForm(.Rectangle)
-                .setCheckIndicator(.None)
-                .style.addStyleSheetColors("btnIcon_Bk          0x0")
-                .style.addStyleSheetColors("btnIcon_HotBk       0x0")
-                .style.addStyleSheetColors("btnIcon_PressedBk   0x0")
-            }
-
-            .layout.sendResizeEvent()
-
-            btn.iconPainter = func(btn, bc, ?, ?)
-            {
-                paintForm(bc.painter, assume cast(*QuickButton, btn))
-                var rect = btn.clientRect()
-                rect.inflate(-2, -2)
-                bc.painter.setParams(.Antialiased)
-                bc.painter.drawRect(rect, Pen.createDash(.Dash, Argb.White, 1))
-            }
-
-            // The cell's own button adds its style as a new preset. Neutral, not Voltage: adding
-            // a preset is a convenience, not the primary action of the surface.
-            with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
-            {
-                .style.addStyleSheetColors("btnIcon_Bk          $veilMedium")
-                .style.addStyleSheetColors("btnIcon_HotBk       $veilStrong")
-                .style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
-                .setForm(.Rectangle)
-            }
-
-            .layout.sendResizeEvent()
-            .setScrollSize(0, .layout.contentHeight)
-
-            addBtn.sigPressed += func|quickWnd = me|(?)
-            {
-                let main = quickWnd.main
-                let mdl  = main.newFormFromModel(main.getEditMode())
-                quickWnd.currentStyle!.forms.add(mdl)
-                quickWnd.updateQuickStyles()
-            }
-        }
+        for it in style.forms do
+            .addPresetButton(it)
+        if canAddModel do
+            .addModelButton(formItf)
 
         .updateSelection()
         .layout.computeLayout()

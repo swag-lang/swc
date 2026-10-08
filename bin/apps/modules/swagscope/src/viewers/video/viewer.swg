@@ -1978,11 +1978,10 @@ private impl Panel
     // left, the rate, play-mode, track, and sound controls on the right, and the timeline between.
     mtd createTransportBar(playback: Viewer.PlaybackApi)
     {
-        let iconSize      = themeActionIconSize(.themeMetrics())
         let buttonSize    = themeActionButtonSize(.themeMetrics())
         let dropDownWidth = themeDropDownButtonWidth(.themeMetrics())
 
-        with .playButton = IconButton.create(.commands, .theme().icon(.Play, iconSize), {0, 0, buttonSize, buttonSize})
+        with .playButton = Viewer.createActionButton(.commands, .Play)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPlay
@@ -1990,7 +1989,7 @@ private impl Panel
             .sigPressed += func|view = me|(?) { view.togglePlayback() }
         }
 
-        with .stopButton = IconButton.create(.commands, .theme().icon(.Stop, iconSize), {0, 0, buttonSize, buttonSize})
+        with .stopButton = Viewer.createActionButton(.commands, .Stop)
         {
             .dockStyle = .Left
             .margin.x  = 4
@@ -1999,7 +1998,7 @@ private impl Panel
             .sigPressed += func|view = me|(?) { view.stopPlayback() }
         }
 
-        with .backwardButton = IconButton.create(.commands, .theme().icon(.SeekBackward, iconSize), {0, 0, buttonSize, buttonSize})
+        with .backwardButton = Viewer.createActionButton(.commands, .SeekBackward)
         {
             .dockStyle = .Left
 
@@ -2010,7 +2009,7 @@ private impl Panel
             .sigPressed += func|view = me|(?) { view.seekRelative(-SeekSeconds) }
         }
 
-        with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
+        with .forwardButton = Viewer.createActionButton(.commands, .SeekForward)
         {
             .dockStyle  = .Left
             .margin.x   = 4
@@ -2025,7 +2024,7 @@ private impl Panel
             .setTextAlignment(.Right, .Center)
         }
 
-        with .speedButton = IconButton.create(.commands, .theme().icon(.PlaybackSpeed, iconSize), {0, 0, dropDownWidth, buttonSize}, flags: .CenterContent)
+        with .speedButton = Viewer.createActionDropDown(.commands, .PlaybackSpeed)
         {
             .dockStyle = .Right
             .margin.x  = 4
@@ -2040,7 +2039,7 @@ private impl Panel
             .margin.x  = 4
         }
 
-        with .audioButton = IconButton.create(.commands, .theme().icon(.AudioTracks, iconSize), {0, 0, dropDownWidth, buttonSize}, flags: .CenterContent)
+        with .audioButton = Viewer.createActionDropDown(.commands, .AudioTracks)
         {
             .dockStyle = .Right
             .toolTip   = texts().ui_TipAudio
@@ -2072,7 +2071,7 @@ private impl Panel
             .sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
         }
 
-        with .muteButton = IconButton.create(.commands, .theme().icon(.Volume, iconSize), {0, 0, buttonSize, buttonSize}, flags: .Toggle)
+        with .muteButton = Viewer.createActionButton(.commands, .Volume, .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 4

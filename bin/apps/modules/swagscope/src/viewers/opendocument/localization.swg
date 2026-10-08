@@ -22,7 +22,6 @@ struct Texts
     ui_DetailsPage:  string = "OpenDocument drawing · %"
     ui_DetailsSlide: string = "OpenDocument · presentation · %"
     ui_DetailsSheet: string = "OpenDocument · spreadsheet · %"
-    ui_Column:       string = "Column %"
     err_MimeType:    string = "the archive does not identify an OpenDocument format"
     err_Content:     string = "the OpenDocument archive has no content.xml entry"
     err_TooLarge:    string = "the OpenDocument viewer accepts document XML up to 32 MiB"

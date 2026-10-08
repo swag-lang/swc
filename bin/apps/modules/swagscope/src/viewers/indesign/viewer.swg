@@ -270,7 +270,9 @@ private func previewPageNumber(bytes: const [..] u8, start, end: u64)->u32
     return result == Swag.U32.Max ? 0 : result
 }
 
-private func jpegStartOfFrame(marker: u8)->bool => marker == 0xC0 or marker == 0xC1 or marker == 0xC2 or marker == 0xC3 or marker == 0xC5 or marker == 0xC6 or marker == 0xC7 or marker == 0xC9 or marker == 0xCA or marker == 0xCB or marker == 0xCD or marker == 0xCE or marker == 0xCF
+// Whether `marker` starts a frame: the range C0 to CF, less the three codes it lends to the
+// Huffman tables (C4), the JPEG extensions (C8), and the arithmetic conditioning (CC).
+private func jpegStartOfFrame(marker: u8)->bool => marker >= 0xC0 and marker <= 0xCF and marker != 0xC4 and marker != 0xC8 and marker != 0xCC
 
 // Reads JPEG dimensions before materializing pixels, and reports whether they fit the preview limit.
 //
@@ -1252,7 +1254,7 @@ impl Panel
         let metrics    = .themeMetrics()
         let buttonSize = themeActionButtonSize(metrics)
         .commands = host.createCommandGroup(commandWidth(metrics))
-        with .previousButton = IconButton.create(me.commands, me.theme().icon(.ChevronLeft, themeActionIconSize(metrics)), {0, 0, buttonSize, buttonSize})
+        with .previousButton = Viewer.createActionButton(me.commands, .ChevronLeft)
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -1265,7 +1267,7 @@ impl Panel
             }
         }
 
-        with .nextButton = IconButton.create(me.commands, me.theme().icon(.ChevronRight, themeActionIconSize(metrics)), {0, 0, buttonSize, buttonSize})
+        with .nextButton = Viewer.createActionButton(me.commands, .ChevronRight)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_NextPage

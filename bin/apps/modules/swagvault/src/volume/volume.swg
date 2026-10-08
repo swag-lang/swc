@@ -935,6 +935,71 @@ impl Volume
         try .shrink(requestedSize, progress)
     }
 
+    // How many stored blocks lie at or past `limit`: the ones a shrink to `limit` blocks moves.
+    mtd const blocksPast(limit: u64)->u64
+    {
+        var result = 0'u64
+        for node in .nodes
+        {
+            for mapping in node.blocks
+            {
+                if mapping.physical >= limit do
+                    result += mapping.count
+                elif mapping.physical + mapping.count > limit do
+                    result += mapping.physical + mapping.count - limit
+            }
+        }
+
+        return result
+    }
+
+    // Moves the blocks of `node` stored at or past `limit` into free blocks below it, through the
+    // `plain` buffer, and returns the progress total `moved` grown by the bytes it moved.
+    mtd relocateBelow(node: *Node, limit: u64, plain: [..] u8, progress: *VolumeProgress?, moved: u64)->u64 fail
+    {
+        var result = moved
+        var updated: Array'BlockMapping
+        updated.reserve(node.blocks.count + 2)
+        for mapping in node.blocks
+        {
+            var logical  = mapping.logical
+            var physical = mapping.physical
+            var count    = mapping.count
+
+            if physical < limit
+            {
+                let kept = Math.min(count, limit - physical)
+                updated.add({logical, physical, kept})
+                logical  += kept
+                physical += kept
+                count    -= kept
+            }
+
+            while count
+            {
+                if progress and progress.isCanceled() do
+                    try failWith("Resizing the container was canceled.", .Canceled)
+
+                let destination = try .blocks.allocateRunBelow(limit, Math.min(count, MaximumIoBatchBlocks))
+                let bytes       = destination.count * BlockSize
+                try .readPhysicalRun(physical, plain[until bytes])
+                try .writePhysicalRun(destination.first, plain[until bytes])
+                updated.add({logical, destination.first, destination.count})
+
+                logical  += destination.count
+                physical += destination.count
+                count    -= destination.count
+                result   += bytes
+                progress?.publish(result)
+            }
+        }
+
+        node.blocks.clear()
+        for mapping in updated do
+            node.appendMapping(mapping[])
+        return result
+    }
+
     // Moves every live data block below the new end, checkpoints the smaller authenticated
     // geometry, then truncates the tail. Until the checkpoint lands, every old mapping and the
     // old file length remain valid; after it lands, an interrupted truncation is completed by
@@ -994,18 +1059,7 @@ impl Volume
             }
         }
 
-        var blocksToMove = 0'u64
-        for node in .nodes
-        {
-            for mapping in node.blocks
-            {
-                if mapping.physical >= newBlockCount do
-                    blocksToMove += mapping.count
-                elif mapping.physical + mapping.count > newBlockCount do
-                    blocksToMove += mapping.physical + mapping.count - newBlockCount
-            }
-        }
-
+        let blocksToMove  = .blocksPast(newBlockCount)
         let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
         progress?.setTotal(addedPhysical + blocksToMove * BlockSize)
         if targetPhysical > previousPhysical
@@ -1020,48 +1074,8 @@ impl Volume
         plain.resize(MaximumIoBatchBlocks * BlockSize)
         defer Core.Crypto.secureClear(plain.toSlice())
 
-        for &node in .nodes
-        {
-            var updated: Array'BlockMapping
-            updated.reserve(node.blocks.count + 2)
-            for mapping in node.blocks
-            {
-                var logical  = mapping.logical
-                var physical = mapping.physical
-                var count    = mapping.count
-
-                if physical < newBlockCount
-                {
-                    let kept = Math.min(count, newBlockCount - physical)
-                    updated.add({logical, physical, kept})
-                    logical  += kept
-                    physical += kept
-                    count    -= kept
-                }
-
-                while count
-                {
-                    if progress and progress.isCanceled() do
-                        try failWith("Resizing the container was canceled.", .Canceled)
-
-                    let destination = try .blocks.allocateRunBelow(newBlockCount, Math.min(count, MaximumIoBatchBlocks))
-                    let bytes       = destination.count * BlockSize
-                    try .readPhysicalRun(physical, plain[until bytes])
-                    try .writePhysicalRun(destination.first, plain[until bytes])
-                    updated.add({logical, destination.first, destination.count})
-
-                    logical  += destination.count
-                    physical += destination.count
-                    count    -= destination.count
-                    moved    += bytes
-                    progress?.publish(moved)
-                }
-            }
-
-            node.blocks.clear()
-            for mapping in updated do
-                node.appendMapping(mapping[])
-        }
+        for &node in .nodes do
+            moved = try .relocateBelow(node, newBlockCount, plain.toSlice(), progress, moved)
 
         .containerSize = requestedSize
         .physicalSize  = targetPhysical
@@ -1143,6 +1157,7 @@ impl Volume
         return result
     }
 
+    // How many metadata pages, from `index`, are stored in consecutive blocks.
     mtd const pageRunLength(index: u64)->u64
     {
         var result = 1'u64
@@ -1270,7 +1285,9 @@ impl Volume
         .blocks.rebuild(&used, .blockCount)
     }
 
-    mtd readMetadataPage(physical: u64, destination: [..] u8) fail
+    // Reads the record of block `physical` and decrypts it into `destination`, failing with
+    // `damaged` when it was not sealed as a record of `kind` at that block.
+    mtd readRecord(physical: u64, kind: u32, destination: [..] u8, damaged: string) fail
     {
         Swag.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
@@ -1283,10 +1300,17 @@ impl Volume
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
-        if not (try Crypto.open(&.keys, MetadataPageKind, physical, nonce, ciphertext, tag, destination)) do
-            try failWith("An encrypted metadata page is damaged.", .Corrupted)
+        if not (try Crypto.open(&.keys, kind, physical, nonce, ciphertext, tag, destination)) do
+            try failWith(damaged, .Corrupted)
     }
 
+    // Reads the metadata page stored at block `physical`.
+    mtd readMetadataPage(physical: u64, destination: [..] u8) fail
+    {
+        try .readRecord(physical, MetadataPageKind, destination, "An encrypted metadata page is damaged.")
+    }
+
+    // Encrypts a metadata page under a fresh nonce and stores it at block `physical`.
     mtd writeMetadataPage(physical: u64, source: const [..] u8) fail
     {
         Swag.assert(source.count == BlockSize)
@@ -1523,6 +1547,7 @@ impl Volume
         .dirty        = true
     }
 
+    // Forgets every pending change, once committed or abandoned.
     mtd clearPending()
     {
         .touched.clear()
@@ -1625,6 +1650,7 @@ impl Volume
         .dirty = .sequence != .checkpointAt
     }
 
+    // Replays one journal record: removes, replaces, and patches the nodes it names.
     mtd applyJournal(record: const *JournalRecord) fail
     {
         for id in record.removed
@@ -1671,6 +1697,7 @@ impl Volume
         .label      = record.label
     }
 
+    // Navigation through the node lookup; each returns null when there is no such node.
     mtd nodeById(id: u64)->*Node?
     {
         let index = .nodeLookup.nodePosition(id)
@@ -1711,6 +1738,8 @@ impl Volume
         return current
     }
 
+    // The directory that holds `path`, and the last name of the path; a null parent when a
+    // directory on the way is missing.
     mtd resolveParent(path: string)->{parent: *Node?, name: string}
     {
         let parts = splitPath(path)
@@ -1729,23 +1758,13 @@ impl Volume
         return {parent, parts[parts.count - 1]}
     }
 
+    // Reads the data block stored at block `physical`.
     mtd readPhysical(physical: u64, destination: [..] u8) fail
     {
-        Swag.assert(destination.count == BlockSize)
-        var record: [BlockRecordSize] u8
-        {
-            Sync.scopedLock(&.ioLock)
-            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record)) do
-                try failWith("The container is truncated or unreadable.", .Io)
-        }
-
-        let nonce      = record[0 until Crypto.NonceSize]
-        let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
-        let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
-        if not (try Crypto.open(&.keys, DataKind, physical, nonce, ciphertext, tag, destination)) do
-            try failWith("An encrypted data block is damaged.", .Corrupted)
+        try .readRecord(physical, DataKind, destination, "An encrypted data block is damaged.")
     }
 
+    // Reads the logical block `logical` of a node; a block never written reads as zeros.
     mtd readBlock(node: *Node, logical: u64, destination: [..] u8) fail
     {
         Swag.memset(destination.buffer, 0, destination.count)
@@ -1757,6 +1776,7 @@ impl Volume
         }
     }
 
+    // Reads consecutive data blocks from `physical` and decrypts them in parallel.
     mtd readPhysicalRun(physical: u64, destination: [..] u8) fail
     {
         Swag.assert(destination.count != 0 and destination.count % BlockSize == 0)
@@ -1792,6 +1812,8 @@ impl Volume
             try failWith("An encrypted data block is damaged.", .Corrupted)
     }
 
+    // Encrypts consecutive data blocks in parallel, each under a fresh nonce, and writes them from
+    // `physical`.
     mtd writePhysicalRun(physical: u64, source: const [..] u8) fail
     {
         Swag.assert(source.count != 0 and source.count % BlockSize == 0)
@@ -1881,6 +1903,8 @@ impl Volume
             node.appendMapping(mapping[])
     }
 
+    // Writes one logical block of a node to a newly allocated block, and releases the allocation
+    // when the write fails.
     mtd writeBlock(nodeId, logical: u64, source: const [..] u8) fail
     {
         Swag.assert(source.count == BlockSize)
@@ -1901,6 +1925,7 @@ impl Volume
         published = true
     }
 
+    // Writes whole logical blocks of a node in batches of newly allocated runs.
     mtd writeFullBlocks(nodeId, logical: u64, source: const [..] u8) fail
     {
         Swag.assert(source.count != 0 and source.count % BlockSize == 0)
@@ -1928,6 +1953,7 @@ impl Volume
         }
     }
 
+    // Releases every block of a node at the next commit.
     mtd freeNodeBlocks(node: *Node)
     {
         for mapping in node.blocks do
@@ -1936,6 +1962,7 @@ impl Volume
         .touch(node.id)
     }
 
+    // Releases, at the next commit, the blocks of a node past `newSize`.
     mtd trimNode(node: *Node, newSize: u64)
     {
         let keepBlocks = (newSize + BlockSize - 1) / BlockSize
@@ -1962,6 +1989,8 @@ impl Volume
         .touch(node.id)
     }
 
+    // Clears the bytes past the old end in the last block, so a file that grows never shows
+    // what a shrink left there.
     mtd zeroOldTail(nodeId, oldSize, newSize: u64) fail
     {
         if newSize <= oldSize or oldSize % BlockSize == 0 do
@@ -1998,6 +2027,8 @@ impl Volume
         .touch(nodeId)
     }
 
+    // Reads from a file at `offset`, a run of whole blocks at a time where it can; returns the
+    // bytes read.
     mtd readNode(nodeId: u64, offset: u64, destination: [..] u8)->u32 fail
     {
         let node = .nodeById(nodeId)
@@ -2051,6 +2082,8 @@ impl Volume
         return cast(u32, count)
     }
 
+    // Writes to a file at `offset`, or at its end; a constrained write stays within the current
+    // size. Returns the bytes written.
     mtd writeNode(nodeId: u64, offset: u64, source: const [..] u8, writeToEnd, constrained: bool)->u32 fail
     {
         try .requireWritable()
@@ -2182,6 +2215,7 @@ impl Volume
 
     mtd hasChildren(id: u64)->bool => .nodeLookup.hasChildren(id)
 
+    // Deletes a file or an empty directory, and commits.
     mtd deleteNode(id: u64) fail
     {
         try .requireWritable()
@@ -2201,6 +2235,8 @@ impl Volume
         try .commit()
     }
 
+    // Moves a node to `newPath`, over an existing target of the same kind when `replace` allows
+    // it, and commits.
     mtd renameNode(id: u64, newPath: string, replace: bool) fail
     {
         try .requireWritable()

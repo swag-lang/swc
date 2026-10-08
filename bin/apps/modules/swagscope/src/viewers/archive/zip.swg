@@ -55,6 +55,68 @@ impl Zip
         return result
     }
 
+    // The offset of the end record in `bytes`, the tail of the file: the last record whose comment
+    // ends exactly with the file. `U64.Max` when there is none.
+    func findEndRecord(bytes: const [..] u8)->u64 fail
+    {
+        for scan in reversed(bytes.count - 21)
+        {
+            if try readU32(bytes, scan) != EndSignature do
+                continue
+            let commentLength = cast(u64, try readU16(bytes, scan + 20))
+            if scan + 22 + commentLength == bytes.count do
+                return scan
+        }
+
+        return Swag.U64.Max
+    }
+
+    // Decodes the central directory entry at `at` into `entry` and returns its length. An entry
+    // whose name cleans down to nothing comes back with an empty path, for the caller to skip.
+    func readDirectoryEntry(data: const [..] u8, at: u64, entry: *ZipEntry)->u64 fail
+    {
+        if at > data.count or 46 > data.count - at do
+            fail Errors.InvalidFormatError{texts().err_DirectoryTruncated}
+        if try readU32(data, at) != DirectorySignature do
+            fail Errors.InvalidFormatError{texts().err_EntrySignature}
+
+        let nameLength    = cast(u64, try readU16(data, at + 28))
+        let extraLength   = cast(u64, try readU16(data, at + 30))
+        let commentLength = cast(u64, try readU16(data, at + 32))
+        let totalLength   = 46 + nameLength + extraLength + commentLength
+        if totalLength > data.count - at do
+            fail Errors.InvalidFormatError{texts().err_EntryOverflow}
+
+        with entry
+        {
+            .flags            = try readU16(data, at + 8)
+            .method           = try readU16(data, at + 10)
+            .crc32            = try readU32(data, at + 16)
+            .compressedSize   = cast(u64, try readU32(data, at + 20))
+            .uncompressedSize = cast(u64, try readU32(data, at + 24))
+        }
+
+        var diskNumber = cast(u64, try readU16(data, at + 34))
+        entry.localOffset = cast(u64, try readU32(data, at + 42))
+
+        let nameBytes  = data[at + 46 until at + 46 + nameLength]
+        let extraBytes = data[at + 46 + nameLength until at + 46 + nameLength + extraLength]
+        try applyZip64Extra(extraBytes, &entry.uncompressedSize, &entry.compressedSize, &entry.localOffset, &diskNumber)
+        if diskNumber do
+            fail Errors.UnsupportedFormatError{texts().err_MultiDiskEntry}
+
+        let decoded = text(nameBytes, cast(bool, entry.flags & FlagUtf8))
+        entry.path = cleanPath(decoded)
+        if entry.path.isEmpty() do
+            return totalLength
+
+        let external = try readU32(data, at + 38)
+        let hasDirectorySuffix = nameBytes.count and
+                                 (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)
+        entry.isDirectory = hasDirectorySuffix or cast(bool, external & 0x10)
+        return totalLength
+    }
+
     // Reads the central directory of a ZIP file.
     //
     // The end record must close the file exactly. Multi-disk archives and directories beyond the
@@ -72,19 +134,7 @@ impl Zip
         let tailOffset = fileSize - tailSize
         let tail       = try file.map(tailOffset, tailSize)
         let bytes      = tail.bytes()
-        var endAt      = Swag.U64.Max
-        for scan in reversed(tailSize - 21)
-        {
-            if try readU32(bytes, scan) != EndSignature do
-                continue
-            let commentLength = cast(u64, try readU16(bytes, scan + 20))
-            if scan + 22 + commentLength == tailSize
-            {
-                endAt = scan
-                break
-            }
-        }
-
+        let endAt      = try findEndRecord(bytes)
         if endAt == Swag.U64.Max do
             fail Errors.InvalidFormatError{texts().err_EndMissing}
 
@@ -115,48 +165,11 @@ impl Zip
         var at     = 0'u64
         for directory.count
         {
-            if at > data.count or 46 > data.count - at do
-                fail Errors.InvalidFormatError{texts().err_DirectoryTruncated}
-            if try readU32(data, at) != DirectorySignature do
-                fail Errors.InvalidFormatError{texts().err_EntrySignature}
-
-            let nameLength    = cast(u64, try readU16(data, at + 28))
-            let extraLength   = cast(u64, try readU16(data, at + 30))
-            let commentLength = cast(u64, try readU16(data, at + 32))
-            let totalLength   = 46 + nameLength + extraLength + commentLength
-            if totalLength > data.count - at do
-                fail Errors.InvalidFormatError{texts().err_EntryOverflow}
-
-            with var entry: ZipEntry
-            {
-                .flags            = try readU16(data, at + 8)
-                .method           = try readU16(data, at + 10)
-                .crc32            = try readU32(data, at + 16)
-                .compressedSize   = cast(u64, try readU32(data, at + 20))
-                .uncompressedSize = cast(u64, try readU32(data, at + 24))
-            }
-
-            var diskNumber = cast(u64, try readU16(data, at + 34))
-            entry.localOffset = cast(u64, try readU32(data, at + 42))
-
-            let nameBytes  = data[at + 46 until at + 46 + nameLength]
-            let extraBytes = data[at + 46 + nameLength until at + 46 + nameLength + extraLength]
-            try applyZip64Extra(extraBytes, &entry.uncompressedSize, &entry.compressedSize, &entry.localOffset, &diskNumber)
-            if diskNumber do
-                fail Errors.UnsupportedFormatError{texts().err_MultiDiskEntry}
-
-            let decoded = text(nameBytes, cast(bool, entry.flags & FlagUtf8))
-            entry.path = cleanPath(decoded)
-            if entry.path.isEmpty()
-            {
-                at += totalLength
+            var entry: ZipEntry
+            at += try readDirectoryEntry(data, at, &entry)
+            if entry.path.isEmpty() do
                 continue
-            }
 
-            let external = try readU32(data, at + 38)
-            let hasDirectorySuffix = nameBytes.count and
-                                     (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)
-            entry.isDirectory = hasDirectorySuffix or cast(bool, external & 0x10)
             if not entry.isDirectory
             {
                 if entry.compressedSize > Swag.U64.Max - result.compressedSize or
@@ -167,7 +180,6 @@ impl Zip
             }
 
             result.entries.add(#move entry)
-            at += totalLength
         }
 
         result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))

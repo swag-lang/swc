@@ -17,6 +17,7 @@ const ReadoutsWidth   = 240.0     // The readout group: both cells, their gap, a
 const RightPanelWidth = 288.0     // Content width of the tool panel on the right.
 const ToolTitleHeight = 26.0      // Heading included in the upper split panel.
 
+// The editor tool, which decides what a drag on the capture creates.
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
 
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
@@ -80,6 +81,7 @@ func captureIcons()->*Gui.IconAtlas
     return &g_CaptureIcons
 }
 
+// The size of the thumbnails in the recent strip.
 enum BottomSize
 {
     Small
@@ -87,6 +89,8 @@ enum BottomSize
     Big
 }
 
+// The application window: the menus and tool rail, the editor or the library, the recent strip,
+// the quick styles, and the properties.
 struct MainWnd
 {
     using wnd: Wnd

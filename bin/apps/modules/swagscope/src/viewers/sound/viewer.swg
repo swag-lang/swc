@@ -850,10 +850,7 @@ impl Panel
     // Every control starts disabled; opening the sound enables what the engine can serve.
     mtd createTransportBar()
     {
-        let iconSize   = themeActionIconSize(.themeMetrics())
-        let buttonSize = themeActionButtonSize(.themeMetrics())
-
-        with .playButton = IconButton.create(.commands, .theme().icon(.Play, iconSize), {0, 0, buttonSize, buttonSize})
+        with .playButton = Viewer.createActionButton(.commands, .Play)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPlay
@@ -861,7 +858,7 @@ impl Panel
             .sigPressed += func|view = me|(?) { view.togglePlayback() }
         }
 
-        with .stopButton = IconButton.create(.commands, .theme().icon(.Stop, iconSize), {0, 0, buttonSize, buttonSize})
+        with .stopButton = Viewer.createActionButton(.commands, .Stop)
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -870,7 +867,7 @@ impl Panel
             .sigPressed += func|view = me|(?) { view.stopPlayback() }
         }
 
-        with .backwardButton = IconButton.create(.commands, .theme().icon(.SeekBackward, iconSize), {0, 0, buttonSize, buttonSize})
+        with .backwardButton = Viewer.createActionButton(.commands, .SeekBackward)
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -879,7 +876,7 @@ impl Panel
             .sigPressed += func|view = me|(?) { view.seekRelative(-SeekSeconds) }
         }
 
-        with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
+        with .forwardButton = Viewer.createActionButton(.commands, .SeekForward)
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -899,7 +896,7 @@ impl Panel
             .sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
         }
 
-        with .muteButton = IconButton.create(.commands, .theme().icon(.Volume, iconSize), {0, 0, buttonSize, buttonSize}, flags: .Toggle)
+        with .muteButton = Viewer.createActionButton(.commands, .Volume, .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 8

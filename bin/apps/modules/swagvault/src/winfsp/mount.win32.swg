@@ -14,6 +14,7 @@ namespace WinFsp
     const VolumePostCleanupModified = 1'u32 << 10
     const VolumePassDirectoryName   = 1'u32 << 13
 
+    // One WinFsp file system serving a volume at a mount point.
     #[Swag.NoCopy]
     struct WinFspMount
     {
@@ -24,6 +25,8 @@ namespace WinFsp
 
     impl WinFspMount
     {
+        // Mounts `volume` at `mountPoint`: loads WinFsp, creates the file system, and starts serving
+        // it. Any failure stops what was started.
         mtd start(volume: *Volume, mountPoint: string) fail
         {
             try loadWinFsp()
@@ -133,6 +136,8 @@ namespace WinFsp
             traceWinFspStage("WinFspMount initialized in place")
         }
 
+        // Stops serving, removes the mount point, and releases the runtime reference; safe to call on
+        // a partly started mount.
         mtd stop()
         {
             if .fileSystem

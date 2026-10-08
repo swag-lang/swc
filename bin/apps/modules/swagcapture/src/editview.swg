@@ -1,3 +1,4 @@
+// The editor surface: the capture at its zoom, inside a margin, and the mouse edits on its forms.
 struct EditView
 {
     using wnd:   Wnd

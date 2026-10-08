@@ -1,3 +1,4 @@
+// Where text sits along one axis of its box.
 enum FormTextAlign
 {
     LeftTop

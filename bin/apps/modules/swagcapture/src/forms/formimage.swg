@@ -1,3 +1,5 @@
+// What an image form shows: a picture, a blurred, pixelated, or magnified view of the capture
+// under it, or a copy of that capture.
 enum FormImageKind
 {
     Image
@@ -7,6 +9,8 @@ enum FormImageKind
     Capture
 }
 
+// How a picture sits in its form: stretched to the frame, centered at its own size, or at a free
+// rectangle.
 enum FormImagePlacement
 {
     Frame
@@ -14,6 +18,7 @@ enum FormImagePlacement
     Free
 }
 
+// A rectangle showing a picture or an effect on the capture under it.
 #[Swag.Using(Properties)]
 #[Serialization.TypeKey("swag.capture.form.image")]
 struct FormImage

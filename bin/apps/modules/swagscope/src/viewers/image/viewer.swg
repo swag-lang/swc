@@ -482,7 +482,7 @@ private impl Panel
     // Creates the folder navigation, the transform menu, and the play-mode menu in the command group.
     mtd createCommandBar(playback: Viewer.PlaybackApi)
     {
-        with .previousButton = IconButton.create(.actions, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .previousButton = Viewer.createActionButton(.actions, .ChevronLeft)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPrevious
@@ -490,7 +490,7 @@ private impl Panel
             .sigPressed += func|view = me|(?) { view.navigate(-1) }
         }
 
-        with .nextButton = IconButton.create(.actions, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .nextButton = Viewer.createActionButton(.actions, .ChevronRight)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipNext
@@ -498,7 +498,7 @@ private impl Panel
             .sigPressed += func|view = me|(?) { view.navigate(1) }
         }
 
-        with .transformButton = IconButton.create(.actions, .theme().icon(.Redo, themeActionIconSize(.themeMetrics())), {0, 0, themeDropDownButtonWidth(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .CenterContent)
+        with .transformButton = Viewer.createActionDropDown(.actions, .Redo)
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -517,7 +517,7 @@ private impl Panel
     // Creates the transport of an animated picture, hidden until the picture turns out to have frames.
     mtd createFrameControls()
     {
-        with .playButton = IconButton.create(.actions, .theme().icon(.Pause, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .playButton = Viewer.createActionButton(.actions, .Pause)
         {
             .dockStyle = .Left
             .margin.x  = 10

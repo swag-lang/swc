@@ -27,6 +27,7 @@ namespace WinFsp
     // perform a checked numeric conversion to an unsigned integer.
     func statusBits(status: s32)->u32 => cast #bit (u32, status)
 
+    // The NTSTATUS Windows expects for a failure, or `fallback` when it has no closer match.
     func statusFromError(err: any?, fallback = StatusIoDeviceError)->s32
     {
         if err is Error as error

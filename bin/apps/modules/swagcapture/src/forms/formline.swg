@@ -1,3 +1,4 @@
+// A straight or curved line with a cap at each end.
 #[Swag.Using(Properties)]
 #[Serialization.TypeKey("swag.capture.form.line")]
 struct FormLine

@@ -1,3 +1,4 @@
+// A freehand stroke, or a highlighter stroke when its sub-kind says so.
 #[Swag.Using(Properties)]
 #[Serialization.TypeKey("swag.capture.form.draw")]
 struct FormDraw

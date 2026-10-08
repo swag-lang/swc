@@ -4,6 +4,7 @@ using Core, Win32
 
 namespace WinFsp
 {
+    // An open container served as a Windows drive.
     #[Swag.NoCopy]
     struct MountedVolume
     {
@@ -34,6 +35,7 @@ namespace WinFsp
             traceWinFspStage("MountedVolume initialized in place")
         }
 
+        // Unmounts, then commits and closes the volume; the volume closes even when the commit fails.
         mtd close() fail
         {
             .mount.stop()

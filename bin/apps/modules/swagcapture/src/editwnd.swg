@@ -1,3 +1,4 @@
+// The scrolling frame around the editor surface.
 struct EditWnd
 {
     using scrollWnd: ScrollWnd

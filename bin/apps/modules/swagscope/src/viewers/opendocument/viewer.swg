@@ -1294,24 +1294,8 @@ private impl Reader
 
     mtd normalizeSheet(sheet: *Sheet) fail
     {
-        if sheet.table.rows.isEmpty() do
-            return
-
-        sheet.table.columns = #move sheet.table.rows[0].cells
-        sheet.table.rows.removeAtOrdered(0)
-        var count = sheet.table.columns.count
-        for row in sheet.table.rows do
-            count = Math.max(count, row.cells.count)
-        if count > TableColumnLimit do
+        if not sheet.table.promoteHeader() do
             fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
-
-        while sheet.table.columns.count < count do
-            sheet.table.columns.add(String{})
-        for column, columnIndex in sheet.table.columns where column.isEmpty()
-        {
-            sheet.table.columns[columnIndex] = Format.toString(texts().ui_Column, columnIndex + 1)
-            sheet.table.generatedColumns.add(cast(u32, columnIndex))
-        }
     }
 
     mtd finish()->Content fail

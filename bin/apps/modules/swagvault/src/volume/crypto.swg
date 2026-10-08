@@ -71,6 +71,7 @@ namespace Crypto
     #[Swag.Inline]
     func low32(value: u64)->u32 => cast(u32, (value & 0xFFFF_FFFF))
 
+    // Writes `value` as four little-endian bytes.
     #[Swag.Inline]
     func store32(data: [*] u8, value: u32)
     {
@@ -80,6 +81,7 @@ namespace Crypto
         data[3] = cast(u8, ((value >> 24) & 0xFF))
     }
 
+    // Reads four little-endian bytes.
     #[Swag.Inline]
     func load32(data: const [*] u8)->u32
     {

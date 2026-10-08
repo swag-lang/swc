@@ -4,12 +4,15 @@ using Core, Win32
 
 namespace WinFsp
 {
+    // What a mounted file system carries: the volume it serves, and the security given to nodes
+    // that store none.
     struct NativeMountContext
     {
         late volume:     *Volume
         defaultSecurity: *void?
     }
 
+    // The directory buffer `emitFspDir` appends entries to.
     struct FspEmitContext
     {
         buffer:      *void?
@@ -17,15 +20,18 @@ namespace WinFsp
         transferred: *u32
     }
 
+    // The context and volume WinFsp hands back with every request.
     func mountContext(fileSystem: *FspFileSystem)->*NativeMountContext
         => cast(*NativeMountContext, fileSystem.userContext!)
 
     func mountedVolume(fileSystem: *FspFileSystem)->*Volume
         => mountContext(fileSystem).volume
 
+    // A file context is the node id itself, so there is nothing to allocate or release.
     func idFromContext(context: *void?)->u64 => cast(u64, context)
     func contextFromId(nodeId: u64)->*void?  => cast(*void?, nodeId)
 
+    // Converts a zero-terminated UTF-16 string from WinFsp; null gives an empty string.
     func stringFromWide(value: [*] u16?)->String
     {
         if not value do
@@ -34,6 +40,8 @@ namespace WinFsp
         return Utf8.fromUtf16(Swag.makeSlice(validValue, Utf16.lengthZeroTerminated(validValue)))
     }
 
+    // Copies the security descriptor of a node, or the default one when it stores none, and
+    // reports the size needed when the buffer is too short.
     func copySecurity(fileSystem: *FspFileSystem, nodeId: u64, security: *void?, securitySize: *u64)->s32
     {
         let context = mountContext(fileSystem)
@@ -64,6 +72,9 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // The WinFsp entry points, in the order of `makeInterface`. Each one converts the native
+    // arguments, UTF-16 paths and file contexts holding node ids, and forwards to the matching
+    // `callback*` function, which works in UTF-8 and is tested without the driver.
     #[Swag.CallingConvention(.C)]
     func fspGetVolumeInfo(fileSystem: *FspFileSystem, info: *FspVolumeInfo)->s32
     {
@@ -88,6 +99,7 @@ namespace WinFsp
         return status == StatusSuccess ? fspGetVolumeInfo(fileSystem, info) : status
     }
 
+    // Answers the access check made before an open: the attributes and security of `path`.
     #[Swag.CallingConvention(.C)]
     func fspGetSecurityByName(fileSystem: *FspFileSystem, path: [*] u16?, attributes: *u32?, security: *void?, securitySize: *u64?)->s32
     {
@@ -102,6 +114,7 @@ namespace WinFsp
         return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize) : StatusSuccess
     }
 
+    // Creates the node; bit 0 of `createOptions`, `FILE_DIRECTORY_FILE`, asks for a directory.
     #[Swag.CallingConvention(.C)]
     func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, ?, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
     {
@@ -137,15 +150,19 @@ namespace WinFsp
         callbackCleanup(mountedVolume(fileSystem), idFromContext(fileContext), flags)
     }
 
+    // Nothing to release: a file context is only a node id.
     #[Swag.CallingConvention(.C)]
     func fspClose(?: *FspFileSystem, ?: *void?) {}
 
     #[Swag.CallingConvention(.C)]
-    func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32 => callbackRead(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, transferred)
+    func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32
+        => callbackRead(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, transferred)
 
     #[Swag.CallingConvention(.C)]
-    func fspWrite(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32 => callbackWrite(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, writeToEnd, constrained, transferred, info)
+    func fspWrite(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
+        => callbackWrite(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, writeToEnd, constrained, transferred, info)
 
+    // WinFsp passes no information when it flushes the whole volume.
     #[Swag.CallingConvention(.C)]
     func fspFlush(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo?)->s32
     {
@@ -154,7 +171,8 @@ namespace WinFsp
     }
 
     #[Swag.CallingConvention(.C)]
-    func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo)->s32 => callbackGetFileInfo(mountedVolume(fileSystem), idFromContext(fileContext), info)
+    func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo)->s32
+        => callbackGetFileInfo(mountedVolume(fileSystem), idFromContext(fileContext), info)
 
     #[Swag.CallingConvention(.C)]
     func fspSetBasicInfo(fileSystem: *FspFileSystem, fileContext: *void?, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
@@ -165,7 +183,8 @@ namespace WinFsp
         => callbackSetFileSize(mountedVolume(fileSystem), idFromContext(fileContext), newSize, setAllocationSize, info)
 
     #[Swag.CallingConvention(.C)]
-    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, ?: [*] u16?)->s32 => callbackCanDelete(mountedVolume(fileSystem), idFromContext(fileContext))
+    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, ?: [*] u16?)->s32
+        => callbackCanDelete(mountedVolume(fileSystem), idFromContext(fileContext))
 
     #[Swag.CallingConvention(.C)]
     func fspRename(fileSystem: *FspFileSystem, fileContext: *void?, oldPath, newPath: [*] u16?, replace: u8)->s32
@@ -179,6 +198,8 @@ namespace WinFsp
     func fspGetSecurity(fileSystem: *FspFileSystem, fileContext: *void?, security: *void?, securitySize: *u64)->s32
         => copySecurity(fileSystem, idFromContext(fileContext), security, securitySize)
 
+    // Applies a security change to the descriptor of a node, starting from the default one when it
+    // stores none.
     #[Swag.CallingConvention(.C)]
     func fspSetSecurity(fileSystem: *FspFileSystem, fileContext: *void?, information: u32, modification: *void?)->s32
     {
@@ -206,6 +227,7 @@ namespace WinFsp
         return result
     }
 
+    // Appends one entry to the WinFsp directory buffer; 0 once it is full.
     func emitFspDir(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
     {
         let context = cast(*FspEmitContext, emitContext!)
@@ -225,6 +247,7 @@ namespace WinFsp
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)
     }
 
+    // Lists a directory into `buffer`, and marks its end once every entry fit.
     #[Swag.CallingConvention(.C)]
     func fspReadDirectory(fileSystem: *FspFileSystem, fileContext: *void?, ?, marker: [*] u16?, buffer: *void?, length: u32, transferred: *u32)->s32
     {
@@ -237,6 +260,7 @@ namespace WinFsp
         return status
     }
 
+    // Reports one entry of a directory by name, in the WinFsp layout.
     #[Swag.CallingConvention(.C)]
     func fspGetDirInfoByName(fileSystem: *FspFileSystem, fileContext: *void?, name: [*] u16?, dirInfo: *FspDirInfo)->s32
     {

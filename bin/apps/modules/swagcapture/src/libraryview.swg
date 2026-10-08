@@ -37,6 +37,7 @@ const TextureKeepBand = 0.5
 // asks for while any remain.
 const MaxPreviewDecodesPerPaint = 3
 
+// Whether a library entry is a capture document or a plain image.
 enum LibraryItemKind
 {
     Capture
@@ -51,6 +52,7 @@ struct LibrarySelection
     focused: String
 }
 
+// One library entry: its file, what it holds once loaded, and where it sits in the grid.
 struct LibraryItem
 {
     fi:       File.FileInfo
@@ -77,6 +79,7 @@ impl LibraryItem
     }
 }
 
+// The thumbnail grid of the library, filled by a background loader.
 struct LibraryView
 {
     using wnd: Wnd
@@ -241,6 +244,89 @@ impl IWnd for LibraryView
         }
     }
 
+    // Paints one visible cell: the thumbnail in its frame, the name along its bottom, the image
+    // badge, the favorite and rating marks, and the placeholder of a cell with no picture yet.
+    mtd paintItem(painter: *Painter, it: *LibraryItem, index: u64, capture: *Capture?, itemLoaded: bool)
+    {
+        with var infos: RecentInfos
+        {
+            .hot      = index == me.hotItem
+            .selected = me.selModel.isSelected(cast(index))
+        }
+
+        if capture
+        {
+            infos.linkedUpToDate = capture.linkedUpToDate
+            infos.linked         = capture.linkedImage
+            infos.showLinked     = .libWnd.showLinkOverlay
+        }
+
+        RecentView.paintRecent(me, painter, it.texture, it.rect, infos)
+
+        // User-given name, drawn along the bottom of the thumbnail with a soft
+        // shadow so it stays readable over any background.
+        var label = ""
+        if capture and not capture.title.isEmpty() do
+            label = capture.title
+        elif capture and not capture.sourceApplication.isEmpty() do
+            label = capture.sourceApplication
+        elif it.kind == .Image do
+            label = Path.fileName(it.fi.fullName) orelse ""
+
+        if label.count
+        {
+            let font = me.font().regular!
+            let cx   = it.rect.horzCenter()
+            let by   = it.rect.bottom() - 8
+            painter.drawStringCenter(cx + 1, by + 1, label, font, Color.fromArgb(0xC0, Argb.Black))
+            painter.drawStringCenter(cx, by, label, font, Argb.White)
+        }
+
+        if it.kind == .Image
+        {
+            let font = me.theme().res.fontDefaultFs.regular!
+            let text = appStrings().ui_ImageBadge
+            let ms   = Painter.measureString(text, font)
+            let rc   = Math.Rectangle{it.rect.x + 8, it.rect.y + 8, ms.width + 12, font.height + 4}
+            painter.fillRect(rc, .themeColors().wnd_Bk)
+            painter.drawString(rc.x + 6, rc.y + 2, text, font, .themeColors().label_TextLight)
+        }
+
+        if capture and capture.favorite
+        {
+            let font = me.theme().res.fontDefault.bold!
+            let text = "♥"
+            let ms   = Painter.measureString(text, font)
+            painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
+        }
+
+        if capture and capture.rating and .libWnd.showRatingOverlay
+        {
+            let star  = .mainWnd.icon(.RatingStar, RatingGlyphSize)
+            let width = cast(f32, capture.rating) * RatingGlyphSize + cast(f32, capture.rating - 1) * RatingGlyphGap
+            var sx    = it.rect.right() - width - 8
+            let sy    = it.rect.y + (capture.favorite ? 24 : 8)
+            for capture.rating
+            {
+                star.paint(painter, sx, sy, .themeColors().hilight)
+                sx += RatingGlyphSize + RatingGlyphGap
+            }
+        }
+
+        // Loading, a decode this frame did not have the budget for, a legacy preview-less
+        // capture, or an image the decoder rejected.
+        if not it.texture.isValid()
+        {
+            var icon = .theme().icon(.HourGlass, 48)
+            if itemLoaded and it.kind == .Image do
+                icon = .theme().icon(.Warning, 48)
+            elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
+                icon = .mainWnd.icon(.Archive, 48)
+            let color = Color.fromArgb(50, Argb.White)
+            icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
+        }
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
         if not g_UpdatingLib do
@@ -350,85 +436,7 @@ impl IWnd for LibraryView
                 it.texture = evt.paintContext.renderer.addImage(image)
             }
 
-            let selected = .selModel.isSelected(cast(i))
-
-            with var infos: RecentInfos
-            {
-                .hot      = i == me.hotItem
-                .selected = selected
-            }
-
-            if capture
-            {
-                infos.linkedUpToDate = capture.linkedUpToDate
-                infos.linked         = capture.linkedImage
-                infos.showLinked     = .libWnd.showLinkOverlay
-            }
-
-            RecentView.paintRecent(me, painter, it.texture, it.rect, infos)
-
-            // User-given name, drawn along the bottom of the thumbnail with a soft
-            // shadow so it stays readable over any background.
-            var label = ""
-            if capture and not capture.title.isEmpty() do
-                label = capture.title
-            elif capture and not capture.sourceApplication.isEmpty() do
-                label = capture.sourceApplication
-            elif it.kind == .Image do
-                label = Path.fileName(it.fi.fullName) orelse ""
-
-            if label.count
-            {
-                let font = me.font().regular!
-                let cx   = it.rect.horzCenter()
-                let by   = it.rect.bottom() - 8
-                painter.drawStringCenter(cx + 1, by + 1, label, font, Color.fromArgb(0xC0, Argb.Black))
-                painter.drawStringCenter(cx, by, label, font, Argb.White)
-            }
-
-            if it.kind == .Image
-            {
-                let font = me.theme().res.fontDefaultFs.regular!
-                let text = appStrings().ui_ImageBadge
-                let ms   = Painter.measureString(text, font)
-                let rc   = Math.Rectangle{it.rect.x + 8, it.rect.y + 8, ms.width + 12, font.height + 4}
-                painter.fillRect(rc, .themeColors().wnd_Bk)
-                painter.drawString(rc.x + 6, rc.y + 2, text, font, .themeColors().label_TextLight)
-            }
-
-            if capture and capture.favorite
-            {
-                let font = me.theme().res.fontDefault.bold!
-                let text = "♥"
-                let ms   = Painter.measureString(text, font)
-                painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
-            }
-
-            if capture and capture.rating and .libWnd.showRatingOverlay
-            {
-                let star  = .mainWnd.icon(.RatingStar, RatingGlyphSize)
-                let width = cast(f32, capture.rating) * RatingGlyphSize + cast(f32, capture.rating - 1) * RatingGlyphGap
-                var sx    = it.rect.right() - width - 8
-                let sy    = it.rect.y + (capture.favorite ? 24 : 8)
-                for capture.rating
-                {
-                    star.paint(painter, sx, sy, .themeColors().hilight)
-                    sx += RatingGlyphSize + RatingGlyphGap
-                }
-            }
-
-            // Loading, a decode this frame did not have the budget for, a legacy preview-less
-            // capture, or an image the decoder rejected.
-            if not it.texture.isValid()
-            {
-                var icon = .theme().icon(.HourGlass, 48)
-                if itemLoaded and it.kind == .Image do
-                    icon = .theme().icon(.Warning, 48)
-                elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
-                    icon = .mainWnd.icon(.Archive, 48)
-                let color = Color.fromArgb(50, Argb.White)
-                icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
-            }
+            .paintItem(painter, it, i, capture, itemLoaded)
         }
 
         .scrollWnd.setScrollSize(0, y + h + ItemMargin)

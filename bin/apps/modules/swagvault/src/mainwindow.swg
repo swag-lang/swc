@@ -221,7 +221,6 @@ struct MainWindow
     using wnd: Wnd
 
     // Text and control of the header, kept so a language switch can say it again.
-
     late
     {
         subtitle:         *Label
@@ -229,7 +228,6 @@ struct MainWindow
     }
 
     // Controls of the automatic-unmount page.
-
     late
     {
         privacyModeControl: *CheckButton
@@ -240,7 +238,6 @@ struct MainWindow
     }
 
     // Controls of the "create a new vault" card.
-
     late
     {
         createPath:      *EditBox
@@ -254,7 +251,6 @@ struct MainWindow
     }
 
     // Controls of the "open an existing vault" card.
-
     late
     {
         mountPath:      *EditBox
@@ -275,7 +271,6 @@ struct MainWindow
     // The single status line displayed above the footer, the glyph whose color reports its tone,
     // and the spinner that replaces the glyph while work runs. The text and the glyph are written
     // only through `setStatus`, the spinner only through `showBusy`.
-
     late
     {
         statusView: *Wnd
@@ -557,6 +552,8 @@ impl MainWindow
     // The page that opens a vault.
     const OpenTabIndex = 1'u32
 
+    // Builds the window: the header, the footer, the create, mount, and drive tabs, and the texts
+    // of the active language.
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
@@ -945,6 +942,8 @@ impl MainWindow
         .mountedDrives.refresh()
     }
 
+    // Applies the privacy switch: turning it on forgets the remembered containers and drives,
+    // turning it off lets the drives come back at startup.
     mtd readPrivacyControl()
     {
         .privacyMode = .privacyModeControl.isChecked()
@@ -1499,6 +1498,7 @@ impl MainWindow
         return false
     }
 
+    // Whether the settings unmount the drives on `cause`.
     mtd autoUnmountEnabled(cause: AutoUnmountCause)->bool
     {
         switch #complete cause
@@ -1562,6 +1562,7 @@ impl MainWindow
         .setStatus(synchronizationStopped ? .AutoUnmountStopped : .AutoUnmounted)
     }
 
+    // Starts `kind` on the worker and polls it until `finishOperation` takes the result.
     mtd beginOperation(kind: OperationKind)
     {
         Swag.assert(.operation.kind == .None)
@@ -1578,6 +1579,7 @@ impl MainWindow
         .operation.task.submit(func|window = me|() { window.runOperation() })
     }
 
+    // Checks the create form, then creates the container in the background.
     mtd createContainer()
     {
         let path = .createPath.text()
@@ -1722,6 +1724,7 @@ impl MainWindow
         .setStatus(.StopRequested)
     }
 
+    // Checks the mount form, then mounts the container in the background.
     mtd mountContainer()
     {
         let path = .mountPath.text()
@@ -1769,6 +1772,7 @@ impl MainWindow
         .beginOperation(.Mount)
     }
 
+    // Detaches the selected drive from the list and unmounts it in the background.
     mtd unmountSelectedDrive()
     {
         if .operation.kind != .None do
@@ -1918,6 +1922,8 @@ impl MainWindow
         .beginOperation(.Resize)
     }
 
+    // The worker side of an operation: derives the credentials it needs, then creates, mounts,
+    // unmounts, resizes, or changes access, and leaves any failure in `operation.error`.
     mtd runOperation()
     {
         defer .operation.hiddenAccess.clear()
@@ -2046,6 +2052,7 @@ impl MainWindow
         .setStatus(.operation.kind == .Create ? StatusMessage.Randomizing : (.operation.camouflageOnly ? StatusMessage.Camouflaging : StatusMessage.Resizing))
     }
 
+    // Waits for the worker, then hands the outcome to the finish step of the operation kind.
     mtd finishOperation()
     {
         .operation.task.wait()

@@ -68,6 +68,7 @@ private impl KeyFileField
         return false
     }
 
+    // Lists the key files again and selects the one at `selected`, or shows that there is none.
     mtd rebuild(selected = 0'u32)
     {
         .files.clear()
@@ -87,6 +88,7 @@ private impl KeyFileField
         .remove.enable(true)
     }
 
+    // Adds the key files not listed yet, and selects the first one added.
     mtd addPaths(paths: Array'String)
     {
         var firstAdded = Swag.U32.Max
@@ -119,6 +121,7 @@ private impl KeyFileField
             .addPaths(dialog.selectedPaths())
     }
 
+    // Writes a new random key file where the user chooses, and adds it.
     mtd generateRandom()
     {
         with var options: FileDlgOptions
@@ -148,6 +151,7 @@ private impl KeyFileField
         .addPaths(#move generated)
     }
 
+    // Removes the selected key file from the list; the file itself stays on disk.
     mtd removeSelected()
     {
         if .paths.isEmpty() or .files.selectedIndex >= .paths.count do

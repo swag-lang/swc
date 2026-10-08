@@ -9,6 +9,7 @@ const SelectedFrameSize = 3.0
 const LinkBadgeSize  = 16.0
 const LinkBadgeGlyph = 12.0
 
+// One thumbnail of the recent strip: the capture file, its linked image, and its preview.
 struct RecentItem
 {
     file:           String
@@ -28,6 +29,7 @@ impl RecentItem
     }
 }
 
+// The state a capture thumbnail is painted in.
 struct RecentInfos
 {
     hot:            bool
@@ -37,6 +39,7 @@ struct RecentInfos
     showLinked:     bool = true
 }
 
+// The thumbnails of the recent strip, which open, select, and drag captures out.
 struct RecentView
 {
     using wnd: Wnd
@@ -291,6 +294,7 @@ impl IWnd for RecentView
     }
 }
 
+// The scrolling recent strip, which loads its thumbnails a few at a time.
 struct RecentWnd
 {
     using scrollWnd:    ScrollWnd

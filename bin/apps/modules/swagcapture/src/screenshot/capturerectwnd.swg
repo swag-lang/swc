@@ -65,6 +65,7 @@ func paintCornerBrackets(painter: *Painter, rect: Math.Rectangle, color, backCol
     corner(rect.right(), rect.bottom(), -1, -1)
 }
 
+// The overlay over the frozen desktop where the user drags the area to capture.
 struct CaptureRectWnd
 {
     using wnd: Wnd

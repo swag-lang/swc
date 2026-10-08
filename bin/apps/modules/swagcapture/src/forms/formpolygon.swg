@@ -1,3 +1,4 @@
+// A closed shape drawn point by point.
 #[Serialization.TypeKey("swag.capture.form.polygon")]
 struct FormPolygon
 {

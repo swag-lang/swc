@@ -12,6 +12,7 @@ struct PreviewCanvas
 
 impl PreviewCanvas
 {
+    // The largest rectangle with the aspect of a frame, centered in the canvas.
     mtd frameRect()->Math.Rectangle
     {
         let client = .paddedClientRect()

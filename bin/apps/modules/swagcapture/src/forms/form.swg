@@ -1,3 +1,5 @@
+// How a form is painted: its zoom, its render scale, whether it is a quick-style preview, and
+// whether the pass only tests hits.
 struct FormPaintContext
 {
     z:           f32
@@ -6,6 +8,7 @@ struct FormPaintContext
     hitTest:     bool
 }
 
+// The interaction state a gizmo is painted in.
 #[Swag.EnumFlags]
 enum FormFlags
 {
@@ -14,6 +17,8 @@ enum FormFlags
     Selected
 }
 
+// What a form is used as, beyond its kind: an ordinary form, a highlighter stroke, or a pixel
+// selection.
 enum FormSubKind
 {
     None
@@ -21,6 +26,8 @@ enum FormSubKind
     PixSel
 }
 
+// What every form of a capture provides: painting itself and its gizmo, answering hits, moving
+// and resizing, editing under the mouse, and copying its settings.
 interface IForm
 {
     mtd paintGizmo(painter: *Painter, z: f32, flags: FormFlags)

@@ -32,6 +32,7 @@ impl PreviewProbe
         .task.wait()
     }
 
+    // Builds and runs `request` on a worker; a failure leaves a message in `diagnostics`.
     mtd start(request: BuildRequest, cache: *CompilationCache)
     {
         .request = request
@@ -46,6 +47,8 @@ impl PreviewProbe
         })
     }
 
+    // Waits for the build, then runs it in a child process rendering into the frame channel, and
+    // watches that frames keep coming until cancelled.
     mtd run(cache: *CompilationCache) fail
     {
         var lease = cache.acquire(.request)
@@ -71,7 +74,7 @@ impl PreviewProbe
         try .channel.open(channelPath, true)
         let outDir    = Path.combine(lease.artifact.folder.session, "out")
         let childArgs = Env.joinArguments(["--prism-preview-host", channelPath, lease.artifact.binary, .request.kind == .Gui ? "gui" : "pixel"])
-        var child     = try Env.startProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: childArgs, workingDirectory: outDir, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+        var child     = try startPiped(Env.executablePath(), childArgs, outDir)
         defer retireProcess(&child)
         Atomic.exchange(&.ready, 1)
 

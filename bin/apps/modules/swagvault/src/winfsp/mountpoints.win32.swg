@@ -4,6 +4,8 @@ using Core, Win32
 
 namespace WinFsp
 {
+    // The drive letters the current user keeps for network mappings, even disconnected ones;
+    // `U32.Max` when the registry cannot be read.
     private func rememberedNetworkDriveMask()->u32
     {
         var currentUser: HKEY = null

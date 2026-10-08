@@ -121,6 +121,8 @@ impl MainWnd
             .newImg      = capture.backImg
         }
 
+        // What a smart fill samples around one selection: its bounds, and in each column the first
+        // pixels inside it from the bottom and from the top, which the fill interpolates.
         struct Info
         {
             boundRect: Math.Rectangle

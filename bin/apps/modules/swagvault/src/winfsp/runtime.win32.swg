@@ -4,55 +4,49 @@ using Core, Win32
 
 namespace WinFsp
 {
+    // The export `name` of the loaded runtime, given as a literal so it is zero-terminated. A
+    // missing export means the bundled runtime is not the one Swag Vault was built against.
+    func winFspExport(name: string)->const *void fail
+    {
+        let address = GetProcAddress(g_WinFsp.module, name.buffer)
+        if not address do
+            try failWith("The bundled WinFsp runtime does not expose the expected ABI.")
+        return address!
+    }
+
+    // Binds every WinFsp export the mount uses, and fails when one is missing.
     func resolveWinFspApi() fail
     {
-        let create            = GetProcAddress(g_WinFsp.module, ("FspFileSystemCreate").buffer)
-        let destroy           = GetProcAddress(g_WinFsp.module, ("FspFileSystemDelete").buffer)
-        let setMountPoint     = GetProcAddress(g_WinFsp.module, ("FspFileSystemSetMountPoint").buffer)
-        let removeMountPoint  = GetProcAddress(g_WinFsp.module, ("FspFileSystemRemoveMountPoint").buffer)
-        let startDispatcher   = GetProcAddress(g_WinFsp.module, ("FspFileSystemStartDispatcher").buffer)
-        let stopDispatcher    = GetProcAddress(g_WinFsp.module, ("FspFileSystemStopDispatcher").buffer)
-        let addDirInfo        = GetProcAddress(g_WinFsp.module, ("FspFileSystemAddDirInfo").buffer)
-        let setGuard          = GetProcAddress(g_WinFsp.module, ("FspFileSystemSetOperationGuardStrategyF").buffer)
-        let setSecurity       = GetProcAddress(g_WinFsp.module, ("FspSetSecurityDescriptor").buffer)
-        let deleteSecurity    = GetProcAddress(g_WinFsp.module, ("FspDeleteSecurityDescriptor").buffer)
-        let registerServer    = GetProcAddress(g_WinFsp.module, ("DllRegisterServer").buffer)
-        let unregisterServer  = GetProcAddress(g_WinFsp.module, ("DllUnregisterServer").buffer)
-        let setDebugLogHandle = GetProcAddress(g_WinFsp.module, ("FspDebugLogSetHandle").buffer)
-        let startService      = GetProcAddress(g_WinFsp.module, ("FspFsctlStartService").buffer)
-
-        if not create or not destroy or not setMountPoint or not removeMountPoint or not startDispatcher or not stopDispatcher or not addDirInfo or not setGuard or not setSecurity or not deleteSecurity or not registerServer or not unregisterServer or not setDebugLogHandle or not startService do
-            try failWith("The bundled WinFsp runtime does not expose the expected ABI.")
-
-        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn, create!)
-        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn, destroy!)
-        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn, setMountPoint!)
-        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn, removeMountPoint!)
-        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn, startDispatcher!)
-        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn, stopDispatcher!)
-        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn, addDirInfo!)
-        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn, setGuard!)
-        g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn, setSecurity!)
+        let setSecurity = try winFspExport("FspSetSecurityDescriptor")
+        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn, try winFspExport("FspFileSystemCreate"))
+        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn, try winFspExport("FspFileSystemDelete"))
+        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn, try winFspExport("FspFileSystemSetMountPoint"))
+        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn, try winFspExport("FspFileSystemRemoveMountPoint"))
+        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn, try winFspExport("FspFileSystemStartDispatcher"))
+        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn, try winFspExport("FspFileSystemStopDispatcher"))
+        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn, try winFspExport("FspFileSystemAddDirInfo"))
+        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn, try winFspExport("FspFileSystemSetOperationGuardStrategyF"))
+        g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn, setSecurity)
         g_WinFsp.setSecurityAddress       = setSecurity
-        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn, deleteSecurity!)
-        g_WinFsp.registerServer           = cast(WinFspRegistrationFn, registerServer!)
-        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn, unregisterServer!)
-        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn, setDebugLogHandle!)
-        g_WinFsp.startService             = cast(FspFsctlStartServiceFn, startService!)
+        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn, try winFspExport("FspDeleteSecurityDescriptor"))
+        g_WinFsp.registerServer           = cast(WinFspRegistrationFn, try winFspExport("DllRegisterServer"))
+        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn, try winFspExport("DllUnregisterServer"))
+        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn, try winFspExport("FspDebugLogSetHandle"))
+        g_WinFsp.startService             = cast(FspFsctlStartServiceFn, try winFspExport("FspFsctlStartService"))
     }
 
-    func winFspLogPath()->String
+    // A log file of the temporary directory, or of the working directory when Windows gives none.
+    func tempLogPath(name: string)->String
     {
         let temp = Env.getSpecialDirectory(.Temp)
-        return temp.isEmpty() ? "vault-WinFsp.log" : Path.combine(temp, "vault-WinFsp.log")
+        return temp.isEmpty() ? name : Path.combine(temp, name)
     }
 
-    func winFspStageLogPath()->String
-    {
-        let temp = Env.getSpecialDirectory(.Temp)
-        return temp.isEmpty() ? "vault-WinFsp-stage.log" : Path.combine(temp, "vault-WinFsp-stage.log")
-    }
+    // The WinFsp debug log, and the trace of the loading stages kept by integration builds.
+    func winFspLogPath()->String      => tempLogPath("vault-WinFsp.log")
+    func winFspStageLogPath()->String => tempLogPath("vault-WinFsp-stage.log")
 
+    // Appends a loading stage to the trace; only integration builds keep one.
     func traceWinFspStage(message: string)
     {
         #static if not #hastag("vault.integration") do
@@ -65,6 +59,7 @@ namespace WinFsp
         stream.close()
     }
 
+    // Sends the WinFsp debug output to its log file for the registration that follows.
     func beginWinFspLog()->NativeHandle
     {
         let logPath16 = Utf16.toZeroTerminated(winFspLogPath())
@@ -76,6 +71,7 @@ namespace WinFsp
         return handle
     }
 
+    // Stops the WinFsp debug output and closes its log file.
     func endWinFspLog(handle: NativeHandle)
     {
         if handle == InvalidHandle do
@@ -84,6 +80,7 @@ namespace WinFsp
         CloseHandle(handle)
     }
 
+    // What the WinFsp debug log says, or where to find it when it cannot be read.
     func winFspLogDetail()->String
     {
         var detail = catch File.readAllText(winFspLogPath()) as readError
@@ -93,6 +90,17 @@ namespace WinFsp
         return detail.isEmpty() ? Format.toString("Diagnostic log: %", winFspLogPath()) : detail
     }
 
+    // Removes the runtime this process staged; a runtime staged by the guardian is its own to remove.
+    func discardStagedRuntime()
+    {
+        if g_WinFsp.guardianManaged do
+            return
+        removeRuntimeTree(g_WinFsp.runtimeRoot)
+        g_WinFsp.runtimeRoot.clear()
+    }
+
+    // Loads WinFsp once: the installed runtime when there is one, otherwise the signed portable
+    // runtime shipped next to the executable, registered by the elevated guardian.
     func loadWinFsp() fail
     {
         if g_WinFsp.module do
@@ -140,11 +148,7 @@ namespace WinFsp
 
         if not g_WinFsp.module
         {
-            if not g_WinFsp.guardianManaged
-            {
-                removeRuntimeTree(g_WinFsp.runtimeRoot)
-                g_WinFsp.runtimeRoot.clear()
-            }
+            discardStagedRuntime()
 
             try failWith("Windows could not load the signed WinFsp runtime.")
         }
@@ -155,11 +159,7 @@ namespace WinFsp
         {
             discard FreeLibrary(g_WinFsp.module)
             g_WinFsp.module = null
-            if not g_WinFsp.guardianManaged
-            {
-                removeRuntimeTree(g_WinFsp.runtimeRoot)
-                g_WinFsp.runtimeRoot.clear()
-            }
+            discardStagedRuntime()
 
             fail resolveError
         }
@@ -170,6 +170,8 @@ namespace WinFsp
             traceWinFspStage("portable SxS runtime ready")
     }
 
+    // Releases WinFsp: unregisters the portable driver this process registered, unloads the
+    // library, and removes the staged runtime once nothing holds it.
     func unloadWinFsp()
     {
         if g_WinFsp.guardianManaged and not g_WinFsp.guardianProcess

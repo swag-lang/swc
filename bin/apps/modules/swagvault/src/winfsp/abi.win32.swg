@@ -5,7 +5,6 @@ using Core, Win32
 namespace WinFsp
 {
     alias NativeHandle = HANDLE
-
     alias NativeModule = HMODULE
 
     const InvalidHandle = cast(NativeHandle, cast #bit (u64, -1's64))
@@ -23,6 +22,8 @@ namespace WinFsp
     const SddlRevisionOne        = 1'u32
     const MoveDelayUntilReboot   = 0x00000004'u32
 
+    // The WinFsp structures Swag Vault exchanges with the runtime, laid out as the C headers
+    // declare them; the assertions below pin the sizes and offsets the driver relies on.
     struct FspVolumeParams
     {
         version:                  u16
@@ -185,35 +186,34 @@ namespace WinFsp
     #[Swag.CallingConvention(.C)]
     alias FspFsctlStartServiceFn          = func()->s32
 
+    // The loaded WinFsp runtime: its entry points, where it was staged, and who owns its
+    // registration.
     struct WinFspApi
     {
         module: NativeModule
 
         // The runtime entry points, resolved once when the library is loaded.
-
         late
         {
-            fsCreate:              FspFileSystemCreateFn
-            destroy:               FspFileSystemDeleteFn
-            setMountPoint:         FspFileSystemSetMountPointFn
-            removeMountPoint:      FspFileSystemRemoveMountPointFn
-            startDispatcher:       FspFileSystemStartDispatcherFn
-            stopDispatcher:        FspFileSystemStopDispatcherFn
-            addDirInfo:            FspFileSystemAddDirInfoFn
-            setGuard:              FspFileSystemSetGuardFn
-            setSecurityDescriptor: FspSetSecurityDescriptorFn
-        }
-
-        setSecurityAddress: const *void?
-
-        late
-        {
+            fsCreate:                 FspFileSystemCreateFn
+            destroy:                  FspFileSystemDeleteFn
+            setMountPoint:            FspFileSystemSetMountPointFn
+            removeMountPoint:         FspFileSystemRemoveMountPointFn
+            startDispatcher:          FspFileSystemStartDispatcherFn
+            stopDispatcher:           FspFileSystemStopDispatcherFn
+            addDirInfo:               FspFileSystemAddDirInfoFn
+            setGuard:                 FspFileSystemSetGuardFn
+            setSecurityDescriptor:    FspSetSecurityDescriptorFn
             deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn
             registerServer:           WinFspRegistrationFn
             unregisterServer:         WinFspRegistrationFn
             setDebugLogHandle:        FspDebugLogSetHandleFn
             startService:             FspFsctlStartServiceFn
         }
+
+        // The address of `FspSetSecurityDescriptor`, which `deleteSecurityDescriptor` is given
+        // back to free what that function allocated.
+        setSecurityAddress: const *void?
 
         runtimeRoot: String
         dllPath:     String
@@ -234,12 +234,14 @@ namespace WinFsp
 
     func isElevated()->bool => IsUserAnAdmin() != 0
 
+    // Loads the library at `path`; null when Windows cannot.
     func loadLibrary(path: string)->NativeModule
     {
         let path16 = Utf16.toZeroTerminated(path)
         return LoadLibraryW(path16.buffer)
     }
 
+    // The value of an environment variable; empty when it is unset or too long.
     func environmentValue(name: string)->String
     {
         var buffer: [32768] u8

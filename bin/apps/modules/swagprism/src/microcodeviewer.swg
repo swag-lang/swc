@@ -71,6 +71,7 @@ struct MicrocodeViewer
 
 impl MicrocodeViewer
 {
+    // Builds the stage list, the read-only output, and the status footer.
     func create(parent: *ViewerPanel, sourceEditor: *RichEditCtrl)->*MicrocodeViewer
     {
         with let result = Wnd.create'MicrocodeViewer(parent, "prism.microcode")
@@ -250,6 +251,7 @@ impl MicrocodeViewer
         }
     }
 
+    // Writes the stage names, the status, and the hint in the active language.
     mtd retranslate()
     {
         .stageCombo.toolTip = appStrings().ui_Stage

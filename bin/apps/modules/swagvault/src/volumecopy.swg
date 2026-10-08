@@ -23,6 +23,8 @@ struct VolumeCopy
 
 impl VolumeCopy
 {
+    // Copies the children of `parent` under `prefix`, file contents included, through a buffer
+    // cleared after use.
     mtd copyDirectory(parent: u64, prefix: string) fail
     {
         for node in .source.nodes where node.id != RootNodeId and node.parentId == parent

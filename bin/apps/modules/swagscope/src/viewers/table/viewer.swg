@@ -61,6 +61,33 @@ struct Document
 
 impl Document
 {
+    // Turns the first row into the column names, as wide as the widest row, and names each column
+    // the header leaves empty. False when the rows are wider than `ColumnLimit`.
+    mtd promoteHeader()->bool
+    {
+        if .rows.isEmpty() do
+            return true
+
+        .columns = #move .rows[0].cells
+        .rows.removeAtOrdered(0)
+
+        var count = .columns.count
+        for row in .rows do
+            count = Math.max(count, row.cells.count)
+        if count > ColumnLimit do
+            return false
+
+        while .columns.count < count do
+            .columns.add(String{})
+        for column, index in .columns where column.isEmpty()
+        {
+            .columns[index] = Format.toString(texts().ui_Column, index + 1)
+            .generatedColumns.add(cast(u32, index))
+        }
+
+        return true
+    }
+
     // Closes the cell and the row being read, and appends the row to the document.
     mtd finishRow(row: *Row, cell: *Array'u8)
     {
@@ -190,26 +217,8 @@ func parseDocument(text: string, delimiter: u8)->Document fail
         fail InvalidFormatError{Errors.mkString(texts().err_UnclosedQuote)}
     if touched or not cell.isEmpty() or not row.cells.isEmpty() do
         result.finishRow(&row, &cell)
-    if result.rows.isEmpty() do
-        return result
-
-    result.columns = #move result.rows[0].cells
-    result.rows.removeAtOrdered(0)
-
-    var columnCount = result.columns.count
-    for one in result.rows do
-        columnCount = Math.max(columnCount, one.cells.count)
-    if columnCount > ColumnLimit do
+    if not result.promoteHeader() do
         fail UnsupportedFormatError{Errors.mkString(texts().err_TooManyColumns)}
-
-    while result.columns.count < columnCount do
-        result.columns.add(String{})
-    for column, index in result.columns where column.isEmpty()
-    {
-        result.columns[index] = Format.toString(texts().ui_Column, index + 1)
-        result.generatedColumns.add(cast(u32, index))
-    }
-
     return result
 }
 

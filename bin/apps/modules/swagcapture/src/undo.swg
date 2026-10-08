@@ -1,3 +1,4 @@
+// The edit an undo step records, which decides the fields of `Undo` it uses.
 enum UndoKind
 {
     MoveBaseForm
@@ -88,6 +89,8 @@ func formFontDirty(f: IForm)
     }
 }
 
+// One undoable edit of a capture: its kind, the selection it applied to, and the values before
+// and after it. Each kind fills only the fields it needs.
 struct Undo
 {
     kind:     UndoKind

@@ -50,6 +50,7 @@ impl FrameChannel
     mtd header()->*FrameHeader => cast(*FrameHeader, .region.writableBytes().buffer)
     mtd pixels()->[*] u8       => .region.writableBytes().buffer + #sizeof(FrameHeader)
 
+    // Tells the producer that `frame` was copied, so it may write the next one.
     mtd acknowledge(frame: u32)
     {
         Atomic.exchange(&.header().consumed, frame)

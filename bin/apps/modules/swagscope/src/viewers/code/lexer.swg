@@ -276,6 +276,7 @@ func displayName(language: SourceLanguage)->string
 // numbers, and the keywords and types of the language the file name or head selected.
 struct GenericLexer
 {
+    // The editor style of each kind of token, in the order the viewer registers them.
     enum Style: RichEditStyleRef
     {
         Default

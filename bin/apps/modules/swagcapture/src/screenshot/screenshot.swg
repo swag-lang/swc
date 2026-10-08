@@ -1,5 +1,6 @@
 using Core, Pixel
 
+// What a screenshot covers.
 enum CaptureMode
 {
     Area             // Interactive rectangle, drawn by the user over the frozen desktop.

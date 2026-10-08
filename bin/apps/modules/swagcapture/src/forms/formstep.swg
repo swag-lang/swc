@@ -1,3 +1,4 @@
+// How a step marker counts.
 enum FormStepType
 {
     #[Properties.Name("1...2...3...")]
@@ -8,6 +9,7 @@ enum FormStepType
     LetterDown
 }
 
+// A numbered marker that labels one step of a procedure.
 #[Swag.Using(Properties)]
 #[Serialization.TypeKey("swag.capture.form.step")]
 struct FormStep

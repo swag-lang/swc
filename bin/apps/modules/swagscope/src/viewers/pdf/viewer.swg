@@ -275,8 +275,7 @@ private impl Panel
     mtd createPageControls()
     {
         let actionSize = themeActionButtonSize(.themeMetrics())
-        let iconSize   = themeActionIconSize(.themeMetrics())
-        with .previousButton = IconButton.create(.info, .theme().icon(.ChevronLeft, iconSize), {0, 0, actionSize, actionSize})
+        with .previousButton = Viewer.createActionButton(.info, .ChevronLeft)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
@@ -295,7 +294,7 @@ private impl Panel
             .sigPressed += func|view = me|(?) { view.promptGoToPage() }
         }
 
-        with .nextButton = IconButton.create(.info, .theme().icon(.ChevronRight, iconSize), {0, 0, actionSize, actionSize})
+        with .nextButton = Viewer.createActionButton(.info, .ChevronRight)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize

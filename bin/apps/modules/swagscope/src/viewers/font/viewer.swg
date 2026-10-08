@@ -224,7 +224,7 @@ impl Panel
             }
         }
 
-        with .previousButton = IconButton.create(.commands, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .previousButton = Viewer.createActionButton(.commands, .ChevronLeft)
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -236,7 +236,7 @@ impl Panel
             }
         }
 
-        with .nextButton = IconButton.create(.commands, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
+        with .nextButton = Viewer.createActionButton(.commands, .ChevronRight)
         {
             .dockStyle  = .Left
             .toolTip    = texts().ui_NextPage

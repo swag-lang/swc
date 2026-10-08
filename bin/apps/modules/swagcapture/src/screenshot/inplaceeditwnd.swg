@@ -1,5 +1,6 @@
 using Core, Pixel
 
+// The tool the in-place editor draws with.
 enum InPlaceEditMode
 {
     Draw
@@ -33,6 +34,8 @@ func inPlaceEditTools()->[7] InPlaceEditTool
             {.Marker, "marker", .Highlight, texts.tip_InpMarker}]
 }
 
+// The editor shown over a fresh capture, where the area can be annotated before it leaves the
+// screen.
 struct InPlaceEditWnd
 {
     using wnd: Wnd

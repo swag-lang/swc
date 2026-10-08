@@ -111,35 +111,35 @@ impl TweakFile
     {
         Swag.assert(not .folders.isEmpty())
 
-        struct Ref
+        struct PendingReference
         {
             public
             {
-                folder: *Folder       // Folder where the reference is defined
-                src:    FieldPath     // Source value that is being referenced
-                dst:    FieldPath     // Destination value to copy to
+                folder:      *Folder       // Folder where the reference is defined
+                source:      FieldPath     // Source value that is being referenced
+                destination: FieldPath     // Destination value to copy to
             }
         }
 
-        var refs: Array'Ref             // Pending references to resolve
-        var currentFolder: *Folder?     // Current folder being parsed
+        var pendingReferences: Array'PendingReference
+        var currentFolder:     *Folder?
 
-        for oneit, idx in lines
+        for rawLine, lineIndex in lines
         {
-            var one = Tokenize.eatSpaces(oneit)
-            if one.count == 0 do
+            var remaining = Tokenize.eatSpaces(rawLine)
+            if remaining.count == 0 do
                 continue
-            if one[0] == '#' do
+            if remaining[0] == '#' do
                 continue
 
             // Folder declaration line (starts with '/')
-            if one[0] == '/'
+            if remaining[0] == '/'
             {
-                one = Tokenize.eatCount(one, 1)
+                remaining = Tokenize.eatCount(remaining, 1)
                 var folderName = ""
-                catch { folderName = try StrConv.parseIdentifier(one) } as folderErr
+                catch { folderName = try StrConv.parseIdentifier(remaining) } as folderErr
                 if folderErr != null do
-                    fail SyntaxError{"invalid folder name", line: idx + 1}
+                    fail SyntaxError{"invalid folder name", line: lineIndex + 1}
 
                 for &folder in .folders
                 {
@@ -154,100 +154,126 @@ impl TweakFile
                     }
                 }
 
-                if not currentFolder do
-                    fail SyntaxError{Errors.mkString(Format.toString("unknown folder [[%]]", folderName)), line: idx + 1}
+                if not currentFolder
+                {
+                    let message = Format.toString("unknown folder [[%]]", folderName)
+                    fail SyntaxError{Errors.mkString(message), line: lineIndex + 1}
+                }
+
                 continue
             }
 
             currentFolder = currentFolder orelse .folders.backPtr()
 
             // Value declaration
-            one = Tokenize.eatSpaces(one)
-            var id = ""
-            catch { id = try parseName(one) } as nameErr
+            remaining = Tokenize.eatSpaces(remaining)
+            var fieldName = ""
+            catch { fieldName = try parseName(remaining) } as nameErr
             if nameErr != null do
-                fail SyntaxError{"invalid value name", line: idx + 1}
+                fail SyntaxError{"invalid value name", line: lineIndex + 1}
 
             // Search value in folder type
-            let path = resolveName(currentFolder.type, id)
-            if not path.type do
-                fail SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
-            one = Tokenize.eatCount(one, id.count)
-            one = Tokenize.eatSpaces(one)
-            if not one.count do
-                fail SyntaxError{"missing value", line: idx + 1}
+            let path = resolveName(currentFolder.type, fieldName)
+            if not path.type
+            {
+                let message = Format.toString("value [[%]] not found in folder [[%]]",
+                                              fieldName,
+                                              currentFolder.type.name)
+                fail SyntaxError{Errors.mkString(message), line: lineIndex + 1}
+            }
+
+            remaining = Tokenize.eatCount(remaining, fieldName.count)
+            remaining = Tokenize.eatSpaces(remaining)
+            if not remaining.count do
+                fail SyntaxError{"missing value", line: lineIndex + 1}
 
             // Reference to another value using '$' syntax
-            if one[0] == '$'
+            if remaining[0] == '$'
             {
-                one = Tokenize.eatCount(one, 1)
-                var other = ""
-                catch { other = try parseName(one) } as refErr
+                remaining = Tokenize.eatCount(remaining, 1)
+                var sourceName = ""
+                catch { sourceName = try parseName(remaining) } as refErr
                 if refErr != null do
-                    fail SyntaxError{"invalid reference name", line: idx + 1}
+                    fail SyntaxError{"invalid reference name", line: lineIndex + 1}
 
-                let otherPath = resolveName(currentFolder.type, other)
-                if not otherPath.type do
-                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", other, currentFolder.type.name)), line: idx + 1}
-                if path.type != otherPath.type do
-                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", other)), line: idx + 1}
+                let sourcePath = resolveName(currentFolder.type, sourceName)
+                if not sourcePath.type
+                {
+                    let message = Format.toString("reference [[%]] not found in folder [[%]]",
+                                                  sourceName,
+                                                  currentFolder.type.name)
+                    fail SyntaxError{Errors.mkString(message), line: lineIndex + 1}
+                }
+
+                if path.type != sourcePath.type
+                {
+                    let message = Format.toString("reference [[%]] type mismatch", sourceName)
+                    fail SyntaxError{Errors.mkString(message), line: lineIndex + 1}
+                }
+
                 let folder = currentFolder
-                refs.add(Ref{folder, otherPath, path})
-                one = Tokenize.eatSpaces(Tokenize.eatCount(one, other.count))
-                if one.count and one[0] != '#' do
-                    fail SyntaxError{"invalid characters after value", line: idx + 1}
+                pendingReferences.add(PendingReference{folder, sourcePath, path})
+                remaining = Tokenize.eatSpaces(Tokenize.eatCount(remaining, sourceName.count))
+                if remaining.count and remaining[0] != '#' do
+                    fail SyntaxError{"invalid characters after value", line: lineIndex + 1}
                 continue
             }
 
             // Parse and assign value to field
-            catch { one = try StrConv.parseValue(cast([*] u8, currentFolder.data) + path.offset, path.type, one) } as valueErr
+            let destination = cast([*] u8, currentFolder.data) + path.offset
+            catch
+            {
+                remaining = try StrConv.parseValue(destination, path.type, remaining)
+            } as valueErr
             if valueErr != null do
-                fail SyntaxError{"invalid value", line: idx + 1}
+                fail SyntaxError{"invalid value", line: lineIndex + 1}
 
             // Ensure nothing invalid follows the value
-            if one.count and not Latin1.isSpace(one[0]) and one[0] != '#' do
-                fail SyntaxError{"syntax error in value", line: idx + 1}
-            one = Tokenize.eatSpaces(one)
-            if one.count and one[0] != '#' do
-                fail SyntaxError{"invalid characters after value", line: idx + 1}
+            if remaining.count and not Latin1.isSpace(remaining[0]) and remaining[0] != '#' do
+                fail SyntaxError{"syntax error in value", line: lineIndex + 1}
+            remaining = Tokenize.eatSpaces(remaining)
+            if remaining.count and remaining[0] != '#' do
+                fail SyntaxError{"invalid characters after value", line: lineIndex + 1}
         }
 
         // Resolve references in a second pass
-        while not refs.isEmpty()
+        while not pendingReferences.isEmpty()
         {
-            var toDo = 0'u64
-            var refr = refs[toDo]
+            var readyIndex = 0'u64
+            var reference  = pendingReferences[readyIndex]
 
             // Follow what each reference reads until one reads a settled value. A chain without
             // a cycle visits every reference at most once, so a longer one has closed a loop.
             var hops = 0'u64
             for
             {
-                var restart = false
-                for j in refs.count where j != toDo
+                var foundDependency = false
+                for index in pendingReferences.count where index != readyIndex
                 {
-                    let ref1 = refs[j]
-                    if refr.folder == ref1.folder and refr.src.offset == ref1.dst.offset and refr.src.type == ref1.dst.type
+                    let candidate = pendingReferences[index]
+                    if reference.folder == candidate.folder and
+                       reference.source.offset == candidate.destination.offset and
+                       reference.source.type == candidate.destination.type
                     {
                         hops += 1
-                        if hops >= refs.count do
+                        if hops >= pendingReferences.count do
                             fail SyntaxError{"tweak references form a cycle through '$'"}
-                        toDo    = j
-                        refr    = refs[toDo]
-                        restart = true
+                        readyIndex      = index
+                        reference       = pendingReferences[readyIndex]
+                        foundDependency = true
                         break
                     }
                 }
 
-                if not restart do
+                if not foundDependency do
                     break
             }
 
-            let ptrDst = cast([*] u8, refr.folder.data) + refr.dst.offset
-            let ptrSrc = cast([*] u8, refr.folder.data) + refr.src.offset
-            Reflection.assign(ptrDst, ptrSrc, refr.dst.type)
+            let destination = cast([*] u8, reference.folder.data) + reference.destination.offset
+            let source      = cast([*] u8, reference.folder.data) + reference.source.offset
+            Reflection.assign(destination, source, reference.destination.type)
 
-            refs.removeAt(toDo)
+            pendingReferences.removeAt(readyIndex)
         }
     }
 }

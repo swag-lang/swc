@@ -99,3 +99,33 @@ namespace TweakDeep
     Swag.assert(sheet.height == 27.5)
     Swag.assert(palette.main == 3)
 }
+
+// Captured parser failures retain the domain message and one-based input line.
+#test
+{
+    struct InvalidLine
+    {
+        source:  string
+        message: string
+    }
+
+    let cases: [4] InvalidLine = [
+        {"\n/\n",        "invalid folder name"},
+        {"\n@\n",        "invalid value name"},
+        {"\nfoo $\n",    "invalid reference name"},
+        {"\n/Missing\n", "unknown folder [[Missing]]"}]
+
+    for invalid in cases
+    {
+        var alpha: TweakAlpha
+        var tweak: File.TweakFile
+        tweak.registerFolder(&alpha)
+
+        discard catch tweak.parse(invalid.source) as error
+        Swag.assert(error is Errors.SyntaxError)
+        Swag.assert(Errors.message(error) == invalid.message)
+        let syntax = assume cast(const *Errors.SyntaxError, error)
+        Swag.assert(syntax.line == 2)
+        Swag.assert(alpha.foo == 0 and alpha.bar == 0)
+    }
+}

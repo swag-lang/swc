@@ -119,6 +119,7 @@ SWC_DIAG_DEF(cmd_err_doc_file_write_failed, Error, "cannot write documentation f
 SWC_DIAG_DEF(cmd_err_api_public_global_variable, Error, "generated module API cannot export public global variable '{sym}'")
 SWC_DIAG_DEF(cmd_err_api_public_type_reference_private, Error, "cannot export public {what} '{sym}' because {value} uses non-public type '{type}'")
 SWC_DIAG_DEF(cmd_err_api_inline_body_not_exportable, Error, "cannot export the body of inline function '{sym}': {because}; [help] remove 'Swag.Inline' or make the function body exportable")
+SWC_DIAG_DEF(cmd_err_api_implicit_body_not_exportable, Error, "cannot export the body of implicit function '{sym}': {because}; [help] keep the operation in the published body, or export the referenced implementation too")
 SWC_DIAG_DEF(cmd_err_api_whole_file_body_not_exportable, Error, "cannot export the body of function '{sym}': {because}; [help] use '#global public' to publish declarations, or export the referenced implementation too")
 SWC_DIAG_DEF(cmd_err_workspace_modules_missing, Error, "workspace '{path}' is missing the required 'modules' directory")
 SWC_DIAG_DEF(cmd_err_workspace_module_file_missing, Error, "workspace module '{path}' is missing 'module.swg'")

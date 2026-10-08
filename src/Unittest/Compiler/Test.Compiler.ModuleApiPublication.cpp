@@ -438,6 +438,68 @@ func exposed(value: s32)->s32 => helper(value)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImplicitBodyExportContract)
+{
+    ApiPublicationTestDirectory directory("ImplicitBodies");
+    for (const std::string_view access : {"private", "internal", "public"})
+    {
+        const fs::path module = directory.path() / access;
+        const fs::path api = module / "api";
+        const std::string source = std::format(R"(#global public
+struct Value {{ public amount: s32 }}
+impl Value
+{{
+    {} mtd const positive()->bool => .amount > 0
+    #[Swag.Implicit]
+    mtd opSet(amount: s32)
+    {{
+        if .positive() do
+            .amount = 0
+        .amount = amount
+    }}
+}}
+)", access);
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", source));
+        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "ImplicitApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+        ImportResult result;
+        Os::ProcessRunOptions options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput = false;
+        options.timeoutMs = 15000;
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        const bool exported = access == "public";
+        if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != exported)
+        {
+            std::println(stderr, "[implicit API {}] {}", access, result.output);
+            return Result::Error;
+        }
+        if (!exported)
+        {
+            if (result.output.find("cannot export the body of implicit function '") == std::string::npos ||
+                result.output.find("is not exposed by the module API") == std::string::npos ||
+                result.output.find("keep the operation in the published body") == std::string::npos ||
+                result.output.find("referenced symbol '") == std::string::npos)
+                return Result::Error;
+            continue;
+        }
+
+        const fs::path consumer = module / "consumer.swg";
+        SWC_RESULT(CompilerTestFile::writeText(consumer, "using ImplicitApi\n#main { var value: Value = 42\n discard value }\n"));
+        const fs::path apiFile = api / (std::string(access) + ".swg");
+        const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        result.output.clear();
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+        {
+            std::println(stderr, "[implicit API consumer] {}", result.output);
+            return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
 {
     ApiPublicationTestDirectory directory("WholeFileBodies");

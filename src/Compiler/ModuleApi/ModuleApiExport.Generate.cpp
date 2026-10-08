@@ -1212,6 +1212,15 @@ namespace ModuleApiExport
                 return Result::Continue;
             }
 
+            // Implicit operations travel as source even without Inline. Their
+            // callers need every referenced declaration just as an inline body does.
+            if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Implicit) &&
+                !symbolFunction->isGenericRoot() && !symbolFunction->isGenericInstance() &&
+                !symbolFunction->hasUnmaterializedGenericBody())
+            {
+                SWC_RESULT(validateExportedFunctionBody(ctx, *root.file, *symbolFunction, DiagnosticId::cmd_err_api_implicit_body_not_exportable));
+            }
+
             return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
         }
 

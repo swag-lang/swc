@@ -140,6 +140,13 @@ add boundary coverage when the refactoring crosses a previously untested contrac
 generalize an unrelated reader merely because its statements look similar: JSON, for example,
 also checks complete token consumption and reports its own syntax errors.
 
+Check the caller's publication contract before extracting a private helper. Bodies of implicit
+operations and inline functions travel to consuming modules; a generated API does not include
+file-private helpers. Keep an elementary check in such a published body when factoring it would
+introduce an unavailable dependency. Other methods whose compiled implementation stays in the
+module can still share the private helper. Do not widen its public API solely to shorten a caller,
+and verify a real importer when changing one of these published bodies.
+
 ## Extract A Decision Without Eager Evaluation
 
 A loop should expose when it flushes a block, not require its reader to reconstruct a buffer

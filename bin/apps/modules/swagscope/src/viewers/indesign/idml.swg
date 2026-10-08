@@ -1381,13 +1381,26 @@ private func appendItems(fileName, source: string, colors: const *HashTable'(Str
     var cursor = 0'u64
     var groupCursor:     u64
     var groupTransforms: Array'Transform
+
+    // The next start of each item kind is searched again only once the cursor has passed it, so
+    // a kind missing from the rest of the spread is not rescanned to the end for every item.
+    var textStart    = Utf8.indexOf(source, "<TextFrame ")
+    var rectStart    = Utf8.indexOf(source, "<Rectangle ")
+    var ovalStart    = Utf8.indexOf(source, "<Oval ")
+    var polygonStart = Utf8.indexOf(source, "<Polygon ")
+    var lineStart    = Utf8.indexOf(source, "<GraphicLine ")
     while limits.frames
     {
-        let textStart    = Utf8.indexOf(source, "<TextFrame ", cursor)
-        let rectStart    = Utf8.indexOf(source, "<Rectangle ", cursor)
-        let ovalStart    = Utf8.indexOf(source, "<Oval ", cursor)
-        let polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
-        let lineStart    = Utf8.indexOf(source, "<GraphicLine ", cursor)
+        if textStart != Swag.U64.Max and textStart < cursor do
+            textStart = Utf8.indexOf(source, "<TextFrame ", cursor)
+        if rectStart != Swag.U64.Max and rectStart < cursor do
+            rectStart = Utf8.indexOf(source, "<Rectangle ", cursor)
+        if ovalStart != Swag.U64.Max and ovalStart < cursor do
+            ovalStart = Utf8.indexOf(source, "<Oval ", cursor)
+        if polygonStart != Swag.U64.Max and polygonStart < cursor do
+            polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
+        if lineStart != Swag.U64.Max and lineStart < cursor do
+            lineStart = Utf8.indexOf(source, "<GraphicLine ", cursor)
         let shapeStart   = Math.min(rectStart, ovalStart, polygonStart, lineStart)
         let start        = Math.min(textStart, shapeStart)
         if start == Swag.U64.Max do

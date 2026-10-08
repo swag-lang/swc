@@ -309,7 +309,11 @@ namespace
                         const uint32_t currEnd   = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1]))
                                                                          : model.prevPiece(block.closePiece);
                         const bool     currMulti = currEnd != INVALID_PIECE && model.lineStartOf(currEnd) != model.lineStartOf(labels[i]);
-                        wantBlank                = prevMulti || currMulti;
+
+                        // Keep the paragraph gap already chosen for a case-family
+                        // header by the comment policy (or authored in the source).
+                        const bool groupHeader = target != labels[i] && model.piece(target).isComment && model.gapNewlineCount(target) > 1;
+                        wantBlank              = prevMulti || currMulti || groupHeader;
                         break;
                     }
                     case FormatCaseBlankStyle::Preserve:

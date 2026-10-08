@@ -270,6 +270,14 @@ if it destroys a useful reading boundary, investigate the formatter.
 - In component-wise calculations, use one component per line when each component has its own
   arithmetic or call arguments. Keep short coordinate tuples compact. A long Boolean comparison
   reads similarly: one component check per line, preserving short-circuit order.
+- When many branches compare the same stable value with literal keys, use a `switch` to make
+  the mapping visible once. Group aliases on one case and separate meaningful families with
+  short comments. Preserve every key, result, default, and case-sensitive distinction. Do not
+  replace repeated effectful evaluations with one evaluation, or allocate a lookup container
+  solely to make the source resemble a table. Place a family comment on its own line aligned
+  with the following `case`; the formatter keeps these headers outside the preceding arm when
+  deciding whether a uniform switch can stay compact. The multiline case-spacing policy retains
+  the paragraph gap before these headers. Comments inside an arm remain attached.
 
 ## Return Values Directly
 

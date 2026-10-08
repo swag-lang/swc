@@ -583,6 +583,122 @@ SWC_TEST_BEGIN(FormatBraces_CaseUniformJoinsJumpTable)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_UniformKeepsCommentedCaseFamiliesCompact)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    // First family\n"
+        "    case 1: return 8\n"
+        "    case 2: return 16\n"
+        "\n"
+        "    // Second family\n"
+        "    // The next label owns both header lines.\n"
+        "    case 3: return 32\n"
+        "    default: return 0\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_UniformKeepsCaseFamilyParagraphs)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    // First family\n"
+        "    case 1: return 8\n"
+        "    case 2: return 16\n"
+        "\n"
+        "    // Second family\n"
+        "    // The next label owns both header lines.\n"
+        "    case 3: return 32\n"
+        "    default: return 0\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.caseBodyStyle               = FormatCaseBodyStyle::Uniform;
+    options.blankLineBetweenCases       = FormatCaseBlankStyle::MultiLine;
+    options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_UniformPreservesBodyCommentBoundary)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: return 8\n"
+        "        // Explain the preceding operation.\n"
+        "    case 2: return 16\n"
+        "    }\n"
+        "    return 0\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1:\n"
+        "        return 8\n"
+        "        // Explain the preceding operation.\n"
+        "    case 2:\n"
+        "        return 16\n"
+        "    }\n"
+        "    return 0\n"
+        "}\n";
+
+    FormatOptions options;
+    options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_UniformPreservesTrailingCommentBoundary)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: return 8 // Keep this note.\n"
+        "    case 2: return 16\n"
+        "    }\n"
+        "    return 0\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1:\n"
+        "        return 8 // Keep this note.\n"
+        "    case 2:\n"
+        "        return 16\n"
+        "    }\n"
+        "    return 0\n"
+        "}\n";
+
+    FormatOptions options;
+    options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_CaseUniformExpandsMixedSwitch)
 {
     static constexpr std::string_view SOURCE =

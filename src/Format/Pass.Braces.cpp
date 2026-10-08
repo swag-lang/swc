@@ -731,7 +731,16 @@ namespace
                 const FormatPiece& cur = model_->piece(p);
                 if (cur.depth < depth)
                     return last;
-                if (cur.depth == depth && (cur.hasRole(FormatRoleE::CaseLabel) || cur.is(TokenId::SymRightCurly)))
+                if (cur.depth == depth && cur.hasRole(FormatRoleE::CaseLabel))
+                {
+                    // Standalone comments aligned with the next label introduce a
+                    // case family. They are not statements in the preceding arm.
+                    while (last != INVALID_PIECE && model_->piece(last).isComment &&
+                           model_->gapHasNewline(last) && model_->lineIndentOf(last) == model_->lineIndentOf(p))
+                        last = model_->prevPiece(last);
+                    return last;
+                }
+                if (cur.depth == depth && cur.is(TokenId::SymRightCurly))
                     return last;
                 last = p;
             }

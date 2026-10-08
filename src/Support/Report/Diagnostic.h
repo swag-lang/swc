@@ -45,6 +45,7 @@ public:
     constexpr static std::string_view ARG_REQUESTED_TYPE_FAM   = "{requested-type-fam}";
     constexpr static std::string_view ARG_A_REQUESTED_TYPE_FAM = "{a-requested-type-fam}";
     constexpr static std::string_view ARG_OPT_TYPE             = "{opt-type}";
+    constexpr static std::string_view ARG_FIELD_TYPE           = "{field-type}";
     constexpr static std::string_view ARG_LEFT                 = "{left}";
     constexpr static std::string_view ARG_RIGHT                = "{right}";
     constexpr static std::string_view ARG_INDEX                = "{index}";

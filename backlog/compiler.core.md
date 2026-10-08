@@ -6,6 +6,24 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.079 — Tuple values never drop the owning fields they hold
+
+- Recorded: 2026-10-07 20:33
+- Found while: fixing the ownership of values an implicit `opSet` builds inside literal fields.
+- Evidence: a struct-literal type (a tuple) has no lifecycle: `resolveEffectiveLifecycleFunction`
+  and `tryBuildLifecycleActionRec` in `CodeGen.cpp` only answer for structs and arrays, so
+  `functionHasImplicitDrops` and `registerImplicitDrop` see nothing to drop in a tuple local.
+  With a field type that counts its `opDrop` calls, `let t = {owned: cast(Owned, name())}`
+  adopts the value with `opPostMove` and never drops it (one set, zero drops), and
+  `let t = {owned: mk()}` with `mk()->Owned` moves the call result into the tuple while the
+  call temporary is dropped at the end of the statement, so the tuple keeps a released value.
+  Every owning type held in a tuple local, such as `Core.String`, leaks or dangles the same way.
+- Next: decide whether a tuple owns its fields like a struct (field-wise drop, post-copy and
+  post-move derived from the field types) or rejects owning field types; then implement that
+  rule in the lifecycle resolution and cover both producers above in the `native` suite.
+- Complete when: a tuple local holding an owning field drops it exactly once at scope end, or
+  the declaration is rejected with a diagnostic, and the two reproducers above are suite tests.
+
 ### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
 
 - Recorded: 2026-09-16 09:28

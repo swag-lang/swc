@@ -306,8 +306,8 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
     SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeTrueView));
     SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeFalseView));
-    const bool ownsValue = SemaHelpers::ownsExpressionValue(sema, nodeTrueView.nodeRef()) ||
-                           SemaHelpers::ownsExpressionValue(sema, nodeFalseView.nodeRef());
+    bool ownsValue = SemaHelpers::ownsExpressionValue(sema, nodeTrueView.nodeRef()) ||
+                     SemaHelpers::ownsExpressionValue(sema, nodeFalseView.nodeRef());
 
     // Condition must be bool
     SWC_RESULT(SemaCheck::castToBool(sema, nodeCondView));
@@ -333,13 +333,6 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     }
 
     sema.setType(sema.curNodeRef(), typeRef);
-    if (ownsValue)
-    {
-        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeTrueView.nodeRef(), nodeTrueView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
-        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeFalseView.nodeRef(), nodeFalseView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
-        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
-        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, typeRef, "__conditional_value"));
-    }
 
     // Constant folding
     if (nodeCondView.cstRef().isValid() && !ownsValue)
@@ -357,6 +350,18 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         SemaNodeView mutableFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
         SWC_RESULT(Cast::cast(sema, mutableTrueView, typeRef, CastKind::Implicit));
         SWC_RESULT(Cast::cast(sema, mutableFalseView, typeRef, CastKind::Implicit));
+
+        // A branch converted through 'opSet' owns the value it built, like a moved one. The
+        // conditional then adopts each branch in its own storage, and drops what a branch
+        // left behind before the join, where only that branch's temporaries exist.
+        ownsValue = ownsValue || SemaHelpers::ownsExpressionValue(sema, mutableTrueView.nodeRef()) || SemaHelpers::ownsExpressionValue(sema, mutableFalseView.nodeRef());
+        if (ownsValue)
+        {
+            SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeTrueView.nodeRef(), nodeTrueView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
+            SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeFalseView.nodeRef(), nodeFalseView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
+            SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, typeRef, "__conditional_value"));
+        }
     }
 
     return Result::Continue;

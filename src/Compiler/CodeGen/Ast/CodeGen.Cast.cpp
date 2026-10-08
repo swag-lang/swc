@@ -1395,6 +1395,12 @@ namespace
 
         SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), setPayload.calledFn));
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, dstTypeRef);
+
+        // The constructed value is owned by its compiler temporary, like a call result: a
+        // consumer that only borrows it leaves it to this drop, one that stores it cancels it.
+        const SymbolVariable& storageSym = *castPayload->runtimeStorageSym;
+        if (storageSym.hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && !storageSym.hasExtraFlag(SymbolVariableFlagsE::RetVal) && codeGen.hasLifecycle(dstTypeRef, CodeGen::LifecycleKind::Drop))
+            codeGen.registerTemporaryDrop(codeGen.curNodeRef(), dstTypeRef, storageSym);
         return Result::Continue;
     }
 

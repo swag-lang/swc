@@ -808,6 +808,11 @@ namespace
         auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, castNodeRef, sema.node(castNodeRef), dstTypeRef, "__cast_runtime_storage");
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, dstTypeRef));
 
+        // 'opSet' constructs a value nobody else names: whoever stores it adopts it with
+        // 'opPostMove', exactly like a call result. Copying it instead would leave a value that
+        // points into itself pointing into the cast storage, and leak what that storage owns.
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, castNodeRef).ownsValue = true;
+
         SmallVector<ResolvedCallArgument> resolvedArgs;
         SWC_ASSERT(castData.calledFn != nullptr);
         SWC_RESULT(buildStructSetResolvedArgs(sema, resolvedArgs, *castData.calledFn, dstTypeRef, castData.sourceArgRef, &storageSym, ConstantRef::invalid()));

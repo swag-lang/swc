@@ -1196,7 +1196,15 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
             if (!ownsValue)
                 return;
             if (parent.is(AstNodeId::ConditionalExpr))
+            {
+                // Only a conditional that owns its value flushes these drops inside the branch
+                // that produced them. Past the join of any other, the drop would also run when
+                // the other branch was taken and this temporary was never constructed.
+                const auto* conditionalLowering = loweringPayload(parentRef);
+                if (!conditionalLowering || !conditionalLowering->ownsValue)
+                    return;
                 flushRootRef = parentRef;
+            }
             break;
         }
 

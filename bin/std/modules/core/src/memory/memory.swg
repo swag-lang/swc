@@ -65,8 +65,9 @@ func set(dest: [*] void, value: u8, size: u64)
 func align(value: u64, alignment: u32)->u64
 {
     Swag.assert(not alignment or not (alignment & (alignment - 1)), "alignment must be a power of two")
-    let toAlign: u64 = cast(u64, (alignment != 0 ? alignment : cast(u32, #sizeof(*void)))) - 1
-    return (value + toAlign) & ~toAlign
+    let effectiveAlignment = alignment != 0 ? alignment : cast(u32, #sizeof(*void))
+    let mask = cast(u64, effectiveAlignment) - 1
+    return (value + mask) & ~mask
 }
 
 // Rounds `value` up to an address that is a multiple of `alignment`, which must be a power of two.

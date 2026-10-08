@@ -107,7 +107,7 @@ internal func canDefaultInit(type: typeinfo)->bool
         let pointedType = field.pointedType
         if not pointedType do
             return false
-        if not canDefaultInit(pointedType orelse #typeof(u8)) do
+        if not canDefaultInit(pointedType) do
             return false
     }
 
@@ -157,7 +157,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
             let pointedType = field.pointedType
             if not pointedType do
                 return
-            defaultInit(cast([*] u8, data) + field.offset, pointedType orelse #typeof(u8))
+            defaultInit(cast([*] u8, data) + field.offset, pointedType)
         }
 
         return
@@ -206,7 +206,7 @@ internal func dropType(dst: *void?, type: typeinfo)
                 let pointedType = field.pointedType
                 if not pointedType do
                     return
-                dropType(cast([*] u8, data) + field.offset, pointedType orelse #typeof(u8))
+                dropType(cast([*] u8, data) + field.offset, pointedType)
             }
         }
     }
@@ -252,7 +252,7 @@ internal func postCopyType(dst: *void?, type: typeinfo)
                 let pointedType = field.pointedType
                 if not pointedType do
                     return
-                postCopyType(cast([*] u8, data) + field.offset, pointedType orelse #typeof(u8))
+                postCopyType(cast([*] u8, data) + field.offset, pointedType)
             }
         }
     }
@@ -298,7 +298,7 @@ internal func postMoveType(dst: *void?, type: typeinfo)
                 let pointedType = field.pointedType
                 if not pointedType do
                     return
-                postMoveType(cast([*] u8, data) + field.offset, pointedType orelse #typeof(u8))
+                postMoveType(cast([*] u8, data) + field.offset, pointedType)
             }
         }
     }

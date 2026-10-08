@@ -16,10 +16,15 @@ private impl IAllocator for AllocationPanicBufferAllocator
     mtd impl assertAllocated(?: *AllocatorRequest) {}
 }
 
-internal func appendAllocationFailure(message: *ConcatBuffer, operation: string, request: AllocatorRequest, includeOldAllocation: bool)
+internal func appendAllocationFailure(message: *ConcatBuffer,
+                                      operation: string,
+                                      request: AllocatorRequest,
+                                      includeOldAllocation: bool)
 {
     message.addBytes(operation)
-    message.addBytes(includeOldAllocation ? " cannot reallocate memory: requested size " : " cannot allocate memory: requested size ")
+    message.addBytes(includeOldAllocation ?
+                     " cannot reallocate memory: requested size " :
+                     " cannot allocate memory: requested size ")
     Format.append(message, "%", request.size)
     message.addBytes(" bytes")
 
@@ -55,11 +60,10 @@ internal func appendAllocationFailure(message: *ConcatBuffer, operation: string,
 private func panicAllocationFailure(operation: string, request: *AllocatorRequest, includeOldAllocation: bool)
 {
     // Allocation failures must not allocate again while constructing their panic message.
-    var storage:           [1024] u8
-    var stackAllocator:    AllocationPanicBufferAllocator
-    var message:           ConcatBuffer
-    let stackAllocatorItf: IAllocator = &stackAllocator
-    message.allocator = stackAllocatorItf
+    var storage:        [1024] u8
+    var stackAllocator: AllocationPanicBufferAllocator
+    var message:        ConcatBuffer
+    message.allocator = &stackAllocator
     message.setFirstBucket(storage)
     appendAllocationFailure(&message, operation, request[], includeOldAllocation)
     Swag.panic(cast(string, message.toSlice()!), request.callerLoc)
@@ -73,11 +77,13 @@ func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = nu
     if not buffer do
         return
 
-    var req: AllocatorRequest
-    req.callerLoc = loc
-    req.size      = size
-    req.address   = buffer
-    req.hint      = hint
+    with var req: AllocatorRequest
+    {
+        .callerLoc = loc
+        .size      = size
+        .address   = buffer
+        .hint      = hint
+    }
 
     (allocator orelse Swag.getContext().allocator)!.assertAllocated(&req)
 }
@@ -91,11 +97,13 @@ func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: str
     if not buffer do
         return
 
-    var req: AllocatorRequest
-    req.callerLoc = loc
-    req.size      = size
-    req.address   = buffer
-    req.hint      = hint
+    with var req: AllocatorRequest
+    {
+        .callerLoc = loc
+        .size      = size
+        .address   = buffer
+        .hint      = hint
+    }
 
     (allocator orelse Swag.getContext().allocator)!.free(&req)
 }
@@ -105,9 +113,11 @@ func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: str
 // A null `allocator` selects the context allocator.
 func freeAll(allocator: IAllocator?, hint: string? = null, loc = #callerlocation)
 {
-    var req: AllocatorRequest
-    req.callerLoc = loc
-    req.hint      = hint
+    with var req: AllocatorRequest
+    {
+        .callerLoc = loc
+        .hint      = hint
+    }
 
     (allocator orelse Swag.getContext().allocator)!.freeAll(&req)
 }
@@ -117,15 +127,23 @@ func freeAll(allocator: IAllocator?, hint: string? = null, loc = #callerlocation
 // The contents are preserved up to the smaller size. A null `allocator` selects the context
 // allocator, and a zero `alignment` the default one. A zero `newSize` or an allocation failure
 // raises a panic, so the result is never null.
-func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
+func realloc(buffer: [*] void?,
+             newSize: u64,
+             oldSize: u64,
+             allocator: IAllocator? = null,
+             alignment: u32 = 0,
+             hint: string? = null,
+             loc = #callerlocation)->[*] void
 {
-    var req: AllocatorRequest
-    req.callerLoc = loc
-    req.hint      = hint
-    req.address   = buffer
-    req.size      = newSize
-    req.oldSize   = oldSize
-    req.alignment = alignment
+    with var req: AllocatorRequest
+    {
+        .callerLoc = loc
+        .hint      = hint
+        .address   = buffer
+        .size      = newSize
+        .oldSize   = oldSize
+        .alignment = alignment
+    }
 
     if not newSize do
         panicAllocationFailure("Memory.realloc", &req, true)
@@ -167,11 +185,13 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
         }
     }
 
-    var req: AllocatorRequest
-    req.callerLoc = loc
-    req.hint      = hint
-    req.size      = size
-    req.alignment = alignment
+    with var req: AllocatorRequest
+    {
+        .callerLoc = loc
+        .hint      = hint
+        .size      = size
+        .alignment = alignment
+    }
 
     if not size do
         panicAllocationFailure("Memory.alloc", &req, false)
@@ -189,11 +209,13 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
 // stay allocated until [[Core.Memory.releaseTemporaryAllocations]].
 func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
-    var req: AllocatorRequest
-    req.callerLoc = loc
-    req.hint      = hint
-    req.size      = size
-    req.alignment = alignment
+    with var req: AllocatorRequest
+    {
+        .callerLoc = loc
+        .hint      = hint
+        .size      = size
+        .alignment = alignment
+    }
 
     if not size do
         panicAllocationFailure("Memory.tempAlloc", &req, false)

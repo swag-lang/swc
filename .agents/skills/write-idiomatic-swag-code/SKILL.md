@@ -374,8 +374,10 @@ through it directly, and only a whole-value read or write opens the place with t
   replacing an asserted receiver with `?.` would silently change the contract.
 - Keep a guard and a named binding when several operations share the non-null value or absence
   needs its own behavior. Use the flow-refined value after the guard; do not add a redundant `!`
-  when the compiler already knows it is non-null. Keep required side effects outside assertions,
-  even if inlining an action into the assertion would remove a temporary.
+  when the compiler already knows it is non-null. Remove an unreachable `orelse` fallback after
+  that guard too: it suggests a default policy that the path cannot actually take. Keep required
+  side effects outside assertions, even if inlining an action into the assertion would remove a
+  temporary.
 
 ## Bind Construction and Configuration with `with`
 

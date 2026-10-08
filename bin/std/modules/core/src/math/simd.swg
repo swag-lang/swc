@@ -79,10 +79,16 @@ namespace Simd
         func store(destination: [*] f64, value: F64x2) { cast([*] F64x2, destination)[0] = value; }
 
         // Writes the low eight bytes of a byte vector to memory, as one 64-bit move.
-        func storeLow8(destination: [*] u8, value: U8x16) { cast([*] u64, destination)[0] = cast #bit(U64x2, value)[0]; }
+        func storeLow8(destination: [*] u8, value: U8x16)
+        {
+            cast([*] u64, destination)[0] = cast #bit(U64x2, value)[0]
+        }
 
         // Writes the low four bytes of a byte vector to memory, as one 32-bit move.
-        func storeLow4(destination: [*] u8, value: U8x16) { cast([*] u32, destination)[0] = cast #bit(U32x4, value)[0]; }
+        func storeLow4(destination: [*] u8, value: U8x16)
+        {
+            cast([*] u32, destination)[0] = cast #bit(U32x4, value)[0]
+        }
 
         // Adds per lane with saturation: results clamp to the lane range instead of wrapping.
         func addSaturating(x, y: U8x16)->U8x16 => Swag.vecsatadd(x, y)
@@ -121,19 +127,59 @@ namespace Simd
         // Nothing is lost: the low and high halves of each product interleave back
         // into the double-width lane they belong to.
         func mulWidenLow(x, y: U8x16)->U16x8 => cast #bit (U16x8, Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y)))
-        func mulWidenLow(x, y: S8x16)->S16x8 => cast #bit (S16x8, Swag.vecinterleavelo(cast #bit (U8x16, (x * y)), cast #bit (U8x16, Swag.vecmulhi(x, y))))
+
+        func mulWidenLow(x, y: S8x16)->S16x8
+        {
+            let low  = cast #bit(U8x16, (x * y))
+            let high = cast #bit(U8x16, Swag.vecmulhi(x, y))
+            return cast #bit(S16x8, Swag.vecinterleavelo(low, high))
+        }
+
         func mulWidenLow(x, y: U16x8)->U32x4 => cast #bit (U32x4, Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y)))
-        func mulWidenLow(x, y: S16x8)->S32x4 => cast #bit (S32x4, Swag.vecinterleavelo(cast #bit (U16x8, (x * y)), cast #bit (U16x8, Swag.vecmulhi(x, y))))
+
+        func mulWidenLow(x, y: S16x8)->S32x4
+        {
+            let low  = cast #bit(U16x8, (x * y))
+            let high = cast #bit(U16x8, Swag.vecmulhi(x, y))
+            return cast #bit(S32x4, Swag.vecinterleavelo(low, high))
+        }
+
         func mulWidenLow(x, y: U32x4)->U64x2 => cast #bit (U64x2, Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y)))
-        func mulWidenLow(x, y: S32x4)->S64x2 => cast #bit (S64x2, Swag.vecinterleavelo(cast #bit (U32x4, (x * y)), cast #bit (U32x4, Swag.vecmulhi(x, y))))
+
+        func mulWidenLow(x, y: S32x4)->S64x2
+        {
+            let low  = cast #bit(U32x4, (x * y))
+            let high = cast #bit(U32x4, Swag.vecmulhi(x, y))
+            return cast #bit(S64x2, Swag.vecinterleavelo(low, high))
+        }
 
         // Returns the exact products of the high half of the lanes, in lanes twice as wide.
         func mulWidenHigh(x, y: U8x16)->U16x8 => cast #bit (U16x8, Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y)))
-        func mulWidenHigh(x, y: S8x16)->S16x8 => cast #bit (S16x8, Swag.vecinterleavehi(cast #bit (U8x16, (x * y)), cast #bit (U8x16, Swag.vecmulhi(x, y))))
+
+        func mulWidenHigh(x, y: S8x16)->S16x8
+        {
+            let low  = cast #bit(U8x16, (x * y))
+            let high = cast #bit(U8x16, Swag.vecmulhi(x, y))
+            return cast #bit(S16x8, Swag.vecinterleavehi(low, high))
+        }
+
         func mulWidenHigh(x, y: U16x8)->U32x4 => cast #bit (U32x4, Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y)))
-        func mulWidenHigh(x, y: S16x8)->S32x4 => cast #bit (S32x4, Swag.vecinterleavehi(cast #bit (U16x8, (x * y)), cast #bit (U16x8, Swag.vecmulhi(x, y))))
+
+        func mulWidenHigh(x, y: S16x8)->S32x4
+        {
+            let low  = cast #bit(U16x8, (x * y))
+            let high = cast #bit(U16x8, Swag.vecmulhi(x, y))
+            return cast #bit(S32x4, Swag.vecinterleavehi(low, high))
+        }
+
         func mulWidenHigh(x, y: U32x4)->U64x2 => cast #bit (U64x2, Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y)))
-        func mulWidenHigh(x, y: S32x4)->S64x2 => cast #bit (S64x2, Swag.vecinterleavehi(cast #bit (U32x4, (x * y)), cast #bit (U32x4, Swag.vecmulhi(x, y))))
+
+        func mulWidenHigh(x, y: S32x4)->S64x2
+        {
+            let low  = cast #bit(U32x4, (x * y))
+            let high = cast #bit(U32x4, Swag.vecmulhi(x, y))
+            return cast #bit(S64x2, Swag.vecinterleavehi(low, high))
+        }
 
         // Adds every lane into one scalar, with wrapping arithmetic for integers.
         //

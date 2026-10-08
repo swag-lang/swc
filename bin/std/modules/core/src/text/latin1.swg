@@ -60,7 +60,13 @@ using Swag
     func toLower(c: u8) => isUpper(c) ? (c | 0x20'u8) : c
 
     // Returns the uppercase Latin-1 byte, preserving bytes with no uppercase mapping.
-    func toUpper(c: u8) => ((c >= 0x61 and c <= 0x7A) or (c >= 0xE0 and c <= 0xFE and c != 0xF7)) ? (c & ~0x20'u8) : c
+    func toUpper(c: u8)->u8
+    {
+        if (c >= 0x61 and c <= 0x7A) or
+           (c >= 0xE0 and c <= 0xFE and c != 0xF7) do
+            return c & ~0x20'u8
+        return c
+    }
 }
 
 #[Inline, ConstExpr]
@@ -384,10 +390,17 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
     var ai, bi = 0'u64
     for
     {
-        if ai < src.count and (isAsciiSpace(src[ai]) or src.count - ai >= 2 and isEncodedSpace(src[ai], src[ai + 1])) do
+        if ai < src.count and
+           (isAsciiSpace(src[ai]) or
+            src.count - ai >= 2 and
+            isEncodedSpace(src[ai], src[ai + 1])) do
             ai += firstNonSpace(src[ai to])
-        if bi < dst.count and (isAsciiSpace(dst[bi]) or dst.count - bi >= 2 and isEncodedSpace(dst[bi], dst[bi + 1])) do
+        if bi < dst.count and
+           (isAsciiSpace(dst[bi]) or
+            dst.count - bi >= 2 and
+            isEncodedSpace(dst[bi], dst[bi + 1])) do
             bi += firstNonSpace(dst[bi to])
+
         if ai == src.count or bi == dst.count do
             return (src.count - ai) <=> (dst.count - bi)
 

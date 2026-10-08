@@ -11,7 +11,7 @@ public struct CultureInfo
 {
     public
     {
-        name:           String                 // Owned BCP 47 locale name represented by this value.
+        name:           String     // Owned BCP 47 locale name represented by this value.
         numberFormat:   NumberFormatInfo       // Numeric formatting conventions.
         currencyFormat: CurrencyFormatInfo     // Currency formatting conventions.
         dateTimeFormat: DateTimeFormatInfo     // Date and time names and patterns.
@@ -45,56 +45,81 @@ public impl CultureInfo
 
         if result.isNamed("en-GB")
         {
-            result.currencyFormat.symbol           = "\u00A3"
-            result.currencyFormat.negativePattern  = .SignBeforeSymbol
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.longDatePattern  = "dddd, d MMMM yyyy"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            result.currencyFormat.symbol = "\u00A3"
+            result.currencyFormat.negativePattern = .SignBeforeSymbol
+
+            with result.dateTimeFormat
+            {
+                .shortDatePattern = "dd/MM/yyyy"
+                .longDatePattern  = "dddd, d MMMM yyyy"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
         elif result.isNamed("en-AU") or result.isNamed("en-NZ")
         {
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.longDatePattern  = "dddd, d MMMM yyyy"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            with result.dateTimeFormat
+            {
+                .shortDatePattern = "dd/MM/yyyy"
+                .longDatePattern  = "dddd, d MMMM yyyy"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
         elif result.isLanguage("fr")
         {
-            result.numberFormat.decimalSeparator   = ','
-            result.numberFormat.groupSeparator     = 0x202F
-            result.currencyFormat.symbol           = "\u20AC"
-            result.currencyFormat.positivePattern  = .SymbolAfterWithSpace
-            result.currencyFormat.negativePattern  = .SignBeforeNumber
-            result.dateTimeFormat.monthNames       = ["janvier", "f\u00E9vrier", "mars", "avril", "mai", "juin", "juillet", "ao\u00FBt", "septembre", "octobre", "novembre", "d\u00E9cembre"]
-            result.dateTimeFormat.dayNames         = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"]
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.longDatePattern  = "dddd d MMMM yyyy"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            result.numberFormat.decimalSeparator  = ','
+            result.numberFormat.groupSeparator    = 0x202F
+            result.currencyFormat.symbol          = "\u20AC"
+            result.currencyFormat.positivePattern = .SymbolAfterWithSpace
+            result.currencyFormat.negativePattern = .SignBeforeNumber
+
+            with result.dateTimeFormat
+            {
+                .monthNames = [
+                    "janvier", "f\u00E9vrier", "mars",
+                    "avril", "mai", "juin",
+                    "juillet", "ao\u00FBt", "septembre",
+                    "octobre", "novembre", "d\u00E9cembre"]
+                .dayNames = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"]
+
+                .shortDatePattern = "dd/MM/yyyy"
+                .longDatePattern  = "dddd d MMMM yyyy"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
         elif result.isLanguage("de")
         {
-            result.numberFormat.decimalSeparator   = ','
-            result.numberFormat.groupSeparator     = '.'
-            result.currencyFormat.symbol           = "\u20AC"
-            result.currencyFormat.positivePattern  = .SymbolAfterWithSpace
-            result.currencyFormat.negativePattern  = .SignBeforeNumber
-            result.dateTimeFormat.monthNames       = ["Januar", "Februar", "M\u00E4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
-            result.dateTimeFormat.dayNames         = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.longDatePattern  = "dddd, d. MMMM yyyy"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateSeparator    = '.'
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            result.numberFormat.decimalSeparator  = ','
+            result.numberFormat.groupSeparator    = '.'
+            result.currencyFormat.symbol          = "\u20AC"
+            result.currencyFormat.positivePattern = .SymbolAfterWithSpace
+            result.currencyFormat.negativePattern = .SignBeforeNumber
+
+            with result.dateTimeFormat
+            {
+                .monthNames = [
+                    "Januar", "Februar", "M\u00E4rz",
+                    "April", "Mai", "Juni",
+                    "Juli", "August", "September",
+                    "Oktober", "November", "Dezember"]
+                .dayNames = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+
+                .shortDatePattern = "dd/MM/yyyy"
+                .longDatePattern  = "dddd, d. MMMM yyyy"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateSeparator    = '.'
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
         elif result.isLanguage("hi")
         {
@@ -106,51 +131,72 @@ public impl CultureInfo
         }
         elif result.isLanguage("tr")
         {
-            result.numberFormat.decimalSeparator   = ','
-            result.numberFormat.groupSeparator     = '.'
-            result.currencyFormat.symbol           = "\u20BA"
-            result.currencyFormat.positivePattern  = .SymbolAfterWithSpace
-            result.dateTimeFormat.monthNames       = ["Ocak", "\u015Eubat", "Mart", "Nisan", "May\u0131s", "Haziran", "Temmuz", "A\u011Fustos", "Eyl\u00FCl", "Ekim", "Kas\u0131m", "Aral\u0131k"]
-            result.dateTimeFormat.dayNames         = ["Pazar", "Pazartesi", "Sal\u0131", "\u00C7ar\u015Famba", "Per\u015Fembe", "Cuma", "Cumartesi"]
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.longDatePattern  = "d MMMM yyyy dddd"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateSeparator    = '.'
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            result.numberFormat.decimalSeparator  = ','
+            result.numberFormat.groupSeparator    = '.'
+            result.currencyFormat.symbol          = "\u20BA"
+            result.currencyFormat.positivePattern = .SymbolAfterWithSpace
+
+            with result.dateTimeFormat
+            {
+                .monthNames = [
+                    "Ocak", "\u015Eubat", "Mart",
+                    "Nisan", "May\u0131s", "Haziran",
+                    "Temmuz", "A\u011Fustos", "Eyl\u00FCl",
+                    "Ekim", "Kas\u0131m", "Aral\u0131k"]
+                .dayNames = ["Pazar", "Pazartesi", "Sal\u0131", "\u00C7ar\u015Famba", "Per\u015Fembe", "Cuma", "Cumartesi"]
+
+                .shortDatePattern = "dd/MM/yyyy"
+                .longDatePattern  = "d MMMM yyyy dddd"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateSeparator    = '.'
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
         elif result.isLanguage("ru") or result.isLanguage("pl") or result.isLanguage("cs")
         {
-            result.numberFormat.decimalSeparator   = ','
-            result.numberFormat.groupSeparator     = 0x00A0
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateSeparator    = '.'
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            result.numberFormat.decimalSeparator = ','
+            result.numberFormat.groupSeparator   = 0x00A0
+
+            with result.dateTimeFormat
+            {
+                .shortDatePattern = "dd/MM/yyyy"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateSeparator    = '.'
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
         elif result.isLanguage("ja")
         {
-            result.currencyFormat.symbol           = "\u00A5"
-            result.currencyFormat.decimalDigits    = 0
-            result.dateTimeFormat.shortDatePattern = "yyyy/MM/dd"
-            result.dateTimeFormat.longDatePattern  = "yyyy\u5E74M\u6708d\u65E5dddd"
-            result.dateTimeFormat.shortTimePattern = "H:mm"
-            result.dateTimeFormat.longTimePattern  = "H:mm:ss"
-            result.dateTimeFormat.dateOrder        = .YearMonthDay
-            result.dateTimeFormat.uses24Hour       = true
+            result.currencyFormat.symbol        = "\u00A5"
+            result.currencyFormat.decimalDigits = 0
+
+            with result.dateTimeFormat
+            {
+                .shortDatePattern = "yyyy/MM/dd"
+                .longDatePattern  = "yyyy\u5E74M\u6708d\u65E5dddd"
+                .shortTimePattern = "H:mm"
+                .longTimePattern  = "H:mm:ss"
+                .dateOrder        = .YearMonthDay
+                .uses24Hour       = true
+            }
         }
         elif result.isLanguage("ar")
         {
-            result.currencyFormat.symbol           = "\u062C.\u0645."
-            result.currencyFormat.positivePattern  = .SymbolAfterWithSpace
-            result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
-            result.dateTimeFormat.shortTimePattern = "HH:mm"
-            result.dateTimeFormat.longTimePattern  = "HH:mm:ss"
-            result.dateTimeFormat.dateOrder        = .DayMonthYear
-            result.dateTimeFormat.uses24Hour       = true
+            result.currencyFormat.symbol = "\u062C.\u0645."
+            result.currencyFormat.positivePattern = .SymbolAfterWithSpace
+
+            with result.dateTimeFormat
+            {
+                .shortDatePattern = "dd/MM/yyyy"
+                .shortTimePattern = "HH:mm"
+                .longTimePattern  = "HH:mm:ss"
+                .dateOrder        = .DayMonthYear
+                .uses24Hour       = true
+            }
         }
 
         return result

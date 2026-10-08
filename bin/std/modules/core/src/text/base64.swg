@@ -26,9 +26,13 @@ private const DecodeScatter = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 
 private func encodeBlock(input: const [*] u8)->Math.Simd.U8x16
 {
     let gathered = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(Math.Simd.load(input), EncodeGather))
-    let sextets  = (gathered >> 18) | (((gathered >> 12) & 63) << 8) | (((gathered >> 6) & 63) << 16) | ((gathered & 63) << 24)
-    let values   = cast #bit(Math.Simd.U8x16, sextets)
+    let sextets  = (gathered >> 18) |
+                   (((gathered >> 12) & 63) << 8) |
+                   (((gathered >> 6) & 63) << 16) |
+                   ((gathered & 63) << 24)
+    let values = cast #bit(Math.Simd.U8x16, sextets)
 
+    // Translate the digit ranges, then replace the two punctuation characters.
     var encoded = values + 'A'
     encoded += Math.Simd.select(values > Math.Simd.splat(25'u8), Math.Simd.splat(6'u8), Math.Simd.splat(0'u8))
     encoded += Math.Simd.select(values > Math.Simd.splat(51'u8), Math.Simd.splat(181'u8), Math.Simd.splat(0'u8))
@@ -48,17 +52,24 @@ private func decodeBlock(input: const [*] u8)->{ decoded: Math.Simd.U8x16, valid
     if not Math.Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
         return {decoded: Math.Simd.splat(0'u8), valid: false}
 
+    // Map both alphabets to the same six-bit digits.
     var values = Math.Simd.splat(0'u8)
     values = Math.Simd.select(upperMask, bytes - 'A', values)
     values = Math.Simd.select(lowerMask, bytes - 'a' + 26, values)
     values = Math.Simd.select(digitMask, bytes - '0' + 52, values)
-    values = Math.Simd.select((bytes == Math.Simd.splat('+'u8)) | (bytes == Math.Simd.splat('-'u8)), Math.Simd.splat(62'u8), values)
-    values = Math.Simd.select((bytes == Math.Simd.splat('/'u8)) | (bytes == Math.Simd.splat('_'u8)), Math.Simd.splat(63'u8), values)
+    values = Math.Simd.select((bytes == Math.Simd.splat('+'u8)) | (bytes == Math.Simd.splat('-'u8)),
+                              Math.Simd.splat(62'u8),
+                              values)
+    values = Math.Simd.select((bytes == Math.Simd.splat('/'u8)) | (bytes == Math.Simd.splat('_'u8)),
+                              Math.Simd.splat(63'u8),
+                              values)
 
-    let sextets = cast #bit(Math.Simd.U32x4, values)
-    let packed  = ((sextets & 63) << 2) | (((sextets >> 8) & 63) >> 4) |
-                  ((((sextets >> 8) & 15) << 4) | (((sextets >> 16) & 63) >> 2)) << 8 |
-                  (((((sextets >> 16) & 3) << 6) | ((sextets >> 24) & 63)) << 16)
+    // Reassemble each four-digit group into three contiguous bytes.
+    let sextets    = cast #bit(Math.Simd.U32x4, values)
+    let firstByte  = ((sextets & 63) << 2) | (((sextets >> 8) & 63) >> 4)
+    let secondByte = (((sextets >> 8) & 15) << 4) | (((sextets >> 16) & 63) >> 2)
+    let thirdByte  = (((sextets >> 16) & 3) << 6) | ((sextets >> 24) & 63)
+    let packed     = firstByte | (secondByte << 8) | (thirdByte << 16)
     return {decoded: Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, packed), DecodeScatter), valid: true}
 }
 
@@ -74,6 +85,8 @@ func encode(bytes: const [..] u8)->String
 
     var index    = 0'u64
     var outIndex = 0'u64
+
+    // Vector loads read 16 bytes while each block consumes only 12.
     while count - index >= 16
     {
         Math.Simd.store(result.storage() + outIndex, encodeBlock(bytes.buffer + index))
@@ -81,10 +94,13 @@ func encode(bytes: const [..] u8)->String
         outIndex += 16
     }
 
+    // Finish complete triples before padding the final one or two bytes.
     let output = result.storage()
     while index + 3 <= count
     {
-        let group = (cast(u32, bytes[index]) << 16) | (cast(u32, bytes[index + 1]) << 8) | cast(u32, bytes[index + 2])
+        let group = (cast(u32, bytes[index]) << 16) |
+                    (cast(u32, bytes[index + 1]) << 8) |
+                    cast(u32, bytes[index + 2])
         output[outIndex + 0] = Alphabet[group >> 18]
         output[outIndex + 1] = Alphabet[(group >> 12) & 63]
         output[outIndex + 2] = Alphabet[(group >> 6) & 63]
@@ -132,6 +148,7 @@ func decode(text: string)->Array'u8 fail
     var index = 0'u64
     while index < text.count
     {
+        // Only a complete, unpadded group can take the vector path.
         if not count and not ended and text.count - index >= 16
         {
             let block = decodeBlock(text.buffer + index)
@@ -144,6 +161,7 @@ func decode(text: string)->Array'u8 fail
             }
         }
 
+        // Scalar decoding also handles whitespace and padding.
         let value = text[index]
         index += 1
         if value == ' ' or value == '\t' or value == '\r' or value == '\n' do

@@ -120,7 +120,8 @@ private impl MetadataReader
 // The same tag boundary checks apply as for document content.
 func parseMetadata(source: string)->Metadata fail
 {
-    var reader: MetadataReader
+    var reader:     MetadataReader
+    var namespaces: Namespaces
     var textStart = 0'u64
     var at        = 0'u64
     while at < source.count
@@ -134,15 +135,17 @@ func parseMetadata(source: string)->Metadata fail
         if at > textStart do
             reader.appendText(source[textStart until at])
         let end = try tagEnd(source, at)
-        let tag = parseTag(source[at + 1 until end])
+        var tag = parseTag(source[at + 1 until end])
         if not tag.name.isEmpty()
         {
             if tag.closing
             {
+                namespaces.close(&tag)
                 reader.endTag(&tag)
             }
             else
             {
+                namespaces.open(&tag)
                 reader.startTag(&tag)
                 if tag.selfClosing do
                     reader.endTag(&tag)

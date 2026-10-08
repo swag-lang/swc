@@ -495,6 +495,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.playing and view.voice.isPlaying())
     view.setVolume(0.35)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0.35, 0.001))
+    Swag.assert(view.volume == 0.35 and Math.isEqualEpsilon(view.volumeSlider.value(), 0.35, 0.001))
     view.setMuted(true)
     Swag.assert(view.muted and view.muteButton.isChecked)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))

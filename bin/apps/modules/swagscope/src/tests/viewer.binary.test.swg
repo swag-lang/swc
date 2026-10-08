@@ -1036,6 +1036,13 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     reached = view.goToTypedOffset("7F0")
     Swag.assert(reached)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".rdata")
+
+    // The hexadecimal viewer's go-to grammar holds here too: `0d` is decimal, not hexadecimal 0xD1024.
+    reached = view.goToTypedOffset("0d1024")
+    Swag.assert(reached)
+    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    reached = view.goToTypedOffset("7F0")
+    Swag.assert(reached)
     var navigated = view.navigateHistory(-1)
     Swag.assert(navigated)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")

@@ -46,6 +46,19 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     var toggleWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent!(view.editor, &toggleWrap) and not view.wrapping)
+
+    // Ctrl+Shift+W is not the wrap shortcut, whether the editor or the panel receives it.
+    var shiftedChild = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
+    Swag.assert(not view.hookOnChildEvent!(view.editor, &shiftedChild) and not view.wrapping)
+    var shiftedPanel = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
+    view.sendEvent(&shiftedPanel)
+    Swag.assert(not shiftedPanel.accepted and not view.wrapping)
+    var panelWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
+    view.sendEvent(&panelWrap)
+    Swag.assert(panelWrap.accepted and view.wrapping)
+    view.sendEvent(&panelWrap)
+    Swag.assert(not view.wrapping)
+
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent!(view.editor, &zoomIn) and view.zoomPercent == 125)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}

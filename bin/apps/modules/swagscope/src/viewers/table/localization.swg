@@ -12,6 +12,8 @@ struct Texts
     ui_Rows:            string = "% rows"
     ui_OneColumn:       string = "1 column"
     ui_Columns:         string = "% columns"
+    ui_SemicolonKind:   string = "Semicolon-separated"
+    ui_PipeKind:        string = "Pipe-separated"
     err_TooLarge:       string = "the tabular viewer accepts files up to 32 MiB"
     err_TooManyColumns: string = "the tabular viewer accepts up to 256 columns"
     err_UnclosedQuote:  string = "a quoted field reaches the end of the file"

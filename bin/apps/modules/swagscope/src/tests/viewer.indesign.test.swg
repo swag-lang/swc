@@ -460,3 +460,150 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(not viewer.failureReason.isEmpty())
 }
+
+const IdmlMimeType = "application/vnd.adobe.indesign-idml-package"
+
+// Returns a text frame whose path spans `left, top` to `right, bottom` in spread coordinates.
+func idmlTextFrame(self, story, previous, next: string, left, top, right, bottom: s32)->String
+{
+    const Frame = """<TextFrame Self="%" ParentStory="%" PreviousTextFrame="%" NextTextFrame="%" ItemTransform="1 0 0 1 0 0">
+                     <Properties><PathGeometry><GeometryPathType><PathPointArray>
+                     <PathPointType Anchor="% %"/><PathPointType Anchor="% %"/><PathPointType Anchor="% %"/><PathPointType Anchor="% %"/>
+                     </PathPointArray></GeometryPathType></PathGeometry></Properties></TextFrame>"""
+    return Format.toString(Frame, self, story, previous, next, left, top, left, bottom, right, bottom, right, top)
+}
+
+// Returns a 100-point square page placed `left` points into its spread.
+func idmlPage(self: string, left: s32, master: string = "")->String
+{
+    return Format.toString("<Page Self=\"%\" Name=\"%\" GeometricBounds=\"0 0 100 100\" ItemTransform=\"1 0 0 1 % 0\" AppliedMaster=\"%\"/>", self, self, left, master)
+}
+
+// Writes an IDML package holding `files` after its `mimetype` entry.
+func writeIdmlPackage(path: string, files: const [..] StoredZipFile)
+{
+    var entries: Array'StoredZipFile
+    entries.add(StoredZipFile{name: "mimetype", bytes: IdmlMimeType})
+    entries.add(files)
+    discard expect File.writeAllBytes(path, storedZipBytes(entries.toSlice()).toSlice())
+}
+
+// A master text chain copied onto each page flows on that page's copies, and a character range
+// that is both underlined and struck through keeps both lines.
+#test
+{
+    var master: String
+    master += "<MasterSpread Self=\"m\">"
+    master += idmlPage("mp", 0)
+    master += idmlTextFrame("ma", "sm", "n", "mb", 10, 10, 90, 40)
+    master += idmlTextFrame("mb", "sm", "ma", "n", 10, 50, 90, 90)
+    master += "</MasterSpread>"
+
+    var spread: String
+    spread += "<Spread Self=\"s\">"
+    spread += idmlPage("p1", 0, "m")
+    spread += idmlPage("p2", 100, "m")
+    spread += idmlTextFrame("t", "st", "n", "n", 20, 20, 80, 80)
+    spread += "</Spread>"
+
+    const MasterStory = "<Story Self=\"sm\"><ParagraphStyleRange><CharacterStyleRange><Content>Master one</Content></CharacterStyleRange></ParagraphStyleRange><ParagraphStyleRange><CharacterStyleRange><Content>Master two</Content></CharacterStyleRange></ParagraphStyleRange></Story>"
+    const PageStory   = "<Story Self=\"st\"><ParagraphStyleRange><CharacterStyleRange Underline=\"true\" StrikeThru=\"true\"><Content>Both lines</Content></CharacterStyleRange></ParagraphStyleRange></Story>"
+    const DesignMap   = "<Document><idPkg:MasterSpread src=\"MasterSpreads/m.xml\"/><idPkg:Spread src=\"Spreads/s.xml\"/></Document>"
+
+    var files: Array'StoredZipFile
+    files.add(StoredZipFile{name: "designmap.xml", bytes: DesignMap})
+    files.add(StoredZipFile{name: "MasterSpreads/m.xml", bytes: master.toSlice()})
+    files.add(StoredZipFile{name: "Spreads/s.xml", bytes: spread.toSlice()})
+    files.add(StoredZipFile{name: "Stories/sm.xml", bytes: MasterStory})
+    files.add(StoredZipFile{name: "Stories/st.xml", bytes: PageStory})
+    let path = Testing.tempFilePath("scope-idml-master-", ".idml")
+    defer discard catch File.delete(path)
+    writeIdmlPackage(path, files.toSlice())
+
+    let document = expect InDesign.Idml.load(path)
+    Swag.assert(document.pages.count == 2)
+    for page in document.pages
+    {
+        var masterFrames: u64
+        for item in page.items where item.story == "sm"
+        {
+            masterFrames += 1
+            Swag.assert(Utf8.contains(item.text, item.self == "ma" ? "Master one" : "Master two"))
+        }
+
+        Swag.assert(masterFrames == 2)
+    }
+
+    var decorated: u64
+    for item in document.pages[0].items where item.story == "st"
+    {
+        decorated += 1
+        Swag.assert(Utf8.contains(item.text, "text-decoration:underline line-through;"))
+        Swag.assert(not Utf8.contains(item.text, "text-decoration:underline;"))
+    }
+
+    Swag.assert(decorated == 1)
+}
+
+// The page and frame bounds hold for the whole document, not for each spread.
+#test
+{
+    var spread: String
+    spread += "<Spread Self=\"s\">"
+    spread += idmlPage("p1", 0)
+    spread += idmlPage("p2", 100)
+    spread += idmlTextFrame("f1", "", "n", "n", 10, 10, 90, 90)
+    spread += idmlTextFrame("f2", "", "n", "n", 110, 10, 190, 90)
+    spread += "</Spread>"
+
+    const DesignMap = "<Document><idPkg:Spread src=\"Spreads/s.xml\"/><idPkg:Spread src=\"Spreads/s.xml\"/><idPkg:Spread src=\"Spreads/s.xml\"/></Document>"
+    var files: Array'StoredZipFile
+    files.add(StoredZipFile{name: "designmap.xml", bytes: DesignMap})
+    files.add(StoredZipFile{name: "Spreads/s.xml", bytes: spread.toSlice()})
+    let path = Testing.tempFilePath("scope-idml-limits-", ".idml")
+    defer discard catch File.delete(path)
+    writeIdmlPackage(path, files.toSlice())
+
+    let unbounded = expect InDesign.Idml.load(path)
+    var unboundedItems: u64
+    for page in unbounded.pages do
+        unboundedItems += page.items.count
+    Swag.assert(unbounded.pages.count == 6 and unboundedItems == 6)
+
+    let bounded = expect InDesign.Idml.load(path, {pages: 3, frames: 2})
+    var boundedItems: u64
+    for page in bounded.pages do
+        boundedItems += page.items.count
+    Swag.assert(bounded.pages.count == 3 and boundedItems == 2)
+}
+
+// A relative `file:` link names a picture beside the document, and its path reaches the page
+// markup as an escaped attribute value.
+#test
+{
+    let folder = Testing.tempFilePath("scope-idml-a&b-", "")
+    expect Directory.create(Path.combine(folder, "images"), recurse: true)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let picture = expect File.readAllBytes(indesignDataPath("title.png"))
+    discard expect File.writeAllBytes(Path.combine(folder, "images/linked.png"), picture.toSlice())
+
+    const Spread = """<Spread Self="s"><Page Self="p" Name="1" GeometricBounds="0 0 100 100" ItemTransform="1 0 0 1 0 0"/>
+                      <Rectangle Self="r" ItemTransform="1 0 0 1 0 0"><Properties><PathGeometry><GeometryPathType><PathPointArray>
+                      <PathPointType Anchor="10 10"/><PathPointType Anchor="10 90"/><PathPointType Anchor="90 90"/><PathPointType Anchor="90 10"/>
+                      </PathPointArray></GeometryPathType></PathGeometry></Properties>
+                      <Image Self="i" ItemTransform="1 0 0 1 0 0"><Link Self="l" LinkResourceURI="file:images/linked.png"/></Image></Rectangle></Spread>"""
+    const DesignMap = "<Document><idPkg:Spread src=\"Spreads/s.xml\"/></Document>"
+    var files: Array'StoredZipFile
+    files.add(StoredZipFile{name: "designmap.xml", bytes: DesignMap})
+    files.add(StoredZipFile{name: "Spreads/s.xml", bytes: Spread})
+    let path = Path.combine(folder, "linked.idml")
+    writeIdmlPackage(path, files.toSlice())
+
+    let document = expect InDesign.Idml.load(path)
+    Swag.assert(document.pages.count == 1 and document.pages[0].items.count == 1)
+    let item = &document.pages[0].items[0]
+    Swag.assert(item.imageFrame and Path.fileName(item.image) == "linked.png")
+    Swag.assert(Utf8.contains(item.image, "images"))
+    let html = document.pages[0].html(1)
+    Swag.assert(Utf8.contains(html, "scope-idml-a&amp;b-") and not Utf8.contains(html, "scope-idml-a&b-"))
+}

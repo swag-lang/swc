@@ -379,13 +379,13 @@ private impl Panel
                 .outline.clear()
                 if .document.kind == .Spreadsheet
                 {
-                    for sheet, index in .document.sheets do
-                        .outline.add(sheet.name, 1, index)
+                    for index in .document.sheets.count do
+                        .outline.add(.sheetName(index), 1, index)
                 }
                 else
                 {
-                    for slide, index in .document.slides do
-                        .outline.add(slide.name, 1, index)
+                    for index in .document.slides.count do
+                        .outline.add(.slideName(index), 1, index)
                 }
 
                 .outline.refresh()

@@ -217,12 +217,14 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     var reading: ViewerReadingState
     reading.capture(&result, "sound", "")
     view.stopPlayback()
+    view.setVolume(1)
     Swag.assert(view.elapsed == 0)
     reading.applySettings(&result)
     let restored = reading.restore(&result)
     Swag.assert(restored and not view.playing)
     Swag.assert(Math.isEqualEpsilon(view.elapsed, cast(f32, reading.seconds), 0.00001))
     Swag.assert(view.volume == 0.4 and not view.muted)
+    Swag.assert(Math.isEqualEpsilon(view.volumeSlider.value(), 0.4, 0.001))
 }
 
 #[Swag.TestTag("golden")]

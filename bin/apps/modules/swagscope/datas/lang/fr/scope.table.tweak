@@ -6,6 +6,8 @@ ui_Row             1 ligne
 ui_Rows            % lignes
 ui_OneColumn       1 colonne
 ui_Columns         % colonnes
+ui_SemicolonKind   Séparé par des points-virgules
+ui_PipeKind        Séparé par des barres verticales
 err_TooLarge       la visionneuse tabulaire accepte les fichiers jusqu'à 32 Mio
 err_TooManyColumns la visionneuse tabulaire accepte jusqu'à 256 colonnes
 err_UnclosedQuote  un champ entre guillemets atteint la fin du fichier

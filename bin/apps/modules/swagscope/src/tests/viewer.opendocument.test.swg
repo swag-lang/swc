@@ -652,3 +652,100 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(OpenDocument.decodeXmlText("&#65;&#x42;&#X43;") == "ABC")
     Swag.assert(OpenDocument.decodeXmlText("&#0;&#xZZ;&#;") == "&#0;&#xZZ;&#;")
 }
+
+// Comments, tracked deletions and speaker notes are apparatus, not body, slide or cell text.
+#test
+{
+    let textSource = openDocumentXml("<office:text><text:tracked-changes><text:changed-region text:id='c1'><text:deletion><office:change-info><dc:creator>Editor</dc:creator></office:change-info><text:p>Deleted words</text:p></text:deletion></text:changed-region></text:tracked-changes><text:p>Kept<office:annotation><dc:creator>Reviewer</dc:creator><text:p>Margin comment</text:p></office:annotation> text</text:p></office:text>")
+    let text       = expect OpenDocument.parseContent(textSource, .Text)
+    Swag.assert(Utf8.contains(text.html, "<p>Kept text</p>"))
+    Swag.assert(not Utf8.contains(text.html, "Margin comment") and not Utf8.contains(text.html, "Reviewer"))
+    Swag.assert(not Utf8.contains(text.html, "Deleted words") and not Utf8.contains(text.html, "Editor"))
+
+    let sheetSource = openDocumentXml("<office:spreadsheet><table:table table:name='Notes'><table:table-row><table:table-cell><text:p>Name</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><office:annotation><text:p>Cell note</text:p></office:annotation><text:p>Value</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
+    let sheet       = expect OpenDocument.parseContent(sheetSource, .Spreadsheet)
+    Swag.assert(sheet.sheets[0].table.rows.count == 1 and sheet.sheets[0].table.rows[0].cells[0] == "Value")
+
+    let slideSource = openDocumentXml("<office:presentation><draw:page draw:name='One'><draw:text-box><text:p>Slide body</text:p></draw:text-box><presentation:notes><draw:text-box><text:p>Speaker notes</text:p></draw:text-box></presentation:notes></draw:page></office:presentation>")
+    let slides      = expect OpenDocument.parseContent(slideSource, .Presentation)
+    Swag.assert(slides.slides.count == 1 and Utf8.contains(slides.slides[0].html, "Slide body"))
+    Swag.assert(not Utf8.contains(slides.slides[0].html, "Speaker notes"))
+}
+
+// Repeated cells and rows are written out in place, so columns stay aligned. The empty cells and
+// rows a spreadsheet repeats to its last column and row are dropped instead of written out.
+#test
+{
+    let gridSource = openDocumentXml("<office:text><table:table table:name='Grid'><table:table-row><table:table-cell><text:p>A</text:p></table:table-cell><table:table-cell table:number-columns-repeated='2'><text:p>B</text:p></table:table-cell><table:table-cell table:number-columns-repeated='3'/><table:table-cell><text:p>C</text:p></table:table-cell><table:table-cell table:number-columns-repeated='16000'/></table:table-row><table:table-row table:number-rows-repeated='2'><table:table-cell><text:p>D</text:p></table:table-cell></table:table-row><table:table-row table:number-rows-repeated='1048000'><table:table-cell table:number-columns-repeated='1024'/></table:table-row></table:table></office:text>")
+    let grid       = expect OpenDocument.parseContent(gridSource, .Text)
+    Swag.assert(not Utf8.contains(grid.html, "colspan"))
+    Swag.assert(Utf8.contains(grid.html, "<table><tr><td><p>A</p></td><td><p>B</p></td><td><p>B</p></td><td></td><td></td><td></td><td><p>C</p></td></tr><tr><td><p>D</p></td></tr><tr><td><p>D</p></td></tr></table>"))
+
+    let wideSource = openDocumentXml("<office:text><table:table table:name='Wide'><table:table-row><table:table-cell table:number-columns-repeated='300'><text:p>x</text:p></table:table-cell></table:table-row></table:table></office:text>")
+    let wide       = expect OpenDocument.parseContent(wideSource, .Text)
+    var cells      = 0'u64
+    var at         = 0'u64
+    for
+    {
+        let found = Utf8.indexOf(wide.html, "<p>x</p>", at)
+        if found == Swag.U64.Max do
+            break
+        cells += 1
+        at    = found + 1
+    }
+
+    Swag.assert(cells == 256)
+
+    let sheetSource = openDocumentXml("<office:spreadsheet><table:table table:name='Padded'><table:table-row><table:table-cell><text:p>Name</text:p></table:table-cell><table:table-cell><text:p>Value</text:p></table:table-cell><table:table-cell table:number-columns-repeated='1022'/></table:table-row><table:table-row><table:table-cell><text:p>a</text:p></table:table-cell><table:table-cell office:value='1'/><table:table-cell table:number-columns-repeated='1022'/></table:table-row><table:table-row table:number-rows-repeated='2'><table:table-cell table:number-columns-repeated='1024'/></table:table-row><table:table-row><table:table-cell table:number-columns-repeated='1'/><table:table-cell office:value='2'/></table:table-row><table:table-row table:number-rows-repeated='1048572'><table:table-cell table:number-columns-repeated='1024'/></table:table-row></table:table></office:spreadsheet>")
+    let sheet       = expect OpenDocument.parseContent(sheetSource, .Spreadsheet)
+    let table       = &sheet.sheets[0].table
+    Swag.assert(table.columns.count == 2 and table.columns[0] == "Name" and table.columns[1] == "Value")
+    Swag.assert(table.rows.count == 4)
+    Swag.assert(table.rows[0].cells[0] == "a" and table.rows[0].cells[1] == "1")
+    Swag.assert(table.rows[1].cells.isEmpty() and table.rows[2].cells.isEmpty())
+    Swag.assert(table.rows[3].cells.count == 2 and table.rows[3].cells[0].isEmpty() and table.rows[3].cells[1] == "2")
+}
+
+// The ODF namespaces are matched by URI, whatever prefixes a document binds them to.
+#test
+{
+    const Namespaces = "xmlns:o='urn:oasis:names:tc:opendocument:xmlns:office:1.0' xmlns:t='urn:oasis:names:tc:opendocument:xmlns:text:1.0' xmlns:tb='urn:oasis:names:tc:opendocument:xmlns:table:1.0' xmlns:x='http://www.w3.org/1999/xlink'"
+    let textSource = Format.toString("<?xml version='1.0'?><o:document-content %><o:body><o:text><t:h t:outline-level='2'>Renamed heading</t:h><t:p>Body <t:a x:href='https://www.swag-lang.org/'>link</t:a></t:p><p xmlns='urn:oasis:names:tc:opendocument:xmlns:text:1.0'>Default namespace</p><tb:table tb:name='T'><tb:table-row><tb:table-cell tb:number-columns-repeated='2'><t:p>R</t:p></tb:table-cell></tb:table-row></tb:table></o:text></o:body></o:document-content>", Namespaces)
+    let text       = expect OpenDocument.parseContent(textSource, .Text)
+    Swag.assert(Utf8.contains(text.html, "<h2>Renamed heading</h2>"))
+    Swag.assert(Utf8.contains(text.html, "<a href=\"https://www.swag-lang.org/\">link</a>"))
+    Swag.assert(Utf8.contains(text.html, "<p>Default namespace</p>"))
+    Swag.assert(Utf8.contains(text.html, "<h2>T</h2><table><tr><td><p>R</p></td><td><p>R</p></td></tr></table>"))
+
+    let sheetSource = Format.toString("<?xml version='1.0'?><o:document-content %><o:body><o:spreadsheet><tb:table tb:name='Renamed'><tb:table-row><tb:table-cell><t:p>Name</t:p></tb:table-cell></tb:table-row><tb:table-row><tb:table-cell o:value='7'/></tb:table-row></tb:table></o:spreadsheet></o:body></o:document-content>", Namespaces)
+    let sheet       = expect OpenDocument.parseContent(sheetSource, .Spreadsheet)
+    Swag.assert(sheet.sheets.count == 1 and sheet.sheets[0].name == "Renamed" and sheet.sheets[0].table.rows[0].cells[0] == "7")
+
+    let metadata = expect OpenDocument.parseMetadata("<?xml version='1.0'?><m:document-meta xmlns:m='urn:oasis:names:tc:opendocument:xmlns:office:1.0' xmlns:d='http://purl.org/dc/elements/1.1/'><m:meta><d:title>Renamed title</d:title></m:meta></m:document-meta>")
+    Swag.assert(metadata.title == "Renamed title")
+}
+
+// A sheet or slide without a source name still gets its numbered label in the outline.
+#test
+{
+    let bodies = [
+        "<office:spreadsheet><table:table><table:table-row><table:table-cell><text:p>Cell</text:p></table:table-cell></table:table-row></table:table><table:table><table:table-row><table:table-cell><text:p>Other</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>",
+        "<office:presentation><draw:page><text:p>First</text:p></draw:page><draw:page><text:p>Second</text:p></draw:page></office:presentation>"]
+    let extensions = [".fods", ".fodp"]
+    for body, index in bodies
+    {
+        let fileName = writeOpenDocumentFlatFixture(extensions[index], openDocumentXml(body))
+        defer discard catch File.delete(fileName)
+        var host: Testing.HeadlessHost
+        host.setup(640, 360)
+        defer host.shutdown()
+        var session = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName)
+        let view    = assume cast(*OpenDocument.Panel, session.view)
+        completeViewerBackgroundLoad(&host, &view.load)
+        let outline = view.outline!
+        Swag.assert(outline.rows.count == 2)
+        let label = index == 0 ? OpenDocument.texts().ui_Sheet : OpenDocument.texts().ui_Slide
+        for row, rowIndex in outline.rows do
+            Swag.assert(row.items[0]!.name == Format.toString(label, rowIndex + 1))
+    }
+}

@@ -9,6 +9,7 @@ private
     const TableRowLimit           = 100_000'u64
     const TableCellLimit          = 1_000_000'u64
     const RepeatedCellLimit       = 4_096'u64
+    const HtmlRepeatedRowLimit    = 4_096'u64     // Rows that repetition may give one HTML table.
     const TextStyleLimit          = 4_096'u64
     const BookmarkLimit           = 4_096'u64
     const InlineImagePayloadLimit = ((ImageLimit + 2) / 3) * 4
@@ -236,43 +237,91 @@ func fontSize(attributes: string)->String
     return Format.toString("%{f0}%%", percent)
 }
 
+// A table being written as HTML: its rows so far, and the empty rows held back until a row with
+// content follows them.
+struct HtmlTable
+{
+    rows:        u64
+    pendingRows: u64
+}
+
+// A row being written as HTML, from the output offset of its `<tr>`.
+struct HtmlRow
+{
+    start:        u64
+    repeat:       u64 = 1
+    cells:        u64
+    pendingCells: u64
+    hasContent:   bool
+}
+
+// A cell being written as HTML, from the output offset of its opening tag and of its content.
+struct HtmlCell
+{
+    start:        u64
+    contentStart: u64
+    repeat:       u64 = 1
+}
+
+// Reports whether an element holds no body content: comments, the record of tracked deletions,
+// and speaker notes are document apparatus that a reader shows elsewhere, if at all.
+func isApparatus(name: string)->bool
+{
+    switch name
+    {
+    case "office:annotation", "text:tracked-changes", "table:tracked-changes", "presentation:notes":
+        return true
+    default:
+        return false
+    }
+}
+
 // Turns one ODF body into reading HTML, one virtual table model per sheet, or isolated slide markup.
+//
+// Repeated rows and cells are written out, but an empty one is held back until content follows it.
+// Spreadsheets repeat empty cells and rows to the end of the sheet, and that padding is dropped.
 struct Reader
 {
     kind:     Kind
     metadata: Metadata
     html:     String
 
-    inBody:          bool
-    sawBody:         bool
-    activeSheet:     bool
-    cellActive:      bool
-    cellRepeat:      u64 = 1
-    rowRepeat:       u64 = 1
-    headingLevel:    u64 = 1
-    slideActive:     bool
-    cell:            String
-    cellFallback:    String
-    sheetCellCount:  u64
-    row:             Table.Row
-    sheet:           Sheet
-    sheets:          Array'Sheet
-    slide:           Slide
-    slides:          Array'Slide
-    styleActive:     bool
-    style:           TextStyle
-    textStyles:      Array'TextStyle
-    styleStack:      Array'TextStyle
-    listStyleActive: bool
-    listStyle:       ListStyle
-    listStyles:      Array'ListStyle
-    listStack:       Array'bool
-    bookmarks:       Array'Bookmark
-    tableHeaderRows: u64
-    imageSizeStack:  Array'ImageSize
-    images:          Array'EmbeddedImage
-    imageByteCount:  u64
-    imageCount:      u64
+    inBody:            bool
+    sawBody:           bool
+    skipDepth:         u64
+    activeSheet:       bool
+    cellActive:        bool
+    cellRepeat:        u64 = 1
+    pendingEmptyCells: u64
+    rowRepeat:         u64 = 1
+    pendingEmptyRows:  u64
+    headingLevel:      u64 = 1
+    slideActive:       bool
+    cell:              String
+    cellFallback:      String
+    sheetCellCount:    u64
+    row:               Table.Row
+    sheet:             Sheet
+    sheets:            Array'Sheet
+    slide:             Slide
+    slides:            Array'Slide
+    styleActive:       bool
+    style:             TextStyle
+    textStyles:        Array'TextStyle
+    styleStack:        Array'TextStyle
+    listStyleActive:   bool
+    listStyle:         ListStyle
+    listStyles:        Array'ListStyle
+    listStack:         Array'bool
+    bookmarks:         Array'Bookmark
+    tableHeaderRows:   u64
+    htmlTables:        Array'HtmlTable
+    htmlRows:          Array'HtmlRow
+    htmlCells:         Array'HtmlCell
+    imageSizeStack:    Array'ImageSize
+    images:            Array'EmbeddedImage
+    imageByteCount:    u64
+    imageCount:        u64
 }
 
 private impl Reader
@@ -582,6 +631,113 @@ private impl Reader
         .html += text
     }
 
+    // Returns the markup `appendHtml` writes to, or null while it writes nowhere.
+    mtd htmlTarget()->*String?
+    {
+        if .kind == .Presentation or .kind == .Drawing do
+            return .slideActive ? &.slide.html : null
+        return &.html
+    }
+
+    // Opens a table row, repeated as many times as it declares once it is complete.
+    mtd startHtmlRow(attributes: string)
+    {
+        let target = .htmlTarget()
+        if target do
+            .htmlRows.add({start: target.count, repeat: repeatCount(attributes, "table:number-rows-repeated")})
+        .appendHtml("<tr>")
+    }
+
+    // Opens a table cell, repeated as many times as it declares once it is complete.
+    mtd startHtmlCell(tag: const *Tag)
+    {
+        let target = .htmlTarget()
+        var cell: HtmlCell
+        if target do
+            cell.start = target.count
+        .appendHtml(.tableHeaderRows ? "<th>" : "<td>")
+        if target do
+            cell.contentStart = target.count
+        cell.repeat = repeatCount(tag.attributes, "table:number-columns-repeated")
+        .htmlCells.add(cell)
+        if tag.selfClosing do
+            .appendHtml(cellValue(tag.attributes))
+    }
+
+    // Closes a cell. An empty cell is held back in its row; a cell with content first writes the
+    // empty cells held before it, then its own copies, up to `TableColumnLimit` cells in the row.
+    mtd endHtmlCell()
+    {
+        let closing = .tableHeaderRows ? "</th>" : "</td>"
+        let target  = .htmlTarget()
+        if not target or .htmlCells.isEmpty() or .htmlRows.isEmpty()
+        {
+            .appendHtml(closing)
+            return
+        }
+
+        let cell = .htmlCells.popBack()
+        let row  = .htmlRows.backPtr()
+        if target.count == cell.contentStart
+        {
+            target.removeBack(target.count - cell.start)
+            row.pendingCells += cell.repeat
+            return
+        }
+
+        target[] += closing
+        let markup = String.from(target.toString()[cell.start to])
+        target.removeBack(target.count - cell.start)
+        row.hasContent = true
+
+        let emptyCells = Math.min(row.pendingCells, TableColumnLimit - Math.min(row.cells, TableColumnLimit))
+        for emptyCells do
+            target[] += .tableHeaderRows ? "<th></th>" : "<td></td>"
+        row.cells        += emptyCells
+        row.pendingCells = 0
+
+        let copies = Math.min(cell.repeat, Math.max(TableColumnLimit - Math.min(row.cells, TableColumnLimit), 1))
+        for copies do
+            target[] += markup
+        row.cells += copies
+    }
+
+    // Closes a row. A row without content is held back in its table; a row with content first
+    // writes the empty rows held before it, then its own copies, up to `HtmlRepeatedRowLimit` rows.
+    mtd endHtmlRow()
+    {
+        let target = .htmlTarget()
+        if not target or .htmlRows.isEmpty() or .htmlTables.isEmpty()
+        {
+            .appendHtml("</tr>")
+            return
+        }
+
+        let row   = .htmlRows.popBack()
+        let table = .htmlTables.backPtr()
+        if not row.hasContent
+        {
+            target.removeBack(target.count - row.start)
+            table.pendingRows += row.repeat
+            return
+        }
+
+        target[] += "</tr>"
+        let markup = String.from(target.toString()[row.start to])
+        target.removeBack(target.count - row.start)
+
+        let emptyRows = Math.min(table.pendingRows, HtmlRepeatedRowLimit - Math.min(table.rows, HtmlRepeatedRowLimit))
+        for emptyRows do
+            target[] += "<tr></tr>"
+        table.rows        += emptyRows
+        table.pendingRows = 0
+
+        let copies = Math.min(row.repeat, Math.max(HtmlRepeatedRowLimit - Math.min(table.rows, HtmlRepeatedRowLimit), 1))
+        for copies do
+            target[] += markup
+        table.rows += copies
+    }
+
     mtd appendSpaces(attributes: string)
     {
         let count = repeatCount(attributes, "text:c")
@@ -662,21 +818,16 @@ private impl Reader
             .appendHtml("<section><h2>")
             .appendHtml(name)
             .appendHtml("</h2><table>")
+            .htmlTables.add({})
 
         case "table:table-header-rows":
             .tableHeaderRows += 1
 
         case "table:table-row":
-            .appendHtml("<tr>")
+            .startHtmlRow(tag.attributes)
 
         case "table:table-cell", "table:covered-table-cell":
-            let repeated = repeatCount(tag.attributes, "table:number-columns-repeated")
-            if .tableHeaderRows do
-                .appendHtml(repeated == 1 ? "<th>" : Format.toString("<th colspan=\"%\">", repeated))
-            else do
-                .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
-            if tag.selfClosing do
-                .appendHtml(cellValue(tag.attributes))
+            .startHtmlCell(tag)
 
         case "draw:page":
             if not .slideActive
@@ -725,16 +876,18 @@ private impl Reader
 
         case "table:table":
             .appendHtml("</table></section>")
+            if not .htmlTables.isEmpty() do
+                discard .htmlTables.popBack()
 
         case "table:table-header-rows":
             if .tableHeaderRows do
                 .tableHeaderRows -= 1
 
         case "table:table-row":
-            .appendHtml("</tr>")
+            .endHtmlRow()
 
         case "table:table-cell", "table:covered-table-cell":
-            .appendHtml(.tableHeaderRows ? "</th>" : "</td>")
+            .endHtmlCell()
 
         case "draw:frame" where not .imageSizeStack.isEmpty():
             discard .imageSizeStack.popBack()
@@ -750,16 +903,32 @@ private impl Reader
         }
     }
 
+    // Adds the completed cell to the row, repeated as many times as it declared. An empty cell is
+    // held back until a cell with content follows it, so the padding that ends a row costs nothing.
     mtd finishCell() fail
     {
         if not .cellActive do
             return
-        if .cellRepeat > TableColumnLimit - .row.cells.count do
-            fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
         if .cell.isEmpty() do
             .cell = #move .cellFallback
-        for .cellRepeat do
-            .row.cells.add(.cell)
+        if .cell.isEmpty()
+        {
+            .pendingEmptyCells += .cellRepeat
+        }
+        else
+        {
+            if .pendingEmptyCells > TableColumnLimit - .row.cells.count do
+                fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
+            for .pendingEmptyCells do
+                .row.cells.add(String{})
+            .pendingEmptyCells = 0
+
+            if .cellRepeat > TableColumnLimit - .row.cells.count do
+                fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
+            for .cellRepeat do
+                .row.cells.add(.cell)
+        }
+
         .cell.clear()
         .cellFallback.clear()
         .cellActive = false
@@ -768,10 +937,27 @@ private impl Reader
 
     // Adds the completed row to the sheet, repeated as many times as it declared. Fails rather than
     // expand a repeat past `TableRowLimit` rows or `TableCellLimit` cells.
+    //
+    // A row without content is held back until a row with content follows it, so the empty rows
+    // that pad a sheet to its last row cost nothing; empty rows before the first one are dropped.
     mtd finishRow() fail
     {
-        if .row.cells.isEmpty() do
+        .pendingEmptyCells = 0
+        if .row.cells.isEmpty()
+        {
+            if not .sheet.table.rows.isEmpty() do
+                .pendingEmptyRows += .rowRepeat
+            .row       = {}
+            .rowRepeat = 1
             return
+        }
+
+        if .pendingEmptyRows > TableRowLimit - .sheet.table.rows.count do
+            fail UnsupportedFormatError{Errors.mkString(texts().err_Rows)}
+        for .pendingEmptyRows do
+            .sheet.table.rows.add(Table.Row{})
+        .pendingEmptyRows = 0
+
         if .rowRepeat > TableRowLimit - .sheet.table.rows.count do
             fail UnsupportedFormatError{Errors.mkString(texts().err_Rows)}
         if .rowRepeat > (TableCellLimit - .sheetCellCount) / .row.cells.count do
@@ -837,8 +1023,9 @@ private impl Reader
         case "table:table":
             .activeSheet = false
             .sheets.add(#move .sheet)
-            .sheet = {}
-            .sheetCellCount = 0
+            .sheet            = {}
+            .sheetCellCount   = 0
+            .pendingEmptyRows = 0
         }
     }
 
@@ -858,6 +1045,13 @@ private impl Reader
 
         if not .inBody do
             return
+
+        // Comments, tracked deletions and speaker notes are skipped with everything they contain.
+        if .skipDepth or isApparatus(tag.name)
+        {
+            .skipDepth += 1
+            return
+        }
 
         if .kind == .Spreadsheet do
             .startSheet(tag)
@@ -880,6 +1074,11 @@ private impl Reader
 
         if not .inBody do
             return
+        if .skipDepth
+        {
+            .skipDepth -= 1
+            return
+        }
 
         if .kind == .Spreadsheet do
             try .endSheet(tag)
@@ -889,7 +1088,7 @@ private impl Reader
 
     mtd appendText(text: string)
     {
-        if not .inBody do
+        if not .inBody or .skipDepth do
             return
         if .kind == .Spreadsheet
         {
@@ -953,9 +1152,11 @@ func parseContent(source: string, kind: Kind)->Content fail
 }
 
 // Feeds `source` to `reader` as a flat sequence of text runs and start and end tags, a self-closing
-// tag producing both. Only a tag that never closes fails; nesting is the reader's concern.
+// tag producing both. Only a tag that never closes fails; nesting is the reader's concern. Names
+// reach the reader with the conventional ODF prefixes, whatever prefixes the stream declared.
 func appendXml(reader: *Reader, source: string) fail
 {
+    var namespaces: Namespaces
     var textStart = 0'u64
     var at        = 0'u64
     while at < source.count
@@ -969,15 +1170,17 @@ func appendXml(reader: *Reader, source: string) fail
         if at > textStart do
             reader.appendText(source[textStart until at])
         let end = try tagEnd(source, at)
-        let tag = parseTag(source[at + 1 until end])
+        var tag = parseTag(source[at + 1 until end])
         if not tag.name.isEmpty()
         {
             if tag.closing
             {
+                namespaces.close(&tag)
                 try reader.endTag(&tag)
             }
             else
             {
+                namespaces.open(&tag)
                 reader.startTag(&tag)
                 if tag.selfClosing do
                     try reader.endTag(&tag)

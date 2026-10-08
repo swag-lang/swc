@@ -174,3 +174,84 @@ func completeTextReads(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     Swag.assert(false, "text loading did not settle")
 }
+
+// One file of a stored ZIP archive that a test writes.
+struct StoredZipFile
+{
+    name:  string
+    bytes: const [..] u8
+}
+
+private func appendZipU16(bytes: *Array'u8, value: u16)
+{
+    bytes.add(cast #bit (u8, value))
+    bytes.add(cast #bit (u8, (value >> 8)))
+}
+
+private func appendZipU32(bytes: *Array'u8, value: u32)
+{
+    appendZipU16(bytes, cast #bit (u16, value))
+    appendZipU16(bytes, cast #bit (u16, (value >> 16)))
+}
+
+// Returns a ZIP archive holding `files` uncompressed and in order, with UTF-8 names.
+func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
+{
+    var result: retval
+    var crcs:    Array'u32
+    var offsets: Array'u32
+    for file in files
+    {
+        let crc = Hash.Crc32.compute(file.bytes)
+        crcs.add(crc)
+        offsets.add(cast(u32, result.count))
+        appendZipU32(&result, 0x04034B50)
+        appendZipU16(&result, 20)
+        appendZipU16(&result, 1 << 11)
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU32(&result, crc)
+        appendZipU32(&result, cast(u32, file.bytes.count))
+        appendZipU32(&result, cast(u32, file.bytes.count))
+        appendZipU16(&result, cast(u16, file.name.count))
+        appendZipU16(&result, 0)
+        result.add(cast(const [..] u8, file.name))
+        result.add(file.bytes)
+    }
+
+    // The central directory repeats each local header and records where it starts.
+    let directoryAt = result.count
+    for file, index in files
+    {
+        appendZipU32(&result, 0x02014B50)
+        appendZipU16(&result, 20)
+        appendZipU16(&result, 20)
+        appendZipU16(&result, 1 << 11)
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU32(&result, crcs[index])
+        appendZipU32(&result, cast(u32, file.bytes.count))
+        appendZipU32(&result, cast(u32, file.bytes.count))
+        appendZipU16(&result, cast(u16, file.name.count))
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU16(&result, 0)
+        appendZipU32(&result, 0)
+        appendZipU32(&result, offsets[index])
+        result.add(cast(const [..] u8, file.name))
+    }
+
+    let directorySize = result.count - directoryAt
+    appendZipU32(&result, 0x06054B50)
+    appendZipU16(&result, 0)
+    appendZipU16(&result, 0)
+    appendZipU16(&result, cast(u16, files.count))
+    appendZipU16(&result, cast(u16, files.count))
+    appendZipU32(&result, cast(u32, directorySize))
+    appendZipU32(&result, cast(u32, directoryAt))
+    appendZipU16(&result, 0)
+    return result
+}

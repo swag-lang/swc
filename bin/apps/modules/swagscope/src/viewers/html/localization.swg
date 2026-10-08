@@ -5,8 +5,8 @@ using Core, Gui
 
 // Visible strings of the HTML viewer.
 //
-// The format and the encoding are named by their standard spelling, so the summary below is the
-// only sentence this viewer writes.
+// The summary is the format's standard name alone; this viewer reports no encoding or other
+// property beside it, so the zoom tooltip is the only sentence it writes.
 struct Texts
 {
     ui_ZoomMenu: string = "Document zoom options"     // Tooltip of the zoom value menu.

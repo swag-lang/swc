@@ -288,6 +288,19 @@ func detectDelimiter(fileName, text: string)->u8
     return result
 }
 
+// Names the kind of delimited text that `delimiter` separates. Comma- and tab-separated text keep
+// the format names every language uses; the other delimiters are described.
+func delimiterKind(delimiter: u8)->string
+{
+    switch delimiter
+    {
+    case '\t': return "TSV"
+    case ';':  return texts().ui_SemicolonKind
+    case '|':  return texts().ui_PipeKind
+    default:   return "CSV"
+    }
+}
+
 private func countText(count: u64, one, many: string)->String
 {
     if count == 1 do
@@ -388,8 +401,7 @@ private impl Panel
     {
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
         let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
-        let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
-        .services.showDetails(me, Format.toString(texts().ui_Details, kind, rows, columns))
+        .services.showDetails(me, Format.toString(texts().ui_Details, delimiterKind(.document.delimiter), rows, columns))
     }
 
     mtd retire()->bool

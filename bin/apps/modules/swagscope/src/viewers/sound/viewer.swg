@@ -729,9 +729,14 @@ impl Panel
             catch .voice.setVolume(muted ? 0 : .volume)
     }
 
+    // Sets the playback volume, from 0 to 1, and shows it on the volume slider.
     mtd setVolume(volume: f32)
     {
-        .volume = Math.clamp(volume, 0, 1)
+        // The slider snaps to its step and reports the change back here, so it moves first and
+        // the requested volume, not its snapped position, is the one kept.
+        let requested = Math.clamp(volume, 0, 1)
+        .volumeSlider.setValueWithoutGesture(requested)
+        .volume = requested
         if .voice and not .muted do
             catch .voice.setVolume(.volume)
     }

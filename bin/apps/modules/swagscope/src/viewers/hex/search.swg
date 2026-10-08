@@ -69,8 +69,8 @@ private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
 {
     let highWildcard = high == '?'u8
     let lowWildcard  = low == '?'u8
-    let highValue    = highWildcard ? 0'u8 : digitValue(high)
-    let lowValue     = lowWildcard ? 0'u8 : digitValue(low)
+    let highValue    = highWildcard ? 0'u8 : hexDigitValue(high)
+    let lowValue     = lowWildcard ? 0'u8 : hexDigitValue(low)
     pattern.values.add((highValue << 4) | lowValue)
     pattern.masks.add((highWildcard ? 0'u8 : 0xF0'u8) | (lowWildcard ? 0'u8 : 0x0F'u8))
 }
@@ -98,7 +98,7 @@ private func parseBytePattern(source: string)->SearchParse
             continue
         }
 
-        if value != '?'u8 and digitValue(value) == 16
+        if value != '?'u8 and hexDigitValue(value) == 16
         {
             result.state = .Invalid
             result.error = .Pattern

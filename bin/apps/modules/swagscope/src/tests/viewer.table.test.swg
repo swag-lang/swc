@@ -18,6 +18,10 @@ using Core, Pixel, Gui, Viewers
     Swag.assert(document.rows[1].cells[1] == "two\" quotes")
     Swag.assert(document.rows[2].cells[1] == "two\nlines")
     Swag.assert(Table.detectDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
+
+    // The summary names the delimiter the file actually uses, not a comma for every other one.
+    Swag.assert(Table.delimiterKind(',') == "CSV" and Table.delimiterKind('\t') == "TSV")
+    Swag.assert(Table.delimiterKind(';') == Table.texts().ui_SemicolonKind and Table.delimiterKind('|') == Table.texts().ui_PipeKind)
 }
 
 #test
@@ -123,6 +127,7 @@ using Core, Pixel, Gui, Viewers
     Swag.assert(view.list.header.items[1]!.name.raw == "Column 2")
     Swag.assert(view.list.header.items[2]!.name.raw == Format.toString(Table.texts().ui_Column, 3))
     Swag.assert(Utf8.contains(details, Table.texts().ui_Row))
+    Swag.assert(Utf8.startsWith(details, Table.texts().ui_SemicolonKind) and not Utf8.contains(details, "CSV"))
     Swag.assert(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)

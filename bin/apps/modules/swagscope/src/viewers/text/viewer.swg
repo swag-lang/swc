@@ -129,6 +129,10 @@ struct Panel
     services:           Viewer.HostServices
 }
 
+// Reports whether `evt` is the wrap shortcut, Ctrl+W with no other modifier. The editor's hook and
+// the panel both answer it, so the shortcut behaves the same wherever the focus is.
+private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and evt.key == .W and evt.modifiers == .Control
+
 // Counts the text statistics on a worker thread, from `statisticsStart` to the end of the file, and
 // publishes the outcome through `statisticsState`. A cancelled run publishes nothing.
 private func runStatistics(thread: Threading.Thread)
@@ -604,7 +608,7 @@ impl IWnd for Panel
     {
         if Viewer.isZoomKey(evt) do
             .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
-        elif evt.kind == .Pressed and evt.key == .W and evt.modifiers.has(.Control) do
+        elif isWrapKey(evt) do
             .toggleWrap()
         else do
             evt.accepted = false
@@ -747,7 +751,7 @@ impl Panel
                 view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .Control:
+            case KeyEvent as keyEvt where isWrapKey(keyEvt):
                 view.toggleWrap()
                 return true
 

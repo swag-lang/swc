@@ -18,6 +18,16 @@ private
     const TextColumnLimit          = 16'u32
 }
 
+// What remains of the page and frame bounds while one package is read.
+//
+// Both bounds are document-wide: every spread and master spends from the same budget, and so does
+// each master item copied onto a page, so a package of many small spreads cannot multiply them.
+struct LoadLimits
+{
+    pages:  u64 = PageLimit
+    frames: u64 = FrameLimit
+}
+
 // A rectangle in page points.
 private struct Bounds
 {
@@ -167,7 +177,7 @@ impl Page
                                           (imageBounds.top - item.bounds.top) * factor,
                                           imageBounds.width * factor,
                                           imageBounds.height * factor,
-                                          item.image)
+                                          escapeHtmlAttribute(item.image))
             }
             elif item.imageFrame
             {
@@ -804,7 +814,8 @@ private func localGraphicSource(path: string, loaded: *u64)->String
 // Returns the image source of a frame, from its embedded pixels or a local linked file, without fetching.
 //
 // A direct file URI wins; a same-folder basename is a portable fallback for a document moved
-// together with its links after InDesign saved host paths.
+// together with its links after InDesign saved host paths. A relative URI such as
+// `file:images/title.png` names a file beside the document, never one under the working directory.
 private func linkedGraphicSource(documentFileName, item: string, loaded: *u64)->String
 {
     let embedded = embeddedGraphicDataUri(item)
@@ -818,15 +829,22 @@ private func linkedGraphicSource(documentFileName, item: string, loaded: *u64)->
     if imageEnd == Swag.U64.Max or linkEnd == Swag.U64.Max or linkStart > imageEnd do
         return {}
 
-    let linkedPath = fileUriPath(attribute(item[linkStart until linkEnd + 1], "LinkResourceURI"))
+    var linkedPath = fileUriPath(attribute(item[linkStart until linkEnd + 1], "LinkResourceURI"))
     if linkedPath.isEmpty() do
         return {}
+    let folder = Path.directoryName(documentFileName)
+    if not Path.isRooted(linkedPath)
+    {
+        if folder == null do
+            return {}
+        linkedPath = Path.combine(folder, linkedPath)
+    }
+
     let direct = localGraphicSource(linkedPath, loaded)
     if not direct.isEmpty() do
         return direct
 
-    let folder = Path.directoryName(documentFileName)
-    let name   = Path.fileName(linkedPath)
+    let name = Path.fileName(linkedPath)
     return folder != null and name != null ? localGraphicSource(Path.combine(folder, name), loaded) : String{}
 }
 
@@ -1024,9 +1042,14 @@ private func characterStyleCss(tag: string, colors: const *HashTable'(String, St
         result += "font-style:italic;"
     if attribute(tag, "Capitalization") == "AllCaps" do
         result += "text-transform:uppercase;"
-    if attribute(tag, "Underline") == "true" do
+    // Both lines share the one `text-decoration` declaration; a second one would replace the first.
+    let underline = attribute(tag, "Underline") == "true"
+    let strike    = attribute(tag, "StrikeThru") == "true"
+    if underline and strike do
+        result += "text-decoration:underline line-through;"
+    elif underline do
         result += "text-decoration:underline;"
-    if attribute(tag, "StrikeThru") == "true" do
+    elif strike do
         result += "text-decoration:line-through;"
     let tracking = parseNumber(attribute(tag, "Tracking")).value
     if tracking != 0 do
@@ -1127,6 +1150,26 @@ private func escapeHtml(text: string)->String
         }
 
         cursor += 1
+    }
+
+    return result
+}
+
+// Escapes `text` as the value of a double-quoted HTML attribute. A linked file path is chosen by the
+// document author, so it may hold any character a file system accepts, such as `&`.
+private func escapeHtmlAttribute(text: string)->String
+{
+    var result: retval
+    for value in text
+    {
+        switch value
+        {
+        case '&': result += "&amp;"
+        case '<': result += "&lt;"
+        case '>': result += "&gt;"
+        case '"': result += "&quot;"
+        default:  result += value
+        }
     }
 
     return result
@@ -1289,11 +1332,11 @@ private func loadTextStyles(fileName: string, archive: const *Archive.Zip, color
 }
 
 // Collects the pages of a spread with their bounds in spread coordinates and their applied master,
-// up to `PageLimit` pages.
-private func appendPages(source: string, pages: *Array'Page)
+// while the document-wide page budget lasts.
+private func appendPages(source: string, pages: *Array'Page, limits: *LoadLimits)
 {
     var cursor = 0'u64
-    while pages.count < PageLimit
+    while limits.pages
     {
         let start = Utf8.indexOf(source, "<Page ", cursor)
         if start == Swag.U64.Max do
@@ -1313,6 +1356,7 @@ private func appendPages(source: string, pages: *Array'Page)
             page.master = attribute(tag, "AppliedMaster")
             page.bounds = bounds
             pages.add(#move page)
+            limits.pages -= 1
         }
 
         cursor = end + 1
@@ -1330,15 +1374,14 @@ private func pageIndexOf(pages: const *Array'Page, bounds: const *Bounds)->u64
 }
 
 // Collects the drawable frames of a spread (text, rectangle, oval, polygon and line) into the page
-// each one falls on, in page coordinates, with the transforms of enclosing groups applied. Stops
-// after `FrameLimit` items.
-private func appendItems(fileName, source: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, pages: *Array'Page)
+// each one falls on, in page coordinates, with the transforms of enclosing groups applied. Each
+// item read spends one frame of the document-wide budget, and reading stops when it is spent.
+private func appendItems(fileName, source: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, pages: *Array'Page, limits: *LoadLimits)
 {
     var cursor = 0'u64
     var groupCursor:     u64
     var groupTransforms: Array'Transform
-    var itemCount:       u64
-    while itemCount < FrameLimit
+    while limits.frames
     {
         let textStart    = Utf8.indexOf(source, "<TextFrame ", cursor)
         let rectStart    = Utf8.indexOf(source, "<Rectangle ", cursor)
@@ -1461,14 +1504,14 @@ private func appendItems(fileName, source: string, colors: const *HashTable'(Str
             }
         }
 
-        itemCount += 1
-        cursor    = close + closing.count
+        limits.frames -= 1
+        cursor        = close + closing.count
     }
 }
 
 // Adds to each page the items of the master it applies, taken from the master page at the same
-// position, or from its last page.
-private func appendMasterItems(masters: const *Array'Master, pages: *Array'Page)
+// position, or from its last page. Each copy spends one frame of the document-wide budget.
+private func appendMasterItems(masters: const *Array'Master, pages: *Array'Page, limits: *LoadLimits)
 {
     for &page, pageIndex in pages where not page.master.isEmpty()
     {
@@ -1479,7 +1522,10 @@ private func appendMasterItems(masters: const *Array'Master, pages: *Array'Page)
             let index = Math.min(pageIndex, master.pages.count - 1)
             for item in master.pages[index].items
             {
+                if not limits.frames do
+                    return
                 page.items.add(item)
+                limits.frames -= 1
                 if not item.story.isEmpty() do
                     page.textFrameCount += 1
             }
@@ -1489,16 +1535,29 @@ private func appendMasterItems(masters: const *Array'Master, pages: *Array'Page)
     }
 }
 
-// Returns the text frame whose `Self` identifier is `self`, or null when no page holds it.
-private func findTextFrame(pages: *Array'Page, self: string)->*Item?
+// A text frame found in a chain, with the index of the page that holds it.
+private struct FoundFrame
 {
-    for &page in pages
+    item:      *Item?
+    pageIndex: u64
+}
+
+// Returns the text frame whose `Self` identifier is `self`, searching from page `startPage` onward
+// and then wrapping to the pages before it, or a null item when no page holds it.
+//
+// Every page applying a master holds its own copy of the master's frames, under the same `Self`
+// identifiers. Searching from the page where the chain currently is keeps a master chain on the
+// copies of that page, or of the next page of its spread, instead of the first page's copies.
+private func findTextFrame(pages: *Array'Page, self: string, startPage: u64)->FoundFrame
+{
+    for offset in pages.count
     {
-        for &item in page.items where item.self == self do
-            return item
+        let pageIndex = (startPage + offset) % pages.count
+        for &item in pages[pageIndex].items where item.self == self do
+            return {item, pageIndex}
     }
 
-    return null
+    return {}
 }
 
 private func storyBlockEnd(source: string, start: u64)->u64
@@ -1577,7 +1636,7 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
             item.text.clear()
     }
 
-    for &page in pages
+    for &page, startPage in pages
     {
         for &item in page.items where not item.story.isEmpty() and item.previousFrame == "n"
         {
@@ -1585,8 +1644,9 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
             if not story do
                 continue
 
-            var frames: Array'*Item
-            var frame:  *Item? = item
+            var frames:    Array'*Item
+            var frame:     *Item? = item
+            var pageIndex = startPage
             while frame and frames.count < FrameLimit
             {
                 var repeated: bool
@@ -1601,7 +1661,9 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
                 frames.add(frame)
                 if frame.nextFrame.isEmpty() or frame.nextFrame == "n" do
                     break
-                frame = findTextFrame(pages, frame.nextFrame)
+                let next = findTextFrame(pages, frame.nextFrame, pageIndex)
+                frame     = next.item
+                pageIndex = next.pageIndex
             }
 
             flowStory(story.value, &frames)
@@ -1611,7 +1673,7 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
 
 // Loads every master spread listed in `designMap` with its pages and items, so the pages applying a
 // master can draw its items. A master that cannot be read is skipped.
-private func loadMasters(fileName: string, archive: const *Archive.Zip, designMap: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64)->Array'Master
+private func loadMasters(fileName: string, archive: const *Archive.Zip, designMap: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, limits: *LoadLimits)->Array'Master
 {
     var result: retval
     var cursor = 0'u64
@@ -1636,8 +1698,8 @@ private func loadMasters(fileName: string, archive: const *Archive.Zip, designMa
                 {
                     var master: Master
                     master.self = self
-                    appendPages(source, &master.pages)
-                    appendItems(fileName, source, colors, linkedGraphicBytes, &master.pages)
+                    appendPages(source, &master.pages, limits)
+                    appendItems(fileName, source, colors, linkedGraphicBytes, &master.pages, limits)
                     result.add(#move master)
                 }
             }
@@ -1652,8 +1714,8 @@ private func loadMasters(fileName: string, archive: const *Archive.Zip, designMa
 // Reads an IDML package into positioned pages, text frames, and vector frame backgrounds.
 //
 // Linked external assets deliberately remain offline; a missing link never causes the viewer to
-// fetch it.
-func load(fileName: string)->Document fail
+// fetch it. `limits` bounds the pages and frames of the whole document, masters included.
+func load(fileName: string, limits: LoadLimits = {})->Document fail
 {
     let archive = try Archive.Zip.load(fileName)
     if archive.uncompressedSize > DocumentByteLimit do
@@ -1681,12 +1743,13 @@ func load(fileName: string)->Document fail
     }
 
     var linkedGraphicBytes: u64
-    let masters = loadMasters(fileName, &archive, designMap, &colors, &linkedGraphicBytes)
+    var remaining = limits
+    let masters   = loadMasters(fileName, &archive, designMap, &colors, &linkedGraphicBytes, &remaining)
     var result: retval
     result.fileName = fileName
     var cursor = 0'u64
     var spreadCount: u64
-    while spreadCount < SpreadLimit
+    while spreadCount < SpreadLimit and remaining.pages
     {
         let start = Utf8.indexOf(designMap, "<idPkg:Spread ", cursor)
         if start == Swag.U64.Max do
@@ -1697,11 +1760,11 @@ func load(fileName: string)->Document fail
         let spreadPath = attribute(designMap.toString()[start until end + 1], "src")
         let spread     = try readEntry(fileName, &archive, spreadPath)
         var spreadPages: Array'Page
-        appendPages(spread, &spreadPages)
+        appendPages(spread, &spreadPages, &remaining)
         if not spreadPages.isEmpty()
         {
-            appendMasterItems(&masters, &spreadPages)
-            appendItems(fileName, spread, &colors, &linkedGraphicBytes, &spreadPages)
+            appendMasterItems(&masters, &spreadPages, &remaining)
+            appendItems(fileName, spread, &colors, &linkedGraphicBytes, &spreadPages, &remaining)
             for page in spreadPages do
                 result.pages.add(page[])
         }

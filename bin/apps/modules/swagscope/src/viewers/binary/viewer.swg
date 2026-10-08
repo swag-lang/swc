@@ -108,70 +108,6 @@ struct Panel
     filterIncluded:          Array'bool
 }
 
-// Returns the hexadecimal file offset `text` names, or `Swag.U64.Max` when it names none.
-//
-// A leading `+` or `-` makes the offset relative to `current`, and the result is clamped to the last
-// byte of a file of `fileSize` bytes.
-private func parseOffset(text: string, current, fileSize: u64)->u64
-{
-    var index = 0'u64
-    let count = text.count
-    while index < count and (text[index] == ' 'u8 or text[index] == '\t'u8) do
-        index += 1
-
-    var relative = 0's32
-    if index < count and (text[index] == '+'u8 or text[index] == '-'u8)
-    {
-        relative = text[index] == '+'u8 ? 1 : -1
-        index    += 1
-    }
-
-    if index + 1 < count and text[index] == '0'u8 and (text[index + 1] == 'x'u8 or text[index + 1] == 'X'u8) do
-        index += 2
-
-    var value  = 0'u64
-    var digits = 0'u64
-    while index < count
-    {
-        let c      = text[index]
-        var nibble = 16'u8
-        if c >= '0'u8 and c <= '9'u8
-        {
-            nibble = c - '0'u8
-        }
-        elif c >= 'a'u8 and c <= 'f'u8
-        {
-            nibble = c - 'a'u8 + 10
-        }
-        elif c >= 'A'u8 and c <= 'F'u8
-        {
-            nibble = c - 'A'u8 + 10
-        }
-        elif c == ' 'u8 or c == '_'u8
-        {
-            index += 1
-            continue
-        }
-
-        if nibble == 16 do
-            return Swag.U64.Max
-        if value > (Swag.U64.Max - nibble) / 16 do
-            return Swag.U64.Max
-        value  = value * 16 + nibble
-        digits += 1
-        index  += 1
-    }
-
-    if not digits or not fileSize do
-        return Swag.U64.Max
-    var target = value
-    if relative > 0 do
-        target = current + Math.min(value, Swag.U64.Max - current)
-    elif relative < 0 do
-        target = value >= current ? 0 : current - value
-    return Math.min(target, fileSize - 1)
-}
-
 impl Panel
 {
     // Returns the exact text displayed in one logical report cell.
@@ -631,10 +567,11 @@ impl Panel
 
     // Selects the row covering the offset `text` names, and returns whether there is one.
     //
-    // A signed offset is taken relative to the selected row.
+    // `text` follows the go-to grammar every viewer shares; a signed offset and `caret` refer to the
+    // selected row.
     mtd goToTypedOffset(text: string)->bool
     {
-        let target = parseOffset(text, .selectedOffset(), .doc.image.fileSize)
+        let target = parseFileOffset(text, .selectedOffset(), .doc.image.fileSize)
         if target == Swag.U64.Max do
             return false
         return .revealOffset(target)

@@ -1357,7 +1357,7 @@ func drawLives()
     thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(1, 31.5)
-    for i in g_Lives
+    for g_Lives
     {
         thePainter().drawTexture(0, 0, 14, 14, g_LifeTex)
         translateMapCoords(2, 0)

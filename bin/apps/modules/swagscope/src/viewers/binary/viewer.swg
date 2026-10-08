@@ -21,10 +21,13 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const OffsetWidth    = 116.0
-private const DetailMinWidth = 200.0
-private const FillRows       = 128'u64
-private const CommandWidth   = 80.0
+private
+{
+    const OffsetWidth    = 116.0
+    const DetailMinWidth = 200.0
+    const FillRows       = 128'u64
+    const CommandWidth   = 80.0
+}
 
 // Commands shared by the context menu, keyboard, and command bar.
 struct Action {}
@@ -174,10 +177,10 @@ impl Panel
         let row = &.doc.report.rows[rowIndex]
         switch #complete cast(Column, column)
         {
-        case .Field:  return String.from(row.label)
-        case .Value:  return String.from(row.value)
+        case .Field:  return row.label
+        case .Value:  return row.value
         case .Offset: return row.offset == Swag.U64.Max ? String.from("") : hexText(row.offset, 8)
-        case .Detail: return String.from(row.detail)
+        case .Detail: return row.detail
         }
     }
 
@@ -512,7 +515,7 @@ impl Panel
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(.filterQuery.toString(), ignoreCase: not options.matchCase) as expressionError
+            catch expression.compile(.filterQuery, ignoreCase: not options.matchCase) as expressionError
             if expressionError == null do
                 options.expression = &expression
         }
@@ -793,51 +796,51 @@ impl IActionUI for Action
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let view  = assume cast(*Panel, cxt.wnd)
-        let s     = texts()
+        let texts = texts()
         let theme = view.theme()
 
         switch cxt.id
         {
         case Action.CopyAll:
             evt.updatedFields |= .Name | .Icon | .Shortcut
-            evt.name          = s.ui_MenuCopyAll
+            evt.name          = texts.ui_MenuCopyAll
             evt.icon          = theme.icon(.Copy)
             evt.shortcut      = "Ctrl+C"
 
         case Action.CopyLine:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = s.ui_MenuCopyLine
+            evt.name          = texts.ui_MenuCopyLine
             evt.icon          = theme.icon(.Copy)
             evt.disabled      = view.list.selectedLine() == null
 
         case Action.ExpandAll:
             evt.updatedFields |= .Name | .Icon | .Shortcut
-            evt.name          = s.ui_MenuExpand
+            evt.name          = texts.ui_MenuExpand
             evt.icon          = theme.icon(.ChevronRight)
             evt.shortcut      = "Ctrl+E"
 
         case Action.CollapseAll:
             evt.updatedFields |= .Name | .Icon | .Shortcut
-            evt.name          = s.ui_MenuCollapse
+            evt.name          = texts.ui_MenuCollapse
             evt.icon          = theme.icon(.ChevronDown)
             evt.shortcut      = "Ctrl+Shift+E"
 
         case Action.GoTo:
             evt.updatedFields |= .Name | .Shortcut | .Disabled
-            evt.name          = s.ui_MenuGoTo
+            evt.name          = texts.ui_MenuGoTo
             evt.shortcut      = "Ctrl+G"
             evt.disabled      = not view.doc.image.fileSize
 
         case Action.Back:
             evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
-            evt.name          = s.ui_MenuBack
+            evt.name          = texts.ui_MenuBack
             evt.icon          = theme.icon(.ChevronLeft)
             evt.shortcut      = "Alt+Left"
             evt.disabled      = view.historyIndex == Swag.U64.Max or not view.historyIndex
 
         case Action.Forward:
             evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
-            evt.name          = s.ui_MenuForward
+            evt.name          = texts.ui_MenuForward
             evt.icon          = theme.icon(.ChevronRight)
             evt.shortcut      = "Alt+Right"
             evt.disabled      = view.historyIndex == Swag.U64.Max or view.historyIndex + 1 >= view.history.count
@@ -926,7 +929,7 @@ impl IWnd for Panel
                 .finishLoadTimer()
                 .failureReason = #move .pendingDoc.image.failureReason
                 if .reportFailure do
-                    .reportFailure(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason)
                 return
             }
 
@@ -945,7 +948,7 @@ impl IWnd for Panel
             .rebuildFilterIndex()
             .beginFillList()
             if .reportDetails do
-                .reportDetails(me, .details.toString())
+                .reportDetails(me, .details)
         }
 
         if not .fillListStep() do
@@ -998,11 +1001,11 @@ impl Panel
     // Writes the column headers again in the active language.
     mtd retranslate()
     {
-        let s = texts()
-        .list.header.itemAt(cast(u32, Column.Field)).name  = s.ui_ColField
-        .list.header.itemAt(cast(u32, Column.Value)).name  = s.ui_ColValue
-        .list.header.itemAt(cast(u32, Column.Offset)).name = s.ui_ColOffset
-        .list.header.itemAt(cast(u32, Column.Detail)).name = s.ui_ColDetail
+        let texts = texts()
+        .list.header.itemAt(cast(u32, Column.Field)).name  = texts.ui_ColField
+        .list.header.itemAt(cast(u32, Column.Value)).name  = texts.ui_ColValue
+        .list.header.itemAt(cast(u32, Column.Offset)).name = texts.ui_ColOffset
+        .list.header.itemAt(cast(u32, Column.Detail)).name = texts.ui_ColDetail
         .list.header.invalidate()
     }
 
@@ -1047,10 +1050,10 @@ impl Panel
 
     private mtd publishLoadFailure(reason: string)
     {
-        .failureReason = String.from(reason)
+        .failureReason = reason
         .finishLoadTimer()
         if .reportFailure do
-            .reportFailure(me, .failureReason.toString())
+            .reportFailure(me, .failureReason)
     }
 
     private mtd finishLoadTimer()
@@ -1111,11 +1114,11 @@ impl Panel
     {
         .commands = host.createCommandGroup(CommandWidth)
 
-        let s = texts()
+        let texts = texts()
         with .backButton = IconButton.create(.commands, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
-            .toolTip   = s.ui_MenuBack
+            .toolTip   = texts.ui_MenuBack
             .enable(false)
             .sigPressed += func|view = me|(?) { discard view.navigateHistory(-1) }
         }
@@ -1123,7 +1126,7 @@ impl Panel
         with .forwardButton = IconButton.create(.commands, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
-            .toolTip   = s.ui_MenuForward
+            .toolTip   = texts.ui_MenuForward
             .enable(false)
             .sigPressed += func|view = me|(?) { discard view.navigateHistory(1) }
         }
@@ -1135,7 +1138,7 @@ impl Panel
     // of hexadecimal that does not line up is a column that has to be read twice.
     private mtd createReportList()
     {
-        let s = texts()
+        let texts = texts()
         with .list = ListCtrl.createMultiColumns(me)
         {
             .dockStyle = .Center
@@ -1143,10 +1146,10 @@ impl Panel
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines)
-            .addColumn(s.ui_ColField, 320)
-            .addColumn(s.ui_ColValue, 200)
-            .addColumn(s.ui_ColOffset, OffsetWidth)
-            .addColumn(s.ui_ColDetail, 320)
+            .addColumn(texts.ui_ColField, 320)
+            .addColumn(texts.ui_ColValue, 200)
+            .addColumn(texts.ui_ColOffset, OffsetWidth)
+            .addColumn(texts.ui_ColDetail, 320)
             .sigRightClicked     += func|view = me|(?, position) { view.showContextMenu(view.list.listView.localToSurface(position)) }
             .sigSelectionChanged += func|view = me|(list) { view.recordHistory(view.reportIndexOf(list.selectedLine())) }
         }

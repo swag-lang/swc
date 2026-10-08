@@ -79,23 +79,9 @@ impl IForm for FormShape
         return true
     }
 
-    mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
-    {
-        .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
-    }
-
-    mtd impl scaleBaseForm(scale: f32)
-    {
-        .x = cast(s32, .x * scale)
-        .y = cast(s32, .y * scale)
-        .w = cast(s32, .w * scale)
-        .h = cast(s32, .h * scale)
-    }
-
-    mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
-    {
-        .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
-    }
+    mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32) => .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
+    mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)  => .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
+    mtd impl scaleBaseForm(scale: f32) => .scaleRectForm(scale)
 
     mtd impl moveForm(newPosX, newPosY: s32)
     {

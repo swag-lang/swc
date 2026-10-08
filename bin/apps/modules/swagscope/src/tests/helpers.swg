@@ -4,11 +4,11 @@
 using Core, Gui, Viewers
 
 // Verifies that an information-band control keeps its breathing room outside its own frame.
-func assertViewerInfoButton(button: *IconButton, width = ViewerZoomButtonWidth)
+func assertViewerInfoButton(button: *IconButton, width = Viewer.ZoomButtonWidth)
 {
     Swag.assert(button.position.width == width)
-    Swag.assert(button.margin.x >= ViewerInfoControlInset)
-    Swag.assert(button.margin.z == ViewerInfoControlInset)
+    Swag.assert(button.margin.x >= Viewer.ZoomButtonInset)
+    Swag.assert(button.margin.z == Viewer.ZoomButtonInset)
 }
 
 // Wraps one synthetic creation callback in the descriptor shape the host works with.

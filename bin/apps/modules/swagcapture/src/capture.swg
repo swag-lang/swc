@@ -569,8 +569,8 @@ impl Capture
         let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         let render  = g_App.renderer
         var painter = Pixel.Painter.create(render)
-        let srf     = (.editView!.surface)!
-        render.begin(srf.renderingContext())
+        let surface = (.editView!.surface)!
+        render.begin(surface.renderingContext())
         painter.begin()
 
         var layer: Layer
@@ -904,7 +904,7 @@ impl Capture
         var entry: Scc.Entry
         entry.id            = Guid128.random()
         entry.kind          = .File
-        entry.name          = String.from(Path.fileName(job.file) orelse "")
+        entry.name          = Path.fileName(job.file) orelse ""
         entry.tags          = writer.manifest().tags
         entry.primaryChunk  = modelId
         entry.variantChunks = #move variants
@@ -1036,12 +1036,12 @@ impl Capture
 
     mtd pasteImageInside()
     {
-        let img = Clipboard.getImage()
-        if not img.isValid() do
+        let image = Clipboard.getImage()
+        if not image.isValid() do
             return
 
         let undo = .newUndo(.SetImageInside)
-        undo.newImg = img
+        undo.newImg = image
         .pushUndo(undo)
         .selectionHasChanged()
     }
@@ -1054,27 +1054,27 @@ impl Capture
 
     mtd paste()
     {
-        var res:     Array'IForm
+        var result:  Array'IForm
         var payload: CaptureClipboardForms
         if Clipboard.getTypedValue(&payload, #typeof(payload))
         {
-            res = payload.toForms(me)
+            result = payload.toForms(me)
         }
         else
         {
-            let img = Clipboard.getImage()
-            if img.isValid()
+            let image = Clipboard.getImage()
+            if image.isValid()
             {
                 with let formImg = Memory.new'FormImage()
                 {
-                    .w             = img.width
-                    .h             = img.height
-                    .image         = img
+                    .w             = image.width
+                    .h             = image.height
+                    .image         = image
                     .borderColor.a = 0
                     .backColor.a   = 0
                 }
 
-                res.add(formImg)
+                result.add(formImg)
             }
             else
             {
@@ -1084,14 +1084,14 @@ impl Capture
 
         // Pasted copies keep their internal grouping but must not re-join the originals
         // (or collide with groups from another capture file), so mint fresh ids.
-        .remapGroups(res)
+        .remapGroups(result)
 
         let undo = .newUndo(.CreateForm)
         .selection.clear()
 
         var boundRect: Math.Rectangle
 
-        for itf, idx in res
+        for itf, idx in result
         {
             itf.setup(me)
             let bound = itf.boundRect()
@@ -1101,7 +1101,7 @@ impl Capture
                 boundRect.combine(bound)
         }
 
-        undo.oldForms = res
+        undo.oldForms = result
 
         // Center the pasted forms on the mouse.
         let editView = .editView!
@@ -2104,11 +2104,11 @@ impl Capture
                 .selectionHasChanged()
             }
 
-            let res = .hitTests(localPos, false)
+            let result = .hitTests(localPos, false)
             .lastSelectHit += 1
-            if .lastSelectHit >= res.count do
+            if .lastSelectHit >= result.count do
                 .lastSelectHit = 0
-            .hotForm = res[.lastSelectHit]
+            .hotForm = result[.lastSelectHit]
             here     = .selection.contains(.hotForm)
         }
         elif not ctrlPressed and not here and not .selection.isEmpty()
@@ -2346,10 +2346,10 @@ impl Capture
         // lasso or create a new form on top of existing ones.
         if .editView!.app().keyboard.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
-        let res = .hitTests(localPos, true)
-        if res.isEmpty() do
+        let result = .hitTests(localPos, true)
+        if result.isEmpty() do
             return Swag.U64.Max
-        return res[0]
+        return result[0]
     }
 
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64

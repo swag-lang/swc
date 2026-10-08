@@ -3,31 +3,46 @@
 
 using Core, Core.Errors, Pixel, Gui
 
-// The Adobe InDesign document signature and the master-page fields that establish that the
-// following embedded XMP belongs to a native document rather than to arbitrary binary data.
-private const Signature:         [16] u8 = [0x06, 0x06, 0xED, 0xF5, 0xD8, 0x1D, 0x46, 0xE5, 0xBD, 0x31, 0xEF, 0xE7, 0xFE, 0x74, 0xB7, 0x1D]
-private const HeaderType                 = "DOCUMENT"
-private const HeaderCopySize             = 4096'u64
-private const ByteOrderOffset            = 24'u64
-private const FormatVersionOffset        = 29'u64
-private const SequenceOffset             = 264'u64
-private const StoragePageCountOffset     = 280'u64
-private const HeaderMinimumSize          = StoragePageCountOffset + 4
-private const ContiguousMarkerSize       = 32'u64
-private const ContiguousHeader:  [16] u8 = [0xDE, 0x39, 0x39, 0x79, 0x51, 0x88, 0x4B, 0x6C, 0x8E, 0x63, 0xEE, 0xF8, 0xAE, 0xE0, 0xDD, 0x38]
-private const ContiguousTrailer: [16] u8 = [0xFD, 0xCE, 0xDB, 0x70, 0xF7, 0x86, 0x4B, 0x4F, 0xA4, 0xD3, 0xC7, 0x28, 0xB3, 0x41, 0x71, 0x06]
-private const PreviewItemOpen            = "<rdf:li"
-private const PreviewItemClose           = "</rdf:li>"
-private const PreviewImageOpen           = "<xmpGImg:image>"
-private const PreviewImageClose          = "</xmpGImg:image>"
-private const PreviewPageOpen            = "<xmpTPg:PageNumber>"
-private const PreviewPageClose           = "</xmpTPg:PageNumber>"
-private const PreviewBase64Limit         = 16 * 1024 * 1024'u64
-private const PreviewPayloadLimit        = 20 * 1024 * 1024'u64
-private const PreviewPixelLimit          = 16 * 1024 * 1024'u64
-private const PreviewCachePixelLimit     = 24 * 1024 * 1024'u64
-private const NoPreview                  = Swag.U64.Max
-private const PageLabelWidth             = 96.0
+private
+{
+    // The Adobe InDesign document signature and the master-page fields that establish that the
+    // following embedded XMP belongs to a native document rather than to arbitrary binary data.
+    const Signature: [16] u8     = [0x06, 0x06, 0xED, 0xF5, 0xD8, 0x1D, 0x46, 0xE5, 0xBD, 0x31, 0xEF, 0xE7, 0xFE, 0x74, 0xB7, 0x1D]
+    const HeaderType             = "DOCUMENT"
+    const HeaderCopySize         = 4096'u64
+    const ByteOrderOffset        = 24'u64
+    const FormatVersionOffset    = 29'u64
+    const SequenceOffset         = 264'u64
+    const StoragePageCountOffset = 280'u64
+    const HeaderMinimumSize      = StoragePageCountOffset + 4
+
+    // A contiguous object stream starts with a header marker and ends with a matching trailer; only a
+    // complete stream is searched for an attached XMP packet.
+    const ContiguousMarkerSize       = 32'u64
+    const ContiguousHeader:  [16] u8 = [0xDE, 0x39, 0x39, 0x79, 0x51, 0x88, 0x4B, 0x6C, 0x8E, 0x63, 0xEE, 0xF8, 0xAE, 0xE0, 0xDD, 0x38]
+    const ContiguousTrailer: [16] u8 = [0xFD, 0xCE, 0xDB, 0x70, 0xF7, 0x86, 0x4B, 0x4F, 0xA4, 0xD3, 0xC7, 0x28, 0xB3, 0x41, 0x71, 0x06]
+
+    // The XMP elements that list the saved page previews.
+    const PreviewItemOpen   = "<rdf:li"
+    const PreviewItemClose  = "</rdf:li>"
+    const PreviewImageOpen  = "<xmpGImg:image>"
+    const PreviewImageClose = "</xmpGImg:image>"
+    const PreviewPageOpen   = "<xmpTPg:PageNumber>"
+    const PreviewPageClose  = "</xmpTPg:PageNumber>"
+
+    // Bounds on a saved preview: its base64 text, its decoded payload, its pixels, and the pixels the
+    // cache of decoded pages may hold together.
+    const PreviewBase64Limit     = 16 * 1024 * 1024'u64
+    const PreviewPayloadLimit    = 20 * 1024 * 1024'u64
+    const PreviewPixelLimit      = 16 * 1024 * 1024'u64
+    const PreviewCachePixelLimit = 24 * 1024 * 1024'u64
+
+    // Marks a page without a saved preview.
+    const NoPreview = Swag.U64.Max
+
+    // Width of the page selector in the command bar.
+    const PageLabelWidth = 96.0
+}
 
 // One validated master-page header.
 //
@@ -93,7 +108,7 @@ private struct ViewerDocument
 {
     kind:   DocumentKind
     native: Document
-    markup: IdmlDocument
+    markup: Idml.Document
 }
 
 private func hasBytes(bytes: const [..] u8, offset, count: u64)->bool => offset <= bytes.count and count <= bytes.count - offset
@@ -226,7 +241,7 @@ private func previewBase64(bytes: const [..] u8, start, end: u64)->String
         index += 1
     }
 
-    return result.isEmpty() ? {} : String.from(cast(string, result.toSlice()))
+    return result.isEmpty() ? {} : cast(string, result.toSlice())
 }
 
 private func previewPageNumber(bytes: const [..] u8, start, end: u64)->u32
@@ -565,7 +580,7 @@ private func loadViewerDocument(fileName: string)->ViewerDocument fail
     if Utf8.compare(extension, ".idml", .Latin1NoCase) == 0
     {
         result.kind   = .Markup
-        result.markup = try loadIdmlDocument(fileName)
+        result.markup = try Idml.load(fileName)
     }
     else
     {
@@ -608,7 +623,7 @@ struct Panel
     fileName:             String
     kind:                 DocumentKind
     previews:             Array'Preview
-    markupPages:          Array'IdmlPage
+    markupPages:          Array'Idml.Page
     cachedPreviews:       Array'CachedPreview
     cachedPixels:         u64
     previewUseSerial           = 1'u64
@@ -779,7 +794,7 @@ private impl Panel
     mtd reportCurrentDetails()
     {
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     mtd showCachedPreview(index: u64)->bool
@@ -842,7 +857,7 @@ private impl Panel
 
         .loadingPreviewIndex   = .requestedPreviewIndex
         .requestedPreviewIndex = NoPreview
-        .previewLoad.start(.fileName.toString(), &.previews[.loadingPreviewIndex])
+        .previewLoad.start(.fileName, &.previews[.loadingPreviewIndex])
         .previewLoadPending = true
         .previewLoadTimer   = .addTimer(Viewer.BackgroundPollInterval)
         if .reportLoadingChanged do
@@ -978,7 +993,7 @@ private impl Panel
         for index in .pageCount()
         {
             commands.add(Format.toString("scope.indesign.page.%", index))
-            menu.addRadioItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)), commands[index].toString(), checked: index == .previewIndex)
+            menu.addRadioItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)), commands[index], checked: index == .previewIndex)
         }
 
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)
@@ -1072,7 +1087,7 @@ private impl IWnd for Panel
             if not .failureReason.isEmpty()
             {
                 if .reportFailure do
-                    .reportFailure(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason)
                 return
             }
 
@@ -1111,7 +1126,7 @@ private impl IWnd for Panel
         {
             .failureReason = failure
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
         }
 
         .startRequestedPreview()
@@ -1313,18 +1328,9 @@ impl Panel
     // Creates the zoom button of the information band.
     private mtd createZoomButton(host: Viewer.Host)
     {
-        .info = host.createInfoGroup(ViewerZoomSlotWidth)
-        with .zoomLabel = IconButton.create(me.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.indesign.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
-        }
+        .info      = host.createInfoGroup(Viewer.ZoomSlotWidth)
+        .zoomLabel = Viewer.createZoomButton(me.info, "scope.indesign.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
     }
 }
 

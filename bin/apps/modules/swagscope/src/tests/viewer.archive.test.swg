@@ -176,7 +176,7 @@ func writeZipFixture()->String
 #test
 {
     const EncodedName: [8] u8 = ['c', 'a', 'f', 0x82, '.', 't', 'x', 't']
-    Swag.assert(Archive.zipText(EncodedName, false) == "café.txt")
+    Swag.assert(Archive.Zip.text(EncodedName, false) == "café.txt")
 }
 
 // ZIP discovery reads the real hierarchy and both stored and Deflate entries round-trip through
@@ -186,7 +186,7 @@ func writeZipFixture()->String
     let archiveFile = writeZipFixture()
     defer discard catch File.delete(archiveFile)
 
-    let archive = expect Archive.loadZip(archiveFile)
+    let archive = expect Archive.Zip.load(archiveFile)
     Swag.assert(archive.entries.count == 2)
     Swag.assert(archive.entries[0].path == "data/sample.json")
     Swag.assert(archive.entries[1].path == "docs/readme.txt")
@@ -196,7 +196,7 @@ func writeZipFixture()->String
         let extension = Path.extension(entry.path) orelse ".bin"
         let output    = Gui.Testing.tempFilePath("scope-archive-entry-", extension)
         defer discard catch File.delete(output)
-        expect Archive.extractZipEntry(archiveFile, entry, output)
+        expect Archive.Zip.extractEntry(archiveFile, entry, output)
         let decoded = expect File.readAllBytes(output)
         if entry.path == "data/sample.json" do
             Swag.assert(cast(string, decoded.toSlice()) == "{\"answer\": 42}\n")
@@ -214,7 +214,7 @@ func writeZipFixture()->String
     defer discard catch File.delete(archiveFile)
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
-    discard catch Archive.loadZip(archiveFile) as archiveError
+    discard catch Archive.Zip.load(archiveFile) as archiveError
     Swag.assert(archiveError is Errors.UnsupportedFormatError)
 }
 
@@ -227,10 +227,10 @@ func writeZipFixture()->String
     defer discard catch File.delete(archiveFile)
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
-    let archive = expect Archive.loadZip(archiveFile)
+    let archive = expect Archive.Zip.load(archiveFile)
     let output  = Gui.Testing.tempFilePath("scope-archive-crc-entry-", ".txt")
     defer discard catch File.delete(output)
-    catch Archive.extractZipEntry(archiveFile, &archive.entries[1], output) as extractError
+    catch Archive.Zip.extractEntry(archiveFile, &archive.entries[1], output) as extractError
     Swag.assert(extractError is Errors.InvalidFormatError)
 }
 

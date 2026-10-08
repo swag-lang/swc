@@ -52,19 +52,22 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const StreamChunkSize = 16 * 1024'u64
+private
+{
+    const StreamChunkSize = 16 * 1024'u64
 
-// Viewport heights of text kept loaded from the top of the visible one: it and five more.
-private const StreamLookAhead    = 6.0
-private const ResidentWindowSize = 256 * 1024'u64
-private const RevealContextSize  = 16 * 1024'u64
+    // Viewport heights of text kept loaded from the top of the visible one: it and five more.
+    const StreamLookAhead    = 6.0
+    const ResidentWindowSize = 256 * 1024'u64
+    const RevealContextSize  = 16 * 1024'u64
 
-// The encodings offered in the action bar, in the order the selector lists them.
-private const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
+    // The encodings offered in the action bar, in the order the selector lists them.
+    const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
 
-// Names of those encodings. They are the standard spelling of a format rather than prose, so they
-// read the same in every language.
-private const EncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
+    // Names of those encodings. They are the standard spelling of a format rather than prose, so they
+    // read the same in every language.
+    const EncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
+}
 
 // What the head of a file says about how it spells its characters.
 struct Probe
@@ -416,12 +419,12 @@ impl Panel
                 }
 
                 .residentText = .read.text
-                .editor.setText(.residentText.toString())
+                .editor.setText(.residentText)
             }
             else
             {
-                .residentText += .read.text.toString()
-                .editor.addText(.read.text.toString())
+                .residentText += .read.text
+                .editor.addText(.read.text)
             }
 
             .displayedEncoding = .read.encoding
@@ -432,9 +435,9 @@ impl Panel
             if not .pendingMatch.isEmpty()
             {
                 if .encoding == .Utf8 do
-                    Viewer.highlightRichEditMatch(.editor, .read.text.toString(), .pendingSeekOffset - .residentStart, .pendingMatch.length)
+                    Viewer.highlightRichEditMatch(.editor, .read.text, .pendingSeekOffset - .residentStart, .pendingMatch.length)
                 else do
-                    discard .editor.findText(.pendingMatch.toString())
+                    discard .editor.findText(.pendingMatch)
                 .pendingMatch.clear()
             }
 
@@ -455,12 +458,12 @@ impl Panel
             .pendingSeek = false
             let requested = Math.min(.pendingSeekOffset, .fileSize)
             let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
-            .read.startRead(.fileName.toString(), .encoding, start, 64 * 1024, true)
+            .read.startRead(.fileName, .encoding, start, 64 * 1024, true)
         }
         elif .needsMore()
         {
             .read.contentStart = .contentStart
-            .read.startRead(.fileName.toString(), .encoding, .bytesRead, StreamChunkSize, false)
+            .read.startRead(.fileName, .encoding, .bytesRead, StreamChunkSize, false)
         }
 
         .scheduleMore()
@@ -471,7 +474,7 @@ impl Panel
         if text.count and .displayedEncoding == .encoding and not .pendingSeek and not (.read.started and .read.replace) and offset >= .residentStart and offset + text.count <= .bytesRead
         {
             if .encoding == .Utf8 do
-                Viewer.highlightRichEditMatch(.editor, .residentText.toString(), offset - .residentStart, text.count)
+                Viewer.highlightRichEditMatch(.editor, .residentText, offset - .residentStart, text.count)
             else do
                 discard .editor.findText(text)
             return true
@@ -525,34 +528,20 @@ impl Panel
 
     mtd setZoom(percent: u32)
     {
-        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        .zoomPercent = Viewer.clampZoom(percent)
         let base = .themeMetrics().defaultFixedFontSize
         let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
         .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
         .editor.setFlags(.editor.flags)
-        .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()
     }
 
     mtd showZoomMenu()
     {
-        with let menu = MenuCtrl.createPopup(me, owner: me)
-        {
-            .addItem("75%", "scope.text.zoom75")
-            .addItem("100%", "scope.text.zoom100")
-            .addItem("125%", "scope.text.zoom125")
-            .addItem("150%", "scope.text.zoom150")
-            .addItem("200%", "scope.text.zoom200")
-        }
-
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
-        {
-        case "scope.text.zoom75":  .setZoom(75)
-        case "scope.text.zoom100": .setZoom(100)
-        case "scope.text.zoom125": .setZoom(125)
-        case "scope.text.zoom150": .setZoom(150)
-        case "scope.text.zoom200": .setZoom(200)
-        }
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
     }
 }
 
@@ -605,20 +594,12 @@ impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind != .Pressed
-        {
+        if Viewer.isZoomKey(evt) do
+            .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
+        elif evt.kind == .Pressed and evt.key == .W and evt.modifiers.has(.Control) do
+            .toggleWrap()
+        else do
             evt.accepted = false
-            return
-        }
-
-        switch evt.key
-        {
-        case .W where evt.modifiers.has(.Control):                   .toggleWrap()
-        case .Add, .OemPlus where evt.modifiers.has(.Control):       .setZoom(.zoomPercent + 25)
-        case .Subtract, .OemMinus where evt.modifiers.has(.Control): .setZoom(.zoomPercent > 50 ? .zoomPercent - 25 : 50)
-        case .D0 where evt.modifiers.has(.Control):                  .setZoom(100)
-        default: evt.accepted = false
-        }
     }
 }
 
@@ -718,19 +699,10 @@ impl Panel
     // Creates the zoom menu button in the viewer's information group.
     private mtd createZoomControl(host: Viewer.Host)
     {
-        .info = host.createInfoGroup(ViewerZoomSlotWidth)
+        .info = host.createInfoGroup(Viewer.ZoomSlotWidth)
 
-        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.text.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
-        }
+        .zoomLabel = Viewer.createZoomButton(.info, "scope.text.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
     }
 
     // Creates the read-only editor that shows the resident window of the file.
@@ -763,16 +735,8 @@ impl Panel
                 paintEvt.target!.processEvent(evt)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
-                view.setZoom(view.zoomPercent + 25)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
-                view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
-                view.setZoom(100)
+            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
+                view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .Control:
@@ -816,7 +780,7 @@ impl Panel
     // Measures the file and starts reading its first chunk, or shows why it cannot be read.
     private mtd startReading()
     {
-        var stream = catch File.openReadLive(.fileName.toString()) as openError
+        var stream = catch File.openReadLive(.fileName) as openError
         defer stream.close()
         if openError != null
         {

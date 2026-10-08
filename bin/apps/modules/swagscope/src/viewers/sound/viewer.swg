@@ -25,18 +25,21 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const SeekSeconds  = 10.0
-private const CommandWidth = 820.0
+private
+{
+    const SeekSeconds  = 10.0
+    const CommandWidth = 820.0
 
-// Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
-// has to stay ahead of the widest plot a window can give it; past that the columns repeat.
-private const WaveformPointCount = 4096'u64
+    // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
+    // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
+    const WaveformPointCount = 4096'u64
 
-// Air around the plot, and the band the time scale is read in.
-private const WaveformInsetX      = 24.0
-private const WaveformInsetY      = 32.0
-private const WaveformScaleHeight = 26.0
-private const WaveformTickHeight  = 5.0
+    // Air around the plot, and the band the time scale is read in.
+    const WaveformInsetX      = 24.0
+    const WaveformInsetY      = 32.0
+    const WaveformScaleHeight = 26.0
+    const WaveformTickHeight  = 5.0
+}
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
 // body the ear hears. Drawing both is what separates a waveform from a silhouette.
@@ -487,7 +490,7 @@ impl Panel
 
         .openFinished = true
         if state == 2 do
-            fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
+            fail InvalidFormatError{Errors.mkString(.openFailure)}
 
         .sound    = #move .pendingSound
         .duration = .sound.durationInSeconds()
@@ -517,7 +520,7 @@ impl Panel
     {
         .details = Format.toString(texts().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), durationText(.duration))
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     mtd retranslate()

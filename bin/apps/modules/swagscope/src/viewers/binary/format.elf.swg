@@ -182,7 +182,7 @@ func elfDynamicTagName(value: u64)->string
 // needs at run time.
 func reportElfImage(image: *BinaryImage, report: *Report)
 {
-    let s     = texts()
+    let texts = texts()
     let is64  = image.u8At(4) == 2
     let order = image.u8At(5)
     image.bigEndian = order == 2
@@ -201,10 +201,10 @@ func reportElfImage(image: *BinaryImage, report: *Report)
     let shnum    = cast(u64, image.u16At(tailAt + 12))
     let shstrndx = cast(u64, image.u16At(tailAt + 14))
 
-    report.beginGroup(s.elf_Header, "", "", offset: 0, length: tailAt + 16, open: true)
-    report.beginGroup(s.elf_Identity, "ELF", "", offset: 0, length: 16)
-    report.numField(4, 1, "EI_CLASS", cast(u64, image.u8At(4)), is64 ? s.elf_Class64 : s.elf_Class32)
-    report.numField(5, 1, "EI_DATA", cast(u64, order), order == 2 ? s.elf_Big : s.elf_Little)
+    report.beginGroup(texts.elf_Header, "", "", offset: 0, length: tailAt + 16, open: true)
+    report.beginGroup(texts.elf_Identity, "ELF", "", offset: 0, length: 16)
+    report.numField(4, 1, "EI_CLASS", cast(u64, image.u8At(4)), is64 ? texts.elf_Class64 : texts.elf_Class32)
+    report.numField(5, 1, "EI_DATA", cast(u64, order), order == 2 ? texts.elf_Big : texts.elf_Little)
     report.numField(6, 1, "EI_VERSION", cast(u64, image.u8At(6)))
     report.numField(7, 1, "EI_OSABI", cast(u64, image.u8At(7)), elfOsAbiName(image.u8At(7)))
     report.numField(8, 1, "EI_ABIVERSION", cast(u64, image.u8At(8)))
@@ -232,8 +232,8 @@ func reportElfImage(image: *BinaryImage, report: *Report)
     reportElfDynamic(image, report, sections.toSlice(), is64)
     reportElfNotes(image, report, sections.toSlice())
 
-    let counted = countText(shnum, s.word_Section, s.word_Sections)
-    report.formatName = String.from(is64 ? "ELF64" : "ELF32")
+    let counted = countText(shnum, texts.word_Section, texts.word_Sections)
+    report.formatName = is64 ? "ELF64" : "ELF32"
     report.summary    = Format.toString("% · % · % · %", report.formatName, elfTypeName(kind), elfMachineName(machine), counted)
 }
 
@@ -242,11 +242,11 @@ private func reportElfSegments(image: *BinaryImage, report: *Report, at, entrySi
     if not at or not count do
         return
 
-    let s     = texts()
+    let texts = texts()
     let shown = Math.min(count, ListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.elf_Programs, total, s.elf_ProgramsDesc, offset: at, length: count * entrySize, open: true)
+    report.beginGroup(texts.elf_Programs, total, texts.elf_ProgramsDesc, offset: at, length: count * entrySize, open: true)
 
     for index in shown
     {
@@ -332,16 +332,16 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
 
 private func reportElfSections(image: *BinaryImage, report: *Report, sections: const [..] ElfSection, at, entrySize: u64, is64: bool)
 {
-    let s = texts()
+    let texts = texts()
     if not at
     {
-        report.note(s.elf_NoSections)
+        report.note(texts.elf_NoSections)
         return
     }
 
     let wide  = is64 ? 8'u64 : 4
-    let total = countText(sections.count, s.word_Section, s.word_Sections)
-    report.beginGroup(s.shr_Sections, total, s.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
+    let total = countText(sections.count, texts.word_Section, texts.word_Sections)
+    report.beginGroup(texts.shr_Sections, total, texts.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
 
     for section, index in sections
     {
@@ -384,7 +384,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
         return
 
     // The strings a dynamic entry names live in the section it links to, which is `.dynstr`.
-    let s         = texts()
+    let texts     = texts()
     let wide      = is64 ? 8'u64 : 4
     let at        = dynamic.offset
     var stringsAt = 0'u64
@@ -403,8 +403,8 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
             break
     }
 
-    let total = countText(entries.count, s.word_Entry, s.word_Entries)
-    report.beginGroup(s.elf_Dynamic, total, s.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
+    let total = countText(entries.count, texts.word_Entry, texts.word_Entries)
+    report.beginGroup(texts.elf_Dynamic, total, texts.elf_DynamicDesc, offset: at, length: dynamic.size, open: true)
 
     for entryAt in entries
     {
@@ -429,8 +429,8 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
 
     if not needed.isEmpty()
     {
-        let count = countText(needed.count, s.word_Library, s.word_Libraries)
-        report.beginGroup(s.shr_Libraries, count, "", open: true)
+        let count = countText(needed.count, texts.word_Library, texts.word_Libraries)
+        report.beginGroup(texts.shr_Libraries, count, "", open: true)
         for one in needed do
             report.derived(one.toString(), "")
         report.endGroup()
@@ -440,13 +440,13 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
 // Adds the two notes worth naming: the interpreter a program is started by, and the build identity.
 private func reportElfNotes(image: *BinaryImage, report: *Report, sections: const [..] ElfSection)
 {
-    let s = texts()
+    let texts = texts()
     for section in sections
     {
         if section.name == ".interp"
         {
             let path = image.cstringAt(section.offset, 512)
-            report.field(section.offset, section.size, s.shr_Interpreter, path)
+            report.field(section.offset, section.size, texts.shr_Interpreter, path)
             continue
         }
 
@@ -469,6 +469,6 @@ private func reportElfNotes(image: *BinaryImage, report: *Report, sections: cons
 
         if text.isEmpty() do
             continue
-        report.field(payloadAt, payloadSize, s.shr_BuildId, cast(string, text.toSlice()))
+        report.field(payloadAt, payloadSize, texts.shr_BuildId, cast(string, text.toSlice()))
     }
 }

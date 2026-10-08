@@ -105,7 +105,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         Swag.drainWork()
         if extension == ".txt" do
             assume cast(*PlainText.Panel, window.currentView).statisticsThread.wait()
-        let key = String.from(window.choices[window.activeChoiceIndex].key.toString())
+        let key = String.from(window.choices[window.activeChoiceIndex].key)
 
         // Truncate while the progressive viewer still exists, then let the watcher reload it.
         source += extension == ".html" ? "<p>Replacement content.</p>\n" : "// Replacement content.\n"

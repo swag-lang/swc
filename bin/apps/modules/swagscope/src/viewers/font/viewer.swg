@@ -109,7 +109,7 @@ private impl Panel
         let replaceSample = .sampleEdit.text() == .sampleDefault.toString()
         .sampleDefault = texts().ui_DefaultSample
         if replaceSample do
-            .sampleEdit.setText(.sampleDefault.toString())
+            .sampleEdit.setText(.sampleDefault)
 
         .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
         .previousButton.toolTip = texts().ui_PreviousPage
@@ -162,7 +162,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -173,7 +173,7 @@ private impl IWnd for Panel
         .applyLayout()
         .setInitialFocus(.document)
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
     }
@@ -227,7 +227,7 @@ impl Panel
     // Creates the sample field and the character-page controls in the command group.
     private mtd createCommandBar()
     {
-        with .sampleEdit = EditBox.create(.commands, .sampleDefault.toString(), {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with .sampleEdit = EditBox.create(.commands, .sampleDefault, {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .dockStyle = .Left
             .setMaximumLength(128)

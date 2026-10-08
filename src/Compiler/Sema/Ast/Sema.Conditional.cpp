@@ -317,7 +317,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SWC_RESULT(resolveConditionalResultType(sema, typeRef, nodeTrueView, nodeFalseView));
 
     if (!typeRef.isValid())
-        return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeFalseRef, nodeTrueView.typeRef(), nodeFalseView.typeRef());
+        return SemaError::raiseConditionalBranchTypes(sema, sema.curNodeRef(), nodeFalseRef, nodeTrueView.typeRef(), nodeFalseView.typeRef());
 
     // A runtime select has no single constant to concretize when an inferred
     // local captures it. Settle both integer literal widths here, after contextual

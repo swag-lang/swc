@@ -29,7 +29,7 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = true
 
-    let s            = texts()
+    let texts        = texts()
     let headerLength = cast(u64, image.u32At(4))
     let format       = image.u16At(8)
     let trackCount   = image.u16At(10)
@@ -38,8 +38,8 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
     let formatName   = midiFormatName(format)
     let divisionText = midiDivisionText(division)
 
-    report.beginGroup(s.midi_File, formatName, "", offset: 0, length: headerSize, open: true)
-    report.field(0, 4, s.fld_ChunkType, image.fixedTextAt(0, 4))
+    report.beginGroup(texts.midi_File, formatName, "", offset: 0, length: headerSize, open: true)
+    report.field(0, 4, texts.fld_ChunkType, image.fixedTextAt(0, 4))
     report.sizeField(4, 4, "Length", headerLength)
     report.numField(8, 2, "Format", cast(u64, format), formatName)
     report.numField(10, 2, "Tracks", cast(u64, trackCount))
@@ -50,7 +50,7 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
     var tracks      = 0'u64
     var totalEvents = 0'u64
     var complete    = headerLength >= 6
-    report.beginGroup(s.midi_Tracks, "", "", offset: scan, length: image.bytes.count - scan, open: true)
+    report.beginGroup(texts.midi_Tracks, "", "", offset: scan, length: image.bytes.count - scan, open: true)
 
     while complete and tracks < cast(u64, trackCount)
     {
@@ -72,17 +72,17 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
         var trackRow: u64
         if shown
         {
-            let label = Format.toString(s.midi_Track, tracks + 1)
+            let label = Format.toString(texts.midi_Track, tracks + 1)
             trackRow = report.rows.count
             report.beginGroup(label, "", "", offset: bodyAt, length: length)
-            report.field(scan, 4, s.fld_ChunkType, image.fixedTextAt(scan, 4))
+            report.field(scan, 4, texts.fld_ChunkType, image.fixedTextAt(scan, 4))
             report.sizeField(scan + 4, 4, "Length", length)
         }
 
         let track = reportMidiTrack(image, report, bodyAt, bodyAt + length, shown)
         if shown
         {
-            let counted = countText(track.events, s.word_Event, s.word_Events)
+            let counted = countText(track.events, texts.word_Event, texts.word_Events)
             report.rows[trackRow].value  = #move counted
             report.rows[trackRow].detail = #move track.name
             report.endGroup()
@@ -95,14 +95,14 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
     }
 
     if not complete do
-        report.note(s.midi_Malformed)
+        report.note(texts.midi_Malformed)
     report.listCut(Math.min(tracks, ListLimit), cast(u64, trackCount))
     report.endGroup()
 
-    let countedTracks = countText(tracks, s.word_Track, s.word_Tracks)
-    let countedEvents = countText(totalEvents, s.word_Event, s.word_Events)
-    report.formatName = String.from(s.midi_File)
-    report.summary    = Format.toString("% · % · %", s.midi_File, countedTracks, countedEvents)
+    let countedTracks = countText(tracks, texts.word_Track, texts.word_Tracks)
+    let countedEvents = countText(totalEvents, texts.word_Event, texts.word_Events)
+    report.formatName = texts.midi_File
+    report.summary    = Format.toString("% · % · %", texts.midi_File, countedTracks, countedEvents)
 }
 
 // Adds one track's events and returns its name, extent, and completeness.
@@ -265,7 +265,7 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *Report, track: *M
     case 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07:
         value = image.fixedTextAt(bodyAt, length)
         if kind == 0x03 and track.name.isEmpty() do
-            track.name = String.from(value)
+            track.name = value
 
     case 0x20, 0x21:
         if length do

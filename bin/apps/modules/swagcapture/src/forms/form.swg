@@ -95,6 +95,13 @@ struct BaseForm
 
 impl BaseForm
 {
+    // The margin of a preset sample, which is drawn at a fraction of its document size.
+    //
+    // Everything a sample paints outside its own rectangle is scaled down with it, so the
+    // document margin would size the layer of a 44 pixel picture at 438 pixels a side — a
+    // hundred times the pixels, on the one surface that repaints on every hover.
+    const QuickPaintOverdraw = 32.0
+
     // Returns the form-space margin geometry can paint beyond [[IForm.boundRect]].
     // Shadows reserve their own margin in [[Pixel.Layer]], so this covers only strokes,
     // joins, caps, and the antialiasing fringe of the form itself.
@@ -172,6 +179,15 @@ impl BaseForm
         .y += newPosY
         .w += newSizeX
         .h += newSizeY
+    }
+
+    // Scales the box of an axis-aligned form about the origin.
+    mtd scaleRectForm(scale: f32)
+    {
+        .x = cast(s32, .x * scale)
+        .y = cast(s32, .y * scale)
+        .w = cast(s32, .w * scale)
+        .h = cast(s32, .h * scale)
     }
 
     // Assign the box, normalizing a negative size so width/height stay positive.

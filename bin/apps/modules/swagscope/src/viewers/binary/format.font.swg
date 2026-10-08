@@ -24,7 +24,7 @@ func reportSfntFont(image: *BinaryImage, report: *Report)
     // Everything in an sfnt container is big endian, including the collection header.
     image.bigEndian = true
 
-    let s = texts()
+    let texts = texts()
     if image.matches(0, "ttcf")
     {
         reportFontCollection(image, report)
@@ -32,20 +32,20 @@ func reportSfntFont(image: *BinaryImage, report: *Report)
     }
 
     let names = reportFontTables(image, report, 0, open: true)
-    report.formatName = String.from(s.font_Font)
-    report.summary    = names.isEmpty() ? String.from(s.font_Font) : Format.toString("% · %", s.font_Font, names)
+    report.formatName = texts.font_Font
+    report.summary    = names.isEmpty() ? texts.font_Font : Format.toString("% · %", texts.font_Font, names)
 }
 
 private func reportFontCollection(image: *BinaryImage, report: *Report)
 {
-    let s     = texts()
+    let texts = texts()
     let count = cast(u64, image.u32At(8))
     let shown = Math.min(count, ListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.font_Collection, total, "", offset: 0, length: 12 + count * 4, open: true)
+    report.beginGroup(texts.font_Collection, total, "", offset: 0, length: 12 + count * 4, open: true)
     let version = Format.toString("%.%", image.u16At(4), image.u16At(6))
-    report.field(4, 4, s.fld_Version, version)
+    report.field(4, 4, texts.fld_Version, version)
     report.numField(8, 4, "numFonts", count)
 
     for index in shown
@@ -57,23 +57,23 @@ private func reportFontCollection(image: *BinaryImage, report: *Report)
     report.listCut(shown, count)
     report.endGroup()
 
-    report.formatName = String.from(s.font_Collection)
-    report.summary    = Format.toString("% · %", s.font_Collection, total)
+    report.formatName = texts.font_Collection
+    report.summary    = Format.toString("% · %", texts.font_Collection, total)
 }
 
 // Adds the tables of the font whose directory starts at `at`, and returns the family it names.
 private func reportFontTables(image: *BinaryImage, report: *Report, at: u64, open: bool)->String
 {
-    let s     = texts()
+    let texts = texts()
     let count = cast(u64, image.u16At(at + 4))
     let shown = Math.min(count, ListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
     var headAt = Swag.U64.Max
     var maxpAt = Swag.U64.Max
     var nameAt = Swag.U64.Max
 
-    report.beginGroup(s.font_Tables, total, s.font_TablesDesc, offset: at, length: 12 + count * FontRecordSize, open: open)
+    report.beginGroup(texts.font_Tables, total, texts.font_TablesDesc, offset: at, length: 12 + count * FontRecordSize, open: open)
 
     for index in shown
     {
@@ -102,12 +102,12 @@ private func reportFontTables(image: *BinaryImage, report: *Report, at: u64, ope
 
     if headAt != Swag.U64.Max and image.has(headAt, 54)
     {
-        report.numField(headAt + 18, 2, s.font_UnitsPerEm, cast(u64, image.u16At(headAt + 18)))
+        report.numField(headAt + 18, 2, texts.font_UnitsPerEm, cast(u64, image.u16At(headAt + 18)))
         report.hexField(headAt + 44, 2, "macStyle", cast(u64, image.u16At(headAt + 44)))
     }
 
     if maxpAt != Swag.U64.Max and image.has(maxpAt, 6) do
-        report.numField(maxpAt + 4, 2, s.font_Glyphs, cast(u64, image.u16At(maxpAt + 4)))
+        report.numField(maxpAt + 4, 2, texts.font_Glyphs, cast(u64, image.u16At(maxpAt + 4)))
 
     if nameAt == Swag.U64.Max do
         return {}
@@ -119,13 +119,13 @@ private func reportFontNames(image: *BinaryImage, report: *Report, at: u64, open
 {
     var result: retval
 
-    let s         = texts()
+    let texts     = texts()
     let count     = cast(u64, image.u16At(at + 2))
     let stringsAt = at + cast(u64, image.u16At(at + 4))
     let shown     = Math.min(count, ListLimit)
-    let total     = countText(count, s.word_Entry, s.word_Entries)
+    let total     = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.font_Names, total, "", offset: at, length: 6 + count * 12, open: open)
+    report.beginGroup(texts.font_Names, total, "", offset: at, length: 6 + count * 12, open: open)
 
     for index in shown
     {
@@ -158,14 +158,14 @@ private func reportFontNames(image: *BinaryImage, report: *Report, at: u64, open
 // Returns which of the naming table's entries are worth showing, and under what heading.
 private func fontNameLabel(nameId: u16)->string
 {
-    let s = texts()
+    let texts = texts()
     switch nameId
     {
     case 0: return "Copyright"
-    case 1: return s.font_Family
-    case 2: return s.font_Subfamily
-    case 4: return s.font_FullName
-    case 5: return s.font_Version
+    case 1: return texts.font_Family
+    case 2: return texts.font_Subfamily
+    case 4: return texts.font_FullName
+    case 5: return texts.font_Version
     case 6: return "PostScript"
     case 8: return "Manufacturer"
     case 9: return "Designer"

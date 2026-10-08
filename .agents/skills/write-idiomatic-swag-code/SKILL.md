@@ -289,6 +289,14 @@ let renderer: IRenderer = &cpu
   native ABI boundaries, or bit reinterpretation.
 - Prefer enum shorthand such as `.Linear`, inferred aggregate literals, and inferred local types
   when their context is unambiguous.
+- Let `String` and `string` convert where the context names the target. Pass a `String` to a
+  `string` parameter without `.toString()`. Assign, `add`, return, or place a string value in a
+  `String` field without `String.from`, nested aggregate literals included. Keep the explicit
+  form where nothing names the target: an inferred `let`, a conditional whose branches have no
+  target type (`cond ? text : "--"` is rejected), or a call chained on the result.
+  `String.toLower(Path.extension(name))` already accepts a nullable `string`, so no `orelse ""`
+  or `String.from` is needed. Compare with the `String` on the left (`string == String` is
+  rejected), and dereference a loop binding (`path[]`), which is a pointer to the `String`.
 
 ## Make Ownership Scope-Bound
 

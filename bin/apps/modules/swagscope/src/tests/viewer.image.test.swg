@@ -135,7 +135,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     let view = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * ViewerInfoControlInset)
+    assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * Viewer.ZoomButtonInset)
     var navigation: s32
     view.userData = &navigation
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
@@ -219,11 +219,11 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(window.currentActions == null)
     Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.infoContentGroup)
     Swag.assert(window.currentSidePanelButton != null)
-    Swag.assert(window.currentInfo.position.right() + ViewerInfoSideButtonSpacing == window.currentSidePanelButton.position.x)
+    Swag.assert(window.currentInfo.position.right() + ViewerInfoLayout.SideButtonSpacing == window.currentSidePanelButton.position.x)
     Swag.assert(window.currentInfo.themeColors().label_TextLight == window.themeColors().label_TextFaint)
-    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo.position.x) < 0.01)
+    Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoLayout.GroupSpacing - window.currentInfo.position.x) < 0.01)
     Swag.assert(window.currentCommands != null and window.currentCommands.parent == window.viewerBar)
-    Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerBarHeight)
+    Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerWindow.BarHeight)
     Swag.assert(not window.searchGroup.isLocallyVisible())
     Swag.assert(Math.abs(window.currentCommands.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
 }

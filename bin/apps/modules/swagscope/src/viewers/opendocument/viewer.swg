@@ -21,21 +21,24 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const ContentLimit            = 32 * 1024 * 1024'u64
-private const TableColumnLimit        = 256'u64
-private const TableRowLimit           = 100_000'u64
-private const TableCellLimit          = 1_000_000'u64
-private const RepeatedCellLimit       = 4_096'u64
-private const TextStyleLimit          = 4_096'u64
-private const BookmarkLimit           = 4_096'u64
-private const ImageLimit              = 16 * 1024 * 1024'u64
-private const ImageCountLimit         = 256'u64
-private const InlineImagePayloadLimit = ((ImageLimit + 2) / 3) * 4
-private const ImageDimensionLimit     = 4_096.0
-private const MetadataLimit           = 256 * 1024'u64
-private const MetadataValueLimit      = 512'u64
-private const Apostrophe              = 39'u8
-private const PageComboWidth          = 224.0
+private
+{
+    const ContentLimit            = 32 * 1024 * 1024'u64
+    const TableColumnLimit        = 256'u64
+    const TableRowLimit           = 100_000'u64
+    const TableCellLimit          = 1_000_000'u64
+    const RepeatedCellLimit       = 4_096'u64
+    const TextStyleLimit          = 4_096'u64
+    const BookmarkLimit           = 4_096'u64
+    const ImageLimit              = 16 * 1024 * 1024'u64
+    const ImageCountLimit         = 256'u64
+    const InlineImagePayloadLimit = ((ImageLimit + 2) / 3) * 4
+    const ImageDimensionLimit     = 4_096.0
+    const MetadataLimit           = 256 * 1024'u64
+    const MetadataValueLimit      = 512'u64
+    const Apostrophe              = 39'u8
+    const PageComboWidth          = 224.0
+}
 
 // Distinguishes the document surfaces that share the OpenDocument container.
 enum Kind
@@ -50,7 +53,7 @@ enum Kind
 struct Sheet
 {
     name:  String
-    table: Viewers.Table.Document
+    table: Table.Document
 }
 
 // One presentation slide, retaining its source name beside the isolated reader markup.
@@ -189,8 +192,8 @@ private func parseTag(raw: string)->Tag
     if at == nameStart do
         return result
 
-    result.name       = String.from(raw[nameStart until at])
-    result.attributes = String.from(raw[at to])
+    result.name       = raw[nameStart until at]
+    result.attributes = raw[at to]
 
     var tail = raw.count
     while tail > at and xmlSpace(raw[tail - 1]) do
@@ -244,7 +247,7 @@ private func attribute(attributes, wanted: string)->String
         if at == attributes.count do
             break
         if attributes[nameStart until nameEnd] == wanted do
-            return String.from(attributes[valueStart until at])
+            return attributes[valueStart until at]
         at += 1
     }
 
@@ -421,7 +424,7 @@ private impl MetadataReader
         if .depth do
             return
 
-        let value = metadataValue(.text.toString())
+        let value = metadataValue(.text)
         switch .field
         {
         case .Title where .metadata.title.isEmpty():     .metadata.title = #move value
@@ -664,7 +667,7 @@ private struct Reader
     cell:            String
     cellFallback:    String
     sheetCellCount:  u64
-    row:             Viewers.Table.Row
+    row:             Table.Row
     sheet:           Sheet
     sheets:          Array'Sheet
     slide:           Slide
@@ -872,7 +875,7 @@ private impl Reader
 
         let target = Format.toString("odf-bookmark-%", .bookmarks.count + 1)
         var bookmark: Bookmark
-        bookmark.name   = String.from(name)
+        bookmark.name   = name
         bookmark.target = target
         .bookmarks.add(#move bookmark)
         return target
@@ -928,7 +931,7 @@ private impl Reader
 
         .imageCount     += 1
         .imageByteCount += bytes.count
-        return String.from(href)
+        return href
     }
 
     mtd imageUri(attributes: string)->String
@@ -1463,7 +1466,7 @@ private func imageMediaType(path: string)->string
 }
 
 // Converts only bounded picture-package entries into data URIs; external references stay inert.
-private func loadImages(fileName: string, archive: const *Viewers.Archive.Zip)->Array'EmbeddedImage
+private func loadImages(fileName: string, archive: const *Archive.Zip)->Array'EmbeddedImage
 {
     var result: retval
     var total = 0'u64
@@ -1477,7 +1480,7 @@ private func loadImages(fileName: string, archive: const *Viewers.Archive.Zip)->
         if mediaType == "" or entry.uncompressedSize > ImageLimit or entry.uncompressedSize > ImageLimit - total do
             continue
 
-        let bytes = catch Viewers.Archive.loadZipEntry(fileName, entry) as imageError
+        let bytes = catch Archive.Zip.loadEntry(fileName, entry) as imageError
         if imageError != null do
             continue
 
@@ -1499,11 +1502,11 @@ private func loadContent(fileName: string)->Content fail
     case ".fodt", ".fods", ".fodp", ".fodg": return try loadFlatContent(fileName)
     }
 
-    let archive = try Viewers.Archive.loadZip(fileName)
-    var mime:    *Viewers.Archive.ZipEntry?
-    var content: *Viewers.Archive.ZipEntry?
-    var styles:  *Viewers.Archive.ZipEntry?
-    var meta:    *Viewers.Archive.ZipEntry?
+    let archive = try Archive.Zip.load(fileName)
+    var mime:    *Archive.ZipEntry?
+    var content: *Archive.ZipEntry?
+    var styles:  *Archive.ZipEntry?
+    var meta:    *Archive.ZipEntry?
     for &entry in archive.entries
     {
         if entry.path == "mimetype" do
@@ -1523,9 +1526,9 @@ private func loadContent(fileName: string)->Content fail
     if content.uncompressedSize > ContentLimit do
         fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
 
-    let mimeBytes = try Viewers.Archive.loadZipEntry(fileName, mime)
+    let mimeBytes = try Archive.Zip.loadEntry(fileName, mime)
     let kind      = try kindFromMime(cast(string, mimeBytes.toSlice()))
-    let bytes     = try Viewers.Archive.loadZipEntry(fileName, content)
+    let bytes     = try Archive.Zip.loadEntry(fileName, content)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(texts().err_Encoding)}
     var images: Array'EmbeddedImage
@@ -1534,15 +1537,15 @@ private func loadContent(fileName: string)->Content fail
     var styleSource: String
     if styles != null and styles.uncompressedSize <= ContentLimit
     {
-        let styleBytes = catch Viewers.Archive.loadZipEntry(fileName, styles) as stylesError
+        let styleBytes = catch Archive.Zip.loadEntry(fileName, styles) as stylesError
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
-            styleSource = String.from(cast(string, styleBytes.toSlice()))
+            styleSource = cast(string, styleBytes.toSlice())
     }
 
     var metadata: Metadata
     if meta != null and meta.uncompressedSize <= MetadataLimit
     {
-        let metadataBytes = catch Viewers.Archive.loadZipEntry(fileName, meta) as metadataError
+        let metadataBytes = catch Archive.Zip.loadEntry(fileName, meta) as metadataError
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
             metadata = catch parseMetadata(cast(string, metadataBytes.toSlice()))
     }
@@ -1558,7 +1561,7 @@ struct Panel
     late
     {
         html:      *HtmlView
-        table:     *Viewers.Table.Panel
+        table:     *Table.Panel
         commands:  *Wnd
         pageCombo: *ComboBox
         info:      *Wnd
@@ -1598,7 +1601,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -1628,23 +1631,10 @@ private impl IWnd for Panel
             return
         }
 
-        if evt.modifiers.has(.Control) and .document.kind != .Spreadsheet
-        {
-            switch evt.key
-            {
-            case .Add, .OemPlus:       .setZoom(.zoomPercent + 25)
-            case .Subtract, .OemMinus: .setZoom(.zoomPercent > 50 ? .zoomPercent - 25 : 50)
-            case .D0:                  .setZoom(100)
-            default:                   evt.accepted = false
-            }
-
-            return
-        }
-
-        if evt.modifiers != .None or not .navigatePagedDocument(evt.key)
-        {
+        if Viewer.isZoomKey(evt) and .document.kind != .Spreadsheet do
+            .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
+        elif evt.modifiers != .None or not .navigatePagedDocument(evt.key) do
             evt.accepted = false
-        }
     }
 }
 
@@ -1662,30 +1652,16 @@ private impl Panel
 
     internal mtd setZoom(percent: u32)
     {
-        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        .zoomPercent = Viewer.clampZoom(percent)
         .applyZoom()
-        .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
     }
 
     mtd showZoomMenu()
     {
-        with let menu = MenuCtrl.createPopup(me, owner: me)
-        {
-            .addItem("75%", "scope.opendocument.zoom75")
-            .addItem("100%", "scope.opendocument.zoom100")
-            .addItem("125%", "scope.opendocument.zoom125")
-            .addItem("150%", "scope.opendocument.zoom150")
-            .addItem("200%", "scope.opendocument.zoom200")
-        }
-
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
-        {
-        case "scope.opendocument.zoom75":  .setZoom(75)
-        case "scope.opendocument.zoom100": .setZoom(100)
-        case "scope.opendocument.zoom125": .setZoom(125)
-        case "scope.opendocument.zoom150": .setZoom(150)
-        case "scope.opendocument.zoom200": .setZoom(200)
-        }
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
     }
 
     mtd refreshZoomChrome()
@@ -1712,7 +1688,7 @@ private impl Panel
     mtd documentDetails(details: string)->String
     {
         if .document.metadata.title.isEmpty() do
-            return String.from(details)
+            return details
         return Format.toString("% · %", details, .document.metadata.title)
     }
 
@@ -1810,7 +1786,7 @@ private impl Panel
         .document.sheets[.sheetIndex].table = #move .table.document
         .table.destroy()
         .sheetIndex      = index
-        .table           = Viewers.Table.Panel.createDocument(me, #move .document.sheets[index].table)
+        .table           = Table.Panel.createDocument(me, #move .document.sheets[index].table)
         .table.dockStyle = .Center
         .pageCombo.setSelectedIndex(cast(u32, index), notify: false)
         if clearSearch do
@@ -1847,7 +1823,7 @@ private impl Panel
         if .html != null do
             .html.destroy()
         .slideIndex = index
-        .createHtmlView(.document.slides[index].html.toString())
+        .createHtmlView(.document.slides[index].html)
         .pageCombo.setSelectedIndex(cast(u32, index), notify: false)
         if clearSearch do
             .html.clearSearch()
@@ -1885,7 +1861,7 @@ private impl Panel
         }
     }
 
-    mtd collectTableMatches(document: const *Viewers.Table.Document, sheetIndex: u64, text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    mtd collectTableMatches(document: const *Table.Document, sheetIndex: u64, text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for row, rowIndex in document.rows
         {
@@ -1915,7 +1891,7 @@ private impl Panel
     {
         if .document.kind == .Spreadsheet
         {
-            .table = Viewers.Table.Panel.createDocument(me, #move .document.sheets[0].table)
+            .table = Table.Panel.createDocument(me, #move .document.sheets[0].table)
             .table.dockStyle = .Center
             .fillPageChoices()
             .setInitialFocus(.table)
@@ -1927,7 +1903,7 @@ private impl Panel
         }
         else
         {
-            .createHtmlView(.document.html.toString())
+            .createHtmlView(.document.html)
             .setInitialFocus(.html)
         }
 
@@ -1976,7 +1952,7 @@ private impl Panel
         }
 
         if .html != null do
-            Viewer.collectTextMatches(.document.html.toString(), text, options, 0, 0, 0, result)
+            Viewer.collectTextMatches(.document.html, text, options, 0, 0, 0, result)
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
@@ -2061,16 +2037,8 @@ private impl Panel
         {
             switch evt
             {
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
-                view.setZoom(view.zoomPercent + 25)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus):
-                view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and keyEvt.key == .D0:
-                view.setZoom(100)
+            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt) and view.document.kind != .Spreadsheet:
+                view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
@@ -2090,19 +2058,10 @@ private impl Panel
     // Creates the reading-zoom button, hidden until a document that can zoom is published.
     mtd createZoomButton(host: Viewer.Host)
     {
-        .info = host.createInfoGroup(ViewerZoomSlotWidth)
+        .info = host.createInfoGroup(Viewer.ZoomSlotWidth)
         .info.hide()
-        with .zoomLabel = IconButton.create(me.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.opendocument.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
-        }
+        .zoomLabel = Viewer.createZoomButton(me.info, "scope.opendocument.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
     }
 
     // Creates the sheet, slide, or page selector, hidden until a document offers several.

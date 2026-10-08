@@ -131,7 +131,7 @@ private func looksLikeObjectiveC(fileName: string)->bool
 // Returns the language of a source file from its name, reading its head when the name is ambiguous or missing.
 func detectLanguage(fileName: string)->SourceLanguage
 {
-    let baseName = String.from(Path.fileName(fileName) orelse "").toLower()
+    let baseName = String.toLower(Path.fileName(fileName))
     switch baseName.toString()
     {
     case "makefile", "gnumakefile", "bsdmakefile": return .Makefile
@@ -272,13 +272,6 @@ func displayName(language: SourceLanguage)->string
     }
 }
 
-private enum GenericCodeState: s32
-{
-    Default
-    BlockComment
-    MarkupComment
-}
-
 struct GenericLexer
 {
     enum Style: RichEditStyleRef
@@ -291,6 +284,14 @@ struct GenericLexer
         Number
         Function
         Preprocessor
+    }
+
+    // The construct a line ends inside, which the next line starts in.
+    enum State: s32
+    {
+        Default
+        BlockComment
+        MarkupComment
     }
 
     language: SourceLanguage
@@ -448,7 +449,7 @@ impl IRichEditLexer for GenericLexer
     {
         let length = line.length()
         paintRange(line, 0, length, .Default)
-        var state = linePrev ? cast(GenericCodeState, linePrev.lexerState()) : GenericCodeState.Default
+        var state = linePrev ? cast(State, linePrev.lexerState()) : State.Default
         var seek  = 0'u64
 
         if .language == .Xml or .language == .Html

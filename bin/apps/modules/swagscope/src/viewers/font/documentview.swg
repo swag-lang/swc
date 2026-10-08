@@ -3,34 +3,37 @@
 
 using Core, Pixel, Gui, TrueType
 
-// Air around the document, and the width the pixel-size label reserves beside a specimen line.
-private const ContentInset     = 32.0
-private const SampleLabelWidth = 48.0
+private
+{
+    // Air around the document, and the width the pixel-size label reserves beside a specimen line.
+    const ContentInset     = 32.0
+    const SampleLabelWidth = 48.0
 
-// Air between the two bands of the page, between a caption and what it names, and between two
-// specimen lines.
-private const SectionGap = 40.0
-private const CaptionGap = 18.0
-private const SampleGap  = 12.0
+    // Air between the two bands of the page, between a caption and what it names, and between two
+    // specimen lines.
+    const SectionGap = 40.0
+    const CaptionGap = 18.0
+    const SampleGap  = 12.0
 
-// One character cell: its width, the air between two of them, and the air it keeps inside its own
-// edges. Its height is measured rather than fixed, because it is whatever the glyph and the code
-// label need.
-private const CellWidth   = 88.0
-private const CellGap     = 8.0
-private const CellPadding = 8.0
+    // One character cell: its width, the air between two of them, and the air it keeps inside its own
+    // edges. Its height is measured rather than fixed, because it is whatever the glyph and the code
+    // label need.
+    const CellWidth   = 88.0
+    const CellGap     = 8.0
+    const CellPadding = 8.0
 
-// Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
-private const NameSize    = 32'u32
-private const GlyphSize   = 40'u32
-private const CaptionSize = 12'u32
-private const CodeSize    = 11'u32
-private const SampleCount = 4
-private const SampleSizes: [SampleCount] u32 = [22, 32, 46, 64]
+    // Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
+    const NameSize    = 32'u32
+    const GlyphSize   = 40'u32
+    const CaptionSize = 12'u32
+    const CodeSize    = 11'u32
+    const SampleCount = 4
+    const SampleSizes: [SampleCount] u32 = [22, 32, 46, 64]
 
-private const CharacterPageSize = 192'u64
-private const FirstCharacter    = 0x20'u32
-private const CharacterLimit    = 0x110000'u32
+    const CharacterPageSize = 192'u64
+    const FirstCharacter    = 0x20'u32
+    const CharacterLimit    = 0x110000'u32
+}
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
 func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}

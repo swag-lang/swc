@@ -15,21 +15,21 @@ func reportRiffContainer(image: *BinaryImage, report: *Report)
     // `RIFX` is the same container written the other way round; everything else about it is equal.
     image.bigEndian = image.matches(0, "RIFX")
 
-    let s      = texts()
+    let texts  = texts()
     let size   = cast(u64, image.u32At(4))
     let form   = image.fixedTextAt(8, 4)
     let stored = StrConv.toDisplaySize(size)
 
-    report.beginGroup(s.riff_Container, form, stored, offset: 0, length: Math.min(size + 8, image.bytes.count), open: true)
-    report.field(0, 4, s.fld_Signature, image.fixedTextAt(0, 4))
+    report.beginGroup(texts.riff_Container, form, stored, offset: 0, length: Math.min(size + 8, image.bytes.count), open: true)
+    report.field(0, 4, texts.fld_Signature, image.fixedTextAt(0, 4))
     report.sizeField(4, 4, "Size", size)
-    report.field(8, 4, s.riff_Form, form)
+    report.field(8, 4, texts.riff_Form, form)
     report.endGroup()
 
     let end   = Math.min(12 + size, image.bytes.count)
     let count = reportRiffChunks(image, report, 12, end, open: true)
 
-    let counted = countText(count, s.word_Chunk, s.word_Chunks)
+    let counted = countText(count, texts.word_Chunk, texts.word_Chunks)
     report.formatName = Format.toString("RIFF %", form)
     report.summary    = Format.toString("% · %", report.formatName, counted)
 }
@@ -37,11 +37,11 @@ func reportRiffContainer(image: *BinaryImage, report: *Report)
 // Adds the chunks between `at` and `end`, and returns how many there were.
 private func reportRiffChunks(image: *BinaryImage, report: *Report, at, end: u64, open: bool)->u64
 {
-    let s     = texts()
+    let texts = texts()
     var scan  = at
     var count = 0'u64
 
-    report.beginGroup(s.riff_Chunks, "", "", offset: at, length: end > at ? end - at : 0, open: open)
+    report.beginGroup(texts.riff_Chunks, "", "", offset: at, length: end > at ? end - at : 0, open: open)
 
     while scan + 8 <= end and count < ListLimit
     {

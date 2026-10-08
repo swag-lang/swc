@@ -236,7 +236,7 @@ impl DocumentOutline
     {
         if .loaded or .load.started do
             return
-        .load.start(.markdownFile.toString(), &loadMarkdownHeadings)
+        .load.start(.markdownFile, &loadMarkdownHeadings)
         .loadTimer = .addTimer(Viewer.BackgroundPollInterval)
         .refresh()
     }

@@ -26,7 +26,7 @@ impl Read
     // Reads the requested chunk on the worker, moving a random seek off a split character.
     mtd read() fail
     {
-        var stream = try File.openReadLive(.fileName.toString())
+        var stream = try File.openReadLive(.fileName)
         defer stream.close()
         if .replace
         {

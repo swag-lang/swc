@@ -139,7 +139,7 @@ func formatDigits(value: u64, digits: u64)->String
 {
     var bytes: Array'u8
     appendDigits(&bytes, value, digits)
-    return String.from(cast(string, bytes.toSlice()))
+    return cast(string, bytes.toSlice())
 }
 
 // Returns the value of the hexadecimal digit `value`, or 16 when `value` is not one.
@@ -1105,16 +1105,16 @@ impl IActionUI for Action
         {
         case Action.CopyBytes:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = bounded ? Format.toString(texts().ui_CopyBytesMax, limit) : String.from(texts().ui_CopyBytes)
+            evt.name          = bounded ? Format.toString(texts().ui_CopyBytesMax, limit) : texts().ui_CopyBytes
             evt.shortcut      = "Ctrl+C"
 
         case Action.CopyText:
             evt.updatedFields |= .Name
-            evt.name = bounded ? Format.toString(texts().ui_CopyTextMax, limit) : String.from(texts().ui_CopyText)
+            evt.name = bounded ? Format.toString(texts().ui_CopyTextMax, limit) : texts().ui_CopyText
 
         case Action.CopyDump:
             evt.updatedFields |= .Name
-            evt.name = bounded ? Format.toString(texts().ui_CopyDumpMax, limit) : String.from(texts().ui_CopyDump)
+            evt.name = bounded ? Format.toString(texts().ui_CopyDumpMax, limit) : texts().ui_CopyDump
 
         case Action.SelectAll:
             evt.updatedFields |= .Name | .Shortcut

@@ -75,7 +75,7 @@ func loadViewerDrawing(fileName: string)->Svg.Drawing fail
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: retval
-    let extension = String.from(Path.extension(fileName) orelse "").toLower()
+    let extension = String.toLower(Path.extension(fileName))
     result.information.add(.Image, group: true)
     result.information.add(.Format, extension.toUpper())
     if extension == ".svg"
@@ -191,7 +191,7 @@ impl Panel
         }
         else
         {
-            .zoomLabel.setText(Format.toString("% %", zoom, "%"))
+            .zoomLabel.setText(Viewer.zoomText(zoom))
         }
 
         if .reportChromeChanged do
@@ -343,7 +343,7 @@ private impl IWnd for Panel
             {
                 .details = .facts.text()
                 if .reportDetails do
-                    .reportDetails(me, .details.toString())
+                    .reportDetails(me, .details)
             }
         }
 
@@ -368,7 +368,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -396,7 +396,7 @@ private impl IWnd for Panel
         .applyLayout()
         .setInitialFocus(.imageView)
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
 
@@ -583,17 +583,8 @@ private impl Panel
     // Creates the zoom menu button in the information group.
     mtd createZoomControl()
     {
-        with .zoomLabel = IconButton.create(.info, {}, {0, 0, InfoWidth - 2 * ViewerInfoControlInset, 32}, "scope.image.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
-        }
+        .zoomLabel = Viewer.createZoomButton(.info, "scope.image.zoom", texts().ui_ZoomMenu, InfoWidth - 2 * Viewer.ZoomButtonInset)
+        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
     }
 
     // Creates the picture view and keeps the zoom readout and the frame transport in step with it.

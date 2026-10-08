@@ -356,7 +356,7 @@ struct MainWindow
 // sentences are copied out of the string table for the same contract.
 func caughtMessage(err: any?)->String
 {
-    let s = appStrings()
+    let texts = appStrings()
 
     switch err
     {
@@ -367,30 +367,30 @@ func caughtMessage(err: any?)->String
         // reader chose, so a reader can only be told the container is damaged.
         switch #complete volumeError.kind
         {
-        case .PasswordRequired:  return s.msg_PasswordRequired
+        case .PasswordRequired:  return texts.msg_PasswordRequired
         case .SizeTooSmall:      return minimumSizeMessage()
-        case .PasswordOrDamaged: return s.msg_ErrPasswordOrDamaged
-        case .Corrupted:         return s.msg_ErrDamaged
-        case .NotFound:          return s.msg_ErrNotFound
-        case .AlreadyExists:     return s.msg_ErrAlreadyExists
-        case .AccessDenied:      return s.msg_ErrAccessDenied
-        case .HiddenProtected:   return s.msg_HiddenProtected
-        case .WriteProtected:    return s.msg_ErrReadOnly
-        case .SparseContainer:   return s.msg_ErrSparse
-        case .DiskFull:          return s.msg_ErrDiskFull
-        case .Io:                return s.msg_ErrIo
-        case .Canceled:          return s.msg_OperationStopped
-        case .InvalidInput:      return s.msg_ErrInvalidRequest
-        case .General:           return s.msg_SystemError
-        case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return s.msg_ErrDamaged
+        case .PasswordOrDamaged: return texts.msg_ErrPasswordOrDamaged
+        case .Corrupted:         return texts.msg_ErrDamaged
+        case .NotFound:          return texts.msg_ErrNotFound
+        case .AlreadyExists:     return texts.msg_ErrAlreadyExists
+        case .AccessDenied:      return texts.msg_ErrAccessDenied
+        case .HiddenProtected:   return texts.msg_HiddenProtected
+        case .WriteProtected:    return texts.msg_ErrReadOnly
+        case .SparseContainer:   return texts.msg_ErrSparse
+        case .DiskFull:          return texts.msg_ErrDiskFull
+        case .Io:                return texts.msg_ErrIo
+        case .Canceled:          return texts.msg_OperationStopped
+        case .InvalidInput:      return texts.msg_ErrInvalidRequest
+        case .General:           return texts.msg_SystemError
+        case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return texts.msg_ErrDamaged
         }
 
     case Swag.SystemError as systemError:
         logDiagnostic(systemError.message)
-        return s.msg_SystemError
+        return texts.msg_SystemError
     }
 
-    return s.msg_OperationStopped
+    return texts.msg_OperationStopped
 }
 
 // Says the smallest capacity a container can have, in whole mebibytes.
@@ -1011,7 +1011,7 @@ impl MainWindow
     // Applies the persisted language, or the language of the account when none was picked.
     mtd applyLanguage()
     {
-        discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
+        discard catch .appearanceButton.setAppearanceLanguage(.language)
     }
 
     // Applies the persisted standard application palette.
@@ -1100,35 +1100,35 @@ impl MainWindow
         let texts = appStrings()
         switch #complete .statusMessage
         {
-        case .Ready:                return String.from(texts.msg_Ready)
+        case .Ready:                return texts.msg_Ready
         case .Randomizing:          return Format.toString(texts.msg_Randomizing, .statusProgress)
-        case .StopRequested:        return String.from(texts.msg_StopRequested)
-        case .HiddenCreateCanceled: return String.from(texts.msg_HiddenCreateCanceled)
-        case .CreateCanceled:       return String.from(texts.msg_CreateCanceled)
-        case .StartingDriver:       return String.from(texts.msg_StartingDriver)
-        case .Unmounting:           return String.from(texts.msg_Unmounting)
-        case .CreateStopped:        return String.from(texts.msg_CreateStopped)
-        case .Created:              return String.from(texts.msg_Created)
-        case .MountStopped:         return String.from(texts.msg_MountStopped)
+        case .StopRequested:        return texts.msg_StopRequested
+        case .HiddenCreateCanceled: return texts.msg_HiddenCreateCanceled
+        case .CreateCanceled:       return texts.msg_CreateCanceled
+        case .StartingDriver:       return texts.msg_StartingDriver
+        case .Unmounting:           return texts.msg_Unmounting
+        case .CreateStopped:        return texts.msg_CreateStopped
+        case .Created:              return texts.msg_Created
+        case .MountStopped:         return texts.msg_MountStopped
         case .Mounted:              return Format.toString(texts.msg_Mounted, .statusDrive)
         case .MountedProtected:     return Format.toString(texts.msg_MountedProtected, .statusDrive)
         case .MountedReadOnly:      return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
-        case .Unmounted:            return String.from(texts.msg_Unmounted)
+        case .Unmounted:            return texts.msg_Unmounted
         case .Resizing:             return Format.toString(texts.msg_Resizing, .statusProgress)
         case .Camouflaging:         return Format.toString(texts.msg_Camouflaging, .statusProgress)
-        case .ResizeCanceled:       return String.from(texts.msg_ResizeCanceled)
-        case .ResizeStopped:        return String.from(texts.msg_ResizeStopped)
+        case .ResizeCanceled:       return texts.msg_ResizeCanceled
+        case .ResizeStopped:        return texts.msg_ResizeStopped
         case .Resized:              return Format.toString(texts.msg_Resized, .statusDrive)
-        case .Camouflaged:          return String.from(texts.msg_Camouflaged)
-        case .AutoUnmounted:        return String.from(texts.msg_AutoUnmounted)
-        case .AutoUnmountStopped:   return String.from(texts.msg_AutoUnmountStopped)
-        case .ChangingPassword:     return String.from(texts.msg_ChangingPassword)
-        case .PasswordChanged:      return String.from(texts.msg_PasswordChanged)
-        case .PasswordRemoved:      return String.from(texts.msg_PasswordRemoved)
-        case .PasswordStopped:      return String.from(texts.msg_PasswordStopped)
-        case .ChangingKeyFiles:     return String.from(texts.msg_ChangingPassword)
-        case .KeyFilesChanged:      return String.from(texts.msg_KeyFilesChanged)
-        case .KeyFilesStopped:      return String.from(texts.msg_KeyFilesStopped)
+        case .Camouflaged:          return texts.msg_Camouflaged
+        case .AutoUnmounted:        return texts.msg_AutoUnmounted
+        case .AutoUnmountStopped:   return texts.msg_AutoUnmountStopped
+        case .ChangingPassword:     return texts.msg_ChangingPassword
+        case .PasswordChanged:      return texts.msg_PasswordChanged
+        case .PasswordRemoved:      return texts.msg_PasswordRemoved
+        case .PasswordStopped:      return texts.msg_PasswordStopped
+        case .ChangingKeyFiles:     return texts.msg_ChangingPassword
+        case .KeyFilesChanged:      return texts.msg_KeyFilesChanged
+        case .KeyFilesStopped:      return texts.msg_KeyFilesStopped
         }
     }
 
@@ -1488,15 +1488,15 @@ impl MainWindow
     mtd selectedMountPoint()->String
     {
         let index = .drive.selectedIndex
-        return String.from(index < .mountDestinations.count ? .mountDestinations[index].id : "")
+        return index < .mountDestinations.count ? .mountDestinations[index].id : ""
     }
 
     // Returns the host-facing name for a backend destination identifier.
     mtd mountPointLabel(mountPoint: string)->String
     {
         for &destination in .mountDestinations where destination.id == mountPoint do
-            return String.from(destination.label)
-        return String.from(mountPoint)
+            return destination.label
+        return mountPoint
     }
 
     // Whether a drive is already exposing this container.
@@ -2069,116 +2069,12 @@ impl MainWindow
 
         switch #complete .operation.kind
         {
-        case .None:
-            return
-
-        case .Create:
-            if isCanceledError(operationError)
-            {
-                // A creation the user stopped is an outcome, not a failure, so it reports on
-                // the status line and never opens a dialog.
-                .setStatus(.operation.createHidden ? .HiddenCreateCanceled : .CreateCanceled)
-            }
-            elif operationError != null
-            {
-                .showError(appStrings().msg_CreateFailed, operationError)
-                .setStatus(.CreateStopped)
-            }
-            else
-            {
-                .setStatus(.Created)
-                .mountPath.setText(.operation.path)
-                if .operation.createHidden
-                {
-                    .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
-                    .protectHidden.setState(.Unchecked)
-                    .showTab(1)
-                }
-                else
-                {
-                    .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
-                }
-            }
-
-        case .Mount:
-            if operationError != null
-            {
-                // A startup mount reports on the status line alone: a box per vault would meet
-                // the reader with a stack of them before the window is even readable.
-                if not .operation.fromStartup and not .operation.securityStopped do
-                    .showError(appStrings().msg_MountFailed, operationError)
-                .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
-            }
-            elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch
-            {
-                let mounted = .operation.volume
-                if mounted
-                {
-                    discard catch mounted.close() as closeError
-                    if closeError != null do
-                        .setStatus(.AutoUnmountStopped)
-                    Memory.delete(mounted)
-                    .operation.volume = null
-                }
-
-                if .statusMessage != .AutoUnmountStopped do
-                    .setStatus(.AutoUnmounted)
-            }
-            else
-            {
-                .rememberMountedDrive()
-                .statusDrive = .operation.mountLabel
-                .setStatus(.operation.readOnly ? .MountedReadOnly : (.operation.protectHidden ? .MountedProtected : .Mounted))
-            }
-
-            .fillDriveChoice()
-
-        case .Unmount:
-            if operationError != null do
-                .showError(appStrings().msg_UnmountSyncStopped, operationError)
-            .setStatus(.Unmounted)
-            .fillDriveChoice()
-
-        case .Resize:
-            if isCanceledError(operationError)
-            {
-                .setStatus(.ResizeCanceled)
-            }
-            elif operationError != null
-            {
-                .showError(appStrings().msg_ResizeFailed, operationError)
-                .setStatus(.ResizeStopped)
-            }
-            elif .operation.camouflageOnly
-            {
-                .setStatus(.Camouflaged)
-            }
-            else
-            {
-                .statusDrive = capacityText(.operation.size)
-                .setStatus(.Resized)
-            }
-
-        case .ChangeAccess:
-            if operationError != null
-            {
-                let keyFiles = .operation.accessChange == .KeyFiles
-                .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, operationError)
-                .setStatus(keyFiles ? StatusMessage.KeyFilesStopped : StatusMessage.PasswordStopped)
-            }
-            else
-            {
-                .rememberAccessChange()
-                if .operation.accessChange == .KeyFiles
-                {
-                    .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
-                    .setStatus(.KeyFilesChanged)
-                }
-                else
-                {
-                    .setStatus(.operation.removesPassword ? StatusMessage.PasswordRemoved : StatusMessage.PasswordChanged)
-                }
-            }
+        case .None:         return
+        case .Create:       .finishCreate(operationError)
+        case .Mount:        .finishMount(operationError)
+        case .Unmount:      .finishUnmount(operationError)
+        case .Resize:       .finishResize(operationError)
+        case .ChangeAccess: .finishAccessChange(operationError)
         }
 
         .setState(.Ready)
@@ -2186,6 +2082,129 @@ impl MainWindow
 
         if .startupQueue.count do
             .pumpStartupQueue()
+    }
+
+    // Reports how a creation ended, and on success points the mount tab at the new container.
+    mtd finishCreate(operationError: any?)
+    {
+        if isCanceledError(operationError)
+        {
+            // A creation the user stopped is an outcome, not a failure, so it reports on
+            // the status line and never opens a dialog.
+            .setStatus(.operation.createHidden ? .HiddenCreateCanceled : .CreateCanceled)
+        }
+        elif operationError != null
+        {
+            .showError(appStrings().msg_CreateFailed, operationError)
+            .setStatus(.CreateStopped)
+        }
+        else
+        {
+            .setStatus(.Created)
+            .mountPath.setText(.operation.path)
+            if .operation.createHidden
+            {
+                .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
+                .protectHidden.setState(.Unchecked)
+                .showTab(1)
+            }
+            else
+            {
+                .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
+            }
+        }
+    }
+
+    // Reports how a mount ended. A mount that finished after a security event is closed at once.
+    mtd finishMount(operationError: any?)
+    {
+        if operationError != null
+        {
+            // A startup mount reports on the status line alone: a box per vault would meet
+            // the reader with a stack of them before the window is even readable.
+            if not .operation.fromStartup and not .operation.securityStopped do
+                .showError(appStrings().msg_MountFailed, operationError)
+            .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
+        }
+        elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch
+        {
+            let mounted = .operation.volume
+            if mounted
+            {
+                discard catch mounted.close() as closeError
+                if closeError != null do
+                    .setStatus(.AutoUnmountStopped)
+                Memory.delete(mounted)
+                .operation.volume = null
+            }
+
+            if .statusMessage != .AutoUnmountStopped do
+                .setStatus(.AutoUnmounted)
+        }
+        else
+        {
+            .rememberMountedDrive()
+            .statusDrive = .operation.mountLabel
+            .setStatus(.operation.readOnly ? .MountedReadOnly : (.operation.protectHidden ? .MountedProtected : .Mounted))
+        }
+
+        .fillDriveChoice()
+    }
+
+    // Reports an unmount; a drive that could not flush is still gone.
+    mtd finishUnmount(operationError: any?)
+    {
+        if operationError != null do
+            .showError(appStrings().msg_UnmountSyncStopped, operationError)
+        .setStatus(.Unmounted)
+        .fillDriveChoice()
+    }
+
+    // Reports how a resize or a camouflage refresh ended.
+    mtd finishResize(operationError: any?)
+    {
+        if isCanceledError(operationError)
+        {
+            .setStatus(.ResizeCanceled)
+        }
+        elif operationError != null
+        {
+            .showError(appStrings().msg_ResizeFailed, operationError)
+            .setStatus(.ResizeStopped)
+        }
+        elif .operation.camouflageOnly
+        {
+            .setStatus(.Camouflaged)
+        }
+        else
+        {
+            .statusDrive = capacityText(.operation.size)
+            .setStatus(.Resized)
+        }
+    }
+
+    // Reports how a password or key-file change ended.
+    mtd finishAccessChange(operationError: any?)
+    {
+        if operationError != null
+        {
+            let keyFiles = .operation.accessChange == .KeyFiles
+            .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, operationError)
+            .setStatus(keyFiles ? StatusMessage.KeyFilesStopped : StatusMessage.PasswordStopped)
+        }
+        else
+        {
+            .rememberAccessChange()
+            if .operation.accessChange == .KeyFiles
+            {
+                .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
+                .setStatus(.KeyFilesChanged)
+            }
+            else
+            {
+                .setStatus(.operation.removesPassword ? StatusMessage.PasswordRemoved : StatusMessage.PasswordChanged)
+            }
+        }
     }
 
     // Adds the drive the mount operation produced to the band.

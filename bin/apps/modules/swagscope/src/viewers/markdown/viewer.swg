@@ -18,7 +18,7 @@ impl ViewerSettings
     {
         .themeIndex  = Math.min(.themeIndex, 5)
         .widthIndex  = Math.min(.widthIndex, 3)
-        .zoomPercent = Math.clamp(.zoomPercent, 50'u32, 300'u32)
+        .zoomPercent = Viewer.clampZoom(.zoomPercent)
     }
 }
 
@@ -247,11 +247,11 @@ impl ZoomButton
 
     mtd applyZoom(percent: u32)
     {
-        let bounded = Math.clamp(percent, 50'u32, 300'u32)
+        let bounded = Viewer.clampZoom(percent)
         if .zoomPercent == bounded do
             return
         .zoomPercent = bounded
-        .setText(Format.toString("% %", bounded, "%"))
+        .setText(Viewer.zoomText(bounded))
         applyViewerStyle(.view, .themeCombo.selectedIndex, .widthCombo.selectedIndex, bounded, applyColors: false)
 
         // The window saves preferences on navigation and close, outside wheel handling.
@@ -260,39 +260,28 @@ impl ZoomButton
 
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.markdown.zoom75", checked: .zoomPercent == 75)
-        menu.addItem("100%", "scope.markdown.zoom100", checked: .zoomPercent == 100)
-        menu.addItem("125%", "scope.markdown.zoom125", checked: .zoomPercent == 125)
-        menu.addItem("150%", "scope.markdown.zoom150", checked: .zoomPercent == 150)
-        menu.addItem("200%", "scope.markdown.zoom200", checked: .zoomPercent == 200)
-        switch menu.doModal(me, autoDestroy: true) orelse ""
-        {
-        case "scope.markdown.zoom75":  .applyZoom(75)
-        case "scope.markdown.zoom100": .applyZoom(100)
-        case "scope.markdown.zoom125": .applyZoom(125)
-        case "scope.markdown.zoom150": .applyZoom(150)
-        case "scope.markdown.zoom200": .applyZoom(200)
-        }
+        let percent = Viewer.pickZoom(me, me, .zoomPercent)
+        if percent do
+            .applyZoom(percent)
     }
 
     // Creates the zoom menu of `view` at the persisted zoom; both selectors restyle the same view.
     func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*ZoomButton
     {
-        with let result = Wnd.create'ZoomButton(parent, null, {0, 0, ViewerZoomButtonWidth, 32}, "scope.markdown.zoom")
+        with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
             .themeCombo  = themeCombo
             .widthCombo  = widthCombo
             .dockStyle   = .Center
-            .margin      = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .zoomPercent = Math.clamp(g_ViewerSettings.zoomPercent, 50'u32, 300'u32)
+            .margin      = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
+            .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
+            .toolTip     = texts().ui_ZoomMenu
             .updateFlags(.CenterContent)
-            .setText(Format.toString("% %", .zoomPercent, "%"))
+            .setText(Viewer.zoomText(.zoomPercent))
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
             .sigPressed += func(button) { assume cast(*ZoomButton, button).showZoomMenu() }
         }
 
@@ -318,6 +307,16 @@ private func addThemes(combo: *ComboBox)
     combo.addItem(texts().ui_ThemeApp)
     for name in ["GitHub", "Newsprint", "Night", "Pixyll", "Whitey"] do
         combo.addItem(name)
+}
+
+// Fills `combo` again in the current language with `fill`, keeping its selection.
+private func refill(combo: *ComboBox, fill: func(*ComboBox), toolTip: string)
+{
+    let selected = combo.selectedIndex
+    combo.clear()
+    fill(combo)
+    combo.setSelectedIndex(selected, notify: false)
+    combo.toolTip = toolTip
 }
 
 // Creates the integrated Markdown view.
@@ -350,7 +349,7 @@ func createViewer(host: Viewer.Host)
         .setSelectedIndex(g_ViewerSettings.themeIndex, notify: false)
     }
 
-    with let zoomButton = ZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
+    with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view, themeCombo, widthCombo)
     {
         .outline = DocumentOutline.create(host)
         .outline.bindMarkdown(view, host.fileName())
@@ -360,35 +359,20 @@ func createViewer(host: Viewer.Host)
     {
         switch evt
         {
-        case KeyEvent as key where key.kind == .Pressed and key.modifiers.has(.Control):
-            switch key.key
-            {
-            case .Add, .OemPlus:       zoomButton.applyZoom(zoomButton.zoomPercent + 25)
-            case .Subtract, .OemMinus: zoomButton.applyZoom(zoomButton.zoomPercent > 50 ? zoomButton.zoomPercent - 25 : 50)
-            case .D0:                  zoomButton.applyZoom(100)
-            default:                   return false
-            }
-
+        case KeyEvent as key where Viewer.isZoomKey(key):
+            zoomButton.applyZoom(Viewer.zoomAfterKey(key, zoomButton.zoomPercent))
             return true
 
         case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
             if mouse.delta.y > 0 do
-                zoomButton.applyZoom(zoomButton.zoomPercent + 25)
+                zoomButton.applyZoom(Viewer.zoomIn(zoomButton.zoomPercent))
             elif mouse.delta.y < 0 do
-                zoomButton.applyZoom(zoomButton.zoomPercent > 50 ? zoomButton.zoomPercent - 25 : 50)
+                zoomButton.applyZoom(Viewer.zoomOut(zoomButton.zoomPercent))
             return true
 
         case NotifyEvent as notification where notification.kind == .LanguageChanged:
-            let widthIndex = widthCombo.selectedIndex
-            let themeIndex = themeCombo.selectedIndex
-            widthCombo.clear()
-            addWidths(widthCombo)
-            widthCombo.setSelectedIndex(widthIndex, notify: false)
-            widthCombo.toolTip = texts().ui_TipWidth
-            themeCombo.clear()
-            addThemes(themeCombo)
-            themeCombo.setSelectedIndex(themeIndex, notify: false)
-            themeCombo.toolTip = texts().ui_TipTheme
+            refill(widthCombo, &addWidths, texts().ui_TipWidth)
+            refill(themeCombo, &addThemes, texts().ui_TipTheme)
             zoomButton.toolTip = texts().ui_ZoomMenu
             zoomButton.reportStatistics()
         }

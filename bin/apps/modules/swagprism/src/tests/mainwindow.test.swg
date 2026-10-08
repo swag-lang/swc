@@ -51,7 +51,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 
     let text = window.editor.text()
     Swag.assert(text.contains("\n{\n    var total = 0'f32\n    for i in a.count do\n        total += a[i] * b[i]\n    return total\n}"))
-    let inspected = Pipeline.inspectedSource(text.toString(), "pre-emit")
+    let inspected = Pipeline.inspectedSource(text, "pre-emit")
     Swag.assert(inspected.contains("#[Swag.PrintMicro"))
 }
 

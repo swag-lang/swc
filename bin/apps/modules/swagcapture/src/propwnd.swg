@@ -215,7 +215,7 @@ impl PropWnd
     // current value, so the name is only needed when a reader asks for it.
     func createStyleButton(stack: *Wnd, tip: string)->*IconButton
     {
-        with let btn = IconButton.create(stack, {}, {0, 0, StyleCellSize, StyleCellSize})
+        with let button = IconButton.create(stack, {}, {0, 0, StyleCellSize, StyleCellSize})
         {
             .setForm(.Rectangle)
             .style.addStyleSheetColors("btnIcon_Bk                  $veilSoft")
@@ -230,7 +230,7 @@ impl PropWnd
             .toolTip = tip
         }
 
-        return btn
+        return button
     }
 
     func createColorPicker(btn: *IconButton, color: Color)->*ColorPickerCtrl
@@ -279,10 +279,10 @@ impl PropWnd
             let cur = selectedKind(prop, type, fieldName)
             for c in layout.children
             {
-                let btn  = assume cast(*IconButton, c)
-                let kind = enumFromUserData'FormShapeKind(btn.userData)
-                btn.setChecked(cur == kind)
-                btn.invalidate()
+                let button = assume cast(*IconButton, c)
+                let kind   = enumFromUserData'FormShapeKind(button.userData)
+                button.setChecked(cur == kind)
+                button.invalidate()
             }
         }
 
@@ -455,9 +455,9 @@ impl PropWnd
         case FormStep: tip = appStrings().act_Text
         }
 
-        let btn = createStyleButton(stack, tip)
+        let button = createStyleButton(stack, tip)
 
-        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
+        button.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
@@ -470,19 +470,19 @@ impl PropWnd
             bc.painter.drawRect(rect, curSel.borderColor, 5)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
             let curSel = prop.getSelectedBaseForm()
-            var picker = createColorPicker(btn, curSel.borderColor)
+            var picker = createColorPicker(button, curSel.borderColor)
 
             // Defer the undo entry until the color actually changes: `first` (closure-owned) is
             // true only on the first change, so opening then closing without picking leaves no
             // no-op undo entry, while later changes still replace the previous one (first = false).
-            picker.sigColorChanged += func|prop, btn, var first = true|(pk)
+            picker.sigColorChanged += func|prop, button, var first = true|(pk)
             {
                 prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.borderColor), first, true)
                 first = false
-                btn.invalidate()
+                button.invalidate()
             }
         }
     }
@@ -522,8 +522,8 @@ impl PropWnd
            (formType != FormLine and formType != FormArrow and formType != FormDraw) do
             return
 
-        let btn = createStyleButton(stack, appStrings().ui_PropOutline)
-        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().ui_PropOutline)
+        button.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let color = prop.strokeOutlineColor()
@@ -536,14 +536,14 @@ impl PropWnd
             bc.painter.drawRect(rect, color, 5)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
-            let picker = createColorPicker(btn, prop.strokeOutlineColor())
-            picker.sigColorChanged += func|prop, btn, var first = true|(pk)
+            let picker = createColorPicker(button, prop.strokeOutlineColor())
+            picker.sigColorChanged += func|prop, button, var first = true|(pk)
             {
                 prop.setStrokeOutlineColor(pk.color(), first)
                 first = false
-                btn.invalidate()
+                button.invalidate()
             }
         }
     }
@@ -567,8 +567,8 @@ impl PropWnd
             }
         }
 
-        let btn = createStyleButton(stack, appStrings().ui_PropFill)
-        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().ui_PropFill)
+        button.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
@@ -582,17 +582,17 @@ impl PropWnd
             bc.painter.fillRect(rect, backCol)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
             var curSel  = prop.getSelectedBaseForm()
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
-            var picker  = createColorPicker(btn, backCol)
+            var picker  = createColorPicker(button, backCol)
             if curSel.subKind == .PixSel
             {
-                picker.sigColorChanged += func|btn|(pk)
+                picker.sigColorChanged += func|button|(pk)
                 {
                     g_Main!.pixSelFillCol = pk.color()
-                    btn.invalidate()
+                    button.invalidate()
                 }
             }
             else
@@ -600,11 +600,11 @@ impl PropWnd
                 // Defer the undo entry until the color actually changes: `first` (closure-owned) is
                 // true only on the first change, so opening then closing without picking leaves no
                 // no-op undo entry, while later changes still replace the previous one (first = false).
-                picker.sigColorChanged += func|prop, btn, var first = true|(pk)
+                picker.sigColorChanged += func|prop, button, var first = true|(pk)
                 {
                     prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.backColor), first, true)
                     first = false
-                    btn.invalidate()
+                    button.invalidate()
                 }
             }
         }
@@ -619,19 +619,19 @@ impl PropWnd
         if curSel.subKind == .PixSel do
             return
 
-        let btn = createStyleButton(stack, appStrings().act_Shape)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().act_Shape)
+        button.iconPainter = func|prop = me|(button, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormShape()
             if not curSel do
                 return
-            drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
+            drawShapeGlyph(bc.painter, curSel.kind, pos, button.themeColors().btnIcon_Icon)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
-            prop.createPopupShapeKind(btn, FormShape, #nameof(FormShape.kind))
+            prop.createPopupShapeKind(button, FormShape, #nameof(FormShape.kind))
         }
     }
 
@@ -641,19 +641,19 @@ impl PropWnd
         if curSelType != FormStep do
             return
 
-        let btn = createStyleButton(stack, appStrings().act_Shape)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().act_Shape)
+        button.iconPainter = func|prop = me|(button, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormStep()
             if not curSel do
                 return
-            drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
+            drawShapeGlyph(bc.painter, curSel.kind, pos, button.themeColors().btnIcon_Icon)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
-            prop.createPopupShapeKind(btn, FormStep, #nameof(FormStep.kind))
+            prop.createPopupShapeKind(button, FormStep, #nameof(FormStep.kind))
         }
     }
 
@@ -663,20 +663,20 @@ impl PropWnd
         if curSelType != FormLine and curSelType != FormArrow do
             return
 
-        let btn = createStyleButton(stack, appStrings().ui_PropStart)
+        let button = createStyleButton(stack, appStrings().ui_PropStart)
 
-        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
+        button.iconPainter = func|prop = me|(button, bc, pos, ?)
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
             let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
             bc.painter.setParams(.Antialiased)
-            drawCapGlyph(bc.painter, curSel.beginCap, true, pos, btn.themeColors().btnIcon_Icon)
+            drawCapGlyph(bc.painter, curSel.beginCap, true, pos, button.themeColors().btnIcon_Icon)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
-            prop.createPopupCapStyle(btn, begin: true)
+            prop.createPopupCapStyle(button, begin: true)
         }
     }
 
@@ -686,19 +686,19 @@ impl PropWnd
         if curSelType != FormLine and curSelType != FormArrow do
             return
 
-        let btn = createStyleButton(stack, appStrings().ui_PropEnd)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().ui_PropEnd)
+        button.iconPainter = func|prop = me|(button, bc, pos, ?)
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
             let curSel = assume cast(*FormLine, prop.getSelectedBaseForm())
             bc.painter.setParams(.Antialiased)
-            drawCapGlyph(bc.painter, curSel.endCap, false, pos, btn.themeColors().btnIcon_Icon)
+            drawCapGlyph(bc.painter, curSel.endCap, false, pos, button.themeColors().btnIcon_Icon)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
-            prop.createPopupCapStyle(btn, begin: false)
+            prop.createPopupCapStyle(button, begin: false)
         }
     }
 
@@ -712,21 +712,21 @@ impl PropWnd
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
-        let btn = createStyleButton(stack, appStrings().ui_PropDash)
-        btn.iconPainter = func|prop = me|(btn, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().ui_PropDash)
+        button.iconPainter = func|prop = me|(button, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
             var rect   = pos
             rect.inflate(-10, -10)
-            var pen = Pen.createDash(curSel.dashStyle, btn.themeColors().btnIcon_Icon, DashSize)
+            var pen = Pen.createDash(curSel.dashStyle, button.themeColors().btnIcon_Icon, DashSize)
             pen.dashBlankScale = 0.25
             bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
-            prop.createPopupDashStyle(btn)
+            prop.createPopupDashStyle(button)
         }
     }
 
@@ -762,15 +762,15 @@ impl PropWnd
         var editOptions: EditDlgOptions
         editOptions.title = appStrings().dlg_TitleEnterText
         editOptions.text  = curText.toString()
-        let dlg = EditDlg.createMultiLine(main.surface!, editOptions)
+        let dialog = EditDlg.createMultiLine(main.surface!, editOptions)
         if main.inPlaceEdit do
-            dlg.surface?.setTopMost()
+            dialog.surface?.setTopMost()
 
-        if dlg.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk do
             return curText
         let capture = main.getCapture()!
         let undo    = capture.newUndo(.SetText)
-        undo.text = dlg.text()
+        undo.text = dialog.text()
         capture.pushUndo(undo)
         return undo.text
     }
@@ -782,8 +782,8 @@ impl PropWnd
         if .getSelectedFormType() != FormCallout do
             return
 
-        let btn = createStyleButton(stack, appStrings().act_Text)
-        btn.iconPainter = func|prop = me|(?, bc, pos, ?)
+        let button = createStyleButton(stack, appStrings().act_Text)
+        button.iconPainter = func|prop = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormCallout()
@@ -798,17 +798,17 @@ impl PropWnd
             bc.painter.fillRect(rect, curSel.textColor)
         }
 
-        btn.sigPopupRequested += func|prop = me|(btn)
+        button.sigPopupRequested += func|prop = me|(button)
         {
             let curSel = prop.getSelectedForm'FormCallout()
             if not curSel do
                 return
-            var picker = createColorPicker(btn, curSel.textColor)
-            picker.sigColorChanged += func|prop, btn, var first = true|(pk)
+            var picker = createColorPicker(button, curSel.textColor)
+            picker.sigColorChanged += func|prop, button, var first = true|(pk)
             {
                 prop.pushTypedValue(pk.color().argb, FormCallout, #nameof(FormCallout.textColor), first)
                 first = false
-                btn.invalidate()
+                button.invalidate()
             }
         }
     }
@@ -1000,7 +1000,7 @@ impl PropWnd
             }
 
             if label do
-                width = Math.max(width, Painter.measureString(label.name.raw.toString(), label.font().regular!).width)
+                width = Math.max(width, Painter.measureString(label.name.raw, label.font().regular!).width)
         }
 
         width = Math.ceil(width)
@@ -1067,8 +1067,7 @@ impl PropWnd
         .applyLayout()
 
         let capture = .main.getCapture()
-        if capture do
-            capture.editView?.setFocus()
+        capture?.editView?.setFocus()
     }
 
     func create(parent: *Wnd, main: *MainWnd)->*PropWnd
@@ -1174,8 +1173,8 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormImage.strength):
             if .gridBindType == FormImage
             {
-                let img = assume cast(*FormImage, base)
-                return img.kind != .Image
+                let image = assume cast(*FormImage, base)
+                return image.kind != .Image
             }
         }
 

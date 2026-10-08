@@ -72,6 +72,9 @@ impl Probe
     }
 }
 
+// How long one compiler run may take before the interface stops waiting for it.
+const CompilerTimeoutMs = 60_000'u64
+
 /*
 Path of the compiler that builds the snippets.
 
@@ -91,7 +94,7 @@ func compilerPath()->String
 
     let requested = compilerArgument("--compiler=")
     if requested.count do
-        return String.from(requested)
+        return requested
 
     var folder = String.from(Path.directoryName(Env.executablePath()))
     while not folder.isEmpty()
@@ -103,10 +106,10 @@ func compilerPath()->String
         let parent = Path.directoryName(folder)
         if parent == null or Path.equals(parent, folder) do
             break
-        folder = String.from(parent)
+        folder = parent
     }
 
-    return String.from(CompilerName)
+    return CompilerName
 }
 
 /*

@@ -39,7 +39,7 @@ impl Document
             .failureReason = texts().err_Read
         .readFailed = true
         if .reportFailure do
-            .reportFailure(.failureReason.toString())
+            .reportFailure(.failureReason)
     }
 
     // Opens `fileName` for reading and reports whether its size could be established.

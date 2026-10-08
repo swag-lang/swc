@@ -3,13 +3,6 @@
 
 using Core, Pixel, Gui
 
-const AnalysisPanelWidth     = 368.0
-const AnalysisLabelHeight    = 24.0
-const AnalysisMetricsHeight  = 42.0
-const AnalysisHistogramSize  = 184.0
-const AnalysisHistogramInset = 8.0
-const AnalysisHistogramGap   = 2.0
-
 // Map of the 256 byte values, shaded by how often each occurs.
 //
 // The 16x16 cells keep their hexadecimal position, high nibble by row and low nibble by column,
@@ -31,13 +24,13 @@ private impl HistogramView
     mtd geometry()->{origin: Math.Point, pitch, cell: f32}
     {
         let client    = .clientRect()
-        let available = Math.max(Math.min(client.width, client.height) - AnalysisHistogramInset * 2, 16)
+        let available = Math.max(Math.min(client.width, client.height) - Inset * 2, 16)
         let pitch     = Math.floor(available / 16)
         let extent    = pitch * 16
         var result: retval
         result.origin = {client.horzCenter() - extent * 0.5, client.vertCenter() - extent * 0.5}
         result.pitch  = pitch
-        result.cell   = Math.max(pitch - AnalysisHistogramGap, 1)
+        result.cell   = Math.max(pitch - Gap, 1)
         return result
     }
 
@@ -98,9 +91,14 @@ private impl IWnd for HistogramView
 
 impl HistogramView
 {
+    // The square the 16x16 map fills, the margin around it, and the gap between its cells.
+    const Size  = 184.0
+    const Inset = 8.0
+    const Gap   = 2.0
+
     func create(parent: *Wnd)->*HistogramView
     {
-        with let result = Wnd.create'HistogramView(parent, {0, 0, 0, AnalysisHistogramSize})
+        with let result = Wnd.create'HistogramView(parent, {0, 0, 0, Size})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -222,7 +220,7 @@ private impl AnalysisView
         .scopeLabel.setText(.scopeText(.result.range))
         if not .result.failureReason.isEmpty()
         {
-            .metricsLabel.setText(.result.failureReason.toString())
+            .metricsLabel.setText(.result.failureReason)
         }
         elif .result.cancelled
         {
@@ -313,6 +311,11 @@ private impl AnalysisView
 
 impl AnalysisView
 {
+    // Width of the analysis panel, and the heights of its section labels and metrics row.
+    const PanelWidth    = 368.0
+    const LabelHeight   = 24.0
+    const MetricsHeight = 42.0
+
     // Clears the panel for a new analysis of `range`, and shows its cancel action.
     //
     // `selection` says whether `range` comes from a selection rather than the whole file, and
@@ -381,14 +384,14 @@ impl AnalysisView
 
         result.createHeader()
 
-        with result.scopeLabel = Label.create(result, "", {0, 0, 0, AnalysisLabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.scopeLabel = Label.create(result, "", {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.metricsLabel = Label.create(result, "", {0, 0, 0, AnalysisMetricsHeight}, null, .SecondaryText | .WordWrap)
+        with result.metricsLabel = Label.create(result, "", {0, 0, 0, MetricsHeight}, null, .SecondaryText | .WordWrap)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
@@ -400,14 +403,14 @@ impl AnalysisView
             .sigByteChanged += func|view = result|(?, value) { view.updateByteDetail(value) }
         }
 
-        with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, {0, 0, 0, AnalysisLabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, {0, 0, 0, AnalysisLabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .OpticalCenter)

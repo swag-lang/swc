@@ -82,7 +82,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     assertViewerInfoButton(viewer.zoomLabel)
-    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
     Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None

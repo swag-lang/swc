@@ -392,14 +392,10 @@ func resolvePropertyText(key: string)->string?
     let reference = cast(const [*] u8, &g_PropertyKeys)
     let active    = cast(const [*] u8, &g_AppStrings)
 
-    for f in type.fields!
+    for field in type.fields! where Utf8.startsWith(field.name orelse "", PropertyKeyPrefix)
     {
-        let field = f
-        if not Utf8.startsWith(field.name orelse "", PropertyKeyPrefix) do
-            continue
-        if cast(const *string, reference + field.offset)[] != key do
-            continue
-        return cast(const *string, active + field.offset)[]
+        if cast(const *string, reference + field.offset)[] == key do
+            return cast(const *string, active + field.offset)[]
     }
 
     return null
@@ -452,7 +448,7 @@ private func checkPropertyKeysAreDistinct()
                 continue
 
             let clash = Format.toString("property key [[%]] is declared by both [[%]] and [[%]]", value, other.name orelse "", name)
-            Swag.assert(false, clash.toString())
+            Swag.assert(false, clash)
         }
     }
 }

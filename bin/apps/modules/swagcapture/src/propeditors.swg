@@ -9,7 +9,7 @@ private func createAlignButton(line: *Wnd, vert: bool, width, height: f32, index
 {
     const Labels = ["L", "C", "R"]
 
-    with let btn = IconButton.create(line, {}, {0, 0, width, height})
+    with let button = IconButton.create(line, {}, {0, 0, width, height})
     {
         .setForm(.Rectangle)
         .updateFlags(.Radio)
@@ -32,7 +32,7 @@ private func createAlignButton(line: *Wnd, vert: bool, width, height: f32, index
         }
     }
 
-    return btn
+    return button
 }
 
 // Editor of a FormTextAlign field: three exclusive toggle buttons. The same editor

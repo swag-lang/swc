@@ -304,9 +304,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     defer discard catch File.delete(fileName)
 
     var payload: Array'u8
-    payload.resize(ViewerSearchChunkSize + 256)
-    let first  = ViewerSearchChunkSize - 2
-    let second = ViewerSearchChunkSize + 80
+    payload.resize(ViewerWindow.SearchChunkSize + 256)
+    let first  = ViewerWindow.SearchChunkSize - 2
+    let second = ViewerWindow.SearchChunkSize + 80
     for offset in [first, second]
     {
         payload[offset + 0] = 0xDE
@@ -395,7 +395,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     completeHexViewerOpen(&host, window)
     let view = selectHexViewer(&host, window)
     Swag.assert(window.currentInfo != null)
-    Swag.assert(view.analysisButton.position.x - window.currentInfo.position.right() == ViewerInfoSideButtonSpacing)
+    Swag.assert(view.analysisButton.position.x - window.currentInfo.position.right() == ViewerInfoLayout.SideButtonSpacing)
 
     view.analysisButton.setChecked(true)
     view.analysisButton.sigCheckedChanged.call(view.analysisButton)

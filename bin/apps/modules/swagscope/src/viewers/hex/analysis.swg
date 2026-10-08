@@ -88,7 +88,7 @@ private impl StringScanner
             if result.strings.count < AnalysisStringLimit
             {
                 var entry = AnalysisString{offset: .start, length: .length, kind: kind}
-                entry.text = String.from(cast(string, .preview.toSlice()))
+                entry.text = cast(string, .preview.toSlice())
                 if .units > .preview.count do
                     entry.text += "..."
                 result.strings.add(#move entry)

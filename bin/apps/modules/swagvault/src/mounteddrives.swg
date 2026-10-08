@@ -174,7 +174,7 @@ impl MountedDrives
             line.setItem(cast(u32, MountedColumn.Drive), one.mountLabel, driveIcon)
             line.setItem(cast(u32, MountedColumn.Size), capacityText(one.totalBytes))
             line.setItem(cast(u32, MountedColumn.Available), capacityText(one.availableBytes))
-            line.setItem(cast(u32, MountedColumn.Vault), Path.fileName(one.path) orelse one.path.toString())
+            line.setItem(cast(u32, MountedColumn.Vault), Path.fileName(one.path) orelse one.path)
         }
 
         for &one, index in .drives where .startupEnabled and one.atStartup do

@@ -58,7 +58,7 @@ namespace Integration
         for path in paths
         {
             // Shell parsing does not perform the slash conversion accepted by Win32 file APIs.
-            var shellPath = String.from(path.toString())
+            var shellPath = String.from(path)
             shellPath.replace('/', "\\")
             let path16 = Utf16.toZeroTerminated(shellPath)
             var idList: PIDLIST_ABSOLUTE
@@ -659,14 +659,14 @@ namespace Integration
         var box = catch Sandbox.create() as createError
         if createError != null
         {
-            g_Failure = String.from(errorMessage(createError))
+            g_Failure = errorMessage(createError)
             return false
         }
 
         discard catch runInSandbox(&box) as scenarioError
         if scenarioError != null
         {
-            g_Failure = String.from(errorMessage(scenarioError))
+            g_Failure = errorMessage(scenarioError)
             trace(Format.toString("FAIL-EARLY: %", g_Failure))
             return false
         }

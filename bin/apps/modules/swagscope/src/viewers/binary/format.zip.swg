@@ -3,14 +3,17 @@
 
 using Core
 
-// Signatures the three records a reader needs are found by.
-private const ZipEndSignature          = 0x06054B50'u32
-private const ZipEntrySignature        = 0x02014B50'u32
-private const ZipZip64LocatorSignature = 0x07064B50'u32
+private
+{
+    // Signatures the three records a reader needs are found by.
+    const ZipEndSignature          = 0x06054B50'u32
+    const ZipEntrySignature        = 0x02014B50'u32
+    const ZipZip64LocatorSignature = 0x07064B50'u32
 
-// How far back the trailing record is looked for. It sits at the very end unless the archive
-// carries a comment, and a comment is bounded by the sixteen bits that measure it.
-private const ZipEndSearch = 0xFFFF + 22'u64
+    // How far back the trailing record is looked for. It sits at the very end unless the archive
+    // carries a comment, and a comment is bounded by the sixteen bits that measure it.
+    const ZipEndSearch = 0xFFFF + 22'u64
+}
 
 // Returns whether the file is a ZIP archive, whatever the container built on top of it is called.
 //
@@ -56,13 +59,13 @@ func reportZipArchive(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
 
-    let s     = texts()
+    let texts = texts()
     let endAt = zipEndAt(image)
     if endAt == Swag.U64.Max
     {
-        report.note(s.zip_NoDirectory)
-        report.formatName = String.from("ZIP")
-        report.summary    = String.from(s.zip_NoDirectory)
+        report.note(texts.zip_NoDirectory)
+        report.formatName = "ZIP"
+        report.summary    = texts.zip_NoDirectory
         return
     }
 
@@ -71,7 +74,7 @@ func reportZipArchive(image: *BinaryImage, report: *Report)
     let at         = cast(u64, image.u32At(endAt + 16))
     let commentLen = cast(u64, image.u16At(endAt + 20))
 
-    report.beginGroup(s.zip_End, "PK\x05\x06", "", offset: endAt, length: 22 + commentLen, open: true)
+    report.beginGroup(texts.zip_End, "PK\x05\x06", "", offset: endAt, length: 22 + commentLen, open: true)
     report.numField(endAt + 4, 2, "DiskNumber", cast(u64, image.u16At(endAt + 4)))
     report.numField(endAt + 10, 2, "TotalEntries", declared)
     report.sizeField(endAt + 12, 4, "DirectorySize", size)
@@ -80,13 +83,13 @@ func reportZipArchive(image: *BinaryImage, report: *Report)
     if commentLen
     {
         let comment = image.fixedTextAt(endAt + 22, Math.min(commentLen, 512'u64))
-        report.field(endAt + 22, commentLen, s.zip_Comment, comment)
+        report.field(endAt + 22, commentLen, texts.zip_Comment, comment)
     }
 
     // A Zip64 locator sits immediately in front of the record when the archive outgrew the fields
     // above, so the numbers they carry are placeholders rather than the truth.
     if endAt >= 20 and image.u32At(endAt - 20) == ZipZip64LocatorSignature do
-        report.hexField(endAt - 20 + 8, 8, s.zip_Zip64, image.u64At(endAt - 20 + 8))
+        report.hexField(endAt - 20 + 8, 8, texts.zip_Zip64, image.u64At(endAt - 20 + 8))
     report.endGroup()
 
     reportZipEntries(image, report, at, size, declared)
@@ -94,11 +97,11 @@ func reportZipArchive(image: *BinaryImage, report: *Report)
 
 private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, declared: u64)
 {
-    let s     = texts()
+    let texts = texts()
     let end   = at + size
-    let total = countText(declared, s.word_Entry, s.word_Entries)
+    let total = countText(declared, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.zip_Directory, total, s.zip_DirectoryDesc, offset: at, length: size, open: true)
+    report.beginGroup(texts.zip_Directory, total, texts.zip_DirectoryDesc, offset: at, length: size, open: true)
 
     var scan     = at
     var shown    = 0'u64
@@ -129,21 +132,21 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
         // A name that ends in a separator is a folder the archive recorded rather than a payload,
         // and it has no bytes anywhere to point at.
         let folder = nameLen and (name.toString()[nameLen - 1] == '/'u8 or name.toString()[nameLen - 1] == '\\'u8)
-        report.beginGroup(name, folder ? s.zip_Folder : stored, zipMethodName(method), offset: folder ? Swag.U64.Max : localAt, length: folder ? 0 : compressed + 30 + nameLen)
+        report.beginGroup(name, folder ? texts.zip_Folder : stored, zipMethodName(method), offset: folder ? Swag.U64.Max : localAt, length: folder ? 0 : compressed + 30 + nameLen)
 
-        report.field(scan + 12, 4, s.fld_Modified, stamp)
-        report.numField(scan + 10, 2, s.zip_Method, cast(u64, method), zipMethodName(method))
+        report.field(scan + 12, 4, texts.fld_Modified, stamp)
+        report.numField(scan + 10, 2, texts.zip_Method, cast(u64, method), zipMethodName(method))
         report.hexField(scan + 16, 4, "CRC-32", cast(u64, crc))
         report.sizeField(scan + 20, 4, "CompressedSize", compressed)
         report.sizeField(scan + 24, 4, "UncompressedSize", plain)
         report.hexField(scan + 42, 4, "LocalHeaderOffset", localAt)
-        report.hexField(scan + 8, 2, "Flags", cast(u64, flags), flags & 1 ? s.zip_Encrypted : "")
+        report.hexField(scan + 8, 2, "Flags", cast(u64, flags), flags & 1 ? texts.zip_Encrypted : "")
         report.hexField(scan + 38, 4, "ExternalAttributes", cast(u64, image.u32At(scan + 38)))
 
         if plain and not folder
         {
-            let ratio = Format.toString(s.zip_Ratio, compressed * 100 / plain)
-            report.derived(s.zip_Ratio, ratio)
+            let ratio = Format.toString(texts.zip_Ratio, compressed * 100 / plain)
+            report.derived(texts.zip_Ratio, ratio)
         }
 
         report.endGroup()
@@ -154,10 +157,10 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
     report.listCut(shown, declared)
     report.endGroup()
 
-    report.formatName = String.from("ZIP")
+    report.formatName = "ZIP"
     if unpacked
     {
-        let ratio = Format.toString(s.zip_Ratio, packed * 100 / unpacked)
+        let ratio = Format.toString(texts.zip_Ratio, packed * 100 / unpacked)
         report.summary = Format.toString("ZIP · % · %", total, ratio)
         return
     }
@@ -182,6 +185,6 @@ private func zipEndAt(image: *BinaryImage)->u64
 private func zipTimeText(date, time: u16)->String
 {
     if not date do
-        return String.from(NoValue)
+        return NoValue
     return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", 1980 + (date >> 9), (date >> 5) & 0xF, date & 0x1F, time >> 11, (time >> 5) & 0x3F, (time & 0x1F) * 2)
 }

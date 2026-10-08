@@ -190,7 +190,7 @@ impl BinaryImage
     private mtd const identifierTextAt(offset: u64, mixedEndian: bool)->String
     {
         if not .has(offset, 16) do
-            return String.from(NoValue)
+            return NoValue
 
         const MixedOrder = [3'u64, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15]
 
@@ -205,7 +205,7 @@ impl BinaryImage
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     }
 
     // Returns `length` bytes at `offset` with every unprintable byte shown as a dot.
@@ -222,6 +222,6 @@ impl BinaryImage
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     }
 }

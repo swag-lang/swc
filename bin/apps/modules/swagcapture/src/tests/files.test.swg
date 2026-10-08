@@ -20,7 +20,7 @@ func testSamePath(left: String, right: String)->bool
     var r = String.from(right)
     Path.normalize(&l)
     Path.normalize(&r)
-    return Path.equals(l.toString(), r.toString())
+    return Path.equals(l, r)
 }
 
 func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
@@ -202,10 +202,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(18, 11)
     f.capture.file    = testTempCapturePath()
 
-    var img = f.capture.toImage()
+    var image = f.capture.toImage()
 
     var data: Gui.DragData
-    f.main.fillDragData(&data, f.capture, &img)
+    f.main.fillDragData(&data, f.capture, &image)
 
     // The gesture announces a file named after the capture, and has encoded nothing to do it.
     Swag.assert(data.hasImage())
@@ -246,7 +246,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let temp     = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
     expected += ".png"
-    let exported = Path.combine(Path.combine(temp.toString(), "Swag Capture"), expected.toString())
+    let exported = Path.combine(Path.combine(temp, "Swag Capture"), expected)
     Swag.assert(not File.exists(exported))
 }
 
@@ -299,7 +299,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     expect first.save(firstPath)
     expect last.save(lastPath)
 
-    Swag.assert(f.gui.dropFilesOnWnd(f.editView, [firstPath.toString(), lastPath.toString()]) == Gui.DropEffect.Copy)
+    Swag.assert(f.gui.dropFilesOnWnd(f.editView, [firstPath, lastPath.toString()]) == Gui.DropEffect.Copy)
 
     defer g_Library.files.clear()
     Swag.assert(f.main.recentWnd.recentView.items.count == 2)

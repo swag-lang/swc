@@ -422,7 +422,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var writer: Scc.Writer
     writer.initialize(Guid128.random())
     writer.manifest().name = "fixture container"
-    writer.manifest().tags.add(String.from("probe"))
+    writer.manifest().tags.add("probe")
 
     let payload = [1'u8, 2, 3, 4, 5, 6, 7, 8]
     discard expect writer.addChunk(payload, {})
@@ -791,7 +791,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     return view
 }
 
-func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw.toString())
+func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw)
 
 // The tree the view builds is the report, and the search the host runs lands in it.
 #[Swag.TestTag("golden")]
@@ -965,7 +965,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     Swag.assert(window.currentActions == null)
     Swag.assert(window.searchGroup.isLocallyVisible())
     Swag.assert(window.currentCommands != null and window.viewerBar.isLocallyVisible())
-    Swag.assert(window.viewerBar.position.height == ViewerBarHeight)
+    Swag.assert(window.viewerBar.position.height == ViewerWindow.BarHeight)
 
     host.settleAnimations(window.commandBar, 4)
     var image = host.render(window.commandBar)

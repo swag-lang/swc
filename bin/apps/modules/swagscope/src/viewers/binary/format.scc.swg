@@ -17,29 +17,29 @@ func reportSccContainer(image: *BinaryImage, report: *Report, fileName: string)
 {
     image.bigEndian = false
 
-    let s          = texts()
+    let texts      = texts()
     let major      = image.u16At(8)
     let minor      = image.u16At(10)
     let headerSize = image.u64At(16)
 
-    report.beginGroup(s.scc_Prefix, SccMagic, "", offset: 0, length: Scc.PrefixSize, open: true)
-    report.field(8, 4, s.fld_Version, "", "")
+    report.beginGroup(texts.scc_Prefix, SccMagic, "", offset: 0, length: Scc.PrefixSize, open: true)
+    report.field(8, 4, texts.fld_Version, "", "")
     report.numField(8, 2, "FormatMajor", cast(u64, major))
     report.numField(10, 2, "FormatMinor", cast(u64, minor))
     report.hexField(12, 4, "Flags", cast(u64, image.u32At(12)))
     report.sizeField(16, 8, "HeaderSize", headerSize)
     report.hexField(24, 4, "HeaderChecksum", cast(u64, image.u32At(24)))
-    report.field(Scc.PrefixSize, headerSize, s.fld_Header, "", s.scc_Manifest)
+    report.field(Scc.PrefixSize, headerSize, texts.fld_Header, "", texts.scc_Manifest)
     report.endGroup()
 
-    report.formatName = String.from("SCC")
+    report.formatName = "SCC"
 
     var reader: Scc.Reader
     catch reader.initialize(fileName) as openError
     if openError != null
     {
-        report.note(s.scc_Unreadable)
-        report.summary = Format.toString("SCC %.% · %", major, minor, s.scc_Unreadable)
+        report.note(texts.scc_Unreadable)
+        report.summary = Format.toString("SCC %.% · %", major, minor, texts.scc_Unreadable)
         return
     }
 
@@ -47,7 +47,7 @@ func reportSccContainer(image: *BinaryImage, report: *Report, fileName: string)
     let kind       = reader.kind().toString()
     let generation = reader.generation()
 
-    report.beginGroup(s.scc_Container, identity, "", open: true)
+    report.beginGroup(texts.scc_Container, identity, "", open: true)
     report.derived("ContainerKind", kind)
     report.derived("ContainerId", identity)
     let generationText = Format.toString("%", generation)
@@ -57,18 +57,18 @@ func reportSccContainer(image: *BinaryImage, report: *Report, fileName: string)
     reportSccManifest(report, reader.manifest())
     reportSccChunks(report, reader.chunks())
 
-    let chunks = countText(reader.chunks().count, s.word_Chunk, s.word_Chunks)
+    let chunks = countText(reader.chunks().count, texts.word_Chunk, texts.word_Chunks)
     report.summary = Format.toString("SCC %.% · %", major, minor, chunks)
 }
 
 private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
 {
-    let s = texts()
-    report.beginGroup(s.scc_Manifest, manifest.name, "", open: true)
+    let texts = texts()
+    report.beginGroup(texts.scc_Manifest, manifest.name, "", open: true)
 
     let version = Format.toString("%", manifest.version)
     let profile = Format.toString("%", manifest.profileVersion)
-    report.derived(s.fld_Version, version)
+    report.derived(texts.fld_Version, version)
     report.derived("ProfileVersion", profile)
     if not manifest.description.isEmpty() do
         report.derived("Description", manifest.description)
@@ -76,9 +76,9 @@ private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
     let created  = manifest.createdAt.toString(.DateTimeIso)
     let modified = manifest.modifiedAt.toString(.DateTimeIso)
     if manifest.createdAt.isValid() do
-        report.derived(s.scc_Created, created)
+        report.derived(texts.scc_Created, created)
     if manifest.modifiedAt.isValid() do
-        report.derived(s.scc_Modified, modified)
+        report.derived(texts.scc_Modified, modified)
 
     if not manifest.tags.isEmpty()
     {
@@ -90,13 +90,13 @@ private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
             joined += tag.toString()
         }
 
-        report.derived(s.scc_Tags, joined)
+        report.derived(texts.scc_Tags, joined)
     }
 
     if not manifest.profileData.isEmpty()
     {
         let stored = StrConv.toDisplaySize(manifest.profileData.count)
-        report.derived(s.scc_Profile, stored)
+        report.derived(texts.scc_Profile, stored)
     }
 
     reportSccProperties(report, manifest.properties.toSlice())
@@ -109,9 +109,9 @@ private func reportSccProperties(report: *Report, properties: const [..] Scc.Pro
     if not properties.count do
         return
 
-    let s     = texts()
-    let total = countText(properties.count, s.word_Property, s.word_Properties)
-    report.beginGroup(s.scc_Properties, total, "")
+    let texts = texts()
+    let total = countText(properties.count, texts.word_Property, texts.word_Properties)
+    report.beginGroup(texts.scc_Properties, total, "")
 
     for property in properties
     {
@@ -127,7 +127,7 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
 {
     switch value.kind
     {
-    case .Text:     return String.from(value.textValue)
+    case .Text:     return value.textValue
     case .Signed:   return Format.toString("%", value.signedValue)
     case .Unsigned: return Format.toString("%", value.unsignedValue)
     case .Float:    return Format.toString("%", value.floatValue)
@@ -135,7 +135,7 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
     case .Bytes:    return StrConv.toDisplaySize(value.bytesValue.count)
     }
 
-    return String.from(NoValue)
+    return NoValue
 }
 
 // Adds the virtual hierarchy the manifest declares, parents before the entries they own.
@@ -144,13 +144,13 @@ private func reportSccEntries(report: *Report, entries: const [..] Scc.Entry)
     if not entries.count do
         return
 
-    let s     = texts()
-    let total = countText(entries.count, s.word_Entry, s.word_Entries)
-    report.beginGroup(s.scc_Entries, total, "", open: true)
+    let texts = texts()
+    let total = countText(entries.count, texts.word_Entry, texts.word_Entries)
+    report.beginGroup(texts.scc_Entries, total, "", open: true)
 
     for entry in entries
     {
-        let kind = entry.kind == .Directory ? s.scc_Directory : s.scc_VirtualFile
+        let kind = entry.kind == .Directory ? texts.scc_Directory : texts.scc_VirtualFile
         report.beginGroup(entry.name, kind, "")
 
         let identity = entry.id.toString()
@@ -169,7 +169,7 @@ private func reportSccEntries(report: *Report, entries: const [..] Scc.Entry)
 
         if not entry.variantChunks.isEmpty()
         {
-            let variants = countText(entry.variantChunks.count, s.word_Chunk, s.word_Chunks)
+            let variants = countText(entry.variantChunks.count, texts.word_Chunk, texts.word_Chunks)
             report.derived("VariantChunks", variants)
         }
 
@@ -182,9 +182,9 @@ private func reportSccEntries(report: *Report, entries: const [..] Scc.Entry)
 
 private func reportSccChunks(report: *Report, chunks: const [..] Scc.ChunkInfo)
 {
-    let s     = texts()
-    let total = countText(chunks.count, s.word_Chunk, s.word_Chunks)
-    report.beginGroup(s.scc_Chunks, total, "", open: true)
+    let texts = texts()
+    let total = countText(chunks.count, texts.word_Chunk, texts.word_Chunks)
+    report.beginGroup(texts.scc_Chunks, total, "", open: true)
 
     for chunk in chunks
     {
@@ -225,12 +225,12 @@ private func reportSccChunks(report: *Report, chunks: const [..] Scc.ChunkInfo)
 
 private func sccCodecName(codecId: Guid128)->string
 {
-    let s = texts()
+    let texts = texts()
     if codecId.isNull() do
-        return s.scc_Stored
+        return texts.scc_Stored
     if codecId == Scc.deflateCodecId() do
-        return s.scc_Deflate
-    return s.scc_Codec
+        return texts.scc_Deflate
+    return texts.scc_Codec
 }
 
 private func sccChunkFlagsText(value: Scc.ChunkFlags)->String

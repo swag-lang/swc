@@ -118,20 +118,20 @@ impl Plugin
     {
         if .resolveName do
             return .resolveName()
-        return .staticName.toString()
+        return .staticName
     }
 
     // Adds every `;` separated selector of `list`.
     mtd addSelectors(list: string)
     {
         for selector in Tokenize.split(list, ';'u8) do
-            .selectors.add(String.from(selector))
+            .selectors.add(selector)
     }
 
     // Adds one selector per element of `list`.
     mtd addSelectors(list: const [..] String)
     {
         for selector in list do
-            .selectors.add(String.from(selector.toString()))
+            .selectors.add(selector)
     }
 }

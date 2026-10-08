@@ -99,7 +99,7 @@ private impl Panel
     {
         .details = Format.toString(texts().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     mtd showZoomMenu()
@@ -159,7 +159,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -183,7 +183,7 @@ impl Panel
     {
         let services = host.services()
         let commands = host.createCommandGroup(CommandWidth)
-        let info     = host.createInfoGroup(ViewerZoomSlotWidth)
+        let info     = host.createInfoGroup(Viewer.ZoomSlotWidth)
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
@@ -202,17 +202,8 @@ impl Panel
             .sigChanged += func|view = result|(?, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.midi.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = result|(?) { view.showZoomMenu() }
-        }
+        result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)
+        result.zoomLabel.sigPressed += func|view = result|(?) { view.showZoomMenu() }
 
         result.applyLayout()
         result.load.start(host.fileName(), &loadDocument)

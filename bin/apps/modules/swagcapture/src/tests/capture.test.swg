@@ -117,10 +117,10 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
     Swag.assert(actionExecuted)
 
-    let img = Clipboard.getImage()
-    Swag.assert(img.isValid())
-    Swag.assert(img.width == 16)
-    Swag.assert(img.height == 12)
+    let image = Clipboard.getImage()
+    Swag.assert(image.isValid())
+    Swag.assert(image.width == 16)
+    Swag.assert(image.height == 12)
 }
 
 // Monitor capture is non-interactive: a small fake monitor keeps the real screen
@@ -154,8 +154,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4))
     Swag.assert(actionExecuted)
 
-    let img = Clipboard.getImage()
-    Swag.assert(img.isValid())
-    Swag.assert(img.width == 320)
-    Swag.assert(img.height == 240)
+    let image = Clipboard.getImage()
+    Swag.assert(image.isValid())
+    Swag.assert(image.width == 320)
+    Swag.assert(image.height == 240)
 }

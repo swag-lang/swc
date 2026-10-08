@@ -42,7 +42,7 @@ func videoPreviewFileAt(fileName: string, frameCount = 4'u32)->String fail
     }
 
     try clip.save(fileName)
-    return String.from(fileName)
+    return fileName
 }
 
 // Answers a movie that has been played through with the continuation stored on the view.
@@ -716,7 +716,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     defer Sound.releaseEngine()
 
     var host: Testing.HeadlessHost
-    host.setup(ViewerMinWidth, 450)
+    host.setup(ViewerWindow.MinWidth, 450)
     defer host.shutdown()
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     host.theme.setSwagDark()

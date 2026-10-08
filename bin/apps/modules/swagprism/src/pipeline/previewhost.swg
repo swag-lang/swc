@@ -3,6 +3,10 @@
 
 using Core, Gui, Pixel
 
+// A shader sees centred coordinates, one unit per half frame height, so its circles stay round.
+private const HalfWidth  = cast(f32, FrameChannel.Width) / 2
+private const HalfHeight = cast(f32, FrameChannel.Height) / 2
+
 // Snippets run in an isolated process; the renderer is compiled with Prism, once.
 // A replacement process gets fresh globals, callbacks and worker state for its module.
 func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
@@ -18,9 +22,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     var shade: (func(f32, f32, f32)->u32)?
     if gui
     {
-        let symbol = library.symbol("prism_build")
-        Swag.assert(symbol != null)
-        let build = cast(func(*Wnd), symbol)
+        let build = cast(func(*Wnd), library.symbol("prism_build")!)
         host.setup(FrameChannel.Width, FrameChannel.Height)
         host.setReducedMotion(false)
         host.theme.setSwagDark()
@@ -30,9 +32,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     }
     else
     {
-        let symbol = library.symbol("prism_shade")
-        Swag.assert(symbol != null)
-        shade = cast(func(f32, f32, f32)->u32, symbol)
+        shade = cast(func(f32, f32, f32)->u32, library.symbol("prism_shade")!)
     }
 
     var clock: Time.Stopwatch
@@ -60,11 +60,11 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
         {
             let pixels = cast([*] u32, channel.pixels())
             let shader = shade!
-            let time   = frame == 0 ? 0.0 : cast(f32, clock.elapsedMicroseconds()) / 1000000
+            let time   = frame == 0 ? 0.0 : cast(f32, clock.elapsedMicroseconds()) / 1_000_000
             parallel for |pixels, shader, time| y in cast(u64, FrameChannel.Height)
             {
                 for x in FrameChannel.Width do
-                    pixels[y * FrameChannel.Width + x] = shader((cast(f32, x) - 320) / 200, (cast(f32, y) - 200) / 200, time)
+                    pixels[y * FrameChannel.Width + x] = shader((cast(f32, x) - HalfWidth) / HalfHeight, (cast(f32, y) - HalfHeight) / HalfHeight, time)
             }
         }
 

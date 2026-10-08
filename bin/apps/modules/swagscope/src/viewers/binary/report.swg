@@ -222,23 +222,23 @@ impl Report
             for row.level do
                 result += "    "
 
-            result += row.label.toString()
+            result += row.label
             if not row.value.isEmpty()
             {
                 result += ": "
-                result += row.value.toString()
+                result += row.value
             }
 
             if not row.detail.isEmpty()
             {
                 result += "  "
-                result += row.detail.toString()
+                result += row.detail
             }
 
             if row.offset != Swag.U64.Max
             {
                 result += "  @"
-                result += hexText(row.offset, 8).toString()
+                result += hexText(row.offset, 8)
             }
 
             result += "\n"
@@ -268,7 +268,7 @@ func hexText(value: u64, digits: u64)->String
         text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(cast(string, text.toSlice()))
+    return cast(string, text.toSlice())
 }
 
 // Returns a value in the two readings a size or an address is always wanted in at once.
@@ -302,12 +302,12 @@ func flagsText(value: u64, names: const [..] FlagName)->String
 func epochText(seconds: u64)->String
 {
     if not seconds do
-        return String.from(texts().ui_NotSet)
+        return texts().ui_NotSet
 
     // A stamp beyond the calendar the runtime spells is a reproducible-build cookie or a corrupt
     // field. Either way it is a number, and saying so beats printing a year in the far future.
     if seconds > 253_370_764_800 do
-        return String.from(texts().ui_NotDate)
+        return texts().ui_NotDate
 
     let epoch = Time.Timestamp.fromDateTime({1970, 1, 1})
     let stamp = Time.Timestamp.fromTicks(epoch.ticks + seconds * Time.TicksPerSecond)

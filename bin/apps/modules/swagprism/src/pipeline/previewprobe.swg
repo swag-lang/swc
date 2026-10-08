@@ -3,6 +3,9 @@
 
 using Core
 
+// How long the child may go without publishing a frame before the preview reports it stalled.
+private const StallTimeoutMs = 10_000'u64
+
 // The child owns all snippet execution. The UI owns cancellation and joins before releasing
 // the mapped channel; a looping compiler or renderer can therefore be stopped at any time.
 #[Swag.NoCopy]
@@ -34,7 +37,7 @@ impl PreviewProbe
         .request = request
         .task.submit(func|probe = me, cache|()
         {
-            catch probe.run(probe.request, cache) as error
+            catch probe.run(cache) as error
             if error != null
             {
                 probe.failed      = true
@@ -43,11 +46,12 @@ impl PreviewProbe
         })
     }
 
-    mtd run(request: BuildRequest, cache: *CompilationCache) fail
+    mtd run(cache: *CompilationCache) fail
     {
-        var lease = cache.acquire(request)
+        var lease = cache.acquire(.request)
         if not lease.wait(&.cancelled) do
             return
+
         .compileMs  = lease.artifact!.elapsedMs
         .artifactId = lease.artifact.id
         .reused     = lease.reused
@@ -59,18 +63,20 @@ impl PreviewProbe
         }
 
         try .folder.open()
-        var watch: Time.Stopwatch
         if Atomic.get(&.cancelled) do
             return
+
+        // The child renders into a mapped frame channel; this side only watches that frames keep coming.
         let channelPath = Path.combine(.folder.session, "frame.bin")
         try .channel.open(channelPath, true)
-        let executable = Env.executablePath()
-        let outDir     = Path.combine(lease.artifact.folder.session, "out")
-        let childArgs  = Env.joinArguments(["--prism-preview-host", channelPath, lease.artifact.binary, request.kind == .Gui ? "gui" : "pixel"])
-        var child      = try Env.startProcess(Env.StartInfo{fileName: executable, arguments: childArgs, workingDirectory: outDir, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+        let outDir    = Path.combine(lease.artifact.folder.session, "out")
+        let childArgs = Env.joinArguments(["--prism-preview-host", channelPath, lease.artifact.binary, .request.kind == .Gui ? "gui" : "pixel"])
+        var child     = try Env.startProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: childArgs, workingDirectory: outDir, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&child)
         Atomic.exchange(&.ready, 1)
-        watch.restart()
+
+        var watch: Time.Stopwatch
+        watch.start()
         var lastFrame = 0'u32
         while not try child.tryWaitForExit(20'ms)
         {
@@ -84,7 +90,7 @@ impl PreviewProbe
                 watch.restart()
             }
 
-            if watch.elapsedMilliseconds() > 10000
+            if watch.elapsedMilliseconds() > StallTimeoutMs
             {
                 .failed      = true
                 .diagnostics = appStrings().msg_PreviewStalled
@@ -92,6 +98,7 @@ impl PreviewProbe
             }
         }
 
+        // The child only exits on its own when the snippet failed.
         .failed      = true
         .diagnostics = child.standardOutput()
         .diagnostics.append(child.standardError())

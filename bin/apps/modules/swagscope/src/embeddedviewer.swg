@@ -162,7 +162,7 @@ private impl EmbeddedViewer
         .currentSideButton          = instance.sidePanelButton
         .activeIndex                = index
         .commandBar.centerGroup     = .currentCommands
-        .commandBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
+        .commandBar.position.height = .currentCommands ? ViewerWindow.BarHeight : .themeMetrics().panel_GutterSize
 
         var infoWidth: f32
         if instance.info do

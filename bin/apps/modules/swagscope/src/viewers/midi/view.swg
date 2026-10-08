@@ -3,13 +3,16 @@
 
 using Core, Pixel, Gui
 
-private const HeaderHeight  = 76.0
-private const AxisHeight    = 28.0
-private const KeyboardWidth = 72.0
-private const ContentInset  = 24.0
-private const QuarterWidth  = 64.0
-private const MinZoom       = 0.01'f32
-private const MaxZoom       = 16.0'f32
+private
+{
+    const HeaderHeight  = 76.0
+    const AxisHeight    = 28.0
+    const KeyboardWidth = 72.0
+    const ContentInset  = 24.0
+    const QuarterWidth  = 64.0
+    const MinZoom       = 0.01'f32
+    const MaxZoom       = 16.0'f32
+}
 
 // Paints a MIDI document as a scrolling piano roll under a summary header.
 struct RollView

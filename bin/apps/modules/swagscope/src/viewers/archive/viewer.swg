@@ -84,7 +84,7 @@ impl ZipEntryExtract
         let operation = me
         .task.submit(func|operation|()
         {
-            catch extractZipEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
+            catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
             operation.error = Errors.message(extractError)
         })
     }
@@ -159,7 +159,7 @@ private impl IWnd for Panel
             if not .failureReason.isEmpty()
             {
                 if .reportFailure do
-                    .reportFailure(me, .failureReason.toString())
+                    .reportFailure(me, .failureReason)
                 return
             }
 
@@ -310,7 +310,7 @@ private impl Panel
     {
         if .previewFile.isEmpty() do
             return
-        catch File.delete(.previewFile.toString())
+        catch File.delete(.previewFile)
         .previewFile.clear()
         .activePreview = Swag.U64.Max
     }
@@ -336,7 +336,7 @@ private impl Panel
             else
             {
                 let entry = &.archive.entries[.activePreview]
-                catch .embedded.open(.previewFile.toString(), entry.path) as openError
+                catch .embedded.open(.previewFile, entry.path) as openError
                 if openError != null
                 {
                     .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, Errors.message(openError)))
@@ -373,7 +373,7 @@ private impl Panel
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
         .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), tempName)
-        .extract.start(.sourceFile.toString(), entry, .previewFile.toString())
+        .extract.start(.sourceFile, entry, .previewFile)
     }
 
     mtd showPreviewStatus(text: string)
@@ -424,7 +424,7 @@ private impl Panel
         let line = .list.lineAt(.list.focusIndex)
         if not line or line.items.isEmpty() do
             return false
-        let name = Pixel.RichString.plainText(line.items[0]!.name.raw.toString())
+        let name = Pixel.RichString.plainText(line.items[0]!.name.raw)
         return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.length, result)
     }
 
@@ -501,7 +501,7 @@ private impl Panel
         }
 
         result.splitter.addPane(result.previewPane).minimumSize = 320
-        result.load.start(host.fileName(), &loadZip)
+        result.load.start(host.fileName(), &Zip.load)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         result.applyLayout()
         return result

@@ -73,7 +73,7 @@ private func formatText(format: Subtitle.Format)->string
 }
 
 // Returns the cue count with the noun that count calls for.
-private func cueCountText(count: u64)->String => count == 1 ? String.from(texts().ui_OneCue) : Format.toString(texts().ui_Cues, count)
+private func cueCountText(count: u64)->String => count == 1 ? texts().ui_OneCue : Format.toString(texts().ui_Cues, count)
 
 impl IWnd for Panel
 {
@@ -129,7 +129,7 @@ private impl Panel
         if match.major >= .cueText.count do
             return false
         let cue = .cueText[match.major]
-        Viewer.highlightRichEditMatch(.editor, .transcript.toString(), cue.textOffset + match.offset, match.length)
+        Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset + match.offset, match.length)
         return true
     }
 
@@ -138,7 +138,7 @@ private impl Panel
         if index >= .cueText.count do
             return false
         let cue = .cueText[index]
-        Viewer.highlightRichEditMatch(.editor, .transcript.toString(), cue.textOffset, cue.textLength)
+        Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset, cue.textLength)
         .editor.setFocus()
         return true
     }

@@ -39,7 +39,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     let view = assume cast(*PlainText.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
     finishTextStatistics(&host, view)
     let lineDetails = Format.toString(PlainText.texts().ui_Lines, view.statistics.lines)
     Swag.assert(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))

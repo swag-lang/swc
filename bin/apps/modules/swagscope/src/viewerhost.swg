@@ -2,10 +2,6 @@
 
 using Core, Gui
 
-const ViewerInfoControlInset = 12.0
-const ViewerZoomButtonWidth  = 72.0
-const ViewerZoomSlotWidth    = ViewerZoomButtonWidth + 2 * ViewerInfoControlInset
-
 // One plugin instance and every contribution the host owns with it.
 struct ViewerSession
 {

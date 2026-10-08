@@ -91,18 +91,18 @@ impl Document
     // are done — and it still has to be read first.
     private mtd prependFileSummary()
     {
-        let s = texts()
+        let texts = texts()
 
         var head: Report
-        head.beginGroup(s.rep_File, .report.formatName.toString(), .report.summary.toString(), offset: 0, length: .image.fileSize, open: true)
+        head.beginGroup(texts.rep_File, .report.formatName, .report.summary, offset: 0, length: .image.fileSize, open: true)
 
         let size = StrConv.toDisplaySize(.image.fileSize)
-        head.derived(s.rep_Size, size)
+        head.derived(texts.rep_Size, size)
 
         if .image.isBounded()
         {
             let read = StrConv.toDisplaySize(.image.bytes.count)
-            head.derived(s.rep_Read, read, s.rep_Bounded)
+            head.derived(texts.rep_Read, read, texts.rep_Bounded)
         }
 
         // The bytes and their printable rendering go in separate lanes: together they are wider
@@ -111,18 +111,18 @@ impl Document
         if not magic.isEmpty()
         {
             let readable = .signatureAsText()
-            head.field(0, Math.min(.image.bytes.count, 16'u64), s.rep_FirstBytes, magic, readable)
+            head.field(0, Math.min(.image.bytes.count, 16'u64), texts.rep_FirstBytes, magic, readable)
         }
 
         if .image.bytes.count
         {
             let entropy = .entropy()
             let value   = Format.toString("%{f2} / 8", entropy)
-            head.derived(s.rep_Entropy, value, entropy > 7.2 ? s.rep_EntropyHigh : (entropy > 5 ? s.rep_EntropyMid : s.rep_EntropyLow))
+            head.derived(texts.rep_Entropy, value, entropy > 7.2 ? texts.rep_EntropyHigh : (entropy > 5 ? texts.rep_EntropyMid : texts.rep_EntropyLow))
         }
 
         if .image.truncated do
-            head.note(s.rep_Truncated)
+            head.note(texts.rep_Truncated)
         head.endGroup()
 
         .report.rows.insertAt(0, head.rows.toSlice())
@@ -147,7 +147,7 @@ impl Document
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     }
 
     // Returns the same leading bytes as the letters a reader recognizes them by.
@@ -165,7 +165,7 @@ impl Document
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     }
 
     // Returns the Shannon entropy of the beginning of the file, in bits per byte.
@@ -244,8 +244,8 @@ private struct Signature
 // before anything else, and the entropy above says whether looking further is even worth it.
 func reportUnknown(image: *BinaryImage, report: *Report)
 {
-    let s    = texts()
-    let name = signatureName(image)
+    let texts = texts()
+    let name  = signatureName(image)
     if not name.isEmpty()
     {
         report.summary    = Format.toString("% · %", name, StrConv.toDisplaySize(image.fileSize))
@@ -253,8 +253,8 @@ func reportUnknown(image: *BinaryImage, report: *Report)
         return
     }
 
-    report.formatName = String.from(s.rep_Unknown)
-    report.summary    = String.from(image.fileSize ? s.rep_UnknownDesc : s.rep_Empty)
+    report.formatName = texts.rep_Unknown
+    report.summary    = image.fileSize ? texts.rep_UnknownDesc : texts.rep_Empty
 }
 
 // Returns the name, in the active language, of the format a file's leading bytes belong to, or an
@@ -264,37 +264,37 @@ func reportUnknown(image: *BinaryImage, report: *Report)
 // taken apart; naming it is what lets a reader stop looking.
 func signatureName(image: *BinaryImage)->String
 {
-    let s = texts()
-    let signatures = [Signature{0, "\x1F\x8B", s.sig_Gzip},
-                      Signature{0, "BZh", s.sig_Bzip2},
-                      Signature{0, "\xFD7zXZ", s.sig_Xz},
-                      Signature{0, "\x28\xB5\x2F\xFD", s.sig_Zstd},
-                      Signature{0, "7z\xBC\xAF\x27\x1C", s.sig_SevenZip},
-                      Signature{0, "Rar!", s.sig_Rar},
-                      Signature{0, "MSCF", s.sig_Cabinet},
-                      Signature{0, "\xD0\xCF\x11\xE0", s.sig_Ole},
-                      Signature{257, "ustar", s.sig_Tar},
-                      Signature{0, "%PDF-", s.sig_Pdf},
-                      Signature{0, "%!PS", s.sig_PostScript},
-                      Signature{0, "\x89PNG\r\n\x1A\n", s.sig_Png},
-                      Signature{0, "GIF8", s.sig_Gif},
-                      Signature{0, "\xFF\xD8\xFF", s.sig_Jpeg},
-                      Signature{0, "BM", s.sig_Bmp},
-                      Signature{0, "II*\0", s.sig_Tiff},
-                      Signature{0, "MM\0*", s.sig_Tiff},
-                      Signature{0, "OggS", s.sig_Ogg},
-                      Signature{0, "fLaC", s.sig_Flac},
-                      Signature{0, "ID3", s.sig_Mp3},
-                      Signature{0, "\x1A\x45\xDF\xA3", s.sig_Matroska},
-                      Signature{4, "ftyp", s.sig_IsoMedia},
-                      Signature{0, "\xCA\xFE\xBA\xBE", s.sig_JavaClass},
-                      Signature{0, "dex\n", s.sig_Dalvik},
-                      Signature{0, "SQLite format 3", s.sig_Sqlite},
-                      Signature{0, "Microsoft C/C++ MSF 7.00", s.sig_Pdb},
-                      Signature{0, "wOF2", s.sig_Woff2},
-                      Signature{0, "wOFF", s.sig_Woff}]
+    let texts      = texts()
+    let signatures = [Signature{0, "\x1F\x8B", texts.sig_Gzip},
+                      Signature{0, "BZh", texts.sig_Bzip2},
+                      Signature{0, "\xFD7zXZ", texts.sig_Xz},
+                      Signature{0, "\x28\xB5\x2F\xFD", texts.sig_Zstd},
+                      Signature{0, "7z\xBC\xAF\x27\x1C", texts.sig_SevenZip},
+                      Signature{0, "Rar!", texts.sig_Rar},
+                      Signature{0, "MSCF", texts.sig_Cabinet},
+                      Signature{0, "\xD0\xCF\x11\xE0", texts.sig_Ole},
+                      Signature{257, "ustar", texts.sig_Tar},
+                      Signature{0, "%PDF-", texts.sig_Pdf},
+                      Signature{0, "%!PS", texts.sig_PostScript},
+                      Signature{0, "\x89PNG\r\n\x1A\n", texts.sig_Png},
+                      Signature{0, "GIF8", texts.sig_Gif},
+                      Signature{0, "\xFF\xD8\xFF", texts.sig_Jpeg},
+                      Signature{0, "BM", texts.sig_Bmp},
+                      Signature{0, "II*\0", texts.sig_Tiff},
+                      Signature{0, "MM\0*", texts.sig_Tiff},
+                      Signature{0, "OggS", texts.sig_Ogg},
+                      Signature{0, "fLaC", texts.sig_Flac},
+                      Signature{0, "ID3", texts.sig_Mp3},
+                      Signature{0, "\x1A\x45\xDF\xA3", texts.sig_Matroska},
+                      Signature{4, "ftyp", texts.sig_IsoMedia},
+                      Signature{0, "\xCA\xFE\xBA\xBE", texts.sig_JavaClass},
+                      Signature{0, "dex\n", texts.sig_Dalvik},
+                      Signature{0, "SQLite format 3", texts.sig_Sqlite},
+                      Signature{0, "Microsoft C/C++ MSF 7.00", texts.sig_Pdb},
+                      Signature{0, "wOF2", texts.sig_Woff2},
+                      Signature{0, "wOFF", texts.sig_Woff}]
 
     for signature in signatures where image.matches(signature.offset, signature.magic) do
-        return String.from(signature.name)
+        return signature.name
     return {}
 }

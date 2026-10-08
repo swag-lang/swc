@@ -91,16 +91,16 @@ using Swag, Core
         let itf = newTextStyle(border)
         defer testDeleteForm(itf)
 
-        let btn = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellSize, QuickCellSize})
-        defer btn.destroy()
-        btn.iconPainter = func|itf|(?, bc, ?, ?)
+        let button = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellSize, QuickCellSize})
+        defer button.destroy()
+        button.iconPainter = func|itf|(?, bc, ?, ?)
         {
             var paint = QuickStylePaintForm.create(itf)
             defer paint.release()
             Capture.paintForm(bc.painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paint.itf!, zoom: 1, quickMode: true)
         }
 
-        var image = f.gui.render(btn)
+        var image = f.gui.render(button)
         let ink   = inkBounds(&image)
         Swag.assert(ink.width > 4 and ink.height > 4)
         Swag.assert(Math.abs(ink.horzCenter() - QuickCellSize * 0.5) <= 2)
@@ -256,13 +256,13 @@ using Swag, Core
         var result: retval
         for c in quick.layout.children
         {
-            let btn = assume cast(*QuickButton, c)
-            if btn.isModel or not btn.formItf do
+            let button = assume cast(*QuickButton, c)
+            if button.isModel or not button.formItf do
                 continue
-            if Swag.kindOf(btn.formItf) != FormImage do
+            if Swag.kindOf(button.formItf) != FormImage do
                 continue
-            if assume cast(*FormImage, btn.formItf).kind == .Blur do
-                return btn.toolTip
+            if assume cast(*FormImage, button.formItf).kind == .Blur do
+                return button.toolTip
         }
 
         return result

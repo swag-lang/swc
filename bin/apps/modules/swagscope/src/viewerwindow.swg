@@ -1,77 +1,5 @@
 using Core, Pixel, Gui
 
-const ViewerActionBarHeight                   = 42.0
-const ViewerBarHeight                         = 48.0
-const ViewerInfoHeight                        = 40.0
-const ViewerMinWidth                          = 880
-const ViewerSearchChunkSize                   = 256 * 1024'u64
-const ViewerSearchFieldWidth                  = 180.0
-const ViewerSearchNoOptionsFieldWidth         = 256.0
-const ViewerSearchCountWidth                  = 52.0
-const ViewerSearchGroupSpacing                = 16.0
-const ViewerInfoGroupSpacing                  = 16.0
-const ViewerInfoFileSpacing                   = 8.0
-const ViewerInfoSideButtonSpacing             = 8.0
-const ViewerSearchCarryMargin                 = 4'u64
-const ViewerErrorTextWidth                    = 512.0
-const ViewerFullScreenRevealEdge              = 32.0
-const ViewerRetirePollInterval: Time.Duration = 16'ms
-const ViewerLoadingSpinnerSize                = 56.0
-const ViewerLoadingSpinnerMinRadius           = 15.0
-const ViewerLoadingSpinnerMaxRadius           = 21.0
-const ViewerLoadingSpinnerMinSweep            = 58.0
-const ViewerLoadingSpinnerMaxSweep            = 232.0
-
-// How long a viewer may keep the window waiting before the activity mark appears, how long the
-// mark then stays once it has, and how often the wait is looked at.
-//
-// A file that arrives inside the delay was never a wait, and the document before it stays on
-// screen for that long anyway: showing the mark would only announce a pause nobody felt. A mark
-// that appears and leaves within one frame is a flicker over the document, so once shown it
-// lingers past the end of the wait. Both thresholds are what keep a fast file change reading as
-// instantaneous.
-const ViewerLoadingShowDelayMicroseconds       = 400_000'u64
-const ViewerLoadingMinVisibleMicroseconds      = 500_000'u64
-const ViewerLoadingPollInterval: Time.Duration = 50'ms
-const ViewerLoadingFadeIn:       Time.Duration = 120'ms
-const ViewerSearchMarkPadX                     = 5.0
-const ViewerSearchMarkPadY                     = 2.0
-const ViewerSearchMarkRadius                   = 4.0
-const ViewerSearchMarkEdge                     = 1.0
-const ViewerSearchGlowReach                    = 5.0
-const ViewerSearchGlowSteps                    = 4'u32
-const ViewerSearchOverlayInsetX                = ViewerSearchMarkPadX + ViewerSearchGlowReach
-const ViewerSearchOverlayInsetY                = ViewerSearchMarkPadY + ViewerSearchGlowReach
-const ViewerSearchGlowPeriod:    f32           = 1.35
-const ViewerSearchBoundsPoll:    Time.Duration = 16'ms
-const ViewerSmokeStepLimit                     = 300'u32
-const ViewerSmokeExposureSteps                 = 25'u32
-const ViewerSmokeMinimumSteps                  = 2'u32
-
-func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f32}
-{
-    let pulse = 0.5'f32 - 0.5'f32 * Math.cos(phase * Math.ConstF32.TwoPi)
-
-    var result: retval
-    result.radius = Math.lerp(ViewerLoadingSpinnerMinRadius, ViewerLoadingSpinnerMaxRadius, pulse)
-    result.sweep  = Math.lerp(ViewerLoadingSpinnerMinSweep, ViewerLoadingSpinnerMaxSweep, pulse)
-    result.start  = phase * 540 - 90 - result.sweep * 0.5
-    return result
-}
-
-const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
-
-// The panel that lists what is beside the current file, and what was read before it.
-const ViewerPanelWidth   = 276.0
-const ViewerRecentHeight = 188.0
-const ViewerPaneMinSize  = 88.0
-
-// Files the recent list keeps. Long enough to cross a working session, short enough that the list
-// stays something a reader scans rather than searches.
-const ViewerRecentCount        = 12'u64
-const ViewerFolderHistoryCount = 8'u64
-
 // One remembered answer to "which viewer opens a file of this kind".
 //
 // A reader who turns to the bytes of one picture is telling the application what to do with the
@@ -234,7 +162,7 @@ struct ViewerWindow
     folderHistory:       Array'ViewerFolderHistory
     preferences:         Array'ViewerPreference
     panelVisible:        bool
-    recentPaneSize = ViewerRecentHeight
+    recentPaneSize = RecentHeight
     refreshingLists:     bool
     fileDlgState:        FileDlgState
     themeIndex:          u32
@@ -451,7 +379,7 @@ impl IWnd for ViewerWindow
                 return
             }
 
-            if .fileWatch.poll(.currentFile.toString()) do
+            if .fileWatch.poll(.currentFile) do
                 .reloadCurrentFile()
             return
         }
@@ -578,12 +506,12 @@ impl IWnd for ViewerWindow
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
-            .recentPaneSize = Math.max(.recentPaneSize, ViewerPaneMinSize)
+            .recentPaneSize = Math.max(.recentPaneSize, PaneMinSize)
             if not .filePanel.items.isEmpty() do
                 .filePanel.items[0]!.size = .recentPaneSize
-            while .recent.count > ViewerRecentCount do
+            while .recent.count > RecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
-            while .folderHistory.count > ViewerFolderHistoryCount do
+            while .folderHistory.count > FolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(not .folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
@@ -619,6 +547,67 @@ impl IWnd for ViewerWindow
 
 impl ViewerWindow
 {
+    // The command, information, and action bars around the document, and the narrowest window
+    // that still lays them out.
+    const BarHeight       = 48.0
+    const InfoHeight      = 40.0
+    const ActionBarHeight = 42.0
+    const MinWidth        = 880
+
+    // The side panel that lists what is beside the current file, and what was read before it.
+    const PanelWidth   = 276.0
+    const RecentHeight = 188.0
+    const PaneMinSize  = 88.0
+
+    // Files the recent list keeps. Long enough to cross a working session, short enough that the
+    // list stays something a reader scans rather than searches.
+    const RecentCount        = 12'u64
+    const FolderHistoryCount = 8'u64
+
+    // The search group of the command bar.
+    const SearchFieldWidth          = 180.0
+    const SearchNoOptionsFieldWidth = 256.0
+    const SearchCountWidth          = 52.0
+    const SearchGroupSpacing        = 16.0
+
+    // Search reads the file one chunk at a time. A match that may continue into the next chunk
+    // waits for it, so each chunk keeps the query span plus this margin of the one before.
+    const SearchChunkSize   = 256 * 1024'u64
+    const SearchCarryMargin = 4'u64
+
+    // How often the halo of the current match follows a moving view, and how long one pulse of its
+    // glow lasts.
+    const SearchBoundsPoll: Time.Duration = 16'ms
+    const SearchGlowPeriod = 1.35'f32
+
+    // How long a viewer may keep the window waiting before the activity mark appears, how long the
+    // mark then stays once it has, and how often the wait is looked at.
+    //
+    // A file that arrives inside the delay was never a wait, and the document before it stays on
+    // screen for that long anyway: showing the mark would only announce a pause nobody felt. A mark
+    // that appears and leaves within one frame is a flicker over the document, so once shown it
+    // lingers past the end of the wait. Both thresholds are what keep a fast file change reading as
+    // instantaneous.
+    const LoadingShowDelayMicroseconds       = 400_000'u64
+    const LoadingMinVisibleMicroseconds      = 500_000'u64
+    const LoadingPollInterval: Time.Duration = 50'ms
+
+    // How often a pending file change looks again for its classification and for the retirement of
+    // the viewer before it.
+    const RetirePollInterval: Time.Duration = 16'ms
+
+    // In full screen the bars step aside; the pointer within this distance of an edge brings them
+    // back. The surface loses its frame and stays above other windows.
+    const FullScreenRevealEdge   = 32.0
+    const FullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
+    const FullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
+
+    // The smoke review gives a viewer at most `SmokeStepLimit` readiness checks, keeps every viewer
+    // on screen for `SmokeMinimumSteps`, and one that is still loading for `SmokeExposureSteps`.
+    const SmokeStepLimit     = 300'u32
+    const SmokeExposureSteps = 25'u32
+    const SmokeMinimumSteps  = 2'u32
+
     // Rasterizes one glyph of a plugin-owned vector document through this window's renderer.
     //
     // A plugin names the document it embeds and the cell it wants; the frame textures belong to
@@ -656,7 +645,7 @@ impl ViewerWindow
 
     mtd applyLanguage()
     {
-        discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
+        discard catch .appearanceButton.setAppearanceLanguage(.language)
     }
 
     // Keeps the few decorative glyphs aligned with the active palette and document kind.
@@ -698,7 +687,7 @@ impl ViewerWindow
     private mtd updateViewerBar()
     {
         .viewerBar.centerGroup     = .currentCommands
-        .viewerBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
+        .viewerBar.position.height = .currentCommands ? BarHeight : .themeMetrics().panel_GutterSize
         if .fullScreen do
             .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
         else do
@@ -713,14 +702,14 @@ impl ViewerWindow
         if .fullScreen == enabled do
             return
 
-        let srfn = .surface!
+        let surface = .surface!
         if enabled
         {
-            .fullScreenRestorePosition = srfn.isMaximized ? srfn.restoredPosition : srfn.position
-            .fullScreenRestoreFlags    = srfn.flags
-            .fullScreenWasMaximized    = srfn.isMaximized
+            .fullScreenRestorePosition = surface.isMaximized ? surface.restoredPosition : surface.position
+            .fullScreenRestoreFlags    = surface.flags
+            .fullScreenWasMaximized    = surface.isMaximized
             .fullScreen = true
-            srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
+            surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
             .documentHost.padding = {}
             .documentPanel.backgroundStyle = .View
             .accentRail.hide()
@@ -739,12 +728,12 @@ impl ViewerWindow
             .fullScreenBottomVisible     = false
 
             // Commit the final chrome and bounds together through the native placement path.
-            srfn.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
+            surface.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
         }
         else
         {
             .fullScreen = false
-            srfn.updateFlags(add: .fullScreenRestoreFlags & (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags), remove: (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags) & ~.fullScreenRestoreFlags)
+            surface.updateFlags(add: .fullScreenRestoreFlags & (FullScreenRemovedFlags | FullScreenAddedFlags), remove: (FullScreenRemovedFlags | FullScreenAddedFlags) & ~.fullScreenRestoreFlags)
             let gutter = .themeMetrics().panel_GutterSize
             .documentHost.padding = {gutter, 0, gutter, 0}
             .documentPanel.backgroundStyle = .Panel
@@ -766,12 +755,12 @@ impl ViewerWindow
             // Going straight back to the maximized state keeps the window out of its restored
             // bounds, which would otherwise be shown for one transaction on the way.
             if .fullScreenWasMaximized do
-                srfn.showMaximized(.fullScreenRestorePosition)
+                surface.showMaximized(.fullScreenRestorePosition)
             else do
-                srfn.showNormalAt(.fullScreenRestorePosition)
+                surface.showNormalAt(.fullScreenRestorePosition)
         }
 
-        srfn.invalidate()
+        surface.invalidate()
         .fullScreenButton.setChecked(.fullScreen)
         .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, themeActionIconSize(.themeMetrics())))
         .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
@@ -783,8 +772,8 @@ impl ViewerWindow
         if not .fullScreen do
             return
         let height = .clientRect().height
-        let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerActionBarHeight + .infoBarHost.position.height)
-        let bottom = position.y >= height - ViewerFullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - ViewerBarHeight)
+        let top    = position.y <= FullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ActionBarHeight + .infoBarHost.position.height)
+        let bottom = position.y >= height - FullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - BarHeight)
         if top == .fullScreenTopVisible and bottom == .fullScreenBottomVisible do
             return
         .fullScreenTopVisible    = top
@@ -803,8 +792,8 @@ impl ViewerWindow
         .updateViewerBar()
         if .fullScreenTopVisible
         {
-            .commandBar.setPosition({rect.x, rect.y, rect.width, ViewerActionBarHeight}, computeLayout: false)
-            .infoBarHost.setPosition({rect.x, rect.y + ViewerActionBarHeight, rect.width, .infoBarHost.position.height}, computeLayout: false)
+            .commandBar.setPosition({rect.x, rect.y, rect.width, ActionBarHeight}, computeLayout: false)
+            .infoBarHost.setPosition({rect.x, rect.y + ActionBarHeight, rect.width, .infoBarHost.position.height}, computeLayout: false)
             .commandBar.applyLayout()
             .infoBarHost.applyLayout()
             .commandBar.bringToFront()
@@ -813,7 +802,7 @@ impl ViewerWindow
 
         if .fullScreenBottomVisible and .currentCommands
         {
-            .viewerBar.setPosition({rect.x, rect.bottom() - ViewerBarHeight, rect.width, ViewerBarHeight}, computeLayout: false)
+            .viewerBar.setPosition({rect.x, rect.bottom() - BarHeight, rect.width, BarHeight}, computeLayout: false)
             .viewerBar.applyLayout()
             .viewerBar.bringToFront()
         }
@@ -848,8 +837,8 @@ impl ViewerWindow
         let iconSize              = themeActionIconSize(.themeMetrics())
         let actionSize            = themeActionButtonSize(.themeMetrics())
         let dropDownWidth         = themeDropDownButtonWidth(.themeMetrics())
-        let searchNavigationWidth = 2 * actionSize + ViewerSearchCountWidth + 8
-        let searchBarWidth        = dropDownWidth + ViewerSearchFieldWidth + searchNavigationWidth + 2 * ViewerSearchGroupSpacing
+        let searchNavigationWidth = 2 * actionSize + SearchCountWidth + 8
+        let searchBarWidth        = dropDownWidth + SearchFieldWidth + searchNavigationWidth + 2 * SearchGroupSpacing
 
         with .commandButtons = IconBar.create(.commandBar, iconSize, itemPadding: .themeMetrics().btnIcon_Padding)
         {
@@ -885,7 +874,7 @@ impl ViewerWindow
         with .searchGroup = StackLayoutCtrl.create(.commandBar, .Center, {0, 0, searchBarWidth, actionSize})
         {
             .backgroundStyle = .Transparent
-            .spacing         = ViewerSearchGroupSpacing
+            .spacing         = SearchGroupSpacing
             .hide()
         }
 
@@ -899,7 +888,7 @@ impl ViewerWindow
             .sigPressed += func|window = me|(?) { window.showSearchOptionsMenu() }
         }
 
-        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
+        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
         {
             .setIcon(me.theme().icon(.Search, iconSize))
             .setPlaceholder(appStrings().ui_Search)
@@ -932,7 +921,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
+        with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, SearchCountWidth, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -957,7 +946,7 @@ impl ViewerWindow
         // File identity and content statistics are read before the document. The information
         // surface follows the same panel composition as both side panes: a rounded semantic
         // ground inside one shared chrome seam. Viewer tools belong to the dedicated band below.
-        with .infoBarHost = Wnd.create'Wnd(me, {0, 0, 0, ViewerInfoHeight + panelGutter * 2})
+        with .infoBarHost = Wnd.create'Wnd(me, {0, 0, 0, InfoHeight + panelGutter * 2})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
@@ -1029,7 +1018,7 @@ impl ViewerWindow
 
     private mtd createViewerBar()
     {
-        with .viewerBar = Wnd.create'ViewerActionBar(me, {0, 0, 0, ViewerBarHeight})
+        with .viewerBar = Wnd.create'ViewerActionBar(me, {0, 0, 0, BarHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
@@ -1046,7 +1035,7 @@ impl ViewerWindow
         // The toolbar-colored lane is the static seam shared with the application chrome. The
         // rounded structural panel sits inside it, so the lists read as one integrated surface
         // instead of a square block divided from the document by an unrelated rule.
-        with .filePanelHost = Wnd.create'Wnd(me, {0, 0, ViewerPanelWidth + panelGutter, 0})
+        with .filePanelHost = Wnd.create'Wnd(me, {0, 0, PanelWidth + panelGutter, 0})
         {
             .dockStyle       = .Left
             .backgroundStyle = .ToolBar
@@ -1057,11 +1046,11 @@ impl ViewerWindow
             .hide()
         }
 
-        with .filePanel = SplitterCtrl.create(.filePanelHost, {0, 0, ViewerPanelWidth, 0}, vertical: true)
+        with .filePanel = SplitterCtrl.create(.filePanelHost, {0, 0, PanelWidth, 0}, vertical: true)
         {
             .dockStyle       = .Center
-            .minSize.x       = ViewerPanelWidth
-            .maxSize.x       = ViewerPanelWidth
+            .minSize.x       = PanelWidth
+            .maxSize.x       = PanelWidth
             .backgroundStyle = .Transparent
         }
 
@@ -1158,13 +1147,13 @@ impl ViewerWindow
             .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position)) }
         }
 
-        with let recentItem = .filePanel.addPane(.recentPane, ViewerRecentHeight)
+        with let recentItem = .filePanel.addPane(.recentPane, RecentHeight)
         {
-            .minimumSize  = ViewerPaneMinSize
+            .minimumSize  = PaneMinSize
             .preserveSize = true
         }
 
-        .filePanel.addPane(.folderPane).minimumSize = ViewerPaneMinSize
+        .filePanel.addPane(.folderPane).minimumSize = PaneMinSize
     }
 
     private mtd createDocumentPanel(panelGutter: f32)
@@ -1235,7 +1224,7 @@ impl ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
         result.surface!.setView(result)
-        result.surface.minSize = {ViewerMinWidth, 420}
+        result.surface.minSize = {MinWidth, 420}
         result.backgroundStyle = .Application
         result.index           = #move index
         result.language        = Gui.ReferenceLanguage
@@ -1273,9 +1262,9 @@ impl ViewerWindow
         // The registry remains the source of the compact capability line, but extension details
         // stay out of the identity box: the viewer names communicate the supported content
         // families without turning About into a file-association inventory.
-        let dlg = AboutDlg.createApplication(.surface!, about)
-        dlg.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
-        return dlg
+        let dialog = AboutDlg.createApplication(.surface!, about)
+        dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
+        return dialog
     }
 
     // Opens the standard product identity and provenance dialog.
@@ -1308,8 +1297,8 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() or not .pendingFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
-        .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key.toString(), .searchBox.text())
-        .queueFile(.currentFile.toString(), remember: false, preserveReading: true)
+        .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key, .searchBox.text())
+        .queueFile(.currentFile, remember: false, preserveReading: true)
     }
 
     // Opens `fileName` after the surface has had a chance to paint its first frame.
@@ -1355,15 +1344,15 @@ impl ViewerWindow
         {
             if not .choiceLoad.isDone()
             {
-                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                .startupTimer = .addTimer(RetirePollInterval)
                 return
             }
 
             if .choiceLoad.fileName != .pendingFile
             {
                 discard .choiceLoad.finish()
-                .choiceLoad.start(&.index, .pendingFile.toString(), .recent.toSlice())
-                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                .choiceLoad.start(&.index, .pendingFile, .recent.toSlice())
+                .startupTimer = .addTimer(RetirePollInterval)
                 return
             }
 
@@ -1382,7 +1371,7 @@ impl ViewerWindow
             .searchQuery.clear()
             if not .destroyInstances(preserveVisible: true)
             {
-                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                .startupTimer = .addTimer(RetirePollInterval)
                 return
             }
 
@@ -1399,8 +1388,8 @@ impl ViewerWindow
             return
         }
 
-        .choiceLoad.start(&.index, .pendingFile.toString(), .recent.toSlice())
-        .startupTimer = .addTimer(ViewerRetirePollInterval)
+        .choiceLoad.start(&.index, .pendingFile, .recent.toSlice())
+        .startupTimer = .addTimer(RetirePollInterval)
     }
 
     // Starts the application smoke review. Each registered viewer owns one immutable fixture;
@@ -1444,10 +1433,10 @@ impl ViewerWindow
     private mtd waitForSmokeViewer(key, fileName: string)
     {
         .smokeWaitSteps += 1
-        if .smokeWaitSteps <= ViewerSmokeStepLimit do
+        if .smokeWaitSteps <= SmokeStepLimit do
             return
 
-        .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, ViewerSmokeStepLimit))
+        .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, SmokeStepLimit))
     }
 
     private mtd reviewSmokeStep()
@@ -1462,7 +1451,7 @@ impl ViewerWindow
         let key     = plugin.key
         let fixture = plugin.smokeFixture
 
-        let fileName = Path.combine(.smokeDirectory.toString(), fixture)
+        let fileName = Path.combine(.smokeDirectory, fixture)
         if not File.exists(fileName)
         {
             .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture is missing: %", fileName))
@@ -1534,7 +1523,7 @@ impl ViewerWindow
         // it visible for a bounded interval so late errors cross the viewer contract; only a
         // viewer that says it has no presentable content (video before its first frame) blocks the
         // review until ready.
-        if .smokeWaitSteps < ViewerSmokeMinimumSteps or (loading and (blocking or .smokeWaitSteps < ViewerSmokeExposureSteps))
+        if .smokeWaitSteps < SmokeMinimumSteps or (loading and (blocking or .smokeWaitSteps < SmokeExposureSteps))
         {
             .waitForSmokeViewer(key, fileName)
             return
@@ -1597,7 +1586,7 @@ impl ViewerWindow
         {
             .pendingEmpty = message
             if not .startupTimer do
-                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                .startupTimer = .addTimer(RetirePollInterval)
             return
         }
 
@@ -1620,12 +1609,7 @@ impl ViewerWindow
         .siblings.clear()
         .siblingsDirty = true
         .resetFolderReading()
-        .infoNameLabel.setText("")
-        .infoNameLabel.toolTip = ""
-        .infoStatsLabel.setText("")
-        .infoStatsLabel.toolTip = ""
-        .infoSizeLabel.setText("")
-        .infoSizeLabel.toolTip = ""
+        .showFileInfo("", "", "", "")
         .layoutFileInfo()
         .infoIconLabel.setIcon({})
         .infoBarHost.show(not .fullScreen or .fullScreenTopVisible)
@@ -1883,8 +1867,8 @@ impl ViewerWindow
     // Decides whether the wait deserves its mark right now, and keeps looking while it lasts.
     //
     // The mark appears only once the viewer has kept the window waiting for
-    // [[ViewerLoadingShowDelayMicroseconds]], and once shown it stays for
-    // [[ViewerLoadingMinVisibleMicroseconds]] even when the wait ends before that. The poll
+    // [[LoadingShowDelayMicroseconds]], and once shown it stays for
+    // [[LoadingMinVisibleMicroseconds]] even when the wait ends before that. The poll
     // timer runs for as long as either clock has something left to decide.
     mtd updateLoadingIndicator()
     {
@@ -1905,7 +1889,7 @@ impl ViewerWindow
         {
             if not .loadingWantedSince do
                 .loadingWantedSince = now
-            if .loadingShownSince or now - .loadingWantedSince >= ViewerLoadingShowDelayMicroseconds
+            if .loadingShownSince or now - .loadingWantedSince >= LoadingShowDelayMicroseconds
             {
                 if not .loadingShownSince
                 {
@@ -1921,7 +1905,7 @@ impl ViewerWindow
         else
         {
             .loadingWantedSince = 0
-            lingering = .loadingShownSince != 0 and .currentView != null and now - .loadingShownSince < ViewerLoadingMinVisibleMicroseconds
+            lingering = .loadingShownSince != 0 and .currentView != null and now - .loadingShownSince < LoadingMinVisibleMicroseconds
             if lingering do
                 .loadingOverlay.cover(.currentView!.position)
             else do
@@ -1931,7 +1915,7 @@ impl ViewerWindow
         let watching = loading or lingering
         if watching and not .loadingTimer
         {
-            .loadingTimer = .addTimer(ViewerLoadingPollInterval)
+            .loadingTimer = .addTimer(LoadingPollInterval)
         }
         elif not watching and .loadingTimer
         {
@@ -2195,8 +2179,8 @@ impl ViewerWindow
         // With no options button, let the enlarged field meet navigation directly. Keeping the
         // usual inter-group gap as well would leave an empty button-sized visual group.
         let hasMenu = presentation.useTextOptions or presentation.canFilter
-        .searchGroup.spacing = hasMenu ? ViewerSearchGroupSpacing : 0
-        .searchBox.resize(hasMenu ? ViewerSearchFieldWidth : ViewerSearchNoOptionsFieldWidth, 36)
+        .searchGroup.spacing = hasMenu ? SearchGroupSpacing : 0
+        .searchBox.resize(hasMenu ? SearchFieldWidth : SearchNoOptionsFieldWidth, 36)
         .searchBox.setValidator(.searchBox.validator)
         .searchGroup.computeLayout()
         .commandBar.centerContent()
@@ -2225,7 +2209,7 @@ impl ViewerWindow
             var expression: Parser.RegExp
             if options.regularExpression
             {
-                catch expression.compile(.searchQuery.toString(), ignoreCase: not options.matchCase) as expressionError
+                catch expression.compile(.searchQuery, ignoreCase: not options.matchCase) as expressionError
                 if expressionError != null
                 {
                     .searchComplete = true
@@ -2236,7 +2220,7 @@ impl ViewerWindow
                 options.expression = &expression
             }
 
-            instance.filterSearch(.searchQuery.toString(), options)
+            instance.filterSearch(.searchQuery, options)
             .searchComplete = true
             .refreshSearchReadout()
             return
@@ -2271,7 +2255,7 @@ impl ViewerWindow
         if instance.prepareSearch and instance.view
         {
             var plan: Viewer.SearchPlan
-            let state = instance.prepareSearch(.searchQuery.toString(), &plan)
+            let state = instance.prepareSearch(.searchQuery, &plan)
             if state != .Valid
             {
                 .searchComplete = true
@@ -2303,13 +2287,13 @@ impl ViewerWindow
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(.searchQuery.toString(), ignoreCase: not options.matchCase) as expressionError
+            catch expression.compile(.searchQuery, ignoreCase: not options.matchCase) as expressionError
             if expressionError != null do
                 return true
             options.expression = &expression
         }
 
-        let complete = instance.collectMatches!(.searchQuery.toString(), options, &.searchProgress, &.searchMatches)
+        let complete = instance.collectMatches!(.searchQuery, options, &.searchProgress, &.searchMatches)
         if not complete and not .searchSelectLast and .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
         {
             .searchIndex = 0
@@ -2415,7 +2399,7 @@ impl ViewerWindow
             .searchBox.setFocus()
 
         let match = .searchMatches[.searchIndex]
-        if not instance.revealMatch(match, .searchQuery.toString()) do
+        if not instance.revealMatch(match, .searchQuery) do
             return
         .searchMatch = match.offset
         .refreshSearchReadout()
@@ -2455,14 +2439,14 @@ impl ViewerWindow
         // Animation advances on the host timer, outside painting. Invalidating from inside a
         // translucent paint pass can enqueue another partial pass before the backing content has
         // been restored, which accumulates alpha and leaves trails around the word.
-        .searchOverlay.phase = Math.fract(.searchOverlay.phase + cast(f32, ViewerSearchBoundsPoll.seconds) / ViewerSearchGlowPeriod)
+        .searchOverlay.phase = Math.fract(.searchOverlay.phase + cast(f32, SearchBoundsPoll.seconds) / SearchGlowPeriod)
         .searchOverlay.invalidate()
 
         // A streamed document can materialize the result after revealMatch returns, and any
         // viewer can still adjust its scroll or layout. Follow the geometry for as long as this
         // occurrence is current rather than freezing an overlay at yesterday's coordinates.
         if not .searchBoundsTimer do
-            .searchBoundsTimer = .addTimer(ViewerSearchBoundsPoll)
+            .searchBoundsTimer = .addTimer(SearchBoundsPoll)
     }
 
     private mtd finishSearch()
@@ -2633,7 +2617,7 @@ impl ViewerWindow
 
     mtd beginSearch()
     {
-        .searchStream = catch File.openReadLive(.currentFile.toString()) as openError
+        .searchStream = catch File.openReadLive(.currentFile) as openError
         if openError != null
         {
             .finishSearch()
@@ -2661,7 +2645,7 @@ impl ViewerWindow
             return
 
         var bytes: Array'u8
-        bytes.resize(ViewerSearchChunkSize)
+        bytes.resize(SearchChunkSize)
         let count = catch .searchStream.read(bytes.toSlice()) as readError
         if readError != null
         {
@@ -2683,14 +2667,14 @@ impl ViewerWindow
             return
         }
 
-        let deferSize = .searchSpan + ViewerSearchCarryMargin
+        let deferSize = .searchSpan + SearchCarryMargin
         let stableEnd = eof ? .searchCarry.length : (.searchCarry.length > deferSize ? .searchCarry.length - deferSize : 0)
 
         var candidates: Array'Viewer.SearchMatch
         if instance.collectFileMatches and instance.view do
-            instance.collectFileMatches(.searchCarry.toString(), .searchCarryBase, &candidates)
+            instance.collectFileMatches(.searchCarry, .searchCarryBase, &candidates)
         else do
-            Viewer.collectTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
+            Viewer.collectTextMatches(.searchCarry, .searchQuery, .searchOptions(), 0, 0, .searchCarryBase, &candidates)
         for match in candidates where match.offset >= .searchProcessed and (eof or match.offset < .searchCarryBase + stableEnd) do
             .searchMatches.add(match)
 
@@ -2701,22 +2685,26 @@ impl ViewerWindow
             return
         }
 
-        let retainStart = stableEnd > ViewerSearchCarryMargin ? stableEnd - ViewerSearchCarryMargin : 0
+        let retainStart = stableEnd > SearchCarryMargin ? stableEnd - SearchCarryMargin : 0
         .searchCarryBase += retainStart
-        .searchCarry     = String.from(.searchCarry.toString()[retainStart to])
+        .searchCarry     = .searchCarry.toString()[retainStart to]
         .searchTimer     = .addTimer(1'ms)
+    }
+
+    // Fills the three readouts of the information bar; each one carries its full text as tooltip.
+    mtd showFileInfo(name, path, details, size: string)
+    {
+        .infoNameLabel.setText(name)
+        .infoNameLabel.toolTip = path
+        .infoStatsLabel.setText(details)
+        .infoStatsLabel.toolTip = details
+        .infoSizeLabel.setText(size)
+        .infoSizeLabel.toolTip = size
     }
 
     mtd updateFileInfo(details: string)
     {
-        let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
-
-        .infoNameLabel.setText(baseName)
-        .infoNameLabel.toolTip = .currentFile
-        .infoStatsLabel.setText(details)
-        .infoStatsLabel.toolTip = details
-        .infoSizeLabel.setText(.currentFileSize.toString())
-        .infoSizeLabel.toolTip = .currentFileSize.toString()
+        .showFileInfo(Path.fileName(.currentFile) orelse .currentFile, .currentFile, details, .currentFileSize)
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
@@ -2780,7 +2768,7 @@ impl ViewerWindow
 
         if isDefault do
             return
-        .preferences.add(ViewerPreference{String.from(kind), String.from(viewer)})
+        .preferences.add(ViewerPreference{kind, viewer})
         catch .saveState()
     }
 
@@ -2861,7 +2849,7 @@ impl ViewerWindow
             {
                 .readingState.applySettings(&.instances[selected])
                 discard .readingState.restore(&.instances[selected])
-                .searchBox.setText(.readingState.query.toString(), notify: false)
+                .searchBox.setText(.readingState.query, notify: false)
                 .restartSearch()
             }
 
@@ -2872,8 +2860,8 @@ impl ViewerWindow
 
         if remember
         {
-            .rememberRecent(.currentFile.toString())
-            .rememberFolder(.currentFile.toString())
+            .rememberRecent(.currentFile)
+            .rememberFolder(.currentFile)
         }
 
         if .panelVisible do
@@ -2949,7 +2937,7 @@ impl ViewerWindow
         }
 
         .recent.insertAt(0, String.from(fileName))
-        while .recent.count > ViewerRecentCount do
+        while .recent.count > RecentCount do
             .recent.removeAtOrdered(.recent.count - 1)
     }
 
@@ -2966,8 +2954,8 @@ impl ViewerWindow
             break
         }
 
-        .folderHistory.insertAt(0, {String.from(folder), String.from(fileName)})
-        while .folderHistory.count > ViewerFolderHistoryCount do
+        .folderHistory.insertAt(0, {folder, fileName})
+        while .folderHistory.count > FolderHistoryCount do
             .folderHistory.removeAtOrdered(.folderHistory.count - 1)
         .folderHistoryButton.enable(true)
     }
@@ -3019,7 +3007,7 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.currentFile.toString())
+        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.currentFile)
         .folderLabel.setText(Path.fileName(folder) orelse folder orelse appStrings().ui_Folder)
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do
@@ -3042,7 +3030,7 @@ impl ViewerWindow
 
         // The actions below outlive the list they were asked from: forgetting a file rebuilds
         // both lists, and the row that named it is gone by then.
-        let fileName = String.from(files[index].toString())
+        let fileName = String.from(files[index])
 
         // Only the history is a list the reader owns. The folder list is what the folder holds,
         // and an entry leaves it by leaving the disk.
@@ -3057,14 +3045,14 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() do
             return
-        .showFileActions(.currentFile.toString(), position, history: false)
+        .showFileActions(.currentFile, position, history: false)
     }
 
     // Opens the current file with the handler registered by the operating system.
     mtd openCurrentFileDefault()
     {
         if not .currentFile.isEmpty() do
-            discard Env.openFile(.currentFile.toString())
+            discard Env.openFile(.currentFile)
     }
 
     // Opens the bounded folder history and returns to the last file viewed in the chosen folder.
@@ -3187,7 +3175,7 @@ impl ViewerWindow
         .siblingIndex = 0
         for file in .folderFiles
         {
-            if .folderSameKind and not .index.sharesViewer(.currentFile.toString(), file[].toString()) do
+            if .folderSameKind and not .index.sharesViewer(.currentFile, file[]) do
                 continue
             .siblings.add(file[])
         }
@@ -3228,7 +3216,7 @@ impl ViewerWindow
             index = cast(s64, .siblings.count) - 1
         elif index >= cast(s64, .siblings.count) do
             index = 0
-        .queueFile(.siblings[cast(u64, index)].toString())
+        .queueFile(.siblings[cast(u64, index)])
     }
 
     // Returns the files of the current file's folder that its viewer opens, in folder order and
@@ -3237,7 +3225,7 @@ impl ViewerWindow
     mtd kindSiblings()->Array'String
     {
         var result: retval
-        for file in .folderFiles where .index.sharesViewer(.currentFile.toString(), file[].toString()) do
+        for file in .folderFiles where .index.sharesViewer(.currentFile, file[]) do
             result.add(file[])
         return result
     }
@@ -3258,7 +3246,7 @@ impl ViewerWindow
         if (mode != .Folder and mode != .Shuffle) or .currentFile.isEmpty() do
             return
 
-        let folder = Path.directoryName(.currentFile.toString()) orelse ""
+        let folder = Path.directoryName(.currentFile) orelse ""
         if .folderReadingMode != mode or Utf8.compare(.folderReadingFolder.toSlice(), folder, .Latin1NoCase) != 0
         {
             .folderReadingMode   = mode

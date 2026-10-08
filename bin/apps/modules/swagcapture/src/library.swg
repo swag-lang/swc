@@ -111,7 +111,7 @@ impl Library
             // then combine (Path.combine wants a plain string, so convert the String).
             var candidate = Format.toString("%_", n)
             candidate += base
-            dst       = Path.combine(folder, candidate.toString())
+            dst       = Path.combine(folder, candidate)
             n         += 1
         }
 
@@ -154,7 +154,7 @@ impl Library
         let t        = Time.DateTime.now()
         var fileName = Format.toString("%_%_%_%_%_%_%", t.month, t.day, t.year, t.hour, t.minute, t.second, Guid64.random())
         fileName += CaptureFileExtension
-        return Path.combine(getFolder(), fileName.toString())
+        return Path.combine(getFolder(), fileName)
     }
 
     mtd fill()

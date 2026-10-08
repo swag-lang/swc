@@ -97,7 +97,7 @@ impl Document
     mtd const meterText()->String
     {
         if .timeSignatures.isEmpty() do
-            return String.from("4/4")
+            return "4/4"
         let meter = &.timeSignatures[0]
         return Format.toString("%/%", meter.numerator, meter.denominator)
     }
@@ -167,10 +167,10 @@ private func readText(bytes: const [..] u8, at, length: u64)->String
     }
 
     if Utf8.isValid(text.toSlice()) do
-        return String.from(cast(string, text.toSlice()))
+        return cast(string, text.toSlice())
     for &value in text where value[] >= 128 do
         value[] = '.'u8
-    return String.from(cast(string, text.toSlice()))
+    return cast(string, text.toSlice())
 }
 
 // Ends the note an `active` slot holds, as a one-based index into the notes, and frees the slot.

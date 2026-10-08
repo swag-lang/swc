@@ -154,7 +154,7 @@ impl IWnd for MainWnd
         case .TrayIcon:
             if evt.trayAction == .Activate
             {
-                with let srf = .surface!
+                with let surface = .surface!
                 {
                     .show()
                     .bringToFront()
@@ -1006,22 +1006,22 @@ impl MainWnd
 
         for c in .toolRail.children
         {
-            let btn = (catch cast(*IconButton?, c))
-            if not btn do
+            let button = (catch cast(*IconButton?, c))
+            if not button do
                 continue
             if showLabels
             {
-                btn.updateFlags(remove: .IconOnly)
-                btn.setAllPaddings({cellPadding, 0, cellPadding, 0})
+                button.updateFlags(remove: .IconOnly)
+                button.setAllPaddings({cellPadding, 0, cellPadding, 0})
             }
             else
             {
-                btn.updateFlags(.IconOnly)
-                btn.setAllPaddings({0, 0, cellPadding, 0})
+                button.updateFlags(.IconOnly)
+                button.setAllPaddings({0, 0, cellPadding, 0})
             }
 
-            btn.position.width  = width
-            btn.position.height = cellSize
+            button.position.width  = width
+            button.position.height = cellSize
         }
 
         .toolRail.position.width = width
@@ -1054,30 +1054,30 @@ impl MainWnd
 
         let renderer = parent.app().renderer
 
-        with let res = Wnd.create'MainWnd(parent, "capture.mainwnd")
+        with let result = Wnd.create'MainWnd(parent, "capture.mainwnd")
         {
-            res.surface!.setView(res)
+            result.surface!.setView(result)
             .icons.setup(renderer, captureIcons())
             .appIcon.set(renderer.addImage(imgApp))
             .backgroundStyle = .Window
-            .mdlFavorite     = &res.mdlFormShape
-            .mdlHighlight    = &res.mdlFormShape
-            .mdlPixSel       = &res.mdlFormShape
+            .mdlFavorite     = &result.mdlFormShape
+            .mdlHighlight    = &result.mdlFormShape
+            .mdlPixSel       = &result.mdlFormShape
             .monitors        = Env.getMonitors()
         }
 
-        res.createAppearanceButton()
+        result.createAppearanceButton()
 
         // One Voltage rail identifies every standard Swag application surface.
-        Separator.create(res, .Top, .Accent)
+        Separator.create(result, .Top, .Accent)
 
-        res.createCommandRow()
-        res.createToolRail()
-        res.createEditArea()
-        res.createRecentBar()
-        res.createToolPanel()
+        result.createCommandRow()
+        result.createToolRail()
+        result.createEditArea()
+        result.createRecentBar()
+        result.createToolPanel()
 
-        with res
+        with result
         {
             // Theme and language come before anything is built from a string. A first run has
             // no persisted state to read them from, and would otherwise stay on the reference
@@ -1091,12 +1091,12 @@ impl MainWnd
             .setBottomSize(.Medium, animated: false)
             .setToolRailWidth()
             .updateState()
-            .libWnd = LibraryWnd.create(res)
+            .libWnd = LibraryWnd.create(result)
             .libWnd.hide()
         }
 
-        g_Main = res
-        return res
+        g_Main = result
+        return result
     }
 
     // The caption action offering the palettes, the languages and the About box. The control

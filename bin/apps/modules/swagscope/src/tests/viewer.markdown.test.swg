@@ -232,7 +232,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     let firstTheme = assume cast(*ComboBox, first.commands.children[1])
     let firstZoom  = assume cast(*MarkdownText.ZoomButton, first.info!.children[0])
     assertViewerInfoButton(firstZoom)
-    Swag.assert(first.info.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(first.info.preferredSize.x == Viewer.ZoomSlotWidth)
     Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
     firstWidth.setSelectedIndex(0)
     firstTheme.setSelectedIndex(5)

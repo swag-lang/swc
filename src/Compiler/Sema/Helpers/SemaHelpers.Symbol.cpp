@@ -1237,7 +1237,15 @@ namespace
     {
         const SymbolStruct& symStruct = typeInfo.payloadSymStruct();
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
-        SWC_RESULT(sema.waitSemaCompleted(&symStruct, codeRef));
+
+        // A constant reached through the type itself lives in the struct's scope and needs neither
+        // its layout nor its other members. Waiting for the struct to complete there would turn a
+        // field default that names one of the struct's own constants into a dependency of the
+        // struct on itself. Anything else still waits: a field needs the layout, and a function
+        // may have overloads in an 'impl' that has not been registered yet.
+        const bool throughType = !sema.isValue(node.nodeLeftRef);
+        if (!throughType)
+            SWC_RESULT(sema.waitSemaCompleted(&symStruct, codeRef));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef       = codeRef;
@@ -1245,6 +1253,16 @@ namespace
         lookUpCxt.noWaitOnEmpty = true;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        if (throughType && (lookUpCxt.empty() || !std::ranges::all_of(lookUpCxt.symbols().span(), [](const Symbol* sym) { return sym->isConstant(); })))
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&symStruct, codeRef));
+            lookUpCxt = {};
+            lookUpCxt.codeRef       = codeRef;
+            lookUpCxt.symMapHint    = &symStruct;
+            lookUpCxt.noWaitOnEmpty = true;
+            SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        }
+
         if (lookUpCxt.empty())
         {
             bool handled = false;

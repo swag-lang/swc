@@ -8,7 +8,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     var cancelled = 0'u32
     Swag.assert(lease.wait(&cancelled))
     if lease.artifact!.result.failed do
-        Console.print(lease.artifact.result.text.toString())
+        Console.print(lease.artifact.result.text)
     Swag.assert(not lease.artifact.result.failed)
 }
 
@@ -67,7 +67,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         waitBuild(&devmode)
         Swag.assert(not devmode.reused and cache.buildCount == 3)
         var output: CompilerOutput
-        output.parse(devmode.artifact!.result.text.toString())
+        output.parse(devmode.artifact!.result.text)
         Swag.assert(output.text.contains("  optimize : O1"))
     }
 }
@@ -110,7 +110,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     }
 
     if preview.probe.failed do
-        Console.print(preview.probe.diagnostics.toString())
+        Console.print(preview.probe.diagnostics)
     Swag.assert(not micro.job.running and not micro.job.result.failed and preview.frameCount != 0)
     Swag.assert(micro.job.artifactId == preview.probe.artifactId and window.cache.buildCount == 1)
     Swag.assert(not micro.outputText.colors.isEmpty())
@@ -202,11 +202,11 @@ func waitBuild(lease: *Pipeline.BuildLease)
     artifact.request = {kind: .Render2D, source: exampleSource(.Plasma), settings: {optimization: .O2}}
     expect artifact.run()
     if artifact.result.failed do
-        Console.print(artifact.result.text.toString())
+        Console.print(artifact.result.text)
     Swag.assert(not artifact.result.failed)
     for 3
     {
-        var library = expect NativeLibrary.load(artifact.binary.toString())
+        var library = expect NativeLibrary.load(artifact.binary)
         let symbol  = library.symbol("prism_shade")
         Swag.assert(symbol != null)
         let shade = cast(func(f32, f32, f32)->u32, symbol)
@@ -246,6 +246,6 @@ func waitBuild(lease: *Pipeline.BuildLease)
     waitBuild(&lease)
 
     var output: CompilerOutput
-    output.parse(lease.artifact!.result.text.toString())
+    output.parse(lease.artifact!.result.text)
     Swag.assert(output.text.contains("  stage    : pre-emit"))
 }

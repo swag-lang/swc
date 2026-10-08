@@ -22,12 +22,16 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const FileLimit      = 32 * 1024 * 1024'u64
-private const ColumnLimit    = 256'u64
-private const ColumnMinWidth = 96.0
-private const ColumnMaxWidth = 320.0
-private const CellWidth      = 8.0
-const CellPreviewBytes       = 1024'u64     // Most bytes of one cell handed to the list renderer.
+private
+{
+    const FileLimit      = 32 * 1024 * 1024'u64
+    const ColumnLimit    = 256'u64
+    const ColumnMinWidth = 96.0
+    const ColumnMaxWidth = 320.0
+    const CellWidth      = 8.0
+}
+
+const CellPreviewBytes = 1024'u64     // Most bytes of one cell handed to the list renderer.
 
 // One record of a table.
 struct Row
@@ -40,7 +44,7 @@ impl Row
     // Closes the cell being read: its bytes become the next cell of the row, and `cell` is emptied.
     mtd finishCell(cell: *Array'u8)
     {
-        .cells.add(String.from(cast(string, cell.toSlice())))
+        .cells.add(cast(string, cell.toSlice()))
         cell.clear()
     }
 }
@@ -278,7 +282,7 @@ func detectDelimiter(fileName, text: string)->u8
 private func countText(count: u64, one, many: string)->String
 {
     if count == 1 do
-        return String.from(one)
+        return one
     return Format.toString(many, count)
 }
 
@@ -331,7 +335,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -349,7 +353,7 @@ private impl Panel
         {
             .document.columns[index] = Format.toString(texts().ui_Column, index + 1)
             if index < .list.header.items.count do
-                .list.header.items[index]!.name.set(.document.columns[index].toString())
+                .list.header.items[index]!.name.set(.document.columns[index])
         }
 
         .list.header.invalidate()

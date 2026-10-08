@@ -90,7 +90,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     infoBar.centerGroup = result.info
     let view = assume cast(*Html.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
     finishHtmlViewer(&host, &result)
     Swag.assert(result.info != null)
     view.dockStyle        = .Center

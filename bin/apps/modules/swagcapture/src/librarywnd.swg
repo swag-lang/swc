@@ -194,16 +194,16 @@ impl LibraryWnd
     // while refilling the grid moves the items they came from.
     mtd selectedFiles()->Array'String
     {
-        var res: retval
+        var result: retval
         for it, i in .view.items
         {
             if it.filtered do
                 continue
             if .view.selModel.isSelected(cast(i)) do
-                res.add(it.fi.fullName)
+                result.add(it.fi.fullName)
         }
 
-        return res
+        return result
     }
 
     // Brings the selected captures back from the recycle bin into the library.
@@ -753,12 +753,12 @@ impl LibraryWnd
         let id = result
         if Utf8.startsWith(id, "capture.library.app:")
         {
-            .applicationFilter = String.from(id[("capture.library.app:").count to])
+            .applicationFilter = id[("capture.library.app:").count to]
             .view.filter()
         }
         elif Utf8.startsWith(id, "capture.library.tag:")
         {
-            .tagFilter = String.from(id[("capture.library.tag:").count to])
+            .tagFilter = id[("capture.library.tag:").count to]
             .view.filter()
         }
     }
@@ -1020,7 +1020,7 @@ impl LibraryWnd
         var p       = folder.toString()
         while p.count != 0
         {
-            fulls.add(String.from(p))
+            fulls.add(p)
             if p == libRoot.toString() do
                 break
             let parent = Path.directoryName(p)
@@ -1067,12 +1067,12 @@ impl LibraryWnd
         .menuPaths.clear()
         .menuPaths.reserve(dirs.count)
         for d in dirs do
-            .menuPaths.add(String.from(d.fullName))
+            .menuPaths.add(d.fullName)
 
         for d, i in dirs
         {
             let name = Path.fileName(d.fullName) orelse d.fullName.toString()
-            menu.addItem(name, .menuPaths[i].toString(), checked: d.fullName == currentChild)
+            menu.addItem(name, .menuPaths[i], checked: d.fullName == currentChild)
         }
     }
 
@@ -1096,7 +1096,7 @@ impl LibraryWnd
     {
         let metrics = parent.themeMetrics()
 
-        with let res = Wnd.create'LibraryWnd(parent, "capture.librarywnd")
+        with let result = Wnd.create'LibraryWnd(parent, "capture.librarywnd")
         {
             .main            = parent
             .dockStyle       = .Center
@@ -1110,7 +1110,7 @@ impl LibraryWnd
         // the selected form on the right; the library puts its dates on the left and the
         // captures themselves fill the rest. A date list on the right would swap the meaning
         // of the same edge when switching modes.
-        with res.sideBar = Wnd.create'Wnd(res, {0, 0, SideBarWidth, 0})
+        with result.sideBar = Wnd.create'Wnd(result, {0, 0, SideBarWidth, 0})
         {
             .dockStyle       = .Left
             .backgroundStyle = .Panel
@@ -1122,22 +1122,22 @@ impl LibraryWnd
         // both would make the recessed capture ground read as a square dropped inside a larger
         // box, so each role stands on its own panel, parted by the same gutter that already
         // separates the rail from this column.
-        with res.barPanel = Wnd.create'Wnd(res, {0, 0, 0, 2 * themeActionButtonSize(metrics)})
+        with result.barPanel = Wnd.create'Wnd(result, {0, 0, 0, 2 * themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Panel
             .margin.w        = metrics.panel_GutterSize
         }
 
-        res.createCaptureGrid()
-        res.createDateList()
-        res.createBreadcrumb()
-        res.createCommandBar()
+        result.createCaptureGrid()
+        result.createDateList()
+        result.createBreadcrumb()
+        result.createCommandBar()
 
-        res.setPreviewSize(.Small)
-        res.setSortMethod(res.sortMethod)
-        res.updateBreadcrumb()
-        return res
+        result.setPreviewSize(.Small)
+        result.setSortMethod(result.sortMethod)
+        result.updateBreadcrumb()
+        return result
     }
 
     // The captures themselves, on a recessed ground of their own.
@@ -1195,7 +1195,7 @@ impl LibraryWnd
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .sigItemPressed  += func|libWnd = me|(bc, idx) { libWnd.navigateFolder(bc.items[idx].tag.toString()) }
+            .sigItemPressed  += func|libWnd = me|(bc, idx) { libWnd.navigateFolder(bc.items[idx].tag) }
             .sigFillMenu     += func|libWnd = me|(bc, idx, menu) { libWnd.fillBreadcrumbMenu(bc, idx, menu) }
             .sigMenuSelected += func|libWnd = me|(?, ?, id) { libWnd.navigateFolder(id) }
         }
@@ -1205,7 +1205,7 @@ impl LibraryWnd
     // says a menu opens.
     mtd createMenuButton(icon: Icon, text: string)->*IconButton
     {
-        with let btn = IconButton.create(me.commandBar, icon, {0, 0, 0, themeActionButtonSize(me.themeMetrics())})
+        with let button = IconButton.create(me.commandBar, icon, {0, 0, 0, themeActionButtonSize(me.themeMetrics())})
         {
             .preferredSize.x = 0
             .setText(text)
@@ -1214,7 +1214,7 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
         }
 
-        return btn
+        return button
     }
 
     // The command row of the library: the presentation menus, the folder menu, the loading

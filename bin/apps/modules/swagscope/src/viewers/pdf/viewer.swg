@@ -27,7 +27,7 @@ func viewerPlugin()->Viewer.Plugin
 
 private const PageWidth = 76.0
 
-private func infoWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + PageWidth + ViewerZoomSlotWidth + 16
+private func infoWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + PageWidth + Viewer.ZoomSlotWidth + 16
 
 // Keeps the page controls and zoom selector in one fixed-width run. Their authored cells are
 // wider than their current text and icons, so measuring each child by its contents would let the
@@ -119,7 +119,7 @@ private impl IWnd for Panel
         if not .failureReason.isEmpty()
         {
             if .reportFailure do
-                .reportFailure(me, .failureReason.toString())
+                .reportFailure(me, .failureReason)
             return
         }
 
@@ -138,7 +138,7 @@ private impl IWnd for Panel
         .refreshNavigation()
         .setInitialFocus(.pdfView)
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
     }
@@ -324,17 +324,12 @@ private impl Panel
     // Creates the zoom menu button at the end of the information group.
     mtd createZoomControl()
     {
-        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.pdf.zoom", .CenterContent)
+        with .zoomLabel = Viewer.createZoomButton(.info, "scope.pdf.zoom", texts().ui_ZoomMenu)
         {
             .dockStyle       = .Right
-            .preferredSize.x = ViewerZoomButtonWidth
-            .margin          = {ViewerInfoControlInset + 8, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
+            .preferredSize.x = Viewer.ZoomButtonWidth
+            .margin          = {Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
+            .sigPressed      += func|view = me|(?) { view.showZoomMenu() }
         }
     }
 

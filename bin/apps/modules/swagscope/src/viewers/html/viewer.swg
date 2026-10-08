@@ -56,49 +56,26 @@ private impl Panel
 {
     internal mtd setZoom(percent: u32)
     {
-        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        .zoomPercent = Viewer.clampZoom(percent)
         var style = HtmlStyle.theme()
         style.bodyFontSize = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
         style.codeFontSize = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
         .view.setDocumentStyle(style)
-        .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
     }
 
     mtd showZoomMenu()
     {
-        with let menu = MenuCtrl.createPopup(me, owner: me)
-        {
-            .addItem("75%", "scope.html.zoom75")
-            .addItem("100%", "scope.html.zoom100")
-            .addItem("125%", "scope.html.zoom125")
-            .addItem("150%", "scope.html.zoom150")
-            .addItem("200%", "scope.html.zoom200")
-        }
-
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
-        {
-        case "scope.html.zoom75":  .setZoom(75)
-        case "scope.html.zoom100": .setZoom(100)
-        case "scope.html.zoom125": .setZoom(125)
-        case "scope.html.zoom150": .setZoom(150)
-        case "scope.html.zoom200": .setZoom(200)
-        }
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
     }
 
     // Creates the zoom menu button in the host's information group `info`.
     mtd createZoomControl(info: *Wnd)
     {
-        with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.html.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|viewer = me|(?) { viewer.showZoomMenu() }
-        }
+        .zoomLabel = Viewer.createZoomButton(info, "scope.html.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.sigPressed += func|viewer = me|(?) { viewer.showZoomMenu() }
     }
 
     // Routes the zoom shortcuts to the page, wherever the keyboard focus is inside it.
@@ -108,16 +85,8 @@ private impl Panel
         {
             switch evt
             {
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
-                viewer.setZoom(viewer.zoomPercent + 25)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
-                viewer.setZoom(viewer.zoomPercent > 50 ? viewer.zoomPercent - 25 : 50)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
-                viewer.setZoom(100)
+            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
+                viewer.setZoom(Viewer.zoomAfterKey(keyEvt, viewer.zoomPercent))
                 return true
 
             default:
@@ -144,7 +113,7 @@ func createViewer(host: Viewer.Host)
         return
     }
 
-    result.createZoomControl(host.createInfoGroup(ViewerZoomSlotWidth))
+    result.createZoomControl(host.createInfoGroup(Viewer.ZoomSlotWidth))
     result.hookZoomKeys()
 
     let services = host.services()

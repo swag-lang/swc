@@ -25,16 +25,19 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const SeekSeconds        = 10.0
-private const CommandWidth       = 1080.0
-private const SeekOverlaySize    = Math.Point{112, 64}
-private const SeekOverlayOffsetY = 56.0
-private const SeekOverlayLifetime: Time.Duration = 650'ms
-private const NoSubtitle         = Swag.U32.Max
+private
+{
+    const SeekSeconds        = 10.0
+    const CommandWidth       = 1080.0
+    const SeekOverlaySize    = Math.Point{112, 64}
+    const SeekOverlayOffsetY = 56.0
+    const SeekOverlayLifetime: Time.Duration = 650'ms
+    const NoSubtitle         = Swag.U32.Max
 
-// The playback rates the settings menu offers. XAudio2 creates every voice with the default
-// maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
-private const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+    // The playback rates the settings menu offers. XAudio2 creates every voice with the default
+    // maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
+    const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+}
 
 enum SubtitleSource
 {
@@ -149,7 +152,7 @@ private impl IWnd for SubtitleOverlay
         let painter = evt.paintContext.painter
         let rect    = .clientRect()
         let font    = .font().regular!
-        let lines   = Tokenize.splitLines(.text.toString())
+        let lines   = Tokenize.splitLines(.text)
         if lines.isEmpty() do
             return
 
@@ -244,13 +247,13 @@ private impl IWnd for SeekOverlay
         let painter  = evt.paintContext.painter
         let rect     = .clientRect()
         let font     = .font().regular!
-        let textSize = Painter.measureString(.text.toString(), font)
+        let textSize = Painter.measureString(.text, font)
         let textX    = Math.floor(rect.horzCenter() - textSize.width * 0.5)
         let textY    = Math.floor(rect.vertCenter() - font.height * 0.5)
 
         painter.setAntialiased(true)
-        drawStringKeyline(painter, textX, textY, .text.toString(), font, Ink, 1)
-        painter.drawString(textX, textY, .text.toString(), font, Voltage)
+        drawStringKeyline(painter, textX, textY, .text, font, Ink, 1)
+        painter.drawString(textX, textY, .text, font, Voltage)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -336,48 +339,51 @@ impl SeekOverlay
     }
 }
 
-// How far behind the clock playback is allowed to fall before it gives up and jumps.
-//
-// Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
-// it also falls behind for as long as it plays. Past this much, playback skips to the next sync
-// frame, which is the one place a jump costs a single decoded picture rather than the decode of
-// every picture in between.
-private const ResyncSeconds = 2.0
+private
+{
+    // How far behind the clock playback is allowed to fall before it gives up and jumps.
+    //
+    // Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
+    // it also falls behind for as long as it plays. Past this much, playback skips to the next sync
+    // frame, which is the one place a jump costs a single decoded picture rather than the decode of
+    // every picture in between.
+    const ResyncSeconds = 2.0
 
-// How far the picture may drift from the sound before the timeline is pulled back onto it.
-//
-// The sound is the master clock, but reading its position on every tick and following it exactly
-// would jitter the presentation by the size of one output buffer. Playback therefore runs its own
-// clock and only re-anchors it when the two have actually separated.
-private const AudioDriftSeconds = 0.1
-private const BackdropColors    = "view_Bk 0xFF000000"
+    // How far the picture may drift from the sound before the timeline is pulled back onto it.
+    //
+    // The sound is the master clock, but reading its position on every tick and following it exactly
+    // would jitter the presentation by the size of one output buffer. Playback therefore runs its own
+    // clock and only re-anchors it when the two have actually separated.
+    const AudioDriftSeconds = 0.1
+    const BackdropColors    = "view_Bk 0xFF000000"
 
-// How far past the clock a resync jump may land.
-//
-// A stream whose sync frames are seconds apart would turn a resync into a scene change; past
-// this bound the player keeps walking below speed instead of teleporting.
-private const ResyncMaxJumpSeconds = 15.0
+    // How far past the clock a resync jump may land.
+    //
+    // A stream whose sync frames are seconds apart would turn a resync into a scene change; past
+    // this bound the player keeps walking below speed instead of teleporting.
+    const ResyncMaxJumpSeconds = 15.0
 
-// How many pictures the queue holds again before the clock restarts after a jump.
-//
-// A decoder that has just restarted on a key picture has nothing in hand, and starting the
-// clock on the first one it produces asks it for real time from a standing start: it falls
-// behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
-// few pictures costs a fraction of a second once and buys a queue to play out of.
-private const RebufferPictures = 4'u64
+    // How many pictures the queue holds again before the clock restarts after a jump.
+    //
+    // A decoder that has just restarted on a key picture has nothing in hand, and starting the
+    // clock on the first one it produces asks it for real time from a standing start: it falls
+    // behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
+    // few pictures costs a fraction of a second once and buys a queue to play out of.
+    const RebufferPictures = 4'u64
 
-// How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
-//
-// A frame-threaded decoder delivers pictures in runs separated by the cost of one key picture,
-// which at 4K is well over a hundred milliseconds. The queue exists to cover exactly that gap,
-// so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
-// gets a deeper one for the same memory.
-private const PrefetchBytes = 64 * 1024 * 1024'u64
-private const PrefetchMax   = 12'u64
-private const PrefetchMin   = 2'u64
+    // How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
+    //
+    // A frame-threaded decoder delivers pictures in runs separated by the cost of one key picture,
+    // which at 4K is well over a hundred milliseconds. The queue exists to cover exactly that gap,
+    // so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
+    // gets a deeper one for the same memory.
+    const PrefetchBytes = 64 * 1024 * 1024'u64
+    const PrefetchMax   = 12'u64
+    const PrefetchMin   = 2'u64
 
-// Names the absence of a queue slot.
-private const NoSlot = Swag.U32.Max
+    // Names the absence of a queue slot.
+    const NoSlot = Swag.U32.Max
+}
 
 // Returns the decoded-picture count that fits the run-ahead budget.
 func prefetchSlotCount(width, height: s32, planar: bool)->u32
@@ -407,13 +413,13 @@ func soundSample(sound: const *SoundFile, seconds: f64)->u64
     return cast(u64, Math.round(local * cast(f64, sound.sampleRateHz())))
 }
 
+// Menu identifiers of the audio track, playback speed, and subtitle track choices.
 private func audioTrackCommand(index: u32)->String   => Format.toString("scope.video.audioTrack.%", index)
 private func playbackRateCommand(index: u32)->String => Format.toString("scope.video.player.speed.%", index)
+private func subtitleTrackCommand(sidecar: bool, index: u32)->String => Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
 
 // Names one selectable playback rate; the source rate keeps its word rather than a number.
-private func playbackRateText(rate: f64)->String => rate == 1 ? String.from(texts().ui_PlayerSpeedNormal) : Format.toString("%×", rate)
-
-private func subtitleTrackCommand(sidecar: bool, index: u32)->String => Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
+private func playbackRateText(rate: f64)->String => rate == 1 ? texts().ui_PlayerSpeedNormal : Format.toString("%×", rate)
 
 // Replaces `result` with the cues showing at `seconds`, one per line, and returns the next time that text changes.
 private func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
@@ -443,7 +449,7 @@ private func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, 
 
 private func hasSubtitleExtension(fileName: string)->bool
 {
-    let extension = String.toLower(Path.extension(fileName) orelse "")
+    let extension = String.toLower(Path.extension(fileName))
     switch extension.toString()
     {
     case ".srt", ".vtt", ".ass", ".ssa", ".lrc", ".sub": return true
@@ -478,7 +484,7 @@ private func loadSidecars(fileName: string, result: *Array'*Subtitle.Track)
         if not exactName and (candidate.count <= stem.count or candidate[stem.count] != '.') do
             continue
 
-        candidates.add(String.from(file.fullName))
+        candidates.add(file.fullName)
     }
 
     // Sort paths before loading: subtitle tracks own their decoded cues and are moved only once.
@@ -657,7 +663,7 @@ private impl Panel
 
         if .audioEngineAcquired
         {
-            Viewers.Sound.releaseEngine()
+            Sound.releaseEngine()
             .audioEngineAcquired = false
         }
 
@@ -692,7 +698,7 @@ private impl Panel
 
             if .audioEngineAcquired
             {
-                Viewers.Sound.releaseEngine()
+                Sound.releaseEngine()
                 .audioEngineAcquired = false
             }
 
@@ -998,7 +1004,7 @@ impl Panel
         {
             let sound = .video.audioTrack(index)!
             commands.add(audioTrackCommand(index))
-            menu.addRadioItem(audioTrackText(index, sound), commands[index].toString(), checked: index == .audioTrackIndex)
+            menu.addRadioItem(audioTrackText(index, sound), commands[index], checked: index == .audioTrackIndex)
         }
 
         let chosen = menu.doModal(.audioButton, autoDestroy: true)
@@ -1024,7 +1030,7 @@ impl Panel
         for rate, index in PlaybackRates
         {
             commands.add(playbackRateCommand(cast(u32, index)))
-            menu.addRadioItem(playbackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
+            menu.addRadioItem(playbackRateText(rate), commands[index], checked: rate == .playbackRate)
         }
 
         let chosen = menu.doModal(.speedButton, autoDestroy: true)
@@ -1131,13 +1137,13 @@ impl Panel
         {
             let track = .video.subtitleTrack(index)!
             embeddedCommands.add(subtitleTrackCommand(false, index))
-            menu.addRadioItem(subtitleTrackText(index, track, false), embeddedCommands[index].toString(), checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
+            menu.addRadioItem(subtitleTrackText(index, track, false), embeddedCommands[index], checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
         }
 
         for track, index in .subtitleOverlay.sidecars
         {
             sidecarCommands.add(subtitleTrackCommand(true, cast(u32, index)))
-            menu.addRadioItem(subtitleTrackText(cast(u32, index), track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
+            menu.addRadioItem(subtitleTrackText(cast(u32, index), track, true), sidecarCommands[index], checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
         }
 
         menu.addSeparator()
@@ -1866,13 +1872,13 @@ private impl Panel
     {
         .details = Format.toString(texts().ui_Details, .video.width(), .video.height(), frameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(.video.durationInSeconds()))
         if .audio do
-            .details = Format.toString("% · %", .details.toString(), audioDetailsText(.audio))
+            .details = Format.toString("% · %", .details, audioDetailsText(.audio))
 
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
-            .details = Format.toString("% · %", .details.toString(), playbackRateText(.playbackRate))
+            .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
         if .reportDetails do
-            .reportDetails(me, .details.toString())
+            .reportDetails(me, .details)
     }
 
     // Publishes the reader opened by the background worker and starts picture production.
@@ -1898,11 +1904,11 @@ private impl Panel
 
         .openFinished = true
         if not .openFailure.isEmpty() do
-            fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
+            fail InvalidFormatError{Errors.mkString(.openFailure)}
 
         .video  = #move .pendingVideo
         .planar = .video.hasPlanarFrames()
-        loadSidecars(.openFileName.toString(), &.subtitleOverlay.sidecars)
+        loadSidecars(.openFileName, &.subtitleOverlay.sidecars)
         .prepareSlots()
 
         // A stream whose samples are not square is stored with fewer columns than it is shown
@@ -1949,7 +1955,7 @@ private impl Panel
             .audioButton.enable(audioCount > 1)
             .muteButton.enable(true)
             .volumeSlider.enable(true)
-            if not Viewers.Sound.acquireEngine() do
+            if not Sound.acquireEngine() do
                 fail UnsupportedFormatError{texts().err_AudioEngine}
             .audioEngineAcquired = true
             try .selectAudioTrack(0)
@@ -2134,8 +2140,8 @@ private impl Panel
         result.openFileName = host.fileName()
 
         // The sound device comes online while the file opens, so the first picture does not
-        // wait for it; see [[Viewers.Sound.warmEngine]].
-        Viewers.Sound.warmEngine()
+        // wait for it; see [[Sound.warmEngine]].
+        Sound.warmEngine()
         result.decodeWake.init()
         try result.decodeThread.init(&runViewerDecode, result, priority: .Normal)
         try result.decodeThread.start()

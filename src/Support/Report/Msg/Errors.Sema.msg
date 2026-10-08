@@ -85,6 +85,7 @@ SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "argument {index} for call to '{sy
 SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "unary operator '{tok}' cannot be applied to type '{type}'")
 SWC_DIAG_DEF(sema_err_deref_operand_type, Error, "cannot dereference type '{type}'")
 SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "binary operator '{tok}' cannot be applied to types '{left}' and '{right}'")
+SWC_DIAG_DEF(sema_err_conditional_branch_types, Error, "conditional branches have different types '{left}' and '{right}'; [help] convert one branch so both have the same type")
 SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "cannot compare '{left}' with '{right}' using '{tok}'")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "constant '{sym}' is missing an initializer; [help] initialize it at the declaration")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "constant is missing an initializer; [help] initialize it at the declaration")

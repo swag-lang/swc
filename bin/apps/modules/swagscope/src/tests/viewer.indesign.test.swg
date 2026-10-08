@@ -32,19 +32,19 @@ using Core, Pixel, Gui, Viewers
 // A file URI is checked after percent decoding, before any linked-image probe can run.
 #test
 {
-    Swag.assert(InDesign.idmlFileUriPath("file:///images/title%20page.png") == "/images/title page.png")
-    Swag.assert(InDesign.idmlFileUriPath("file://localhost/images/title.png") == "/images/title.png")
-    Swag.assert(InDesign.idmlFileUriPath("file://server/share/image.png").isEmpty())
-    Swag.assert(InDesign.idmlFileUriPath("file:////server/share/image.png").isEmpty())
-    Swag.assert(InDesign.idmlFileUriPath("file:%2F%2Fserver/share/image.png").isEmpty())
-    Swag.assert(InDesign.idmlFileUriPath("file:///images/bad%00.png").isEmpty())
-    Swag.assert(InDesign.idmlFileUriPath("file:///images/bad%2.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:///images/title%20page.png") == "/images/title page.png")
+    Swag.assert(InDesign.Idml.fileUriPath("file://localhost/images/title.png") == "/images/title.png")
+    Swag.assert(InDesign.Idml.fileUriPath("file://server/share/image.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:////server/share/image.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:%2F%2Fserver/share/image.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:///images/bad%00.png").isEmpty())
+    Swag.assert(InDesign.Idml.fileUriPath("file:///images/bad%2.png").isEmpty())
     if WINDOWS
     {
-        Swag.assert(InDesign.idmlFileUriPath("file:%5C%5Cserver/share/image.png").isEmpty())
-        Swag.assert(InDesign.idmlFileUriPath("file:%2F%5Cserver/share/image.png").isEmpty())
-        Swag.assert(InDesign.idmlFileUriPath("file:%5C%5C%3F%5CUNC%5Cserver%5Cshare%5Cimage.png").isEmpty())
-        Swag.assert(InDesign.idmlFileUriPath("file:///C:/images/title%20page.png") == "C:/images/title page.png")
+        Swag.assert(InDesign.Idml.fileUriPath("file:%5C%5Cserver/share/image.png").isEmpty())
+        Swag.assert(InDesign.Idml.fileUriPath("file:%2F%5Cserver/share/image.png").isEmpty())
+        Swag.assert(InDesign.Idml.fileUriPath("file:%5C%5C%3F%5CUNC%5Cserver%5Cshare%5Cimage.png").isEmpty())
+        Swag.assert(InDesign.Idml.fileUriPath("file:///C:/images/title%20page.png") == "C:/images/title page.png")
     }
 }
 
@@ -68,9 +68,9 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 #test
 {
     let image = "<Image ImageTypeName=\"$ID/PNG\"><Contents><![CDATA[QUJD]]></Contents></Image>"
-    Swag.assert(InDesign.idmlEmbeddedGraphicDataUri(image) == "data:image/png;base64,QUJD")
-    Swag.assert(InDesign.idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/EPS\"><Contents><![CDATA[QUJD]]></Contents></Image>").isEmpty())
-    Swag.assert(InDesign.idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/PNG\"><MetadataPacketPreference><Contents><![CDATA[<?xpacket begin=\"\"?>]]></Contents></MetadataPacketPreference></Image>").isEmpty())
+    Swag.assert(InDesign.Idml.embeddedGraphicDataUri(image) == "data:image/png;base64,QUJD")
+    Swag.assert(InDesign.Idml.embeddedGraphicDataUri("<Image ImageTypeName=\"$ID/EPS\"><Contents><![CDATA[QUJD]]></Contents></Image>").isEmpty())
+    Swag.assert(InDesign.Idml.embeddedGraphicDataUri("<Image ImageTypeName=\"$ID/PNG\"><MetadataPacketPreference><Contents><![CDATA[<?xpacket begin=\"\"?>]]></Contents></MetadataPacketPreference></Image>").isEmpty())
 }
 
 #test
@@ -90,7 +90,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 // from the package, and this fixture was authored outside the repository.
 #test
 {
-    let document = expect InDesign.loadIdmlDocument(idmlFixturePath())
+    let document = expect InDesign.Idml.load(idmlFixturePath())
     Swag.assert(document.pages.count >= 1)
     Swag.assert(document.pages[0].bounds.width > 400 and document.pages[0].bounds.height > 500)
     Swag.assert(document.pages[0].textFrameCount >= 19)
@@ -115,7 +115,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 // graphic exercises the same-folder recovery that keeps a moved document renderable offline.
 #test
 {
-    let document = expect InDesign.loadIdmlDocument(linkedIdmlFixturePath())
+    let document = expect InDesign.Idml.load(linkedIdmlFixturePath())
     Swag.assert(document.pages.count >= 2)
     var linkedImages:        u64
     var flowedArticleFrames: u64
@@ -180,7 +180,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
-    Swag.assert(Path.fileName(firstPageImages[0].toString()) == "title.png")
+    Swag.assert(Path.fileName(firstPageImages[0]) == "title.png")
     Swag.assert(not viewer.goToTypedPage("0") and not viewer.goToTypedPage("5") and not viewer.goToTypedPage("page 1"))
     Swag.assert(viewer.goToTypedPage("2") and viewer.previewIndex == 1)
     Swag.assert(viewer.goToTypedPage("1") and viewer.previewIndex == 0)
@@ -201,7 +201,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     viewer.selectMarkupPage(qrcodePage)
     let selectedPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(selectedPageImages.count == 1)
-    Swag.assert(Path.fileName(selectedPageImages[0].toString()) == "qrcode.png")
+    Swag.assert(Path.fileName(selectedPageImages[0]) == "qrcode.png")
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(viewer)

@@ -68,7 +68,7 @@ struct CodeLanguageSample
     Swag.assert(result.view != null and result.info != null)
     let view = assume cast(*Code.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel!)
-    Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
 
     view.setZoom(150)
     let editor = view.editor

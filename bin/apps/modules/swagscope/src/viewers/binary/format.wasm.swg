@@ -36,13 +36,13 @@ func wasmSectionName(value: u8)->string
 // Returns what one import or export names.
 func wasmKindName(value: u8)->string
 {
-    let s = texts()
+    let texts = texts()
     switch value
     {
-    case 0: return s.wasm_Function
-    case 1: return s.wasm_Table
-    case 2: return s.wasm_Memory
-    case 3: return s.wasm_Global
+    case 0: return texts.wasm_Function
+    case 1: return texts.wasm_Table
+    case 2: return texts.wasm_Memory
+    case 3: return texts.wasm_Global
     }
 
     return "?"
@@ -57,10 +57,10 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
 {
     image.bigEndian = false
 
-    let s       = texts()
+    let texts   = texts()
     let version = image.u32At(4)
 
-    report.beginGroup(s.wasm_Module, WasmMagic[1 until 4], "", offset: 0, length: 8, open: true)
+    report.beginGroup(texts.wasm_Module, WasmMagic[1 until 4], "", offset: 0, length: 8, open: true)
     report.numField(4, 4, "version", cast(u64, version))
     report.endGroup()
 
@@ -70,7 +70,7 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
     var exports  = 0'u64
     var complete = true
 
-    report.beginGroup(s.shr_Sections, "", "", offset: 8, length: image.bytes.count - 8, open: true)
+    report.beginGroup(texts.shr_Sections, "", "", offset: 8, length: image.bytes.count - 8, open: true)
 
     while scan < image.bytes.count and sections < ListLimit
     {
@@ -93,7 +93,7 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
         {
         case 0:
             let name = wasmName(image, bodyAt)
-            report.field(name.at, name.length, s.wasm_Custom, name.text)
+            report.field(name.at, name.length, texts.wasm_Custom, name.text)
 
         case 2:
             imports = reportWasmImports(image, report, bodyAt)
@@ -108,28 +108,28 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
     }
 
     if not complete do
-        report.note(s.wasm_Malformed)
+        report.note(texts.wasm_Malformed)
     report.listCut(sections, sections)
     report.endGroup()
 
-    let counted = countText(sections, s.word_Section, s.word_Sections)
+    let counted = countText(sections, texts.word_Section, texts.word_Sections)
     let traded  = Format.toString("% / %", imports, exports)
-    report.formatName = String.from(s.wasm_Module)
-    report.summary    = Format.toString("% · % · %", s.wasm_Module, counted, traded)
+    report.formatName = texts.wasm_Module
+    report.summary    = Format.toString("% · % · %", texts.wasm_Module, counted, traded)
 }
 
 private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u64
 {
-    let s      = texts()
+    let texts  = texts()
     let header = wasmLeb(image, at)
     if not header.valid do
         return 0
 
     let count = header.value
     let shown = Math.min(count, ListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.shr_Imports, total, "", offset: at, length: 0, open: true)
+    report.beginGroup(texts.shr_Imports, total, "", offset: at, length: 0, open: true)
 
     var scan = header.next
     for shown
@@ -151,16 +151,16 @@ private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u
 
 private func reportWasmExports(image: *BinaryImage, report: *Report, at: u64)->u64
 {
-    let s      = texts()
+    let texts  = texts()
     let header = wasmLeb(image, at)
     if not header.valid do
         return 0
 
     let count = header.value
     let shown = Math.min(count, ListLimit)
-    let total = countText(count, s.word_Entry, s.word_Entries)
+    let total = countText(count, texts.word_Entry, texts.word_Entries)
 
-    report.beginGroup(s.shr_Exports, total, "", offset: at, length: 0, open: true)
+    report.beginGroup(texts.shr_Exports, total, "", offset: at, length: 0, open: true)
 
     var scan = header.next
     for shown

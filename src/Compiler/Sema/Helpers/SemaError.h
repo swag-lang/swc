@@ -69,6 +69,7 @@ namespace SemaError
     Result     raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
     Result     raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef);
     Result     raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef);
+    Result     raiseConditionalBranchTypes(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef trueTypeRef, TypeRef falseTypeRef);
     Result     raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result     raiseDerefOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result     raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);

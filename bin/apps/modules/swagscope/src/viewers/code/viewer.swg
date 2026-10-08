@@ -28,12 +28,15 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const StreamChunkSize = 16 * 1024'u64
+private
+{
+    const StreamChunkSize = 16 * 1024'u64
 
-// Viewport heights of text kept loaded from the top of the visible one: it and five more.
-private const StreamLookAhead    = 6.0
-private const ResidentWindowSize = 256 * 1024'u64
-private const RevealContextSize  = 64 * 1024'u64
+    // Viewport heights of text kept loaded from the top of the visible one: it and five more.
+    const StreamLookAhead    = 6.0
+    const ResidentWindowSize = 256 * 1024'u64
+    const RevealContextSize  = 64 * 1024'u64
+}
 
 struct Panel
 {
@@ -142,7 +145,7 @@ impl Panel
             .failureReason = texts().err_Read
         .editor.setEstimatedDocumentHeight(0)
         if .hasText and .reportFailure do
-            .reportFailure(me, .failureReason.toString())
+            .reportFailure(me, .failureReason)
     }
 
     mtd loadNextChunk()
@@ -193,7 +196,7 @@ impl Panel
         let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
         for adjustment in 4
         {
-            .stream = catch File.openReadLive(.fileName.toString()) as openError
+            .stream = catch File.openReadLive(.fileName) as openError
             if openError != null do
                 return false
             let actual = Math.min(start + adjustment, .fileSize)
@@ -224,12 +227,12 @@ impl Panel
 
     mtd setZoom(percent: u32)
     {
-        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        .zoomPercent = Viewer.clampZoom(percent)
         let base = .themeMetrics().defaultFixedFontSize
         let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
         .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
         .editor.setFlags(.editor.flags)
-        .zoomLabel?.setText(Format.toString("% %", .zoomPercent, "%"))
+        .zoomLabel?.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()
     }
 
@@ -237,23 +240,9 @@ impl Panel
     {
         if not .zoomLabel do
             return
-        with let menu = MenuCtrl.createPopup(me, owner: me)
-        {
-            .addItem("75%", "scope.code.zoom75")
-            .addItem("100%", "scope.code.zoom100")
-            .addItem("125%", "scope.code.zoom125")
-            .addItem("150%", "scope.code.zoom150")
-            .addItem("200%", "scope.code.zoom200")
-        }
-
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
-        {
-        case "scope.code.zoom75":  .setZoom(75)
-        case "scope.code.zoom100": .setZoom(100)
-        case "scope.code.zoom125": .setZoom(125)
-        case "scope.code.zoom150": .setZoom(150)
-        case "scope.code.zoom200": .setZoom(200)
-        }
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
     }
 
     // Creates the streamed, syntax-colored view of `fileName` under `contentParent`.
@@ -341,24 +330,15 @@ impl Panel
     // Creates the zoom menu button in the host's information group `info`.
     private mtd createZoomControl(info: *Wnd)
     {
-        with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.code.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ZoomMenu
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
-        }
+        .zoomLabel = Viewer.createZoomButton(info, "scope.code.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
     }
 
     // Colors the editor with the Swag lexer for Swag sources, and with the generic lexer configured
     // for the file's language otherwise.
     private mtd selectLexer()
     {
-        let extension = Path.lowercaseExtension(.fileName.toString())
+        let extension = Path.lowercaseExtension(.fileName)
         if extension == ".swg" or extension == ".swgs"
         {
             .languageName = "Swag"
@@ -366,7 +346,7 @@ impl Panel
         }
         else
         {
-            let language = detectLanguage(.fileName.toString())
+            let language = detectLanguage(.fileName)
             .languageName = displayName(language)
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)
@@ -396,16 +376,8 @@ impl Panel
                 paintEvt.target!.processEvent(evt)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
-                view.setZoom(view.zoomPercent + 25)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
-                view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
-                return true
-
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
-                view.setZoom(100)
+            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
+                view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
@@ -449,7 +421,7 @@ impl Panel
     // Opens the source stream and reads its first chunk, or records why it cannot be read.
     private mtd startReading()
     {
-        .stream = catch File.openReadLive(.fileName.toString()) as openError
+        .stream = catch File.openReadLive(.fileName) as openError
         if openError != null
         {
             .showReadError(Errors.message(openError))
@@ -519,7 +491,7 @@ impl IWnd for Panel
 // Creates the integrated syntax-colored source view.
 func createViewer(host: Viewer.Host)
 {
-    let view = Panel.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(ViewerZoomSlotWidth))
+    let view = Panel.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(Viewer.ZoomSlotWidth))
     if not view.failureReason.isEmpty()
     {
         host.reject(view.failureReason)

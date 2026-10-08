@@ -147,7 +147,7 @@ private func createPdfFixture()->String
     defer discard catch File.delete(fileName)
 
     var host: HeadlessHost
-    host.setup(ViewerMinWidth, ViewerInfoHeight)
+    host.setup(ViewerWindow.MinWidth, ViewerWindow.InfoHeight)
     defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)

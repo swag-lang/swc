@@ -40,20 +40,6 @@ types.
 
 ## Entries
 
-### std.core.034 — Reject an unknown tweak folder after an earlier selection
-
-- Recorded: 2026-10-08 14:05
-- Evidence: in `TweakFile.parse`, `currentFolder` survives each `/Name` line. The lookup assigns
-  it only on a match, then tests only whether it is null. Static review therefore indicates that
-  `/Known\nvalue 1\n/Missing\nvalue 2` can keep the earlier folder instead of reporting the
-  unknown name. The same stale selection can follow the implicit last-registered-folder path.
-  Existing tweak tests cover valid names and reference cycles, not this transition.
-- Next: reproduce both transitions in `filesystem/tweakfile.test.swg`, then make each explicit
-  folder lookup reject a missing name independently of the previously selected folder. Preserve
-  the documented partial-update contract and the one-based error line.
-- Complete when: an unknown first or later folder consistently raises `SyntaxError`, prior
-  assignments remain visible, and later lines do not mutate the previously selected folder.
-
 ### std.core.018 — Rebaseline and reduce Deflate match-search cost
 
 - Recorded: 2026-08-23 22:36

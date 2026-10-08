@@ -182,12 +182,21 @@ public func openFile(path: string)->bool
     return err == null
 }
 
-// Opens `url` with the system's default handler.
-public func openUrl(url: string)
+// Opens `url` with the system's default handler and returns whether the system accepted it.
+//
+// Only an address [[Env.isWebUrl]] accepts is handed over; anything else is refused without being
+// opened and returns `false`. Links taken from a displayed document can therefore be passed as
+// they are, without turning a `file:` URL or a relative path into a program launch.
+#[Swag.Discardable]
+public func openUrl(url: string)->bool
 {
+    if not isWebUrl(url) do
+        return false
+
     // A 'string' view has no terminator of its own, and the wide call keeps non-ASCII URLs intact.
     let wideUrl = Utf16.toZeroTerminated(url)
-    discard catch ShellExecuteW(null, null, wideUrl.buffer, null, null, SW_SHOW)
+    discard catch ShellExecuteW(null, null, wideUrl.buffer, null, null, SW_SHOW) as err
+    return err == null
 }
 
 // Returns one virtual-desktop metric in physical pixels.

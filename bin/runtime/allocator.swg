@@ -1134,8 +1134,6 @@ impl Allocator
         return (size + step - 1) & ~(step - 1)
     }
 
-    // Serves the cached block that fits 'size' best, accepting up to twice the request.
-    //
     // Serves the cached block that fits 'size' best, accepting up to twice the request: a cached block is
     // already committed and touched, so handing out a larger one costs no memory, while a miss costs a
     // reservation, a commit, and a page fault per page. Returns null when nothing fits, and the reserved and

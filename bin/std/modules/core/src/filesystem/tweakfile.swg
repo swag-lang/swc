@@ -141,6 +141,9 @@ impl TweakFile
                 if folderErr != null do
                     fail SyntaxError{"invalid folder name", line: lineIndex + 1}
 
+                // Each folder line selects afresh: an unknown name must not fall back to the
+                // folder an earlier line selected.
+                currentFolder = null
                 for &folder in .folders
                 {
                     // A folder line names the struct without its namespace, so a tweak

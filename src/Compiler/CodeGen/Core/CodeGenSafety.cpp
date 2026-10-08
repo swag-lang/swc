@@ -577,8 +577,6 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
     return Result::Continue;
 }
 
-// Guard for reading a 'late' struct field: the storage stays null until the
-// first assignment while the declared type is non-null.
 // Guards a read of a 'late' field or global: the storage stays zero (null) until the
 // first assignment while the exposed type is non-null. Loads the value at 'addrReg' and
 // panics when it is still null.

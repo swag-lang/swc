@@ -129,3 +129,22 @@ namespace TweakDeep
         Swag.assert(alpha.foo == 0 and alpha.bar == 0)
     }
 }
+
+// An unknown folder after a known one is reported on its own line; it neither keeps the earlier
+// selection nor undoes the assignments made under it.
+#test
+{
+    var alpha: TweakAlpha
+    var beta:  TweakBeta
+    var tweak: File.TweakFile
+    tweak.registerFolder(&alpha)
+    tweak.registerFolder(&beta)
+
+    discard catch tweak.parse("/TweakAlpha\nfoo 1\n/Missing\nbar 2\n") as error
+    Swag.assert(error is Errors.SyntaxError)
+    Swag.assert(Errors.message(error) == "unknown folder [[Missing]]")
+    let syntax = assume cast(const *Errors.SyntaxError, error)
+    Swag.assert(syntax.line == 3)
+    Swag.assert(alpha.foo == 1 and alpha.bar == 0)
+    Swag.assert(beta.foo == 0 and beta.bar == 0)
+}

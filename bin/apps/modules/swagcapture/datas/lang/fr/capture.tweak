@@ -76,6 +76,8 @@ msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
 msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
 msg_ShortcutTaken      Impossible d'enregistrer le raccourci global '%'. 
 msg_ShortcutTakenWhy   Une autre application l'utilise probablement déjà !
+msg_ShortcutsTaken     Impossible d'enregistrer les raccourcis globaux %. 
+msg_ShortcutsTakenWhy  D'autres applications les utilisent probablement déjà !
 act_ActualSize         Taille réelle
 act_Arrow              Flèche
 act_BigView            Grandes vignettes

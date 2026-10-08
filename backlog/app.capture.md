@@ -29,10 +29,10 @@ still-image editing and output work.
 ### app.capture.009 — Capture hotkeys are fixed
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-10-08 21:30 — Registration failures name only the first unavailable shortcut.
+- Updated: 2026-10-08 22:00 — Registration failures now name every unavailable shortcut.
 - `MainWnd.registerShortcuts` registers four fixed combinations. Persist user-rebindable hotkeys in the
-  existing options and let the user resolve conflicts. A registration failure already produces an
-  information bar, but it names only the first unavailable shortcut; later failures stay silent.
+  existing options and let the user resolve conflicts. A registration failure produces one
+  information bar naming every shortcut another application already owns.
 - A shortcut can already be owned by another application; rebinding provides a recovery path.
 - Related: app.capture.010
 

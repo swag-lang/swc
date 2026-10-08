@@ -185,8 +185,9 @@ by the compiler; constructing or copying a descriptor does not create a type.
 
 The value result borrows its source and can also refer to an interface view in
 the current function. It does not allocate and must not escape that function.
-`assume cast` checks compatibility when dynamic cast safety is enabled. `try` and
-`expect` keep their checks even when that safety is disabled.
+`assume cast` checks compatibility when the `Swag.SafetyWhat.Assume` safety is
+enabled, like every other `assume`. `try` and `expect` keep their checks even when
+that safety is disabled.
 */
 func supportsRuntimeType(target, source: typeinfo)->bool
 {

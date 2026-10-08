@@ -696,28 +696,41 @@ impl MainWnd
         .registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
         .registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
 
-        var errorReg = false
+        // Every shortcut another application already owns is named in one information bar.
+        var taken: Array'String
 
         #[Swag.Mixin]
         mtd registerHotKey(modifiers: Input.KeyModifiers, key: Input.Key, wndId: WndId)
         {
-            catch .app().registerHotKey(modifiers, key, wndId, me) else
-            {
-                if not errorReg
-                {
-                    var msg = Format.toString(appStrings().msg_ShortcutTaken, Input.formatKeyShortcut(modifiers, key))
-                    msg += appStrings().msg_ShortcutTakenWhy
-                    discard InfoBar.create(.editWnd!, msg, .Critical)
-                }
-
-                errorReg = true
-            }
+            catch .app().registerHotKey(modifiers, key, wndId, me) else do
+                taken.add(Input.formatKeyShortcut(modifiers, key))
         }
 
         .registerHotKey(.None, .PrintScreen, ActionCapture.Area)
         .registerHotKey(.CtrlShift, .PrintScreen, ActionCapture.LastArea)
         .registerHotKey(.Control, .PrintScreen, ActionCapture.FullScreen)
         .registerHotKey(.Alt, .PrintScreen, ActionCapture.ActiveWnd)
+
+        if taken.count == 1
+        {
+            var msg = Format.toString(appStrings().msg_ShortcutTaken, taken[0])
+            msg += appStrings().msg_ShortcutTakenWhy
+            discard InfoBar.create(.editWnd, msg, .Critical)
+        }
+        elif taken.count > 1
+        {
+            var names: String
+            for name, index in taken
+            {
+                if index != 0 do
+                    names += ", "
+                names += Format.toString("'%'", name)
+            }
+
+            var msg = Format.toString(appStrings().msg_ShortcutsTaken, names)
+            msg += appStrings().msg_ShortcutsTakenWhy
+            discard InfoBar.create(.editWnd, msg, .Critical)
+        }
     }
 
     mtd setTheme()

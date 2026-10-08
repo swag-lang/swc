@@ -31,6 +31,25 @@ func executablePath()->string
     return args[0]
 }
 
+// Returns whether `url` is an absolute web address that [[Env.openUrl]] hands to the system.
+//
+// Accepted addresses start with `http://`, `https://`, or `mailto:`, in any letter case, and
+// contain no space or control character. A `file:` URL, any other scheme, and a relative path are
+// refused: the system would resolve them to local files or programs.
+func isWebUrl(url: string)->bool
+{
+    if not Utf8.startsWith(url, "http://", .Latin1NoCase) and
+       not Utf8.startsWith(url, "https://", .Latin1NoCase) and
+       not Utf8.startsWith(url, "mailto:", .Latin1NoCase)
+    {
+        return false
+    }
+
+    for character in url where character <= ' ' or character == 0x7F do
+        return false
+    return true
+}
+
 // Identifies a well-known operating-system directory.
 enum SpecialDirectory
 {

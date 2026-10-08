@@ -57,9 +57,48 @@ func makeRepeat32(v: u8)->u32 => (~0'u32 / 255 * v)
 #[ConstExpr, Inline]
 func makeRepeat64(v: u8)->u64 => (~0'u64 / 255 * v)
 
+// Returns the 16-bit value whose high byte is `high` and low byte is `low`.
+//
+// Byte significance is independent of the target's byte order. For example,
+// `Math.make16(0x12, 0x34)` returns `0x1234`.
+#[ConstExpr, Inline]
+func make16(high, low: u8)->u16 => (cast(u16, high) << 8) | low
+
+// Returns the 32-bit value whose upper half is `high` and lower half is `low`.
+//
+// Like [[Core.Math.make16]], this combines significance rather than native memory order.
+#[ConstExpr, Inline]
+func make32(high, low: u16)->u32 => (cast(u32, high) << 16) | low
+
+// Returns a 32-bit value assembled from four bytes, most significant first.
+//
+// `Math.make32(0x12, 0x34, 0x56, 0x78)` returns `0x12345678` on every target.
+// Pass file bytes in their stored order for big-endian input, in reverse order for little-endian.
+#[ConstExpr, Inline]
+func make32(byte3, byte2, byte1, byte0: u8)->u32 => make32(make16(byte3, byte2), make16(byte1, byte0))
+
 // Returns the 64-bit value whose upper half is `high` and lower half is `low`.
 #[ConstExpr, Inline]
 func make64(high, low: u32)->u64 => (cast(u64, high) << 32) | low
+
+// Returns byte `index` of an unsigned integer, counting from its least significant byte.
+//
+// Accepts `u8`, `u16`, `u32`, and `u64`. `index` must be less than the value's byte width;
+// the bound-check safety category checks this precondition. The result depends on significance,
+// not native memory order.
+//
+// ```swag
+// let word = Math.make32(0x12, 0x34, 0x56, 0x78)
+// Swag.assert(Math.byteAt(word, 0) == 0x78)
+// Swag.assert(Math.byteAt(word, 3) == 0x12)
+// ```
+#[ConstExpr, Inline]
+func(T) byteAt(value: T, index: u64)->u8
+    where T == u8 or T == u16 or T == u32 or T == u64
+{
+    Debug.safetyBoundCheck(index < #sizeof(T), "byte index is out of range")
+    return cast(u8, ((value >> (index * 8)) & 0xFF))
+}
 
 // Returns whether any byte of `value` equals `byte`.
 #[ConstExpr, Inline]

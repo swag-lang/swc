@@ -212,23 +212,23 @@ struct Reader
 
 private func writeU16(buffer: *Array'u8, value: u16)
 {
-    buffer.add(cast(u8, (value & 0xFF)))
-    buffer.add(cast(u8, ((value >> 8) & 0xFF)))
+    buffer.add(Math.byteAt(value, 0))
+    buffer.add(Math.byteAt(value, 1))
 }
 
 private func writeU32(buffer: *Array'u8, value: u32)
 {
     for i in 4 do
-        buffer.add(cast(u8, ((value >> (i * 8)) & 0xFF)))
+        buffer.add(Math.byteAt(value, i))
 }
 
 private func writeU64(buffer: *Array'u8, value: u64)
 {
     for i in 8 do
-        buffer.add(cast(u8, ((value >> (i * 8)) & 0xFF)))
+        buffer.add(Math.byteAt(value, i))
 }
 
-private func readU16(buffer: const [..] u8, offset: u64)->u16 => cast(u16, buffer[offset]) | cast(u16, buffer[offset + 1]) << 8
+private func readU16(buffer: const [..] u8, offset: u64)->u16 => Math.make16(buffer[offset + 1], buffer[offset])
 
 private func readU32(buffer: const [..] u8, offset: u64)->u32
 {

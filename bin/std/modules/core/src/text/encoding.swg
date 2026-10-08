@@ -181,13 +181,14 @@ private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
 
     while offset + 8 <= result.count
     {
-        Math.Simd.store(destination + offset, cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
+        Math.Simd.store(destination + offset,
+                        cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
         offset += 8
     }
 
     while offset < result.count
     {
-        destination[offset] = (cast(u16, source[2 * offset]) << 8) | cast(u16, source[2 * offset + 1])
+        destination[offset] = Math.make16(source[2 * offset], source[2 * offset + 1])
         offset += 1
     }
 
@@ -206,13 +207,15 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 
     while offset + 4 <= result.count
     {
-        Math.Simd.store(cast([*] u8, (destination + offset)), Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
+        Math.Simd.store(cast([*] u8, (destination + offset)),
+                        Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
         offset += 4
     }
 
     while offset < result.count
     {
-        destination[offset] = cast(rune, ((cast(u32, source[4 * offset]) << 24) | (cast(u32, source[4 * offset + 1]) << 16) | (cast(u32, source[4 * offset + 2]) << 8) | cast(u32, source[4 * offset + 3])))
+        let unit = source + 4 * offset
+        destination[offset] = cast(rune, Math.make32(unit[0], unit[1], unit[2], unit[3]))
         offset += 1
     }
 

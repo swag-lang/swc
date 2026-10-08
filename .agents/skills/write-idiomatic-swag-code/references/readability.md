@@ -4,6 +4,8 @@ Use this guide for a readability pass or a difficult layout decision. The skill'
 apply during ordinary edits too. Optimize how quickly a reader can reconstruct the operation
 and verify it, not the number of characters, lines, comments, or extracted functions.
 
+The examples assume the module imports `core` and the source has `using Core`.
+
 ## Review One Function, Then Its Neighbours
 
 1. Read the signature and scan the body without opening helpers. Identify the result, main path,
@@ -66,7 +68,7 @@ func readU16OrZero(bytes: const [..] u8, offset: u64)->u16
     if offset > bytes.count or 2 > bytes.count - offset do
         return 0
 
-    return cast(u16, bytes[offset]) | (cast(u16, bytes[offset + 1]) << 8)
+    return Math.make16(bytes[offset + 1], bytes[offset])
 }
 ```
 
@@ -75,8 +77,9 @@ to shorten it would change safety. The sentinel here belongs to this illustrativ
 preserve a real reader's existing failure contract when applying the layout.
 
 If several readers repeat this policy, a short `containsRange` helper can own it. Do not add
-that indirection for this single use merely to make the function smaller. For longer packed
-reads, one byte component per continuation line can expose the byte order without a helper.
+that indirection for this single use merely to make the function smaller. The existing
+`Math.make16` already names byte assembly; its high-byte-first convention exposes the reversed
+order of this little-endian reader. Keep explicit shifts when extracting actual bit fields.
 
 ## Group Construction With Its Subject
 
@@ -141,9 +144,39 @@ The formatter can normalize spacing, indentation, excess blank lines, and the la
 breaks. It cannot reliably discover business phases, invent names, extract helpers, or decide
 which comment would relieve a reader. Preserve those author decisions.
 
+For example, a long unbroken bitwise chain can be laid out by operand automatically. The
+default `bitwise-chain-column-limit = 120` applies to chains of at least three `&`, `|`, or `^`
+operands, measuring the chain plus line indentation, without call prefixes or trailing comments.
+It leaves short masks, compact flag arguments, authored multiline chains, and literal table rows alone. This
+is a readability fallback, not a reason to keep a low-level expression that an existing API
+would explain better:
+
+```swag
+// Before: the reader has to reconstruct the byte order from the shifts.
+let word = (cast(u32, bytes[0]) << 24) | (cast(u32, bytes[1]) << 16) |
+           (cast(u32, bytes[2]) << 8) | bytes[3]
+```
+
+```swag
+// After: the helper names assembly; arguments run from high byte to low byte.
+let word = Math.make32(bytes[0], bytes[1], bytes[2], bytes[3])
+```
+
+Similarly, `Math.byteAt(word, 0)` names extraction of the least significant byte. Check the
+range contract before replacing an arbitrary shift with this helper. Keep bit masks and shifts
+for non-byte fields and SIMD operations; do not force a scalar byte API onto another domain.
+Adding or adopting such helpers is a semantic refactoring with focused tests, outside the
+strictly visual campaign in `backlog/repo.prompts.md`.
+
 The default style preserves the authored shape of named functions, including a multiline body
 beside an accessor. Explicit `uniform-function-bodies` configuration can still request sibling
 compaction. Do not force every accessor to expand or every single statement to collapse.
+
+Alignment is useful only while the reader can connect both sides of the table. The same outlier
+rule applies to declarations and trailing comments: an unusually long row keeps its own spacing
+instead of moving the whole group's comments. Prefer this to padding short fields out to a distant
+literal or shrinking useful names. Keep genuine data rows intact when their horizontal pattern
+helps comparison.
 
 Before changing an automatic rule, inspect representative declarations, guards, closures,
 tables, comments, and deliberately unusual compiler fixtures. Verify the intended output and

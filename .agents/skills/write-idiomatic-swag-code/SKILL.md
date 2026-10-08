@@ -204,16 +204,30 @@ of a reader's brain. Apply these rules to all edited Swag code:
 - Keep `=>` and single-line bodies for short, obvious accessors, predicates, and delegations.
   A single statement is not necessarily simple: a long signature plus a long expression, nested
   calls, or mixed operators merits a block. Never compress a function solely to match a neighbour.
+  When expanding an inferred expression body, spell its existing return type in the signature
+  and preserve the expression's evaluation and return behavior.
 - Reduce visible repetition with direct returns, declaration-bound `with`, and helpers that name
   coherent operations. Extract a phase when its detail hides the caller's story, even if used
   once. Keep the helper with its owner and count the extra navigation it introduces. Do not
   replace clear local steps with chains of tiny wrappers, switches on modes, or boolean controls.
 
-The default formatter keeps `column-limit = 0`: it does not choose a width or simplify logic
-for the author. It keeps authored multiline statements while normalizing break placement (for
+The default formatter keeps `column-limit = 0`: general wrapping remains an author decision.
+Its narrow `bitwise-chain-column-limit = 120` rule splits an unbroken chain of at least three
+`&`, `|`, or `^` operands when the chain plus line indentation exceeds that width. Call prefixes
+and trailing comments do not make a compact flag list expand. It preserves authored multiline
+chains and does not simplify logic. It normalizes authored break placement (for
 example, bringing a call's first argument back beside its opening parenthesis), and preserves
 the choice of a block or one-line named function. Run `swc format` instead of padding
 continuations, declaration columns, or trailing comments by hand, then read its output again.
+For a vertical argument or parameter list, place the second item on its own line: the default
+source-selected layout can join later breaks when the first two items share a source line.
+
+For byte assembly and extraction, prefer `Math.make16`, `Math.make32`, `Math.make64`, and
+`Math.byteAt` when they express the operation directly. Assembly arguments run from most to
+least significant; byte index zero is least significant. These are numeric operations, not
+native-memory-order conversions. Use the existing byte stream/source and endian conversion
+APIs when those contracts match the task. Keep explicit shifts for actual bit fields, SIMD
+lanes, or transforms whose meaning would be hidden by a byte helper.
 
 Branches and adjacent closures still have group layout rules: an `if` / `elif` / `else` chain
 uses `do` or braces consistently, and sibling closures can compact or expand together. Judge
@@ -227,6 +241,10 @@ if it destroys a useful reading boundary, investigate the formatter.
   the purpose changes. Use a short group comment when the role is otherwise hard to see.
 - Let the formatter align the group. A long declaration may deliberately remain unaligned;
   never shorten a meaningful name or reorder dependent declarations to force a rectangular table.
+- Keep trailing comments near the code they explain. The formatter's `align-outlier-gap` also
+  excludes unusually long rows from comment alignment, so one literal cannot push every
+  neighbouring comment off the screen. A long explanation usually belongs above its subject;
+  preserve documentation ownership and comment directives when moving it.
 - Compare related operations in the same order and shape when their contracts match. Keep a
   complex sibling expanded and make exceptions visible instead of hiding them for symmetry.
 

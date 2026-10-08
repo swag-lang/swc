@@ -2,4 +2,6 @@
 .vscode-test/**
 .gitignore
 tests/**
-node_modules/**
+integration/**
+node_modules/vscode-oniguruma/**
+node_modules/vscode-textmate/**

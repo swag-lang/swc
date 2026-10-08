@@ -100,8 +100,10 @@ public:
     // The value a node named before a conversion retyped or folded it in place. Both replace
     // the symbol payload, but the source text still names the symbol, so whoever republishes
     // that text (an exported function body) must still see the dependency. Only symbols that
-    // an export can hide, those not public or owned by a type, are remembered.
+    // an export can hide, those not public or owned by a type, are remembered by default.
+    // Editor snapshots also retain public names and selected calls before folding/inlining.
     const Symbol* foldedSourceSymbol(AstNodeRef nodeRef) const;
+    void retainEditorSymbols() { retainEditorSymbols_ = true; }
 
 protected:
     Ast&       ast() { return ast_; }
@@ -243,6 +245,7 @@ private:
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
     SymbolNamespace* fileNamespace_   = nullptr;
+    bool retainEditorSymbols_ = false;
 
     struct Shard
     {

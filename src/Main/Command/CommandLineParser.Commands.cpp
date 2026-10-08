@@ -79,6 +79,12 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "sema doc build run smoke", "--export-api-dir", nullptr,
         &cmdLine_->exportApiDir,
         "Write the module public API to this directory after a successful semantic pass");
+    add(HelpOptionGroup::Target, "sema", "--editor-index", nullptr,
+        &cmdLine_->editorIndex,
+        "Write resolved source symbols and types as a versioned JSON editor snapshot");
+    add(HelpOptionGroup::Input, "sema", "--editor-overlay", nullptr,
+        &cmdLine_->editorOverlay,
+        "Read unsaved source buffers from a versioned editor overlay file");
     addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--arch", "-a",
             &cmdLine_->targetArch,
             {

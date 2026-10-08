@@ -3,6 +3,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
+#include "Main/EditorIndex.h"
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -96,9 +97,14 @@ int main(int argc, char* argv[])
     }
 #endif
 
+    if (swc::EditorIndex::loadOverlays(cmdLine) != swc::Result::Continue)
+        return static_cast<int>(swc::ExitCode::ErrorCmdLine);
+
     swc::CompilerInstance compiler(global, cmdLine);
 
-    const auto result = static_cast<int>(compiler.run());
+    auto result = static_cast<int>(compiler.run());
+    if (!cmdLine.editorIndex.empty() && swc::EditorIndex::write(compiler) != swc::Result::Continue)
+        result = static_cast<int>(swc::ExitCode::ErrorCommand);
 #if SWC_DEV_MODE
     if (cmdLine.devSchedStats)
         global.jobMgr().printStats(startupCtx);

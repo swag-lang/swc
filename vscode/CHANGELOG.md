@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add a compiler-backed language server with semantic highlighting, hover types, inferred
+  type hints, definition navigation, module references, document symbols, and diagnostics.
+- Analyze unsaved module buffers and discard results superseded by edits.
+- Add compiler selection and restart settings; require VS Code 1.82 or newer for language services.
+- Keep syntax highlighting available when workspace trust disables compiler execution.
+
 ## 0.0.170
 
 - Add the `Swag.prefetch` intrinsic.

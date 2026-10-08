@@ -16,11 +16,28 @@ accepts hexadecimal byte/nibble wildcards, exact UTF-8, and the active scalar, m
 occurrences, and the information band inspects common scalar readings at the exact caret. The entries below
 are what separate that capable grid from a professional binary-analysis viewer.
 
+### app.scope.hexa.016 — Important hexadecimal commands need first-class actions and shortcuts
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-08 21:32 — The commands button is gone; Go To and copy forms are context-menu only.
+- Evidence: the visible command group exposes row width, value width, representation, and byte
+  order selectors. Go To, copy-as-bytes, copy-as-text, copy-as-dump, and select-all are reachable
+  only through the context menu; the compact commands button that also exposed them has been
+  removed. Pattern search is discoverable through the shared search field, and only byte copy,
+  select-all, and Go To have keyboard shortcuts.
+- Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
+  the dominant Go To and copy actions directly in the viewer band.
+- Complete when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
+  and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
+  and remappable through the application convention; and the document remains the majority of the
+  minimum-size surface.
+- Related: app.scope.viewers.008
+
 ### app.scope.hexa.008 — External file changes can make offsets and search results stale
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-10 19:06 — Account for host reload while retaining per-operation version checks
-- Evidence: `HexDocument` records size at open, display and search use separate streams, and a
+- Evidence: `Viewers.Hex.Document` records size at open, display and search use separate streams, and a
   later short read permanently fails that document instance. The host now detects stable metadata
   changes and reloads while retiring searches, but display, copy, search and analysis do not
   validate a shared file-version token around each operation. A read can therefore fail before
@@ -52,7 +69,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the information band now follows `HexGridView.sigCaretChanged` and simultaneously
+- Evidence: the information band now follows `Viewers.Hex.GridView.sigCaretChanged` and simultaneously
   spells the exact caret bytes as signed, unsigned, hexadecimal, binary, octal, `f32`/`f64`, and
   printable readings at 8/16/32/64-bit widths in the active byte order, plus boolean at byte width.
   It does not yet expose `f16`, GUID, timestamp, IP, color, BCD, or varint readings, and values
@@ -109,7 +126,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `isHexPrintable` accepts only bytes `0x20..0x7E`; every other byte becomes a dot. The
+- Evidence: `Viewers.Hex.isPrintable` accepts only bytes `0x20..0x7E`; every other byte becomes a dot. The
   lane cannot decode UTF-8, UTF-16/32, Windows/OEM pages, or EBCDIC, and selection has no way to
   associate a multi-byte character with its source bytes.
 - Next: introduce a text-lane decoder contract that consumes a bounded row window and maps every
@@ -122,7 +139,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `HexGridView.onPaint` calls `HexDocument.ensure`; crossing a resident-window boundary
+- Evidence: `Viewers.Hex.GridView.onPaint` calls `Document.ensure`; crossing a resident-window boundary
   can seek and read 256 KiB on the GUI thread. Local SSD tests hide the stall, while slow disks,
   removable media, and network shares can block input and painting.
 - Next: add cancellable background prefetch for the visible window and its immediate neighbors,
@@ -227,22 +244,6 @@ are what separate that capable grid from a professional binary-analysis viewer.
   or the complete collection.
 - Related: app.scope.hexa.001, app.scope.hexa.011
 
-### app.scope.hexa.016 — Important hexadecimal commands need first-class actions and shortcuts
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the visible command group exposes width, representation, and endian; Go To, row width,
-  copy-as-text, copy-as-dump, and select-all are now reachable through a visible compact commands
-  button as well as the context menu. Pattern search is discoverable through the shared search
-  field, and only byte copy, select-all, and Go To have keyboard shortcuts.
-- Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
-  the dominant Go To and copy actions directly in the viewer band.
-- Complete when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
-  and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
-  and remappable through the application convention; and the document remains the majority of the
-  minimum-size surface.
-- Related: app.scope.viewers.008
-
 ### app.scope.hexa.017 — The viewer cannot calculate checksums or hashes
 
 - Recorded: 2026-08-29 08:36
@@ -321,7 +322,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
   byte/nibble/scalar patterns across search-chunk boundaries, invalid search input, visible search
   marks, the compact inspector including binary/octal/boolean readings and file percentage,
-  analysis reruns on live selection, rich Go To forms, visible command-menu routing, explicit byte
+  analysis reruns on live selection, rich Go To forms, context-menu command routing, explicit byte
   order, font zoom/reset, focus-safe mouse capture, non-integer DPI, live English/French wording,
   layout, and dark-theme goldens. Slow-I/O behavior, external file-version changes, and
   accessibility have no deterministic seam yet.

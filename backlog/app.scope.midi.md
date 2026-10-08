@@ -10,7 +10,7 @@ remain available in the Binary viewer.
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-11 22:08 — Separate report export from normalized MIDI file writing.
 - Evidence: the viewer has no copy-note/event, CSV/JSON event export, tempo-map export, or piano-roll
-  image export. The current MidiDocument retains notes and timing summaries, not
+  image export. The current MIDI `Document` retains notes and timing summaries, not
   every raw event; complete event retention remains app.scope.midi.005.
 - Next: export selected/all decoded events and tempo maps to stable JSON/CSV plus a rendered image;
   retain source-event provenance through app.scope.midi.005. MIDI file writing is app.scope.midi.013.
@@ -21,7 +21,7 @@ remain available in the Binary viewer.
 ### app.scope.midi.013 — A selected MIDI range cannot be written as a new SMF file
 
 - Recorded: 2026-09-11 22:08
-- Evidence: split from app.scope.midi.012 after reviewing `mididocument.swg` and the viewer commands.
+- Evidence: split from app.scope.midi.012 after reviewing `viewers/midi/document.swg` and the viewer commands.
   The reader has no SMF writer and retains neither every event nor raw source ranges. A report
   export cannot establish the timing and event-state contract needed for a playable excerpt.
 - Next: define a normalized writer over the event model in app.scope.midi.005, including initial

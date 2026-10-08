@@ -26,6 +26,16 @@ effects that makes a capture look produced, and output.
 Scrolling and recorded capture require a timed acquisition and export subsystem; those outcomes come after the
 still-image editing and output work.
 
+### app.capture.009 — Capture hotkeys are fixed
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-10-08 21:30 — Registration failures name only the first unavailable shortcut.
+- `MainWnd.registerShortcuts` registers four fixed combinations. Persist user-rebindable hotkeys in the
+  existing options and let the user resolve conflicts. A registration failure already produces an
+  information bar, but it names only the first unavailable shortcut; later failures stay silent.
+- A shortcut can already be owned by another application; rebinding provides a recovery path.
+- Related: app.capture.010
+
 ### app.capture.023 — Property painters have no regression for stale selections
 
 - Recorded: 2026-09-01 17:55
@@ -146,16 +156,6 @@ existing form model and one undoable operation. Named reusable layouts remain ap
   generated through the existing reflective editor system.
 - Priority: shared capture effects would apply to preview, flatten, and export through one model.
 - Related: app.capture.003, app.capture.005, app.capture.007, app.capture.008, std.pixel.012
-
-### app.capture.009 — Capture hotkeys are fixed
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- `MainWnd.registerShortcuts` registers four fixed combinations. Persist user-rebindable hotkeys in the
-  existing options and let the user resolve conflicts. Registration failures already produce an
-  information bar naming the unavailable shortcut.
-- A shortcut can already be owned by another application; rebinding provides a recovery path.
-- Related: app.capture.010
 
 ### app.capture.001 — Print the current capture
 

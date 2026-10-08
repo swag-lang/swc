@@ -11,8 +11,8 @@ first; the consuming optimization names it through `Related:`. Portable semantic
 available where the operation can be lowered efficiently on every supported target, while
 target-specific forms require compile-time gating or safe runtime dispatch.
 
-The supported machine baseline is x86-64-v3, as stated in the repository README; scalar or
-narrower kernels below are algorithmic alternatives, not a promise to run on an older ISA.
+The supported machine baseline is x86-64-v3, enforced at startup by `src/Main/HostCpuGuard.cpp`;
+scalar or narrower kernels below are algorithmic alternatives, not a promise to run on an older ISA.
 Every optimized consumer keeps a scalar or narrower fallback, proves byte-for-byte or numerically
 specified parity at boundaries and tails, and records a release benchmark against that fallback.
 Every capability entry also owns its declarations in `bin/runtime/api.swg`, the public
@@ -21,12 +21,13 @@ language reference. An implementation that introduces or changes an intrinsic sp
 the lexer token and editor grammar update required for a surface-syntax change.
 The production baseline includes the public wrapper in
 `bin/std/modules/core/src/math/simd.swg`, the PCM conversion kernels in `audio/src/codec/pcm/pcm.swg`,
-and H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h264/inter.swg` and
-`frame.swg`. Other consumers include crypto/UTF conversion, Pixel codecs and selected CPU spans,
-and paired SDF samples. Historical measurements below are not a fresh baseline for the current
-compiler. H.264 RBSP unescaping copies escape-free 16-byte blocks directly: over 512 MiB
-in native Release it improves from 1,910,646 to 528,998 us (3.61x), and the complete 3,000-frame
-MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is still outstanding.
+the H.264 interpolation kernels in `video/src/decode/h264/inter.swg`, and the YCbCr conversion
+kernels in `pixel/src/image/yuvplanar.swg`. Other consumers include crypto/UTF conversion, Pixel
+codecs and selected CPU spans, and paired SDF samples. Historical measurements below are not a
+fresh baseline for the current compiler. H.264 RBSP unescaping copies escape-free 16-byte blocks
+directly: over 512 MiB in native Release it improves from 1,910,646 to 528,998 us (3.61x), and
+the complete 3,000-frame MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work
+below is still outstanding.
 
 Every packed measurement recorded between 2026-08-20 07:58 and 2026-08-21 21:55 was taken while
 most of `Core.Math.Simd` cost a call into `core.dll`. The wrapper was created at the start of that
@@ -62,11 +63,11 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   filter runs on bytes with saturating arithmetic; `h264_qpel_8bit.asm` builds its six shifted taps
   with `palignr` 35 times and averages with `pavgb` 22 times rather than reloading each tap;
   `h264_chromamc.asm` and `h264_weight.asm` apply their weights with `pmaddubsw`, which multiplies
-  and accumulates bytes into 16-bit lanes in one instruction. Our `deblock.swg`, `inter.swg` and
-  `transform.swg` call `Simd.widenLow` or `Simd.widenHigh` 71 times between them and use
-  `Simd.average` 5 times, `Simd.subSaturating`, `Simd.addSaturating`, `Simd.mulAddPairs`,
-  `Simd.align`, `Simd.minimum` and `Simd.maximum` not at all. Widening halves the lanes a kernel
-  works on and adds the unpack and pack around it.
+  and accumulates bytes into 16-bit lanes in one instruction. When this entry was recorded, our
+  `deblock.swg`, `inter.swg` and `transform.swg` called `Simd.widenLow` or `Simd.widenHigh` 71
+  times between them and used `Simd.average` 5 times, `Simd.subSaturating`, `Simd.addSaturating`,
+  `Simd.mulAddPairs`, `Simd.align`, `Simd.minimum` and `Simd.maximum` not at all. Widening halves
+  the lanes a kernel works on and adds the unpack and pack around it.
 - Nothing is missing from the compiler. Every one of those instructions already has a micro-op and
   an encoding, and `std/core` already publishes each: `Simd.average` is `vpavgb`,
   `Simd.addSaturating` and `Simd.subSaturating` are `vpaddusb` and `vpsubusb`, `Simd.minimum` and
@@ -189,10 +190,11 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   64-bit lane is a `movd`/`movq`, through one `pshufd` past lane zero; an 8- or 16-bit lane slides
   down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
   constant lane written into a vector local is one `vpinsrb`/`vpinsrw`/`vpinsrd` where it was a
-  sixteen-byte spill, a narrow store and a wide reload stalled behind it. `native/simd/lanes.swg`
-  covers signed and unsigned narrow reads and the three insertion widths. What still goes through
-  the frame: a 64-bit lane write, and every dynamic index - `v[i]` spills the vector and reads
-  `[rsp + i * 4]`, `v[i] = x` spills, stores the lane and reloads sixteen bytes.
+  sixteen-byte spill, a narrow store and a wide reload stalled behind it.
+  `bin/unittests/native/simd/lanes.swg` covers signed and unsigned narrow reads and the three
+  insertion widths. What still goes through the frame: a 64-bit lane write, and every dynamic
+  index - `v[i]` spills the vector and reads `[rsp + i * 4]`, `v[i] = x` spills, stores the lane
+  and reloads sixteen bytes.
 - Next: give the 64-bit lane write its `vpinsrq`, lower a dynamic lane read through a byte shuffle
   with a computed control where that beats the spill, and extend the `fpMathFma` contraction to
   packed product accumulations or state why packed code keeps separate rounding.
@@ -475,7 +477,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Intent: find a profitable vertical strong-chroma layout and confirm the retained strong luma
   and horizontal chroma kernels in a complete decode profile. The weak paths are done: horizontal
   since 2026-08-20 (16 luma or 8 chroma samples per call, 2.66x and
-  2.05x on release microkernels), vertical since 2026-08-22 — `filterLumaWeakVertical` and
+  2.05x on release microkernels), vertical since 2026-08-22 — `filterLumaVertical` and
   `filterChromaWeakVertical` transpose the sixteen (eight) lines through a tile with the
   interleave tree (32 interleaves for luma), run the horizontal kernel on the tile, and transpose
   the four (two) changed rows back with lane-extraction stores. Exhaustive differential test

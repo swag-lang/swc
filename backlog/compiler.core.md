@@ -15,7 +15,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   `unknown symbol 'hashDynamicStorage'`. The span points to that call in generated `core.swg`.
   Both published `hash32` and `hash64` bodies contain the call, but the generated API has no
   declaration of the private helper from `crypto/hash64.swg`. The failure is at the import
-  boundary: the eight `collections/dynamicstorage.test.swg` tests pass inside Core.
+  boundary: the eight `tests/collections/dynamicstorage.test.swg` tests pass inside Core.
 - Reproduction: put the following script outside the checkout and run it with the checkout-local
   `bin/swc.dm.exe --num-cores 6 --rebuild <absolute-script-path>`:
 

@@ -275,6 +275,7 @@ resource limits.
   the right answer.
 
 - Complete when: A bounded TrueType bytecode interpreter executes fpgm, prep, and glyph instructions for representative hinted fixtures with expected pixel outlines, and malformed programs fail safely.
+
 ---
 
 ## Out of scope

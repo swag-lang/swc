@@ -84,7 +84,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 ### compiler.distribution.003 — Release acceptance does not verify unsupported hosts
 
 - Recorded: 2026-09-05 05:12
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
 - Evidence: `src/Main/HostCpuGuard.cpp` already checks AVX2 from a baseline-compatible TLS callback
   before the allocator and CRT callbacks. Its translation unit disables extended instructions and
   whole-program optimization in `swc.vcxproj`. The compiler therefore has an early prerequisite

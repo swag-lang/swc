@@ -34,6 +34,35 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.054 — Presenting a small update still copies the whole surface render target
+
+- Recorded: 2026-08-24 08:48
+- Updated: 2026-10-08 21:30 — The full copy now targets the layered presentation target, not a back buffer.
+- Evidence: `Surface.presentRenderTarget` (`surface.swg`) still copies the whole surface render
+  target into a second full-size presentation target (`bindNativePresentationTarget` in
+  `surface.win32.swg`), which `prepareNativePresentation` then reads back whole for the layered
+  window (std.gui.057).
+  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
+  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. A 2026-09-19
+  maximized manuscript repaint probe spent 9.09 of 11.22 ms per frame in `end`. These totals
+  include driver backpressure and earlier GPU work; they are not input-to-display measurements.
+- Current boundary: the GUI's default OpenGL context and native window are owned by the same
+  thread. The previous worker adapter allowed drawable reallocation to overlap native sizing,
+  causing multi-second driver waits (std.gui.056), so its faster stationary repaint was not
+  evidence of a safe native presentation architecture. `Pixel.RenderThread` remains available
+  as an explicit adapter. The default WGL swap interval is one.
+- Rejected approach: bounding the copy alone relied on preserved back-buffer contents. The
+  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy
+  was requested, so the unexercised partial-copy machinery was removed.
+- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
+  separating GPU execution from native-present wait. Measure whether surfaces that do not need
+  compositing can render directly into the presentation target. Keep the render target where
+  effects need it. Any asynchronous replacement must establish drawable ownership and buffer lifetime
+  during physical resizing, not merely move blocking calls to a worker and wait for them.
+- Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
+  equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
+- Related: std.gui.049, std.gui.056, std.gui.057, platform.portability.066
+
 ### std.gui.057 — Validate layered presentation across displays and live resizing
 
 - Recorded: 2026-09-26 18:37
@@ -103,33 +132,6 @@ prove it. Operating-system integrations live in
   family side by side and asserts their capitals share a center.
 
 - Complete when: A headless side-by-side case measures the cap centers of framed fields, labels, menus, and list rows across shipped font families; the chosen placement rule is documented and the resulting goldens pin the decision.
-
-### std.gui.054 — Presenting a small update still copies the whole surface render target
-
-- Recorded: 2026-08-24 08:48
-- Updated: 2026-10-06 21:12 — Locate the full copy in `presentRenderTarget`.
-- Evidence: `Surface.presentRenderTarget` (`surface.swg`) still copies the whole surface render
-  target to the back buffer.
-  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
-  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. A 2026-09-19
-  maximized manuscript repaint probe spent 9.09 of 11.22 ms per frame in `end`. These totals
-  include driver backpressure and earlier GPU work; they are not input-to-display measurements.
-- Current boundary: the GUI's default OpenGL context and native window are owned by the same
-  thread. The previous worker adapter allowed drawable reallocation to overlap native sizing,
-  causing multi-second driver waits (std.gui.056), so its faster stationary repaint was not
-  evidence of a safe native presentation architecture. `Pixel.RenderThread` remains available
-  as an explicit adapter. The default WGL swap interval is one.
-- Rejected approach: bounding the copy alone relied on preserved back-buffer contents. The
-  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy
-  was requested, so the unexercised partial-copy machinery was removed.
-- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
-  separating GPU execution from native-present wait. Measure whether surfaces that do not need
-  compositing can render directly to the back buffer. Keep the render target where effects
-  need it. Any asynchronous replacement must establish drawable ownership and buffer lifetime
-  during physical resizing, not merely move blocking calls to a worker and wait for them.
-- Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
-  equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
-- Related: std.gui.049, std.gui.056, platform.portability.066
 
 ### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
 

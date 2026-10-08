@@ -225,7 +225,7 @@ output, path measurement and effects, and the modern renderer choice tracked by
   or streaming sink, so even a local operation requires whole-image storage.
 - Next: measure real large-image consumers, then design a read-only region producer and streaming
   sink for the subset of local operations that can be tiled; keep global analyses such as
-  `smartcrop` explicitly separate.
+  `Image.smartCrop` explicitly separate.
 - Complete when: a crop/resize/color pipeline over an image larger than RAM has bounded measured
   peak memory, deterministic edge halos, parallel tile execution, and the same output as the eager
   path within stated tolerance.

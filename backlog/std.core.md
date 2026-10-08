@@ -25,11 +25,10 @@ new module rather than growth inside `core`.
 - **Reflection** over structs, enums, attributes and arrays supports the `TagBin` serializer and
   reflected property editors.
 - **Random** includes reproducible generators and procedural noise.
-- Collections, filesystem, time, threading and the job system all cover their basics.
+- Collections, filesystem, time, and threading all cover their basics; tasks and task groups
+  are runtime types (`Swag.Task`, `Swag.TaskGroup`), not a Core job system.
 
 The remaining work includes networking, cryptography, compression, text, and concurrency.
-
-## Entries
 
 The network stack starts with the blocking transport contract; datagrams and higher-level protocols have separate
 acceptance conditions of their own.
@@ -38,6 +37,8 @@ All concurrency types and their generic implementations belong to `bin/runtime`,
 language.parallelism.001. The concurrency entries own Core integration, algorithms, and consumer
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
+
+## Entries
 
 ### std.core.034 — Reject an unknown tweak folder after an earlier selection
 
@@ -369,7 +370,7 @@ stuck at the boundary.
 - Updated: 2026-09-10 19:32 — Account for the bounded ZIP reader already shipped in Swag Scope.
 
 - Evidence: Core exposes no ZIP container API. Swag Scope already owns a bounded reader in
-  `src/viewers/archive/ziparchive.swg`, including ZIP64 directory metadata, stored/Deflate
+  `bin/apps/modules/swagscope/src/viewers/archive/zip.swg`, including ZIP64 directory metadata, stored/Deflate
   extraction, CRC checks, and a 250,000-entry limit.
 - Next: review and extract that reader into a reusable container boundary, migrate Scope to it,
   and add the missing writer with explicit supported formats and resource limits.

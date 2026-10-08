@@ -472,35 +472,35 @@ in its module backlog; a general request for better names is not a missing langu
 - Complete when: bindings distinguish absence from zero/false/empty payloads, evaluate once, scope names
   to successful branches, and preserve those rules through guards and nested patterns.
 
-### language.design.023 — A blank `cast()` performs whatever conversion the target turns out to need
+### language.design.023 — A contextual `cast(value)` performs whatever conversion the target turns out to need
 
 - Recorded: 2026-08-10 07:44
 - Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
-- Observation: `cast()` with no type "allows the compiler to infer the target type"
+- Observation: `cast(value)` with no type "allows the compiler to infer the target type"
   ([003_007_cast.swg](../bin/reference/modules/language/src/003_007_cast.swg)), and
   the conversion it then performs is whichever one that target requires — including a float
   truncation and an integer narrowing, in a language that otherwise refuses both without a written
   cast. The spelling is a blanket permission attached to a call site rather than to a conversion:
   it says "convert this", never "convert this to that", so changing a parameter's type at the callee
-  silently changes what every `cast()` argument does. The reference's own example is a truncation
+  silently changes what every `cast(value)` argument does. The reference's own example is a truncation
   presented as a convenience.
-- Evidence: `testAutoCast(cast() 1.4)` is the reference's illustration, and `1.4` arrives as `1`. An
+- Evidence: `testAutoCast(cast(1.4))` is the reference's illustration, and `1.4` arrives as `1`. An
   isolated probe, `swc test -d <dir>`: one source expression, two targets, two different silent
   conversions.
 
   ```swag
   func takeS32(value: s32)->s32 => value
   func takeU8(value: u8)->u8 => value
-  Swag.print(takeS32(cast() 1.9), " ", takeU8(cast() 1.9))     // 1 1
+  Swag.print(takeS32(cast(1.9)), " ", takeU8(cast(1.9)))     // 1 1
   ```
 
 - Elsewhere: Zig names conversion categories separately, including `@intCast` and `@truncate`, while
   inferring destinations from context
   ([Zig language reference](https://ziglang.org/documentation/master/#intCast)).
   Target inference and the permitted conversion category are independent choices.
-- Proposed contract: Keep existing cast #bit, dynamic cast #try/#assume, and type patterns distinct from
+- Proposed contract: Keep existing cast #bit, dynamic try/expect/assume cast, and type patterns distinct from
   numeric conversion. The gap is target-inferred numeric permission: checked narrowing, fractional
   truncation and saturation must not become interchangeable when a callee changes type. Infer
   the target only after fixing the conversion category; remove conversions that are lossless
@@ -581,7 +581,7 @@ in its module backlog; a general request for better names is not a missing langu
   is what makes the rule hard to see: a *bare* literal still adapts, so `x | 0b0001` on an `s32`
   compiles and yields `s32`. The signedness only survives once the literal has been named — a
   `const`, or a `let` with no annotation — and from then on it is the constant's type, not a
-  literal's default. The reference's operators page writes `x = x | cast(s32) 0b0001`
+  literal's default. The reference's operators page writes `x = x | cast(s32, 0b0001)`
   ([003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg))
   where the plain form compiles, which is some evidence that the boundary is not obvious even to the
   page documenting the operators.
@@ -966,7 +966,7 @@ in its module backlog; a general request for better names is not a missing langu
   absence; it does not by itself choose a contract for Swag's erased container.
 - Next: decide whether the `any` and `interface` payload pointers are always nullable-capable,
   which is what the runtime says. Classify the inventory by receiver type before estimating the
-  migration; the eventual sweep may require `cast(*T) itf.buffer!` at affected sites. Also consider
+  migration; the eventual sweep may require `cast(*T, itf.buffer!)` at affected sites. Also consider
   whether a non-null `any` should instead
   be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `?`.
 - Complete when: `.buffer` uses are classified by receiver type, the payload-pointer nullability

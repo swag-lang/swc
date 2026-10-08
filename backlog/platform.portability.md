@@ -36,6 +36,23 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.004 — Linux page-allocation primitives do not exist
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-10-08 21:29 — Correct the stale claim that `allocatorOsCommit` is gone; it now wraps the host hook.
+
+The allocator now calls `__hostPageReserve`, `__hostPageCommit`, `__hostPageDecommit`, and
+`__hostPageRelease`; the old `Swag.alloc` reserve/commit fallback is gone, and
+`allocatorOsCommit`/`allocatorOsDecommit` in `bin/runtime/allocator.pages.swg` are portable
+counter-keeping wrappers over those hooks. Only the Windows leaf supplies the current hooks.
+
+- Next: implement Linux reserve, commit/protection, decommit, release, and thread-exit cleanup
+  with the same lifetime and failure contracts before enabling the allocator on Linux.
+- Complete when: Linux tests cover reserved-but-inaccessible memory, committed pages,
+  decommit/recommit, guard-page protection, release, and thread-storage cleanup without
+  reporting counters for work the host did not perform.
+- Related: runtime.allocator.008, platform.portability.003
+
 ### platform.portability.041 — Hardware discovery has no second-platform backend
 
 - Recorded: 2026-08-09 11:30
@@ -741,7 +758,7 @@ reporting and the receiving application's ownership of queued document opens.
 - Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
   OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
   header OLE calls through; must stay first.` Recovering the Swag object is then C's `container_of`:
-  `cast(*SurfaceDropTarget) cast(*void) itf`. Nothing checks the invariant the comment states, so inserting a
+  `cast(*SurfaceDropTarget, cast(*void, itf))`. Nothing checks the invariant the comment states, so inserting a
   field above `lpVtbl` silently breaks every callback OLE makes.
 - The fix the language already offers, and why it did not land with compiler.safety.006: writing
   `using base: IDropTarget` instead of the copied field makes the composition real, the recovery a
@@ -909,22 +926,6 @@ semantics are still delegated to that platform service.
 - Complete when: the same timer lifecycle and periodic/cancellation tests run over Windows and
   the chosen second backend without duplicating scheduling policy.
 - Related: platform.portability.036
-
-### platform.portability.004 — Linux page-allocation primitives do not exist
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-10 20:20 — Remove the obsolete allocator fallback and counter claims.
-
-The allocator now calls `__hostPageReserve`, `__hostPageCommit`, `__hostPageDecommit`, and
-`__hostPageRelease`; the old `Swag.alloc` reserve/commit fallback and `allocatorOsCommit`
-entry point are gone. Only the Windows leaf supplies the current hooks.
-
-- Next: implement Linux reserve, commit/protection, decommit, release, and thread-exit cleanup
-  with the same lifetime and failure contracts before enabling the allocator on Linux.
-- Complete when: Linux tests cover reserved-but-inaccessible memory, committed pages,
-  decommit/recommit, guard-page protection, release, and thread-storage cleanup without
-  reporting counters for work the host did not perform.
-- Related: runtime.allocator.008, platform.portability.003
 
 ### platform.portability.003 — Finish the runtime host ABI boundary
 

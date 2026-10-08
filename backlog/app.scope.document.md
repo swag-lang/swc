@@ -29,7 +29,7 @@ integration around those engines.
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-10-06 20:56 — Attribute bookmark test coverage to the Scope and std/gui suites that actually hold it.
-- Evidence: `PdfViewer` loads `Reader.loadOutline`, fills the shared `DocumentOutline`, and
+- Evidence: `PdfDocument.Panel` loads `Pdf.Reader.loadOutline`, fills the shared `DocumentOutline`, and
   selects page-space positions through `PdfView.showPosition`. `viewer.outline.test.swg` navigates
   the four-bookmark fixture; its cropped and rotated destination coordinates are covered by
   `bin/std/modules/gui/src/tests/documentoutline.test.swg`.
@@ -139,7 +139,7 @@ integration around those engines.
 - Recorded: 2026-08-18 14:15
 - Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: the module's own coverage gaps now live in [std.gui.pdf.md](std.gui.pdf.md), which is the
-  roadmap for the PDF engine inside `std/gui`. What stays here is the viewer's half: `PdfViewer` reports whatever
+  roadmap for the PDF engine inside `std/gui`. What stays here is the viewer's half: `PdfDocument.Panel` reports whatever
   `loadPage` or painting failed with, so a document with one unsupported
   construct anywhere reads as a broken file rather than as a page with a gap in it.
 - Complete when: the viewer draws the part of a page that decoded, states the construct it could
@@ -229,7 +229,7 @@ integration around those engines.
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the centered command bar provides previous/next and a clickable `current / total`
+- Evidence: the information group provides previous/next and a clickable `current / total`
   readout with validated numeric page entry. There is no thumbnail strip, page-label lookup, or
   overview suitable for a long document.
 - Next: render cancellable low-resolution thumbnails through a bounded cache and extend the page

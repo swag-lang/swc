@@ -53,6 +53,21 @@ that proves it.
 
 ## Entries
 
+### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-08 21:46 — Markdown zoom also persists; name the actual serialization handler.
+- Evidence: Markdown theme, reading width and zoom, and Video subtitle presentation already persist
+  as global preferences in `ViewerWindow.onSerializeStateEvent`. `ViewerReadingState` also restores
+  supported settings during an in-place reload. Per-file zoom, fit mode, wrapping, encoding,
+  selected track, playback position/volume, page and scroll position have no identity-keyed restore
+  contract and are reconstructed on reopening.
+- Next: define versioned global defaults plus per-file state keyed by stable file identity, with an
+  explicit list of safe fields each viewer may persist.
+- Complete when: every registered viewer restores its useful reading state, stale identity never
+  applies state to a replacement file, and one command resets either the current viewer or all
+  viewer preferences.
+
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Recorded: 2026-08-29 08:36
@@ -69,21 +84,6 @@ that proves it.
 - Complete when: the application smoke validates every registered viewer in light and dark themes,
   the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
   format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
-
-### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-10 19:06 — Distinguish existing reload restoration from persistent per-file state
-- Evidence: Markdown theme and reading width and Video subtitle presentation already persist as
-  global preferences in `ViewerWindow.serialize`. `ViewerReadingState` also restores supported
-  settings during an in-place reload. Per-file zoom, fit mode, wrapping, encoding,
-  selected track, playback position/volume, page and scroll position have no identity-keyed restore
-  contract and are reconstructed on reopening.
-- Next: define versioned global defaults plus per-file state keyed by stable file identity, with an
-  explicit list of safe fields each viewer may persist.
-- Complete when: every registered viewer restores its useful reading state, stale identity never
-  applies state to a replacement file, and one command resets either the current viewer or all
-  viewer preferences.
 
 ### app.scope.viewers.005 — Automatic reload does not classify changes or offer a snapshot policy
 

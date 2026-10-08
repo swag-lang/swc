@@ -9,6 +9,35 @@ also belongs here; rendered Markdown and HTML integration lives in
 The intended surface is read-only: navigation, comparison, structured inspection and bounded
 large-file work without editing, implicit network access, macros or source mutation.
 
+### app.scope.text.038 — XML has no namespace-aware structural reader
+
+- Recorded: 2026-09-01 21:15
+- Updated: 2026-10-08 21:46 — SVG files reach the Image viewer, not the colored code view.
+- Evidence: XML, project files, manifests, and XML logs open as colored code; SVG files go to the
+  Image viewer, which offers no source view. Elements, attributes, namespaces, text nodes,
+  comments, CDATA, processing instructions, and entity damage cannot be explored as a tree or
+  addressed by a stable path.
+- Next: build a bounded token/range index and synchronized source/tree view with namespace-aware
+  paths, without resolving external entities or fetching schemas.
+- Complete when: every node retains its exact source range and qualified name, tree and source
+  selection synchronize, namespaces and entity policy are inspectable, XPath-like navigation is
+  local and bounded, malformed documents publish safe partial structure, and external resource
+  access remains disabled.
+
+### app.scope.text.011 — Subtitle navigation has no current-cue timeline
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-10-08 21:46 — Base-60 time rejection already ships; drop it from the acceptance.
+- Evidence: SubRip and related files become a searchable timestamped transcript. The information
+  bar now exposes validated Go To Cue and Go To Time dialogs, which already reject invalid base-60
+  times, and host search reveals exact cues, but there is no previous/next cue command,
+  current-cue marker, duration filter, or timeline.
+- Next: expose previous/next cue as named keyboard commands, keep a current-cue state shared by
+  direct jumps and search, and add a compact time ruler with overlap markers.
+- Complete when: cue and time jumps are keyboard accessible, overlapping cues are grouped, the
+  current cue is marked, and search reveal, cue selection, and timeline position remain
+  synchronized.
+
 ### app.scope.text.001 — Text and HTML zoom still lack persistence and Ctrl+wheel
 
 - Recorded: 2026-08-29 08:36
@@ -17,7 +46,7 @@ large-file work without editing, implicit network access, macros or source mutat
   gestures, but Ctrl+wheel is not connected to them. `ViewerReadingState` carries their zoom
   (and text wrapping) across a host reload of the same file only; opening another file or
   restarting returns to 100%. Markdown already keeps its bounded scale in
-  `g_MarkdownViewerSettings`, accepts Ctrl+wheel, and keeps the visible block anchored.
+  `Viewers.MarkdownText.g_ViewerSettings`, accepts Ctrl+wheel, and keeps the visible block anchored.
 - Complete when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
   format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
 
@@ -83,8 +112,8 @@ large-file work without editing, implicit network access, macros or source mutat
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: `codeLanguage` chooses from file name, extension and supported shebangs, and
-  `GenericCodeLexer` applies fixed lexical rules. The details already show `languageName`.
+- Evidence: `Viewers.Code.detectLanguage` chooses from file name, extension and supported shebangs, and
+  `GenericLexer` applies fixed lexical rules. The details already show `languageName`.
   A misclassified file has no language override or explanation of the detection decision.
 - Next: publish language identity in the command bar and allow a temporary or persisted override,
   including Plain Text.
@@ -308,19 +337,6 @@ large-file work without editing, implicit network access, macros or source mutat
   separated from ordered facts, equal timestamps have deterministic order, filters span sources,
   following remains bounded, and no source file is opened or discovered implicitly.
 
-### app.scope.text.038 — XML has no namespace-aware structural reader
-
-- Recorded: 2026-09-01 21:15
-- Evidence: XML, project files, manifests, SVG source, and XML logs open as colored code. Elements,
-  attributes, namespaces, text nodes, comments, CDATA, processing instructions, and entity damage
-  cannot be explored as a tree or addressed by a stable path.
-- Next: build a bounded token/range index and synchronized source/tree view with namespace-aware
-  paths, without resolving external entities or fetching schemas.
-- Complete when: every node retains its exact source range and qualified name, tree and source
-  selection synchronize, namespaces and entity policy are inspectable, XPath-like navigation is
-  local and bounded, malformed documents publish safe partial structure, and external resource
-  access remains disabled.
-
 ### app.scope.text.039 — YAML and TOML have no typed configuration reader
 
 - Recorded: 2026-09-01 21:15
@@ -403,7 +419,7 @@ large-file work without editing, implicit network access, macros or source mutat
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: `CodeViewer` colors tokens but exposes no functions, types, headings, regions, or
+- Evidence: `Viewers.Code.Panel` colors tokens but exposes no functions, types, headings, regions, or
   breadcrumbs. Professional code readers use an outline both to understand a file and to jump
   within it.
 - Next: define a lightweight read-only symbol provider, starting with Swag and indentation/marker
@@ -444,19 +460,6 @@ large-file work without editing, implicit network access, macros or source mutat
   corpus for each language family plus chunk-boundary variants.
 - Complete when: supported constructs and deliberate omissions are documented, state resumes
   correctly after a streamed seek, and each shipped language family has golden style spans.
-
-### app.scope.text.011 — Subtitle navigation has no current-cue timeline
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: SubRip and related files become a searchable timestamped transcript. The information
-  bar now exposes validated Go To Cue and Go To Time dialogs, and host search reveals exact cues,
-  but there is no previous/next cue command, current-cue marker, duration filter, or timeline.
-- Next: expose previous/next cue as named keyboard commands, keep a current-cue state shared by
-  direct jumps and search, and add a compact time ruler with overlap markers.
-- Complete when: cue and time jumps are keyboard accessible, invalid base-60 times are rejected,
-  overlapping cues are grouped, the current cue is marked, and search reveal, cue selection, and
-  timeline position remain synchronized.
 
 ### app.scope.text.012 — Subtitle syntax, styling, and diagnostics disappear in transcript mode
 

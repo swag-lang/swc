@@ -18,20 +18,20 @@ lifetime, and streaming through three rotating decoded buffers, each at least 64
 enough for the source's largest decoded packet. A codec registry
 (`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with AAC-LC,
 AC-3, independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, Opus, and WAVE ADPCM decoders in
-the box. DTS, FLAC, MP3, and Ogg also have their own file readers, so a `.dts`, `.flac`, `.mp3`,
-`.ogg`, or `.opus` opens through `SoundFile.load` and streams from
+the box. AAC, AC-3, E-AC-3, DTS, FLAC, MP3, and Ogg also have their own file readers, so a
+`.aac`, `.ac3`, `.eac3`/`.ec3`, `.dts`, `.flac`, `.mp3`, `.ogg`/`.oga`, or `.opus` opens through
+`SoundFile.load` and streams from
 disk; that is the answer to "no music", and what is left below is breadth beside it. A no-sound
 driver that preserves the entire lifecycle without opening a device, wired into the sandbox so a
 test run never makes noise — that last part is better integrated than in most libraries of this
 size.
 
-The remaining gaps are compressed-format variants, spatialization, effects,
-and capture. Operating-system backend work lives in
+The remaining gaps are compressed-format variants, panning and spatialization, gain ramps,
+effects, output-device management, and capture. The native backend has channel-routing
+facilities, but the module has no portable pan contract. Operating-system backend work lives in
 [platform.portability.md](platform.portability.md).
 
 ## Entries
-
-The native backend has channel-routing facilities, but the module has no portable pan contract.
 
 ### std.audio.010 — Engine creation cost on the startup path
 

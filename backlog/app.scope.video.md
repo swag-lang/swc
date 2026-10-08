@@ -122,7 +122,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Evidence: the information panel presents picture/display size, FPS, frame count, duration,
   and the available audio/subtitle track names, languages, and encoding properties.
   Container brands, duration provenance, bitrate, time base, frame-rate mode, codec profile/level,
-  pixel format, track IDs, language/flags, tags, attachments, chapters, and decoder warnings are not
+  pixel format, track IDs, disposition flags, tags, attachments, chapters, and decoder warnings are not
   presented together.
 - Next: extend the existing panel with a complete container/stream metadata tree without coupling
   it to transport widgets.
@@ -173,7 +173,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Evidence: the summary names codec and CPU decoder but not matrix, primaries, transfer, full versus
+- Evidence: the information panel names the codec but not matrix, primaries, transfer, full versus
   limited range, chroma location, bit depth, HDR metadata, tone mapping, or interlace handling.
   std.video.006 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
 - Next: surface stream color/interlace metadata and conversion path, then add safe temporary

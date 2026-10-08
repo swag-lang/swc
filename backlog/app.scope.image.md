@@ -22,7 +22,7 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Recorded: 2026-08-29 08:36
 - Updated: 2026-09-11 22:34 — Separate orientation normalization from ICC and XMP inspection.
-- Evidence: `loadImageViewerContent` decodes the movie and reports EXIF properties through
+- Evidence: `loadViewerContent` decodes the movie and reports EXIF properties through
   `MediaInfoData.addImageMetadata`, but does not normalize the encoded orientation. Temporary
   rotate/mirror commands operate on the view independently.
 - Next: expose a normalized source orientation and apply it exactly once during loading,

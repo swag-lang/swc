@@ -213,7 +213,7 @@ new language syntax.
   suite. Five A/A pairs of byte-identical binaries gave 1.000 wall and 1.044 CPU, with individual
   builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
   machine load or establish a repeatable benefit. The change and version bump were reverted;
-  The [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
+  the [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
 - Taken on 2026-09-26 under prompt 4: the existing program-layout scan now also records whether
   any label exists. The branch pass skips jump-threading, immediate-label, inverted-jump, CFG
   reachability and unused-label sweeps when their required label is absent; it skips the diamond
@@ -223,7 +223,7 @@ new language syntax.
   against the earlier campaign binary were too variable for a speedup claim: candidate medians were
   2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
   2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
-  error in `std/gui`, since fixed by preserving generated `is` cast source views; the
+  error, since fixed by preserving generated `is` cast source views; the
   pre-campaign master compiler also reproduced it.
 - A second prompt-4 group on the merged master uses that same layout to skip range-check,
   range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
@@ -290,6 +290,7 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
+
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 
 - Recorded: 2026-09-25 11:15

@@ -34,7 +34,7 @@ whether a JPEG preview decoded.
 - Recorded: 2026-09-03 17:37
 - Updated: 2026-09-11 22:10 — Retain local-root policy; record the existing decoded-URI guards and tests.
 - Evidence: the viewer never fetches a network URL, enforces image byte/pixel budgets, and retries a
-  same-folder basename when an InDesign absolute link is stale. `idmlFileUriPath` rejects remote
+  same-folder basename when an InDesign absolute link is stale. `Viewers.InDesign.Idml.fileUriPath` rejects remote
   authorities, decoded UNC separators, malformed escapes and invalid path names, covered by
   `viewer.indesign.test.swg`. A valid direct `file:` URI may still
   cause the renderer to inspect an arbitrary readable local image.
@@ -112,7 +112,7 @@ whether a JPEG preview decoded.
 
 - Recorded: 2026-09-03 17:37
 - Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: tests include synthetic native records, CC-licensed native/IDML documents, an MIT
+- Evidence: tests include synthetic native records, openly licensed native/IDML documents, an MIT
   editorial IDML package with real linked art, visible goldens, and checks for page-specific image
   work. Focused fixtures exercise text columns, CJK fallback, missing links and invalid native
   records, but do not form a matrix of InDesign versions, facing publications, long stories,

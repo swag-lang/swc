@@ -168,7 +168,8 @@ is the current scorecard.
 
 - Recorded: 2026-09-16 07:54
 - Evidence: the DevMode compiler at the parent revision `e3e20baae` accepts
-  `var boxed: any = 42's32; if let number = cast #try (*s32) boxed do number[] += 1`.
+  `var boxed: any = 42's32; if let number = cast #try (*s32) boxed do number[] += 1`
+  (spelled `try cast(*s32, boxed)` or `if boxed is s32 as number` since `102f0efb4`).
   Its JIT test passes, but the generated native executable raises `0xC0000005` while writing
   the literal in read-only storage. The same issue is observable through the new type patterns;
   their casts preserve the existing conversion contract. A variable holding an `any` does not
@@ -188,10 +189,10 @@ is the current scorecard.
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
   casts and intrinsics are visible, but no single marker identifies the boundary:
-  - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
-  - `cast(*Big) &small` — CLOSED on 2026-09-08: a pointer cast between two structs with no `using`
+  - `cast(*T, someInteger)` — an arbitrary integer becomes a pointer;
+  - `cast(*Big, &small)` — CLOSED on 2026-09-08: a pointer cast between two structs with no `using`
     path either way is `sema_err_cast_unrelated_structs`, and the deliberate reinterpretation is
-    spelled `cast(*Big) cast(*void) &small`;
+    spelled `cast(*Big, cast(*void, &small))`;
   - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
     storage that need not have it, after which every bounds check faithfully checks the lie;
   - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
@@ -218,7 +219,7 @@ is the current scorecard.
   is actually asking about.
 - The proposed shape is Swag's. A block that swallows a page of code is the wrong unit here:
   the operations above are single expressions, and Swag already spells a compiler instruction on an
-  expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
+  expression with `#`. A modifier on the operation (`#unsafe cast(*T, addr)`) plus one file-level
   opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer would make the boundary visible
   to `rg`. Neither spelling is implemented; the remaining census must account for the checked
   downcast forms now available.
@@ -245,8 +246,9 @@ is the current scorecard.
   against 56 primitives, plus the opaque-handle round trip the drivers and the generic
   containers are written with. An integer becoming a pointer is nowhere in that population.
 - Downcasts now have explicit language forms: `#[Swag.DynCast]` attaches allocation identity to
-  struct storage while ordinary pointers remain one word. `cast #try` returns a nullable view;
-  `cast #assume` checks the invariant when `.DynCast` safety is enabled. The same modifiers cover
+  struct storage while ordinary pointers remain one word. `try cast(*T, value)` and
+  `expect cast(*T, value)` always check and report a conversion error; `assume cast(*T, value)`
+  checks the invariant only when `.Assume` safety is enabled (`102f0efb4`). The same forms cover
   `any`, interfaces and runtime type descriptors. Boolean `is` and conditional type bindings
   share those checked conversions. Expression `as` and `Swag.typeAs`/`typeIs` remain removed,
   and `Wnd` uses the language-managed identity.
@@ -413,7 +415,7 @@ is the current scorecard.
 - Recorded: 2026-09-04 17:05
 - Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
-- Evidence: `cast(Color) 99` is accepted with no check in any configuration, and the result is used
+- Evidence: `cast(Color, 99)` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
   declared member. A plain switch can fall through on it. `switch #complete` already panics when
   `.Switch` safety is enabled; with that guard disabled, the conversion still permits a value
@@ -422,7 +424,7 @@ is the current scorecard.
   conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
   returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
   majority position and the only one that composes with exhaustive matching.
-- Next: decide the spelling. `cast(Color) i` becoming a guarded conversion under `.DynCast` costs a
+- Next: decide the spelling. `cast(Color, i)` becoming a guarded conversion under `.DynCast` costs a
   compare in `devmode` and nothing in `release`; a fallible `Color.from(i)` returning `#null` puts
   the check in the type and needs no guard at all, which is the only form that also holds in a
   build with the dynamic guards off. `#[Swag.EnumFlags]` types accept combinations and must be

@@ -37,6 +37,23 @@ Public API consistency remains a module-by-module design requirement under
 options structs, slices and ownership contracts are available today. A concrete API defect belongs
 in its module backlog; a general request for better names is not a missing language feature.
 
+### language.design.038 — Flag side effects inside a disabled-by-configuration assertion
+
+- Recorded: 2026-10-08 23:15
+- Evidence: `Swag.assert(re.match(l[]))` in `bin/examples/modules/aoc2017/src/8A.swg` and
+  `8B.swg` passed every DevMode run and the release build, then failed the release examples smoke:
+  release disables `.Assert` outside `swc test`, the argument is not evaluated, so the regex never
+  ran and every capture stayed empty. Nothing reported the dependence on the argument's effect;
+  the defect surfaced as an unrelated `SyntaxError` far from its cause (fixed in f995a79ae).
+- Proposed contract: diagnose an assertion argument that calls a non-`const` method, assigns,
+  or otherwise writes observable state, since its effect exists only where assertions are on.
+  Decide whether it is a warning in the warning-policy layer or an error, and whether const
+  receivers are enough to mark the calls that are safe to elide.
+- Next: reduce the rule to the sema boundary (`errors/sema` case for a mutating call inside
+  `Swag.assert`), measure how many existing assertions in `bin/` it would flag, and pick the
+  severity from that count.
+- Complete when: a mutating call inside an assertion argument is diagnosed and `bin/` is clean.
+
 ### language.design.032 — Produce values directly from a switch
 
 - Recorded: 2026-09-16 16:06

@@ -29,7 +29,7 @@ impl Vector3
 
 #test
 {
-    var a = Vector3{}                  // Default init.
+    var a = Vector3{}     // Default init.
     var b = Vector3{100, 200, 300}     // Custom init.
 
     // Copy semantics: drop 'a' (if needed), copy 'b' to 'a', then call 'opPostCopy' on 'a'.

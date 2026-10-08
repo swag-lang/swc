@@ -78,17 +78,17 @@ struct FontDocumentCell
 // have been measured; a constant would work for one face and let a tall one overlap.
 struct FontDocumentLayout
 {
-    nameTop:    f32                       // Top of the family name.
-    metricsTop: f32                       // Top of the style, glyph count and units-per-em line.
-    captionTop: f32                       // Top of the specimen caption.
+    nameTop:    f32         // Top of the family name.
+    metricsTop: f32         // Top of the style, glyph count and units-per-em line.
+    captionTop: f32         // Top of the specimen caption.
     sampleTops: [FontSampleCount] f32     // Top of each specimen line, one per entry of `FontSampleSizes`.
-    mapTop:     f32                       // Top of the character-map caption.
-    gridTop:    f32                       // Top of the first row of cells.
-    gridLeft:   f32                       // Left edge of the first column.
-    cellHeight: f32                       // Height one cell needs for its glyph and its code label.
-    columns:    u32 = 1                   // Cells one row holds.
-    rows:       u64                       // Rows the loaded page fills.
-    height:     f32                       // Total content height, which is what the scrollbar is given.
+    mapTop:     f32         // Top of the character-map caption.
+    gridTop:    f32         // Top of the first row of cells.
+    gridLeft:   f32         // Left edge of the first column.
+    cellHeight: f32         // Height one cell needs for its glyph and its code label.
+    columns:    u32 = 1     // Cells one row holds.
+    rows:       u64         // Rows the loaded page fills.
+    height:     f32         // Total content height, which is what the scrollbar is given.
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.

@@ -77,13 +77,13 @@ struct EditBox
 
         readonly
         {
-            icon:           Icon                                        // Optional leading icon.
-            unit:           String                                      // Optional trailing unit, such as "kg".
-            form      = EditBoxForm.Rectangle                           // Current background geometry.
-            flags     = EditBoxFlags.None                               // Active interaction and presentation options.
-            inputMode = EditBoxInputMode.Text                           // Current built-in validation mode.
-            maximumLength:  s32                                         // Maximum rune count, or zero for no limit.
-            trailingMargin: f32                                         // Extra trailing inset in logical units.
+            icon:           Icon                  // Optional leading icon.
+            unit:           String                // Optional trailing unit, such as "kg".
+            form      = EditBoxForm.Rectangle     // Current background geometry.
+            flags     = EditBoxFlags.None         // Active interaction and presentation options.
+            inputMode = EditBoxInputMode.Text     // Current built-in validation mode.
+            maximumLength:  s32                   // Maximum rune count, or zero for no limit.
+            trailingMargin: f32                   // Extra trailing inset in logical units.
             validator:      (func||(*EditBox)->EditBoxCheckResult)?     // Custom validator, or null for built-in validation.
         }
     }
@@ -96,7 +96,7 @@ struct EditBox
     using minMax: union
     {
         minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
-        minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
+        minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}     // Unsigned integer bounds
         minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating-point bounds
     }
 

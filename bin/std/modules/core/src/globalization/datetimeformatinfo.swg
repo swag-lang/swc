@@ -22,17 +22,17 @@ public struct DateTimeFormatInfo
     public
     {
         monthNames:       [12] string = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]     // Full month names borrowed from the culture profile.
-        dayNames:         [7] string  = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]                                                 // Full day names borrowed from the culture profile.
-        shortDatePattern: string      = "MM/dd/yyyy"                                                                                                                   // Human-readable short-date pattern.
-        longDatePattern:  string      = "dddd, MMMM d, yyyy"                                                                                                           // Human-readable long-date pattern.
-        shortTimePattern: string      = "h:mm tt"                                                                                                                      // Human-readable short-time pattern.
-        longTimePattern:  string      = "h:mm:ss tt"                                                                                                                   // Human-readable long-time pattern.
-        dateSeparator:    u8          = '/'                                                                                                                            // Separator used by short numeric dates.
-        timeSeparator:    u8          = ':'                                                                                                                            // Separator used by clock values.
-        dateOrder:        DateOrder                                                                                                                                    // Component order used by short dates.
-        uses24Hour:       bool                                                                                                                                         // Whether clock values use a 24-hour cycle.
-        amDesignator:     string      = "AM"                                                                                                                           // Suffix used before noon in a 12-hour cycle.
-        pmDesignator:     string      = "PM"                                                                                                                           // Suffix used from noon in a 12-hour cycle.
+        dayNames:         [7] string  = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]     // Full day names borrowed from the culture profile.
+        shortDatePattern: string      = "MM/dd/yyyy"             // Human-readable short-date pattern.
+        longDatePattern:  string      = "dddd, MMMM d, yyyy"     // Human-readable long-date pattern.
+        shortTimePattern: string      = "h:mm tt"                // Human-readable short-time pattern.
+        longTimePattern:  string      = "h:mm:ss tt"             // Human-readable long-time pattern.
+        dateSeparator:    u8          = '/'                      // Separator used by short numeric dates.
+        timeSeparator:    u8          = ':'                      // Separator used by clock values.
+        dateOrder:        DateOrder                              // Component order used by short dates.
+        uses24Hour:       bool                                   // Whether clock values use a 24-hour cycle.
+        amDesignator:     string      = "AM"                     // Suffix used before noon in a 12-hour cycle.
+        pmDesignator:     string      = "PM"                     // Suffix used from noon in a 12-hour cycle.
     }
 }
 

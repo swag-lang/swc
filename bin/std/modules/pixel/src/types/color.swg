@@ -346,7 +346,7 @@ impl Color
         func srgbToLinear(c: f32)->f32 => c <= 0.04045 ? (c / 12.92) : Math.pow((c + 0.055) / 1.055, 2.4)
 
         var result: retval
-        result.w = .a / 255.0                   // alpha channel
+        result.w = .a / 255.0     // alpha channel
         result.x = srgbToLinear(.r / 255.0)     // red channel
         result.y = srgbToLinear(.g / 255.0)     // green channel
         result.z = srgbToLinear(.b / 255.0)     // blue channel
@@ -591,7 +591,7 @@ impl Color
             return colors
 
         const G    = 0.61803398875     // Golden ratio conjugate for low-discrepancy hue sampling
-        const LVAR = 0.05              // tiny alternation to separate neighbors
+        const LVAR = 0.05     // tiny alternation to separate neighbors
 
         for i in n
         {

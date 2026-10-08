@@ -216,7 +216,12 @@ namespace Swag
     // Use `.C` for callbacks and vtables supplied to native libraries. An annotated
     // function declaration is entered with that convention; an annotated function type
     // calls its target with that convention. The unannotated convention is `.Swag`.
-    #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.StructVariable | AttributeUsage.Alias | AttributeUsage.File | AttributeUsage.Scope)]
+    #[AttrUsage(AttributeUsage.Function |
+                AttributeUsage.Struct |
+                AttributeUsage.StructVariable |
+                AttributeUsage.Alias |
+                AttributeUsage.File |
+                AttributeUsage.Scope)]
     attr CallingConvention(value: CallConv)
 
     // Lets a caller ignore the function's result without writing 'discard'.
@@ -480,7 +485,7 @@ namespace Swag
     {
         public
         {
-            name:  string?                            // Name of the module
+            name:  string?     // Name of the module
             types: const [..] (const *TypeInfo?)?     // All exported types
         }
     }
@@ -491,7 +496,7 @@ namespace Swag
         public
         {
             modules: const [..] Module?     // Every loaded module
-            args:    string?                // The application arguments, as returned by [[Swag.args]].
+            args:    string?     // The application arguments, as returned by [[Swag.args]].
         }
     }
 
@@ -536,11 +541,11 @@ namespace Swag
         public
         {
             callerLoc: SourceCodeLocation     // Location of the caller, to help track leaks; optional
-            hint:      string?                // Message to help track leaks; optional
-            address:   *void?                 // Address to operate on, or the address returned
-            size:      u64                    // Size requested or operated on, in bytes
-            oldSize:   u64                    // Previous size of a reallocated block, in bytes
-            alignment: u32                    // Alignment constraint in bytes, or 0
+            hint:      string?     // Message to help track leaks; optional
+            address:   *void?      // Address to operate on, or the address returned
+            size:      u64         // Size requested or operated on, in bytes
+            oldSize:   u64         // Previous size of a reallocated block, in bytes
+            alignment: u32         // Alignment constraint in bytes, or 0
         }
     }
 
@@ -633,7 +638,7 @@ namespace Swag
         pushTraceIndex:     u32     // Stack-trace depth at the push.
         pushHasError:       u32     // Whether an error was already pending at the push.
         padding:            u32
-        pushCurError:       any?                 // Current handled error at the push.
+        pushCurError:       any?     // Current handled error at the push.
         pushErrorAllocator: ScratchAllocator     // Parent message storage while this frame runs.
     }
 
@@ -771,7 +776,7 @@ namespace Swag
     {
         public
         {
-            obj:    *void?                     // Pointer to the associated struct instance
+            obj:    *void?     // Pointer to the associated struct instance
             itable: const [*] ([*] void?)?     // Pointer to the table: [0] type descriptor, then method pointers
         }
     }
@@ -899,7 +904,7 @@ namespace Swag
         public
         {
             type:        const *TypeInfo      // Type of the complete object
-            offset:      u64                  // Byte offset of the slot from the complete object
+            offset:      u64     // Byte offset of the slot from the complete object
             runtimeType: const *TypeInfo?     // Sealed self reference for a compiler-emitted type descriptor; otherwise null
         }
     }
@@ -975,7 +980,7 @@ namespace Swag
         {
             using base: TypeInfo
             laneType:   const *TypeInfo     // The native type of one lane
-            count:      u64                 // Number of lanes in the vector
+            count:      u64     // Number of lanes in the vector
         }
     }
 
@@ -1052,16 +1057,16 @@ namespace Swag
         public
         {
             optimLevel       = BuildCfgBackendOptimLevel.O0     // Backend optimization level (set per build config)
-            vectorize:          bool                            // Auto-vectorize; true in 'release'
-            debugInfo        = false                            // Emit CodeView and PDB debug information; '--debug' enables it for command-line builds
-            enableExceptions = true                             // Generate unwind info for JIT code and register SEH function tables
-            fpMathFma:          bool                            // true in 'release'
-            fpMathNoNaN:        bool                            // true in 'release'
-            fpMathNoInf:        bool                            // true in 'release'
-            fpMathNoSignedZero: bool                            // true in 'release'
+            vectorize:          bool     // Auto-vectorize; true in 'release'
+            debugInfo        = false     // Emit CodeView and PDB debug information; '--debug' enables it for command-line builds
+            enableExceptions = true      // Generate unwind info for JIT code and register SEH function tables
+            fpMathFma:          bool     // true in 'release'
+            fpMathNoNaN:        bool     // true in 'release'
+            fpMathNoInf:        bool     // true in 'release'
+            fpMathNoSignedZero: bool     // true in 'release'
             fpMathUnsafe:       bool
             fpMathApproxFunc:   bool
-            unrollMemLimit:     u32                                     // Maximum number of bytes to unroll memset/cpy in optimize mode
+            unrollMemLimit:     u32     // Maximum number of bytes to unroll memset/cpy in optimize mode
             inlineMode       = BuildCfgBackendInlineMode.MarkedOnly     // Inlining policy (set per build config)
         }
     }
@@ -1199,13 +1204,13 @@ namespace Swag
 
             backend: BuildCfgBackend     // Backend options
 
-            repoPath:          string?                        // Repository access path to the module
-            resAppIcoFileName: string?                        // For an executable, the associated icon file name. Relative paths start at the module folder.
-            resAppName:        string?                        // For an executable, the associated application name
-            resAppDescription: string?                        // For an executable, the associated application description
-            resAppCompany:     string?                        // For an executable, the associated company name
-            resAppCopyright:   string?                        // For an executable, the associated copyright notice
-            genDoc:            BuildCfgGenDoc                 // Parameters for document generation
+            repoPath:          string?            // Repository access path to the module
+            resAppIcoFileName: string?            // For an executable, the associated icon file name. Relative paths start at the module folder.
+            resAppName:        string?            // For an executable, the associated application name
+            resAppDescription: string?            // For an executable, the associated application description
+            resAppCompany:     string?            // For an executable, the associated company name
+            resAppCopyright:   string?            // For an executable, the associated copyright notice
+            genDoc:            BuildCfgGenDoc     // Parameters for document generation
             registeredConfigs: string = "devmode|release"     // Registered build configuration names used by --build-cfg and #cfg
         }
     }
@@ -1265,7 +1270,7 @@ namespace Swag
     interface ICompiler
     {
         mtd getMessage()->const *CompilerMessage?     // Returns the compiler message in a '#message' function
-        mtd getBuildCfg()->*BuildCfg?                 // Returns the build configuration of the current module
+        mtd getBuildCfg()->*BuildCfg?     // Returns the build configuration of the current module
         mtd compileString(str: string)
     }
 

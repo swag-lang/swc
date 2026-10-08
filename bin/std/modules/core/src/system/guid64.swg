@@ -7,8 +7,8 @@ using Core.Errors
 tls
 {
     private var g_Rng:     Random.MersenneTwister64     // Generator of this thread
-    private var g_RngInit: bool                         // Whether the generator of this thread is seeded
-    private var g_Counter: u32                          // Counter of this thread for timestamped identifiers
+    private var g_RngInit: bool     // Whether the generator of this thread is seeded
+    private var g_Counter: u32      // Counter of this thread for timestamped identifiers
 }
 
 // Seeds the generator of the calling thread on first use, from the clocks and the MAC address.

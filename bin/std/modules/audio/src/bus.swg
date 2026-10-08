@@ -16,7 +16,7 @@ public struct Bus
     internal
     {
         late allocationAllocator: IAllocator     // Allocator that owns this bus.
-        handle: *void?                           // Backend-owned submix handle.
+        handle: *void?     // Backend-owned submix handle.
     }
 }
 

@@ -59,8 +59,8 @@ struct Style
         // A missing body or code slot uses the corresponding GUI theme face;
         // a missing heading slot uses the body face. Sizes remain controlled by this style.
         bodyTypeFaces:     [FontFamilyStyle.count] (*TypeFace?)
-        headingTypeFaces:  [FontFamilyStyle.count] (*TypeFace?)                                 // Heading faces, with body-face fallback.
-        codeTypeFaces:     [FontFamilyStyle.count] (*TypeFace?)                                 // Code faces, with fixed-width theme fallback.
+        headingTypeFaces:  [FontFamilyStyle.count] (*TypeFace?)     // Heading faces, with body-face fallback.
+        codeTypeFaces:     [FontFamilyStyle.count] (*TypeFace?)     // Code faces, with fixed-width theme fallback.
         headingFontStyles: [6] FontFamilyStyle = [.Bold, .Bold, .Bold, .Bold, .Bold, .Bold]     // Base style for heading levels one through six.
     }
 }

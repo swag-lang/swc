@@ -30,7 +30,7 @@ struct Thread
         userParam: *void?           // Caller data the body can read back.
 
         priority   = ThreadPriority.Normal     // Current scheduling priority.
-        requestEnd = false                     // Cooperative stop flag the thread body polls.
+        requestEnd = false     // Cooperative stop flag the thread body polls.
 
         // Identity of the running thread, established when it starts.
         readonly id: u64

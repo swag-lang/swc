@@ -72,7 +72,11 @@ namespace WinFsp
             params.volumeSerialNumber = volumeSerialNumber(params.volumeCreationTime)
             traceWinFspStage("volume identity initialized")
             params.fileInfoTimeout = 1000
-            params.flags = VolumeCasePreservedNames | VolumeUnicodeOnDisk | VolumePersistentAcls | VolumePostCleanupModified | VolumePassDirectoryName
+            params.flags = VolumeCasePreservedNames |
+                           VolumeUnicodeOnDisk |
+                           VolumePersistentAcls |
+                           VolumePostCleanupModified |
+                           VolumePassDirectoryName
 
             // Saying it here is what makes Explorer, and every program that asks Windows before
             // it tries, treat the drive as read only. The volume refuses the write on its own

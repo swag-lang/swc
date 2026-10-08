@@ -8,9 +8,9 @@ struct SearchOptions
 {
     public
     {
-        matchCase:         bool                // Whether letter case has to match.
-        wholeWord:         bool                // Whether word characters may touch either side of a match.
-        regularExpression: bool                // Whether the query is a regular expression rather than literal text.
+        matchCase:         bool     // Whether letter case has to match.
+        wholeWord:         bool     // Whether word characters may touch either side of a match.
+        regularExpression: bool     // Whether the query is a regular expression rather than literal text.
         expression:        *Parser.RegExp?     // Compiled expression borrowed for one synchronous collection.
     }
 }

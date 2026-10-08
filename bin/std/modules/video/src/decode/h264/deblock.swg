@@ -606,8 +606,11 @@ private func chromaWeakDelta(p1, p0, q0, q1: Simd.S16x8, strengths: const *EdgeS
     let lanes     = weakStrengthLanes(strengths, 2)
     let limits    = cast #bit(Simd.S16x8, Simd.widenLow(Simd.shuffle(cast #bit(Simd.U8x16, Simd.splat(DeblockTcRows[cast(u64, indexA)])), lanes))) + 1
     let strengthy = cast #bit(Simd.U16x8, Simd.widenLow(cast #bit(Simd.S8x16, Simd.shuffle(WeakStrengths, lanes))))
-    let active    = strengthy & (Math.abs(p0 - q0) < Simd.splat(cast(s16, alpha))) & (Math.abs(p1 - p0) < Simd.splat(cast(s16, beta))) & (Math.abs(q1 - q0) < Simd.splat(cast(s16, beta)))
-    var delta     = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
+    let active    = strengthy &
+                    (Math.abs(p0 - q0) < Simd.splat(cast(s16, alpha))) &
+                    (Math.abs(p1 - p0) < Simd.splat(cast(s16, beta))) &
+                    (Math.abs(q1 - q0) < Simd.splat(cast(s16, beta)))
+    var delta = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
     delta = Math.max(Math.min(delta, limits), -limits)
     return Simd.select(active, delta, Simd.splat(0's16))
 }
@@ -638,15 +641,18 @@ func filterLumaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     let betas   = Simd.splat(cast(s16, beta))
     let shorts  = Simd.splat(cast(s16, ((alpha >> 2) + 2)))
 
-    let p0Low       = cast #bit(Simd.S16x8, Simd.widenLow(p0Bytes))
-    let q0Low       = cast #bit(Simd.S16x8, Simd.widenLow(q0Bytes))
-    let p1Low       = cast #bit(Simd.S16x8, Simd.widenLow(p1Bytes))
-    let q1Low       = cast #bit(Simd.S16x8, Simd.widenLow(q1Bytes))
-    let p2Low       = cast #bit(Simd.S16x8, Simd.widenLow(p2Bytes))
-    let q2Low       = cast #bit(Simd.S16x8, Simd.widenLow(q2Bytes))
-    let p3Low       = cast #bit(Simd.S16x8, Simd.widenLow(p3Bytes))
-    let q3Low       = cast #bit(Simd.S16x8, Simd.widenLow(q3Bytes))
-    let strongLow   = (bsLow == fours) & (Math.abs(p0Low - q0Low) < alphas) & (Math.abs(p1Low - p0Low) < betas) & (Math.abs(q1Low - q0Low) < betas)
+    let p0Low     = cast #bit(Simd.S16x8, Simd.widenLow(p0Bytes))
+    let q0Low     = cast #bit(Simd.S16x8, Simd.widenLow(q0Bytes))
+    let p1Low     = cast #bit(Simd.S16x8, Simd.widenLow(p1Bytes))
+    let q1Low     = cast #bit(Simd.S16x8, Simd.widenLow(q1Bytes))
+    let p2Low     = cast #bit(Simd.S16x8, Simd.widenLow(p2Bytes))
+    let q2Low     = cast #bit(Simd.S16x8, Simd.widenLow(q2Bytes))
+    let p3Low     = cast #bit(Simd.S16x8, Simd.widenLow(p3Bytes))
+    let q3Low     = cast #bit(Simd.S16x8, Simd.widenLow(q3Bytes))
+    let strongLow = (bsLow == fours) &
+                    (Math.abs(p0Low - q0Low) < alphas) &
+                    (Math.abs(p1Low - p0Low) < betas) &
+                    (Math.abs(q1Low - q0Low) < betas)
     let widePLow    = strongLow & (Math.abs(p0Low - q0Low) < shorts) & (Math.abs(p2Low - p0Low) < betas)
     let wideQLow    = strongLow & (Math.abs(p0Low - q0Low) < shorts) & (Math.abs(q2Low - q0Low) < betas)
     let narrowP0Low = (2 * p1Low + p0Low + q1Low + 2) >> 2
@@ -660,15 +666,18 @@ func filterLumaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     let newP2Low    = Simd.select(widePLow, (2 * p3Low + 3 * p2Low + p1Low + p0Low + q0Low + 4) >> 3, p2Low)
     let newQ2Low    = Simd.select(wideQLow, (2 * q3Low + 3 * q2Low + q1Low + q0Low + p0Low + 4) >> 3, q2Low)
 
-    let p0High       = cast #bit(Simd.S16x8, Simd.widenHigh(p0Bytes))
-    let q0High       = cast #bit(Simd.S16x8, Simd.widenHigh(q0Bytes))
-    let p1High       = cast #bit(Simd.S16x8, Simd.widenHigh(p1Bytes))
-    let q1High       = cast #bit(Simd.S16x8, Simd.widenHigh(q1Bytes))
-    let p2High       = cast #bit(Simd.S16x8, Simd.widenHigh(p2Bytes))
-    let q2High       = cast #bit(Simd.S16x8, Simd.widenHigh(q2Bytes))
-    let p3High       = cast #bit(Simd.S16x8, Simd.widenHigh(p3Bytes))
-    let q3High       = cast #bit(Simd.S16x8, Simd.widenHigh(q3Bytes))
-    let strongHigh   = (bsHigh == fours) & (Math.abs(p0High - q0High) < alphas) & (Math.abs(p1High - p0High) < betas) & (Math.abs(q1High - q0High) < betas)
+    let p0High     = cast #bit(Simd.S16x8, Simd.widenHigh(p0Bytes))
+    let q0High     = cast #bit(Simd.S16x8, Simd.widenHigh(q0Bytes))
+    let p1High     = cast #bit(Simd.S16x8, Simd.widenHigh(p1Bytes))
+    let q1High     = cast #bit(Simd.S16x8, Simd.widenHigh(q1Bytes))
+    let p2High     = cast #bit(Simd.S16x8, Simd.widenHigh(p2Bytes))
+    let q2High     = cast #bit(Simd.S16x8, Simd.widenHigh(q2Bytes))
+    let p3High     = cast #bit(Simd.S16x8, Simd.widenHigh(p3Bytes))
+    let q3High     = cast #bit(Simd.S16x8, Simd.widenHigh(q3Bytes))
+    let strongHigh = (bsHigh == fours) &
+                     (Math.abs(p0High - q0High) < alphas) &
+                     (Math.abs(p1High - p0High) < betas) &
+                     (Math.abs(q1High - q0High) < betas)
     let widePHigh    = strongHigh & (Math.abs(p0High - q0High) < shorts) & (Math.abs(p2High - p0High) < betas)
     let wideQHigh    = strongHigh & (Math.abs(p0High - q0High) < shorts) & (Math.abs(q2High - q0High) < betas)
     let narrowP0High = (2 * p1High + p0High + q1High + 2) >> 2
@@ -705,10 +714,13 @@ func filterChromaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Ed
     let p1         = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix - 2 * stride)))
     let q1         = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix + stride)))
     let strengths8 = cast(Simd.S16x8, [bs0, bs0, bs1, bs1, bs2, bs2, bs3, bs3])
-    let active     = (strengths8 == Simd.splat(4's16)) & (Math.abs(p0 - q0) < Simd.splat(cast(s16, alpha))) & (Math.abs(p1 - p0) < Simd.splat(cast(s16, beta))) & (Math.abs(q1 - q0) < Simd.splat(cast(s16, beta)))
-    let newP0      = Simd.select(active, (2 * p1 + p0 + q1 + 2) >> 2, p0)
-    let newQ0      = Simd.select(active, (2 * q1 + q0 + p1 + 2) >> 2, q0)
-    let zeros      = Simd.splat(0's16)
+    let active     = (strengths8 == Simd.splat(4's16)) &
+                     (Math.abs(p0 - q0) < Simd.splat(cast(s16, alpha))) &
+                     (Math.abs(p1 - p0) < Simd.splat(cast(s16, beta))) &
+                     (Math.abs(q1 - q0) < Simd.splat(cast(s16, beta)))
+    let newP0 = Simd.select(active, (2 * p1 + p0 + q1 + 2) >> 2, p0)
+    let newQ0 = Simd.select(active, (2 * q1 + q0 + p1 + 2) >> 2, q0)
+    let zeros = Simd.splat(0's16)
     Simd.storeLow8(pix - stride, Simd.packUnsigned(newP0, zeros))
     Simd.storeLow8(pix, Simd.packUnsigned(newQ0, zeros))
 }

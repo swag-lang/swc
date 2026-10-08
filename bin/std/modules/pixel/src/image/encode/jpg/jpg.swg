@@ -166,8 +166,8 @@ internal struct Encoder
 
     private
     {
-        imageX:    u16                // Width of the padded source, a multiple of eight.
-        imageY:    u16                // Height of the padded source, a multiple of eight.
+        imageX:    u16     // Width of the padded source, a multiple of eight.
+        imageY:    u16     // Height of the padded source, a multiple of eight.
         bufferRGB: Array'ColorRGB     // Padded source pixels.
 
         stream: *ConcatBuffer?     // Output buffer segments are appended to.
@@ -176,7 +176,7 @@ internal struct Encoder
         bitCount:  u32     // Number of valid bits held in 'bitBuffer'.
 
         outBuf:   [OutBufSize] u8     // Bytes staged before they reach 'stream'.
-        outCount: u32                 // Bytes currently staged in 'outBuf'.
+        outCount: u32     // Bytes currently staged in 'outBuf'.
 
         scaleFactor: u8 = 10     // Quality scale applied to the quantization tables.
 

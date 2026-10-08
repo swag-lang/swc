@@ -61,14 +61,14 @@ public struct GlyphSlot
 
     public readonly
     {
-        late face:  *Face                              // Borrowed pointer to the owning face.
-        index:      u32                                // Glyph index represented by this slot.
-        metrics:    GlyphMetrics                       // Scaled measurements for the glyph.
-        advance:    Vector                             // Pen displacement after drawing this glyph.
+        late face:  *Face            // Borrowed pointer to the owning face.
+        index:      u32              // Glyph index represented by this slot.
+        metrics:    GlyphMetrics     // Scaled measurements for the glyph.
+        advance:    Vector           // Pen displacement after drawing this glyph.
         format:     GlyphFormat = GlyphFormat.None     // Active representation.
-        bitmap:     Bitmap                             // Borrowed pixels from the most recent render.
-        bitmapLeft: s32                                // Bitmap left edge relative to the pen, in pixels.
-        bitmapTop:  s32                                // Bitmap top edge above the baseline, in pixels.
+        bitmap:     Bitmap           // Borrowed pixels from the most recent render.
+        bitmapLeft: s32              // Bitmap left edge relative to the pen, in pixels.
+        bitmapTop:  s32              // Bitmap top edge above the baseline, in pixels.
     }
 }
 

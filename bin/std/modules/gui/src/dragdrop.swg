@@ -33,9 +33,9 @@ struct DragContent
 
     internal
     {
-        bytes:    Array'u8                  // Content, once it exists.
+        bytes:    Array'u8     // Content, once it exists.
         producer: (func||()->Array'u8)?     // Produces the content on the first read.
-        produced: bool                      // Whether the producer already ran.
+        produced: bool         // Whether the producer already ran.
     }
 }
 

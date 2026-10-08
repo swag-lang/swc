@@ -11,7 +11,7 @@ struct MouseState
         pressed:     [MouseButton] bool      // Whether each button is pressed.
         pressedTime: [MouseButton] u64       // Monotonic millisecond timestamp of the latest press.
         pressedPos:  [MouseButton] Point     // Cursor position of the latest press.
-        position:    Point                   // Cursor position in physical desktop pixels.
+        position:    Point     // Cursor position in physical desktop pixels.
     }
 }
 

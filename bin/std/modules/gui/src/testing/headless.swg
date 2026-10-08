@@ -27,11 +27,11 @@ struct AutoStage
     public
     {
         kind:   AutoStageKind = ModalButton     // Action the stage performs.
-        folder: String                          // Folder a file-dialog stage browses to first; empty keeps the current one.
-        file:   String                          // File name a file-dialog stage types; empty for any other modal.
-        label:  String                          // Label of the submenu a `PopupSubMenu` stage opens.
-        edits:  Array'AutoEdit                  // Edit boxes a `ModalButton` stage fills before its click.
-        button: WndId         = ""              // Modal button a `ModalButton` stage clicks, or item a `PopupItem` stage activates.
+        folder: String                 // Folder a file-dialog stage browses to first; empty keeps the current one.
+        file:   String                 // File name a file-dialog stage types; empty for any other modal.
+        label:  String                 // Label of the submenu a `PopupSubMenu` stage opens.
+        edits:  Array'AutoEdit         // Edit boxes a `ModalButton` stage fills before its click.
+        button: WndId         = ""     // Modal button a `ModalButton` stage clicks, or item a `PopupItem` stage activates.
     }
 }
 
@@ -55,14 +55,14 @@ struct HeadlessHost
         lastCommand:  WndId?          // Last command identifier, borrowed from this host until the next recorded command.
 
         // Auto UI driver state, armed by `clickModalButtonWhenShown` and its siblings.
-        autoHandled:          bool                // Whether every armed stage has completed.
-        autoArmed:            bool                // Whether stages are still waiting to run.
-        autoHookInstalled:    bool                // Whether the driver runs on every application frame.
-        autoFrames:           u32                 // Frames the current stage has waited so far.
-        autoMaxFrames:        u32                 // Frames a stage may wait before the driver gives up.
+        autoHandled:          bool       // Whether every armed stage has completed.
+        autoArmed:            bool       // Whether stages are still waiting to run.
+        autoHookInstalled:    bool       // Whether the driver runs on every application frame.
+        autoFrames:           u32        // Frames the current stage has waited so far.
+        autoMaxFrames:        u32        // Frames a stage may wait before the driver gives up.
         autoStages:           Array'AutoStage     // Armed stages, in the order they run.
-        autoStage:            u32                 // Index of the stage the driver runs next.
-        readonly autoFailure: String              // Timeout explanation, empty until an armed stage fails.
+        autoStage:            u32        // Index of the stage the driver runs next.
+        readonly autoFailure: String     // Timeout explanation, empty until an armed stage fails.
 
         // Payload the simulated drag helpers hand to the routing, reused across one gesture the
         // way the platform layer reuses the one it reads from the source.

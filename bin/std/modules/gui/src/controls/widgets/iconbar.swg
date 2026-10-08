@@ -19,8 +19,8 @@ struct IconBar
         readonly
         {
             orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
-            iconSize:    f32                                     // Square icon size in logical units.
-            itemPadding: f32 = 4                                 // Padding around every icon in logical units.
+            iconSize:    f32         // Square icon size in logical units.
+            itemPadding: f32 = 4     // Padding around every icon in logical units.
         }
 
         sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.

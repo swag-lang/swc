@@ -42,9 +42,9 @@ struct ThemeImages
 {
     lock:           Sync.Mutex
     decoded:        bool
-    widgets:        Svg.Drawing                // Vector widgets atlas, parsed once.
+    widgets:        Svg.Drawing     // Vector widgets atlas, parsed once.
     widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.
-    icons:          IconAtlas                  // Vector icon set, parsed once, with its own frames.
+    icons:          IconAtlas       // Vector icon set, parsed once, with its own frames.
 }
 
 // Bundle names of the theme resources. The `Default*Name` constants above are include

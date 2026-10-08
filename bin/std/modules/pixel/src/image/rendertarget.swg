@@ -10,7 +10,7 @@ struct RenderTarget
     public readonly
     {
         handle:       RenderTargetHandle            // Renderer-owned target handle.
-        colorBuffer:  Texture                       // Texture receiving color output.
+        colorBuffer:  Texture     // Texture receiving color output.
         depthStencil: RenderTargetSurfaceHandle     // Renderer-owned depth/stencil surface, or the invalid handle.
     }
 

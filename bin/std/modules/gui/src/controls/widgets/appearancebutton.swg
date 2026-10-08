@@ -29,7 +29,7 @@ struct AppearanceButton
         readonly
         {
             appearanceTheme = AppearanceTheme.SwagDark     // Theme currently selected by the control.
-            language: String                               // Registered language tag, or empty to follow the system.
+            language: String     // Registered language tag, or empty to follow the system.
         }
     }
 }

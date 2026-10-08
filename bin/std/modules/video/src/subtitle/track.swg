@@ -41,7 +41,7 @@ struct Presentation
 {
     public readonly
     {
-        text: String               // Active cues joined in timeline order.
+        text: String     // Active cues joined in timeline order.
         nextChangeSeconds: f64     // Next cue start or end, or positive infinity past the last cue.
     }
 }

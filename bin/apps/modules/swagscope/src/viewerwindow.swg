@@ -59,8 +59,14 @@ func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f32}
     return result
 }
 
-const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
+const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption |
+                                     SurfaceFlags.SmallCaption |
+                                     SurfaceFlags.MinimizeButton |
+                                     SurfaceFlags.MaximizeButton |
+                                     SurfaceFlags.CloseButton |
+                                     SurfaceFlags.Border |
+                                     SurfaceFlags.Resizable
+const ViewerFullScreenAddedFlags = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 276.0

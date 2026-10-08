@@ -56,7 +56,7 @@ struct Monitor
     {
         bounds:           Math.Rectangle     // Logical bounds in desktop coordinates.
         workArea:         Math.Rectangle     // Logical bounds available to applications.
-        scaleFactor:      f32                // Ratio from logical coordinates to physical pixels.
+        scaleFactor:      f32     // Ratio from logical coordinates to physical pixels.
         physicalBounds:   Math.Rectangle     // Physical-pixel bounds in desktop coordinates.
         physicalWorkArea: Math.Rectangle     // Physical-pixel bounds available to applications.
     }

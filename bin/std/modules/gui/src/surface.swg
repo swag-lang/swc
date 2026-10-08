@@ -52,7 +52,7 @@ struct Surface
         cancelButton: *Wnd?     // Window Escape stands for, or `null` when the surface cannot be dismissed.
 
         flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
-        colorDisabled: Color                   // Animated tint used while the surface is disabled.
+        colorDisabled: Color     // Animated tint used while the surface is disabled.
 
         // What the surface is made of and where it stands. The application creates surfaces and
         // the event loop moves them between these states; reading them tells what is on screen.
@@ -85,9 +85,9 @@ struct Surface
 
     // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
     // the paint loop own them; callers reach the drawable with 'renderingContext'.
-    rc:        RenderContext                                           // Drawable and viewport the frame targets.
+    rc:        RenderContext     // Drawable and viewport the frame targets.
     dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
-    isDirty:   bool                                                    // Whether a repaint is pending.
+    isDirty:   bool     // Whether a repaint is pending.
 
     // Recorded before a native placement and reported when its prepared image is presented.
     paintRecordUs: u64
@@ -123,17 +123,17 @@ struct Surface
 #[Swag.EnumFlags]
 enum SurfaceFlags
 {
-    None = 0                                                                                               // Creates a frameless, non-resizable surface.
-    LargeCaption                                                                                           // Uses the standard large title bar.
-    SmallCaption                                                                                           // Uses the compact tool-window title bar.
-    MinimizeButton                                                                                         // Displays a minimize button in the title bar.
-    MaximizeButton                                                                                         // Displays a maximize button in the title bar.
-    CloseButton                                                                                            // Displays a close button in the title bar.
-    Border                                                                                                 // Draws the themed window border.
-    Resizable                                                                                              // Allows the user to resize the surface by dragging its border.
-    ToolWindow                                                                                             // Creates a secondary tool window that does not appear in the taskbar.
-    TopMost                                                                                                // Keeps the surface above non-topmost windows.
-    NoShadow                                                                                               // Disables the themed shadow around the surface.
+    None = 0           // Creates a frameless, non-resizable surface.
+    LargeCaption       // Uses the standard large title bar.
+    SmallCaption       // Uses the compact tool-window title bar.
+    MinimizeButton     // Displays a minimize button in the title bar.
+    MaximizeButton     // Displays a maximize button in the title bar.
+    CloseButton        // Displays a close button in the title bar.
+    Border             // Draws the themed window border.
+    Resizable          // Allows the user to resize the surface by dragging its border.
+    ToolWindow         // Creates a secondary tool window that does not appear in the taskbar.
+    TopMost            // Keeps the surface above non-topmost windows.
+    NoShadow           // Disables the themed shadow around the surface.
     StandardWindow = LargeCaption | MinimizeButton | MaximizeButton | CloseButton | Border | Resizable     // Standard resizable application window.
 }
 

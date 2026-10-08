@@ -31,7 +31,7 @@ struct Bundle
 {
     public
     {
-        folders:  Array'String               // Disk roots, searched in registration order.
+        folders:  Array'String     // Disk roots, searched in registration order.
         embedded: Array'EmbeddedResource     // Compile-time fallback bytes, searched last.
     }
 }

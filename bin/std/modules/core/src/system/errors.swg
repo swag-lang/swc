@@ -25,8 +25,8 @@ struct SyntaxError
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        line, col:  u64                // One-based line and column, or zero when unknown.
-        seek:       u64                // Byte offset in the parsed text, when known.
+        line, col:  u64     // One-based line and column, or zero when unknown.
+        seek:       u64     // Byte offset in the parsed text, when known.
     }
 }
 

@@ -35,15 +35,15 @@ struct FileDlgOptions
 {
     public
     {
-        title:             string      = ""                                            // Surface title, or empty for a mode-specific title.
-        confirmButtonText: string      = ""                                            // Confirmation button label, or empty for the localized OK.
-        initialFolder:     string      = ""                                            // Initially browsed folder, when non-empty.
-        initialName:       string      = ""                                            // Initial file-name editor contents.
-        showLocationsPane              = true                                          // Whether to show shortcuts and drives.
-        mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
-        filters:           Array'{ name: string, extensions: string }                  // Named extension filters; empty means all files.
+        title:             string      = ""             // Surface title, or empty for a mode-specific title.
+        confirmButtonText: string      = ""             // Confirmation button label, or empty for the localized OK.
+        initialFolder:     string      = ""             // Initially browsed folder, when non-empty.
+        initialName:       string      = ""             // Initial file-name editor contents.
+        showLocationsPane              = true           // Whether to show shortcuts and drives.
+        mode:              FileDlgMode = SelectFile     // Accepted selection kind.
+        filters:           Array'{ name: string, extensions: string }     // Named extension filters; empty means all files.
         shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
-        state:             *FileDlgState?                                              // Optional borrowed state captured when the modal closes and on destruction.
+        state:             *FileDlgState?               // Optional borrowed state captured when the modal closes and on destruction.
     }
 }
 

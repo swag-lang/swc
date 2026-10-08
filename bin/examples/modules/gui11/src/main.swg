@@ -760,7 +760,11 @@ func createRootView()
 
 #main
 {
-    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
+    let flags = SurfaceFlags.LargeCaption |
+                SurfaceFlags.MinimizeButton |
+                SurfaceFlags.MaximizeButton |
+                SurfaceFlags.CloseButton |
+                SurfaceFlags.Border
     let surface = try app.createSurface(90, 60, W - 46, H - 31, flags)
     g_Surface = surface
     surface.setTitle("GUI11 motion laboratory")

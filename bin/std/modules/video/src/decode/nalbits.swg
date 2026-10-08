@@ -21,9 +21,9 @@ using Core, Core.Errors
 struct BitReader
 {
     data:    const [*] u8?     // Payload bytes, already free of emulation-prevention bytes.
-    size:    u64               // Number of payload bytes.
-    bitPos:  u64               // Read position, in bits from the first byte.
-    overran: bool              // Whether a read ran past the end of the payload.
+    size:    u64      // Number of payload bytes.
+    bitPos:  u64      // Read position, in bits from the first byte.
+    overran: bool     // Whether a read ran past the end of the payload.
 }
 
 impl BitReader

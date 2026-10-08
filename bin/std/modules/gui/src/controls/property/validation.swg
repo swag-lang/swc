@@ -21,7 +21,7 @@ struct PropValidationResult
     public
     {
         state:   PropValidation = .None     // Validation severity.
-        message: string?                    // Explanation shown with the row, or null for none.
+        message: string?     // Explanation shown with the row, or null for none.
     }
 }
 

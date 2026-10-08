@@ -17,7 +17,7 @@ const TagBinVersion1 = 0xFAFAFAFC
 #[Swag.EnumFlags]
 enum TagBinHeaderFlags: u32
 {
-    Zero = 0                 // No option is enabled.
+    Zero = 0     // No option is enabled.
     StreamCompressed = 1     // The whole body is stored as one deflate payload.
 }
 
@@ -69,14 +69,14 @@ struct TagBinSection
 {
     public
     {
-        startSeek:    ConcatBufferPosition                         // Position of the patched section header words.
+        startSeek:    ConcatBufferPosition     // Position of the patched section header words.
         mapSeek:      HashTable'(string, ConcatBufferPosition)     // Ad-hoc sections: maps field keys to their position.
-        keys:         ArrayPtr'String                              // Owns stable text borrowed by 'mapSeek'.
-        offsets:      Array'u32                                    // Shaped sections: per-field offsets, relative to the section payload.
-        plan:         const *Plan?                                 // Shaped sections: the plan driving the field order.
-        payloadStart: u64                                          // Offset of the first payload byte of the section.
-        fieldIndex:   u64                                          // Shaped sections: index of the next field to write.
-        kind:         SectionKind                                  // How the values of the section are framed.
+        keys:         ArrayPtr'String          // Owns stable text borrowed by 'mapSeek'.
+        offsets:      Array'u32                // Shaped sections: per-field offsets, relative to the section payload.
+        plan:         const *Plan?             // Shaped sections: the plan driving the field order.
+        payloadStart: u64                      // Offset of the first payload byte of the section.
+        fieldIndex:   u64                      // Shaped sections: index of the next field to write.
+        kind:         SectionKind              // How the values of the section are framed.
     }
 }
 
@@ -109,19 +109,19 @@ struct TagBin
 
     private
     {
-        rootType:     typeinfo?                                              // Root type supplied by the high-level encoder.
-        compressor:   Core.Compress.Deflate                                  // Compressor used for compressed sections.
-        finalOutput:  *ConcatBuffer?                                         // Caller buffer receiving the header, then the body.
-        output:       *ConcatBuffer?                                         // Current sink: the body, or a compressed element scratch.
-        body:         ConcatBuffer                                           // Accumulates every section before the final assembly.
-        shapeIds:     HashTable'(u64, u32)                                   // Maps each serialization plan address to its shape id.
-        shapePlans:   Array'(const *Plan)                                    // The plan of each registered shape, by shape id.
-        headerPatch:  ConcatBufferPosition                                   // Position of the shape directory offset in the header.
-        freeSections: ArrayPtr'TagBinSection                                 // Pool of reusable section structures.
-        sections:     ArrayPtr'TagBinSection                                 // Stack of currently active sections.
-        outStack:     Array'(*ConcatBuffer?)                                 // Output buffers of the enclosing sections.
+        rootType:     typeinfo?                  // Root type supplied by the high-level encoder.
+        compressor:   Core.Compress.Deflate      // Compressor used for compressed sections.
+        finalOutput:  *ConcatBuffer?             // Caller buffer receiving the header, then the body.
+        output:       *ConcatBuffer?             // Current sink: the body, or a compressed element scratch.
+        body:         ConcatBuffer               // Accumulates every section before the final assembly.
+        shapeIds:     HashTable'(u64, u32)       // Maps each serialization plan address to its shape id.
+        shapePlans:   Array'(const *Plan)        // The plan of each registered shape, by shape id.
+        headerPatch:  ConcatBufferPosition       // Position of the shape directory offset in the header.
+        freeSections: ArrayPtr'TagBinSection     // Pool of reusable section structures.
+        sections:     ArrayPtr'TagBinSection     // Stack of currently active sections.
+        outStack:     Array'(*ConcatBuffer?)     // Output buffers of the enclosing sections.
         elemStack:    Array'{ compressed: bool, tmpBuf: *ConcatBuffer? }     // Element stack.
-        freeTmpBuf:   Array'(*ConcatBuffer?)                                 // Pool of reusable scratch buffers, owned by the writer.
+        freeTmpBuf:   Array'(*ConcatBuffer?)     // Pool of reusable scratch buffers, owned by the writer.
     }
 }
 

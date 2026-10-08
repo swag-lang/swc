@@ -67,11 +67,11 @@ internal
     struct HuffmanTable
     {
         fast:        [1 << FastBits] u16     // Direct lookup of codes up to 'FastBits' long: code length << 9 | symbol, or 0.
-        firstCode:   [16] u16                // First canonical code of each code length.
-        maxCode:     [17] s64                // Exclusive upper bound of the codes of each length, left-aligned to 16 bits.
-        firstSymbol: [16] u16                // Slot in 'size' and 'value' of the first code of each length.
-        size:        [288] u8                // Code length of each slot, in canonical order.
-        value:       [288] u16               // Symbol of each slot, in canonical order.
+        firstCode:   [16] u16      // First canonical code of each code length.
+        maxCode:     [17] s64      // Exclusive upper bound of the codes of each length, left-aligned to 16 bits.
+        firstSymbol: [16] u16      // Slot in 'size' and 'value' of the first code of each length.
+        size:        [288] u8      // Code length of each slot, in canonical order.
+        value:       [288] u16     // Symbol of each slot, in canonical order.
     }
 
     impl HuffmanTable

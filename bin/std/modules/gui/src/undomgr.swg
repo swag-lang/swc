@@ -32,7 +32,7 @@ struct UndoStep
 {
     public
     {
-        serial: u64              // Group identifier shared by commands undone together.
+        serial: u64     // Group identifier shared by commands undone together.
         cmd:    IUndoCommand     // Owned reversible command.
     }
 }
@@ -41,8 +41,8 @@ struct UndoStep
 struct UndoManager
 {
     steps:     Array'UndoStep     // Owned timeline, including its redo tail.
-    next:      u64                // Index immediately after the last applied command.
-    serialGen: u64                // Last allocated command-group identifier.
+    next:      u64     // Index immediately after the last applied command.
+    serialGen: u64     // Last allocated command-group identifier.
 }
 
 impl UndoManager

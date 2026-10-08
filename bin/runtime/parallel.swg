@@ -69,7 +69,7 @@ private struct ParallelDispatch
 #[Swag.NoDoc]
 struct ParallelChunk
 {
-    using node: WorkNode               // Scheduler state and dynamic identity.
+    using node: WorkNode     // Scheduler state and dynamic identity.
     dispatch:   *ParallelDispatch?     // Borrowed until all runners have joined.
 }
 

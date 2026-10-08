@@ -15,8 +15,8 @@ enum SeekOrigin
 #[Swag.EnumFlags]
 enum FileAccess
 {
-    Read                         // Read access
-    Write                        // Write access
+    Read      // Read access
+    Write     // Write access
     ReadWrite = Read | Write     // Read and write access
 }
 
@@ -35,11 +35,11 @@ enum FileMode
 #[Swag.EnumFlags]
 enum FileShare
 {
-    Zero = 0                     // No sharing
-    Delete                       // Allows the file to be deleted by others
-    Inheritable                  // Child processes inherit the handle
-    Read                         // Allows shared read access
-    Write                        // Allows shared write access
+    Zero = 0        // No sharing
+    Delete          // Allows the file to be deleted by others
+    Inheritable     // Child processes inherit the handle
+    Read            // Allows shared read access
+    Write           // Allows shared write access
     ReadWrite = Read | Write     // Allows shared read and write access
 }
 

@@ -47,15 +47,15 @@ const FontGamma = 1.0'f32 / 0.75
 const MsdfRange = 16.0'f32
 
 #[Swag.Strict]
-alias TextureHandle = u64                               // Opaque renderer texture identifier.
+alias TextureHandle = u64     // Opaque renderer texture identifier.
 const InvalidTextureHandle: TextureHandle = cast(0)     // Sentinel that identifies no texture.
 
 #[Swag.Strict]
-alias RenderTargetHandle = u64                                    // Opaque renderer framebuffer identifier.
+alias RenderTargetHandle = u64     // Opaque renderer framebuffer identifier.
 const InvalidRenderTargetHandle: RenderTargetHandle = cast(0)     // Sentinel that identifies no framebuffer.
 
 #[Swag.Strict]
-alias RenderTargetSurfaceHandle = u64                                           // Opaque renderer depth/stencil-surface identifier.
+alias RenderTargetSurfaceHandle = u64     // Opaque renderer depth/stencil-surface identifier.
 const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast(0)     // Sentinel that identifies no surface.
 
 // Holds the two chroma planes of a planar texture, beside the luma handle the caller carries.
@@ -143,9 +143,9 @@ struct RenderOgl
         deviceTransform: Transform2
         scissorBox:      Math.Rectangle
         scissorOn:       bool
-        orthoMatrix:     Matrix4x4               // Current surface projection matrix.
-        modelMatrix:     Matrix4x4               // Current model matrix.
-        whiteTexture:    GLuint                  // Built-in one-pixel white texture.
+        orthoMatrix:     Matrix4x4     // Current surface projection matrix.
+        modelMatrix:     Matrix4x4     // Current model matrix.
+        whiteTexture:    GLuint        // Built-in one-pixel white texture.
         hatchTextures:   [HatchStyle] GLuint     // Built-in hatch texture handles.
         // The two chroma planes of every planar texture, keyed by the luma handle the caller
         // holds. A texture is one handle everywhere else in this module, and a planar picture is
@@ -155,13 +155,13 @@ struct RenderOgl
         // The program a planar texture displaced, restored as soon as one stops being drawn.
         planarPrevShader: *ShaderBase?
 
-        gradientTexture:         GLuint                                       // Dynamically sized gradient-stop table.
-        gradientTextureCapacity: u64                                          // Stop slots allocated in `gradientTexture`.
-        gradientOffsetUpload:    Array'Vector4                                // Reused first texture row.
-        gradientColorUpload:     Array'Vector4                                // Reused second texture row.
-        blendingMode:            BlendingMode = .Alpha                        // Active OpenGL blending mode.
+        gradientTexture:         GLuint                    // Dynamically sized gradient-stop table.
+        gradientTextureCapacity: u64                       // Stop slots allocated in `gradientTexture`.
+        gradientOffsetUpload:    Array'Vector4             // Reused first texture row.
+        gradientColorUpload:     Array'Vector4             // Reused second texture row.
+        blendingMode:            BlendingMode = .Alpha     // Active OpenGL blending mode.
         colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
-        curRC:                   RenderContext                                // Active drawable and viewport.
+        curRC:                   RenderContext             // Active drawable and viewport.
 
         stackReleasedRT: Array'(*RenderTarget?)     // Targets queued for deferred release.
         stackRT:         Array'(*RenderTarget?)     // Nested bound render targets.

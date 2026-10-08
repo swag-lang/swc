@@ -44,8 +44,8 @@ struct(K, V) HashTable
     private
     {
         table:         [*] HashTableEntry?     // Contiguous memory block for the slots.
-        deleted:       u64                     // The number of slots marked as deleted.
-        growThreshold: u64                     // Used slot count that triggers a resize, derived from 'capacity'.
+        deleted:       u64     // The number of slots marked as deleted.
+        growThreshold: u64     // Used slot count that triggers a resize, derived from 'capacity'.
     }
 }
 

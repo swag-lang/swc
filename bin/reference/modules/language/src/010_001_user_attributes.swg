@@ -106,5 +106,5 @@ that adapts based on which attributes are present and how they are configured.
 #test
 {
     let type = assume cast(const *Swag.TypeInfoFunc, #typeof(function2))     // Reflect the function type
-    Swag.assert(type.attributes.count == 1)                                  // Exactly one attribute on 'function2'
+    Swag.assert(type.attributes.count == 1)     // Exactly one attribute on 'function2'
 }

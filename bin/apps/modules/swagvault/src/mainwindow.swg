@@ -182,14 +182,14 @@ struct VaultOperation
     volume:         *MountedVault?     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
-    readOnly:          bool                 // Whether a mount operation exposes the drive read only.
-    usedProtection:    bool                 // Whether the container was opened with a password or key file.
-    leavesUnprotected: bool                 // Whether an access change leaves neither a password nor a key file.
-    removesPassword:   bool                 // Whether a password change leaves its password field empty.
+    readOnly:          bool     // Whether a mount operation exposes the drive read only.
+    usedProtection:    bool     // Whether the container was opened with a password or key file.
+    leavesUnprotected: bool     // Whether an access change leaves neither a password nor a key file.
+    removesPassword:   bool     // Whether a password change leaves its password field empty.
     accessChange:      AccessChangeKind     // Which control family the change and its result belong to.
-    fromStartup:       bool                 // Whether the mount came from the startup list rather than from the card.
-    securityEpoch:     u64                  // Security-event generation at which this mount started.
-    securityStopped:   bool                 // Whether a security event interrupted this mount.
+    fromStartup:       bool     // Whether the mount came from the startup list rather than from the card.
+    securityEpoch:     u64      // Security-event generation at which this mount started.
+    securityStopped:   bool     // Whether a security event interrupted this mount.
 
     progress: VolumeProgress     // What the job has done, and the way to ask it to stop.
 }

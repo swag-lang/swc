@@ -44,10 +44,10 @@ struct AnalysisResult
     scanned:          u64           // Bytes read before completion, cancellation, or failure.
     histogram:        [256] u64     // Occurrences of each byte value.
     zeroCount:        u64
-    printableCount:   u64                      // Bytes the text column shows as themselves.
-    entropy:          f64                      // Shannon entropy of the scanned bytes, in bits per byte.
+    printableCount:   u64      // Bytes the text column shows as themselves.
+    entropy:          f64      // Shannon entropy of the scanned bytes, in bits per byte.
     strings:          Array'AnalysisString     // Inferred runs in file order, at most `AnalysisStringLimit`.
-    stringsTruncated: bool                     // Whether more runs were found than `strings` keeps.
+    stringsTruncated: bool     // Whether more runs were found than `strings` keeps.
     cancelled:        bool
     failureReason:    String     // Empty unless the file could not be read.
 }

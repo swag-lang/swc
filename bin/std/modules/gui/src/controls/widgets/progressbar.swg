@@ -19,7 +19,7 @@ struct ProgressBar
 
         readonly
         {
-            value: f32                        // Finite progress, clamped to the zero-to-one range.
+            value: f32     // Finite progress, clamped to the zero-to-one range.
             flags = ProgressBarFlags.None     // Active presentation options.
         }
     }

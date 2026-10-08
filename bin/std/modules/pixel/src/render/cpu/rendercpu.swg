@@ -161,8 +161,8 @@ private struct RasterBatch
 
     late stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
 
-    solidPaint: bool                   // The paint multiplies by opaque white, which is the identity.
-    paintImage: *Image?                // Storage of a bound texture paint, resolved once.
+    solidPaint: bool        // The paint multiplies by opaque white, which is the identity.
+    paintImage: *Image?     // Storage of a bound texture paint, resolved once.
     atlas:      const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
 
     blurWeights:     const [*] f32?     // Gaussian tap weights owned by the active draw call.

@@ -43,14 +43,14 @@ public struct PopupMenuItem
         // Re-reads 'name' on every layout, or `null` when the label was set once.
         nameResolver: MenuLabelResolver?
 
-        late popup: *MenuCtrl                           // Child menu this item opens, for a submenu item.
-        pos:        f32                                 // Leading edge along the menu axis, set by the layout pass.
-        size:       f32                                 // Extent along the menu axis, set by the layout pass.
+        late popup: *MenuCtrl     // Child menu this item opens, for a submenu item.
+        pos:        f32           // Leading edge along the menu axis, set by the layout pass.
+        size:       f32           // Extent along the menu axis, set by the layout pass.
         rg:         CommandStateEvent.RenderingHint     // Rendering hint, such as membership of an exclusive group.
-        separator:  bool                                // Whether the item is a separator.
-        disabled:   bool                                // Whether the item cannot be chosen.
-        checked:    bool                                // Whether the item shows a check or radio mark.
-        hidden:     bool                                // Whether the item is left out of the menu.
+        separator:  bool          // Whether the item is a separator.
+        disabled:   bool          // Whether the item cannot be chosen.
+        checked:    bool          // Whether the item shows a check or radio mark.
+        hidden:     bool          // Whether the item is left out of the menu.
     }
 
     submenuOpensLeft: bool     // Resolved opening side used by layout and painting.
@@ -68,9 +68,9 @@ public struct MenuCtrl
 
         readonly
         {
-            flags: MenuFlags = None                                             // Active presentation options.
+            flags: MenuFlags = None           // Active presentation options.
             submenuDirection: SubmenuDirection = SubmenuDirection.Automatic     // Preferred side for child menus.
-            items: ArrayPtr'PopupMenuItem                                       // Commands, submenus, and separators in display order.
+            items: ArrayPtr'PopupMenuItem     // Commands, submenus, and separators in display order.
         }
     }
 

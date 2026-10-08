@@ -26,9 +26,9 @@ struct GridTrack
     public
     {
         kind         = GridTrackKind.Fixed     // Sizing policy.
-        value:   f32 = 100                     // Pixel size for `Fixed`, or weight for `Fraction`.
-        minimum: f32                           // Minimum track size in logical pixels.
-        maximum: f32                           // Maximum track size, or zero for no upper bound.
+        value:   f32 = 100     // Pixel size for `Fixed`, or weight for `Fraction`.
+        minimum: f32           // Minimum track size in logical pixels.
+        maximum: f32           // Maximum track size, or zero for no upper bound.
     }
 }
 

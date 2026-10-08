@@ -8,7 +8,7 @@ struct ThemeImageRect
     public
     {
         rect:   Math.Rectangle     // Region of the atlas the part is drawn from, in authored atlas texels.
-        corner: f32                // Side of the nine-slice corner regions, in authored atlas texels; zero stretches the whole region.
+        corner: f32     // Side of the nine-slice corner regions, in authored atlas texels; zero stretches the whole region.
 
         // Corner the tile draws, in logical pixels, for the parts that have to follow that shape
         // without drawing it — the keyboard-focus ring is one. Zero means the tile has no single
@@ -82,7 +82,7 @@ struct ThemeImageRects
         edit_SquareBorder: ThemeImageRect = {{29, 57, 27, 27}, 5, 4}        // Border of a square-cornered field.
         edit_RoundBk:      ThemeImageRect = {{1, 1, 27, 27}, 13, 12.5}      // Ground of a round field.
         edit_RoundBorder:  ThemeImageRect = {{29, 1, 27, 27}, 13, 12.5}     // Border of a round field.
-        edit_FlatBk:       ThemeImageRect = {}                              // Nothing: a flat field is told apart by the rule under it alone.
+        edit_FlatBk:       ThemeImageRect = {}     // Nothing: a flat field is told apart by the rule under it alone.
         edit_FlatBorder:   ThemeImageRect = {{29, 113, 27, 27}, 5, 0}       // Rule under a flat field.
 
         btnToggle_Bk:     ThemeImageRect = {{1, 1, 27, 27}, 13, 12.5}       // Track of a toggle.
@@ -124,7 +124,7 @@ struct ThemeImageRects
         menuBar_PopupSelectedBk:     ThemeImageRect = {{1, 197, 27, 27}, 12, 10}        // Ground of a menu bar entry whose popup is open.
         menuBar_PopupSelectedBorder: ThemeImageRect = {{29, 197, 27, 27}, 12, 10.5}     // Border of a menu bar entry whose popup is open.
         menuBar_Bk:                  ThemeImageRect = {{1, 29, 27, 27}, 12, 0}          // Ground of a menu bar.
-        menuBar_Border:              ThemeImageRect = {}                                // Nothing: a menu bar is told apart by its own ground, not by a rule under it.
+        menuBar_Border:              ThemeImageRect = {}     // Nothing: a menu bar is told apart by its own ground, not by a rule under it.
         menuBar_SelectedBk:          ThemeImageRect = {{57, 197, 27, 27}, 12, 4}        // Ground of a menu bar entry under the pointer or selected.
         menuItem_CheckedMark:        ThemeImageRect = {{156, 62, 32, 32}, 0, 0}         // Mark of a checked menu entry.
 

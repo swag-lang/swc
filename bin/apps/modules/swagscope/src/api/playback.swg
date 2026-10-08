@@ -12,9 +12,9 @@ enum PlayMode
     Shuffle     // Continues through files of the same kind in random order, each once per round.
 }
 
-const SlideDefaultSeconds   = 5'f32                  // Initial duration of a still picture in a folder mode.
-const SlideMinSeconds       = 1'f32                  // Shortest supported still-picture duration.
-const SlideMaxSeconds       = 3600'f32               // Longest supported still-picture duration.
+const SlideDefaultSeconds   = 5'f32        // Initial duration of a still picture in a folder mode.
+const SlideMinSeconds       = 1'f32        // Shortest supported still-picture duration.
+const SlideMaxSeconds       = 3600'f32     // Longest supported still-picture duration.
 const SlideChoices: [5] f32 = [3, 5, 10, 30, 60]     // Still-picture durations offered by the playback menu, in seconds.
 
 // Shared playback preferences, retained by the host across files and viewer instances.
@@ -22,7 +22,7 @@ struct PlaybackSettings
 {
     public
     {
-        mode:         PlayMode                      // Policy applied at the end of a file.
+        mode:         PlayMode     // Policy applied at the end of a file.
         slideSeconds: f32 = SlideDefaultSeconds     // Duration in seconds for content without an end of its own.
     }
 }

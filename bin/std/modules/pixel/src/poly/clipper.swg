@@ -213,23 +213,23 @@ public struct Transform
 
     private
     {
-        useFullRange:      bool                                    // Whether coordinates need the full integer range.
-        preserveCollinear: bool                                    // Whether collinear vertices survive the output.
-        usingPolyTree:     bool                                    // Whether the result is built as a hierarchy.
+        useFullRange:      bool                        // Whether coordinates need the full integer range.
+        preserveCollinear: bool                        // Whether collinear vertices survive the output.
+        usingPolyTree:     bool                        // Whether the result is built as a hierarchy.
         edgeList:          Array'{ edge: [*] Edge, rank: u64 }     // Edge pool of the input paths.
-        minimaList:        Array'LocalMinimum                      // Local minima, in scanbeam order.
-        polyOuts:          Array'(*OutRec?)                        // Output records being stitched.
-        joinList:          Array'(*Join?)                          // Pending joins between output points.
-        ghostJoinList:     Array'(*Join?)                          // Joins deferred to a later scanbeam.
-        intersectList:     Array'(*IntersectNode?)                 // Intersections of the current scanbeam.
-        scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
-        maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
-        clipFillType:      PolyFillType                            // Fill rule of the clip paths.
-        subjFillType:      PolyFillType                            // Fill rule of the subject paths.
-        clipType:          ClipType                                // Boolean operation being performed.
-        currentLM:         u64                                     // Index of the next local minimum to enter.
-        activeEdges:       *Edge?                                  // Active edge list of the current scanbeam.
-        sortedEdges:       *Edge?                                  // Sorted edge list used while resolving intersections.
+        minimaList:        Array'LocalMinimum          // Local minima, in scanbeam order.
+        polyOuts:          Array'(*OutRec?)            // Output records being stitched.
+        joinList:          Array'(*Join?)              // Pending joins between output points.
+        ghostJoinList:     Array'(*Join?)              // Joins deferred to a later scanbeam.
+        intersectList:     Array'(*IntersectNode?)     // Intersections of the current scanbeam.
+        scanBeamList:      Array'CInt                  // Scanbeam boundaries still to process.
+        maximaList:        Array'CInt                  // Local maxima of the current scanbeam.
+        clipFillType:      PolyFillType                // Fill rule of the clip paths.
+        subjFillType:      PolyFillType                // Fill rule of the subject paths.
+        clipType:          ClipType                    // Boolean operation being performed.
+        currentLM:         u64                         // Index of the next local minimum to enter.
+        activeEdges:       *Edge?                      // Active edge list of the current scanbeam.
+        sortedEdges:       *Edge?                      // Sorted edge list used while resolving intersections.
 
         // Output records and points live exactly as long as one clipping operation: the sweep
         // creates them, tidying the result unlinks some of them, and the rest are released

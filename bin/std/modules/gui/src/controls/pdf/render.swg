@@ -8,11 +8,11 @@ struct RenderOptions
 {
     public
     {
-        scale:            f32    = 1                              // Output pixels per PDF point.
+        scale:            f32    = 1              // Output pixels per PDF point.
         background:       Color  = Color.fromArgb(Argb.White)     // Ground painted before page content.
-        maxDimension:     s32    = 16_384                         // Largest accepted output width or height in pixels.
-        maxPixels:        u64    = 67_108_864                     // Largest accepted output pixel count.
-        fallbackFontFile: string = ""                             // Optional TrueType font used when a PDF font cannot be decoded or safely addressed.
+        maxDimension:     s32    = 16_384         // Largest accepted output width or height in pixels.
+        maxPixels:        u64    = 67_108_864     // Largest accepted output pixel count.
+        fallbackFontFile: string = ""             // Optional TrueType font used when a PDF font cannot be decoded or safely addressed.
 
         // Page region to rasterize, in PDF points from the page's top-left corner. An empty
         // rectangle renders the complete page. A viewer zooming into one part of a page renders

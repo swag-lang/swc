@@ -86,7 +86,7 @@ struct Tab
             minimumItemWidth: f32         = 25               // Minimum effective width for every tab.
             items:            ArrayPtr'TabItem               // Tabs in display order.
             selectedIndex                 = Swag.U32.Max     // Selected tab index, or U32.Max when empty.
-            pageTransitions:  bool                           // Whether owned page changes use the standard transition.
+            pageTransitions:  bool     // Whether owned page changes use the standard transition.
         }
     }
 

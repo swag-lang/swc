@@ -23,7 +23,7 @@ struct MotionField
 
     easing:           AnimationEasing = .EaseOut     // Curve the page asked for.
     travelTime:       Time.Duration   = 900'ms       // Duration the page asked for.
-    preserveProgress: bool                           // Whether a replacement keeps the progress of the run it replaces.
+    preserveProgress: bool     // Whether a replacement keeps the progress of the run it replaces.
 }
 
 impl MotionField

@@ -63,9 +63,9 @@ struct Header
         readonly
         {
             flags         = HeaderFlags.Clickable | .Separators     // Active interaction and separator options.
-            items: ArrayPtr'HeaderItem                              // Columns in display order.
-            sortColumn    = Swag.U32.Max                            // Logical column carrying the sort marker.
-            sortDirection = HeaderSortDirection.None                // Direction of the sort marker.
+            items: ArrayPtr'HeaderItem       // Columns in display order.
+            sortColumn    = Swag.U32.Max     // Logical column carrying the sort marker.
+            sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
         }
     }
 

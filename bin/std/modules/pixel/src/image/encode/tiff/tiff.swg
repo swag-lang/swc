@@ -172,8 +172,8 @@ internal impl IImageEncoder for Encoder
             fail UnsupportedFormatError{"image is too big"}
 
         // Header
-        result.addNative(0x4949'u16)               // "II" little-endian
-        result.addNative(42'u16)                   // magic
+        result.addNative(0x4949'u16)     // "II" little-endian
+        result.addNative(42'u16)         // magic
         result.addNative(cast(u32, ifdOffset))     // offset to first IFD
 
         result.addBytes(Swag.makeSlice(storedData, storedLen))

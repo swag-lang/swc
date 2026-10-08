@@ -8,12 +8,12 @@ public struct ApplicationNative
 {
     public
     {
-        fileSmallIconsImage:     Image                       // Strip of the 16-pixel shell icons fetched so far.
-        fileSmallIconsImageList: ImageList                   // Renderer upload of the small icon strip.
+        fileSmallIconsImage:     Image         // Strip of the 16-pixel shell icons fetched so far.
+        fileSmallIconsImageList: ImageList     // Renderer upload of the small icon strip.
         mapFileSmallIcons:       HashTable'(String, s32)     // Index of each small icon in the strip, by extension or name.
 
-        fileBigIconsImage:     Image                       // Strip of the 32-pixel shell icons fetched so far.
-        fileBigIconsImageList: ImageList                   // Renderer upload of the large icon strip.
+        fileBigIconsImage:     Image         // Strip of the 32-pixel shell icons fetched so far.
+        fileBigIconsImageList: ImageList     // Renderer upload of the large icon strip.
         mapFileBigIcons:       HashTable'(String, s32)     // Index of each large icon in the strip, by extension or name.
 
         hotKeysDisabled: bool     // Whether registered system-wide shortcuts are withdrawn from the desktop.

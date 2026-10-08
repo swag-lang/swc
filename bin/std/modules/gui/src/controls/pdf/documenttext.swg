@@ -20,8 +20,8 @@ public struct DocumentText
     task:     Swag.Task
     fileName: String
     pages:    Array'String     // One entry per page, written once by the worker before it is published.
-    ready:    u32              // Pages published so far, from the first; read and written atomically.
-    cancel:   u32              // Asks the worker to stop after the page it is on; read and written atomically.
+    ready:    u32     // Pages published so far, from the first; read and written atomically.
+    cancel:   u32     // Asks the worker to stop after the page it is on; read and written atomically.
     started:  bool
 }
 

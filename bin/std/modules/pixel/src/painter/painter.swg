@@ -320,13 +320,13 @@ struct Painter
 
     private
     {
-        triangulateIdx:   Array's32                               // Reusable tessellation index workspace.
-        sharedLinePath:   LinePath                                // Reusable single-path workspace.
-        sharedContours:   Array'u64                               // Path indices of the list being filled, grouped by region.
-        sharedRegions:    Array'FillRegion                        // The regions those contours form.
-        sharedDirections: HashTable'(u64, Vector2)                // Outward direction of each contour point of a region.
+        triangulateIdx:   Array's32                    // Reusable tessellation index workspace.
+        sharedLinePath:   LinePath                     // Reusable single-path workspace.
+        sharedContours:   Array'u64                    // Path indices of the list being filled, grouped by region.
+        sharedRegions:    Array'FillRegion             // The regions those contours form.
+        sharedDirections: HashTable'(u64, Vector2)     // Outward direction of each contour point of a region.
         sharedRoundTmp:   Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
-        tess: Poly2Tri.Tessellate                                 // Reusable polygon tessellator.
+        tess: Poly2Tri.Tessellate                      // Reusable polygon tessellator.
 
         // Reusable shaped run for the immediate drawString path, so per-frame text drawing
         // shapes without allocating a fresh glyph buffer on every call.
@@ -353,8 +353,8 @@ struct Painter
         curPaintAlpha:   bool
 
         lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
-        lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
-        hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
+        lastTexture0Handle: TextureHandle     // Last brush texture handle emitted.
+        hasTextureFont:     bool     // Whether a glyph atlas is currently bound.
 
         // The paintType / gradient uniforms live per shader program, but texture0 state
         // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
@@ -367,7 +367,7 @@ struct Painter
         // Last MSDF font-effect uniforms emitted this frame, to skip redundant
         // SetFontEffect commands (most text shares the same -- usually empty -- effect).
         lastFontEffect: FontEffectParams     // Last emitted MSDF effect values.
-        hasFontEffect:  bool                 // Whether `lastFontEffect` is initialized.
+        hasFontEffect:  bool     // Whether `lastFontEffect` is initialized.
 
         // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
         // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.

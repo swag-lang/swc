@@ -5,15 +5,15 @@
 #[Swag.EnumFlags]
 enum WatchFilter
 {
-    FileName                                                            // File creation, deletion, and rename.
-    DirectoryName                                                       // Directory creation, deletion, and rename.
-    Attributes                                                          // Attribute changes.
-    Size                                                                // File size changes.
-    LastWrite                                                           // Last-write time changes.
-    LastAccess                                                          // Last-access time changes.
-    Creation                                                            // Creation-time changes.
-    Security                                                            // Security descriptor changes.
-    Common = FileName | DirectoryName | Size | LastWrite                // Changes commonly used by build and editor tools.
+    FileName          // File creation, deletion, and rename.
+    DirectoryName     // Directory creation, deletion, and rename.
+    Attributes        // Attribute changes.
+    Size              // File size changes.
+    LastWrite         // Last-write time changes.
+    LastAccess        // Last-access time changes.
+    Creation          // Creation-time changes.
+    Security          // Security descriptor changes.
+    Common = FileName | DirectoryName | Size | LastWrite     // Changes commonly used by build and editor tools.
     All    = Common | Attributes | LastAccess | Creation | Security     // Every portable notification category.
 }
 

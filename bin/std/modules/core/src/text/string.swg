@@ -41,10 +41,10 @@ struct String
 {
     public
     {
-        buffer:    [*] u8?                  // Storage of the string, inline for a small one.
-        length:    u64                      // Number of valid bytes in 'buffer'.
-        capacity:  u64                      // Number of bytes 'buffer' can hold.
-        allocator: IAllocator?              // Allocator used to grow the storage.
+        buffer:    [*] u8?         // Storage of the string, inline for a small one.
+        length:    u64             // Number of valid bytes in 'buffer'.
+        capacity:  u64             // Number of bytes 'buffer' can hold.
+        allocator: IAllocator?     // Allocator used to grow the storage.
         padding:   [StringSmallSize] u8     // Inline storage of a small string.
     }
 }

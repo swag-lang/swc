@@ -17,12 +17,12 @@ const BinaryLoadLimit = 64 * 1024 * 1024'u64
 #[Swag.NoCopy]
 struct BinaryImage
 {
-    fileSize:      u64                                         // Size the file system reports.
-    region:        File.MappedRegion                           // Read-only mapping that owns `bytes`.
+    fileSize:      u64        // Size the file system reports.
+    region:        File.MappedRegion     // Read-only mapping that owns `bytes`.
     bytes:         const [..] u8 = cast(const [..] u8, "")     // Mapped prefix, at most `BinaryLoadLimit` bytes.
-    bigEndian:     bool                                        // Byte order every multi-byte read uses; a parser sets it once.
-    truncated:     bool                                        // Whether a read asked for bytes the prefix does not hold.
-    failureReason: String                                      // File-system explanation when loading stops before any byte is available.
+    bigEndian:     bool       // Byte order every multi-byte read uses; a parser sets it once.
+    truncated:     bool       // Whether a read asked for bytes the prefix does not hold.
+    failureReason: String     // File-system explanation when loading stops before any byte is available.
 }
 
 impl BinaryImage

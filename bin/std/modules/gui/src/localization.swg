@@ -12,29 +12,29 @@ struct Strings
 {
     public
     {
-        dlg_Ok:            string = "OK"                                      // Confirmation button of a dialog.
-        dlg_Cancel:        string = "Cancel"                                  // Cancel button of a dialog.
-        dlg_Yes:           string = "Yes"                                     // Positive answer button.
-        dlg_No:            string = "No"                                      // Negative answer button.
-        dlg_Close:         string = "Close"                                   // Close button of an informational dialog.
-        dlg_ConfirmTitle:  string = "Please confirm"                          // Title of a confirmation dialog.
-        dlg_ConfirmText:   string = "Do you want to continue?"                // Default question of a confirmation dialog.
-        dlg_ErrorTitle:    string = "Error"                                   // Title of an error dialog.
-        dlg_InfoTitle:     string = "Information"                             // Title of an informational dialog.
+        dlg_Ok:            string = "OK"                 // Confirmation button of a dialog.
+        dlg_Cancel:        string = "Cancel"             // Cancel button of a dialog.
+        dlg_Yes:           string = "Yes"                // Positive answer button.
+        dlg_No:            string = "No"                 // Negative answer button.
+        dlg_Close:         string = "Close"              // Close button of an informational dialog.
+        dlg_ConfirmTitle:  string = "Please confirm"     // Title of a confirmation dialog.
+        dlg_ConfirmText:   string = "Do you want to continue?"     // Default question of a confirmation dialog.
+        dlg_ErrorTitle:    string = "Error"              // Title of an error dialog.
+        dlg_InfoTitle:     string = "Information"        // Title of an informational dialog.
         dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
         appearance_ToolTip:        string = "Appearance and application information"     // Tooltip of the application appearance caption button.
-        appearance_Theme:          string = "Theme"                                      // Theme submenu label.
-        appearance_Language:       string = "Language"                                   // Language submenu label.
-        appearance_SystemLanguage: string = "System language"                            // Language choice following the user account.
-        appearance_SwagDark:       string = "Swag dark"                                  // Dark Swag application theme.
-        appearance_Dark:           string = "Dark"                                       // Neutral dark application theme.
-        appearance_Light:          string = "Light"                                      // Neutral light application theme.
-        appearance_About:          string = "About..."                                   // Action opening application information.
+        appearance_Theme:          string = "Theme"               // Theme submenu label.
+        appearance_Language:       string = "Language"            // Language submenu label.
+        appearance_SystemLanguage: string = "System language"     // Language choice following the user account.
+        appearance_SwagDark:       string = "Swag dark"           // Dark Swag application theme.
+        appearance_Dark:           string = "Dark"                // Neutral dark application theme.
+        appearance_Light:          string = "Light"               // Neutral light application theme.
+        appearance_About:          string = "About..."            // Action opening application information.
 
-        about_Build:     string = "Build of %{f}"                                                                     // Application build date in the standard about dialog.
+        about_Build:     string = "Build of %{f}"       // Application build date in the standard about dialog.
         about_Source:    string = "% is open source and written in <url>Swag</url>. Its code is <url>here</url>."     // Product and source links in the standard about dialog.
-        about_Copyright: string = "Copyright © % %"                                                                   // Copyright year and holder in the standard about dialog.
+        about_Copyright: string = "Copyright © % %"     // Copyright year and holder in the standard about dialog.
 
         fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.
         fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.
@@ -52,41 +52,41 @@ struct Strings
         fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
         fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.
 
-        browser_Shortcuts:      string = "Shortcuts"                                   // Locations pane group of user shortcuts.
-        browser_Drives:         string = "Drives"                                      // Locations pane group of mounted drives.
-        browser_Desktop:        string = "Desktop"                                     // Default shortcut to the desktop.
-        browser_Documents:      string = "Documents"                                   // Default shortcut to the documents folder.
-        browser_Pictures:       string = "Pictures"                                    // Default shortcut to the pictures folder.
-        browser_ColName:        string = "Name"                                        // File list column of entry names.
-        browser_ColModified:    string = "Modified"                                    // File list column of last write times.
-        browser_ColSize:        string = "Size"                                        // File list column of file sizes.
-        browser_AllFiles:       string = "All Files"                                   // Filter matching every extension.
-        browser_NewFolder:      string = "New Folder"                                  // Create a folder in the current location.
-        browser_TipBack:        string = "Previous folder (Alt+Left)"                  // Tooltip of the back navigation button.
-        browser_TipForward:     string = "Next folder (Alt+Right)"                     // Tooltip of the forward navigation button.
-        browser_TipRecent:      string = "Recent folders"                              // Tooltip of the recent-folders button.
-        browser_TipUp:          string = "Parent folder (Alt+Up)"                      // Tooltip of the parent-folder button.
-        browser_TipRefresh:     string = "Refresh (F5)"                                // Tooltip of the refresh button.
+        browser_Shortcuts:      string = "Shortcuts"                      // Locations pane group of user shortcuts.
+        browser_Drives:         string = "Drives"                         // Locations pane group of mounted drives.
+        browser_Desktop:        string = "Desktop"                        // Default shortcut to the desktop.
+        browser_Documents:      string = "Documents"                      // Default shortcut to the documents folder.
+        browser_Pictures:       string = "Pictures"                       // Default shortcut to the pictures folder.
+        browser_ColName:        string = "Name"                           // File list column of entry names.
+        browser_ColModified:    string = "Modified"                       // File list column of last write times.
+        browser_ColSize:        string = "Size"                           // File list column of file sizes.
+        browser_AllFiles:       string = "All Files"                      // Filter matching every extension.
+        browser_NewFolder:      string = "New Folder"                     // Create a folder in the current location.
+        browser_TipBack:        string = "Previous folder (Alt+Left)"     // Tooltip of the back navigation button.
+        browser_TipForward:     string = "Next folder (Alt+Right)"        // Tooltip of the forward navigation button.
+        browser_TipRecent:      string = "Recent folders"                 // Tooltip of the recent-folders button.
+        browser_TipUp:          string = "Parent folder (Alt+Up)"         // Tooltip of the parent-folder button.
+        browser_TipRefresh:     string = "Refresh (F5)"                   // Tooltip of the refresh button.
         browser_TipNewFolder:   string = "Create a folder in the current location"     // Tooltip of [[Gui.Strings.browser_NewFolder]].
-        browser_FolderName:     string = "Folder Name"                                 // Name field label when picking a folder.
-        browser_FileName:       string = "File Name"                                   // Name field label when picking a file.
-        browser_Folders:        string = "Folders"                                     // Type filter entry when picking a folder.
-        browser_Type:           string = "Type"                                        // Label of the type filter field.
-        browser_StatusEmpty:    string = "Empty folder"                                // Status line of a folder with nothing to show.
-        browser_StatusFolder:   string = "folder"                                      // Status word for one folder.
-        browser_StatusFolders:  string = "folders"                                     // Status word for several folders.
-        browser_StatusFile:     string = "file"                                        // Status word for one file.
-        browser_StatusFiles:    string = "files"                                       // Status word for several files.
-        browser_StatusSelected: string = "  —  % selected"                             // Status suffix with the selection count.
+        browser_FolderName:     string = "Folder Name"                    // Name field label when picking a folder.
+        browser_FileName:       string = "File Name"                      // Name field label when picking a file.
+        browser_Folders:        string = "Folders"                        // Type filter entry when picking a folder.
+        browser_Type:           string = "Type"                           // Label of the type filter field.
+        browser_StatusEmpty:    string = "Empty folder"                   // Status line of a folder with nothing to show.
+        browser_StatusFolder:   string = "folder"                         // Status word for one folder.
+        browser_StatusFolders:  string = "folders"                        // Status word for several folders.
+        browser_StatusFile:     string = "file"                           // Status word for one file.
+        browser_StatusFiles:    string = "files"                          // Status word for several files.
+        browser_StatusSelected: string = "  —  % selected"                // Status suffix with the selection count.
 
-        markdown_AlertNote:      string = "Note"                                                                     // Title of a Markdown [!NOTE] alert.
-        markdown_AlertTip:       string = "Tip"                                                                      // Title of a Markdown [!TIP] alert.
-        markdown_AlertImportant: string = "Important"                                                                // Title of a Markdown [!IMPORTANT] alert.
-        markdown_AlertWarning:   string = "Warning"                                                                  // Title of a Markdown [!WARNING] alert.
-        markdown_AlertCaution:   string = "Caution"                                                                  // Title of a Markdown [!CAUTION] alert.
-        markdown_EmptyDocument:  string = "This Markdown document is empty."                                         // Placeholder paragraph of an empty document.
-        markdown_LoadFailed:     string = "Unable to read this Markdown document."                                   // Document body shown when loading stops.
-        markdown_ReadFailed:     string = "Markdown source could not be read"                                        // Fallback load-failure reason.
+        markdown_AlertNote:      string = "Note"                                       // Title of a Markdown [!NOTE] alert.
+        markdown_AlertTip:       string = "Tip"                                        // Title of a Markdown [!TIP] alert.
+        markdown_AlertImportant: string = "Important"                                  // Title of a Markdown [!IMPORTANT] alert.
+        markdown_AlertWarning:   string = "Warning"                                    // Title of a Markdown [!WARNING] alert.
+        markdown_AlertCaution:   string = "Caution"                                    // Title of a Markdown [!CAUTION] alert.
+        markdown_EmptyDocument:  string = "This Markdown document is empty."           // Placeholder paragraph of an empty document.
+        markdown_LoadFailed:     string = "Unable to read this Markdown document."     // Document body shown when loading stops.
+        markdown_ReadFailed:     string = "Markdown source could not be read"          // Fallback load-failure reason.
         markdown_NotUtf8:        string = "Markdown source contains a zero byte and is not supported UTF-8 text"     // Load-failure reason for binary input.
 
         // Context-menu vocabulary shared by every text-bearing view: editors, the HTML and PDF
@@ -116,15 +116,15 @@ struct Strings
         // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from
         // reflection. An attribute value is a compile-time constant, so the declared English is
         // the key [[Gui.Properties.resolveText]] looks up; keep both sides in step.
-        prop_CategoryDebug:       string = "Debug"                                                                        // Category of the development diagnostics.
-        prop_ShowClipRect:        string = "Show Clip Rect"                                                               // Label of [[Gui.ApplicationOptions.showClipRect]].
-        prop_ShowClipRectDesc:    string = "Display an overlay of the current drawing clipping rectangle"                 // Description of [[Gui.ApplicationOptions.showClipRect]].
-        prop_ShowLayoutRects:     string = "Show Layout Rects"                                                            // Label of [[Gui.ApplicationOptions.showLayoutRects]].
-        prop_ShowLayoutRectsDesc: string = "Display layout rectangles computed by layout controls"                        // Description of [[Gui.ApplicationOptions.showLayoutRects]].
-        prop_ShowFocusRings:      string = "Show Focus Rings"                                                             // Label of [[Gui.ApplicationOptions.showFocusRings]].
+        prop_CategoryDebug:       string = "Debug"     // Category of the development diagnostics.
+        prop_ShowClipRect:        string = "Show Clip Rect"                                                   // Label of [[Gui.ApplicationOptions.showClipRect]].
+        prop_ShowClipRectDesc:    string = "Display an overlay of the current drawing clipping rectangle"     // Description of [[Gui.ApplicationOptions.showClipRect]].
+        prop_ShowLayoutRects:     string = "Show Layout Rects"                                                // Label of [[Gui.ApplicationOptions.showLayoutRects]].
+        prop_ShowLayoutRectsDesc: string = "Display layout rectangles computed by layout controls"            // Description of [[Gui.ApplicationOptions.showLayoutRects]].
+        prop_ShowFocusRings:      string = "Show Focus Rings"                                                 // Label of [[Gui.ApplicationOptions.showFocusRings]].
         prop_ShowFocusRingsDesc:  string = "Draw the keyboard-focus ring on every control that can take the keyboard"     // Description of [[Gui.ApplicationOptions.showFocusRings]].
-        prop_DumpLayoutTree:      string = "Dump Layout Tree"                                                             // Label of [[Gui.ApplicationOptions.dumpLayoutTree]].
-        prop_DumpLayoutTreeDesc:  string = "Enable layout tree dumps from debug tooling"                                  // Description of [[Gui.ApplicationOptions.dumpLayoutTree]].
+        prop_DumpLayoutTree:      string = "Dump Layout Tree"                                                 // Label of [[Gui.ApplicationOptions.dumpLayoutTree]].
+        prop_DumpLayoutTreeDesc:  string = "Enable layout tree dumps from debug tooling"                      // Description of [[Gui.ApplicationOptions.dumpLayoutTree]].
     }
 }
 
@@ -156,8 +156,8 @@ struct Language
 private struct StringTable
 {
     type: typeinfo = Strings     // Reflected type of the table.
-    data: *void?                 // The live table the fields of which are retargeted.
-    file: String                 // Base name of the per-language resource.
+    data: *void?     // The live table the fields of which are retargeted.
+    file: String     // Base name of the per-language resource.
 
     // Decoded translation values. The table fields are views into these heap strings,
     // so the pool is only released after the table was reset to its reference values.

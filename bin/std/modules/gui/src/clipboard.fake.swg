@@ -18,11 +18,11 @@ struct FakeTypedData
 
 struct FakeStore
 {
-    enabled: bool                    // Whether clipboard calls use this process-local store.
-    hasStr:  bool                    // Whether text is available.
-    str:     String                  // Stored UTF-8 text.
-    hasImg:  bool                    // Whether an image is available.
-    img:     Image                   // Stored image copy.
+    enabled: bool       // Whether clipboard calls use this process-local store.
+    hasStr:  bool       // Whether text is available.
+    str:     String     // Stored UTF-8 text.
+    hasImg:  bool       // Whether an image is available.
+    img:     Image      // Stored image copy.
     typed:   Array'FakeTypedData     // Stored typed payloads by registered format.
 }
 

@@ -94,10 +94,10 @@ var g_PillsLeft             = 244
 var g_Fruits:      s32
 var g_ExtraLife:   bool     // True if received
 var g_FruitSpawned          = false
-var g_GhostsEaten: s32                             // Counts how many ghosts have been eaten since consuming the last big pill
-var g_FruitTimer            = -1                   // Fruit timer incremented with each frame - fruit is removed after approx 10s if not eaten
+var g_GhostsEaten: s32     // Counts how many ghosts have been eaten since consuming the last big pill
+var g_FruitTimer            = -1     // Fruit timer incremented with each frame - fruit is removed after approx 10s if not eaten
 var g_Wave                  = Movement.SCATTER     // Ghost AI targeting is wave-based, varying between CHASE and SCATTER over time
-var g_Ticks:       s32                             // Game ticks, effectively enacting a frame counter
+var g_Ticks:       s32     // Game ticks, effectively enacting a frame counter
 
 /**
  * Timestamp represents symbolic points in the game, allowing specific frame-based timing from a certain tick:

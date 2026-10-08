@@ -1051,7 +1051,7 @@ impl LinePath
         var maxAnglePerSegment = 2.0 * Math.acos(1.0 - Math.min(tolerance / radius, 1.0))
 
         // Clamp to reasonable bounds
-        maxAnglePerSegment = Math.max(maxAnglePerSegment, 0.01)                // Minimum angle
+        maxAnglePerSegment = Math.max(maxAnglePerSegment, 0.01)     // Minimum angle
         maxAnglePerSegment = Math.min(maxAnglePerSegment, ConstF32.Pi / 4)     // Maximum angle (45°)
 
         let numSegments = Math.ceil(Math.abs(angleSpan) / maxAnglePerSegment)

@@ -33,9 +33,9 @@ struct ColorPickerCtrl
 
         readonly
         {
-            originalColor: Color                                // Color captured by the first `setColor` call.
-            selectedColor: Color                                // Current selected color.
-            flags = ColorPickerFlags.All                        // Available optional channels.
+            originalColor: Color             // Color captured by the first `setColor` call.
+            selectedColor: Color             // Current selected color.
+            flags = ColorPickerFlags.All     // Available optional channels.
             mode  = ColorPickerViewMode.SaturationLightness     // Active plane and slider arrangement.
 
             late

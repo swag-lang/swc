@@ -65,9 +65,9 @@ struct IconButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        sigPopupClosed:    SigArray'func||(*IconButton)                                              // Emitted before the owned popup is destroyed.
-        sigPopupRequested: SigArray'func||(*IconButton)                                              // Emitted when activation requests popup creation.
-        sigCheckedChanged: SigArray'func||(*IconButton)                                              // Emitted after user activation changes checked state.
+        sigPopupClosed:    SigArray'func||(*IconButton)     // Emitted before the owned popup is destroyed.
+        sigPopupRequested: SigArray'func||(*IconButton)     // Emitted when activation requests popup creation.
+        sigCheckedChanged: SigArray'func||(*IconButton)     // Emitted after user activation changes checked state.
         iconPainter:       (func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags))?     // Custom icon painter, or null for `icon`.
 
         readonly

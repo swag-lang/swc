@@ -4,8 +4,8 @@ using Core, Core.Errors
 #[Swag.EnumFlags]
 public enum VoiceCreateFlags
 {
-    None = 0                   // Requests no optional capability.
-    PitchControl               // Allows playback frequency changes.
+    None = 0         // Requests no optional capability.
+    PitchControl     // Allows playback frequency changes.
     Default = PitchControl     // Enables all supported optional capabilities.
 }
 
@@ -13,9 +13,9 @@ public enum VoiceCreateFlags
 #[Swag.EnumFlags]
 public enum VoicePlayFlags
 {
-    None = 0                    // Plays once and leaves the voice allocated when it stops.
-    Loop                        // Restarts at the beginning when the source reaches its end.
-    DestroyOnStop               // Schedules the voice for destruction when playback stops.
+    None = 0          // Plays once and leaves the voice allocated when it stops.
+    Loop              // Restarts at the beginning when the source reaches its end.
+    DestroyOnStop     // Schedules the voice for destruction when playback stops.
     Default = DestroyOnStop     // Uses fire-and-forget lifetime without looping.
 }
 
@@ -53,22 +53,22 @@ public struct Voice
         dataMutex: Sync.Mutex                    // Serializes buffer feeding with transport changes.
 
         requestedEncoding          = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
-        codec:       ICodec?       = null                          // Decoder instance for a streamed source.
-        packetCodec: IPacketCodec? = null                          // Decoder instance for packetized media.
+        codec:       ICodec?       = null     // Decoder instance for a streamed source.
+        packetCodec: IPacketCodec? = null     // Decoder instance for packetized media.
 
-        playFlags:         VoicePlayFlags                   // Flags 'play' was given.
-        state:             VoiceState                       // Where the voice is in its lifecycle.
-        idxInList:         u32                              // Slot of the voice in the driver's list.
-        stream:            ByteSource                       // Reader over the encoded source.
-        streamCurSeek:     u64                              // Read position in the encoded source.
-        streamBuffer:      Array'u8                         // Encoded bytes waiting to be decoded.
-        packetBuffer:      Array'u8 = {}                    // One compressed access unit read from its source.
-        packetScratch:     Array'u8 = {}                    // Decoded packet used when a seek trims its prefix.
+        playFlags:         VoicePlayFlags     // Flags 'play' was given.
+        state:             VoiceState         // Where the voice is in its lifecycle.
+        idxInList:         u32                // Slot of the voice in the driver's list.
+        stream:            ByteSource         // Reader over the encoded source.
+        streamCurSeek:     u64                // Read position in the encoded source.
+        streamBuffer:      Array'u8           // Encoded bytes waiting to be decoded.
+        packetBuffer:      Array'u8 = {}      // One compressed access unit read from its source.
+        packetScratch:     Array'u8 = {}      // Decoded packet used when a seek trims its prefix.
         decodedBuffers:    [NumDecodedBuffers] Array'u8     // Decoded buffers rotated while streaming.
-        decodedBufferIdx:  u32                              // Buffer the mixing thread reads next.
-        streamPacketIdx:   u64                              // Next compressed packet in playback order.
-        seekDiscardFrames: u32                              // Leading decoded frames omitted after a seek.
-        decodedCapacity:   u64                              // Bytes each decoded buffer holds, enough for the largest packet.
+        decodedBufferIdx:  u32                // Buffer the mixing thread reads next.
+        streamPacketIdx:   u64                // Next compressed packet in playback order.
+        seekDiscardFrames: u32                // Leading decoded frames omitted after a seek.
+        decodedCapacity:   u64                // Bytes each decoded buffer holds, enough for the largest packet.
 
         playbackBaseFrame: u64     // Source frame corresponding to the native origin.
         nativeFrameOrigin: u64     // Backend sample counter captured at the last seek.

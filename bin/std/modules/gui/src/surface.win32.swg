@@ -55,7 +55,7 @@ struct NativeSurface
         inAppPlacement: bool
 
         dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
-        dropTargetActive: bool                  // Whether that target is registered with OLE.
+        dropTargetActive: bool     // Whether that target is registered with OLE.
     }
 
     // A discrete placement prepares its expensive frame before USER32 exposes the new size.

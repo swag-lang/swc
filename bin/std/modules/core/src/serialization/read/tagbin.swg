@@ -106,8 +106,8 @@ struct TagBinShapeField
 {
     public
     {
-        key:     String                     // Stable, human-readable field key.
-        crcType: u32                        // Wire identity of the field type.
+        key:     String     // Stable, human-readable field key.
+        crcType: u32        // Wire identity of the field type.
         flags:   Write.TagBinShapeFlags     // Per-field flags.
     }
 }
@@ -124,18 +124,18 @@ struct TagBinSection
     public
     {
         mapSeek:       HashTable'(String, TagBinFieldRef)     // Field index of the section, keyed by readable identity.
-        afterFatSeek:  u64                                    // Stream position right after the section and its fat.
-        fatSeek:       u64                                    // Stream position of the fat table.
-        fatCount:      u64                                    // Number of fat entries.
-        payloadStart:  u64                                    // Stream position of the first payload byte.
-        consumedCount: u64                                    // How many indexed fields the decode requested.
-        posIndex:      u64                                    // Next field index in positional mode.
-        version:       u32                                    // Struct version stored in the stream for this section.
-        kind:          SectionKind                            // How the values of the section are framed.
-        positional:    bool                                   // Shape matches the plan, so fields are read in order.
-        mapLoaded:     bool                                   // Whether 'mapSeek' is populated.
-        shape:         const *TagBinShape?                    // Shape describing the stream fields.
-        plan:          const *Plan?                           // The reader plan of the struct, when known.
+        afterFatSeek:  u64                     // Stream position right after the section and its fat.
+        fatSeek:       u64                     // Stream position of the fat table.
+        fatCount:      u64                     // Number of fat entries.
+        payloadStart:  u64                     // Stream position of the first payload byte.
+        consumedCount: u64                     // How many indexed fields the decode requested.
+        posIndex:      u64                     // Next field index in positional mode.
+        version:       u32                     // Struct version stored in the stream for this section.
+        kind:          SectionKind             // How the values of the section are framed.
+        positional:    bool                    // Shape matches the plan, so fields are read in order.
+        mapLoaded:     bool                    // Whether 'mapSeek' is populated.
+        shape:         const *TagBinShape?     // Shape describing the stream fields.
+        plan:          const *Plan?            // The reader plan of the struct, when known.
     }
 }
 

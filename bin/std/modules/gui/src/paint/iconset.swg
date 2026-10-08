@@ -14,8 +14,8 @@ using Core, Pixel
 // [[Gui.Theme.icon]], and an application owns its own beside its icon source.
 struct IconAtlas
 {
-    lock:    Sync.Mutex                 // Guards the rasterizations against concurrent first use.
-    drawing: Svg.Drawing                // The vector document, parsed once.
+    lock:    Sync.Mutex      // Guards the rasterizations against concurrent first use.
+    drawing: Svg.Drawing     // The vector document, parsed once.
     rasters: HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
 }
 
@@ -78,7 +78,7 @@ struct IconSet
     late renderer: Pixel.IRenderer
 
     lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
-    scale: f32                             // Device scale the lists were built at.
+    scale: f32     // Device scale the lists were built at.
 }
 
 impl IconSet

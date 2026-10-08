@@ -173,7 +173,7 @@ public struct Deflate
 
     private
     {
-        state:     *Compressor?                                    // Compressor state, allocated on first use.
+        state:     *Compressor?     // Compressor state, allocated on first use.
         initFlags: CompressionFlags = CompressionFlags.Default     // Flags 'init' was given.
     }
 
@@ -1171,8 +1171,8 @@ public impl Deflate
     #[Swag.EnumFlags]
     enum CompressionFlags
     {
-        Zero = 0                     // No optional work
-        ComputeAdler32               // Computes the Adler-32 checksum of the source, which a zlib trailer needs
+        Zero = 0           // No optional work
+        ComputeAdler32     // Computes the Adler-32 checksum of the source, which a zlib trailer needs
         Default = ComputeAdler32     // Computes the Adler-32 checksum
     }
 

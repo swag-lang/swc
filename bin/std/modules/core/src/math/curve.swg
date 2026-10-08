@@ -24,12 +24,12 @@ struct CurveKey
 {
     public
     {
-        x:             f32                               // Abscissa of the key, normally inside the unit interval.
-        y:             f32                               // Ordinate of the key, free to leave the unit interval.
-        inTangent:     f32                               // Slope of the segment arriving at the key.
-        outTangent:    f32                               // Slope of the segment leaving the key.
-        inWeight:      f32 = 1 / 3.0                     // Length of the arriving Bézier handle, as a fraction of the segment width.
-        outWeight:     f32 = 1 / 3.0                     // Length of the leaving Bézier handle, as a fraction of the segment width.
+        x:             f32               // Abscissa of the key, normally inside the unit interval.
+        y:             f32               // Ordinate of the key, free to leave the unit interval.
+        inTangent:     f32               // Slope of the segment arriving at the key.
+        outTangent:    f32               // Slope of the segment leaving the key.
+        inWeight:      f32 = 1 / 3.0     // Length of the arriving Bézier handle, as a fraction of the segment width.
+        outWeight:     f32 = 1 / 3.0     // Length of the leaving Bézier handle, as a fraction of the segment width.
         interpolation: CurveInterpolation = .Hermite     // Interpolation of the segment leaving this key.
     }
 }
@@ -187,10 +187,10 @@ private impl Curve
     // sampling every quarter period instead costs sixteen times that, which is enough to see.
     func makeElastic()->Curve
     {
-        const Decay  = 10'f32                              // Amplitude falls as two to the minus 'Decay' times the abscissa.
+        const Decay  = 10'f32         // Amplitude falls as two to the minus 'Decay' times the abscissa.
         const Omega  = Decay * Math.ConstF32.TwoPi / 3     // Angular speed of the sine, in radians per abscissa unit.
-        const Eighth = 0.0375'f32                          // Abscissa covered by one eighth of a period.
-        const Steps  = 27                                  // Eighths of a period that fit inside the unit interval.
+        const Eighth = 0.0375'f32     // Abscissa covered by one eighth of a period.
+        const Steps  = 27             // Eighths of a period that fit inside the unit interval.
 
         // Sine and cosine of a sample, indexed by the eighth it sits on. The spring starts at the
         // trough, which is what puts its first sample exactly on zero.

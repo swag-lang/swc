@@ -23,13 +23,13 @@ enum BinaryRowKind
 struct BinaryRow
 {
     kind:   BinaryRowKind
-    level:  u32                    // Depth in the structure tree.
-    label:  String                 // Field or structure name.
-    value:  String                 // The value, in the spelling its type is read in.
-    detail: String                 // What the value means: a machine name, a flag list, a target.
+    level:  u32        // Depth in the structure tree.
+    label:  String     // Field or structure name.
+    value:  String     // The value, in the spelling its type is read in.
+    detail: String     // What the value means: a machine name, a flag list, a target.
     offset: u64 = Swag.U64.Max     // Absolute file offset the value was read at, when it has one.
-    length: u64                    // Number of bytes the row covers.
-    open:   bool                   // Whether a group starts expanded.
+    length: u64        // Number of bytes the row covers.
+    open:   bool       // Whether a group starts expanded.
 }
 
 // Everything one file was made to say, as a flat sequence of levelled rows.

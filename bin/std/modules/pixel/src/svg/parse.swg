@@ -21,7 +21,7 @@ struct ParseOptions
 {
     public
     {
-        externalResourceRoot: string = ""                   // Canonical containment root for relative image references; empty disables them.
+        externalResourceRoot: string = ""     // Canonical containment root for relative image references; empty disables them.
         fontFileName:         string = "segoeui.ttf"        // Typeface used by text with no recognized or no serif/monospace family.
         serifFontFileName:    string = "georgia.ttf"        // Typeface used by a `serif` family; empty selects `fontFileName`.
         monoFontFileName:     string = "consola.ttf"        // Typeface used by a `monospace` family; empty selects `fontFileName`.
@@ -226,10 +226,10 @@ private struct GroupState
     transform: Math.Transform2 = Math.Transform2.Identity
 
     fillColor:   Color = Color.fromArgb(Argb.Black)     // Inherited fill color.
-    fillPaintId: String                                 // Inherited fill paint server.
-    fillOpacity: f32   = 1                              // Inherited fill-only opacity.
-    hasFill:     bool  = true                           // Whether fill is enabled.
-    evenOdd:     bool                                   // Inherited fill rule.
+    fillPaintId: String           // Inherited fill paint server.
+    fillOpacity: f32   = 1        // Inherited fill-only opacity.
+    hasFill:     bool  = true     // Whether fill is enabled.
+    evenOdd:     bool             // Inherited fill rule.
 
     strokeColor:   Color                    // Inherited stroke color.
     strokePaintId: String                   // Inherited stroke paint server.
@@ -246,7 +246,7 @@ private struct GroupState
     markerMidId:   String     // Inherited `marker-mid` reference.
     markerEndId:   String     // Inherited `marker-end` reference.
 
-    clipPathId:    String                                         // Inherited `clip-path` reference.
+    clipPathId:    String     // Inherited `clip-path` reference.
     clipTransform: Math.Transform2 = Math.Transform2.Identity     // Transform of the element that named the clip.
 
     currentColor: Color = Color.fromArgb(Argb.Black)     // Inherited `currentColor` value.
@@ -356,7 +356,7 @@ private struct Gradient
 {
     kind: GradientKind = Linear
 
-    href:      String                // Gradient this one inherits from, without its `#`.
+    href:      String     // Gradient this one inherits from, without its `#`.
     specified: GradientSpecified     // Attributes this gradient states itself.
 
     x1: SvgLength = {0, true}

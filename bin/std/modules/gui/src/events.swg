@@ -265,11 +265,11 @@ struct KeyEvent
             Character     // Text input produced one Unicode character.
         }
 
-        using base: Event                         // Routing state shared by every GUI event.
-        kind:       Kind                          // Keyboard event kind.
+        using base: Event         // Routing state shared by every GUI event.
+        kind:       Kind          // Keyboard event kind.
         modifiers:  Input.KeyModifiers = None     // Modifiers held during the event.
-        key:        Input.Key                     // Physical or logical key, when applicable.
-        character:  rune                          // Input character for `Kind.Character`.
+        key:        Input.Key     // Physical or logical key, when applicable.
+        character:  rune          // Input character for `Kind.Character`.
     }
 }
 
@@ -410,7 +410,7 @@ struct SerializeStateEvent
 {
     public
     {
-        using base: Event                         // Routing state shared by every GUI event.
+        using base: Event     // Routing state shared by every GUI event.
         serializer: *Serialization.Serializer     // Serializer that defines the current read/write mode.
     }
 }

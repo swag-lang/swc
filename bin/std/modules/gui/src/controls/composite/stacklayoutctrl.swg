@@ -25,8 +25,8 @@ struct StackLayoutCtrl
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         mode:         StackLayoutMode = Top     // Direction and distribution policy.
-        spacing:      f32 = 5                   // Gap between adjacent children.
-        fitToContent: bool                      // Whether the control resizes along the stacking axis to its content.
+        spacing:      f32 = 5     // Gap between adjacent children.
+        fitToContent: bool        // Whether the control resizes along the stacking axis to its content.
     }
 }
 

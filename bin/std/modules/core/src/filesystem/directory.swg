@@ -6,13 +6,13 @@ struct EnumerationOptions
 {
     public
     {
-        matchExtension: string?                               // Extension an entry must have, dot included (e.g. ".txt")
-        matchFileName:  string?                               // Exact file name an entry must have
+        matchExtension: string?            // Extension an entry must have, dot included (e.g. ".txt")
+        matchFileName:  string?            // Exact file name an entry must have
         skipAttributes         = File.FileAttributes.None     // Entries carrying any of these attributes are skipped
-        recurse                = false                        // Whether to enumerate subdirectories too
-        wantFiles              = true                         // Whether to return files
-        wantDirectories        = true                         // Whether to return directories
-        wantSpecialDirectories = false                        // Whether to return the "." and ".." entries
+        recurse                = false     // Whether to enumerate subdirectories too
+        wantFiles              = true      // Whether to return files
+        wantDirectories        = true      // Whether to return directories
+        wantSpecialDirectories = false     // Whether to return the "." and ".." entries
 
         filter: (func(File.FileInfo)->bool)?     // Keeps only the entries for which it returns true
     }

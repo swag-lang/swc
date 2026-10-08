@@ -16,7 +16,7 @@ runs before the next deferred action.
 {
     var v = 0
     defer Swag.assert(v == 1)     // Ensures v equals 1 on scope exit.
-    v += 1                        // Increment v.
+    v += 1     // Increment v.
 
     // When the scope ends, the deferred expression executes here.
 }
@@ -69,7 +69,7 @@ order. The most recent defer runs first when the scope ends.
 {
     var x = 1
     defer Swag.assert(x == 2)     // Executes second
-    defer x *= 2                  // Executes first
+    defer x *= 2     // Executes first
 
     // Execution order is reversed for predictable cleanup flow.
 }

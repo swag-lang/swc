@@ -147,7 +147,7 @@ public struct GlyphCache
         atlases:  Array'GlyphAtlas                // Atlas pages populated on demand.
         glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors indexed by typeface glyph index.
         kernRef:  HashTable'(u64, f32)            // Kerning cache keyed by two glyph indices.
-        dirty:    bool                            // Whether at least one atlas requires a GPU upload.
+        dirty:    bool     // Whether at least one atlas requires a GPU upload.
     }
 }
 
@@ -170,9 +170,9 @@ public struct Font
     public readonly
     {
         mode:        FontRenderMode     // Creation intent; the underlying cache is always concrete.
-        size:        u32                // Requested drawing size in pixels.
-        forceBold:   bool               // Whether this view synthesizes bold glyphs.
-        forceItalic: bool               // Whether this view synthesizes italic glyphs.
+        size:        u32      // Requested drawing size in pixels.
+        forceBold:   bool     // Whether this view synthesizes bold glyphs.
+        forceItalic: bool     // Whether this view synthesizes italic glyphs.
 
         // Metrics scaled to 'size', in pixels.
         ascent:        f32     // Distance from the baseline to the highest recommended extent.
@@ -188,8 +188,8 @@ public struct Font
 
     internal
     {
-        late owner:    *FontCache                  // Cache that created this view and owns it.
-        late cache:    *GlyphCache                 // Shared glyph storage borrowed by this font view.
+        late owner:    *FontCache      // Cache that created this view and owns it.
+        late cache:    *GlyphCache     // Shared glyph storage borrowed by this font view.
         fallbackFonts: HashTable'(rune, *Font)     // Resolved misses, including the primary font when no face covers the rune.
     }
 }

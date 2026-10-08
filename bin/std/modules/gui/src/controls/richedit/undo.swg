@@ -18,13 +18,13 @@ struct RichEditUndo
     public
     {
         type:        RichEditUndoType = Selection     // What the record reverts.
-        concatChars: bool                             // Whether typed runes may still be appended to this record.
-        selBeg:      RichEditCursor                   // Selection anchor where the edit applies.
-        cursorPos:   RichEditCursor                   // Caret where the edit applies.
-        runes:       Array'rune                       // Runes inserted or deleted.
-        styles:      Array'u8                         // Style index of each rune in `runes`.
-        serial:      u64                              // Group number; records sharing it undo and redo together.
-        hasSelRect:  bool                             // Whether the edit applied to a rectangular selection.
+        concatChars: bool               // Whether typed runes may still be appended to this record.
+        selBeg:      RichEditCursor     // Selection anchor where the edit applies.
+        cursorPos:   RichEditCursor     // Caret where the edit applies.
+        runes:       Array'rune         // Runes inserted or deleted.
+        styles:      Array'u8           // Style index of each rune in `runes`.
+        serial:      u64                // Group number; records sharing it undo and redo together.
+        hasSelRect:  bool               // Whether the edit applied to a rectangular selection.
 
         begSelectionBefore: RichEditCursor     // Selection anchor before the edit.
         endSelectionBefore: RichEditCursor     // Caret before the edit.

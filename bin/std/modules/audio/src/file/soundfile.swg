@@ -138,12 +138,12 @@ struct SoundFile
         encoding = SoundFileEncoding.Unknown     // Encoding of the payload bytes.
 
         availableFields:    SoundFileFields     // Properties validated by the loader.
-        sampleRate:         u32                 // Sample frames per second, in hertz.
-        channelCount:       u32                 // Number of interleaved channels.
-        waveSpeakerMask:    u32                 // WAVE speaker-position bit mask, when present.
-        bitsPerSample:      u32                 // Storage width of one channel sample, in bits.
-        durationSeconds:    f32                 // Playback duration in seconds.
-        validBitsPerSample: u16                 // Significant bits per sample, at most `bitsPerSample`.
+        sampleRate:         u32     // Sample frames per second, in hertz.
+        channelCount:       u32     // Number of interleaved channels.
+        waveSpeakerMask:    u32     // WAVE speaker-position bit mask, when present.
+        bitsPerSample:      u32     // Storage width of one channel sample, in bits.
+        durationSeconds:    f32     // Playback duration in seconds.
+        validBitsPerSample: u16     // Significant bits per sample, at most `bitsPerSample`.
     }
 }
 
@@ -408,7 +408,15 @@ impl SoundFile
         result.frameCount      = frameCount - result.leadingTrim
         result.dataSize        = payloadBytes
         result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
-        result.availableFields = .Format | .SampleRate | .ChannelCount | .SpeakerMask | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
+        result.availableFields = .Format |
+                                 .SampleRate |
+                                 .ChannelCount |
+                                 .SpeakerMask |
+                                 .BitsPerSample |
+                                 .ValidBitsPerSample |
+                                 .Duration |
+                                 .FrameCount |
+                                 .Data
         return result
     }
 

@@ -123,11 +123,11 @@ func writeDfd(result: *ConcatBuffer, image: Image, typeSize: u32, channelIds: *[
     let channels  = cast(u32, image.pixelFormat.channels())
     let blockSize = 24'u32 + channels * 16
     writeU32(result, blockSize + 4)
-    writeU32(result, 0)                         // Khronos vendor, basic descriptor type.
+    writeU32(result, 0)        // Khronos vendor, basic descriptor type.
     writeU32(result, (blockSize << 16) | 2)     // KDF version 2.
-    result.addNative(1'u8)                      // KHR_DF_MODEL_RGBSDA.
-    result.addNative(1'u8)                      // BT.709/sRGB primaries.
-    result.addNative(1'u8)                      // Linear transfer for UNORM/SFLOAT Vulkan formats.
+    result.addNative(1'u8)     // KHR_DF_MODEL_RGBSDA.
+    result.addNative(1'u8)     // BT.709/sRGB primaries.
+    result.addNative(1'u8)     // Linear transfer for UNORM/SFLOAT Vulkan formats.
     result.addNative(image.alphaMode == .Premultiplied ? 1'u8 : 0'u8)
     writeU32(result, 0)     // 1x1x1x1 texel block, stored as dimensions minus one.
     result.addNative(image.bytesPerPixel)

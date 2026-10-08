@@ -153,11 +153,11 @@ struct AppStrings
     // What a failure of each [[ErrorKind]] says. The volume layer reports the kind and an
     // English diagnostic for a report; these are the sentences a reader sees instead.
     msg_ErrPasswordOrDamaged: string = "The password or key files are incorrect, or the container is damaged."     // The container did not open, and the format refuses to say which input gave up.
-    msg_ErrDamaged:           string = "The container is damaged."                                                 // An open container no longer reads back what it stored.
-    msg_ErrNotFound:          string = "The container could not be found."                                         // The named container or entry does not exist.
-    msg_ErrAlreadyExists:     string = "A file with this name already exists."                                     // The name is taken.
-    msg_ErrAccessDenied:      string = "Access to the container was refused."                                      // The entry exists and refuses the operation.
-    msg_ErrReadOnly:          string = "The vault is mounted read only."                                           // The container refuses every change.
+    msg_ErrDamaged:           string = "The container is damaged."                 // An open container no longer reads back what it stored.
+    msg_ErrNotFound:          string = "The container could not be found."         // The named container or entry does not exist.
+    msg_ErrAlreadyExists:     string = "A file with this name already exists."     // The name is taken.
+    msg_ErrAccessDenied:      string = "Access to the container was refused."      // The entry exists and refuses the operation.
+    msg_ErrReadOnly:          string = "The vault is mounted read only."           // The container refuses every change.
     msg_ErrSparse:            string = "The container is sparse. Convert it to a fully allocated file before opening it."
     msg_ErrDiskFull:          string = "There is no room left in the container."         // No room is left for blocks, metadata, or key slots.
     msg_ErrIo:                string = "The container could not be read or written."     // The underlying file could not be reached.

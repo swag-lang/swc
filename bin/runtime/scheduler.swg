@@ -60,21 +60,21 @@ struct Worker
 #[Swag.NoDoc]
 struct Scheduler
 {
-    mutex:     Mutex                              // Guards the ready stack and the worker roster.
-    ready:     Condition                          // Wakes a worker when work is pushed.
-    finished:  Condition                          // Wakes completion observers and process drains.
-    head:      *WorkNode?                         // Ready work, most recently submitted first.
-    accepted:  AtomicValue'u32                    // Submitted and not yet finished.
-    joining:   AtomicValue'u32                    // Registered completion waiters; each registration holds the mutex.
-    stopping:  AtomicValue'u32                    // Set once, at shutdown.
-    started:   AtomicValue'u32                    // Set once the worker roster exists.
-    count:     AtomicValue'u32                    // Published worker count; the roster itself stays under the mutex.
+    mutex:     Mutex               // Guards the ready stack and the worker roster.
+    ready:     Condition           // Wakes a worker when work is pushed.
+    finished:  Condition           // Wakes completion observers and process drains.
+    head:      *WorkNode?          // Ready work, most recently submitted first.
+    accepted:  AtomicValue'u32     // Submitted and not yet finished.
+    joining:   AtomicValue'u32     // Registered completion waiters; each registration holds the mutex.
+    stopping:  AtomicValue'u32     // Set once, at shutdown.
+    started:   AtomicValue'u32     // Set once the worker roster exists.
+    count:     AtomicValue'u32     // Published worker count; the roster itself stays under the mutex.
     observed:  [MaxObservers] AtomicValue'u64     // The node address each parked observer waits for; zero when the slot is free.
-    occupancy: AtomicValue'u64                    // One bit per taken slot, so a completion reads one cache line instead of every slot.
-    unslotted: AtomicValue'u32                    // Parked observers that found no free slot, and therefore still need a broadcast.
-    capacity:  u32                                // Worker slots the roster holds.
-    requested: u32                                // Worker count the program asked for, zero for automatic.
-    workers:   [*] Worker?                        // The worker roster, allocated once.
+    occupancy: AtomicValue'u64     // One bit per taken slot, so a completion reads one cache line instead of every slot.
+    unslotted: AtomicValue'u32     // Parked observers that found no free slot, and therefore still need a broadcast.
+    capacity:  u32                 // Worker slots the roster holds.
+    requested: u32                 // Worker count the program asked for, zero for automatic.
+    workers:   [*] Worker?         // The worker roster, allocated once.
 }
 
 // The anchor key of the scheduler inside one process.

@@ -13,8 +13,8 @@ enum ComboBoxMode
 #[Swag.EnumFlags]
 enum ComboBoxFlags
 {
-    None = 0                  // Always paints the field background and border.
-    Flat                      // Paints the field only while hovered or open.
+    None = 0     // Always paints the field background and border.
+    Flat         // Paints the field only while hovered or open.
     TransparentBackground     // Keeps the parent background visible behind the field border.
 }
 
@@ -35,8 +35,8 @@ struct ComboBox
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        minimumPopupWidth:  f32 = 100                           // Minimum drop-down width in logical units.
-        maximumPopupHeight: f32 = 300                           // Maximum drop-down height in logical units.
+        minimumPopupWidth:  f32 = 100     // Minimum drop-down width in logical units.
+        maximumPopupHeight: f32 = 300     // Maximum drop-down height in logical units.
         sigChanged:         SigArray'func||(*ComboBox, u32)     // Emitted after a notifying selection change.
 
         // What the combo shows. Add items through the methods, which keep the popup and the
@@ -48,15 +48,15 @@ struct ComboBox
             flags         = ComboBoxFlags.None         // Active presentation options.
             items:   ArrayPtr'ComboBoxItem             // Entries in display order.
             selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
-            editBox: *EditBox?                         // Embedded editor in editable mode, otherwise null.
+            editBox: *EditBox?     // Embedded editor in editable mode, otherwise null.
         }
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
-    isHot:              bool                // Whether the mouse is over the combo.
+    isHot:              bool      // Whether the mouse is over the combo.
     popup:              *PopupListCtrl?     // Drop-down list while it is open.
-    pointerFocusReturn: *Wnd?               // Focus owner restored after pointer use.
-    maxIconSize:        s32                 // Widest item icon, sizing the icon column.
+    pointerFocusReturn: *Wnd?     // Focus owner restored after pointer use.
+    maxIconSize:        s32       // Widest item icon, sizing the icon column.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.

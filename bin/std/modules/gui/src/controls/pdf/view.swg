@@ -8,8 +8,8 @@ struct PdfTextSearchOptions
     public
     {
         comparison = Utf8.ComparisonType.Latin1NoCase     // Text comparison, case-insensitive by default.
-        wholeWord:         bool                           // Whether word characters may touch either side of a match.
-        regularExpression: bool                           // Whether the query uses regular-expression syntax.
+        wholeWord:         bool     // Whether word characters may touch either side of a match.
+        regularExpression: bool     // Whether the query uses regular-expression syntax.
     }
 }
 
@@ -47,7 +47,7 @@ enum PdfZoomMode
 public struct PdfTextPosition
 {
     pageIndex = Swag.U64.Max     // Zero-based page, or `Swag.U64.Max` when there is no position.
-    offset: u64                  // UTF-8 byte offset in that page's indexed text.
+    offset: u64     // UTF-8 byte offset in that page's indexed text.
 }
 
 impl PdfTextPosition

@@ -10,15 +10,15 @@ struct RichChunk
 {
     public
     {
-        slice:        string = ""                   // Borrowed UTF-8 slice represented by this run.
+        slice:        string = ""     // Borrowed UTF-8 slice represented by this run.
         fontStyle:    FontFamilyStyle = Regular     // Requested family style.
-        hasFontStyle: bool                          // Whether markup explicitly selected `fontStyle`.
-        isSpace:      bool                          // Whether the chunk is whitespace.
-        isEol:        bool                          // Whether the chunk terminates a line.
-        isUrl:        bool                          // Whether the chunk belongs to `<url>` markup.
-        isHotUrl:     bool                          // Whether pointer interaction currently highlights the URL.
-        visible:      bool                          // Whether layout retained the chunk for painting.
-        colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
+        hasFontStyle: bool            // Whether markup explicitly selected `fontStyle`.
+        isSpace:      bool            // Whether the chunk is whitespace.
+        isEol:        bool            // Whether the chunk terminates a line.
+        isUrl:        bool            // Whether the chunk belongs to `<url>` markup.
+        isHotUrl:     bool            // Whether pointer interaction currently highlights the URL.
+        visible:      bool            // Whether layout retained the chunk for painting.
+        colorIdx:     s32             // Palette color index selected by `<pN>` markup.
 
         boundRect: Math.Rectangle            // Bounds local to `pos`, in pixels.
         pos:       Math.Point                // Chunk origin in the containing layout.

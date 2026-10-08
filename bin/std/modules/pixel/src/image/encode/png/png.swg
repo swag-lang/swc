@@ -259,8 +259,8 @@ public struct EncodeOptions
     public
     {
         compressionLevel = Compress.Deflate.CompressionLevel.Default     // Deflate compression level.
-        filtering        = true                                          // Select adaptive PNG scanline filters.
-        interlace        = false                                         // Encode seven-pass Adam7 interlacing.
+        filtering        = true      // Select adaptive PNG scanline filters.
+        interlace        = false     // Encode seven-pass Adam7 interlacing.
     }
 }
 

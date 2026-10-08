@@ -10,13 +10,13 @@ public struct TypeFace
 {
     internal
     {
-        fullName:     String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
+        fullName:     String       // Cache key or source filename, owned so a dynamic key cannot dangle.
         late allocationAllocator: IAllocator     // Allocator that owns this cached value.
-        late face:    *Face                      // Owned TrueType face and its copied font bytes.
-        faceLoaded:   bool                       // Whether `face` can be destroyed during cleanup.
-        forceBoldDiv: u32 = 11                   // Em-size divisor used for synthetic bold strength.
-        forceItalic:  bool                       // Whether every rasterized glyph is synthetically slanted.
-        forceBold:    bool                       // Whether every rasterized glyph is synthetically emboldened.
+        late face:    *Face        // Owned TrueType face and its copied font bytes.
+        faceLoaded:   bool         // Whether `face` can be destroyed during cleanup.
+        forceBoldDiv: u32 = 11     // Em-size divisor used for synthetic bold strength.
+        forceItalic:  bool         // Whether every rasterized glyph is synthetically slanted.
+        forceBold:    bool         // Whether every rasterized glyph is synthetically emboldened.
     }
 }
 

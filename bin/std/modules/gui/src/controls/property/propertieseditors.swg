@@ -43,7 +43,7 @@ struct PropertyEditorReg
     public
     {
         type: const *Swag.TypeInfoStruct     // Implementing type.
-        itf:  IPropertyEditor                // Interface over a null instance, for `canEdit` queries.
+        itf:  IPropertyEditor     // Interface over a null instance, for `canEdit` queries.
     }
 }
 

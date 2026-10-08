@@ -140,8 +140,8 @@ private const GroupBlockCapacity = cast(u32, ((AllocatorHostCommitGranularity - 
 #[Swag.NoDoc]
 struct GroupBlock
 {
-    next:     *GroupBlock?                        // Previously allocated block.
-    used:     u32                                 // Children taken from this block.
+    next:     *GroupBlock?     // Previously allocated block.
+    used:     u32     // Children taken from this block.
     children: [GroupBlockCapacity] GroupChild     // Storage the scheduler borrows.
 }
 

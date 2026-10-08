@@ -19,13 +19,13 @@ struct ThemeStyle
     {
         styleSheetMetrics: String     // Local metric overrides, one `name value` line per [[Gui.ThemeMetrics]] field.
         styleSheetColors:  String     // Local color overrides, one `name value` line per [[Gui.ThemeColors]] field.
-        font: FontFamily              // Local font faces; a `null` face inherits the theme default.
+        font: FontFamily     // Local font faces; a `null` face inherits the theme default.
     }
 
     // The shared theme this style resolves against, and whether it must be resolved again.
     // The style takes and releases the reference itself, so its count stays correct.
     refr:  *ThemeStyleRef?     // Reference-counted theme this style resolves to.
-    dirty: bool                // Whether the style sheets must be applied again.
+    dirty: bool     // Whether the style sheets must be applied again.
 }
 
 impl ThemeStyle

@@ -21,12 +21,12 @@ const ScoreRatio  = 60.0 / CellRef      // Center of the score inside the band.
 struct BoardLayout
 {
     grid:   Math.Rectangle     // Square the cells are laid out in.
-    cell:   f32                // Side of one cell, its gap included.
-    margin: f32                // Gap kept inside a cell, and around the board.
-    corner: f32                // Corner radius of the board and of every tile.
-    zoom:   f32                // Scale the authored type and the pop animation are drawn at.
-    labelY: f32                // Center of the "score" caption.
-    scoreY: f32                // Center of the score itself.
+    cell:   f32     // Side of one cell, its gap included.
+    margin: f32     // Gap kept inside a cell, and around the board.
+    corner: f32     // Corner radius of the board and of every tile.
+    zoom:   f32     // Scale the authored type and the pop animation are drawn at.
+    labelY: f32     // Center of the "score" caption.
+    scoreY: f32     // Center of the score itself.
 }
 
 // Measures the board for `rect`.

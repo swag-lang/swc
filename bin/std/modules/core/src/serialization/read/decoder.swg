@@ -79,7 +79,7 @@ interface IDecoder
 #[Swag.EnumFlags]
 enum DecoderFlags
 {
-    None = 0                   // No optional decoding behavior.
+    None = 0     // No optional decoding behavior.
     IgnoreStructFieldError     // Skips a struct field that fails to decode, leaving it at its default value, instead of failing the read.
 }
 
@@ -99,7 +99,7 @@ struct(T) Decoder
 {
     public
     {
-        serializer: T                       // Format backend.
+        serializer: T     // Format backend.
         flags:      DecoderFlags = None     // Optional decoding behavior.
     }
 }

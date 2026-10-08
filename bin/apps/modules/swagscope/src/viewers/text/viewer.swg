@@ -69,8 +69,8 @@ private const TextEncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE"
 struct TextProbe
 {
     encoding:     Text.Encoding     // How the bytes read as characters.
-    contentStart: u64               // First byte of text, past a byte-order mark.
-    accepted:     bool              // Whether what it decodes to is text a reader should be shown.
+    contentStart: u64      // First byte of text, past a byte-order mark.
+    accepted:     bool     // Whether what it decodes to is text a reader should be shown.
 }
 
 // Text view available for readable content independently of the format-specific viewers.

@@ -16,7 +16,7 @@ struct BlockAllocator
 {
     free:            Array'FreeExtent     // Free extents, sorted by `first` and never adjacent.
     deferredFree:    Array'FreeExtent     // Extents that become free once the pending change is durable.
-    freeBlocksCount: u64                  // Total number of blocks in `free`.
+    freeBlocksCount: u64     // Total number of blocks in `free`.
 }
 
 impl BlockAllocator

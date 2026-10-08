@@ -26,9 +26,9 @@ struct LifecycleApi
 {
     public
     {
-        isLoading: IsLoading?                         // Reports unfinished viewer work.
+        isLoading: IsLoading?     // Reports unfinished viewer work.
         needsLoadingOverlay: NeedsLoadingOverlay?     // Reports whether useful content is unavailable.
-        retire:    Retire?                            // Releases external resources before destruction.
+        retire:    Retire?        // Releases external resources before destruction.
     }
 }
 

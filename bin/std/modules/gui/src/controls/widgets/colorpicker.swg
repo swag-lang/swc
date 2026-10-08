@@ -38,8 +38,8 @@ struct ColorPicker
 
         readonly
         {
-            hue, saturation, lightness: f32                // Current HSL components in the closed interval [0, 1].
-            alpha, red, green, blue:    f32                // Current ARGB components in the closed interval [0, 1].
+            hue, saturation, lightness: f32     // Current HSL components in the closed interval [0, 1].
+            alpha, red, green, blue:    f32     // Current ARGB components in the closed interval [0, 1].
             mode = ColorPickerMode.SaturationLightness     // Current component mapping.
         }
     }

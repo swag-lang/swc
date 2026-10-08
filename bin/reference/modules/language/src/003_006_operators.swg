@@ -196,8 +196,8 @@ struct Measure
     let c = Measure{reading: {value: 10}, label: 8}
 
     Swag.assert(a.reading == b.reading)     // the member decides these readings are equal
-    Swag.assert(a == b)                     // so the two measures are equal too
-    Swag.assert(a != c)                     // 'label' still compares as the number it is
+    Swag.assert(a == b)     // so the two measures are equal too
+    Swag.assert(a != c)     // 'label' still compares as the number it is
 }
 
 /**

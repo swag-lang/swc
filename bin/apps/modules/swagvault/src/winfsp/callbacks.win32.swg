@@ -172,7 +172,11 @@ namespace WinFsp
             node.lastWriteTime = now
         if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
-        if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0 do
+        if (flags & (CleanupSetAllocationSize |
+                     CleanupSetArchiveBit |
+                     CleanupSetLastAccessTime |
+                     CleanupSetLastWriteTime |
+                     CleanupSetChangeTime)) != 0 do
             volume.touchMetadata(nodeId)
 
         // A create is intentionally pending until cleanup so its initial data

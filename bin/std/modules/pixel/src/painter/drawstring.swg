@@ -143,14 +143,14 @@ struct ShapedGlyph
     public
     {
         late desc:  const *GlyphDesc     // Borrowed glyph metrics and atlas descriptor.
-        glyphIndex: u32                  // Typeface-specific glyph index.
-        cluster:    u64                  // Byte offset of the originating UTF-8 cluster.
-        advanceX:   f32                  // Horizontal advance in reference-font units.
-        advanceY:   f32                  // Vertical advance in reference-font units.
-        offsetX:    f32                  // Horizontal placement adjustment.
-        offsetY:    f32                  // Vertical placement adjustment.
-        isTab:      bool                 // Whether this glyph represents an expanded tab.
-        font:       *Font?               // Borrowed face owning the glyph; null uses the enclosing run's font.
+        glyphIndex: u32        // Typeface-specific glyph index.
+        cluster:    u64        // Byte offset of the originating UTF-8 cluster.
+        advanceX:   f32        // Horizontal advance in reference-font units.
+        advanceY:   f32        // Vertical advance in reference-font units.
+        offsetX:    f32        // Horizontal placement adjustment.
+        offsetY:    f32        // Vertical placement adjustment.
+        isTab:      bool       // Whether this glyph represents an expanded tab.
+        font:       *Font?     // Borrowed face owning the glyph; null uses the enclosing run's font.
     }
 }
 

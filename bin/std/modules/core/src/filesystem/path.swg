@@ -8,7 +8,7 @@ using Swag
 private const TargetHasWindowsPathSyntax = WINDOWS
 private const TargetPathCaseSensitive    = not WINDOWS
 
-const DirectorySeparator    = '/'u8                       // Preferred directory separator.
+const DirectorySeparator    = '/'u8     // Preferred directory separator.
 const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.
 const VolumeSeparator       = WINDOWS ? ':'u8 : 0'u8      // Volume separator, or zero when paths have no volume prefix.
 

@@ -14,7 +14,7 @@ struct RadioButton
         readonly
         {
             flags = RadioButtonFlags.None     // Active marker placement options.
-            checked: bool                     // Whether this option is selected.
+            checked: bool     // Whether this option is selected.
         }
 
         sigChanged: SigArray'func||(*RadioButton)     // Emitted after a user action selects the button.

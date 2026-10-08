@@ -396,7 +396,9 @@ impl Decoder
                 .seenPLTE = true
                 for var i = 0; i < len; i += 3
                 {
-                    let col = (cast(u32, Decoder.safeDatas(chunk)[i]) << 16) | (cast(u32, Decoder.safeDatas(chunk)[i + 1]) << 8) | Decoder.safeDatas(chunk)[i + 2]
+                    let col = (cast(u32, Decoder.safeDatas(chunk)[i]) << 16) |
+                              (cast(u32, Decoder.safeDatas(chunk)[i + 1]) << 8) |
+                              Decoder.safeDatas(chunk)[i + 2]
                     .palette[i / 3] = col
                 }
 

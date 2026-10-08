@@ -48,11 +48,11 @@ struct Brush
     public
     {
         color:   Color      = Color.fromArgb(Argb.White)     // Color or multiplicative tint.
-        type:    BrushType  = SolidColor                     // Active paint-source variant.
-        hatch:   HatchStyle = Dot                            // Built-in hatch used by `.Hatch`.
-        texture: Texture                                     // Texture used by `.Texture`.
-        uvMode:  UVMode     = Fill                           // Texture coverage mode.
-        uvRect:  Math.Rectangle                              // Source texel rectangle used by `.FillSubRect`.
+        type:    BrushType  = SolidColor     // Active paint-source variant.
+        hatch:   HatchStyle = Dot            // Built-in hatch used by `.Hatch`.
+        texture: Texture                     // Texture used by `.Texture`.
+        uvMode:  UVMode     = Fill           // Texture coverage mode.
+        uvRect:  Math.Rectangle              // Source texel rectangle used by `.FillSubRect`.
 
         // Path-space rectangle the paint source covers, when the brush states one.
         //

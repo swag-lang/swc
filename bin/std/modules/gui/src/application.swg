@@ -86,9 +86,9 @@ struct Application
 
         readonly
         {
-            timing:           Time.FrameTiming               // Timing of the frame being run.
+            timing:           Time.FrameTiming     // Timing of the frame being run.
             motionPreference: MotionPreference = .System     // Application override of the platform motion preference.
-            isActivated:      bool                           // Whether one of this application's native windows is the active one.
+            isActivated:      bool     // Whether one of this application's native windows is the active one.
         }
     }
 
@@ -126,23 +126,23 @@ struct Application
     }
 
     // Run-loop state. It only means something to the loop that owns it.
-    postedEvents:        Array'(IEvent)                                        // Events queued from any thread, drained each frame.
-    postDestroy:         Array'(*Wnd)                                          // Windows to destroy once the frame is over.
-    hookOnEvent:         Array'(*Wnd)                                          // Windows watching every event of the application.
-    endModalExit:        WndId?                                                // Result the innermost modal loop exits with.
-    inModalLoop:         u32                                                   // Depth of the modal loop nesting.
-    quitCode:            s32                                                   // Exit code the run loop returns.
-    mustQuit:            bool                                                  // Whether the run loop stops at the end of the frame.
-    endModal:            bool                                                  // Whether the innermost modal loop stops.
-    mutexPostedEvents:   Sync.Mutex                                            // Guards 'postedEvents' against other threads.
-    duringTimerEvents:   bool                                                  // Whether timer callbacks are running, so lists defer.
-    timers:              Array'(*Timer)                                        // Active timers.
-    timersToAdd:         Array'(*Timer)                                        // Timers added while callbacks were running.
-    timersToDelete:      Array'(*Timer)                                        // Timers removed while callbacks were running.
-    frameEvents:         Array'(*Wnd)                                          // Windows asking for a per-frame event.
-    modalSurfaces:       Array'(*Surface)                                      // Surface stack of the nested modal loops.
+    postedEvents:        Array'(IEvent)       // Events queued from any thread, drained each frame.
+    postDestroy:         Array'(*Wnd)         // Windows to destroy once the frame is over.
+    hookOnEvent:         Array'(*Wnd)         // Windows watching every event of the application.
+    endModalExit:        WndId?               // Result the innermost modal loop exits with.
+    inModalLoop:         u32                  // Depth of the modal loop nesting.
+    quitCode:            s32                  // Exit code the run loop returns.
+    mustQuit:            bool                 // Whether the run loop stops at the end of the frame.
+    endModal:            bool                 // Whether the innermost modal loop stops.
+    mutexPostedEvents:   Sync.Mutex           // Guards 'postedEvents' against other threads.
+    duringTimerEvents:   bool                 // Whether timer callbacks are running, so lists defer.
+    timers:              Array'(*Timer)       // Active timers.
+    timersToAdd:         Array'(*Timer)       // Timers added while callbacks were running.
+    timersToDelete:      Array'(*Timer)       // Timers removed while callbacks were running.
+    frameEvents:         Array'(*Wnd)         // Windows asking for a per-frame event.
+    modalSurfaces:       Array'(*Surface)     // Surface stack of the nested modal loops.
     toDelete:            Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
-    systemReducedMotion: bool                                                  // Platform client-area-animation preference.
+    systemReducedMotion: bool                 // Platform client-area-animation preference.
 
     public
     {
@@ -155,7 +155,7 @@ struct Application
 
     frameTrace: FrameTrace     // Per-frame cost recorder, armed from the command line.
 
-    statePath: String                // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
+    statePath: String     // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
     hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
 
     public

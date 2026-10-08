@@ -275,7 +275,7 @@ enum WantedCase
 // A range of code points that share the same case mappings.
 struct CaseRange
 {
-    lo, hi: rune                 // First and last code points of the range.
+    lo, hi: rune     // First and last code points of the range.
     delta:  [WantedCase] s32     // Offset to add for each case, or `UpperLower` for an alternating upper-lower sequence.
 }
 

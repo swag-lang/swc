@@ -32,8 +32,8 @@ public struct TextRun
     // Per-code geometry only exists for an upright run: a rotated or sheared one keeps its
     // bounding rectangle and answers at run granularity.
     axisAligned: bool
-    originX:     f32                // Page-space x of the run's local origin.
-    scaleX:      f32                // Local-to-page horizontal scale.
+    originX:     f32     // Page-space x of the run's local origin.
+    scaleX:      f32     // Local-to-page horizontal scale.
     codes:       Array'TextCode     // Per-code spans, in text order.
 }
 

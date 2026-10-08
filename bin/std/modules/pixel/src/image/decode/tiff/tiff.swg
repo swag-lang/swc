@@ -81,7 +81,7 @@ struct Entry
     tag:     u32
     type:    u32
     count:   u32
-    valoff:  u32              // raw value/offset field
+    valoff:  u32     // raw value/offset field
     fieldAt: const [*] u8     // address of the 4-byte value/offset field
 }
 

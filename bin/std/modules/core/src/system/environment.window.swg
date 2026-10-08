@@ -21,10 +21,10 @@ struct WindowCallbacks
 #[Swag.EnumFlags]
 enum WindowFlags
 {
-    None = 0                                             // Creates a fixed-size window without minimize or maximize controls.
-    Resizable                                            // Lets the user resize the window.
-    Minimizable                                          // Displays a minimize control.
-    Maximizable                                          // Displays a maximize control.
+    None = 0        // Creates a fixed-size window without minimize or maximize controls.
+    Resizable       // Lets the user resize the window.
+    Minimizable     // Displays a minimize control.
+    Maximizable     // Displays a maximize control.
     Standard = Resizable | Minimizable | Maximizable     // Creates a standard resizable application window.
 }
 
@@ -37,10 +37,10 @@ struct WindowOptions
 {
     public
     {
-        identifier: string                      // Unique backend-independent window identifier.
-        title:      string                      // Initial window title.
-        width:      s32                         // Width in logical units.
-        height:     s32                         // Height in logical units.
+        identifier: string     // Unique backend-independent window identifier.
+        title:      string     // Initial window title.
+        width:      s32        // Width in logical units.
+        height:     s32        // Height in logical units.
         flags:      WindowFlags = .Standard     // Window-manager capabilities.
     }
 }

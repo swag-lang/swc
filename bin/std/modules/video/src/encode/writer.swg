@@ -64,13 +64,13 @@ struct Writer
 {
     internal
     {
-        sink:        ByteSink                        // Bytes of the encoded stream.
-        info:        StreamInfo                      // Geometry and rate the stream was opened with.
-        format:      StreamFormat                    // Format claimed by the selected encoder.
-        encoder:     IEncoder?                       // Encoder instance owned by this writer.
+        sink:        ByteSink         // Bytes of the encoded stream.
+        info:        StreamInfo       // Geometry and rate the stream was opened with.
+        format:      StreamFormat     // Format claimed by the selected encoder.
+        encoder:     IEncoder?        // Encoder instance owned by this writer.
         encoderType: const *Swag.TypeInfoStruct?     // Concrete encoder type, used to release it.
-        frames:      u64                             // Number of frames appended so far.
-        isEnded:     bool                            // Whether the stream was finished.
+        frames:      u64              // Number of frames appended so far.
+        isEnded:     bool             // Whether the stream was finished.
     }
 }
 

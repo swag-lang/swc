@@ -14,15 +14,15 @@ enum ListSelectionMode
 #[Swag.EnumFlags]
 enum ListFlags
 {
-    None = 0                          // Uses the default list presentation and selection behavior.
-    HideSelection                     // Hides selection while the list does not have focus.
-    AlternateLines                    // Alternates row background colors.
-    HorizontalLines                   // Draws horizontal row separators.
-    VerticalLines                     // Draws vertical column separators.
-    ReserveExpandMargin               // Reserves an expansion margin even when no row can expand.
+    None = 0                // Uses the default list presentation and selection behavior.
+    HideSelection           // Hides selection while the list does not have focus.
+    AlternateLines          // Alternates row background colors.
+    HorizontalLines         // Draws horizontal row separators.
+    VerticalLines           // Draws vertical column separators.
+    ReserveExpandMargin     // Reserves an expansion margin even when no row can expand.
     PreserveSelectionOnEmptyClick     // Keeps selection when empty space is clicked.
-    HotTrack                          // Highlights the row under the pointer.
-    Ellipsis                          // Ends overflowing cell text with an ellipsis.
+    HotTrack                // Highlights the row under the pointer.
+    Ellipsis                // Ends overflowing cell text with an ellipsis.
 }
 
 // Says where a drop hovering a list would land.
@@ -49,11 +49,11 @@ struct ListItem
 {
     public
     {
-        using item: Item                         // Embedded label, icon, identifier, and user data.
-        sortKey:    String                       // Optional key used instead of the displayed label when sorting.
-        colorBk:    Color                        // Cell background override, or transparent for the list color.
-        colorFg:    Color                        // Cell foreground override, or transparent for the list color.
-        column:     u32                          // Zero-based column index.
+        using item: Item       // Embedded label, icon, identifier, and user data.
+        sortKey:    String     // Optional key used instead of the displayed label when sorting.
+        colorBk:    Color      // Cell background override, or transparent for the list color.
+        colorFg:    Color      // Cell foreground override, or transparent for the list color.
+        column:     u32        // Zero-based column index.
         horzAlign = StringHorzAlignment.Left     // Cell content alignment.
     }
 }
@@ -93,16 +93,16 @@ struct ListCtrl
 
         readonly
         {
-            horizontalExtent: f32                                // Explicit content width, or zero to derive it from the view or header.
-            fixedLineHeight:  f32                                // Fixed row height, or zero to derive it from the font.
-            indentWidth:      f32 = 22                           // Width added for each hierarchy level.
-            iconSize:         f32 = 16                           // Square row-icon size; zero opts into each descriptor's own size.
-            iconMarginFirstCol    = true                         // Whether the first column reserves icon space.
-            listFlags             = ListFlags.None               // Active presentation and pointer options.
+            horizontalExtent: f32            // Explicit content width, or zero to derive it from the view or header.
+            fixedLineHeight:  f32            // Fixed row height, or zero to derive it from the font.
+            indentWidth:      f32 = 22       // Width added for each hierarchy level.
+            iconSize:         f32 = 16       // Square row-icon size; zero opts into each descriptor's own size.
+            iconMarginFirstCol    = true     // Whether the first column reserves icon space.
+            listFlags             = ListFlags.None     // Active presentation and pointer options.
             selectionMode         = ListSelectionMode.Single     // Active row-selection policy.
-            leftTextMargin:   f32                                // Leading text margin shared by all rows.
-            virtualCount:     u32                                // Number of rows supplied by `onFillVirtualLine`.
-            isVirtual:        bool                               // Whether row data is supplied on demand.
+            leftTextMargin:   f32            // Leading text margin shared by all rows.
+            virtualCount:     u32            // Number of rows supplied by `onFillVirtualLine`.
+            isVirtual:        bool           // Whether row data is supplied on demand.
 
             late
             {
@@ -112,14 +112,14 @@ struct ListCtrl
             }
         }
 
-        sigSelectionChanged:  SigArray'func||(*ListCtrl)                          // Emitted after the selected row set changes.
-        sigCheckedChanged:    SigArray'func||(*ListCtrl)                          // Emitted after the checked row set changes.
-        sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)              // Emitted for a right click, with the local position.
-        sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)              // Emitted for a left double click, with the local position.
-        sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)               // Emitted after a row expands.
-        sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)               // Emitted after a row collapses.
-        sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)               // Emitted for a key press before the list reads it; accept the event to claim the key.
-        onFillVirtualLine:    (func(*ListCtrl, *ListLine?, u32))?                 // Fills a transient row before a virtual row is painted.
+        sigSelectionChanged:  SigArray'func||(*ListCtrl)                 // Emitted after the selected row set changes.
+        sigCheckedChanged:    SigArray'func||(*ListCtrl)                 // Emitted after the checked row set changes.
+        sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)     // Emitted for a right click, with the local position.
+        sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)     // Emitted for a left double click, with the local position.
+        sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)      // Emitted after a row expands.
+        sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)      // Emitted after a row collapses.
+        sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)      // Emitted for a key press before the list reads it; accept the event to claim the key.
+        onFillVirtualLine:    (func(*ListCtrl, *ListLine?, u32))?        // Fills a transient row before a virtual row is painted.
         compareLines:         (func(*ListLine?, *ListLine?, u32, bool)->s32)?     // Compares two rows for custom sorting.
     }
 
@@ -660,7 +660,7 @@ private struct ListCellLayout
     check:   Math.Rectangle     // Slot reserved for the check box; empty when the row reserves none.
     content: Math.Rectangle     // What is left for the icon and the label together.
     text:    Math.Rectangle     // What is left for the label alone, once the icon has taken its lead.
-    icon:    Icon               // The row's icon at the size it is drawn.
+    icon:    Icon     // The row's icon at the size it is drawn.
 }
 
 private impl ListView

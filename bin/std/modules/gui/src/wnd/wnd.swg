@@ -8,12 +8,12 @@ alias HookEvent = func||(*Wnd, IEvent)->bool
 // Selects automatic placement within the parent's padded client rectangle.
 enum DockStyle
 {
-    None                   // Leaves the explicit position unchanged.
-    Top                    // Takes the remaining top strip and keeps its height.
-    Left                   // Takes the remaining left strip and keeps its width.
-    Right                  // Takes the remaining right strip and keeps its width.
-    Bottom                 // Takes the remaining bottom strip and keeps its height.
-    Center                 // Fills the remaining rectangle.
+    None       // Leaves the explicit position unchanged.
+    Top        // Takes the remaining top strip and keeps its height.
+    Left       // Takes the remaining left strip and keeps its width.
+    Right      // Takes the remaining right strip and keeps its width.
+    Bottom     // Takes the remaining bottom strip and keeps its height.
+    Center     // Fills the remaining rectangle.
     CenterKeepSizeVert     // Fills remaining width while preserving and centering its height.
 }
 
@@ -83,8 +83,8 @@ struct SizeHint
 {
     public
     {
-        min:       Math.Point                                    // Smallest valid width and height.
-        preferred: Math.Point                                    // Natural width and height before surplus distribution.
+        min:       Math.Point     // Smallest valid width and height.
+        preferred: Math.Point     // Natural width and height before surplus distribution.
         max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
     }
 }
@@ -129,9 +129,9 @@ struct KeyShortcut
     public
     {
         modifiers: Input.KeyModifiers = None     // Required modifier-key combination.
-        key:       Input.Key = None              // Required non-modifier key.
-        id:        WndId     = ""                // Command identifier sent on a match.
-        target:    *Wnd?                         // Explicit command target, or `null` to use normal routing.
+        key:       Input.Key = None     // Required non-modifier key.
+        id:        WndId     = ""       // Command identifier sent on a match.
+        target:    *Wnd?     // Explicit command target, or `null` to use normal routing.
     }
 }
 
@@ -255,11 +255,11 @@ struct Wnd
 {
     public
     {
-        late itf: IWnd                       // Dynamic event receiver implemented by the concrete window type.
-        surface:  *Surface?                  // Surface containing this window, or `null` while detached.
-        style:    ThemeStyle                 // Local style and inherited theme reference.
+        late itf: IWnd           // Dynamic event receiver implemented by the concrete window type.
+        surface:  *Surface?      // Surface containing this window, or `null` while detached.
+        style:    ThemeStyle     // Local style and inherited theme reference.
         wndFlags = WndFlags.ClipChildren     // Active state, clipping, and paint-order flags.
-        userData: *void?                     // Opaque application-owned payload; never dereferenced by GUI.
+        userData: *void?         // Opaque application-owned payload; never dereferenced by GUI.
 
         position:      Math.Rectangle     // Logical rectangle relative to the parent client origin.
         preferredSize: Math.Point         // Natural layout size; non-positive components fall back to `position`.
@@ -340,8 +340,8 @@ struct Wnd
 
     public readonly
     {
-        isPendingDestroy: bool                // Whether the window is scheduled for destruction.
-        managedByLayout:  bool                // Whether a layout container places this window.
+        isPendingDestroy: bool     // Whether the window is scheduled for destruction.
+        managedByLayout:  bool     // Whether a layout container places this window.
         layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
     }
 

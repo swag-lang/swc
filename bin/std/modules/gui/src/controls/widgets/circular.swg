@@ -34,11 +34,11 @@ struct Circular
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        flags:      CircularFlags                    // Active value-behavior flags.
+        flags:      CircularFlags     // Active value-behavior flags.
         stepForm:   CircularStepForm   = .Tick       // Visual form of the step indicators.
         markerForm: CircularMarkerForm = .Circle     // Visual form of the value markers.
 
-        startAngle: f32 = 0                       // Angle of the minimum value, in radians clockwise from the top.
+        startAngle: f32 = 0     // Angle of the minimum value, in radians clockwise from the top.
         endAngle:   f32 = Math.ConstF32.TwoPi     // Angle of the maximum value, in radians clockwise from the top.
 
         tickCount:             u32 = 20     // Number of step indicators drawn around the track.
@@ -74,7 +74,7 @@ struct Circular
 
     lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
     upperMarkerAnimation: BlendColor     // Color animation of the second marker.
-    aniStep: BlendColor                  // Color animation of the step indicators.
+    aniStep: BlendColor     // Color animation of the step indicators.
 }
 
 impl IWnd for Circular

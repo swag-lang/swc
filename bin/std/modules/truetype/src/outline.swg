@@ -18,9 +18,9 @@ public struct OutlineCommand
     public
     {
         kind: OutlineCommandKind     // Operation represented by this value.
-        p0:   Vector                 // Destination or first control point.
-        p1:   Vector                 // Destination or second control point when required.
-        p2:   Vector                 // Cubic destination when required.
+        p0:   Vector     // Destination or first control point.
+        p1:   Vector     // Destination or second control point when required.
+        p2:   Vector     // Cubic destination when required.
     }
 }
 

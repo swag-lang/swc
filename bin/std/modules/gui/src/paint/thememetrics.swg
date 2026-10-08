@@ -127,22 +127,22 @@ struct ThemeMetrics
         btnIcon_SpacingTextH:  f32 = 8     // Air between the glyph of an icon button and wording set beside it.
         btnIcon_SpacingTextV:  f32 = 0     // Air between the glyph of an icon button and wording set under it.
 
-        frameWnd_SquarePadding:            f32 = 5                           // Inset of the view of a square frame.
-        frameWnd_RoundPadding:             f32 = 5                           // Inset of the view of a round frame.
-        frameWnd_FlatPadding:              f32 = 2                           // Inset of the view of a flat frame.
+        frameWnd_SquarePadding:            f32 = 5      // Inset of the view of a square frame.
+        frameWnd_RoundPadding:             f32 = 5      // Inset of the view of a round frame.
+        frameWnd_FlatPadding:              f32 = 2      // Inset of the view of a flat frame.
         frameWnd_SmallShadowSize:          Math.Vector4 = {5, 5, 15, 15}     // Reach of the compact frame shadow on the left, top, right, and bottom.
-        frameWnd_AnchorWidth:              f32 = 24                          // Width of a callout anchor along the frame edge.
-        frameWnd_AnchorHeight:             f32 = 10                          // Depth a callout anchor protrudes from the frame.
-        frameWnd_AnchorOverlap:            f32 = 2                           // Depth by which a callout anchor overlaps the frame it leaves.
-        frameWnd_AnchorRoundBorderMargin:  f32 = 16                          // Closest a callout anchor comes to a corner of a round frame.
-        frameWnd_AnchorSquareBorderMargin: f32 = 8                           // Closest a callout anchor comes to a corner of a square frame.
+        frameWnd_AnchorWidth:              f32 = 24     // Width of a callout anchor along the frame edge.
+        frameWnd_AnchorHeight:             f32 = 10     // Depth a callout anchor protrudes from the frame.
+        frameWnd_AnchorOverlap:            f32 = 2      // Depth by which a callout anchor overlaps the frame it leaves.
+        frameWnd_AnchorRoundBorderMargin:  f32 = 16     // Closest a callout anchor comes to a corner of a round frame.
+        frameWnd_AnchorSquareBorderMargin: f32 = 8      // Closest a callout anchor comes to a corner of a square frame.
 
         list_Padding:    f32 = 8      // Outer inset separating list rows from their frame.
         list_ExpandSize: f32 = 22     // Width of the disclosure column of a tree row.
 
-        header_Height:    f32 = 35                          // Height of a column header.
+        header_Height:    f32 = 35     // Height of a column header.
         header_Padding:   Math.Vector4 = {10, 5, 10, 5}     // Inset of the caption of a column header.
-        header_Separator: f32 = 5                           // Width of the grip between two column headers.
+        header_Separator: f32 = 5      // Width of the grip between two column headers.
 
         panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
         splitView_BarSize: f32 = 5     // Draggable gap between split panels, one pixel wider than the outer gutter.
@@ -185,9 +185,9 @@ struct ThemeMetrics
         // `toolTip_MaxHeight`, and it never scrolls — so both caps are a promise about the
         // largest box a reader can be shown, not a viewport onto a longer text.
         toolTip_Padding:   Math.Vector4 = {8, 6, 8, 6}     // Inset between a tool tip's border and its text.
-        toolTip_MaxWidth:  f32 = 360                       // Width at which a tool tip wraps instead of growing.
-        toolTip_MaxHeight: f32 = 200                       // Height at which a tool tip truncates instead of growing.
-        toolTip_Offset:    f32 = 12                        // Gap a tool tip keeps from the pointer that summoned it.
+        toolTip_MaxWidth:  f32 = 360     // Width at which a tool tip wraps instead of growing.
+        toolTip_MaxHeight: f32 = 200     // Height at which a tool tip truncates instead of growing.
+        toolTip_Offset:    f32 = 12      // Gap a tool tip keeps from the pointer that summoned it.
     }
 }
 

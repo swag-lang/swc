@@ -133,15 +133,15 @@ struct Reader
 {
     internal
     {
-        source:          ByteSource                      // Bytes of the encoded stream.
-        info:            StreamInfo                      // What the decoder reported when opening.
-        format:          StreamFormat                    // Format claimed by the selected decoder.
-        decoder:         IDecoder?                       // Decoder instance owned by this reader.
-        audioDecoder:    IAudioDecoder?                  // Optional sound-track capability.
-        subtitleDecoder: ISubtitleDecoder?               // Optional timed-text capability.
-        planarDecoder:   IPlanarDecoder?                 // Optional unconverted-picture capability.
-        timedDecoder:    ITimedDecoder?                  // Optional exact-timestamp capability.
-        deferred:        IDeferredDecoder?               // Optional deferred sample-index capability.
+        source:          ByteSource            // Bytes of the encoded stream.
+        info:            StreamInfo            // What the decoder reported when opening.
+        format:          StreamFormat          // Format claimed by the selected decoder.
+        decoder:         IDecoder?             // Decoder instance owned by this reader.
+        audioDecoder:    IAudioDecoder?        // Optional sound-track capability.
+        subtitleDecoder: ISubtitleDecoder?     // Optional timed-text capability.
+        planarDecoder:   IPlanarDecoder?       // Optional unconverted-picture capability.
+        timedDecoder:    ITimedDecoder?        // Optional exact-timestamp capability.
+        deferred:        IDeferredDecoder?     // Optional deferred sample-index capability.
         decoderType:     const *Swag.TypeInfoStruct?     // Concrete decoder type, used to release it.
     }
 }

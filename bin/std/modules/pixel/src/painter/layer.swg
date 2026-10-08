@@ -7,13 +7,13 @@ struct LayerBeginInfo
 {
     public
     {
-        width:        s32                                          // Logical layer width, in pixels.
-        height:       s32                                          // Logical layer height, in pixels.
-        renderScale:  s32          = 1                             // Supersampling factor, clamped to the range `1` through `8`.
-        paintAlpha:   bool         = true                          // Preserve alpha through a separate resolve when needed.
+        width:        s32                       // Logical layer width, in pixels.
+        height:       s32                       // Logical layer height, in pixels.
+        renderScale:  s32          = 1          // Supersampling factor, clamped to the range `1` through `8`.
+        paintAlpha:   bool         = true       // Preserve alpha through a separate resolve when needed.
         clearColor:   Color        = Color.fromArgb(Argb.Zero)     // Initial straight-alpha color.
-        antialiased:  bool         = true                          // Enable antialiasing while recording.
-        blendingMode: BlendingMode = .Alpha                        // Initial blend mode.
+        antialiased:  bool         = true       // Enable antialiasing while recording.
+        blendingMode: BlendingMode = .Alpha     // Initial blend mode.
     }
 }
 
@@ -22,11 +22,11 @@ struct LayerShadowInfo
 {
     public
     {
-        enabled: bool                                        // Generate and draw a shadow when true.
-        margin:  s32   = 8                                   // Extra pixels reserved around the layer for blur.
-        radius:  f32   = 8                                   // Separable blur radius, in pixels.
-        offsetX: f32                                         // Horizontal shadow offset, in pixels.
-        offsetY: f32                                         // Vertical shadow offset, in pixels.
+        enabled: bool          // Generate and draw a shadow when true.
+        margin:  s32   = 8     // Extra pixels reserved around the layer for blur.
+        radius:  f32   = 8     // Separable blur radius, in pixels.
+        offsetX: f32           // Horizontal shadow offset, in pixels.
+        offsetY: f32           // Vertical shadow offset, in pixels.
         color:   Color = Color.fromArgb(150, Argb.Black)     // Shadow tint and opacity.
     }
 }
@@ -36,14 +36,14 @@ struct LayerDrawInfo
 {
     public
     {
-        dstRect:           Math.Rectangle                                     // Destination rectangle in painter path space.
+        dstRect:           Math.Rectangle                  // Destination rectangle in painter path space.
         color:             Color             = Color.fromArgb(Argb.White)     // Multiplicative tint.
-        interpolationMode: InterpolationMode = .Linear                        // Sampling used while scaling.
-        blendingMode:      BlendingMode      = .Alpha                         // Color blend operation used to composite the layer.
-        writeAlpha:        bool              = true                           // Composite the layer alpha channel separately.
-        alphaBlendingMode: BlendingMode      = .Max                           // Blend operation for the alpha-only pass.
-        releaseAfterDraw:  bool              = true                           // Queue layer targets for release after drawing.
-        shadow:            LayerShadowInfo                                    // Optional blurred shadow.
+        interpolationMode: InterpolationMode = .Linear     // Sampling used while scaling.
+        blendingMode:      BlendingMode      = .Alpha      // Color blend operation used to composite the layer.
+        writeAlpha:        bool              = true        // Composite the layer alpha channel separately.
+        alphaBlendingMode: BlendingMode      = .Max        // Blend operation for the alpha-only pass.
+        releaseAfterDraw:  bool              = true        // Queue layer targets for release after drawing.
+        shadow:            LayerShadowInfo                 // Optional blurred shadow.
     }
 }
 

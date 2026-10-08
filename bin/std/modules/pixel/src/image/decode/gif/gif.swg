@@ -89,7 +89,7 @@ public struct Decoder
 
         streamStart:         const [*] u8?     // Start of the input, kept for looping.
         stream:              const [*] u8?     // Current read position in the input.
-        streamLen:           u64               // Bytes remaining from 'stream'.
+        streamLen:           u64     // Bytes remaining from 'stream'.
         descriptorOffset:    u64
         descriptorRemaining: u64
         hasLoopExtension:    bool

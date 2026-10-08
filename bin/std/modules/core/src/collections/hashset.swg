@@ -43,7 +43,7 @@ struct(K) HashSet
     private
     {
         table:   [*] HashSetEntry?     // Contiguous memory block for the slots.
-        deleted: u64                   // The number of slots marked as deleted.
+        deleted: u64     // The number of slots marked as deleted.
     }
 }
 

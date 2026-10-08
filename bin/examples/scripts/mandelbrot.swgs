@@ -9,75 +9,79 @@ var g_Image:       Image
 var g_Texture:     Texture
 late var g_Slider: *Slider
 
-func compute()
+func updateFractal()
 {
     using Math
 
     let slider = g_Slider
-    var data   = {minS: slider.lowerValue(), maxS: slider.upperValue()}
-    g_Image.visitPixels(&data)
+    var bounds = {minimum: slider.lowerValue(), maximum: slider.upperValue()}
+    g_Image.visitPixels(&bounds)
     {
-        var params = cast(*#decltype(data), userData!)
-        var minS   = params.minS
-        var maxS   = params.maxS
+        let parameters = cast(*#decltype(bounds), userData!)
+        let minimum    = parameters.minimum
+        let maximum    = parameters.maximum
 
-        var a = map(cast(f32, x), 0, cast(f32, g_Image.width), minS, maxS)
-        var b = map(cast(f32, y), 0, cast(f32, g_Image.height), minS, maxS)
+        var real      = map(cast(f32, x), 0, cast(f32, g_Image.width), minimum, maximum)
+        var imaginary = map(cast(f32, y), 0, cast(f32, g_Image.height), minimum, maximum)
 
-        var ca = a
-        var cb = b
+        // Each pixel fixes the constant; only the iterated value changes.
+        let constantReal      = real
+        let constantImaginary = imaginary
 
-        var n = 0
+        var iterations = 0
         const MaxIterations = 100
-        while n < MaxIterations
+        while iterations < MaxIterations
         {
-            var aa = a
-            var bb = b
+            // Keep both old components while applying z squared plus the constant.
+            let previousReal      = real
+            let previousImaginary = imaginary
 
-            a = aa * aa - bb * bb
-            b = 2 * aa * bb
-            a += ca
-            b += cb
-            n += 1
-            if a * a + b * b > 4 do
+            real       = previousReal * previousReal - previousImaginary * previousImaginary
+            imaginary  = 2 * previousReal * previousImaginary
+            real       += constantReal
+            imaginary  += constantImaginary
+            iterations += 1
+            if real * real + imaginary * imaginary > 4 do
                 break
         }
 
-        var light = cast(u8, Math.map(cast(f32, n), 0, cast(f32, MaxIterations), 0, 255))
-        pix[0] = light
-        pix[1] = light
-        pix[2] = light
+        let brightness = cast(u8, Math.map(cast(f32, iterations), 0, cast(f32, MaxIterations), 0, 255))
+        pix[0] = brightness
+        pix[1] = brightness
+        pix[2] = brightness
     }
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    let w = cast(s32, wnd.position.width)
-    let h = cast(s32, wnd.position.height)
+    let width  = cast(s32, wnd.position.width)
+    let height = cast(s32, wnd.position.height)
 
     switch evt
     {
     case CreateEvent:
-        let slider = Slider.create(wnd, {0, 0, 200}, range: true)
-        g_Slider = slider
-        slider.setBounds(-2.5, 2.5)
-        slider.setRange(-2.5, 2.5)
-        slider.sigChanged += func|wnd|(s)
+        with let slider = Slider.create(wnd, {0, 0, 200}, range: true)
         {
-            compute()
-            wnd.invalidate()
+            g_Slider = slider
+            .setBounds(-2.5, 2.5)
+            .setRange(-2.5, 2.5)
+            .sigChanged += func|wnd|(?)
+            {
+                updateFractal()
+                wnd.invalidate()
+            }
         }
 
         g_Image   = Image.create(200, 200, .BGR8)
         g_Texture = wnd.app().renderer.addImage(g_Image)
 
-        compute()
+        updateFractal()
         return true
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         paintEvt.paintContext.renderer.updateTexture(g_Texture, g_Image.pixels.storage())
-        painter.drawTexture(0, 0, cast(f32, w), cast(f32, h), g_Texture)
+        painter.drawTexture(0, 0, cast(f32, width), cast(f32, height), g_Texture)
         return true
     }
 

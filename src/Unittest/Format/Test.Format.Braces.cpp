@@ -98,6 +98,38 @@ SWC_TEST_BEGIN(FormatStatements_OneEnumValuePerLine)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStatements_EnumKeepsAuthoredGroups)
+{
+    static constexpr std::string_view SOURCE =
+        "enum Filter\n"
+        "{\n"
+        "    Blur, Soften\n"
+        "\n"
+        "    Sobel, Laplacian\n"
+        "\n"
+        "    // Supplied by the caller.\n"
+        "    Custom\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "enum Filter\n"
+        "{\n"
+        "    Blur\n"
+        "    Soften\n"
+        "\n"
+        "    Sobel\n"
+        "    Laplacian\n"
+        "\n"
+        "    // Supplied by the caller.\n"
+        "    Custom\n"
+        "}\n";
+
+    FormatOptions options;
+    options.oneEnumValuePerLine = true;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_ShortInlineDoBodiesSplit)
 {
     static constexpr std::string_view SOURCE =

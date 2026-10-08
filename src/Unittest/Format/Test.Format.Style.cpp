@@ -67,6 +67,35 @@ SWC_TEST_BEGIN(FormatStyle_SwagKeepsExpandedMethodsBesideOneLiners)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagKeepsEnumParagraphs)
+{
+    static constexpr std::string_view SOURCE =
+        "enum Filter\n"
+        "{\n"
+        "    Blur\n"
+        "    Soften\n"
+        "\n"
+        "\n"
+        "    Sobel\n"
+        "    Laplacian\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "enum Filter\n"
+        "{\n"
+        "    Blur\n"
+        "    Soften\n"
+        "\n"
+        "    Sobel\n"
+        "    Laplacian\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStyle_DefaultOptionsArePreserve)
 {
     // The struct's own defaults have to stay the passive style: every test in

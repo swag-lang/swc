@@ -851,9 +851,10 @@ namespace
 
             const Utf8 base(model.lineIndentOf(block.headPiece));
             const Utf8 inner = FormatPassUtil::indentPlusOne(model, base.view());
+            // One member per line still leaves authored paragraphs between member groups.
             for (const uint32_t member : members)
             {
-                if (!isStruct || !model.gapHasNewline(member))
+                if (!model.gapHasNewline(member))
                     model.setGapBreak(member, 1, inner.view());
             }
             if (!isStruct || !model.gapHasNewline(block.closePiece))

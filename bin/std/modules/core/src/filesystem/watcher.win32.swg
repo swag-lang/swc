@@ -41,11 +41,14 @@ private func watchFilterNative(filter: WatchFilter)->DWORD
 
 private func appendChange(changes: *Array'Change, kind: ChangeKind, root, relative: string, oldPath: string? = null)
 {
-    var change: Change
-    change.kind = kind
-    change.path = Path.combine(root, relative)
-    if oldPath do
-        change.oldPath = oldPath
+    with var change: Change
+    {
+        .kind = kind
+        .path = Path.combine(root, relative)
+        if oldPath do
+            .oldPath = oldPath
+    }
+
     changes.add(#move change)
 }
 
@@ -63,7 +66,13 @@ internal impl Watcher
         }
 
         let winPath = Utf16.toZeroTerminated(.root.toString())
-        state.directory = try CreateFileW(winPath.buffer, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
+        state.directory = try CreateFileW(winPath.buffer,
+                                          FILE_LIST_DIRECTORY,
+                                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                          null,
+                                          OPEN_EXISTING,
+                                          FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                                          null)
         defer if not .native and state.directory do
             CloseHandle(state.directory)
 
@@ -114,12 +123,23 @@ internal impl Watcher
         if state.pending do
             return
 
-        state.overlapped.Internal     = 0
-        state.overlapped.InternalHigh = 0
-        state.overlapped.data.Pointer = null
-        state.overlapped.hEvent       = state.event
+        with state.overlapped
+        {
+            .Internal     = 0
+            .InternalHigh = 0
+            .data.Pointer = null
+            .hEvent       = state.event
+        }
+
         catch ResetEvent(state.event)
-        discard try ReadDirectoryChangesW(state.directory, state.buffer.buffer, cast(DWORD, state.buffer.count), .options.recurse ? TRUE : FALSE, watchFilterNative(.options.filter), null, &state.overlapped, null)
+        discard try ReadDirectoryChangesW(state.directory,
+                                          state.buffer.buffer,
+                                          cast(DWORD, state.buffer.count),
+                                          .options.recurse ? TRUE : FALSE,
+                                          watchFilterNative(.options.filter),
+                                          null,
+                                          &state.overlapped,
+                                          null)
         state.pending = true
 
         // Cancellation can race the interval between the caller's state check and submission.
@@ -136,12 +156,15 @@ internal impl Watcher
         var offset = 0'u32
         for
         {
-            let info     = cast(const *FILE_NOTIFY_INFORMATION, (state.buffer.storage() + offset))
-            let nameData = cast(const [*] u16, &info.FileName[0])
-            var name     = Utf8.fromUtf16(Swag.makeSlice(nameData, cast(u64, info.FileNameLength) / #sizeof(u16)))
-            let relative = name.toString()
+            let info      = cast(const *FILE_NOTIFY_INFORMATION, (state.buffer.storage() + offset))
+            let nameData  = cast(const [*] u16, &info.FileName[0])
+            let nameUnits = cast(u64, info.FileNameLength) / #sizeof(u16)
+            var name      = Utf8.fromUtf16(Swag.makeSlice(nameData, nameUnits))
+            let relative  = name.toString()
 
-            if info.Action != FILE_ACTION_RENAMED_NEW_NAME and info.Action != FILE_ACTION_RENAMED_OLD_NAME and not state.pendingRename.isEmpty()
+            if info.Action != FILE_ACTION_RENAMED_NEW_NAME and
+               info.Action != FILE_ACTION_RENAMED_OLD_NAME and
+               not state.pendingRename.isEmpty()
             {
                 appendChange(&result.changes, .Removed, .root.toString(), state.pendingRename.toString())
                 state.pendingRename.clear()
@@ -194,17 +217,13 @@ internal impl Watcher
         let state = watcherNative(.native)
         if state.cancelled.load()
         {
-            var cancelled: retval
-            cancelled.status = .Cancelled
-            return cancelled
+            return {status: .Cancelled}
         }
 
         try .issueRead(state)
         if try WaitForSingleObject(state.event, waitMilliseconds) == WAIT_TIMEOUT
         {
-            var timedOut: retval
-            timedOut.status = .TimedOut
-            return timedOut
+            return {status: .TimedOut}
         }
 
         var transferred: DWORD
@@ -215,9 +234,7 @@ internal impl Watcher
             let systemError = assume cast (const *Swag.SystemError, err)
             if systemError.errorID == ERROR_OPERATION_ABORTED and state.cancelled.load()
             {
-                var cancelled: retval
-                cancelled.status = .Cancelled
-                return cancelled
+                return {status: .Cancelled}
             }
 
             fail err
@@ -225,9 +242,7 @@ internal impl Watcher
 
         if not transferred
         {
-            var overflow: retval
-            overflow.status = .Overflow
-            return overflow
+            return {status: .Overflow}
         }
 
         return .parseChanges(state, transferred)

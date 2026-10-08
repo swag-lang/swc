@@ -935,10 +935,10 @@ void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& no
         return;
 
     const Symbol& symbol = *symbols.front();
-    if (!symbol.isValueExpr())
+    if (!symbol.isValueExpr() && !retainEditorSymbols_)
         return;
 
-    bool mayHide = !symbol.isPublic();
+    bool mayHide = retainEditorSymbols_ || !symbol.isPublic();
     for (const SymbolMap* owner = symbol.ownerSymMap(); owner && !mayHide; owner = owner->ownerSymMap())
         mayHide = owner->isStruct() || owner->isEnum();
     if (!mayHide)

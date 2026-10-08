@@ -4,6 +4,7 @@
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/EditorIndex.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -137,6 +138,17 @@ void SourceFile::ensureSourceView(TaskContext& ctx)
 
 Result SourceFile::loadContent(TaskContext& ctx)
 {
+    if (!ctx.cmdLine().editorIndex.empty() && !ast().hasSourceView())
+        nodePayloadContext_->retainEditorSymbols();
+
+    if (content_.empty() && ctx.cmdLine().editorSources)
+    {
+        const auto& sources = *ctx.cmdLine().editorSources;
+        const auto it = sources.find(EditorIndex::pathKey(path_));
+        if (it != sources.end())
+            setContent(it->second);
+    }
+
     if (!content_.empty())
     {
         ensureSourceView(ctx);

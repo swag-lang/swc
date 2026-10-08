@@ -6,6 +6,75 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.008 — Language services still start a compiler for each edited snapshot
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
+- Evidence: `vscode/src/server.js` keeps an LSP session with versioned open buffers, cancellation,
+  shutdown, and module snapshots. `swc sema --editor-index` exports compiler-resolved symbols;
+  `--editor-overlay` supplies unsaved buffers without replacing disk files. Each changed snapshot
+  still starts a new compiler process and rebuilds its module's semantic state.
+- Next: host the analysis service in the compiler, retaining the source and semantic state between
+  edits. Keep the existing LSP integration tests as the transport-independent contract.
+- Complete when: requests call retained compiler-library services, obsolete analyses can be
+  cancelled inside that service, and unchanged files and interfaces reuse their compiler state.
+- Related: compiler.core.001, compiler.core.002, compiler.core.009, compiler.core.010,
+  compiler.core.011, compiler.core.012, compiler.core.013, compiler.core.014.
+
+### compiler.core.009 — Diagnostics still wait for full-module reanalysis
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
+- Evidence: the LSP server publishes one-line compiler diagnostics for open buffers, converts
+  display columns to UTF-16, clears obsolete results, and rejects superseded snapshots. Analysis
+  still runs per module; semantic features are cleared while that module has errors. Diagnostic
+  notes and related locations are not represented as structured LSP diagnostic information.
+- Next: export structured diagnostics from the compiler and retain usable semantic information
+  through incomplete or erroneous source. Invalidate affected files through compiler.core.002.
+- Complete when: edits reanalyze affected files and their dependents, semantic queries continue on
+  recoverable input, and identifiers, severity, primary and related locations survive conversion.
+- Related: compiler.core.002, compiler.core.008.
+
+### compiler.core.011 — Definition navigation needs dependency origins and generated-source mappings
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
+- Evidence: the LSP server consumes resolved declaration locations from the compiler, including
+  selected calls and symbols retained before folding. Source buffers keep their original paths.
+  Imported definitions currently point to generated API files; generated source views without a
+  physical mapping and ambiguous generic instances produce no location.
+- Next: preserve canonical source origins through API publication, specialization, and generated
+  source expansion, then extend the protocol tests to imports, aliases, members, and generics.
+- Complete when: navigation reaches original declarations across dependencies and expansions,
+  covers resolved generic and alias uses, and never substitutes a plausible but unrelated location.
+- Related: compiler.core.001, compiler.core.008, compiler.core.012.
+
+### compiler.core.012 — Reference search stops at the analyzed module
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
+- Evidence: LSP references compare resolved declaration identities within one compiler snapshot,
+  distinguish declarations from uses, and exclude unrelated same-spelled symbols. Other modules
+  are not searched, and unsaved dependency-module buffers are not part of a consumer's snapshot.
+- Next: maintain a versioned workspace reference index over module identities and dependency
+  interfaces, including invalidation when another module's public declarations change.
+- Complete when: references span open and on-disk workspace modules, retain semantic identity
+  across imported APIs, and exclude stale entries after edits, file removal, and cancellation.
+- Related: compiler.core.008, compiler.core.011, compiler.core.014.
+
+### compiler.core.013 — Hover needs documentation, constant values, and expression types
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
+- Evidence: hover shows the compiler's resolved type for named entities; inferred variable
+  types also appear as inlay hints. Unknown and ambiguous locations return no answer. The
+  snapshot does not yet carry public documentation, constant values, ownership, or attributes.
+- Next: extend the semantic snapshot with declaration documentation and expression information,
+  preserving Markdown escaping and original dependency source identity.
+- Complete when: hover covers inferred literals and expressions, generic parameters, aliases,
+  selected overloads, imported documentation, and relevant ownership and attribute information.
+- Related: compiler.core.008, compiler.core.010, compiler.core.011.
+
 ### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
 
 - Recorded: 2026-09-16 09:28
@@ -886,25 +955,6 @@ compiler-worker counts.
 
 **Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011, compiler.core.030.
 
-### compiler.core.011 — The editor has no semantic definition navigation
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-**Evidence.** The VSCode extension registers build, rebuild, and format tasks. It registers no
-definition provider and does not consume resolved compiler symbols.
-
-**Intent.** Resolve the symbol referenced at a source position and return its canonical declaration location, including declarations in dependencies represented by persisted interfaces.
-
-**Complete when.**
-
-- Navigation covers locals, parameters, members, overloads after resolution, generics, aliases, generated declarations with an available source origin, and imported symbols.
-- Ambiguous or unresolved positions return no misleading location.
-- Paths and ranges are valid for open snapshots and on-disk dependency sources.
-- Protocol tests cover same-file, cross-file, cross-module, overload, and no-result cases.
-
-**Related:** compiler.core.001, compiler.core.008, compiler.core.012.
-
 ### compiler.core.002 — Front-end invalidation is module-wide
 
 - Recorded: 2026-08-06 20:18
@@ -922,38 +972,6 @@ definition provider and does not consume resolved compiler symbols.
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
 
-### compiler.core.008 — There is no persistent language-server process
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Add a compiler-hosted LSP transport and session layer: initialization and shutdown, workspace discovery, document open/change/close notifications, versioned snapshots, request cancellation, and orderly teardown. Requests must call compiler-library services instead of launching a compiler process per operation.
-
-**Complete when.**
-
-- A standard LSP client can open a workspace, edit unsaved buffers, cancel obsolete requests, and shut down cleanly.
-- Responses are computed from the requested document version and stale work cannot publish newer state.
-- The session reuses persisted compiler state from compiler.core.001 and compiler.core.002 when available.
-- Protocol integration tests run independently of the VSCode extension.
-
-**Related:** compiler.core.001, compiler.core.002, compiler.core.010, compiler.core.011, compiler.core.013, compiler.core.014, compiler.core.009, compiler.core.012.
-
-### compiler.core.009 — Open documents have no incremental diagnostics
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Publish parser and semantic diagnostics for the accepted version of every open document, including affected dependents, without requiring a workspace build.
-
-**Complete when.**
-
-- Opening a file with an error publishes diagnostics, correcting it clears them, and closing it restores the on-disk view.
-- A stale analysis job never overwrites diagnostics for a newer document version.
-- Diagnostic identifiers, severity, primary and related locations, source snippets, and normalized paths survive the protocol conversion.
-- A multi-file protocol test covers an edit that introduces and then repairs a dependent-file error.
-
-**Related:** compiler.core.002, compiler.core.008.
-
 ### compiler.core.010 — The editor has no semantic completion service
 
 - Recorded: 2026-08-09 20:16
@@ -969,38 +987,6 @@ definition provider and does not consume resolved compiler symbols.
 - Protocol tests cover local, member, import, generic, incomplete-expression, and inaccessible-symbol cases.
 
 **Related:** compiler.core.008, compiler.core.011, compiler.core.013.
-
-### compiler.core.012 — The editor cannot find semantic references
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Enumerate references to the resolved declaration at a source position across the workspace, distinguishing declarations from uses and excluding textually identical but semantically different symbols.
-
-**Complete when.**
-
-- Results cover locals, members, overloads, generics, aliases, and cross-module references.
-- The request supports including or excluding the declaration and uses versioned open-document snapshots.
-- Shadowed names, comments, strings, and unrelated overloads do not appear.
-- Results are deterministic, deduplicated, cancellable, and covered by same-file and cross-module protocol tests.
-
-**Related:** compiler.core.008, compiler.core.011, compiler.core.014.
-
-### compiler.core.013 — The editor has no semantic hover service
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Render concise semantic information for the resolved entity at a source position: declaration signature, inferred type or constant value, ownership and relevant attributes, and public documentation.
-
-**Complete when.**
-
-- Hover covers values, types, functions and selected overloads, generic parameters, fields, aliases, and literals with inferred types.
-- Output uses stable Markdown escaping and does not expose internal compiler-only names.
-- Unknown or ambiguous positions return no misleading result.
-- Protocol tests cover imported documentation, inferred values, overload resolution, and no-result cases.
-
-**Related:** compiler.core.008, compiler.core.010, compiler.core.011.
 
 ### compiler.core.014 — The editor cannot rename a symbol semantically
 

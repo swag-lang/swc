@@ -35,8 +35,8 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-07 21:02 |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-07 19:55 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-07 12:09 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-10-07 10:42 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-10-07 07:03 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-06 21:14 |

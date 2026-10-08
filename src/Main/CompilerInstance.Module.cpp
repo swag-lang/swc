@@ -4303,6 +4303,11 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 // it, since the next command is not a rebuild.
 Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const Utf8& moduleName, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const
 {
+    // Disk stamps and the literal-import fast path do not describe unsaved buffers.
+    // Editor setup results must never enter the on-disk setup cache.
+    if (setupCmdLine.editorSources)
+        return captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot);
+
     ModuleSetupSnapshot literalImports;
     literalImports.inputsReadTime = fs::file_time_type::clock::now();
     if (tryCaptureLiteralModuleImports(moduleFile, literalImports.imports))

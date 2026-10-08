@@ -275,6 +275,9 @@ struct CommandLine
     fs::path modulePath;
     fs::path workspacePath;
     fs::path exportApiDir;
+    fs::path editorIndex;
+    fs::path editorOverlay;
+    std::shared_ptr<const std::unordered_map<std::string, std::string>> editorSources;
     fs::path docOutputDir;
     fs::path outDir;
     fs::path workDir;

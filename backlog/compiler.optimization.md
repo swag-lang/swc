@@ -85,6 +85,211 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
+
+- Recorded: 2026-09-23 09:25
+- Updated: 2026-10-07 19:55 — Deferred candidate-only analyses and stopped mismatched pattern walks; the measured pass share remains open.
+- Area: compiler/backend, compilation time
+- Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
+  --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
+  branch simplification alone is 16.2 s of it, **24.8%**, across 72,546 runs of which 38.6%
+  rewrite something. The next pass is register allocation at 11.3%, then instruction combine
+  at 7.9%. A six-worker stack profile of the same build puts the pass at 12.9% of busy CPU,
+  spread over some twenty sub-transforms none of which reaches 1.5% — there is no hot spot,
+  only a battery of scans.
+- How it got there: the cold release rebuild of the big modules slowed by half in one week at
+  unchanged sources. Paired, order-alternated rebuilds give gui 12.3 s → 18.4 s and pixel
+  6.5 s → 11.1 s between 0.1.684 (2026-09-16) and 0.1.1035 (2026-09-21), while gui's sources
+  moved from 105,315 to 105,483 lines. Bisecting the same measurement puts 0.1.823
+  (2026-09-17 01:33) still at the old speed and 0.1.885 (2026-09-17 13:29) already at the new
+  one — the window that added some fifty narrowing, diamond and short-circuit patterns.
+- Taken in 0.1.1046: seven transforms opened on the same walk of the function and ten more
+  rebuilt the same jump-target counts and relocation set; one shared walk now serves a run and
+  is dropped when a transform rewrites the stream. Single-core, alternated: core 0.97, pixel
+  0.93, gui 0.95, video 0.92, seven of eight pairs favourable. `buildProgramLayout` fell from
+  1.67% to 0.73% of busy CPU.
+- What remains: the pass still runs about thirty-seven transforms, and each one scans the whole
+  function looking for a shape most functions do not hold. The cost is therefore the number of
+  patterns times the size of every function compiled, which is why a pattern campaign shows up
+  as a compile-time regression with no single culprit.
+- Measured, and the obvious gate is not worth it: instrumenting the pass over the same rebuild,
+  38 592 runs land on a function holding no conditional jump at all and cost 2.42 s of the pass's
+  33.1 s — **7.3%**, about 0.9% of the compilation. Gating them would also have to spare the
+  structural loop, which threads unconditional jump chains and erases unreachable code in exactly
+  those functions, so the reachable share is smaller still. Do not spend a gate on it.
+- What the same probe does say: a run on a 28-instruction branchless function still costs 63 us,
+  against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
+  entering some thirty-seven transforms, each with its own scratch containers — that does not
+  scale with the function. That, not the scanning, is what a pattern campaign multiplies.
+- Where the fixed cost was (timed per transform, 0.1.1047): fourteen transforms opened by asking
+  for the next free virtual integer register index, which walks every instruction and collects
+  every register operand, and then used it only when the transform actually rewrote something;
+  the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
+  lists per register, read only after three filters had matched. Collecting both on first request
+  took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
+- The same shape again, taken in 0.1.1048: `areCpuFlagsDeadAfterInCfg` mapped an instruction
+  reference back to its graph index with a linear search of the graph's instruction list, and
+  eleven sites ask it once per candidate they examine - quadratic in the function.
+  `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
+- Ranking at 0.1.1048, as a share of the pass: `fuseMaterializedBoolBranches` 10.6%, rebuilding
+  SSA through `MicroSsaState::ensureFor` 10.3%, `convertEqualityChainsToBitTests` 9.9%,
+  `convertGuardedSelectDiamonds` 8.9% (which rebuilds SSA of its own), `coalesceShortCircuitResults`
+  7.2%, and a tail of thirty-odd transforms under 4% each. The measured quadratic and virtual-register
+  prologues were removed; what remains is the cost of asking thirty-seven questions about every function.
+- Taken in 0.1.1136: equality-chain bit tests, packed switches, three-way signs and repeated memory
+  compares had each built a hash set from the same relocation list. They now share one index while
+  the instruction stream is unchanged and rebuild it after a rewrite. A run without rewrites makes
+  one relocation walk instead of four; the transforms consult the same instruction references as
+  before. Four focused native Release tests and one rotating JIT test passed. Five order-alternated
+  pairs against the same master source gave candidate/baseline wall and CPU ratios of 0.836/0.763
+  for core rebuild, 0.968/0.969 for core touch and 0.860/0.955 for hello build; the no-op guardrail
+  stayed below 100 ms. Rebuild times drifted from 1.8 to 3.4 s during the run, so this is a
+  correctness-certified structural saving, below the measurement floor rather than a claimed
+  percentage speedup. Peak working-set ratios were 0.992, 1.000 and 0.983 for those three builds.
+- Taken in 0.1.1138: `coalesceShortCircuitResults` and `threadShortCircuitExits` each rebuilt the
+  program layout in every short-circuit round. They now use the same layout when coalescing makes
+  no change, and rebuild it when coalescing rewrites the stream. This removes one full instruction
+  walk from each unchanged round, with no change to either transformation. The prior profile put
+  all `buildProgramLayout` calls at 0.73% of busy CPU, so this is expected below the whole-build
+  timing floor. The focused `short_circuit_booleans` and `short_circuit_past_join` native Release
+  tests passed; the rotating `std/core` TweakFile file ran four passing tests. On the rebased master,
+  five order-alternated pairs gave candidate/baseline core-touch ratios of 1.013 wall and 0.989
+  CPU. Hello-build ratios of 1.126 wall and 1.150 CPU reversed in a second seven-pair run with
+  A/B roles swapped: 0.995 wall and 0.857 CPU. The series therefore supports no percentage claim.
+  Peak working-set ratios were 1.014 for core touch and 1.034 for hello build in the five-pair run.
+- Ruled out on 2026-09-24: recording whether each function has `SetCondReg` in the shared branch
+  scan and using it to skip the equality-chain, branchless-or and three-way-sign transforms when
+  none exists. This requires one extra opcode comparison per instruction in every branch scan.
+  The three focused native Release tests and a rotating JIT test passed, but five alternated pairs
+  measured candidate/baseline at 1.090 wall and 1.030 CPU for core rebuild, and 1.144 wall and
+  1.190 CPU for hello build. Peak working-set ratios were 1.010 and 0.993. An earlier sweep was
+  discarded when unrelated machine load stretched one rebuild to 29.5 s. The completed sweep still
+  shows the always-paid scan cost outweighing the scans avoided here; the gate was reverted.
+- Taken in 0.1.1140: the early unused-label sweep reused the pass's relocation-reference index
+  instead of walking the same relocation list and allocating another hash set. A run without
+  rewrites now builds this index once for the early sweep and the later equality-chain, packed-switch,
+  three-way-sign and repeated-memory-compare transforms. The index is invalidated after a rewrite.
+  The focused native Release branch-simplification and packed-switch files passed, as did four
+  tests in the rotating JIT `defer.catch` file. Three order-alternated pairs against the same
+  master source gave candidate/baseline core-rebuild ratios of 0.985 wall, 0.944 CPU and 1.005
+  peak working set. Hello-build ratios of 1.198 wall and 1.244 CPU reversed in a seven-pair run
+  with A/B roles swapped: baseline/candidate 0.999 wall and 1.036 CPU. Other attempted pairs
+  were discarded when shared-machine load stretched individual builds to 26-35 seconds. The
+  saving is therefore below the measurement floor, with no percentage speedup claim or stable
+  memory regression.
+- Ruled out on 2026-09-24: returning an unusable diamond scan when its existing label-reference
+  map is empty. This skips the diamond transform family for functions with no direct jumps,
+  without adding an opcode check to the instruction walk. Two focused native Release tests and
+  the rotating JIT `move_value_expression` file (15 tests) passed. Five alternated pairs gave
+  candidate/baseline ratios of 1.058 wall and 1.044 CPU for core rebuild, and 1.041 wall and
+  1.038 CPU for hello build; peak working-set ratios were 0.998 and 1.014. A reverse series
+  became unusable when unrelated load stretched a baseline rebuild to 42.8 seconds. With no
+  observed gain and a possible guardrail regression, the gate was reverted.
+- Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
+  tests, then stopped on a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
+  casts. The pre-campaign compiler build 1131 reproduced that error on unchanged GUI sources.
+  A final five-run four-workload timing attempt was stopped after three runs:
+  unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
+  build from 3.0 to 9.2 seconds. These samples support no final percentage speedup claim.
+- A final three-pair, order-alternated comparison of build 1131 with build 1140 on the same
+  checkout measured final/initial ratios of 1.035 wall, 1.051 CPU and 1.010 peak working set
+  for core rebuild; hello build measured 1.005 wall, 1.000 CPU and 1.011 peak working set.
+  Several other compiler changes landed between those versions, and the shared machine drifted
+  during the campaign. This end-to-end comparison neither proves a speedup nor attributes the
+  small slowdown to one batch. The remaining distance to the subsecond core target is large.
+- A separate final three-run check of build 1140 gave a warm no-op median of 78.1 ms
+  (all three runs below the 100 ms guardrail) and a touched-file median of 3,241.7 ms.
+  In the paired comparison above, the final compiler's core-rebuild median was 4,890.1 ms
+  and hello-build median was 244.0 ms. These are noisy three-run observations, not the
+  five-run quiet-machine baseline required for a stable target claim.
+- Ruled out on 2026-09-25: tracking changes since the last graph invalidation instead of using
+  the pass-wide `changed` flag at each synchronization point. A Release 1142 core profile put
+  `MicroBranchSimplifyPass::run` at 10.27% and `MicroControlFlowGraph::build` at 3.35% of
+  sampled worker CPU, so the predicted whole-build saving was below 1%. The Release 1143 trial
+  passed two focused native files and a randomly drawn JIT file (12 tests), but five loaded
+  A/B pairs gave `core_rebuild` candidate/baseline ratios of 1.249 wall and 1.234 CPU, while
+  `core_touch` gave 0.808 wall and 0.872 CPU. A follow-up candidate core rebuild took 39.7 and
+  39.9 seconds, yet the restored baseline also took 49.5 seconds during the complete Release
+  suite. Five A/A pairs of byte-identical binaries gave 1.000 wall and 1.044 CPU, with individual
+  builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
+  machine load or establish a repeatable benefit. The change and version bump were reverted;
+  The [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
+- Taken on 2026-09-26 under prompt 4: the existing program-layout scan now also records whether
+  any label exists. The branch pass skips jump-threading, immediate-label, inverted-jump, CFG
+  reachability and unused-label sweeps when their required label is absent; it skips the diamond
+  family when the current layout has no conditional jump. Each guard uses already collected layout
+  state and falls back to the original path after a rewrite. Focused native Release tests passed,
+  as did the full 3,480 native and 1,500 JIT test suites. Five order-alternated four-workload pairs
+  against the earlier campaign binary were too variable for a speedup claim: candidate medians were
+  2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
+  2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
+  error in `std/gui`, since fixed by preserving generated `is` cast source views; the
+  pre-campaign master compiler also reproduced it.
+- A second prompt-4 group on the merged master uses that same layout to skip range-check,
+  range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
+  jump or setcc is absent. The 3,480 native and 1,500 JIT Release tests passed. A five-pair A/B
+  sweep was disrupted by shared load: core rebuilds grew from about 2 to 5-7 seconds during it.
+  Candidate/baseline medians were 2,067/2,082 ms for core rebuild, 44/49 ms for no-op,
+  1,830/1,929 ms for core touch and 126/120 ms for hello. This supports no percentage claim.
+- A third prompt-4 group skips rich branch-reference scans for float selects, equality chains and
+  packed switches when their required opcodes are absent. It also skips implied-branch label maps
+  without an immediate compare and stores each label's reference count and jump position in one
+  map instead of two. Focused tests, 3,480 native and 1,500 JIT Release tests passed. Five paired
+  core rebuild medians were 3,151 ms candidate and 2,996 ms baseline under variable load; hello
+  medians were 167 and 189 ms, but a seven-pair role-reversed hello series gave 181 and 187 ms
+  with slightly higher candidate CPU. No speedup percentage is established. The full Release
+  campaign again reached the `std/gui` error later fixed by preserving generated `is` cast
+  source views.
+- A fourth prompt-4 group skips settled register-allocation sweeps after checking for remaining
+  virtual operands, defers implied-branch and jump-chain cycle sets, builds packed-switch jump
+  counts only for qualifying chains, delays range-check used-set work until the opcode shape
+  matches, and constructs short-circuit scratch maps only on paths that use them. Focused Release
+  tests passed; after merging master `f196225e0`, 3,481 native and 1,500 JIT tests passed. The
+  full Release campaign compiled `std/gui` and stopped in `std/video` because
+  `Slice.predictIntraPlane` still changed after 24 pre-RA sweeps. The unmodified master compiler
+  at `f196225e0` reproduced that exact failure with a video rebuild. Five order-alternated
+  four-workload pairs against that master gave candidate/baseline medians of 3,357/3,426 ms
+  core rebuild, 89/65 ms no-op, 2,734/2,576 ms core touch, and 245/242 ms hello. One touch
+  took 35 seconds and one no-op 1.55 seconds under shared load; these samples establish no
+  speedup percentage or stable regression.
+- A fifth prompt-4 group defers the short-circuit fallthrough-label map and boolean-guard
+  claimed-reference set, skips two diamond reference scans without a conditional jump, and uses
+  existing layout flags to skip range and boolean-threading scans without their required
+  immediate compare or setcc. Focused tests, 3,481 native and 1,500 JIT Release tests passed,
+  including after merging master `0308e681d`. Five order-alternated pairs against the preceding
+  integrated master `43766f77f` gave candidate/baseline medians of 2,269/2,304 ms core rebuild,
+  46/57 ms no-op, 2,460/1,904 ms core touch and 152/145 ms hello. Paired rebuild and touch
+  ratios were near one, individual touch runs ranged from 1.8 to 4.0 seconds, and the samples
+  establish no percentage speedup. A fresh `std/video` rebuild still stops at the 24-sweep
+  `Slice.predictIntraPlane` error; compiler `01e0d9e59`, before both recent master changes and
+  these two prompt-4 groups, reproduces the same error.
+- The 2026-09-28 prompt-4 continuation reuses the current branch scan's register-mention counts
+  in short-circuit and range-AND folding, avoiding their separate whole-function counts when no
+  preceding rewrite invalidated the scan. OR-chain and packed-switch candidate maps also reuse
+  buckets within a run. Focused Release checks and the full 3,483 native and 1,500 JIT suites
+  passed; elapsed time, CPU, and retained-memory effects remain unmeasured.
+- The October 7 prompt-4 pass removes late branch scans' unused register-mention counts and
+  shares layout with short-circuit return threading. Related backend work initializes combiner
+  temporary indices once, defers boolean-merge facts and memory/flag proofs until a candidate
+  needs them, sorts the initial interval queue once, and skips edge and rematerialization
+  analysis for unsplit values. Definition indexing starts only when a rematerialization candidate
+  needs it; address shapes precede SSA-use counting, and comparison patterns stop their neighbor
+  walks at the first mismatched opcode. Release `swc.exe` passed the 293 native optimizer tests
+  in the Release program configuration throughout. The final revision passed 3,651 native tests
+  in the guarded program configuration; a preceding milestone, already incorporating the
+  unused-binding syntax change, passed 1,515 JIT tests. Static instruction
+  comparisons retained the tested function bodies; optional constant-call folding and the
+  imported test-source edits changed some test wrappers. No elapsed-time, CPU or peak-memory
+  measurements were taken. Reprofile before attributing a new pass share or claiming the threshold
+  below.
+- Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
+  rather than this entry's. For this entry, the remaining lever is structural — running the
+  pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
+  `lateBranchSimplifyPass_` already does for three transforms. That changes what the optimizer
+  produces, so it needs the benchmark, not just a compile-time measurement.
+- Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
+  drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
+- Related: compiler.optimization.029, compiler.optimization.039.
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 
 - Recorded: 2026-09-25 11:15
@@ -1272,209 +1477,3 @@ new language syntax.
 - Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
 - Next: compare the issued short-key path against the C runtime used by LDC and recheck the wordfreq ratio only after further static gains, since the larger generic fallback alone does not establish a benchmark speedup.
 - Complete when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.
-
-### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
-
-- Recorded: 2026-09-23 09:25
-- Updated: 2026-10-07 19:55 — Deferred candidate-only analyses and stopped mismatched pattern walks; the measured pass share remains open.
-- Area: compiler/backend, compilation time
-- Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
-  --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
-  branch simplification alone is 16.2 s of it, **24.8%**, across 72,546 runs of which 38.6%
-  rewrite something. The next pass is register allocation at 11.3%, then instruction combine
-  at 7.9%. A six-worker stack profile of the same build puts the pass at 12.9% of busy CPU,
-  spread over some twenty sub-transforms none of which reaches 1.5% — there is no hot spot,
-  only a battery of scans.
-- How it got there: the cold release rebuild of the big modules slowed by half in one week at
-  unchanged sources. Paired, order-alternated rebuilds give gui 12.3 s → 18.4 s and pixel
-  6.5 s → 11.1 s between 0.1.684 (2026-09-16) and 0.1.1035 (2026-09-21), while gui's sources
-  moved from 105,315 to 105,483 lines. Bisecting the same measurement puts 0.1.823
-  (2026-09-17 01:33) still at the old speed and 0.1.885 (2026-09-17 13:29) already at the new
-  one — the window that added some fifty narrowing, diamond and short-circuit patterns.
-- Taken in 0.1.1046: seven transforms opened on the same walk of the function and ten more
-  rebuilt the same jump-target counts and relocation set; one shared walk now serves a run and
-  is dropped when a transform rewrites the stream. Single-core, alternated: core 0.97, pixel
-  0.93, gui 0.95, video 0.92, seven of eight pairs favourable. `buildProgramLayout` fell from
-  1.67% to 0.73% of busy CPU.
-- What remains: the pass still runs about thirty-seven transforms, and each one scans the whole
-  function looking for a shape most functions do not hold. The cost is therefore the number of
-  patterns times the size of every function compiled, which is why a pattern campaign shows up
-  as a compile-time regression with no single culprit.
-- Measured, and the obvious gate is not worth it: instrumenting the pass over the same rebuild,
-  38 592 runs land on a function holding no conditional jump at all and cost 2.42 s of the pass's
-  33.1 s — **7.3%**, about 0.9% of the compilation. Gating them would also have to spare the
-  structural loop, which threads unconditional jump chains and erases unreachable code in exactly
-  those functions, so the reachable share is smaller still. Do not spend a gate on it.
-- What the same probe does say: a run on a 28-instruction branchless function still costs 63 us,
-  against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
-  entering some thirty-seven transforms, each with its own scratch containers — that does not
-  scale with the function. That, not the scanning, is what a pattern campaign multiplies.
-- Where the fixed cost was (timed per transform, 0.1.1047): fourteen transforms opened by asking
-  for the next free virtual integer register index, which walks every instruction and collects
-  every register operand, and then used it only when the transform actually rewrote something;
-  the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
-  lists per register, read only after three filters had matched. Collecting both on first request
-  took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
-- The same shape again, taken in 0.1.1048: `areCpuFlagsDeadAfterInCfg` mapped an instruction
-  reference back to its graph index with a linear search of the graph's instruction list, and
-  eleven sites ask it once per candidate they examine - quadratic in the function.
-  `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
-- Ranking at 0.1.1048, as a share of the pass: `fuseMaterializedBoolBranches` 10.6%, rebuilding
-  SSA through `MicroSsaState::ensureFor` 10.3%, `convertEqualityChainsToBitTests` 9.9%,
-  `convertGuardedSelectDiamonds` 8.9% (which rebuilds SSA of its own), `coalesceShortCircuitResults`
-  7.2%, and a tail of thirty-odd transforms under 4% each. The measured quadratic and virtual-register
-  prologues were removed; what remains is the cost of asking thirty-seven questions about every function.
-- Taken in 0.1.1136: equality-chain bit tests, packed switches, three-way signs and repeated memory
-  compares had each built a hash set from the same relocation list. They now share one index while
-  the instruction stream is unchanged and rebuild it after a rewrite. A run without rewrites makes
-  one relocation walk instead of four; the transforms consult the same instruction references as
-  before. Four focused native Release tests and one rotating JIT test passed. Five order-alternated
-  pairs against the same master source gave candidate/baseline wall and CPU ratios of 0.836/0.763
-  for core rebuild, 0.968/0.969 for core touch and 0.860/0.955 for hello build; the no-op guardrail
-  stayed below 100 ms. Rebuild times drifted from 1.8 to 3.4 s during the run, so this is a
-  correctness-certified structural saving, below the measurement floor rather than a claimed
-  percentage speedup. Peak working-set ratios were 0.992, 1.000 and 0.983 for those three builds.
-- Taken in 0.1.1138: `coalesceShortCircuitResults` and `threadShortCircuitExits` each rebuilt the
-  program layout in every short-circuit round. They now use the same layout when coalescing makes
-  no change, and rebuild it when coalescing rewrites the stream. This removes one full instruction
-  walk from each unchanged round, with no change to either transformation. The prior profile put
-  all `buildProgramLayout` calls at 0.73% of busy CPU, so this is expected below the whole-build
-  timing floor. The focused `short_circuit_booleans` and `short_circuit_past_join` native Release
-  tests passed; the rotating `std/core` TweakFile file ran four passing tests. On the rebased master,
-  five order-alternated pairs gave candidate/baseline core-touch ratios of 1.013 wall and 0.989
-  CPU. Hello-build ratios of 1.126 wall and 1.150 CPU reversed in a second seven-pair run with
-  A/B roles swapped: 0.995 wall and 0.857 CPU. The series therefore supports no percentage claim.
-  Peak working-set ratios were 1.014 for core touch and 1.034 for hello build in the five-pair run.
-- Ruled out on 2026-09-24: recording whether each function has `SetCondReg` in the shared branch
-  scan and using it to skip the equality-chain, branchless-or and three-way-sign transforms when
-  none exists. This requires one extra opcode comparison per instruction in every branch scan.
-  The three focused native Release tests and a rotating JIT test passed, but five alternated pairs
-  measured candidate/baseline at 1.090 wall and 1.030 CPU for core rebuild, and 1.144 wall and
-  1.190 CPU for hello build. Peak working-set ratios were 1.010 and 0.993. An earlier sweep was
-  discarded when unrelated machine load stretched one rebuild to 29.5 s. The completed sweep still
-  shows the always-paid scan cost outweighing the scans avoided here; the gate was reverted.
-- Taken in 0.1.1140: the early unused-label sweep reused the pass's relocation-reference index
-  instead of walking the same relocation list and allocating another hash set. A run without
-  rewrites now builds this index once for the early sweep and the later equality-chain, packed-switch,
-  three-way-sign and repeated-memory-compare transforms. The index is invalidated after a rewrite.
-  The focused native Release branch-simplification and packed-switch files passed, as did four
-  tests in the rotating JIT `defer.catch` file. Three order-alternated pairs against the same
-  master source gave candidate/baseline core-rebuild ratios of 0.985 wall, 0.944 CPU and 1.005
-  peak working set. Hello-build ratios of 1.198 wall and 1.244 CPU reversed in a seven-pair run
-  with A/B roles swapped: baseline/candidate 0.999 wall and 1.036 CPU. Other attempted pairs
-  were discarded when shared-machine load stretched individual builds to 26-35 seconds. The
-  saving is therefore below the measurement floor, with no percentage speedup claim or stable
-  memory regression.
-- Ruled out on 2026-09-24: returning an unusable diamond scan when its existing label-reference
-  map is empty. This skips the diamond transform family for functions with no direct jumps,
-  without adding an opcode check to the instruction walk. Two focused native Release tests and
-  the rotating JIT `move_value_expression` file (15 tests) passed. Five alternated pairs gave
-  candidate/baseline ratios of 1.058 wall and 1.044 CPU for core rebuild, and 1.041 wall and
-  1.038 CPU for hello build; peak working-set ratios were 0.998 and 1.014. A reverse series
-  became unusable when unrelated load stretched a baseline rebuild to 42.8 seconds. With no
-  observed gain and a possible guardrail regression, the gate was reverted.
-- Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
-  tests, then stopped on a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
-  casts. The pre-campaign compiler build 1131 reproduced that error on unchanged GUI sources.
-  A final five-run four-workload timing attempt was stopped after three runs:
-  unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
-  build from 3.0 to 9.2 seconds. These samples support no final percentage speedup claim.
-- A final three-pair, order-alternated comparison of build 1131 with build 1140 on the same
-  checkout measured final/initial ratios of 1.035 wall, 1.051 CPU and 1.010 peak working set
-  for core rebuild; hello build measured 1.005 wall, 1.000 CPU and 1.011 peak working set.
-  Several other compiler changes landed between those versions, and the shared machine drifted
-  during the campaign. This end-to-end comparison neither proves a speedup nor attributes the
-  small slowdown to one batch. The remaining distance to the subsecond core target is large.
-- A separate final three-run check of build 1140 gave a warm no-op median of 78.1 ms
-  (all three runs below the 100 ms guardrail) and a touched-file median of 3,241.7 ms.
-  In the paired comparison above, the final compiler's core-rebuild median was 4,890.1 ms
-  and hello-build median was 244.0 ms. These are noisy three-run observations, not the
-  five-run quiet-machine baseline required for a stable target claim.
-- Ruled out on 2026-09-25: tracking changes since the last graph invalidation instead of using
-  the pass-wide `changed` flag at each synchronization point. A Release 1142 core profile put
-  `MicroBranchSimplifyPass::run` at 10.27% and `MicroControlFlowGraph::build` at 3.35% of
-  sampled worker CPU, so the predicted whole-build saving was below 1%. The Release 1143 trial
-  passed two focused native files and a randomly drawn JIT file (12 tests), but five loaded
-  A/B pairs gave `core_rebuild` candidate/baseline ratios of 1.249 wall and 1.234 CPU, while
-  `core_touch` gave 0.808 wall and 0.872 CPU. A follow-up candidate core rebuild took 39.7 and
-  39.9 seconds, yet the restored baseline also took 49.5 seconds during the complete Release
-  suite. Five A/A pairs of byte-identical binaries gave 1.000 wall and 1.044 CPU, with individual
-  builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
-  machine load or establish a repeatable benefit. The change and version bump were reverted;
-  The [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
-- Taken on 2026-09-26 under prompt 4: the existing program-layout scan now also records whether
-  any label exists. The branch pass skips jump-threading, immediate-label, inverted-jump, CFG
-  reachability and unused-label sweeps when their required label is absent; it skips the diamond
-  family when the current layout has no conditional jump. Each guard uses already collected layout
-  state and falls back to the original path after a rewrite. Focused native Release tests passed,
-  as did the full 3,480 native and 1,500 JIT test suites. Five order-alternated four-workload pairs
-  against the earlier campaign binary were too variable for a speedup claim: candidate medians were
-  2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
-  2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
-  error in `std/gui`, since fixed by preserving generated `is` cast source views; the
-  pre-campaign master compiler also reproduced it.
-- A second prompt-4 group on the merged master uses that same layout to skip range-check,
-  range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
-  jump or setcc is absent. The 3,480 native and 1,500 JIT Release tests passed. A five-pair A/B
-  sweep was disrupted by shared load: core rebuilds grew from about 2 to 5-7 seconds during it.
-  Candidate/baseline medians were 2,067/2,082 ms for core rebuild, 44/49 ms for no-op,
-  1,830/1,929 ms for core touch and 126/120 ms for hello. This supports no percentage claim.
-- A third prompt-4 group skips rich branch-reference scans for float selects, equality chains and
-  packed switches when their required opcodes are absent. It also skips implied-branch label maps
-  without an immediate compare and stores each label's reference count and jump position in one
-  map instead of two. Focused tests, 3,480 native and 1,500 JIT Release tests passed. Five paired
-  core rebuild medians were 3,151 ms candidate and 2,996 ms baseline under variable load; hello
-  medians were 167 and 189 ms, but a seven-pair role-reversed hello series gave 181 and 187 ms
-  with slightly higher candidate CPU. No speedup percentage is established. The full Release
-  campaign again reached the `std/gui` error later fixed by preserving generated `is` cast
-  source views.
-- A fourth prompt-4 group skips settled register-allocation sweeps after checking for remaining
-  virtual operands, defers implied-branch and jump-chain cycle sets, builds packed-switch jump
-  counts only for qualifying chains, delays range-check used-set work until the opcode shape
-  matches, and constructs short-circuit scratch maps only on paths that use them. Focused Release
-  tests passed; after merging master `f196225e0`, 3,481 native and 1,500 JIT tests passed. The
-  full Release campaign compiled `std/gui` and stopped in `std/video` because
-  `Slice.predictIntraPlane` still changed after 24 pre-RA sweeps. The unmodified master compiler
-  at `f196225e0` reproduced that exact failure with a video rebuild. Five order-alternated
-  four-workload pairs against that master gave candidate/baseline medians of 3,357/3,426 ms
-  core rebuild, 89/65 ms no-op, 2,734/2,576 ms core touch, and 245/242 ms hello. One touch
-  took 35 seconds and one no-op 1.55 seconds under shared load; these samples establish no
-  speedup percentage or stable regression.
-- A fifth prompt-4 group defers the short-circuit fallthrough-label map and boolean-guard
-  claimed-reference set, skips two diamond reference scans without a conditional jump, and uses
-  existing layout flags to skip range and boolean-threading scans without their required
-  immediate compare or setcc. Focused tests, 3,481 native and 1,500 JIT Release tests passed,
-  including after merging master `0308e681d`. Five order-alternated pairs against the preceding
-  integrated master `43766f77f` gave candidate/baseline medians of 2,269/2,304 ms core rebuild,
-  46/57 ms no-op, 2,460/1,904 ms core touch and 152/145 ms hello. Paired rebuild and touch
-  ratios were near one, individual touch runs ranged from 1.8 to 4.0 seconds, and the samples
-  establish no percentage speedup. A fresh `std/video` rebuild still stops at the 24-sweep
-  `Slice.predictIntraPlane` error; compiler `01e0d9e59`, before both recent master changes and
-  these two prompt-4 groups, reproduces the same error.
-- The 2026-09-28 prompt-4 continuation reuses the current branch scan's register-mention counts
-  in short-circuit and range-AND folding, avoiding their separate whole-function counts when no
-  preceding rewrite invalidated the scan. OR-chain and packed-switch candidate maps also reuse
-  buckets within a run. Focused Release checks and the full 3,483 native and 1,500 JIT suites
-  passed; elapsed time, CPU, and retained-memory effects remain unmeasured.
-- The October 7 prompt-4 pass removes late branch scans' unused register-mention counts and
-  shares layout with short-circuit return threading. Related backend work initializes combiner
-  temporary indices once, defers boolean-merge facts and memory/flag proofs until a candidate
-  needs them, sorts the initial interval queue once, and skips edge and rematerialization
-  analysis for unsplit values. Definition indexing starts only when a rematerialization candidate
-  needs it; address shapes precede SSA-use counting, and comparison patterns stop their neighbor
-  walks at the first mismatched opcode. Release `swc.exe` passed the 293 native optimizer tests
-  in the Release program configuration throughout. The final revision passed 3,651 native tests
-  in the guarded program configuration; a preceding milestone, already incorporating the
-  unused-binding syntax change, passed 1,515 JIT tests. Static instruction
-  comparisons retained the tested function bodies; optional constant-call folding and the
-  imported test-source edits changed some test wrappers. No elapsed-time, CPU or peak-memory
-  measurements were taken. Reprofile before attributing a new pass share or claiming the threshold
-  below.
-- Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
-  rather than this entry's. For this entry, the remaining lever is structural — running the
-  pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
-  `lateBranchSimplifyPass_` already does for three transforms. That changes what the optimizer
-  produces, so it needs the benchmark, not just a compile-time measurement.
-- Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
-  drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
-- Related: compiler.optimization.029, compiler.optimization.039.

@@ -1208,6 +1208,8 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
             return reportConflictingArgument(ctx, "--workspace", "--work-dir");
         if (!cmdLine_->exportApiDir.empty())
             return reportConflictingArgument(ctx, "--workspace", "--export-api-dir");
+        if (!cmdLine_->editorIndex.empty())
+            return reportConflictingArgument(ctx, "--workspace", "--editor-index");
     }
 
     // A module directory selects its setup file and conventional sources. Normalize it before
@@ -1233,7 +1235,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiFiles, FileSystem::resolveFile));
 
     if (!cmdLine_->scriptMode &&
-        cmdLine_->command == CommandKind::Run &&
+        (cmdLine_->command == CommandKind::Run || (cmdLine_->command == CommandKind::Sema && !cmdLine_->editorIndex.empty())) &&
         cmdLine_->moduleFilePath.empty() &&
         cmdLine_->modulePath.empty() &&
         cmdLine_->workspacePath.empty() &&

@@ -130,6 +130,7 @@ impl Array
     mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
+        // Preserve an aliased source before clearing the destination.
         let countof = arr.count
         if countof and .buffer
         {
@@ -307,7 +308,10 @@ impl Array
         if not num do
             return
 
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
+        #static if Reflection.hasDrop(T) or
+                   Reflection.hasPostCopy(T) or
+                   Reflection.hasPostMove(T) or
+                   Reflection.hasDynamicStorage(T)
         {
             Swag.init(.buffer + index, num)
         }
@@ -517,7 +521,9 @@ impl Array
         }
         else
         {
-            Memory.copyOverlapping(buffer + index + sliceCount, buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(buffer + index + sliceCount,
+                                   buffer + index,
+                                   #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
@@ -562,7 +568,9 @@ impl Array
         }
         else
         {
-            Memory.copyOverlapping(buffer + index + values.count, buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(buffer + index + values.count,
+                                   buffer + index,
+                                   #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
@@ -726,7 +734,9 @@ impl Array
         }
         else
         {
-            Memory.copyOverlapping(.buffer + index, .buffer + index + numValues, #sizeof(T) * (.count - index))
+            Memory.copyOverlapping(.buffer + index,
+                                   .buffer + index + numValues,
+                                   #sizeof(T) * (.count - index))
         }
     }
 

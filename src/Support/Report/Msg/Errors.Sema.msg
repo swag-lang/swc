@@ -9,6 +9,7 @@ SWC_DIAG_DEF(sema_err_invalid_type, Error, "expression has type '{type}', but th
 SWC_DIAG_DEF(sema_err_invalid_range_type, Error, "range bound has type '{type}', but ranges require an integer or float; [help] use integer or float bounds on both sides of the range")
 SWC_DIAG_DEF(sema_err_expected_type_fam, Error, "expression has type '{type}', but this context needs {a-requested-type-fam} type")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "cannot cast from '{type}' to '{requested-type}'")
+SWC_DIAG_DEF(sema_err_cannot_cast, Error, "value for field '{value}' of '{decl-sym}' has type '{type}', but the field needs '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' has type '{type}', but parameter '{param}' needs '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' {what}")
 SWC_DIAG_DEF(sema_err_cast_unrelated_structs, Error, "cannot cast from '{type}' to '{requested-type}'; neither struct composes the other with 'using'; [help] cast through '*void' when the reinterpretation is intended")

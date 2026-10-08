@@ -557,6 +557,17 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequ
         return Result::Continue;
     }
 
+    // A struct literal converted to a struct folds field by field inside 'castAllowed', each field
+    // through this same function. When that fold produces nothing, some field is built at run
+    // time, and the literal is constructed by code generation from its own field expressions. A
+    // synthetic node would hold the literal's value without those expressions, so its cast would
+    // follow the rules of a stored value and refuse the field conversions the literal performs.
+    if (sema.typeMgr().get(srcTypeRef).isAggregateStruct() && sema.typeMgr().get(targetTypeRef).isStruct())
+    {
+        result = ConstantRef::invalid();
+        return Result::Continue;
+    }
+
     const AstNodeRef syntheticNodeRef = makeSyntheticConstantNode(sema, cstRef, srcTypeRef, castRequest.errorNodeRef);
     SemaNodeView     syntheticView(sema, syntheticNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     SWC_RESULT(cast(sema, syntheticView, targetTypeRef, castRequest.kind, castRequest.flags));

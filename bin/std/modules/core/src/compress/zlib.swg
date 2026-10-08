@@ -40,10 +40,10 @@ impl ZLib
         try .encoder.compress(&result, buffer)
 
         let checksum = .encoder.adler.value()
-        result.add(cast(u8, ((checksum >> 24) & 0xFF)))
-        result.add(cast(u8, ((checksum >> 16) & 0xFF)))
-        result.add(cast(u8, ((checksum >> 8) & 0xFF)))
-        result.add(cast(u8, (checksum & 0xFF)))
+        result.add(Math.byteAt(checksum, 3))
+        result.add(Math.byteAt(checksum, 2))
+        result.add(Math.byteAt(checksum, 1))
+        result.add(Math.byteAt(checksum, 0))
 
         return result
     }
@@ -83,10 +83,8 @@ impl ZLib
 
         // The Adler-32 trailer follows the Deflate data at the next byte boundary.
         .decoder.stream.discardToNextByte()
-        let adler32 = .decoder.stream.readBits(8) << 24 |
-                      .decoder.stream.readBits(8) << 16 |
-                      .decoder.stream.readBits(8) << 8 |
-                      .decoder.stream.readBits(8)
+        var adler32: u32
+        .decoder.stream.read32Be(cast([*] u8, &adler32))
         if adler32 != .decoder.adler.value() do
             fail InvalidFormatError{"invalid checksum"}
 

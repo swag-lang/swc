@@ -6,7 +6,7 @@
 #global namespace Compress
 #global #[Swag.Safety(.Overflow, false)]
 
-using Core.Errors
+using Core.Errors, Math
 
 internal
 {
@@ -126,38 +126,49 @@ internal
 
     struct Compressor
     {
-        compressFlags:    u32                                     // Probe count in the low 12 bits, plus the parsing and block flags.
-        maxProbes:        [2] u32                                 // Hash-chain probes per search, before and after a 32-byte match is found.
-        greedyParsing:    bool                                    // Whether a match is taken at once instead of lazily checking the next position.
-        lookaheadPos:     u32                                     // Dictionary position of the first byte not yet coded.
-        lookaheadSize:    u32                                     // Number of buffered bytes not yet coded.
-        dictSize:         u32                                     // Number of already coded bytes a match can reach back into.
-        lzCodeBufAddr:    [*] u8?                                 // Next free byte of 'lzCodeBuf'.
-        lzFlags:          *u8?                                    // Flag byte of the current group of eight records, one bit per match.
-        outputBufAddr:    [*] u8?                                 // Next output byte of the block being coded.
-        outputBufEndAddr: [*] u8?                                 // Limit past which a block no longer fits the output buffer.
-        numFlagsLeft:     u32                                     // Records left before 'lzFlags' is full.
-        totalLzBytes:     u32                                     // Input bytes covered by the pending records.
-        lzCodeBufDictPos: u32                                     // Dictionary position of the first byte covered by the pending records.
-        bitsIn:           u32                                     // Number of valid bits in 'bitBuffer'.
-        bitBuffer:        u32                                     // Output bits not yet written as a whole byte.
-        savedMatchDist:   u32                                     // Distance of the match deferred by lazy parsing.
-        savedMatchLen:    u32                                     // Length of the match deferred by lazy parsing, or zero.
-        savedLit:         u32                                     // Literal to emit if the deferred match loses to the next one.
-        inSrc:            const [*] u8?                           // Next source byte to load into the dictionary.
-        srcBufLeft:       u64                                     // Number of source bytes not yet loaded.
-        outBufOfs:        u64                                     // Offset in 'result' where the next block is written.
-        dict:             [LzDictSize + MaxMatchLen - 1] u8       // Sliding window; its last 'MaxMatchLen - 1' bytes mirror its first ones.
-        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16     // Symbol frequencies of the literal/length, distance, and code-length tables.
-        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16     // Huffman code of each symbol, bit-reversed for output.
-        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8      // Huffman code length of each symbol.
-        lzCodeBuf:        [LzCodeBufSize] u8                      // Pending literal and match records of the current block.
-        next:             [LzDictSize] u16                        // Previous position with the same four-byte hash, per dictionary position.
-        hash:             [LzHashSize] u16                        // Most recent position of each four-byte hash.
-        hash3:            [LzHashSize] u16                        // Most recent position of each three-byte sequence.
-        prev3:            [LzDictSize] u16                        // Position that held a three-byte sequence before this one.
-        outputBuf:        [OutBufSize] u8                         // Staging buffer used when 'result' lacks room for a whole block.
-        result:           *Array'u8?                              // Destination of the compressed stream.
+        compressFlags: u32         // Probe count in the low 12 bits, plus the parsing and block flags.
+        maxProbes:     [2] u32     // Probe limits before and after finding a 32-byte match.
+        greedyParsing: bool        // Takes a match immediately instead of checking the next position.
+
+        lookaheadPos:     u32         // Dictionary position of the first byte not yet coded.
+        lookaheadSize:    u32         // Number of buffered bytes not yet coded.
+        dictSize:         u32         // Number of already coded bytes a match can reach back into.
+        lzCodeBufAddr:    [*] u8?     // Next free byte of 'lzCodeBuf'.
+        lzFlags:          *u8?        // Flag byte of the current group of eight records, one bit per match.
+        outputBufAddr:    [*] u8?     // Next output byte of the block being coded.
+        outputBufEndAddr: [*] u8?     // Limit past which a block no longer fits the output buffer.
+        numFlagsLeft:     u32         // Records left before 'lzFlags' is full.
+        totalLzBytes:     u32         // Input bytes covered by the pending records.
+        lzCodeBufDictPos: u32         // Dictionary position of the first byte covered by the pending records.
+
+        bitsIn:    u32     // Number of valid bits in 'bitBuffer'.
+        bitBuffer: u32     // Output bits not yet written as a whole byte.
+
+        savedMatchDist: u32     // Distance of the match deferred by lazy parsing.
+        savedMatchLen:  u32     // Length of the match deferred by lazy parsing, or zero.
+        savedLit:       u32     // Literal to emit if the deferred match loses to the next one.
+
+        inSrc:      const [*] u8?     // Next source byte to load into the dictionary.
+        srcBufLeft: u64     // Number of source bytes not yet loaded.
+        outBufOfs:  u64     // Offset in 'result' where the next block is written.
+
+        // Sliding window; the last 'MaxMatchLen - 1' bytes mirror the beginning.
+        dict: [LzDictSize + MaxMatchLen - 1] u8
+
+        // Frequencies for the literal/length, distance, and code-length tables.
+        huffCount:     [MaxHuffTables, MaxHuffSymbols] u16
+        huffCodes:     [MaxHuffTables, MaxHuffSymbols] u16     // Huffman code of each symbol, bit-reversed for output.
+        huffCodeSizes: [MaxHuffTables, MaxHuffSymbols] u8      // Huffman code length of each symbol.
+
+        lzCodeBuf: [LzCodeBufSize] u8     // Pending literal and match records of the current block.
+
+        next:  [LzDictSize] u16     // Previous position with the same four-byte hash, per dictionary position.
+        hash:  [LzHashSize] u16     // Most recent position of each four-byte hash.
+        hash3: [LzHashSize] u16     // Most recent position of each three-byte sequence.
+        prev3: [LzDictSize] u16     // Position that held a three-byte sequence before this one.
+
+        outputBuf: [OutBufSize] u8     // Staging buffer used when 'result' lacks room for a whole block.
+        result:    *Array'u8?          // Destination of the compressed stream.
     }
 }
 
@@ -206,16 +217,18 @@ impl Deflate
 
     mtd setup(flags: u32)
     {
-        let d = .state!
-        d.compressFlags    = flags
-        d.maxProbes[0]     = 1 + ((flags & 0xFFF) + 2) / 3
-        d.greedyParsing    = (flags & GreedyParsing) != 0
-        d.maxProbes[1]     = 1 + (((flags & 0xFFF) >> 2) + 2) / 3
-        d.lzCodeBufAddr    = &d.lzCodeBuf[1]
-        d.lzFlags          = &d.lzCodeBuf[0]
-        d.numFlagsLeft     = 8
-        d.outputBufAddr    = d.outputBuf
-        d.outputBufEndAddr = d.outputBuf
+        with let state = .state!
+        {
+            .compressFlags    = flags
+            .maxProbes[0]     = 1 + ((flags & 0xFFF) + 2) / 3
+            .greedyParsing    = (flags & GreedyParsing) != 0
+            .maxProbes[1]     = 1 + (((flags & 0xFFF) >> 2) + 2) / 3
+            .lzCodeBufAddr    = &.lzCodeBuf[1]
+            .lzFlags          = &.lzCodeBuf[0]
+            .numFlagsLeft     = 8
+            .outputBufAddr    = .outputBuf
+            .outputBufEndAddr = .outputBuf
+        }
     }
 
     mtd recordLiteral(lit: u8)
@@ -251,8 +264,8 @@ impl Deflate
         lzCodeBufAddr[0] = cast(u8, (matchLen - MinMatchLen))
 
         matchDist        -= 1
-        lzCodeBufAddr[1] = cast(u8, (matchDist & 0xFF))
-        lzCodeBufAddr[2] = cast(u8, (matchDist >> 8))
+        lzCodeBufAddr[1] = Math.byteAt(matchDist, 0)
+        lzCodeBufAddr[2] = Math.byteAt(matchDist, 1)
         d.lzCodeBufAddr  += 3
 
         let lzFlags = d.lzFlags!
@@ -280,11 +293,11 @@ impl Deflate
         var matchLen = matchLenAddr[]
         var probePos = pos
 
-        var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
-        var s: [*] u8     = &d.dict[0]
-        s += pos
-        var c0 = d.dict[pos + matchLen]
-        var c1 = d.dict[pos + matchLen - 1]
+        var numProbesLeft   = d.maxProbes[matchLen >= 32 ? 1 : 0]
+        var current: [*] u8 = &d.dict[0]
+        current += pos
+        var nextByte = d.dict[pos + matchLen]
+        var lastByte = d.dict[pos + matchLen - 1]
 
         if maxMatchLen <= matchLen do
             return
@@ -310,7 +323,7 @@ impl Deflate
                     if dist > maxDist do
                         return
                     probePos = nextProbePos & LzDictSizeMask
-                    if (d.dict[probePos + matchLen] == c0) and (d.dict[probePos + matchLen - 1] == c1) do
+                    if (d.dict[probePos + matchLen] == nextByte) and (d.dict[probePos + matchLen - 1] == lastByte) do
                         break
                 }
 
@@ -322,25 +335,24 @@ impl Deflate
             if not dist do
                 break
 
-            var p         = s
-            var q: [*] u8 = &d.dict[0]
-            q += probePos
+            var candidate: [*] u8 = &d.dict[0]
+            candidate += probePos
             var probeLen: u32
-            while maxMatchLen - probeLen >= #sizeof(Math.Simd.U8x16)
+            while maxMatchLen - probeLen >= #sizeof(Simd.U8x16)
             {
-                let equalMask = Math.Simd.bitmask(Math.Simd.load(p + probeLen) == Math.Simd.load(q + probeLen))
+                let equalMask = Simd.bitmask(Simd.load(current + probeLen) == Simd.load(candidate + probeLen))
                 if equalMask != 0xFFFF
                 {
                     probeLen += Math.trailingZeros((~equalMask) & 0xFFFF)
                     break
                 }
 
-                probeLen += #sizeof(Math.Simd.U8x16)
+                probeLen += #sizeof(Simd.U8x16)
             }
 
             while probeLen < maxMatchLen
             {
-                if p[probeLen] != q[probeLen] do
+                if current[probeLen] != candidate[probeLen] do
                     break
                 probeLen += 1
             }
@@ -352,8 +364,8 @@ impl Deflate
                 matchLen        = probeLen
                 if matchLen == maxMatchLen do
                     return
-                c0 = d.dict[pos + matchLen]
-                c1 = d.dict[pos + matchLen - 1]
+                nextByte = d.dict[pos + matchLen]
+                lastByte = d.dict[pos + matchLen - 1]
             }
         }
     }
@@ -378,21 +390,21 @@ impl Deflate
             return
 
         let probePos = head & LzDictSizeMask
-        if d.dict[probePos] != d.dict[pos] or d.dict[probePos + 1] != d.dict[pos + 1] or d.dict[probePos + 2] != d.dict[pos + 2] do
+        if d.dict[probePos] != d.dict[pos] or
+           d.dict[probePos + 1] != d.dict[pos + 1] or
+           d.dict[probePos + 2] != d.dict[pos + 2] do
             return
 
         matchDistAddr[] = dist
         matchLenAddr[]  = MinMatchLen
     }
 
-    mtd putBits(b, l: u32)
+    mtd putBits(bits, bitCount: u32)
     {
-        let d    = .state!
-        let bits = b
-        let len  = l
+        let d = .state!
 
         d.bitBuffer |= (bits << d.bitsIn)
-        d.bitsIn    += len
+        d.bitsIn    += bitCount
         while d.bitsIn >= 8
         {
             if d.outputBufAddr < d.outputBufEndAddr
@@ -462,6 +474,7 @@ impl Deflate
             return
         }
 
+        // Combine the lowest weights, replacing consumed roots with parent links.
         symFreq[0].key += symFreq[1].key
         var root = 0
         var leaf = 2
@@ -492,33 +505,35 @@ impl Deflate
             }
         }
 
+        // Translate parent links into internal-node depths.
         symFreq[n - 2].key = 0
         for var next = n - 3; cast(s32, next) >= 0; next -= 1 do
             symFreq[next].key = cast(u16, (symFreq[symFreq[next].key].key + 1))
 
-        var avbl = 1
-        var used = 0
-        var dpth = 0
+        // Assign the available leaves at each depth their final code length.
+        var available = 1
+        var used      = 0
+        var depth     = 0
         root = n - 2
         var next = n - 1
-        while avbl > 0
+        while available > 0
         {
-            while root >= 0 and cast(s32, symFreq[root].key) == dpth
+            while root >= 0 and cast(s32, symFreq[root].key) == depth
             {
                 used += 1
                 root -= 1
             }
 
-            while avbl > used
+            while available > used
             {
-                symFreq[next].key = cast(u16, dpth)
-                next -= 1
-                avbl -= 1
+                symFreq[next].key = cast(u16, depth)
+                next              -= 1
+                available         -= 1
             }
 
-            avbl = 2 * used
-            dpth += 1
-            used = 0
+            available = 2 * used
+            depth     += 1
+            used      = 0
         }
     }
 
@@ -859,7 +874,7 @@ impl Deflate
             if flags & 1
             {
                 let matchLen  = cast(u32, lzCodes[0])
-                let matchDist = cast(u32, lzCodes[1]) | (cast(u32, lzCodes[2]) << 8)
+                let matchDist = cast(u32, Math.make16(lzCodes[2], lzCodes[1]))
                 lzCodes += 3
 
                 .putBits(cast(u32, d.huffCodes[0, LenSym[matchLen]]), cast(u32, d.huffCodeSizes[0, LenSym[matchLen]]))
@@ -992,6 +1007,21 @@ impl Deflate
         }
     }
 
+    mtd const shouldFlushBlock()->bool
+    {
+        let d = .state!
+        let recordsEnd = cast([*] u8, &d.lzCodeBuf[LzCodeBufSize - 8])
+        if d.lzCodeBufAddr > recordsEnd do
+            return true
+        if d.totalLzBytes <= 31 * 1024 do
+            return false
+
+        // Flush a large block when its records no longer promise useful compression.
+        let recordBytes    = cast(u32, (d.lzCodeBufAddr - cast([*] u8, &d.lzCodeBuf[0])))
+        let estimatedBytes = (recordBytes * 115) >> 7
+        return estimatedBytes >= d.totalLzBytes or (d.compressFlags & ForceAllRawBlocks) != 0
+    }
+
     mtd compress() fail
     {
         let d          = .state!
@@ -1000,6 +1030,7 @@ impl Deflate
 
         while srcBufLeft or d.lookaheadSize
         {
+            // Refill lookahead and update the match indexes.
             if (d.lookaheadSize + d.dictSize) >= MinMatchLen
             {
                 var dstPos: u32 = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
@@ -1007,9 +1038,10 @@ impl Deflate
 
                 // The three bytes already in the dictionary at 'insPos'; the loop shifts the
                 // fourth one in before it hashes, so the window always names four bytes.
-                var window: u32 = (cast(u32, d.dict[insPos & LzDictSizeMask]) << 16) |
-                                  (cast(u32, d.dict[(insPos + 1) & LzDictSizeMask]) << 8) |
-                                  cast(u32, d.dict[(insPos + 2) & LzDictSizeMask])
+                var window = Math.make32(0,
+                                         d.dict[insPos & LzDictSizeMask],
+                                         d.dict[(insPos + 1) & LzDictSizeMask],
+                                         d.dict[(insPos + 2) & LzDictSizeMask])
 
                 let numBytesToProcess = cast(u32, Math.min(cast(u32, srcBufLeft), cast(u32, (MaxMatchLen - d.lookaheadSize))))
 
@@ -1051,10 +1083,10 @@ impl Deflate
                     if (d.lookaheadSize + d.dictSize) >= MinMatchLen + 1
                     {
                         let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 3
-                        let window: u32 = (cast(u32, d.dict[insPos & LzDictSizeMask]) << 24) |
-                                          (cast(u32, d.dict[(insPos + 1) & LzDictSizeMask]) << 16) |
-                                          (cast(u32, d.dict[(insPos + 2) & LzDictSizeMask]) << 8) |
-                                          cast(u32, c)
+                        let window      = Math.make32(d.dict[insPos & LzDictSizeMask],
+                                                      d.dict[(insPos + 1) & LzDictSizeMask],
+                                                      d.dict[(insPos + 2) & LzDictSizeMask],
+                                                      c)
                         let hash = (window * LzHashMultiplier) >> LzHashDiscard
                         d.next[insPos & LzDictSizeMask] = d.hash[hash]
                         d.hash[hash] = cast(u16, insPos)
@@ -1067,6 +1099,7 @@ impl Deflate
 
             d.dictSize = Math.min(cast(u32, (LzDictSize - d.lookaheadSize)), d.dictSize)
 
+            // Find a match at the current position.
             var lenToMove    = 1'u32
             var curMatchDist = 0'u32
             var curMatchLen  = d.savedMatchLen ? d.savedMatchLen : cast(u32, (MinMatchLen - 1))
@@ -1105,6 +1138,7 @@ impl Deflate
                 curMatchDist, curMatchLen = 0
             }
 
+            // Resolve a deferred match before committing this position.
             if d.savedMatchLen
             {
                 if curMatchLen > d.savedMatchLen
@@ -1151,8 +1185,7 @@ impl Deflate
             d.lookaheadSize -= lenToMove
             d.dictSize      = Math.min(d.dictSize + lenToMove, cast(u32, LzDictSize))
 
-            if (d.lzCodeBufAddr > cast([*] u8, &d.lzCodeBuf[LzCodeBufSize - 8])) or
-               ((d.totalLzBytes > 31 * 1024) and ((((cast(u32, (d.lzCodeBufAddr - cast([*] u8, &d.lzCodeBuf[0]))) * 115) >> 7) >= d.totalLzBytes) or (d.compressFlags & ForceAllRawBlocks)))
+            if .shouldFlushBlock()
             {
                 d.inSrc      = pSrc
                 d.srcBufLeft = srcBufLeft

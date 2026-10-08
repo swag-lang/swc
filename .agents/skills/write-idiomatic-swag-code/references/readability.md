@@ -140,6 +140,20 @@ add boundary coverage when the refactoring crosses a previously untested contrac
 generalize an unrelated reader merely because its statements look similar: JSON, for example,
 also checks complete token consumption and reports its own syntax errors.
 
+## Extract A Decision Without Eager Evaluation
+
+A loop should expose when it flushes a block, not require its reader to reconstruct a buffer
+threshold, a size threshold, and a compression estimate from one nested condition. A private
+`shouldFlushBlock` predicate can own that coherent decision even when it has one caller. Keep
+it beside the owning implementation and name intermediate quantities, such as `recordBytes`
+and `estimatedBytes`, in their actual units.
+
+Preserve the original short-circuit order in the helper: return for an exhausted buffer first,
+reject a small block next, and only then compute the estimate. Do not eagerly initialize every
+predicate at the top. Keep checks, reads, arithmetic widths, and callbacks on the same paths as
+before. For an encoder refactoring, compare representative encoded bytes before and after;
+a successful decode alone does not show that its encoding decisions stayed the same.
+
 ## Use Comments As Landmarks, Not Filler
 
 In a decoder, `// Validate the directory before allocating entries.` can identify a whole phase

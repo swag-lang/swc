@@ -147,10 +147,12 @@ impl Serializer
     #[Swag.Optimize(false)]
     mtd(MT) serialize(name: string, crc: u32, res: *MT) fail
     {
-        var value: Swag.TypeValue
-        value.name        = name
-        value.crc         = crc
-        value.pointedType = #typeof(MT)
+        with var value: Swag.TypeValue
+        {
+            .name        = name
+            .crc         = crc
+            .pointedType = #typeof(MT)
+        }
 
         if .isWrite
         {

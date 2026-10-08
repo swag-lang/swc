@@ -159,7 +159,7 @@ impl Encoder
     {
         if not dataType do
             fail SerializationError{"missing data type"}
-        var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
+        var type = Reflection.resolveAliases(dataType)
         type = Reflection.enumUnderlyingType(type)
 
         // Validate dynamic identity before opening any TagBin section. A failure here is
@@ -275,9 +275,8 @@ impl Encoder
             let valueType = Reflection.dynamicArrayElementType(type)
             if valueType
             {
-                let safeValueType = valueType
-                let ptrArr        = cast(const *Array'u8, data)
-                let treated       = .serializer.beginSequence(type, data, ptrArr.count)
+                let ptrArr  = cast(const *Array'u8, data)
+                let treated = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
                 if not treated
@@ -285,8 +284,8 @@ impl Encoder
                     var bufArr = cast(const [*] u8?, ptrArr.buffer)
                     for ptrArr.count
                     {
-                        try .writeValue(bufArr!, safeValueType)
-                        bufArr += safeValueType.sizeof
+                        try .writeValue(bufArr!, valueType)
+                        bufArr += valueType.sizeof
                     }
                 }
 
@@ -316,11 +315,14 @@ impl Encoder
             // filter, the crcs and the compression policy are computed once per type
             // instead of once per instance.
             let plan = try planFor(structType)
-            for &pf in plan.fields
+            for &field in plan.fields
             {
-                if not itf or not (try itf.writeElement(pf.value, cast(const [*] u8?, data) + pf.value.offset, me))
+                if not itf or
+                   not (try itf.writeElement(field.value,
+                                             cast(const [*] u8?, data) + field.value.offset,
+                                             me))
                 {
-                    try .writeTypeValue(pf.value, cast(const [*] u8?, data) + pf.value.offset)
+                    try .writeTypeValue(field.value, cast(const [*] u8?, data) + field.value.offset)
                 }
             }
 
@@ -435,27 +437,16 @@ impl IEncoder for Encoder
         }
     }
 
-    mtd impl writeBool(value: bool) => .serializer.writeNative(value)
-
-    mtd impl writeS8(value: s8) => .serializer.writeNative(value)
-
-    mtd impl writeS16(value: s16) => .serializer.writeNative(value)
-
-    mtd impl writeS32(value: s32) => .serializer.writeNative(value)
-
-    mtd impl writeS64(value: s64) => .serializer.writeNative(value)
-
-    mtd impl writeU8(value: u8) => .serializer.writeNative(value)
-
-    mtd impl writeU16(value: u16) => .serializer.writeNative(value)
-
-    mtd impl writeU32(value: u32) => .serializer.writeNative(value)
-
-    mtd impl writeU64(value: u64) => .serializer.writeNative(value)
-
-    mtd impl writeF32(value: f32) => .serializer.writeNative(value)
-
-    mtd impl writeF64(value: f64) => .serializer.writeNative(value)
-
+    mtd impl writeBool(value: bool)      => .serializer.writeNative(value)
+    mtd impl writeS8(value: s8)          => .serializer.writeNative(value)
+    mtd impl writeS16(value: s16)        => .serializer.writeNative(value)
+    mtd impl writeS32(value: s32)        => .serializer.writeNative(value)
+    mtd impl writeS64(value: s64)        => .serializer.writeNative(value)
+    mtd impl writeU8(value: u8)          => .serializer.writeNative(value)
+    mtd impl writeU16(value: u16)        => .serializer.writeNative(value)
+    mtd impl writeU32(value: u32)        => .serializer.writeNative(value)
+    mtd impl writeU64(value: u64)        => .serializer.writeNative(value)
+    mtd impl writeF32(value: f32)        => .serializer.writeNative(value)
+    mtd impl writeF64(value: f64)        => .serializer.writeNative(value)
     mtd impl writeString(value: string?) => .serializer.writeNative(value)
 }

@@ -206,6 +206,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
   For repeated accesses within a block, naming its base addresses once can reveal the relative
   offsets, as in an unrolled SIMD comparison. Preserve load order and the guard establishing the
   block's bounds; do not hoist the addresses or loads outside their valid scope.
+  A callback or effectful call is also a boundary: do not reuse an earlier read across it unless
+  the contract guarantees that the value remains unchanged. Wrapping the repeated expression
+  can be safer and clearer than factoring away the read.
 - Use a conditional expression only when the condition and both values read at a glance.
   Expand nested choices or branches with substantial work into control flow. Preserve lazy
   evaluation: do not hoist a guarded access, fallible call, or side effect out of its branch.

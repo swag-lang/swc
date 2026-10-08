@@ -123,7 +123,7 @@ impl Decoder
     {
         if not dataType do
             fail SerializationError{"missing data type"}
-        var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
+        var type = Reflection.resolveAliases(dataType)
         type = Reflection.enumUnderlyingType(type)
 
         try .serializer.beginValue()
@@ -213,18 +213,17 @@ impl Decoder
             let valueType = Reflection.dynamicArrayElementType(type)
             if valueType
             {
-                let safeValueType = valueType
-                var count         = 0'u64
-                let treated       = try .serializer.beginSequence(type, data, &count)
+                var count   = 0'u64
+                let treated = try .serializer.beginSequence(type, data, &count)
                 defer #nofail try .serializer.endSequence()
 
                 if not treated
                 {
-                    Reflection.clearDynamicArray(data, safeValueType)
+                    Reflection.clearDynamicArray(data, valueType)
                     while .serializer.toNextSequenceElement(&count)
                     {
-                        let bufArr = Reflection.appendDynamicArrayElement(data, safeValueType, initialize: false)
-                        try .readTypedContent(bufArr, safeValueType)
+                        let bufArr = Reflection.appendDynamicArrayElement(data, valueType, initialize: false)
+                        try .readTypedContent(bufArr, valueType)
                     }
                 }
 
@@ -248,13 +247,16 @@ impl Decoder
                 return
 
             let plan = try planFor(structType)
-            for &pf in plan.fields
+            for &field in plan.fields
             {
-                let fieldType = pf.value.pointedType
-                if not itf or not (try itf.readElement(pf.value, cast([*] u8, data) + pf.value.offset, idecoder))
+                let fieldType = field.value.pointedType
+                if not itf or
+                   not (try itf.readElement(field.value,
+                                            cast([*] u8, data) + field.value.offset,
+                                            idecoder))
                 {
-                    let fieldData = cast([*] u8, data) + pf.value.offset
-                    let doIt      = catch .serializer.beginElement(pf.value) as beginErr
+                    let fieldData = cast([*] u8, data) + field.value.offset
+                    let readField = catch .serializer.beginElement(field.value) as beginErr
 
                     // A failed 'beginElement' has already unwound itself, so there is
                     // no element left open to close. Only pair the two once it returned.
@@ -267,8 +269,8 @@ impl Decoder
                         continue
                     }
 
-                    defer #nofail try .serializer.endElement(pf.value)
-                    if not doIt do
+                    defer #nofail try .serializer.endElement(field.value)
+                    if not readField do
                         continue
 
                     catch .readTypedContent(fieldData, fieldType) as readErr
@@ -285,7 +287,7 @@ impl Decoder
                 }
             }
 
-            // Inform user code we are done
+            // Rebuild derived state after all fields have been read.
             if itf do
                 try itf.postRead(data, idecoder)
 
@@ -443,27 +445,16 @@ impl IDecoder for Decoder
         return safeData
     }
 
-    mtd impl readBool()->bool fail => try .serializer.readNative'bool()
-
-    mtd impl readS8()->s8 fail => try .serializer.readNative's8()
-
-    mtd impl readS16()->s16 fail => try .serializer.readNative's16()
-
-    mtd impl readS32()->s32 fail => try .serializer.readNative's32()
-
-    mtd impl readS64()->s64 fail => try .serializer.readNative's64()
-
-    mtd impl readU8()->u8 fail => try .serializer.readNative'u8()
-
-    mtd impl readU16()->u16 fail => try .serializer.readNative'u16()
-
-    mtd impl readU32()->u32 fail => try .serializer.readNative'u32()
-
-    mtd impl readU64()->u64 fail => try .serializer.readNative'u64()
-
-    mtd impl readF32()->f32 fail => try .serializer.readNative'f32()
-
-    mtd impl readF64()->f64 fail => try .serializer.readNative'f64()
-
+    mtd impl readBool()->bool fail     => try .serializer.readNative'bool()
+    mtd impl readS8()->s8 fail         => try .serializer.readNative's8()
+    mtd impl readS16()->s16 fail       => try .serializer.readNative's16()
+    mtd impl readS32()->s32 fail       => try .serializer.readNative's32()
+    mtd impl readS64()->s64 fail       => try .serializer.readNative's64()
+    mtd impl readU8()->u8 fail         => try .serializer.readNative'u8()
+    mtd impl readU16()->u16 fail       => try .serializer.readNative'u16()
+    mtd impl readU32()->u32 fail       => try .serializer.readNative'u32()
+    mtd impl readU64()->u64 fail       => try .serializer.readNative'u64()
+    mtd impl readF32()->f32 fail       => try .serializer.readNative'f32()
+    mtd impl readF64()->f64 fail       => try .serializer.readNative'f64()
     mtd impl readString()->String fail => try .serializer.readNative'String()
 }

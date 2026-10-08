@@ -43,10 +43,10 @@ public impl Plan
     // Returns the plan field whose wire key is `key`, or null when there is none.
     mtd const fieldByKey(key: string)->const *PlanField?
     {
-        let e = .keyToIndex.tryFind(key)
-        if not e do
+        let entry = .keyToIndex.tryFind(key)
+        if not entry do
             return null
-        return .fields.storage() + e.value
+        return .fields.storage() + entry.value
     }
 }
 
@@ -81,26 +81,34 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
             continue
         Swag.assert(field.pointedType != null)
 
-        var pf: PlanField
-        pf.value = field
-        pf.key   = wireFieldKey(field)
-        if pf.key == "" do
-            fail SerializationError{"serialized field needs a non-empty key", field: field}
-        pf.wireCrc    = wireTypeCrc(field.pointedType)
-        pf.compressed = Reflection.hasAttribute(field, Compress) or Reflection.hasAttribute(field.pointedType, Compress)
-
-        for existing in plan.fields where existing.key == pf.key
+        with var planned: PlanField
         {
-            fail SerializationError{Errors.mkString(Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]", structType.fullname, existing.value.name, field.name, pf.key)), field: field}
+            .value = field
+            .key   = wireFieldKey(field)
+            if .key == "" do
+                fail SerializationError{"serialized field needs a non-empty key", field: field}
+            .wireCrc    = wireTypeCrc(field.pointedType)
+            .compressed = Reflection.hasAttribute(field, Compress) or
+                          Reflection.hasAttribute(field.pointedType, Compress)
         }
 
-        plan.fields.add(#move pf)
+        for existing in plan.fields where existing.key == planned.key
+        {
+            let message = Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]",
+                                          structType.fullname,
+                                          existing.value.name,
+                                          field.name,
+                                          planned.key)
+            fail SerializationError{Errors.mkString(message), field: field}
+        }
+
+        plan.fields.add(#move planned)
     }
 
     // Populate borrowed lookup views only after the field array has reached its final
     // allocation. Growing an array of owned strings can relocate their buffers.
-    for &pf, fieldIndex in plan.fields do
-        plan.keyToIndex.add(pf.key.toString(), fieldIndex)
+    for &planned, fieldIndex in plan.fields do
+        plan.keyToIndex.add(planned.key.toString(), fieldIndex)
 }
 
 // Returns the shared serialization plan of a struct type, building it on first use.
@@ -111,17 +119,17 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
     // Fast path: the plan already exists.
     {
         Sync.sharedLock(&g_PlanLock)
-        let e = g_Plans.tryFind(key)
-        if e do
-            return e.value
+        let existing = g_Plans.tryFind(key)
+        if existing do
+            return existing.value
     }
 
     Sync.scopedLock(&g_PlanLock)
 
     // Another thread can have built the plan between the two locks.
-    let again = g_Plans.tryFind(key)
-    if again do
-        return again.value
+    let existing = g_Plans.tryFind(key)
+    if existing do
+        return existing.value
 
     let plan = g_PlanPool.addNew()
     try buildPlan(plan, structType)

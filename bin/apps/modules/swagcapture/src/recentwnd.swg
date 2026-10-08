@@ -308,10 +308,8 @@ impl IWnd for RecentWnd
 {
     mtd impl onDestroyEvent(?: *DestroyEvent)
     {
-        if .timer do
-            .app().removeTimer(.timer)
-        if .loadTimer do
-            .app().removeTimer(.loadTimer)
+        .stopTimer(&.timer)
+        .stopTimer(&.loadTimer)
 
         // The automatic save owns no window: land it before the strip that schedules
         // and collects it goes away.
@@ -322,8 +320,7 @@ impl IWnd for RecentWnd
     {
         if evt.timer == .loadTimer
         {
-            .app().removeTimer(evt.timer)
-            .loadTimer = null
+            .stopTimer(&.loadTimer)
             if .prepareLoadRecent
             {
                 .prepareLoadRecent = false
@@ -375,8 +372,7 @@ impl IWnd for RecentWnd
             }
         }
 
-        .app().removeTimer(evt.timer)
-        .timer = null
+        .stopTimer(&.timer)
     }
 }
 
@@ -496,8 +492,7 @@ impl RecentWnd
         if .recentView.selected >= .recentView.items.count do
             return
 
-        if .timer do
-            .app().removeTimer(.timer)
+        .stopTimer(&.timer)
         .timer = .addTimer(1's)
 
         let capture = .main.editWnd.getCapture()
@@ -521,8 +516,7 @@ impl RecentWnd
         let item = .recentView.items[.recentView.selected]!
 
         // Be sure there's no pending save
-        if .timer do
-            .app().removeTimer(.timer)
+        .stopTimer(&.timer)
         .timer = null
 
         // Delete file

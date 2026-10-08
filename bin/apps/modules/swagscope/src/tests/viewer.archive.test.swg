@@ -262,7 +262,7 @@ func writeZipFixture()->String
     let viewer = assume cast(*Archive.Panel, window.currentView)
     while not viewer.load.isDone() do
         Threading.Thread.sleep(1'ms)
-    host.fireTimer(viewer.loadTimer)
+    host.fireTimer(viewer.load.timer)
     Swag.assert(viewer.list.lineCount() == 4)
     Swag.assert(viewer.entryLines.count == 2)
 

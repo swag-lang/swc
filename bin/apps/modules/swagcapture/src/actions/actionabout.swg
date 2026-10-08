@@ -1,5 +1,6 @@
 using Gui
 
+// The command that shows the about box.
 struct ActionAbout {}
 
 impl ActionAbout

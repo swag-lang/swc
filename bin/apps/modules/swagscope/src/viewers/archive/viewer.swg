@@ -128,44 +128,37 @@ struct Panel
         previewStatus: *Label
     }
 
-    late embedded:        Viewer.Embedded
-    archive:              Zip
-    entryLines:           Array'(*ListLine?)
-    load:                 Viewer.BackgroundLoad'Zip
-    extract:              ZipEntryExtract
-    loadTimer:            *Timer?
-    previewTimer:         *Timer?
+    late embedded: Viewer.Embedded
+    archive:       Zip
+    entryLines:    Array'(*ListLine?)
+    load:          Viewer.BackgroundLoad'Zip
+    extract:       ZipEntryExtract
+    previewTimer:  *Timer?
     pendingPreview = Swag.U64.Max
     activePreview  = Swag.U64.Max
-    previewFile:          String
-    sourceFile:           String
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    previewFile:   String
+    sourceFile:    String
+    services:      Viewer.HostServices
+    failureReason: String
 }
 
 private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .loadTimer
+        if evt.timer == .load.timer
         {
-            if not .load.isDone() do
+            if not .load.poll() do
                 return
-            .removeTimer(evt.timer)
-            .loadTimer     = null
             .failureReason = .load.finish(&.archive)
             if not .failureReason.isEmpty()
             {
-                if .reportFailure do
-                    .reportFailure(me, .failureReason)
+                .services.failed(me, .failureReason)
                 return
             }
 
             .publishArchive()
-            if .reportLoadingChanged do
-                .reportLoadingChanged(me)
+            .services.loadingChanged(me)
             return
         }
 
@@ -197,13 +190,11 @@ private impl Panel
 {
     mtd publishArchiveDetails()
     {
-        if not .reportDetails do
-            return
         let text = Format.toString(texts().ui_Details,
                                    .archive.entries.count,
                                    StrConv.toDisplaySize(.archive.uncompressedSize),
                                    StrConv.toDisplaySize(.archive.compressedSize))
-        .reportDetails(me, text)
+        .services.showDetails(me, text)
     }
 
     mtd fileIcon(entry: const *ZipEntry)->Icon
@@ -349,11 +340,7 @@ private impl Panel
 
         if .pendingPreview == Swag.U64.Max
         {
-            if .previewTimer
-            {
-                .removeTimer(.previewTimer)
-                .previewTimer = null
-            }
+            .stopTimer(&.previewTimer)
 
             return
         }
@@ -383,7 +370,7 @@ private impl Panel
         .previewStatus.bringToFront()
     }
 
-    mtd revealEntry(match: Viewer.SearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
     {
         if match.major >= .entryLines.count do
             return false
@@ -451,24 +438,14 @@ private impl Panel
         .list.header.itemAt(1).name = texts().ui_ColSize
         .list.header.invalidate()
         if .activePreview == Swag.U64.Max and not .extract.started do
-            .showPreviewStatus(.archive.entries.isEmpty() and not .loadTimer ? texts().ui_Empty : texts().ui_Select)
+            .showPreviewStatus(.archive.entries.isEmpty() and not .load.isPending() ? texts().ui_Empty : texts().ui_Select)
     }
 
     mtd retire()->bool
     {
         if not .load.retire() or not .extract.retire() or not .embedded.retire() do
             return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        if .previewTimer
-        {
-            .removeTimer(.previewTimer)
-            .previewTimer = null
-        }
+        .stopTimer(&.previewTimer)
 
         .clearPreviewFile()
         return true
@@ -480,11 +457,9 @@ private impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.archive")
         {
-            .backgroundStyle      = .View
-            .sourceFile           = host.fileName()
-            .reportFailure        = services.reportFailure
-            .reportDetails        = services.reportDetails
-            .reportLoadingChanged = services.reportLoadingChanged
+            .backgroundStyle = .View
+            .sourceFile      = host.fileName()
+            .services        = services
         }
 
         result.splitter = SplitterCtrl.create(result)
@@ -501,8 +476,7 @@ private impl Panel
         }
 
         result.splitter.addPane(result.previewPane).minimumSize = 320
-        result.load.start(host.fileName(), &Zip.load)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, host.fileName(), &Zip.load)
         result.applyLayout()
         return result
     }
@@ -574,35 +548,14 @@ func createViewer(host: Viewer.Host)
     let view = Panel.create(host)
     host.attachView(view)
 
-    with var search: Viewer.SearchApi
-    {
-        .collectMatches = func|view|(text, options, ?, matches)->bool
-        {
-            view.collectMatches(text, options, matches)
-            return true
-        }
-
-        .revealMatch = func|view|(match, ?)->bool
-        {
-            return view.revealEntry(match)
-        }
-
-        .matchBounds = func|view|(?, bounds)->bool
-        {
-            return view.searchBounds(bounds)
-        }
-
-        .clear = func|view|() => view.clearSearch()
-
-        .describe = func|view|(presentation) => view.describeSearch(presentation)
-    }
-
+    var search = Viewer.searchApi(view)
+    search.describe = func|view|(presentation) => view.describeSearch(presentation)
     host.setSearch(search)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func|view|()->bool => view.loadTimer != null or view.extract.started or view.embedded.isLoading()
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
+        .isLoading = func|view|()->bool => view.load.isPending() or view.extract.started or view.embedded.isLoading()
+        .needsLoadingOverlay = func|view|()->bool => view.load.isPending()
         .retire    = func|view|()->bool => view.retire()
     }
 

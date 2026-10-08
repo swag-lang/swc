@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that show or hide the ratings and link markers on library thumbnails.
 struct ActionLibView {}
 
 impl ActionLibView

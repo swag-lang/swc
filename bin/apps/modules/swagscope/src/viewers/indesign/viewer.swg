@@ -77,6 +77,7 @@ private struct CachedPreview
     image:      Image
 }
 
+// The pixel size of one saved page preview.
 private struct PreviewGeometry
 {
     width:  u32
@@ -94,6 +95,8 @@ struct Document
     previews:         Array'Preview
 }
 
+// How an InDesign source is shown: through the page previews a native document saved, or as the
+// page scenes of an IDML package rendered as markup.
 private enum DocumentKind
 {
     NativePreview
@@ -528,6 +531,7 @@ private impl PreviewLoad
         if not .isDone() do
             return false
         .wait()
+        .stopPolling()
         return true
     }
 
@@ -619,32 +623,26 @@ struct Panel
 {
     using wnd: Wnd
 
-    details:              String
-    fileName:             String
-    kind:                 DocumentKind
-    previews:             Array'Preview
-    markupPages:          Array'Idml.Page
-    cachedPreviews:       Array'CachedPreview
-    cachedPixels:         u64
-    previewUseSerial           = 1'u64
-    hasPreviewContent:    bool
-    previewIndex:         u64
-    markupZoom:           f32  = 1
-    markupFit:            bool = true
-    markupFitWidth:       bool
-    markupRenderedScale:  f32  = 1
-    requestedPreviewIndex      = NoPreview
-    loadingPreviewIndex        = NoPreview
-    load:                 Viewer.BackgroundLoad'ViewerDocument
-    loadTimer:            *Timer?
-    previewLoad:          PreviewLoad
-    previewLoadTimer:     *Timer?
-    previewLoadPending:   bool
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportChromeChanged:  Viewer.ReportChromeChanged?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    details:             String
+    fileName:            String
+    kind:                DocumentKind
+    previews:            Array'Preview
+    markupPages:         Array'Idml.Page
+    cachedPreviews:      Array'CachedPreview
+    cachedPixels:        u64
+    previewUseSerial          = 1'u64
+    hasPreviewContent:   bool
+    previewIndex:        u64
+    markupZoom:          f32  = 1
+    markupFit:           bool = true
+    markupFitWidth:      bool
+    markupRenderedScale: f32  = 1
+    requestedPreviewIndex     = NoPreview
+    loadingPreviewIndex       = NoPreview
+    load:                Viewer.BackgroundLoad'ViewerDocument
+    previewLoad:         PreviewLoad
+    services:            Viewer.HostServices
+    failureReason:       String
 
     late
     {
@@ -705,14 +703,12 @@ private impl Panel
         if .isMarkup()
         {
             .zoomLabel.setText(.markupFit ? (.markupFitWidth ? texts().ui_FitWidth : texts().ui_Fit) : Format.toString("% %", cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), "%"))
-            if .reportChromeChanged do
-                .reportChromeChanged(me)
+            .services.chromeChanged(me)
             return
         }
 
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.imageView.effectiveZoom() * 100)), "%"))
-        if .reportChromeChanged do
-            .reportChromeChanged(me)
+        .services.chromeChanged(me)
     }
 
     mtd markupFitScale(index: u64)->f32
@@ -793,8 +789,7 @@ private impl Panel
 
     mtd reportCurrentDetails()
     {
-        if .reportDetails do
-            .reportDetails(me, .details)
+        .services.showDetails(me, .details)
     }
 
     mtd showCachedPreview(index: u64)->bool
@@ -852,16 +847,14 @@ private impl Panel
 
     mtd startRequestedPreview()
     {
-        if .previewLoadPending or .requestedPreviewIndex == NoPreview do
+        if .previewLoad.isPending() or .requestedPreviewIndex == NoPreview do
             return
 
         .loadingPreviewIndex   = .requestedPreviewIndex
         .requestedPreviewIndex = NoPreview
         .previewLoad.start(.fileName, &.previews[.loadingPreviewIndex])
-        .previewLoadPending = true
-        .previewLoadTimer   = .addTimer(Viewer.BackgroundPollInterval)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .previewLoad.pollFrom(me)
+        .services.loadingChanged(me)
     }
 
     mtd selectPreview(index: u64)
@@ -937,7 +930,7 @@ private impl Panel
         .pageLabel.toolTip      = .isMarkup() ? texts().ui_ChooseDocumentPage : texts().ui_ChoosePage
         .zoomLabel.toolTip      = texts().ui_ZoomMenu
         .refreshZoom()
-        if not .loadTimer and .pageCount()
+        if not .load.isPending() and .pageCount()
         {
             .refreshPageCommands()
             if .isMarkup()
@@ -1041,23 +1034,7 @@ private impl Panel
 
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if not .previewLoad.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        if .previewLoadTimer
-        {
-            .removeTimer(.previewLoadTimer)
-            .previewLoadTimer = null
-        }
-
-        return true
+        return .load.retire() and .previewLoad.retire()
     }
 }
 
@@ -1075,40 +1052,33 @@ private impl IWnd for Panel
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .loadTimer
+        if evt.timer == .load.timer
         {
-            if not .load.isDone() do
+            if not .load.poll() do
                 return
 
-            .removeTimer(evt.timer)
-            .loadTimer = null
             var document: ViewerDocument
             .failureReason = .load.finish(&document)
             if not .failureReason.isEmpty()
             {
-                if .reportFailure do
-                    .reportFailure(me, .failureReason)
+                .services.failed(me, .failureReason)
                 return
             }
 
             .publishDocument(&document)
-            if .reportLoadingChanged do
-                .reportLoadingChanged(me)
+            .services.loadingChanged(me)
             return
         }
 
-        if evt.timer != .previewLoadTimer
+        if evt.timer != .previewLoad.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .previewLoad.isDone() do
+        if not .previewLoad.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .previewLoadTimer   = null
-        .previewLoadPending = false
         let completedIndex = .loadingPreviewIndex
         .loadingPreviewIndex = NoPreview
         var image: Image
@@ -1125,14 +1095,12 @@ private impl IWnd for Panel
         elif completedIndex == .previewIndex
         {
             .failureReason = failure
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
         }
 
         .startRequestedPreview()
 
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -1218,11 +1186,8 @@ impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.indesign")
         {
-            .backgroundStyle      = .View
-            .reportFailure        = services.reportFailure
-            .reportDetails        = services.reportDetails
-            .reportChromeChanged  = services.reportChromeChanged
-            .reportLoadingChanged = services.reportLoadingChanged
+            .backgroundStyle = .View
+            .services        = services
         }
 
         result.createPageCommands(host)
@@ -1277,8 +1242,7 @@ impl Panel
 
         result.applyLayout()
         result.refreshZoom()
-        result.load.start(host.fileName(), &loadViewerDocument)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, host.fileName(), &loadViewerDocument)
         return result
     }
 
@@ -1340,33 +1304,12 @@ func createViewer(host: Viewer.Host)
     let view = Panel.create(host)
     host.attachView(view)
 
-    with var search: Viewer.SearchApi
-    {
-        .collectMatches = func|view|(text, options, ?, matches)->bool
-        {
-            view.collectMatches(text, options, matches)
-            return true
-        }
-
-        .revealMatch = func|view|(match, text)->bool
-        {
-            return view.revealMatch(match, text)
-        }
-
-        .matchBounds = func|view|(?, bounds)->bool
-        {
-            return view.searchBounds(bounds)
-        }
-
-        .clear = func|view|() => view.clearSearch()
-    }
-
-    host.setSearch(search)
+    host.setSearch(Viewer.searchApi(view))
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func|view|()->bool => view.loadTimer != null or view.previewLoadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent)
+        .isLoading = func|view|()->bool => view.load.isPending() or view.previewLoad.isPending()
+        .needsLoadingOverlay = func|view|()->bool => view.load.isPending() or (view.previewLoad.isPending() and not view.hasPreviewContent)
         .retire    = func|view|()->bool => view.retire()
     }
 

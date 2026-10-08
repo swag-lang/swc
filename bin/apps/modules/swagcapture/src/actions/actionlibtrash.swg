@@ -1,5 +1,6 @@
 using Gui
 
+// The commands on the library trash: show it, empty it, restore from it, delete for good.
 struct ActionLibTrash {}
 
 impl ActionLibTrash

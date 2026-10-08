@@ -1,5 +1,6 @@
 using Gui
 
+// The command that restores the default quick styles.
 struct ActionQuickStyle {}
 
 impl ActionQuickStyle

@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that edit the selected form in place: its text, its inner image, its rotation.
 struct ActionEdit {}
 
 impl ActionEdit

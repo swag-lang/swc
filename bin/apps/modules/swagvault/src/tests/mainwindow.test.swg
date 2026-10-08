@@ -527,8 +527,10 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // What a creation does: both forms go down and the create button stays live, because during a
     // creation it is what stops it. The keyboard has to follow, or the next key reaches a control
     // the user can no longer act on.
-    window.setState(.Creating)
+    window.operation.kind = .Create
+    window.showOperation()
     Swag.assert(window.createButton.hasFocus())
+    window.operation.kind = .None
 }
 
 // The status line is named, not written, so it says the same thing in the new language.
@@ -767,7 +769,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32, MountedColumn.Vault)).name.raw == "two")
 
     // The list opens on its first row, so the one action of the card is live straight away.
-    window.setState(.Ready)
+    window.showOperation()
     Swag.assert(window.mountedDrives.selectedIndex() == 0)
     Swag.assert(window.mountedDrives.unmountButton.isEnabled())
 

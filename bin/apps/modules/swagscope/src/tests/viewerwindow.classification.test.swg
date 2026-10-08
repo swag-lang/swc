@@ -100,11 +100,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     // cause a GUI timer to join the replacement while its release event is still unsignaled.
     if previous.statisticsThread.isValid() do
         previous.statisticsThread.wait()
-    if previous.statisticsTimer
-    {
-        previous.removeTimer(previous.statisticsTimer)
-        previous.statisticsTimer = null
-    }
+    previous.stopTimer(&previous.statisticsTimer)
 
     expect previous.statisticsThread.init(&holdClassificationStatistics, &gate)
     defer gate.release.signal()

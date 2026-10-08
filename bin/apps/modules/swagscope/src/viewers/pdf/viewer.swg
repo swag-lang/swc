@@ -42,6 +42,7 @@ private impl IWnd for InfoControls
     mtd impl measureContent(?: Math.Point)->Math.Point => .preferredSize
 }
 
+// What opening a PDF produces: the reader, its first page, its outline, and the details line.
 struct ViewerContent
 {
     reader:  Pdf.Reader
@@ -62,18 +63,16 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     return result
 }
 
+// The PDF viewer: the page view, its page and zoom controls, and the document outline.
 struct Panel
 {
-    using wnd:            Wnd
-    details:              String
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    load:                 Viewer.BackgroundLoad'ViewerContent
-    loadTimer:            *Timer?
-    failureReason:        String
-    outline:              *DocumentOutline?
-    bookmarks:            Array'Pdf.OutlineEntry
+    using wnd:     Wnd
+    details:       String
+    services:      Viewer.HostServices
+    load:          Viewer.BackgroundLoad'ViewerContent
+    failureReason: String
+    outline:       *DocumentOutline?
+    bookmarks:     Array'Pdf.OutlineEntry
 
     late
     {
@@ -103,23 +102,20 @@ private impl IWnd for Panel
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
         var content: ViewerContent
         .failureReason = .load.finish(&content)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
@@ -137,10 +133,8 @@ private impl IWnd for Panel
         .applyLayout()
         .refreshNavigation()
         .setInitialFocus(.pdfView)
-        if .reportDetails do
-            .reportDetails(me, .details)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.showDetails(me, .details)
+        .services.loadingChanged(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -167,15 +161,7 @@ private impl Panel
 {
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 
     // Appends the matches of the pages whose text the view has extracted so far, and reports
@@ -266,15 +252,13 @@ private impl Panel
 
     // Creates the page view of `fileName`, with its page and zoom controls in `info`, and starts
     // opening the document in the background.
-    func create(contentParent, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, reportDetails: Viewer.ReportDetails? = null, reportLoadingChanged: Viewer.ReportLoadingChanged? = null)->*Panel
+    func create(contentParent, info: *Wnd, fileName: string, services: Viewer.HostServices = {})->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.pdf")
         {
-            .backgroundStyle      = .View
-            .reportFailure        = reportFailure
-            .reportDetails        = reportDetails
-            .reportLoadingChanged = reportLoadingChanged
-            .info = info
+            .backgroundStyle = .View
+            .services        = services
+            .info            = info
         }
 
         result.createPageControls()
@@ -283,8 +267,7 @@ private impl Panel
 
         result.applyLayout()
         result.refreshZoom()
-        result.load.start(fileName, &loadViewerContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, fileName, &loadViewerContent)
         return result
     }
 
@@ -351,8 +334,7 @@ private impl Panel
 
             .sigRenderError += func|view = me|(?, message)
             {
-                if view.reportFailure do
-                    view.reportFailure(view, message)
+                view.services.failed(view, message)
             }
         }
     }
@@ -371,7 +353,7 @@ func createViewer(host: Viewer.Host)
         .preferredSize.x = infoWidth
     }
 
-    let view = Panel.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view = Panel.create(host.contentParent(), info, host.fileName(), services)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(?, index)
@@ -397,12 +379,5 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(search)
 
-    with var lifecycle: Viewer.LifecycleApi
-    {
-        .isLoading = func|view|()->bool => view.loadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-        .retire    = func|view|()->bool => view.retire()
-    }
-
-    host.setLifecycle(lifecycle)
+    host.setLifecycle(Viewer.loadLifecycle(view))
 }

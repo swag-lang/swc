@@ -1,3 +1,5 @@
+// The commands that change the capture image itself: trim, resize, expand, flip, rotate, and
+// restore the original.
 struct ActionImage {}
 
 var g_KeepRatio:       bool = true
@@ -433,8 +435,7 @@ impl MainWnd
                 continue
             for y in capture.backImg.height
             {
-                let col = capture.backImg.pixelColor(x, y)
-                if col.a
+                if capture.backImg.pixelColor(x, y).a
                 {
                     minX = Math.min(minX, x + capture.backImagePos.x)
                     break to Left
@@ -449,8 +450,7 @@ impl MainWnd
                 continue
             for y in capture.backImg.height
             {
-                let col = capture.backImg.pixelColor(x, y)
-                if col.a
+                if capture.backImg.pixelColor(x, y).a
                 {
                     maxX = Math.max(maxX, x + capture.backImagePos.x + 1)
                     break to Right
@@ -465,8 +465,7 @@ impl MainWnd
                 continue
             for x in capture.backImg.width
             {
-                let col = capture.backImg.pixelColor(x, y)
-                if col.a
+                if capture.backImg.pixelColor(x, y).a
                 {
                     minY = Math.min(minY, y + capture.backImagePos.y)
                     break to Up
@@ -481,8 +480,7 @@ impl MainWnd
                 continue
             for x in capture.backImg.width
             {
-                let col = capture.backImg.pixelColor(x, y)
-                if col.a
+                if capture.backImg.pixelColor(x, y).a
                 {
                     maxY = Math.max(maxY, y + capture.backImagePos.y + 1)
                     break to Down
@@ -512,12 +510,9 @@ impl MainWnd
             capture.pushUndo(undo, serial)
         }
 
-        // Remove forms outside the cavenas
-        if capture.selection.count
-        {
-            let undo = capture.newUndo(.DeleteSelection)
-            capture.pushUndo(undo, serial)
-        }
+        // Remove forms outside the canvas
+        if capture.selection.count do
+            capture.pushUndo(capture.newUndo(.DeleteSelection), serial)
 
         // Crop image
         if capture.backImagePos.x < 0 or

@@ -37,7 +37,7 @@ private func createPdfFixture()->String
     Swag.assert(result.view != null and result.commands == null and result.info != null)
 
     let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(view.details == "PDF")
     view.resize(640, 420)
@@ -126,7 +126,7 @@ private func createPdfFixture()->String
     infoBar.centerGroup = result.info
 
     let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle        = .Center
     result.info.dockStyle = .None
     host.root.applyLayout()
@@ -173,7 +173,7 @@ private func createPdfFixture()->String
     var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
     Swag.assert(result.view != null and result.info != null)
     let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     host.root.applyLayout()
     layout.computeLayout()
 
@@ -198,7 +198,7 @@ private func createPdfFixture()->String
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null)
     let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(not view.failureReason.isEmpty())
 }
 
@@ -217,7 +217,7 @@ private func createPdfFixture()->String
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
     let view = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.resize(640, 420)
     view.applyLayout()
 

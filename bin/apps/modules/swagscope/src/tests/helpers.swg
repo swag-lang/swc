@@ -69,11 +69,11 @@ func collectViewerMatches(collect: Viewer.CollectSearchMatches, text: string, ma
 }
 
 // Completes a viewer worker deterministically, then lets the headless GUI publish its result.
-func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation, timer: *Timer?)
+func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation)
 {
-    Swag.assert(load.started and timer != null)
+    Swag.assert(load.started and load.isPending())
     load.task.wait()
-    host.fireTimer(timer)
+    host.fireTimer(load.timer)
 }
 
 // Ages the current wait past the delay the activity mark waits for, and lets the window decide again.

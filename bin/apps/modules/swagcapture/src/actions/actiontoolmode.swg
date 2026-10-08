@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that pick the editor tool.
 struct ActionToolMode {}
 
 impl ActionToolMode

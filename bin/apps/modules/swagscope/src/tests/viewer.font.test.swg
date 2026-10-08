@@ -39,7 +39,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.assert(result.view != null and result.commands != null)
 
     let view = assume cast(*Typeface.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.pageLabel.arrowPosition == .RightUpward)
     Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
     Swag.assert(view.document.hasCharacter('A'))
@@ -82,7 +82,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.assert(result.view != null)
     commandBar.centerGroup = result.commands
     let view = assume cast(*Typeface.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle = .Center
     view.commands.dockStyle = .None
 
@@ -113,6 +113,6 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var result = openTestViewer(Typeface.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let view = assume cast(*Typeface.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(not view.failureReason.isEmpty())
 }

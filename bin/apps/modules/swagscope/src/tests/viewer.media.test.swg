@@ -29,7 +29,7 @@ using Core, Pixel, Gui, Viewers
     host.notify(.ThemeChanged)
     var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Picture.Panel, session.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle = .Center
     session.commands!.hide()
     session.info!.hide()

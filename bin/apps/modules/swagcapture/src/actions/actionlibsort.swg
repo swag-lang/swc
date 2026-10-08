@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that choose the order of the library.
 struct ActionLibSort {}
 
 impl ActionLibSort

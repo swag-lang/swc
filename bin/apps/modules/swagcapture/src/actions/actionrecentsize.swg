@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that size the thumbnails of the recent strip and of the library.
 struct ActionRecentSize {}
 
 impl ActionRecentSize

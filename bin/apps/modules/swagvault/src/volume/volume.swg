@@ -1157,17 +1157,7 @@ impl Volume
     mtd restore(plain: const [..] u8) fail
     {
         var reader = ByteStream.openRead(plain)
-
-        var magic: [#sizeof(HeaderMagic)] u8
-        try reader.readBytes(&magic[0], #sizeof(magic))
-        if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
-            try failWith("The container does not start with a Swag Vault header.", .Corrupted)
-
-        let version = try reader.readLittleEndian'u32()
-        if version != FormatVersion do
-            try failWith("The container format version is not supported.", .Corrupted)
-
-        .sequence     = try reader.readLittleEndian'u64()
+        .sequence     = try readHeaderPrefix(&reader)
         .checkpointAt = .sequence
         if .sequence == Swag.U64.Max do
             try failWith("The container sequence can no longer advance.", .Corrupted)

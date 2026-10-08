@@ -1,5 +1,6 @@
 using Gui
 
+// The keyboard commands that move the selection through the library grid.
 struct ActionLibSel {}
 
 impl ActionLibSel

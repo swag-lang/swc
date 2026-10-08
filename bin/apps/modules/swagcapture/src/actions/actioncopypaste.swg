@@ -1,5 +1,6 @@
 using Gui
 
+// The clipboard commands on forms and on the image inside a form.
 struct ActionCopyPaste {}
 
 impl ActionCopyPaste

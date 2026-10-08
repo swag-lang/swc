@@ -26,10 +26,26 @@ struct LifecycleApi
 {
     public
     {
-        isLoading: IsLoading?                         // Reports unfinished viewer work.
+        isLoading: IsLoading?     // Reports unfinished viewer work.
         needsLoadingOverlay: NeedsLoadingOverlay?     // Reports whether useful content is unavailable.
-        retire:    Retire?                            // Releases external resources before destruction.
+        retire:    Retire?        // Releases external resources before destruction.
     }
+}
+
+// Returns the lifecycle of a viewer whose background work is its one polled `load`.
+//
+// The viewer is loading, and has nothing to show yet, while that load is pending; it retires
+// through its own `retire`, which must retire the load.
+func(T) loadLifecycle(view: *T)->LifecycleApi
+{
+    with var result: retval
+    {
+        .isLoading = func|view|()->bool => view.load.isPending()
+        .needsLoadingOverlay = func|view|()->bool => view.load.isPending()
+        .retire    = func|view|()->bool => view.retire()
+    }
+
+    return result
 }
 
 // The half of a background operation that does not depend on what it produces.
@@ -41,6 +57,8 @@ struct BackgroundOperation
 {
     task:    Swag.Task     // The scheduled work; borrowed by the runtime until it completes.
     started: bool          // Whether the runtime currently owns this operation.
+    timer:   *Timer?       // Polls the operation from its owner's window; null when nobody waits for it.
+    owner:   *Wnd?         // The window that receives the polling timer's events.
 }
 
 impl BackgroundOperation
@@ -58,6 +76,35 @@ impl BackgroundOperation
             return
         .task.wait()
         .started = false
+    }
+
+    // Reports whether the owner still waits for the operation, which is what a viewer reports as
+    // loading.
+    mtd const isPending()->bool => .timer != null
+
+    // Polls the operation from `owner` every [[Viewer.BackgroundPollInterval]]. The owner's timer
+    // events go to [[Viewer.BackgroundOperation.poll]].
+    mtd pollFrom(owner: *Wnd)
+    {
+        Swag.assert(.timer == null)
+        .owner = owner
+        .timer = owner.addTimer(BackgroundPollInterval)
+    }
+
+    // Answers a tick of the operation's timer: true once the work is done, after the timer stopped.
+    mtd poll()->bool
+    {
+        if not .isDone() do
+            return false
+        .stopPolling()
+        return true
+    }
+
+    // Stops the timer that polls the operation, if it runs.
+    mtd stopPolling()
+    {
+        if let owner = .owner do
+            owner.stopTimer(&.timer)
     }
 }
 
@@ -97,6 +144,14 @@ impl BackgroundLoad
         })
     }
 
+    // Starts `load` for `fileName`, polled from `owner` until [[Viewer.BackgroundOperation.poll]]
+    // reports it done.
+    mtd startPolled(owner: *Wnd, fileName: string, load: func(string)->T fail)
+    {
+        .start(fileName, load)
+        .pollFrom(owner)
+    }
+
     // Moves the loaded value into `value` and returns the captured failure message.
     //
     // The operation must be done. The message is empty when the load succeeded.
@@ -110,13 +165,14 @@ impl BackgroundLoad
     }
 
     // Reports when the borrowed worker state may be destroyed without waiting on the GUI thread.
+    //
+    // A retired load is no longer polled.
     mtd retire()->bool
     {
-        if not .started do
-            return true
-        if not .isDone() do
+        if .started and not .isDone() do
             return false
         .wait()
+        .stopPolling()
         return true
     }
 

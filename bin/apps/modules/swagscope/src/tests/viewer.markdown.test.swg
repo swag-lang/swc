@@ -153,10 +153,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let button = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
-    if button.statisticsLoad.started do
-        button.statisticsLoad.task.wait()
-    if button.statisticsTimer do
-        host.fireTimer(button.statisticsTimer)
+    if button.statisticsLoad.isPending() do
+        completeViewerBackgroundLoad(&host, &button.statisticsLoad)
     Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lines · 4 words")
     window.applyLayout()
     Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))

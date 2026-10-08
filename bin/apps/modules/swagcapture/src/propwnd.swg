@@ -1044,7 +1044,7 @@ impl PropWnd
         .propCalloutText(stack0)
         .propShape(stack0)
         .propStep(stack0)
-        if stack0.children.count == 0 do
+        if stack0.children.isEmpty() do
             stack0.destroyNow()
 
         let stack1 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
@@ -1052,7 +1052,7 @@ impl PropWnd
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
         .propEndCapStyle(stack1)
-        if stack1.children.count == 0 do
+        if stack1.children.isEmpty() do
             stack1.destroyNow()
 
         .propNextStep()

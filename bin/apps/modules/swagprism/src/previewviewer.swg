@@ -95,10 +95,21 @@ impl PreviewViewer
     // Compiles `source` with this viewer's panel settings.
     mtd compileSource(source: string) { .compileRequest(.panel.request(source)) }
 
+    // Reports whether the live preview already runs `request`, built from the current cache and not
+    // on its way out. Editing another panel need not restart an unchanged live preview.
+    mtd alreadyRuns(request: Pipeline.BuildRequest)->bool
+    {
+        return .running and
+               not Atomic.get(&.probe.cancelled) and
+               (not .preparing or not Atomic.get(&.preparing.cancelled)) and
+               .generation == .cache.generation and
+               .request.kind == request.kind and
+               .request.sameProgram(request)
+    }
+
     mtd compileRequest(request: Pipeline.BuildRequest)
     {
-        // Editing another panel need not restart an unchanged live preview.
-        if .running and not Atomic.get(&.probe.cancelled) and (not .preparing or not Atomic.get(&.preparing.cancelled)) and .generation == .cache.generation and .request.kind == request.kind and .request.sameProgram(request) do
+        if .alreadyRuns(request) do
             return
         .pending = request
         if .preparing

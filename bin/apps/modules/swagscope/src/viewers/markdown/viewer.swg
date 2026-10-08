@@ -191,23 +191,20 @@ struct ZoomButton
         widthCombo: *ComboBox
     }
 
-    zoomPercent:     u32 = 100
-    statisticsLoad:  Viewer.BackgroundLoad'TextStatistics
-    statistics:      TextStatistics
-    statisticsTimer: *Timer?
-    hasStatistics:   bool
-    reportDetails:   Viewer.ReportDetails?
-    outline:         *DocumentOutline?
+    zoomPercent:    u32 = 100
+    statisticsLoad: Viewer.BackgroundLoad'TextStatistics
+    statistics:     TextStatistics
+    hasStatistics:  bool
+    services:       Viewer.HostServices
+    outline:        *DocumentOutline?
 }
 
 impl IWnd for ZoomButton
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .statisticsTimer or not .statisticsLoad.isDone() do
+        if evt.timer != .statisticsLoad.timer or not .statisticsLoad.poll() do
             return
-        .removeTimer(evt.timer)
-        .statisticsTimer = null
         let error = .statisticsLoad.finish(&.statistics)
         .hasStatistics = error.isEmpty()
         .reportStatistics()
@@ -218,30 +215,25 @@ impl ZoomButton
 {
     mtd reportStatistics()
     {
-        if not .reportDetails do
-            return
         if not .hasStatistics
         {
-            .reportDetails(.view, texts().ui_Details)
+            .services.showDetails(.view, texts().ui_Details)
             return
         }
 
         let texts = texts()
         let lines = .statistics.lines == 1 ? String.from(texts.ui_OneLine) : Format.toString(texts.ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(texts.ui_OneWord) : Format.toString(texts.ui_Words, .statistics.words)
-        .reportDetails(.view, Format.toString("% · % · %", texts.ui_Details, lines, words))
+        .services.showDetails(.view, Format.toString("% · % · %", texts.ui_Details, lines, words))
     }
 
     mtd retire()->bool
     {
         if .outline and not .outline.retire() do
             return false
-        if .statisticsTimer
-        {
-            .removeTimer(.statisticsTimer)
-            .statisticsTimer = null
-        }
 
+        // Totals that arrive while the view retires have nobody left to show them to.
+        .statisticsLoad.stopPolling()
         return .statisticsLoad.retire()
     }
 
@@ -400,10 +392,9 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(search)
 
-    view.userData = zoomButton
-    zoomButton.reportDetails = services.reportDetails
-    zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8)
-    zoomButton.statisticsTimer = zoomButton.addTimer(Viewer.BackgroundPollInterval)
+    view.userData       = zoomButton
+    zoomButton.services = services
+    zoomButton.statisticsLoad.startPolled(zoomButton, host.fileName(), &TextStatisticsCounter.loadUtf8)
 
     with var lifecycle: Viewer.LifecycleApi
     {

@@ -124,7 +124,7 @@ private impl Panel
             Viewer.collectTextMatches(.track.cueContent(index), text, options, index, 0, 0, result)
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
     {
         if match.major >= .cueText.count do
             return false
@@ -132,6 +132,9 @@ private impl Panel
         Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset + match.offset, match.length)
         return true
     }
+
+    mtd searchBounds(result: *Math.Rectangle)->bool => Viewer.richEditMatchBounds(.editor, result)
+    mtd clearSearch() => Viewer.clearRichEditMatch(.editor)
 
     mtd revealCue(index: u64)->bool
     {
@@ -262,31 +265,7 @@ func createViewer(host: Viewer.Host)
         host.attachView(view)
         host.setDetails(formatText(view.track!.sourceFormat()))
 
-        with var search: Viewer.SearchApi
-        {
-            .collectMatches = func|view|(text, options, ?, matches)->bool
-            {
-                view.collectMatches(text, options, matches)
-                return true
-            }
-
-            .revealMatch = func|view|(match, ?)->bool
-            {
-                return view.revealMatch(match)
-            }
-
-            .matchBounds = func|view|(?, bounds)->bool
-            {
-                return Viewer.richEditMatchBounds(view.editor, bounds)
-            }
-
-            .clear = func|view|()
-            {
-                Viewer.clearRichEditMatch(view.editor)
-            }
-        }
-
-        host.setSearch(search)
+        host.setSearch(Viewer.searchApi(view))
     } as createError
     if createError != null do
         host.reject(Errors.message(createError))

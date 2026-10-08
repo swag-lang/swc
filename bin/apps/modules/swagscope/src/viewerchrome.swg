@@ -118,7 +118,11 @@ impl ViewerInfoLayout
         var viewers: Array'(*Wnd)
         for child in .children
         {
-            if child == cast(*Wnd, .filesButton) or child == cast(*Wnd, .fileGroup) or child == cast(*Wnd, .generalLabel) or (.sideButton and child == cast(*Wnd, .sideButton)) or not child.isLocallyVisible() do
+            if child == cast(*Wnd, .filesButton) or
+               child == cast(*Wnd, .fileGroup) or
+               child == cast(*Wnd, .generalLabel) or
+               (.sideButton and child == cast(*Wnd, .sideButton)) or
+               not child.isLocallyVisible() do
                 continue
             viewers.add(child)
         }

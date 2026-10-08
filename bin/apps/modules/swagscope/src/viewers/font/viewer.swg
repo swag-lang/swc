@@ -37,6 +37,8 @@ func viewerPlugin()->Viewer.Plugin
 
 private const CommandWidth = 456.0
 
+// What loading a font file produces: its bytes, the face and typeface built on them, and the
+// details line.
 #[Swag.NoCopy]
 struct ViewerContent
 {
@@ -71,6 +73,8 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     return result
 }
 
+// The font viewer: a specimen of the face, a sample field, and the glyph pages browsed from the
+// command bar.
 struct Panel
 {
     using wnd: Wnd
@@ -85,14 +89,11 @@ struct Panel
         document:       *DocumentView
     }
 
-    details:              String
-    sampleDefault:        String
-    load:                 Viewer.BackgroundLoad'ViewerContent
-    loadTimer:            *Timer?
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    details:       String
+    sampleDefault: String
+    load:          Viewer.BackgroundLoad'ViewerContent
+    services:      Viewer.HostServices
+    failureReason: String
 }
 
 private impl Panel
@@ -114,7 +115,7 @@ private impl Panel
         .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
         .previousButton.toolTip = texts().ui_PreviousPage
         .nextButton.toolTip     = texts().ui_NextPage
-        if not .loadTimer do
+        if not .load.isPending() do
             .document.invalidate()
     }
 
@@ -146,23 +147,20 @@ private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
         var content: ViewerContent
         .failureReason = .load.finish(&content)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
@@ -172,10 +170,8 @@ private impl IWnd for Panel
         .refreshPageCommands()
         .applyLayout()
         .setInitialFocus(.document)
-        if .reportDetails do
-            .reportDetails(me, .details)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.showDetails(me, .details)
+        .services.loadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -191,36 +187,25 @@ impl Panel
 {
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 
     // Creates the specimen view of `fileName`, with its sample field and character-page controls
     // in `commands`, and starts loading the font in the background.
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*Panel
+    func create(contentParent, commands: *Wnd, fileName: string, services: Viewer.HostServices)->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.font")
         {
-            .backgroundStyle      = .View
-            .reportFailure        = reportFailure
-            .reportDetails        = reportDetails
-            .reportLoadingChanged = reportLoadingChanged
-            .commands             = commands
-            .sampleDefault        = texts().ui_DefaultSample
+            .backgroundStyle = .View
+            .services        = services
+            .commands        = commands
+            .sampleDefault   = texts().ui_DefaultSample
         }
 
         result.createCommandBar()
 
         result.applyLayout()
-        result.load.start(fileName, &loadViewerContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, fileName, &loadViewerContent)
         return result
     }
 
@@ -234,7 +219,7 @@ impl Panel
             .setPlaceholder(texts().ui_SamplePlaceholder)
             .sigTextChanged += func|view = me|(?)
             {
-                if not view.loadTimer do
+                if not view.load.isPending() do
                     view.document.invalidate()
             }
         }
@@ -279,15 +264,8 @@ impl Panel
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = Panel.create(host.contentParent(), host.createCommandGroup(CommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = Panel.create(host.contentParent(), host.createCommandGroup(CommandWidth), host.fileName(), services)
     host.attachView(view)
 
-    with var lifecycle: Viewer.LifecycleApi
-    {
-        .isLoading = func|view|()->bool => view.loadTimer != null
-        .needsLoadingOverlay = func|view|()->bool => view.loadTimer != null
-        .retire    = func|view|()->bool => view.retire()
-    }
-
-    host.setLifecycle(lifecycle)
+    host.setLifecycle(Viewer.loadLifecycle(view))
 }

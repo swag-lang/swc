@@ -96,75 +96,61 @@ struct Panel
         grid:           *GridView
     }
 
-    inspectorLabel:       *Label?
-    zoomLabel:            *IconButton?
-    searchPattern:        SearchPattern
-    analysis:             AnalysisOperation
-    analysisTimer:        *Timer?
-    fileName:             String
-    details:              String
-    load:                 Viewer.BackgroundLoad'Document
-    loadTimer:            *Timer?
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    inspectorLabel: *Label?
+    zoomLabel:      *IconButton?
+    searchPattern:  SearchPattern
+    analysis:       AnalysisOperation
+    fileName:       String
+    details:        String
+    load:           Viewer.BackgroundLoad'Document
+    services:       Viewer.HostServices
+    failureReason:  String
 }
 
 private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .analysisTimer
+        if evt.timer == .analysis.timer
         {
-            if not .analysis.isDone()
+            if not .analysis.poll()
             {
                 .analysisView.setProgress(.analysis.progress())
                 return
             }
 
-            .removeTimer(evt.timer)
-            .analysisTimer = null
             var result = .analysis.finish()
             .analysisView.publish(&result)
             .analysisButton.enable(.grid.doc.fileSize != 0)
             return
         }
 
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
         var document: Document
         .failureReason = .load.finish(&document)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
         .grid.exchangeDocument(&document)
-        if .reportFailure
-        {
-            let report: Viewer.ReportFailure = .reportFailure
-            .grid.doc.reportFailure = func|view = me, report|(reason) { report(cast(*Wnd, view), reason) }
-        }
+        .grid.doc.reportFailure = func|view = me|(reason) { view.services.failed(view, reason) }
 
         .applyLayout()
         .grid.refreshLayout()
         .refreshInspector()
         .analysisButton.enable(.grid.doc.fileSize != 0)
         .setInitialFocus(.grid)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -183,23 +169,7 @@ impl Panel
     // A false result means a worker still borrows the view; the host polls again.
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if not .analysis.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        if .analysisTimer
-        {
-            .removeTimer(.analysisTimer)
-            .analysisTimer = null
-        }
-
-        return true
+        return .load.retire() and .analysis.retire()
     }
 
     private mtd analysisRange()->{range: AnalysisRange, selection: bool}
@@ -234,7 +204,7 @@ impl Panel
         .analysisView.begin(range, selection, .grid.offsetDigits)
         .applyLayout()
         .analysis.start(.fileName, range)
-        .analysisTimer = .addTimer(Viewer.BackgroundPollInterval)
+        .analysis.pollFrom(me)
     }
 
     // Hides the analysis panel and cancels a running analysis.
@@ -366,8 +336,7 @@ impl Panel
         .analysisButton.toolTip = texts().ui_AnalysisTip
         .analysisView.retranslate()
         .details.clear()
-        if .reportDetails do
-            .reportDetails(me, .details)
+        .services.showDetails(me, .details)
         .fitCommandBar()
         .grid.invalidate()
         .refreshInspector()
@@ -539,11 +508,9 @@ impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.hex")
         {
-            .backgroundStyle      = .View
-            .reportFailure        = services.reportFailure
-            .reportDetails        = services.reportDetails
-            .reportLoadingChanged = services.reportLoadingChanged
-            .fileName             = host.fileName()
+            .backgroundStyle = .View
+            .services        = services
+            .fileName        = host.fileName()
         }
 
         result.createCommandBar(host)
@@ -557,8 +524,7 @@ impl Panel
         result.refreshInspector()
         result.refreshZoom()
         result.setInitialFocus(result.grid)
-        result.load.start(host.fileName(), &loadDocument)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, host.fileName(), &loadDocument)
         return result
     }
 
@@ -710,12 +676,5 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(search)
 
-    with var lifecycle: Viewer.LifecycleApi
-    {
-        .isLoading = func|view|() => view.loadTimer != null
-        .needsLoadingOverlay = func|view|() => view.loadTimer != null
-        .retire    = func|view|() => view.retire()
-    }
-
-    host.setLifecycle(lifecycle)
+    host.setLifecycle(Viewer.loadLifecycle(view))
 }

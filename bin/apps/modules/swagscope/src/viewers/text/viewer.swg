@@ -73,8 +73,8 @@ private
 struct Probe
 {
     encoding:     Text.Encoding     // How the bytes read as characters.
-    contentStart: u64               // First byte of text, past a byte-order mark.
-    accepted:     bool              // Whether what it decodes to is text a reader should be shown.
+    contentStart: u64      // First byte of text, past a byte-order mark.
+    accepted:     bool     // Whether what it decodes to is text a reader should be shown.
 }
 
 // Text view available for readable content independently of the format-specific viewers.
@@ -121,7 +121,7 @@ struct Panel
     contentStart:       u64
     wrapping = true
     zoomPercent:        u32 = 100
-    reportDetails:      Viewer.ReportDetails?
+    services:           Viewer.HostServices
 }
 
 private func runStatistics(thread: Threading.Thread)
@@ -193,8 +193,7 @@ impl Panel
 
     mtd reportStatistics()
     {
-        if .reportDetails do
-            .reportDetails(me, .detailsText())
+        .services.showDetails(me, .detailsText())
     }
 
     mtd retranslate()
@@ -223,11 +222,7 @@ impl Panel
     {
         .retiring = true
         .stopLoading()
-        if .statisticsTimer
-        {
-            .removeTimer(.statisticsTimer)
-            .statisticsTimer = null
-        }
+        .stopTimer(&.statisticsTimer)
 
         if .statisticsThread.isValid() and not .statisticsThread.isDone()
         {
@@ -346,11 +341,7 @@ impl Panel
 
     mtd stopLoading()
     {
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
+        .stopTimer(&.loadTimer)
 
         if .read.started do
             Atomic.exchange(&.read.cancelled, 1)
@@ -471,7 +462,12 @@ impl Panel
 
     mtd revealOffset(offset: u64, text: string)->bool
     {
-        if text.count and .displayedEncoding == .encoding and not .pendingSeek and not (.read.started and .read.replace) and offset >= .residentStart and offset + text.count <= .bytesRead
+        if text.count and
+           .displayedEncoding == .encoding and
+           not .pendingSeek and
+           not (.read.started and .read.replace) and
+           offset >= .residentStart and
+           offset + text.count <= .bytesRead
         {
             if .encoding == .Utf8 do
                 Viewer.highlightRichEditMatch(.editor, .residentText, offset - .residentStart, text.count)
@@ -561,8 +557,7 @@ impl IWnd for Panel
         {
             if .statisticsThread.isValid() and not .statisticsThread.isDone() do
                 return
-            .removeTimer(evt.timer)
-            .statisticsTimer = null
+            .stopTimer(&.statisticsTimer)
             if .statisticsThread.isValid() do
                 .statisticsThread.wait()
             if .statisticsEncoding != .encoding or .statisticsStart != .contentStart or not Atomic.get(&.statisticsState) do
@@ -577,8 +572,7 @@ impl IWnd for Panel
             return
         }
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
+        .stopTimer(&.loadTimer)
         .updateEstimatedHeight()
         .loadNextChunk()
         .scheduleMore()
@@ -614,7 +608,7 @@ impl Panel
             // those antialiased corners remain visible instead of repainting them with a square view.
             .backgroundStyle = .Transparent
             .fileName        = host.fileName()
-            .reportDetails   = host.services().reportDetails
+            .services        = host.services()
         }
 
         let probed = probe(host.fileName())

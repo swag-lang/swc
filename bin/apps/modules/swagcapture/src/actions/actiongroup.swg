@@ -1,5 +1,6 @@
 using Gui
 
+// The commands that group the selected forms and break a group apart.
 struct ActionGroup {}
 
 impl ActionGroup

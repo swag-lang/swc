@@ -73,7 +73,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
         Swag.assert(session.view != null)
         let view = assume cast(*Picture.Panel, session.view)
-        completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+        completeViewerBackgroundLoad(&host, &view.load)
         view.imageView.setPaused(true)
         if view.imageView.movie.frameCount > 1 do
             view.imageView.setFrameIndex(1)
@@ -134,7 +134,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     infoBar.centerGroup   = result.info
 
     let view = assume cast(*Picture.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * Viewer.ZoomButtonInset)
     var navigation: s32
     view.userData = &navigation
@@ -197,7 +197,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
     let view = assume cast(*Picture.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(not view.failureReason.isEmpty())
 }
 
@@ -242,7 +242,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let view = assume cast(*Picture.Panel, session.view)
     var reports: ImageReports
     view.userData = &reports
-    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(reports.shown == 1 and reports.finished == 0)
 }
 
@@ -264,7 +264,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
             let view    = assume cast(*Picture.Panel, session.view)
             var reports = ImageReports{answer: answer}
             view.userData = &reports
-            completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+            completeViewerBackgroundLoad(&host, &view.load)
             let lastFrame = view.imageView.movie.frameCount - 1
             Swag.assert(lastFrame > 0 and not view.imageView.movie.isPaused)
             Swag.assert(reports.shown == 0 and reports.finished == 0)

@@ -41,13 +41,10 @@ struct Panel
         roll:       *RollView
     }
 
-    details:              String
-    load:                 Viewer.BackgroundLoad'Document
-    loadTimer:            *Timer?
-    reportFailure:        Viewer.ReportFailure?
-    reportDetails:        Viewer.ReportDetails?
-    reportLoadingChanged: Viewer.ReportLoadingChanged?
-    failureReason:        String
+    details:       String
+    load:          Viewer.BackgroundLoad'Document
+    services:      Viewer.HostServices
+    failureReason: String
 }
 
 private impl Panel
@@ -98,8 +95,7 @@ private impl Panel
     mtd refreshDetails()
     {
         .details = Format.toString(texts().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
-        if .reportDetails do
-            .reportDetails(me, .details)
+        .services.showDetails(me, .details)
     }
 
     mtd showZoomMenu()
@@ -122,20 +118,12 @@ private impl Panel
     }
 
     // Reports whether the document is still being read in the background.
-    mtd isLoading()->bool => .loadTimer != null
+    mtd isLoading()->bool => .load.isPending()
 
     // Requests teardown, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
     {
-        if not .load.retire() do
-            return false
-        if .loadTimer
-        {
-            .removeTimer(.loadTimer)
-            .loadTimer = null
-        }
-
-        return true
+        return .load.retire()
     }
 }
 
@@ -143,29 +131,25 @@ private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .loadTimer
+        if evt.timer != .load.timer
         {
             evt.accepted = false
             return
         }
 
-        if not .load.isDone() do
+        if not .load.poll() do
             return
 
-        .removeTimer(evt.timer)
-        .loadTimer = null
         var document: Document
         .failureReason = .load.finish(&document)
         if not .failureReason.isEmpty()
         {
-            if .reportFailure do
-                .reportFailure(me, .failureReason)
+            .services.failed(me, .failureReason)
             return
         }
 
         .publishDocument(&document)
-        if .reportLoadingChanged do
-            .reportLoadingChanged(me)
+        .services.loadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -187,12 +171,10 @@ impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
-            .backgroundStyle      = .View
-            .reportFailure        = services.reportFailure
-            .reportDetails        = services.reportDetails
-            .reportLoadingChanged = services.reportLoadingChanged
-            .commands             = commands
-            .info                 = info
+            .backgroundStyle = .View
+            .services        = services
+            .commands        = commands
+            .info            = info
         }
 
         with result.trackCombo = ComboBox.create(result.commands, {0, 0, CommandWidth, 36})
@@ -206,8 +188,7 @@ impl Panel
         result.zoomLabel.sigPressed += func|view = result|(?) { view.showZoomMenu() }
 
         result.applyLayout()
-        result.load.start(host.fileName(), &loadDocument)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        result.load.startPolled(result, host.fileName(), &loadDocument)
         return result
     }
 }

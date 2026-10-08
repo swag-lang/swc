@@ -73,6 +73,7 @@ namespace
         TaskContext*      ctx      = nullptr;
         const SourceFile* file     = nullptr;
         std::ostream*     out      = nullptr;
+        std::unordered_set<const SourceFile*>* targetFiles = nullptr;
         bool              first    = true;
 
         const AstNode* writtenCallee(AstNodeRef ref) const
@@ -113,6 +114,7 @@ namespace
             if (!target.file() || target.ref() != target.file()->ast().srcView().ref())
                 return;
             const Token& targetToken = target.token(symbol.tokRef());
+            targetFiles->insert(target.file());
             const bool   declaration = target.ref() == source.ref() && symbol.tokRef() == tokenRef;
             const auto*  variable    = symbol.decl()->safeCast<AstSingleVarDecl>();
             const bool   inferred    = declaration && variable && variable->nodeTypeRef.isInvalid() && variable->nodeInitRef.isValid();
@@ -201,12 +203,52 @@ Result EditorIndex::write(CompilerInstance& compiler)
 {
     std::ofstream out(compiler.cmdLine().editorIndex, std::ios::binary | std::ios::trunc);
     TaskContext   ctx(compiler);
+
+    std::unordered_map<std::string, std::string> indexedSources;
+    std::unordered_set<std::string> modulePaths;
+    std::unordered_set<const SourceFile*> targetFiles;
+    const CommandLine& cmdLine = compiler.cmdLine();
+    const std::string  moduleKey = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
+    const std::string  modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
+
+    // Editor queries only search the requested module. Imported API files are included below
+    // only when one of those queries points to a declaration inside them.
+    for (const SourceFile* file : compiler.files())
+    {
+        if (!file || !file->ast().hasSourceView())
+            continue;
+
+        const std::string key = pathKey(file->path());
+        const bool inModule = !moduleKey.empty()
+                                  ? key == moduleKey || key.starts_with(modulePrefix)
+                                  : std::ranges::any_of(cmdLine.files, [&](const fs::path& path) { return key == pathKey(path); });
+        if (!inModule)
+            continue;
+
+        modulePaths.insert(key);
+        std::ostringstream occurrences;
+        if (!Stats::hasError() && file->ast().root().isValid() && !file->isRuntime() && !file->isImportedApi())
+        {
+            FileWriter writer{&compiler, &ctx, file, &occurrences, &targetFiles};
+            Ast::visit(file->ast(), file->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
+                writer.visit(ref, node);
+                return Ast::VisitResult::Continue;
+            });
+        }
+        indexedSources.emplace(key, occurrences.str());
+    }
+
     out << "{\"version\":1,\"complete\":" << (Stats::hasError() ? "false" : "true") << ",\"files\":[";
     bool first = true;
     for (const SourceFile* file : compiler.files())
     {
         if (!file || !file->ast().hasSourceView())
             continue;
+
+        const auto key = pathKey(file->path());
+        if (!modulePaths.contains(key) && !targetFiles.contains(file))
+            continue;
+
         if (!first)
             out << ',';
         first = false;
@@ -215,14 +257,10 @@ Result EditorIndex::write(CompilerInstance& compiler)
         out << ",\"text\":";
         writeString(out, file->sourceView());
         out << ",\"occurrences\":[";
-        // Partial sema state can contain unsatisfied types. Never present it as an answer.
-        if (!Stats::hasError() && file->ast().root().isValid() && !file->isRuntime() && !file->isImportedApi())
+        const auto source = indexedSources.find(key);
+        if (source != indexedSources.end())
         {
-            FileWriter writer{&compiler, &ctx, file, &out};
-            Ast::visit(file->ast(), file->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
-                writer.visit(ref, node);
-                return Ast::VisitResult::Continue;
-            });
+            out << source->second;
         }
         out << "]}";
     }

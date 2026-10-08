@@ -46,7 +46,15 @@ class Source
     at(position)
     {
         const offset = this.document.offsetAt(position);
-        return this.occurrences.find(item => offset >= item.offset && offset < item.end);
+        let low = 0, high = this.occurrences.length;
+        while (low < high)
+        {
+            const middle = (low + high) >>> 1;
+            if (this.occurrences[middle].offset <= offset) low = middle + 1;
+            else high = middle;
+        }
+        const item = this.occurrences[low - 1];
+        return item && offset < item.end ? item : undefined;
     }
 }
 
@@ -119,8 +127,21 @@ class SemanticSnapshot
         const source = this.source(uri);
         if (!source) return [];
         const start = source.document.offsetAt(range.start), end = source.document.offsetAt(range.end);
-        return source.occurrences.filter(item => item.inferred && item.type && item.end >= start && item.end <= end)
-            .map(item => ({position: item.range.end, label: `: ${item.type}`, kind: 1, paddingLeft: true}));
+        let low = 0, high = source.occurrences.length;
+        while (low < high)
+        {
+            const middle = (low + high) >>> 1;
+            if (source.occurrences[middle].end < start) low = middle + 1;
+            else high = middle;
+        }
+        const hints = [];
+        for (let i = low; i < source.occurrences.length && source.occurrences[i].end <= end; ++i)
+        {
+            const item = source.occurrences[i];
+            if (item.inferred && item.type)
+                hints.push({position: item.range.end, label: `: ${item.type}`, kind: 1, paddingLeft: true});
+        }
+        return hints;
     }
 
     tokens(uri)

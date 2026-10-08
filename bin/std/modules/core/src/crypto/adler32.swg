@@ -3,21 +3,26 @@
 
 #global namespace Hash
 
+using Core.Math
+
 #[Swag.Inline]
-private func updateAdlerBlock16(input: const [*] u8, s1, s2: *u32)
+private func updateAdlerBlock16(input: const [*] u8, byteSum, weightedSum: *u32)
 {
-    let bytes       = Math.Simd.load(input)
-    let low         = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(bytes))
-    let high        = cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(bytes))
-    let ones        = Math.Simd.splat(1's16)
-    let weightsLow  = cast(Math.Simd.S16x8, [16's16, 15, 14, 13, 12, 11, 10, 9])
-    let weightsHigh = cast(Math.Simd.S16x8, [8's16, 7, 6, 5, 4, 3, 2, 1])
-    let sums        = Math.Simd.mulAddPairs(low, ones) + Math.Simd.mulAddPairs(high, ones)
-    let weighted    = Math.Simd.mulAddPairs(low, weightsLow) + Math.Simd.mulAddPairs(high, weightsHigh)
-    let sum         = cast(u32, Math.Simd.sum(sums))
-    let weightedSum = cast(u32, Math.Simd.sum(weighted))
-    s2[] += 16 * s1[] + weightedSum
-    s1[] += sum
+    let bytes = Simd.load(input)
+    let low   = cast #bit(Simd.S16x8, Simd.widenLow(bytes))
+    let high  = cast #bit(Simd.S16x8, Simd.widenHigh(bytes))
+
+    let ones        = Simd.splat(1's16)
+    let weightsLow  = cast(Simd.S16x8, [16's16, 15, 14, 13, 12, 11, 10, 9])
+    let weightsHigh = cast(Simd.S16x8, [8's16, 7, 6, 5, 4, 3, 2, 1])
+
+    let sums             = Simd.mulAddPairs(low, ones) + Simd.mulAddPairs(high, ones)
+    let weighted         = Simd.mulAddPairs(low, weightsLow) + Simd.mulAddPairs(high, weightsHigh)
+    let blockSum         = cast(u32, Simd.sum(sums))
+    let blockWeightedSum = cast(u32, Simd.sum(weighted))
+
+    weightedSum[] += 16 * byteSum[] + blockWeightedSum
+    byteSum[]     += blockSum
 }
 
 // Computes an Adler-32 checksum incrementally.
@@ -28,8 +33,8 @@ public struct Adler32
 
 public impl Adler32
 {
-    private const Base = 65521
-    private const NMax = 5552
+    private const Modulus = 65521
+    private const BytesPerReduction = 5552
 
     // Resets the checksum to its initial Adler-32 value.
     mtd reset()
@@ -40,73 +45,75 @@ public impl Adler32
     // Includes `buffer` in the running checksum.
     mtd update(buffer: const [..] u8)
     {
-        var s1 = .currentValue & 0xFFFF
-        var s2 = (.currentValue >> 16) & 0xFFFF
+        var byteSum     = .currentValue & 0xFFFF
+        var weightedSum = (.currentValue >> 16) & 0xFFFF
 
-        let countof = buffer.count
-        if not countof do
+        let byteCount = buffer.count
+        if not byteCount do
             return
 
         let input = buffer.buffer
-        if countof == 1
+        if byteCount == 1
         {
-            s1 += input[0]
-            if s1 >= Base do
-                s1 -= Base
-            s2 += s1
-            if s2 >= Base do
-                s2 -= Base
+            byteSum += input[0]
+            if byteSum >= Modulus do
+                byteSum -= Modulus
+            weightedSum += byteSum
+            if weightedSum >= Modulus do
+                weightedSum -= Modulus
         }
-        elif countof < 16
+        elif byteCount < 16
         {
-            for b in buffer
+            for byte in buffer
             {
-                s1 += b
-                s2 += s1
+                byteSum     += byte
+                weightedSum += byteSum
             }
 
-            if s1 >= Base do
-                s1 -= Base
-            s2 %= Base
+            if byteSum >= Modulus do
+                byteSum -= Modulus
+            weightedSum %= Modulus
         }
         else
         {
-            const n = NMax / 16
-            var i = 0'u64
+            const BlocksPerReduction = BytesPerReduction / 16
+            var byteOffset = 0'u64
 
-            while i + NMax <= countof
+            // Reduce both sums before their accumulated values can overflow.
+            while byteOffset + BytesPerReduction <= byteCount
             {
-                for n
+                for BlocksPerReduction
                 {
-                    updateAdlerBlock16(input + i, &s1, &s2)
-                    i += 16
+                    updateAdlerBlock16(input + byteOffset, &byteSum, &weightedSum)
+                    byteOffset += 16
                 }
 
-                s1 %= Base
-                s2 %= Base
+                byteSum     %= Modulus
+                weightedSum %= Modulus
             }
 
-            if i < countof
+            // Finish the partial reduction block, including its scalar tail.
+            if byteOffset < byteCount
             {
-                while i + 16 <= countof
+                while byteOffset + 16 <= byteCount
                 {
-                    updateAdlerBlock16(input + i, &s1, &s2)
-                    i += 16
+                    updateAdlerBlock16(input + byteOffset, &byteSum, &weightedSum)
+                    byteOffset += 16
                 }
 
-                while i < countof
+                while byteOffset < byteCount
                 {
-                    s1 += input[i]
-                    s2 += s1
-                    i  += 1
+                    byteSum     += input[byteOffset]
+                    weightedSum += byteSum
+                    byteOffset  += 1
                 }
 
-                s1 %= Base
-                s2 %= Base
+                byteSum     %= Modulus
+                weightedSum %= Modulus
             }
         }
 
-        .currentValue = s1 | (s2 << 16)
+        .currentValue = byteSum | (weightedSum << 16)
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].
@@ -116,9 +123,9 @@ public impl Adler32
     #[Swag.ConstExpr]
     func compute(buffer: const [..] u8)->u32
     {
-        var v: Adler32
-        v.reset()
-        v.update(buffer)
-        return v.value()
+        var checksum: Adler32
+        checksum.reset()
+        checksum.update(buffer)
+        return checksum.value()
     }
 }

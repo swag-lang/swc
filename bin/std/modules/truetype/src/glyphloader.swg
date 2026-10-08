@@ -193,7 +193,11 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
                 faceData.outlinePoints[idx].y = cast(s32, Math.round(tx * yx + ty * yy))
             }
 
-            if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and arg1 >= 0 and arg2 >= 0 and cast(u32, arg1) < basePointCount and cast(u32, arg2) < addedPointCount
+            if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and
+               arg1 >= 0 and
+               arg2 >= 0 and
+               cast(u32, arg1) < basePointCount and
+               cast(u32, arg2) < addedPointCount
             {
                 let anchorParent = faceData.outlinePoints[arg1]
                 let anchorChild  = faceData.outlinePoints[basePointCount + arg2]

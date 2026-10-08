@@ -322,28 +322,48 @@ impl Decoder
             }
             else
             {
-                if (.compSampH[0] == 1) and (.compSampV[0] == 1) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
+                if (.compSampH[0] == 1) and
+                   (.compSampV[0] == 1) and
+                   (.compSampH[1] == 1) and
+                   (.compSampV[1] == 1) and
+                   (.compSampH[2] == 1) and
+                   (.compSampV[2] == 1)
                 {
                     .scanType        = YH1V1
                     .maxBlocksPerMcu = 3
                     .maxMcuSizeX     = 8
                     .maxMcuSizeY     = 8
                 }
-                elif (.compSampH[0] == 2) and (.compSampV[0] == 1) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
+                elif (.compSampH[0] == 2) and
+                     (.compSampV[0] == 1) and
+                     (.compSampH[1] == 1) and
+                     (.compSampV[1] == 1) and
+                     (.compSampH[2] == 1) and
+                     (.compSampV[2] == 1)
                 {
                     .scanType        = YH2V1
                     .maxBlocksPerMcu = 4
                     .maxMcuSizeX     = 16
                     .maxMcuSizeY     = 8
                 }
-                elif (.compSampH[0] == 1) and (.compSampV[0] == 2) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
+                elif (.compSampH[0] == 1) and
+                     (.compSampV[0] == 2) and
+                     (.compSampH[1] == 1) and
+                     (.compSampV[1] == 1) and
+                     (.compSampH[2] == 1) and
+                     (.compSampV[2] == 1)
                 {
                     .scanType        = YH1V2
                     .maxBlocksPerMcu = 4
                     .maxMcuSizeX     = 8
                     .maxMcuSizeY     = 16
                 }
-                elif (.compSampH[0] == 2) and (.compSampV[0] == 2) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
+                elif (.compSampH[0] == 2) and
+                     (.compSampV[0] == 2) and
+                     (.compSampH[1] == 1) and
+                     (.compSampV[1] == 1) and
+                     (.compSampH[2] == 1) and
+                     (.compSampV[2] == 1)
                 {
                     .scanType        = YH2V2
                     .maxBlocksPerMcu = 6

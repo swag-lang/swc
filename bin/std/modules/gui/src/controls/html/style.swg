@@ -432,13 +432,11 @@ impl HtmlComputedStyle
     {
         switch .lineHeight.kind
         {
-        case .Pixels:
-            return .lineHeight.value
+        case .Pixels: return .lineHeight.value
 
         // A unitless line height is stored as a percentage of the font size, which is how it
         // keeps meaning when a descendant changes its own size.
-        case .Percent:
-            return .lineHeight.value * .fontSize
+        case .Percent: return .lineHeight.value * .fontSize
         }
 
         return fontHeight

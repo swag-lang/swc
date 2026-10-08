@@ -293,7 +293,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
                 if (next.flags & SWP_NOSIZE) == 0 and next.cx > 0 and next.cy > 0
                 {
-                    if surface.preparedFrame and surface.preparedWidth == next.cx and surface.preparedHeight == next.cy and not surface.isDirty do
+                    if surface.preparedFrame and
+                       surface.preparedWidth == next.cx and
+                       surface.preparedHeight == next.cy and
+                       not surface.isDirty do
                         return 0
 
                     surface.preparedFrame  = false
@@ -402,7 +405,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             let width    = cast(s32, LOWORD(lParam))
             let height   = cast(s32, HIWORD(lParam))
-            let prepared = surface.preparedFrame and surface.preparedWidth == width and surface.preparedHeight == height and not surface.isDirty
+            let prepared = surface.preparedFrame and
+                           surface.preparedWidth == width and
+                           surface.preparedHeight == height and
+                           not surface.isDirty
             surface.preparedFrame = prepared
             if not prepared do
                 surface.sendResizeEvent(cast(f32, width), cast(f32, height))

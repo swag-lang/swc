@@ -211,7 +211,12 @@ struct AbiNested
 {
     func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void?, values: [2] s32, e: AbiEnum)->bool
     {
-        return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == string and #typeof(p) == *void? and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
+        return #typeof(value) == AbiPair and
+               #typeof(payload) == AbiPayload and
+               #typeof(text) == string and
+               #typeof(p) == *void? and
+               #typeof(values[1]) == s32 and
+               #typeof(e) == AbiEnum
     }
 
     const V = #run passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A)

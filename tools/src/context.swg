@@ -5,10 +5,10 @@ using Core
 // Where the repository is, which compiler the tools run under and drive, and how to start it.
 public struct Context
 {
-    root:       String                     // Repository root, from the launcher.
-    binDir:     String                     // The bin directory, which is also the compiler root.
-    compiler:   String                     // Compiler the tools drive.
-    targetArch: String                     // Architecture every output path is keyed on.
+    root:       String     // Repository root, from the launcher.
+    binDir:     String     // The bin directory, which is also the compiler root.
+    compiler:   String     // Compiler the tools drive.
+    targetArch: String     // Architecture every output path is keyed on.
     childEnv:   Env.ProcessEnvironment     // Environment every started compiler inherits.
 }
 

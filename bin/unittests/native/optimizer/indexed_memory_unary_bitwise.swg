@@ -29,7 +29,10 @@ func negate8(values: [*] s8, index: u64)
     var unsigned64: [4] u64 = [0, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     complement64(&unsigned64[0], 0)
     complement64(&unsigned64[0], 2)
-    Swag.assert(unsigned64[0] == 0xFFFFFFFFFFFFFFFF and unsigned64[1] == 1 and unsigned64[2] == 0x7FFFFFFFFFFFFFFF and unsigned64[3] == 0xFFFFFFFFFFFFFFFF)
+    Swag.assert(unsigned64[0] == 0xFFFFFFFFFFFFFFFF and
+                unsigned64[1] == 1 and
+                unsigned64[2] == 0x7FFFFFFFFFFFFFFF and
+                unsigned64[3] == 0xFFFFFFFFFFFFFFFF)
 
     var signed64: [4] s64 = [0, 1, -1, -9223372036854775808's64]
     negate64(&signed64[0], 1)

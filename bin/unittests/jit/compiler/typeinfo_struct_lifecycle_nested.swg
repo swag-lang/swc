@@ -169,7 +169,12 @@ func nestedDropOrderWorks()->bool
     resetEvents()
     var value = OuterLifecycle{head: EventProbe{value: 1}, middle: MiddleLifecycle{left: EventProbe{value: 2}, right: EventProbe{value: 3}}, stamp: 9}
     runDrop(type, &value)
-    return EventCount == 5 and Events[0] == 1 and Events[1] == 10 and Events[2] == 103 and Events[3] == 102 and Events[4] == 101
+    return EventCount == 5 and
+           Events[0] == 1 and
+           Events[1] == 10 and
+           Events[2] == 103 and
+           Events[3] == 102 and
+           Events[4] == 101
 }
 
 func nestedInitRestoresDefaults()->bool
@@ -265,12 +270,20 @@ func arrayLifecycleTouchesEveryElement()->bool
 
     resetEvents()
     runCopy(type, &value)
-    if EventCount != 3 or eventSum() != 606 or value.values[0].value != 11 or value.values[1].value != 12 or value.values[2].value != 13 do
+    if EventCount != 3 or
+       eventSum() != 606 or
+       value.values[0].value != 11 or
+       value.values[1].value != 12 or
+       value.values[2].value != 13 do
         return false
 
     resetEvents()
     runMove(type, &value)
-    if EventCount != 3 or eventSum() != 936 or value.values[0].value != 111 or value.values[1].value != 112 or value.values[2].value != 113 do
+    if EventCount != 3 or
+       eventSum() != 936 or
+       value.values[0].value != 111 or
+       value.values[1].value != 112 or
+       value.values[2].value != 113 do
         return false
 
     resetEvents()

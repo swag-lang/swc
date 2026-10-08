@@ -144,7 +144,10 @@ private impl ImageView
     mtd updateUploadedFrame()
     {
         let frame = &.movie.frame
-        if not .uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
+        if not .uploadedTexture.isValid() or
+           .uploadedTexture.width != frame.width or
+           .uploadedTexture.height != frame.height or
+           .uploadedTexture.pixelFormat != frame.pixelFormat
         {
             if .uploadedTexture.isValid() do
                 .app().renderer.removeTexture(&.uploadedTexture)
@@ -431,7 +434,12 @@ impl ImageView
             return
         }
 
-        if .movie.isValid() or not .image.isValid() or not .uploadedTexture.isValid() or image.width != .image.width or image.height != .image.height or image.pixelFormat != .image.pixelFormat
+        if .movie.isValid() or
+           not .image.isValid() or
+           not .uploadedTexture.isValid() or
+           image.width != .image.width or
+           image.height != .image.height or
+           image.pixelFormat != .image.pixelFormat
         {
             .setImage(image[])
             return
@@ -483,7 +491,12 @@ impl ImageView
             return
         }
 
-        if .movie.isValid() or .image.isValid() or not .uploadedTexture.isValid() or view.width != .planarWidth or view.height != .planarHeight or view.chromaShift != .planarChromaShift
+        if .movie.isValid() or
+           .image.isValid() or
+           not .uploadedTexture.isValid() or
+           view.width != .planarWidth or
+           view.height != .planarHeight or
+           view.chromaShift != .planarChromaShift
         {
             .clear()
             .planarWidth       = view.width
@@ -522,7 +535,12 @@ impl ImageView
             return
         }
 
-        if .movie.isValid() or not .image.isValid() or not .uploadedTexture.isValid() or image.width != .image.width or image.height != .image.height or image.pixelFormat != .image.pixelFormat
+        if .movie.isValid() or
+           not .image.isValid() or
+           not .uploadedTexture.isValid() or
+           image.width != .image.width or
+           image.height != .image.height or
+           image.pixelFormat != .image.pixelFormat
         {
             .setImage(image[])
             return

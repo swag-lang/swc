@@ -233,22 +233,14 @@ impl MicrocodeViewer
         let strings = appStrings()
         switch #complete .statusMessage
         {
-        case .Ready:
-            .status.setText(strings.ui_Ready)
-
-        case .Working:
-            .status.setText("")
+        case .Ready:   .status.setText(strings.ui_Ready)
+        case .Working: .status.setText("")
 
         // An application about what the compiler does says how long it took to do it: the number
         // is the reader's own measurement of the tool they came here to judge.
-        case .Done:
-            .status.setText(Format.toString(.job.reused ? strings.ui_ReusedBuild : strings.ui_Done, .job.elapsed))
-
-        case .NoOutput:
-            .status.setText(strings.ui_NoOutput)
-
-        case .Stopped:
-            .status.setText(strings.ui_Stopped)
+        case .Done:     .status.setText(Format.toString(.job.reused ? strings.ui_ReusedBuild : strings.ui_Done, .job.elapsed))
+        case .NoOutput: .status.setText(strings.ui_NoOutput)
+        case .Stopped:  .status.setText(strings.ui_Stopped)
         }
     }
 

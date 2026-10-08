@@ -668,7 +668,10 @@ impl LibraryView
         // what it holds is active, hide it (it re-appears once loaded if it matches) so results
         // are not padded with unloaded, possibly non-matching, captures.
         if not loaded do
-            return search.count == 0 and lib.contentFilter != .ScreenCaptures and lib.contentFilter != .ImportedCaptures and not lib.filtersMetadata()
+            return search.count == 0 and
+                   lib.contentFilter != .ScreenCaptures and
+                   lib.contentFilter != .ImportedCaptures and
+                   not lib.filtersMetadata()
 
         switch lib.contentFilter
         {

@@ -52,7 +52,10 @@ private impl Movie
 {
     mtd cacheFrame(index: s32, frame: Image)
     {
-        if .cachesFrames and index == .cachedFrames.count and .cachedBytes <= .maxCacheBytes and frame.byteCount <= .maxCacheBytes - .cachedBytes
+        if .cachesFrames and
+           index == .cachedFrames.count and
+           .cachedBytes <= .maxCacheBytes and
+           frame.byteCount <= .maxCacheBytes - .cachedBytes
         {
             .cachedFrames.add(frame)
             .cachedBytes += frame.byteCount
@@ -93,7 +96,11 @@ private impl Movie
         if nextIndex == .frameCount
         {
             .completedLoops += 1
-            if not .loops or (.usesEncodedLoops and .reader.isOpen() and .reader.info.loopCount and .completedLoops >= .reader.info.loopCount)
+            if not .loops or
+               (.usesEncodedLoops and
+                .reader.isOpen() and
+                .reader.info.loopCount and
+                .completedLoops >= .reader.info.loopCount)
             {
                 .isPaused = true
                 return false

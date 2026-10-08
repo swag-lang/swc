@@ -103,7 +103,7 @@ public:
     // an export can hide, those not public or owned by a type, are remembered by default.
     // Editor snapshots also retain public names and selected calls before folding/inlining.
     const Symbol* foldedSourceSymbol(AstNodeRef nodeRef) const;
-    void retainEditorSymbols() { retainEditorSymbols_ = true; }
+    void          retainEditorSymbols() { retainEditorSymbols_ = true; }
 
 protected:
     Ast&       ast() { return ast_; }
@@ -179,28 +179,28 @@ protected:
     void                     setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols);
 
-    void                  copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
-    void                  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
-    void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    void copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
+    void setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
+    void appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     // Copy an existing argument under the shard lock; no view escapes payload replacement.
-    ResolvedCallArgument  getResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
+    ResolvedCallArgument getResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
     // Missing payloads and out-of-range indices yield no argument.
     std::optional<ResolvedCallArgument> tryGetResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
-    bool                  hasLoweringPayload(AstNodeRef nodeRef) const;
-    void                  setLoweringPayload(AstNodeRef nodeRef, void* payload);
-    void*                 getLoweringPayload(AstNodeRef nodeRef) const;
-    bool                  hasInlinePayload(AstNodeRef nodeRef) const;
-    void                  setInlinePayload(AstNodeRef nodeRef, void* payload);
-    void*                 getInlinePayload(AstNodeRef nodeRef) const;
-    bool                  hasInlineContextOverride(AstNodeRef nodeRef) const;
-    void                  setInlineContextOverride(AstNodeRef nodeRef, void* payload);
-    void*                 getInlineContextOverride(AstNodeRef nodeRef) const;
-    bool                  hasSemaPayload(AstNodeRef nodeRef) const;
-    void                  setSemaPayload(AstNodeRef nodeRef, void* payload);
-    void*                 getSemaPayload(AstNodeRef nodeRef) const;
-    void                  clearSemaPayload(AstNodeRef nodeRef);
-    void                  setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
-    const SymbolVariable* getConstAssignSourceParameter(AstNodeRef nodeRef) const;
+    bool                                hasLoweringPayload(AstNodeRef nodeRef) const;
+    void                                setLoweringPayload(AstNodeRef nodeRef, void* payload);
+    void*                               getLoweringPayload(AstNodeRef nodeRef) const;
+    bool                                hasInlinePayload(AstNodeRef nodeRef) const;
+    void                                setInlinePayload(AstNodeRef nodeRef, void* payload);
+    void*                               getInlinePayload(AstNodeRef nodeRef) const;
+    bool                                hasInlineContextOverride(AstNodeRef nodeRef) const;
+    void                                setInlineContextOverride(AstNodeRef nodeRef, void* payload);
+    void*                               getInlineContextOverride(AstNodeRef nodeRef) const;
+    bool                                hasSemaPayload(AstNodeRef nodeRef) const;
+    void                                setSemaPayload(AstNodeRef nodeRef, void* payload);
+    void*                               getSemaPayload(AstNodeRef nodeRef) const;
+    void                                clearSemaPayload(AstNodeRef nodeRef);
+    void                                setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
+    const SymbolVariable*               getConstAssignSourceParameter(AstNodeRef nodeRef) const;
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -243,9 +243,9 @@ private:
     const Shard*                   tryGetShard(uint32_t shardIdx) const;
 
     Ast              ast_;
-    SymbolNamespace* moduleNamespace_ = nullptr;
-    SymbolNamespace* fileNamespace_   = nullptr;
-    bool retainEditorSymbols_ = false;
+    SymbolNamespace* moduleNamespace_     = nullptr;
+    SymbolNamespace* fileNamespace_       = nullptr;
+    bool             retainEditorSymbols_ = false;
 
     struct Shard
     {

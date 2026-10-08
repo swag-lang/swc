@@ -374,7 +374,7 @@ namespace
             return Result::Continue;
 
         const std::array<uint64_t, 1> dims = {indexedType.isSimd() ? 16u : 8u};
-        outRuntimeStorageTypeRef          = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        outRuntimeStorageTypeRef           = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         return Result::Continue;
     }
 }

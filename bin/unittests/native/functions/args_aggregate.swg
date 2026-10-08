@@ -108,7 +108,12 @@ func passNested(value: AbiNested, extra: s32)->u64
 
 func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void?, values: [2] s32, e: AbiEnum)->bool
 {
-    return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == string and #typeof(p) == *void? and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
+    return #typeof(value) == AbiPair and
+           #typeof(payload) == AbiPayload and
+           #typeof(text) == string and
+           #typeof(p) == *void? and
+           #typeof(values[1]) == s32 and
+           #typeof(e) == AbiEnum
 }
 
 func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32

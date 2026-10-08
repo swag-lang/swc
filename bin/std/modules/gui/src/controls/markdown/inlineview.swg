@@ -971,7 +971,9 @@ impl InlineView
             atom.textBatch = Swag.U32.Max
             if not atom.visible do
                 continue
-            if atom.isMath or atom.isImage or atom.flags.has(.Link | .Strikeout | .ListBullet | .ListUnchecked | .ListChecked)
+            if atom.isMath or
+               atom.isImage or
+               atom.flags.has(.Link | .Strikeout | .ListBullet | .ListUnchecked | .ListChecked)
             {
                 current = Swag.U32.Max
                 continue
@@ -982,7 +984,10 @@ impl InlineView
             let top   = .textTop(atom, font)
             var info  = Painter.computeTextDrawInfo(font, 1, scale)
             info.snapOffsetX = phase
-            if current == Swag.U32.Max or .textBatches[current].font != font or .textBatches[current].origin.y != top or .textBatches[current].color != color
+            if current == Swag.U32.Max or
+               .textBatches[current].font != font or
+               .textBatches[current].origin.y != top or
+               .textBatches[current].color != color
             {
                 var batch: InlineTextBatch
                 batch.font        = font
@@ -1046,7 +1051,11 @@ impl InlineView
     //
     // A bullet, a task box and a formula all stand for their text without being it, so a point
     // inside one names its start or its end and never a position between two of its bytes.
-    private func isAtomOpaque(atom: const *InlineAtom)->bool => atom.isMath or atom.imageLoaded or atom.flags.has(.ListBullet) or atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
+    private func isAtomOpaque(atom: const *InlineAtom)->bool => atom.isMath or
+                                                                atom.imageLoaded or
+                                                                atom.flags.has(.ListBullet) or
+                                                                atom.flags.has(.ListUnchecked) or
+                                                                atom.flags.has(.ListChecked)
 
     // Returns how wide the first `bytes` of one atom are drawn.
     private mtd prefixWidth(atom: const *InlineAtom, bytes: u64)->f32
@@ -1332,8 +1341,18 @@ impl IWnd for InlineView
         let padding     = cast(s32, Math.ceil(1 / scale))
         let layerWidth  = width + padding
         let layerHeight = height + padding
-        let canCache    = .kind == .Paragraph and .images.entries.isEmpty() and width > 0 and height > 0 and transform.isTranslationOnly() and cast(f32, layerWidth) * scale <= MaxRenderCacheDim and cast(f32, layerHeight) * scale <= MaxRenderCacheDim
-        let cacheReady  = canCache and .renderLayer.contentTarget != null and .renderLayer.width == layerWidth and .renderLayer.height == layerHeight and .renderLayer.deviceScale == scale
+        let canCache    = .kind == .Paragraph and
+                          .images.entries.isEmpty() and
+                          width > 0 and
+                          height > 0 and
+                          transform.isTranslationOnly() and
+                          cast(f32, layerWidth) * scale <= MaxRenderCacheDim and
+                          cast(f32, layerHeight) * scale <= MaxRenderCacheDim
+        let cacheReady = canCache and
+                         .renderLayer.contentTarget != null and
+                         .renderLayer.width == layerWidth and
+                         .renderLayer.height == layerHeight and
+                         .renderLayer.deviceScale == scale
         if cacheReady
         {
             .drawRenderCache(painter, rect)

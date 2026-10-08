@@ -194,7 +194,14 @@ impl PixelFormat
 
     // Reports whether channels use an IEEE floating-point representation.
     #[ConstExpr]
-    func isFloat(me)->bool => me == .GrayF16 or me == .GrayAlphaF16 or me == .GrayF32 or me == .GrayAlphaF32 or me == .RGBF16 or me == .RGBAF16 or me == .RGBF32 or me == .RGBAF32
+    func isFloat(me)->bool => me == .GrayF16 or
+                              me == .GrayAlphaF16 or
+                              me == .GrayF32 or
+                              me == .GrayAlphaF32 or
+                              me == .RGBF16 or
+                              me == .RGBAF16 or
+                              me == .RGBF32 or
+                              me == .RGBAF32
 
     // Reports whether channels use one unsigned normalized integer representation.
     #[ConstExpr]
@@ -202,7 +209,14 @@ impl PixelFormat
 
     // Reports whether the format stores one luminance channel instead of separate RGB channels.
     #[ConstExpr]
-    func isGrayscale(me)->bool => me == .Gray8 or me == .GrayAlpha8 or me == .Gray16 or me == .GrayAlpha16 or me == .GrayF16 or me == .GrayAlphaF16 or me == .GrayF32 or me == .GrayAlphaF32
+    func isGrayscale(me)->bool => me == .Gray8 or
+                                  me == .GrayAlpha8 or
+                                  me == .Gray16 or
+                                  me == .GrayAlpha16 or
+                                  me == .GrayF16 or
+                                  me == .GrayAlphaF16 or
+                                  me == .GrayF32 or
+                                  me == .GrayAlphaF32
 }
 
 // Converts an IEEE 754 binary16 bit pattern to binary32, preserving signed zero,

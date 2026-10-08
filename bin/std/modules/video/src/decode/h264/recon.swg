@@ -290,7 +290,10 @@ impl Slice
             for quarter in 4's32
             {
                 let first = (quarter >> 1) * 8 + (quarter & 1) * 2
-                if storage.nz[cast(u64, first)] == 0 and storage.nz[cast(u64, first) + 1] == 0 and storage.nz[cast(u64, first) + 4] == 0 and storage.nz[cast(u64, first) + 5] == 0
+                if storage.nz[cast(u64, first)] == 0 and
+                   storage.nz[cast(u64, first) + 1] == 0 and
+                   storage.nz[cast(u64, first) + 4] == 0 and
+                   storage.nz[cast(u64, first) + 5] == 0
                 {
                     let dc0 = intra16Dc(dcBlock.buffer, first, dcScale)
                     let dc1 = intra16Dc(dcBlock.buffer, first + 1, dcScale)
@@ -419,7 +422,12 @@ impl Slice
             for jobIndex in 1'u32 until mb.jobCount
             {
                 let job = .jobAt(mb, jobIndex)
-                if job.refIdx[0] != first.refIdx[0] or job.refIdx[1] != first.refIdx[1] or job.mv[0, 0] != first.mv[0, 0] or job.mv[0, 1] != first.mv[0, 1] or job.mv[1, 0] != first.mv[1, 0] or job.mv[1, 1] != first.mv[1, 1]
+                if job.refIdx[0] != first.refIdx[0] or
+                   job.refIdx[1] != first.refIdx[1] or
+                   job.mv[0, 0] != first.mv[0, 0] or
+                   job.mv[0, 1] != first.mv[0, 1] or
+                   job.mv[1, 0] != first.mv[1, 0] or
+                   job.mv[1, 1] != first.mv[1, 1]
                 {
                     uniform = false
                     break

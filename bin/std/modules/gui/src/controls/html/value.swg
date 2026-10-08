@@ -535,14 +535,24 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
     }
 
     var termEnd = scan[]
-    while termEnd < text.count and text[termEnd] != '+' and text[termEnd] != '-' and text[termEnd] != '*' and text[termEnd] != '/' and text[termEnd] != ')' do
+    while termEnd < text.count and
+          text[termEnd] != '+' and
+          text[termEnd] != '-' and
+          text[termEnd] != '*' and
+          text[termEnd] != '/' and
+          text[termEnd] != ')' do
         termEnd += 1
 
     // A sign belongs to the number when nothing readable precedes it.
     if termEnd == scan[] and (text[termEnd] == '+' or text[termEnd] == '-')
     {
         termEnd += 1
-        while termEnd < text.count and text[termEnd] != '+' and text[termEnd] != '-' and text[termEnd] != '*' and text[termEnd] != '/' and text[termEnd] != ')' do
+        while termEnd < text.count and
+              text[termEnd] != '+' and
+              text[termEnd] != '-' and
+              text[termEnd] != '*' and
+              text[termEnd] != '/' and
+              text[termEnd] != ')' do
             termEnd += 1
     }
 

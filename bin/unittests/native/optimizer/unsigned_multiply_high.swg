@@ -39,7 +39,14 @@ func keepInputs(a, b, c, d: u64)->u64 => (a / 7) ^ (b % 10) ^ (c / 63) ^ (d % 3)
         Swag.assert(remainder32(narrow) == dynamicRemainder(narrow, 10))
         for other in values
         {
-            let expected = dynamicDivide(value, 7) ^ dynamicRemainder(other, 10) ^ dynamicDivide(~value, 63) ^ dynamicRemainder(~other, 3) ^ value ^ other ^ ~value ^ ~other
+            let expected = dynamicDivide(value, 7) ^
+                           dynamicRemainder(other, 10) ^
+                           dynamicDivide(~value, 63) ^
+                           dynamicRemainder(~other, 3) ^
+                           value ^
+                           other ^
+                           ~value ^
+                           ~other
             Swag.assert(keepInputs(value, other, ~value, ~other) == expected)
         }
     }

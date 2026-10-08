@@ -161,7 +161,9 @@ private func readU64(bytes: const [..] u8, offset: u64)->u64
 // are the little-endian master-page values InDesign writes.
 private func parseHeader(bytes: const [..] u8, offset: u64, result: *Header)->bool
 {
-    if not hasBytes(bytes, offset, HeaderMinimumSize) or not matchesSignature(bytes, offset) or not matchesAt(bytes, offset + Signature.count, HeaderType) do
+    if not hasBytes(bytes, offset, HeaderMinimumSize) or
+       not matchesSignature(bytes, offset) or
+       not matchesAt(bytes, offset + Signature.count, HeaderType) do
         return false
 
     let byteOrder = bytes[offset + ByteOrderOffset]
@@ -453,7 +455,12 @@ private func loadPreview(fileName: string, preview: const *Preview)->Image fail
         fail InvalidFormatError{texts().err_Preview}
 
     let previewBytes = catch Base64.decode(payload) as base64Error
-    if base64Error != null or previewBytes.count < 4 or previewBytes[0] != 0xFF or previewBytes[1] != 0xD8 or previewBytes[previewBytes.count - 2] != 0xFF or previewBytes[previewBytes.count - 1] != 0xD9 do
+    if base64Error != null or
+       previewBytes.count < 4 or
+       previewBytes[0] != 0xFF or
+       previewBytes[1] != 0xD8 or
+       previewBytes[previewBytes.count - 2] != 0xFF or
+       previewBytes[previewBytes.count - 1] != 0xD9 do
         fail InvalidFormatError{texts().err_Preview}
 
     var geometry: PreviewGeometry
@@ -462,7 +469,10 @@ private func loadPreview(fileName: string, preview: const *Preview)->Image fail
 
     var result: retval
     result = catch Image.decode("indesign-preview.jpg", previewBytes.toSlice()) as decodeError
-    if decodeError != null or not result.isValid() or result.width != cast(s32, geometry.width) or result.height != cast(s32, geometry.height) do
+    if decodeError != null or
+       not result.isValid() or
+       result.width != cast(s32, geometry.width) or
+       result.height != cast(s32, geometry.height) do
         fail InvalidFormatError{texts().err_Preview}
     return #move result
 }

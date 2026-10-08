@@ -6,7 +6,7 @@ enum CompressionLevel: u32
     BestSpeed
 }
 
-func(T) minLike(x, y: T)->T  => x
+func(T) minLike(x, y: T)->T => x
 func minLike(x, y: u32)->u32 { discard y; return x }
 
 #test

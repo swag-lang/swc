@@ -370,7 +370,11 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                         markdownContainer = false
                 }
 
-                if markdownContainer and index > 0 and not Latin1.trim(lines[index - 1]).count and line.count and line[0] != '<'
+                if markdownContainer and
+                   index > 0 and
+                   not Latin1.trim(lines[index - 1]).count and
+                   line.count and
+                   line[0] != '<'
                 {
                     var reopen: String
                     var close:  String
@@ -499,7 +503,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 {
                     let continuation = parseListItem(lines[index])
                     let next         = Latin1.trim(lines[index])
-                    if not next.count or continuation.found or continuation.indent < current.contentIndent or parseFence(lines[index]).found do
+                    if not next.count or
+                       continuation.found or
+                       continuation.indent < current.contentIndent or
+                       parseFence(lines[index]).found do
                         break
 
                     content  += hasHardBreak(previous) ? "\n" : " "
@@ -600,7 +607,16 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             let nextDefinition = parseReferenceDefinition(lines[index])
             if isHtmlBlockStart(lines[index]) do
                 break
-            if not next.count or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
+            if not next.count or
+               parseHeading(lines[index]).level or
+               isRule(lines[index]) or
+               parseListItem(lines[index]).found or
+               Utf8.startsWith(next, ">") or
+               Utf8.startsWith(next, "$$") or
+               Utf8.startsWith(next, "\\[") or
+               Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or
+               nextDefinition.found or
+               parseFence(lines[index]).found do
                 break
             if index + 1 < lines.count and setextLevel(lines[index + 1]) do
                 break

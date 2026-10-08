@@ -353,7 +353,10 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->bool
     {
-        return Swag.kindOf(values[0]) == s32 and Swag.kindOf(values[1]) == f64 and Swag.kindOf(values[2]) == bool and Swag.kindOf(values[3]) == string
+        return Swag.kindOf(values[0]) == s32 and
+               Swag.kindOf(values[1]) == f64 and
+               Swag.kindOf(values[2]) == bool and
+               Swag.kindOf(values[3]) == string
     }
 
     const V0 = #run variadicAny(7's32, 8.5'f64, true, "ok")

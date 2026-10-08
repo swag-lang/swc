@@ -343,7 +343,9 @@ impl Decoder
         // the same coding tree block row.
         let xColBr = xPb + nPbW
         let yColBr = yPb + nPbH
-        if (yPb >> sps.ctbLog2Size) == (yColBr >> sps.ctbLog2Size) and yColBr < cast(s32, sps.height) and xColBr < cast(s32, sps.width)
+        if (yPb >> sps.ctbLog2Size) == (yColBr >> sps.ctbLog2Size) and
+           yColBr < cast(s32, sps.height) and
+           xColBr < cast(s32, sps.width)
         {
             result = .collocatedMotion(collocated, (xColBr >> 4) << 4, (yColBr >> 4) << 4, list, refIdx)
             if result.available do

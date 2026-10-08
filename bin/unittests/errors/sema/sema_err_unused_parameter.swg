@@ -7,8 +7,8 @@ func unusedParam(a: s32, b: s32)->s32     // swc-expected-error {{sema_err_unuse
 }
 
 // '?' declares a parameter the body leaves unnamed, in every parameter form.
-func unnamedParam(a: s32, _: s32)->s32 => a
-func unnamedGroup(_, _: s32, c: s32)->s32 => c
+func unnamedParam(a: s32, _: s32)->s32           => a
+func unnamedGroup(_, _: s32, c: s32)->s32        => c
 func unnamedDefault(a: s32, _: bool = true)->s32 => a
 
 // 'discard name' keeps the name, for a signature whose names are part of its contract.

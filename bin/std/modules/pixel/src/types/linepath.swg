@@ -784,7 +784,9 @@ impl LinePath
         // Curve subdivision and authored paths can land two consecutive samples on
         // the same spot; a coincident point draws nothing, breaks stroke joins, and
         // degenerates fill triangulation, so it is never emitted.
-        if .polygon.points.count and Math.abs(pos.x - .endPosBuffer.x) < 0.0001 and Math.abs(pos.y - .endPosBuffer.y) < 0.0001 do
+        if .polygon.points.count and
+           Math.abs(pos.x - .endPosBuffer.x) < 0.0001 and
+           Math.abs(pos.y - .endPosBuffer.y) < 0.0001 do
             return
 
         .minBounds = Vector2.min(.minBounds, pos)

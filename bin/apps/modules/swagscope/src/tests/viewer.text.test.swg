@@ -13,7 +13,9 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
             view.statisticsThread.wait()
         if view.statisticsTimer do
             host.fireTimer(view.statisticsTimer)
-        if Atomic.get(&view.statisticsState) == PlainText.StatisticsCounted and view.statisticsEncoding == view.encoding and view.statisticsStart == view.contentStart do
+        if Atomic.get(&view.statisticsState) == PlainText.StatisticsCounted and
+           view.statisticsEncoding == view.encoding and
+           view.statisticsStart == view.contentStart do
             return
     }
 
@@ -35,7 +37,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     let fileName = textViewerFixturePath()
     var result   = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
-    Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null and result.retire != null)
+    Swag.assert(result.revealMatch != null and
+                result.searchBounds != null and
+                result.clearSearch != null and
+                result.isLoading != null and
+                result.retire != null)
 
     let view = assume cast(*PlainText.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)

@@ -222,7 +222,12 @@ public struct FontCache
 internal func isFontFallbackRune(c: rune)->bool
 {
     let code = cast(u32, c)
-    return code >= 0x20 and not (code >= 0x7F and code <= 0x9F) and code <= 0x10FFFF and not (code >= 0xD800 and code <= 0xDFFF) and not (code >= 0xFDD0 and code <= 0xFDEF) and (code & 0xFFFF) < 0xFFFE
+    return code >= 0x20 and
+           not (code >= 0x7F and code <= 0x9F) and
+           code <= 0x10FFFF and
+           not (code >= 0xD800 and code <= 0xDFFF) and
+           not (code >= 0xFDD0 and code <= 0xFDEF) and
+           (code & 0xFFFF) < 0xFFFE
 }
 
 private func mulFix(a, b: s32)->s32

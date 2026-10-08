@@ -69,12 +69,12 @@ namespace
 
     struct FileWriter
     {
-        CompilerInstance* compiler = nullptr;
-        TaskContext*      ctx      = nullptr;
-        const SourceFile* file     = nullptr;
-        std::ostream*     out      = nullptr;
+        CompilerInstance*                      compiler    = nullptr;
+        TaskContext*                           ctx         = nullptr;
+        const SourceFile*                      file        = nullptr;
+        std::ostream*                          out         = nullptr;
         std::unordered_set<const SourceFile*>* targetFiles = nullptr;
-        bool              first    = true;
+        bool                                   first       = true;
 
         const AstNode* writtenCallee(AstNodeRef ref) const
         {
@@ -115,10 +115,10 @@ namespace
                 return;
             const Token& targetToken = target.token(symbol.tokRef());
             targetFiles->insert(target.file());
-            const bool   declaration = target.ref() == source.ref() && symbol.tokRef() == tokenRef;
-            const auto*  variable    = symbol.decl()->safeCast<AstSingleVarDecl>();
-            const bool   inferred    = declaration && variable && variable->nodeTypeRef.isInvalid() && variable->nodeInitRef.isValid();
-            const bool   readonly    = symbol.isConstant() || symbol.isEnumValue() || symbol.isLetVariable();
+            const bool  declaration = target.ref() == source.ref() && symbol.tokRef() == tokenRef;
+            const auto* variable    = symbol.decl()->safeCast<AstSingleVarDecl>();
+            const bool  inferred    = declaration && variable && variable->nodeTypeRef.isInvalid() && variable->nodeInitRef.isValid();
+            const bool  readonly    = symbol.isConstant() || symbol.isEnumValue() || symbol.isLetVariable();
 
             if (!first)
                 *out << ',';
@@ -205,11 +205,11 @@ Result EditorIndex::write(CompilerInstance& compiler)
     TaskContext   ctx(compiler);
 
     std::unordered_map<std::string, std::string> indexedSources;
-    std::unordered_set<std::string> modulePaths;
-    std::unordered_set<const SourceFile*> targetFiles;
-    const CommandLine& cmdLine = compiler.cmdLine();
-    const std::string  moduleKey = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
-    const std::string  modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
+    std::unordered_set<std::string>              modulePaths;
+    std::unordered_set<const SourceFile*>        targetFiles;
+    const CommandLine&                           cmdLine      = compiler.cmdLine();
+    const std::string                            moduleKey    = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
+    const std::string                            modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
 
     // Editor queries only search the requested module. Imported API files are included below
     // only when one of those queries points to a declaration inside them.
@@ -218,10 +218,10 @@ Result EditorIndex::write(CompilerInstance& compiler)
         if (!file || !file->ast().hasSourceView())
             continue;
 
-        const std::string key = pathKey(file->path());
-        const bool inModule = !moduleKey.empty()
-                                  ? key == moduleKey || key.starts_with(modulePrefix)
-                                  : std::ranges::any_of(cmdLine.files, [&](const fs::path& path) { return key == pathKey(path); });
+        const std::string key      = pathKey(file->path());
+        const bool        inModule = !moduleKey.empty()
+                                         ? key == moduleKey || key.starts_with(modulePrefix)
+                                         : std::ranges::any_of(cmdLine.files, [&](const fs::path& path) { return key == pathKey(path); });
         if (!inModule)
             continue;
 

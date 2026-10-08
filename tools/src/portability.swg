@@ -206,7 +206,9 @@ public func auditPortability(context: *Context)->s32 fail
             for file in files
             {
                 let relative = portabilityRelativePath(context, file.fullName.toString())
-                if containsText(relative.toString(), "/.output/") or containsText(relative.toString(), "/.dep/") or isUnderAny(relative.toString(), ["bench/out/"]) do
+                if containsText(relative.toString(), "/.output/") or
+                   containsText(relative.toString(), "/.dep/") or
+                   isUnderAny(relative.toString(), ["bench/out/"]) do
                     continue
                 let content = try File.readAllText(file.fullName.toString())
                 errors += auditForeignImports(relative.toString(), content.toString())
@@ -525,7 +527,11 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             continue
         }
 
-        if not quoted and index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
+        if not quoted and
+           index + 2 < line.count and
+           line[index] == '"' and
+           line[index + 1] == '"' and
+           line[index + 2] == '"'
         {
             state.multilineText = true
             result += ' '
@@ -731,7 +737,11 @@ private func isCallableDeclaration(line: string)->bool
 
 private func isDeclaration(line: string)->bool
 {
-    return isCallableDeclaration(line) or declarationStartsWith(line, "alias") or declarationStartsWith(line, "struct") or declarationStartsWith(line, "enum") or declarationStartsWith(line, "interface")
+    return isCallableDeclaration(line) or
+           declarationStartsWith(line, "alias") or
+           declarationStartsWith(line, "struct") or
+           declarationStartsWith(line, "enum") or
+           declarationStartsWith(line, "interface")
 }
 
 private func countByte(text: string, value: u8)->u64

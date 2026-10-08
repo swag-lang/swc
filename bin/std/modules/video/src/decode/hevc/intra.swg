@@ -84,7 +84,6 @@ impl Decoder
         // group rather than once per sample.
         let step = component == 0 ? 4'u32 : 2'u32
 
-
         // The corner.
         let cornerAvailable = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma - 1, yLuma - 1, pps.constrainedIntraPred)
         reference.available[size * 2] = cornerAvailable

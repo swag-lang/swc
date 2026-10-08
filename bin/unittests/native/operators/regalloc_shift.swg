@@ -45,12 +45,12 @@ func multiShiftChain(x: u32, s1: u32, s2: u32, s3: u32)->u32
 // ---------------------------------------------------------------------------
 func shiftMixWidths(cnt: u32)->u64
 {
-    var a:  u32 = 0x80'u32                        // 128
-    var b:  u32 = 0x200'u32                       // 512
-    var c:  u64 = 0x800'u64                       // 2048
-    var ra: u32 = a >> cnt                        // 128  >> 2 = 32;   cnt → CL
-    var rb: u32 = b >> cnt                        // 512  >> 2 = 128;  cnt → CL
-    var rc: u64 = c >> cnt                        // 2048 >> 2 = 512;  cnt → CL (64-bit encoding)
+    var a:  u32 = 0x80'u32      // 128
+    var b:  u32 = 0x200'u32     // 512
+    var c:  u64 = 0x800'u64     // 2048
+    var ra: u32 = a >> cnt      // 128  >> 2 = 32;   cnt → CL
+    var rb: u32 = b >> cnt      // 512  >> 2 = 128;  cnt → CL
+    var rc: u64 = c >> cnt      // 2048 >> 2 = 512;  cnt → CL (64-bit encoding)
     return cast(u64, ra) + cast(u64, rb) + rc     // 32 + 128 + 512 = 672
 }
 
@@ -64,10 +64,10 @@ func shiftCallHelper(x: u32, y: u32)->u32 { return x + y }
 
 func shiftLiveAcrossCall(a: u32, b: u32, c: u32)->u32
 {
-    var cnt: u32 = b - a                         // cnt = 3-1 = 2 (may be in RCX)
+    var cnt: u32 = b - a          // cnt = 3-1 = 2 (may be in RCX)
     var mid: u32 = shiftCallHelper(a + b, c)     // call clobbers RCX → cnt must spill
-    var r:   u32 = mid << cnt                    // cnt reloaded into CL;  14 << 2 = 56
-    return r + a                                 // 56 + 1 = 57
+    var r:   u32 = mid << cnt     // cnt reloaded into CL;  14 << 2 = 56
+    return r + a                  // 56 + 1 = 57
 }
 
 // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ func nestedShiftCount(x: u32, cnt_base: u32)->u32
     var r1:   u32 = x << cnt1      // cnt1 → CL;  3 << 2 = 12
     var cnt2: u32 = r1 >> cnt1     // cnt1 → CL;  12 >> 2 = 3  (cnt2 derived from shift)
     var r2:   u32 = x << cnt2      // cnt2 → CL;  3 << 3 = 24
-    return r1 + r2                 // 12 + 24 = 36
+    return r1 + r2     // 12 + 24 = 36
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ func shiftInsideDivExpr(a: u32, b: u32, c: u32)->u32
 {
     var cnt: u32 = a / b        // DIV: a=12, b=4 → cnt=3 (in RAX)
     var r:   u32 = c << cnt     // SHL: cnt from RAX → CL
-    return r                    // 5 << 3 = 40
+    return r     // 5 << 3 = 40
 }
 
 // ---------------------------------------------------------------------------
@@ -102,8 +102,8 @@ func shiftInsideDivExpr(a: u32, b: u32, c: u32)->u32
 func manyLiveShift(a: u32, b: u32, c: u32, d: u32,
                    e: u32, f: u32, g: u32, h: u32)->u32
 {
-    var cnt: u32 = h - g                     // cnt = 4-3 = 1; all 8 params live
-    var r:   u32 = a << cnt                  // 1 << 1 = 2; b,c,d,e,f,g,h still live
+    var cnt: u32 = h - g        // cnt = 4-3 = 1; all 8 params live
+    var r:   u32 = a << cnt     // 1 << 1 = 2; b,c,d,e,f,g,h still live
     return r + b + c + d + e + f + g + h     // 2+2+3+4+5+6+3+4 = 29
 }
 
@@ -160,7 +160,7 @@ func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
     while i < iters
     {
         var shifted: u32 = acc << lcnt     // lcnt → CL
-        extra += acc >> rcnt               // rcnt → CL (different value)
+        extra += acc >> rcnt     // rcnt → CL (different value)
         acc   = shifted
         i     += 1'u32
     }

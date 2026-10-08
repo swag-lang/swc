@@ -3,7 +3,12 @@
 
 using Core, Core.Math, Pixel
 
-private func isFiniteTransform(transform: Transform2)->bool => Math.isFinite(transform.m11) and Math.isFinite(transform.m12) and Math.isFinite(transform.m21) and Math.isFinite(transform.m22) and Math.isFinite(transform.tx) and Math.isFinite(transform.ty)
+private func isFiniteTransform(transform: Transform2)->bool => Math.isFinite(transform.m11) and
+                                                               Math.isFinite(transform.m12) and
+                                                               Math.isFinite(transform.m21) and
+                                                               Math.isFinite(transform.m22) and
+                                                               Math.isFinite(transform.tx) and
+                                                               Math.isFinite(transform.ty)
 
 private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
 {
@@ -139,7 +144,13 @@ impl Page
     mtd addImage(image: Image, x, y, width, height: f32)
     {
         Swag.assert(image.isValid(), "invalid image")
-        Swag.assert(width > 0 and height > 0 and Math.isFinite(width) and Math.isFinite(height) and Math.isFinite(x) and Math.isFinite(y), "invalid image placement")
+        Swag.assert(width > 0 and
+                    height > 0 and
+                    Math.isFinite(width) and
+                    Math.isFinite(height) and
+                    Math.isFinite(x) and
+                    Math.isFinite(y),
+                    "invalid image placement")
         with var item = Item.createImage()
         {
             .image     = image

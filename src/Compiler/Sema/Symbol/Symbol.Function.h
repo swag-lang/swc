@@ -409,13 +409,13 @@ public:
         SmallVector<std::pair<uint32_t, uint64_t>, 2> shardVersions;
     };
 
-    ConstantJitTargets&     constantJitTargets() const noexcept { return constantJitTargets_; }
-    std::shared_mutex&      constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
-    bool                    isJitWaitSatisfied(TaskStateKind kind) const noexcept;
-    void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
-    void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
-    bool                    ownsJitCodeAddress(const void* address) const noexcept
+    ConstantJitTargets& constantJitTargets() const noexcept { return constantJitTargets_; }
+    std::shared_mutex&  constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
+    bool                isJitWaitSatisfied(TaskStateKind kind) const noexcept;
+    void*               jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
+    void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void*               jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
+    bool                ownsJitCodeAddress(const void* address) const noexcept
     {
         if (!address)
             return false;

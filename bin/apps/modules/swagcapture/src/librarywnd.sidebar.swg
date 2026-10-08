@@ -124,7 +124,9 @@ impl LibraryWnd
             switch kind
             {
             case .Date:
-                matches = cast(u64, line.userData0) == .view.filterYear and cast(u64, line.userData1) == .view.filterMonth and cast(u64, line.userData2) == .view.filterDay
+                matches = cast(u64, line.userData0) == .view.filterYear and
+                          cast(u64, line.userData1) == .view.filterMonth and
+                          cast(u64, line.userData2) == .view.filterDay
 
             case .Application:
                 let idx = cast(u64, line.userData0)
@@ -251,7 +253,9 @@ impl LibraryWnd
 
         let applications = .collectNamedFilters(true)
         let tags         = .collectNamedFilters(false)
-        if not force and Slice.equals(.sidebarApplications.toSlice(), applications.toSlice()) and Slice.equals(.sidebarTags.toSlice(), tags.toSlice()) do
+        if not force and
+           Slice.equals(.sidebarApplications.toSlice(), applications.toSlice()) and
+           Slice.equals(.sidebarTags.toSlice(), tags.toSlice()) do
             return
 
         .sidebarApplications = applications

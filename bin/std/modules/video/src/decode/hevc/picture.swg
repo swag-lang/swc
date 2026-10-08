@@ -352,7 +352,13 @@ impl Decoder
         // A complete untiled WPP picture has one independently coded substream per coding tree
         // block row. Decode those rows concurrently; less regular slice layouts keep the exact
         // sequential path below.
-        if pps.entropyCodingSync and not pps.tilesEnabled and not .header.dependent and not .header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64, sps.heightInCtbs) + 1 and Swag.workerCount() > 1
+        if pps.entropyCodingSync and
+           not pps.tilesEnabled and
+           not .header.dependent and
+           not .header.segmentAddress and
+           sps.widthInCtbs >= 2 and
+           bounds.count == cast(u64, sps.heightInCtbs) + 1 and
+           Swag.workerCount() > 1
         {
             try .decodeWavefrontRows(&bounds, sps)
             return
@@ -379,7 +385,10 @@ impl Decoder
         // slice, so the row decision comes before the dependent-segment one, clause 9.3.1.
         .claimCodingTreeBlock()
         try .startSubstream(&substream, &bounds)
-        if pps.entropyCodingSync and (.ctbAddrRs % sps.widthInCtbs) == 0 and .wppState.valid and .aboveRightAvailable(.ctbAddrRs, sps) do
+        if pps.entropyCodingSync and
+           (.ctbAddrRs % sps.widthInCtbs) == 0 and
+           .wppState.valid and
+           .aboveRightAvailable(.ctbAddrRs, sps) do
             .cabac.restore(&.wppState)
         elif .header.dependent and .dependentState.valid do
             .cabac.restore(&.dependentState)

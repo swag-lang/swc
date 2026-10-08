@@ -37,7 +37,7 @@ struct SemaInlinePayload
     SmallVector2<AstNodeRef>                         materializedArgRefs;
     SmallVector2<SymbolVariable*>                    localVariables;
     std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
-    std::array<SourceCodeRef, 10>                    aliasNameRefs    = {}; // where the call site wrote each alias
+    std::array<SourceCodeRef, 10>                    aliasNameRefs    = {};                  // where the call site wrote each alias
     TokenRef                                         sourceEndRef     = TokenRef::invalid(); // last token of 'sourceFunction', once asked
     std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers  = {};
     // Declared '#code' parameter names of the callee ('stmt: #code(v, dbl)'), in slot

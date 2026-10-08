@@ -56,7 +56,7 @@ func semaTest005()
 func semaTest006()
 {
     var a:  [2] s32
-    var p1: *s32       = a
+    var p1: *s32 = a
     discard p1
     var p2: const *s32 = a
     discard p2

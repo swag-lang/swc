@@ -98,13 +98,17 @@ impl Decoder
         let kvdLength        = readU32(buffer.buffer + 60)
         if baseWidth == 0 or baseWidth > cast(u32, Swag.S32.Max) or baseHeight > cast(u32, Swag.S32.Max) do
             fail UnsupportedFormatError{"KTX2 dimensions exceed the image limits"}
-        if (faceCount != 1 and faceCount != 6) or (depth and (faceCount != 1 or not baseHeight)) or (faceCount == 6 and baseWidth != baseHeight) do
+        if (faceCount != 1 and faceCount != 6) or
+           (depth and (faceCount != 1 or not baseHeight)) or
+           (faceCount == 6 and baseWidth != baseHeight) do
             fail InvalidFormatError{"KTX2 texture dimensions and face count disagree"}
         if storedLevelCount > 32 or levelIndex >= storedLevelCount do
             fail InvalidFormatError{"KTX2 mip level is out of range"}
         if cast(u64, storedLevelCount) > (buffer.count - HeaderSize) / 24 do
             fail InvalidFormatError{"KTX2 level index is truncated"}
-        if dfdLength < 28 or cast(u64, dfdOffset) + dfdLength > buffer.count or readU32(buffer.buffer + dfdOffset) != dfdLength do
+        if dfdLength < 28 or
+           cast(u64, dfdOffset) + dfdLength > buffer.count or
+           readU32(buffer.buffer + dfdOffset) != dfdLength do
             fail InvalidFormatError{"KTX2 data format descriptor is invalid"}
         if compression != 0 and compression != 3 do
             fail UnsupportedFormatError{"KTX2 supercompression must be absent or ZLIB"}

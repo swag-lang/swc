@@ -13,7 +13,7 @@ func semaTest001()
 func semaTest002()
 {
     var a: A
-    var b: *A       = &a
+    var b: *A = &a
     discard b
     var c: const *A = &a
     discard c

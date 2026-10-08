@@ -388,11 +388,23 @@ private impl GenericLexer
         }
     }
 
-    mtd isCaseInsensitive()->bool => .language == .Sql or .language == .VisualBasic or .language == .Batch or .language == .Assembly or .language == .Fortran or .language == .Pascal or .language == .Matlab or .language == .Dockerfile
+    mtd isCaseInsensitive()->bool => .language == .Sql or
+                                     .language == .VisualBasic or
+                                     .language == .Batch or
+                                     .language == .Assembly or
+                                     .language == .Fortran or
+                                     .language == .Pascal or
+                                     .language == .Matlab or
+                                     .language == .Dockerfile
     mtd hasBlockComment()->bool   => .isSlashComment() or .language == .Sql or .language == .Css or .language == .Nix
     mtd hasBacktickString()->bool => .language == .JavaScript or .language == .TypeScript or .language == .Shell or .language == .PowerShell
     mtd hasPreprocessor()->bool   => .language == .C or .language == .Cpp or .language == .CSharp or .language == .Shader or .language == .ObjectiveC
-    mtd hasDataKeys()->bool       => .language == .Json or .language == .Yaml or .language == .Toml or .language == .Config or .language == .Css or .language == .GraphQl
+    mtd hasDataKeys()->bool       => .language == .Json or
+                                     .language == .Yaml or
+                                     .language == .Toml or
+                                     .language == .Config or
+                                     .language == .Css or
+                                     .language == .GraphQl
 }
 
 private func paintRange(line: *RichEditLine, first, last: u64, style: GenericLexer.Style)

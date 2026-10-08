@@ -25,8 +25,8 @@ struct BadFieldStrictAlias
     strictAliasField: StrictVoidAlias     // swc-expected-error {{sema_err_bad_storage_type}}
 }
 
-func directParam(value: void) {}                     // swc-expected-error {{sema_err_bad_storage_type}}
-func aliasParam(value: VoidAlias) {}                 // swc-expected-error {{sema_err_bad_storage_type}}
+func directParam(value: void) {}         // swc-expected-error {{sema_err_bad_storage_type}}
+func aliasParam(value: VoidAlias) {}     // swc-expected-error {{sema_err_bad_storage_type}}
 func strictAliasParam(value: StrictVoidAlias) {}     // swc-expected-error {{sema_err_bad_storage_type}}
 
 #test

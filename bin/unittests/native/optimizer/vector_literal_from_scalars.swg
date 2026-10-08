@@ -154,7 +154,14 @@ func fillCopyAndPass(out: [*] u32, a, b, c, d: u32)
     pairs(&out[0], 1, 2, 3, 4)
     Swag.assert(out[0] == 1 and out[1] == 1 and out[2] == 2 and out[3] == 2 and out[4] == 3 and out[6] == 4 and out[7] == 4)
     distinctWords(&out[0], 10, 20, 30, 40, 50, 60, 70, 0xFFFF)
-    Swag.assert(out[0] == 10 and out[1] == 20 and out[2] == 30 and out[3] == 40 and out[4] == 50 and out[5] == 60 and out[6] == 70 and out[7] == 0xFFFF)
+    Swag.assert(out[0] == 10 and
+                out[1] == 20 and
+                out[2] == 30 and
+                out[3] == 40 and
+                out[4] == 50 and
+                out[5] == 60 and
+                out[6] == 70 and
+                out[7] == 0xFFFF)
     sameWord(&out[0], 0xABCD)
     for i in 8 do
         Swag.assert(out[i] == 0xABCD)
@@ -163,9 +170,23 @@ func fillCopyAndPass(out: [*] u32, a, b, c, d: u32)
     alternate(&signed[0], -7, 9)
     Swag.assert(signed[0] == -7 and signed[1] == 9 and signed[6] == -7 and signed[7] == 9)
     withZeros(&signed[0], -1, 2, -3)
-    Swag.assert(signed[0] == -1 and signed[1] == 2 and signed[2] == -3 and signed[3] == 0 and signed[4] == -1 and signed[5] == 2 and signed[6] == -3 and signed[7] == 0)
+    Swag.assert(signed[0] == -1 and
+                signed[1] == 2 and
+                signed[2] == -3 and
+                signed[3] == 0 and
+                signed[4] == -1 and
+                signed[5] == 2 and
+                signed[6] == -3 and
+                signed[7] == 0)
     oneLane(&signed[0], 77)
-    Swag.assert(signed[0] == 0 and signed[1] == 0 and signed[2] == 77 and signed[3] == 0 and signed[4] == 0 and signed[5] == 0 and signed[6] == 77 and signed[7] == 0)
+    Swag.assert(signed[0] == 0 and
+                signed[1] == 0 and
+                signed[2] == 77 and
+                signed[3] == 0 and
+                signed[4] == 0 and
+                signed[5] == 0 and
+                signed[6] == 77 and
+                signed[7] == 0)
 
     var wide: [4] u32
     dwords(&wide[0], 1, 0x80000000, 3, 0xFFFFFFFF)
@@ -173,13 +194,26 @@ func fillCopyAndPass(out: [*] u32, a, b, c, d: u32)
 
     var narrow: [16] u8
     bytes(&narrow[0], 0xAB, 0xCD)
-    Swag.assert(narrow[0] == 0xAB and narrow[1] == 0xCD and narrow[2] == 0 and narrow[3] == 0 and narrow[12] == 0xAB and narrow[13] == 0xCD and narrow[15] == 0)
+    Swag.assert(narrow[0] == 0xAB and
+                narrow[1] == 0xCD and
+                narrow[2] == 0 and
+                narrow[3] == 0 and
+                narrow[12] == 0xAB and
+                narrow[13] == 0xCD and
+                narrow[15] == 0)
 
     Swag.assert(readTwice(&out[0], 100, 200) == 300)
     Swag.assert(out[0] == 100 and out[3] == 100 and out[4] == 200 and out[7] == 200)
 
     computedLanes(&out[0], 5, 6)
-    Swag.assert(out[0] == 6 and out[1] == 6 and out[2] == 12 and out[3] == 12 and out[4] == 7 and out[5] == 7 and out[6] == 12 and out[7] == 12)
+    Swag.assert(out[0] == 6 and
+                out[1] == 6 and
+                out[2] == 12 and
+                out[3] == 12 and
+                out[4] == 7 and
+                out[5] == 7 and
+                out[6] == 12 and
+                out[7] == 12)
 
     var strength: Strength
     fillStrength(&strength, 7)

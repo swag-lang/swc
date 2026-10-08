@@ -984,7 +984,7 @@ impl BorrowInvIndexedOwner
     mtd slotAfterGrowth()->u8
     {
         let slot = .readSlot()     // swc-expected-note {{sema_note_borrow_taken_here}}
-        .grow()                    // swc-expected-error {{sanity_err_borrow_invalidated}}
+        .grow()     // swc-expected-error {{sanity_err_borrow_invalidated}}
         return slot[].value        // swc-expected-note {{sema_note_borrow_read_here}}
     }
 }

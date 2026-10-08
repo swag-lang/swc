@@ -46,7 +46,10 @@ func assertPngHasChunk(bytes: const [..] u8, c0, c1, c2, c3: u8)
         if bytes[i + 4] == c0 and bytes[i + 5] == c1 and bytes[i + 6] == c2 and bytes[i + 7] == c3 do
             return
 
-        let length = (cast(u64, bytes[i]) << 24) | (cast(u64, bytes[i + 1]) << 16) | (cast(u64, bytes[i + 2]) << 8) | cast(u64, bytes[i + 3])
+        let length = (cast(u64, bytes[i]) << 24) |
+                     (cast(u64, bytes[i + 1]) << 16) |
+                     (cast(u64, bytes[i + 2]) << 8) |
+                     cast(u64, bytes[i + 3])
         i += length + 12
     }
 

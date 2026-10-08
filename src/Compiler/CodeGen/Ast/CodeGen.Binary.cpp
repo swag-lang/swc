@@ -205,12 +205,12 @@ namespace
         const SemaNodeView rightView = resolveBinaryOperandSemanticView(codeGen, node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        ctx.leftPayload         = &codeGen.payload(node.nodeLeftRef);
-        ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
-        ctx.leftOperandTypeRef  = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
-        ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
-        ctx.leftOperandTypeRef  = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
-        ctx.rightOperandTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
+        ctx.leftPayload                = &codeGen.payload(node.nodeLeftRef);
+        ctx.rightPayload               = &codeGen.payload(node.nodeRightRef);
+        ctx.leftOperandTypeRef         = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
+        ctx.rightOperandTypeRef        = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
+        ctx.leftOperandTypeRef         = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
+        ctx.rightOperandTypeRef        = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
         const TypeInfo* resultTypeInfo = codeGen.curViewType().type();
         if (codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
         {

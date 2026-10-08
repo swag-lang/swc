@@ -305,7 +305,11 @@ private impl Layout
                 .streamIndex = index
                 .hasStream   = true
             }
-            elif chunk.id == StreamFormatId and hasHeader and not hasAudio and header.kind == AudioStreamId and chunk.size >= #sizeof(AudioFormat)
+            elif chunk.id == StreamFormatId and
+                 hasHeader and
+                 not hasAudio and
+                 header.kind == AudioStreamId and
+                 chunk.size >= #sizeof(AudioFormat)
             {
                 let format = try source.readNative'AudioFormat()
                 if format.isPlayable()

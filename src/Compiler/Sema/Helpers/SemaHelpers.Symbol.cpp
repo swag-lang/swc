@@ -1259,7 +1259,7 @@ namespace
         if (throughType && (lookUpCxt.empty() || !std::ranges::all_of(lookUpCxt.symbols().span(), [](const Symbol* sym) { return sym->isConstant(); })))
         {
             SWC_RESULT(sema.waitSemaCompleted(&symStruct, codeRef));
-            lookUpCxt = {};
+            lookUpCxt               = {};
             lookUpCxt.codeRef       = codeRef;
             lookUpCxt.symMapHint    = &symStruct;
             lookUpCxt.noWaitOnEmpty = true;

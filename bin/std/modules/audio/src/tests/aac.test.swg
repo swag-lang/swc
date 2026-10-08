@@ -11,7 +11,9 @@ private func aacTestPackets(path: string)->Array'SoundPacket fail
     {
         if bytes.count - offset < 7 or bytes[offset] != 0xFF or bytes[offset + 1] & 0xF6 != 0xF0 do
             fail InvalidFormatError{"AAC test fixture has an invalid ADTS header"}
-        let frameSize = (cast(u32, (bytes[offset + 3] & 3)) << 11) | (cast(u32, bytes[offset + 4]) << 3) | (cast(u32, bytes[offset + 5]) >> 5)
+        let frameSize = (cast(u32, (bytes[offset + 3] & 3)) << 11) |
+                        (cast(u32, bytes[offset + 4]) << 3) |
+                        (cast(u32, bytes[offset + 5]) >> 5)
         if frameSize < 7 or frameSize > bytes.count - offset do
             fail InvalidFormatError{"AAC test fixture has a truncated ADTS frame"}
         result.add({offset + 7, frameSize - 7, 1024})

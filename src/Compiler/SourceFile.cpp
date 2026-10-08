@@ -144,7 +144,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     if (content_.empty() && ctx.cmdLine().editorSources)
     {
         const auto& sources = *ctx.cmdLine().editorSources;
-        const auto it = sources.find(EditorIndex::pathKey(path_));
+        const auto  it      = sources.find(EditorIndex::pathKey(path_));
         if (it != sources.end())
             setContent(it->second);
     }

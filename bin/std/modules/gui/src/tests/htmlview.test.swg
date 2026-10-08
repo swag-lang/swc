@@ -477,7 +477,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(htmlParseColor("rgba(255 0 0 / 50%)").color.a == 128)
     Swag.assert(htmlParseColor("hsl(0, 100%, 50%)").color == Color.fromArgb(0xFFFF0000))
     let translucent = htmlParseColor("color-mix(in srgb, #ff0000 25%, transparent)")
-    Swag.assert(translucent.matched and translucent.color.a == 64 and translucent.color.r == 255 and not translucent.color.g and not translucent.color.b)
+    Swag.assert(translucent.matched and
+                translucent.color.a == 64 and
+                translucent.color.r == 255 and
+                not translucent.color.g and
+                not translucent.color.b)
     Swag.assert(htmlParseColor("color-mix(in srgb, #0000ff 20%, #ffffff)").color == Color.fromArgb(0xFFCCCCFF))
     Swag.assert(htmlParseColor("rebeccapurple").color == Color.fromArgb(0xFF663399))
     Swag.assert(htmlParseColor("transparent").matched and not htmlParseColor("transparent").color.a)

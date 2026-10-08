@@ -432,7 +432,10 @@ impl Slice
                 {
                     entry.lumaWeight = .bits.se()
                     entry.lumaOffset = .bits.se()
-                    if entry.lumaWeight < -128 or entry.lumaWeight > 127 or entry.lumaOffset < -128 or entry.lumaOffset > 127 do
+                    if entry.lumaWeight < -128 or
+                       entry.lumaWeight > 127 or
+                       entry.lumaOffset < -128 or
+                       entry.lumaOffset > 127 do
                         fail InvalidFormatError{"H.264 slice declares an out-of-range luma weight"}
                 }
 

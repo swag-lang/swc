@@ -1042,12 +1042,24 @@ impl Transform
                     return
                 let ePrev = horzEdge.prevInAEL
                 let eNext = horzEdge.nextInAEL
-                if ePrev and ePrev.curr.x == horzEdge.bot.x and ePrev.curr.y == horzEdge.bot.y and ePrev.windDelta != 0 and ePrev.outIdx >= 0 and ePrev.curr.y > ePrev.top.y and .slopesEqual(horzEdge, nnEdge(ePrev))
+                if ePrev and
+                   ePrev.curr.x == horzEdge.bot.x and
+                   ePrev.curr.y == horzEdge.bot.y and
+                   ePrev.windDelta != 0 and
+                   ePrev.outIdx >= 0 and
+                   ePrev.curr.y > ePrev.top.y and
+                   .slopesEqual(horzEdge, nnEdge(ePrev))
                 {
                     let op2 = .addOutPt(nnEdge(ePrev), horzEdge.bot)
                     .addJoin(nnOutPt(op1), op2, horzEdge.top)
                 }
-                elif eNext and eNext.curr.x == horzEdge.bot.x and eNext.curr.y == horzEdge.bot.y and eNext.windDelta != 0 and eNext.outIdx >= 0 and eNext.curr.y > eNext.top.y and .slopesEqual(horzEdge, nnEdge(eNext))
+                elif eNext and
+                     eNext.curr.x == horzEdge.bot.x and
+                     eNext.curr.y == horzEdge.bot.y and
+                     eNext.windDelta != 0 and
+                     eNext.outIdx >= 0 and
+                     eNext.curr.y > eNext.top.y and
+                     .slopesEqual(horzEdge, nnEdge(eNext))
                 {
                     let op2 = .addOutPt(nnEdge(eNext), horzEdge.bot)
                     .addJoin(nnOutPt(op1), op2, horzEdge.top)
@@ -1996,7 +2008,12 @@ impl Transform
                 {
                     let en    = e
                     let ePrev = en.prevInAEL
-                    if (en.outIdx >= 0) and (en.windDelta != 0) and ePrev and (ePrev.outIdx >= 0) and (ePrev.curr.x == en.curr.x) and (ePrev.windDelta != 0)
+                    if (en.outIdx >= 0) and
+                       (en.windDelta != 0) and
+                       ePrev and
+                       (ePrev.outIdx >= 0) and
+                       (ePrev.curr.x == en.curr.x) and
+                       (ePrev.windDelta != 0)
                     {
                         let pt  = en.curr
                         let op  = .addOutPt(nnEdge(ePrev), pt)
@@ -2027,12 +2044,28 @@ impl Transform
 
                 let ePrev = e.prevInAEL
                 let eNext = e.nextInAEL
-                if ePrev and ePrev.curr.x == e.bot.x and ePrev.curr.y == e.bot.y and op and ePrev.outIdx >= 0 and ePrev.curr.y > ePrev.top.y and .slopesEqual(e.curr, e.top, ePrev.curr, ePrev.top) and (e.windDelta != 0) and (ePrev.windDelta != 0)
+                if ePrev and
+                   ePrev.curr.x == e.bot.x and
+                   ePrev.curr.y == e.bot.y and
+                   op and
+                   ePrev.outIdx >= 0 and
+                   ePrev.curr.y > ePrev.top.y and
+                   .slopesEqual(e.curr, e.top, ePrev.curr, ePrev.top) and
+                   (e.windDelta != 0) and
+                   (ePrev.windDelta != 0)
                 {
                     let op2 = .addOutPt(nnEdge(ePrev), e.bot)
                     .addJoin(nnOutPt(op), op2, e.top)
                 }
-                elif eNext and eNext.curr.x == e.bot.x and eNext.curr.y == e.bot.y and op and eNext.outIdx >= 0 and eNext.curr.y > eNext.top.y and .slopesEqual(e.curr, e.top, eNext.curr, eNext.top) and (e.windDelta != 0) and (eNext.windDelta != 0)
+                elif eNext and
+                     eNext.curr.x == e.bot.x and
+                     eNext.curr.y == e.bot.y and
+                     op and
+                     eNext.outIdx >= 0 and
+                     eNext.curr.y > eNext.top.y and
+                     .slopesEqual(e.curr, e.top, eNext.curr, eNext.top) and
+                     (e.windDelta != 0) and
+                     (eNext.windDelta != 0)
                 {
                     let op2 = .addOutPt(nnEdge(eNext), nnEdge(e).bot)
                     .addJoin(nnOutPt(op), op2, e.top)
@@ -3222,7 +3255,13 @@ impl Transform
                 }
             }
 
-            if lb.outIdx >= 0 and lb.prevInAEL and lb.prevInAEL.curr.x == lb.bot.x and lb.prevInAEL.outIdx >= 0 and .slopesEqual(lb.prevInAEL.bot, lb.prevInAEL.top, lb.curr, lb.top) and (lb.windDelta != 0) and (lb.prevInAEL.windDelta != 0)
+            if lb.outIdx >= 0 and
+               lb.prevInAEL and
+               lb.prevInAEL.curr.x == lb.bot.x and
+               lb.prevInAEL.outIdx >= 0 and
+               .slopesEqual(lb.prevInAEL.bot, lb.prevInAEL.top, lb.curr, lb.top) and
+               (lb.windDelta != 0) and
+               (lb.prevInAEL.windDelta != 0)
             {
                 let op2 = .addOutPt(nnEdge(lb.prevInAEL), nnEdge(lb).bot)
                 .addJoin(nnOutPt(op1), op2, lb.top)

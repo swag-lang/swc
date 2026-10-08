@@ -69,6 +69,6 @@ var borrowLazySavedLog: BorrowLazyLog
 
 func borrowLazySaveLocalWriter()
 {
-    var writer: BorrowLazyLocalWriter                                // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    var writer: BorrowLazyLocalWriter     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     borrowLazySavedLog.addWriter(cast(BorrowLazyWriter, writer))     // swc-expected-error {{sanity_err_borrow_escape}}
 }

@@ -88,7 +88,10 @@ internal impl IImageEncoder for Encoder
     {
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
-        if image.pixelFormat != .RGB8 and image.pixelFormat != .BGR8 and image.pixelFormat != .RGBA8 and image.pixelFormat != .BGRA8 do
+        if image.pixelFormat != .RGB8 and
+           image.pixelFormat != .BGR8 and
+           image.pixelFormat != .RGBA8 and
+           image.pixelFormat != .BGRA8 do
             fail UnsupportedFormatError{"QOI encoding requires an 8-bit RGB or RGBA image"}
 
         result.addBytes(Magic)

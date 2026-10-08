@@ -464,7 +464,9 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     }
 
     let decodeId = parser.dict(nodeId, "Decode")
-    if decodeId != InvalidNode and parser.nodes[decodeId].kind == .Array and parser.nodes[decodeId].values.count >= cast(u64, count) * 2
+    if decodeId != InvalidNode and
+       parser.nodes[decodeId].kind == .Array and
+       parser.nodes[decodeId].values.count >= cast(u64, count) * 2
     {
         for i in count
         {

@@ -47,7 +47,10 @@ impl VolumeStorage
             try failWith("The transfer exceeds the volume boundary.", .Io)
         if .protectionTriggered do
             try failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)
-        if .protectedEnd and bytes.count and offset < .protectedEnd and bytes.count > .protectedFirst - Math.min(offset, .protectedFirst)
+        if .protectedEnd and
+           bytes.count and
+           offset < .protectedEnd and
+           bytes.count > .protectedFirst - Math.min(offset, .protectedFirst)
         {
             .protectionTriggered = true
             try failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)

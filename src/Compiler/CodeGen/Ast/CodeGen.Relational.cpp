@@ -252,8 +252,8 @@ namespace
 
     Result emitStringCompareBool(CodeGen& codeGen, SymbolFunction& stringCmpFunction, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
     {
-        const auto    callInfo          = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, leftPayload, rightPayload);
-        MicroBuilder& builder           = codeGen.builder();
+        const auto    callInfo = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, leftPayload, rightPayload);
+        MicroBuilder& builder  = codeGen.builder();
 
         const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, codeGen.typeMgr().get(stringCmpFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);

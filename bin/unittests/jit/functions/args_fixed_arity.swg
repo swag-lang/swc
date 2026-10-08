@@ -177,7 +177,11 @@ enum FixedKind: u8
 {
     func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bool
     {
-        return #typeof(a) == FixedPair and #typeof(b[0]) == s32 and #typeof(c) == string and #typeof(d) == *void and #typeof(e) == FixedKind
+        return #typeof(a) == FixedPair and
+               #typeof(b[0]) == s32 and
+               #typeof(c) == string and
+               #typeof(d) == *void and
+               #typeof(e) == FixedKind
     }
 
     const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10'u64), FixedKind.B)

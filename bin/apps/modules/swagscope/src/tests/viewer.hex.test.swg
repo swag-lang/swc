@@ -231,7 +231,10 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let signed = Hex.parseSearch("value: -2", .Signed16, false)
     Swag.assert(signed.state == .Valid and signed.pattern.values[0] == 0xFE and signed.pattern.values[1] == 0xFF)
     let real = Hex.parseSearch("value: 1", .Float32, false)
-    Swag.assert(real.state == .Valid and real.pattern.values[0] == 0 and real.pattern.values[2] == 0x80 and real.pattern.values[3] == 0x3F)
+    Swag.assert(real.state == .Valid and
+                real.pattern.values[0] == 0 and
+                real.pattern.values[2] == 0x80 and
+                real.pattern.values[3] == 0x3F)
 
     Swag.assert(Hex.parseSearch("4", .Bytes, false).state == .Incomplete)
     Swag.assert(Hex.parseSearch("4G", .Bytes, false).error == .Pattern)
@@ -332,7 +335,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     window.searchBox.setText("DE AD ?E EF")
     completeHexViewerSearch(&host, window)
-    Swag.assert(window.searchMatches.count == 2 and window.searchMatches[0].offset == first and window.searchMatches[1].offset == second)
+    Swag.assert(window.searchMatches.count == 2 and
+                window.searchMatches[0].offset == first and
+                window.searchMatches[1].offset == second)
     Swag.assert(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits.count == 2)
     Swag.assert(view.grid.matchStart == first and view.grid.matchLength == 4)
     Swag.assert(window.searchBox.name.raw == Hex.texts().ui_SearchPlaceholder)

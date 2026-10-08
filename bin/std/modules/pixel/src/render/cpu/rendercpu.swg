@@ -1505,7 +1505,9 @@ private impl RenderCpu
                             let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
                             let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
                             let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
-                            if insideEdge(e0, edge0TopLeft) and insideEdge(e1, edge1TopLeft) and insideEdge(e2, edge2TopLeft) do
+                            if insideEdge(e0, edge0TopLeft) and
+                               insideEdge(e1, edge1TopLeft) and
+                               insideEdge(e2, edge2TopLeft) do
                                 coverage = 1
                         }
 
@@ -1594,10 +1596,24 @@ private impl RenderCpu
         // expression the sampler evaluates, so the bytes stored are the same bytes.
         let paint = &.paintCommand.texture0
         let white = Color.fromArgb(Argb.White).argb
-        if fastAlpha and not batch.solidPaint and not stencilTest and batch.paintImage != null and v0.color == white and v1.color == white and v2.color == white and paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
+        if fastAlpha and
+           not batch.solidPaint and
+           not stencilTest and
+           batch.paintImage != null and
+           v0.color == white and
+           v1.color == white and
+           v2.color == white and
+           paint.type == .Texture and
+           paint.uvMode == .FillSubRect and
+           paint.interpolationMode == .Pixel and
+           .contentScale == 1 and
+           (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
         {
             let source       = batch.paintImage
-            let directFormat = source.pixelFormat == .BGR8 or source.pixelFormat == .BGRA8 or source.pixelFormat == .RGB8 or source.pixelFormat == .RGBA8
+            let directFormat = source.pixelFormat == .BGR8 or
+                               source.pixelFormat == .BGRA8 or
+                               source.pixelFormat == .RGB8 or
+                               source.pixelFormat == .RGBA8
             if directFormat and source.alphaMode == .Straight
             {
                 // Everything the sampler recomputes per pixel from the paint command is
@@ -1634,7 +1650,9 @@ private impl RenderCpu
                         let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
                         let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
                         let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
-                        if not insideEdge(e0, edge0TopLeft) or not insideEdge(e1, edge1TopLeft) or not insideEdge(e2, edge2TopLeft) do
+                        if not insideEdge(e0, edge0TopLeft) or
+                           not insideEdge(e1, edge1TopLeft) or
+                           not insideEdge(e2, edge2TopLeft) do
                             continue
 
                         let w0 = e0 * invArea
@@ -1883,7 +1901,12 @@ private impl RenderCpu
         let topRight    = Vector2{params.boundRect.z, params.boundRect.y}
         let bottomRight = Vector2{params.boundRect.z, params.boundRect.w}
         let bottomLeft  = Vector2{params.boundRect.x, params.boundRect.w}
-        if vertices[0].pos != topLeft or vertices[1].pos != topRight or vertices[2].pos != bottomRight or vertices[3].pos != topLeft or vertices[4].pos != bottomRight or vertices[5].pos != bottomLeft
+        if vertices[0].pos != topLeft or
+           vertices[1].pos != topRight or
+           vertices[2].pos != bottomRight or
+           vertices[3].pos != topLeft or
+           vertices[4].pos != bottomRight or
+           vertices[5].pos != bottomLeft
         {
             return false
         }
@@ -1901,7 +1924,10 @@ private impl RenderCpu
         let dstY              = cast(s32, deviceTopLeft.y)
         let dstRight          = cast(s32, deviceBottomRight.x)
         let dstBottom         = cast(s32, deviceBottomRight.y)
-        if cast(f32, dstX) != deviceTopLeft.x or cast(f32, dstY) != deviceTopLeft.y or cast(f32, dstRight) != deviceBottomRight.x or cast(f32, dstBottom) != deviceBottomRight.y do
+        if cast(f32, dstX) != deviceTopLeft.x or
+           cast(f32, dstY) != deviceTopLeft.y or
+           cast(f32, dstRight) != deviceBottomRight.x or
+           cast(f32, dstBottom) != deviceBottomRight.y do
             return false
 
         let srcX      = cast(s32, Math.floor(params.textureRect.x * source.width))

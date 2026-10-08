@@ -64,7 +64,9 @@ impl LibraryNamedFilter
 {
     // Returns whether both entries name the same filter with the same count. Names compare
     // without case, the way the side bar groups them.
-    mtd const opEquals(other: LibraryNamedFilter)->bool => .count == other.count and Utf8.compare(.name.toSlice(), other.name.toSlice(), .Latin1NoCase) == 0 and .executable == other.executable
+    mtd const opEquals(other: LibraryNamedFilter)->bool => .count == other.count and
+                                                           Utf8.compare(.name.toSlice(), other.name.toSlice(), .Latin1NoCase) == 0 and
+                                                           .executable == other.executable
 }
 
 // The library page: the sidebar, the command bar, the thumbnail grid, and the search and

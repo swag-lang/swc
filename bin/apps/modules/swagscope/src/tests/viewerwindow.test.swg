@@ -133,7 +133,9 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 
     Swag.assert(window.searchTimer == null)
-    if window.currentView and window.activeChoiceIndex < window.choices.count and window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey do
+    if window.currentView and
+       window.activeChoiceIndex < window.choices.count and
+       window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey do
         completeTextReads(host, assume cast(*PlainText.Panel, window.currentView))
 }
 
@@ -165,7 +167,10 @@ func createSidePanelFixture(host: Viewer.Host)
     var session    = openTestViewer(testViewerPlugin(&createSidePanelFixture), &host.root, "fixture.panel", infoParent: infoParent)
     host.root.applyLayout()
 
-    Swag.assert(session.view != null and session.sidePanelHost != null and session.sidePanel != null and session.sidePanelButton != null)
+    Swag.assert(session.view != null and
+                session.sidePanelHost != null and
+                session.sidePanel != null and
+                session.sidePanelButton != null)
     Swag.assert(session.sidePanelHost.parent == &host.root and session.sidePanel.parent == session.sidePanelHost)
     Swag.assert(session.sidePanelButton.parent == infoParent)
     Swag.assert(session.sidePanelHost.backgroundStyle == .ToolBar and session.sidePanel.backgroundStyle == .Panel)
@@ -302,7 +307,9 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
 func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
-    Swag.assert(window.folderFiles.count == names.count and window.siblings.count == names.count and window.folderList.lineCount() == names.count)
+    Swag.assert(window.folderFiles.count == names.count and
+                window.siblings.count == names.count and
+                window.folderList.lineCount() == names.count)
     for name, index in names
     {
         Swag.assert(window.folderFiles[index] == name[] and window.siblings[index] == name[])
@@ -819,7 +826,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.selectViewer(2)
     Swag.assert(window.choices[window.activeChoiceIndex].key == "hex")
-    Swag.assert(window.preferences.count == 1 and window.preferences[0].kind == PlainText.ViewerKey and window.preferences[0].viewer == "hex")
+    Swag.assert(window.preferences.count == 1 and
+                window.preferences[0].kind == PlainText.ViewerKey and
+                window.preferences[0].viewer == "hex")
 
     // The next file of the same kind opens where the reader left the previous one.
     window.openFile(second)
@@ -1429,7 +1438,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.infoBarHost.dockStyle == .Top and window.infoBar.dockStyle == .Center)
     Swag.assert(window.backgroundStyle == .Application and window.infoBarHost.backgroundStyle == .ToolBar)
     Swag.assert(window.infoBar.backgroundStyle == .InformationPanel and window.infoBar.parent == window.infoBarHost)
-    Swag.assert(window.infoBarHost.padding.x == panelGutter and window.infoBarHost.padding.y == panelGutter and window.infoBarHost.padding.z == panelGutter and window.infoBarHost.padding.w == panelGutter)
+    Swag.assert(window.infoBarHost.padding.x == panelGutter and
+                window.infoBarHost.padding.y == panelGutter and
+                window.infoBarHost.padding.z == panelGutter and
+                window.infoBarHost.padding.w == panelGutter)
     Swag.assert(window.commandBar.backgroundStyle == .ToolBar)
     Swag.assert(window.filePanelHost.backgroundStyle == .ToolBar and window.filePanel.backgroundStyle == .Transparent)
     Swag.assert(window.filePanelHost.padding.x == panelGutter and window.filePanelHost.padding.z == 0)

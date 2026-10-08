@@ -172,8 +172,7 @@ impl Decoder
     // Reports whether the loop filter may cross this edge, clause 8.7.2.
     private mtd const filterAcrossAllowed(x, y, xP, yP: s32)->bool
     {
-        let pps    = .activePps!
-
+        let pps = .activePps!
 
         let currentCtb   = .ctbRsToTs[.ctbAddressRs(x, y)]
         let neighbourCtb = .ctbRsToTs[.ctbAddressRs(xP, yP)]

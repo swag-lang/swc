@@ -2080,7 +2080,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     relationalPayload->calledFn = calledFn;
 
     const SemaNodeView specOpView          = sema.viewConstant(relRef);
-    const ConstantRef specOpCstRef         = specOpView.cstRef();
+    const ConstantRef  specOpCstRef        = specOpView.cstRef();
     const AstNodeRef   relSubstRef         = specOpView.nodeRef();
     relationalPayload->inlineSubstituteRef = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
 

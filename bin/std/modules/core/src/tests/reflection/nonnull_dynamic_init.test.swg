@@ -60,13 +60,15 @@ func testCoreNonNullDynamicInitialization()->bool
 
     let rejectedZeroNew = Swag.catchPanic(func|zeroType|() { discard Memory.new(zeroType) }).raised
 
-    var resetZero = CoreNonNullZeroUnion{bits: 0xFFFF}
+    var resetZero          = CoreNonNullZeroUnion{bits: 0xFFFF}
     let rejectedZeroReset  = Swag.catchPanic(func|&resetZero, zeroType|() { Reflection.reset(&resetZero, zeroType) }).raised
     let preservedZeroReset = rejectedZeroReset and resetZero.bits == 0xFFFF
 
     var zeroArray: Array'CoreNonNullZeroUnion
     let rejectedZeroAppend = Swag.catchPanic(func|&zeroArray, zeroType|() { discard Reflection.appendDynamicArrayElement(&zeroArray, zeroType) }).raised and
-                             zeroArray.buffer == null and not zeroArray.count and not zeroArray.capacity
+                             zeroArray.buffer == null and
+                             not zeroArray.count and
+                             not zeroArray.capacity
 
     let defaultArrayType = #typeof([2] CoreNonNullRuntimeDefault)
     let defaultAliasType = #typeof(CoreNonNullRuntimeDefaultAlias)

@@ -876,11 +876,11 @@ namespace
 
     JITCallResultMeta computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
     {
-        TaskContext&                           ctx            = sema.ctx();
-        const TypeInfo&                        exprType       = sema.typeMgr().get(exprTypeRef);
-        const TypeInfo*                        unwrappedType  = exprType.unwrapAliasEnumType(ctx);
-        const TypeInfo&                        storageType    = unwrappedType ? *unwrappedType : exprType;
-        const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::swag(), storageType, ABITypeNormalize::Usage::Return);
+        TaskContext&                           ctx           = sema.ctx();
+        const TypeInfo&                        exprType      = sema.typeMgr().get(exprTypeRef);
+        const TypeInfo*                        unwrappedType = exprType.unwrapAliasEnumType(ctx);
+        const TypeInfo&                        storageType   = unwrappedType ? *unwrappedType : exprType;
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, CallConv::swag(), storageType, ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!storageType.isVoid());
 
         uint64_t resultSize;

@@ -71,7 +71,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         expect matroska.decodeFrameInto(&actual, index)
         expect mp4.decodeFrameInto(&expected, index)
-        Swag.assert(actual.width == expected.width and actual.height == expected.height and actual.pixelFormat == expected.pixelFormat)
+        Swag.assert(actual.width == expected.width and
+                    actual.height == expected.height and
+                    actual.pixelFormat == expected.pixelFormat)
         Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
         Swag.assert(Math.isEqualEpsilon(matroska.frameTimestamp(index), mp4.frameTimestamp(index), 0.000001))
     }

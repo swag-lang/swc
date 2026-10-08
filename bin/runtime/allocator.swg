@@ -1550,7 +1550,9 @@ impl Allocator
         // The 8-byte class is the only one that is not 16-byte aligned.
         if classIndex == 0 and request.alignment > 8 do
             classIndex = 1
-        if request.alignment > AllocatorPagePathAlignment and request.alignment <= AllocatorPageAlignmentMax and classIndex != AllocatorInvalidClass do
+        if request.alignment > AllocatorPagePathAlignment and
+           request.alignment <= AllocatorPageAlignmentMax and
+           classIndex != AllocatorInvalidClass do
             classIndex = alignedClass(classIndex, request.alignment)
 
         if .usesHeaderPath(request, classIndex)
@@ -1629,11 +1631,16 @@ impl Allocator
 
             // Growing past the committed end of a block whose reservation still covers the request
             // commits the next pages in place instead of moving the data.
-            if request.size > oldHeader.blockSize and request.alignment <= oldHeader.alignment and not .diagnosticMode() and not oldHeader.isElectric do
+            if request.size > oldHeader.blockSize and
+               request.alignment <= oldHeader.alignment and
+               not .diagnosticMode() and
+               not oldHeader.isElectric do
                 .growHeaderBlock(oldHeader, request.size)
 
             // Growing inside the block the header already covers only moves the footer.
-            if request.size <= oldHeader.blockSize and request.alignment <= oldHeader.alignment and not oldHeader.isElectric
+            if request.size <= oldHeader.blockSize and
+               request.alignment <= oldHeader.alignment and
+               not oldHeader.isElectric
             {
                 let oldSize = oldHeader.userSize
                 .setFooterMagic(oldHeader, 0)
@@ -1649,7 +1656,11 @@ impl Allocator
 
         // A page block keeps its address whenever the request still fits its class, which is what
         // makes a growing buffer stop calling the operating system.
-        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPageAlignmentMax and (request.alignment == 0 or (oldAddress & (cast(u64, request.alignment) - 1)) == 0) and not .diagnosticMode()
+        if oldPage and
+           request.size <= oldBlockSize and
+           request.alignment <= AllocatorPageAlignmentMax and
+           (request.alignment == 0 or (oldAddress & (cast(u64, request.alignment) - 1)) == 0) and
+           not .diagnosticMode()
         {
             request.address = cast(*void, oldAddress)
             return

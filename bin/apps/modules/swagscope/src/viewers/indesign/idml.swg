@@ -556,13 +556,21 @@ private func boundsFromGraphic(item: string, parent: const *Transform, result: *
     let top       = parseNumber(attribute(boundsTag, "Top"))
     let right     = parseNumber(attribute(boundsTag, "Right"))
     let bottom    = parseNumber(attribute(boundsTag, "Bottom"))
-    if not left.valid or not top.valid or not right.valid or not bottom.valid or right.value <= left.value or bottom.value <= top.value do
+    if not left.valid or
+       not top.valid or
+       not right.valid or
+       not bottom.valid or
+       right.value <= left.value or
+       bottom.value <= top.value do
         return false
 
     let imageTag       = item[imageStart until imageOpenEnd + 1]
     let childTransform = parseTransform(imageTag)
     let imageTransform = composeTransform(parent, &childTransform)
-    if Math.abs(imageTransform.b) > 0.0001 or Math.abs(imageTransform.c) > 0.0001 or imageTransform.a <= 0 or imageTransform.d <= 0 do
+    if Math.abs(imageTransform.b) > 0.0001 or
+       Math.abs(imageTransform.c) > 0.0001 or
+       imageTransform.a <= 0 or
+       imageTransform.d <= 0 do
         return false
     result.left   = imageTransform.a * left.value + imageTransform.x
     result.top    = imageTransform.d * top.value + imageTransform.y
@@ -804,7 +812,10 @@ private func localGraphicSource(path: string, loaded: *u64)->String
     options.decodePixels   = false
     options.decodeMetadata = false
     let probe = catch Image.load(path, options) as probeError
-    if probeError != null or probe.width <= 0 or probe.height <= 0 or cast(u64, probe.width) * cast(u64, probe.height) > GraphicSourcePixelLimit do
+    if probeError != null or
+       probe.width <= 0 or
+       probe.height <= 0 or
+       cast(u64, probe.width) * cast(u64, probe.height) > GraphicSourcePixelLimit do
         return {}
 
     loaded[] += info.size
@@ -969,8 +980,16 @@ private func textAlignment(value: string)->string
     return "left"
 }
 
-private func fontStyleBold(value: string)->bool   => Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
-private func fontStyleItalic(value: string)->bool => Utf8.contains(value, "Italic") or Utf8.contains(value, "italic") or Utf8.contains(value, "Oblique") or Utf8.contains(value, "oblique")
+private func fontStyleBold(value: string)->bool => Utf8.contains(value, "Bold") or
+                                                   Utf8.contains(value, "bold") or
+                                                   value == "W6" or
+                                                   value == "W7" or
+                                                   value == "W8" or
+                                                   value == "W9"
+private func fontStyleItalic(value: string)->bool => Utf8.contains(value, "Italic") or
+                                                     Utf8.contains(value, "italic") or
+                                                     Utf8.contains(value, "Oblique") or
+                                                     Utf8.contains(value, "oblique")
 
 // Reports whether `text` holds a CJK, Hangul or full-width character, which needs the CJK font.
 private func containsCjk(text: string)->bool
@@ -1042,6 +1061,7 @@ private func characterStyleCss(tag: string, colors: const *HashTable'(String, St
         result += "font-style:italic;"
     if attribute(tag, "Capitalization") == "AllCaps" do
         result += "text-transform:uppercase;"
+
     // Both lines share the one `text-decoration` declaration; a second one would replace the first.
     let underline = attribute(tag, "Underline") == "true"
     let strike    = attribute(tag, "StrikeThru") == "true"
@@ -1132,7 +1152,10 @@ private func escapeHtml(text: string)->String
     {
         // IDML uses U+2028/U+2029 as hard text separators. The HTML text painter works on UTF-8
         // bytes here, so recognize their three-byte encoding before escaping ordinary content.
-        if cursor + 2 < text.count and text[cursor] == 0xE2 and text[cursor + 1] == 0x80 and (text[cursor + 2] == 0xA8 or text[cursor + 2] == 0xA9)
+        if cursor + 2 < text.count and
+           text[cursor] == 0xE2 and
+           text[cursor + 1] == 0x80 and
+           (text[cursor + 2] == 0xA8 or text[cursor + 2] == 0xA9)
         {
             result += "<br>"
             cursor += 3
@@ -1401,8 +1424,8 @@ private func appendItems(fileName, source: string, colors: const *HashTable'(Str
             polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
         if lineStart != Swag.U64.Max and lineStart < cursor do
             lineStart = Utf8.indexOf(source, "<GraphicLine ", cursor)
-        let shapeStart   = Math.min(rectStart, ovalStart, polygonStart, lineStart)
-        let start        = Math.min(textStart, shapeStart)
+        let shapeStart = Math.min(rectStart, ovalStart, polygonStart, lineStart)
+        let start      = Math.min(textStart, shapeStart)
         if start == Swag.U64.Max do
             break
 
@@ -1657,9 +1680,9 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
             if not story do
                 continue
 
-            var frames:    Array'*Item
-            var frame:     *Item? = item
-            var pageIndex = startPage
+            var frames: Array'*Item
+            var frame:  *Item? = item
+            var pageIndex      = startPage
             while frame and frames.count < FrameLimit
             {
                 var repeated: bool

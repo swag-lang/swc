@@ -44,7 +44,22 @@ func makeRoundTrip()->RoundTripOuter
 
 func sameRoundTrip(a, b: RoundTripOuter)->bool
 {
-    return a.text == b.text and b.empty.isEmpty() and a.small == b.small and a.big == b.big and a.neg == b.neg and a.tiny == b.tiny and a.huge == b.huge and a.flag == b.flag and b.items.count == 2 and b.items[0].name == "a" and b.items[0].value == -0.5 and b.items[1].name == "" and b.items[1].value == 123456789.125 and b.none.isEmpty() and b.fixed[1].name == "last" and a.runes == b.runes
+    return a.text == b.text and
+           b.empty.isEmpty() and
+           a.small == b.small and
+           a.big == b.big and
+           a.neg == b.neg and
+           a.tiny == b.tiny and
+           a.huge == b.huge and
+           a.flag == b.flag and
+           b.items.count == 2 and
+           b.items[0].name == "a" and
+           b.items[0].value == -0.5 and
+           b.items[1].name == "" and
+           b.items[1].value == 123456789.125 and
+           b.none.isEmpty() and
+           b.fixed[1].name == "last" and
+           a.runes == b.runes
 }
 
 // JSON, compact or indented, carries escapes, control characters, astral runes, integer extremes,

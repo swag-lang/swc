@@ -25,7 +25,10 @@ func mp4FindTag(bytes: const [..] u8, tag: string)->u64
 }
 
 // Returns a big-endian 32-bit value from an independently inspected container.
-func mp4ReadU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32, bytes[offset]) << 24) | (cast(u32, bytes[offset + 1]) << 16) | (cast(u32, bytes[offset + 2]) << 8) | cast(u32, bytes[offset + 3])
+func mp4ReadU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32, bytes[offset]) << 24) |
+                                                           (cast(u32, bytes[offset + 1]) << 16) |
+                                                           (cast(u32, bytes[offset + 2]) << 8) |
+                                                           cast(u32, bytes[offset + 3])
 
 // Returns a big-endian 64-bit value from an independently inspected container.
 func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32(bytes, offset)) << 32) | cast(u64, mp4ReadU32(bytes, offset + 4))
@@ -78,7 +81,9 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     Swag.assert(mp4FindTag(raw, "ftyp") == 4)
     Swag.assert(mp4ReadU32(raw, mediaData) == 1)
     Swag.assert(mp4ReadU64(raw, mediaData + 8) == movie - mediaData)
-    Swag.assert(mp4FindTag(raw, "stsd") < bytes.count and mp4FindTag(raw, "mp4v") < bytes.count and mp4FindTag(raw, "esds") < bytes.count)
+    Swag.assert(mp4FindTag(raw, "stsd") < bytes.count and
+                mp4FindTag(raw, "mp4v") < bytes.count and
+                mp4FindTag(raw, "esds") < bytes.count)
     Swag.assert(mp4FindTag(raw, "stsz") < bytes.count and mp4FindTag(raw, "co64") < bytes.count)
 }
 

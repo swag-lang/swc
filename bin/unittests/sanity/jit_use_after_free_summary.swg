@@ -77,7 +77,7 @@ func probeJitSummary()->s32
     let pointer = cast(*s32, allocateForJitSummary())
     pointer[] = 42
     releaseWrapperForJitSummary(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return pointer[]                         // swc-expected-error {{sanity_err_use_after_free}}
+    return pointer[]     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #run

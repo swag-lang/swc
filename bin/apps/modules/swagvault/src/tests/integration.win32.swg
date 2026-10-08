@@ -505,7 +505,10 @@ namespace Integration
 
         let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = try Directory.enumerateFiles(bulk)
-        try verify(entries.count == 25 and containsEntry(entries.toSlice(), "video (13).mp4") and containsEntry(entries.toSlice(), "occupied.bin"), "batch rename metadata must persist across remount")
+        try verify(entries.count == 25 and
+                   containsEntry(entries.toSlice(), "video (13).mp4") and
+                   containsEntry(entries.toSlice(), "occupied.bin"),
+                   "batch rename metadata must persist across remount")
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text = "mounted twice"

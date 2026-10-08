@@ -127,7 +127,10 @@ impl TextIndex
             if index != first
             {
                 let gap = seed.run.rect.x - previousRight
-                if gap > seed.run.rect.height * TextWordGap and not .text.isEmpty() and .text.back() != ' 'u8 and seed.text.toString()[0] != ' 'u8 do
+                if gap > seed.run.rect.height * TextWordGap and
+                   not .text.isEmpty() and
+                   .text.back() != ' 'u8 and
+                   seed.text.toString()[0] != ' 'u8 do
                     .text += " "
             }
 

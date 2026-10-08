@@ -293,7 +293,9 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
         result.codeBytes    = 2
         result.defaultWidth = 1
         let descendants = parser.dict(fontId, "DescendantFonts")
-        if descendants != InvalidNode and parser.nodes[descendants].kind == .Array and parser.nodes[descendants].values.count
+        if descendants != InvalidNode and
+           parser.nodes[descendants].kind == .Array and
+           parser.nodes[descendants].values.count
         {
             let cid = parser.resolve(parser.nodes[descendants].values[0])
             if cid != InvalidNode
@@ -379,7 +381,10 @@ private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descr
         font.bold = true
     if baseName.contains(cast(string, "Italic")) or baseName.contains(cast(string, "Oblique")) do
         font.italic = true
-    if baseName.contains(cast(string, "Times")) or baseName.contains(cast(string, "Roman")) or baseName.contains(cast(string, "Georgia")) or baseName.contains(cast(string, "Serif")) do
+    if baseName.contains(cast(string, "Times")) or
+       baseName.contains(cast(string, "Roman")) or
+       baseName.contains(cast(string, "Georgia")) or
+       baseName.contains(cast(string, "Serif")) do
         font.serif = true
     if baseName.contains(cast(string, "Courier")) or baseName.contains(cast(string, "Mono")) do
         font.fixedPitch = true

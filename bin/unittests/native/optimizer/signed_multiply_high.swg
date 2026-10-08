@@ -36,7 +36,14 @@ func preserve(a, b, c, d: s64)->s64 => (a / 3) ^ (b % -7) ^ (c / 5) ^ (d % 3) ^ 
         Swag.assert(remainderNegative(a) == dynamicRemainder(a, -7))
         for b in values
         {
-            let expected = dynamicDivide(a, 3) ^ dynamicRemainder(b, -7) ^ dynamicDivide(~a, 5) ^ dynamicRemainder(~b, 3) ^ a ^ b ^ ~a ^ ~b
+            let expected = dynamicDivide(a, 3) ^
+                           dynamicRemainder(b, -7) ^
+                           dynamicDivide(~a, 5) ^
+                           dynamicRemainder(~b, 3) ^
+                           a ^
+                           b ^
+                           ~a ^
+                           ~b
             Swag.assert(preserve(a, b, ~a, ~b) == expected)
         }
     }

@@ -167,7 +167,7 @@ namespace Swag
     {
         public
         {
-            raised: bool                   // Whether the call panicked
+            raised: bool     // Whether the call panicked
             loc:    SourceCodeLocation     // Where the panic was raised
         }
 

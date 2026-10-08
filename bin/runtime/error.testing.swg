@@ -110,7 +110,9 @@ public func testErrorTransportAfterThreadExit()->bool
         catch copied.raise() as error
         copied.reset()
         if error is ErrorTransportTestPayload as value do
-            valid = valid and value.message == "the joined producer's pending copied message" and value.generation == generation + 2
+            valid = valid and
+                    value.message == "the joined producer's pending copied message" and
+                    value.generation == generation + 2
         else do
             valid = false
         valid = valid and state.drops[generation + 1].load() == 1 and state.drops[generation + 2].load() == 0

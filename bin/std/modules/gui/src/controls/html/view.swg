@@ -403,7 +403,9 @@ internal impl HtmlView
             if node.kind != .Element or node.tag < .H1 or node.tag > .H6 do
                 continue
             let box = .layout.nodeBox.tryFind(cast(u32, index))
-            if not box or .layout.constBox(box.value).rect.height <= 0 or not .layout.constStyle(.layout.constBox(box.value).style).visible do
+            if not box or
+               .layout.constBox(box.value).rect.height <= 0 or
+               not .layout.constStyle(.layout.constBox(box.value).style).visible do
                 continue
             var heading: DocumentHeading
             heading.title = .document.textContent(cast(u32, index))
@@ -495,7 +497,10 @@ internal impl HtmlView
         let bodyEnd       = bodyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, bodyStart)
         let preEnd        = preStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, preStart)
         let codeEnd       = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, codeStart)
-        let sourceListing = bodyEnd != Swag.U64.Max and preEnd != Swag.U64.Max and codeEnd != Swag.U64.Max and Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
+        let sourceListing = bodyEnd != Swag.U64.Max and
+                            preEnd != Swag.U64.Max and
+                            codeEnd != Swag.U64.Max and
+                            Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
 
         .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + ("</head>").count])
         if bodyEnd != Swag.U64.Max do
@@ -689,7 +694,11 @@ internal impl HtmlView
         // rebuilds as soon as its parsed target is ready instead of waiting behind that schedule.
         let fragmentReady = .hasPendingFragment and .elementById(.pendingFragment.toString()) != HtmlNoNode
         let revealReady   = .hasReveal and .revealOffset < .bytesRead
-        if .sourceDone or .bytesRead >= .nextRefresh or (.layout.root == HtmlNoNode and .bytesRead > 0) or fragmentReady or revealReady
+        if .sourceDone or
+           .bytesRead >= .nextRefresh or
+           (.layout.root == HtmlNoNode and .bytesRead > 0) or
+           fragmentReady or
+           revealReady
         {
             if not .sourceDone do
                 .nextRefresh = .bytesRead * 4
@@ -1386,10 +1395,14 @@ internal impl HtmlView
 
                 // Prefetch in rendered screens. Byte margins cannot cover a tall viewport or
                 // account for CSS that gives neighboring source ranges very different heights.
-                let margin  = Math.min(viewport.height * HtmlStreamLookAhead, target.layout.documentHeight / 4)
-                let end     = target.virtualOrigin + target.layout.documentHeight
-                let before  = target.virtualWindowStart > target.virtualContentStart and newPosition.y < oldPosition.y and newPosition.y < target.virtualOrigin + margin
-                let after   = target.virtualWindowEnd < target.fileSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height + margin > end
+                let margin = Math.min(viewport.height * HtmlStreamLookAhead, target.layout.documentHeight / 4)
+                let end    = target.virtualOrigin + target.layout.documentHeight
+                let before = target.virtualWindowStart > target.virtualContentStart and
+                             newPosition.y < oldPosition.y and
+                             newPosition.y < target.virtualOrigin + margin
+                let after = target.virtualWindowEnd < target.fileSize and
+                            newPosition.y > oldPosition.y and
+                            newPosition.y + viewport.height + margin > end
                 let outside = newPosition.y < target.virtualOrigin or newPosition.y + viewport.height > end
                 if before or after or outside
                 {

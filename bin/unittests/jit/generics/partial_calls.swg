@@ -18,7 +18,12 @@ func concreteLocalStructPartialTypeAnnotation()->bool
     data.first  = true
     data.second = "ok"
     data.third  = 3.5
-    return #typeof(data.first) == bool and #typeof(data.second) == string and #typeof(data.third) == f32 and data.first and data.second == "ok" and data.third == 3.5'f32
+    return #typeof(data.first) == bool and
+           #typeof(data.second) == string and
+           #typeof(data.third) == f32 and
+           data.first and
+           data.second == "ok" and
+           data.third == 3.5'f32
 }
 
 func(A, B) localStructPartialTypeAnnotation(value: A, tail: B)->bool
@@ -34,7 +39,12 @@ func(A, B) localStructPartialTypeAnnotation(value: A, tail: B)->bool
     data.first  = value
     data.second = "ok"
     data.third  = tail
-    return #typeof(data.first) == A and #typeof(data.second) == string and #typeof(data.third) == B and data.first == value and data.second == "ok" and data.third == tail
+    return #typeof(data.first) == A and
+           #typeof(data.second) == string and
+           #typeof(data.third) == B and
+           data.first == value and
+           data.second == "ok" and
+           data.third == tail
 }
 
 struct SimpleMethodProbe {}

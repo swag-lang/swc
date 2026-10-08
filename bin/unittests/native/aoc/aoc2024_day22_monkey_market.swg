@@ -72,7 +72,7 @@ func parseBuyers(text: string)->BuyerList
     var pos:    u32
     discard pos
     var inNum = false
-    var acc:    u64
+    var acc: u64
 
     for index in bytes.count
     {
@@ -312,7 +312,7 @@ func solve(text: string)->SolveResult
 // mix and prune inline
 #test
 {
-    Swag.assert(mix(42, 15) == 37'u64)                // 42 ^ 15 = 37
+    Swag.assert(mix(42, 15) == 37'u64)     // 42 ^ 15 = 37
     Swag.assert(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
 }
 

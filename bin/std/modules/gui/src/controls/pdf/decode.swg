@@ -1462,7 +1462,10 @@ internal func pageBox(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCr
             result.box = cropped
     }
 
-    if result.box.width <= 0 or result.box.height <= 0 or not Math.isFinite(result.box.width) or not Math.isFinite(result.box.height) do
+    if result.box.width <= 0 or
+       result.box.height <= 0 or
+       not Math.isFinite(result.box.width) or
+       not Math.isFinite(result.box.height) do
         fail InvalidFormatError{"PDF page has invalid dimensions"}
 
     result.rotate = ((rotate % 360) + 360) % 360
@@ -1630,7 +1633,10 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
                 parser.isEncrypted = true
             if catalog == InvalidNode and parser.name(parser.dict(id, "Type")) == "Catalog" do
                 catalog = id
-            if info == InvalidNode and (parser.dict(id, "Producer") != InvalidNode or parser.dict(id, "Creator") != InvalidNode or parser.dict(id, "Title") != InvalidNode) do
+            if info == InvalidNode and
+               (parser.dict(id, "Producer") != InvalidNode or
+                parser.dict(id, "Creator") != InvalidNode or
+                parser.dict(id, "Title") != InvalidNode) do
                 info = id
         }
     }

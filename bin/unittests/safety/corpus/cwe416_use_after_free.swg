@@ -148,7 +148,7 @@ func readAfterCastFree(index: u64)->s32
 {
     let block = cast([*] s32, heapAlloc(16))
     heapFree(cast(*void, block), 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return block[index]                  // swc-expected-error {{sanity_err_use_after_free}}
+    return block[index]     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test

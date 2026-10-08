@@ -13,7 +13,11 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
     if content.startsWith("ttcf") or content.startsWith("true") do
         return true
-    return content.head.count >= 4 and content.head[0] == 0 and content.head[1] == 1 and content.head[2] == 0 and content.head[3] == 0
+    return content.head.count >= 4 and
+           content.head[0] == 0 and
+           content.head[1] == 1 and
+           content.head[2] == 0 and
+           content.head[3] == 0
 }
 
 // Describes the font viewer to the host.

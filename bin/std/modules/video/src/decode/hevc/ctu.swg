@@ -556,7 +556,10 @@ impl Decoder
         let sps = .activeSps!
 
         var split = false
-        if log2TrafoSize <= sps.maxTbLog2Size and log2TrafoSize > sps.minTbLog2Size and trafoDepth < maxTrafoDepth and not (intraSplit and not trafoDepth)
+        if log2TrafoSize <= sps.maxTbLog2Size and
+           log2TrafoSize > sps.minTbLog2Size and
+           trafoDepth < maxTrafoDepth and
+           not (intraSplit and not trafoDepth)
         {
             split = .cabac.decision(CtxSplitTransformFlag + 5 - log2TrafoSize) != 0
         }

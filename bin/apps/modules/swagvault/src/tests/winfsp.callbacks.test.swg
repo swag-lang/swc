@@ -154,7 +154,10 @@ func statusForError(kind: ErrorKind)->s32
     complete       = 0
     callbackStatus = WinFsp.callbackReadDirectory(context, directoryId, null, &captureDirectoryEntry, &childCapture, &complete)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(complete == 1 and captured(&childCapture, ".") and captured(&childCapture, "..") and captured(&childCapture, "data.bin"))
+    Swag.assert(complete == 1 and
+                captured(&childCapture, ".") and
+                captured(&childCapture, "..") and
+                captured(&childCapture, "data.bin"))
     callbackStatus = WinFsp.callbackGetDirInfoByName(context, directoryId, ("DATA.BIN").buffer, &info)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
 
@@ -169,7 +172,10 @@ func statusForError(kind: ErrorKind)->s32
     complete       = 0
     callbackStatus = WinFsp.callbackReadDirectory(context, directoryId, ("data.bin").buffer, &captureDirectoryEntry, &secondPage, &complete)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(complete and secondPage.names.count == 2 and secondPage.names[0] == "second.bin" and secondPage.names[1] == "third.bin")
+    Swag.assert(complete and
+                secondPage.names.count == 2 and
+                secondPage.names[0] == "second.bin" and
+                secondPage.names[1] == "third.bin")
 
     callbackStatus = WinFsp.callbackCanDelete(context, directoryId)
     Swag.assert(callbackStatus == WinFsp.StatusDirectoryNotEmpty)

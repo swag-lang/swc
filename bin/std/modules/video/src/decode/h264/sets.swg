@@ -234,7 +234,19 @@ impl Sps
             value[] = 16
 
         var chromaFormat = 1'u32
-        if .profile == 100 or .profile == 110 or .profile == 122 or .profile == 244 or .profile == 44 or .profile == 83 or .profile == 86 or .profile == 118 or .profile == 128 or .profile == 138 or .profile == 139 or .profile == 134 or .profile == 135
+        if .profile == 100 or
+           .profile == 110 or
+           .profile == 122 or
+           .profile == 244 or
+           .profile == 44 or
+           .profile == 83 or
+           .profile == 86 or
+           .profile == 118 or
+           .profile == 128 or
+           .profile == 138 or
+           .profile == 139 or
+           .profile == 134 or
+           .profile == 135
         {
             chromaFormat = bits.ue()
             var separateColourPlanes = false

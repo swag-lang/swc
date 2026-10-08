@@ -214,7 +214,10 @@ private func createPdfFixture()->String
     defer host.shutdown()
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.collectMatches != null and
+                result.revealMatch != null and
+                result.searchBounds != null and
+                result.clearSearch != null)
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)

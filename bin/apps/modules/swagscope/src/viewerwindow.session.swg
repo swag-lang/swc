@@ -450,7 +450,9 @@ impl ViewerWindow
         else
         {
             .loadingWantedSince = 0
-            lingering = .loadingShownSince != 0 and .currentView != null and now - .loadingShownSince < LoadingMinVisibleMicroseconds
+            lingering = .loadingShownSince != 0 and
+                        .currentView != null and
+                        now - .loadingShownSince < LoadingMinVisibleMicroseconds
             if lingering do
                 .loadingOverlay.cover(.currentView!.position)
             else do

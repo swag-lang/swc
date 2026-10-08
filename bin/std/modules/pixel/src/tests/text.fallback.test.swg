@@ -112,8 +112,14 @@ private func fallbackTestFace(symbols: bool)->*TypeFace fail
 
     let run = Painter.shapeRun("A\u2192V\U0001F680", font, letterSpacing: 2)
     Swag.assert(run.glyphs.count == 4)
-    Swag.assert(run.glyphs[0].cluster == 0 and run.glyphs[1].cluster == 1 and run.glyphs[2].cluster == 4 and run.glyphs[3].cluster == 5)
-    Swag.assert(run.glyphs[0].font == font and run.glyphs[1].font == fallback and run.glyphs[2].font == font and run.glyphs[3].font == fallback)
+    Swag.assert(run.glyphs[0].cluster == 0 and
+                run.glyphs[1].cluster == 1 and
+                run.glyphs[2].cluster == 4 and
+                run.glyphs[3].cluster == 5)
+    Swag.assert(run.glyphs[0].font == font and
+                run.glyphs[1].font == fallback and
+                run.glyphs[2].font == font and
+                run.glyphs[3].font == fallback)
     for glyph, index in run.glyphs
     {
         Swag.assert(glyph.glyphIndex != 0)

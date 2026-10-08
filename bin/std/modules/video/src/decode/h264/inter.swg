@@ -482,7 +482,10 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
     // block width, so the narrow filters may read wide. The window lives in this branch
     // only: a local array is cleared where it is declared, and the vectors that stay
     // inside the padding, nearly all of them, have no use for one.
-    if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
+    if x - 2 < -FramePadding or
+       y - 2 < -FramePadding or
+       x + 19 > planeWidth + FramePadding or
+       y + height + 3 > planeHeight + FramePadding
     {
         var window: [21 * 24] u8
         copyClamped(window.buffer, 21, planeBase, planePitch, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
@@ -610,7 +613,10 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     // The right bound uses the sixteen-byte span of the packed row loads whatever the
     // block width, so the narrow blends may read wide. As for luma, the window is declared
     // only where it is used.
-    if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
+    if x < -FramePadding or
+       y < -FramePadding or
+       x + 17 > planeWidth + FramePadding or
+       y + height + 1 > planeHeight + FramePadding
     {
         var window: [9 * 12] u8
         copyClamped(window.buffer, 9, base, reference.strideChroma, x, y, width + 1, height + 1, planeWidth, planeHeight)
@@ -629,7 +635,10 @@ func mcChromaPair(dstB, dstR: [*] u8, dstStride: u64, reference: *Frame, x, y, f
 {
     let planeWidth  = reference.mbWidth * 8
     let planeHeight = reference.mbHeight * 8
-    if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
+    if x < -FramePadding or
+       y < -FramePadding or
+       x + 17 > planeWidth + FramePadding or
+       y + height + 1 > planeHeight + FramePadding
     {
         mcChroma(dstB, dstStride, reference, 0, x, y, fracX, fracY, width, height)
         mcChroma(dstR, dstStride, reference, 1, x, y, fracX, fracY, width, height)

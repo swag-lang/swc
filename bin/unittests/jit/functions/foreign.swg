@@ -161,11 +161,11 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
     #assert(S8 == 8)
 }
 
-#test { const L = #run LStrLenA("ABCDE") }                 // swc-expected-error {{sema_err_cannot_cast}}
+#test { const L = #run LStrLenA("ABCDE") }      // swc-expected-error {{sema_err_cannot_cast}}
 #test { const L = #run LStrLenA(("ABCDE").buffer, 5) }     // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const M = #run MulDiv(1, 2) }                      // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const M = #run MulDiv(1, "x", 3) }                 // swc-expected-error {{sema_err_cannot_cast}}
-#test { const M = #run MulDiv(1, 2, 3, 4) }                // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const M = #run MulDiv(1, 2) }           // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const M = #run MulDiv(1, "x", 3) }      // swc-expected-error {{sema_err_cannot_cast}}
+#test { const M = #run MulDiv(1, 2, 3, 4) }     // swc-expected-error {{sema_err_too_many_arguments}}
 #test { const M = #run MulDiv(6, 2'u32, 3); #assert(M == 4) }
 #test { const A = #run HeapAlloc() }                                                             // swc-expected-error {{sema_err_too_few_arguments}}
 #test { const B = #run HeapAlloc(null, "x", 16'u64) }                                            // swc-expected-error {{sema_err_cannot_cast}}

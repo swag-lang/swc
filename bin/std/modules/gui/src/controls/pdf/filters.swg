@@ -9,9 +9,19 @@ using Core, Core.Errors
 // external decoder.
 
 func isWhite(c: u8)->bool     => c == 0 or c == 9 or c == 10 or c == 12 or c == 13 or c == 32
-func isDelimiter(c: u8)->bool => isWhite(c) or c == '(' or c == ')' or c == '<' or c == '>' or c == '[' or c == ']' or c == '{' or c == '}' or c == '/' or c == '%'
-func isDigit(c: u8)->bool     => c >= '0' and c <= '9'
-func isHex(c: u8)->bool       => isDigit(c) or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
+func isDelimiter(c: u8)->bool => isWhite(c) or
+                                 c == '(' or
+                                 c == ')' or
+                                 c == '<' or
+                                 c == '>' or
+                                 c == '[' or
+                                 c == ']' or
+                                 c == '{' or
+                                 c == '}' or
+                                 c == '/' or
+                                 c == '%'
+func isDigit(c: u8)->bool => c >= '0' and c <= '9'
+func isHex(c: u8)->bool   => isDigit(c) or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
 
 func hexValue(c: u8)->u8
 {

@@ -278,7 +278,16 @@ internal impl IImageEncoder for Encoder
             .userOptions = cast(const *EncodeOptions, options.buffer!)[]
         }
 
-        let supported = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8 or image.pixelFormat == .Gray16 or image.pixelFormat == .GrayAlpha16 or image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8 or image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB16 or image.pixelFormat == .RGBA16
+        let supported = image.pixelFormat == .Gray8 or
+                        image.pixelFormat == .GrayAlpha8 or
+                        image.pixelFormat == .Gray16 or
+                        image.pixelFormat == .GrayAlpha16 or
+                        image.pixelFormat == .BGR8 or
+                        image.pixelFormat == .BGRA8 or
+                        image.pixelFormat == .RGB8 or
+                        image.pixelFormat == .RGBA8 or
+                        image.pixelFormat == .RGB16 or
+                        image.pixelFormat == .RGBA16
         if not supported do
             fail UnsupportedFormatError{"unsupported pixel format"}
         if image.width == 0 or image.height == 0 do

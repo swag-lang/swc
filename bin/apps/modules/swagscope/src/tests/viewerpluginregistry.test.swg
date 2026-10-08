@@ -97,7 +97,9 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(choiceName(&registry, &registry.choices(".gitignore")[0]) == "Code")
 
     let tableChoices = registry.choices("data.csv")
-    Swag.assert(choiceName(&registry, &tableChoices[0]) == "Table" and tableChoices[1].key == "binary" and tableChoices[2].key == "hex")
+    Swag.assert(choiceName(&registry, &tableChoices[0]) == "Table" and
+                tableChoices[1].key == "binary" and
+                tableChoices[2].key == "hex")
     Swag.assert(registry.choices("family.ttf")[0].key == "font")
     Swag.assert(registry.choices("outlines.otf")[0].key == "binary")
     Swag.assert(registry.choices("movie.mp4")[0].key == "video")
@@ -105,9 +107,16 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(registry.choices("score.mid")[0].key == "midi")
     Swag.assert(registry.choices("dialogue.srt")[0].key == "subtitle")
     let openDocumentChoices = registry.choices("budget.ods")
-    Swag.assert(openDocumentChoices[0].key == "opendocument" and openDocumentChoices[1].key == "archive" and openDocumentChoices[2].key == "binary" and openDocumentChoices[3].key == "hex")
-    Swag.assert(registry.choices("letter.ott")[0].key == "opendocument" and registry.choices("budget.fods")[0].key == "opendocument" and registry.choices("slides.fodp")[0].key == "opendocument")
-    Swag.assert(registry.choices("diagram.odg")[0].key == "opendocument" and registry.choices("diagram.otg")[0].key == "opendocument" and registry.choices("diagram.fodg")[0].key == "opendocument")
+    Swag.assert(openDocumentChoices[0].key == "opendocument" and
+                openDocumentChoices[1].key == "archive" and
+                openDocumentChoices[2].key == "binary" and
+                openDocumentChoices[3].key == "hex")
+    Swag.assert(registry.choices("letter.ott")[0].key == "opendocument" and
+                registry.choices("budget.fods")[0].key == "opendocument" and
+                registry.choices("slides.fodp")[0].key == "opendocument")
+    Swag.assert(registry.choices("diagram.odg")[0].key == "opendocument" and
+                registry.choices("diagram.otg")[0].key == "opendocument" and
+                registry.choices("diagram.fodg")[0].key == "opendocument")
     Swag.assert(registry.choices("bundle.zip")[0].key == "archive")
 
     let indesignChoices = registry.choices("layout.indd")
@@ -129,7 +138,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let registry = createViewerPluginRegistry()
     let choices  = registry.choices(fileName)
-    Swag.assert(choices[0].key == "code" and choices[1].key == PlainText.ViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
+    Swag.assert(choices[0].key == "code" and
+                choices[1].key == PlainText.ViewerKey and
+                choices[2].key == "binary" and
+                choices[3].key == "hex")
     Swag.assert(Code.detectLanguage(fileName) == .Python)
 }
 
@@ -141,7 +153,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let markdown = registry.choices(viewerRegistryFixturePath("comprehensive.md"))
     Swag.assert(markdown.count == 4)
-    Swag.assert(markdown[0].key == "markdown" and markdown[1].key == PlainText.ViewerKey and markdown[2].key == "binary" and markdown[3].key == "hex")
+    Swag.assert(markdown[0].key == "markdown" and
+                markdown[1].key == PlainText.ViewerKey and
+                markdown[2].key == "binary" and
+                markdown[3].key == "hex")
 
     let source = registry.choices(viewerRegistryFixturePath("sample.cpp"))
     Swag.assert(source[0].key == "code" and source[1].key == PlainText.ViewerKey)

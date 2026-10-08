@@ -326,15 +326,9 @@ impl PasswordEdit
         result.edit.focusPolicy  = .Inner
         result.focusDelegate     = result.edit
         result.edit.hookOnEvent  = func|password = result|(wnd, evt) => password.handleEditEvent(wnd, evt)
-        result.edit.sigSubmitted += func|password = result|(_)
-        {
-            password.sigSubmitted.call(password)
-        }
+        result.edit.sigSubmitted += func|password = result|(_) { password.sigSubmitted.call(password) }
 
-        result.edit.sigCancelled += func|password = result|(_)
-        {
-            password.sigCancelled.call(password)
-        }
+        result.edit.sigCancelled += func|password = result|(_) { password.sigCancelled.call(password) }
 
         if flags.has(.RevealButton)
         {

@@ -38,7 +38,12 @@ func day8A()
                 i += 2
             elif i < l.length - 1 and l[i] == '\\' and l[i + 1] == '\\' do
                 i += 2
-            elif l.length > 3 and i < l.length - 3 and l[i] == '\\' and l[i + 1] == 'x' and Latin1.isHexDigit(l[i + 2]) and Latin1.isHexDigit(l[i + 3]) do
+            elif l.length > 3 and
+                 i < l.length - 3 and
+                 l[i] == '\\' and
+                 l[i + 1] == 'x' and
+                 Latin1.isHexDigit(l[i + 2]) and
+                 Latin1.isHexDigit(l[i + 3]) do
                 i += 4
             else do
                 i += 1

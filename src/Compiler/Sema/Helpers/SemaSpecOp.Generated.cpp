@@ -74,7 +74,7 @@ namespace
         const TypeInfo& declaredType  = ctx.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasType(ctx);
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        typeRef                      = type.typeRef();
+        typeRef                       = type.typeRef();
         if (!visiting.insert(typeRef).second)
             return false;
 
@@ -145,7 +145,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = defaultInit ? declaredType.unwrapAliasEnumType(sema.ctx()) : declaredType.unwrapAliasType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        typeRef                      = type.typeRef();
+        typeRef                       = type.typeRef();
         if (!type.isArray() && !type.isStruct())
             return Result::Continue;
         if (!visited.insert(typeRef).second)
@@ -729,7 +729,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        typeRef                      = type.typeRef();
+        typeRef                       = type.typeRef();
         if (!visiting.insert(typeRef).second)
             return Result::Continue;
 
@@ -774,7 +774,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        typeRef                      = type.typeRef();
+        typeRef                       = type.typeRef();
         if (!visiting.insert(typeRef).second)
             return Result::Continue;
 

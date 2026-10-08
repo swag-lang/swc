@@ -533,7 +533,9 @@ impl ViewerWindow
     // the boundary is found once and whole.
     mtd searchStep()
     {
-        if .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].collectMatches and .instances[.activeChoiceIndex].view
+        if .activeChoiceIndex < .instances.count and
+           .instances[.activeChoiceIndex].collectMatches and
+           .instances[.activeChoiceIndex].view
         {
             if .collectViewerMatches() do
                 .finishSearch()

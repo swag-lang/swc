@@ -340,7 +340,12 @@ public func ctxSharedPassNested(value: CtxAbiNested, extra: s32)->u64
 
 public func ctxSharedPassKindof(value: CtxAbiPair, payload: CtxAbiPayload, text: string, p: *void?, values: [2] s32, e: CtxAbiEnum)->bool
 {
-    return #typeof(value) == CtxAbiPair and #typeof(payload) == CtxAbiPayload and #typeof(text) == string and #typeof(p) == *void? and #typeof(values[1]) == s32 and #typeof(e) == CtxAbiEnum
+    return #typeof(value) == CtxAbiPair and
+           #typeof(payload) == CtxAbiPayload and
+           #typeof(text) == string and
+           #typeof(p) == *void? and
+           #typeof(values[1]) == s32 and
+           #typeof(e) == CtxAbiEnum
 }
 
 public func ctxSharedPassNestedArray(value: CtxAbiNested, array0: [2] CtxAbiPair)->s32

@@ -587,7 +587,7 @@ func writeIdmlPackage(path: string, files: const [..] StoredZipFile)
     let picture = expect File.readAllBytes(indesignDataPath("title.png"))
     discard expect File.writeAllBytes(Path.combine(folder, "images/linked.png"), picture.toSlice())
 
-    const Spread = """<Spread Self="s"><Page Self="p" Name="1" GeometricBounds="0 0 100 100" ItemTransform="1 0 0 1 0 0"/>
+    const Spread    = """<Spread Self="s"><Page Self="p" Name="1" GeometricBounds="0 0 100 100" ItemTransform="1 0 0 1 0 0"/>
                       <Rectangle Self="r" ItemTransform="1 0 0 1 0 0"><Properties><PathGeometry><GeometryPathType><PathPointArray>
                       <PathPointType Anchor="10 10"/><PathPointType Anchor="10 90"/><PathPointType Anchor="90 90"/><PathPointType Anchor="90 10"/>
                       </PathPointArray></GeometryPathType></PathGeometry></Properties>

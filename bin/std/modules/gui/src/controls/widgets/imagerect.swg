@@ -69,7 +69,10 @@ impl ImageRect
     internal mtd updateUploadedFrame()
     {
         let frame = &.movie.frame
-        if not .uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
+        if not .uploadedTexture.isValid() or
+           .uploadedTexture.width != frame.width or
+           .uploadedTexture.height != frame.height or
+           .uploadedTexture.pixelFormat != frame.pixelFormat
         {
             if .uploadedTexture.isValid() do
                 .app().renderer.removeTexture(&.uploadedTexture)

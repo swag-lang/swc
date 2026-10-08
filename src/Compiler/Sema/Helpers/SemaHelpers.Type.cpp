@@ -49,7 +49,7 @@ namespace
     {
         SWC_ASSERT(targetType.isIntLike());
 
-        ApsInt        value      = cst.getIntLike();
+        ApsInt         value      = cst.getIntLike();
         const uint32_t targetBits = targetType.payloadIntLikeBits();
         const uint32_t valueBits  = value.bitWidth();
         const uint32_t checkBits  = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);

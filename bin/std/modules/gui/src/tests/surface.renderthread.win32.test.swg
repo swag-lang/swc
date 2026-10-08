@@ -26,7 +26,10 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     {
         var rect: RECT
         Swag.assert(GetWindowRect(hWnd, &rect))
-        if rect.left != cast(s32, observation.expected.x) or rect.top != cast(s32, observation.expected.y) or rect.right != cast(s32, observation.expected.right()) or rect.bottom != cast(s32, observation.expected.bottom()) do
+        if rect.left != cast(s32, observation.expected.x) or
+           rect.top != cast(s32, observation.expected.y) or
+           rect.right != cast(s32, observation.expected.right()) or
+           rect.bottom != cast(s32, observation.expected.bottom()) do
             observation.intermediateBounds += 1
     }
 

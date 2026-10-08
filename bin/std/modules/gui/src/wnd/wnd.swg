@@ -1208,7 +1208,10 @@ impl Wnd
     // Restores opaque, undisplaced, unscaled, unclipped presentation.
     mtd resetPresentation()
     {
-        if .presentationOpacity == 1 and .presentationOffset == {} and .presentationScale == Math.Point{1, 1} and not .hasPresentationClip do
+        if .presentationOpacity == 1 and
+           .presentationOffset == {} and
+           .presentationScale == Math.Point{1, 1} and
+           not .hasPresentationClip do
             return
         .invalidatePresentation()
         .presentationOpacity = 1

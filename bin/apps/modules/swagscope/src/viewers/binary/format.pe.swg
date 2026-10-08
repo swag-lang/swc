@@ -302,7 +302,12 @@ func isCoffObject(image: *BinaryImage)->bool
         return false
 
     let machine = image.u16At(0)
-    if machine != 0x014C and machine != 0x8664 and machine != 0xAA64 and machine != 0x01C0 and machine != 0x01C4 and machine != 0xA641 do
+    if machine != 0x014C and
+       machine != 0x8664 and
+       machine != 0xAA64 and
+       machine != 0x01C0 and
+       machine != 0x01C4 and
+       machine != 0xA641 do
         return false
     if image.u16At(16) != 0 do
         return false

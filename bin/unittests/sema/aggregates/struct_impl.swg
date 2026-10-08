@@ -78,9 +78,9 @@ func semaTest001()
     let conv  = cast(ConvertNs.IConvert, value)
     let hash  = cast(HashNs.IHash32, value)
 
-    let converted  = conv.convert()
+    let converted = conv.convert()
     discard converted
-    let hashValue  = hash.hash()
+    let hashValue = hash.hash()
     discard hashValue
     let helperText = QualifiedInterfacesA.IConvert.helper()
     discard helperText

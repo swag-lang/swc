@@ -311,7 +311,7 @@ struct PropHeadlessCancelData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    prop.focusNavigation()              // count row
+    prop.focusNavigation()     // count row
     host.keyPress(Input.Key.Return)     // edit count
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[1]!.editBox))
 
@@ -406,7 +406,7 @@ struct PropHeadlessArrayData
     let descLbl = desc!
     Swag.assert(descLbl.textPadding.y > 0)
     Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
-    Swag.assert(chkRow.position.height >= descLbl.position.bottom())                // wrapped info text is not clipped
+    Swag.assert(chkRow.position.height >= descLbl.position.bottom())     // wrapped info text is not clipped
 }
 
 struct PropHeadlessColorData
@@ -1803,7 +1803,7 @@ struct PropDecorData
     Swag.assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
     Swag.assert(headingIt.typeValue.name == "Body")
     Swag.assert(spacerIt.line.position.height == 16)     // Gap(16)
-    Swag.assert((noteIt.label != null))                  // the info bar label
+    Swag.assert((noteIt.label != null))     // the info bar label
 
     // Decorators are inert: not focusable and never expandable.
     Swag.assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))

@@ -2,4 +2,4 @@
 
 // Literals that overflow the compiler's arbitrary-precision integer representation.
 const a = 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999     // swc-expected-error {{sema_err_number_too_big}}
-const b = 0xFFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF                                                                                                                                                                                                                             // swc-expected-error {{sema_err_number_too_big}}
+const b = 0xFFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF     // swc-expected-error {{sema_err_number_too_big}}

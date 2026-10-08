@@ -131,7 +131,9 @@ func loadSccImagePreviews(fileName: string, previews: *Array'Preview)
 
     for chunk in reader.chunks() where previews.count < PreviewLimit
     {
-        if chunk.roleId != capturePreviewRole() and chunk.roleId != captureBackgroundRole() and chunk.roleId != captureOriginalRole() do
+        if chunk.roleId != capturePreviewRole() and
+           chunk.roleId != captureBackgroundRole() and
+           chunk.roleId != captureOriginalRole() do
             continue
         let bytes = catch reader.readChunk(chunk.id) as readError
         if readError != null do

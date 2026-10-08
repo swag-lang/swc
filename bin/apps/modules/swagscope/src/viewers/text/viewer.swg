@@ -195,7 +195,9 @@ impl Panel
         // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
         // presented as facts about the newly decoded document.
-        if Atomic.get(&.statisticsState) != StatisticsCounted or .statisticsEncoding != .encoding or .statisticsStart != .contentStart do
+        if Atomic.get(&.statisticsState) != StatisticsCounted or
+           .statisticsEncoding != .encoding or
+           .statisticsStart != .contentStart do
             return Format.toString(texts().ui_Details, encoding)
         let lines = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
@@ -578,7 +580,9 @@ impl IWnd for Panel
             .stopTimer(&.statisticsTimer)
             if .statisticsThread.isValid() do
                 .statisticsThread.wait()
-            if .statisticsEncoding != .encoding or .statisticsStart != .contentStart or Atomic.get(&.statisticsState) == StatisticsRunning do
+            if .statisticsEncoding != .encoding or
+               .statisticsStart != .contentStart or
+               Atomic.get(&.statisticsState) == StatisticsRunning do
                 .startStatistics()
             .reportStatistics()
             return
@@ -661,9 +665,14 @@ impl Panel
 
         let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
-        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
-        let after          = .hasMore() and .bytesRead - .residentStart >= ResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * StreamLookAhead > residentEnd
-        let outside        = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
+        let before         = .residentStart > 0 and
+                             newPosition.y < oldPosition.y and
+                             newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+        let after = .hasMore() and
+                    .bytesRead - .residentStart >= ResidentWindowSize and
+                    newPosition.y > oldPosition.y and
+                    newPosition.y + viewport.height * StreamLookAhead > residentEnd
+        let outside = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .displayedEncoding != .encoding or (.virtualHeight > 0 and (before or after or outside))
         .pendingMatch.clear()
         .pendingNavigation = .None
@@ -755,13 +764,17 @@ impl Panel
                 view.toggleWrap()
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and
+                                          keyEvt.key == .End and
+                                          (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
                 discard view.revealOffset(view.fileSize, "")
                 view.pendingNavigation = .End
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and
+                                          keyEvt.key == .Home and
+                                          (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
                 view.pendingNavigation = .Home

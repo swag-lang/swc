@@ -171,7 +171,9 @@ impl DocumentOutline
             for heading, index in headings
             {
                 let previous = &.headings[index]
-                if heading.title != previous.title or heading.level != previous.level or heading.sourceOffset != previous.sourceOffset
+                if heading.title != previous.title or
+                   heading.level != previous.level or
+                   heading.sourceOffset != previous.sourceOffset
                 {
                     changed = true
                     break

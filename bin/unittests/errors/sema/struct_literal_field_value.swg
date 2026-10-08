@@ -40,7 +40,7 @@ func flat()
     let options = Options{
         level:
             "x"     // swc-expected-error {{value for field 'level' of 'Options' has type 'string', but the field needs 'u32'}}
-    }
+        }
 }
 
 func nested()
@@ -53,7 +53,7 @@ func nested()
                     "x"     // swc-expected-error {{value for field 'level' of 'Options' has type 'string', but the field needs 'u32'}}
             }
         }
-    }
+        }
 }
 
 func nestedStruct()
@@ -64,5 +64,5 @@ func nestedStruct()
             options:
                 true     // swc-expected-error {{value for field 'options' of 'Request' has type 'bool', but the field needs 'Options'}}
         }
-    }
+        }
 }

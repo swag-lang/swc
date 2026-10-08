@@ -701,7 +701,14 @@ private impl Codec
     // Reads the identification header and sizes the buffers it implies.
     mtd readIdentification(header: const [..] u8) fail
     {
-        if header.count < 30 or header[0] != 1 or header[1] != 'v' or header[2] != 'o' or header[3] != 'r' or header[4] != 'b' or header[5] != 'i' or header[6] != 's' do
+        if header.count < 30 or
+           header[0] != 1 or
+           header[1] != 'v' or
+           header[2] != 'o' or
+           header[3] != 'r' or
+           header[4] != 'b' or
+           header[5] != 'i' or
+           header[6] != 's' do
             fail InvalidFormatError{"Vorbis identification header is missing"}
         var reader = BitReader.create(header[7 until header.count])
         if reader.read(32) != 0 do
@@ -747,7 +754,14 @@ private impl Codec
     // Reads the setup header: codebooks, floors, residues, mappings, and modes.
     mtd readSetup(header: const [..] u8) fail
     {
-        if header.count < 7 or header[0] != 5 or header[1] != 'v' or header[2] != 'o' or header[3] != 'r' or header[4] != 'b' or header[5] != 'i' or header[6] != 's' do
+        if header.count < 7 or
+           header[0] != 5 or
+           header[1] != 'v' or
+           header[2] != 'o' or
+           header[3] != 'r' or
+           header[4] != 'b' or
+           header[5] != 'i' or
+           header[6] != 's' do
             fail InvalidFormatError{"Vorbis setup header is missing"}
         var reader = BitReader.create(header[7 until header.count])
 
@@ -813,7 +827,15 @@ private impl Codec
                 let body = config[offset + page.headerBytes until offset + page.totalBytes()]
                 if not hasSerial
                 {
-                    if (page.flags & Ogg.FirstPage) and body.count >= 7 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
+                    if (page.flags & Ogg.FirstPage) and
+                       body.count >= 7 and
+                       body[0] == 1 and
+                       body[1] == 'v' and
+                       body[2] == 'o' and
+                       body[3] == 'r' and
+                       body[4] == 'b' and
+                       body[5] == 'i' and
+                       body[6] == 's'
                     {
                         .serial   = page.serial
                         hasSerial = true

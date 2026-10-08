@@ -90,7 +90,9 @@ impl Volume
         .label        = try reader.readSizedString(MaximumLabelSize)
         .keySlotMask  = try reader.readLittleEndian'u32()
         .metadataSize = try reader.readLittleEndian'u64()
-        if storedSize < MinimumSize or storedSize > actualSize or .blockCount != (storedSize - DataOffset) / BlockRecordSize do
+        if storedSize < MinimumSize or
+           storedSize > actualSize or
+           .blockCount != (storedSize - DataOffset) / BlockRecordSize do
             try failWith("The container geometry does not match its size.", .Corrupted)
         .containerSize = storedSize
 
@@ -107,7 +109,10 @@ impl Volume
         {
             let first = try reader.readLittleEndian'u64()
             let count = try reader.readLittleEndian'u64()
-            if not count or first >= .blockCount or count > .blockCount - first or count > expectedPages - .metadataPages.count do
+            if not count or
+               first >= .blockCount or
+               count > .blockCount - first or
+               count > expectedPages - .metadataPages.count do
                 try failWith("A metadata page falls outside the container.", .Corrupted)
             for i in count do
                 .metadataPages.add(first + i)
@@ -589,7 +594,9 @@ impl Volume
             if patch.id != RootNodeId
             {
                 let parent = .nodeById(patch.parentId)
-                if not parent or not parent.isDirectory() or not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
+                if not parent or
+                   not parent.isDirectory() or
+                   not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
                     try failWith("A journal metadata change has an invalid destination.", .Corrupted)
             }
 

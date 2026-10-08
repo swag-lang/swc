@@ -625,7 +625,10 @@ private impl Panel
         let frames    = .video.frameCount()
         let audio     = .video.audioTrackCount()
         let subtitles = .video.subtitleTrackCount()
-        if .informationReady and frames == .informationFrames and audio == .informationAudio and subtitles == .informationSubtitles do
+        if .informationReady and
+           frames == .informationFrames and
+           audio == .informationAudio and
+           subtitles == .informationSubtitles do
             return
         .informationReady     = true
         .informationFrames    = frames

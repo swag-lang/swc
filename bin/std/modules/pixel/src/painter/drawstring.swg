@@ -1191,16 +1191,12 @@ impl Painter
 
         switch format.vertAlignment
         {
-        case .Bottom:
-            y = pos.bottom() - totalHeight
-
-        case .Center:
-            y = pos.vertCenter() - (totalHeight * 0.5)
+        case .Bottom: y = pos.bottom() - totalHeight
+        case .Center: y = pos.vertCenter() - (totalHeight * 0.5)
 
         // Centered on the capitals rather than on the line box, so the placement stops following
         // the internal leading of the face. See [[Pixel.Font.opticalLineTop]].
-        case .OpticalCenter:
-            y = pos.vertCenter() - (totalHeight * 0.5) - format.font.regular.opticalOffset()
+        case .OpticalCenter: y = pos.vertCenter() - (totalHeight * 0.5) - format.font.regular.opticalOffset()
         }
 
         text.boundRect.x      = Swag.F32.Max

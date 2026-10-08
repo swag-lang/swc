@@ -160,7 +160,10 @@ using Core, Pixel
         }
     }
 
-    Swag.assert(view.residentStart == 0 and view.virtualOrigin == 0 and view.scroll.scrollPosition().y == 0 and not view.waitingScroll)
+    Swag.assert(view.residentStart == 0 and
+                view.virtualOrigin == 0 and
+                view.scroll.scrollPosition().y == 0 and
+                not view.waitingScroll)
     Swag.assert(view.blocks[0].sourceOffset == 0)
     Swag.assert(Math.abs(view.blocks[0].wnd.surfaceRect().y - view.scroll.surfaceRect().y - view.documentStyle.topInset) <= 1)
 }

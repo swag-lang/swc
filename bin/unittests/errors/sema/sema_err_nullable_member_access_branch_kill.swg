@@ -16,7 +16,7 @@ func lendBranchKillOwner(owner: *BranchKillOwner) { discard owner }
 // whichever branch ran: the other branch keeping its proof does not make it hold afterwards.
 func afterLend(lend: bool)->s32
 {
-    var node:  BranchKillNode = {value: 7}
+    var node:  BranchKillNode  = {value: 7}
     var owner: BranchKillOwner = {node: &node}
     if not owner.node do
         return 0

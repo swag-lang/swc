@@ -1,6 +1,6 @@
 #global private
 
-func chooseOverload(value: s32 = 6)->s32        => value
+func chooseOverload(value: s32 = 6)->s32     => value
 func chooseOverload(_: s32, right: s32)->s32 => right
 
 // Automatic inlining clones this body after its constant calls have been folded.

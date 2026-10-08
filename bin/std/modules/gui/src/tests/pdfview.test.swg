@@ -530,7 +530,11 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     var page = 0'u64
     while not view.collectTextMatches("second", {}, &page, &collected) do
         Threading.Thread.sleep(1'ms)
-    Swag.assert(page == 2 and collected.count == 1 and collected[0].pageIndex == 1 and collected[0].byteOffset == 0 and collected[0].byteLength == 6)
+    Swag.assert(page == 2 and
+                collected.count == 1 and
+                collected[0].pageIndex == 1 and
+                collected[0].byteOffset == 0 and
+                collected[0].byteLength == 6)
     page = 0
     collected.clear()
     Swag.assert(view.collectTextMatches("(", expression, &page, &collected) and collected.isEmpty())

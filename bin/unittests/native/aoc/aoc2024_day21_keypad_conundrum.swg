@@ -74,7 +74,7 @@ func dirKeyIdx(dr: s32, dc: s32)->u32
     if dr < 0 do return 0     // ^
     if dr > 0 do return 3     // v
     if dc < 0 do return 2     // <
-    return 4                  // >
+    return 4     // >
 }
 
 // ---------------------------------------------------------------------------

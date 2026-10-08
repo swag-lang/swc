@@ -741,7 +741,7 @@ namespace
         AstNodeRef candidateResolvedRef = sema.resolvedNodeRef(candidateRef);
         if (candidateResolvedRef.isValid() && sema.node(candidateResolvedRef).is(AstNodeId::CastExpr))
         {
-            const auto& cast = sema.node(candidateResolvedRef).cast<AstCastExpr>();
+            const auto& cast     = sema.node(candidateResolvedRef).cast<AstCastExpr>();
             candidateRef         = cast.nodeExprRef;
             candidateTypeRef     = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, candidateResolvedRef, cast.nodeExprRef));
             candidateResolvedRef = sema.resolvedNodeRef(candidateRef);

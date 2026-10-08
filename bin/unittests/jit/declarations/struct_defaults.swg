@@ -18,7 +18,11 @@ struct DefaultOuter
     func localStructDefaults()->bool
     {
         var value: DefaultOuter
-        return value.text == "jit" and value.inner.value == 9 and value.digits[0] == 1 and value.digits[2] == 3 and value.tail == 11
+        return value.text == "jit" and
+               value.inner.value == 9 and
+               value.digits[0] == 1 and
+               value.digits[2] == 3 and
+               value.tail == 11
     }
 
     const V = #run localStructDefaults()
@@ -34,7 +38,11 @@ struct DefaultOuter
         let refValue   = assume cast(const *DefaultOuter, boxed)
         var copyValue  = assume cast(DefaultOuter, boxed)
         copyValue.tail = 42
-        return refValue.text == "jit" and refValue.inner.value == 9 and refValue.digits[1] == 2 and refValue.tail == 11 and copyValue.tail == 42
+        return refValue.text == "jit" and
+               refValue.inner.value == 9 and
+               refValue.digits[1] == 2 and
+               refValue.tail == 11 and
+               copyValue.tail == 42
     }
 
     const V = #run anyStructDefaults()

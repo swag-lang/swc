@@ -1041,9 +1041,9 @@ namespace
         auto [returnRef, returnPtr] = sema.ast().makeNode<AstNodeId::ReturnStmt>(decl.tokRef());
         returnPtr->nodeExprRef      = clonedExprRef;
 
-        auto [blockRef, blockPtr]    = sema.ast().makeNode<BLOCK_ID>(decl.tokRef());
+        auto [blockRef, blockPtr]   = sema.ast().makeNode<BLOCK_ID>(decl.tokRef());
         const std::array statements = {returnRef};
-        blockPtr->spanChildrenRef    = sema.ast().pushSpan(std::span<const AstNodeRef>{statements});
+        blockPtr->spanChildrenRef   = sema.ast().pushSpan(std::span<const AstNodeRef>{statements});
         return blockRef;
     }
 
@@ -2389,8 +2389,8 @@ namespace
         arrayPtr->spanChildrenRef = sema.ast().pushSpan(clonedValues.span());
 
         const std::array<uint64_t, 1> dims = {clonedValues.size()};
-        outExprTypeRef                   = sema.typeMgr().addType(TypeInfo::makeArray(dims, targetElemTypeRef));
-        outExprRef                       = arrayRef;
+        outExprTypeRef                     = sema.typeMgr().addType(TypeInfo::makeArray(dims, targetElemTypeRef));
+        outExprRef                         = arrayRef;
         return Result::Continue;
     }
 

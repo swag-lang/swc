@@ -1,7 +1,7 @@
 #global private
 
 // '?' holds a parameter position without a name, wherever a parameter is declared.
-func first(a: s32, _: s32)->s32 => a
+func first(a: s32, _: s32)->s32    => a
 func grouped(_, _: s32, c: u8)->u8 => c
 func defaulted(a: s32, _: string = "unused")->s32 => a
 

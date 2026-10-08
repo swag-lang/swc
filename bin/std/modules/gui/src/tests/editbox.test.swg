@@ -369,7 +369,7 @@ func editHeadlessEscape(_: *EditBox)
     Swag.assert(edit.scrollPosX > 0)
 
     let cc = edit.caretClip()
-    Swag.assert(cc.caret.x >= cc.view.x - 0.5)                 // not clipped left
+    Swag.assert(cc.caret.x >= cc.view.x - 0.5)     // not clipped left
     Swag.assert(cc.caret.right() <= cc.view.right() + 0.5)     // not clipped right (the bug)
 }
 

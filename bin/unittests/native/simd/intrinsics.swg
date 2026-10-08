@@ -209,7 +209,10 @@ func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
 
     let invalid  = cast(#simd [4] f32, [3_000_000_000.0, -3_000_000_000.0, cast #bit(f32, 0x7FC0_0000'u32), 0.0])
     let fallback = cast([4] s32, Swag.vectruncs32(invalid))
-    Swag.assert(fallback[0] == -2_147_483_648 and fallback[1] == -2_147_483_648 and fallback[2] == -2_147_483_648 and fallback[3] == 0)
+    Swag.assert(fallback[0] == -2_147_483_648 and
+                fallback[1] == -2_147_483_648 and
+                fallback[2] == -2_147_483_648 and
+                fallback[3] == 0)
 }
 
 #test

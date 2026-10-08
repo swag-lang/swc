@@ -222,7 +222,10 @@ func assertPreviewSurface(gui: bool)
 
     panel.selectViewer(.Gui)
     let gui = assume cast(*PreviewViewer, panel.viewer.window())
-    Swag.assert(gui != render and panel.request("").settings.optimization == .O2 and not gui.paused and not panel.pauseButton.isChecked)
+    Swag.assert(gui != render and
+                panel.request("").settings.optimization == .O2 and
+                not gui.paused and
+                not panel.pauseButton.isChecked)
 
     panel.selectViewer(.Render2D)
     Swag.assert(panel.viewer.window() == &render.wnd and panel.pauseButton.isChecked and panel.pauseButton.isVisible())

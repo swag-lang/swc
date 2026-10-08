@@ -283,7 +283,10 @@ using Core, Core.Errors, Pixel
     Swag.assert(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
     Swag.assert(Reader.canOpen("clip.mp4") and Reader.canOpen("clip.m4v") and Reader.canOpen("clip.mov"))
     Swag.assert(not Reader.canOpen("clip") and not Reader.canOpen(""))
-    Swag.assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and Writer.canCreate("clip.mp4") and not Writer.canCreate("clip.mkv"))
+    Swag.assert(Writer.canCreate("clip.y4m") and
+                Writer.canCreate("clip.avi") and
+                Writer.canCreate("clip.mp4") and
+                not Writer.canCreate("clip.mkv"))
 
     // The three writable formats are readable in the same order; Matroska is the read-only
     // container that follows them.
@@ -292,6 +295,9 @@ using Core, Core.Errors, Pixel
     Swag.assert(decodable.count == 4 and encodable.count == 3)
     for index in encodable.count do
         Swag.assert(decodable[index].name == encodable[index].name)
-    Swag.assert(decodable[0].matches("a.y4m") and decodable[1].matches("a.avi") and decodable[2].matches("a.mp4") and decodable[2].matches("a.MOV"))
+    Swag.assert(decodable[0].matches("a.y4m") and
+                decodable[1].matches("a.avi") and
+                decodable[2].matches("a.mp4") and
+                decodable[2].matches("a.MOV"))
     Swag.assert(decodable[3].matches("a.mkv") and not decodable[3].matches("a.webm"))
 }

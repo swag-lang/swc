@@ -443,8 +443,8 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImplicitBodyExportContract)
     ApiPublicationTestDirectory directory("ImplicitBodies");
     for (const std::string_view access : {"private", "internal", "public"})
     {
-        const fs::path module = directory.path() / access;
-        const fs::path api = module / "api";
+        const fs::path    module = directory.path() / access;
+        const fs::path    api    = module / "api";
         const std::string source = std::format(R"(#global public
 struct Value {{ public amount: s32 }}
 impl Value
@@ -458,17 +458,18 @@ impl Value
         .amount = amount
     }}
 }}
-)", access);
+)",
+                                               access);
         SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
         SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", source));
         const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "ImplicitApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
-        ImportResult result;
-        Os::ProcessRunOptions options;
+        ImportResult            result;
+        Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
-        options.forwardOutput = false;
-        options.timeoutMs = 15000;
-        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
-        const bool exported = access == "public";
+        options.forwardOutput  = false;
+        options.timeoutMs      = 15000;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        const bool exported    = access == "public";
         if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != exported)
         {
             std::println(stderr, "[implicit API {}] {}", access, result.output);
@@ -486,7 +487,7 @@ impl Value
 
         const fs::path consumer = module / "consumer.swg";
         SWC_RESULT(CompilerTestFile::writeText(consumer, "using ImplicitApi\n#main { var value: Value = 42\n discard value }\n"));
-        const fs::path apiFile = api / (std::string(access) + ".swg");
+        const fs::path          apiFile    = api / (std::string(access) + ".swg");
         const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
         result.output.clear();
         result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);

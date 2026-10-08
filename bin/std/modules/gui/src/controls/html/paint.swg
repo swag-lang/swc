@@ -324,9 +324,13 @@ impl HtmlPainter
         let border = &style.borderTop
         if border.width <= 0 or border.style == .None or not border.color.a do
             return
-        if style.borderRight.width != border.width or style.borderBottom.width != border.width or style.borderLeft.width != border.width do
+        if style.borderRight.width != border.width or
+           style.borderBottom.width != border.width or
+           style.borderLeft.width != border.width do
             return
-        if style.borderRight.color != border.color or style.borderBottom.color != border.color or style.borderLeft.color != border.color do
+        if style.borderRight.color != border.color or
+           style.borderBottom.color != border.color or
+           style.borderLeft.color != border.color do
             return
 
         var path: LinePath
@@ -501,7 +505,10 @@ impl HtmlPainter
             let ink       = HtmlPainter.withAlpha(hot ? .hotLink : style.color, alpha * style.opacity)
             let boxStyle  = .layout.constStyle(target.style)
             let clipRight = target.content.right() + offset.x
-            let ellipsis  = boxStyle.textOverflowEllipsis and boxStyle.overflowX != .Visible and style.whiteSpace == .NoWrap and x + item.width > clipRight
+            let ellipsis  = boxStyle.textOverflowEllipsis and
+                            boxStyle.overflowX != .Visible and
+                            style.whiteSpace == .NoWrap and
+                            x + item.width > clipRight
             if ellipsis and clipRight > x
             {
                 .paintEllipsized(item, style, font, ink, x, y, clipRight - x)
@@ -601,7 +608,10 @@ impl HtmlPainter
         var found: bool
         for box in .layout.boxes
         {
-            for item in box.items where item.visible and item.node == .searchNode and .searchEnd > item.sourceStart and .searchStart < item.sourceEnd
+            for item in box.items where item.visible and
+                                        item.node == .searchNode and
+                                        .searchEnd > item.sourceStart and
+                                        .searchStart < item.sourceEnd
             {
                 let span = .coveredSpan(item, .searchStart, .searchEnd, item.x)
                 if span.width <= 0 do

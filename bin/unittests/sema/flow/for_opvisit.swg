@@ -268,7 +268,7 @@ func semaTest003()
         let ordinal = index
         var x       = ordinal
         discard x
-        var y       = value
+        var y = value
         discard y
     }
 }

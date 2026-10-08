@@ -393,7 +393,12 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     var found = false
     for index in bytes.count - 9
     {
-        if bytes[index] == 's' and bytes[index + 1] == 't' and bytes[index + 2] == 'a' and bytes[index + 3] == 'r' and bytes[index + 4] == 't' and bytes[index + 5] == 'x'
+        if bytes[index] == 's' and
+           bytes[index + 1] == 't' and
+           bytes[index + 2] == 'a' and
+           bytes[index + 3] == 'r' and
+           bytes[index + 4] == 't' and
+           bytes[index + 5] == 'x'
         {
             for k in 9 do
                 bytes[index + k] = ' '

@@ -644,14 +644,20 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     var region = Math.Rectangle{0, 0, page.width, page.height}
     if options.sourceRect.width > 0 and options.sourceRect.height > 0
     {
-        if not Math.isFinite(options.sourceRect.x) or not Math.isFinite(options.sourceRect.y) or not Math.isFinite(options.sourceRect.width) or not Math.isFinite(options.sourceRect.height) do
+        if not Math.isFinite(options.sourceRect.x) or
+           not Math.isFinite(options.sourceRect.y) or
+           not Math.isFinite(options.sourceRect.width) or
+           not Math.isFinite(options.sourceRect.height) do
             fail Errors.BadParameterError{}
         region = options.sourceRect
     }
 
     let scaledWidth  = Math.ceil(region.width * options.scale)
     let scaledHeight = Math.ceil(region.height * options.scale)
-    if not Math.isFinite(scaledWidth) or not Math.isFinite(scaledHeight) or scaledWidth > cast(f32, options.maxDimension) or scaledHeight > cast(f32, options.maxDimension) do
+    if not Math.isFinite(scaledWidth) or
+       not Math.isFinite(scaledHeight) or
+       scaledWidth > cast(f32, options.maxDimension) or
+       scaledHeight > cast(f32, options.maxDimension) do
         fail Errors.UnsupportedFormatError{"rendered PDF page exceeds the configured dimension limit"}
     let width  = cast(s32, Math.max(1, scaledWidth))
     let height = cast(s32, Math.max(1, scaledHeight))

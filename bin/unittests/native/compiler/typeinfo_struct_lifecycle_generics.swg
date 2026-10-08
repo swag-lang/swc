@@ -227,12 +227,20 @@ func nestedGenericCompositionWorks()->bool
 
     resetEvents()
     runCopy(type, &value)
-    if EventCount != 3 or eventSum() != 606 or value.pair.left.value != 2 or value.pair.right.value != 3 or value.tail.value != 4 do
+    if EventCount != 3 or
+       eventSum() != 606 or
+       value.pair.left.value != 2 or
+       value.pair.right.value != 3 or
+       value.tail.value != 4 do
         return false
 
     resetEvents()
     runMove(type, &value)
-    if EventCount != 3 or eventSum() != 909 or value.pair.left.value != 12 or value.pair.right.value != 13 or value.tail.value != 14 do
+    if EventCount != 3 or
+       eventSum() != 909 or
+       value.pair.left.value != 12 or
+       value.pair.right.value != 13 or
+       value.tail.value != 14 do
         return false
 
     resetEvents()
@@ -298,12 +306,20 @@ func genericConstArrayLifecycleWorks()->bool
 
     resetEvents()
     runCopy(type, &value)
-    if EventCount != 3 or eventSum() != 615 or value.values[0].value != 5 or value.values[1].value != 6 or value.values[2].value != 7 do
+    if EventCount != 3 or
+       eventSum() != 615 or
+       value.values[0].value != 5 or
+       value.values[1].value != 6 or
+       value.values[2].value != 7 do
         return false
 
     resetEvents()
     runMove(type, &value)
-    if EventCount != 3 or eventSum() != 918 or value.values[0].value != 15 or value.values[1].value != 16 or value.values[2].value != 17 do
+    if EventCount != 3 or
+       eventSum() != 918 or
+       value.values[0].value != 15 or
+       value.values[1].value != 16 or
+       value.values[2].value != 17 do
         return false
 
     resetEvents()

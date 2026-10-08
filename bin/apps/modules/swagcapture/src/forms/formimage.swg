@@ -121,7 +121,15 @@ impl FormImage
     // from a capture image that changed since.
     mtd effectIsStale(capture: *Capture)->bool
     {
-        return not .texture.isValid() or .xc != .x or .yc != .y or .wc != .w or .hc != .h or .textureKind != .kind or .dirty or .stc != .strength or .serial != capture.serialBackTexture
+        return not .texture.isValid() or
+               .xc != .x or
+               .yc != .y or
+               .wc != .w or
+               .hc != .h or
+               .textureKind != .kind or
+               .dirty or
+               .stc != .strength or
+               .serial != capture.serialBackTexture
     }
 
     // The effect computed from the capture image under the form: a blurred or pixelated copy, or a

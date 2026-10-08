@@ -10,7 +10,10 @@ impl Image
     mtd const doChangePf(dstImage: *Image)
     {
         let srcLegacy = .pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
-        let dstLegacy = dstImage.pixelFormat == .BGR8 or dstImage.pixelFormat == .BGRA8 or dstImage.pixelFormat == .RGB8 or dstImage.pixelFormat == .RGBA8
+        let dstLegacy = dstImage.pixelFormat == .BGR8 or
+                        dstImage.pixelFormat == .BGRA8 or
+                        dstImage.pixelFormat == .RGB8 or
+                        dstImage.pixelFormat == .RGBA8
         if not srcLegacy or not dstLegacy or .alphaMode != dstImage.alphaMode
         {
             var genericContext = {src: me, dst: dstImage}

@@ -84,14 +84,14 @@ public:
     }
     void markGlobalAddressEscapes() noexcept { std::atomic_ref(globalAddressEscapes_).store(true, std::memory_order_relaxed); }
     // Final once the module's semantic analysis is complete.
-    bool                  globalAddressEscapes() const noexcept { return std::atomic_ref(const_cast<bool&>(globalAddressEscapes_)).load(std::memory_order_relaxed); }
+    bool globalAddressEscapes() const noexcept { return std::atomic_ref(const_cast<bool&>(globalAddressEscapes_)).load(std::memory_order_relaxed); }
     // Set by every name that resolves to the variable, read when its function is complete to
     // report a local, a parameter, or a capture that nothing refers to.
-    void                  markReferenced() const noexcept { std::atomic_ref(const_cast<bool&>(referenced_)).store(true, std::memory_order_relaxed); }
-    bool                  isReferenced() const noexcept { return std::atomic_ref(const_cast<bool&>(referenced_)).load(std::memory_order_relaxed); }
+    void markReferenced() const noexcept { std::atomic_ref(const_cast<bool&>(referenced_)).store(true, std::memory_order_relaxed); }
+    bool isReferenced() const noexcept { return std::atomic_ref(const_cast<bool&>(referenced_)).load(std::memory_order_relaxed); }
     // A '?' parameter: it holds a hidden name for the symbol tables, and no name anywhere else.
-    bool                  isUnnamed() const noexcept { return unnamed_; }
-    void                  setUnnamed() noexcept { unnamed_ = true; }
+    bool isUnnamed() const noexcept { return unnamed_; }
+    void setUnnamed() noexcept { unnamed_ = true; }
     // Declared while an inline call expanded. Such a variable answers to the unused check only
     // where the caller wrote its name: in the caller's own code, or as an alias the call site
     // supplied ('#code(a, b)', the names of a 'for' over 'opVisit'), recorded in 'callerNameRef'.
@@ -155,8 +155,8 @@ private:
     bool            unnamed_               = false;
     bool            inlineExpansion_       = false;
     SourceCodeRef   callerNameRef_;
-    MemberAccess    memberAccess_          = MemberAccess::Internal;
-    bool            memberReadOnly_        = false;
+    MemberAccess    memberAccess_   = MemberAccess::Internal;
+    bool            memberReadOnly_ = false;
 };
 
 SWC_END_NAMESPACE();

@@ -88,7 +88,10 @@ func prefixSums(lanes: *WordLanes)
         Swag.assert(lanes.result[i] == (cast(f32, i) - 3.0'f32) * 2.0'f32 + 1.5'f32)
 
     magnitudes(&lanes)
-    Swag.assert(lanes.result[0] == 3.0'f32 and lanes.result[1] == 2.0'f32 and lanes.result[2] == 1.0'f32 and lanes.result[3] == 0.0'f32)
+    Swag.assert(lanes.result[0] == 3.0'f32 and
+                lanes.result[1] == 2.0'f32 and
+                lanes.result[2] == 1.0'f32 and
+                lanes.result[3] == 0.0'f32)
     Swag.assert(lanes.result[4] == 1.0'f32 and lanes.result[7] == 4.0'f32)
 }
 

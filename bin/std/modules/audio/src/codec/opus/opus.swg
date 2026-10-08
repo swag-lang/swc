@@ -173,7 +173,17 @@ private impl Decoder
                 if offset + page.totalBytes() > config.count do
                     fail InvalidFormatError{"Opus header pages are truncated"}
                 let body = config[offset + page.headerBytes until offset + page.totalBytes()]
-                if not hasSerial and (page.flags & Ogg.FirstPage) and body.count >= 8 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
+                if not hasSerial and
+                   (page.flags & Ogg.FirstPage) and
+                   body.count >= 8 and
+                   body[0] == 'O' and
+                   body[1] == 'p' and
+                   body[2] == 'u' and
+                   body[3] == 's' and
+                   body[4] == 'H' and
+                   body[5] == 'e' and
+                   body[6] == 'a' and
+                   body[7] == 'd'
                 {
                     .serial   = page.serial
                     hasSerial = true
@@ -211,7 +221,15 @@ private impl Decoder
             head.add(config)
         }
 
-        if head.count < 19 or head[0] != 'O' or head[1] != 'p' or head[2] != 'u' or head[3] != 's' or head[4] != 'H' or head[5] != 'e' or head[6] != 'a' or head[7] != 'd' do
+        if head.count < 19 or
+           head[0] != 'O' or
+           head[1] != 'p' or
+           head[2] != 'u' or
+           head[3] != 's' or
+           head[4] != 'H' or
+           head[5] != 'e' or
+           head[6] != 'a' or
+           head[7] != 'd' do
             fail InvalidFormatError{"Opus identification header is missing"}
         if (head[8] >> 4) != 0 do
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}

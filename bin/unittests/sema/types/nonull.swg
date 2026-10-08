@@ -169,9 +169,9 @@ func semaNonNullConstruction()
     #assert(#typeof(aliasReadOnly) == const *SemaNonNullItem)
     #assert(#typeof(aliasRequired) == const *SemaNonNullItem)
 
-    var defaultItem:     SemaNonNullStringDefault
+    var defaultItem: SemaNonNullStringDefault
     discard defaultItem
-    var defaultArray:    [2] SemaNonNullStringDefault
+    var defaultArray: [2] SemaNonNullStringDefault
     discard defaultArray
     let omittedDefaults = SemaNonNullDefaultContainer{}
     discard omittedDefaults

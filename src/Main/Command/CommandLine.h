@@ -269,18 +269,18 @@ struct CommandLine
     std::set<fs::path> importApiDirs;
     std::set<fs::path> importApiFiles;
 
-    fs::path configFile;
-    fs::path newScriptPath;
-    fs::path moduleFilePath;
-    fs::path modulePath;
-    fs::path workspacePath;
-    fs::path exportApiDir;
-    fs::path editorIndex;
-    fs::path editorOverlay;
+    fs::path                                                            configFile;
+    fs::path                                                            newScriptPath;
+    fs::path                                                            moduleFilePath;
+    fs::path                                                            modulePath;
+    fs::path                                                            workspacePath;
+    fs::path                                                            exportApiDir;
+    fs::path                                                            editorIndex;
+    fs::path                                                            editorOverlay;
     std::shared_ptr<const std::unordered_map<std::string, std::string>> editorSources;
-    fs::path docOutputDir;
-    fs::path outDir;
-    fs::path workDir;
+    fs::path                                                            docOutputDir;
+    fs::path                                                            outDir;
+    fs::path                                                            workDir;
 
     // Where a shared-library module also publishes the static archive built from the very same
     // objects, so an executable can link its code in instead of importing it from the DLL. The

@@ -267,7 +267,10 @@ internal impl IImageDecoder for Decoder
             fail UnsupportedFormatError{"unsupported compression"}
         if bh.biCompression == BI_BITFIELDS and bh.biBitCount != 16 and bh.biBitCount != 24 and bh.biBitCount != 32 do
             fail UnsupportedFormatError{"unsupported compression"}
-        if bh.biCompression != BI_RGB and bh.biCompression != BI_BITFIELDS and bh.biCompression != BI_RLE8 and bh.biCompression != BI_RLE4 do
+        if bh.biCompression != BI_RGB and
+           bh.biCompression != BI_BITFIELDS and
+           bh.biCompression != BI_RLE8 and
+           bh.biCompression != BI_RLE4 do
             fail UnsupportedFormatError{"unsupported compression"}
         if topDown and (bh.biCompression == BI_RLE8 or bh.biCompression == BI_RLE4) do
             fail UnsupportedFormatError{"unsupported compression"}

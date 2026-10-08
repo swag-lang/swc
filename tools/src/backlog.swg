@@ -98,13 +98,13 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
     var result:        retval
     var lineNumber     = 0'u64
     var entryCount     = 0'u64
-    var entryLine:     u64                // The heading line of the current entry.
-    var entryLatest:   u64                // The latest stamp of the current entry, zero until one is read.
+    var entryLine:     u64      // The heading line of the current entry.
+    var entryLatest:   u64      // The latest stamp of the current entry, zero until one is read.
     var previousLatest = Swag.U64.Max     // The latest stamp of the entry above; the list descends.
-    var sectionLine:   u64                // A `##` heading met after an entry; no entry may follow it.
-    var recorded:      u64                // The Recorded stamp of the current entry, zero until it is read.
-    var awaitRecorded: bool               // The next non-blank line must be the entry's Recorded stamp.
-    var allowUpdated:  bool               // The next line may be the entry's Updated stamp.
+    var sectionLine:   u64      // A `##` heading met after an entry; no entry may follow it.
+    var recorded:      u64      // The Recorded stamp of the current entry, zero until it is read.
+    var awaitRecorded: bool     // The next non-blank line must be the entry's Recorded stamp.
+    var allowUpdated:  bool     // The next line may be the entry's Updated stamp.
 
     for line in Tokenize.splitLines(content.toString())
     {
@@ -149,7 +149,9 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
             let digitStart = headingPrefix.count
             let parsed     = parseDecimal(line, digitStart)
-            if parsed.value == 0 or parsed.end != digitStart + 3 or not Utf8.startsWith(cast(const [..] u8, line[parsed.end until line.count]), " — ")
+            if parsed.value == 0 or
+               parsed.end != digitStart + 3 or
+               not Utf8.startsWith(cast(const [..] u8, line[parsed.end until line.count]), " — ")
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": malformed backlog identifier heading")
                 result.errors += 1
@@ -273,7 +275,9 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
 private func auditBacklogLink(fileName: string, lineNumber: u64, destination: string)->u32 fail
 {
-    if Utf8.startsWith(cast(const [..] u8, destination), "https://") or Utf8.startsWith(cast(const [..] u8, destination), "http://") or Utf8.startsWith(cast(const [..] u8, destination), "mailto:") do
+    if Utf8.startsWith(cast(const [..] u8, destination), "https://") or
+       Utf8.startsWith(cast(const [..] u8, destination), "http://") or
+       Utf8.startsWith(cast(const [..] u8, destination), "mailto:") do
         return 0
 
     let hash = Utf8.indexOf(cast(const [..] u8, destination), "#")

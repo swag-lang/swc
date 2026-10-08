@@ -437,7 +437,10 @@ impl Volume
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
         // truncation; a read-only open simply ignores the unauthenticated excess bytes.
-        if not readOnly and not result.file.base and not result.file.protectedEnd and (try result.file.size()) > result.physicalSize
+        if not readOnly and
+           not result.file.base and
+           not result.file.protectedEnd and
+           (try result.file.size()) > result.physicalSize
         {
             try result.file.resize(result.physicalSize)
             try result.file.flush()

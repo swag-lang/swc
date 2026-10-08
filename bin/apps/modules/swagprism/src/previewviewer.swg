@@ -213,7 +213,9 @@ impl PreviewViewer
                     .sigChanged.call(me)
                 }
             }
-            elif not Atomic.get(&candidate.cancelled) and Atomic.get(&candidate.ready) and Atomic.get(&candidate.channel.header().published)
+            elif not Atomic.get(&candidate.cancelled) and
+                 Atomic.get(&candidate.ready) and
+                 Atomic.get(&candidate.channel.header().published)
             {
                 // Keep the previous animation alive until the replacement has a complete frame.
                 Atomic.exchange(&.probe.cancelled, 1)

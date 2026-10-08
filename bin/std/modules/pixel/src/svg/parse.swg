@@ -942,7 +942,12 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
         while count < 6
         {
             var look = pos
-            while look < len and (value[look] == ' ' or value[look] == ',' or value[look] == '\t' or value[look] == '\n' or value[look] == '\r') do
+            while look < len and
+                  (value[look] == ' ' or
+                   value[look] == ',' or
+                   value[look] == '\t' or
+                   value[look] == '\n' or
+                   value[look] == '\r') do
                 look += 1
             if look >= len or not isNumberStart(value[look]) do
                 break
@@ -1858,7 +1863,9 @@ private impl Parser
         var contentEnd   = .pos
         while contentEnd + 7 < (.text).count
         {
-            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and not Latin1.compare(.text[contentEnd + 2 until contentEnd + 7], "style", ignoreCase: true) do
+            if .text[contentEnd] == '<' and
+               .text[contentEnd + 1] == '/' and
+               not Latin1.compare(.text[contentEnd + 2 until contentEnd + 7], "style", ignoreCase: true) do
                 break
             contentEnd += 1
         }
@@ -1911,7 +1918,10 @@ private impl Parser
                 switch specificity
                 {
                 case 0:
-                    matches = selector.count and selector[0] != '.' and selector[0] != '#' and not Latin1.compare(selector, elementName, ignoreCase: true)
+                    matches = selector.count and
+                              selector[0] != '.' and
+                              selector[0] != '#' and
+                              not Latin1.compare(selector, elementName, ignoreCase: true)
 
                 case 1:
                     if selector.count > 1 and selector[0] == '.' and classAttr
@@ -1921,7 +1931,11 @@ private impl Parser
                         while classes.count
                         {
                             var end = 0'u64
-                            while end < classes.count and classes[end] != ' ' and classes[end] != '\t' and classes[end] != '\n' and classes[end] != '\r' do
+                            while end < classes.count and
+                                  classes[end] != ' ' and
+                                  classes[end] != '\t' and
+                                  classes[end] != '\n' and
+                                  classes[end] != '\r' do
                                 end += 1
                             if not Latin1.compare(classes[until end], wanted) do
                                 matches = true
@@ -2089,7 +2103,13 @@ private impl Parser
             }
 
             let nameStart = .pos
-            while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+            while .pos < len and
+                  .text[.pos] != ' ' and
+                  .text[.pos] != '>' and
+                  .text[.pos] != '/' and
+                  .text[.pos] != '\t' and
+                  .text[.pos] != '\n' and
+                  .text[.pos] != '\r' do
                 .pos += 1
             let name = .text[nameStart until .pos]
 
@@ -2385,7 +2405,13 @@ private impl Parser
             }
 
             let nameStart = .pos
-            while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+            while .pos < len and
+                  .text[.pos] != ' ' and
+                  .text[.pos] != '>' and
+                  .text[.pos] != '/' and
+                  .text[.pos] != '\t' and
+                  .text[.pos] != '\n' and
+                  .text[.pos] != '\r' do
                 .pos += 1
             let name = .text[nameStart until .pos]
 
@@ -2460,7 +2486,13 @@ private impl Parser
                 }
 
                 let nameStart = .pos
-                while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+                while .pos < len and
+                      .text[.pos] != ' ' and
+                      .text[.pos] != '>' and
+                      .text[.pos] != '/' and
+                      .text[.pos] != '\t' and
+                      .text[.pos] != '\n' and
+                      .text[.pos] != '\r' do
                     .pos += 1
                 let name = .text[nameStart until .pos]
                 var state: GroupState
@@ -2538,7 +2570,13 @@ private impl Parser
             }
 
             let nameStart = .pos
-            while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
+            while .pos < len and
+                  .text[.pos] != ' ' and
+                  .text[.pos] != '>' and
+                  .text[.pos] != '/' and
+                  .text[.pos] != '\t' and
+                  .text[.pos] != '\n' and
+                  .text[.pos] != '\r' do
                 .pos += 1
             let name = .text[nameStart until .pos]
 

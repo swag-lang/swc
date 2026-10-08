@@ -201,7 +201,10 @@ impl Decoder
                 let mv0Y = cast(s32, motion.mv[0, 1])
                 let mv1X = cast(s32, motion.mv[1, 0])
                 let mv1Y = cast(s32, motion.mv[1, 1])
-                if (mv0X & (unit - 1)) == 0 and (mv0Y & (unit - 1)) == 0 and (mv1X & (unit - 1)) == 0 and (mv1Y & (unit - 1)) == 0
+                if (mv0X & (unit - 1)) == 0 and
+                   (mv0Y & (unit - 1)) == 0 and
+                   (mv1X & (unit - 1)) == 0 and
+                   (mv1Y & (unit - 1)) == 0
                 {
                     let reference0 = .refList.frames[0, cast(u32, motion.refIdx[0])]
                     let reference1 = .refList.frames[1, cast(u32, motion.refIdx[1])]
@@ -292,7 +295,14 @@ impl Decoder
         // The padding of a completed reference already holds the clamped edge samples, so a
         // block that reaches past an edge but stays inside it is still read where it lies.
         let pad = cast(s32, FramePadding)
-        if source0X >= -pad and source0Y >= -pad and source1X >= -pad and source1Y >= -pad and source0X + cast(s32, width) <= source0Width + pad and source1X + cast(s32, width) <= source1Width + pad and source0Y + cast(s32, height) <= source0Height + pad and source1Y + cast(s32, height) <= source1Height + pad
+        if source0X >= -pad and
+           source0Y >= -pad and
+           source1X >= -pad and
+           source1Y >= -pad and
+           source0X + cast(s32, width) <= source0Width + pad and
+           source1X + cast(s32, width) <= source1Width + pad and
+           source0Y + cast(s32, height) <= source0Height + pad and
+           source1Y + cast(s32, height) <= source1Height + pad
         {
             let first0 = source0 + cast(u64, (source0Y + cast(s32, FramePadding))) * source0Stride + cast(u64, (source0X + cast(s32, FramePadding)))
             let first1 = source1 + cast(u64, (source1Y + cast(s32, FramePadding))) * source1Stride + cast(u64, (source1X + cast(s32, FramePadding)))
@@ -371,7 +381,10 @@ impl Decoder
         // that repeats its edges. Copying complete rows is the common path; only a vector past that
         // padding needs per-sample clamping.
         let pad = cast(s32, FramePadding)
-        if sourceX >= -pad and sourceY >= -pad and sourceX + cast(s32, width) <= sourceWidth + pad and sourceY + cast(s32, height) <= sourceHeight + pad
+        if sourceX >= -pad and
+           sourceY >= -pad and
+           sourceX + cast(s32, width) <= sourceWidth + pad and
+           sourceY + cast(s32, height) <= sourceHeight + pad
         {
             let first = source + cast(u64, (sourceY + cast(s32, FramePadding))) * sourceStride + cast(u64, (sourceX + cast(s32, FramePadding)))
             for row in height do
@@ -462,7 +475,10 @@ impl Decoder
         // therefore already holds what the clamp of clause 8.5.3.3.3 would produce, so it is read
         // where it lies instead of being gathered into a scratch block first.
         let pad = cast(s32, FramePadding)
-        if firstX >= -pad and firstY >= -pad and firstX + cast(s32, width) + 7 <= cast(s32, frame.width) + pad and firstY + cast(s32, height) + 7 <= cast(s32, frame.height) + pad
+        if firstX >= -pad and
+           firstY >= -pad and
+           firstX + cast(s32, width) + 7 <= cast(s32, frame.width) + pad and
+           firstY + cast(s32, height) + 7 <= cast(s32, frame.height) + pad
         {
             reference       = frame.lumaAt(firstX, firstY)!
             referenceStride = frame.strideLuma
@@ -628,7 +644,10 @@ impl Decoder
         let firstX = xInt - 1
         let firstY = yInt - 1
         let pad    = cast(s32, FramePadding)
-        if firstX >= -pad and firstY >= -pad and firstX + cast(s32, width) + 3 <= cast(s32, frame.chromaWidth) + pad and firstY + cast(s32, height) + 3 <= cast(s32, frame.chromaHeight) + pad
+        if firstX >= -pad and
+           firstY >= -pad and
+           firstX + cast(s32, width) + 3 <= cast(s32, frame.chromaWidth) + pad and
+           firstY + cast(s32, height) + 3 <= cast(s32, frame.chromaHeight) + pad
         {
             let plane = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
             reference       = plane + cast(u64, (firstY + cast(s32, FramePadding))) * frame.strideChroma + cast(u64, (firstX + cast(s32, FramePadding)))
@@ -795,7 +814,9 @@ impl Decoder
         let usesL0 = (motion.predFlags & 1) != 0
         let usesL1 = (motion.predFlags & 2) != 0
 
-        let weighted = not identityWeights and header.hasWeights and ((header.sliceType == SliceTypeP and .activePps!.weightedPred) or (header.sliceType == SliceTypeB and .activePps!.weightedBipred))
+        let weighted = not identityWeights and
+                       header.hasWeights and
+                       ((header.sliceType == SliceTypeP and .activePps!.weightedPred) or (header.sliceType == SliceTypeB and .activePps!.weightedBipred))
         if weighted
         {
             .combineWeighted(destination, stride, component, width, height, motion, usesL0, usesL1, bitDepth, maximum)

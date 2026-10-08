@@ -272,7 +272,9 @@ private impl Layout
                 if candidate.handler == VideoHandlerId
                 {
                     .hasVideo = true
-                    if candidate.hasDescription and (candidate.isJpeg or candidate.isCodedVideo()) and not .track.hasDescription do
+                    if candidate.hasDescription and
+                       (candidate.isJpeg or candidate.isCodedVideo()) and
+                       not .track.hasDescription do
                         .track = #move candidate
                     elif not .unsupportedCodec do
                         .unsupportedCodec = candidate.codec

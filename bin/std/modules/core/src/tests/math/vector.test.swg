@@ -244,7 +244,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(Math.Vector3.NegUnitY, Math.Vector3{0, -1, 0})
     expectVec3(Math.Vector3.NegUnitZ, Math.Vector3{0, 0, -1})
     Swag.assert(Math.Vector3.Max.x == Swag.F32.Max and Math.Vector3.Max.y == Swag.F32.Max and Math.Vector3.Max.z == Swag.F32.Max)
-    Swag.assert(Math.Vector3.NegMax.x == -Swag.F32.Max and Math.Vector3.NegMax.y == -Swag.F32.Max and Math.Vector3.NegMax.z == -Swag.F32.Max)
+    Swag.assert(Math.Vector3.NegMax.x == -Swag.F32.Max and
+                Math.Vector3.NegMax.y == -Swag.F32.Max and
+                Math.Vector3.NegMax.z == -Swag.F32.Max)
     Swag.assert(Math.Vector3.Min.x == Swag.F32.Min and Math.Vector3.Min.y == Swag.F32.Min and Math.Vector3.Min.z == Swag.F32.Min)
 
     var vec: Math.Vector3 = 2.0
@@ -454,9 +456,18 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec4(Math.Vector4.NegUnitY, Math.Vector4{0, -1, 0, 0})
     expectVec4(Math.Vector4.NegUnitZ, Math.Vector4{0, 0, -1, 0})
     expectVec4(Math.Vector4.NegUnitW, Math.Vector4{0, 0, 0, -1})
-    Swag.assert(Math.Vector4.Max.x == Swag.F32.Max and Math.Vector4.Max.y == Swag.F32.Max and Math.Vector4.Max.z == Swag.F32.Max and Math.Vector4.Max.w == Swag.F32.Max)
-    Swag.assert(Math.Vector4.NegMax.x == -Swag.F32.Max and Math.Vector4.NegMax.y == -Swag.F32.Max and Math.Vector4.NegMax.z == -Swag.F32.Max and Math.Vector4.NegMax.w == -Swag.F32.Max)
-    Swag.assert(Math.Vector4.Min.x == Swag.F32.Min and Math.Vector4.Min.y == Swag.F32.Min and Math.Vector4.Min.z == Swag.F32.Min and Math.Vector4.Min.w == Swag.F32.Min)
+    Swag.assert(Math.Vector4.Max.x == Swag.F32.Max and
+                Math.Vector4.Max.y == Swag.F32.Max and
+                Math.Vector4.Max.z == Swag.F32.Max and
+                Math.Vector4.Max.w == Swag.F32.Max)
+    Swag.assert(Math.Vector4.NegMax.x == -Swag.F32.Max and
+                Math.Vector4.NegMax.y == -Swag.F32.Max and
+                Math.Vector4.NegMax.z == -Swag.F32.Max and
+                Math.Vector4.NegMax.w == -Swag.F32.Max)
+    Swag.assert(Math.Vector4.Min.x == Swag.F32.Min and
+                Math.Vector4.Min.y == Swag.F32.Min and
+                Math.Vector4.Min.z == Swag.F32.Min and
+                Math.Vector4.Min.w == Swag.F32.Min)
 
     var vec: Math.Vector4 = 2.0
     expectVec4(vec, Math.Vector4{2, 2, 2, 2})

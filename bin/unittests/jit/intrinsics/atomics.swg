@@ -104,7 +104,11 @@ alias AtomicStrictU32 = u32
         #assert(#typeof(b) == AtomicStrictS32)
         #assert(#typeof(c) == AtomicStrictU32)
 
-        return a == cast(AtomicStrictS32, 0) and b == cast(AtomicStrictS32, 2) and sx == 5 and c == cast(AtomicStrictU32, 1) and ux == 5
+        return a == cast(AtomicStrictS32, 0) and
+               b == cast(AtomicStrictS32, 2) and
+               sx == 5 and
+               c == cast(AtomicStrictU32, 1) and
+               ux == 5
     }
 
     #[Swag.NoInline]

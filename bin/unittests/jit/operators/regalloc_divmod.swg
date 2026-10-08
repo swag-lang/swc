@@ -89,7 +89,7 @@
     {
         var cnt: u32 = a / b        // DIV: a=12, b=4 → cnt=3 (in RAX); RDX clobbered
         var r:   u32 = c << cnt     // SHL: cnt must be in CL → legalize: RAX→CL
-        return r                    // 5 << 3 = 40
+        return r     // 5 << 3 = 40
     }
 
     const V = #run divResultAsShiftCount(12'u32, 4'u32, 5'u32)
@@ -173,10 +173,10 @@
 {
     func divInsideShiftExpr(a: u32, b: u32, c: u32, d: u32)->u32
     {
-        var dividend: u32 = a / b                    // DIV: a=80, b=10 → dividend=8  (RAX)
-        var shiftCnt: u32 = c % d                    // MOD: c=11, d=4  → shiftCnt=3  (RDX→result)
+        var dividend: u32 = a / b          // DIV: a=80, b=10 → dividend=8  (RAX)
+        var shiftCnt: u32 = c % d          // MOD: c=11, d=4  → shiftCnt=3  (RDX→result)
         var r:        u32 = dividend << shiftCnt     // SHL: shiftCnt → CL;  8 << 3 = 64
-        return r + dividend + shiftCnt               // 64 + 8 + 3 = 75
+        return r + dividend + shiftCnt     // 64 + 8 + 3 = 75
     }
 
     const V = #run divInsideShiftExpr(80'u32, 10'u32, 11'u32, 4'u32)

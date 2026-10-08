@@ -753,8 +753,12 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.muteButton.isVisible() and view.volumeSlider.isVisible())
     Swag.assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
     Swag.assert(Film.audioEncodingText(.Ac3) == "AC-3" and Film.audioEncodingText(.Eac3) == "E-AC-3")
-    Swag.assert(Film.audioEncodingText(.Dts) == "DTS" and Film.audioEncodingText(.Flac) == "FLAC" and Film.audioEncodingText(.Mp3) == "MP3")
-    Swag.assert(Film.audioEncodingText(.Vorbis) == "Vorbis" and Film.audioEncodingText(.Opus) == "Opus" and Film.audioEncodingText(.AdpcmIma) == "IMA ADPCM")
+    Swag.assert(Film.audioEncodingText(.Dts) == "DTS" and
+                Film.audioEncodingText(.Flac) == "FLAC" and
+                Film.audioEncodingText(.Mp3) == "MP3")
+    Swag.assert(Film.audioEncodingText(.Vorbis) == "Vorbis" and
+                Film.audioEncodingText(.Opus) == "Opus" and
+                Film.audioEncodingText(.AdpcmIma) == "IMA ADPCM")
     view.setVolume(0.4)
     view.setMuted(true)
 

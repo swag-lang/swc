@@ -158,7 +158,12 @@ impl CffFont
 func clampToS16(value: f64)->s16 => cast(s16, Math.clamp(Math.round(value), cast(f64, Swag.S16.Min), cast(f64, Swag.S16.Max)))
 
 // Answers whether a PostScript weight name describes a bold face.
-func isBoldWeightName(weight: string)->bool => weight == "Bold" or weight == "Black" or weight == "Heavy" or weight == "Semibold" or weight == "Demi" or weight == "DemiBold"
+func isBoldWeightName(weight: string)->bool => weight == "Bold" or
+                                               weight == "Black" or
+                                               weight == "Heavy" or
+                                               weight == "Semibold" or
+                                               weight == "Demi" or
+                                               weight == "DemiBold"
 
 // Returns the offset added to a subroutine number before it indexes the subroutine array.
 func subrBias(count: u32)->s32

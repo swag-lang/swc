@@ -152,7 +152,7 @@ namespace
 
     void emitLoadIncomingArg(MicroBuilder& builder, const CallConv& callConv, std::span<const ABICall::ArgLayout> argLayouts, uint32_t slotIndex, MicroReg dstReg)
     {
-        const auto&       layout  = argLayouts[slotIndex];
+        const auto&       layout   = argLayouts[slotIndex];
         const MicroOpBits argBits  = adapterArgBits(layout);
         const uint32_t    regIndex = ABICall::argumentRegisterIndex(callConv, argLayouts, slotIndex);
         if (regIndex != UINT32_MAX)
@@ -235,7 +235,7 @@ namespace
         for (uint32_t paramIndex = 0; paramIndex < preparedArgs.size(); ++paramIndex)
         {
             ABICall::PreparedArg& preparedArg  = preparedArgs[paramIndex];
-            const uint32_t       incomingSlot = paramIndex + (hasHiddenRet ? 1u : 0u) + 1u;
+            const uint32_t        incomingSlot = paramIndex + (hasHiddenRet ? 1u : 0u) + 1u;
 
             if (preparedArg.isFloat)
                 preparedArg.srcReg = MicroReg::virtualFloatReg(regIndex++);

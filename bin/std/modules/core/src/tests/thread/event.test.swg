@@ -109,6 +109,10 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
     Swag.assert(not signal.isSuccess() and not reset.isSuccess() and not wait.isSuccess())
     Swag.assert(beforeReport == baseline and hooksBeforeReport == 0)
     Swag.assert(validCodes, "event status must preserve the native failure codes")
-    Swag.assert(afterSignalCatch == baseline and afterResetCatch == baseline and afterWaitCatch == baseline and afterNoDetailCatch == baseline, "caught event failures must release their storage")
+    Swag.assert(afterSignalCatch == baseline and
+                afterResetCatch == baseline and
+                afterWaitCatch == baseline and
+                afterNoDetailCatch == baseline,
+                "caught event failures must release their storage")
     Swag.assert(eventStatusPanicCount == 0 and not eventStatusObservedBorrow)
 }

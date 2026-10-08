@@ -1173,7 +1173,11 @@ impl Slice
             }
 
             // The inter 8x8 transform flag sits after the pattern.
-            if mb.cbpLuma != 0 and pps.transform8x8 and mb.class == MbClassInter and not mb.skipped and .allowsTransform8x8(mb) do
+            if mb.cbpLuma != 0 and
+               pps.transform8x8 and
+               mb.class == MbClassInter and
+               not mb.skipped and
+               .allowsTransform8x8(mb) do
                 mb.transform8x8 = .bits.bit() != 0
         }
 
@@ -1717,7 +1721,10 @@ impl Slice
             else
             {
                 var found = false
-                for index in mb.jobCount where .jobAt(mb, index).x == x4 * 4 and .jobAt(mb, index).y == y4 * 4 and .jobAt(mb, index).width == w4 * 4 and .jobAt(mb, index).height == h4 * 4
+                for index in mb.jobCount where .jobAt(mb, index).x == x4 * 4 and
+                                               .jobAt(mb, index).y == y4 * 4 and
+                                               .jobAt(mb, index).width == w4 * 4 and
+                                               .jobAt(mb, index).height == h4 * 4
                 {
                     let job = .jobAt(mb, index)
                     job.refIdx[1] = cast(s8, refIdx)

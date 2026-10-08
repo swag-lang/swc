@@ -335,7 +335,7 @@ func lendOwner(owner: *NarrowOwner) { discard owner }
 // the `if`. The false branch never lends it, so the proof made before the `if` still holds in it.
 func narrowElseKeepsProof(lend: bool)->s32
 {
-    var node:  NarrowNode = {value: 7}
+    var node:  NarrowNode  = {value: 7}
     var owner: NarrowOwner = {node: &node}
     if not owner.node do
         return 0

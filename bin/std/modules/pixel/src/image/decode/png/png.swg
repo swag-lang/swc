@@ -309,7 +309,14 @@ impl Decoder
                 let y           = Math.bigEndianToNative(cast(const *u32, (data + 16))[])
                 let numerator   = Math.bigEndianToNative(cast(const *u16, (data + 20))[])
                 let denominator = Math.bigEndianToNative(cast(const *u16, (data + 22))[])
-                if not width or not height or width > .header.width or height > .header.height or x > .header.width - width or y > .header.height - height or data[24] > 2 or data[25] > 1 do
+                if not width or
+                   not height or
+                   width > .header.width or
+                   height > .header.height or
+                   x > .header.width - width or
+                   y > .header.height - height or
+                   data[24] > 2 or
+                   data[25] > 1 do
                     fail InvalidFormatError{"PNG animation frame rectangle or operation is invalid"}
                 if not seenIDAT and (x or y or width != .header.width or height != .header.height) do
                     fail InvalidFormatError{"PNG default animation frame does not fill the canvas"}

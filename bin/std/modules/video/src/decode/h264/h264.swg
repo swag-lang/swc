@@ -707,7 +707,9 @@ impl Decoder
     mtd startPicture(frameNum: u32, poc: s32) fail
     {
         var found: *Frame?
-        for candidate in .pool where Atomic.get(&candidate.heldByCaller) == 0 and Atomic.get(&candidate.reconstructionHolds) == 0 and not candidate.isReference()
+        for candidate in .pool where Atomic.get(&candidate.heldByCaller) == 0 and
+                                     Atomic.get(&candidate.reconstructionHolds) == 0 and
+                                     not candidate.isReference()
         {
             found = candidate
             break

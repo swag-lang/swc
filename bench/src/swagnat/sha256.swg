@@ -59,7 +59,10 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
         for t in 16'u64
         {
             let p = o + t * 4
-            w[t] = (cast(u64, buf[p]) << 24) | (cast(u64, buf[p + 1]) << 16) | (cast(u64, buf[p + 2]) << 8) | cast(u64, buf[p + 3])
+            w[t] = (cast(u64, buf[p]) << 24) |
+                   (cast(u64, buf[p + 1]) << 16) |
+                   (cast(u64, buf[p + 2]) << 8) |
+                   cast(u64, buf[p + 3])
         }
 
         var t = 16'u64

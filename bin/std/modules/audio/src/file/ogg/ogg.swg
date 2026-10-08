@@ -129,7 +129,14 @@ private struct StreamInfo
 private func identify(body: const [..] u8)->StreamInfo fail
 {
     var result: retval
-    if body.count >= 30 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
+    if body.count >= 30 and
+       body[0] == 1 and
+       body[1] == 'v' and
+       body[2] == 'o' and
+       body[3] == 'r' and
+       body[4] == 'b' and
+       body[5] == 'i' and
+       body[6] == 's'
     {
         if readU32(body, 7) != 0 do
             fail UnsupportedFormatError{"Vorbis stream uses an unknown version"}
@@ -145,7 +152,15 @@ private func identify(body: const [..] u8)->StreamInfo fail
         return result
     }
 
-    if body.count >= 19 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
+    if body.count >= 19 and
+       body[0] == 'O' and
+       body[1] == 'p' and
+       body[2] == 'u' and
+       body[3] == 's' and
+       body[4] == 'H' and
+       body[5] == 'e' and
+       body[6] == 'a' and
+       body[7] == 'd'
     {
         if (body[8] >> 4) != 0 do
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}

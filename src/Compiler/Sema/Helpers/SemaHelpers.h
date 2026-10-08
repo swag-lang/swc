@@ -315,8 +315,8 @@ namespace SemaHelpers
 
         const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 
-        T*         sym        = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
-        SymbolMap* symbolMap  = SemaFrame::currentSymMap(sema);
+        T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
+        SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
         if constexpr (std::is_same_v<T, SymbolVariable>)
         {
             if (tok.id == TokenId::KwdUnnamed)

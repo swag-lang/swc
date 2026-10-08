@@ -257,7 +257,10 @@ namespace WinFsp
             let firstBlock = writeOffset / BlockSize
             let lastBlock  = (writeOffset + writeLength - 1) / BlockSize
             var needed     = lastBlock - firstBlock + 1
-            if not constrained and writeOffset + writeLength > node.size and node.size % BlockSize != 0 and node.blockSearch(node.size / BlockSize).found do
+            if not constrained and
+               writeOffset + writeLength > node.size and
+               node.size % BlockSize != 0 and
+               node.blockSearch(node.size / BlockSize).found do
                 needed += 1
             if volume.freeBlockCount() < needed do
                 return StatusDiskFull
@@ -338,7 +341,10 @@ namespace WinFsp
 
         // Setting the allocation size can only shrink the node down to what it already holds.
         let targetSize = setAllocationSize ? Math.min(newSize, node.size) : newSize
-        if targetSize > node.size and node.size % BlockSize != 0 and node.blockSearch(node.size / BlockSize).found and not volume.freeBlockCount() do
+        if targetSize > node.size and
+           node.size % BlockSize != 0 and
+           node.blockSearch(node.size / BlockSize).found and
+           not volume.freeBlockCount() do
             return StatusDiskFull
         discard catch volume.resizeNode(nodeId, targetSize) as err
         if err != null do

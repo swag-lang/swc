@@ -116,7 +116,7 @@ enum RR: u8
 const AND1 = JJ.A & 1
 const AND2 = 1 & JJ.A
 
-#assert((JJ.A ^ JJ.B) == 3)                 // 1 ^ 2 = 3
+#assert((JJ.A ^ JJ.B) == 3)     // 1 ^ 2 = 3
 #assert(((JJ.A | JJ.B) ^ JJ.B) == JJ.A)     // toggle off
 #assert(((JJ.A | JJ.B | JJ.C) ^ JJ.B) == (JJ.A | JJ.C))
 #assert((JJ.A ^ JJ.A) == 0)     // XOR cancels identical flag

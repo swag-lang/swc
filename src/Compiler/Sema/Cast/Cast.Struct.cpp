@@ -277,7 +277,7 @@ namespace
         elemCtx.errorNodeRef = valueNodeRef.isValid() ? valueNodeRef : args.castRequest->errorNodeRef;
         if (!ownValue)
             elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
-        elemCtx.probing      = args.castRequest->probing;
+        elemCtx.probing = args.castRequest->probing;
         elemCtx.applyAutoCast(*args.sema, valueNodeRef);
         return elemCtx;
     }

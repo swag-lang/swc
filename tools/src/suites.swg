@@ -212,7 +212,10 @@ private func verifyNativeTestRecovery(context: *Context, options: *Options, buil
         let stopped      = Utf8.contains(output.toString(), "#test cannot resume while submitted work is unfinished")
         let continued    = Utf8.contains(output.toString(), "native recovery continued")
         let expectedStop = scenario != "idle"
-        if exitCode == 0 or Utf8.contains(output.toString(), "did not finish within") or stopped != expectedStop or continued == expectedStop
+        if exitCode == 0 or
+           Utf8.contains(output.toString(), "did not finish within") or
+           stopped != expectedStop or
+           continued == expectedStop
         {
             Console.println("native test recovery did not stop or continue at the task lifetime boundary")
             return 1
@@ -328,7 +331,9 @@ private func hasCompactExportedAttributes(api: string, declaration: string, attr
     {
         if Utf8.startsWith(Tokenize.eatSpaces(line), declaration)
         {
-            if not Utf8.startsWith(previous, "#[") or not Utf8.endsWith(previous, "]") or Utf8.contains(previous[2 to], "#[") do
+            if not Utf8.startsWith(previous, "#[") or
+               not Utf8.endsWith(previous, "]") or
+               Utf8.contains(previous[2 to], "#[") do
                 return false
 
             for attribute in attributes where not Utf8.contains(previous, attribute) do
@@ -1367,7 +1372,9 @@ private func verifyFunctionCache(context: *Context, options: *Options, workspace
     Console.print(restoredOutput.toString())
     let restoredArchive = try File.readAllBytes(cacheArchive.toString())
     let restoredIndex   = try File.readAllBytes(cacheIndex.toString())
-    if not Utf8.contains(restoredOutput.toString(), "function-cache-value=1") or restoredArchive.toSlice() != originalArchive.toSlice() or restoredIndex.toSlice() != originalIndex.toSlice()
+    if not Utf8.contains(restoredOutput.toString(), "function-cache-value=1") or
+       restoredArchive.toSlice() != originalArchive.toSlice() or
+       restoredIndex.toSlice() != originalIndex.toSlice()
     {
         Console.println("Rebuilding identical functions did not reproduce the same function cache")
         return 1
@@ -1393,7 +1400,9 @@ private func verifyFunctionCache(context: *Context, options: *Options, workspace
     let coldOutput = try context.captureCompiler(command)
     Console.print(coldOutput.toString())
     let coldIndex = try File.readAllBytes(cacheIndex.toString())
-    if not Utf8.contains(coldOutput.toString(), "function-cache-value=1") or Utf8.contains(coldOutput.toString(), "reused function") or coldIndex.toSlice() != optimizedIndex.toSlice()
+    if not Utf8.contains(coldOutput.toString(), "function-cache-value=1") or
+       Utf8.contains(coldOutput.toString(), "reused function") or
+       coldIndex.toSlice() != optimizedIndex.toSlice()
     {
         Console.println("A cold build disagreed with the function's updated Optimize identity.")
         return 1

@@ -177,7 +177,9 @@ func nativeNonNullConstruction()->bool
     let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault))
     if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or
+       not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or
+       not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if not NATIVE_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
         return false

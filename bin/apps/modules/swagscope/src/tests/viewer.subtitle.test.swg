@@ -38,7 +38,10 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
-    Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.collectMatches != null and
+                result.revealMatch != null and
+                result.searchBounds != null and
+                result.clearSearch != null)
     Swag.assert(result.details == "SubRip")
 
     let view = assume cast(*Captions.Panel, result.view)

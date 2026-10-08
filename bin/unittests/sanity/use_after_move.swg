@@ -83,7 +83,7 @@ func lifecycleSafetyEnabled()->bool
 #test
 {
     var a = UamItem{x: 4}
-    var b = #move a           // swc-expected-note {{sanity_note_move_origin}}
+    var b = #move a     // swc-expected-note {{sanity_note_move_origin}}
     discard b
     Swag.assert(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }

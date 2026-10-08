@@ -63,7 +63,7 @@ func divResultAsShiftCount(a: u32, b: u32, c: u32)->u32
 {
     var cnt: u32 = a / b        // DIV: a=12, b=4 → cnt=3 (in RAX); RDX clobbered
     var r:   u32 = c << cnt     // SHL: cnt must be in CL → legalize: RAX→CL
-    return r                    // 5 << 3 = 40
+    return r     // 5 << 3 = 40
 }
 
 // ---------------------------------------------------------------------------
@@ -118,10 +118,10 @@ func mulDivChain(a: u32, b: u32, c: u32)->u32
 // ---------------------------------------------------------------------------
 func divInsideShiftExpr(a: u32, b: u32, c: u32, d: u32)->u32
 {
-    var dividend: u32 = a / b                    // DIV: a=80, b=10 → dividend=8 (RAX)
-    var shiftCnt: u32 = c % d                    // MOD: c=11, d=4  → shiftCnt=3 (RDX→result)
+    var dividend: u32 = a / b          // DIV: a=80, b=10 → dividend=8 (RAX)
+    var shiftCnt: u32 = c % d          // MOD: c=11, d=4  → shiftCnt=3 (RDX→result)
     var r:        u32 = dividend << shiftCnt     // SHL: shiftCnt → CL;  8 << 3 = 64
-    return r + dividend + shiftCnt               // 64 + 8 + 3 = 75
+    return r + dividend + shiftCnt     // 64 + 8 + 3 = 75
 }
 
 // ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ func mulDivShiftInLoop(val: u32, factor: u32, divisor: u32, cnt: u32, iters: u32
     {
         var prod: u32 = acc * factor       // MUL: clobbers RDX; factor != RDX
         var quot: u32 = prod / divisor     // DIV: prod→RAX, divisor away from RDX
-        side += quot >> cnt                // SHR: cnt→CL; side carried across back-edge
+        side += quot >> cnt     // SHR: cnt→CL; side carried across back-edge
         acc  = quot
         i    += 1'u32
     }

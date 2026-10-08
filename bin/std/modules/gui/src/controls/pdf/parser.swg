@@ -389,7 +389,10 @@ impl PdfParser
         {
             let start = probe.pos
             var number, generation: u64
-            if probe.parseUnsigned(&number) and probe.parseUnsigned(&generation) and number == objectNumber and probe.consumeWord("obj")
+            if probe.parseUnsigned(&number) and
+               probe.parseUnsigned(&generation) and
+               number == objectNumber and
+               probe.consumeWord("obj")
             {
                 let valueId = catch probe.parseValue() as parseError
                 if parseError == null and probe.nodes[valueId].kind == .Integer do
@@ -1110,7 +1113,9 @@ impl PdfParser
         {
             var objectNumber = 0'u64
             var objectOffset = 0'u64
-            if not header.parseUnsigned(&objectNumber) or not header.parseUnsigned(&objectOffset) or objectNumber > Swag.U32.Max do
+            if not header.parseUnsigned(&objectNumber) or
+               not header.parseUnsigned(&objectOffset) or
+               objectNumber > Swag.U32.Max do
                 break
             result.numbers.add(cast(u32, objectNumber))
             result.offsets.add(objectOffset)

@@ -202,7 +202,10 @@ private impl Track
 
     mtd const isHevcVideo()->bool => .codecId == HevcCodecId
 
-    mtd const isPlayableSubtitle()->bool => .isEnabled and not .hasEncodings and .kind == SubtitleTrackType and (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
+    mtd const isPlayableSubtitle()->bool => .isEnabled and
+                                            not .hasEncodings and
+                                            .kind == SubtitleTrackType and
+                                            (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
 
     mtd const subtitleFormat()->Subtitle.Format => .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId ? .SubStationAlpha : .MatroskaText
 

@@ -47,7 +47,12 @@ using Core, Pixel, Gui, Viewers
     defer host.shutdown()
 
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.view != null and
+                result.commands == null and
+                result.collectMatches != null and
+                result.revealMatch != null and
+                result.searchBounds != null and
+                result.clearSearch != null)
     let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)

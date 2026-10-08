@@ -1414,7 +1414,14 @@ impl HtmlLayout
         // A box that establishes its own block formatting context owns its floats: they never
         // narrow a line outside it, and its height closes past them. This is also what makes
         // `overflow: hidden` the classic float container.
-        let ownFormattingContext = .boxes[box].kind != .Block or style.display == .InlineBlock or style.overflowX != .Visible or style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed or style.floatLeft or style.floatRight
+        let ownFormattingContext = .boxes[box].kind != .Block or
+                                   style.display == .InlineBlock or
+                                   style.overflowX != .Visible or
+                                   style.overflowY != .Visible or
+                                   style.position == .Absolute or
+                                   style.position == .Fixed or
+                                   style.floatLeft or
+                                   style.floatRight
         let floatMark = .floats.count
 
         var contentHeight: f32
@@ -1526,13 +1533,17 @@ impl HtmlLayout
     private mtd const clampHeight(height: f32, style: const *HtmlComputedStyle, styleIndex: u32, containing: HtmlContainingBlock, extraY: f32)->f32
     {
         var result = height
-        if not style.maxHeight.isAuto() and not style.maxHeight.isNone() and style.maxHeight.isDefinite(.pool, containing.hasHeight)
+        if not style.maxHeight.isAuto() and
+           not style.maxHeight.isNone() and
+           style.maxHeight.isDefinite(.pool, containing.hasHeight)
         {
             let value = style.maxHeight.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), result)
             result = Math.min(result, style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value)
         }
 
-        if not style.minHeight.isAuto() and not style.minHeight.isNone() and style.minHeight.isDefinite(.pool, containing.hasHeight)
+        if not style.minHeight.isAuto() and
+           not style.minHeight.isNone() and
+           style.minHeight.isDefinite(.pool, containing.hasHeight)
         {
             let value = style.minHeight.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), 0)
             result = Math.max(result, style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value)
@@ -1954,7 +1965,11 @@ private impl HtmlLayout
 
             // `break-all` fills the line to its edge: the run splits at the last character that
             // fits instead of wrapping whole.
-            if kind == .Text and breakable and not atLineHead and itemStyle.wordBreak == .BreakAll and pen + width > band.right + 0.5
+            if kind == .Text and
+               breakable and
+               not atLineHead and
+               itemStyle.wordBreak == .BreakAll and
+               pen + width > band.right + 0.5
             {
                 if .splitInlineItem(box, index, band.right + 0.5 - pen) do
                     width = .boxes[box].items[index].width
@@ -1963,7 +1978,9 @@ private impl HtmlLayout
             if breakable and kind != .Space and not atLineHead and pen + width > band.right + 0.5
             {
                 // A break taken at a soft hyphen is where its hyphen becomes visible.
-                if index > lineStart and .boxes[box].items[index - 1].kind == .Text and .boxes[box].items[index - 1].softHyphen do
+                if index > lineStart and
+                   .boxes[box].items[index - 1].kind == .Text and
+                   .boxes[box].items[index - 1].softHyphen do
                     .boxes[box].items[index - 1].hyphenAtBreak = true
 
                 y         += .finishLine(box, lineStart, index, y, band.left, band.right - band.left)
@@ -1990,7 +2007,11 @@ private impl HtmlLayout
             // An unbreakable head wider than the whole line splits at a character boundary when
             // the document allows breaking within words; the tail restarts the fitting on the
             // next line.
-            if kind == .Text and breakable and index == lineStart and pen + width > band.right + 0.5 and (itemStyle.overflowWrap or itemStyle.wordBreak == .BreakAll)
+            if kind == .Text and
+               breakable and
+               index == lineStart and
+               pen + width > band.right + 0.5 and
+               (itemStyle.overflowWrap or itemStyle.wordBreak == .BreakAll)
             {
                 if .splitInlineItem(box, index, band.right + 0.5 - pen) do
                     width = .boxes[box].items[index].width
@@ -2027,7 +2048,9 @@ private impl HtmlLayout
             if .boxes[box].items[read].continuation and write > 0
             {
                 let head = &.boxes[box].items[write - 1]
-                if head.kind == .Text and head.node == .boxes[box].items[read].node and head.style == .boxes[box].items[read].style
+                if head.kind == .Text and
+                   head.node == .boxes[box].items[read].node and
+                   head.style == .boxes[box].items[read].style
                 {
                     head.textCount  += .boxes[box].items[read].textCount
                     head.sourceEnd  = .boxes[box].items[read].sourceEnd

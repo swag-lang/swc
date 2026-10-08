@@ -59,7 +59,10 @@ func testCoreTupleRuntimeLifecycle()->bool
     let sourceSecond = coreTupleLifecycleProbeAt(cast([*] u8, (source)), tupleStruct, 1)
     let targetFirst  = coreTupleLifecycleProbeAt(cast([*] u8, (target)), tupleStruct, 0)
     let targetSecond = coreTupleLifecycleProbeAt(cast([*] u8, (target)), tupleStruct, 1)
-    if sourceFirst.id != 7 or sourceSecond.id != 7 or sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
+    if sourceFirst.id != 7 or
+       sourceSecond.id != 7 or
+       sourceFirst.value != "tuple-default" or
+       sourceSecond.value != "tuple-default" do
         return false
 
     sourceFirst.id  = 1
@@ -115,7 +118,10 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     let second0 = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 1)
     let first1  = coreTupleLifecycleProbeAt(tuple1, tupleStruct, 0)
     let second1 = coreTupleLifecycleProbeAt(tuple1, tupleStruct, 1)
-    if first0.value != "tuple-default" or second0.value != "tuple-default" or first1.value != "tuple-default" or second1.value != "tuple-default" do
+    if first0.value != "tuple-default" or
+       second0.value != "tuple-default" or
+       first1.value != "tuple-default" or
+       second1.value != "tuple-default" do
         return false
 
     first0.id  = 1

@@ -458,7 +458,9 @@ private impl View
     mtd resizeDocument()
     {
         let geometry = .documentGeometry()
-        if not .blocks.isEmpty() and .retainedBlocks.isEmpty() and .blocks[0].wnd.position.width == Math.round(geometry.width)
+        if not .blocks.isEmpty() and
+           .retainedBlocks.isEmpty() and
+           .blocks[0].wnd.position.width == Math.round(geometry.width)
         {
             for block in .blocks do
                 block.wnd.move(geometry.x, block.wnd.position.y)
@@ -559,7 +561,10 @@ private impl View
     mtd scheduleMore()
     {
         .retireDistantBlocks()
-        if .waitingScroll and .retainedBlocks.isEmpty() and .bytesRead - .residentStart >= ResidentSourceSize and not .blocks.isEmpty()
+        if .waitingScroll and
+           .retainedBlocks.isEmpty() and
+           .bytesRead - .residentStart >= ResidentSourceSize and
+           not .blocks.isEmpty()
         {
             .pendingSeek = true
             .pendingSeekPreservesPosition = true
@@ -586,7 +591,13 @@ private impl View
     // reader and release older windows without moving any surviving block or rebuilding it.
     mtd retireDistantBlocks()
     {
-        if not .fileSize or not .retainedBlocks.isEmpty() or .pendingSeek or .hasPendingTarget or .jumpToEnd or .hasSelection() or .blocks.count < 2 do
+        if not .fileSize or
+           not .retainedBlocks.isEmpty() or
+           .pendingSeek or
+           .hasPendingTarget or
+           .jumpToEnd or
+           .hasSelection() or
+           .blocks.count < 2 do
             return
         if .scroll.scrollPosition().y + .scroll.paddedClientRect().height > .contentHeight do
             return
@@ -796,7 +807,10 @@ private impl View
             var target = .replacementAnchored ? .scroll.scrollPosition().y : .pendingTarget
             if .waitingScroll do
                 target = Math.max(target, .waitingScrollTarget.y)
-            if visibleWork and not .jumpToEnd and (.replacementAnchorOffset == Swag.U64.Max or .replacementAnchored) and .contentHeight >= target + .scroll.paddedClientRect().height do
+            if visibleWork and
+               not .jumpToEnd and
+               (.replacementAnchorOffset == Swag.U64.Max or .replacementAnchored) and
+               .contentHeight >= target + .scroll.paddedClientRect().height do
                 break
             if not .app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= frameBudget do
                 break
@@ -817,7 +831,11 @@ private impl View
         if .replacementAnchored do
             .pendingTarget = .scroll.scrollPosition().y
         let targetHeight = .scroll.paddedClientRect().height * (.prioritizeViewport ? 1 : 2)
-        if anchorReady and .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingHeadingOffset == Swag.U64.Max or not .hasUnloadedSource()) and (.pendingTarget + targetHeight <= .contentHeight or not .hasUnloadedSource())
+        if anchorReady and
+           .hasPendingTarget and
+           .pendingSearch.isEmpty() and
+           (.pendingHeadingOffset == Swag.U64.Max or not .hasUnloadedSource()) and
+           (.pendingTarget + targetHeight <= .contentHeight or not .hasUnloadedSource())
         {
             let keepPosition   = .replacementAnchored
             let animating      = .app().animator.isActive(.scroll.scrollAnimation)
@@ -1158,7 +1176,10 @@ impl View
             // Until a direct jump is published, the old resident range cannot clamp a following
             // wheel or key step: that step belongs to the requested destination.
             let directSeek = (view.pendingSeek and not view.pendingSeekPreservesPosition) or (view.prioritizeViewport and view.replacementAnchorOffset == Swag.U64.Max)
-            let continuous = not directSeek and (view.wheelScrolling or view.app().animator.isActive(view.scroll.scrollAnimation) or Math.abs(newPosition.y - oldPosition.y) <= viewport.height)
+            let continuous = not directSeek and
+                             (view.wheelScrolling or
+                              view.app().animator.isActive(view.scroll.scrollAnimation) or
+                              Math.abs(newPosition.y - oldPosition.y) <= viewport.height)
             if continuous
             {
                 view.waitingScroll = false
@@ -1186,11 +1207,19 @@ impl View
                 view.jumpToEnd           = false
             }
 
-            let beforeResident           = newPosition.y < view.virtualOrigin
-            let approachingResidentStart = view.residentStart and newPosition.y < oldPosition.y and newPosition.y < view.virtualOrigin + viewport.height * StreamLookAhead
-            let approachingResidentEnd   = view.hasUnloadedSource() and view.bytesRead - view.residentStart >= ResidentSourceSize and newPosition.y > oldPosition.y and Math.max(newPosition.y, view.scroll.scrollTarget().y) + viewport.height * StreamLookAhead > view.contentHeight
-            let outside                  = not continuous and (beforeResident or newPosition.y + viewport.height > view.contentHeight)
-            if view.virtualHeight > 0 and (supersededTarget or not view.blocks.isEmpty()) and view.pendingSearch.isEmpty() and (approachingResidentStart or approachingResidentEnd or outside)
+            let beforeResident = newPosition.y < view.virtualOrigin
+            let approachingResidentStart = view.residentStart and
+                                           newPosition.y < oldPosition.y and
+                                           newPosition.y < view.virtualOrigin + viewport.height * StreamLookAhead
+            let approachingResidentEnd = view.hasUnloadedSource() and
+                                         view.bytesRead - view.residentStart >= ResidentSourceSize and
+                                         newPosition.y > oldPosition.y and
+                                         Math.max(newPosition.y, view.scroll.scrollTarget().y) + viewport.height * StreamLookAhead > view.contentHeight
+            let outside = not continuous and (beforeResident or newPosition.y + viewport.height > view.contentHeight)
+            if view.virtualHeight > 0 and
+               (supersededTarget or not view.blocks.isEmpty()) and
+               view.pendingSearch.isEmpty() and
+               (approachingResidentStart or approachingResidentEnd or outside)
             {
                 let ratio = Math.clamp(newPosition.y / view.scroll.scrollableClientRect().height, 0, 1)
                 if not view.pendingSeek and view.retainedBlocks.isEmpty() do
@@ -1542,7 +1571,9 @@ impl View
                         block.html ? block.html.findTextOccurrence(text, remaining) : false
             if not found do
                 return false
-            if not .retainedBlocks.isEmpty() and .hasUnloadedSource() and block.wnd.position.y + .scroll.paddedClientRect().height > .contentHeight do
+            if not .retainedBlocks.isEmpty() and
+               .hasUnloadedSource() and
+               block.wnd.position.y + .scroll.paddedClientRect().height > .contentHeight do
                 return false
             .searchBlockIndex = index
             .publishReplacement(true)
@@ -1575,7 +1606,10 @@ impl View
 
         // A click supersedes the wheel's animation as well as its deferred loading request.
         .scroll.setScrollPos(.scroll.scrollPosition())
-        for block in .blocks where .retainedBlocks.isEmpty() and block.sourceOffset == offset and block.kind >= .Heading1 and block.kind <= .Heading6
+        for block in .blocks where .retainedBlocks.isEmpty() and
+                                   block.sourceOffset == offset and
+                                   block.kind >= .Heading1 and
+                                   block.kind <= .Heading6
         {
             if .hasUnloadedSource() and block.wnd.position.y - .documentStyle.topInset + .scroll.paddedClientRect().height > .contentHeight do
                 break

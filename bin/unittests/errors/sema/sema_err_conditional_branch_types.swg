@@ -9,6 +9,6 @@
 
 #test
 {
-    var flag = false
+    var flag  = false
     let mixed = flag ? true : "no"     // swc-expected-error {{sema_err_conditional_branch_types}}
 }

@@ -156,7 +156,10 @@ private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64,
             running = status
             let kind  = status >> 4
             let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
-            if not image.has(dataAt, count) or dataAt + count > end or image.u8At(dataAt) & 0x80 or (count == 2 and image.u8At(dataAt + 1) & 0x80)
+            if not image.has(dataAt, count) or
+               dataAt + count > end or
+               image.u8At(dataAt) & 0x80 or
+               (count == 2 and image.u8At(dataAt + 1) & 0x80)
             {
                 result.complete = false
                 break

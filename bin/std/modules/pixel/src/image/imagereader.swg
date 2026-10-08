@@ -215,7 +215,10 @@ public impl ImageReader
             if frame.kind == .Animation
             {
                 try options.checkImage(result.info.canvasWidth, result.info.canvasHeight, frame.pixelFormat.bitDepth() > 8 ? .RGBA16 : .RGBA8)
-                if frame.x < 0 or frame.y < 0 or frame.x > result.info.canvasWidth - frame.width or frame.y > result.info.canvasHeight - frame.height do
+                if frame.x < 0 or
+                   frame.y < 0 or
+                   frame.x > result.info.canvasWidth - frame.width or
+                   frame.y > result.info.canvasHeight - frame.height do
                     fail InvalidFormatError{"animation frame lies outside its canvas"}
             }
         }

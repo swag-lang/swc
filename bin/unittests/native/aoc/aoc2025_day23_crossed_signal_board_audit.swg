@@ -256,13 +256,22 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         if isOutputWire(gate.output) and parseWireIndex(gate.output) != highestZ and gate.op != GateOp.Xor do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
-        if not isOutputWire(gate.output) and gate.op == GateOp.Xor and not isInputWire(gate.left) and not isInputWire(gate.right) do
+        if not isOutputWire(gate.output) and
+           gate.op == GateOp.Xor and
+           not isInputWire(gate.left) and
+           not isInputWire(gate.right) do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
-        if gate.op == GateOp.And and not isLeastSignificantInputPair(gate.left, gate.right) and not hasConsumerOp(gates, gate.output, GateOp.Or) do
+        if gate.op == GateOp.And and
+           not isLeastSignificantInputPair(gate.left, gate.right) and
+           not hasConsumerOp(gates, gate.output, GateOp.Or) do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
-        if gate.op == GateOp.Xor and isInputWire(gate.left) and isInputWire(gate.right) and not isLeastSignificantInputPair(gate.left, gate.right) and not hasConsumerOp(gates, gate.output, GateOp.Xor) do
+        if gate.op == GateOp.Xor and
+           isInputWire(gate.left) and
+           isInputWire(gate.right) and
+           not isLeastSignificantInputPair(gate.left, gate.right) and
+           not hasConsumerOp(gates, gate.output, GateOp.Xor) do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
     }
 

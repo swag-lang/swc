@@ -1965,7 +1965,10 @@ func gameLoop()
 
             // If no fruit is currently spawned, enough pills have been eaten,
             // The eaten fruit count doesn't exceed the level and a random quantifier is satisfied, spawn a fruit
-            if not g_FruitSpawned and g_Fruits < g_Level and g_PillsLeft <= 240 - 30 and Random.shared().nextU32() % 1500 == 0 do
+            if not g_FruitSpawned and
+               g_Fruits < g_Level and
+               g_PillsLeft <= 240 - 30 and
+               Random.shared().nextU32() % 1500 == 0 do
                 spawnFruit()
         }
         // If timestamp is set, incur a short pause

@@ -237,7 +237,10 @@ private func registerTypeNoLock(type: typeinfo?)->bool
     {
         if type.fullname != null and type.fullname != "" and g_HashNameToType.contains(type.fullname) do
             return false
-        if (type.fullname == null or type.fullname == "") and type.name != null and type.name != "" and g_HashNameToType.contains(type.name) do
+        if (type.fullname == null or type.fullname == "") and
+           type.name != null and
+           type.name != "" and
+           g_HashNameToType.contains(type.name) do
             return false
     }
 
@@ -246,7 +249,10 @@ private func registerTypeNoLock(type: typeinfo?)->bool
 
     if type.fullname != null and type.fullname != "" and not g_HashNameToType.contains(type.fullname) do
         g_HashNameToType.add(type.fullname, type)
-    elif (type.fullname == null or type.fullname == "") and type.name != null and type.name != "" and not g_HashNameToType.contains(type.name) do
+    elif (type.fullname == null or type.fullname == "") and
+         type.name != null and
+         type.name != "" and
+         not g_HashNameToType.contains(type.name) do
         g_HashNameToType.add(type.name, type)
 
     if type.fullname != null and type.fullname != "" do

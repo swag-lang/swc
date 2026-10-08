@@ -11,7 +11,10 @@ namespace Reflection
     {
         if not type do
             return false
-        return type.flags & (Swag.TypeInfoFlags.HasDrop | Swag.TypeInfoFlags.HasPostMove | Swag.TypeInfoFlags.HasPostCopy | Swag.TypeInfoFlags.HasDynamicStorage) ? false : true
+        return type.flags & (Swag.TypeInfoFlags.HasDrop |
+                             Swag.TypeInfoFlags.HasPostMove |
+                             Swag.TypeInfoFlags.HasPostCopy |
+                             Swag.TypeInfoFlags.HasDynamicStorage) ? false : true
     }
 
     #[Swag.ConstExpr]

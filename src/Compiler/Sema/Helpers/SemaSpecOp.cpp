@@ -284,15 +284,15 @@ namespace
         const TypeInfo& returnType          = unwrappedReturnType ? *unwrappedReturnType : declaredReturnType;
         const TypeRef   returnTypeRef       = returnType.typeRef();
 
-        const bool      receiverIsConst  = params[0]->type(ctx).isConst();
-        const bool      returnIsVoid     = returnType.isVoid();
-        const bool      returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
-        const bool      returnIsPointer  = returnType.isAnyPointer();
-        const bool      returnIsNotVoid  = !returnIsVoid;
-        const bool      returnIsStrSlice = returnType.isString() || returnType.isSlice();
-        const TypeRef   u64TypeRef       = typeMgr.typeU64();
-        const TypeRef   boolTypeRef      = typeMgr.typeBool();
-        const TypeRef   s32TypeRef       = typeMgr.typeS32();
+        const bool    receiverIsConst  = params[0]->type(ctx).isConst();
+        const bool    returnIsVoid     = returnType.isVoid();
+        const bool    returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
+        const bool    returnIsPointer  = returnType.isAnyPointer();
+        const bool    returnIsNotVoid  = !returnIsVoid;
+        const bool    returnIsStrSlice = returnType.isString() || returnType.isSlice();
+        const TypeRef u64TypeRef       = typeMgr.typeU64();
+        const TypeRef boolTypeRef      = typeMgr.typeBool();
+        const TypeRef s32TypeRef       = typeMgr.typeS32();
         switch (kind)
         {
             case SpecOpKind::None:

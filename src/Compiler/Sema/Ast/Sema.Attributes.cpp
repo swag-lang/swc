@@ -63,7 +63,7 @@ namespace
         const TypeInfo& typeInfo      = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = typeInfo.unwrapAliasType(sema.ctx());
         const TypeInfo& symbolType    = unwrappedType ? *unwrappedType : typeInfo;
-        Symbol*        symbol        = symbolType.getSymbol();
+        Symbol*         symbol        = symbolType.getSymbol();
         if (!symbol || !symbol->isSymMap())
             return nullptr;
 

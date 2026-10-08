@@ -292,9 +292,14 @@ impl Panel
 
         let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
         let residentEnd    = .residentOffsetY + residentHeight
-        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
-        let after          = .hasMore() and .bytesRead - .residentStart >= ResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * StreamLookAhead > residentEnd
-        let outside        = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
+        let before         = .residentStart > 0 and
+                             newPosition.y < oldPosition.y and
+                             newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+        let after = .hasMore() and
+                    .bytesRead - .residentStart >= ResidentWindowSize and
+                    newPosition.y > oldPosition.y and
+                    newPosition.y + viewport.height * StreamLookAhead > residentEnd
+        let outside = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .virtualHeight > 0 and (before or after or outside)
         if .pendingSeek
         {
@@ -386,7 +391,9 @@ impl Panel
                 view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and
+                                          keyEvt.key == .End and
+                                          (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
                 discard view.revealOffset(view.fileSize, "")
                 view.repositioning = true
@@ -394,7 +401,9 @@ impl Panel
                 view.repositioning = false
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and
+                                          keyEvt.key == .Home and
+                                          (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
                 view.repositioning = true

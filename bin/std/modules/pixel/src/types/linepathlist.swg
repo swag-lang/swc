@@ -42,7 +42,10 @@ private func contourPointCount(polygon: const *Polygon)->u64
 
 private func contoursIntersect(a, b: const *Polygon)->bool
 {
-    if a.maxBounds.x < b.minBounds.x or b.maxBounds.x < a.minBounds.x or a.maxBounds.y < b.minBounds.y or b.maxBounds.y < a.minBounds.y do
+    if a.maxBounds.x < b.minBounds.x or
+       b.maxBounds.x < a.minBounds.x or
+       a.maxBounds.y < b.minBounds.y or
+       b.maxBounds.y < a.minBounds.y do
         return false
 
     let countA = contourPointCount(a)

@@ -197,7 +197,7 @@ private func appendZipU32(bytes: *Array'u8, value: u32)
 // Returns a ZIP archive holding `files` uncompressed and in order, with UTF-8 names.
 func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
 {
-    var result: retval
+    var result:  retval
     var crcs:    Array'u32
     var offsets: Array'u32
     for file in files

@@ -33,7 +33,12 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 
     var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
-    Swag.assert(result.commands == null and result.info != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
+    Swag.assert(result.commands == null and
+                result.info != null and
+                result.revealMatch != null and
+                result.searchBounds != null and
+                result.clearSearch != null and
+                result.isLoading != null)
     Swag.assert(result.isLoading())
     Swag.assert(Utf8.contains(result.details, "HTML"))
     let view = assume cast(*Html.Panel, result.view)

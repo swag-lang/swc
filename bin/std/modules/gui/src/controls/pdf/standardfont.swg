@@ -130,7 +130,11 @@ impl StandardFont
             return {StandardFont.Courier, true}
         }
 
-        if lower.contains("times") or lower.contains("serif") or lower.contains("roman") or lower.contains("georgia") or lower.contains("garamond")
+        if lower.contains("times") or
+           lower.contains("serif") or
+           lower.contains("roman") or
+           lower.contains("georgia") or
+           lower.contains("garamond")
         {
             if bold and slant do
                 return {StandardFont.TimesBoldItalic, true}

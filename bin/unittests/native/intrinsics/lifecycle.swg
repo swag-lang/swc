@@ -1528,7 +1528,9 @@ func intrinsicInitStrictEnumInfo()->bool
     var values: [3] IntrinsicStrictEnumAlias
     Swag.init(&values, 3)(cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A))
 
-    return value == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.B) and values[0] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A) and values[2] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A)
+    return value == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.B) and
+           values[0] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A) and
+           values[2] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A)
 }
 
 func intrinsicInitStrictIntInfo()->bool
@@ -1539,7 +1541,9 @@ func intrinsicInitStrictIntInfo()->bool
     var values: [3] IntrinsicStrictIntAlias
     Swag.init(&values, 3)(cast(IntrinsicStrictIntAlias, 7))
 
-    return value == cast(IntrinsicStrictIntAlias, 42) and values[0] == cast(IntrinsicStrictIntAlias, 7) and values[2] == cast(IntrinsicStrictIntAlias, 7)
+    return value == cast(IntrinsicStrictIntAlias, 42) and
+           values[0] == cast(IntrinsicStrictIntAlias, 7) and
+           values[2] == cast(IntrinsicStrictIntAlias, 7)
 }
 
 func intrinsicInitStrictFloatInfo()->bool
@@ -1550,7 +1554,9 @@ func intrinsicInitStrictFloatInfo()->bool
     var values: [3] IntrinsicStrictFloatAlias
     Swag.init(&values, 3)(cast(IntrinsicStrictFloatAlias, 2.5))
 
-    return value == cast(IntrinsicStrictFloatAlias, 1.5) and values[0] == cast(IntrinsicStrictFloatAlias, 2.5) and values[2] == cast(IntrinsicStrictFloatAlias, 2.5)
+    return value == cast(IntrinsicStrictFloatAlias, 1.5) and
+           values[0] == cast(IntrinsicStrictFloatAlias, 2.5) and
+           values[2] == cast(IntrinsicStrictFloatAlias, 2.5)
 }
 
 func intrinsicInitStrictPointerInfo()->bool

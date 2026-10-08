@@ -562,7 +562,9 @@ impl Reader
             chunkIds.add(chunk.id)
             if chunk.storedSize > limits.maxStoredChunk or chunk.decodedSize > limits.maxDecodedChunk do
                 fail OverflowError{"SCC chunk exceeds the configured size limit"}
-            if chunk.offset < PrefixSize + headerSize or chunk.offset > fileSize or chunk.storedSize > fileSize - chunk.offset do
+            if chunk.offset < PrefixSize + headerSize or
+               chunk.offset > fileSize or
+               chunk.storedSize > fileSize - chunk.offset do
                 fail InvalidFormatError{"SCC chunk range runs outside the file"}
             if chunk.offset < previousEnd do
                 fail InvalidFormatError{"SCC chunk ranges overlap or are not ordered"}

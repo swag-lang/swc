@@ -319,7 +319,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     // Two 32-bit images: 1x1 and 2x2. Directory holds 2 entries.
     let body1Len = cast(u32, (40 + 4 + 4))      // 1x1: 4 XOR + 4 AND
     let body2Len = cast(u32, (40 + 16 + 8))     // 2x2: 16 XOR + 8 AND
-    let off1     = 6 + 32'u32                   // after dir + 2 entries
+    let off1     = 6 + 32'u32     // after dir + 2 entries
     let off2     = off1 + body1Len
 
     var cb: ConcatBuffer

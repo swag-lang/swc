@@ -562,7 +562,10 @@ impl Painter
 
         // First line cap
         var flatBegin = not cxt.path.isClosed or cxt.pen.dashStyle != .None
-        if cxt.pen.dashStyle != .None and (not cxt.firstLine or cxt.path.isClosed) and cxt.beginLine and cxt.pen.dashBegCapStyle != .None
+        if cxt.pen.dashStyle != .None and
+           (not cxt.firstLine or cxt.path.isClosed) and
+           cxt.beginLine and
+           cxt.pen.dashBegCapStyle != .None
         {
             flatBegin = false
             .drawDashCap(cxt, cxt.pen.dashBegCapStyle, cxt.prev, cxt.capNormal(), 1.0)
@@ -625,7 +628,10 @@ impl Painter
         // If we are starting a line, and the line does not have a cap before, then
         // we must AA the corresponding edge. The measured quad carries no distance along the
         // segment, so its butt end needs the band just as the banded one does.
-        if antialiased and flatBegin and cxt.beginLine and (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
+        if antialiased and
+           flatBegin and
+           cxt.beginLine and
+           (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
             .addEdgeAA(cxt.prim1, v0, v3)
 
         // To draw end joint
@@ -1324,25 +1330,15 @@ public impl Painter
         let width = half * capScaleX
         switch #complete capStyle
         {
-        case .None, .Triangle, .Round:
-            return half
-
-        case .Square:
-            return hypot(half, half)
-
-        case .SquareAnchor:
-            return hypot(width, width * capScaleY * 0.5)
-
-        case .RoundAnchor:
-            return width
-
-        case .ArrowAnchor:
-            return hypot(width, width * capScaleY)
+        case .None, .Triangle, .Round: return half
+        case .Square:       return hypot(half, half)
+        case .SquareAnchor: return hypot(width, width * capScaleY * 0.5)
+        case .RoundAnchor:  return width
+        case .ArrowAnchor:  return hypot(width, width * capScaleY)
 
         // The alternate head pulls its two back corners further along the line than the head
         // itself reaches, by a length the scales set on their own.
-        case .ArrowAnchor2:
-            return hypot(width, width * capScaleY + capScaleX * capScaleY * 2)
+        case .ArrowAnchor2: return hypot(width, width * capScaleY + capScaleX * capScaleY * 2)
         }
     }
 }

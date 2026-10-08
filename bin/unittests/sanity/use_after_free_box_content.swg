@@ -133,5 +133,5 @@ func boxFreeBox(box: *(*BoxItem?))
 func boxFreeLocalBox()
 {
     var box: *BoxItem? = null     // swc-expected-note {{sema_note_borrow_source_declared_here}}
-    boxFreeBox(&box)              // swc-expected-error {{sanity_err_free_borrowed}}
+    boxFreeBox(&box)     // swc-expected-error {{sanity_err_free_borrowed}}
 }

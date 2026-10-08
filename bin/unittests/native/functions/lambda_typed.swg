@@ -128,18 +128,18 @@ func squareValue(value: s32)->s32 => value * value
     var holder:    LambdaHolder        = {cb: cb}
     var callbacks: [2] LambdaAggregate = [holder.cb, cb]
 
-    let direct          = cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let direct = cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     discard direct
-    let held            = holder.cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let held = holder.cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     discard held
-    let res0            = callbacks[0]({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
-    let viaArray        = callbacks[1]({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let res0     = callbacks[0]({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let viaArray = callbacks[1]({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     discard viaArray
-    let viaHeldInvoke   = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let viaHeldInvoke = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     discard viaHeldInvoke
     let viaArray0Invoke = invokeAggregate(callbacks[0], {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     discard viaArray0Invoke
-    let res1            = invokeAggregate(callbacks[1], {base: 1, step: 2, marks: [8'u16, 9'u16, 10'u16]}, [5, 6, 7, 8], 4)
+    let res1 = invokeAggregate(callbacks[1], {base: 1, step: 2, marks: [8'u16, 9'u16, 10'u16]}, [5, 6, 7, 8], 4)
 
     Swag.assert(res0.total == 63)
     Swag.assert(res0.mirrored[0] == 40)

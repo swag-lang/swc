@@ -238,9 +238,9 @@ private impl Codec
         if reader.read(1) do
             fail InvalidFormatError{"FLAC frame sets the reserved header bit"}
 
-        discard reader.read(1) // Blocking strategy bit: decoding does not depend on it.
-        let blockSizeCode    = reader.read(4)
-        let sampleRateCode   = reader.read(4)
+        discard reader.read(1)     // Blocking strategy bit: decoding does not depend on it.
+        let blockSizeCode  = reader.read(4)
+        let sampleRateCode = reader.read(4)
 
         var result: retval
         result.channelAssignment = reader.read(4)

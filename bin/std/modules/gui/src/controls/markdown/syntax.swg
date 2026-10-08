@@ -65,7 +65,13 @@ private func findBareUrlEnd(text: string, start: u64)->u64
     var end = start
     while end < text.count and not Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
         end += 1
-    while end > start and (text[end - 1] == '.' or text[end - 1] == ',' or text[end - 1] == ';' or text[end - 1] == ':' or text[end - 1] == '!' or text[end - 1] == '?') do
+    while end > start and
+          (text[end - 1] == '.' or
+           text[end - 1] == ',' or
+           text[end - 1] == ';' or
+           text[end - 1] == ':' or
+           text[end - 1] == '!' or
+           text[end - 1] == '?') do
         end -= 1
     return end
 }
@@ -479,7 +485,9 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
             if end != Swag.U64.Max
             {
                 let target = text[index + 1 until end]
-                if Utf8.startsWith(target, "http://") or Utf8.startsWith(target, "https://") or Utf8.startsWith(target, "mailto:")
+                if Utf8.startsWith(target, "http://") or
+                   Utf8.startsWith(target, "https://") or
+                   Utf8.startsWith(target, "mailto:")
                 {
                     result += "<a>"
                     result += richText(target)
@@ -623,7 +631,10 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
             if end != Swag.U64.Max
             {
                 var content = text[open until end]
-                if content.count >= 2 and content[0] == ' ' and content[content.count - 1] == ' ' and (Latin1.trim(content)).count do
+                if content.count >= 2 and
+                   content[0] == ' ' and
+                   content[content.count - 1] == ' ' and
+                   (Latin1.trim(content)).count do
                     content = content[1 until content.count - 1]
                 result += "<c>"
                 result += richText(content)
@@ -785,7 +796,9 @@ func parseListItem(line: string)->ListInfo
     if index >= line.count do
         return result
 
-    if (line[index] == '-' or line[index] == '*' or line[index] == '+') and index + 1 < line.count and line[index + 1] == ' '
+    if (line[index] == '-' or line[index] == '*' or line[index] == '+') and
+       index + 1 < line.count and
+       line[index + 1] == ' '
     {
         result.found         = true
         result.content       = line[index + 2 to]
@@ -796,7 +809,10 @@ func parseListItem(line: string)->ListInfo
     let digitStart = index
     while index < line.count and Latin1.isDigit(line[index]) do
         index += 1
-    if index > digitStart and index + 1 < line.count and (line[index] == '.' or line[index] == ')') and line[index + 1] == ' '
+    if index > digitStart and
+       index + 1 < line.count and
+       (line[index] == '.' or line[index] == ')') and
+       line[index + 1] == ' '
     {
         result.found         = true
         result.ordered       = true

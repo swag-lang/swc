@@ -108,7 +108,15 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
     let rExpected = masks.r.bits and masks.r.bits <= 8 ? ((1'u32 << masks.r.bits) - 1) << masks.r.shift : 0
     let gExpected = masks.g.bits and masks.g.bits <= 8 ? ((1'u32 << masks.g.bits) - 1) << masks.g.shift : 0
     let bExpected = masks.b.bits and masks.b.bits <= 8 ? ((1'u32 << masks.b.bits) - 1) << masks.b.shift : 0
-    if rExpected and gExpected and bExpected and masks.r.value == rExpected and masks.g.value == gExpected and masks.b.value == bExpected and masks.r.shift + masks.r.bits <= 16 and masks.g.shift + masks.g.bits <= 16 and masks.b.shift + masks.b.bits <= 16
+    if rExpected and
+       gExpected and
+       bExpected and
+       masks.r.value == rExpected and
+       masks.g.value == gExpected and
+       masks.b.value == bExpected and
+       masks.r.shift + masks.r.bits <= 16 and
+       masks.g.shift + masks.g.bits <= 16 and
+       masks.b.shift + masks.b.bits <= 16
     {
         PackedPixel.decodeBgrMasked16Row(source, destination, pixelCount, cast(u16, masks.b.value), masks.b.shift, masks.b.bits, cast(u16, masks.g.value), masks.g.shift, masks.g.bits, cast(u16, masks.r.value), masks.r.shift, masks.r.bits)
         return

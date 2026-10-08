@@ -467,7 +467,7 @@ namespace
         const TypeRef   objectTypeValueRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
         const TypeRef   objectTypeRef      = objectTypeValueRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), objectTypeValueRef) : TypeRef::invalid();
         const TypeInfo* objectType         = objectTypeRef.isValid() ? &sema.typeMgr().get(objectTypeRef) : nullptr;
-        const bool     objectIsStruct     = objectType && objectType->isStruct();
+        const bool      objectIsStruct     = objectType && objectType->isStruct();
         if (objectIsStruct)
         {
             SWC_RESULT(sema.waitSemaCompleted(objectType, typeView.nodeRef()));

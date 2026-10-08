@@ -37,7 +37,9 @@ func backBucketCount(buffer: ConcatBuffer)->u64
 func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 {
     let bytes = buffer.toSlice()!
-    return buffer.count() == 3 and ConcatBuffer.offsetOf(buffer.position()) == 3 and Memory.compare(bytes.buffer, "abc".buffer, 3) == 0
+    return buffer.count() == 3 and
+           ConcatBuffer.offsetOf(buffer.position()) == 3 and
+           Memory.compare(bytes.buffer, "abc".buffer, 3) == 0
 }
 
 #test

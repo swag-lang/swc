@@ -94,7 +94,7 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
         Swag.assert(item == &value)
         result = item.number
         fallthrough
-    case PatternOther: result = -3
+    case PatternOther:         result = -3
     case PatternValue as item where item.number > 50: result = -4
     case PatternValue as item: result += item.number
     default: result = -5

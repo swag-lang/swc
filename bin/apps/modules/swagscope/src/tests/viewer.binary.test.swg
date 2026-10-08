@@ -773,7 +773,11 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(640, 420)
     defer host.shutdown()
     var result = openTestViewer(Binary.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
-    Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
+    Swag.assert(result.view != null and
+                result.actions == null and
+                result.commands != null and
+                result.collectMatches != null and
+                result.isLoading != null)
     let view = assume cast(*Binary.Panel, result.view)
     finishBinaryViewer(&host, view)
     Swag.assert(not view.failureReason.isEmpty())

@@ -269,10 +269,8 @@ func isApparatus(name: string)->bool
 {
     switch name
     {
-    case "office:annotation", "text:tracked-changes", "table:tracked-changes", "presentation:notes":
-        return true
-    default:
-        return false
+    case "office:annotation", "text:tracked-changes", "table:tracked-changes", "presentation:notes": return true
+    default: return false
     }
 }
 
@@ -346,7 +344,12 @@ private impl Reader
     {
         let weight = attribute(attributes, "fo:font-weight")
         if not weight.isEmpty() do
-            style.bold = weight == "bold" or weight == "bolder" or weight == "600" or weight == "700" or weight == "800" or weight == "900"
+            style.bold = weight == "bold" or
+                         weight == "bolder" or
+                         weight == "600" or
+                         weight == "700" or
+                         weight == "800" or
+                         weight == "900"
 
         let fontStyle = attribute(attributes, "fo:font-style")
         if not fontStyle.isEmpty() do
@@ -1023,7 +1026,7 @@ private impl Reader
         case "table:table":
             .activeSheet = false
             .sheets.add(#move .sheet)
-            .sheet            = {}
+            .sheet = {}
             .sheetCellCount   = 0
             .pendingEmptyRows = 0
         }

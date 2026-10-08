@@ -188,9 +188,15 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     let text = expect OpenDocument.parseContent(textOpenDocumentXml(), .Text)
     Swag.assert(Utf8.contains(text.html, "<h1>Quarterly report</h1>"))
     Swag.assert(Utf8.contains(text.html, "Paris &amp; Berlin"))
-    Swag.assert(Utf8.contains(text.html, "<span id=\"odf-bookmark-1\"></span>") and Utf8.contains(text.html, "href=\"#odf-bookmark-1\"") and not Utf8.contains(text.html, "javascript:"))
+    Swag.assert(Utf8.contains(text.html, "<span id=\"odf-bookmark-1\"></span>") and
+                Utf8.contains(text.html, "href=\"#odf-bookmark-1\"") and
+                not Utf8.contains(text.html, "javascript:"))
     Swag.assert(Utf8.contains(text.html, "href=\"https://www.swag-lang.org/?viewer=odf&amp;kind=text\""))
-    Swag.assert(Utf8.contains(text.html, "<span style=\"font-size:150%\"><strong><em>remain</em></strong></span>") and Utf8.contains(text.html, "<u>readable</u>") and Utf8.contains(text.html, "<sup>1</sup>") and Utf8.contains(text.html, "<sup>2</sup>") and Utf8.contains(text.html, "<s>outdated</s>"))
+    Swag.assert(Utf8.contains(text.html, "<span style=\"font-size:150%\"><strong><em>remain</em></strong></span>") and
+                Utf8.contains(text.html, "<u>readable</u>") and
+                Utf8.contains(text.html, "<sup>1</sup>") and
+                Utf8.contains(text.html, "<sup>2</sup>") and
+                Utf8.contains(text.html, "<s>outdated</s>"))
     Swag.assert(Utf8.contains(text.html, "<blockquote><p>Stored footnote.</p></blockquote>"))
     Swag.assert(Utf8.contains(text.html, "<table>"))
     Swag.assert(Utf8.contains(text.html, "<th><p>City</p></th><th><p>Budget</p></th>"))
@@ -204,14 +210,20 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     let spreadsheet = expect OpenDocument.parseContent(spreadsheetOpenDocumentXml(), .Spreadsheet)
     Swag.assert(spreadsheet.sheets.count == 2)
-    Swag.assert(spreadsheet.sheets[0].name == "Budget" and spreadsheet.sheets[0].table.columns.count == 2 and spreadsheet.sheets[0].table.rows.count == 2)
+    Swag.assert(spreadsheet.sheets[0].name == "Budget" and
+                spreadsheet.sheets[0].table.columns.count == 2 and
+                spreadsheet.sheets[0].table.rows.count == 2)
     Swag.assert(spreadsheet.sheets[0].table.columns[0] == "City" and spreadsheet.sheets[0].table.columns[1] == "Budget")
     Swag.assert(spreadsheet.sheets[0].table.rows[0].cells[0] == "Paris" and spreadsheet.sheets[0].table.rows[0].cells[1] == "42")
     Swag.assert(spreadsheet.sheets[0].table.rows[1].cells[0] == "Berlin" and spreadsheet.sheets[0].table.rows[1].cells[1] == "58")
-    Swag.assert(spreadsheet.sheets[1].name == "Forecast" and spreadsheet.sheets[1].table.rows.count == 1 and spreadsheet.sheets[1].table.rows[0].cells[0] == "Lyon")
+    Swag.assert(spreadsheet.sheets[1].name == "Forecast" and
+                spreadsheet.sheets[1].table.rows.count == 1 and
+                spreadsheet.sheets[1].table.rows[0].cells[0] == "Lyon")
 
     let presentation = expect OpenDocument.parseContent(presentationOpenDocumentXml(), .Presentation)
-    Swag.assert(presentation.slides.count == 2 and presentation.slides[0].name == "Launch" and presentation.slides[1].name == "Review")
+    Swag.assert(presentation.slides.count == 2 and
+                presentation.slides[0].name == "Launch" and
+                presentation.slides[1].name == "Review")
     Swag.assert(Utf8.contains(presentation.slides[0].html, "Prepare the offline review") and Utf8.contains(presentation.slides[1].html, "Offline review is ready"))
 
     let drawing = expect OpenDocument.parseContent(drawingOpenDocumentXml(), .Drawing)
@@ -270,7 +282,11 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load)
-        Swag.assert(view.table != null and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
+        Swag.assert(view.table != null and
+                    view.document.sheets.count == 1 and
+                    view.table.document.columns.count >= 5 and
+                    view.table.document.rows.count >= 1_000 and
+                    result.info!.isHidden())
     }
 
     {
@@ -280,7 +296,10 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load)
-        Swag.assert(view.html != null and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html, "Sample Presentation") and result.info!.isVisible())
+        Swag.assert(view.html != null and
+                    view.document.slides.count == 10 and
+                    Utf8.contains(view.document.slides[0].html, "Sample Presentation") and
+                    result.info!.isVisible())
     }
 }
 
@@ -295,7 +314,10 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
     let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
     completeViewerBackgroundLoad(&flatHost, &flatView.load)
-    Swag.assert(flatView.table != null and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
+    Swag.assert(flatView.table != null and
+                flatView.document.sheets.count == 2 and
+                flatView.table.document.columns.count == 2 and
+                flatView.table.document.rows.count == 2)
 
     let templateFileName = writeOpenDocumentFixture(".ott", .Text, textOpenDocumentXml(), true)
     defer discard catch File.delete(templateFileName)
@@ -319,8 +341,14 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
     let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
     completeViewerBackgroundLoad(&flatHost, &flatView.load)
-    Swag.assert(flatView.html != null and flatView.table == null and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
-    Swag.assert(flatResult.info != null and flatResult.info.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == OpenDocument.texts().ui_TipPage)
+    Swag.assert(flatView.html != null and
+                flatView.table == null and
+                flatView.document.kind == .Drawing and
+                flatView.document.slides.count == 2)
+    Swag.assert(flatResult.info != null and
+                flatResult.info.isVisible() and
+                flatView.pageCombo.items.count == 2 and
+                flatView.pageCombo.toolTip == OpenDocument.texts().ui_TipPage)
 
     flatView.pageCombo.setSelectedIndex(1)
     Swag.assert(flatView.slideIndex == 1 and Utf8.contains(flatView.document.slides[flatView.slideIndex].html, "Drawing handoff is ready"))
@@ -344,7 +372,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
     let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
     completeViewerBackgroundLoad(&templateHost, &templateView.load)
-    Swag.assert(templateView.html != null and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html, "Read-only drawing page"))
+    Swag.assert(templateView.html != null and
+                templateView.document.kind == .Drawing and
+                Utf8.contains(templateView.document.slides[0].html, "Read-only drawing page"))
 }
 
 // ODT uses the offline HTML document surface and exposes its rendered text through shared search.
@@ -359,7 +389,11 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     host.setup(820, 560)
     defer host.shutdown()
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
-    Swag.assert(result.view != null and result.isLoading != null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null)
+    Swag.assert(result.view != null and
+                result.isLoading != null and
+                result.collectMatches != null and
+                result.revealMatch != null and
+                result.searchBounds != null)
 
     let view = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
@@ -369,9 +403,15 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(result.info != null)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
-    Swag.assert(view.document.metadata.title == "Quarterly & review" and view.document.metadata.subject == "Reader regression" and view.document.metadata.creator == "Swag Scope tests")
+    Swag.assert(view.document.metadata.title == "Quarterly & review" and
+                view.document.metadata.subject == "Reader regression" and
+                view.document.metadata.creator == "Swag Scope tests")
     Swag.assert(Utf8.contains(openDocumentReportedDetails, "OpenDocument") and Utf8.contains(openDocumentReportedDetails, "Quarterly & review"))
-    Swag.assert(Utf8.contains(view.document.html, "data:image/png;base64,") and Utf8.contains(view.document.html, "width=\"") and Utf8.contains(view.document.html, "height=\"") and Utf8.contains(view.document.html, "<p align=\"center\"><strong>Style from styles.xml</strong></p>") and not Utf8.contains(view.document.html, "example.com"))
+    Swag.assert(Utf8.contains(view.document.html, "data:image/png;base64,") and
+                Utf8.contains(view.document.html, "width=\"") and
+                Utf8.contains(view.document.html, "height=\"") and
+                Utf8.contains(view.document.html, "<p align=\"center\"><strong>Style from styles.xml</strong></p>") and
+                not Utf8.contains(view.document.html, "example.com"))
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     view.sendEvent(&zoomIn)
@@ -410,9 +450,14 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     completeViewerBackgroundLoad(&host, &view.load)
     host.root.applyLayout()
     discard host.render(&host.root)
-    Swag.assert(view.table != null and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
+    Swag.assert(view.table != null and
+                view.document.sheets.count == 2 and
+                view.table.document.columns.count == 2 and
+                view.table.document.rows.count == 2)
     Swag.assert(result.info != null and result.info.isHidden())
-    Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == OpenDocument.texts().ui_TipSheet)
+    Swag.assert(view.pageCombo.items.count == 2 and
+                view.pageCombo.selectedIndex == 0 and
+                view.pageCombo.toolTip == OpenDocument.texts().ui_TipSheet)
 
     view.pageCombo.setSelectedIndex(1)
     Swag.assert(view.sheetIndex == 1 and view.table.document.rows.count == 1 and view.table.document.rows[0].cells[0] == "Lyon")
@@ -456,7 +501,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     let view   = assume cast(*OpenDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.html != null and view.table == null and view.document.slides.count == 2)
-    Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == OpenDocument.texts().ui_TipSlide)
+    Swag.assert(view.pageCombo.items.count == 2 and
+                view.pageCombo.selectedIndex == 0 and
+                view.pageCombo.toolTip == OpenDocument.texts().ui_TipSlide)
 
     view.pageCombo.setSelectedIndex(1)
     Swag.assert(view.slideIndex == 1 and Utf8.contains(view.document.slides[view.slideIndex].html, "Offline review is ready"))

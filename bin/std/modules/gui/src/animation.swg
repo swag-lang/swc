@@ -692,7 +692,9 @@ impl Animator
         for track in group.tracks
         {
             let target = track!.target
-            if target.isPendingDestroy or (target.wndFlags.has(.Hidden) and not target.paintsWhenHidden) or not target.surface
+            if target.isPendingDestroy or
+               (target.wndFlags.has(.Hidden) and not target.paintsWhenHidden) or
+               not target.surface
             {
                 for cancelledTrack in group.tracks do
                     .completeTrack(cancelledTrack!, .Cancelled)

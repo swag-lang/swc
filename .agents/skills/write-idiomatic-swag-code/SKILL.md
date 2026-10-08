@@ -338,6 +338,10 @@ let renderer: IRenderer = &cpu
 - Never retain a borrow beyond its owner. Prefer non-null pointers (`*T`) for borrowed values,
   nullable pointers (`*T?`) only for real absence, and slices instead of pointer/count pairs
   outside native code.
+- Factor repeated alias checks into a named predicate, but keep the owning copy and its lifetime
+  visible beside the mutation it protects. For example, `let copy = String.from(value)` owns
+  bytes while an inferred `let copy = value` can only borrow them. Preserve the checked range,
+  guard order, and copying before growth or overlapping writes; test inline and allocated storage.
 
 ### Choose `defer` by what the cleanup is for
 

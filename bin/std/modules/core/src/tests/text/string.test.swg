@@ -423,3 +423,48 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(wide.length == 12)
     Swag.assert(wide.storage()[wide.length] == 0)
 }
+
+// Borrowed source bytes survive growth from both inline and allocated storage.
+#test
+{
+    for original in ["abc123abc123abc", "abc123abc123abc123abc"]
+    {
+        var appended: String = original
+        let appendSource     = appended[until 3]
+        appended.append(appendSource)
+        Swag.assert(assertString(appended, Format.toString("%abc", original)))
+
+        var inserted: String = original
+        let insertSource     = inserted[until 3]
+        inserted.insert(0, insertSource)
+        Swag.assert(assertString(inserted, Format.toString("abc%", original)))
+    }
+}
+
+// Search and replacement views can each refer to the bytes being changed.
+#test
+{
+    struct AliasCase
+    {
+        source:         string
+        searchReplaced: string
+        valueReplaced:  string
+    }
+
+    let cases: [2] AliasCase = [
+        {"abc123abc123abc",       "X123X123X",     "abcabc23abcabc23abc"},
+        {"abc123abc123abc123abc", "X123X123X123X", "abcabc23abcabc23abcabc23abc"}]
+
+    for sample in cases
+    {
+        var search: String = sample.source
+        let what = search[until 3]
+        search.replace(what, "X")
+        Swag.assert(assertString(search, sample.searchReplaced))
+
+        var replacement: String = sample.source
+        let by = replacement[until 3]
+        replacement.replace('1'rune, by)
+        Swag.assert(assertString(replacement, sample.valueReplaced))
+    }
+}

@@ -79,6 +79,14 @@ impl String
     #[Inline]
     mtd const storage()->[*] u8 => .buffer orelse cast([*] u8, cast(u64, 1))
 
+    // Tests the source start against used bytes, excluding the terminator and spare capacity.
+    #[Inline]
+    private mtd const aliasesContent(value: string?)->bool
+    {
+        let buffer = .buffer
+        return buffer and value.buffer >= buffer and value.buffer < buffer + .length
+    }
+
     // Replaces the contents with a copy of `value`, which may view this string's own storage.
     //
     // A null `value` empties the string.
@@ -93,13 +101,14 @@ impl String
             return
         }
 
+        // Implicit initialization publishes this body without file-private helpers.
         if .buffer
         {
-            let dataof = value.buffer
-            if dataof >= .buffer and dataof < .buffer + .length
+            let source = value.buffer
+            if source >= .buffer and source < .buffer + .length
             {
                 let copy = String.from(value)
-                .opSet(copy.toString())
+                .opSet(copy)
                 return
             }
         }
@@ -312,15 +321,11 @@ impl String
     {
         if not .length do
             return
-        if .buffer
+        if .aliasesContent(by)
         {
-            let dataof = by.buffer
-            if dataof >= .buffer and dataof < .buffer + .length
-            {
-                let copy = String.from(by)
-                .replace(what, copy.toString())
-                return
-            }
+            let copy = String.from(by)
+            .replace(what, copy)
+            return
         }
 
         var encoded: [4] u8
@@ -353,23 +358,18 @@ impl String
         let whatLength = what.count
         if not whatLength or whatLength > .length do
             return
-        if .buffer
+        if .aliasesContent(what)
         {
-            let whatDataof = what.buffer
-            if whatDataof >= .buffer and whatDataof < .buffer + .length
-            {
-                let copy = String.from(what)
-                .replace(copy.toString(), by, comparisonType)
-                return
-            }
+            let copy = String.from(what)
+            .replace(copy, by, comparisonType)
+            return
+        }
 
-            let byDataof = by.buffer
-            if byDataof >= .buffer and byDataof < .buffer + .length
-            {
-                let copy = String.from(by)
-                .replace(what, copy.toString(), comparisonType)
-                return
-            }
+        if .aliasesContent(by)
+        {
+            let copy = String.from(by)
+            .replace(what, copy, comparisonType)
+            return
         }
 
         let byLength = by.count
@@ -457,24 +457,20 @@ impl String
         }
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
-        let countof = value.count
-        if not countof do
+        let insertedBytes = value.count
+        if not insertedBytes do
             return
-        if .buffer
+        if .aliasesContent(value)
         {
-            let dataof = value.buffer
-            if dataof >= .buffer and dataof < .buffer + .length
-            {
-                let copy = String.from(value)
-                .insert(byteIndex, copy.toString())
-                return
-            }
+            let copy = String.from(value)
+            .insert(byteIndex, copy)
+            return
         }
 
-        .grow(.length + countof + 1)
-        Memory.copyOverlapping(.buffer + byteIndex + countof, .buffer + byteIndex, .length - byteIndex + 1)
-        Memory.copy(.buffer + byteIndex, value.buffer, countof)
-        .length += countof
+        .grow(.length + insertedBytes + 1)
+        Memory.copyOverlapping(.buffer + byteIndex + insertedBytes, .buffer + byteIndex, .length - byteIndex + 1)
+        Memory.copy(.buffer + byteIndex, value.buffer, insertedBytes)
+        .length += insertedBytes
     }
 
     // Appends `format` formatted with `values`, following the rules of [[Core.Format.toString]].
@@ -500,13 +496,13 @@ impl String
     mtd append(value: rune)
     {
         Swag.assert(Utf8.isValidRune(value), "invalid rune")
-        var tmp: [4] u8
-        let eat = Utf8.encodeRune(tmp, value)
-        .grow(.length + eat + 1)
+        var encoded: [4] u8
+        let encodedBytes = Utf8.encodeRune(encoded, value)
+        .grow(.length + encodedBytes + 1)
         let buffer = .buffer!
-        for i in eat do
-            buffer[.length + i] = tmp[i]
-        .length         += eat
+        for i in encodedBytes do
+            buffer[.length + i] = encoded[i]
+        .length         += encodedBytes
         buffer[.length] = 0
     }
 
@@ -516,15 +512,11 @@ impl String
         let concatLength = value.count
         if concatLength == 0 do
             return
-        if .buffer
+        if .aliasesContent(value)
         {
-            let dataof = value.buffer
-            if dataof >= .buffer and dataof < .buffer + .length
-            {
-                let copy = String.from(value)
-                .append(copy.toString())
-                return
-            }
+            let copy = String.from(value)
+            .append(copy)
+            return
         }
 
         let newLength = .length + concatLength + 1
@@ -579,18 +571,18 @@ impl String
         // A small capacity always uses the inline storage.
         if newCapacity <= StringSmallSize
         {
-            // Free dynamic memory if this is not a small string
+            // Copy the bytes before releasing their previous allocation.
             if .buffer and .buffer != cast(&.padding[0])
             {
                 Memory.copy(&.padding[0], .buffer, Math.min(newCapacity, .length + 1))
                 Memory.free(.buffer, .capacity, .allocator)
             }
 
-            // This is a small string again
+            // Point the header at its own inline storage.
             .capacity = StringSmallSize
             .buffer   = cast(&.padding[0])
         }
-        // We were in small size mode, and we are no more
+        // Grow from inline storage into an allocation.
         elif .buffer == cast(&.padding[0])
         {
             let oldBuffer = .buffer
@@ -598,13 +590,13 @@ impl String
             Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
             .capacity = newCapacity
         }
-        // First allocation directly to dynamic storage
+        // Allocate directly when no previous storage exists.
         elif not .buffer
         {
             .buffer   = cast(Memory.alloc(newCapacity, .allocator))
             .capacity = newCapacity
         }
-        // We were in dynamic mode, so just realloc memory
+        // Resize the existing allocation.
         else
         {
             .buffer   = cast(Memory.realloc(.buffer, newCapacity, .capacity, .allocator))
@@ -704,9 +696,9 @@ impl String
             Core.Latin1.makeUpper(.toSlice())
 
         case .Unicode:
-            var uni32 = Core.Unicode.fromUtf8(.toString())
-            Core.Unicode.makeUpper(uni32.toSlice())
-            .setRunes(uni32.toSlice())
+            var runes = Core.Unicode.fromUtf8(.toString())
+            Core.Unicode.makeUpper(runes.toSlice())
+            .setRunes(runes.toSlice())
         }
     }
 
@@ -721,9 +713,9 @@ impl String
             Core.Latin1.makeLower(.toSlice())
 
         case .Unicode:
-            var uni32 = Core.Unicode.fromUtf8(.toString())
-            Core.Unicode.makeLower(uni32.toSlice())
-            .setRunes(uni32.toSlice())
+            var runes = Core.Unicode.fromUtf8(.toString())
+            Core.Unicode.makeLower(runes.toSlice())
+            .setRunes(runes.toSlice())
         }
     }
 
@@ -767,13 +759,23 @@ impl String
         mtd const contains(what: const [..] u8)->bool => Utf8.contains(.toSlice(), what)
 
         // Returns whether the string starts with `str` under the case policy `comparisonType`.
-        mtd const startsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
+        mtd const startsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool
+        {
+            return Utf8.startsWith(.toSlice(), str, comparisonType)
+        }
 
         // Returns whether the string ends with `str` under the case policy `comparisonType`.
-        mtd const endsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.endsWith(.toSlice(), str, comparisonType)
+        mtd const endsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool
+        {
+            return Utf8.endsWith(.toSlice(), str, comparisonType)
+        }
 
         // Returns the byte index of the first `what` at or after `startByteIndex`, or `Swag.U64.Max` when it is absent.
-        mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
+        mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64
+        {
+            return Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
+        }
+
         mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex)
     }
 }

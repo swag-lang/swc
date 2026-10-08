@@ -349,6 +349,10 @@ namespace
             return TypeRef::invalid();
 
         const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        // A null descriptor has no represented type. Let the predicate evaluate its null guard
+        // instead of folding the lifecycle flags of the descriptor pointer itself.
+        if (argView.hasConstant() && argView.cst()->isNullValue(sema.ctx()))
+            return TypeRef::invalid();
         if (!SemaHelpers::isTypeLikeTypeRef(sema.ctx(), argView.typeRef()))
             return TypeRef::invalid();
 

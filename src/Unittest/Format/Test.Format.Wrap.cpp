@@ -1399,6 +1399,48 @@ SWC_TEST_BEGIN(FormatWrap_HugTrailingBlockLiteralItem)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_HugPreservesCompactTableRows)
+{
+    for (const std::string_view declaration : {"let rows =", "let rows: [2] Point ="})
+    {
+        for (const std::string_view trailingComma : {"", ","})
+        {
+            const std::string source = std::format("func foo()\n{{\n    {} [\n        {{1, 2}},\n        {{3, 4}}{}\n    ]\n}}\n", declaration, trailingComma);
+            const std::string expected = std::format("func foo()\n{{\n    {} [\n        {{1, 2}},\n        {{3, 4}}]\n}}\n", declaration);
+            FormatOptions options;
+            applyFormatStyle(options, FormatNamedStyle::Swag);
+            SWC_RESULT(FormatRewriteCheck::check(ctx, source, expected, options));
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_HugIgnoresEnclosingCallNewline)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    target({1, 2},\n"
+        "           {3, 4}\n"
+        "    )\n"
+        "    let compact = [{1, 2}, {3, 4}]\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    target({1, 2},\n"
+        "           {3, 4})\n"
+        "    let compact = [{1, 2}, {3, 4}]\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_HugSkipsEarlierMultilineArgument)
 {
     // The first argument already owns a block, so the call has no single

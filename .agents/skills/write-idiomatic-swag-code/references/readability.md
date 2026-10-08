@@ -230,6 +230,12 @@ The authored rows expose symmetry and the center coefficient without changing th
 Keep small neighbouring kernels compact when they remain easy to compare; do not expand every
 literal just to obtain uniform heights. Verify that the formatter preserves the row boundaries.
 
+For a table of records or test cases, keep one short record per row when the reader compares
+inputs with expected results. A newline before the enclosing `]` or `)` does not make the last
+record a multiline block: the formatter must preserve the rows instead of joining the entire
+table as a header. Keep genuinely compact tables compact; only hug a trailing block when that
+last item itself spans lines.
+
 Before changing an automatic rule, inspect representative declarations, guards, closures,
 tables, comments, and deliberately unusual compiler fixtures. Verify the intended output and
 second-pass stability, then follow `validate-swag-changes` for the real source formatting pass.

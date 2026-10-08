@@ -398,7 +398,13 @@ namespace
             if (!FormatPassUtil::canEditGap(*model_, last))
                 return false;
 
-            for (uint32_t i = last + 1; i <= state.closePiece; ++i)
+            // The enclosing close can own a source newline even when every
+            // item fits on one line. Only the last item's contents justify
+            // hugging; otherwise a table of compact rows collapses entirely.
+            uint32_t lastEnd = model_->prevPiece(state.closePiece);
+            if (model_->piece(lastEnd).is(TokenId::SymComma))
+                lastEnd = model_->prevPiece(lastEnd);
+            for (uint32_t i = last + 1; i <= lastEnd; ++i)
             {
                 if (!model_->piece(i).removed && model_->gapHasNewline(i))
                     return true;

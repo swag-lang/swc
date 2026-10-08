@@ -184,21 +184,21 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
             let source       = cast(u64, y) * cast(u64, width) + cast(u64, x)
             let chromaSource = cast(u64, (y >> chromaRowShift)) * chromaWidth + cast(u64, (x >> chromaColShift))
             let luma         = cast(s32, payload[source])
-            let d            = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSource]) - 128
-            let e            = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSize + chromaSource]) - 128
+            let centeredU    = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSource]) - 128
+            let centeredV    = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSize + chromaSource]) - 128
             let destination  = target.pixels.storage() + destinationRow + cast(u64, x) * 3
             if header.colorRange == .Full
             {
-                destination[0] = clampByte(luma + ((359 * e + 128) >> 8))
-                destination[1] = clampByte(luma - ((88 * d + 183 * e + 128) >> 8))
-                destination[2] = clampByte(luma + ((454 * d + 128) >> 8))
+                destination[0] = clampByte(luma + ((359 * centeredV + 128) >> 8))
+                destination[1] = clampByte(luma - ((88 * centeredU + 183 * centeredV + 128) >> 8))
+                destination[2] = clampByte(luma + ((454 * centeredU + 128) >> 8))
             }
             else
             {
-                let c = Math.max(luma - 16, 0)
-                destination[0] = clampByte((298 * c + 409 * e + 128) >> 8)
-                destination[1] = clampByte((298 * c - 100 * d - 208 * e + 128) >> 8)
-                destination[2] = clampByte((298 * c + 516 * d + 128) >> 8)
+                let limitedLuma = Math.max(luma - 16, 0)
+                destination[0] = clampByte((298 * limitedLuma + 409 * centeredV + 128) >> 8)
+                destination[1] = clampByte((298 * limitedLuma - 100 * centeredU - 208 * centeredV + 128) >> 8)
+                destination[2] = clampByte((298 * limitedLuma + 516 * centeredU + 128) >> 8)
             }
         }
     }

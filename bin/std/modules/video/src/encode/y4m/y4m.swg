@@ -46,7 +46,13 @@ impl IEncoder for Encoder
         // configure and ignores what it is handed.
 
         .info = info
-        try sink.writeText(Format.toString("% W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n", StreamSignature, info.width, info.height, info.frameRate.numerator(), info.frameRate.denominator()).toString())
+        let header = Format.toString("% W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n",
+                                     StreamSignature,
+                                     info.width,
+                                     info.height,
+                                     info.frameRate.numerator(),
+                                     info.frameRate.denominator())
+        try sink.writeText(header.toString())
     }
 
     mtd impl addFrame(sink: *ByteSink, image: Image) fail

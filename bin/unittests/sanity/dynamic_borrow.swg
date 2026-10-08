@@ -20,13 +20,13 @@ struct DynamicBorrowChild { using base: DynamicBorrowBase }
 func returnDynamicLocal()->*DynamicBorrowChild?
 {
     var value: DynamicBorrowChild
-    return (catch cast(*DynamicBorrowChild?, value))     // swc-expected-error {{sanity_err_borrow_escape}}
+    return cast(*DynamicBorrowChild?, value)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func returnDeducedDynamicLocal()->*DynamicBorrowChild?
 {
     var value: DynamicBorrowChild
-    return (catch cast(*DynamicBorrowChild?, value))     // swc-expected-error {{sanity_err_borrow_escape}}
+    return cast(value)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func returnAssumedDynamicLocal()->*DynamicBorrowChild

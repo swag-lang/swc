@@ -15,7 +15,7 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let folder        = Path.combine(tempDirectory, Format.toString("scope_classification_%", Guid64.random()).toString())
+    let folder        = Path.combine(tempDirectory, Format.toString("scope_classification_%", Guid64.random()))
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
 
@@ -26,7 +26,7 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     var names: Array'String
     for i in 3'u32
     {
-        let fileName = Path.combine(folder, Format.toString("file%.txt", i).toString())
+        let fileName = Path.combine(folder, Format.toString("file%.txt", i))
         discard expect File.writeAllText(fileName, "a readable line\n")
         names.add(fileName)
     }
@@ -68,7 +68,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
 // before that work retires, so the window keeps its old presentation until retirement completes.
 #test
 {
-    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope_retirement_%", Guid64.random()).toString())
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope_retirement_%", Guid64.random()))
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
     let first = Path.combine(folder, "first.txt")

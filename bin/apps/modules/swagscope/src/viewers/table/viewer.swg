@@ -380,7 +380,7 @@ private impl TableViewer
         let columns = tableCountText(.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
         let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
         if .reportDetails do
-            .reportDetails(me, Format.toString(tableStrings().ui_Details, kind, rows, columns).toString())
+            .reportDetails(me, Format.toString(tableStrings().ui_Details, kind, rows, columns))
     }
 
     mtd retire()->bool

@@ -63,7 +63,7 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     host.notify(.LanguageChanged)
     let expectedCount = Format.toString(subtitleStrings().ui_Cues, 2)
     Swag.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
-                Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount).toString())
+                Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount))
     Swag.assert(view.cueButton.toolTip == subtitleStrings().ui_GoToCue)
     Swag.assert(view.durationButton.toolTip == subtitleStrings().ui_GoToTime)
     Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")

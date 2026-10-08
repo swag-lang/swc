@@ -462,16 +462,22 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
             let u = f.capture.newUndo(.CreateForm)
             if rng.nextBool()
             {
-                let form = Memory.new'FormShape()
-                form.IForm.setup(f.capture)
-                form.IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(5, 60), rng.nextS32(5, 60))
+                with let form = Memory.new'FormShape()
+                {
+                    .IForm.setup(f.capture)
+                    .IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(5, 60), rng.nextS32(5, 60))
+                }
+
                 u.oldForms.add(form)
             }
             else
             {
-                let form = Memory.new'FormText()
-                form.IForm.setup(f.capture)
-                form.IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(10, 80), rng.nextS32(10, 40))
+                with let form = Memory.new'FormText()
+                {
+                    .IForm.setup(f.capture)
+                    .IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(10, 80), rng.nextS32(10, 40))
+                }
+
                 u.oldForms.add(form)
             }
 

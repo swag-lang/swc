@@ -527,7 +527,7 @@ func createCodeViewer(host: Viewer.Host)
     }
 
     host.attachView(view)
-    host.setDetails(Format.toString(codeStrings().ui_Details, view.languageName).toString())
+    host.setDetails(Format.toString(codeStrings().ui_Details, view.languageName))
 
     with var search: Viewer.SearchApi
     {

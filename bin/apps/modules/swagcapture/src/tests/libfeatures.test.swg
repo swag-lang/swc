@@ -228,7 +228,7 @@ using Swag, Core
     expect capture.save()
     Memory.delete(capture)
 
-    let folder = Path.combine(Library.getFolder(), Format.toString("export-%", Guid64.random().toString()))
+    let folder = Path.combine(Library.getFolder(), Format.toString("export-%", Guid64.random()))
     expect Directory.create(folder)
     let exported = Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(source) orelse "capture"))
     defer

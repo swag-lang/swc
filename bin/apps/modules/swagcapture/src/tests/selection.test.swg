@@ -212,9 +212,12 @@ using Swag, Core
 
     let undo = f.capture.newUndo(.CreateForm)
 
-    let newText = Memory.new'FormText()
-    newText.IForm.setup(f.capture)
-    newText.IForm.setBaseForm(70, 80, 20, 25)
+    with let newText = Memory.new'FormText()
+    {
+        .IForm.setup(f.capture)
+        .IForm.setBaseForm(70, 80, 20, 25)
+    }
+
     undo.oldForms.add(newText)
     f.capture.pushUndo(undo)
     Swag.assert(f.capture.forms.count == 2)

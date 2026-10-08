@@ -1413,7 +1413,7 @@ impl ViewerWindow
         var absolute = catch Path.absolute(directory) as pathError
         if pathError != null or not Directory.exists(absolute)
         {
-            .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture directory is missing: %", directory).toString())
+            .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture directory is missing: %", directory))
             return
         }
 
@@ -1449,14 +1449,14 @@ impl ViewerWindow
         if .smokeWaitSteps <= ViewerSmokeStepLimit do
             return
 
-        .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, ViewerSmokeStepLimit).toString())
+        .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, ViewerSmokeStepLimit))
     }
 
     private mtd reviewSmokeStep()
     {
         if .smokeSpecIndex >= .index.plugins.count
         {
-            .finishSmokeReview(0, Format.toString("Swag Scope smoke reviewed % viewer plugins", .index.plugins.count).toString())
+            .finishSmokeReview(0, Format.toString("Swag Scope smoke reviewed % viewer plugins", .index.plugins.count))
             return
         }
 
@@ -1467,14 +1467,14 @@ impl ViewerWindow
         let fileName = Path.combine(.smokeDirectory.toString(), fixture)
         if not File.exists(fileName)
         {
-            .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture is missing: %", fileName).toString())
+            .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture is missing: %", fileName))
             return
         }
 
         var absolute = catch Path.absolute(fileName) as pathError
         if pathError != null
         {
-            .finishSmokeReview(1, Format.toString("Swag Scope smoke cannot resolve fixture path: %", fileName).toString())
+            .finishSmokeReview(1, Format.toString("Swag Scope smoke cannot resolve fixture path: %", fileName))
             return
         }
 
@@ -1502,7 +1502,7 @@ impl ViewerWindow
 
             if selected == Swag.U32.Max
             {
-                .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture '%' has no '%' viewer", fileName, key).toString())
+                .finishSmokeReview(1, Format.toString("Swag Scope smoke fixture '%' has no '%' viewer", fileName, key))
                 return
             }
 
@@ -1525,7 +1525,7 @@ impl ViewerWindow
         let instance = &.instances[.activeChoiceIndex]
         if not instance.failureReason.isEmpty()
         {
-            .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' cannot open '%': %", key, fileName, instance.failureReason).toString())
+            .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' cannot open '%': %", key, fileName, instance.failureReason))
             return
         }
 
@@ -1690,16 +1690,21 @@ impl ViewerWindow
         return true
     }
 
-    // Makes the windows of `session` the presentation of the window, hiding the previous ones.
-    //
-    // Showing the new windows is left to the caller: a staged transition keeps them behind the
-    // outgoing viewer until it has something to show.
-    private mtd adoptSession(session: *ViewerSession)
+    // Hides the windows of the viewer the window presents.
+    private mtd hideCurrentSession()
     {
         .currentActions?.hide()
         .currentInfo?.hide()
         .currentCommands?.hide()
         .currentView?.hide()
+    }
+
+    // Makes the windows of `session` the presentation of the window.
+    //
+    // Showing them is left to the caller: a staged transition keeps them behind the outgoing
+    // viewer until it has something to show.
+    private mtd adoptSession(session: *ViewerSession)
+    {
         .currentView     = session.view
         .currentActions  = session.actions
         .currentInfo     = session.info
@@ -1948,6 +1953,7 @@ impl ViewerWindow
         {
             if not .retireActiveLoadingChoice(index) do
                 return false
+            .hideCurrentSession()
             .adoptSession(instance)
             .currentView!.show()
             .currentInfo?.show()
@@ -2040,6 +2046,7 @@ impl ViewerWindow
             next.view.dockStyle = .Center
             if next.commands do
                 next.commands.dockStyle = .None
+            .hideCurrentSession()
             .adoptSession(&next)
             .currentInfo?.show()
             .updateViewerBar()

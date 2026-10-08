@@ -116,7 +116,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture
 
     if not main.captureOptions.inPlaceEdit
     {
-        InPlaceEditWnd.crop(capture)
+        capture.cropToGrab()
         surface.destroy()
         return capture
     }

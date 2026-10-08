@@ -95,7 +95,7 @@ private impl SubtitleViewer
 {
     mtd retranslate()
     {
-        .cueButton.setText(subtitleCueCountText(.track!.cueCount()).toString())
+        .cueButton.setText(subtitleCueCountText(.track!.cueCount()))
         .cueButton.toolTip      = subtitleStrings().ui_GoToCue
         .durationButton.toolTip = subtitleStrings().ui_GoToTime
     }
@@ -199,7 +199,7 @@ private impl SubtitleViewer
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
         {
             .dockStyle = .Right
-            .setText(subtitleCueCountText(result.track!.cueCount()).toString())
+            .setText(subtitleCueCountText(result.track!.cueCount()))
             .setForm(.Rectangle)
             .toolTip    = subtitleStrings().ui_GoToCue
             .sigPressed += func|view = result|(?) { view.promptGoToCue() }

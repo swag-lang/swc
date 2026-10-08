@@ -26,7 +26,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     var source: String
     for 12_000 do
         source += "A paragraph of the manuscript remains at the same reading position.\n\n"
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope-reload-%.md", Guid64.random()).toString())
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-reload-%.md", Guid64.random()))
     writeReloadFile(fileName, source)
     defer discard catch File.delete(fileName)
 

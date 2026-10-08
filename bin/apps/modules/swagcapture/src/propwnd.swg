@@ -48,8 +48,6 @@ func capStyleHasSize(cap: LineCapStyle)->bool
     case .None, .Triangle, .Round, .Square: return false
     case .ArrowAnchor, .ArrowAnchor2, .SquareAnchor, .RoundAnchor: return true
     }
-
-    return false
 }
 
 // Paints a line-end sample while keeping the cap itself inside `pos`. The same painter feeds the
@@ -115,9 +113,9 @@ struct PropWnd
 
     late
     {
-        late topLayout: *StackLayoutCtrl
-        late grid:      *Properties
-        late main:      *MainWnd
+        topLayout: *StackLayoutCtrl
+        grid:      *Properties
+        main:      *MainWnd
     }
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)

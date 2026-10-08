@@ -190,7 +190,7 @@ impl TextViewer
     mtd reportStatistics()
     {
         if .reportDetails do
-            .reportDetails(me, .detailsText().toString())
+            .reportDetails(me, .detailsText())
     }
 
     mtd retranslate()
@@ -367,7 +367,7 @@ impl TextViewer
         if not .hasText do
             .editor.setText(message)
         else do
-            .editor.addText(Format.toString("\n\n%", message).toString())
+            .editor.addText(Format.toString("\n\n%", message))
         .editor.setEstimatedDocumentHeight(0)
     }
 

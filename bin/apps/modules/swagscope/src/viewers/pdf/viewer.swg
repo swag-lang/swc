@@ -38,10 +38,7 @@ private struct PdfInfoControls
 
 private impl IWnd for PdfInfoControls
 {
-    mtd impl measureContent(?: Math.Point)->Math.Point
-    {
-        return .preferredSize
-    }
+    mtd impl measureContent(?: Math.Point)->Math.Point => .preferredSize
 }
 
 struct PdfViewerContent
@@ -61,7 +58,7 @@ private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
         fail Errors.InvalidFormatError{pdfStrings().err_NoPage}
     result.page    = #move try result.reader.loadPage(0)
     result.details = "PDF"
-    return #move result
+    return result
 }
 
 struct PdfViewer
@@ -198,10 +195,7 @@ private impl PdfViewer
         return complete
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
-    {
-        return .pdfView.revealTextMatch({match.major, match.offset, match.length})
-    }
+    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool => .pdfView.revealTextMatch({match.major, match.offset, match.length})
 
     mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
 

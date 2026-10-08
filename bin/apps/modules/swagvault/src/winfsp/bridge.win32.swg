@@ -165,10 +165,7 @@ namespace WinFsp
         => callbackSetFileSize(mountedVolume(fileSystem), idFromContext(fileContext), newSize, setAllocationSize, info)
 
     #[Swag.CallingConvention(.C)]
-    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, ?: [*] u16?)->s32
-    {
-        return callbackCanDelete(mountedVolume(fileSystem), idFromContext(fileContext))
-    }
+    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, ?: [*] u16?)->s32 => callbackCanDelete(mountedVolume(fileSystem), idFromContext(fileContext))
 
     #[Swag.CallingConvention(.C)]
     func fspRename(fileSystem: *FspFileSystem, fileContext: *void?, oldPath, newPath: [*] u16?, replace: u8)->s32

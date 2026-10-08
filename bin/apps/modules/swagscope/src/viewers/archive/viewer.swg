@@ -251,7 +251,7 @@ private impl ArchiveViewer
 
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
-                line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize).toString())
+                line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize))
                 line.userData0 = cast(*void?, entryIndex + 1)
                 .entryLines[entryIndex] = line
             }
@@ -324,7 +324,7 @@ private impl ArchiveViewer
             if not error.isEmpty()
             {
                 .clearPreviewFile()
-                .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, error).toString())
+                .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, error))
                 return
             }
 
@@ -338,7 +338,7 @@ private impl ArchiveViewer
                 catch .embedded.open(.previewFile.toString(), entry.path) as openError
                 if openError != null
                 {
-                    .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, Errors.message(openError)).toString())
+                    .showPreviewStatus(Format.toString("%\n%", archiveStrings().ui_PreviewError, Errors.message(openError)))
                     return
                 }
 
@@ -371,7 +371,7 @@ private impl ArchiveViewer
             extension = ".bin"
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
-        .previewFile = Path.combine(Env.getSpecialDirectory(.Temp).toString(), tempName)
+        .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), tempName)
         .extract.start(.sourceFile.toString(), entry, .previewFile.toString())
     }
 

@@ -163,18 +163,18 @@ struct MountSettings
 // polls `task` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    task:           Swag.Task         // Runtime task running `kind`.
-    kind:           OperationKind     // Work the task performs, or `None` while the window is idle.
-    timer:          *Timer?           // Polls the task while it runs.
-    error:          Swag.Error        // Owns a worker failure until the UI thread reports it.
-    path:           String            // Container file the operation acts on.
-    mount:          String            // Stable backend destination identifier requested by a mount operation.
-    mountLabel:     String            // Host-facing destination name reported when the operation completes.
-    size:           u64               // Container size requested by a create or a grow.
-    outerReserve:   u64
-    createHidden:   bool
-    protectHidden:  bool
-    hiddenAccess:   VaultAccess
+    task:           Swag.Task          // Runtime task running `kind`.
+    kind:           OperationKind      // Work the task performs, or `None` while the window is idle.
+    timer:          *Timer?            // Polls the task while it runs.
+    error:          Swag.Error         // Owns a worker failure until the UI thread reports it.
+    path:           String             // Container file the operation acts on.
+    mount:          String             // Stable backend destination identifier requested by a mount operation.
+    mountLabel:     String             // Host-facing destination name reported when the operation completes.
+    size:           u64                // Container size requested by a create or a grow.
+    outerReserve:   u64                // Room the outer volume keeps for ordinary files when a hidden one is created.
+    createHidden:   bool               // Whether a create operation makes a hidden volume inside an existing container.
+    protectHidden:  bool               // Whether a mount refuses outer writes into the hidden region.
+    hiddenAccess:   VaultAccess        // Hidden-volume password and key files, owned and cleared by the operation.
     camouflageOnly: bool               // Whether resize only refreshes the random physical tail.
     access:         VaultAccess        // Current password and key files, owned and cleared by the operation.
     replacement:    VaultAccess        // Access installed by a password or key-file change.
@@ -192,6 +192,34 @@ struct VaultOperation
     securityStopped:   bool                 // Whether a security event interrupted this mount.
 
     progress: VolumeProgress     // What the job has done, and the way to ask it to stop.
+}
+
+impl VaultOperation
+{
+    // Forgets what the finished operation was asked and what it reported.
+    //
+    // The task, its timer, and the progress tracker belong to the window rather than to one
+    // operation, and the access inputs were already wiped by the worker, so they stay as they are.
+    mtd forgetRequest()
+    {
+        .kind = .None
+        .error.reset()
+        .volume            = null
+        .usedProtection    = false
+        .leavesUnprotected = false
+        .createHidden      = false
+        .protectHidden     = false
+        .removesPassword   = false
+        .accessChange      = .Password
+        .fromStartup       = false
+        .securityStopped   = false
+        .camouflageOnly    = false
+        .size              = 0
+        .path.clear()
+        .mount.clear()
+        .mountLabel.clear()
+        .resultKeyFiles.clear()
+    }
 }
 
 // Owns the complete application state. The UI thread owns this object; long
@@ -2154,23 +2182,7 @@ impl MainWindow
         }
 
         .setState(.Ready)
-        .operation.kind = .None
-        .operation.error.reset()
-        .operation.volume            = null
-        .operation.usedProtection    = false
-        .operation.leavesUnprotected = false
-        .operation.createHidden      = false
-        .operation.protectHidden     = false
-        .operation.removesPassword   = false
-        .operation.accessChange      = .Password
-        .operation.fromStartup       = false
-        .operation.securityStopped   = false
-        .operation.camouflageOnly    = false
-        .operation.path.clear()
-        .operation.mount.clear()
-        .operation.mountLabel.clear()
-        .operation.resultKeyFiles.clear()
-        .operation.size = 0
+        .operation.forgetRequest()
 
         if .startupQueue.count do
             .pumpStartupQueue()

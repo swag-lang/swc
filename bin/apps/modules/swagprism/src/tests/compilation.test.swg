@@ -181,9 +181,9 @@ func waitBuild(lease: *Pipeline.BuildLease)
     panel.options.presetCombo.setSelectedIndex(1, notify: false)
     panel.options.editor.setText("#run { Swag.compiler().getBuildCfg()!.backend.vectorize = false }")
     panel.optimCombo.setSelectedIndex(2, notify: false)
-    let settings = panel.request(window.editor.text().toString()).settings
+    let settings = panel.request(window.editor.text()).settings
     panel.selectViewer(.Gui)
-    Swag.assert(panel.request(window.editor.text().toString()).settings.matches(settings))
+    Swag.assert(panel.request(window.editor.text()).settings.matches(settings))
     Swag.assert(not panel.viewer!.window().isVisible())
     panel.selectViewer(.Render2D)
     panel.options.reset()

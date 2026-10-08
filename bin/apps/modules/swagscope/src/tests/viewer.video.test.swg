@@ -25,7 +25,7 @@ func countVideoLoadingChange(wnd: *Wnd)
     count[] += 1
 }
 
-func videoPreviewFile(name: string, frameCount = 4'u32)->String fail => try videoPreviewFileAt(Path.combine(Env.getSpecialDirectory(.Temp).toString(), name).toString(), frameCount)
+func videoPreviewFile(name: string, frameCount = 4'u32)->String fail => try videoPreviewFileAt(Path.combine(Env.getSpecialDirectory(.Temp), name), frameCount)
 
 // Writes a short silent movie of `frameCount` solid pictures at `fileName`.
 func videoPreviewFileAt(fileName: string, frameCount = 4'u32)->String fail
@@ -169,10 +169,10 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 // preferences and manual synchronization are available from the same track menu.
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-subtitle-%.mp4", Guid64.random()).toString())
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-subtitle-%.mp4", Guid64.random()))
     let folder   = Path.directoryName(fileName)!
     let stem     = Path.fileNameWithoutExtension(fileName)!
-    let sidecar  = Path.combine(folder, Format.toString("%.fr.srt", stem).toString())
+    let sidecar  = Path.combine(folder, Format.toString("%.fr.srt", stem))
     defer
     {
         discard catch File.delete(sidecar)
@@ -289,7 +289,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-clock-%.mp4", Guid64.random()).toString(), 12)
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-clock-%.mp4", Guid64.random()), 12)
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -336,7 +336,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-%.mp4", Guid64.random()).toString())
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-%.mp4", Guid64.random()))
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -553,7 +553,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 // answer parks it on the last picture.
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-loop-%.mp4", Guid64.random()).toString())
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-loop-%.mp4", Guid64.random()))
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -584,19 +584,19 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 // arrives starts playing on its own, which is what makes the folder a playlist.
 #test
 {
-    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope_chain_%", Guid64.random()).toString())
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope_chain_%", Guid64.random()))
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
-    discard expect videoPreviewFileAt(Path.combine(folder, "clip1.mp4").toString())
-    discard expect videoPreviewFileAt(Path.combine(folder, "clip2.mp4").toString())
-    expect File.writeAllBytes(Path.combine(folder, "notes.txt").toString(), cast(const [..] u8, "a readable line\n"))
+    discard expect videoPreviewFileAt(Path.combine(folder, "clip1.mp4"))
+    discard expect videoPreviewFileAt(Path.combine(folder, "clip2.mp4"))
+    expect File.writeAllBytes(Path.combine(folder, "notes.txt"), cast(const [..] u8, "a readable line\n"))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.openFile(Path.combine(folder, "clip1.mp4").toString(), remember: false)
+    window.openFile(Path.combine(folder, "clip1.mp4"), remember: false)
     completeViewerWindowClassification(&host, window)
     window.setPlayMode(.Folder)
 
@@ -830,7 +830,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(acquireSoundEngine(.NoSound))
     defer releaseSoundEngine()
 
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-audio-range-%.mp4", Guid64.random()).toString(), 12)
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-audio-range-%.mp4", Guid64.random()), 12)
     defer discard catch File.delete(fileName)
     let soundPath = Gui.Testing.tempFilePath("scope-video-audio-range-", ".pcm")
     defer discard catch File.delete(soundPath)
@@ -988,7 +988,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 // the order rather than what is shown.
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-queue-%.mp4", Guid64.random()).toString(), 40)
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-queue-%.mp4", Guid64.random()), 40)
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -1052,7 +1052,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
 // picture is available, so a decoder below playback speed reports its actual state.
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-resync-%.mp4", Guid64.random()).toString(), 40)
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-resync-%.mp4", Guid64.random()), 40)
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost

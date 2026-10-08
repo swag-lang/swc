@@ -770,7 +770,7 @@ private impl OpenDocumentReader
                 return
 
             .styleActive = true
-            .style       = .namedTextStyle(openDocumentAttribute(attributes, "style:parent-style-name").toString())
+            .style       = .namedTextStyle(openDocumentAttribute(attributes, "style:parent-style-name"))
             .style.name  = name
             .applyTextStyleProperties(&.style, attributes)
             return
@@ -805,7 +805,7 @@ private impl OpenDocumentReader
 
     mtd appendTextStyleStart(attributes: string)
     {
-        let style = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name").toString())
+        let style = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name"))
         .styleStack.add(style)
         if not style.fontSize.isEmpty()
         {
@@ -856,7 +856,7 @@ private impl OpenDocumentReader
 
     mtd listUsesNumbers(attributes: string)->bool
     {
-        let style = .namedListStyle(openDocumentAttribute(attributes, "text:style-name").toString())
+        let style = .namedListStyle(openDocumentAttribute(attributes, "text:style-name"))
         return style.numbered
     }
 
@@ -879,7 +879,7 @@ private impl OpenDocumentReader
 
     mtd appendBookmark(attributes: string)
     {
-        let target = .bookmarkTarget(openDocumentAttribute(attributes, "text:name").toString())
+        let target = .bookmarkTarget(openDocumentAttribute(attributes, "text:name"))
         if not target.isEmpty() do
             .appendHtml(Format.toString("<span id=\"%\"></span>", target))
     }
@@ -900,7 +900,7 @@ private impl OpenDocumentReader
 
     mtd appendParagraphAlignment(attributes: string)
     {
-        let alignment = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name").toString()).alignment
+        let alignment = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name")).alignment
         if not alignment.isEmpty()
         {
             .appendHtml(" align=\"")
@@ -1070,13 +1070,13 @@ private impl OpenDocumentReader
             else do
                 .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
             if tag.selfClosing do
-                .appendHtml(openDocumentCellValue(tag.attributes).toString())
+                .appendHtml(openDocumentCellValue(tag.attributes))
 
         case "draw:page":
             if not .slideActive
             {
                 .slideActive = true
-                .slide.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "draw:name").toString())
+                .slide.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "draw:name"))
                 .appendHtml("<article><section>")
             }
         }
@@ -1183,7 +1183,7 @@ private impl OpenDocumentReader
             if not .activeSheet
             {
                 .activeSheet = true
-                .sheet.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "table:name").toString())
+                .sheet.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes, "table:name"))
             }
 
         case "table:table-row" where .activeSheet:
@@ -1192,7 +1192,7 @@ private impl OpenDocumentReader
 
         case "table:table-cell", "table:covered-table-cell" where .activeSheet:
             .cell.clear()
-            .cellFallback = openDocumentDecodeXmlText(openDocumentCellValue(tag.attributes).toString())
+            .cellFallback = openDocumentDecodeXmlText(openDocumentCellValue(tag.attributes))
             .cellActive   = true
             .cellRepeat   = openDocumentRepeated(tag.attributes, "table:number-columns-repeated")
             if tag.selfClosing do
@@ -1482,7 +1482,7 @@ private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive
 
         var image: OpenDocumentImage
         image.path      = entry.path
-        image.uri       = Format.toString("data:image/%;base64,%", mediaType, Base64.encode(bytes.toSlice()).toString())
+        image.uri       = Format.toString("data:image/%;base64,%", mediaType, Base64.encode(bytes.toSlice()))
         image.byteCount = bytes.count
         result.add(#move image)
         total += bytes.count
@@ -1721,18 +1721,18 @@ private impl OpenDocumentViewer
             return
         if .document.kind == .Spreadsheet and .sheetIndex < .document.sheets.count
         {
-            .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex)).toString()))
+            .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex))))
             return
         }
 
         if (.document.kind == .Presentation or .document.kind == .Drawing) and .slideIndex < .document.slides.count
         {
             let details = .document.kind == .Presentation ? openDocumentStrings().ui_DetailsSlide : openDocumentStrings().ui_DetailsPage
-            .reportDetails(me, .documentDetails(Format.toString(details, .slideName(.slideIndex)).toString()))
+            .reportDetails(me, .documentDetails(Format.toString(details, .slideName(.slideIndex))))
             return
         }
 
-        .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName()).toString()))
+        .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName())))
     }
 
     // Returns the source name of a sheet, or a numbered label when the sheet has none.

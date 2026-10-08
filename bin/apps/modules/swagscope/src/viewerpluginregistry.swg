@@ -94,23 +94,23 @@ impl ViewerPluginRegistry
     mtd register(plugin: Viewer.Plugin) fail
     {
         if plugin.apiVersion != Viewer.ApiVersion do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' uses API version %, host needs %", plugin.key, plugin.apiVersion, Viewer.ApiVersion).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' uses API version %, host needs %", plugin.key, plugin.apiVersion, Viewer.ApiVersion))}
         if plugin.key.isEmpty() do
             fail InvalidFormatError{"viewer plugin key is missing"}
         if plugin.key != plugin.key.toLower() do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is not lowercase", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is not lowercase", plugin.key))}
         if plugin.staticName.isEmpty() and not plugin.resolveName do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no display name", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no display name", plugin.key))}
         if plugin.iconAtlas == null do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no icon document", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no icon document", plugin.key))}
         if plugin.create == null do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no creation callback", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no creation callback", plugin.key))}
         if plugin.smokeFixture.isEmpty() or (Path.fileName(plugin.smokeFixture) orelse "") != plugin.smokeFixture.toString() do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' needs one smoke-fixture basename", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' needs one smoke-fixture basename", plugin.key))}
         if plugin.selectors.isEmpty() and not plugin.probe do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no selector or content probe", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no selector or content probe", plugin.key))}
         for current in .plugins where current.key == plugin.key do
-            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is already registered", plugin.key).toString())}
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is already registered", plugin.key))}
         .plugins.add(#move plugin)
     }
 

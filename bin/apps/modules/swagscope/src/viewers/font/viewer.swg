@@ -67,7 +67,7 @@ private func loadFontViewerContent(fileName: string)->FontViewerContent fail
         result.details = Format.toString(fontStrings().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
     else do
         result.details = Format.toString(fontStrings().ui_DetailsCollection, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm, faceCount)
-    return #move result
+    return result
 }
 
 struct FontViewer

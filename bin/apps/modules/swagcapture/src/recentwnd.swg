@@ -444,7 +444,7 @@ impl RecentWnd
             return
         .loadDone = true
 
-        g_Library.onDeleteFile += func|self = me|(file) { self.onLibraryFileDeleted(file) }
+        g_Library.onDeleteFile += func|recent = me|(file) { recent.onLibraryFileDeleted(file) }
 
         // The recent strip needs only the newest capture names. Validating every SCC in the
         // library here would open the complete collection before the first thumbnail could

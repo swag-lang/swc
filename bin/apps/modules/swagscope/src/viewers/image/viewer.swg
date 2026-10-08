@@ -19,8 +19,7 @@ func imageViewerPlugin()->Viewer.Plugin
         .smokeFixture = "sample.svg"
     }
 
-    let formats = Image.decodableFormats()
-    for format in formats do
+    for format in Image.decodableFormats() do
         result.addSelectors(format.extensions)
     result.addSelectors(".svg")
     return result
@@ -85,7 +84,7 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         result.facts.width  = formatViewBoxExtent(result.drawing.width)
         result.facts.height = formatViewBoxExtent(result.drawing.height)
         result.facts.vector = true
-        result.information.add(.Dimensions, Format.toString("% × %", formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height)).toString())
+        result.information.add(.Dimensions, Format.toString("% × %", formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height)))
     }
     else
     {
@@ -96,11 +95,11 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         result.facts.height = Format.toString("%", frame.height)
         result.facts.bits   = frame.bitsPerPixel
         result.facts.frames = result.movie.frameCount
-        result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height).toString())
-        result.information.add(.PixelFormat, Format.toString("%", frame.pixelFormat).toString())
-        result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel).toString())
+        result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height))
+        result.information.add(.PixelFormat, Format.toString("%", frame.pixelFormat))
+        result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel))
         if result.movie.frameCount > 1 do
-            result.information.add(.Frames, Format.toString("%", result.movie.frameCount).toString())
+            result.information.add(.Frames, Format.toString("%", result.movie.frameCount))
         else do
             result.image = frame[]
 
@@ -109,7 +108,7 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
             result.movie.clear()
     }
 
-    return #move result
+    return result
 }
 
 // Writes one view-box extent the way the document authored it: a whole number stays whole.

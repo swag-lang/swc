@@ -246,7 +246,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let temp     = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
     expected += ".png"
-    let exported = Path.combine(Path.combine(temp.toString(), "Swag Capture").toString(), expected.toString())
+    let exported = Path.combine(Path.combine(temp.toString(), "Swag Capture"), expected.toString())
     Swag.assert(not File.exists(exported))
 }
 

@@ -95,7 +95,7 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     Swag.assert(document.pages[0].bounds.width > 400 and document.pages[0].bounds.height > 500)
     Swag.assert(document.pages[0].textFrameCount >= 19)
     Swag.assert(document.pages[0].items.count >= document.pages[0].textFrameCount)
-    Swag.assert(Utf8.contains(document.pages[0].html(1).toString(), "idml-page"))
+    Swag.assert(Utf8.contains(document.pages[0].html(1), "idml-page"))
     var tintedItems: u64
     var arrowLines:  u64
     for item in document.pages[0].items where item.fill == "rgb(51, 51, 51)" do

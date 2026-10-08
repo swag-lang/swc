@@ -133,7 +133,7 @@ using Core, Pixel, Gui, Gui.Testing
     g_MarkdownViewerSettings = {}
 
     // The golden shows the file name, so it is fixed rather than unique.
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "markdown-statistics.md")
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), "markdown-statistics.md")
     discard expect File.writeAllText(fileName, "Alpha beta\r\nthree\u00a0four\n")
     defer discard catch File.delete(fileName)
 

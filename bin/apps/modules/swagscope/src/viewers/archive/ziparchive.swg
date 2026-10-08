@@ -393,7 +393,7 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
         fail Errors.InvalidFormatError{archiveStrings().err_SizeMismatch}
     if Hash.Crc32.compute(plain.toSlice()) != entry.crc32 do
         fail Errors.InvalidFormatError{archiveStrings().err_Checksum}
-    return #move plain
+    return plain
 }
 
 // Writes one validated archive entry to `destination`, where an embedded file viewer opens it.

@@ -19,8 +19,7 @@ func videoViewerPlugin()->Viewer.Plugin
         .smokeFixture = "glint-aac-mjpeg.mp4"
     }
 
-    let formats = Reader.decodableFormats()
-    for format in formats do
+    for format in Reader.decodableFormats() do
         result.addSelectors(format.extensions)
     return result
 }
@@ -1182,7 +1181,7 @@ impl VideoViewer
         {
             .addItem("-1.0 s", "scope.video.subtitle.delay.minus1")
             .addItem("-0.1 s", "scope.video.subtitle.delay.minus01")
-            .addItem(strings.ui_SubtitleDelayReset, "scope.video.subtitle.delay.reset", rightName: Format.toString("%{f1} s", g_VideoSubtitleSettings.delay).toString())
+            .addItem(strings.ui_SubtitleDelayReset, "scope.video.subtitle.delay.reset", rightName: Format.toString("%{f1} s", g_VideoSubtitleSettings.delay))
             .addItem("+0.1 s", "scope.video.subtitle.delay.plus01")
             .addItem("+1.0 s", "scope.video.subtitle.delay.plus1")
         }
@@ -1812,29 +1811,29 @@ private impl VideoViewer
         var data: MediaInfoData
         data.add(.Video, group: true)
         data.add(.Format, .video.streamFormat().name)
-        data.add(.Dimensions, Format.toString("% × % px", .video.width(), .video.height()).toString())
-        data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()).toString())
+        data.add(.Dimensions, Format.toString("% × % px", .video.width(), .video.height()))
+        data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()))
         let rate = .video.frameRate()
-        data.add(.FrameRate, Format.toString("% fps", rate.framesPerSecond()).toString())
+        data.add(.FrameRate, Format.toString("% fps", rate.framesPerSecond()))
         if frames do
-            data.add(.Frames, Format.toString("%", frames).toString())
+            data.add(.Frames, Format.toString("%", frames))
         if .video.durationInSeconds() > 0 do
-            data.add(.Duration, Viewer.durationText(.video.durationInSeconds()).toString())
-        data.add(.Audio, Format.toString("%", audio).toString())
-        data.add(.Subtitles, Format.toString("%", subtitles).toString())
+            data.add(.Duration, Viewer.durationText(.video.durationInSeconds()))
+        data.add(.Audio, Format.toString("%", audio))
+        data.add(.Subtitles, Format.toString("%", subtitles))
         for index in audio
         {
             let track = .video.audioTrack(index)
             if not track do
                 continue
-            data.add(.Audio, Format.toString("%", index + 1).toString(), group: true)
+            data.add(.Audio, Format.toString("%", index + 1), group: true)
             if track.displayName().count do
                 data.add(.Name, track.displayName())
             if track.language().count do
                 data.add(.Language, track.language())
-            data.add(.Encoding, Format.toString("%", track.sampleEncoding()).toString())
-            data.add(.SampleRate, Format.toString("% Hz", track.sampleRateHz()).toString())
-            data.add(.Channels, Format.toString("%", track.numChannels()).toString())
+            data.add(.Encoding, Format.toString("%", track.sampleEncoding()))
+            data.add(.SampleRate, Format.toString("% Hz", track.sampleRateHz()))
+            data.add(.Channels, Format.toString("%", track.numChannels()))
         }
 
         for index in subtitles
@@ -1842,12 +1841,12 @@ private impl VideoViewer
             let track = .video.subtitleTrack(index)
             if not track do
                 continue
-            data.add(.Subtitles, Format.toString("%", index + 1).toString(), group: true)
+            data.add(.Subtitles, Format.toString("%", index + 1), group: true)
             if not track.name.isEmpty() do
                 data.add(.Name, track.name)
             if not track.language.isEmpty() do
                 data.add(.Language, track.language)
-            data.add(.Format, Format.toString("%", track.format).toString())
+            data.add(.Format, Format.toString("%", track.format))
         }
 
         .information.publish(&data)
@@ -1858,11 +1857,11 @@ private impl VideoViewer
     {
         .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(.video.durationInSeconds()))
         if .audio do
-            .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio).toString())
+            .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio))
 
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
-            .details = Format.toString("% · %", .details.toString(), videoPlaybackRateText(.playbackRate).toString())
+            .details = Format.toString("% · %", .details.toString(), videoPlaybackRateText(.playbackRate))
         if .reportDetails do
             .reportDetails(me, .details.toString())
     }

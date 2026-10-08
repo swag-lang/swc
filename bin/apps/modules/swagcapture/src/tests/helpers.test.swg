@@ -108,59 +108,77 @@ func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEve
 
 func testAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape
 {
-    let form = Memory.new'FormShape()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
-    form.subKind = subKind
+    with let form = Memory.new'FormShape()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+        .subKind = subKind
+    }
+
     capture.forms.add(form)
     return form
 }
 
 func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormText
 {
-    let form = Memory.new'FormText()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+    with let form = Memory.new'FormText()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+    }
+
     capture.forms.add(form)
     return form
 }
 
 func testAddCallout(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormCallout
 {
-    let form = Memory.new'FormCallout()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
-    form.tailX = x + width * 0.3
-    form.tailY = y + height + 30
+    with let form = Memory.new'FormCallout()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+        .tailX = x + width * 0.3
+        .tailY = y + height + 30
+    }
+
     capture.forms.add(form)
     return form
 }
 
 func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormStep
 {
-    let form = Memory.new'FormStep()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+    with let form = Memory.new'FormStep()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+    }
+
     capture.forms.add(form)
     return form
 }
 
 func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormLine
 {
-    let form = Memory.new'FormLine()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(xa), cast(ya), cast(s32, xb - xa), cast(s32, yb - ya))
-    form.subKind = subKind
+    with let form = Memory.new'FormLine()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(xa), cast(ya), cast(s32, xb - xa), cast(s32, yb - ya))
+        .subKind = subKind
+    }
+
     capture.forms.add(form)
     return form
 }
 
 func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormArrow
 {
-    let form = Memory.new'FormArrow()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(xa), cast(ya), cast(s32, xb - xa), cast(s32, yb - ya))
-    form.subKind = subKind
+    with let form = Memory.new'FormArrow()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(xa), cast(ya), cast(s32, xb - xa), cast(s32, yb - ya))
+        .subKind = subKind
+    }
+
     capture.forms.add(form)
     return form
 }
@@ -189,9 +207,12 @@ func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSub
 
 func testAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormImage
 {
-    let form = Memory.new'FormImage()
-    form.IForm.setup(capture)
-    form.IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+    with let form = Memory.new'FormImage()
+    {
+        .IForm.setup(capture)
+        .IForm.setBaseForm(cast(x), cast(y), cast(width), cast(height))
+    }
+
     capture.forms.add(form)
     return form
 }

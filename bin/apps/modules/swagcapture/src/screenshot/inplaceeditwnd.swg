@@ -11,6 +11,28 @@ enum InPlaceEditMode
     Marker
 }
 
+// One tool of the in-place edit bar: the mode it selects, the button id, its glyph and tooltip.
+struct InPlaceEditTool
+{
+    mode: InPlaceEditMode
+    id:   string
+    icon: CaptureIcons
+    tip:  string
+}
+
+// Returns the tools of the in-place edit bar, in the order the bar shows them.
+func inPlaceEditTools()->[7] InPlaceEditTool
+{
+    let texts = appStrings()
+    return [{.Draw, "draw", .Draw, texts.tip_InpDraw},
+            {.Line, "line", .Line, texts.tip_InpLine},
+            {.Circle, "circle", .Circle, texts.tip_InpCircle},
+            {.Rect, "rect", .Rect, texts.tip_InpRect},
+            {.Arrow, "arrow", .Arrow, texts.tip_InpArrow},
+            {.Text, "text", .Text, texts.tip_InpText},
+            {.Marker, "marker", .Highlight, texts.tip_InpMarker}]
+}
+
 struct InPlaceEditWnd
 {
     using wnd: Wnd
@@ -40,13 +62,8 @@ func captureMonitorScale(capture: *Capture)->f32
 {
     let cx = cast(f32, g_DesktopX) - capture.backImagePos.x + cast(f32, capture.width) * 0.5
     let cy = cast(f32, g_DesktopY) - capture.backImagePos.y + cast(f32, capture.height) * 0.5
-    for m in Env.getMonitors()
-    {
-        let r = m.physicalBounds
-        if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
-            return Math.max(m.scaleFactor, 1.0)
-    }
-
+    for monitor in Env.getMonitors() where monitor.physicalBounds.contains(cx, cy) do
+        return Math.max(monitor.scaleFactor, 1.0)
     return 1.0
 }
 
@@ -70,7 +87,6 @@ impl InPlaceEditWnd
         return frame
     }
 
-    // Private helper methods
     func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
         with let newMain = Wnd.create'MainWnd(main.parent, {})
@@ -111,8 +127,11 @@ impl InPlaceEditWnd
     {
         // The padding scales with the icon, or the buttons come out chunkier the further the
         // grabbed monitor sits below the surface's own scale.
-        .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
-        .actionBar.backgroundStyle = .Window
+        with .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        {
+            .backgroundStyle = .Window
+            .sigPressed      += func|editor = me|(btn) { editor.handleActionBarPress(btn.id orelse "") }
+        }
 
         let actions = [
             {"save",  ThemeIcons.Save,     appStrings().tip_InpSave},
@@ -123,29 +142,19 @@ impl InPlaceEditWnd
         let theme = .theme()
         for action in actions do
             .actionBar.addButton(theme.icon(action.item1), action.item0).toolTip = action.item2
-
-        .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id orelse ""); }
     }
 
     mtd createEditBar(main: *MainWnd)
     {
-        .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
-        .editBar.backgroundStyle = .Window
-        .editBar.setOrientation(.Vertical)
+        with .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        {
+            .backgroundStyle = .Window
+            .setOrientation(.Vertical)
+            .sigCheckedChanged += func|editor = me|(btn) { editor.handleEditModeChange(btn.id orelse "") }
+        }
 
-        let editTools = [
-            {"draw",   CaptureIcons.Draw,      appStrings().tip_InpDraw},
-            {"line",   CaptureIcons.Line,      appStrings().tip_InpLine},
-            {"circle", CaptureIcons.Circle,    appStrings().tip_InpCircle},
-            {"rect",   CaptureIcons.Rect,      appStrings().tip_InpRect},
-            {"arrow",  CaptureIcons.Arrow,     appStrings().tip_InpArrow},
-            {"text",   CaptureIcons.Text,      appStrings().tip_InpText},
-            {"marker", CaptureIcons.Highlight, appStrings().tip_InpMarker}]
-
-        for tool in editTools do
-            .editBar.addRadioButton(main.icon(tool.item1, 48), tool.item0).toolTip = tool.item2
-
-        .editBar.sigCheckedChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id orelse ""); }
+        for tool in inPlaceEditTools() do
+            .editBar.addRadioButton(main.icon(tool.icon, 48), tool.id).toolTip = tool.tip
         .createColorPicker()
     }
 
@@ -153,34 +162,35 @@ impl InPlaceEditWnd
     {
         let btnColor = .editBar.addButton({}, "color", .Popup)
 
-        btnColor.iconPainter = func|self = me|(?, bc, pos, ?)
+        btnColor.iconPainter = func|editor = me|(?, bc, pos, ?)
         {
             bc.painter.setParams(.Antialiased)
             var rect = pos
             rect.inflate(-2)
-            let color = self.editMode == .Marker ? self.editColorHilight : self.editColor
-            bc.painter.fillRoundRect(rect, 10, 10, color)
+            bc.painter.fillRoundRect(rect, 10, 10, editor.toolColor())
         }
 
-        btnColor.sigPopupRequested += func|self = me|(btn)
+        btnColor.sigPopupRequested += func|editor = me|(btn)
         {
-            let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
-            let picker = PropWnd.createColorPicker(assume cast(*IconButton, btn), color)
-            picker.sigColorChanged += func|self, picker, btn|(?)
+            let picker = PropWnd.createColorPicker(assume cast(*IconButton, btn), editor.toolColor())
+            picker.sigColorChanged += func|editor, picker, btn|(?)
             {
-                if self.editMode == .Marker do
-                    self.editColorHilight = picker.color()
+                if editor.editMode == .Marker do
+                    editor.editColorHilight = picker.color()
                 else do
-                    self.editColor = picker.color()
-                self.updateEditMode()
+                    editor.editColor = picker.color()
+                editor.updateEditMode()
                 btn.invalidate()
             }
         }
     }
 
+    // Returns the color the current tool draws with: the marker keeps a highlight color of its own.
+    mtd toolColor()->Color => .editMode == .Marker ? .editColorHilight : .editColor
+
     mtd setupCapture(capture: *Capture)
     {
-        capture.gizmo.sigHasChanged = func|self = me|() { self.moveButtons(); }
+        capture.gizmo.sigHasChanged = func|editor = me|() { editor.moveButtons() }
         .moveButtons()
         .updateEditMode()
     }
@@ -190,17 +200,19 @@ impl InPlaceEditWnd
         switch actionId
         {
         case "copy":
-            let cap = me.capture!
-            cap.crop()
-            cap.copyAll()
+            with let cap = me.capture!
+            {
+                .cropToGrab()
+                .copyAll()
+            }
+
             exitWithResult(false)
 
         case "close":
             exitWithResult(false)
 
         case "edit":
-            let cap = me.capture!
-            cap.crop()
+            .capture!.cropToGrab()
             exitWithResult(true)
 
         case "save":
@@ -211,8 +223,7 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if not fileName.isEmpty()
             {
-                let cap = me.capture!
-                cap.crop()
+                .capture!.cropToGrab()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)
             }
@@ -221,17 +232,8 @@ impl InPlaceEditWnd
 
     mtd handleEditModeChange(toolId: string)
     {
-        switch toolId
-        {
-        case "draw":   .editMode = .Draw
-        case "line":   .editMode = .Line
-        case "circle": .editMode = .Circle
-        case "rect":   .editMode = .Rect
-        case "arrow":  .editMode = .Arrow
-        case "text":   .editMode = .Text
-        case "marker": .editMode = .Marker
-        }
-
+        for tool in inPlaceEditTools() where tool.id == toolId do
+            .editMode = tool.mode
         .updateEditMode()
     }
 
@@ -239,38 +241,6 @@ impl InPlaceEditWnd
     {
         g_Exit     = true
         g_GrabDone = grabDone
-    }
-
-    func crop(capture: *Capture)
-    {
-        let grabRect = calculateGrabRect(capture)
-        capture.applyGrabRect(grabRect)
-        capture.updateCaptureState()
-    }
-
-    func calculateGrabRect(capture: *Capture)->Math.Rectangle => Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
-
-    func applyGrabRect(capture: *Capture, rect: Math.Rectangle)
-    {
-        var grabRect = rect
-
-        capture.backImg.crop(grabRect)
-        if capture.backImgOriginal.isValid() do
-            capture.backImgOriginal = capture.backImg
-    }
-
-    func updateCaptureState(capture: *Capture)
-    {
-        with capture
-        {
-            .width, .widthOrg    = cast(s32, .backImg.width)
-            .height, .heightOrg  = cast(s32, .backImg.height)
-            .backImagePos        = {}
-            .gizmo.sigHasChanged = null
-            .inPlaceEdit         = false
-            .dirtyBackImg        = true
-            .selection.clear()
-        }
     }
 
     mtd updateEditMode()
@@ -281,15 +251,8 @@ impl InPlaceEditWnd
 
     mtd updateEditBarButtons()
     {
-        let modeMap = [
-            {"draw", InPlaceEditMode.Draw}, {"line", InPlaceEditMode.Line}, {"circle", InPlaceEditMode.Circle}, {"rect", InPlaceEditMode.Rect},
-            {"arrow", InPlaceEditMode.Arrow}, {"text", InPlaceEditMode.Text}, {"marker", InPlaceEditMode.Marker}]
-
-        for m in modeMap
-        {
-            let btn = .editBar.buttonById(m.item0)!
-            btn.setChecked(.editMode == m.item1)
-        }
+        for tool in inPlaceEditTools() do
+            .editBar.buttonById(tool.id)!.setChecked(.editMode == tool.mode)
     }
 
     mtd configureMainWindowEditMode()
@@ -297,16 +260,16 @@ impl InPlaceEditWnd
         // Lengths in image pixels, authored against a 100% capture and scaled to the density
         // of the monitor grabbed: a denser monitor packs more pixels into the same content, so
         // a fixed stroke would come out thinner and thinner against what it annotates.
-        // `ARROW_END_SIZE` stays out of it — a cap size is a multiple of the pen width, which
+        // `ArrowEndSize` stays out of it — a cap size is a multiple of the pen width, which
         // already carries the scale.
         let k = .captureScale
 
-        let BORDER_SIZE      = 8 * k
-        let MARKER_SIZE      = 30 * k
-        let TEXT_SIZE        = 40 * k
-        let TEXT_BOLD        = 2 * k
-        let TEXT_BORDER_SIZE = 3 * k
-        const ARROW_END_SIZE = 5
+        let borderSize     = 8 * k
+        let markerSize     = 30 * k
+        let textSize       = 40 * k
+        let textBold       = 2 * k
+        let textBorderSize = 3 * k
+        const ArrowEndSize = 5
 
         with me.newMain
         {
@@ -314,46 +277,46 @@ impl InPlaceEditWnd
             {
             case .Draw:
                 .editMode = .Draw
-                .mdlFormDraw.borderSize  = BORDER_SIZE
+                .mdlFormDraw.borderSize  = borderSize
                 .mdlFormDraw.borderColor = me.editColor
 
             case .Line:
                 .editMode = .Line
-                .mdlFormLine.borderSize  = BORDER_SIZE
+                .mdlFormLine.borderSize  = borderSize
                 .mdlFormLine.borderColor = me.editColor
 
             case .Circle:
                 .editMode = .Shape
                 .mdlFormShape.kind        = .Ellipse
-                .mdlFormShape.borderSize  = BORDER_SIZE
+                .mdlFormShape.borderSize  = borderSize
                 .mdlFormShape.borderColor = me.editColor
                 .mdlFormShape.backColor   = 0
 
             case .Rect:
                 .editMode = .Shape
                 .mdlFormShape.kind        = .RoundRectangle
-                .mdlFormShape.borderSize  = BORDER_SIZE
+                .mdlFormShape.borderSize  = borderSize
                 .mdlFormShape.borderColor = me.editColor
                 .mdlFormShape.backColor   = 0
 
             case .Arrow:
                 .editMode = .Arrow
-                .mdlFormArrow.borderSize  = BORDER_SIZE
-                .mdlFormArrow.endSize     = ARROW_END_SIZE
+                .mdlFormArrow.borderSize  = borderSize
+                .mdlFormArrow.endSize     = ArrowEndSize
                 .mdlFormArrow.endCap      = .ArrowAnchor
                 .mdlFormArrow.borderColor = me.editColor
 
             case .Text:
                 .editMode               = .Text
-                .mdlFormText.fontSize   = TEXT_SIZE
-                .mdlFormText.borderSize = TEXT_BORDER_SIZE
+                .mdlFormText.fontSize   = textSize
+                .mdlFormText.borderSize = textBorderSize
                 .mdlFormText.text       = "A"
-                .mdlFormText.boldSize   = TEXT_BOLD
+                .mdlFormText.boldSize   = textBold
                 .mdlFormText.backColor  = me.editColor
 
             case .Marker:
                 .editMode = .Draw
-                .mdlFormDraw.borderSize  = MARKER_SIZE
+                .mdlFormDraw.borderSize  = markerSize
                 .mdlFormDraw.borderColor = me.editColorHilight.withAlpha(160)
             }
         }
@@ -408,5 +371,26 @@ impl IWnd for InPlaceEditWnd
         evt.accepted = false
         if evt.kind == .Pressed and evt.key == .Escape do
             g_Exit = true
+    }
+}
+
+// The in-place editor works on the grabbed area of the desktop; these steps turn what it shows into
+// an ordinary capture once the reader commits to it.
+impl Capture
+{
+    // Crops the capture to the area the in-place editor shows, and makes it an ordinary capture.
+    mtd cropToGrab()
+    {
+        .backImg.crop(Math.Rectangle{-.backImagePos.x, -.backImagePos.y, .width, .height})
+        if .backImgOriginal.isValid() do
+            .backImgOriginal = .backImg
+
+        .width, .widthOrg    = cast(s32, .backImg.width)
+        .height, .heightOrg  = cast(s32, .backImg.height)
+        .backImagePos        = {}
+        .gizmo.sigHasChanged = null
+        .inPlaceEdit         = false
+        .dirtyBackImg        = true
+        .selection.clear()
     }
 }

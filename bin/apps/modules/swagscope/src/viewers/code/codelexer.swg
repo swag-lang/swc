@@ -441,10 +441,7 @@ impl IRichEditLexer for GenericCodeLexer
         ed.styles[cast(u64, Style.Preprocessor)].colFg = preprocessor
     }
 
-    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool
-    {
-        return false
-    }
+    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool => false
 
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {

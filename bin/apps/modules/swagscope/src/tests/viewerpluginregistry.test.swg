@@ -139,25 +139,25 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 {
     let registry = createViewerPluginRegistry()
 
-    let markdown = registry.choices(viewerRegistryFixturePath("comprehensive.md").toString())
+    let markdown = registry.choices(viewerRegistryFixturePath("comprehensive.md"))
     Swag.assert(markdown.count == 4)
     Swag.assert(markdown[0].key == "markdown" and markdown[1].key == TextViewerKey and markdown[2].key == "binary" and markdown[3].key == "hex")
 
-    let source = registry.choices(viewerRegistryFixturePath("sample.cpp").toString())
+    let source = registry.choices(viewerRegistryFixturePath("sample.cpp"))
     Swag.assert(source[0].key == "code" and source[1].key == TextViewerKey)
 
-    let table = registry.choices(viewerRegistryFixturePath("viewer.csv").toString())
+    let table = registry.choices(viewerRegistryFixturePath("viewer.csv"))
     Swag.assert(table[0].key == "table" and table[1].key == TextViewerKey)
 
-    let subtitles = registry.choices(viewerRegistryFixturePath("viewer.srt").toString())
+    let subtitles = registry.choices(viewerRegistryFixturePath("viewer.srt"))
     Swag.assert(subtitles[0].key == "subtitle" and subtitles[1].key == TextViewerKey)
 
-    let page = registry.choices(viewerRegistryFixturePath("viewer.html").toString())
+    let page = registry.choices(viewerRegistryFixturePath("viewer.html"))
     Swag.assert(page[0].key == "html" and page[1].key == "code" and page[2].key == TextViewerKey)
 
-    for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf").toString()) do
+    for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf")) do
         Swag.assert(choice.key != TextViewerKey)
-    for choice in registry.choices(viewerRegistryFixturePath("segoeui.ttf").toString()) do
+    for choice in registry.choices(viewerRegistryFixturePath("segoeui.ttf")) do
         Swag.assert(choice.key != TextViewerKey)
 }
 
@@ -173,7 +173,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     {
         let renamed = Gui.Testing.tempFilePath("scope-sniff-", ".unknown")
         defer discard catch File.delete(renamed)
-        expect File.duplicate(renamed, viewerRegistryFixturePath(fixture).toString())
+        expect File.duplicate(renamed, viewerRegistryFixturePath(fixture))
         Swag.assert(registry.choices(renamed)[0].key == Keys[index])
     }
 }

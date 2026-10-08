@@ -872,7 +872,7 @@ impl HexGridView
         switch form
         {
         case .Dump:
-            Clipboard.addString(formatHexDump(bytes.toSlice(), start, .bytesPerRow, .offsetDigits, .displayGroupSize()).toString())
+            Clipboard.addString(formatHexDump(bytes.toSlice(), start, .bytesPerRow, .offsetDigits, .displayGroupSize()))
 
         case .Bytes:
             var text: Array'u8

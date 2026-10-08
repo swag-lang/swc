@@ -68,7 +68,7 @@ private func loadHexDocument(fileName: string)->HexDocument fail
         fail InvalidFormatError{Errors.mkString(result.failureReason)}
     if result.fileSize and not result.ensure(0, Math.min(result.fileSize, HexWindowSize)) do
         fail InvalidFormatError{Errors.mkString(result.failureReason)}
-    return #move result
+    return result
 }
 
 // Hexadecimal view of any file, whatever its size.

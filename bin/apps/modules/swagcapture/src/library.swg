@@ -152,7 +152,7 @@ impl Library
     func newFileName()->String
     {
         let t        = Time.DateTime.now()
-        var fileName = Format.toString("%_%_%_%_%_%_%", t.month, t.day, t.year, t.hour, t.minute, t.second, Guid64.random().toString())
+        var fileName = Format.toString("%_%_%_%_%_%_%", t.month, t.day, t.year, t.hour, t.minute, t.second, Guid64.random())
         fileName += CaptureFileExtension
         return Path.combine(getFolder(), fileName.toString())
     }

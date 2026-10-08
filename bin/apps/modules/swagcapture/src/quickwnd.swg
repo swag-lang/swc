@@ -203,8 +203,6 @@ func quickStyleTip(itf: IForm)->string
     case .Zoom:     return appStrings().prop_KindZoom
     case .Capture:  return appStrings().prop_KindCapture
     }
-
-    return ""
 }
 
 struct QuickWnd

@@ -103,7 +103,7 @@ using Core, Pixel, Gui
                 view.updateEstimatedHeight()
             }
 
-            Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1, Format.toString("forward=%, position=%, origin=%, height=%", forward, view.editor.scrollPosition().y, view.residentOffsetY, view.editor.loadedDocumentHeight()).toString())
+            Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1, Format.toString("forward=%, position=%, origin=%, height=%", forward, view.editor.scrollPosition().y, view.residentOffsetY, view.editor.loadedDocumentHeight()))
             Swag.assert(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
         }
 

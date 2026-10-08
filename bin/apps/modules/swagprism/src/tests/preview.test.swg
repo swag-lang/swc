@@ -94,7 +94,7 @@ using Core, Gui, Pixel
             viewer.canvas.update(&sample)
             viewer.output.hide()
             viewer.canvas.show()
-            viewer.status.setText(Format.toString(appStrings().ui_LiveStats, 1234, 12345).toString())
+            viewer.status.setText(Format.toString(appStrings().ui_LiveStats, 1234, 12345))
             window.panels[1].selectViewer(.Gui)
             for comparison in [false, true]
             {
@@ -245,7 +245,7 @@ func assertPreviewSurface(gui: bool)
     host.fireTimer(window.editTimer)
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     Swag.assert(window.editTimer == null)
-    Swag.assert(viewer.source == window.editor.text().toString())
+    Swag.assert(viewer.source == window.editor.text())
     window.editor.setFocus()
     host.sendRune(.Space, ' ')
     window.commandBar.liveEdit.setState(.Unchecked)

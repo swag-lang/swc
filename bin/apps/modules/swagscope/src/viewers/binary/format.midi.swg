@@ -38,7 +38,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
     let divisionText = midiDivisionText(division)
 
     report.beginGroup(s.midi_File, formatName, "", offset: 0, length: headerSize, open: true)
-    report.field(0, 4, s.fld_ChunkType, image.fixedTextAt(0, 4).toString())
+    report.field(0, 4, s.fld_ChunkType, image.fixedTextAt(0, 4))
     report.sizeField(4, 4, "Length", headerLength)
     report.numField(8, 2, "Format", cast(u64, format), formatName)
     report.numField(10, 2, "Tracks", cast(u64, trackCount))
@@ -74,7 +74,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
             let label = Format.toString(s.midi_Track, tracks + 1)
             trackRow = report.rows.count
             report.beginGroup(label, "", "", offset: bodyAt, length: length)
-            report.field(scan, 4, s.fld_ChunkType, image.fixedTextAt(scan, 4).toString())
+            report.field(scan, 4, s.fld_ChunkType, image.fixedTextAt(scan, 4))
             report.sizeField(scan + 4, 4, "Length", length)
         }
 

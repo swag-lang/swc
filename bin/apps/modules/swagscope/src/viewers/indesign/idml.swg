@@ -128,10 +128,10 @@ impl IdmlPage
                                       item.line ? (item.stroke.isEmpty() ? "transparent" : item.stroke) : (item.fill.isEmpty() ? "transparent" : item.fill),
                                       item.line ? 0 : item.strokeSize * factor,
                                       item.stroke.isEmpty() ? "transparent" : item.stroke,
-                                      item.oval ? "border-radius:50%" : idmlCornerCss(item, factor).toString(),
+                                      item.oval ? "border-radius:50%" : idmlCornerCss(item, factor),
                                       item.clipPath,
                                       item.imageFrame ? "padding:0" : "",
-                                      idmlTextFramePaddingCss(item, factor).toString())
+                                      idmlTextFramePaddingCss(item, factor))
             if not item.image.isEmpty()
             {
                 let imageBounds = item.imageHasBounds ? &item.imageBounds : &item.bounds
@@ -279,12 +279,12 @@ private func idmlNumber(text: string)->{ value: f32, valid: bool }
 // is not RoundedCorner stays square: bevelled and inverse corners need path rendering instead.
 private func idmlRoundedCornerRadius(tag, corner: string)->f32
 {
-    let cornerOption = idmlAttribute(tag, Format.toString("%CornerOption", corner).toString())
+    let cornerOption = idmlAttribute(tag, Format.toString("%CornerOption", corner))
     if cornerOption.count
     {
         if cornerOption != "RoundedCorner" do
             return 0
-        let radius = idmlNumber(idmlAttribute(tag, Format.toString("%CornerRadius", corner).toString()))
+        let radius = idmlNumber(idmlAttribute(tag, Format.toString("%CornerRadius", corner)))
         return radius.valid ? Math.max(radius.value, 0) : 0
     }
 
@@ -809,7 +809,7 @@ private func idmlLinkedGraphicSource(documentFileName, item: string, loaded: *u6
 
     let folder = Path.directoryName(documentFileName)
     let name   = Path.fileName(linkedPath)
-    return folder != null and name != null ? idmlLocalGraphicSource(Path.combine(folder, name).toString(), loaded) : String{}
+    return folder != null and name != null ? idmlLocalGraphicSource(Path.combine(folder, name), loaded) : String{}
 }
 
 private func idmlEntity(text: string)->rune
@@ -1021,12 +1021,12 @@ private func idmlCharacterRangeHtml(source: string, colors: const *HashTable'(St
         result += "<span style=\""
         result += idmlCharacterStyleCss(source[rangeStart until openEnd + 1], colors)
         result += "\">"
-        result += idmlEscapeHtml(idmlStoryText(source[openEnd + 1 until close]).toString())
+        result += idmlEscapeHtml(idmlStoryText(source[openEnd + 1 until close]))
         result += "</span>"
         cursor = close + ("</CharacterStyleRange>").count
     }
 
-    return result.isEmpty() ? idmlEscapeHtml(idmlStoryText(source).toString()) : result
+    return result.isEmpty() ? idmlEscapeHtml(idmlStoryText(source)) : result
 }
 
 private func idmlStoryHtml(source: string, styles: const *HashTable'(String, IdmlTextStyle), colors: const *HashTable'(String, String))->String
@@ -1059,7 +1059,7 @@ private func idmlStoryHtml(source: string, styles: const *HashTable'(String, Idm
         cursor = close + ("</ParagraphStyleRange>").count
     }
 
-    return result.isEmpty() ? idmlEscapeHtml(idmlStoryText(source).toString()) : result
+    return result.isEmpty() ? idmlEscapeHtml(idmlStoryText(source)) : result
 }
 
 private func idmlEscapeHtml(text: string)->String

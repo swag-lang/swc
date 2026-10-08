@@ -682,7 +682,7 @@ private impl IndesignViewer
         let pageCount = .pageCount()
         .previousButton.enable(.previewIndex != 0)
         .nextButton.enable(.previewIndex + 1 < pageCount)
-        .pageLabel.setText(Format.toString(indesignStrings().ui_Page, .previewIndex + 1, pageCount).toString())
+        .pageLabel.setText(Format.toString(indesignStrings().ui_Page, .previewIndex + 1, pageCount))
     }
 
     mtd refreshZoom()
@@ -878,7 +878,7 @@ private impl IndesignViewer
         .previewIndex = index
         .htmlView?.destroy()
         .markupRenderedScale      = .markupPageScale(index)
-        .htmlView = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
+        .htmlView = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale))
         .htmlView.dockStyle       = .Center
         .htmlView.backgroundStyle = .View
         .imageView.hide()
@@ -978,7 +978,7 @@ private impl IndesignViewer
         for index in .pageCount()
         {
             commands.add(Format.toString("scope.indesign.page.%", index))
-            menu.addRadioItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)).toString(), commands[index].toString(), checked: index == .previewIndex)
+            menu.addRadioItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)), commands[index].toString(), checked: index == .previewIndex)
         }
 
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)
@@ -1005,7 +1005,7 @@ private impl IndesignViewer
         if not .isMarkup() do
             return
         for page, index in .markupPages do
-            Viewer.collectTextMatches(page.html(1).toString(), text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(page.html(1), text, options, index, 0, 0, result)
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool

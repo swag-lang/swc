@@ -175,7 +175,7 @@ func inlineImageOpenDocumentXml()->String
     frames += Format.toString("<draw:frame><draw:image xlink:href='data:image/PNG;base64,%'/></draw:frame>", OpenDocumentFixtureImage)
     for 256 do
         frames += Format.toString("<draw:frame><draw:image xlink:href='data:image/png;base64,%'/></draw:frame>", OpenDocumentFixtureImage)
-    return openDocumentXml(Format.toString("<office:text><text:p>Inline raster images</text:p>%</office:text>", frames).toString())
+    return openDocumentXml(Format.toString("<office:text><text:p>Inline raster images</text:p>%</office:text>", frames))
 }
 
 func spreadsheetOpenDocumentXml()->String => openDocumentXml("<office:spreadsheet><table:table table:name=\"Budget\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell office:value=\"42\"></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Berlin</text:p></table:table-cell><table:table-cell table:formula=\"of:=SUM([.B2])\" office:value=\"58\"></table:table-cell></table:table-row></table:table><table:table table:name=\"Forecast\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Lyon</text:p></table:table-cell><table:table-cell><text:p>73</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
@@ -243,7 +243,7 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
     var repeatedRows: String
     for 25 do
         repeatedRows += "<table:table-row table:number-rows-repeated='4096'><table:table-cell office:value='1'/></table:table-row>"
-    let rowSource = openDocumentXml(Format.toString("<office:spreadsheet><table:table table:name='Bounded'>%</table:table></office:spreadsheet>", repeatedRows).toString())
+    let rowSource = openDocumentXml(Format.toString("<office:spreadsheet><table:table table:name='Bounded'>%</table:table></office:spreadsheet>", repeatedRows))
     discard catch parseOpenDocumentContent(rowSource, .Spreadsheet) as rowError
     Swag.assert(rowError != null and Utf8.contains(Errors.message(rowError), "100,000 rows"))
 
@@ -259,7 +259,7 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         var host: Testing.HeadlessHost
         host.setup(820, 560)
         defer host.shutdown()
-        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt").toString())
+        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt"))
         let view   = assume cast(*OpenDocumentViewer, result.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.html != null and Utf8.contains(view.document.html, "Document with Tables") and result.info!.isVisible())
@@ -269,7 +269,7 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         var host: Testing.HeadlessHost
         host.setup(820, 560)
         defer host.shutdown()
-        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods").toString())
+        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods"))
         let view   = assume cast(*OpenDocumentViewer, result.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.table != null and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
@@ -279,7 +279,7 @@ func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:
         var host: Testing.HeadlessHost
         host.setup(820, 560)
         defer host.shutdown()
-        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp").toString())
+        var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp"))
         let view   = assume cast(*OpenDocumentViewer, result.view)
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         Swag.assert(view.html != null and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html.toString(), "Sample Presentation") and result.info!.isVisible())

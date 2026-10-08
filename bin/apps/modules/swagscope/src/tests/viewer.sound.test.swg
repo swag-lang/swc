@@ -228,7 +228,7 @@ func markSoundOpenFailure(wnd: *Wnd, ?: string)
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "viewer.sound.preview.wav")
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), "viewer.sound.preview.wav")
     defer discard catch File.delete(fileName)
     let wav = previewWav()
     expect File.writeAllBytes(fileName, wav.toSlice())
@@ -365,7 +365,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 // first sample without leaving the playing state, and any other answer stops it.
 #test
 {
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "viewer.sound.finish.wav")
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), "viewer.sound.finish.wav")
     defer discard catch File.delete(fileName)
     let wav = previewWav()
     expect File.writeAllBytes(fileName, wav.toSlice())

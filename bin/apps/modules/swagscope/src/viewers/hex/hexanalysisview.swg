@@ -199,7 +199,7 @@ private impl HexAnalysisView
         if index >= .result.strings.count do
             return
         let value = &.result.strings[index]
-        line.setItem(0, .offsetText(value.offset).toString())
+        line.setItem(0, .offsetText(value.offset))
         line.setItem(1, .encodingName(value.kind))
         line.setItem(2, value.text)
     }
@@ -218,7 +218,7 @@ private impl HexAnalysisView
 
     mtd refreshResultText()
     {
-        .scopeLabel.setText(.scopeText(.result.range).toString())
+        .scopeLabel.setText(.scopeText(.result.range))
         if not .result.failureReason.isEmpty()
         {
             .metricsLabel.setText(.result.failureReason.toString())
@@ -322,7 +322,7 @@ impl HexAnalysisView
         .offsetDigits = offsetDigits
         .result       = {}
         .result.range = range
-        .scopeLabel.setText(.scopeText(range).toString())
+        .scopeLabel.setText(.scopeText(range))
         .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisProgress, 0'f64))
         .histogram.clear()
         .byteLabel.setText(hexStrings().ui_AnalysisByteHint)

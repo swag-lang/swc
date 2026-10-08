@@ -291,6 +291,9 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     table.free()
     Swag.assert(LastInlineBufferTextDropAddr == expectedDropAddr)
     Swag.assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
+    // Disarm the probe: a later test's argument temporaries are dropped by their caller.
+    ExpectedInlineBufferTextDropAddr   = null
+    ExpectedInlineBufferTextDropBuffer = null
 }
 
 #test
@@ -312,4 +315,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     table.free()
     Swag.assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
     Swag.assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
+    // Disarm the probe: a later test's argument temporaries are dropped by their caller.
+    ExpectedInlineBufferTextDropAddr   = null
+    ExpectedInlineBufferTextDropBuffer = null
 }

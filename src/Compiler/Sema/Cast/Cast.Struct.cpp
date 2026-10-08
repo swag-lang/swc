@@ -174,9 +174,12 @@ namespace
         return res;
     }
 
-    Result failStructFieldType(const CastAggregateArgs& ctx, std::string_view fieldName)
+    Result failStructFieldType(const CastAggregateArgs& ctx, TypeRef srcFieldTypeRef, const SymbolVariable& dstField)
     {
-        return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
+        const Result res                    = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, dstField.name(ctx.sema->ctx()));
+        ctx.castRequest->failure.optTypeRef = srcFieldTypeRef;
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_FIELD_TYPE, dstField.typeRef());
+        return res;
     }
 
     Result failStructMissingFieldNoDefault(const CastAggregateArgs& args, const SymbolVariable& field)
@@ -326,8 +329,11 @@ namespace
     {
         switch (castKind)
         {
+            // Assigning calls 'opSet' whether or not it is implicit, so a value assigned whole,
+            // such as a literal whose fields convert through 'opSet', converts the same way.
             case CastKind::Explicit:
             case CastKind::Initialization:
+            case CastKind::Assignment:
                 return true;
 
             case CastKind::Implicit:
@@ -459,7 +465,7 @@ namespace
         for (size_t i = 0; i < srcFields.size(); ++i)
         {
             if (srcFields[i]->typeRef() != dstFields[i]->typeRef())
-                return failStructFieldType(args, dstFields[i]->name(args.sema->ctx()));
+                return failStructFieldType(args, srcFields[i]->typeRef(), *dstFields[i]);
         }
 
         return Result::Continue;
@@ -550,6 +556,37 @@ namespace
                 continue;
             if (SymbolStruct::fieldRequiresExplicitInitialization(*args.sema, *field))
                 return failStructMissingFieldNoDefault(args, *field);
+        }
+
+        return Result::Continue;
+    }
+
+    // A value read from storage, a variable, a field, an element or a call result, rather than
+    // a literal whose field expressions each convert. Such a value is copied as it is.
+    bool isStoredAggregateValue(const Sema& sema, AstNodeRef nodeRef)
+    {
+        while (sema.node(nodeRef).is(AstNodeId::ParenExpr))
+            nodeRef = sema.node(nodeRef).cast<AstParenExpr>().nodeExprRef;
+
+        const AstNode& node = sema.node(nodeRef);
+        return node.is(AstNodeId::Identifier) || node.is(AstNodeId::MemberAccessExpr) || node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::CallExpr);
+    }
+
+    // A literal converts each field through its own expression. A stored value of a struct-literal
+    // type has no such expressions: at run time it is copied as it is, so like a struct it converts
+    // only to a struct whose fields have the same types. A constant value folds field by field.
+    Result checkAggregateValueFieldTypes(const CastAggregateArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
+    {
+        if (args.castRequest->constantFoldingResult().isValid() || args.castRequest->errorNodeRef.isInvalid())
+            return Result::Continue;
+        if (!isStoredAggregateValue(*args.sema, args.castRequest->errorNodeRef))
+            return Result::Continue;
+
+        for (size_t i = 0; i < srcTypes.size(); ++i)
+        {
+            const SymbolVariable& dstField = *dstFields[srcToDst[i]];
+            if (srcTypes[i] != dstField.typeRef())
+                return failStructFieldType(args, srcTypes[i], dstField);
         }
 
         return Result::Continue;
@@ -774,7 +811,7 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         SWC_RESULT(mapAggregateStructFields(ctx, srcToDst));
         SWC_RESULT(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
         SWC_RESULT(foldAggregateStructConstant(ctx, srcToDst));
-        return Result::Continue;
+        return checkAggregateValueFieldTypes(ctx, srcTypes, dstFields, srcToDst);
     }
 
     SymbolFunction* calledFn     = nullptr;

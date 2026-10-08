@@ -316,6 +316,9 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         Swag.assert(byInt.entries[1].value.marker() == 67)
         Swag.assert(byWide.entries[0].value.marker() == 94)
 
+        // 'put' copies each value it receives; the caller drops the argument it built.
+        leakResetDropProbe()
+
         leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8, &byInt.entries[1].value.storage[0]), 22)
         byInt.dropAt(1)
         leakDisarmExpectedDrop()
@@ -467,6 +470,8 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         byString.put(1, "tail", 112)
         byInt.put(1, 7, 122)
 
+        // 'put' copies each value it receives; the caller drops the argument it built.
+        leakResetDropProbe()
         byInt.dropAllLive()
         Swag.assert(LeakDropCount == 2)
         Swag.assert(LeakFirstDropAddr == cast(u64, byInt.valueAddr(0)))

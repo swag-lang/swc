@@ -77,6 +77,15 @@ namespace
         return {reinterpret_cast<const std::byte*>(view.data()), view.size()};
     }
 
+    // A byte buffer reinterpreted as a string must fold to a string constant. Keeping the source
+    // array or slice constant under the 'string' type makes every consumer that reads it as a
+    // string (lowering into storage, comparison, a struct 'opSet') see the wrong representation.
+    void foldByteStringConstant(Sema& sema, CastRequest& castRequest, std::span<const std::byte> bytes)
+    {
+        const std::string_view view{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeString(sema.ctx(), view)));
+    }
+
     void setCStringPointerConstant(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, uint64_t ptrValue)
     {
         ConstantValue ptrCst = ConstantValue::makeBlockPointer(sema.ctx(), sema.typeMgr().typeU8(), ptrValue, dstType.flags());
@@ -919,6 +928,14 @@ Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         if (srcType.payloadTypeRef() != typeMgr.typeU8())
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
+        // A null slice folds to the null string it already lowers to.
+        if (castRequest.isConstantFolding())
+        {
+            const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            if (srcCst.isSlice())
+                foldByteStringConstant(sema, castRequest, srcCst.getSlice());
+        }
+
         return Result::Continue;
     }
 
@@ -940,7 +957,16 @@ Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     if (srcType.isArray())
     {
         if (srcType.payloadArrayElemTypeRef() == typeMgr.typeU8() && srcType.payloadArrayDims().size() == 1)
+        {
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                SWC_ASSERT(srcCst.isArray());
+                foldByteStringConstant(sema, castRequest, srcCst.getArray());
+            }
+
             return Result::Continue;
+        }
     }
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

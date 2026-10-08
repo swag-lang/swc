@@ -9,8 +9,7 @@ public const ChaCha20Poly1305NonceSize = ChaCha20NonceSize
 // Size in bytes of a ChaCha20-Poly1305 authentication tag.
 public const ChaCha20Poly1305TagSize = Poly1305TagSize
 
-// Feeds one length-prefixed part of the authenticated data, padded to the
-// sixteen-byte block the tag is computed over.
+// Feeds one authenticated part, padding its end to a sixteen-byte block boundary.
 private func updatePadded(mac: *Poly1305, data: const [..] u8)
 {
     mac.update(data)
@@ -41,8 +40,8 @@ private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)
     var lengths: [16] u8
     for i in 8
     {
-        lengths[i]     = cast(u8, ((associatedData.count >> cast(u32, (i * 8))) & 0xFF))
-        lengths[8 + i] = cast(u8, ((ciphertext.count >> cast(u32, (i * 8))) & 0xFF))
+        lengths[i]     = Math.byteAt(associatedData.count, i)
+        lengths[8 + i] = Math.byteAt(ciphertext.count, i)
     }
 
     mac.update(lengths)

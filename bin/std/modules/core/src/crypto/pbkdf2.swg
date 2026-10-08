@@ -21,8 +21,8 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
     if not destination.count do
         return
 
-    const digestSize = #sizeof(HmacSha256Digest)
-    let blockCount = ((destination.count - 1) / digestSize) + 1
+    const DigestSize = #sizeof(HmacSha256Digest)
+    let blockCount = ((destination.count - 1) / DigestSize) + 1
     if blockCount > Swag.U32.Max do
         fail OverflowError{"PBKDF2 output exceeds its maximum length"}
 
@@ -36,10 +36,10 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
     {
         let blockIndex = cast(u32, block)
         let suffix     = input.count - 4
-        input[suffix + 0] = cast(u8, ((blockIndex >> 24) & 0xFF))
-        input[suffix + 1] = cast(u8, ((blockIndex >> 16) & 0xFF))
-        input[suffix + 2] = cast(u8, ((blockIndex >> 8) & 0xFF))
-        input[suffix + 3] = cast(u8, (blockIndex & 0xFF))
+        input[suffix + 0] = Math.byteAt(blockIndex, 3)
+        input[suffix + 1] = Math.byteAt(blockIndex, 2)
+        input[suffix + 2] = Math.byteAt(blockIndex, 1)
+        input[suffix + 3] = Math.byteAt(blockIndex, 0)
 
         var current = HmacSha256.compute(password, input.toSlice())
         var result  = current
@@ -49,7 +49,7 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
             accumulateDigest(result.buffer, current.buffer)
         }
 
-        let count = Math.min(destination.count - outputOffset, digestSize)
+        let count = Math.min(destination.count - outputOffset, DigestSize)
         Swag.memcpy(destination.buffer + outputOffset, &result[0], count)
         outputOffset += count
         secureClear(current)

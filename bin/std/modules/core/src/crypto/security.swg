@@ -15,10 +15,12 @@ func constantTimeEqual(left, right: const [..] u8)->bool
     var offset = 0'u64
     while left.count - offset >= 4 * VectorSize
     {
-        vectorDifference |= Math.Simd.load(left.buffer + offset) ^ Math.Simd.load(right.buffer + offset)
-        vectorDifference |= Math.Simd.load(left.buffer + offset + VectorSize) ^ Math.Simd.load(right.buffer + offset + VectorSize)
-        vectorDifference |= Math.Simd.load(left.buffer + offset + 2 * VectorSize) ^ Math.Simd.load(right.buffer + offset + 2 * VectorSize)
-        vectorDifference |= Math.Simd.load(left.buffer + offset + 3 * VectorSize) ^ Math.Simd.load(right.buffer + offset + 3 * VectorSize)
+        let leftBlock  = left.buffer + offset
+        let rightBlock = right.buffer + offset
+        vectorDifference |= Math.Simd.load(leftBlock) ^ Math.Simd.load(rightBlock)
+        vectorDifference |= Math.Simd.load(leftBlock + VectorSize) ^ Math.Simd.load(rightBlock + VectorSize)
+        vectorDifference |= Math.Simd.load(leftBlock + 2 * VectorSize) ^ Math.Simd.load(rightBlock + 2 * VectorSize)
+        vectorDifference |= Math.Simd.load(leftBlock + 3 * VectorSize) ^ Math.Simd.load(rightBlock + 3 * VectorSize)
         offset += 4 * VectorSize
     }
 

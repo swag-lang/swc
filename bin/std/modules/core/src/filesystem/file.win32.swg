@@ -26,15 +26,21 @@ internal func touchNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
 
-    let hFile = catch CreateFileW(winPath.buffer, FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
+    let handle = catch CreateFileW(winPath.buffer,
+                                   FILE_WRITE_ATTRIBUTES,
+                                   0,
+                                   null,
+                                   OPEN_EXISTING,
+                                   FILE_ATTRIBUTE_NORMAL,
+                                   null) as err
     try Errors.transformWinErrors(err, fullName)
-    defer CloseHandle(hFile)
+    defer CloseHandle(handle)
 
-    var ft: FILETIME
-    var st: SYSTEMTIME
-    GetSystemTime(&st)
-    try SystemTimeToFileTime(&st, &ft)
-    try SetFileTime(hFile, null, null, &ft)
+    var fileTime:   FILETIME
+    var systemTime: SYSTEMTIME
+    GetSystemTime(&systemTime)
+    try SystemTimeToFileTime(&systemTime, &fileTime)
+    try SetFileTime(handle, null, null, &fileTime)
 }
 
 // Returns whether `fullName` names an existing file.
@@ -54,30 +60,30 @@ func exists(fullName: string)->bool
 // Opens a Windows file handle with the requested mode, access, and sharing policy.
 internal func openNative(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileHandle fail
 {
-    var wMode: DWORD
+    var creationMode: DWORD
     switch mode
     {
-    case .Append:       wMode = OPEN_ALWAYS
-    case .Create:       wMode = CREATE_ALWAYS
-    case .CreateNew:    wMode = CREATE_NEW
-    case .Open:         wMode = OPEN_EXISTING
-    case .OpenOrCreate: wMode = OPEN_ALWAYS
-    case .Truncate:     wMode = TRUNCATE_EXISTING
+    case .Append:       creationMode = OPEN_ALWAYS
+    case .Create:       creationMode = CREATE_ALWAYS
+    case .CreateNew:    creationMode = CREATE_NEW
+    case .Open:         creationMode = OPEN_EXISTING
+    case .OpenOrCreate: creationMode = OPEN_ALWAYS
+    case .Truncate:     creationMode = TRUNCATE_EXISTING
     }
 
-    var wAccess: DWORD
+    var desiredAccess: DWORD
     if access.has(.Read) do
-        wAccess |= GENERIC_READ
+        desiredAccess |= GENERIC_READ
     if access.has(.Write) do
-        wAccess |= GENERIC_WRITE
+        desiredAccess |= GENERIC_WRITE
 
-    var wShare: DWORD
+    var shareMode: DWORD
     if share.has(.Read) do
-        wShare |= FILE_SHARE_READ
+        shareMode |= FILE_SHARE_READ
     if share.has(.Write) do
-        wShare |= FILE_SHARE_WRITE
+        shareMode |= FILE_SHARE_WRITE
     if share.has(.Delete) do
-        wShare |= FILE_SHARE_DELETE
+        shareMode |= FILE_SHARE_DELETE
 
     var security:    SECURITY_ATTRIBUTES
     var securityPtr: *SECURITY_ATTRIBUTES?
@@ -89,7 +95,13 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
     }
 
     let winPath = Utf16.toZeroTerminated(fullName)
-    let hFile   = catch CreateFileW(winPath.buffer, wAccess, wShare, securityPtr, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
+    let handle  = catch CreateFileW(winPath.buffer,
+                                    desiredAccess,
+                                    shareMode,
+                                    securityPtr,
+                                    creationMode,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    null) as err
     try Errors.transformWinErrors(err, fullName)
-    return cast(FileHandle, hFile)
+    return cast(FileHandle, handle)
 }

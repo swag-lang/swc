@@ -8,20 +8,20 @@ internal impl MappedRegion
 {
     mtd mapNative(sourceHandle: FileHandle, offset, length: u64, access: MapAccess) fail
     {
-        var protect:       DWORD
+        var protection:    DWORD
         var desiredAccess: DWORD
         switch access
         {
         case .Read:
-            protect       = PAGE_READONLY
+            protection    = PAGE_READONLY
             desiredAccess = FILE_MAP_READ
 
         case .ReadWrite:
-            protect       = PAGE_READWRITE
+            protection    = PAGE_READWRITE
             desiredAccess = FILE_MAP_WRITE
 
         case .CopyOnWrite:
-            protect       = PAGE_WRITECOPY
+            protection    = PAGE_WRITECOPY
             desiredAccess = FILE_MAP_COPY
         }
 
@@ -34,17 +34,27 @@ internal impl MappedRegion
             fail Errors.OverflowError{}
         let mappedLength = length + prefix
 
-        let mapping = try CreateFileMappingW(cast(HANDLE, sourceHandle), null, protect, 0, 0, null)
+        let mapping = try CreateFileMappingW(cast(HANDLE, sourceHandle), null, protection, 0, 0, null)
         defer if not .mapHandle do
             CloseHandle(mapping)
 
         let currentProcess = GetCurrentProcess()
         var duplicate: HANDLE
-        try DuplicateHandle(currentProcess, cast(HANDLE, sourceHandle), currentProcess, &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)
+        try DuplicateHandle(currentProcess,
+                            cast(HANDLE, sourceHandle),
+                            currentProcess,
+                            &duplicate,
+                            0,
+                            FALSE,
+                            DUPLICATE_SAME_ACCESS)
         defer if not .fileHandle do
             CloseHandle(duplicate)
 
-        let nativeView = try MapViewOfFile(mapping, desiredAccess, cast(DWORD, (alignedOffset >> 32)), cast(DWORD, alignedOffset), mappedLength)
+        let nativeView = try MapViewOfFile(mapping,
+                                           desiredAccess,
+                                           cast(DWORD, (alignedOffset >> 32)),
+                                           cast(DWORD, alignedOffset),
+                                           mappedLength)
         defer if not .nativeView do
             discard catch UnmapViewOfFile(nativeView)
 

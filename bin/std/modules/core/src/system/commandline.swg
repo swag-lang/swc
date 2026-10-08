@@ -27,11 +27,11 @@ struct(T) IsSet
     {
         #ast
         {
-            var str    = StrConv.StringBuilder{}
-            let typeof = #typeof(T)
-            for f in typeof.fields do
-                str.appendFormat("%: bool\n", f.name)
-            let generated = str.moveToString()
+            var builder: StrConv.StringBuilder
+            let typeInfo = #typeof(T)
+            for field in typeInfo.fields do
+                builder.appendFormat("%: bool\n", field.name)
+            let generated = builder.moveToString()
             return generated.toString()
         }
     }
@@ -87,37 +87,36 @@ private struct SplitArgument
 
 private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
 {
-    var allArgs: retval
+    var result: retval
 
-    // Clean all arguments
-    for it in args
+    for rawArgument in args
     {
-        let oneArg = Latin1.trim(it)
-        if not oneArg.count do
+        let argument = Latin1.trim(rawArgument)
+        if not argument.count do
             continue
 
-        if not isOption(oneArg, options)
+        if not isOption(argument, options)
         {
-            allArgs.add(SplitArgument{value: oneArg, raw: oneArg})
+            result.add(SplitArgument{value: argument, raw: argument})
             continue
         }
 
-        let split = Tokenize.splitAny(oneArg, [':'rune, '='rune], 1)
+        let split = Tokenize.splitAny(argument, [':'rune, '='rune], 1)
         if split.count == 2
         {
             let name = Latin1.trim(split[0])
-            allArgs.add(SplitArgument{value: name, raw: oneArg})
-            let other = Latin1.trim(split[1])
-            if other.count do
-                allArgs.add(SplitArgument{value: other, raw: "", attachedValue: true})
+            result.add(SplitArgument{value: name, raw: argument})
+            let value = Latin1.trim(split[1])
+            if value.count do
+                result.add(SplitArgument{value: value, raw: "", attachedValue: true})
         }
         else
         {
-            allArgs.add(SplitArgument{value: oneArg, raw: oneArg})
+            result.add(SplitArgument{value: argument, raw: argument})
         }
     }
 
-    return allArgs
+    return result
 }
 
 // Returns `args` trimmed, without empty tokens, and with every `-option:value` or `-option=value` token split in two.
@@ -177,22 +176,20 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval
 
-    for &it, idx in typeStruct.fields
+    for &field, index in typeStruct.fields
     {
-        // Test normal name (field)
-        if isSameName(it.name orelse "", name)
+        if isSameName(field.name orelse "", name)
         {
-            result.field = it
-            result.index = idx
+            result.field = field
+            result.index = index
             return result
         }
 
-        // Test name alias
-        let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(string?, null))
+        let aliasName = Reflection.attributeValue(field, ArgParams, "nameAlias", cast(string?, null))
         if aliasName != null and isSameName(aliasName orelse "", name)
         {
-            result.field = it
-            result.index = idx
+            result.field = field
+            result.index = index
             return result
         }
     }
@@ -211,78 +208,77 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result fail
 {
     #[Swag.Mixin]
-    func checkNext(typeField: typeinfo) fail
+    func requireNextValue(typeField: typeinfo) fail
     {
-        if itp + 1 == maxItp do
-            fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
+        if argumentIndex + 1 == argumentCount do
+            fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", argument))}
 
-        let nextArg = allArgs[itp + 1]
+        let nextArg = tokens[argumentIndex + 1]
         if not nextArg.attachedValue and not isValue(nextArg.value, typeField, options) do
-            fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", argument))}
     }
 
     var result: retval
 
-    // First pass
-    let allArgs = splitArgumentsEx(args, options)
+    let tokens = splitArgumentsEx(args, options)
 
-    // Parse all
-    let typeof     = #typeof(T)
-    let maxItp     = allArgs.count
-    var seenOption = false
-    for var itp = 0; itp < maxItp; itp += 1
+    // Resolve each option before writing its value.
+    let typeInfo      = #typeof(T)
+    let argumentCount = tokens.count
+    var seenOption    = false
+    for var argumentIndex = 0; argumentIndex < argumentCount; argumentIndex += 1
     {
-        var oneArg = allArgs[itp].value
-        if not isOption(oneArg, options)
+        var argument = tokens[argumentIndex].value
+        if not isOption(argument, options)
         {
             if options.capturePositionals and not seenOption
             {
-                result.positionals.add(String.from(oneArg))
+                result.positionals.add(String.from(argument))
                 continue
             }
 
             if options.captureUnknown
             {
-                result.unknown.add(String.from(allArgs[itp].raw))
+                result.unknown.add(String.from(tokens[argumentIndex].raw))
                 continue
             }
 
-            fail SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", argument))}
         }
 
         seenOption = true
 
         // One leading dash or two spell the same option, so '--name' and '-name' both reach 'name'.
-        oneArg = Tokenize.eatCount(oneArg, 1)
-        if oneArg.count and oneArg[0] == '-' do
-            oneArg = Tokenize.eatCount(oneArg, 1)
+        argument = Tokenize.eatCount(argument, 1)
+        if argument.count and argument[0] == '-' do
+            argument = Tokenize.eatCount(argument, 1)
 
-        let fieldResult = getField(typeof, oneArg)
+        let fieldResult = getField(typeInfo, argument)
         let field       = fieldResult.field
         if not field
         {
             if options.captureUnknown
             {
                 // The raw spelling already carries an attached value, so its split half is dropped.
-                result.unknown.add(String.from(allArgs[itp].raw))
-                if itp + 1 < maxItp and allArgs[itp + 1].attachedValue do
-                    itp += 1
+                result.unknown.add(String.from(tokens[argumentIndex].raw))
+                if argumentIndex + 1 < argumentCount and tokens[argumentIndex + 1].attachedValue do
+                    argumentIndex += 1
                 continue
             }
 
-            fail SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", argument))}
         }
 
-        let typeField = field.pointedType orelse #typeof(u8)
-        let addr      = cast([*] u8, st) + field.offset
+        let typeField   = field.pointedType orelse #typeof(u8)
+        let destination = cast([*] u8, st) + field.offset
 
         // Bool: Result is true if the option does not have an associated value
         if Reflection.isBool(typeField) and
-           (itp + 1 == maxItp or isOption(allArgs[itp + 1].value, options))
+           (argumentIndex + 1 == argumentCount or isOption(tokens[argumentIndex + 1].value, options))
         {
-            cast(*bool, addr)[] = true
+            cast(*bool, destination)[] = true
         }
-        // All types supported by 'Parse.pokeValue'
+        // Parse scalar values through the same reflected storage contract.
         elif typeField == #typeof(Core.String) or
              Reflection.isInteger(typeField) or
              Reflection.isFloat(typeField) or
@@ -290,60 +286,60 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
              Reflection.isRune(typeField) or
              Reflection.isEnum(typeField)
         {
-            try checkNext(typeField)
-            var rest = ""
-            catch { rest = try StrConv.parseValue(addr, typeField, allArgs[itp + 1].value) } as err
-            itp += 1
+            try requireNextValue(typeField)
+            var remaining = ""
+            catch
+            {
+                remaining = try StrConv.parseValue(destination, typeField, tokens[argumentIndex + 1].value)
+            } as err
+            argumentIndex += 1
 
-            if err != null do
-                fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
-            if rest.count do
-                fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
+            if err != null or remaining.count do
+                fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))}
         }
         // Dynamic array of values
         elif Reflection.isDynamicArray(typeField)
         {
-            let arrayType = Reflection.dynamicArrayElementType(typeField) orelse #typeof(u8)
-            try checkNext(arrayType)
+            let elementType = Reflection.dynamicArrayElementType(typeField) orelse #typeof(u8)
+            try requireNextValue(elementType)
 
-            // If it's an array of strings, we will need to add string delimiters
-            // to each value
-            let isString = arrayType == Core.String
+            let isStringElement = elementType == Core.String
 
-            // Make one single string with all values, for pokeValue
-            var collect: String
-            while itp + 1 != maxItp
+            // Quote string elements so spaces remain inside their values.
+            var collectedValues: String
+            while argumentIndex + 1 != argumentCount
             {
-                let nextArg = allArgs[itp + 1]
-                if not nextArg.attachedValue and not isValue(nextArg.value, arrayType, options) do
+                let nextArg = tokens[argumentIndex + 1]
+                if not nextArg.attachedValue and not isValue(nextArg.value, elementType, options) do
                     break
 
-                var other = nextArg.value
-                if isString
+                var value = nextArg.value
+                if isStringElement
                 {
-                    other = Tokenize.eatQuotes(other)
-                    collect.append("\"")
+                    value = Tokenize.eatQuotes(value)
+                    collectedValues.append("\"")
                 }
 
-                collect.append(other)
+                collectedValues.append(value)
 
-                if isString do
-                    collect.append("\"")
+                if isStringElement do
+                    collectedValues.append("\"")
 
-                collect.append(" ")
-                itp += 1
+                collectedValues.append(" ")
+                argumentIndex += 1
             }
 
-            if not collect.isEmpty()
+            if not collectedValues.isEmpty()
             {
-                catch { discard try StrConv.parseValue(addr, typeField, collect.toString()) } as err
+                catch { discard try StrConv.parseValue(destination, typeField, collectedValues.toString()) } as err
                 if err != null do
-                    fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
+                    fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))}
             }
         }
         else
         {
-            fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]] for option [[%]]", typeField.name, oneArg))}
+            let message = Format.toString("unsupported type [[%]] for option [[%]]", typeField.name, argument)
+            fail UnsupportedFormatError{Errors.mkString(message)}
         }
 
         // 'IsSet' holds one 'bool' per field of 'T', in field order.

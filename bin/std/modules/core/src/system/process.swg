@@ -172,7 +172,10 @@ struct Process
 // The child inherits the standard streams, the working directory and the environment of the
 // current process. Use [[Core.Env.startProcess]] with a [[Core.Env.StartInfo]] to change any
 // of that.
-func startProcess(fileName: string, arguments: string? = null)->Process fail => try startProcess(StartInfo{fileName: fileName, arguments: arguments})
+func startProcess(fileName: string, arguments: string? = null)->Process fail
+{
+    return try startProcess(StartInfo{fileName: fileName, arguments: arguments})
+}
 
 // Starts a process, waits for it to exit, and returns it with everything it produced.
 //
@@ -186,7 +189,16 @@ func startProcess(fileName: string, arguments: string? = null)->Process fail => 
 //     fail Errors.BadParameterError{"the compiler refused to answer"}
 // Swag.print(process.standardOutput())
 // ```
-func runProcess(fileName: string, arguments: string? = null)->Process fail => try runProcess(StartInfo{fileName: fileName, arguments: arguments, standardOutput: .Pipe, standardError: .Pipe})
+func runProcess(fileName: string, arguments: string? = null)->Process fail
+{
+    with var info = StartInfo{fileName: fileName, arguments: arguments}
+    {
+        .standardOutput = .Pipe
+        .standardError  = .Pipe
+    }
+
+    return try runProcess(info)
+}
 
 // Starts the process `info` describes, waits for it to exit, and returns it.
 //

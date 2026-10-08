@@ -399,6 +399,10 @@ else, judge whether naming the receiver once makes the operation easier to follo
 - Prefer `with let x = ...`, `with var x: T`, `with var result: retval`, or
   `with owner.field = ...` when the next statements configure that value. Fold a declaration
   immediately followed by `with x` into the header. End the block when configuration ends.
+- Preserve construction when introducing `with`. For a type with required fields, bind a complete
+  initializer such as `with var info = StartInfo{fileName: fileName, arguments: arguments}`,
+  then configure optional fields. Replacing an aggregate literal with `var x: T` and a few
+  assignments can leave the whole value uninitialized; `with` does not supply missing defaults.
 - Choose by coherence and repetition, not a fixed statement count. Two meaningful settings can
   belong together; one ordinary assignment usually reads better without a block. Prefer a small
   aggregate literal when it states the complete value more clearly than incremental setup.

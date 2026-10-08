@@ -198,6 +198,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
 - Prefer a named local when its name explains a unit, bound, decision, or transformation. Wrap
   when the expression already reads naturally and only needs space. Do not manufacture relay
   locals, abbreviate useful names, or add a helper merely to meet a column target.
+  For repeated accesses within a block, naming its base addresses once can reveal the relative
+  offsets, as in an unrolled SIMD comparison. Preserve load order and the guard establishing the
+  block's bounds; do not hoist the addresses or loads outside their valid scope.
 - Use a conditional expression only when the condition and both values read at a glance.
   Expand nested choices or branches with substantial work into control flow. Preserve lazy
   evaluation: do not hoist a guarded access, fallible call, or side effect out of its branch.

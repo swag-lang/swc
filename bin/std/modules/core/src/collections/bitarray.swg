@@ -1,4 +1,4 @@
-using Swag
+using Swag, Math
 
 // A resizable array of bits, stored 32 to a word.
 //
@@ -122,21 +122,23 @@ public impl BitArray
         let buffer      = .constDataPtr()
         let otherBuffer = other.constDataPtr()
         let wordCount   = .wordCount()
-        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        const VectorWords = #sizeof(Simd.U32x4) / #sizeof(u32)
         var offset = 0'u64
         while wordCount - offset >= 4 * VectorWords
         {
-            if not Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) or
-               not Math.Simd.allTrue(Math.Simd.load(buffer + offset + VectorWords) == Math.Simd.load(otherBuffer + offset + VectorWords)) or
-               not Math.Simd.allTrue(Math.Simd.load(buffer + offset + 2 * VectorWords) == Math.Simd.load(otherBuffer + offset + 2 * VectorWords)) or
-               not Math.Simd.allTrue(Math.Simd.load(buffer + offset + 3 * VectorWords) == Math.Simd.load(otherBuffer + offset + 3 * VectorWords)) do
+            let left  = buffer + offset
+            let right = otherBuffer + offset
+            if not Simd.allTrue(Simd.load(left) == Simd.load(right)) or
+               not Simd.allTrue(Simd.load(left + VectorWords) == Simd.load(right + VectorWords)) or
+               not Simd.allTrue(Simd.load(left + 2 * VectorWords) == Simd.load(right + 2 * VectorWords)) or
+               not Simd.allTrue(Simd.load(left + 3 * VectorWords) == Simd.load(right + 3 * VectorWords)) do
                 return false
             offset += 4 * VectorWords
         }
 
         while wordCount - offset >= VectorWords
         {
-            if not Math.Simd.allTrue(Math.Simd.load(buffer + offset) == Math.Simd.load(otherBuffer + offset)) do
+            if not Simd.allTrue(Simd.load(buffer + offset) == Simd.load(otherBuffer + offset)) do
                 return false
             offset += VectorWords
         }
@@ -174,7 +176,11 @@ public impl BitArray
             {
                 #scope(Down)
                 {
-                    #inject(stmt, item = cast(bool, (buffer[idx] & (1'u32 << cast(u32, bitIndex)))), index = countBits, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            item = cast(bool, (buffer[idx] & (1'u32 << cast(u32, bitIndex)))),
+                            index = countBits,
+                            break = break to Up,
+                            continue = break to Down)
                 }
 
                 countBits += 1
@@ -250,13 +256,13 @@ public impl BitArray
     {
         if not .count do
             return
-        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        const VectorWords = #sizeof(Simd.U32x4) / #sizeof(u32)
         let buffer = .dataPtr()
         let words  = .wordCount()
         var index  = 0'u64
         while words - index >= VectorWords
         {
-            Math.Simd.store(buffer + index, ~Math.Simd.load(buffer + index))
+            Simd.store(buffer + index, ~Simd.load(buffer + index))
             index += VectorWords
         }
 
@@ -279,12 +285,12 @@ public impl BitArray
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
-        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        const VectorWords = #sizeof(Simd.U32x4) / #sizeof(u32)
         let words = .wordCount()
         var index = 0'u64
         while words - index >= VectorWords
         {
-            Math.Simd.store(buffer + index, Math.Simd.load(buffer + index) & Math.Simd.load(otherBuffer + index))
+            Simd.store(buffer + index, Simd.load(buffer + index) & Simd.load(otherBuffer + index))
             index += VectorWords
         }
 
@@ -307,12 +313,12 @@ public impl BitArray
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
-        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        const VectorWords = #sizeof(Simd.U32x4) / #sizeof(u32)
         let words = .wordCount()
         var index = 0'u64
         while words - index >= VectorWords
         {
-            Math.Simd.store(buffer + index, Math.Simd.load(buffer + index) | Math.Simd.load(otherBuffer + index))
+            Simd.store(buffer + index, Simd.load(buffer + index) | Simd.load(otherBuffer + index))
             index += VectorWords
         }
 
@@ -335,12 +341,12 @@ public impl BitArray
             return
         let buffer      = .dataPtr()
         let otherBuffer = other.constDataPtr()
-        const VectorWords = #sizeof(Math.Simd.U32x4) / #sizeof(u32)
+        const VectorWords = #sizeof(Simd.U32x4) / #sizeof(u32)
         let words = .wordCount()
         var index = 0'u64
         while words - index >= VectorWords
         {
-            Math.Simd.store(buffer + index, Math.Simd.load(buffer + index) ^ Math.Simd.load(otherBuffer + index))
+            Simd.store(buffer + index, Simd.load(buffer + index) ^ Simd.load(otherBuffer + index))
             index += VectorWords
         }
 

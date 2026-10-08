@@ -72,15 +72,18 @@ namespace
         if (outerMember.nodeLeftRef.isInvalid())
             return AstNodeRef::invalid();
 
+        // A leading-dot qualifier ('.IThing.setup()' inside 'with') is substituted by the
+        // member access it stands for: the receiver is read from that resolved node.
+        const AstNodeRef   outerLeftRef  = resolvedUfcsReceiverArg(sema, outerMember.nodeLeftRef);
         const SemaNodeView outerLeftView = sema.viewTypeSymbol(outerMember.nodeLeftRef);
         if (isNestedUfcsReceiverValue(sema, outerMember.nodeLeftRef, outerLeftView))
         {
             if (outerLeftView.type() && outerLeftView.type()->isInterface())
                 return AstNodeRef::invalid();
 
-            if (sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
+            if (sema.node(outerLeftRef).is(AstNodeId::MemberAccessExpr))
             {
-                const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
+                const auto& innerMember = sema.node(outerLeftRef).cast<AstMemberAccessExpr>();
                 if ((outerLeftView.sym() && outerLeftView.sym()->isImpl()) ||
                     (outerLeftView.type() && outerLeftView.type()->isInterface()))
                 {
@@ -92,10 +95,10 @@ namespace
             return resolvedUfcsReceiverArg(sema, outerMember.nodeLeftRef);
         }
 
-        if (sema.node(outerMember.nodeLeftRef).isNot(AstNodeId::MemberAccessExpr))
+        if (sema.node(outerLeftRef).isNot(AstNodeId::MemberAccessExpr))
             return AstNodeRef::invalid();
 
-        const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
+        const auto& innerMember = sema.node(outerLeftRef).cast<AstMemberAccessExpr>();
         if (isNestedUfcsReceiverValue(sema, innerMember.nodeLeftRef))
             return resolvedUfcsReceiverArg(sema, innerMember.nodeLeftRef);
 

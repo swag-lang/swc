@@ -334,3 +334,31 @@ func semaWithNestedPrecedence()->s32
 {
     Swag.assert(semaWithNestedPrecedence() == 7)
 }
+
+interface ISemaWithQualified
+{
+    mtd attach(owner: *SemaWithOwner)
+}
+
+struct SemaWithAttached
+{
+    owner: *SemaWithOwner?
+}
+
+impl ISemaWithQualified for SemaWithAttached
+{
+    mtd impl attach(owner: *SemaWithOwner) { .owner = owner }
+}
+
+// '.ISemaWithQualified.attach()' is 'subject.ISemaWithQualified.attach()': the
+// subject is the receiver, never the first written argument.
+func semaWithQualifiedInterfaceCall(owner: *SemaWithOwner)->bool
+{
+    var attached: SemaWithAttached
+    with attached
+    {
+        .ISemaWithQualified.attach(owner)
+    }
+
+    return attached.owner == owner
+}

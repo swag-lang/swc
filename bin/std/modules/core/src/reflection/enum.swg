@@ -22,8 +22,8 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
         return null
 
     let typeEnum = assume cast(const *TypeInfoEnum, type)
-    for &it in typeEnum.values where it.name == name do
-        return it
+    for &caseInfo in typeEnum.values where caseInfo.name == name do
+        return caseInfo
     return null
 }
 
@@ -40,48 +40,48 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     var result: retval
     if not isEnum(type) or not valueAddress do
         return result
-    let safeType  = type!
-    let safeValue = valueAddress
-    let typeEnum  = assume cast(const *TypeInfoEnum, safeType)
-    let rawType   = typeEnum.rawType!
-    let isFlags   = hasAttribute(type, EnumFlags)
+    let enumTypeInfo      = type!
+    let inputValueAddress = valueAddress
+    let typeEnum          = assume cast(const *TypeInfoEnum, enumTypeInfo)
+    let rawType           = typeEnum.rawType!
+    let isFlags           = hasAttribute(type, EnumFlags)
 
-    // Get the user value, as an 'u64' or a string
-    var val1:  u64
-    var val1s: string?
+    // Read the input using the enum's underlying representation.
+    var inputBits: u64
+    var inputText: string?
     switch rawType.sizeof
     {
-    case 1:  val1 = cast(u64, cast(const *u8, safeValue)[])
-    case 2:  val1 = cast(u64, cast(const *u16, safeValue)[])
-    case 4:  val1 = cast(u64, cast(const *u32, safeValue)[])
-    case 8:  val1 = cast(u64, cast(const *u64, safeValue)[])
-    case 16: val1s = cast(const *(string?), safeValue)[]
+    case 1:  inputBits = cast(u64, cast(const *u8, inputValueAddress)[])
+    case 2:  inputBits = cast(u64, cast(const *u16, inputValueAddress)[])
+    case 4:  inputBits = cast(u64, cast(const *u32, inputValueAddress)[])
+    case 8:  inputBits = cast(u64, cast(const *u64, inputValueAddress)[])
+    case 16: inputText = cast(const *(string?), inputValueAddress)[]
     default: return result
     }
 
-    let simpleName = safeType.name
-    var covered    = 0'u64
+    let simpleName  = enumTypeInfo.name
+    var coveredBits = 0'u64
 
-    for it in typeEnum.values
+    for caseInfo in typeEnum.values
     {
-        if not it.value do
+        if not caseInfo.value do
             continue
-        let safeItValue = it.value
+        let caseValueAddress = caseInfo.value
 
-        // Get the enum value, as an 'u64' or a string
-        var val2:  u64
-        var val2s: string?
+        // Read this case using the same representation.
+        var caseBits: u64
+        var caseText: string?
         switch rawType.sizeof
         {
-        case 1:  val2 = cast(u64, cast(const *u8, safeItValue)[])
-        case 2:  val2 = cast(u64, cast(const *u16, safeItValue)[])
-        case 4:  val2 = cast(u64, cast(const *u32, safeItValue)[])
-        case 8:  val2 = cast(u64, cast(const *u64, safeItValue)[])
-        case 16: val2s = cast(const *(string?), safeItValue)[]
+        case 1:  caseBits = cast(u64, cast(const *u8, caseValueAddress)[])
+        case 2:  caseBits = cast(u64, cast(const *u16, caseValueAddress)[])
+        case 4:  caseBits = cast(u64, cast(const *u32, caseValueAddress)[])
+        case 8:  caseBits = cast(u64, cast(const *u64, caseValueAddress)[])
+        case 16: caseText = cast(const *(string?), caseValueAddress)[]
         }
 
         // For a normal enum, stop if this is a match
-        if not isFlags and val1 == val2 and val1s == val2s
+        if not isFlags and inputBits == caseBits and inputText == caseText
         {
             if fullyQualified
             {
@@ -89,16 +89,16 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
                 result += "."
             }
 
-            result += it.name
+            result += caseInfo.name
             return result
         }
 
         // For a flags enum, name a case whose bits are all set and not yet covered by earlier names.
-        let zeroMatch = val1 == 0 and val2 == 0 and result.isEmpty()
-        let bitsMatch = val2 != 0 and (val1 & val2) == val2 and (val2 & ~covered) != 0
+        let zeroMatch = inputBits == 0 and caseBits == 0 and result.isEmpty()
+        let bitsMatch = caseBits != 0 and (inputBits & caseBits) == caseBits and (caseBits & ~coveredBits) != 0
         if isFlags and (zeroMatch or bitsMatch)
         {
-            covered |= val2
+            coveredBits |= caseBits
             if not result.isEmpty() do
                 result += " | "
 
@@ -108,7 +108,7 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
                 result += "."
             }
 
-            result += it.name
+            result += caseInfo.name
         }
     }
 

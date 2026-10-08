@@ -49,15 +49,40 @@ impl ReversedOrderedMap
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &entry.key), value = cast(*V, &entry.value), index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &entry.key),
+                            value = cast(*V, &entry.value),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K, &entry.key), value = cast(const *V, &entry.value), index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = cast(const *V, &entry.value),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &entry.key), value = entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = entry.value,
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = entry.key, value = cast(const *V, &entry.value), index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = entry.key,
+                            value = cast(const *V, &entry.value),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = entry.key, value = entry.value, index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = entry.key,
+                            value = entry.value,
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
             }
         }
     }
@@ -279,15 +304,40 @@ impl OrderedMap
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &entry.key), value = cast(*V, &entry.value), index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &entry.key),
+                            value = cast(*V, &entry.value),
+                            index = entryIndex,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
-                    #inject(stmt, key = cast(const *K, &entry.key), value = cast(const *V, &entry.value), index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = cast(const *V, &entry.value),
+                            index = entryIndex,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &entry.key), value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = entry.value,
+                            index = entryIndex,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(V) do
-                    #inject(stmt, key = entry.key, value = cast(const *V, &entry.value), index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = entry.key,
+                            value = cast(const *V, &entry.value),
+                            index = entryIndex,
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = entry.key, value = entry.value, index = entryIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = entry.key,
+                            value = entry.value,
+                            index = entryIndex,
+                            break = break to Up,
+                            continue = break to Down)
             }
         }
     }

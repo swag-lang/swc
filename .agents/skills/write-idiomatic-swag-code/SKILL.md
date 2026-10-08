@@ -195,6 +195,8 @@ of a reader's brain. Apply these rules to all edited Swag code:
 - Write one operation per statement. Break a long call or declaration between arguments or
   parameters, a boolean chain between conditions, and a packed expression between components.
   Keep one meaningful item per continuation line; avoid staircases of deeply nested calls.
+  Apply this to long `#inject` calls too: expose value bindings and `break`/`continue` targets on
+  separate lines, preserving their scopes, types, order, and control targets exactly.
 - Prefer a named local when its name explains a unit, bound, decision, or transformation. Wrap
   when the expression already reads naturally and only needs space. Do not manufacture relay
   locals, abbreviate useful names, or add a helper merely to meet a column target.

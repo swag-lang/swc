@@ -38,11 +38,23 @@ impl ReversedOrderedSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &.source.keys[keyIndex]), index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &.source.keys[keyIndex]),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &.source.keys[keyIndex]), index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &.source.keys[keyIndex]),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = .source.keys[keyIndex], index = offset, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = .source.keys[keyIndex],
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
             }
         }
     }
@@ -213,11 +225,23 @@ impl OrderedSet
             #scope(Down)
             {
                 #static if ptr do
-                    #inject(stmt, key = cast(*K, &.keys[keyIndex]), index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(*K, &.keys[keyIndex]),
+                            index = keyIndex,
+                            break = break to Up,
+                            continue = break to Down)
                 elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const *K, &.keys[keyIndex]), index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = cast(const *K, &.keys[keyIndex]),
+                            index = keyIndex,
+                            break = break to Up,
+                            continue = break to Down)
                 else do
-                    #inject(stmt, key = .keys[keyIndex], index = keyIndex, break = break to Up, continue = break to Down)
+                    #inject(stmt,
+                            key = .keys[keyIndex],
+                            index = keyIndex,
+                            break = break to Up,
+                            continue = break to Down)
             }
         }
     }

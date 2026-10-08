@@ -1,4 +1,4 @@
 interface:
   display_name: "Write Idiomatic Swag"
-  short_description: "Write modern, concise, idiomatic Swag code"
-  default_prompt: "Use $write-idiomatic-swag-code to modernize this Swag code and validate the result."
+  short_description: "Write clear, readable, idiomatic Swag code"
+  default_prompt: "Use $write-idiomatic-swag-code to improve this Swag code's readability and idioms, then validate the result."

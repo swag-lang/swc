@@ -1,6 +1,6 @@
 # Campaign Prompts
 
-Seven long-running campaigns, one prompt each, ready to copy into a fresh session. They are not
+Eight campaigns, one prompt each, ready to copy into a fresh session. The first seven are not
 tasks: each one is a target that takes many rounds to reach, and each prompt is written to keep an
 agent working through the rounds instead of stopping at the first thing that does not work.
 
@@ -21,6 +21,12 @@ code-quality campaigns.
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
 | [6. Compiler code health](#6-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
 | [7. Swag code and API quality](#7-swag-code-and-api-quality) | Make all of `bin/` an exemplary showcase of idiomatic Swag |
+| [8. Swag visual readability](#8-swag-visual-readability) | Periodically review all of `bin/` for clearer layout without changing logic |
+
+Campaign 8 is a repeatable visual pass with its own narrower protocol. Campaign 7 owns semantic
+refactoring, factoring helpers, adopting `with`, and API changes; campaign 8 changes only how the
+existing code is presented. Its completion means the current inventory was reviewed, not that
+readability can be proved perfect forever.
 
 Campaigns 4 and 5 constrain each other on purpose: speed must not cost memory, and memory must not
 cost speed. They may run concurrently in separate worktrees; campaign 5 and the dedicated benchmark
@@ -1074,4 +1080,114 @@ Report the worktree and branch, reviewed areas and exclusions, meaningful before
 refactorings and simplifications, API contract changes and caller migrations, defects fixed,
 platform findings, documentation updates, and every validation command and result. Include the
 final coverage table and any remaining blockers so the whole-tree review can be verified.
+```
+
+---
+
+## 8. Swag visual readability
+
+```
+Review every project-owned Swag source under bin/ and improve its visual readability without
+changing its logic. This is a periodic presentation pass, with the separate protocol below;
+the shared protocol for campaigns 2-7 does not apply.
+
+Read AGENTS.md, modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code, and its
+references/readability.md first. Follow tools/README.md for command syntax. Keep repository
+comments and documentation in English.
+
+WORK IN ISOLATION
+
+Create a unique branch and worktree outside the main checkout from the current master commit.
+Preserve other working trees and uncommitted work. Use this worktree's compiler and outputs;
+follow load admission and the six-worker cap before every build or test. Keep SWC_BUILD_NUM
+unchanged. Keep review inventories, logs, and probes outside every checkout. Leave the result
+in the campaign worktree for review unless integration has been requested separately.
+
+INVENTORY, THEN REVIEW THE WHOLE TREE
+
+Inventory tracked .swg and .swgs files under bin/, including runtime, std, apps, examples,
+standalone scripts, module descriptors, reference sources, compiler suites, and module tests.
+Discover additional areas from the tree. Keep a coverage table with one row per file: pending,
+reviewed unchanged, changed and validated, or excluded with a precise reason. Include the
+module, outstanding concerns, and validation evidence. A search or formatter run is not review.
+
+Classify generated files, vendored files, intentional fixtures, and artifacts explicitly.
+Do not hand-edit bin/help or other generated output. Inspect its owning source where relevant.
+Preserve deliberately awkward or invalid compiler fixtures and formatter inputs; their original
+layout may be the behavior being tested. Inspect each exemption rather than exempting all tests.
+
+IMPROVE WHAT THE READER SEES
+
+  - Group related statements into paragraphs. Add one blank line when the purpose changes;
+    remove blanks that scatter one calculation, initialization, guard group, or cleanup pair.
+  - Give substantial phases a short, accurate purpose comment when it helps the reader breathe.
+    Keep the comment attached to the following code. Remove obsolete or narrating comments;
+    avoid banners, commentary quotas, and numbered descriptions of every statement.
+  - Make long statements readable by breaking at argument, parameter, condition, or component
+    boundaries. Aim near 100 columns and review lines over 120, with justified exceptions for
+    indivisible literals, meaningful data rows, and imposed signatures. Preserve every operator,
+    parenthesis, operand, and their order. Never split a string or change literal contents.
+  - Keep short, obvious accessors and delegations compact. Expand the layout of existing braced
+    bodies when signature and body together become hard to read. Do not pack substantial logic
+    onto one line merely because it is one statement or a neighbour is compact.
+  - Keep existing sibling declarations of one purpose together; separate unrelated groups.
+    Let the formatter align them. Preserve declaration order, useful names, and type boundaries.
+  - Re-read the entire function after formatting, then its neighbours and the module entry points.
+    Balance horizontal density against vertical sprawl. A lower line count is not the goal.
+
+STRICT EQUIVALENCE BOUNDARY
+
+Only whitespace, layout, and ordinary explanatory comments belong in this pass. Do not rename
+symbols, move declarations or statements, extract helpers, introduce locals or with blocks,
+rewrite => into return or vice versa, change control flow, reorder imports, or modify any API,
+type, literal, operator, cast, attribute, ownership operation, error path, or runtime behavior.
+Those may improve readability but belong in campaign 7, with their own equivalence review.
+
+Swag layout and comments can be significant. Preserve token boundaries, source-sensitive macros,
+#curlocation and line-number expectations, directive and attribute attachment, generated-code
+inputs, documentation contracts, diagnostic markers, formatter controls, and fixture text.
+An ordinary comment must not accidentally become documentation for another declaration. Keep
+literal bytes unchanged, including multiline strings. Do not assume equal non-whitespace text
+proves equivalence: newlines can affect parsing and source locations.
+
+Use names, line-length searches, and the optional readability rubric to find candidates, never
+as evidence that a function was understood. Record semantic refactoring candidates separately
+without implementing them here. If a formatter prevents a useful layout, reduce the case and
+report it for a separate formatter change instead of inserting filler to defeat it. Revert any
+edit whose equivalence is uncertain. Report concrete defects separately; do not expand this
+visual-only campaign into a behavioral repair campaign.
+
+WORK IN COHERENT BATCHES
+
+  1. Read one module or cohesive area, function by function. Mark its reading obstacles.
+  2. Apply the smallest useful visual changes and inspect the diff against the equivalence rules.
+     Keep already clear code unchanged; do not manufacture churn to demonstrate progress.
+  3. Format only the selected files with the checkout-local compiler. Inspect all resulting
+     changes and discard out-of-scope automatic rewrites. A second pass must be stable; if that
+     conflicts with preserving logic or fixture intent, leave the file and report the conflict.
+  4. Validate the smallest boundary selected by validate-swag-changes. Do not rebuild the compiler
+     for comments and whitespace alone. Exercise source-sensitive inputs when affected, and
+     review documentation output only if a comment change can reach it. Never weaken tests or
+     update an expectation merely to accept a source-location regression.
+  5. Read the formatted function again without relying on the diff. Check surrounding functions
+     and update coverage. Return to the difficult functions after a later batch to test whether
+     the new layout still reads naturally. Keep only improvements that survive that reread.
+  6. Continue through every file in the inventory. Send regular before/after examples explaining
+     the reading benefit and why logic is preserved. Report remaining coverage honestly.
+
+STOPPING CONDITION
+
+The pass is complete when every inventoried project-owned source has been reviewed or explicitly
+excluded for a concrete reason, every retained change is within the visual-only boundary,
+formatting is stable, selected checks pass, and a final reread finds no further justified visual
+improvement in scope. Do not oscillate between equally readable layouts. If a time limit is
+specified, stop at that limit and report the reviewed and unreviewed areas; elapsed time does
+not establish whole-tree coverage or perfect readability.
+
+REPORT
+
+Give the worktree and branch, coverage table, changed and unchanged areas, exclusions, several
+representative before/after examples, exact validation commands and results, and remaining
+semantic-refactoring candidates. State any incomplete coverage or uncertain case explicitly.
+Do not claim a repository-wide pass based on a sample or a formatter invocation alone.
 ```

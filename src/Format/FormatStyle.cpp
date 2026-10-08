@@ -97,7 +97,8 @@ namespace
         o.uniformBranchBodies   = true;
         o.uniformGuardBodies    = FormatAlignMode::Consecutive;
         o.uniformClosureBodies  = FormatAlignMode::AcrossBlanks;
-        o.uniformFunctionBodies = FormatAlignMode::AcrossBlanks;
+        // A neighbouring accessor is not a reason to collapse an authored function body.
+        o.uniformFunctionBodies = FormatAlignMode::None;
 
         // Statements
         o.removeRedundantSemicolons  = true;

@@ -1,6 +1,6 @@
 ---
 name: write-idiomatic-swag-code
-description: Write, review, and modernize idiomatic Swag source in `.swg` and `.swgs` files. Use whenever adding or changing Swag implementations, APIs, tests, examples, scripts, or documentation code samples; apply current language features for value returns, ownership, cleanup, inference, interfaces, control flow, collections, and failure handling.
+description: Write, review, and modernize readable, idiomatic Swag source in `.swg` and `.swgs` files. Use whenever adding or changing Swag implementations, APIs, tests, examples, scripts, or documentation code samples, including visual layout and cognitive readability reviews.
 ---
 
 # Write Idiomatic Swag Code
@@ -8,10 +8,12 @@ description: Write, review, and modernize idiomatic Swag source in `.swg` and `.
 Make every edited Swag fragment a concise, current example of the language. Fix an API that
 forces awkward callers instead of standardizing the workaround in tests and examples.
 
-Prefer the shortest clear expression of the operation. A local, a block, or a helper earns its
+Prefer the expression that takes the least effort to understand, not the fewest lines. A local, a block, or a helper earns its
 place by naming meaning, preserving an evaluation or lifetime boundary, or grouping a coherent
 action. Do not add one merely to give the next statement something to refer to. Concision is
-about removing ceremony, not hiding ownership, failure, or effects.
+about removing ceremony, not hiding ownership, failure, or effects. Judge the formatted function
+and its neighbours together: horizontal density, vertical sprawl, and jumps to helpers all cost
+attention. When those goals conflict, preserve the visible reasoning and the operation's contract.
 
 Use every Swag programming task as a probe of the whole platform. When clean Swag code is blocked
 or made needlessly awkward, investigate whether `bin/std`, the compiler, an optimization, or the
@@ -178,42 +180,55 @@ private impl Result
 }
 ```
 
-## Lay Out Statements Without a Column Budget
+## Optimize For Reading, Function By Function
 
-The canonical Swag style has no maximum line width: `column-limit` is 0. `swc format` normalizes
-the shape and indentation of the breaks you write, but it never adds a break to fit a width, and it
-can never remove one you added. Every line break inside a statement is permanent and is your
-decision, so a wrap made to satisfy an imagined column budget stays in the file forever.
+Read [references/readability.md](references/readability.md) for a visual/cognitive quality pass,
+or when choosing between a dense expression, a named step, a helper, and a multiline layout.
+It supplies concrete examples and a review rubric; its score is a heuristic, not a measurement
+of a reader's brain. Apply these rules to all edited Swag code:
 
-- Write one statement on one line. Do not split a call, a declaration, or an expression because
-  the line looks long; long lines are normal here, and the standard library and applications
-  routinely reach 180 to 220 columns.
-- Break a statement only when the break carries structure, one item per line:
-  - an argument that is a multi-row data table,
-  - a chain of `and` / `or` conditions,
-  - a chain of composed bit flags or packed byte reads.
-- Never split a conditional expression around its `?` or `:`. Put it on one line, or give the
-  condition a name.
-- When a statement is genuinely too dense to read on one line, extract a named local for the part
-  that carries meaning. A name beats a continuation line.
+- Aim for ordinary code around 100 columns including indentation. Review lines beyond 120:
+  simplify, name a meaningful intermediate value, or break at a syntactic boundary. These are
+  authoring guides, not hard limits. Keep an indivisible literal, a useful data row, or an imposed
+  signature intact when splitting it would make understanding worse. Existing long lines are
+  candidates to improve, not the style to imitate.
+- Write one operation per statement. Break a long call or declaration between arguments or
+  parameters, a boolean chain between conditions, and a packed expression between components.
+  Keep one meaningful item per continuation line; avoid staircases of deeply nested calls.
+- Prefer a named local when its name explains a unit, bound, decision, or transformation. Wrap
+  when the expression already reads naturally and only needs space. Do not manufacture relay
+  locals, abbreviate useful names, or add a helper merely to meet a column target.
+- Use a conditional expression only when the condition and both values read at a glance.
+  Expand nested choices or branches with substantial work into control flow. Preserve lazy
+  evaluation: do not hoist a guarded access, fallible call, or side effect out of its branch.
+- Keep `=>` and single-line bodies for short, obvious accessors, predicates, and delegations.
+  A single statement is not necessarily simple: a long signature plus a long expression, nested
+  calls, or mixed operators merits a block. Never compress a function solely to match a neighbour.
+- Reduce visible repetition with direct returns, declaration-bound `with`, and helpers that name
+  coherent operations. Extract a phase when its detail hides the caller's story, even if used
+  once. Keep the helper with its owner and count the extra navigation it introduces. Do not
+  replace clear local steps with chains of tiny wrappers, switches on modes, or boolean controls.
 
-```swag
-// A boolean chain earns its breaks, and the name makes the assertion readable.
-let scanned = entries.count == 24 and
-              containsEntry(entries.toSlice(), "item-0.bin") and
-              containsEntry(entries.toSlice(), "item-23.bin")
-try verify(scanned, "directory scans must return every created file")
-```
+The default formatter keeps `column-limit = 0`: it does not choose a width or simplify logic
+for the author. It keeps authored multiline statements while normalizing break placement (for
+example, bringing a call's first argument back beside its opening parenthesis), and preserves
+the choice of a block or one-line named function. Run `swc format` instead of padding
+continuations, declaration columns, or trailing comments by hand, then read its output again.
 
-Never hand-align a continuation line, a declaration column, or a trailing comment. Run
-`swc format` and let it place them; manual padding is what drifts when a neighbouring line
-changes. Follow [validate-swag-changes](../validate-swag-changes/SKILL.md) for the formatting and validation workflow.
+Branches and adjacent closures still have group layout rules: an `if` / `elif` / `else` chain
+uses `do` or braces consistently, and sibling closures can compact or expand together. Judge
+their whole group after formatting. Do not insert dummy comments or statements to defeat a pass;
+if it destroys a useful reading boundary, investigate the formatter.
 
-The formatter also reads siblings as one pattern. The branches of an `if` / `elif` / `else`
-chain all take `do` or all take braces, consecutive guards share the `do` form, closures assigned
-or passed side by side are all one-line or all expanded, and a single-statement function beside
-one-line siblings joins them. Change the shape of the whole group, not of one member: the next
-format puts a lone exception back in line.
+### Make Small Tables Out Of Real Siblings
+
+- Keep adjacent short declarations of one role together: accessors, constants, aliases, enum
+  values, or fields. Remove blank lines that scatter that one pattern; keep one blank line when
+  the purpose changes. Use a short group comment when the role is otherwise hard to see.
+- Let the formatter align the group. A long declaration may deliberately remain unaligned;
+  never shorten a meaningful name or reorder dependent declarations to force a rectangular table.
+- Compare related operations in the same order and shape when their contracts match. Keep a
+  complex sibling expanded and make exceptions visible instead of hiding them for symmetry.
 
 ## Return Values Directly
 
@@ -327,7 +342,7 @@ else, judge whether naming the receiver once makes the operation easier to follo
 - Choose by coherence and repetition, not a fixed statement count. Two meaningful settings can
   belong together; one ordinary assignment usually reads better without a block. Prefer a small
   aggregate literal when it states the complete value more clearly than incremental setup.
-- Keep an aggregate literal passed as an argument on one line. When its fields need lines of
+- Keep a small aggregate literal passed as an argument on one line when it reads easily. When its fields need lines of
   their own — a callback table, a closure with a block body — build the value in
   `with var x: T` with one `.field = value` per line, then pass `x`. A literal spread across a
   call's parentheses buries the call and every closure body in it.
@@ -366,17 +381,26 @@ host.setSearch(search)
 
 ## Group Statements and Comment the Reasons
 
-The formatter fixes structural blank lines; it cannot see meaning. Both are the author's job.
+Use blank lines as paragraph boundaries. The formatter fixes structural spacing; only the
+author can group by meaning. Reduce both walls of code and unrelated fragments spread far apart.
 
 - Separate the phases of a function body with one blank line — validate, acquire, transform,
-  publish. Keep the lines of one phase together, and never blank-separate a run of assignments
-  that describe a single value.
+  publish. Keep the lines of one phase together. Keep a resource acquisition with its `defer`,
+  a calculation with its immediate use, a guard with the operation it protects, and assignments
+  describing one value together. Separate a guard group from the main operation when that makes
+  the transition clearer; do not add a blank line after every declaration or early exit.
 - Do not open or close a block with a blank line, and never use two blank lines to group.
-- Comment why, not what. `// Increments the counter` above `count += 1` is noise; the invariant
-  that makes the increment safe is not.
+- Use short comments as reading landmarks for substantial phases, even when no subtle trick is
+  involved: `// Resolve names before publishing the entries.` gives the next paragraph a purpose.
+  Put one blank line before the comment and keep it attached to its code. Avoid banners, numbered
+  narration, and repetitive labels such as `// Loop` or `// Set values`.
+- Explain reasons and invariants where needed. `// Increments the counter` above `count += 1`
+  is noise; the invariant that makes the increment safe is not. Try clearer names or structure
+  before adding a comment that translates an opaque expression into English.
 - Every public declaration, every non-obvious constant, and every rollback, retry, ordering
   constraint, or security property deserves a sentence. State the constraint, not the mechanism.
-- Put a short comment above a phase when its purpose is not evident from the code it contains.
+- Do not add comments or blank lines to meet a quota. Remove stale comments and comments that
+  repeat a newly extracted helper's name. A small obvious function usually needs neither.
 
 ## Use Direct Control and Data Flow
 
@@ -395,8 +419,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
   is the intent.
 - Make switches exhaustive. Do not append an unreachable dummy return solely to satisfy an old
   control-flow pattern when the current compiler proves all cases.
-- Use expression-bodied functions for one direct expression, but keep blocks when validation,
-  ownership, or failure behavior deserves to remain visible.
+- Use expression-bodied functions when the whole declaration reads easily, not merely when it
+  contains one expression. Keep blocks when reasoning, ownership, or failure deserves more space.
 - Every local, parameter, and capture is used, or the compiler rejects it. A parameter the body
   ignores is spelled `?` (`func(?, index)`, `mtd impl onPaint(?: *PaintEvent) {}`); a loop that
   does not read its index has no name (`for 3`, `parallel for |c| 8`), and an unread position is
@@ -462,11 +486,17 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 
 1. Search again for the obsolete spelling or pattern across the entire repository.
    For a broad cleanup, review relay locals, guarded one-call receivers, separate declaration /
-   `with` pairs, repeated configuration prefixes, trivial return bodies, and redundant modifier
-   nesting throughout `bin/`. Search identifies candidates; it does not authorize a blind rewrite.
+   `with` pairs, repeated configuration prefixes, dense one-liners, long expressions, redundant
+   modifier nesting, and scattered sibling declarations throughout the selected modules. Search
+   identifies candidates; it does not authorize a blind rewrite or a repository-wide rewrite
+   beyond the requested scope.
 2. Compile early after representative migrations; do not assume a conversion or lifetime rule.
 3. Run the smallest sufficient validation selected by
    [validate-swag-changes](../validate-swag-changes/SKILL.md) for the final
    combined behavior.
-4. Capture newly proven idioms or pitfalls in this skill. Keep rules concise and backed by code
+4. Read each changed function after formatting, then the file and its related module entry points.
+   Can a reader see the purpose, phases, decisions, effects, and result without mentally expanding
+   expressions or chasing trivial helpers? Check the weakest function, not just average line length.
+   Preserve evaluation order, short-circuiting, borrowing, ownership, cleanup, and test intent.
+5. Capture newly proven idioms or pitfalls in this skill. Keep rules concise and backed by code
    that the current compiler accepts.

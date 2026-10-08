@@ -325,7 +325,7 @@ SWC_TEST_BEGIN(FormatUniform_ClosureItemsOfOneListExpandTogether)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatUniform_FunctionsJoinTheirOneLineSiblings)
+SWC_TEST_BEGIN(FormatUniform_ExplicitFunctionGroupingJoinsOneLineSiblings)
 {
     static constexpr std::string_view SOURCE =
         "impl A\n"
@@ -355,7 +355,9 @@ SWC_TEST_BEGIN(FormatUniform_FunctionsJoinTheirOneLineSiblings)
         "    mtd size()->u64 => 4\n"
         "}\n";
 
-    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, swagStyle());
+    FormatOptions options         = swagStyle();
+    options.uniformFunctionBodies = FormatAlignMode::AcrossBlanks;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

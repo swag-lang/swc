@@ -32,6 +32,41 @@ SWC_TEST_BEGIN(FormatStyle_PreserveNormalizesNothing)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagKeepsExpandedFunctionsBesideOneLiners)
+{
+    static constexpr std::string_view SOURCE =
+        "func empty()->bool => false\n"
+        "\n"
+        "func contains(offset, count, size: u64)->bool\n"
+        "{\n"
+        "    return offset <= size and count <= size - offset\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatStyle_SwagKeepsExpandedMethodsBesideOneLiners)
+{
+    static constexpr std::string_view SOURCE =
+        "impl Buffer\n"
+        "{\n"
+        "    mtd count()->u64 => .size\n"
+        "\n"
+        "    mtd clear()\n"
+        "    {\n"
+        "        .storage.release()\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStyle_DefaultOptionsArePreserve)
 {
     // The struct's own defaults have to stay the passive style: every test in

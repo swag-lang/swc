@@ -234,10 +234,12 @@ place and keep its identifier.
 2. Read [../write-swag-compiler-messages/SKILL.md](../write-swag-compiler-messages/SKILL.md) before changing any English text emitted to users.
 3. Inspect nearby code and tests before deciding where the change belongs.
 4. Preserve unrelated working-tree changes.
-5. Before finishing Swag changes, review the edited code for needless ceremony using
+5. Before finishing Swag changes, review the formatted code for reading effort as well as needless ceremony using
    [write-idiomatic-swag-code](../write-idiomatic-swag-code/SKILL.md): direct receivers and returns,
-   optional calls, declaration-bound `with`, expression bodies, and flat modifier groups. Keep
-   names and scopes that carry meaning or preserve evaluation, ownership, or the tested syntax.
+   optional calls, declaration-bound `with`, readable expression bodies, and flat modifier groups.
+   Check logical paragraphs, dense expressions, useful phase comments, and coherent sibling groups
+   function by function, then at module level. Fewer lines alone are not an improvement. Keep names
+   and scopes that carry meaning or preserve evaluation, ownership, or the tested syntax.
 
 ## Add Tests At The Correct Boundary
 

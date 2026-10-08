@@ -92,7 +92,7 @@ impl BackgroundLoad
         let operation = me
         .task.submit(func|operation|()
         {
-            operation.value = catch operation.load(operation.fileName.toString()) as loadError
+            operation.value = catch operation.load(operation.fileName) as loadError
             operation.error = Errors.message(loadError)
         })
     }

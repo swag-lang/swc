@@ -188,14 +188,21 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
 //
 // `tail` is the mapped end of the file starting at `tailOffset`, and `endAt` locates the end
 // record inside it. A saturated field sends the lookup through the ZIP64 locator and end record.
-private func zipDirectoryLocation(file: *File.MappedFile, tailOffset: u64, tail: const [..] u8, endAt: u64)->{ offset, size, count: u64 } fail
+private func zipDirectoryLocation(file: *File.MappedFile,
+                                  tailOffset: u64,
+                                  tail: const [..] u8,
+                                  endAt: u64)->{ offset, size, count: u64 } fail
 {
-    var result: retval
-    result.count  = cast(u64, try zipU16(tail, endAt + 10))
-    result.size   = cast(u64, try zipU32(tail, endAt + 12))
-    result.offset = cast(u64, try zipU32(tail, endAt + 16))
+    with var result: retval
+    {
+        .count  = cast(u64, try zipU16(tail, endAt + 10))
+        .size   = cast(u64, try zipU32(tail, endAt + 12))
+        .offset = cast(u64, try zipU32(tail, endAt + 16))
+    }
 
-    if result.count != ZipValue16Overflow and result.size != ZipValue32Overflow and result.offset != ZipValue32Overflow do
+    if result.count != ZipValue16Overflow and
+       result.size != ZipValue32Overflow and
+       result.offset != ZipValue32Overflow do
         return result
     if tailOffset + endAt < 20 do
         fail Errors.InvalidFormatError{archiveStrings().err_Zip64Locator}
@@ -236,6 +243,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     if fileSize < 22 do
         fail Errors.InvalidFormatError{archiveStrings().err_TooShort}
 
+    // Search backward for an end record that accounts for the trailing comment.
     let tailSize   = Math.min(fileSize, ZipEndSearch)
     let tailOffset = fileSize - tailSize
     let tail       = try file.map(tailOffset, tailSize)
@@ -269,6 +277,7 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     if commentLength do
         result.comment = zipText(bytes[endAt + 22 until endAt + 22 + commentLength], true)
 
+    // Validate the directory bounds before mapping its entries.
     let directory = try zipDirectoryLocation(&file, tailOffset, bytes, endAt)
     if directory.count > ZipEntryLimit do
         fail Errors.UnsupportedFormatError{archiveStrings().err_TooManyEntries}
@@ -294,12 +303,15 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         if totalLength > data.count - at do
             fail Errors.InvalidFormatError{archiveStrings().err_EntryOverflow}
 
-        var entry: ZipEntry
-        entry.flags            = try zipU16(data, at + 8)
-        entry.method           = try zipU16(data, at + 10)
-        entry.crc32            = try zipU32(data, at + 16)
-        entry.compressedSize   = cast(u64, try zipU32(data, at + 20))
-        entry.uncompressedSize = cast(u64, try zipU32(data, at + 24))
+        with var entry: ZipEntry
+        {
+            .flags            = try zipU16(data, at + 8)
+            .method           = try zipU16(data, at + 10)
+            .crc32            = try zipU32(data, at + 16)
+            .compressedSize   = cast(u64, try zipU32(data, at + 20))
+            .uncompressedSize = cast(u64, try zipU32(data, at + 24))
+        }
+
         var diskNumber = cast(u64, try zipU16(data, at + 34))
         entry.localOffset = cast(u64, try zipU32(data, at + 42))
 
@@ -318,10 +330,14 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         }
 
         let external = try zipU32(data, at + 38)
-        entry.isDirectory = (nameBytes.count and (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)) or cast(bool, external & 0x10)
+        let hasDirectorySuffix = nameBytes.count and
+                                 (nameBytes[nameBytes.count - 1] == '/'u8 or
+                                  nameBytes[nameBytes.count - 1] == '\\'u8)
+        entry.isDirectory = hasDirectorySuffix or cast(bool, external & 0x10)
         if not entry.isDirectory
         {
-            if entry.compressedSize > Swag.U64.Max - result.compressedSize or entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
+            if entry.compressedSize > Swag.U64.Max - result.compressedSize or
+               entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
                 fail Errors.InvalidFormatError{archiveStrings().err_EntrySizes}
             result.compressedSize   += entry.compressedSize
             result.uncompressedSize += entry.uncompressedSize

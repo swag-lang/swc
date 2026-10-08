@@ -107,7 +107,9 @@ impl MidiDocument
         if .keySignatures.isEmpty() do
             return Format.toString("C %", midiStrings().ui_Major)
         let key = &.keySignatures[0]
-        return Format.toString("% %", midiKeySignatureName(key.sharps), key.minor ? midiStrings().ui_Minor : midiStrings().ui_Major)
+        return Format.toString("% %",
+                               midiKeySignatureName(key.sharps),
+                               key.minor ? midiStrings().ui_Minor : midiStrings().ui_Major)
     }
 
     // Returns the first tempo in beats per minute, or 120 when the file declares none.
@@ -128,7 +130,12 @@ private struct MidiVlq
 
 private func midiHas(bytes: const [..] u8, offset, count: u64)->bool => offset <= bytes.count and count <= bytes.count - offset
 
-private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool => midiHas(bytes, offset, value.count) and Slice.equals(bytes[offset until offset + value.count], cast(const [..] u8, value))
+private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool
+{
+    if not midiHas(bytes, offset, value.count) do
+        return false
+    return Slice.equals(bytes[offset until offset + value.count], cast(const [..] u8, value))
+}
 
 private func midiU16(bytes: const [..] u8, offset: u64)->u16 => Math.make16(bytes[offset], bytes[offset + 1])
 
@@ -205,6 +212,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         if scan >= end do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
 
+        // A data byte reuses the previous channel status.
         let first = bytes[scan]
         var status: u8
         if first & 0x80
@@ -222,6 +230,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
 
         if status < 0xF0
         {
+            // Channel messages carry one or two data bytes.
             running = status
             let kind  = status >> 4
             let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
@@ -257,6 +266,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         }
         elif status == 0xFF
         {
+            // Meta events carry a kind and a variable-length payload.
             running = 0
             if scan >= end do
                 fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
@@ -272,7 +282,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                 track.name = midiText(bytes, body, length.value)
 
             case 0x51 where length.value == 3:
-                let micros = (cast(u32, bytes[body]) << 16) | (cast(u32, bytes[body + 1]) << 8) | cast(u32, bytes[body + 2])
+                let micros = Math.make32(0, bytes[body], bytes[body + 1], bytes[body + 2])
                 if micros do
                     document.tempos.add({tick, micros})
 
@@ -281,13 +291,15 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
 
             case 0x59 where length.value == 2:
                 let encoded = cast(s32, bytes[body])
-                document.keySignatures.add({tick, encoded >= 128 ? encoded - 256 : encoded, bytes[body + 1] != 0})
+                let sharps  = encoded >= 128 ? encoded - 256 : encoded
+                document.keySignatures.add({tick, sharps, bytes[body + 1] != 0})
             }
 
             scan = body + length.value
         }
         elif status == 0xF0 or status == 0xF7
         {
+            // Skip system-exclusive data and clear the running status.
             running = 0
             let length = midiVlq(bytes, scan, end)
             if not length.valid or length.value > end - length.next do
@@ -335,12 +347,14 @@ private func computeMidiDuration(document: *MidiDocument)
     var micros = 500_000'u64
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
-        document.durationSeconds += cast(f64, tempo.tick - previous) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
+        document.durationSeconds += cast(f64, tempo.tick - previous) * cast(f64, micros) /
+                                    (cast(f64, quarter) * 1_000_000)
         previous = tempo.tick
         micros   = tempo.microsPerQuarter
     }
 
-    document.durationSeconds += cast(f64, document.durationTicks - previous) * cast(f64, micros) / (cast(f64, quarter) * 1_000_000)
+    document.durationSeconds += cast(f64, document.durationTicks - previous) * cast(f64, micros) /
+                                (cast(f64, quarter) * 1_000_000)
 }
 
 // Loads and parses a Standard MIDI File.

@@ -145,6 +145,11 @@ which block is being reversed. Establish a channel-pair representation once at i
 boundary when every later use needs that same bit view. Preserve lane widths, load/store order,
 and scalar-tail arithmetic; verify both complete vector blocks and representative tail lengths.
 
+When a vector loop reads farther than it advances, explain both widths once beside the guard.
+For example, a 16-byte PCM24 load requires six available three-byte samples even when its shuffle
+produces only four output samples. Name source bytes and output samples distinctly, and retain
+tests around that threshold and odd destination capacities.
+
 For a simulation, name the state and its rate separately: `angle` and `angularVelocity` explain
 more than numbered abbreviations. Name a damping multiplier after the value it retains, rather
 than implying that it is the amount removed. Keep familiar coordinates and short coefficients

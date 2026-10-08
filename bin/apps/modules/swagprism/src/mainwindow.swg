@@ -264,6 +264,16 @@ impl MainWindow
         .retranslate()
     }
 
+    // One native build can print the inspected function and run the same program: the microcode
+    // request takes the kind of the native one, which inspects the same stage when both compile
+    // the same program.
+    func shareNativeBuild(microcode, native: *Pipeline.BuildRequest)
+    {
+        microcode.kind = native.kind
+        if microcode.sameProgram(native[]) do
+            native.stage = microcode.stage
+    }
+
     // Only visible viewers receive the source snapshot; the hidden comparison keeps its result.
     mtd compile(force = false)
     {
@@ -278,19 +288,10 @@ impl MainWindow
             requests[index] = panel.request(source)
         if .comparisonEnabled
         {
-            // One native build can print the inspected function and run the same program.
-            if requests[0].kind == .Microcode and requests[1].kind != .Microcode
-            {
-                requests[0].kind = requests[1].kind
-                if requests[0].sameProgram(requests[1]) do
-                    requests[1].stage = requests[0].stage
-            }
-            elif requests[1].kind == .Microcode and requests[0].kind != .Microcode
-            {
-                requests[1].kind = requests[0].kind
-                if requests[0].sameProgram(requests[1]) do
-                    requests[0].stage = requests[1].stage
-            }
+            if requests[0].kind == .Microcode and requests[1].kind != .Microcode do
+                shareNativeBuild(&requests[0], &requests[1])
+            elif requests[1].kind == .Microcode and requests[0].kind != .Microcode do
+                shareNativeBuild(&requests[1], &requests[0])
         }
 
         for panel, index in .panels where index == 0 or .comparisonEnabled do
@@ -494,12 +495,12 @@ impl IWnd for MainWindow
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged
+        switch evt.kind
         {
+        case .LanguageChanged:
             .retranslate()
-        }
-        elif evt.kind == .ThemeChanged
-        {
+
+        case .ThemeChanged:
             .layoutButton.setIcon(.icon(.Layout))
             .commandBar.runButton.setIcon(.theme().icon(.Play, 18))
             .commandBar.formatButton.setIcon(.icon(.Format))

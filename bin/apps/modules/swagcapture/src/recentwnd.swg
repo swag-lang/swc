@@ -571,11 +571,14 @@ impl RecentWnd
             }
         }
 
-        let item = .recentView.items.allocate()
-        item.preview        = .app().renderer.addImage(preview)
-        item.file           = file
-        item.linked         = linked
-        item.linkedUpToDate = linkedUpToDate
+        with let item = .recentView.items.allocate()
+        {
+            .preview        = me.app().renderer.addImage(preview)
+            .file           = file
+            .linked         = linked
+            .linkedUpToDate = linkedUpToDate
+        }
+
         if front
         {
             if .recentView.selected < .recentView.items.count do

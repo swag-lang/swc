@@ -533,12 +533,15 @@ impl Capture
         .editView         = view
         .gizmo.sigChanged = func|capture = me|(g, ?, ?)
         {
-            let editView = capture.editView!
-            var undo     = capture.newUndo(.MoveCapture)
-            undo.newPosX  = cast(s32, ((g.rect.x - g.movingRect.x) / editView.zoom))
-            undo.newPosY  = cast(s32, ((g.rect.y - g.movingRect.y) / editView.zoom))
-            undo.newSizeX = cast(s32, ((g.movingRect.width - g.rect.width) / editView.zoom))
-            undo.newSizeY = cast(s32, ((g.movingRect.height - g.rect.height) / editView.zoom))
+            let editView  = capture.editView!
+            with let undo = capture.newUndo(.MoveCapture)
+            {
+                .newPosX  = cast(s32, ((g.rect.x - g.movingRect.x) / editView.zoom))
+                .newPosY  = cast(s32, ((g.rect.y - g.movingRect.y) / editView.zoom))
+                .newSizeX = cast(s32, ((g.movingRect.width - g.rect.width) / editView.zoom))
+                .newSizeY = cast(s32, ((g.movingRect.height - g.rect.height) / editView.zoom))
+            }
+
             capture.pushUndo(undo)
             editView.invalidate()
         }

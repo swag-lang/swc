@@ -213,12 +213,12 @@ impl IWnd for ViewerPanel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged
+        switch evt.kind
         {
+        case .LanguageChanged:
             .retranslate()
-        }
-        elif evt.kind == .ThemeChanged
-        {
+
+        case .ThemeChanged:
             .optionsButton.setIcon(.theme().icon(.Options, 18))
             .refreshPlayback()
         }

@@ -55,12 +55,15 @@ impl VolumeCopy
                 .files += 1
             }
 
-            let copied = .target.nodeById(id)!
-            copied.attributes     = node.attributes
-            copied.creationTime   = node.creationTime
-            copied.lastAccessTime = node.lastAccessTime
-            copied.lastWriteTime  = node.lastWriteTime
-            copied.changeTime     = node.changeTime
+            with let copied = .target.nodeById(id)!
+            {
+                .attributes     = node.attributes
+                .creationTime   = node.creationTime
+                .lastAccessTime = node.lastAccessTime
+                .lastWriteTime  = node.lastWriteTime
+                .changeTime     = node.changeTime
+            }
+
             .target.touch(id)
             try .target.commit()
         }

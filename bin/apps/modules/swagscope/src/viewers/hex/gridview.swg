@@ -1161,12 +1161,12 @@ impl IWnd for GridView
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged do
-            .refreshLayout()
-        elif evt.kind == .LanguageChanged do
-            .invalidate()
-        else do
-            evt.accepted = false
+        switch evt.kind
+        {
+        case .ThemeChanged:    .refreshLayout()
+        case .LanguageChanged: .invalidate()
+        default: evt.accepted = false
+        }
     }
 
     mtd impl onFocusEvent(evt: *FocusEvent)

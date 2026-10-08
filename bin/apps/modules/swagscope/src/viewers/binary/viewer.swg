@@ -865,19 +865,18 @@ impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged
+        switch evt.kind
         {
+        case .LanguageChanged:
             .retranslate()
             .requestLanguageReload()
-        }
-        elif evt.kind == .ThemeChanged
-        {
+
+        case .ThemeChanged:
             for line, index in .rowLines where line do
                 .styleLine(index, line)
             .list.invalidate()
-        }
-        else
-        {
+
+        default:
             evt.accepted = false
         }
     }

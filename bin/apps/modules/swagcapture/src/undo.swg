@@ -545,16 +545,14 @@ impl Undo
                 let r = itf.boundRect()
 
                 var delta: s32
-                if .kind == .AlignLeft or .kind == .AlignTop do
-                    delta = .minP
-                elif .kind == .AlignRight do
-                    delta = .maxP - cast(s32, r.width)
-                elif .kind == .AlignBottom do
-                    delta = .maxP - cast(s32, r.height)
-                elif .kind == .AlignCenter do
-                    delta = (.maxP + .minP) / 2 - (cast(s32, r.width) / 2)
-                else do
-                    delta = (.maxP + .minP) / 2 - (cast(s32, r.height) / 2)
+                switch .kind
+                {
+                case .AlignLeft, .AlignTop: delta = .minP
+                case .AlignRight:  delta = .maxP - cast(s32, r.width)
+                case .AlignBottom: delta = .maxP - cast(s32, r.height)
+                case .AlignCenter: delta = (.maxP + .minP) / 2 - (cast(s32, r.width) / 2)
+                default: delta = (.maxP + .minP) / 2 - (cast(s32, r.height) / 2)
+                }
 
                 if .kind == .AlignLeft or .kind == .AlignRight or .kind == .AlignCenter do
                     itf.moveBaseForm(delta - cast(s32, r.x), 0, 0, 0)

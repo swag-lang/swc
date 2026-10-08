@@ -85,10 +85,12 @@ impl IWnd for BuildOptions
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
-            .retranslate()
-        elif evt.kind == .ThemeChanged do
-            .resetButton.setIcon(.theme().icon(.Undo, 18))
+        switch evt.kind
+        {
+        case .LanguageChanged: .retranslate()
+        case .ThemeChanged:    .resetButton.setIcon(.theme().icon(.Undo, 18))
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }

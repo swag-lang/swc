@@ -413,7 +413,7 @@ namespace WinFsp
     }
 
     // Compares two names the way Windows does, ignoring case.
-    func sameName(left: string, right: string)->bool => Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), .UnicodeNoCase) == 0
+    func sameName(left: string, right: string)->bool => Utf8.compare(left, right, .UnicodeNoCase) == 0
 
     // Lists a directory from after `marker`, with `.` and `..` first except at the root, until
     // `emit` has no room left.

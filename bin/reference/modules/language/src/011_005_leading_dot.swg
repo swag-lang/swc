@@ -100,6 +100,39 @@ Inside a method the subject is the receiver. Inside a 'with' block it is the
     Swag.assert(other.value == 21)
 }
 
+struct Palette
+{
+    // A receiver member that shares its name with a value of 'Channel'.
+    Red: s32 = 255
+}
+
+impl Palette
+{
+    mtd intensity(c: Channel)->s32
+    {
+        // The label requires a 'Channel', so '.Red' is 'Channel.Red', not 'me.Red'.
+        switch c
+        {
+        case .Red: return .Red
+        default:   return 0
+        }
+    }
+}
+
+/**
+# The Enum Wins
+
+When the position requires an enum, the enum answers even inside a method whose
+receiver has a member of the same name. The body of the 'case' is an ordinary
+position again, so the same dot there reads the receiver.
+*/
+#test
+{
+    var palette: Palette
+    Swag.assert(palette.intensity(.Red) == 255)
+    Swag.assert(palette.intensity(.Blue) == 0)
+}
+
 struct Reading
 {
     tag: s32

@@ -512,13 +512,13 @@ impl IWnd for ViewerWindow
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged
+        switch evt.kind
         {
+        case .LanguageChanged:
             .retranslate()
             .dropHighlight.retranslate()
-        }
-        elif evt.kind == .ThemeChanged
-        {
+
+        case .ThemeChanged:
             for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
                 assume cast(*ViewerErrorView, instance.view).refreshTheme()
             if .panelVisible and not .currentFile.isEmpty() do

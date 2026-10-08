@@ -25,6 +25,12 @@ private struct Bounds
     width, height: f32
 }
 
+private impl Bounds
+{
+    // Whether the point `x, y` lies inside the box, edges included.
+    mtd const contains(x, y: f32)->bool => x >= .left and x <= .left + .width and y >= .top and y <= .top + .height
+}
+
 // An affine transform as IDML writes it: `a b c d` for the linear part, `x y` for the translation.
 private struct Transform
 {
@@ -395,24 +401,25 @@ private func textFrameLayout(content: string, item: *Item)
     textFrameInsets(content, item)
 }
 
-private func parseNumbers(text: string, result: *Array'f32)->bool
+// The numbers of a space-separated list; empty when any part is not a number.
+private func parseNumbers(text: string)->Array'f32
 {
-    result.clear()
+    var result: retval
     for part in Tokenize.split(text, ' 'rune)
     {
         let number = parseNumber(part)
         if not number.valid do
-            return false
+            return {}
         result.add(number.value)
     }
 
-    return not result.isEmpty()
+    return result
 }
 
 private func boundsFromGeometric(value: string, result: *Bounds)->bool
 {
-    var numbers: Array'f32
-    if not parseNumbers(value, &numbers) or numbers.count != 4 do
+    let numbers = parseNumbers(value)
+    if numbers.count != 4 do
         return false
     result.top    = numbers[0]
     result.left   = numbers[1]
@@ -427,8 +434,8 @@ private func parseTransform(tag: string)->Transform
     let transform = attribute(tag, "ItemTransform")
     if not transform.count do
         return result
-    var numbers: Array'f32
-    if not parseNumbers(transform, &numbers) or numbers.count != 6 do
+    let numbers = parseNumbers(transform)
+    if numbers.count != 6 do
         return result
     result.a = numbers[0]
     result.b = numbers[1]
@@ -469,8 +476,8 @@ private func boundsFromPath(item: string, transform: const *Transform, result: *
             return false
         let tag    = item[pointStart until pointEnd + 1]
         let anchor = attribute(tag, "Anchor")
-        var values: Array'f32
-        if not parseNumbers(anchor, &values) or values.count != 2 do
+        let values = parseNumbers(anchor)
+        if values.count != 2 do
             return false
         let x = transform.a * values[0] + transform.c * values[1] + transform.x
         let y = transform.b * values[0] + transform.d * values[1] + transform.y
@@ -545,8 +552,8 @@ private func polygonClipPath(item: string, transform: const *Transform)->String
         let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
         if pointEnd == Swag.U64.Max do
             return {}
-        var values: Array'f32
-        if not parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"), &values) or values.count != 2 do
+        let values = parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"))
+        if values.count != 2 do
             return {}
         if points do
             result += ","
@@ -584,8 +591,8 @@ private func lineClipPath(item: string, transform: const *Transform, pageLeft, p
         let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
         if pointEnd == Swag.U64.Max do
             return {}
-        var values: Array'f32
-        if not parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"), &values) or values.count != 2 do
+        let values = parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"))
+        if values.count != 2 do
             return {}
         let x = transform.a * values[0] + transform.c * values[1] + transform.x - pageLeft
         let y = transform.b * values[0] + transform.d * values[1] + transform.y - pageTop
@@ -1115,9 +1122,7 @@ private func cssRgb(red, green, blue: f32)->String => Format.toString("rgb(%, %,
 // The CSS color of an InDesign color value: RGB components, or CMYK percentages.
 private func cssColor(space, value: string)->String
 {
-    var values: Array'f32
-    if not parseNumbers(value, &values) do
-        return {}
+    let values = parseNumbers(value)
     if space == "RGB" and values.count == 3 do
         return cssRgb(values[0], values[1], values[2])
     if space == "CMYK" and values.count == 4
@@ -1293,12 +1298,8 @@ private func pageIndexOf(pages: const *Array'Page, bounds: const *Bounds)->u64
 {
     let centerX = bounds.left + bounds.width * 0.5
     let centerY = bounds.top + bounds.height * 0.5
-    for page, index in pages
-    {
-        let inside = centerX >= page.bounds.left and centerX <= page.bounds.left + page.bounds.width and centerY >= page.bounds.top and centerY <= page.bounds.top + page.bounds.height
-        if inside do
-            return index
-    }
+    for page, index in pages where page.bounds.contains(centerX, centerY) do
+        return index
 
     return Swag.U64.Max
 }

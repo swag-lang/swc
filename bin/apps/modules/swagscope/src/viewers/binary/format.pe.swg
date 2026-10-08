@@ -919,13 +919,12 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
     if at == Swag.U64.Max do
         return
 
-    let texts   = texts()
-    var modules = 0'u64
+    let texts = texts()
     report.beginGroup(texts.pe_Delayed, "", texts.pe_DelayedDesc, offset: at, length: cast(u64, size))
 
-    while modules < ListLimit
+    for module in ListLimit
     {
-        let entryAt = at + modules * 32
+        let entryAt = at + module * 32
         if not image.has(entryAt, 32) or not image.u32At(entryAt + 4) do
             break
 
@@ -944,7 +943,6 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
         report.hexField(entryAt + 16, 4, "ImportNameTable", cast(u64, image.u32At(entryAt + 16)))
         report.field(entryAt + 28, 4, "TimeDateStamp", stamp)
         report.endGroup()
-        modules += 1
     }
 
     report.endGroup()

@@ -71,10 +71,11 @@ impl Zip
         return Swag.U64.Max
     }
 
-    // Decodes the central directory entry at `at` into `entry` and returns its length. An entry
-    // whose name cleans down to nothing comes back with an empty path, for the caller to skip.
-    func readDirectoryEntry(data: const [..] u8, at: u64, entry: *ZipEntry)->u64 fail
+    // Decodes the central directory entry at `at`, and the length of its record. An entry whose
+    // name cleans down to nothing comes back with an empty path, for the caller to skip.
+    func readDirectoryEntry(data: const [..] u8, at: u64)->{entry: ZipEntry, length: u64} fail
     {
+        var result: retval
         if at > data.count or 46 > data.count - at do
             fail Errors.InvalidFormatError{texts().err_DirectoryTruncated}
         if try readU32(data, at) != DirectorySignature do
@@ -86,7 +87,9 @@ impl Zip
         let totalLength   = 46 + nameLength + extraLength + commentLength
         if totalLength > data.count - at do
             fail Errors.InvalidFormatError{texts().err_EntryOverflow}
+        result.length = totalLength
 
+        let entry = &result.entry
         with entry
         {
             .flags            = try readU16(data, at + 8)
@@ -108,13 +111,13 @@ impl Zip
         let decoded = text(nameBytes, cast(bool, entry.flags & FlagUtf8))
         entry.path = cleanPath(decoded)
         if entry.path.isEmpty() do
-            return totalLength
+            return result
 
         let external = try readU32(data, at + 38)
         let hasDirectorySuffix = nameBytes.count and
                                  (nameBytes[nameBytes.count - 1] == '/'u8 or nameBytes[nameBytes.count - 1] == '\\'u8)
         entry.isDirectory = hasDirectorySuffix or cast(bool, external & 0x10)
-        return totalLength
+        return result
     }
 
     // Reads the central directory of a ZIP file.
@@ -165,21 +168,21 @@ impl Zip
         var at     = 0'u64
         for directory.count
         {
-            var entry: ZipEntry
-            at += try readDirectoryEntry(data, at, &entry)
-            if entry.path.isEmpty() do
+            var read = try readDirectoryEntry(data, at)
+            at += read.length
+            if read.entry.path.isEmpty() do
                 continue
 
-            if not entry.isDirectory
+            if not read.entry.isDirectory
             {
-                if entry.compressedSize > Swag.U64.Max - result.compressedSize or
-                   entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
+                if read.entry.compressedSize > Swag.U64.Max - result.compressedSize or
+                   read.entry.uncompressedSize > Swag.U64.Max - result.uncompressedSize do
                     fail Errors.InvalidFormatError{texts().err_EntrySizes}
-                result.compressedSize   += entry.compressedSize
-                result.uncompressedSize += entry.uncompressedSize
+                result.compressedSize   += read.entry.compressedSize
+                result.uncompressedSize += read.entry.uncompressedSize
             }
 
-            result.entries.add(#move entry)
+            result.entries.add(#move read.entry)
         }
 
         result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))

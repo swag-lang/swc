@@ -661,7 +661,13 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
         markDynamicStructSwitchAsCaseExpr(sema, childRef);
 
     if (const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(switchTypeRef)))
+    {
         SWC_RESULT(validateEnumSwitchCaseSyntax(sema, childRef, *enumType));
+
+        // The position requires the enum, so `.Member` names one of its values before any
+        // member of the receiver that happens to share the name.
+        SemaHelpers::preferContextualAutoMemberBindingType(sema, childRef);
+    }
 
     return Result::Continue;
 }

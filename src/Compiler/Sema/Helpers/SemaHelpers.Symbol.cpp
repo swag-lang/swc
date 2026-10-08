@@ -1242,15 +1242,18 @@ namespace
         // its layout nor its other members. Waiting for the struct to complete there would turn a
         // field default that names one of the struct's own constants into a dependency of the
         // struct on itself. Anything else still waits: a field needs the layout, and a function
-        // may have overloads in an 'impl' that has not been registered yet.
+        // may have overloads in an 'impl' that has not been registered yet. Until the struct is
+        // complete its fields are still being added, so that first lookup leaves out the members
+        // of 'using' fields; a name the struct declares itself outranks them anyway.
         const bool throughType = !sema.isValue(node.nodeLeftRef);
         if (!throughType)
             SWC_RESULT(sema.waitSemaCompleted(&symStruct, codeRef));
 
         MatchContext lookUpCxt;
-        lookUpCxt.codeRef       = codeRef;
-        lookUpCxt.symMapHint    = &symStruct;
-        lookUpCxt.noWaitOnEmpty = true;
+        lookUpCxt.codeRef               = codeRef;
+        lookUpCxt.symMapHint            = &symStruct;
+        lookUpCxt.noWaitOnEmpty         = true;
+        lookUpCxt.skipUsingFieldMembers = throughType;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
         if (throughType && (lookUpCxt.empty() || !std::ranges::all_of(lookUpCxt.symbols().span(), [](const Symbol* sym) { return sym->isConstant(); })))

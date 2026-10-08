@@ -42,6 +42,11 @@ public:
     // without turning an eager lookup into a hard dependency.
     bool noWaitOnPendingSymbols = false;
 
+    // When true, a struct hint is searched without the members its `using` fields bring in.
+    // Those are found by walking the struct's fields, which another job may still be adding
+    // while the struct is incomplete, so only a lookup made after its completion may read them.
+    bool skipUsingFieldMembers = false;
+
     void clear();
     void resetCandidates();
     void beginSymMapLookup(const Priority& priority);

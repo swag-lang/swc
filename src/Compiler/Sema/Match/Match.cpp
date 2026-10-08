@@ -293,7 +293,7 @@ namespace
             addPersistedUsingSymMaps(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
-            if (lookUpCxt.symMapHint->isStruct())
+            if (lookUpCxt.symMapHint->isStruct() && !lookUpCxt.skipUsingFieldMembers)
             {
                 const auto&                             structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 std::unordered_set<const SymbolStruct*> visited;

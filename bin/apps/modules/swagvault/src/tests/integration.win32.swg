@@ -58,7 +58,7 @@ namespace Integration
         for path in paths
         {
             // Shell parsing does not perform the slash conversion accepted by Win32 file APIs.
-            var shellPath = String.from(path)
+            var shellPath = String.from(path[])
             shellPath.replace('/', "\\")
             let path16 = Utf16.toZeroTerminated(shellPath)
             var idList: PIDLIST_ABSOLUTE

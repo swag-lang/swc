@@ -195,10 +195,6 @@ public impl Xml
         mtd endValue() fail {}
     }
 
-    /////////////////////////////////
-    // VALUES
-    /////////////////////////////////
-
     // Reads a native value at the current XML position.
     mtd(NT) readNative()->NT fail
     {
@@ -207,56 +203,6 @@ public impl Xml
         {
         case bool:
             let val = try StrConv.parseBool(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case f32:
-            let val = try StrConv.parseF32(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case f64:
-            let val = try StrConv.parseF64(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s8:
-            let val = try StrConv.parseS8(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s16:
-            let val = try StrConv.parseS16(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s32:
-            let val = try StrConv.parseS32(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case s64:
-            let val = try StrConv.parseS64(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u8:
-            let val = try StrConv.parseU8(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u16:
-            let val = try StrConv.parseU16(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u32:
-            let val = try StrConv.parseU32(.stream.remainingString())
-            .stream.advance(val.eat)
-            return val.value
-
-        case u64:
-            let val = try StrConv.parseU64(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
@@ -276,7 +222,24 @@ public impl Xml
             return result
 
         default:
-            #error("invalid type")
+            var parsed: {value: NT, eat: u32, ovf: bool}
+            #static switch NT
+            {
+            case f32: parsed = try StrConv.parseF32(.stream.remainingString())
+            case f64: parsed = try StrConv.parseF64(.stream.remainingString())
+            case s8:  parsed = try StrConv.parseS8(.stream.remainingString())
+            case s16: parsed = try StrConv.parseS16(.stream.remainingString())
+            case s32: parsed = try StrConv.parseS32(.stream.remainingString())
+            case s64: parsed = try StrConv.parseS64(.stream.remainingString())
+            case u8:  parsed = try StrConv.parseU8(.stream.remainingString())
+            case u16: parsed = try StrConv.parseU16(.stream.remainingString())
+            case u32: parsed = try StrConv.parseU32(.stream.remainingString())
+            case u64: parsed = try StrConv.parseU64(.stream.remainingString())
+            default:  #error("invalid type")
+            }
+
+            .stream.advance(parsed.eat)
+            return parsed.value
         }
     }
 }

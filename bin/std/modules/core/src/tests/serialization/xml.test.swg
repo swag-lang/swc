@@ -50,3 +50,28 @@ struct XmlPayload
         Swag.assert(err != null)
     }
 }
+
+// Numeric dispatch keeps the value width and leaves the following tag unread.
+func(T) xmlAssertNative(input: string, expected: T)
+{
+    var reader: Serialization.Read.Xml
+    expect reader.startRead(input)
+    let value = expect reader.readNative'T()
+    Swag.assert(value == expected)
+    Swag.assert(reader.stream.position() == input.count - 1)
+    Swag.assert(reader.stream.peekU8() == '<')
+}
+
+#test
+{
+    xmlAssertNative(" 1.5<", 1.5'f32)
+    xmlAssertNative(" -2.5<", -2.5'f64)
+    xmlAssertNative(" -7<", -7's8)
+    xmlAssertNative(" -700<", -700's16)
+    xmlAssertNative(" -70000<", -70000's32)
+    xmlAssertNative(" -7000000000<", -7000000000's64)
+    xmlAssertNative(" 250<", 250'u8)
+    xmlAssertNative(" 65000<", 65000'u16)
+    xmlAssertNative(" 4000000000<", 4000000000'u32)
+    xmlAssertNative(" 18000000000000000000<", 18000000000000000000'u64)
+}

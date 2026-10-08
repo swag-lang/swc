@@ -82,7 +82,7 @@ impl Bundle
     {
         let path = .diskPath(name)
         if not path.isEmpty() do
-            return try File.readAllBytes(path.toString())
+            return try File.readAllBytes(path)
 
         let entry = .findEmbedded(name)
         if entry
@@ -107,24 +107,20 @@ impl Bundle
 
         for folder in .folders
         {
-            let files = catch Directory.enumerate(folder.toString(), {recurse: true, wantDirectories: false}) as enumErr
+            let files = catch Directory.enumerate(folder[], {recurse: true, wantDirectories: false}) as enumErr
             if enumErr != null do
                 continue
 
             for file in files
             {
-                let name = relativeResourceName(folder.toString(), file.fullName.toString())
-                if not Utf8.startsWith(name.toString(), prefix) do
-                    continue
-                if not result.contains(name) do
+                let name = relativeResourceName(folder[], file.fullName)
+                if Utf8.startsWith(name, prefix) and not result.contains(name) do
                     result.add(name)
             }
         }
 
-        for entry in .embedded
+        for entry in .embedded where Utf8.startsWith(entry.name, prefix)
         {
-            if not Utf8.startsWith(entry.name.toString(), prefix) do
-                continue
             if not result.contains(entry.name) do
                 result.add(entry.name)
         }
@@ -139,8 +135,8 @@ impl Bundle
     {
         for folder in .folders
         {
-            let path = Path.combine(folder.toString(), name)
-            if File.exists(path.toString()) do
+            let path = Path.combine(folder[], name)
+            if File.exists(path) do
                 return path
         }
 
@@ -162,15 +158,15 @@ private func relativeResourceName(root: string, fullName: string)->String
 
     // The enumeration returns `root` verbatim as the path prefix. A root spelled with a
     // trailing separator already ends with it; otherwise one follows it.
-    var rel = fullName
+    var relativeName = fullName
     if fullName.count > root.count and Utf8.startsWith(fullName, root)
     {
-        rel = fullName[root.count to]
-        if Path.isDirectorySeparator(rel[0]) do
-            rel = rel[1 to]
+        relativeName = fullName[root.count to]
+        if Path.isDirectorySeparator(relativeName[0]) do
+            relativeName = relativeName[1 to]
     }
 
-    result = rel
+    result = relativeName
     result.replace("\\", "/")
     return result
 }

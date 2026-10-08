@@ -34,14 +34,16 @@ impl MappedFile
     // reading because private page changes never reach it.
     func open(name: string, access = MapAccess.Read)->MappedFile fail
     {
-        var result: retval
-        result.name   = name
-        result.access = access
-
-        switch access
+        with var result: retval
         {
-        case .Read, .CopyOnWrite: result.stream = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
-        case .ReadWrite: result.stream = try File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
+            .name   = name
+            .access = access
+
+            switch access
+            {
+            case .Read, .CopyOnWrite: .stream = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
+            case .ReadWrite: .stream = try File.open(name, .Open, .ReadWrite, .ReadWrite | .Delete)
+            }
         }
 
         return result
@@ -131,13 +133,16 @@ impl MappedFile
         if offset > fileSize or length > fileSize - offset do
             fail Errors.BadParameterError{}
 
-        var result: retval
-        result.offset = offset
-        result.length = length
-        result.access = .access
-        if length do
-            try result.mapNative(.stream.handle, offset, length, .access)
-        result.valid = true
+        with var result: retval
+        {
+            .offset = offset
+            .length = length
+            .access = me.access
+            if length do
+                try .mapNative(me.stream.handle, offset, length, me.access)
+            .valid = true
+        }
+
         return result
     }
 

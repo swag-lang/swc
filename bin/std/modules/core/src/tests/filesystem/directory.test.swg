@@ -28,3 +28,41 @@ using Swag
     discard catch Directory.create(leaf) as err
     Swag.assert(err != null)
 }
+
+// Selection does not prevent traversal, and special entries have their own option.
+#test
+{
+    let root = CoreTests.makeFilesystemTestPath("core_directory_selection")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+
+    let child = Path.combine(root, "child")
+    expect Directory.create(child)
+    discard expect File.writeAllText(Path.combine(root, "first.txt"), "first")
+    discard expect File.writeAllText(Path.combine(root, "second.bin"), "second")
+    discard expect File.writeAllText(Path.combine(child, "nested.txt"), "nested")
+
+    let files = expect Directory.enumerateFiles(root)
+    Swag.assert(files.count == 2)
+    for entry in files do
+        Swag.assert(not entry.isDirectory())
+
+    let directories = expect Directory.enumerateDirectories(root)
+    Swag.assert(directories.count == 1 and directories[0].fullName == child)
+
+    let nested = expect Directory.enumerateFiles(root, ".txt", recurse: true)
+    Swag.assert(nested.count == 2)
+    for entry in nested do
+        Swag.assert(not entry.isDirectory() and Path.hasExtension(entry.fullName, ".txt"))
+
+    let either = expect Directory.enumerate(root, {matchExtension: ".txt", matchFileName: "second.bin"})
+    Swag.assert(either.count == 2)
+
+    let special = expect Directory.enumerate(root, {wantFiles: false, wantDirectories: false, wantSpecialDirectories: true})
+    Swag.assert(special.count == 2)
+    for entry in special
+    {
+        let name = Path.fileName(entry.fullName)
+        Swag.assert(name == "." or name == "..")
+    }
+}

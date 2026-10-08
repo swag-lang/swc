@@ -59,26 +59,30 @@ impl Timestamp
     mtd addMonths(months: s32)
     {
         Swag.assert(-120000 <= months and months <= 120000, "overflow")
-        var {y, m, d} = ticksToDate(.ticks)
-        var year      = cast(s32, y)
-        let i         = cast(s32, (m - 1)) + months
-        if i >= 0
+        var {calendarYear, month, day} = ticksToDate(.ticks)
+        var year = cast(s32, calendarYear)
+
+        // Shift a zero-based month index, accounting for years crossed in either direction.
+        let monthIndex = cast(s32, (month - 1)) + months
+        if monthIndex >= 0
         {
-            m    = cast(u16, (i % 12 + 1))
-            year += i / 12
+            month = cast(u16, (monthIndex % 12 + 1))
+            year  += monthIndex / 12
         }
         else
         {
-            m    = cast(u16, (12 + (i + 1) % 12))
-            year += (i - 11) / 12
+            month = cast(u16, (12 + (monthIndex + 1) % 12))
+            year  += (monthIndex - 11) / 12
         }
 
         Swag.assert(1 <= year and year <= 9999, "overflow")
-        y = cast(u16, year)
-        let days = daysInMonth(y, m)
-        if d > days do
-            d = days
-        .ticks = dateToTicks(y, m, d) + (.ticks % TicksPerDay)
+
+        // Clamp the day to the destination month and preserve the time within the day.
+        calendarYear = cast(u16, year)
+        let lastDay = daysInMonth(calendarYear, month)
+        if day > lastDay do
+            day = lastDay
+        .ticks = dateToTicks(calendarYear, month, day) + (.ticks % TicksPerDay)
     }
 
     // Shifts the timestamp by whole 24-hour days.

@@ -751,7 +751,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> thisIsAValidIdentifier0   = <span class="SNum">0</span>
 <span class="SKwd">const</span> this_is_also_valid        = <span class="SNum">0</span>
 <span class="SKwd">const</span> this_1_is_2_also__3_valid = <span class="SNum">0</span></span></div>
-<p>However, identifiers cannot start with two underscores, as this prefix is reserved by the compiler.</p>
+<p>However, identifiers cannot start with two underscores, as this prefix is reserved by the compiler. A single underscore on its own is not an identifier either: <span class="code-inline">_</span> is the unnamed binding, which declares a position without naming it.</p>
 <div class="code-block"><span class="SCmt">// const __this_is_invalid = 0</span></div>
 <h3 id="_002_006_identifiers_swg_Compiler_Instructions">Compiler Instructions</h3>
 <p>Names beginning with <span class="code-inline">#</span> belong to compiler syntax: built-in directives, static queries, qualifiers, and modifiers. This set is defined by the compiler; custom iteration uses ordinary methods and views.</p>
@@ -774,10 +774,11 @@ indent-style = spaces</span></div>
 <span class="SKwd">let</span>  <span class="SKwd">mtd</span>  <span class="SKwd">namespace</span>  <span class="SKwd">private</span>  <span class="SKwd">public</span>  <span class="SKwd">readonly</span>  <span class="SKwd">struct</span>  <span class="SKwd">tls</span>  <span class="SKwd">union</span>  <span class="SKwd">using</span>  <span class="SKwd">var</span>  <span class="SKwd">with</span></span></div>
 <p><span class="code-inline">readonly</span> applies to an aggregate field only.</p>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
+<p><span class="code-inline">_</span> is the unnamed binding: it holds the position of a parameter, a loop value, a destructured field, or a <span class="code-inline">#code</span> binder that the code does not use, and nothing can refer to it.</p>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
 <span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
-<span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
+<span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span>  <span class="SKwd">_</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">assume</span>  <span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
 <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span></span></div>
@@ -919,7 +920,7 @@ indent-style = spaces</span></div>
 <h3 id="_002_008_sigils_swg_The_Four_Modifier_Families">The Four Modifier Families</h3>
 <p>The modifiers are not one list. Each one belongs to exactly one of four families, and the family says what it annotates.</p>
 <h3 id="_002_008_sigils_swg_Type_Qualifiers">Type Qualifiers</h3>
-<p><span class="code-inline">?</span> is a type suffix and takes part in conversions. Write it immediately after the complete type; <span class="code-inline">*T?</span> is a nullable pointer and <span class="code-inline">*(T?)</span> is a pointer to a nullable slot. The bare <span class="code-inline">null</span> token is a value:</p>
+<p><span class="code-inline">?</span> is a type suffix and takes part in conversions. Write it immediately after the complete type; <span class="code-inline">*T?</span> is a nullable pointer and <span class="code-inline">*(T?)</span> is a pointer to a nullable slot. A binding left unnamed is spelled <span class="code-inline">_</span>, never <span class="code-inline">?</span>, so <span class="code-inline">_: *T?</span> reads as one name and one type (see the chapter on unused values and names). The bare <span class="code-inline">null</span> token is a value:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> missing: *<span class="STpe">s32</span>? = <span class="SKwd">null</span>
@@ -1371,7 +1372,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Use <span class="code-inline">#decltype</span> to name the type of an existing expression in a type position. The result is determined at compile time; it does not change a variable's type at runtime. It can also materialize a type from compile-time type information, as shown in the reflection chapter.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> a = <span class="SNum">0</span>                   <span class="SCmt">// Type of 'a' inferred as 's32'</span>
+    <span class="SKwd">let</span> a = <span class="SNum">0</span>     <span class="SCmt">// Type of 'a' inferred as 's32'</span>
     <span class="SKwd">let</span> b: <span class="SItr">#decltype</span>(a) = <span class="SNum">1</span>     <span class="SCmt">// 'b' declared with same type as 'a'</span>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SItr">#typeof</span>(a) == <span class="SItr">#typeof</span>(b))
@@ -1589,6 +1590,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> char0 = '<span class="SFct">a</span>'
     <span class="SKwd">let</span> char1 = '我'
     <span class="SKwd">let</span> value = <span class="SNum">5</span>'<span class="STpe">s32</span>     <span class="SCmt">// Type suffix example</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(char0 != char1)
 
     <span class="SCmt">// The same literal, with the blank the lexer ignores.</span>
     <span class="SKwd">let</span> spaced = <span class="SNum">5</span> '<span class="STpe">s32</span>
@@ -1605,6 +1607,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SKwd">let</span> c: <span class="STpe">u32</span>  = '我'
         <span class="SKwd">let</span> d: <span class="STpe">u64</span>  = '我'
         <span class="SKwd">let</span> e: <span class="STpe">rune</span> = '我'
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == '<span class="SFct">a</span>' <span class="SLgc">and</span> b == '<span class="SFct">a</span>' <span class="SLgc">and</span> c == '我' <span class="SLgc">and</span> d == '我' <span class="SLgc">and</span> e == '我')
     }
 
     {
@@ -1612,6 +1615,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SKwd">let</span> b: <span class="STpe">s16</span> = '<span class="SFct">a</span>'
         <span class="SKwd">let</span> c: <span class="STpe">s32</span> = '我'
         <span class="SKwd">let</span> d: <span class="STpe">s64</span> = '我'
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == '<span class="SFct">a</span>' <span class="SLgc">and</span> b == '<span class="SFct">a</span>' <span class="SLgc">and</span> c == '我' <span class="SLgc">and</span> d == '我')
     }
 }</span></div>
 <h3 id="_003_003_string_swg_Specifying_Character_Literal_Types">Specifying Character Literal Types</h3>
@@ -1697,7 +1701,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmp">#assert</span>(a == b)
 }</span></div>
 <h3 id="_003_003_string_swg_Multiline_Raw_Strings">Multiline Raw Strings</h3>
-<p>A raw string spans several lines with the <span class="code-inline">"""</span> delimiters. Leading spaces up to the opening delimiter column are removed from each line, exactly as for an ordinary multiline string: re-indentation is layout, not escaping.</p>
+<p>A raw string spans several lines with the <span class="code-inline">"""</span> delimiters. Its lines lose the same leading spaces as the lines of an ordinary multiline string, described below: re-indentation is layout, not escaping.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">const</span> a = <span class="SItr">#raw</span> <span class="SStr">""</span><span class="SStr">"this is
@@ -1707,12 +1711,14 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_003_003_string_swg_Multiline_Strings">Multiline Strings</h3>
 <p>Multiline strings start and end with <span class="code-inline">"""</span>. Unlike raw strings, escape sequences are still processed.</p>
+<p>Every line after the first loses its leading spaces up to the column just after the opening <span class="code-inline">"""</span>, so the lines line up under the text that starts the string. Spaces beyond that column are kept, which is how a nested block keeps its indentation.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">const</span> a = <span class="SStr">""</span><span class="SStr">"this is
                  a
-                 string
+                   string
                  "</span><span class="SStr">""</span>
+    <span class="SCmp">#assert</span>(a == <span class="SStr">"this is\na\n  string\n"</span>)
 }</span></div>
 <p>In an ordinary multiline string, ending a line with <span class="code-inline">\</span> prevents the following end-of-line from being included. A <span class="code-inline">#raw</span> string keeps the backslash and line break because escape sequences are disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2003,9 +2009,9 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SKwd">let</span> x = <span class="SNum">5</span>
         <span class="SKwd">let</span> y = <span class="SNum">10</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">5</span>)
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="SNum">10</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != y)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x &lt;= <span class="SNum">5</span>)
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x &lt; <span class="SNum">10</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x &lt; y)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x &gt;= <span class="SNum">5</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x &gt; <span class="SNum">0</span>)
     }
@@ -2041,8 +2047,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> c = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">8</span>}
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a.reading == b.reading)     <span class="SCmt">// the member decides these readings are equal</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == b)                     <span class="SCmt">// so the two measures are equal too</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a != c)                     <span class="SCmt">// 'label' still compares as the number it is</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == b)     <span class="SCmt">// so the two measures are equal too</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a != c)     <span class="SCmt">// 'label' still compares as the number it is</span>
 }</span></div>
 <h3 id="_003_006_operators_swg_Array_Comparison">Array Comparison</h3>
 <p>An array compares element by element, and each element compares the way its own type does, so an array and its elements never disagree. An array of <span class="code-inline">string</span> compares the text its elements view, and an array whose element owns an <span class="code-inline">opEquals</span> has that method called once per element. Elements with nothing of their own to say — numbers, pointers, enums — are still compared as one contiguous run of bytes. A struct member that is an array follows the same rule.</p>
@@ -2315,7 +2321,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h4 id="_003_007_cast_swg_Targets_Chosen_at_Runtime">Targets Chosen at Runtime</h4>
 <p>Both <span class="code-inline">value is target</span> and explicit dynamic casts accept a <span class="code-inline">typeinfo</span> target, including a function result. With a type-information operand, a successful cast returns the source descriptor. With a value operand, it borrows a value of the requested type and returns an <span class="code-inline">any</span>. The target must be a descriptor emitted by the compiler; constructing or copying a descriptor does not create a type.</p>
-<p>The value result borrows its source and can also refer to an interface view in the current function. It does not allocate and must not escape that function. <span class="code-inline">assume cast</span> checks compatibility when dynamic cast safety is enabled. <span class="code-inline">try</span> and <span class="code-inline">expect</span> keep their checks even when that safety is disabled.</p>
+<p>The value result borrows its source and can also refer to an interface view in the current function. It does not allocate and must not escape that function. <span class="code-inline">assume cast</span> checks compatibility when the <span class="code-inline">Swag.SafetyWhat.Assume</span> safety is enabled, like every other <span class="code-inline">assume</span>. <span class="code-inline">try</span> and <span class="code-inline">expect</span> keep their checks even when that safety is disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">supportsRuntimeType</span>(target, source: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span>
 {
     <span class="SLgc">return</span> source <span class="SLgc">is</span> target
@@ -2399,12 +2405,15 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> x: <span class="STpe">s16</span> = <span class="SNum">1</span>'<span class="STpe">s8</span>
     <span class="SKwd">let</span> y: <span class="STpe">s32</span> = <span class="SNum">1</span>'<span class="STpe">s16</span>
     <span class="SKwd">let</span> z: <span class="STpe">s64</span> = <span class="SNum">1</span>'<span class="STpe">s32</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">1</span> <span class="SLgc">and</span> y == <span class="SNum">1</span> <span class="SLgc">and</span> z == <span class="SNum">1</span>)
 
     <span class="SKwd">let</span> a: <span class="STpe">u16</span> = <span class="SNum">255</span>'<span class="STpe">u8</span>
     <span class="SKwd">let</span> b: <span class="STpe">u32</span> = <span class="SNum">65535</span>'<span class="STpe">u16</span>
     <span class="SKwd">let</span> c: <span class="STpe">u64</span> = <span class="SNum">4294967295</span>'<span class="STpe">u32</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SNum">255</span> <span class="SLgc">and</span> b == <span class="SNum">65535</span> <span class="SLgc">and</span> c == <span class="SNum">4294967295</span>)
 
     <span class="SKwd">let</span> d: <span class="STpe">f64</span> = <span class="SNum">1.23</span>'<span class="STpe">f32</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(d &gt; <span class="SNum">1.22</span> <span class="SLgc">and</span> d &lt; <span class="SNum">1.24</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Disallowed_Implicit_Casts">Disallowed Implicit Casts</h3>
 <p>Swag forbids implicit casts that may lose data or precision. In such cases, an explicit cast is required. The <span class="code-inline">#wrap</span> cast mode can be used to acknowledge potential data loss.</p>
@@ -2423,6 +2432,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Explicit cast from 'f64' to 'f32' required</span>
     <span class="SKwd">let</span> large_float:   <span class="STpe">f64</span> = <span class="SNum">1.23456789012345611111</span>
     <span class="SKwd">let</span> smaller_float: <span class="STpe">f32</span> = <span class="SKwd">cast</span>(<span class="STpe">f32</span>, large_float)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(smaller_float &gt; <span class="SNum">1.23</span> <span class="SLgc">and</span> smaller_float &lt; <span class="SNum">1.24</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Casting_Between_Pointers_and_Integers">Casting Between Pointers and Integers</h3>
 <p>An address is an integer, so one explicit cast crosses in either direction. Towards a pointer, any integer type that fits in an address is accepted, and a narrower one is zero-extended; an enum crosses through its underlying type. Towards an integer, the destination has to be able to hold an address: <span class="code-inline">u64</span> and <span class="code-inline">s64</span> do, and a narrower type is refused rather than silently losing the high half of the address.</p>
@@ -2477,6 +2487,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">var</span> x: <span class="SCst">Float32</span> = <span class="SNum">1.0</span>
     <span class="SKwd">var</span> y: <span class="SCst">Float64</span> = <span class="SNum">1.0</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">1.0</span> <span class="SLgc">and</span> y == <span class="SNum">1.0</span>)
 
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SCst">Float32</span>) == <span class="STpe">f32</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SCst">Float64</span>) == <span class="STpe">f64</span>)
@@ -2491,6 +2502,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">let</span> x: <span class="SCst">MyType</span> = <span class="SKwd">cast</span>(<span class="SCst">MyType</span>, <span class="SNum">0</span>)
     <span class="SKwd">let</span> y: <span class="STpe">s32</span>    = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, x)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_003_008_alias_swg_Name_Alias">Name Alias</h3>
 <p>The <span class="code-inline">alias</span> keyword can also create shortcuts for functions, variables, or namespaces. This helps simplify long names and improve code readability.</p>
@@ -2828,6 +2840,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> tuple1 = {<span class="SNum">2</span>, <span class="SNum">2</span>}
     <span class="SKwd">let</span> tuple2 = {<span class="SStr">"string"</span>, <span class="SNum">2</span>, <span class="SKwd">true</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple1.item0 == tuple1.item1 <span class="SLgc">and</span> tuple2.item2)
 }</span></div>
 <h3 id="_004_003_tuple_swg_Accessing_Tuple_Values">Accessing Tuple Values</h3>
 <p>Tuple fields are automatically named <span class="code-inline">itemX</span>, where <span class="code-inline">X</span> is the zero-based index of the field.</p>
@@ -2903,14 +2916,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(vertical == <span class="SNum">20</span> <span class="SLgc">and</span> horizontal == <span class="SNum">10</span>)
 }</span></div>
 <h3 id="_004_003_tuple_swg_Ignoring_Fields_During_Positional_Destructuring">Ignoring Fields During Positional Destructuring</h3>
-<p>Use <span class="code-inline">?</span> as a placeholder to ignore a field.</p>
+<p>Use <span class="code-inline">_</span> as a placeholder to ignore a field.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> tuple1 = {x: <span class="SNum">1.0</span>, y: <span class="SNum">2.0</span>}
-    <span class="SKwd">let</span> {x, ?} = tuple1
+    <span class="SKwd">let</span> {x, <span class="SKwd">_</span>} = tuple1
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">1.0</span>)
 
-    <span class="SKwd">let</span> {?, y} = tuple1
+    <span class="SKwd">let</span> {<span class="SKwd">_</span>, y} = tuple1
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">2.0</span>)
 }</span></div>
 <h3 id="_004_003_tuple_swg_Named_Tuple_Destructuring">Named Tuple Destructuring</h3>
@@ -3139,6 +3152,15 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> x = <span class="SCst">Values</span>.<span class="SCst">A</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == .<span class="SCst">A</span>)
 }</span></div>
+<h3 id="_004_004_enum_swg_Simplified_Enum_Syntax_in_a_Conditional">Simplified Enum Syntax in a Conditional</h3>
+<p>When nothing else says which type is expected, the second branch of a conditional takes the enum of the first one.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">Values</span> { <span class="SCst">A</span>, <span class="SCst">B</span> }
+    <span class="SKwd">let</span> pickFirst = <span class="SKwd">true</span>
+    <span class="SKwd">let</span> x         = pickFirst ? <span class="SCst">Values</span>.<span class="SCst">A</span> : .<span class="SCst">B</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == .<span class="SCst">A</span>)
+}</span></div>
 <h3 id="_004_004_enum_swg_Simplified_Enum_Flags_Syntax">Simplified Enum Flags Syntax</h3>
 <p>This works with flags too.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -3153,7 +3175,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">enum</span> <span class="SCst">Values</span> { <span class="SCst">A</span>, <span class="SCst">B</span> }
-    <span class="SKwd">func</span> <span class="SFct">toto</span>(v1, v2: <span class="SCst">Values</span>) {}
+    <span class="SKwd">func</span> <span class="SFct">toto</span>(v1, v2: <span class="SCst">Values</span>) =&gt; <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v1 == .<span class="SCst">A</span> <span class="SLgc">and</span> v2 == .<span class="SCst">B</span>)
     <span class="SFct">toto</span>(.<span class="SCst">A</span>, .<span class="SCst">B</span>)
 }</span></div>
 <h3 id="_004_004_enum_swg_Iterating_Over_Enum_Values">Iterating Over Enum Values</h3>
@@ -3261,6 +3283,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> ptr1: *<span class="STpe">u8</span>?         <span class="SCmt">// Pointer to a single 'u8' value</span>
     <span class="SKwd">var</span> ptr2: *(*<span class="STpe">u8</span>?)?     <span class="SCmt">// Pointer to another pointer to 'u8'</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr1 == <span class="SKwd">null</span> <span class="SLgc">and</span> ptr2 == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Null_Pointers">Null Pointers</h3>
 <p>Use <span class="code-inline">*T?</span> when a pointer may be <span class="code-inline">null</span>, meaning that it refers to no object. A bare <span class="code-inline">*T</span> is non-null. The compiler requires a proof of presence before a nullable pointer can be dereferenced, as described below.</p>
@@ -3503,7 +3526,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> value = <span class="SNum">42</span>
     <span class="SKwd">let</span> ptr   = &amp;value
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">42</span>)     <span class="SCmt">// Reads the value stored at the pointer</span>
-    ptr[] = <span class="SNum">7</span>                    <span class="SCmt">// Replaces the whole pointed value</span>
+    ptr[] = <span class="SNum">7</span>     <span class="SCmt">// Replaces the whole pointed value</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">7</span>)
 
     <span class="SCmt">// Being postfix, it chains without parentheses.</span>
@@ -3557,6 +3580,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> ptr:  *(<span class="SKwd">const</span> *<span class="STpe">u8</span>?)?           <span class="SCmt">// The 'u8' is read-only, the inner pointer is writable</span>
     <span class="SKwd">var</span> ptr1: <span class="SKwd">const</span> *(<span class="SKwd">const</span> *<span class="STpe">u8</span>?)?     <span class="SCmt">// Both the inner pointer and the 'u8' are read-only</span>
     <span class="SKwd">var</span> ptr2: <span class="SKwd">const</span> *(*<span class="STpe">u8</span>?)?           <span class="SCmt">// The inner pointer is read-only, the 'u8' is writable</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr == <span class="SKwd">null</span> <span class="SLgc">and</span> ptr1 == <span class="SKwd">null</span> <span class="SLgc">and</span> ptr2 == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Multi-Value_Pointers">Multi-Value Pointers</h3>
 <p>To enable <b>pointer arithmetic</b> or address <b>contiguous memory blocks</b>, use <span class="code-inline">[*]</span> instead of <span class="code-inline">*</span>.</p>
@@ -4018,7 +4042,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Since 'a' is 0, the condition is false and the block will not execute.</span>
     <span class="SLgc">if</span> <span class="SKwd">let</span> a = <span class="SNum">0</span>
     {
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a != <span class="SNum">0</span>)
     }
 
     <span class="SCmt">// Redeclare 'a' as a constant in another scope.</span>
@@ -4258,7 +4282,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SCmt">// The same holds for a constant empty range, and away from zero.</span>
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">7</span> <span class="SLgc">until</span> <span class="SNum">7</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SNum">7</span> <span class="SLgc">until</span> <span class="SNum">7</span> <span class="SLgc">do</span>
         cpt += <span class="SNum">1</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">0</span>)
 }</span></div>
@@ -4266,11 +4290,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Construct a range view, then compose it with <span class="code-inline">.reversed()</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SLgc">for</span> ? <span class="SLgc">in</span> <span class="SFct">rangeTo</span>(<span class="SNum">0</span>, <span class="SNum">5</span>).<span class="SFct">reversed</span>() {}
+    <span class="SLgc">for</span> <span class="SKwd">_</span> <span class="SLgc">in</span> <span class="SFct">rangeTo</span>(<span class="SNum">0</span>, <span class="SNum">5</span>).<span class="SFct">reversed</span>() {}
 
-    <span class="SLgc">for</span> ? <span class="SLgc">in</span> <span class="SFct">rangeTo</span>(-<span class="SNum">1</span>, <span class="SNum">1</span>).<span class="SFct">reversed</span>() {}
+    <span class="SLgc">for</span> <span class="SKwd">_</span> <span class="SLgc">in</span> <span class="SFct">rangeTo</span>(-<span class="SNum">1</span>, <span class="SNum">1</span>).<span class="SFct">reversed</span>() {}
 
-    <span class="SLgc">for</span> ? <span class="SLgc">in</span> <span class="SFct">range</span>(-<span class="SNum">2</span>, <span class="SNum">2</span>).<span class="SFct">reversed</span>() {}
+    <span class="SLgc">for</span> <span class="SKwd">_</span> <span class="SLgc">in</span> <span class="SFct">range</span>(-<span class="SNum">2</span>, <span class="SNum">2</span>).<span class="SFct">reversed</span>() {}
 }</span></div>
 <h3 id="_005_002_for_swg_Infinite_Loop">Infinite Loop</h3>
 <p>A <span class="code-inline">for</span> without an expression creates an infinite loop, similar to <span class="code-inline">while true {}</span>. Use <span class="code-inline">break</span> to exit. There is no index to name here, so a loop that counts its own turns keeps an ordinary variable.</p>
@@ -4471,12 +4495,12 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h3 id="_005_003_for_elements_swg_Naming_Only_the_Index">Naming Only the Index</h3>
-<p>Use <span class="code-inline">?</span> for the discarded element and put the index in the second binding: <span class="code-inline">for ?, index in collection</span>. A counted loop has no element binding, so it simply uses <span class="code-inline">for index in 3</span>. <span class="code-inline">?</span> stands for a <b>position</b>, not for the first one: it discards whichever value sits there, and every position after it keeps its place.</p>
+<p>Use <span class="code-inline">_</span> for the discarded element and put the index in the second binding: <span class="code-inline">for _, index in collection</span>. A counted loop has no element binding, so it simply uses <span class="code-inline">for index in 3</span>. <span class="code-inline">_</span> stands for a <b>position</b>, not for the first one: it discards whichever value sits there, and every position after it keeps its place.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> sum = <span class="SNum">0</span>'<span class="STpe">u64</span>
 
-    <span class="SLgc">for</span> ?, index <span class="SLgc">in</span> <span class="SStr">"ABC"</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, index <span class="SLgc">in</span> <span class="SStr">"ABC"</span>
     {
         <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(index) == <span class="STpe">u64</span>)
         sum += index
@@ -5134,6 +5158,17 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">7</span>] == <span class="SNum">21</span>)
 }</span></div>
+<h3 id="_005_007_parallel_for_swg_Without_an_Index">Without an Index</h3>
+<p>Like an ordinary <span class="code-inline">for</span>, the loop names its index only when the body reads it: 'parallel for |...| 8' runs eight iterations that do not need to know which one they are.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> started = <span class="SNum">0</span>'<span class="STpe">u64</span>
+
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;started| <span class="SNum">8</span> <span class="SLgc">do</span>
+        <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomadd</span>(&amp;started, <span class="SNum">1</span>)
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(started == <span class="SNum">8</span>)
+}</span></div>
 <h3 id="_005_007_parallel_for_swg_Ranges">Ranges</h3>
 <p>The range is written like a <span class="code-inline">for</span> range: a count, 'a until b' for a half-open range, or 'a to b' when the upper bound belongs to it. A range that is empty runs no iteration at all.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -5273,6 +5308,7 @@ swc test -w path/to/workspace -m messages</span></div>
     tuple.y = <span class="SNum">2.0</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.x == <span class="SNum">1.0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.y == <span class="SNum">2.0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple1.x == <span class="SNum">0</span> <span class="SLgc">and</span> tuple1.y == <span class="SNum">0</span>)
 }
 
 <span class="SFct">#test</span>
@@ -5687,17 +5723,20 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Access a value by slicing with the [low..up] notation. Returns a string or a slice.</span>
     <span class="SKwd">func</span> <span class="SFct">opSlice</span>(<span class="STpe">me</span>, low, up: <span class="STpe">u64</span>)-&gt;<span class="STpe">string</span>
     {
+        <span class="SKwd">discard</span> low, up
         <span class="SLgc">return</span> <span class="SStr">"true"</span>
     }
 
     <span class="SCmt">// Access a value by one or more indices. All index parameters must have the same type.</span>
     <span class="SKwd">func</span> <span class="SFct">opIndex</span>(<span class="STpe">me</span>, index: <span class="SCst">OneType</span>)-&gt;<span class="SCst">WhateverType</span>
     {
+        <span class="SKwd">discard</span> index
         <span class="SLgc">return</span> <span class="SKwd">true</span>
     }
 
     <span class="SKwd">func</span> <span class="SFct">opIndex</span>(<span class="STpe">me</span>, row: <span class="SCst">OneType</span>, column: <span class="SCst">OneType</span>)-&gt;<span class="SCst">WhateverType</span>
     {
+        <span class="SKwd">discard</span> row, column
         <span class="SLgc">return</span> <span class="SKwd">true</span>
     }
 
@@ -5706,12 +5745,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// an assignment when no dedicated write operator matches.</span>
     <span class="SKwd">func</span> <span class="SFct">opIndexPtr</span>(<span class="STpe">me</span>, index: <span class="SCst">OneType</span>)-&gt;*<span class="SCst">AnotherType</span>
     {
+        <span class="SKwd">discard</span> index
         <span class="SLgc">return</span> &amp;<span class="STpe">me</span>.x
     }
 
     <span class="SCmt">// The 'const' overload serves read-only receivers with a read-only element address.</span>
     <span class="SKwd">func</span> <span class="SFct">opIndexPtr</span>(<span class="SKwd">const</span> <span class="STpe">me</span>, index: <span class="SCst">OneType</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst">AnotherType</span>
     {
+        <span class="SKwd">discard</span> index
         <span class="SLgc">return</span> &amp;<span class="STpe">me</span>.x
     }
 
@@ -5750,22 +5791,26 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Compare the struct value with another; used in '==' and '!=' operations</span>
     <span class="SKwd">func</span> <span class="SFct">opEquals</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>)-&gt;<span class="STpe">bool</span>
     {
+        <span class="SKwd">discard</span> other
         <span class="SLgc">return</span> <span class="SKwd">false</span>
     }
 
     <span class="SKwd">func</span> <span class="SFct">opEquals</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>)-&gt;<span class="STpe">bool</span>
     {
+        <span class="SKwd">discard</span> other
         <span class="SLgc">return</span> <span class="SKwd">false</span>
     }
 
     <span class="SCmt">// Three-way comparison; returns -1, 0, or 1 (used for '&lt;', '&gt;', '&lt;=', '&gt;=', '&lt;=&gt;')</span>
     <span class="SKwd">func</span> <span class="SFct">opCompare</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>)-&gt;<span class="STpe">s32</span>
     {
+        <span class="SKwd">discard</span> other
         <span class="SLgc">return</span> <span class="SNum">0</span>
     }
 
     <span class="SKwd">func</span> <span class="SFct">opCompare</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>)-&gt;<span class="STpe">s32</span>
     {
+        <span class="SKwd">discard</span> other
         <span class="SLgc">return</span> <span class="SNum">0</span>
     }
 
@@ -5774,8 +5819,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// -------------------------------------------------------------------------</span>
 
     <span class="SCmt">// Direct assignment via '='</span>
-    <span class="SKwd">func</span> <span class="SFct">opSet</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>) {}
-    <span class="SKwd">func</span> <span class="SFct">opSet</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>) {}
+    <span class="SKwd">func</span> <span class="SFct">opSet</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>) { <span class="SKwd">discard</span> other }
+    <span class="SKwd">func</span> <span class="SFct">opSet</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>) { <span class="SKwd">discard</span> other }
 
     <span class="SCmt">// Assign a literal value with a specific suffix to the struct (generic)</span>
     <span class="SKwd">func</span>(suffix: <span class="STpe">string</span>) <span class="SFct">opSetLiteral</span>(<span class="STpe">me</span>, value: <span class="SCst">OneType</span>) {}
@@ -5783,9 +5828,9 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SCmt">// Assign to an indexed position via '[?] ='. All index parameters must have the same type.</span>
     <span class="SCmt">// 'opIndexSet' keeps priority over writing through the 'opIndexPtr' element address.</span>
-    <span class="SKwd">func</span> <span class="SFct">opIndexSet</span>(<span class="STpe">me</span>, index: <span class="SCst">OneType</span>, value: <span class="SCst">OneType</span>) {}
-    <span class="SKwd">func</span> <span class="SFct">opIndexSet</span>(<span class="STpe">me</span>, row: <span class="SCst">OneType</span>, column: <span class="SCst">OneType</span>, value: <span class="SCst">OneType</span>) {}
-    <span class="SKwd">func</span> <span class="SFct">opIndexSet</span>(<span class="STpe">me</span>, index: <span class="SCst">OneType</span>, value: <span class="SCst">AnotherType</span>) {}
+    <span class="SKwd">func</span> <span class="SFct">opIndexSet</span>(<span class="STpe">me</span>, index: <span class="SCst">OneType</span>, value: <span class="SCst">OneType</span>) { <span class="SKwd">discard</span> index, value }
+    <span class="SKwd">func</span> <span class="SFct">opIndexSet</span>(<span class="STpe">me</span>, row: <span class="SCst">OneType</span>, column: <span class="SCst">OneType</span>, value: <span class="SCst">OneType</span>) { <span class="SKwd">discard</span> row, column, value }
+    <span class="SKwd">func</span> <span class="SFct">opIndexSet</span>(<span class="STpe">me</span>, index: <span class="SCst">OneType</span>, value: <span class="SCst">AnotherType</span>) { <span class="SKwd">discard</span> index, value }
 
     <span class="SCmt">// -------------------------------------------------------------------------</span>
     <span class="SCmt">// Operators (binary, unary, compound assignment)</span>
@@ -5991,7 +6036,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_006_008_custom_iteration_swg_The__opVisit__Iteration_Hook">The <span class="code-inline">opVisit</span> Iteration Hook</h3>
 <p><span class="code-inline">opVisit</span> is the single custom iteration hook. It is a macro generic over the compile-time boolean <span class="code-inline">ptr</span>: <span class="code-inline">ptr</span> is true for a loop binding introduced by <span class="code-inline">&amp;</span>, and the hook then injects the element's address (<span class="code-inline">*T</span>) instead of its value. There is no traversal selector or direction argument. Alternative traversals are ordinary borrowed views returned by functions or methods.</p>
-<p>The <span class="code-inline">#code</span> parameters are the values made available to loop destructuring. A loop may bind any prefix of them, or discard a position with <span class="code-inline">?</span>. Struct values are handed out by read-only address; scalar values are copied.</p>
+<p>The <span class="code-inline">#code</span> parameters are the values made available to loop destructuring. A loop may bind any prefix of them, or discard a position with <span class="code-inline">_</span>. Struct values are handed out by read-only address; scalar values are copied.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">MyStruct</span>
 {
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
@@ -6013,7 +6058,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h3 id="_006_008_custom_iteration_swg_Destructuring_Visit_Values">Destructuring Visit Values</h3>
-<p>The bindings after <span class="code-inline">for</span> are positional. <span class="code-inline">?</span> discards one position, consistently with other destructuring forms, and it can stand in any of them: a loop that wants only the last value discards the ones before it rather than naming them.</p>
+<p>The bindings after <span class="code-inline">for</span> are positional. <span class="code-inline">_</span> discards one position, consistently with other destructuring forms, and it can stand in any of them: a loop that wants only the last value discards the ones before it rather than naming them.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> values = <span class="SCst">MyStruct</span>{}
@@ -6022,10 +6067,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">for</span> value, doubled, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
         total += value + doubled + <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
 
-    <span class="SLgc">for</span> ?, doubled <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, doubled <span class="SLgc">in</span> values <span class="SLgc">do</span>
         total += doubled
 
-    <span class="SLgc">for</span> ?, ?, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, <span class="SKwd">_</span>, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
         total += <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">306</span>)
@@ -6145,7 +6190,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> a = <span class="SCst">Vector3</span>{}                  <span class="SCmt">// Default init.</span>
+    <span class="SKwd">var</span> a = <span class="SCst">Vector3</span>{}     <span class="SCmt">// Default init.</span>
     <span class="SKwd">var</span> b = <span class="SCst">Vector3</span>{<span class="SNum">100</span>, <span class="SNum">200</span>, <span class="SNum">300</span>}     <span class="SCmt">// Custom init.</span>
 
     <span class="SCmt">// Copy semantics: drop 'a' (if needed), copy 'b' to 'a', then call 'opPostCopy' on 'a'.</span>
@@ -6313,7 +6358,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <p>You can then place the suffix right after the numeric literal when the type is <span class="code-inline">Duration</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toto</span>(x: <span class="SCst">Duration</span>) {}
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toto</span>(x: <span class="SCst">Duration</span>) =&gt; <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x.timeInSeconds &gt; <span class="SNum">0</span>)
 
 <span class="SFct">#test</span>
 {
@@ -6486,7 +6531,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_007_001_declaration_swg_Every_Path_Must_Produce_the_Value">Every Path Must Produce the Value</h3>
 <p>A function that declares a return type is rejected when its body can reach the end without returning: the promise is part of the signature, and a value the caller reads has to exist.</p>
-<p>What counts as leaving the function is <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">unreachable</span> and <span class="code-inline">Swag.panic</span>, an <span class="code-inline">if</span> whose branches all leave, a loop with no way out of it, and a <span class="code-inline">switch</span> where every case leaves and some case always matches — a <span class="code-inline">default</span> arm, or 'switch #complete' over an enum. A plain <span class="code-inline">switch</span> is deliberately not exhaustive whatever its cases cover, so a value outside the set walks past it: writing <span class="code-inline">#complete</span> is what states the promise, and it stays free of any range test in the generated code.</p>
+<p>What counts as leaving the function is <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">unreachable</span>, <span class="code-inline">Swag.panic</span> and a call to a function marked <span class="code-inline">#[Swag.NoReturn]</span>, an <span class="code-inline">if</span> whose branches all leave, a loop with no way out of it, and a <span class="code-inline">switch</span> where every case leaves and some case always matches — a <span class="code-inline">default</span> arm, or 'switch #complete' over an enum. A plain <span class="code-inline">switch</span> is deliberately not exhaustive whatever its cases cover, so a value outside the set walks past it: writing <span class="code-inline">#complete</span> is what states the promise, and it stays free of any range test in the generated code.</p>
 <p><span class="code-inline">unreachable</span> is the escape hatch when a path cannot happen for a reason the compiler cannot see. It costs nothing once its guard is off.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Season</span> { <span class="SCst">Summer</span>, <span class="SCst">Winter</span> }
 
@@ -6505,20 +6550,40 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">seasonLength</span>(<span class="SCst">Season</span>.<span class="SCst">Winter</span>) == <span class="SNum">90</span>)
 }</span></div>
+<p><span class="code-inline">#[Swag.NoReturn]</span> adds a function of your own to that list: a call to it ends the path the same way <span class="code-inline">Swag.panic</span> does, so nothing has to follow it. The function keeps the promise itself: it has no return type, contains no <span class="code-inline">return</span>, and ends every path with a call that does not come back.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoReturn]</span>
+<span class="SKwd">func</span> <span class="SFct">invalidSeason</span>()
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">panic</span>(<span class="SStr">"this index names no season"</span>, <span class="SCmp">#curlocation</span>)
+}
+
+<span class="SKwd">func</span> <span class="SFct">seasonAt</span>(index: <span class="STpe">s32</span>)-&gt;<span class="SCst">Season</span>
+{
+    <span class="SLgc">if</span> index == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">return</span> .<span class="SCst">Summer</span>
+    <span class="SLgc">if</span> index == <span class="SNum">1</span> <span class="SLgc">do</span>
+        <span class="SLgc">return</span> .<span class="SCst">Winter</span>
+    <span class="SFct">invalidSeason</span>()
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">seasonAt</span>(<span class="SNum">1</span>) == <span class="SCst">Season</span>.<span class="SCst">Winter</span>)
+}</span></div>
 <h3 id="_007_001_declaration_swg_Inferring_Return_Types">Inferring Return Types</h3>
 <p>Use <span class="code-inline">=&gt;</span> for simple expressions when the return type can be inferred automatically.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum</span>(x, y: <span class="STpe">s32</span>) =&gt; x + y</span></div>
 <h3 id="_007_001_declaration_swg_Defining_Parameters_in_Functions">Defining Parameters in Functions</h3>
 <p>Parameters are declared within parentheses after the function name, each with a name and type.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum1</span>(x, y: <span class="STpe">s32</span>, unused: <span class="STpe">f32</span>)-&gt;<span class="STpe">s32</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum1</span>(x, y: <span class="STpe">s32</span>, scale: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>
 {
-    <span class="SLgc">return</span> x + y
+    <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">f32</span>, x + y) * scale
 }</span></div>
 <h3 id="_007_001_declaration_swg_Using_Default_Parameter_Values">Using Default Parameter Values</h3>
 <p>Parameters may have default values, used when not provided by the caller.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum2</span>(x, y: <span class="STpe">s32</span>, unused: <span class="STpe">f32</span> = <span class="SNum">666</span>)-&gt;<span class="STpe">s32</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum2</span>(x, y: <span class="STpe">s32</span>, scale: <span class="STpe">f32</span> = <span class="SNum">1</span>)-&gt;<span class="STpe">f32</span>
 {
-    <span class="SLgc">return</span> x + y
+    <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">f32</span>, x + y) * scale
 }</span></div>
 <h3 id="_007_001_declaration_swg_Inferred_Parameter_Types">Inferred Parameter Types</h3>
 <p>If a parameter has a default value, its type can be inferred from it.</p>
@@ -6533,6 +6598,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SKwd">func</span> <span class="SFct">toto</span>(x: <span class="STpe">s32</span>, y = <span class="SCst">Values</span>.<span class="SCst">A</span>)
 {
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(x) == <span class="STpe">s32</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="SCst">Values</span>)
 }</span></div>
 <h3 id="_007_001_declaration_swg_Nested_Functions">Nested Functions</h3>
@@ -6810,6 +6876,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">myFunction</span>(value: <span class="STpe">bool</span>, parameters: ...)
     {
         <span class="SCmt">// This function can accept any number of extra arguments after 'value'.</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value <span class="SLgc">and</span> parameters.count == <span class="SNum">3</span>)
     }
 
     <span class="SFct">myFunction</span>(<span class="SKwd">true</span>, <span class="SNum">4</span>, <span class="SStr">"true"</span>, <span class="SNum">5.6</span>)     <span class="SCmt">// Passes extra arguments after 'value'</span>
@@ -6843,6 +6910,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">myFunction</span>(value: <span class="STpe">bool</span>, parameters: <span class="STpe">s32</span>...)
     {
         <span class="SCmt">// All 'parameters' elements must be of type 's32'</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value)
         <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(parameters[<span class="SNum">0</span>]).name == <span class="SStr">"s32"</span>)
         <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(parameters[<span class="SNum">1</span>]).name == <span class="SStr">"s32"</span>)
         <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(parameters[<span class="SNum">2</span>]) == <span class="STpe">s32</span>)
@@ -7045,6 +7113,55 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Return value can be ignored without using 'discard'</span>
     <span class="SFct">mul</span>(<span class="SNum">2</span>, <span class="SNum">4</span>)
 }</span></div>
+<h3 id="_007_007_discard_swg_Unused_Names">Unused Names</h3>
+<p>A name is declared to be used. A local variable, a parameter, or a closure capture that nothing in its body refers to is an error, and so is the name of a loop that never reads it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">scale</span>(value: <span class="STpe">s32</span>, factor: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> =&gt; value     <span class="SCmt">// error: unused parameter 'factor'</span></span></div>
+<p>A local whose type has an <span class="code-inline">opDrop</span> is the exception: it is a guard, and the drop at the end of its scope is its use. The parameters of an interface method are another one: they belong to the interface, whatever a default implementation does with them.</p>
+<h3 id="_007_007_discard_swg_Unnamed_Parameters">Unnamed Parameters</h3>
+<p>A parameter the body has no use for is spelled <span class="code-inline">_</span>. It keeps its position and its type, and has no name: nothing can refer to it, and reflection reports it with an empty name. This is how a callback, an interface implementation or an operator states that it ignores an argument.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">second</span>(<span class="SKwd">_</span>: <span class="STpe">s32</span>, b: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> =&gt; b
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">second</span>(<span class="SNum">1</span>, <span class="SNum">2</span>) == <span class="SNum">2</span>)
+
+    <span class="SCmt">// Several parameters can be unnamed at once: '_' is not a name, so it never clashes.</span>
+    <span class="SKwd">func</span> <span class="SFct">neither</span>(<span class="SKwd">_</span>: <span class="STpe">s32</span>, <span class="SKwd">_</span>: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> =&gt; <span class="SNum">0</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">neither</span>(<span class="SNum">1</span>, <span class="SNum">2</span>) == <span class="SNum">0</span>)
+
+    <span class="SCmt">// A lambda leaves an inferred parameter unnamed the same way.</span>
+    <span class="SKwd">func</span> <span class="SFct">apply</span>(cb: <span class="SKwd">func</span>(<span class="STpe">s32</span>, <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> =&gt; <span class="SFct">cb</span>(<span class="SNum">10</span>, <span class="SNum">20</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">apply</span>(<span class="SKwd">func</span>(<span class="SKwd">_</span>, b) =&gt; b) == <span class="SNum">20</span>)
+
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(second).name == <span class="SStr">"func(s32, b: s32)-&gt;s32"</span>)
+}</span></div>
+<p><span class="code-inline">_</span> is the same placeholder wherever a binding is declared: a loop position, a destructuring position, or a <span class="code-inline">#code</span> binder. It is not a name, so it can appear several times in one declaration, and reading it is an error.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> total = <span class="SNum">0</span>'<span class="STpe">u64</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, index <span class="SLgc">in</span> [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>] <span class="SLgc">do</span>
+        total += index
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">3</span>)
+
+    <span class="SKwd">let</span> {<span class="SKwd">_</span>, second} = {<span class="SNum">1</span>, <span class="SNum">2</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(second == <span class="SNum">2</span>)
+
+    <span class="SCmt">// A counting loop that does not read its index simply has no name.</span>
+    <span class="SLgc">for</span> <span class="SNum">3</span> <span class="SLgc">do</span>
+        total += <span class="SNum">1</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">6</span>)
+}</span></div>
+<h3 id="_007_007_discard_swg_Keeping_a_Name">Keeping a Name</h3>
+<p><span class="code-inline">discard</span> also takes variable names. It is the way to keep a name the body does not use when the name itself must stay: a public parameter that callers pass by name or that the documentation refers to, or a value used only in a '#static if' branch this configuration does not compile. One <span class="code-inline">discard</span> lists them all; a list holds variable names only, and any other expression keeps its own <span class="code-inline">discard</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">onPressed</span>(sender: <span class="STpe">string</span>, index: <span class="STpe">s32</span>)
+    {
+        <span class="SKwd">discard</span> sender, index
+    }
+
+    <span class="SFct">onPressed</span>(<span class="SStr">"ok"</span>, <span class="SNum">0</span>)
+}</span></div>
+<p>There is no naming convention for an unused value: a leading underscore is an ordinary name.</p>
 <h3 id="_007_008_retval_swg">Retval</h3>
 <h3 id="_007_008_retval_swg_The__retval__Special_Type">The <span class="code-inline">retval</span> Special Type</h3>
 <p>In Swag, <span class="code-inline">retval</span> represents the current function’s return type. It allows you to declare and manipulate the return value directly inside the function, without repeating the type declaration. This improves code readability and flexibility, especially when working with complex or generic return types.</p>
@@ -7755,7 +7872,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> type = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>, <span class="SItr">#typeof</span>(function2))     <span class="SCmt">// Reflect the function type</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.attributes.count == <span class="SNum">1</span>)                                  <span class="SCmt">// Exactly one attribute on 'function2'</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.attributes.count == <span class="SNum">1</span>)     <span class="SCmt">// Exactly one attribute on 'function2'</span>
 }</span></div>
 <h3 id="_010_002_predefined_attributes_swg">Predefined Attributes</h3>
 <h3 id="_010_002_predefined_attributes_swg_Predefined_Attributes">Predefined Attributes</h3>
@@ -7833,6 +7950,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td><span class="code-inline">CalleeReturn()</span></td><td>Make <span class="code-inline">return</span> in a macro or mixin return from the caller</td></tr>
 <tr><td><span class="code-inline">Implicit()</span></td><td>Permit an <span class="code-inline">opCast</span> overload as an implicit conversion</td></tr>
 <tr><td><span class="code-inline">Discardable()</span></td><td>Permit a function result to be ignored</td></tr>
+<tr><td><span class="code-inline">NoReturn()</span></td><td>Declare that a call never comes back, like <span class="code-inline">Swag.panic</span></td></tr>
 <tr><td>'Deprecated(msg: string? = null)'</td><td>Mark an API as deprecated</td></tr>
 </tbody>
 </table>
@@ -7929,6 +8047,22 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">A</span>.<span class="SFct">a</span>() == <span class="SNum">1</span>)         <span class="SCmt">// Calls 'a' from namespace 'A'</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">A</span>.<span class="SCst">B</span>.<span class="SCst">C</span>.<span class="SFct">a</span>() == <span class="SNum">2</span>)     <span class="SCmt">// Calls 'a' from nested namespace 'A.B.C'</span>
 }</span></div>
+<p>The dotted form is shorthand for the blocks it names. Inside <span class="code-inline">A.B.C</span>, what <span class="code-inline">A</span> and <span class="code-inline">A.B</span> declare is reachable without qualification, and a name declared closer shadows the same name further out.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">namespace</span> <span class="SCst">A</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">unit</span>() =&gt; <span class="SNum">10</span>
+}
+
+<span class="SKwd">namespace</span> <span class="SCst">A</span>.<span class="SCst">B</span>.<span class="SCst">C</span>
+{
+    <span class="SCmt">// 'unit' comes from 'A'; 'a' is the closer 'A.B.C.a'.</span>
+    <span class="SKwd">func</span> <span class="SFct">scaled</span>() =&gt; <span class="SFct">unit</span>() * <span class="SFct">a</span>()
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">A</span>.<span class="SCst">B</span>.<span class="SCst">C</span>.<span class="SFct">scaled</span>() == <span class="SNum">20</span>)
+}</span></div>
 <h3 id="_011_001_namespace_swg_Qualified_Namespace_Access">Qualified Namespace Access</h3>
 <p>Symbols from a namespace are accessed through their qualified name.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">namespace</span> <span class="SCst">QualifiedExample</span>
@@ -7955,7 +8089,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> v = <span class="SNum">0</span>
     <span class="SLgc">defer</span> <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v == <span class="SNum">1</span>)     <span class="SCmt">// Ensures v equals 1 on scope exit.</span>
-    v += <span class="SNum">1</span>                        <span class="SCmt">// Increment v.</span>
+    v += <span class="SNum">1</span>     <span class="SCmt">// Increment v.</span>
 
     <span class="SCmt">// When the scope ends, the deferred expression executes here.</span>
 }</span></div>
@@ -7995,7 +8129,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> x = <span class="SNum">1</span>
     <span class="SLgc">defer</span> <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">2</span>)     <span class="SCmt">// Executes second</span>
-    <span class="SLgc">defer</span> x *= <span class="SNum">2</span>                  <span class="SCmt">// Executes first</span>
+    <span class="SLgc">defer</span> x *= <span class="SNum">2</span>     <span class="SCmt">// Executes first</span>
 
     <span class="SCmt">// Execution order is reversed for predictable cleanup flow.</span>
 }</span></div>
@@ -8064,7 +8198,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">enum</span> <span class="SCst">RGB</span> { <span class="SCst">R</span>, <span class="SCst">G</span>, <span class="SCst">B</span> }
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">RGB</span>.<span class="SCst">R</span> == <span class="SNum">0</span>)     <span class="SCmt">// Fully qualified access.</span>
 
-    <span class="SKwd">using</span> <span class="SCst">RGB</span>               <span class="SCmt">// Import enum members into the current scope.</span>
+    <span class="SKwd">using</span> <span class="SCst">RGB</span>     <span class="SCmt">// Import enum members into the current scope.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">G</span> == <span class="SNum">1</span>)     <span class="SCmt">// 'G' accessible directly without 'RGB.' prefix.</span>
 }</span></div>
 <h3 id="_011_003_using_swg__using__with_Struct_Fields"><span class="code-inline">using</span> with Struct Fields</h3>
@@ -8263,6 +8397,33 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(other.value == <span class="SNum">21</span>)
+}
+
+<span class="SKwd">struct</span> <span class="SCst">Palette</span>
+{
+    <span class="SCmt">// A receiver member that shares its name with a value of 'Channel'.</span>
+    <span class="SCst">Red</span>: <span class="STpe">s32</span> = <span class="SNum">255</span>
+}
+
+<span class="SKwd">impl</span> <span class="SCst">Palette</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">intensity</span>(c: <span class="SCst">Channel</span>)-&gt;<span class="STpe">s32</span>
+    {
+        <span class="SCmt">// The label requires a 'Channel', so '.Red' is 'Channel.Red', not 'me.Red'.</span>
+        <span class="SLgc">switch</span> c
+        {
+        <span class="SLgc">case</span> .<span class="SCst">Red</span>: <span class="SLgc">return</span> .<span class="SCst">Red</span>
+        <span class="SLgc">default</span>:   <span class="SLgc">return</span> <span class="SNum">0</span>
+        }
+    }
+}</span></div>
+<h3 id="_011_005_leading_dot_swg_The_Enum_Wins">The Enum Wins</h3>
+<p>When the position requires an enum, the enum answers even inside a method whose receiver has a member of the same name. The body of the <span class="code-inline">case</span> is an ordinary position again, so the same dot there reads the receiver.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> palette: <span class="SCst">Palette</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(palette.<span class="SFct">intensity</span>(.<span class="SCst">Red</span>) == <span class="SNum">255</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(palette.<span class="SFct">intensity</span>(.<span class="SCst">Blue</span>) == <span class="SNum">0</span>)
 }
 
 <span class="SKwd">struct</span> <span class="SCst">Reading</span>
@@ -8814,6 +8975,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
+    <span class="SKwd">discard</span> x
 
     <span class="SCmt">// x += 1  // Uncomment to see overflow panic</span>
 }</span></div>
@@ -8878,6 +9040,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"1"</span>
     <span class="SKwd">let</span> y      = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="STpe">string</span>, x)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SStr">"1"</span>)
 
     <span class="SCmt">// var z = assume cast(s32, x)  // Would panic: underlying type mismatch</span>
     <span class="SCmt">// Swag.assert(z == 0)</span>
@@ -8891,6 +9054,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> x   = [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>]
     <span class="SKwd">var</span> idx = <span class="SNum">10</span>
+    <span class="SKwd">discard</span> x, idx
 
     <span class="SCmt">// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds</span>
 }</span></div>
@@ -8910,6 +9074,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x: <span class="SKwd">const</span> [..] <span class="STpe">s32</span> = [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>]
+    <span class="SKwd">discard</span> x
 
     <span class="SCmt">// var slice = x[1 to 4]   // Would panic: out-of-bounds</span>
     <span class="SCmt">// Swag.assert(slice[0] == 1)</span>
@@ -8919,6 +9084,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> x   = <span class="SStr">"string"</span>
     <span class="SKwd">var</span> idx = <span class="SNum">10</span>
+    <span class="SKwd">discard</span> x, idx
 
     <span class="SCmt">// var slice = x[0 to idx] // Would panic: out-of-bounds</span>
     <span class="SCmt">// Swag.assert(slice[0] == 's')</span>
@@ -9005,6 +9171,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> b: <span class="STpe">u8</span> = <span class="SNum">2</span>
+    <span class="SKwd">discard</span> b
 
     <span class="SCmt">// if b { }  // Would panic: invalid boolean value</span>
 }</span></div>
@@ -9029,6 +9196,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> d = <span class="SNum">0</span>
     <span class="SKwd">var</span> a = <span class="SNum">10</span>
+    <span class="SKwd">discard</span> a, d
 
     <span class="SCmt">// var x = a / d  // Uncomment: error, division by zero (proven)</span>
 
@@ -9273,8 +9441,8 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SLgc">return</span> <span class="SNum">1</span>
 }</span></div>
 <h3 id="_013_005_warnings_swg_Unreachable_Code">Unreachable Code</h3>
-<p><span class="code-inline">sema_warn_unreachable_code</span> reports a statement that follows a jump in the same block: <span class="code-inline">return</span>, <span class="code-inline">break</span>, <span class="code-inline">continue</span>, <span class="code-inline">fallthrough</span>, or <span class="code-inline">fail</span>. The statement compiles, but nothing can ever run it.</p>
-<p>Only those five count. <span class="code-inline">Swag.panic</span> and <span class="code-inline">unreachable</span> announce that control never reaches them, but neither is guaranteed to leave the block: <span class="code-inline">Swag.panic</span> returns to its caller whenever a panic hook is installed, which is what the <span class="code-inline">#test</span> runner does so one failing test does not end the run, and <span class="code-inline">unreachable</span> lowers to nothing once '#[Swag.Safety(.Unreachable, false)]' turns its guard off. The code after either one is not reported.</p>
+<p><span class="code-inline">sema_warn_unreachable_code</span> reports a statement that follows a jump in the same block: <span class="code-inline">return</span>, <span class="code-inline">break</span>, <span class="code-inline">continue</span>, <span class="code-inline">fallthrough</span>, <span class="code-inline">fail</span>, <span class="code-inline">Swag.panic</span>, <span class="code-inline">unreachable</span>, or a call to a function marked <span class="code-inline">#[Swag.NoReturn]</span>. The statement compiles, but nothing can ever run it.</p>
+<p>A <span class="code-inline">switch</span> counts too when every case leaves the function and some case always matches, which a <span class="code-inline">default</span> or <span class="code-inline">#complete</span> guarantees. So the code after an exhaustive switch is not a fallback to write "just in case": a value outside the enum, like a reached <span class="code-inline">unreachable</span>, is a broken program, caught by the safety guards where they are on.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">size</span>()-&gt;<span class="STpe">s32</span>
 {
     <span class="SLgc">return</span> <span class="SNum">1</span>
@@ -9509,8 +9677,8 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <h3 id="_014_003_compiler_instructions_swg_The___defined__Query">The <span class="code-inline">#defined</span> Query</h3>
 <p><span class="code-inline">#defined(SYMBOL)</span> checks at compile time whether a symbol exists in the current context. It returns true if defined, false otherwise. Useful for conditional compilation before referencing variables, constants, or functions.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#assert</span>(<span class="SLgc">not</span> <span class="SItr">#defined</span>(<span class="SCst">DOES_NOT_EXISTS</span>))     <span class="SCmt">// Ensure the symbol is not defined.</span>
-<span class="SCmp">#assert</span>(<span class="SItr">#defined</span>(<span class="SCst">Global</span>))                  <span class="SCmt">// Confirms 'Global' is defined.</span>
-<span class="SKwd">var</span> <span class="SCst">Global</span> = <span class="SNum">0</span>                             <span class="SCmt">// Define a global variable 'Global'.</span></span></div>
+<span class="SCmp">#assert</span>(<span class="SItr">#defined</span>(<span class="SCst">Global</span>))     <span class="SCmt">// Confirms 'Global' is defined.</span>
+<span class="SKwd">var</span> <span class="SCst">Global</span> = <span class="SNum">0</span>     <span class="SCmt">// Define a global variable 'Global'.</span></span></div>
 <h3 id="_014_003_compiler_instructions_swg_Static_Control_with___static_">Static Control with <span class="code-inline">#static</span></h3>
 <p><span class="code-inline">#static</span> applies compile-time semantics to the control statement that follows. The condition or selected value is evaluated at compile time, and only the selected branch is retained. The ordinary <span class="code-inline">elif</span> and <span class="code-inline">else</span> keywords complete a static <span class="code-inline">if</span>; they do not repeat the <span class="code-inline">#static</span> prefix.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DEBUG</span>   = <span class="SNum">1</span>
@@ -10762,6 +10930,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Enum Type Inference|_004_004_enum_swg_Enum_Type_Inference|",
 "h|Type Inference in switch|_004_004_enum_swg_Type_Inference_in__switch_|",
 "h|Simplified Enum Syntax|_004_004_enum_swg_Simplified_Enum_Syntax|",
+"h|Simplified Enum Syntax in a Conditional|_004_004_enum_swg_Simplified_Enum_Syntax_in_a_Conditional|",
 "h|Simplified Enum Flags Syntax|_004_004_enum_swg_Simplified_Enum_Flags_Syntax|",
 "h|Simplified Enum Syntax in Functions|_004_004_enum_swg_Simplified_Enum_Syntax_in_Functions|",
 "h|Iterating Over Enum Values|_004_004_enum_swg_Iterating_Over_Enum_Values|",
@@ -10886,6 +11055,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Parallel For|_005_007_parallel_for_swg|",
 "h|The 'parallel for' Statement|_005_007_parallel_for_swg_The__parallel_for__Statement|",
 "h|Capturing the Surrounding Scope|_005_007_parallel_for_swg_Capturing_the_Surrounding_Scope|",
+"h|Without an Index|_005_007_parallel_for_swg_Without_an_Index|",
 "h|Ranges|_005_007_parallel_for_swg_Ranges|",
 "h|What the Body May Do|_005_007_parallel_for_swg_What_the_Body_May_Do|",
 "h|Failures|_005_007_parallel_for_swg_Failures|",
@@ -10994,6 +11164,9 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Discard|_007_007_discard_swg|",
 "h|Return Value Usage|_007_007_discard_swg_Return_Value_Usage|",
 "h|Swag.Discardable Attribute|_007_007_discard_swg__Swag_Discardable__Attribute|",
+"h|Unused Names|_007_007_discard_swg_Unused_Names|",
+"h|Unnamed Parameters|_007_007_discard_swg_Unnamed_Parameters|",
+"h|Keeping a Name|_007_007_discard_swg_Keeping_a_Name|",
 "h|Retval|_007_008_retval_swg|",
 "h|The retval Special Type|_007_008_retval_swg_The__retval__Special_Type|",
 "h|Optimizing Return Values|_007_008_retval_swg_Optimizing_Return_Values|",
@@ -11093,6 +11266,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|The Leading Dot|_011_005_leading_dot_swg_The_Leading_Dot|",
 "h|The Type Plane|_011_005_leading_dot_swg_The_Type_Plane|",
 "h|The Subject Plane|_011_005_leading_dot_swg_The_Subject_Plane|",
+"h|The Enum Wins|_011_005_leading_dot_swg_The_Enum_Wins|",
 "h|The Innermost Subject Answers|_011_005_leading_dot_swg_The_Innermost_Subject_Answers|",
 "h|with Takes a Value|_011_005_leading_dot_swg__with__Takes_a_Value|",
 "h|The Right-Hand Side of a Dot|_011_005_leading_dot_swg_The_Right-Hand_Side_of_a_Dot|",

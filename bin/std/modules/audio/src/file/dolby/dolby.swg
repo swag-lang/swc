@@ -17,29 +17,29 @@ private const HeaderBytes = 8'u64
 // one a file is comes from the caller's extension rather than from a guess.
 internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->SoundFile fail
 {
-    var source = try ByteSource.openFile(path)
-    let size   = source.size()
+    var source    = try ByteSource.openFile(path)
+    let fileBytes = source.size()
 
     var packets: Array'SoundPacket
-    var at       = 0'u64
-    var frames   = 0'u64
-    var rate     = 0'u32
-    var channels = 0'u32
+    var byteOffset   = 0'u64
+    var totalFrames  = 0'u64
+    var sampleRate   = 0'u32
+    var channelCount = 0'u32
 
-    while at + HeaderBytes <= size
+    while byteOffset + HeaderBytes <= fileBytes
     {
-        try source.seek(at)
+        try source.seek(byteOffset)
         let probe = try source.peek(HeaderBytes)
         let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
-        if not info.frameBytes or at + info.frameBytes > size do
+        if not info.frameBytes or byteOffset + info.frameBytes > fileBytes do
             break
 
         if not packets.count
         {
-            rate     = info.sampleRate
-            channels = info.channels
+            sampleRate   = info.sampleRate
+            channelCount = info.channels
         }
-        elif info.sampleRate != rate or info.channels != channels
+        elif info.sampleRate != sampleRate or info.channels != channelCount
         {
             // A stream that changes shape mid-file is not one this reader indexes.
             break
@@ -47,9 +47,9 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
 
         if info.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"Dolby sync frame is larger than a packet may be"}
-        packets.add({at, cast(u32, info.frameBytes), info.frames})
-        frames += cast(u64, info.frames)
-        at     += info.frameBytes
+        packets.add({byteOffset, cast(u32, info.frameBytes), info.frames})
+        totalFrames += cast(u64, info.frames)
+        byteOffset  += info.frameBytes
     }
 
     if not packets.count do
@@ -57,5 +57,11 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
 
     source.close()
     var config: Array'u8
-    return try SoundFile.openPacketStream(path, encoding, rate, channels, frames, packets.toSlice(), config.toSlice())
+    return try SoundFile.openPacketStream(path,
+                                          encoding,
+                                          sampleRate,
+                                          channelCount,
+                                          totalFrames,
+                                          packets.toSlice(),
+                                          config.toSlice())
 }

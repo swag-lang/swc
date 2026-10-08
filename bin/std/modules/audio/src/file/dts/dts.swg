@@ -14,48 +14,55 @@ private const HeaderBytes = 18'u64
 
 internal func openElementaryStream(path: string)->SoundFile fail
 {
-    var source = try ByteSource.openFile(path)
-    let size   = source.size()
+    var source    = try ByteSource.openFile(path)
+    let fileBytes = source.size()
 
     var packets: Array'SoundPacket
-    var at       = 0'u64
-    var frames   = 0'u64
-    var rate     = 0'u32
-    var channels = 0'u32
-    var speakers = 0'u32
+    var byteOffset   = 0'u64
+    var totalFrames  = 0'u64
+    var sampleRate   = 0'u32
+    var channelCount = 0'u32
+    var speakerMask  = 0'u32
 
-    while at + 16 <= size
+    while byteOffset + 16 <= fileBytes
     {
-        try source.seek(at)
-        let probe = try source.peek(Math.min(HeaderBytes, size - at))
+        try source.seek(byteOffset)
+        let probe = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
         let info  = try frameInfo(probe)
-        if not info.frameBytes or at + info.frameBytes > size do
+        if not info.frameBytes or byteOffset + info.frameBytes > fileBytes do
             break
 
         if not packets.count
         {
-            rate     = info.sampleRate
-            channels = info.channels
-            speakers = info.speakerMask
+            sampleRate   = info.sampleRate
+            channelCount = info.channels
+            speakerMask  = info.speakerMask
         }
-        elif info.sampleRate != rate or info.channels != channels or info.speakerMask != speakers
+        elif info.sampleRate != sampleRate or info.channels != channelCount or info.speakerMask != speakerMask
         {
             break
         }
 
         if info.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"DTS core frame is larger than a packet may be"}
-        packets.add({at, cast(u32, info.frameBytes), info.frames})
-        frames += cast(u64, info.frames)
-        at     += info.frameBytes
+        packets.add({byteOffset, cast(u32, info.frameBytes), info.frames})
+        totalFrames += cast(u64, info.frames)
+        byteOffset  += info.frameBytes
     }
 
     if not packets.count do
         fail InvalidFormatError{"file carries no DTS core frame"}
-    if at != size do
+    if byteOffset != fileBytes do
         fail InvalidFormatError{"DTS elementary stream ends between core frames"}
 
     source.close()
     var config: Array'u8
-    return try SoundFile.openPacketStream(path, .Dts, rate, channels, frames, packets.toSlice(), config.toSlice(), {speakerMask: speakers})
+    return try SoundFile.openPacketStream(path,
+                                          .Dts,
+                                          sampleRate,
+                                          channelCount,
+                                          totalFrames,
+                                          packets.toSlice(),
+                                          config.toSlice(),
+                                          {speakerMask: speakerMask})
 }

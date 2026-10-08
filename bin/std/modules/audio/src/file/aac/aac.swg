@@ -87,31 +87,31 @@ private func audioSpecificConfig(header: const *AdtsHeader)->Array'u8
 // codec expects and what a container would have stripped for it.
 internal func openFile(path: string)->SoundFile fail
 {
-    var source = try ByteSource.openFile(path)
-    let size   = source.size()
+    var source    = try ByteSource.openFile(path)
+    let fileBytes = source.size()
 
     var packets: Array'SoundPacket
     var config:  Array'u8
-    var at       = 0'u64
-    var frames   = 0'u64
-    var rate     = 0'u32
-    var channels = 0'u32
+    var byteOffset   = 0'u64
+    var totalFrames  = 0'u64
+    var sampleRate   = 0'u32
+    var channelCount = 0'u32
 
-    while at + 7 <= size
+    while byteOffset + 7 <= fileBytes
     {
-        try source.seek(at)
-        let probe  = try source.peek(Math.min(HeaderBytes, size - at))
+        try source.seek(byteOffset)
+        let probe  = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
         let header = try readAdtsHeader(probe)
-        if at + header.frameBytes > size do
+        if byteOffset + header.frameBytes > fileBytes do
             break
 
         if not packets.count
         {
-            rate     = header.sampleRate
-            channels = header.channels
-            config   = audioSpecificConfig(&header)
+            sampleRate   = header.sampleRate
+            channelCount = header.channels
+            config       = audioSpecificConfig(&header)
         }
-        elif header.sampleRate != rate or header.channels != channels
+        elif header.sampleRate != sampleRate or header.channels != channelCount
         {
             break
         }
@@ -124,14 +124,20 @@ internal func openFile(path: string)->SoundFile fail
         let payload = header.frameBytes - header.headerBytes
         if not payload do
             fail InvalidFormatError{"ADTS frame carries no audio"}
-        packets.add({at + header.headerBytes, cast(u32, payload), header.blocks * 1024})
-        frames += cast(u64, header.blocks) * 1024
-        at     += header.frameBytes
+        packets.add({byteOffset + header.headerBytes, cast(u32, payload), header.blocks * 1024})
+        totalFrames += cast(u64, header.blocks) * 1024
+        byteOffset  += header.frameBytes
     }
 
     if not packets.count do
         fail InvalidFormatError{"file carries no ADTS frame"}
 
     source.close()
-    return try SoundFile.openPacketStream(path, .AacLc, rate, channels, frames, packets.toSlice(), config.toSlice())
+    return try SoundFile.openPacketStream(path,
+                                          .AacLc,
+                                          sampleRate,
+                                          channelCount,
+                                          totalFrames,
+                                          packets.toSlice(),
+                                          config.toSlice())
 }

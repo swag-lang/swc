@@ -120,22 +120,22 @@ func canCompare(type: typeinfo?)->bool
 #[ConstExpr, Inline]
 {
     // Returns whether values of `type` must be dropped.
-    func hasDrop(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
+    func hasDrop(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDrop)
 
     // Returns whether values of `type` need a post-move hook after their bytes are relocated.
-    func hasPostMove(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
+    func hasPostMove(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostMove)
 
     // Returns whether values of `type` need a post-copy hook after their bytes are copied.
-    func hasPostCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
+    func hasPostCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy)
 
     // Returns whether values of `type` contain identity slots managed by [[Swag.DynCast]], in embedded fields and array elements included.
     //
     // Initialize new storage and use typed assignments when copying a view of such a value into a
     // new complete object.
-    func hasDynamicStorage(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDynamicStorage) ? true : false
+    func hasDynamicStorage(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDynamicStorage)
 
     // Returns whether values of `type` can be copied.
-    func canCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
+    func canCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.CanCopy)
 
     // Returns whether values of `type` are plain data that can be copied and relocated as raw bytes.
     //
@@ -144,7 +144,11 @@ func canCompare(type: typeinfo?)->bool
     {
         if not type do
             return false
-        return type.flags & (TypeInfoFlags.HasDrop | TypeInfoFlags.HasPostMove | TypeInfoFlags.HasPostCopy | TypeInfoFlags.HasDynamicStorage) ? false : true
+        const NonPodFlags = TypeInfoFlags.HasDrop |
+                            TypeInfoFlags.HasPostMove |
+                            TypeInfoFlags.HasPostCopy |
+                            TypeInfoFlags.HasDynamicStorage
+        return not (type.flags & NonPodFlags)
     }
 }
 

@@ -139,6 +139,12 @@ symbol would bury the algorithm; describe the parameter domain and the exception
 Keep the original arithmetic order, widths, and wrapping operators. A named crossing coordinate
 belongs inside the height guard that makes its division valid, not before that guard.
 
+For SIMD code, keep a short domain qualifier such as `Simd` while removing repeated outer
+namespace prefixes. Name a loaded block before a shuffle when nested loads and bit casts hide
+which block is being reversed. Establish a channel-pair representation once at its construction
+boundary when every later use needs that same bit view. Preserve lane widths, load/store order,
+and scalar-tail arithmetic; verify both complete vector blocks and representative tail lengths.
+
 For a simulation, name the state and its rate separately: `angle` and `angularVelocity` explain
 more than numbered abbreviations. Name a damping multiplier after the value it retains, rather
 than implying that it is the amount removed. Keep familiar coordinates and short coefficients
@@ -291,6 +297,11 @@ inputs with expected results. A newline before the enclosing `]` or `)` does not
 record a multiline block: the formatter must preserve the rows instead of joining the entire
 table as a header. Keep genuinely compact tables compact; only hug a trailing block when that
 last item itself spans lines.
+
+For a flat byte lookup table without semantic row boundaries, use a consistent modest row width
+(sixteen byte values is often readable) rather than filling the entire editor width. Compare the
+literal sequence before and after; reflow must not change a value, suffix, or order. Existing
+semantic rows take precedence over this convenience.
 
 Before changing an automatic rule, inspect representative declarations, guards, closures,
 tables, comments, and deliberately unusual compiler fixtures. Verify the intended output and

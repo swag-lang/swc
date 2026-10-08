@@ -210,6 +210,10 @@ of a reader's brain. Apply these rules to all edited Swag code:
   coherent operations. Extract a phase when its detail hides the caller's story, even if used
   once. Keep the helper with its owner and count the extra navigation it introduces. Do not
   replace clear local steps with chains of tiny wrappers, switches on modes, or boolean controls.
+- Remove repeated namespace prefixes when an appropriate `using` keeps resolution unambiguous.
+  For example, `using Math` lets vector-heavy code use `Simd.load` instead of `Math.Simd.load`.
+  Retain a useful domain label such as `Simd`; do not invent cryptic aliases or hide which API
+  owns an operation. Check existing unqualified calls when extending the visible namespaces.
 
 The default formatter keeps `column-limit = 0`: general wrapping remains an author decision.
 Its narrow `bitwise-chain-column-limit = 120` rule splits an unbroken chain of at least three
@@ -347,8 +351,8 @@ through it directly, and only a whole-value read or write opens the place with t
   replacing an asserted receiver with `?.` would silently change the contract.
 - Keep a guard and a named binding when several operations share the non-null value or absence
   needs its own behavior. Use the flow-refined value after the guard; do not add a redundant `!`
-  when the compiler already knows it is non-null. Keep required side effects outside assertions, even if inlining an
-  action into the assertion would remove a temporary.
+  when the compiler already knows it is non-null. Keep required side effects outside assertions,
+  even if inlining an action into the assertion would remove a temporary.
 
 ## Bind Construction and Configuration with `with`
 

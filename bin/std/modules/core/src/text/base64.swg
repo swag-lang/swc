@@ -1,7 +1,7 @@
 #global public
 #global namespace Base64
 
-using Swag
+using Swag, Math
 
 // The sextet one text byte spells, 255 for a byte outside both alphabets.
 private func digitValue(value: u8)->u8
@@ -19,58 +19,58 @@ private func digitValue(value: u8)->u8
     return 255
 }
 
-private const EncodeGather  = cast(Math.Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
-private const DecodeScatter = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
+private const EncodeGather  = cast(Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
+private const DecodeScatter = cast(Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 
 #[Swag.Inline]
-private func encodeBlock(input: const [*] u8)->Math.Simd.U8x16
+private func encodeBlock(input: const [*] u8)->Simd.U8x16
 {
-    let gathered = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(Math.Simd.load(input), EncodeGather))
+    let gathered = cast #bit(Simd.U32x4, Simd.shuffle(Simd.load(input), EncodeGather))
     let sextets  = (gathered >> 18) |
                    (((gathered >> 12) & 63) << 8) |
                    (((gathered >> 6) & 63) << 16) |
                    ((gathered & 63) << 24)
-    let values = cast #bit(Math.Simd.U8x16, sextets)
+    let values = cast #bit(Simd.U8x16, sextets)
 
     // Translate the digit ranges, then replace the two punctuation characters.
     var encoded = values + 'A'
-    encoded += Math.Simd.select(values > Math.Simd.splat(25'u8), Math.Simd.splat(6'u8), Math.Simd.splat(0'u8))
-    encoded += Math.Simd.select(values > Math.Simd.splat(51'u8), Math.Simd.splat(181'u8), Math.Simd.splat(0'u8))
-    encoded = Math.Simd.select(values == Math.Simd.splat(62'u8), Math.Simd.splat('+'u8), encoded)
-    return Math.Simd.select(values == Math.Simd.splat(63'u8), Math.Simd.splat('/'u8), encoded)
+    encoded += Simd.select(values > Simd.splat(25'u8), Simd.splat(6'u8), Simd.splat(0'u8))
+    encoded += Simd.select(values > Simd.splat(51'u8), Simd.splat(181'u8), Simd.splat(0'u8))
+    encoded = Simd.select(values == Simd.splat(62'u8), Simd.splat('+'u8), encoded)
+    return Simd.select(values == Simd.splat(63'u8), Simd.splat('/'u8), encoded)
 }
 
 #[Swag.Inline]
-private func decodeBlock(input: const [*] u8)->{ decoded: Math.Simd.U8x16, valid: bool }
+private func decodeBlock(input: const [*] u8)->{ decoded: Simd.U8x16, valid: bool }
 {
-    let bytes      = Math.Simd.load(input)
-    let upperMask  = (bytes >= Math.Simd.splat('A'u8)) & (bytes <= Math.Simd.splat('Z'u8))
-    let lowerMask  = (bytes >= Math.Simd.splat('a'u8)) & (bytes <= Math.Simd.splat('z'u8))
-    let digitMask  = (bytes >= Math.Simd.splat('0'u8)) & (bytes <= Math.Simd.splat('9'u8))
-    let symbolMask = (bytes == Math.Simd.splat('+'u8)) | (bytes == Math.Simd.splat('-'u8)) |
-                     (bytes == Math.Simd.splat('/'u8)) | (bytes == Math.Simd.splat('_'u8))
-    if not Math.Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
-        return {decoded: Math.Simd.splat(0'u8), valid: false}
+    let bytes      = Simd.load(input)
+    let upperMask  = (bytes >= Simd.splat('A'u8)) & (bytes <= Simd.splat('Z'u8))
+    let lowerMask  = (bytes >= Simd.splat('a'u8)) & (bytes <= Simd.splat('z'u8))
+    let digitMask  = (bytes >= Simd.splat('0'u8)) & (bytes <= Simd.splat('9'u8))
+    let symbolMask = (bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)) |
+                     (bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8))
+    if not Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
+        return {decoded: Simd.splat(0'u8), valid: false}
 
     // Map both alphabets to the same six-bit digits.
-    var values = Math.Simd.splat(0'u8)
-    values = Math.Simd.select(upperMask, bytes - 'A', values)
-    values = Math.Simd.select(lowerMask, bytes - 'a' + 26, values)
-    values = Math.Simd.select(digitMask, bytes - '0' + 52, values)
-    values = Math.Simd.select((bytes == Math.Simd.splat('+'u8)) | (bytes == Math.Simd.splat('-'u8)),
-                              Math.Simd.splat(62'u8),
-                              values)
-    values = Math.Simd.select((bytes == Math.Simd.splat('/'u8)) | (bytes == Math.Simd.splat('_'u8)),
-                              Math.Simd.splat(63'u8),
-                              values)
+    var values = Simd.splat(0'u8)
+    values = Simd.select(upperMask, bytes - 'A', values)
+    values = Simd.select(lowerMask, bytes - 'a' + 26, values)
+    values = Simd.select(digitMask, bytes - '0' + 52, values)
+    values = Simd.select((bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)),
+                         Simd.splat(62'u8),
+                         values)
+    values = Simd.select((bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8)),
+                         Simd.splat(63'u8),
+                         values)
 
     // Reassemble each four-digit group into three contiguous bytes.
-    let sextets    = cast #bit(Math.Simd.U32x4, values)
+    let sextets    = cast #bit(Simd.U32x4, values)
     let firstByte  = ((sextets & 63) << 2) | (((sextets >> 8) & 63) >> 4)
     let secondByte = (((sextets >> 8) & 15) << 4) | (((sextets >> 16) & 63) >> 2)
     let thirdByte  = (((sextets >> 16) & 3) << 6) | ((sextets >> 24) & 63)
     let packed     = firstByte | (secondByte << 8) | (thirdByte << 16)
-    return {decoded: Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, packed), DecodeScatter), valid: true}
+    return {decoded: Simd.shuffle(cast #bit(Simd.U8x16, packed), DecodeScatter), valid: true}
 }
 
 // Encodes bytes as standard base64 text, with `=` padding and no line breaks.
@@ -89,7 +89,7 @@ func encode(bytes: const [..] u8)->String
     // Vector loads read 16 bytes while each block consumes only 12.
     while count - index >= 16
     {
-        Math.Simd.store(result.storage() + outIndex, encodeBlock(bytes.buffer + index))
+        Simd.store(result.storage() + outIndex, encodeBlock(bytes.buffer + index))
         index    += 12
         outIndex += 16
     }
@@ -154,7 +154,7 @@ func decode(text: string)->Array'u8 fail
             let block = decodeBlock(text.buffer + index)
             if block.valid
             {
-                Math.Simd.store(result.storage() + result.count, block.decoded)
+                Simd.store(result.storage() + result.count, block.decoded)
                 result.count += 12
                 index        += 16
                 continue

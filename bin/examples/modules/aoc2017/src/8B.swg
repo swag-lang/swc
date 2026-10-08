@@ -16,7 +16,10 @@ func day8B()
 
     for l in lines
     {
-        Swag.assert(re.match(l[]))
+        // The match must run in every configuration; an assertion argument is not evaluated
+        // where assertions are disabled.
+        let matched = re.match(l[])
+        Swag.assert(matched)
         var v0 = expect StrConv.toS32(re[3])
         let v1 = expect StrConv.toS32(re[6])
         if not regs.contains(re[1]) do

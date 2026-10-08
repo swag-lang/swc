@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.008 — Language services still start a compiler for each edited snapshot
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-08 19:09 — Add imported API discovery and full-module timing evidence.
+- Evidence: `vscode/src/server.js` keeps an LSP session with versioned open buffers, cancellation,
+  shutdown, and module snapshots. `swc sema --editor-index` exports compiler-resolved symbols;
+  `--editor-overlay` supplies unsaved buffers without replacing disk files. Each changed snapshot
+  still starts a new compiler process and rebuilds its module's semantic state. A GUI analysis
+  covered 279 files and 776,906 tokens in 8.3 seconds; scheduler phases attributed 5.8 seconds to
+  semantic analysis, 60 ms to parsing, and 169 ms to module setup. Imported Core types were absent
+  when the server omitted the standard generated-API root; supplying it resolved `Input.KeyModifiers`
+  to `core.swg`.
+- Next: host the analysis service in the compiler, retaining source and semantic state between
+  edits. Prioritize semantic invalidation and reuse; a parse-only shortcut cannot preserve resolved
+  types and references. Keep the existing LSP integration tests as the transport-independent
+  contract.
+- Complete when: requests call retained compiler-library services, obsolete analyses can be
+  cancelled inside that service, and unchanged files and interfaces reuse their compiler state.
+- Related: compiler.core.001, compiler.core.002, compiler.core.009, compiler.core.010,
+  compiler.core.011, compiler.core.012, compiler.core.013, compiler.core.014.
+
 ### compiler.core.080 — Published generic hash bodies call an omitted private helper
 
 - Recorded: 2026-10-08 16:26
@@ -42,21 +63,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: a consumer importing the generated Core API hashes equal standalone and base-view
   dynamic values consistently with both hash widths, and a publication regression protects the
   dependency boundary without relying only on tests compiled inside the provider.
-
-### compiler.core.008 — Language services still start a compiler for each edited snapshot
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
-- Evidence: `vscode/src/server.js` keeps an LSP session with versioned open buffers, cancellation,
-  shutdown, and module snapshots. `swc sema --editor-index` exports compiler-resolved symbols;
-  `--editor-overlay` supplies unsaved buffers without replacing disk files. Each changed snapshot
-  still starts a new compiler process and rebuilds its module's semantic state.
-- Next: host the analysis service in the compiler, retaining the source and semantic state between
-  edits. Keep the existing LSP integration tests as the transport-independent contract.
-- Complete when: requests call retained compiler-library services, obsolete analyses can be
-  cancelled inside that service, and unchanged files and interfaces reuse their compiler state.
-- Related: compiler.core.001, compiler.core.002, compiler.core.009, compiler.core.010,
-  compiler.core.011, compiler.core.012, compiler.core.013, compiler.core.014.
 
 ### compiler.core.009 — Diagnostics still wait for full-module reanalysis
 

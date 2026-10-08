@@ -3,7 +3,22 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const {runCompiler} = require('../src/compiler');
+const {runCompiler, standardApiDirectories} = require('../src/compiler');
+
+test('compiler discovers the generated standard-library API root for a module', async () =>
+{
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'swag-api-root-test-'));
+    try
+    {
+        const standardLibrary = path.join(root, 'bin', 'std');
+        const moduleDirectory = path.join(standardLibrary, 'modules', 'gui');
+        const apiDirectory = path.join(standardLibrary, '.output');
+        await fs.mkdir(moduleDirectory, {recursive: true});
+        await fs.mkdir(apiDirectory);
+        assert.ok((await standardApiDirectories({directory: moduleDirectory}, 'swc')).includes(apiDirectory));
+    }
+    finally { await fs.rm(root, {recursive: true, force: true}); }
+});
 
 test('cancelling analysis reaps its helper process before releasing the result', {timeout: 10000}, async () =>
 {

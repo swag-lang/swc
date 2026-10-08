@@ -45,12 +45,8 @@ func advanceGeneration(nextGeneration: s32)
             }
 
             // Birth needs three neighbors; a living cell also survives with two.
-            if not g_Grid[g_CurrentGeneration, column, row] and aliveNeighbors == 3 do
-                g_Grid[nextGeneration, column, row] = true
-            elif g_Grid[g_CurrentGeneration, column, row] and (aliveNeighbors == 2 or aliveNeighbors == 3) do
-                g_Grid[nextGeneration, column, row] = true
-            else do
-                g_Grid[nextGeneration, column, row] = false
+            let wasAlive = g_Grid[g_CurrentGeneration, column, row]
+            g_Grid[nextGeneration, column, row] = aliveNeighbors == 3 or (wasAlive and aliveNeighbors == 2)
         }
     }
 

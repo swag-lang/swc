@@ -157,6 +157,12 @@ representative sequences against the original implementation, including floating
 patterns when only names and grouping changed. A startup smoke alone cannot establish that a
 simulation still produces the same states.
 
+Branches that only choose `true` or `false` for the same destination can often become one
+readable predicate. For example, Life's rule is `neighbors == 3 or (wasAlive and neighbors == 2)`.
+Keep the explanatory grouping and verify the truth table. Do not apply Boolean algebra across
+fallible calls, callbacks, volatile state, or guarded accesses; their evaluation is part of the
+behavior. A saved state value is appropriate only while that state is stable.
+
 ## Factor A Repeated Policy, Keep The Choice Visible
 
 When several branches parse different numeric types but all reject overflow before writing the

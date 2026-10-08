@@ -16,7 +16,7 @@ namespace
     //     the platform, not of the style. Rewriting them turns every formatted
     //     file into a whole-file diff on the other operating system.
     //   - `column-limit`: general wrapping stays with the author, preserving
-    //     hand-laid data tables. The separate bitwise-chain limit only splits
+    //     hand-laid data tables. The separate operand-chain limits only split
     //     long, unbroken operand chains.
     void applySwagStyle(FormatOptions& o)
     {
@@ -52,6 +52,7 @@ namespace
 
         // Wrapping
         o.bitwiseChainColumnLimit              = 120;
+        o.logicalChainColumnLimit              = 120;
         o.breakBeforeBinaryOperators           = FormatOperatorWrapStyle::After;
         o.breakBeforeTernaryOperators          = false;
         o.breakAfterReturnType                 = false;

@@ -204,6 +204,125 @@ SWC_TEST_BEGIN(FormatWrap_BitwiseChainsInExpressionBodies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsSplitByOperand)
+{
+    for (const std::string_view op : {"and", "or"})
+    {
+        const std::string source   = std::format("func f()->bool\n{{\n    return firstLongCondition {} secondLongCondition {} thirdLongCondition\n}}\n", op, op);
+        const std::string expected = std::format("func f()->bool\n{{\n    return firstLongCondition {}\n           secondLongCondition {}\n           thirdLongCondition\n}}\n", op, op);
+        FormatOptions     options;
+        applyFormatStyle(options, FormatNamedStyle::Swag);
+        options.logicalChainColumnLimit = 50;
+        SWC_RESULT(FormatRewriteCheck::check(ctx, source, expected, options));
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsHonorOperatorPosition)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()->bool\n{\n    return firstLongCondition and secondLongCondition and thirdLongCondition\n}\n";
+    static constexpr std::string_view EXPECTED =
+        "func f()->bool\n{\n    return firstLongCondition\n           and secondLongCondition\n           and thirdLongCondition\n}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.logicalChainColumnLimit      = 50;
+    options.logicalOperatorBreakPosition = FormatOperatorWrapStyle::Before;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
+    options.logicalOperatorBreakPosition = FormatOperatorWrapStyle::None;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsHonorExplicitSingleLine)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n{\n    consume(firstLongCondition and secondLongCondition and thirdLongCondition)\n}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.logicalChainColumnLimit      = 50;
+    options.forceSingleLineArgumentLists = true;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options));
+    options.forceSingleLineArgumentLists      = false;
+    options.forceSingleLineLogicalExpressions = true;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options));
+    options.forceSingleLineLogicalExpressions = false;
+    options.logicalChainColumnLimit           = 0;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsLeaveShortAndMixedExpressions)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n{\n"
+        "    let short = a and b and c // A long explanation does not lengthen the chain.\n"
+        "    let pair = firstLongCondition and secondLongCondition\n"
+        "    let mixed = firstLongCondition or secondLongCondition and thirdLongCondition or fourthLongCondition\n"
+        "    consumeAnUnusuallyLongFunctionName(firstArgument, a and b and c)\n"
+        "}\n";
+    FormatOptions options;
+    options.logicalChainColumnLimit = 30;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsKeepAuthoredGrouping)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()->bool\n{\n"
+        "    return firstLongCondition and secondLongCondition and\n"
+        "           thirdLongCondition\n}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.logicalOperandPacking   = FormatLogicalPacking::Preserve;
+    options.logicalChainColumnLimit = 30;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsInsideCall)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n{\n    consume(firstLongCondition and secondLongCondition and thirdLongCondition)\n}\n";
+    static constexpr std::string_view EXPECTED =
+        "func f()\n{\n    consume(firstLongCondition and\n            secondLongCondition and\n            thirdLongCondition)\n}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.logicalChainColumnLimit = 50;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsKeepParenthesizedOperands)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()->bool\n{\n    return firstLongCondition or (secondCondition and thirdCondition) or fourthLongCondition\n}\n";
+    static constexpr std::string_view EXPECTED =
+        "func f()->bool\n{\n    return firstLongCondition or\n           (secondCondition and thirdCondition) or\n           fourthLongCondition\n}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.logicalChainColumnLimit = 50;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalChainsRespectFrozenSourceAndComments)
+{
+    static constexpr std::string_view SOURCE =
+        "// swc-format off\n"
+        "func f()->bool { return firstLongCondition and secondLongCondition and thirdLongCondition }\n"
+        "// swc-format on\n"
+        "func g()->bool\n{\n"
+        "    return firstLongCondition and /* keep this reason here */ secondLongCondition and thirdLongCondition\n"
+        "}\n";
+    FormatOptions options;
+    options.logicalChainColumnLimit = 30;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_BreaksAfterComma)
 {
     static constexpr std::string_view SOURCE =
@@ -1405,9 +1524,9 @@ SWC_TEST_BEGIN(FormatWrap_HugPreservesCompactTableRows)
     {
         for (const std::string_view trailingComma : {"", ","})
         {
-            const std::string source = std::format("func foo()\n{{\n    {} [\n        {{1, 2}},\n        {{3, 4}}{}\n    ]\n}}\n", declaration, trailingComma);
+            const std::string source   = std::format("func foo()\n{{\n    {} [\n        {{1, 2}},\n        {{3, 4}}{}\n    ]\n}}\n", declaration, trailingComma);
             const std::string expected = std::format("func foo()\n{{\n    {} [\n        {{1, 2}},\n        {{3, 4}}]\n}}\n", declaration);
-            FormatOptions options;
+            FormatOptions     options;
             applyFormatStyle(options, FormatNamedStyle::Swag);
             SWC_RESULT(FormatRewriteCheck::check(ctx, source, expected, options));
         }

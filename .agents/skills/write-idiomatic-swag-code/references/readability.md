@@ -212,6 +212,14 @@ only narration that the new names make redundant.
 Adding or adopting such helpers is a semantic refactoring with focused tests, outside the
 strictly visual campaign in `backlog/repo.prompts.md`.
 
+The same mechanical fallback applies to a long chain of conditions: the default
+`logical-chain-column-limit = 120` splits at least three operands joined by the same `and` or
+`or`, with the same width measurement and preservation rules. It keeps a parenthesized operand
+whole and leaves mixed operators at the same depth for an author to review. Do not invent named
+Boolean locals merely to shorten such a chain: eager evaluation can lose its short-circuit guards.
+Explicit single-line policies still take precedence. A long condition with only two operands may
+need authored wrapping or a meaningful predicate; this narrow rule does not decide that.
+
 The default style preserves the authored shape of named functions, including a multiline body
 beside an accessor. Explicit `uniform-function-bodies` configuration can still request sibling
 compaction. Do not force every accessor to expand or every single statement to collapse.

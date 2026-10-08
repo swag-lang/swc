@@ -232,10 +232,11 @@ of a reader's brain. Apply these rules to all edited Swag code:
 
 The default formatter keeps `column-limit = 0`: general wrapping remains an author decision.
 Its narrow `bitwise-chain-column-limit = 120` rule splits an unbroken chain of at least three
-`&`, `|`, or `^` operands when the chain plus line indentation exceeds that width. Call prefixes
-and trailing comments do not make a compact flag list expand. It preserves authored multiline
-chains and does not simplify logic. It normalizes authored break placement (for
-example, bringing a call's first argument back beside its opening parenthesis), and preserves
+`&`, `|`, or `^` operands when the chain plus line indentation exceeds that width. The analogous
+`logical-chain-column-limit = 120` rule splits chains of at least three conditions joined by the same `and` or `or`. Mixed operators
+at the same parenthesis depth remain an author decision. Call prefixes and trailing comments do
+not make a compact chain expand. Both rules preserve authored multiline chains and do not simplify
+logic. The formatter normalizes authored break placement (for example, bringing a call's first argument back beside its opening parenthesis), and preserves
 the choice of a block or one-line named function. Run `swc format` instead of padding
 continuations, declaration columns, or trailing comments by hand, then read its output again.
 For a vertical argument or parameter list, place the second item on its own line: the default

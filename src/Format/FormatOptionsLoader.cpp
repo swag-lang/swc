@@ -64,6 +64,7 @@ namespace
     {
         schema.add("column-limit", &options.columnLimit, "Set the soft wrapping column; use 0 to disable wrapping");
         schema.add("bitwise-chain-column-limit", &options.bitwiseChainColumnLimit, "Split single-line &, |, or ^ chains of at least three operands when their width plus line indentation exceeds this limit; exclude call prefixes and trailing comments, and use 0 to disable");
+        schema.add("logical-chain-column-limit", &options.logicalChainColumnLimit, "Split single-line chains of at least three operands joined by the same and/or operator when their width plus line indentation exceeds this limit; exclude call prefixes and trailing comments, and use 0 to disable");
 
         schema.addEnum("break-before-binary-operators", &options.breakBeforeBinaryOperators, {{"preserve", FormatOperatorWrapStyle::Preserve}, {"before", FormatOperatorWrapStyle::Before}, {"after", FormatOperatorWrapStyle::After}, {"none", FormatOperatorWrapStyle::None}}, "Choose where long expressions break relative to binary operators");
 

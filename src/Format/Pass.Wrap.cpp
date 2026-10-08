@@ -6,7 +6,7 @@
 // deliberate choice, not a missing feature, and it rests on what the canonical
 // Swag style is: `column-limit` is 0, so general statement wrapping stays with
 // the author. Narrow syntax-aware rules can still split an unbroken construct:
-// long bitwise chains use one operand per line, with their own column limit.
+// long bitwise and homogeneous logical chains use one operand per line.
 // These rules preserve authored multiline expressions and never simplify logic.
 //
 // The exception is the interior of a bracket, where continuation lines keep
@@ -106,6 +106,7 @@ namespace
         bool                    editable      = false;
         bool                    hasComment    = false;
         bool                    canJoin       = false;
+        bool                    keepMultiline = false;
     };
 
     enum class LayoutTargetKind : uint8_t
@@ -142,7 +143,9 @@ namespace
             collectLogicalExpressions();
             // New operand breaks must participate in the containing list's
             // layout choice during this pass, not on the next formatting run.
-            wrapBitwiseChains();
+            wrapOperandChains(model_->bitwiseExpressions(), options_->bitwiseChainColumnLimit, options_->breakBeforeBinaryOperators);
+            const auto logicalBreak = options_->logicalOperatorBreakPosition == FormatOperatorWrapStyle::Preserve ? options_->breakBeforeBinaryOperators : options_->logicalOperatorBreakPosition;
+            wrapOperandChains(model_->logicalExpressions(), options_->logicalChainColumnLimit, logicalBreak);
             chooseLineModes();
             prepareLists();
             prepareLogicalExpressions();
@@ -674,6 +677,12 @@ namespace
                 return;
             }
 
+            if (state.keepMultiline)
+            {
+                state.lineMode = ListLineMode::MultiLine;
+                return;
+            }
+
             if (!state.sourceSelectsLayout.has_value())
                 return;
 
@@ -1116,14 +1125,14 @@ namespace
             bool     continuation = false;
         };
 
-        // Packed bytes and flag compositions read by operand, not by the number of
-        // tokens a greedy line fill can squeeze in. Keep authored multiline layouts.
-        void wrapBitwiseChains() const
+        // Long compositions read by operand, not by how many tokens fit on a line.
+        // Share the width and safety rules; retain authored multiline layouts.
+        void wrapOperandChains(const std::vector<FormatBinaryExpression>& sourceExpressions, const uint32_t columnLimit, const FormatOperatorWrapStyle breakStyle)
         {
-            if (!options_->bitwiseChainColumnLimit || options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::None)
+            if (!columnLimit || breakStyle == FormatOperatorWrapStyle::None)
                 return;
 
-            std::vector<FormatBinaryExpression> expressions = model_->bitwiseExpressions();
+            std::vector<FormatBinaryExpression> expressions = sourceExpressions;
             std::ranges::sort(expressions, [](const auto& left, const auto& right) {
                 return left.firstPiece != right.firstPiece ? left.firstPiece < right.firstPiece : left.lastPiece > right.lastPiece;
             });
@@ -1136,12 +1145,17 @@ namespace
 
                 const FormatPiece&    root = model_->piece(expr.rootOperatorPiece);
                 std::vector<uint32_t> operands;
-                bool                  editable = true;
+                bool                  editable  = true;
+                bool                  multiline = false;
                 for (uint32_t i = expr.firstPiece; i <= expr.lastPiece; ++i)
                 {
                     const FormatPiece& piece = model_->piece(i);
-                    if (!FormatPassUtil::canEditGap(*model_, i) || piece.isComment ||
-                        (i != expr.firstPiece && model_->gapHasNewline(i)))
+                    if (i != expr.firstPiece && model_->gapHasNewline(i))
+                    {
+                        multiline        = true;
+                        protectedThrough = expr.lastPiece;
+                    }
+                    if (!FormatPassUtil::canEditGap(*model_, i) || piece.isComment)
                     {
                         editable         = false;
                         protectedThrough = expr.lastPiece;
@@ -1149,8 +1163,15 @@ namespace
                     }
                     if (piece.depth == root.depth && piece.id == root.id && piece.hasRole(FormatRoleE::BinaryOp))
                     {
-                        const bool beforeOperator = options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::Before;
+                        const bool beforeOperator = breakStyle == FormatOperatorWrapStyle::Before;
                         operands.push_back(beforeOperator ? i : model_->nextPiece(i));
+                    }
+                    // Mixed and/or precedence needs an author's grouping decision.
+                    if (root.hasRole(FormatRoleE::LogicalOp) && piece.hasRole(FormatRoleE::LogicalOp) && piece.depth == root.depth && piece.id != root.id)
+                    {
+                        editable         = false;
+                        protectedThrough = expr.lastPiece;
+                        break;
                     }
                 }
                 if (!editable || operands.size() < 2)
@@ -1170,24 +1191,35 @@ namespace
                 if (!editable)
                     continue;
 
-                std::vector<PieceColumn> columns;
-                FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(expr.firstPiece), &columns);
-                const auto anchor = std::ranges::find(columns, expr.firstPiece, &PieceColumn::piece);
-                const auto end    = std::ranges::find(columns, expr.lastPiece, &PieceColumn::piece);
-                SWC_ASSERT(anchor != columns.end() && end != columns.end());
-
-                // A long call prefix or trailing comment must not explode a
-                // compact flag argument. Measure the chain at the line's indent.
-                const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
-                const uint32_t width    = columns.front().column + end->column - anchor->column +
-                                       FormatModel::textColumns(model_->piece(end->piece).text, tabWidth, end->column);
-                if (width <= options_->bitwiseChainColumnLimit)
-                    continue;
-                const Utf8 indent = FormatPassUtil::indentForColumns(*model_, anchor->column);
-                for (const uint32_t operand : operands)
+                if (!multiline)
                 {
-                    model_->setGapBreak(operand, 1, indent.view());
-                    model_->hangingLines().push_back({operand, expr.firstPiece, 0});
+                    std::vector<PieceColumn> columns;
+                    FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(expr.firstPiece), &columns);
+                    const auto anchor = std::ranges::find(columns, expr.firstPiece, &PieceColumn::piece);
+                    const auto end    = std::ranges::find(columns, expr.lastPiece, &PieceColumn::piece);
+                    SWC_ASSERT(anchor != columns.end() && end != columns.end());
+
+                    // A long call prefix or trailing comment must not explode a
+                    // compact flag argument. Measure the chain at the line's indent.
+                    const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
+                    const uint32_t width    = columns.front().column + end->column - anchor->column +
+                                           FormatModel::textColumns(model_->piece(end->piece).text, tabWidth, end->column);
+                    if (width <= columnLimit)
+                        continue;
+                    const Utf8 indent = FormatPassUtil::indentForColumns(*model_, anchor->column);
+                    for (const uint32_t operand : operands)
+                    {
+                        model_->setGapBreak(operand, 1, indent.view());
+                        model_->hangingLines().push_back({operand, expr.firstPiece, 0});
+                    }
+                }
+
+                // An authored break must survive source-selected joining as well,
+                // or the next pass could split the line that this pass just joined.
+                for (LogicalState& logical : logicalExpressions_)
+                {
+                    if (logical.firstPiece == expr.firstPiece && logical.lastPiece == expr.lastPiece)
+                        logical.keepMultiline = true;
                 }
                 protectedThrough = expr.lastPiece;
             }

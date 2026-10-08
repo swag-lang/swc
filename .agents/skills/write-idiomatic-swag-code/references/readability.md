@@ -211,6 +211,8 @@ file-private helpers. Keep an elementary check in such a published body when fac
 introduce an unavailable dependency. Other methods whose compiled implementation stays in the
 module can still share the private helper. Do not widen its public API solely to shorten a caller,
 and verify a real importer when changing one of these published bodies.
+Apply the same check to internal methods: being callable inside the provider does not prove that
+a helper declaration is present in the generated API.
 
 For repeated named-token scans, keep the lookup family explicit at the call site. A shared
 scanner can consume one exact name and return its index; the caller still maps that index to a

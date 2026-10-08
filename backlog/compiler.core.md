@@ -6,9 +6,10 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-### compiler.core.080 — Published generic hash bodies call an omitted private helper
+### compiler.core.080 — Published generic bodies call omitted helper declarations
 
 - Recorded: 2026-10-08 16:26
+- Updated: 2026-10-08 20:01 — Confirm the same publication boundary for the XML reader before and after its numeric refactoring.
 - Evidence: a forced DevMode import at `94dcc8f39`, with six workers, successfully rebuilt
   Core and then rejected `Hash.hash32` for a `#[Swag.DynCast]` struct with an `s32` field:
   `unknown symbol 'hashDynamicStorage'`. The span points to that call in generated `core.swg`.
@@ -32,16 +33,27 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   }
   ```
 
+- Additional evidence: an external script importing Core and calling
+  `Serialization.Read.Xml.readNative'f32()` fails with `struct 'Xml' has no field 'zapBlanks'`
+  in generated `core.swg`. The same forced rebuild with the XML source from before `6ba358e2c`
+  fails at the same call; this is not introduced by its numeric-dispatch refactoring. Nine XML
+  and resource tests, including every numeric width, pass inside Core. The missing helper is
+  `internal` here, so checking only private free functions does not cover the boundary. The
+  import diagnostic also describes the missing method as a field and lists only data members.
+- XML reproduction: import Core in an external script, create a `Serialization.Read.Xml`,
+  call `expect reader.startRead("1.5")`, then `discard expect reader.readNative'f32()`.
 - Scope: this is an absent declaration, not the intermittent missing or duplicated local bindings
   in compiler.core.047. The nongeneric implicit-body export check from `d34b178c2` does not cover
   unresolved dependencies in an unmaterialized generic body.
 - Next: reduce the published generic/private-helper dependency to an isolated provider and
   importer, then define how its reachable implementation is published or diagnosed at export.
   Preserve Core's dynamic-identity-independent hash contract; do not make a raw implementation
-  helper public merely to silence the importer. Verify each hash width separately as well.
+  helper public merely to silence the importer. Verify each hash width and the XML reader
+  separately; include internal receiver methods in the dependency inventory.
 - Complete when: a consumer importing the generated Core API hashes equal standalone and base-view
   dynamic values consistently with both hash widths, and a publication regression protects the
-  dependency boundary without relying only on tests compiled inside the provider.
+  dependency boundary without relying only on tests compiled inside the provider. Imported
+  generic XML numeric and textual reads must also resolve their implementation dependencies.
 
 ### compiler.core.079 — Tuple values never drop the owning fields they hold
 

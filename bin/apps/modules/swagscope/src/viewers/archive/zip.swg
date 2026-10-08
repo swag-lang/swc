@@ -63,21 +63,21 @@ private func zipU16(bytes: const [..] u8, at: u64)->u16 fail
 {
     if at > bytes.count or 2 > bytes.count - at do
         fail Errors.InvalidFormatError{archiveStrings().err_ShortField16}
-    return cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8)
+    return Math.make16(bytes[at + 1], bytes[at])
 }
 
 private func zipU32(bytes: const [..] u8, at: u64)->u32 fail
 {
     if at > bytes.count or 4 > bytes.count - at do
         fail Errors.InvalidFormatError{archiveStrings().err_ShortField32}
-    return cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) | (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24)
+    return Math.make32(bytes[at + 3], bytes[at + 2], bytes[at + 1], bytes[at])
 }
 
 private func zipU64(bytes: const [..] u8, at: u64)->u64 fail
 {
-    let low  = cast(u64, try zipU32(bytes, at))
-    let high = cast(u64, try zipU32(bytes, at + 4))
-    return low | (high << 32)
+    let low  = try zipU32(bytes, at)
+    let high = try zipU32(bytes, at + 4)
+    return Math.make64(high, low)
 }
 
 // Decodes a stored name or comment: as UTF-8 when `utf8` is set and the bytes are valid, as CP437 otherwise.

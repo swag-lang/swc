@@ -287,6 +287,25 @@ func markSoundOpenFailure(wnd: *Wnd, ?: string)
     Swag.assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
 }
 
+// Packed samples retain their byte order and sign; floating samples are clamped after decoding.
+#test
+{
+    let pcm24: [7] u8 = [0xAA, 0x00, 0x00, 0x80, 0x00, 0x00, 0x40]
+    Swag.assert(soundSample(pcm24, 1, .Pcm24) == -1)
+    Swag.assert(soundSample(pcm24, 4, .Pcm24) == 0.5)
+
+    let pcm32: [9] u8 = [0xAA, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x40]
+    Swag.assert(soundSample(pcm32, 1, .Pcm32) == -1)
+    Swag.assert(soundSample(pcm32, 5, .Pcm32) == 0.5)
+
+    let floats: [12] u8 = [0x00, 0x00, 0x00, 0x3F,
+                           0x00, 0x00, 0x00, 0x40,
+                           0x00, 0x00, 0x00, 0xC0]
+    Swag.assert(soundSample(floats, 0, .Float32) == 0.5)
+    Swag.assert(soundSample(floats, 4, .Float32) == 1)
+    Swag.assert(soundSample(floats, 8, .Float32) == -1)
+}
+
 // One slice covering several frames reports the loudest of them and the mean of them, and the two
 // are only equal when the slice is flat.
 #test

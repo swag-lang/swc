@@ -41,7 +41,10 @@ impl PageHeader
     mtd const totalBytes()->u64 => .headerBytes + .bodyBytes
 }
 
-func readU32(bytes: const [..] u8, offset: u64)->u32 => cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16) | (cast(u32, bytes[offset + 3]) << 24)
+func readU32(bytes: const [..] u8, offset: u64)->u32
+{
+    return Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
+}
 
 // Reads the page header at `offset`, which needs the capture pattern, the fixed header, and the
 // segment table to be inside `bytes`.

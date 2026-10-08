@@ -123,21 +123,21 @@ func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)
         return (cast(f32, bytes[offset]) - 128) / 128
 
     case .Pcm16:
-        let raw = cast(u16, bytes[offset]) | (cast(u16, bytes[offset + 1]) << 8)
+        let raw = Math.make16(bytes[offset + 1], bytes[offset])
         return cast(f32, cast #bit (s16, raw)) / 32768
 
     case .Pcm24:
-        var raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16)
+        var raw = Math.make32(0, bytes[offset + 2], bytes[offset + 1], bytes[offset])
         if raw & 0x00800000 do
             raw |= 0xFF000000
         return cast(f32, cast #bit (s32, raw)) / 8388608
 
     case .Pcm32:
-        let raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16) | (cast(u32, bytes[offset + 3]) << 24)
+        let raw = Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
         return cast(f32, cast #bit (s32, raw)) / 2147483648
 
     case .Float32:
-        let raw = cast(u32, bytes[offset]) | (cast(u32, bytes[offset + 1]) << 8) | (cast(u32, bytes[offset + 2]) << 16) | (cast(u32, bytes[offset + 3]) << 24)
+        let raw = Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
         return Math.clamp(cast #bit (f32, raw), -1, 1)
     }
 

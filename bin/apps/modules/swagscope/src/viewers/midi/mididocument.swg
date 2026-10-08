@@ -130,9 +130,12 @@ private func midiHas(bytes: const [..] u8, offset, count: u64)->bool => offset <
 
 private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool => midiHas(bytes, offset, value.count) and Slice.equals(bytes[offset until offset + value.count], cast(const [..] u8, value))
 
-private func midiU16(bytes: const [..] u8, offset: u64)->u16 => (cast(u16, bytes[offset]) << 8) | cast(u16, bytes[offset + 1])
+private func midiU16(bytes: const [..] u8, offset: u64)->u16 => Math.make16(bytes[offset], bytes[offset + 1])
 
-private func midiU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32, bytes[offset]) << 24) | (cast(u32, bytes[offset + 1]) << 16) | (cast(u32, bytes[offset + 2]) << 8) | cast(u32, bytes[offset + 3])
+private func midiU32(bytes: const [..] u8, offset: u64)->u32
+{
+    return Math.make32(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
+}
 
 private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
 {

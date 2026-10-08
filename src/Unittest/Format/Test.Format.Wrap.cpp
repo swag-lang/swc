@@ -9,6 +9,187 @@
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsSplitByOperand)
+{
+    for (const std::string_view op : {"|", "&", "^"})
+    {
+        const std::string source   = std::format("func f()->u32\n{{\n    return firstLongOperand {} secondLongOperand {} thirdLongOperand\n}}\n", op, op);
+        const std::string expected = std::format("func f()->u32\n{{\n    return firstLongOperand {}\n           secondLongOperand {}\n           thirdLongOperand\n}}\n", op, op);
+        FormatOptions     options;
+        options.bitwiseChainColumnLimit = 50;
+        SWC_RESULT(FormatRewriteCheck::check(ctx, source, expected, options));
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsInsideCast)
+{
+    static constexpr std::string_view SOURCE =
+        "func read(bytes: const [..] u8)->u32\n"
+        "{\n"
+        "    return cast(u32, (bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3]))\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "func read(bytes: const [..] u8)->u32\n"
+        "{\n"
+        "    return cast(u32,\n"
+        "                (bytes[0] << 24 |\n"
+        "                 bytes[1] << 16 |\n"
+        "                 bytes[2] << 8 |\n"
+        "                 bytes[3]))\n"
+        "}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.bitwiseChainColumnLimit = 50;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsHonorOperatorPosition)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()->u32\n"
+        "{\n"
+        "    return firstLongOperand | secondLongOperand | thirdLongOperand\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "func f()->u32\n"
+        "{\n"
+        "    return firstLongOperand\n"
+        "           | secondLongOperand\n"
+        "           | thirdLongOperand\n"
+        "}\n";
+    FormatOptions options;
+    options.bitwiseChainColumnLimit    = 30;
+    options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::Before;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
+    options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::None;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsHonorSingleLineArguments)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n"
+        "{\n"
+        "    consume(firstLongOperand | secondLongOperand | thirdLongOperand)\n"
+        "}\n";
+    FormatOptions options;
+    options.bitwiseChainColumnLimit      = 30;
+    options.forceSingleLineArgumentLists = true;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsPreserveAuthoredLayout)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()->u32\n"
+        "{\n"
+        "    return firstLongOperand | secondLongOperand | thirdLongOperand |\n"
+        "           fourthLongOperand\n"
+        "}\n";
+    FormatOptions options;
+    options.bitwiseChainColumnLimit = 30;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsLeaveShortMasksAndTables)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n"
+        "{\n"
+        "    let short = 1 | 2 | 4\n"
+        "    let mask = veryLongOperand & anotherLongOperand\n"
+        "    let table = [11111111, 22222222, 33333333, 44444444]\n"
+        "}\n";
+    FormatOptions options;
+    options.bitwiseChainColumnLimit = 30;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsCanBeDisabled)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()->u32\n"
+        "{\n"
+        "    return firstLongOperand | secondLongOperand | thirdLongOperand\n"
+        "}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.bitwiseChainColumnLimit = 0;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsIgnoreTrailingCommentWidth)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n"
+        "{\n"
+        "    let mask = a | b | c // A long explanation should not split a short expression.\n"
+        "}\n";
+    FormatOptions options;
+    options.bitwiseChainColumnLimit = 30;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsInEnumValues)
+{
+    static constexpr std::string_view SOURCE =
+        "enum Flags\n"
+        "{\n"
+        "    Combined = FirstLongOperand | SecondLongOperand | ThirdLongOperand\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "enum Flags\n"
+        "{\n"
+        "    Combined = FirstLongOperand |\n"
+        "               SecondLongOperand |\n"
+        "               ThirdLongOperand\n"
+        "}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.bitwiseChainColumnLimit = 50;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsKeepCompactFlagsInLongCalls)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n"
+        "{\n"
+        "    consumeAnUnusuallyLongFunctionName(firstArgument, .Border | .CloseButton | .Resizable)\n"
+        "}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.bitwiseChainColumnLimit = 50;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BitwiseChainsInExpressionBodies)
+{
+    static constexpr std::string_view SOURCE =
+        "func f(value = 0)->u32 => firstLongOperand | secondLongOperand | thirdLongOperand\n";
+    static constexpr std::string_view EXPECTED =
+        "func f(value = 0)->u32 => firstLongOperand |\n"
+        "                          secondLongOperand |\n"
+        "                          thirdLongOperand\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    options.bitwiseChainColumnLimit = 50;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_BreaksAfterComma)
 {
     static constexpr std::string_view SOURCE =
@@ -852,11 +1033,10 @@ SWC_TEST_BEGIN(FormatWrap_BinPackArgumentsOnePerLine)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatWrap_NoColumnLimitNeverMovesAStatementBreak)
+SWC_TEST_BEGIN(FormatWrap_NoColumnLimitPreservesGeneralStatementBreaks)
 {
-    // The contract of the canonical style: the author owns the line breaks. With
-    // no column budget the formatter adds none and removes none, however long or
-    // short the line it is left with.
+    // General wrapping remains authored. Narrow rules such as bitwise-chain
+    // wrapping do not impose a column budget on unrelated expressions.
     static constexpr std::string_view SOURCE =
         "func foo()\n"
         "{\n"

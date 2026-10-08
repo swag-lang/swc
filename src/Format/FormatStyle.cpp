@@ -15,9 +15,9 @@ namespace
     //   - `end-of-line-style`: line endings are a property of the checkout and of
     //     the platform, not of the style. Rewriting them turns every formatted
     //     file into a whole-file diff on the other operating system.
-    //   - `column-limit`: the style has no column budget, so the formatter never
-    //     adds or removes a statement break. Wrapping stays exactly where the
-    //     author put it, which is what makes a hand-laid data table survive.
+    //   - `column-limit`: general wrapping stays with the author, preserving
+    //     hand-laid data tables. The separate bitwise-chain limit only splits
+    //     long, unbroken operand chains.
     void applySwagStyle(FormatOptions& o)
     {
         // File-level whitespace
@@ -51,6 +51,7 @@ namespace
         o.indentInsideParens      = false;
 
         // Wrapping
+        o.bitwiseChainColumnLimit              = 120;
         o.breakBeforeBinaryOperators           = FormatOperatorWrapStyle::After;
         o.breakBeforeTernaryOperators          = false;
         o.breakAfterReturnType                 = false;
@@ -94,9 +95,9 @@ namespace
         o.alignCaseBodies       = FormatAlignMode::Consecutive;
 
         // Uniform siblings
-        o.uniformBranchBodies   = true;
-        o.uniformGuardBodies    = FormatAlignMode::Consecutive;
-        o.uniformClosureBodies  = FormatAlignMode::AcrossBlanks;
+        o.uniformBranchBodies  = true;
+        o.uniformGuardBodies   = FormatAlignMode::Consecutive;
+        o.uniformClosureBodies = FormatAlignMode::AcrossBlanks;
         // A neighbouring accessor is not a reason to collapse an authored function body.
         o.uniformFunctionBodies = FormatAlignMode::None;
 

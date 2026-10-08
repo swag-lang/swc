@@ -1373,12 +1373,17 @@ namespace
                             addRole(op, FormatRoleE::LogicalOp);
                             if (parentNode != AstNodeId::LogicalExpr && span.valid())
                             {
-                                FormatLogicalExpression expr;
+                                FormatBinaryExpression expr;
                                 expr.firstPiece        = span.minPiece;
                                 expr.lastPiece         = span.maxPiece;
                                 expr.rootOperatorPiece = op;
                                 model_->logicalExpressions().push_back(expr);
                             }
+                        }
+                        else if (node.is(AstNodeId::BinaryExpr) && span.valid() && op != INVALID_PIECE &&
+                                 (model_->piece(op).is(TokenId::SymPipe) || model_->piece(op).is(TokenId::SymAmpersand) || model_->piece(op).is(TokenId::SymCircumflex)))
+                        {
+                            model_->bitwiseExpressions().push_back({span.minPiece, span.maxPiece, op});
                         }
                     }
                     break;

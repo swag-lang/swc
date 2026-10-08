@@ -121,7 +121,7 @@ struct FormatFunctionBody
     bool     closure       = false;       // a function expression rather than a declaration
 };
 
-struct FormatLogicalExpression
+struct FormatBinaryExpression
 {
     uint32_t firstPiece        = 0;
     uint32_t lastPiece         = 0;
@@ -180,20 +180,22 @@ public:
     void build(const SourceView& srcView, const FormatOptions& options);
     void render(Utf8& output) const;
 
-    std::vector<FormatPiece>&                   pieces() { return pieces_; }
-    const std::vector<FormatPiece>&             pieces() const { return pieces_; }
-    std::vector<FormatBlock>&                   blocks() { return blocks_; }
-    const std::vector<FormatBlock>&             blocks() const { return blocks_; }
-    std::vector<FormatInlineBody>&              inlineBodies() { return inlineBodies_; }
-    const std::vector<FormatInlineBody>&        inlineBodies() const { return inlineBodies_; }
-    std::vector<FormatLogicalExpression>&       logicalExpressions() { return logicalExpressions_; }
-    const std::vector<FormatLogicalExpression>& logicalExpressions() const { return logicalExpressions_; }
-    std::vector<FormatHangingLine>&             hangingLines() { return hangingLines_; }
-    const std::vector<FormatHangingLine>&       hangingLines() const { return hangingLines_; }
-    std::vector<FormatBranchChain>&             branchChains() { return branchChains_; }
-    const std::vector<FormatBranchChain>&       branchChains() const { return branchChains_; }
-    std::vector<FormatFunctionBody>&            functionBodies() { return functionBodies_; }
-    const std::vector<FormatFunctionBody>&      functionBodies() const { return functionBodies_; }
+    std::vector<FormatPiece>&                  pieces() { return pieces_; }
+    const std::vector<FormatPiece>&            pieces() const { return pieces_; }
+    std::vector<FormatBlock>&                  blocks() { return blocks_; }
+    const std::vector<FormatBlock>&            blocks() const { return blocks_; }
+    std::vector<FormatInlineBody>&             inlineBodies() { return inlineBodies_; }
+    const std::vector<FormatInlineBody>&       inlineBodies() const { return inlineBodies_; }
+    std::vector<FormatBinaryExpression>&       logicalExpressions() { return logicalExpressions_; }
+    const std::vector<FormatBinaryExpression>& logicalExpressions() const { return logicalExpressions_; }
+    std::vector<FormatBinaryExpression>&       bitwiseExpressions() { return bitwiseExpressions_; }
+    const std::vector<FormatBinaryExpression>& bitwiseExpressions() const { return bitwiseExpressions_; }
+    std::vector<FormatHangingLine>&            hangingLines() { return hangingLines_; }
+    const std::vector<FormatHangingLine>&      hangingLines() const { return hangingLines_; }
+    std::vector<FormatBranchChain>&            branchChains() { return branchChains_; }
+    const std::vector<FormatBranchChain>&      branchChains() const { return branchChains_; }
+    std::vector<FormatFunctionBody>&           functionBodies() { return functionBodies_; }
+    const std::vector<FormatFunctionBody>&     functionBodies() const { return functionBodies_; }
 
     const SourceView&    srcView() const { return *srcView_; }
     const FormatOptions& options() const { return *options_; }
@@ -251,19 +253,20 @@ private:
     void             appendEol(Utf8& output) const;
     std::string_view resolveFinalNewline(const Utf8& output) const;
 
-    const SourceView*                    srcView_ = nullptr;
-    const FormatOptions*                 options_ = nullptr;
-    std::vector<FormatPiece>             pieces_;
-    std::vector<FormatGap>               gaps_; // gaps_[i] precedes pieces_[i]; gaps_.back() trails the last piece
-    std::vector<FormatBlock>             blocks_;
-    std::vector<FormatInlineBody>        inlineBodies_;
-    std::vector<FormatLogicalExpression> logicalExpressions_;
-    std::vector<FormatHangingLine>       hangingLines_;
-    std::vector<FormatBranchChain>       branchChains_;
-    std::vector<FormatFunctionBody>      functionBodies_;
-    std::vector<uint32_t>                tokenToPiece_;
-    std::deque<Utf8>                     ownedTexts_;
-    std::string_view                     eol_ = "\n";
+    const SourceView*                   srcView_ = nullptr;
+    const FormatOptions*                options_ = nullptr;
+    std::vector<FormatPiece>            pieces_;
+    std::vector<FormatGap>              gaps_; // gaps_[i] precedes pieces_[i]; gaps_.back() trails the last piece
+    std::vector<FormatBlock>            blocks_;
+    std::vector<FormatInlineBody>       inlineBodies_;
+    std::vector<FormatBinaryExpression> logicalExpressions_;
+    std::vector<FormatBinaryExpression> bitwiseExpressions_;
+    std::vector<FormatHangingLine>      hangingLines_;
+    std::vector<FormatBranchChain>      branchChains_;
+    std::vector<FormatFunctionBody>     functionBodies_;
+    std::vector<uint32_t>               tokenToPiece_;
+    std::deque<Utf8>                    ownedTexts_;
+    std::string_view                    eol_ = "\n";
 };
 
 SWC_END_NAMESPACE();

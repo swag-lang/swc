@@ -4,11 +4,10 @@
 // penalty function over the whole unwrapped line the way clang-format has, and
 // no Wadler document searched for the best fit the way prettier has. That is a
 // deliberate choice, not a missing feature, and it rests on what the canonical
-// Swag style is: `column-limit` is 0, so the formatter adds and removes no
-// statement break at all. The author owns the line breaks; the formatter owns
-// the columns. Everything a solver would decide — which of six equally legal
-// shapes a dense expression takes — is therefore already decided by the source,
-// and a solver would have nothing left to search.
+// Swag style is: `column-limit` is 0, so general statement wrapping stays with
+// the author. Narrow syntax-aware rules can still split an unbroken construct:
+// long bitwise chains use one operand per line, with their own column limit.
+// These rules preserve authored multiline expressions and never simplify logic.
 //
 // The exception is the interior of a bracket, where continuation lines keep
 // their distance to the statement instead of taking the canonical indent. That
@@ -141,6 +140,9 @@ namespace
         {
             collectLists();
             collectLogicalExpressions();
+            // New operand breaks must participate in the containing list's
+            // layout choice during this pass, not on the next formatting run.
+            wrapBitwiseChains();
             chooseLineModes();
             prepareLists();
             prepareLogicalExpressions();
@@ -242,7 +244,7 @@ namespace
             if (!policy.active())
                 return;
 
-            for (const FormatLogicalExpression& expr : model_->logicalExpressions())
+            for (const FormatBinaryExpression& expr : model_->logicalExpressions())
             {
                 SWC_ASSERT(expr.rootOperatorPiece != INVALID_PIECE);
                 const uint32_t rootDepth = model_->piece(expr.rootOperatorPiece).depth;
@@ -1107,6 +1109,78 @@ namespace
             Utf8     indent;
             bool     continuation = false;
         };
+
+        // Packed bytes and flag compositions read by operand, not by the number of
+        // tokens a greedy line fill can squeeze in. Keep authored multiline layouts.
+        void wrapBitwiseChains() const
+        {
+            if (!options_->bitwiseChainColumnLimit || options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::None)
+                return;
+
+            std::vector<FormatBinaryExpression> expressions = model_->bitwiseExpressions();
+            std::ranges::sort(expressions, [](const auto& left, const auto& right) {
+                return left.firstPiece != right.firstPiece ? left.firstPiece < right.firstPiece : left.lastPiece > right.lastPiece;
+            });
+
+            uint32_t protectedThrough = INVALID_PIECE;
+            for (const FormatBinaryExpression& expr : expressions)
+            {
+                if (protectedThrough != INVALID_PIECE && expr.lastPiece <= protectedThrough)
+                    continue;
+
+                const FormatPiece&    root = model_->piece(expr.rootOperatorPiece);
+                std::vector<uint32_t> operands;
+                bool                  editable = true;
+                for (uint32_t i = expr.firstPiece; i <= expr.lastPiece; ++i)
+                {
+                    const FormatPiece& piece = model_->piece(i);
+                    if (!FormatPassUtil::canEditGap(*model_, i) || piece.isComment ||
+                        (i != expr.firstPiece && model_->gapHasNewline(i)))
+                    {
+                        editable         = false;
+                        protectedThrough = expr.lastPiece;
+                        break;
+                    }
+                    if (piece.depth == root.depth && piece.id == root.id && piece.hasRole(FormatRoleE::BinaryOp))
+                    {
+                        const bool beforeOperator = options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::Before;
+                        operands.push_back(beforeOperator ? i : model_->nextPiece(i));
+                    }
+                }
+                if (!editable || operands.size() < 2)
+                    continue;
+
+                // An explicit request for a single-line containing list takes precedence.
+                for (const ListState& list : lists_)
+                {
+                    if (list.forceSingleLine.value_or(false) && expr.firstPiece > list.openPiece && expr.lastPiece < list.closePiece)
+                        editable = false;
+                }
+                if (!editable)
+                    continue;
+
+                std::vector<PieceColumn> columns;
+                FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(expr.firstPiece), &columns);
+                const auto anchor = std::ranges::find(columns, expr.firstPiece, &PieceColumn::piece);
+                const auto end    = std::ranges::find(columns, expr.lastPiece, &PieceColumn::piece);
+                SWC_ASSERT(anchor != columns.end() && end != columns.end());
+
+                // A long call prefix or trailing comment must not explode a
+                // compact flag argument. Measure the chain at the line's indent.
+                const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
+                const uint32_t width    = columns.front().column + end->column - anchor->column +
+                                       FormatModel::textColumns(model_->piece(end->piece).text, tabWidth, end->column);
+                if (width <= options_->bitwiseChainColumnLimit)
+                    continue;
+                const Utf8 indent = FormatPassUtil::indentForColumns(*model_, anchor->column);
+                for (const uint32_t operand : operands)
+                {
+                    model_->setGapBreak(operand, 1, indent.view());
+                    model_->hangingLines().push_back({operand, expr.firstPiece, 0});
+                }
+                protectedThrough = expr.lastPiece;
+            }
+        }
 
         void wrapLongLines() const
         {

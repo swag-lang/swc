@@ -199,6 +199,7 @@ struct FormatOptions
     // Column limit & wrapping
     // -----------------------------------------------------------------------
     uint32_t                columnLimit                = 0;                                 // Soft column limit (0 disables wrapping)
+    uint32_t                bitwiseChainColumnLimit    = 0;                                 // Split long bitwise chains into operands (0 disables)
     FormatOperatorWrapStyle breakBeforeBinaryOperators = FormatOperatorWrapStyle::Preserve; // Where to wrap around binary operators
     std::optional<bool>     breakBeforeTernaryOperators;                                    // Break before `?` and `:` in `cond ? a : b`
     std::optional<bool>     breakAfterReturnType;                                           // Newline before `->` in `func foo(...)->T`

@@ -220,10 +220,24 @@ namespace
                 return;
             }
 
+            // An expression body continues after `=>`, not under the function
+            // name or an earlier default parameter initializer.
+            const uint32_t statementDepth = model_->piece(lineStart).depth;
             for (size_t c = 0; c < columns.size(); ++c)
             {
                 const FormatPiece& piece = model_->piece(columns[c].piece);
-                if (piece.roles.hasAny({FormatRoleE::AssignOp, FormatRoleE::InitAssign}))
+                if (piece.depth == statementDepth && piece.hasRole(FormatRoleE::FatArrow))
+                {
+                    take(c + 1);
+                    return;
+                }
+            }
+
+            for (size_t c = 0; c < columns.size(); ++c)
+            {
+                const FormatPiece& piece = model_->piece(columns[c].piece);
+                if (piece.depth == statementDepth &&
+                    piece.roles.hasAny({FormatRoleE::AssignOp, FormatRoleE::InitAssign, FormatRoleE::EnumAssign}))
                 {
                     lastStmtOperandCol_   = UINT32_MAX;
                     lastStmtOperandPiece_ = FormatPiece::INVALID_INDEX;

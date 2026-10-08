@@ -6,6 +6,43 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.080 — Published generic hash bodies call an omitted private helper
+
+- Recorded: 2026-10-08 16:26
+- Evidence: a forced DevMode import at `94dcc8f39`, with six workers, successfully rebuilt
+  Core and then rejected `Hash.hash32` for a `#[Swag.DynCast]` struct with an `s32` field:
+  `unknown symbol 'hashDynamicStorage'`. The span points to that call in generated `core.swg`.
+  Both published `hash32` and `hash64` bodies contain the call, but the generated API has no
+  declaration of the private helper from `crypto/hash64.swg`. The failure is at the import
+  boundary: the eight `collections/dynamicstorage.test.swg` tests pass inside Core.
+- Reproduction: put the following script outside the checkout and run it with the checkout-local
+  `bin/swc.dm.exe --num-cores 6 --rebuild <absolute-script-path>`:
+
+  ```swag
+  #import("core", location: "swag@std")
+  using Core
+  #[Swag.DynCast]
+  struct DynamicKey { value: s32 = 17 }
+  #main
+  {
+      var left: DynamicKey
+      var right: DynamicKey
+      Swag.assert(Hash.hash32(left) == Hash.hash32(right))
+      Swag.assert(Hash.hash64(left) == Hash.hash64(right))
+  }
+  ```
+
+- Scope: this is an absent declaration, not the intermittent missing or duplicated local bindings
+  in compiler.core.047. The nongeneric implicit-body export check from `d34b178c2` does not cover
+  unresolved dependencies in an unmaterialized generic body.
+- Next: reduce the published generic/private-helper dependency to an isolated provider and
+  importer, then define how its reachable implementation is published or diagnosed at export.
+  Preserve Core's dynamic-identity-independent hash contract; do not make a raw implementation
+  helper public merely to silence the importer. Verify each hash width separately as well.
+- Complete when: a consumer importing the generated Core API hashes equal standalone and base-view
+  dynamic values consistently with both hash widths, and a publication regression protects the
+  dependency boundary without relying only on tests compiled inside the provider.
+
 ### compiler.core.008 — Language services still start a compiler for each edited snapshot
 
 - Recorded: 2026-08-09 20:16

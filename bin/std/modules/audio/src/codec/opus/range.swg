@@ -91,58 +91,58 @@ internal impl RangeDecoder
     mtd decode(total: u32)->u32
     {
         .extent = .range / total
-        let s = .value / .extent
-        return total - Math.min(s + 1, total)
+        let scaledValue = .value / .extent
+        return total - Math.min(scaledValue + 1, total)
     }
 
     mtd decodeBinary(bits: u32)->u32
     {
         .extent = .range >> bits
-        let s = .value / .extent
-        return (1'u32 << bits) - Math.min(s + 1, 1'u32 << bits)
+        let scaledValue = .value / .extent
+        return (1'u32 << bits) - Math.min(scaledValue + 1, 1'u32 << bits)
     }
 
     mtd update(low, high, total: u32)
     {
-        let s = .extent * (total - high)
-        .value -= s
-        .range = low > 0 ? .extent * (high - low) : .range - s
+        let rangeOffset = .extent * (total - high)
+        .value -= rangeOffset
+        .range = low > 0 ? .extent * (high - low) : .range - rangeOffset
         .normalize()
     }
 
     // Decodes one bit whose probability of being set is `1 / 2^logp`.
     mtd decodeBit(logp: u32)->bool
     {
-        let r   = .range
-        let d   = .value
-        let s   = r >> logp
-        let set = d < s
-        if not set do
-            .value = d - s
-        .range = set ? s : r - s
+        let currentRange = .range
+        let currentValue = .value
+        let splitRange   = currentRange >> logp
+        let isSet        = currentValue < splitRange
+        if not isSet do
+            .value = currentValue - splitRange
+        .range = isSet ? splitRange : currentRange - splitRange
         .normalize()
-        return set
+        return isSet
     }
 
     // Decodes one symbol against an inverse cumulative distribution scaled to `1 << bits`.
     mtd decodeIcdf(icdf: const [..] u8, bits: u32)->u32
     {
-        var s     = .range
-        let d     = .value
-        let r     = s >> bits
-        var index = 0'u32
-        var t     = s
+        var lowerBound     = .range
+        let currentValue   = .value
+        let frequencyScale = lowerBound >> bits
+        var index          = 0'u32
+        var upperBound     = lowerBound
         while true
         {
-            t = s
-            s = r * cast(u32, icdf[index])
-            if d >= s do
+            upperBound = lowerBound
+            lowerBound = frequencyScale * cast(u32, icdf[index])
+            if currentValue >= lowerBound do
                 break
             index += 1
         }
 
-        .value = d - s
-        .range = t - s
+        .value = currentValue - lowerBound
+        .range = upperBound - lowerBound
         .normalize()
         return index
     }
@@ -154,45 +154,45 @@ internal impl RangeDecoder
         let bits  = ilog(limit)
         if bits > UintBits
         {
-            let shift = bits - UintBits
-            let high  = (limit >> shift) + 1
-            let s     = .decode(high)
-            .update(s, s + 1, high)
-            let t = (s << shift) | .decodeBits(shift)
-            if t <= limit do
-                return t
+            let shift  = bits - UintBits
+            let high   = (limit >> shift) + 1
+            let symbol = .decode(high)
+            .update(symbol, symbol + 1, high)
+            let value = (symbol << shift) | .decodeBits(shift)
+            if value <= limit do
+                return value
             .error = true
             return limit
         }
 
         limit += 1
-        let s = .decode(limit)
-        .update(s, s + 1, limit)
-        return s
+        let symbol = .decode(limit)
+        .update(symbol, symbol + 1, limit)
+        return symbol
     }
 
     // Reads `bits` raw bits from the end of the frame, least significant first.
     mtd decodeBits(bits: u32)->u32
     {
-        var window    = .endWindow
-        var available = .endBits
-        if available < cast(s32, bits)
+        var window        = .endWindow
+        var availableBits = .endBits
+        if availableBits < cast(s32, bits)
         {
             while true
             {
-                window    |= .readByteFromEnd() << cast(u32, available)
-                available += cast(s32, SymBits)
-                if available > cast(s32, (WindowBits - SymBits)) do
+                window        |= .readByteFromEnd() << cast(u32, availableBits)
+                availableBits += cast(s32, SymBits)
+                if availableBits > cast(s32, (WindowBits - SymBits)) do
                     break
             }
         }
 
         let result = window & ((1'u32 << bits) - 1)
-        window     >>= bits
-        available  -= cast(s32, bits)
-        .endWindow = window
-        .endBits   = available
-        .bitsTotal += cast(s32, bits)
+        window        >>= bits
+        availableBits -= cast(s32, bits)
+        .endWindow    = window
+        .endBits      = availableBits
+        .bitsTotal    += cast(s32, bits)
         return result
     }
 
@@ -202,17 +202,17 @@ internal impl RangeDecoder
     // Returns the number of bits consumed so far in eighths of a bit, rounded up.
     mtd const tellFrac()->u32
     {
-        let nbits = cast(u32, .bitsTotal) << BitRes
-        var l     = ilog(.range)
-        var r     = .range >> (l - 16)
+        let totalFractionalBits = cast(u32, .bitsTotal) << BitRes
+        var logRange            = ilog(.range)
+        var normalizedRange     = .range >> (logRange - 16)
         for BitRes
         {
-            r = (r * r) >> 15
-            let b = r >> 16
-            l = (l << 1) | b
-            r >>= b
+            normalizedRange = (normalizedRange * normalizedRange) >> 15
+            let nextBit = normalizedRange >> 16
+            logRange        = (logRange << 1) | nextBit
+            normalizedRange >>= nextBit
         }
 
-        return nbits - l
+        return totalFractionalBits - logRange
     }
 }

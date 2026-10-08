@@ -193,6 +193,11 @@ let word = Math.make32(bytes[0], bytes[1], bytes[2], bytes[3])
 Similarly, `Math.byteAt(word, 0)` names extraction of the least significant byte. Check the
 range contract before replacing an arbitrary shift with this helper. Keep bit masks and shifts
 for non-byte fields and SIMD operations; do not force a scalar byte API onto another domain.
+When decoding a narrow unit into a wider working value, perform endian conversion at the encoded
+width before widening. For example, assemble a UTF-16 unit with `Math.make16`, apply `Math.byteswap`
+to that `u16` for big-endian input, then cast to `u32` for scalar comparisons. Swapping after the
+cast would exchange four bytes instead of two. Keep a boundary test when the decoded unit decides
+whether a chunk must retain a complete surrogate pair.
 For example, Unicode case mapping uses a low bit to select a member of an upper/lower pair.
 Keep that bit operation explicit, and name the pair offset and case offset when their combination
 otherwise needs a long explanatory comment. Retain the explanation of the invariant; remove

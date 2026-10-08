@@ -234,7 +234,7 @@ impl FileStream
 
         if accepted != count do
             try .seek(.Begin, start + accepted)
-        return String.from(Swag.makeString(bytes.storage(), accepted))
+        return Swag.makeString(bytes.storage(), accepted)
     }
 
     // Reads the next bounded segment of text in `encoding` and returns it as UTF-8.
@@ -280,9 +280,9 @@ impl FileStream
         // segment. Leaving it there costs two bytes and keeps every segment self-contained.
         if unit == 2 and bytes.count >= 2
         {
-            let last = cast(u32, bytes[bytes.count - 2]) | (cast(u32, bytes[bytes.count - 1]) << 8)
-            let high = encoding == .Utf16Le ? last : ((last & 0xFF) << 8) | (last >> 8)
-            if high >= Utf16.Surr1 and high < Utf16.Surr2 and bytes.count > 2 do
+            let littleEndian = Math.make16(bytes[bytes.count - 1], bytes[bytes.count - 2])
+            let lastUnit     = cast(u32, encoding == .Utf16Le ? littleEndian : Math.byteswap(littleEndian))
+            if lastUnit >= Utf16.Surr1 and lastUnit < Utf16.Surr2 and bytes.count > 2 do
                 bytes.resize(bytes.count - 2)
         }
 

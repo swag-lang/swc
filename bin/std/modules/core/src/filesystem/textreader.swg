@@ -69,27 +69,27 @@ public impl TextReader
         for
         {
             Swag.assert(.buffer.buffer != null)
-            var ptr  = .buffer.buffer + .byteSeek
-            let ptrB = ptr
-            let ptrE = .buffer.buffer + .buffer.count
+            var cursor       = .buffer.buffer + .byteSeek
+            let segmentBegin = cursor
+            let bufferEnd    = .buffer.buffer + .buffer.count
 
             // Scan eight bytes at a time for a line ending, then finish byte by byte.
-            while ptr + 8'u64 <= ptrE
+            while cursor + 8'u64 <= bufferEnd
             {
-                let c64 = cast(const *u64, ptr)[]
-                if Math.hasByte(c64, '\r') or Math.hasByte(c64, '\n') do
+                let word = cast(const *u64, cursor)[]
+                if Math.hasByte(word, '\r') or Math.hasByte(word, '\n') do
                     break
-                ptr += 8
+                cursor += 8
             }
 
-            while ptr != ptrE and ptr[] != '\r' and ptr[] != '\n' do
-                ptr += 1
+            while cursor != bufferEnd and cursor[] != '\r' and cursor[] != '\n' do
+                cursor += 1
 
-            let range = cast(u64, (ptr - ptrB))
-            result[] += Swag.makeString(ptrB, range)
+            let segmentBytes = cast(u64, (cursor - segmentBegin))
+            result[] += Swag.makeString(segmentBegin, segmentBytes)
 
             // The line continues in the next refill; at end of file it ends here.
-            if ptr == ptrE
+            if cursor == bufferEnd
             {
                 try .readBuffer()
                 if .buffer.isEmpty() do
@@ -98,14 +98,14 @@ public impl TextReader
             }
 
             // Consume the line ending too.
-            .byteSeek += range + 1
+            .byteSeek += segmentBytes + 1
 
             // A '\r' followed by '\n' is one line ending, even when a refill separates them.
-            if ptr[] == '\r'
+            if cursor[] == '\r'
             {
-                if ptr + 1'u64 < ptrE
+                if cursor + 1'u64 < bufferEnd
                 {
-                    if (ptr + 1)[] == '\n' do
+                    if (cursor + 1)[] == '\n' do
                         .byteSeek += 1
                 }
                 else
@@ -131,10 +131,10 @@ public impl TextReader
 
         while .byteSeek < .buffer.count
         {
-            let remain = .buffer.count - .byteSeek
-            result.grow(result.length + remain)
-            Memory.copy(result.buffer + result.length, .buffer.buffer + .byteSeek, remain)
-            result.length += remain
+            let remainingBytes = .buffer.count - .byteSeek
+            result.grow(result.length + remainingBytes)
+            Memory.copy(result.buffer + result.length, .buffer.buffer + .byteSeek, remainingBytes)
+            result.length += remainingBytes
             try .readBuffer()
         }
 

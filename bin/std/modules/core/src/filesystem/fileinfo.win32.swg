@@ -7,22 +7,26 @@ using Win32
 // Returns metadata for a file or directory.
 func info(fullName: string)->FileInfo fail
 {
-    var result:    retval
-    var attrDatas: WIN32_FILE_ATTRIBUTE_DATA
+    var attributes: WIN32_FILE_ATTRIBUTE_DATA
 
     let winPath = Utf16.toZeroTerminated(fullName)
-    try GetFileAttributesExW(winPath.buffer, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attrDatas)
+    try GetFileAttributesExW(winPath.buffer, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attributes)
 
-    result.fullName   = fullName
-    result.attributes = FileAttributes.fromDWORD(attrDatas.dwFileAttributes)
-    result.size       = attrDatas.nFileSizeLow + (cast(u64, attrDatas.nFileSizeHigh) << 32)
+    with var result: retval
+    {
+        .fullName   = fullName
+        .attributes = FileAttributes.fromDWORD(attributes.dwFileAttributes)
+        .size       = Math.make64(attributes.nFileSizeHigh, attributes.nFileSizeLow)
+    }
 
     var fileTime: SYSTEMTIME
-    catch FileTimeToSystemTime(&attrDatas.ftCreationTime, &fileTime)
+    catch FileTimeToSystemTime(&attributes.ftCreationTime, &fileTime)
     result.creationTime.setWallClock(Time.wallClockFields(fileTime))
-    catch FileTimeToSystemTime(&attrDatas.ftLastAccessTime, &fileTime)
+
+    catch FileTimeToSystemTime(&attributes.ftLastAccessTime, &fileTime)
     result.lastAccessTime.setWallClock(Time.wallClockFields(fileTime))
-    catch FileTimeToSystemTime(&attrDatas.ftLastWriteTime, &fileTime)
+
+    catch FileTimeToSystemTime(&attributes.ftLastWriteTime, &fileTime)
     result.lastWriteTime.setWallClock(Time.wallClockFields(fileTime))
 
     return result

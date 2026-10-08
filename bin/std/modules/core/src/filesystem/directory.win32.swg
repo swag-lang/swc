@@ -39,37 +39,47 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 {
     using File
     var result:   retval
-    var findfile: WIN32_FIND_DATAW
+    var findData: WIN32_FIND_DATAW
     var fileTime: SYSTEMTIME
-    let dataof = cast(const [*] u16, findfile.cFileName.buffer)
-    var toScan = String.from(dirName)
-    if toScan.back() == Path.VolumeSeparator do
-        toScan += Path.DirectorySeparator
-    let searchPath = Path.combine(toScan.toString(), "*")
+    let fileNameBuffer = cast(const [*] u16, findData.cFileName.buffer)
+    var scanPath       = String.from(dirName)
+    if scanPath.back() == Path.VolumeSeparator do
+        scanPath += Path.DirectorySeparator
+    let searchPath = Path.combine(scanPath.toString(), "*")
 
     let winPath = Utf16.toZeroTerminated(searchPath)
-    let handle  = try FindFirstFileExW(winPath.buffer, .FindExInfoBasic, &findfile, .FindExSearchNameMatch, null, FIND_FIRST_EX_LARGE_FETCH)
+    let handle  = try FindFirstFileExW(winPath.buffer,
+                                       .FindExInfoBasic,
+                                       &findData,
+                                       .FindExSearchNameMatch,
+                                       null,
+                                       FIND_FIRST_EX_LARGE_FETCH)
     if handle == INVALID_HANDLE_VALUE do
         return result
     defer expect FindClose(handle)
 
     for
     {
-        let fileName = Utf8.fromUtf16(Swag.makeSlice(dataof, Utf16.lengthUntilZero(findfile.cFileName)))
-        var info: FileInfo
-        info.fullName   = Path.combine(toScan.toString(), fileName.toString())
-        info.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)
-        info.size       = findfile.nFileSizeLow + (cast(u64, findfile.nFileSizeHigh) << 32)
+        let fileName = Utf8.fromUtf16(Swag.makeSlice(fileNameBuffer, Utf16.lengthUntilZero(findData.cFileName)))
+        with var info: FileInfo
+        {
+            .fullName   = Path.combine(scanPath.toString(), fileName.toString())
+            .attributes = FileAttributes.fromDWORD(findData.dwFileAttributes)
+            .size       = Math.make64(findData.nFileSizeHigh, findData.nFileSizeLow)
+        }
 
-        catch FileTimeToSystemTime(&findfile.ftCreationTime, &fileTime)
+        catch FileTimeToSystemTime(&findData.ftCreationTime, &fileTime)
         info.creationTime.setWallClock(Time.wallClockFields(fileTime))
-        catch FileTimeToSystemTime(&findfile.ftLastAccessTime, &fileTime)
+
+        catch FileTimeToSystemTime(&findData.ftLastAccessTime, &fileTime)
         info.lastAccessTime.setWallClock(Time.wallClockFields(fileTime))
-        catch FileTimeToSystemTime(&findfile.ftLastWriteTime, &fileTime)
+
+        catch FileTimeToSystemTime(&findData.ftLastWriteTime, &fileTime)
         info.lastWriteTime.setWallClock(Time.wallClockFields(fileTime))
+
         result.add(#move info)
 
-        let next = catch FindNextFileW(handle, &findfile)
+        let next = catch FindNextFileW(handle, &findData)
         if not next do
             break
     }
@@ -105,14 +115,14 @@ func setCurrentPath(dirName: string) fail
 // platform path limit.
 func drives()->Array'String fail
 {
-    var result:  retval
-    var volName: [MAX_PATH] u8
+    var result:     retval
+    var volumeName: [MAX_PATH] u8
 
-    let slen = GetLogicalDriveStringsA(MAX_PATH, volName)
-    if slen >= MAX_PATH do
+    let length = GetLogicalDriveStringsA(MAX_PATH, volumeName)
+    if length >= MAX_PATH do
         return result
 
-    var ptr = cast([*] u8, &volName[0])
+    var ptr = cast([*] u8, &volumeName[0])
     while ptr[0]
     {
         let len = cast(cstring, ptr).count
@@ -130,30 +140,30 @@ func volumes()->Array'String fail
 {
     var result: retval
 
-    var volName:   [MAX_PATH] u8
-    var driveName: [MAX_PATH] u8
+    var volumeName: [MAX_PATH] u8
+    var driveName:  [MAX_PATH] u8
 
-    let h = try FindFirstVolumeA(volName, MAX_PATH)
-    if h == INVALID_HANDLE_VALUE do
+    let handle = try FindFirstVolumeA(volumeName, MAX_PATH)
+    if handle == INVALID_HANDLE_VALUE do
         return result
-    defer discard catch FindVolumeClose(h)
+    defer discard catch FindVolumeClose(handle)
 
     for
     {
-        var ret: DWORD
-        catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret) as err
+        var requiredLength: DWORD
+        catch GetVolumePathNamesForVolumeNameA(volumeName, driveName, MAX_PATH, &requiredLength) as err
         if err == null
         {
-            let len = cast(cstring, driveName).count
-            if len
+            let length = cast(cstring, driveName).count
+            if length
             {
-                var str = String.from(Swag.makeString(&driveName[0], len))
-                Path.normalize(&str)
-                result.add(#move str)
+                var mountPoint = String.from(Swag.makeString(&driveName[0], length))
+                Path.normalize(&mountPoint)
+                result.add(#move mountPoint)
             }
         }
 
-        if not (try FindNextVolumeA(h, volName, MAX_PATH)) do
+        if not (try FindNextVolumeA(handle, volumeName, MAX_PATH)) do
             break
     }
 

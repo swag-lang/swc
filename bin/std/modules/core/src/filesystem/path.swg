@@ -14,11 +14,17 @@ const VolumeSeparator       = WINDOWS ? ':'u8 : 0'u8      // Volume separator, o
 
 // Returns whether `c` is the preferred or the alternate directory separator.
 #[Inline, ConstExpr]
-func isDirectorySeparator(c: u8)->bool => c == DirectorySeparator or AltDirectorySeparator != 0 and c == AltDirectorySeparator
+func isDirectorySeparator(c: u8)->bool
+{
+    return c == DirectorySeparator or AltDirectorySeparator != 0 and c == AltDirectorySeparator
+}
 
 // Returns whether `c` ends the directory part of a path: a directory separator or the volume separator.
 #[Inline, ConstExpr]
-private func endsDirectoryPart(c: u8)->bool => isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
+private func endsDirectoryPart(c: u8)->bool
+{
+    return isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
+}
 
 // Returns whether `path` is a lexically valid path on the selected target.
 func isValidPathName(path: string)->bool
@@ -26,7 +32,12 @@ func isValidPathName(path: string)->bool
     if path.count == 0 do
         return false
 
-    let extendedSyntax = TargetHasWindowsPathSyntax and path.count >= 4 and isDirectorySeparator(path[0]) and isDirectorySeparator(path[1]) and path[2] == '?' and isDirectorySeparator(path[3])
+    let extendedSyntax = TargetHasWindowsPathSyntax and
+                         path.count >= 4 and
+                         isDirectorySeparator(path[0]) and
+                         isDirectorySeparator(path[1]) and
+                         path[2] == '?' and
+                         isDirectorySeparator(path[3])
     for c, index in path
     {
         if c == 0 do
@@ -51,7 +62,8 @@ func isValidFileName(path: string)->bool
     {
         if c == 0 or isDirectorySeparator(c) do
             return false
-        if TargetHasWindowsPathSyntax and (c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == ':' or c == '*' or c == '?') do
+        if TargetHasWindowsPathSyntax and
+           (c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == ':' or c == '*' or c == '?') do
             return false
     }
 
@@ -93,6 +105,7 @@ func rootLength(path: string)->u32
             volumeSeparatorLength += ExtendedPathPrefix.count
     }
 
+    // A UNC root includes the server and share names.
     if (not extendedSyntax or extendedUncSyntax) and isDirectorySeparator(path[0])
     {
         index = 1

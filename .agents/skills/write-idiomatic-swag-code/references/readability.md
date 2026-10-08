@@ -126,6 +126,11 @@ Run the formatter to align these assignments. Here the conditionals are small an
 adding three helpers would increase navigation. Keep the enclosing receiver explicit as `me`
 inside a method's `with` block, and do not nest subjects merely to remove more prefixes.
 
+A name introduced by `with let control = ...` remains in the enclosing scope after the block.
+When replacing several anonymous setup blocks, give their controls distinct meaningful names.
+For an owning value, retain the original enclosing scope if leaving it would extend cleanup;
+removing braces to save space must not change a resource's lifetime.
+
 ## Name Mathematical Roles Without Rewriting The Formula
 
 Prefer names such as `direction`, `startProjection`, `denominator`, and `inverseDeterminant`
@@ -133,6 +138,18 @@ when they explain how a value is used. Retain conventional coefficients when exp
 symbol would bury the algorithm; describe the parameter domain and the exceptional cases once.
 Keep the original arithmetic order, widths, and wrapping operators. A named crossing coordinate
 belongs inside the height guard that makes its division valid, not before that guard.
+
+For a simulation, name the state and its rate separately: `angle` and `angularVelocity` explain
+more than numbered abbreviations. Name a damping multiplier after the value it retains, rather
+than implying that it is the amount removed. Keep familiar coordinates and short coefficients
+when their geometric role is already clear.
+
+A simulation step is a useful extraction boundary when its loops obscure an event handler. Keep
+the step's read state stable until all dependent results have been computed; publish a replacement
+buffer only after every cell is ready. A short comment should expose that dependency. Verify
+representative sequences against the original implementation, including floating-point bit
+patterns when only names and grouping changed. A startup smoke alone cannot establish that a
+simulation still produces the same states.
 
 ## Factor A Repeated Policy, Keep The Choice Visible
 

@@ -14,54 +14,65 @@ const FixedStep       = 0.05'f32
 // into the panel as soon as the window is not much wider than the panel is.
 const PanelWidth = 360.0
 
-var r1            = 125.0
-var r2            = 125.0
-var m1            = 10.0
-var m2            = 10.0
-var a1            = 0.0
-var a2            = 0.0
-var a1_v          = 0.0
-var a2_v          = 0.0
-var g:        f32 = 0.98
-var cx, cy:   f32
-var friction      = 1.0
-var linePath: Array'Vector2
+var length1           = 125.0
+var length2           = 125.0
+var mass1             = 10.0
+var mass2             = 10.0
+var gravity: f32      = 0.98
+var velocityRetention = 1.0
+
+var angle1           = 0.0
+var angle2           = 0.0
+var angularVelocity1 = 0.0
+var angularVelocity2 = 0.0
+
+var originX, originY: f32
+var trailPoints:      Array'Vector2
 
 func restartPendulum()
 {
-    a1, a2     = ConstF32.Pi / 2
-    a1_v, a2_v = 0
-    linePath.clear()
+    angle1, angle2 = ConstF32.Pi / 2
+    angularVelocity1, angularVelocity2 = 0
+    trailPoints.clear()
 }
 
-func pendulumStateIsFinite()->bool => Math.isFinite(a1) and Math.isFinite(a2) and Math.isFinite(a1_v) and Math.isFinite(a2_v)
+func pendulumStateIsFinite()->bool
+{
+    return Math.isFinite(angle1) and
+           Math.isFinite(angle2) and
+           Math.isFinite(angularVelocity1) and
+           Math.isFinite(angularVelocity2)
+}
 
 func stepPendulum(dt: f32)->bool
 {
-    var num1 = -g * (2 * m1 + m2) * sin(a1)
-    var num2 = -m2 * g * sin(a1 - 2 * a2)
-    var num3 = -2 * sin(a1 - a2) * m2
-    var num4 = a2_v * a2_v * r2 + a1_v * a1_v * r1 * cos(a1 - a2)
-    var den  = r1 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
-    let a1_a = (num1 + num2 + num3 * num4) / den
+    // Acceleration of the first pendulum from the current angles and velocities.
+    var term1 = -gravity * (2 * mass1 + mass2) * sin(angle1)
+    var term2 = -mass2 * gravity * sin(angle1 - 2 * angle2)
+    var term3 = -2 * sin(angle1 - angle2) * mass2
+    var term4 = angularVelocity2 * angularVelocity2 * length2 +
+                angularVelocity1 * angularVelocity1 * length1 * cos(angle1 - angle2)
+    var denominator   = length1 * (2 * mass1 + mass2 - mass2 * cos(2 * angle1 - 2 * angle2))
+    let acceleration1 = (term1 + term2 + term3 * term4) / denominator
 
-    num1 = 2 * sin(a1 - a2)
-    num2 = a1_v * a1_v * r1 * (m1 + m2)
-    num3 = g * (m1 + m2) * cos(a1)
-    num4 = a2_v * a2_v * r2 * m2 * cos(a1 - a2)
-    den  = r2 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
-    let a2_a = (num1 * (num2 + num3 + num4)) / den
+    // The second pendulum uses the same state, before either angle advances.
+    term1       = 2 * sin(angle1 - angle2)
+    term2       = angularVelocity1 * angularVelocity1 * length1 * (mass1 + mass2)
+    term3       = gravity * (mass1 + mass2) * cos(angle1)
+    term4       = angularVelocity2 * angularVelocity2 * length2 * mass2 * cos(angle1 - angle2)
+    denominator = length2 * (2 * mass1 + mass2 - mass2 * cos(2 * angle1 - 2 * angle2))
+    let acceleration2 = (term1 * (term2 + term3 + term4)) / denominator
 
-    if not Math.isFinite(a1_a) or not Math.isFinite(a2_a) do
+    if not Math.isFinite(acceleration1) or not Math.isFinite(acceleration2) do
         return false
 
-    a1_v += a1_a * dt
-    a2_v += a2_a * dt
-    a1   += a1_v * dt
-    a2   += a2_v * dt
+    angularVelocity1 += acceleration1 * dt
+    angularVelocity2 += acceleration2 * dt
+    angle1           += angularVelocity1 * dt
+    angle2           += angularVelocity2 * dt
 
-    a1_v *= friction
-    a2_v *= friction
+    angularVelocity1 *= velocityRetention
+    angularVelocity2 *= velocityRetention
 
     return pendulumStateIsFinite()
 }
@@ -72,40 +83,42 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         let rect = wnd.clientRect()
-        cx = (rect.width - PanelWidth) * 0.5
-        cy = 50
+        originX = (rect.width - PanelWidth) * 0.5
+        originY = 50
         restartPendulum()
 
-        let panel = StackLayoutCtrl.create(wnd, .Top, {0, 0, PanelWidth})
-        panel.padding   = 10
-        panel.spacing   = 5
-        panel.dockStyle = .Right
-
+        with let panel = StackLayoutCtrl.create(wnd, .Top, {0, 0, PanelWidth})
         {
-            let slider = SliderCtrl.create(panel, "r1")
-            slider.setUnsignedBounds(50, 200)
-            slider.setValue(r1)
-            slider.slider.sigChanged += func(slider) { r1 = slider.value() }
+            .padding   = 10
+            .spacing   = 5
+            .dockStyle = .Right
         }
 
+        with let length1Slider = SliderCtrl.create(panel, "r1")
         {
-            let slider = SliderCtrl.create(panel, "r2")
-            slider.setUnsignedBounds(50, 200)
-            slider.setValue(r2)
-            slider.slider.sigChanged += func(slider) { r2 = slider.value() }
+            .setUnsignedBounds(50, 200)
+            .setValue(length1)
+            .slider.sigChanged += func(slider) { length1 = slider.value() }
         }
 
+        with let length2Slider = SliderCtrl.create(panel, "r2")
         {
-            let slider = SliderCtrl.create(panel, "friction")
-            slider.setUnsignedBounds(0, 100)
-            slider.setValue(0)
-            slider.slider.sigChanged += func(slider) { friction = 1 - (slider.value() * 0.0001) }
+            .setUnsignedBounds(50, 200)
+            .setValue(length2)
+            .slider.sigChanged += func(slider) { length2 = slider.value() }
         }
 
+        with let dampingSlider = SliderCtrl.create(panel, "friction")
         {
-            let btn = PushButton.create(panel, "restart")
-            btn.maxSize    = 100
-            btn.sigPressed += func(btn) { restartPendulum() }
+            .setUnsignedBounds(0, 100)
+            .setValue(0)
+            .slider.sigChanged += func(slider) { velocityRetention = 1 - (slider.value() * 0.0001) }
+        }
+
+        with let button = PushButton.create(panel, "restart")
+        {
+            .maxSize    = 100
+            .sigPressed += func(?) { restartPendulum() }
         }
 
     case PaintEvent as paintEvt:
@@ -128,10 +141,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         if not valid do
             restartPendulum()
 
-        let x1 = r1 * sin(a1)
-        let y1 = r1 * cos(a1)
-        let x2 = x1 + r2 * sin(a2)
-        let y2 = y1 + r2 * cos(a2)
+        let x1 = length1 * sin(angle1)
+        let y1 = length1 * cos(angle1)
+        let x2 = x1 + length2 * sin(angle2)
+        let y2 = y1 + length2 * cos(angle2)
 
         if not Math.isFinite(x1) or not Math.isFinite(y1) or not Math.isFinite(x2) or not Math.isFinite(y2)
         {
@@ -141,28 +154,28 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         painter.setParams(.Antialiased)
         painter.clear(Argb.Black)
-        painter.translateTransform(cx, cy)
+        painter.translateTransform(originX, originY)
 
         // Generate trail
-        linePath.add({x2, y2})
-        if linePath.count > 500 do
-            linePath.removeAtOrdered(0)
+        trailPoints.add({x2, y2})
+        if trailPoints.count > 500 do
+            trailPoints.removeAtOrdered(0)
 
         // Draw trail
-        if linePath.count > 1
+        if trailPoints.count > 1
         {
-            var lp: LinePath
-            lp.start(linePath[0].x, linePath[0].y)
-            for v in linePath do
-                lp.curveTo(v.x, v.y)
-            painter.drawPath(&lp, Argb.Red, 2)
+            var trail: LinePath
+            trail.start(trailPoints[0].x, trailPoints[0].y)
+            for point in trailPoints do
+                trail.curveTo(point.x, point.y)
+            painter.drawPath(&trail, Argb.Red, 2)
         }
 
         // Pendulum
         painter.drawLine(0, 0, x1, y1, Argb.White, 2)
-        painter.fillCircle(x1, y1, m1, Argb.White)
+        painter.fillCircle(x1, y1, mass1, Argb.White)
         painter.drawLine(x1, y1, x2, y2, Argb.White, 2)
-        painter.fillCircle(x2, y2, m2, Argb.White)
+        painter.fillCircle(x2, y2, mass2, Argb.White)
 
         wnd.invalidate()
     }

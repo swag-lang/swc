@@ -14,7 +14,7 @@ enum FixedKind: u8
 
 #test
 {
-    func callOne(?: s32)->s32 { return 41 }
+    func callOne(_: s32)->s32 { return 41 }
     const V = #run callOne(1)
     #assert(V == 41)
 }
@@ -22,9 +22,9 @@ enum FixedKind: u8
 #test
 {
     func callManyInts(
-        ?: s32, ?: s32, ?: s32, ?: s32,
-        ?: s32, ?: s32, ?: s32, ?: s32,
-        ?: s32, ?: s32, ?: s32, ?: s32)->s32
+        _: s32, _: s32, _: s32, _: s32,
+        _: s32, _: s32, _: s32, _: s32,
+        _: s32, _: s32, _: s32, _: s32)->s32
     {
         return 42
     }
@@ -35,49 +35,49 @@ enum FixedKind: u8
 
 #test
 {
-    func callTwo(?: s32, ?: s32)->s32 { return 42 }
+    func callTwo(_: s32, _: s32)->s32 { return 42 }
     const V = #run callTwo(1, 2)
     #assert(V == 42)
 }
 
 #test
 {
-    func callThree(?: s32, ?: s32, ?: s32)->s32 { return 43 }
+    func callThree(_: s32, _: s32, _: s32)->s32 { return 43 }
     const V = #run callThree(1, 2, 3)
     #assert(V == 43)
 }
 
 #test
 {
-    func callFour(?: s32, ?: s32, ?: s32, ?: s32)->s32 { return 44 }
+    func callFour(_: s32, _: s32, _: s32, _: s32)->s32 { return 44 }
     const V = #run callFour(1, 2, 3, 4)
     #assert(V == 44)
 }
 
 #test
 {
-    func callFourMixed(?: s32, ?: f32, ?: s64, ?: f64)->s32 { return 45 }
+    func callFourMixed(_: s32, _: f32, _: s64, _: f64)->s32 { return 45 }
     const V = #run callFourMixed(1, 2.0'f32, 3's64, 4.0'f64)
     #assert(V == 45)
 }
 
 #test
 {
-    func callBoolRune(?: bool, ?: rune, ?: bool, ?: rune)->s32 { return 46 }
+    func callBoolRune(_: bool, _: rune, _: bool, _: rune)->s32 { return 46 }
     const V = #run callBoolRune(true, 'A', false, 'Z')
     #assert(V == 46)
 }
 
 #test
 {
-    func callFiveInts(?: s32, ?: s32, ?: s32, ?: s32, ?: s32)->s32 { return 47 }
+    func callFiveInts(_: s32, _: s32, _: s32, _: s32, _: s32)->s32 { return 47 }
     const V = #run callFiveInts(1, 2, 3, 4, 5)
     #assert(V == 47)
 }
 
 #test
 {
-    func callEightInts(?: s32, ?: s32, ?: s32, ?: s32, ?: s32, ?: s32, ?: s32, ?: s32)->s32 { return 48 }
+    func callEightInts(_: s32, _: s32, _: s32, _: s32, _: s32, _: s32, _: s32, _: s32)->s32 { return 48 }
     const V = #run callEightInts(1, 2, 3, 4, 5, 6, 7, 8)
     #assert(V == 48)
 }
@@ -85,8 +85,8 @@ enum FixedKind: u8
 #test
 {
     func callTenInts(
-        ?: s32, ?: s32, ?: s32, ?: s32, ?: s32,
-        ?: s32, ?: s32, ?: s32, ?: s32, ?: s32)->s32
+        _: s32, _: s32, _: s32, _: s32, _: s32,
+        _: s32, _: s32, _: s32, _: s32, _: s32)->s32
     {
         return 49
     }
@@ -98,9 +98,9 @@ enum FixedKind: u8
 #test
 {
     func callMixedNumeric(
-        ?: s32, ?: f32, ?: s32, ?: f32,
-        ?: s64, ?: f64, ?: u32, ?: f32,
-        ?: u64, ?: f64)->s32
+        _: s32, _: f32, _: s32, _: f32,
+        _: s64, _: f64, _: u32, _: f32,
+        _: u64, _: f64)->s32
     {
         return 43
     }
@@ -111,7 +111,7 @@ enum FixedKind: u8
 
 #test
 {
-    func callSmallInts(?: s8, ?: s16, ?: s32, ?: s64, ?: u8, ?: u16, ?: u32, ?: u64)->s32
+    func callSmallInts(_: s8, _: s16, _: s32, _: s64, _: u8, _: u16, _: u32, _: u64)->s32
     {
         return 44
     }
@@ -122,7 +122,7 @@ enum FixedKind: u8
 
 #test
 {
-    func callBoolRune(?: bool, ?: rune, ?: bool, ?: rune, ?: bool, ?: rune)->s32
+    func callBoolRune(_: bool, _: rune, _: bool, _: rune, _: bool, _: rune)->s32
     {
         return 45
     }
@@ -133,7 +133,7 @@ enum FixedKind: u8
 
 #test
 {
-    func tooFew(?: s32, ?: s32)->s32 { return 1 }
+    func tooFew(_: s32, _: s32)->s32 { return 1 }
     const V = #run tooFew(1)     // swc-expected-error {{sema_err_too_few_arguments}}
 }
 
@@ -145,7 +145,7 @@ enum FixedKind: u8
 
 #test
 {
-    func wrongType(?: s32, ?: s32, ?: s32)->s32 { return 1 }
+    func wrongType(_: s32, _: s32, _: s32)->s32 { return 1 }
     const V = #run wrongType(1, "bad", 3)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 

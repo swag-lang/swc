@@ -826,7 +826,7 @@ impl IWnd for Panel
         .refreshTransport()
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .retireBlocking()
     }
@@ -864,7 +864,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.togglePlayback() }
+            .sigPressed += func|view = me|(_) { view.togglePlayback() }
         }
 
         with .stopButton = Viewer.createActionButton(.commands, .Stop)
@@ -873,7 +873,7 @@ impl Panel
             .margin.x  = 8
             .toolTip   = texts().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.stopPlayback() }
+            .sigPressed += func|view = me|(_) { view.stopPlayback() }
         }
 
         with .backwardButton = Viewer.createActionButton(.commands, .SeekBackward)
@@ -882,7 +882,7 @@ impl Panel
             .margin.x  = 8
             .toolTip   = texts().ui_TipBackward
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.seekRelative(-SeekSeconds) }
+            .sigPressed += func|view = me|(_) { view.seekRelative(-SeekSeconds) }
         }
 
         with .forwardButton = Viewer.createActionButton(.commands, .SeekForward)
@@ -891,7 +891,7 @@ impl Panel
             .margin.x  = 8
             .toolTip   = texts().ui_TipForward
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.seekRelative(SeekSeconds) }
+            .sigPressed += func|view = me|(_) { view.seekRelative(SeekSeconds) }
         }
 
         with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})

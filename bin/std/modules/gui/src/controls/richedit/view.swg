@@ -21,7 +21,7 @@ public struct RichEditView
 
 impl IWnd for RichEditView
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         if .timerCaret
         {
@@ -44,7 +44,7 @@ impl IWnd for RichEditView
         .ed = null
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         let ed = .ed
         if ed and ed.flags.has(.WordWrap) do
@@ -173,7 +173,7 @@ impl IWnd for RichEditView
         }
     }
 
-    mtd impl onTimerEvent(?: *TimerEvent)
+    mtd impl onTimerEvent(_: *TimerEvent)
     {
         .visibleCaret = not .visibleCaret
         .invalidate()

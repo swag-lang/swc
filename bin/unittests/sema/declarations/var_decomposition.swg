@@ -12,8 +12,8 @@ func semaTest001()
     let {a, b} = s
     #assert(#typeof(a) == s32)
     #assert(#typeof(b) == bool)
-    let {c, ?} = s
+    let {c, _} = s
     #assert(#typeof(c) == s32)
-    let {?, d} = s
+    let {_, d} = s
     #assert(#typeof(d) == bool)
 }

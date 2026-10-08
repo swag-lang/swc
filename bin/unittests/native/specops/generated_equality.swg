@@ -30,7 +30,7 @@ struct AlwaysEqual
 
 impl AlwaysEqual
 {
-    mtd const opEquals(?: AlwaysEqual)->bool
+    mtd const opEquals(_: AlwaysEqual)->bool
     {
         return true
     }
@@ -69,7 +69,7 @@ struct EmbeddedBase
 
 impl EmbeddedBase
 {
-    mtd const opEquals(?: EmbeddedBase)->bool
+    mtd const opEquals(_: EmbeddedBase)->bool
     {
         return true
     }

@@ -209,7 +209,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .saveAppState()
         .icons.free()
@@ -524,7 +524,7 @@ impl MainWnd
                 return
 
             .embInfoFreeze = InfoBar.create(.editWnd.view, appStrings().ui_Frozen, .Message, flags: .Bottom)
-            .embInfoFreeze.sigDismissed += func|main = me|(?)
+            .embInfoFreeze.sigDismissed += func|main = me|(_)
             {
                 main.freezeSel     = false
                 main.embInfoFreeze = null

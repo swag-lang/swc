@@ -133,7 +133,7 @@ impl SemaNonNullCompleteSet
     }
 }
 
-func acceptSemaNonNullHolder(?: SemaNonNullHolder) {}
+func acceptSemaNonNullHolder(_: SemaNonNullHolder) {}
 
 func migrateSemaLegacyPointer(value: *SemaNonNullItem)->*SemaNonNullItem => value
 

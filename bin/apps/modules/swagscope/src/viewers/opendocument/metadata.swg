@@ -94,7 +94,7 @@ private impl MetadataReader
 
     // Ends the capture at the element that began it, keeping the first title, subject and creator
     // found.
-    mtd endTag(?: const *Tag)
+    mtd endTag(_: const *Tag)
     {
         if .field == .None do
             return

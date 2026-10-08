@@ -76,7 +76,7 @@ impl IForm for FormDraw
         return true
     }
 
-    mtd impl moveBaseForm(newPosX, newPosY, ?, ?: s32)
+    mtd impl moveBaseForm(newPosX, newPosY, _, _: s32)
     {
         offsetPoints(&.points, newPosX, newPosY)
     }
@@ -111,7 +111,7 @@ impl IForm for FormDraw
         return boundOfPoints(&.points, .borderSize * 0.5 + .outlineSize)
     }
 
-    mtd impl mouse(?: *EditView, ?: Math.Point, ?: *MouseEvent)->bool => false
+    mtd impl mouse(_: *EditView, _: Math.Point, _: *MouseEvent)->bool => false
 
     mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {

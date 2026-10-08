@@ -65,7 +65,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
     var startCell: u32
     var endCell:   u32
 
-    for ?, rowIndex in layout
+    for _, rowIndex in layout
     {
         Swag.assert(lineWidth(layout[rowIndex]) == width)
         let row = cast(const [..] u8, layout[rowIndex])

@@ -278,7 +278,7 @@ impl IWnd for ViewerWindow
         evt.accepted = false
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .layoutFullScreenChrome()
     }
@@ -412,7 +412,7 @@ impl IWnd for ViewerWindow
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         if .fullScreen do
             .setFullScreen(false)

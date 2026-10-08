@@ -119,7 +119,7 @@ func isWholeWordMatch(source: string, match, length: u64)->bool
 {
     if match
     {
-        let {c, ?} = Utf8.decodeLastRune(source[until match])
+        let {c, _} = Utf8.decodeLastRune(source[until match])
         if Unicode.isWord(c) do
             return false
     }
@@ -127,7 +127,7 @@ func isWholeWordMatch(source: string, match, length: u64)->bool
     let end = match + length
     if end < source.count
     {
-        let {c, ?} = Utf8.decodeRune(source[end to])
+        let {c, _} = Utf8.decodeRune(source[end to])
         if Unicode.isWord(c) do
             return false
     }
@@ -293,7 +293,7 @@ func(T) searchApi(view: *T)->SearchApi
 {
     with var result: retval
     {
-        .collectMatches = func|view|(text, options, ?, matches)->bool
+        .collectMatches = func|view|(text, options, _, matches)->bool
         {
             view.collectMatches(text, options, matches)
             return true
@@ -304,7 +304,7 @@ func(T) searchApi(view: *T)->SearchApi
             return view.revealMatch(match, text)
         }
 
-        .matchBounds = func|view|(?, bounds)->bool
+        .matchBounds = func|view|(_, bounds)->bool
         {
             return view.searchBounds(bounds)
         }

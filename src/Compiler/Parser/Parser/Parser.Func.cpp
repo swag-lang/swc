@@ -168,9 +168,9 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
     {
         nodeType = parseCompilerTypeExpr();
     }
-    else if (isAny(TokenId::Identifier, TokenId::SymQuestion) && nextIs(TokenId::SymColon))
+    else if (isAny(TokenId::Identifier, TokenId::KwdUnnamed) && nextIs(TokenId::SymColon))
     {
-        // '?: T' declares a parameter the body leaves unnamed.
+        // '_: T' declares a parameter the body leaves unnamed.
         tokName = consume();
         flags.add(AstLambdaParamFlagsE::Named);
         consumeAssert(TokenId::SymColon);
@@ -182,7 +182,7 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
         flags.add(AstLambdaParamFlagsE::Named);
         nodeType = AstNodeRef::invalid();
     }
-    else if (isType && is(TokenId::SymQuestion) && nextIs(TokenId::SymEqual))
+    else if (isType && is(TokenId::KwdUnnamed) && nextIs(TokenId::SymEqual))
     {
         tokName = consume();
         flags.add(AstLambdaParamFlagsE::Named);
@@ -200,7 +200,7 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
             flags.add(AstLambdaParamFlagsE::Named);
         }
-        else if (is(TokenId::SymQuestion))
+        else if (is(TokenId::KwdUnnamed))
         {
             tokName = consume();
             flags.add(AstLambdaParamFlagsE::Named);

@@ -501,7 +501,7 @@ impl MainWnd
 
         let text = Format.toString("Image <url>%</url> has been saved", nameFile)
         let emb  = InfoBar.create(.editWnd.view, text, .Information, flags: .Bottom | .AutoDismiss)
-        emb.label.sigLinkActivated += func(?, msg) { Env.showInFileExplorer(msg) }
+        emb.label.sigLinkActivated += func(_, msg) { Env.showInFileExplorer(msg) }
     }
 
     mtd saveAsImage(linked = false)
@@ -574,8 +574,8 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let {w, ?, ?} = catch StrConv.parseS32(edit0.edit.text())
-        let {h, ?, ?} = catch StrConv.parseS32(edit1.edit.text())
+        let {w, _, _} = catch StrConv.parseS32(edit0.edit.text())
+        let {h, _, _} = catch StrConv.parseS32(edit1.edit.text())
         var image     = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         image.fill(Argb.White)
         .newCapture(image, sourceKind: .BlankCanvas)

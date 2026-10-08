@@ -85,7 +85,7 @@ impl IWnd for Header
     // is chosen by the owning list or dragged by the reader, and a column deliberately
     // narrower than its label is a state the header supports rather than a misfit. Use
     // [[Gui.Header.setItemWidthLimits]] to keep a label from being squeezed out.
-    mtd impl measureContent(?: Math.Point)->Math.Point
+    mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
         return {.contentWidth() + .padding.z, metrics.header_Height}
@@ -200,7 +200,7 @@ impl IWnd for Header
         {
             if .clicked and not .sigColumnClicked.isEmpty()
             {
-                let {hit, ?} = .hitTest(evt.surfacePos)
+                let {hit, _} = .hitTest(evt.surfacePos)
                 if hit == .hotIdx do
                     .sigColumnClicked.call(me, .items[.hotIdx]!.column)
             }

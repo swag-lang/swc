@@ -55,7 +55,7 @@ impl MotionField
                                              AnimationChannel.from("Gui11.Field.Puck"),
                                              .puck,
                                              point,
-                                             func|field = me|(?, value)
+                                             func|field = me|(_, value)
                                              {
                                                  field.puck = value
                                                  field.pushTrail(value)
@@ -92,7 +92,7 @@ impl IWnd for MotionField
         .moveTo(.surfaceToLocal(evt.surfacePos))
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         // The first size is what decides where the puck starts; a later resize leaves it alone so
         // a run in flight is not teleported under the reader.

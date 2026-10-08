@@ -507,7 +507,7 @@ private impl View
             let basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
             let prepared = .pendingImageIndex == .pendingIndex ? &.pendingImages : null
             let html     = HtmlView.createEmbedded(.body, block.text.toString(), basePath, htmlStyle(.documentStyle), prepared)
-            html.sigLinkActivated += func|markdown = me|(?, target)
+            html.sigLinkActivated += func|markdown = me|(_, target)
             {
                 markdown.sigLinkActivated.call(markdown, target)
             }
@@ -1145,7 +1145,7 @@ impl View
         result.scroll.verticalScrollStep       = result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
         result.body = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
-        result.scroll.sigScrollPositionChanged += func|view = result|(?, oldPosition, newPosition)
+        result.scroll.sigScrollPositionChanged += func|view = result|(_, oldPosition, newPosition)
         {
             view.trimRenderCaches(newPosition.y)
             if (view.jumpToEnd and not view.prioritizeViewport) or view.repositioning do
@@ -1217,7 +1217,7 @@ impl View
 
         // The scroll viewport receives its final size during the parent's layout pass. Relayout
         // from that child resize so document centering never uses the previous window width.
-        result.scroll.hookOnEvent = func|view = result|(?, evt)
+        result.scroll.hookOnEvent = func|view = result|(_, evt)
         {
             // Modified wheel gestures belong to the document host, before the viewport scrolls.
             if evt is MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
@@ -1890,7 +1890,7 @@ internal impl View
 
 internal impl IWnd for View
 {
-    mtd impl onPaint(?: *PaintEvent)
+    mtd impl onPaint(_: *PaintEvent)
     {
         if .pendingSeek
         {
@@ -1940,7 +1940,7 @@ internal impl IWnd for View
         evt.accepted = false
     }
 
-    mtd impl onThemeEvent(?: *ThemeEvent)
+    mtd impl onThemeEvent(_: *ThemeEvent)
     {
         if .scroll != null do
             .applyDocumentStyle()
@@ -1971,7 +1971,7 @@ internal impl IWnd for View
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopLoading()
     }

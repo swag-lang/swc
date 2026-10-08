@@ -261,7 +261,7 @@ private impl AnalysisView
         {
             .dockStyle  = .Right
             .toolTip    = texts().ui_AnalysisClose
-            .sigPressed += func|view = me|(?) { view.sigClose.call(view) }
+            .sigPressed += func|view = me|(_) { view.sigClose.call(view) }
         }
 
         with .cancelButton = IconButton.create(header, .theme().icon(.Stop, rowIconSize), {0, 0, compactSize, compactSize})
@@ -269,14 +269,14 @@ private impl AnalysisView
             .dockStyle = .Right
             .toolTip   = texts().ui_AnalysisCancel
             .hide()
-            .sigPressed += func|view = me|(?) { view.sigCancel.call(view) }
+            .sigPressed += func|view = me|(_) { view.sigCancel.call(view) }
         }
 
         with .analyzeButton = IconButton.create(header, .theme().icon(.Play, rowIconSize), {0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = texts().ui_AnalysisRun
-            .sigPressed += func|view = me|(?) { view.sigAnalyze.call(view) }
+            .sigPressed += func|view = me|(_) { view.sigAnalyze.call(view) }
         }
 
         with .titleLabel = Label.create(header, texts().ui_Analysis, {0, 0, 0, compactSize})
@@ -404,7 +404,7 @@ impl AnalysisView
 
         with result.histogram = HistogramView.create(result)
         {
-            .sigByteChanged += func|view = result|(?, value) { view.updateByteDetail(value) }
+            .sigByteChanged += func|view = result|(_, value) { view.updateByteDetail(value) }
         }
 
         with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)

@@ -400,14 +400,14 @@ private func buildDocuments(flow: *Flow)
     markdown.dockStyle = .Center
 }
 
-private func showMessageDialog(?: *Button)
+private func showMessageDialog(_: *Button)
 {
     var options: MessageDlgOptions
     options.title = "Save changes"
     discard MessageDlg.yesNoCancel(g_Surface!, "Save the current changes before continuing?", options: options)
 }
 
-private func showEditDialog(?: *Button)
+private func showEditDialog(_: *Button)
 {
     var options: EditDlgOptions
     options.title   = "Rename item"
@@ -416,7 +416,7 @@ private func showEditDialog(?: *Button)
     discard EditDlg.createSingleLine(g_Surface!, options).doModal()
 }
 
-private func showAboutDialog(?: *Button)
+private func showAboutDialog(_: *Button)
 {
     let params = AboutDlgParams{
         surfaceTitle: "About GUI10",

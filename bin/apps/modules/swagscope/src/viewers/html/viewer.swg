@@ -76,13 +76,13 @@ private impl Panel
     mtd createZoomControl(info: *Wnd)
     {
         .zoomLabel = Viewer.createZoomButton(info, "scope.html.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|viewer = me|(?) { viewer.showZoomMenu() }
+        .zoomLabel.sigPressed += func|viewer = me|(_) { viewer.showZoomMenu() }
     }
 
     // Routes the zoom shortcuts to the page, wherever the keyboard focus is inside it.
     mtd hookZoomKeys()
     {
-        .hookOnChildEvent = func|viewer = me|(?, evt)
+        .hookOnChildEvent = func|viewer = me|(_, evt)
         {
             switch evt
             {
@@ -121,7 +121,7 @@ func createViewer(host: Viewer.Host)
     if services.reportFailure
     {
         let reportFailure: Viewer.ReportFailure = services.reportFailure
-        result.view.sigLoadFailed += func|reportFailure, result|(?, reason) { reportFailure(result, reason) }
+        result.view.sigLoadFailed += func|reportFailure, result|(_, reason) { reportFailure(result, reason) }
     }
 
     result.applyLayout()
@@ -133,14 +133,14 @@ func createViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .revealMatch = func|result|(match, text)->bool => result.view.revealFileOffset(match.offset, text)
-        .matchBounds = func|result|(?, bounds)->bool => result.view.searchMatchRect(bounds)
+        .matchBounds = func|result|(_, bounds)->bool => result.view.searchMatchRect(bounds)
         .clear       = func|result|() => result.view.clearSearch()
     }
 
     host.setSearch(search)
 
     host.setLifecycle({isLoading: func|result|()->bool => result.view.isLoading()})
-    result.view.sigLinkActivated += func(?, url)
+    result.view.sigLinkActivated += func(_, url)
     {
         Env.openUrl(url)
     }

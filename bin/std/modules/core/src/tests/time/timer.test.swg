@@ -12,7 +12,7 @@ const TimerTestMarker = 0x5741474E'u64
 var g_timerFired:  s32
 var g_timerMarker: u64
 
-func timerTestCallback(?: *Time.Timer)
+func timerTestCallback(_: *Time.Timer)
 {
     g_timerMarker = Swag.getContext().user0
     Atomic.add(&g_timerFired, 1)
@@ -49,7 +49,7 @@ func failTimerMessage(text: string) fail
     fail Errors.BadParameterError{Errors.mkString(text)}
 }
 
-func timerOwnedContextCallback(?: *Time.Timer)
+func timerOwnedContextCallback(_: *Time.Timer)
 {
     let context = Swag.getContext()
     if context.errorIndex != 0 or

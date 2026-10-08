@@ -163,7 +163,7 @@ func applyTheme()
     app.notifyThemeChanged()
 }
 
-func toggleTheme(?: *Button)
+func toggleTheme(_: *Button)
 {
     g_DarkTheme = not g_DarkTheme
     applyTheme()
@@ -280,7 +280,7 @@ func onFrame(app: *Application)
     updateTestMode()
 }
 
-func onRootEvent(?: *Wnd, evt: IEvent)->bool
+func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {

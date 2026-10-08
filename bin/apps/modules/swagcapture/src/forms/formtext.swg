@@ -201,7 +201,7 @@ impl IForm for FormText
         .y += newPosY
     }
 
-    mtd impl movePoint(?: u32, ?, ?: s32) {}
+    mtd impl movePoint(_: u32, _, _: s32) {}
 
     mtd impl boundRect()->Math.Rectangle => .rectFormBound()
 
@@ -218,7 +218,7 @@ impl IForm for FormText
         }
     }
 
-    mtd impl isInside(?: Math.Point)->bool => false
+    mtd impl isInside(_: Math.Point)->bool => false
 
     mtd impl hitTest(pt: Math.Point, z: f32)->bool
     {
@@ -286,7 +286,7 @@ impl IForm for FormText
         // line of a plain text form at zero height and started the glyph at the middle of the
         // box instead of centering it there.
         var totalYZ = 0'f32
-        for ?, idx in .paths
+        for _, idx in .paths
         {
             let mp = .measuredPath(idx)
             totalYZ += (mp.maxBounds.y - mp.minBounds.y) * zscale

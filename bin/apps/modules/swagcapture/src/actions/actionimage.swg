@@ -384,8 +384,8 @@ impl MainWnd
         return false
     }
 
-    // Shrinks the canvas to what it shows, the opaque pixels of the image and the forms, and drops
-    // the forms left outside, as one undo step.
+    // Shrinks the canvas to what it shows, the opaque pixels of the image and the forms, drops the
+    // forms left outside, and crops the image to the canvas, as one undo step.
     mtd trimCapture()
     {
         let capture = .getCapture()!

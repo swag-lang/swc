@@ -26,6 +26,7 @@ SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero)
 SWC_TOKEN_DEF(SharpIdentifier, "", TokenIdKindE::Compiler)
 
 SWC_TOKEN_DEF(KwdMe, "me", TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdUnnamed, "_", TokenIdKindE::Keyword)
 
 SWC_TOKEN_DEF(KwdExport, "export", TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdLocation, "location", TokenIdKindE::Zero)

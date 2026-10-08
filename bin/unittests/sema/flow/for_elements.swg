@@ -195,7 +195,7 @@ func semaTest012()
 {
     var values: [ForeachIndexedSlot] s32 = [10, 20, 30]
 
-    for ?, slot in values
+    for _, slot in values
     {
         #assert(#typeof(slot) == ForeachIndexedSlot)
         var value = values[slot]
@@ -215,7 +215,7 @@ func semaTest013()
 {
     let values: ForeachAliasBuffer = {data: ['a'u8, 'b'u8, 'c'u8]}
 
-    for ?, index in values
+    for _, index in values
     {
         #assert(#typeof(index) == u64)
         var x = index

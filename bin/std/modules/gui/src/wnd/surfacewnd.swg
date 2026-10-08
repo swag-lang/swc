@@ -133,7 +133,7 @@ impl IWnd for SurfaceWnd
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         let surface = .surface!
         surface.app.destroySurface(surface)

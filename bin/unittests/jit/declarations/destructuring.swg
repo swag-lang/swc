@@ -84,20 +84,20 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 {
     let t      = {x: 1.0, y: 2.0, z: 3.0}
     discard t
-    let {a, ?} = {x: 10, y: 20}
+    let {a, _} = {x: 10, y: 20}
     Swag.assert(a == 10)
-    let {?, b} = {x: 10, y: 20}
+    let {_, b} = {x: 10, y: 20}
     Swag.assert(b == 20)
 }
 
 #test
 {
     let t         = {a: 1's32, b: 2's32, c: 3's32}
-    let {?, ?, c} = t
+    let {_, _, c} = t
     Swag.assert(c == 3)
-    let {x, ?, ?} = t
+    let {x, _, _} = t
     Swag.assert(x == 1)
-    let {?, y, ?} = t
+    let {_, y, _} = t
     Swag.assert(y == 2)
 }
 
@@ -198,7 +198,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 #test
 {
     var second: u32
-    {?, second} = jitMakeAssignDestructRet(33, 44)
+    {_, second} = jitMakeAssignDestructRet(33, 44)
     Swag.assert(second == 44)
 }
 
@@ -223,7 +223,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 #test
 {
     var second: u32
-    {?, second} = jitMakeAnonymousAssignDestructRet(77, 88)
+    {_, second} = jitMakeAnonymousAssignDestructRet(77, 88)
     Swag.assert(second == 88)
 }
 
@@ -243,7 +243,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         }
 
         var total: u32
-        {?, total} = read(1)
+        {_, total} = read(1)
         return total
     }
 
@@ -296,6 +296,6 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     Swag.assert(sumBranch == 0)
 
     var total: u32
-    {?, total} = read(data[to], 0)
+    {_, total} = read(data[to], 0)
     Swag.assert(total == 66)
 }

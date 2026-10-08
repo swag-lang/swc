@@ -6,10 +6,10 @@ enum OverB { A, B }
 #[Swag.Strict]
 alias StrictOverB = OverB
 
-func overload(?: s32, ?: OverA)->s32 { return 10 }
-func overload(?: f32, ?: OverB)->f32 { return 20.0 }
-func overloadStrictAlias(?: s32, ?: OverA)->s32 { return 30 }
-func overloadStrictAlias(?: f32, ?: StrictOverB)->f32 { return 40.0 }
+func overload(_: s32, _: OverA)->s32 { return 10 }
+func overload(_: f32, _: OverB)->f32 { return 20.0 }
+func overloadStrictAlias(_: s32, _: OverA)->s32 { return 30 }
+func overloadStrictAlias(_: f32, _: StrictOverB)->f32 { return 40.0 }
 func strictAliasEnumArg(e: StrictOverB)->s32
 {
     if e == cast(StrictOverB, OverB.A) do
@@ -25,7 +25,7 @@ func strictAliasEnumArg(e: StrictOverB)->s32
     Swag.assert(r == 20.0)
 }
 
-func fct(?: f32, ?: OverB)->f32 { return 20.0 }
+func fct(_: f32, _: OverB)->f32 { return 20.0 }
 
 struct Vec2
 {
@@ -35,7 +35,7 @@ struct Vec2
 
 impl Vec2
 {
-    func set_axis(axis: OverA, ?: f32)
+    func set_axis(axis: OverA, _: f32)
     {
         if axis == .A {}
         elif axis == .B {}

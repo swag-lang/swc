@@ -35,9 +35,9 @@ private func writeRandomKeyFile(path: string) fail
 
 impl IWnd for KeyFileField
 {
-    mtd impl measureContent(?: Math.Point)->Math.Point => {0, .themeMetrics().comboBox_Height}
+    mtd impl measureContent(_: Math.Point)->Math.Point => {0, .themeMetrics().comboBox_Height}
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .remove == null do
             return
@@ -176,18 +176,18 @@ impl KeyFileField
         let iconSize = themeRowIconSize(result.themeMetrics())
         with result.add = IconButton.create(result, result.theme().icon(.OpenFile, iconSize), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(?) { field.chooseExisting() }
+            .sigPressed += func|field = result|(_) { field.chooseExisting() }
         }
 
         with result.generate = IconButton.create(result, result.theme().icon(.SaveAs, iconSize), flags: .IconOnly)
         {
             .show(canGenerate)
-            .sigPressed += func|field = result|(?) { field.generateRandom() }
+            .sigPressed += func|field = result|(_) { field.generateRandom() }
         }
 
         with result.remove = IconButton.create(result, result.theme().icon(.Remove, iconSize), flags: .IconOnly)
         {
-            .sigPressed += func|field = result|(?) { field.removeSelected() }
+            .sigPressed += func|field = result|(_) { field.removeSelected() }
         }
 
         result.retranslate()

@@ -101,15 +101,15 @@ impl MainWindow
     {
         with .mountedDrives = MountedDrives.create(parent)
         {
-            .unmountButton.sigPressed += func|window = me|(?) { window.unmountSelectedDrive() }
-            .list.sigSelectionChanged += func|window = me|(?) { window.refreshActions() }
-            .sigDrivesChanged         += func|window = me|(?) { window.refreshActions() }
-            .list.sigCheckedChanged   += func|window = me|(?) { window.applyStartupMarks() }
+            .unmountButton.sigPressed += func|window = me|(_) { window.unmountSelectedDrive() }
+            .list.sigSelectionChanged += func|window = me|(_) { window.refreshActions() }
+            .sigDrivesChanged         += func|window = me|(_) { window.refreshActions() }
+            .list.sigCheckedChanged   += func|window = me|(_) { window.applyStartupMarks() }
         }
 
         // The semantic column shares are resolved again every time the table receives a new
         // width, so the header covers the complete logical client area at every surface size.
-        .mountedDrives.list.listView.hookOnEvent = func|window = me|(?, evt)
+        .mountedDrives.list.listView.hookOnEvent = func|window = me|(_, evt)
         {
             if evt is ResizeEvent do
                 window.mountedDrives.layoutColumns()
@@ -135,10 +135,10 @@ impl MainWindow
         for minutes in IdleChoices do
             .idleTimeout.addItem(Format.toString(appStrings().ui_Minutes, minutes))
 
-        .privacyModeControl.sigChanged += func|window = me|(?) { window.readPrivacyControl() }
+        .privacyModeControl.sigChanged += func|window = me|(_) { window.readPrivacyControl() }
         for check in [.unmountOnLock, .unmountOnSuspend, .unmountOnIdle] do
-            check.sigChanged += func|window = me|(?) { window.readAutoUnmountControls() }
-        .idleTimeout.sigChanged += func|window = me|(?, ?) { window.readAutoUnmountControls() }
+            check.sigChanged += func|window = me|(_) { window.readAutoUnmountControls() }
+        .idleTimeout.sigChanged += func|window = me|(_, _) { window.readAutoUnmountControls() }
         .applyPrivacyControl()
         .applyAutoUnmountControls()
         .optionsCard.endForm()
@@ -161,7 +161,7 @@ impl MainWindow
 
         with .browseCreate = form.addRowAction(appStrings().ui_Browse, fileIcon)
         {
-            .sigPressed += func|window = me|(?) { window.chooseContainer(window.createPath, true) }
+            .sigPressed += func|window = me|(_) { window.chooseContainer(window.createPath, true) }
         }
 
         with .createSize = form.addTextField(appStrings().ui_FixedCapacity, "256")
@@ -189,7 +189,7 @@ impl MainWindow
         with .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, form: .Strong)
         {
             .setIcon(me.theme().icon(.SaveAs, themeActionIconSize(me.themeMetrics())))
-            .sigPressed += func|window = me|(?)
+            .sigPressed += func|window = me|(_)
             {
                 if window.operation.kind == .Create do
                     window.stopLongOperation()
@@ -219,13 +219,13 @@ impl MainWindow
 
         with .browseMount = form.addRowAction(appStrings().ui_Browse, fileIcon)
         {
-            .sigPressed += func|window = me|(?) { window.chooseContainer(window.mountPath, false) }
+            .sigPressed += func|window = me|(_) { window.chooseContainer(window.mountPath, false) }
         }
 
         .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
         with .hiddenButton = form.addRowAction(appStrings().ui_CreateHidden)
         {
-            .sigPressed += func|window = me|(?) { window.createHiddenContainer() }
+            .sigPressed += func|window = me|(_) { window.createHiddenContainer() }
         }
 
         .mountKeyFiles = KeyFileField.create(form, canGenerate: false)
@@ -258,12 +258,12 @@ impl MainWindow
         with .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, form: .Strong)
         {
             .setIcon(me.theme().icon(.Play, themeActionIconSize(me.themeMetrics())))
-            .sigPressed += func|window = me|(?) { window.mountContainer() }
+            .sigPressed += func|window = me|(_) { window.mountContainer() }
         }
 
         with .resizeButton = PushButton.create(card.actions, appStrings().ui_Resize)
         {
-            .sigPressed += func|window = me|(?)
+            .sigPressed += func|window = me|(_)
             {
                 if window.operation.kind == .Resize do
                     window.stopLongOperation()
@@ -274,12 +274,12 @@ impl MainWindow
 
         with .passwordButton = PushButton.create(card.actions, appStrings().ui_ChangePassword)
         {
-            .sigPressed += func|window = me|(?) { window.changeVaultPassword() }
+            .sigPressed += func|window = me|(_) { window.changeVaultPassword() }
         }
 
         with .keyFilesButton = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles)
         {
-            .sigPressed += func|window = me|(?) { window.changeVaultKeyFiles() }
+            .sigPressed += func|window = me|(_) { window.changeVaultKeyFiles() }
         }
 
         card.actions.computeLayout()

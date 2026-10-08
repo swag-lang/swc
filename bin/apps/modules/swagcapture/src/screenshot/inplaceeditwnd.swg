@@ -172,7 +172,7 @@ impl InPlaceEditWnd
     {
         let btnColor = .editBar.addButton({}, "color", .Popup)
 
-        btnColor.iconPainter = func|editor = me|(?, bc, pos, ?)
+        btnColor.iconPainter = func|editor = me|(_, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             var rect = pos
@@ -183,7 +183,7 @@ impl InPlaceEditWnd
         btnColor.sigPopupRequested += func|editor = me|(btn)
         {
             let picker = PropWnd.createColorPicker(assume cast(*IconButton, btn), editor.toolColor())
-            picker.sigColorChanged += func|editor, picker, btn|(?)
+            picker.sigColorChanged += func|editor, picker, btn|(_)
             {
                 if editor.editMode == .Marker do
                     editor.editColorHilight = picker.color()

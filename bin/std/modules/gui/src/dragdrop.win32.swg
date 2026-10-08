@@ -875,13 +875,13 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
 }
 
 #[Swag.CallingConvention(.C)]
-private func srcGetDataHere(?: *IDataObject, ?: const *FORMATETC, ?: *STGMEDIUM)->HRESULT
+private func srcGetDataHere(_: *IDataObject, _: const *FORMATETC, _: *STGMEDIUM)->HRESULT
 {
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
-private func srcGetCanonicalFormatEtc(?: *IDataObject, ?: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
+private func srcGetCanonicalFormatEtc(_: *IDataObject, _: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
 {
     fmtOut.ptd = null
     return DATA_S_SAMEFORMATETC
@@ -935,19 +935,19 @@ private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVO
 }
 
 #[Swag.CallingConvention(.C)]
-private func srcDAdvise(?: *IDataObject, ?: const *FORMATETC, ?: DWORD, ?: *void?, ?: *DWORD)->HRESULT
+private func srcDAdvise(_: *IDataObject, _: const *FORMATETC, _: DWORD, _: *void?, _: *DWORD)->HRESULT
 {
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 #[Swag.CallingConvention(.C)]
-private func srcDUnadvise(?: *IDataObject, ?: DWORD)->HRESULT
+private func srcDUnadvise(_: *IDataObject, _: DWORD)->HRESULT
 {
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 #[Swag.CallingConvention(.C)]
-private func srcEnumDAdvise(?: *IDataObject, ppenum: *LPVOID)->HRESULT
+private func srcEnumDAdvise(_: *IDataObject, ppenum: *LPVOID)->HRESULT
 {
     ppenum[] = null
     return OLE_E_ADVISENOTSUPPORTED
@@ -1064,7 +1064,7 @@ private func dropSrcRelease(itf: *IDropSource)->ULONG
 
 // Escape gives up, releasing the button drops, and anything else keeps the gesture running.
 #[Swag.CallingConvention(.C)]
-private func dropSrcQueryContinueDrag(?: *IDropSource, escapePressed: BOOL, grfKeyState: DWORD)->HRESULT
+private func dropSrcQueryContinueDrag(_: *IDropSource, escapePressed: BOOL, grfKeyState: DWORD)->HRESULT
 {
     if escapePressed do
         return DRAGDROP_S_CANCEL
@@ -1086,7 +1086,7 @@ private func dropSrcQueryContinueDrag(?: *IDropSource, escapePressed: BOOL, grfK
 // gesture is standing on. The tree itself stays current without any of that: OLE delivers the
 // drop-target callbacks from inside this same loop, so a highlight turning on still turns on.
 #[Swag.CallingConvention(.C)]
-private func dropSrcGiveFeedback(itf: *IDropSource, ?: DWORD)->HRESULT
+private func dropSrcGiveFeedback(itf: *IDropSource, _: DWORD)->HRESULT
 {
     dropSourceOf(itf).app?.paintSurfaces()
     return DRAGDROP_S_USEDEFAULTCURSORS

@@ -30,7 +30,7 @@ func binders()->s32
 {
     var total = 0
     pair(1) #code(a, b) { total += a + b }
-    pair(2) #code(a, ?) { total += a }
+    pair(2) #code(a, _) { total += a }
     pair(3) #code(a, b) { total += a }     // swc-expected-error {{sema_err_unused_variable}}
     return total
 }
@@ -41,7 +41,7 @@ func visits()->s32
     var total = 0
     for v in t do
         total += v
-    for ?, i in t do
+    for _, i in t do
         total += cast(s32, i)
     for v, i in t do     // swc-expected-error {{sema_err_unused_variable}}
         total += v

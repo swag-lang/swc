@@ -1,6 +1,6 @@
 #global private
 
-func select(?: s32)->string
+func select(_: s32)->string
 {
     return "integer"
 }

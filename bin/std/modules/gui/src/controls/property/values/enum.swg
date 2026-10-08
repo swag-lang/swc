@@ -226,7 +226,7 @@ internal impl Properties
             }
 
             let minHeight = me.kind == .Condensed ? me.gridLineHeight : ed.position.height
-            itemB.sigResize += func|label1, line, minHeight|(?)
+            itemB.sigResize += func|label1, line, minHeight|(_)
             {
                 label1.updateAutomaticHeight()
                 line.position.height = Math.max(minHeight, label1.position.height)
@@ -234,7 +234,7 @@ internal impl Properties
             }
 
             .refreshEnumFlags(itemB)
-            itemB.checkBox.sigChanged += func|prop = me, itemB|(?) { prop.validateEnumFlags(itemB) }
+            itemB.checkBox.sigChanged += func|prop = me, itemB|(_) { prop.validateEnumFlags(itemB) }
 
             numChilds += 1
         }
@@ -297,6 +297,6 @@ internal impl Properties
         }
 
         .refreshEnum(item)
-        item.comboBox.sigChanged += func|prop = me, item|(?, ?) { prop.validateEnum(item) }
+        item.comboBox.sigChanged += func|prop = me, item|(_, _) { prop.validateEnum(item) }
     }
 }

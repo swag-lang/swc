@@ -59,18 +59,11 @@ impl GizmoPoints
             else
             {
                 .hotAnchor = Swag.U32.Max
-
-                var rect: Math.Rectangle
-                for c, i in .anchors
+                let half = .anchorSize * 0.5
+                for c, i in .anchors where Math.Rectangle{c.x - half, c.y - half, .anchorSize, .anchorSize}.contains(pos)
                 {
-                    rect.x = c.x - .anchorSize * 0.5
-                    rect.y = c.y - .anchorSize * 0.5
-                    rect.width, rect.height = .anchorSize
-                    if rect.contains(pos)
-                    {
-                        .hotAnchor = cast(u32, i)
-                        break
-                    }
+                    .hotAnchor = cast(u32, i)
+                    break
                 }
             }
 
@@ -84,7 +77,7 @@ impl GizmoPoints
         return false
     }
 
-    mtd paint(?: *Application?, painter: *Painter, hot: bool, col: Color = Argb.White)
+    mtd paint(_: *Application?, painter: *Painter, hot: bool, col: Color = Argb.White)
     {
         let anchorSize2 = .anchorSize * 0.5
         let color       = Color.lerp(Argb.Black, col, hot ? 0.8 : 1)

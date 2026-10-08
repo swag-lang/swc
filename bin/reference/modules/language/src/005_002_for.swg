@@ -287,11 +287,11 @@ Construct a range view, then compose it with `.reversed()`.
 */
 #test
 {
-    for ? in rangeTo(0, 5).reversed() {}
+    for _ in rangeTo(0, 5).reversed() {}
 
-    for ? in rangeTo(-1, 1).reversed() {}
+    for _ in rangeTo(-1, 1).reversed() {}
 
-    for ? in range(-2, 2).reversed() {}
+    for _ in range(-2, 2).reversed() {}
 }
 
 /**

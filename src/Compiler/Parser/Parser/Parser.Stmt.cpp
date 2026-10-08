@@ -413,7 +413,7 @@ AstNodeRef Parser::parseForLoop()
         tokNames.push_back(tokName);
         hasValueBinding = true;
     }
-    else if (is(TokenId::SymQuestion) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
+    else if (is(TokenId::KwdUnnamed) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
         // A discarded position holds no token: the value it would have named is left
         // unnamed, and the loop keeps every position after it in place.
@@ -432,7 +432,7 @@ AstNodeRef Parser::parseForLoop()
     while (hasValueBinding && consumeIf(TokenId::SymComma).isValid())
     {
         isElementForm = true;
-        if (is(TokenId::SymQuestion))
+        if (is(TokenId::KwdUnnamed))
         {
             consume();
             tokNames.push_back(TokenRef::invalid());
@@ -494,11 +494,11 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
     else if (is(TokenId::SymPipePipe))
         consume();
 
-    // The index name is optional, as in 'for': 'parallel for |c| 4' and 'parallel for |c| ? in 4'
+    // The index name is optional, as in 'for': 'parallel for |c| 4' and 'parallel for |c| _ in 4'
     // leave it unnamed. Without 'in', the 'parallel' keyword names the upper partition bound.
     TokenRef tokName = TokenRef::invalid();
     TokenRef tokIn   = tokParallel;
-    if (isAny(TokenId::Identifier, TokenId::SymQuestion) && nextIs(TokenId::KwdIn))
+    if (isAny(TokenId::Identifier, TokenId::KwdUnnamed) && nextIs(TokenId::KwdIn))
     {
         if (is(TokenId::Identifier))
             tokName = consume();
@@ -877,7 +877,7 @@ AstNodeRef Parser::parseAssignStmt()
         {
             const TokenRef itemRef = ref();
             parseDestructuringFieldName(fieldNames, hasNamed, hasPositional);
-            const TokenRef ignoreRef = consumeIf(TokenId::SymQuestion);
+            const TokenRef ignoreRef = consumeIf(TokenId::KwdUnnamed);
             if (ignoreRef.isValid())
             {
                 const auto [ignoreNodeRef, _] = ast_->makeNode<AstNodeId::AssignIgnore>(ignoreRef);
@@ -912,7 +912,7 @@ AstNodeRef Parser::parseAssignStmt()
             const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
             while (consumeIf(TokenId::SymComma).isValid())
             {
-                if (consumeIf(TokenId::SymQuestion).isValid())
+                if (consumeIf(TokenId::KwdUnnamed).isValid())
                 {
                     const auto [ignoreRef, ignorePtr] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
                     SWC_UNUSED(ignorePtr);

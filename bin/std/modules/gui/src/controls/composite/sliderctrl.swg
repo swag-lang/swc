@@ -30,7 +30,7 @@ struct SliderCtrl
 
 impl IWnd for SliderCtrl
 {
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .label == null do
             return
@@ -105,13 +105,13 @@ impl SliderCtrl
             {
                 switch edit.inputMode
                 {
-                case .UnsignedInteger: let {val, ?, ?} = catch StrConv.parseU64(edit.text())
+                case .UnsignedInteger: let {val, _, _} = catch StrConv.parseU64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
 
-                case .SignedInteger: let {val, ?, ?} = catch StrConv.parseS64(edit.text())
+                case .SignedInteger: let {val, _, _} = catch StrConv.parseS64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
 
-                case .FloatingPoint: let {val, ?, ?} = catch StrConv.parseF64(edit.text())
+                case .FloatingPoint: let {val, _, _} = catch StrConv.parseF64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
                 }
             }

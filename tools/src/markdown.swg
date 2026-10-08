@@ -17,7 +17,7 @@ func markdownHeadingAnchor(line: string)->String
         return result
 
     start += 1
-    Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(c, ?, ?)
+    Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(c, _, _)
     {
         if Unicode.isLetterOrDigit(c) do
             result += Unicode.toLower(c)

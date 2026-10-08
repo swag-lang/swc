@@ -88,7 +88,7 @@ namespace compiler247
         return a
     }
 
-    func main(?: s32, b: s32)->s32
+    func main(_: s32, b: s32)->s32
     {
         // Swag.print("2");
         return b

@@ -10,7 +10,7 @@ using Swag
     discard catch StrConv.parseS64(text[until 1]) as signOnly
     Swag.assert(signOnly != null)
 
-    let {value, eat, ?} = expect StrConv.parseS64(text)
+    let {value, eat, _} = expect StrConv.parseS64(text)
     Swag.assert(value == -5 and eat == 2)
 
     discard catch StrConv.parseF64(text[until 1]) as floatSignOnly

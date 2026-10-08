@@ -45,7 +45,7 @@ struct SubtitleOverlay
 
 private impl IWnd for SubtitleOverlay
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         for track in .sidecars do
             Subtitle.Track.destroy(track)
@@ -178,7 +178,7 @@ private impl IWnd for SeekOverlay
         .resetPresentation()
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopTimer(&.timer)
     }

@@ -100,7 +100,7 @@ impl FontFamily
     }
 
     #[Swag.CallingConvention(.C)]
-    func enumSubFamily(fa: const *LOGFONTW, ?: const *TEXTMETRICW, ?: DWORD, lParam: LPARAM)->BOOL
+    func enumSubFamily(fa: const *LOGFONTW, _: const *TEXTMETRICW, _: DWORD, lParam: LPARAM)->BOOL
     {
         let len = Utf16.lengthUntilZero(fa.lfFaceName)
         if not len do
@@ -128,7 +128,7 @@ impl FontFamily
     }
 
     #[Swag.CallingConvention(.C)]
-    func enumFamily(fa: const *LOGFONTW, ?: const *TEXTMETRICW, fontType: DWORD, lParam: LPARAM)->BOOL
+    func enumFamily(fa: const *LOGFONTW, _: const *TEXTMETRICW, fontType: DWORD, lParam: LPARAM)->BOOL
     {
         if fontType & TRUETYPE_FONTTYPE
         {

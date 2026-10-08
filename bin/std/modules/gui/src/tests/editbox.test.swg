@@ -9,7 +9,7 @@ const EditHeadless_Cancel  = "EditHeadless.Cancel"
 var EditHeadlessEnterCount:  u32
 var EditHeadlessEscapeCount: u32
 
-func editHeadlessEnter(?: *EditBox)
+func editHeadlessEnter(_: *EditBox)
 {
     EditHeadlessEnterCount += 1
 }
@@ -29,7 +29,7 @@ func editHeadlessEnter(?: *EditBox)
     Swag.assert(not (field.text()).count and field.hasFocus())
 }
 
-func editHeadlessEscape(?: *EditBox)
+func editHeadlessEscape(_: *EditBox)
 {
     EditHeadlessEscapeCount += 1
 }
@@ -56,8 +56,8 @@ func editHeadlessEscape(?: *EditBox)
     let edit = EditBox.create(&host.root, "before", {10, 10, 180, 26})
     let next = PushButton.create(&host.root, "Next", {10, 50, 100, 26})
     var lost, committed: u32
-    edit.sigFocusLost += func|lost = &lost|(?) { lost[] += 1 }
-    edit.sigCommitted += func|committed = &committed|(?) { committed[] += 1 }
+    edit.sigFocusLost += func|lost = &lost|(_) { lost[] += 1 }
+    edit.sigCommitted += func|committed = &committed|(_) { committed[] += 1 }
 
     edit.setFocus()
     edit.setText("cancelled")

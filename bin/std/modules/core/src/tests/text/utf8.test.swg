@@ -14,7 +14,7 @@ func assertUtf8String(value: String, expected: string)->bool
 
 func firstNonAsciiRune(text: string)->rune
 {
-    Utf8.visitRunes(text) #code(c, ?, ?)
+    Utf8.visitRunes(text) #code(c, _, _)
     {
         if c < 0x80 do
             continue

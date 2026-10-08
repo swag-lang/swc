@@ -284,7 +284,7 @@ func jitForeachVisitIndexOnly()->u64
     var values = JitBufferVisits{}
     var signature: u64
 
-    for ?, ordinal in values
+    for _, ordinal in values
     {
         #assert(#typeof(ordinal) == u64)
         signature = signature * 10 + ordinal
@@ -298,7 +298,7 @@ func jitForeachVisitSecondOnly()->s32
     let values = JitPairVisits{}
     var signature: s32
 
-    for ?, right in values.pairs()
+    for _, right in values.pairs()
     {
         #assert(#typeof(right) == s32)
         signature = signature * 10 + right
@@ -312,7 +312,7 @@ func jitForeachVisitLastOnly()->u64
     let values = JitHiddenAliasVisits{}
     var signature: u64
 
-    for ?, ?, index in values
+    for _, _, index in values
     {
         #assert(#typeof(index) == u64)
         signature = signature * 10 + index
@@ -326,7 +326,7 @@ func jitForeachVisitSkipMiddle()->s32
     let values = JitHiddenAliasVisits{}
     var signature: s32
 
-    for value, ?, index in values
+    for value, _, index in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == u64)

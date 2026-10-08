@@ -158,7 +158,7 @@ func failCopiedMessage(text: string) fail
 
 var copiedThreadMessagesValid: Swag.AtomicFlag
 
-func consumeThreadMessages(?: Threading.Thread)
+func consumeThreadMessages(_: Threading.Thread)
 {
     let pending = Errors.mkString("an unraised thread message is reclaimed on exit")
     var valid   = true

@@ -672,7 +672,7 @@ impl RenderOgl
     {
         .scissorBox = rect
         .scissorOn  = true
-        let {?, h} = .targetSizeImpl()
+        let {_, h} = .targetSizeImpl()
         glEnable(GL_SCISSOR_TEST)
         glScissor(cast(GLint, rect.x), cast(GLint, (cast(f32, h) - rect.y - rect.height)), cast(GLint, rect.width), cast(GLint, rect.height))
     }

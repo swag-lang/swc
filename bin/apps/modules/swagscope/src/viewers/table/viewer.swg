@@ -474,7 +474,7 @@ impl Panel
         }
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
         if match.major >= .document.rows.count or match.minor >= .document.rows[match.major].cells.count do
             return false

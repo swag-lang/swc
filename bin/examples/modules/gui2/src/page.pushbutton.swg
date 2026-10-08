@@ -26,14 +26,14 @@ func createPushButtonPage(parent: *Wnd)
         let status = createText(right, "No button pressed yet.", {22, 190, 430, 28})
 
         var btn = PushButton.create(right, "Press me", {22, 92, 150})
-        btn.sigPressed += func|status|(?) { status.setText("Pressed: standard button") }
+        btn.sigPressed += func|status|(_) { status.setText("Pressed: standard button") }
 
         btn = PushButton.create(right, "Disabled", {190, 92, 150})
         btn.disable()
 
         btn = PushButton.create(right, "Long label clipped cleanly", {22, 142, 210})
         btn.setForm(.Default)
-        btn.sigPressed += func|status|(?) { status.setText("Pressed: long label button") }
+        btn.sigPressed += func|status|(_) { status.setText("Pressed: long label button") }
 
         btn        = PushButton.create(right, "Help cursor", {250, 142, 150})
         btn.cursor = Cursor.from(CursorShape.Help)

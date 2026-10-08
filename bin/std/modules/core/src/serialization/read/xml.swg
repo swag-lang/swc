@@ -120,14 +120,14 @@ public impl Xml
     }
 
     // Returns whether another sequence element follows, that is, whether the next non-blank byte does not start a tag.
-    mtd toNextSequenceElement(?: *u64)->bool
+    mtd toNextSequenceElement(_: *u64)->bool
     {
         .zapBlanks()
         return .stream.peekU8() != '<'
     }
 
     // Reads the tag that opens a section.
-    mtd beginSection(?: SectionKind) fail
+    mtd beginSection(_: SectionKind) fail
     {
         discard try .readTag()
     }
@@ -170,20 +170,20 @@ public impl Xml
     }
 
     // Reads the end tag of the current element.
-    mtd endElement(?: TypeValue) fail
+    mtd endElement(_: TypeValue) fail
     {
         try .readEndTag()
     }
 
     {
         // Returns false, so the decoder reads the fields of the struct.
-        mtd beginStruct(?: typeinfo, ?: const *u8)->bool fail => false
+        mtd beginStruct(_: typeinfo, _: const *u8)->bool fail => false
 
         // Does nothing: the struct ends with its last element.
         mtd endStruct() fail {}
 
         // Returns false, so the decoder reads the elements one by one.
-        mtd beginSequence(?: typeinfo, ?: *u8, ?: *u64)->bool fail => false
+        mtd beginSequence(_: typeinfo, _: *u8, _: *u64)->bool fail => false
 
         // Does nothing: the sequence ends before the next tag.
         mtd endSequence() fail {}

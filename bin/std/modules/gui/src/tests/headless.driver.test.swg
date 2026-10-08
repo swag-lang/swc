@@ -39,7 +39,7 @@ using Swag, Core
 
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Validate")
     dlg.addButton("Ok", Dialog.BtnOk, true)
-    dlg.validateResult = func(?, ?)->bool
+    dlg.validateResult = func(_, _)->bool
     {
         return false
     }

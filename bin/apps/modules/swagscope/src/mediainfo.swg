@@ -243,7 +243,7 @@ impl MediaInfoPanel
         with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
         {
             .dockStyle  = .Right
-            .sigPressed += func|panel = result|(?)
+            .sigPressed += func|panel = result|(_)
             {
                 panel.toggle.setChecked(false)
                 panel.toggle.sigCheckedChanged.call(panel.toggle)
@@ -253,7 +253,7 @@ impl MediaInfoPanel
         with result.copyButton = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
         {
             .dockStyle  = .Right
-            .sigPressed += func|panel = result|(?) { Clipboard.addString(panel.text()) }
+            .sigPressed += func|panel = result|(_) { Clipboard.addString(panel.text()) }
         }
 
         with result.title = Label.create(header, "")

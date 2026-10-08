@@ -202,7 +202,7 @@ func day10B()
     var total: u64
     for l, line in lines
     {
-        for ?, col in l.bytes()
+        for _, col in l.bytes()
         {
             let one = mp(cast(s64, col), cast(s64, line))[]
             if one & .Edge do

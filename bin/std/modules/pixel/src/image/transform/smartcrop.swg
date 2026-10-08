@@ -69,7 +69,7 @@ impl Image
     }
 
     #[Swag.Inline]
-    func sumRect(ii: *Array'f32, w, ?, x0, y0, x1, y1: s32)->f32
+    func sumRect(ii: *Array'f32, w, _, x0, y0, x1, y1: s32)->f32
     {
         let a = y0 * (w + 1) + x0
         let b = y0 * (w + 1) + x1

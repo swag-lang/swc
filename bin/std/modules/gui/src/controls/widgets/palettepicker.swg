@@ -223,7 +223,7 @@ impl PalettePicker
     mtd addLightnessRamp(count: s32, base: Color)
     {
         Swag.assert(count >= 0, "palette color count cannot be negative")
-        let {hue, saturation, ?} = base.toHsl()
+        let {hue, saturation, _} = base.toHsl()
         for i in count
         {
             let lightness = count <= 1 ? 0.5 : i / cast(f32, (count - 1))
@@ -240,7 +240,7 @@ impl PalettePicker
     {
         Swag.assert(count >= 0, "palette color count cannot be negative")
         Swag.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
-        let {hue, ?, ?} = base.toHsl()
+        let {hue, _, _} = base.toHsl()
         for i in count
         {
             let saturation = count <= 1 ? 0 : i / cast(f32, (count - 1))

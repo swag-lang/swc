@@ -12,7 +12,7 @@ func semaTest002()
 {
     var a: s32
     var b: s32
-    a, ?, b = 1
+    a, _, b = 1
 }
 
 func semaTest003()

@@ -47,13 +47,13 @@ struct InfoBar
 
 impl IWnd for InfoBar
 {
-    mtd impl onTimerEvent(?: *TimerEvent)
+    mtd impl onTimerEvent(_: *TimerEvent)
     {
         .timer = null
         .dismiss()
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         if .timer
         {
@@ -160,7 +160,7 @@ impl InfoBar
         {
             .margin     = CloseMargin
             .dockStyle  = .Right
-            .sigPressed += func|bar|(?) { bar.dismiss() }
+            .sigPressed += func|bar|(_) { bar.dismiss() }
         }
 
         if flags.has(.AutoDismiss) do

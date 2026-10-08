@@ -434,53 +434,53 @@ impl IWnd for Wnd
     }
 
     // Ignores global hook events by default.
-    mtd impl onHookEvent(?: IEvent) {}
+    mtd impl onHookEvent(_: IEvent) {}
 
     // Reports no content size by default, which keeps the authored size on both axes.
-    mtd impl measureContent(?: Math.Point)->Math.Point
+    mtd impl measureContent(_: Math.Point)->Math.Point
     {
         return {}
     }
 
     // Performs no additional creation work by default.
-    mtd impl onCreateEvent(?: *CreateEvent) {}
+    mtd impl onCreateEvent(_: *CreateEvent) {}
 
     // Releases no additional resources by default.
-    mtd impl onDestroyEvent(?: *DestroyEvent) {}
+    mtd impl onDestroyEvent(_: *DestroyEvent) {}
 
     // Ignores state changes by default.
-    mtd impl onStateEvent(?: *StateEvent) {}
+    mtd impl onStateEvent(_: *StateEvent) {}
 
     // Ignores size changes by default.
-    mtd impl onResizeEvent(?: *ResizeEvent) {}
+    mtd impl onResizeEvent(_: *ResizeEvent) {}
 
     // Performs no type-specific work during a deferred layout pass.
     mtd impl onLayout() {}
 
     // Paints no before-children content by default.
-    mtd impl onBeforePaint(?: *PaintEvent) {}
+    mtd impl onBeforePaint(_: *PaintEvent) {}
 
     // Paints no primary content by default.
-    mtd impl onPaint(?: *PaintEvent) {}
+    mtd impl onPaint(_: *PaintEvent) {}
 
     // Paints no after-children overlay by default.
-    mtd impl onAfterPaint(?: *PaintEvent) {}
+    mtd impl onAfterPaint(_: *PaintEvent) {}
 
     // Invalidates painting and requests layout after a theme change.
-    mtd impl onThemeEvent(?: *ThemeEvent)
+    mtd impl onThemeEvent(_: *ThemeEvent)
     {
         .invalidate()
         .sendResizeEvent()
     }
 
     // Ignores timers by default.
-    mtd impl onTimerEvent(?: *TimerEvent) {}
+    mtd impl onTimerEvent(_: *TimerEvent) {}
 
     // Declines state serialization by default.
-    mtd impl onSerializeStateEvent(?: *SerializeStateEvent) {}
+    mtd impl onSerializeStateEvent(_: *SerializeStateEvent) {}
 
     // Ignores frame callbacks by default.
-    mtd impl onFrameEvent(?: *FrameEvent) {}
+    mtd impl onFrameEvent(_: *FrameEvent) {}
 
     // Declines platform commands by default.
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)

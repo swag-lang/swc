@@ -65,7 +65,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             g_Slider = slider
             .setBounds(-2.5, 2.5)
             .setRange(-2.5, 2.5)
-            .sigChanged += func|wnd|(?)
+            .sigChanged += func|wnd|(_)
             {
                 updateFractal()
                 wnd.invalidate()

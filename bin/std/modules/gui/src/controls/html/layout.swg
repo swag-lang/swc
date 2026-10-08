@@ -2064,7 +2064,7 @@ private impl HtmlLayout
         var scan = 0'u64
         while scan < text.count
         {
-            let {?, eat} = Utf8.decodeRune(text[scan to])
+            let {_, eat} = Utf8.decodeRune(text[scan to])
             let next     = scan + eat
             if next >= text.count do
                 break

@@ -585,7 +585,7 @@ private impl IWnd for Panel
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .retireBlocking()
     }
@@ -797,7 +797,7 @@ private impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.togglePlayback() }
+            .sigPressed += func|view = me|(_) { view.togglePlayback() }
         }
 
         with .stopButton = Viewer.createActionButton(.commands, .Stop)
@@ -806,7 +806,7 @@ private impl Panel
             .margin.x  = 4
             .toolTip   = texts().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.stopPlayback() }
+            .sigPressed += func|view = me|(_) { view.stopPlayback() }
         }
 
         with .backwardButton = Viewer.createActionButton(.commands, .SeekBackward)
@@ -817,7 +817,7 @@ private impl Panel
             // one block of air between them.
             .margin.x   = 16
             .toolTip    = texts().ui_TipBackward
-            .sigPressed += func|view = me|(?) { view.seekRelative(-SeekSeconds) }
+            .sigPressed += func|view = me|(_) { view.seekRelative(-SeekSeconds) }
         }
 
         with .forwardButton = Viewer.createActionButton(.commands, .SeekForward)
@@ -825,7 +825,7 @@ private impl Panel
             .dockStyle  = .Left
             .margin.x   = 4
             .toolTip    = texts().ui_TipForward
-            .sigPressed += func|view = me|(?) { view.seekRelative(SeekSeconds) }
+            .sigPressed += func|view = me|(_) { view.seekRelative(SeekSeconds) }
         }
 
         with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
@@ -841,7 +841,7 @@ private impl Panel
             .margin.x  = 4
             .toolTip   = texts().ui_TipPlaybackSpeed
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = me|(?) { view.showPlaybackSpeedMenu() }
+            .sigPressed += func|view = me|(_) { view.showPlaybackSpeedMenu() }
         }
 
         with .playModeButton = Viewer.PlaybackButton.create(.commands, me, playback)
@@ -856,7 +856,7 @@ private impl Panel
             .toolTip   = texts().ui_TipAudio
             .setArrowPosition(.RightUpward)
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.showAudioTrackMenu() }
+            .sigPressed += func|view = me|(_) { view.showAudioTrackMenu() }
         }
 
         with .subtitleButton = IconButton.create(.commands, {}, {0, 0, dropDownWidth, buttonSize}, flags: .CenterContent)
@@ -868,7 +868,7 @@ private impl Panel
             .setArrowPosition(.RightUpward)
             .style.setFont(me.theme().createDefaultFont(10, .Bold), .Regular)
             .enable(false)
-            .sigPressed += func|view = me|(?) { view.showSubtitleMenu() }
+            .sigPressed += func|view = me|(_) { view.showSubtitleMenu() }
         }
 
         with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
@@ -901,7 +901,7 @@ private impl Panel
 
             // A drag may cross hundreds of frames. Decode its final position once instead of
             // serially decoding every intermediate value queued by the pointer movement.
-            .sigStartChange += func|view = me|(?)
+            .sigStartChange += func|view = me|(_)
             {
                 view.timelineChanging = true
             }

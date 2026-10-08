@@ -281,7 +281,7 @@ impl IWnd for TableView
         }
     }
 
-    mtd impl onThemeEvent(?: *ThemeEvent)
+    mtd impl onThemeEvent(_: *ThemeEvent)
     {
         for &cell in .cells do
             cell.view.layoutWidth = 0

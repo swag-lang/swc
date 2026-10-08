@@ -108,7 +108,7 @@ impl IWnd for Tab
     // Only the content policy answers with the wording: the equal and fixed policies decide
     // a width themselves, so what they need is that width once per tab. The height is the
     // bar alone — the page below it is measured by whatever the tab hosts.
-    mtd impl measureContent(?: Math.Point)->Math.Point
+    mtd impl measureContent(_: Math.Point)->Math.Point
     {
         var width = 0'f32
         switch .layout
@@ -344,7 +344,7 @@ impl IWnd for Tab
         }
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .items.isEmpty() do
             return
@@ -448,7 +448,7 @@ private impl Tab
         if .selectedIndex < .items.count do
             popup.setSelectedIndex(.selectedIndex)
 
-        popup.sigClosed = func|tab = me|(?, idx)
+        popup.sigClosed = func|tab = me|(_, idx)
         {
             if idx != Swag.U32.Max do
                 tab.setSelectedIndex(idx)
@@ -843,7 +843,7 @@ impl Tab
                                                  AnimationChannel.from("Gui.Tab.SelectionRail"),
                                                  .selectionRail,
                                                  destination,
-                                                 func|tab=me|(?, value)
+                                                 func|tab=me|(_, value)
                                                  {
                                                      tab.selectionRail = value
                                                  },

@@ -68,7 +68,7 @@ impl ViewerPanel
         {
             .dockStyle = .Center
             .style.setStyleSheetMetrics("comboBox_Width 0")
-            .sigChanged += func|panel = me|(?, index)
+            .sigChanged += func|panel = me|(_, index)
             {
                 panel.selectViewer(cast(ViewerKind, index))
                 panel.requestCompile()
@@ -105,7 +105,7 @@ impl ViewerPanel
             for name in ["O0", "O1", "O2"] do
                 .addItem(name)
             .setSelectedIndex(cast(u32, me.defaultLevel), notify: false)
-            .sigChanged += func|panel = me|(?, ?) { panel.requestCompile() }
+            .sigChanged += func|panel = me|(_, _) { panel.requestCompile() }
         }
     }
 
@@ -116,12 +116,12 @@ impl ViewerPanel
         {
             .dockStyle = .Center
             .hide()
-            .sigChanged += func|panel = me|(?)
+            .sigChanged += func|panel = me|(_)
             {
                 panel.sigOptionsChanged.call(panel)
             }
 
-            .sigReset += func|panel = me|(?)
+            .sigReset += func|panel = me|(_)
             {
                 panel.optimCombo.setSelectedIndex(cast(u32, panel.defaultLevel), notify: false)
                 panel.requestCompile()
@@ -147,7 +147,7 @@ impl ViewerPanel
         {
             .cached[index] = createViewer(me, .sourceEditor, kind)
             .cached[index]!.window().dockStyle = .Center
-            .cached[index]!.subscribeChanged(func|panel = me|(?) { panel.sigChanged.call(panel) })
+            .cached[index]!.subscribeChanged(func|panel = me|(_) { panel.sigChanged.call(panel) })
         }
 
         .viewer = .cached[index]

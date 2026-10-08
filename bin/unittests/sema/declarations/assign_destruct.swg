@@ -14,5 +14,5 @@ func semaTest002()
 {
     var s: Pair
     var a: s32
-    {a, ?} = s
+    {a, _} = s
 }

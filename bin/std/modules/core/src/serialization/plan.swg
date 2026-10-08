@@ -71,7 +71,7 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
         plan.hasVersion = true
     }
 
-    let {pod, ?} = isPodFinal(structType)
+    let {pod, _} = isPodFinal(structType)
     plan.podFinal  = pod
     plan.hasCustom = Reflection.hasInterface(structType, ISerialize)
 

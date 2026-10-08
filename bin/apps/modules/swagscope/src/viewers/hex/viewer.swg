@@ -550,7 +550,7 @@ impl Panel
             .addItem("32")
             .addItem("64")
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?) { view.applyRowWidth() }
+            .sigChanged += func|view = me|(_, _) { view.applyRowWidth() }
         }
 
         with .widthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
@@ -563,7 +563,7 @@ impl Panel
             .addItem(texts().ui_Width32)
             .addItem(texts().ui_Width64)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?) { view.rebuildFormats() }
+            .sigChanged += func|view = me|(_, _) { view.rebuildFormats() }
         }
 
         with .formatCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
@@ -575,7 +575,7 @@ impl Panel
             .addItem(texts().ui_FormatUns)
             .addItem(texts().ui_FormatSigned)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?) { view.applyValueMode() }
+            .sigChanged += func|view = me|(_, _) { view.applyValueMode() }
         }
 
         with .byteOrderCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
@@ -586,7 +586,7 @@ impl Panel
             .addItem(texts().ui_EndianLittle)
             .addItem(texts().ui_EndianBig)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(?, ?) { view.applyByteOrder() }
+            .sigChanged += func|view = me|(_, _) { view.applyByteOrder() }
         }
     }
 
@@ -608,22 +608,22 @@ impl Panel
 
         with .analysisView = AnalysisView.create(sidePanel.content)
         {
-            .sigAnalyze += func|view = me|(?)
+            .sigAnalyze += func|view = me|(_)
             {
                 view.startAnalysis()
             }
 
-            .sigCancel += func|view = me|(?)
+            .sigCancel += func|view = me|(_)
             {
                 view.analysis.cancel()
             }
 
-            .sigClose += func|view = me|(?)
+            .sigClose += func|view = me|(_)
             {
                 view.closeAnalysis()
             }
 
-            .sigNavigate += func|view = me|(?, offset, length)
+            .sigNavigate += func|view = me|(_, offset, length)
             {
                 discard view.grid.revealRange(offset, length)
                 view.refreshInspector()
@@ -639,7 +639,7 @@ impl Panel
         with .zoomLabel = Viewer.createZoomButton(info, "scope.hex.zoom", texts().ui_ZoomMenu)
         {
             .dockStyle  = .Right
-            .sigPressed += func|view = me|(?) { view.showZoomMenu() }
+            .sigPressed += func|view = me|(_) { view.showZoomMenu() }
         }
 
         with .inspectorLabel = Label.create(info, "", {0, 0, InspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
@@ -655,8 +655,8 @@ impl Panel
     {
         with .grid = GridView.create(me)
         {
-            .sigCaretChanged += func|view = me|(?) { view.refreshInspector() }
-            .sigZoomChanged  += func|view = me|(?) { view.refreshZoom() }
+            .sigCaretChanged += func|view = me|(_) { view.refreshInspector() }
+            .sigZoomChanged  += func|view = me|(_) { view.refreshZoom() }
         }
     }
 }
@@ -671,8 +671,8 @@ func createViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch        = func|view|(match, ?) => view.revealOffset(match.offset, match.length)
-        .matchBounds        = func|view|(?, bounds) => view.grid.matchBounds(bounds)
+        .revealMatch        = func|view|(match, _) => view.revealOffset(match.offset, match.length)
+        .matchBounds        = func|view|(_, bounds) => view.grid.matchBounds(bounds)
         .clear              = func|view|() => view.grid.clearSearchMatch()
         .describe           = func|view|(presentation) => view.describeSearch(presentation)
         .prepare            = func|view|(query, plan) => view.prepareSearch(query, plan)

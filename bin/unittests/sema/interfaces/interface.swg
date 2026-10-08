@@ -40,7 +40,7 @@ struct T {}
 struct U { t: T }
 impl T
 {
-    mtd toto(?: s32) {}
+    mtd toto(_: s32) {}
 }
 
 impl I1 for T

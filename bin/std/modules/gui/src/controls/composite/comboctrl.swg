@@ -20,7 +20,7 @@ struct ComboCtrl
 
 impl IWnd for ComboCtrl
 {
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .label == null do
             return

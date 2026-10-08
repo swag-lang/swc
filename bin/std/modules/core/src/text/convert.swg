@@ -70,7 +70,7 @@ impl ConvertFormatFloat
         // Precision
         if cpt < countof
         {
-            let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, (countof - cpt))))
+            let {userWidth, eatCount, _} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, (countof - cpt))))
             Swag.assert(userWidth <= 255, "precision overflow")
             if eatCount do
                 .precision = cast(s8, userWidth)
@@ -147,7 +147,7 @@ impl ConvertFormatInt
         // Next comes the padding width
         if cpt >= countof do
             return
-        let {userWidth, eatCount, ?} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, countof) - cpt))
+        let {userWidth, eatCount, _} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, countof) - cpt))
         Swag.assert(userWidth <= 255, "padding width overflow")
         if eatCount do
             .width = cast(u8, userWidth)

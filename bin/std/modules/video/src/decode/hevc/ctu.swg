@@ -599,7 +599,7 @@ impl Decoder
     }
 
     // Decodes one transform unit and reconstructs its samples, clause 7.3.8.10.
-    mtd transformUnit(x0, y0, xBase, yBase: s32, log2TrafoSize, ?, blkIdx: u32, cbfLuma, cbfCb, cbfCr, isIntra, bypass: bool, chromaMode: u8) fail
+    mtd transformUnit(x0, y0, xBase, yBase: s32, log2TrafoSize, _, blkIdx: u32, cbfLuma, cbfCb, cbfCr, isIntra, bypass: bool, chromaMode: u8) fail
     {
         let sps  = .activeSps!
         let pps  = .activePps!

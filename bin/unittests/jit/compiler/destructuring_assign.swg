@@ -58,7 +58,7 @@ func makeDateTime()->DestructAssignDateTime
     Swag.assert(pair.b == 1)
 
     var other = DestructAssignPair{0, 0}
-    {other.a, ?} = pair
+    {other.a, _} = pair
     Swag.assert(other.a == 2)
     Swag.assert(other.b == 0)
 }

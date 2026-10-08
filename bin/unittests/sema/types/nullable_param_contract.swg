@@ -110,7 +110,7 @@ func npcOkConditional(x: *s32?, use: bool)->s32
 }
 
 // Never used at all.
-func npcOkUnused(?: *s32?)->s32
+func npcOkUnused(_: *s32?)->s32
 {
     return 1
 }

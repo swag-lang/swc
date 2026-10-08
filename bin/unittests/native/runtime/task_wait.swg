@@ -2,7 +2,7 @@
 
 var dropPanics: u32
 
-func recordDropPanic(?: string?, ?: Swag.SourceCodeLocation)
+func recordDropPanic(_: string?, _: Swag.SourceCodeLocation)
 {
     dropPanics += 1
 }

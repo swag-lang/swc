@@ -890,7 +890,7 @@ impl QuickWnd
             .quickWnd = me
             .toolTip  = quickStyleTip(form)
 
-            .iconPainter     = func(button, bc, ?, ?) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
+            .iconPainter     = func(button, bc, _, _) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
             .sigRightPressed += func(button) { assume cast(*QuickButton, button).quickWnd.btnPopup(button, button.surfaceRect().center()) }
         }
 
@@ -938,7 +938,7 @@ impl QuickWnd
 
         .layout.sendResizeEvent()
 
-        btn.iconPainter = func(btn, bc, ?, ?)
+        btn.iconPainter = func(btn, bc, _, _)
         {
             paintPreset(bc.painter, assume cast(*QuickButton, btn))
             var rect = btn.clientRect()
@@ -960,7 +960,7 @@ impl QuickWnd
         .layout.sendResizeEvent()
         .setScrollSize(0, .layout.contentHeight)
 
-        addBtn.sigPressed += func|quickWnd = me|(?)
+        addBtn.sigPressed += func|quickWnd = me|(_)
         {
             let main = quickWnd.main
             let mdl  = main.newFormFromModel(main.getEditMode())

@@ -549,7 +549,7 @@ impl HtmlPainter
         var end    = 0'u64
         while end < source.count
         {
-            let {?, eat} = Utf8.decodeRune(source[end to])
+            let {_, eat} = Utf8.decodeRune(source[end to])
             let next     = end + eat
             if .layout.measure(item.style, source[0 until next]) + markerWidth > room do
                 break
@@ -1368,7 +1368,7 @@ impl HtmlPainter
         var previous = 0.0'f32
         while end < source.count
         {
-            let {?, eat} = Utf8.decodeRune(source[end to])
+            let {_, eat} = Utf8.decodeRune(source[end to])
             let next     = end + eat
             let width    = .layout.measure(item.style, source[0 until next])
             if width >= localX do

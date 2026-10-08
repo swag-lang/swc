@@ -627,7 +627,7 @@ private impl GenericLexer
 
 impl IRichEditLexer for GenericLexer
 {
-    mtd impl setup(?: *RichEditCtrl) {}
+    mtd impl setup(_: *RichEditCtrl) {}
 
     mtd impl setupTheme(ed: *RichEditCtrl)
     {
@@ -655,7 +655,7 @@ impl IRichEditLexer for GenericLexer
         ed.styles[cast(u64, Style.Preprocessor)].colFg = preprocessor
     }
 
-    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool => false
+    mtd impl insertRune(_: *RichEditCtrl, _: rune)->bool => false
 
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {

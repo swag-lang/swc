@@ -307,8 +307,8 @@ namespace SemaHelpers
         {
             if (Token::isCompilerUniq(tok.id))
                 idRef = ensureCurrentScopeUniqIdentifier(sema, tok.id);
-            else if (tok.id == TokenId::SymQuestion)
-                idRef = sema.idMgr().addIdentifierOwned(std::format("__unnamed_param_{}", tokNameRef.get())); // A '?' parameter: no source name reaches it.
+            else if (tok.id == TokenId::KwdUnnamed)
+                idRef = sema.idMgr().addIdentifierOwned(std::format("__unnamed_param_{}", tokNameRef.get())); // A '_' parameter: no source name reaches it.
             else
                 idRef = resolveIdentifier(sema, nameRef);
         }
@@ -319,7 +319,7 @@ namespace SemaHelpers
         SymbolMap* symbolMap  = SemaFrame::currentSymMap(sema);
         if constexpr (std::is_same_v<T, SymbolVariable>)
         {
-            if (tok.id == TokenId::SymQuestion)
+            if (tok.id == TokenId::KwdUnnamed)
                 sym->setUnnamed();
         }
         SemaScope* localScope = currentLocalSymbolScope(sema);

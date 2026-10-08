@@ -73,7 +73,7 @@ func carrierIdentity(carrier: *Carrier)->*Carrier => carrier
 func createThroughIdentity(target: *s32)->*Carrier => carrierIdentity(createWrapped(target))
 
 #[Swag.NoInline]
-func independent(?: *s32)->*s32 => cast(*s32, allocate(#sizeof(s32)))
+func independent(_: *s32)->*s32 => cast(*s32, allocate(#sizeof(s32)))
 
 #[Swag.NoInline]
 func independentComposed(target: *s32)->*s32 => identity(independent(target))

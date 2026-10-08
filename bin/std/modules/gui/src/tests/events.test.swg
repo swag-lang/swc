@@ -87,7 +87,7 @@ impl OffsetOwnedEvent
     host.setup(240, 120)
     defer host.shutdown()
 
-    host.root.hookOnEvent = func|retained = &retained|(?, evt)
+    host.root.hookOnEvent = func|retained = &retained|(_, evt)
     {
         if evt is CommandEvent as command
         {

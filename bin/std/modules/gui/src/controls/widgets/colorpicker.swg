@@ -53,13 +53,13 @@ struct ColorPicker
 
 impl IWnd for ColorPicker
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         if .texture.isValid() do
             .app().renderer.removeTexture(&.texture)
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .dirty = true
     }

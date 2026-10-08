@@ -7,17 +7,17 @@ var SliderHeadlessStartCount:   u32
 var SliderHeadlessChangedCount: u32
 var SliderHeadlessEndCount:     u32
 
-func sliderHeadlessStart(?: *Slider)
+func sliderHeadlessStart(_: *Slider)
 {
     SliderHeadlessStartCount += 1
 }
 
-func sliderHeadlessChanged(?: *Slider)
+func sliderHeadlessChanged(_: *Slider)
 {
     SliderHeadlessChangedCount += 1
 }
 
-func sliderHeadlessEnd(?: *Slider)
+func sliderHeadlessEnd(_: *Slider)
 {
     SliderHeadlessEndCount += 1
 }

@@ -987,7 +987,7 @@ impl IDecoder for Decoder
         return .video.syncRankAt(index)
     }
 
-    mtd impl seekFrame(?: *ByteSource, index: u64) fail
+    mtd impl seekFrame(_: *ByteSource, index: u64) fail
     {
         if index >= .info.frameCount do
             fail BadParameterError{"MP4 frame index exceeds the stream frame count"}

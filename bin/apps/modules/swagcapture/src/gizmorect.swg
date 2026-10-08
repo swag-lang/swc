@@ -55,6 +55,10 @@ const RotateHandleDist = 26.0
 // of each side, from the top left to the bottom right.
 const AnchorEdges: [8] GizmoEdges = [.Left | .Top, .Top, .Top | .Right, .Left, .Right, .Left | .Bottom, .Bottom, .Right | .Bottom]
 
+// The cursor over each handle, in the same order.
+const AnchorCursors: [8] CursorShape = [.ResizeNorthwestSoutheast, .ResizeVertical, .ResizeNortheastSouthwest, .ResizeHorizontal,
+                                        .ResizeHorizontal, .ResizeNortheastSouthwest, .ResizeVertical, .ResizeNorthwestSoutheast]
+
 impl GizmoRect
 {
     // Moves the `edges` of `movingRect` by `diff`, never below the minimum size. With `keepRatio`,
@@ -95,166 +99,179 @@ impl GizmoRect
     // whether the gizmo handled `evt`. Shift keeps the ratio of a corner resize.
     mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
-        let keepRatio = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
-
         switch evt.kind
         {
         case .Pressed:
-            if .moving or .rotating do
-                return true
-            if evt.button != .Left do
-                break
-            if .rotateEnabled and .rotateAnchor.contains(.toLocal(pos))
-            {
-                .rotating         = true
-                .firstRotating    = true
-                .rotateStartValue = .rotateValue
-                .rotateStartAngle = .computeRotate(pos)
-                view.captureMouse()
-                return true
-            }
-
-            if .hotAnchor == Swag.U32.Max do
-                break
-            .moving, .firstMoving = true
-            .gizmoRad    = .gizmoAngleRad()
-            .gizmoCenter = {.rect.horzCenter(), .rect.vertCenter()}
-            if .gizmoRad != 0
-            {
-                // Work in a frame centered on the box and aligned to its axes
-                let halfW = .rect.width * 0.5
-                let halfH = .rect.height * 0.5
-                .startRect  = {-halfW, -halfH, .rect.width, .rect.height}
-                .movingRect = .startRect
-            }
-            else
-            {
-                .startRect  = .rect
-                .movingRect = .rect
-            }
-
-            .movingStart = pos
-            view.captureMouse()
-            return true
+            return .press(view, pos, evt)
 
         case .Released:
-            if .rotating
-            {
-                if evt.button == .Left
-                {
-                    .rotating  = false
-                    .rotateHot = false
-                    view.releaseMouse()
-
-                    // Only commit if a rotation actually happened (mouse moved)
-                    if not .firstRotating
-                    {
-                        if .sigRotate do
-                            .sigRotate(me, false, true, .rotateValue)
-                        if .sigHasChanged do
-                            .sigHasChanged()
-                    }
-                }
-
-                return true
-            }
-
-            if .moving
-            {
-                if evt.button == .Left
-                {
-                    .moving, .firstMoving = false
-                    .hotAnchor = Swag.U32.Max
-                    view.releaseMouse()
-                    if not .trackChange and .sigChanged do
-                        .sigChanged(me, false, .Zero)
-                    if .sigHasChanged do
-                        .sigHasChanged()
-                }
-
-                return true
-            }
-
-        case .Leave:
-            if .hotAnchor != Swag.U32.Max
-            {
-                .hotAnchor = Swag.U32.Max
-                return true
-            }
+            return .release(view, evt)
 
         case .Move:
-            if .rotating
-            {
-                var deg = .rotateStartValue + (.computeRotate(pos) - .rotateStartAngle)
-                while deg < 0 do
-                    deg += 360
-                while deg >= 360 do
-                    deg -= 360
+            return .drag(view, pos, evt)
 
-                // Snap to 15° steps while Shift is held
-                if evt.modifiers & .Shift do
-                    deg = Math.round(deg / 15) * 15
-
-                .rotateValue = deg
-                if .sigRotate do
-                    .sigRotate(me, .firstRotating, false, deg)
-                .firstRotating = false
-
-                view.app().setFrameCursor(Cursor.from(.Hand))
-                return true
-            }
-
-            if .moving
-            {
-                if .firstMoving and .sigChanged and .trackChange do
-                    .sigChanged(me, true, .Zero)
-                .firstMoving = false
-
-                var diff = pos - .movingStart
-                .movingStart = pos
-
-                // Express the drag in the box's own (rotated) axes
-                if .gizmoRad != 0 do
-                    diff = GizmoRect.rotateVec(diff, -.gizmoRad)
-
-                // A `Leave` drops the hot handle in the middle of a drag; the box then stays put.
-                let edges = .hotAnchor < AnchorEdges.count ? AnchorEdges[.hotAnchor] : .Zero
-                .resizeFrom(edges, diff, keepRatio)
-                if .trackChange and .sigChanged do
-                    .sigChanged(me, false, edges)
-            }
-            else
-            {
-                let lp = .toLocal(pos)
-                .hotAnchor = Swag.U32.Max
-                for c, i in .anchors where c.contains(lp)
-                {
-                    .hotAnchor = cast(u32, i)
-                    break
-                }
-
-                .rotateHot = .rotateEnabled and .hotAnchor == Swag.U32.Max and .rotateAnchor.contains(lp)
-            }
-
-            switch .hotAnchor
-            {
-            case 0, 7: view.app().setFrameCursor(Cursor.from(.ResizeNorthwestSoutheast))
-            case 1, 6: view.app().setFrameCursor(Cursor.from(.ResizeVertical))
-            case 2, 5: view.app().setFrameCursor(Cursor.from(.ResizeNortheastSouthwest))
-            case 3, 4: view.app().setFrameCursor(Cursor.from(.ResizeHorizontal))
-            }
-
-            if .rotateHot
-            {
-                view.app().setFrameCursor(Cursor.from(.Hand))
-                return true
-            }
-
-            if .hotAnchor != Swag.U32.Max do
-                return true
+        case .Leave:
+            if .hotAnchor == Swag.U32.Max do
+                return false
+            .hotAnchor = Swag.U32.Max
+            return true
         }
 
         return false
+    }
+
+    // Starts a rotation from the handle, or a move or resize from the anchor, under `pos`.
+    mtd press(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
+    {
+        if .moving or .rotating do
+            return true
+        if evt.button != .Left do
+            return false
+        if .rotateEnabled and .rotateAnchor.contains(.toLocal(pos))
+        {
+            .rotating         = true
+            .firstRotating    = true
+            .rotateStartValue = .rotateValue
+            .rotateStartAngle = .computeRotate(pos)
+            view.captureMouse()
+            return true
+        }
+
+        if .hotAnchor == Swag.U32.Max do
+            return false
+        .moving, .firstMoving = true
+        .gizmoRad    = .gizmoAngleRad()
+        .gizmoCenter = {.rect.horzCenter(), .rect.vertCenter()}
+        if .gizmoRad != 0
+        {
+            // Work in a frame centered on the box and aligned to its axes
+            let halfW = .rect.width * 0.5
+            let halfH = .rect.height * 0.5
+            .startRect  = {-halfW, -halfH, .rect.width, .rect.height}
+            .movingRect = .startRect
+        }
+        else
+        {
+            .startRect  = .rect
+            .movingRect = .rect
+        }
+
+        .movingStart = pos
+        view.captureMouse()
+        return true
+    }
+
+    // Ends the rotation or the drag in progress, and reports it when the mouse actually moved.
+    mtd release(view: *EditView, evt: *MouseEvent)->bool
+    {
+        if .rotating
+        {
+            if evt.button == .Left
+            {
+                .rotating  = false
+                .rotateHot = false
+                view.releaseMouse()
+
+                // Only commit if a rotation actually happened (mouse moved)
+                if not .firstRotating
+                {
+                    if .sigRotate do
+                        .sigRotate(me, false, true, .rotateValue)
+                    if .sigHasChanged do
+                        .sigHasChanged()
+                }
+            }
+
+            return true
+        }
+
+        if .moving
+        {
+            if evt.button == .Left
+            {
+                .moving, .firstMoving = false
+                .hotAnchor = Swag.U32.Max
+                view.releaseMouse()
+                if not .trackChange and .sigChanged do
+                    .sigChanged(me, false, .Zero)
+                if .sigHasChanged do
+                    .sigHasChanged()
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    // Turns or resizes the box while a drag runs, otherwise finds the handle under `pos`, and
+    // shows the cursor of that handle.
+    mtd drag(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
+    {
+        if .rotating
+        {
+            var deg = .rotateStartValue + (.computeRotate(pos) - .rotateStartAngle)
+            while deg < 0 do
+                deg += 360
+            while deg >= 360 do
+                deg -= 360
+
+            // Snap to 15° steps while Shift is held
+            if evt.modifiers & .Shift do
+                deg = Math.round(deg / 15) * 15
+
+            .rotateValue = deg
+            if .sigRotate do
+                .sigRotate(me, .firstRotating, false, deg)
+            .firstRotating = false
+
+            view.app().setFrameCursor(Cursor.from(.Hand))
+            return true
+        }
+
+        if .moving
+        {
+            let keepRatio = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
+            if .firstMoving and .sigChanged and .trackChange do
+                .sigChanged(me, true, .Zero)
+            .firstMoving = false
+
+            var diff = pos - .movingStart
+            .movingStart = pos
+
+            // Express the drag in the box's own (rotated) axes
+            if .gizmoRad != 0 do
+                diff = GizmoRect.rotateVec(diff, -.gizmoRad)
+
+            // A `Leave` drops the hot handle in the middle of a drag; the box then stays put.
+            let edges = .hotAnchor < AnchorEdges.count ? AnchorEdges[.hotAnchor] : .Zero
+            .resizeFrom(edges, diff, keepRatio)
+            if .trackChange and .sigChanged do
+                .sigChanged(me, false, edges)
+        }
+        else
+        {
+            let lp = .toLocal(pos)
+            .hotAnchor = Swag.U32.Max
+            for c, i in .anchors where c.contains(lp)
+            {
+                .hotAnchor = cast(u32, i)
+                break
+            }
+
+            .rotateHot = .rotateEnabled and .hotAnchor == Swag.U32.Max and .rotateAnchor.contains(lp)
+        }
+
+        if .hotAnchor < AnchorCursors.count do
+            view.app().setFrameCursor(Cursor.from(AnchorCursors[.hotAnchor]))
+
+        if .rotateHot
+        {
+            view.app().setFrameCursor(Cursor.from(.Hand))
+            return true
+        }
+
+        return .hotAnchor != Swag.U32.Max
     }
 
     // Angle (in degrees, 0..360) of a point around the bounding box center,

@@ -228,7 +228,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAnyWithHead(?: rune, values: ...)->u64 { return values.count }
+    func variadicAnyWithHead(_: rune, values: ...)->u64 { return values.count }
     const V0 = #run variadicAnyWithHead('a', 'b', 'c')
     #assert(V0 == 2)
 }

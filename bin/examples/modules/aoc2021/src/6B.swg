@@ -28,7 +28,7 @@ func day6B()
         state[6], state[8] = oldState[0]
         total = oldState[0] * 2
 
-        for ?, i in oldState[1 to]
+        for _, i in oldState[1 to]
         {
             state[i] += oldState[i + 1]
             total    += oldState[i + 1]

@@ -217,12 +217,12 @@ private impl ImageView
 
 impl IWnd for ImageView
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .clear()
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .isFitted do
             .sigZoomChanged.call(me)

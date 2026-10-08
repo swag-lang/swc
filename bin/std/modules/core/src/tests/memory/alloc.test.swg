@@ -21,9 +21,9 @@ impl Swag.IAllocator for RecordingAllocationAllocator
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
-    mtd impl free(?: *Swag.AllocatorRequest) {}
-    mtd impl freeAll(?: *Swag.AllocatorRequest) {}
-    mtd impl assertAllocated(?: *Swag.AllocatorRequest) {}
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+    mtd impl freeAll(_: *Swag.AllocatorRequest) {}
+    mtd impl assertAllocated(_: *Swag.AllocatorRequest) {}
 }
 
 impl Swag.IAllocator for RejectAllocationAllocator
@@ -31,9 +31,9 @@ impl Swag.IAllocator for RejectAllocationAllocator
     mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
-    mtd impl free(?: *Swag.AllocatorRequest) {}
-    mtd impl freeAll(?: *Swag.AllocatorRequest) {}
-    mtd impl assertAllocated(?: *Swag.AllocatorRequest) {}
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+    mtd impl freeAll(_: *Swag.AllocatorRequest) {}
+    mtd impl assertAllocated(_: *Swag.AllocatorRequest) {}
 }
 
 func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, includeOldAllocation: bool)->String

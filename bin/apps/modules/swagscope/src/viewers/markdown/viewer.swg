@@ -431,7 +431,7 @@ func createViewer(host: Viewer.Host)
         .outline.bindMarkdown(view, host.fileName())
     }
 
-    view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(?, evt)
+    view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(_, evt)
     {
         switch evt
         {
@@ -470,7 +470,7 @@ func createViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .revealMatch = func|view|(match, text)->bool => view.revealFileOffset(match.offset, text)
-        .matchBounds = func|view|(?, bounds)->bool => view.searchMatchRect(bounds)
+        .matchBounds = func|view|(_, bounds)->bool => view.searchMatchRect(bounds)
         .clear       = func|view|() => view.clearSearchHighlight()
     }
 
@@ -488,21 +488,21 @@ func createViewer(host: Viewer.Host)
 
     host.setLifecycle(lifecycle)
 
-    themeCombo.sigChanged += func|view, widthCombo, zoomButton|(?, index)
+    themeCombo.sigChanged += func|view, widthCombo, zoomButton|(_, index)
     {
         g_ViewerSettings.themeIndex = index
         applyViewerStyle(view, index, widthCombo.selectedIndex, zoomButton.zoomPercent)
         catch g_App.saveState()
     }
 
-    widthCombo.sigChanged += func|view, themeCombo, zoomButton|(?, index)
+    widthCombo.sigChanged += func|view, themeCombo, zoomButton|(_, index)
     {
         g_ViewerSettings.widthIndex = index
         applyViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent, applyColors: false)
         catch g_App.saveState()
     }
 
-    view.sigLinkActivated += func(?, url)
+    view.sigLinkActivated += func(_, url)
     {
         Env.openUrl(url)
     }

@@ -17,7 +17,7 @@ impl ViewerWindow
             catch window.saveState()
         }
 
-        .appearanceButton.sigAboutRequested += func|window = me|(?)
+        .appearanceButton.sigAboutRequested += func|window = me|(_)
         {
             window.showAbout()
         }
@@ -44,21 +44,21 @@ impl ViewerWindow
         with .openButton = .commandButtons.addButton(.theme().icon(.OpenFile, iconSize))
         {
             .toolTip    = appStrings().ui_Open
-            .sigPressed += func|window = me|(?) { window.chooseFile() }
+            .sigPressed += func|window = me|(_) { window.chooseFile() }
         }
 
         with .openDefaultButton = .commandButtons.addButton(.theme().icon(.OpenExternal, iconSize))
         {
             .toolTip = appStrings().ui_OpenDefault
             .enable(false)
-            .sigPressed += func|window = me|(?) { window.openCurrentFileDefault() }
+            .sigPressed += func|window = me|(_) { window.openCurrentFileDefault() }
         }
 
         with .closeButton = .commandButtons.addButton(.theme().icon(.WndClose, iconSize))
         {
             .toolTip = appStrings().ui_CloseFile
             .enable(false)
-            .sigPressed += func|window = me|(?) { window.closeFile() }
+            .sigPressed += func|window = me|(_) { window.closeFile() }
         }
 
         with .fullScreenButton = .commandButtons.addToggleButton(.theme().icon(.FullScreen, iconSize))
@@ -81,7 +81,7 @@ impl ViewerWindow
             .layoutSpec.alignY = .Center
             .toolTip = appStrings().ui_SearchOptions
             .setArrowPosition(.RightDownward)
-            .sigPressed += func|window = me|(?) { window.showSearchOptionsMenu() }
+            .sigPressed += func|window = me|(_) { window.showSearchOptionsMenu() }
         }
 
         with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
@@ -89,9 +89,9 @@ impl ViewerWindow
             .setIcon(me.theme().icon(.Search, iconSize))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = me|(edit)->EditBoxCheckResult => window.validateSearchEdit(edit))
-            .sigTextChanged += func|window = me|(?) { window.restartSearch() }
-            .sigSubmitted   += func|window = me|(?) { window.findNext() }
-            .sigCancelled   += func|window = me|(?) { window.hideSearch() }
+            .sigTextChanged += func|window = me|(_) { window.restartSearch() }
+            .sigSubmitted   += func|window = me|(_) { window.findNext() }
+            .sigCancelled   += func|window = me|(_) { window.hideSearch() }
             .enable(false)
         }
 
@@ -105,7 +105,7 @@ impl ViewerWindow
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed        += func|window = me|(?) { window.findPrevious() }
+            .sigPressed        += func|window = me|(_) { window.findPrevious() }
             .enable(false)
         }
 
@@ -113,7 +113,7 @@ impl ViewerWindow
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
-            .sigPressed        += func|window = me|(?) { window.findNext() }
+            .sigPressed        += func|window = me|(_) { window.findNext() }
             .enable(false)
         }
 
@@ -133,7 +133,7 @@ impl ViewerWindow
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|window = me|(?, index) { window.selectViewer(index) }
+            .sigChanged += func|window = me|(_, index) { window.selectViewer(index) }
         }
     }
 
@@ -289,7 +289,7 @@ impl ViewerWindow
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
-            .sigPressed += func|window = me|(?) { window.confirmClearRecent() }
+            .sigPressed += func|window = me|(_) { window.confirmClearRecent() }
         }
 
         with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, compactSize}, null, .SecondaryText)
@@ -335,7 +335,7 @@ impl ViewerWindow
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
             .enable(false)
-            .sigPressed += func|window = me|(?) { window.showFolderHistory() }
+            .sigPressed += func|window = me|(_) { window.showFolderHistory() }
         }
 
         with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
@@ -413,7 +413,7 @@ impl ViewerWindow
 
     private mtd hookChildEvents()
     {
-        .hookOnChildEvent = func|window = me|(?, evt)
+        .hookOnChildEvent = func|window = me|(_, evt)
         {
             switch evt
             {

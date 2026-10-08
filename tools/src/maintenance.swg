@@ -280,7 +280,7 @@ public func runHelp(context: *Context, options: *Options)->s32 fail
 // Packages the VSCode extension after refreshing its generated image assets.
 //
 // Install Node.js, then `npm install -g vsce`, before using this.
-public func runVsix(context: *Context, ?: *Options)->s32 fail
+public func runVsix(context: *Context, _: *Options)->s32 fail
 {
     let vscodeDir = Path.combine(context.root.toString(), "vscode")
     for command in ["/d /c npm.cmd ci", "/d /c npm.cmd test"]
@@ -316,7 +316,7 @@ public func runVsix(context: *Context, ?: *Options)->s32 fail
 // `.swgs` runs it, arguments and exit code included. A shell still names the compiler, because
 // `cmd` resolves an extension through the machine-wide association that only an elevated
 // `assoc`/`ftype` writes.
-public func runSetup(context: *Context, ?: *Options)->s32 fail
+public func runSetup(context: *Context, _: *Options)->s32 fail
 {
     var native = context.binDir
     native.replace("/", "\\")

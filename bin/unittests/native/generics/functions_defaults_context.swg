@@ -6,7 +6,7 @@ struct(T, N: s32) Buffer
 }
 
 func genericFunctionMakeS32()->s32 => 42
-func genericFunctionConsumeS32(?: s32) {}
+func genericFunctionConsumeS32(_: s32) {}
 func genericFunctionS32ToBool(value: s32)->bool => value == 42
 
 func(T) callGenericFactory(factory: func()->T)->T

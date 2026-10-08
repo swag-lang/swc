@@ -828,7 +828,17 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     Diagnostic diag = reportError(diagId, ref());
     setReportExpected(diag, id);
 
-    if (id == TokenId::Identifier && Token::isSpecialWord(tok().id))
+    if (id == TokenId::Identifier && tok().id == TokenId::KwdUnnamed)
+    {
+        diag.last().span(0).messageId = DiagnosticId::parser_note_unnamed_not_a_name;
+        diag.addElement(DiagnosticId::parser_help_unnamed_not_a_name);
+    }
+    else if (id == TokenId::Identifier && tok().id == TokenId::SymQuestion)
+    {
+        diag.last().span(0).messageId = DiagnosticId::parser_note_question_not_a_binding;
+        diag.addElement(DiagnosticId::parser_help_question_not_a_binding);
+    }
+    else if (id == TokenId::Identifier && Token::isSpecialWord(tok().id))
         diag.last().span(0).messageId = DiagnosticId::parser_note_reserved_identifier;
 
     diag.report(*ctx_);

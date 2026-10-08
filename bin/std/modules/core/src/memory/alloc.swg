@@ -11,9 +11,9 @@ private impl IAllocator for AllocationPanicBufferAllocator
 {
     mtd impl alloc(request: *AllocatorRequest) { request.address = null }
     mtd impl realloc(request: *AllocatorRequest) { request.address = null }
-    mtd impl free(?: *AllocatorRequest) {}
-    mtd impl freeAll(?: *AllocatorRequest) {}
-    mtd impl assertAllocated(?: *AllocatorRequest) {}
+    mtd impl free(_: *AllocatorRequest) {}
+    mtd impl freeAll(_: *AllocatorRequest) {}
+    mtd impl assertAllocated(_: *AllocatorRequest) {}
 }
 
 internal func appendAllocationFailure(message: *ConcatBuffer,

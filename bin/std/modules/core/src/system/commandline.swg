@@ -49,7 +49,7 @@ struct(T) Result
 }
 
 // Returns whether `oneArg` is an option, that is, whether it starts with '-'.
-func isOption(oneArg: string, ?: ParseOptions)->bool => oneArg.count != 0 and oneArg[0] == '-'
+func isOption(oneArg: string, _: ParseOptions)->bool => oneArg.count != 0 and oneArg[0] == '-'
 
 // Returns whether `oneArg` can be the value of a field of type `typeField` rather than an option.
 //

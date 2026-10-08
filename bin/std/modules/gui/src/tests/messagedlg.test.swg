@@ -37,7 +37,7 @@ func unbreakableMessage()->String
 
     // The box sizes itself as it opens, so its rectangle is read from inside the modal loop.
     var width = 0'f32
-    host.app.sigFrame += func|host = &host, dlg, width = &width|(?)
+    host.app.sigFrame += func|host = &host, dlg, width = &width|(_)
     {
         if width[] != 0 do
             return

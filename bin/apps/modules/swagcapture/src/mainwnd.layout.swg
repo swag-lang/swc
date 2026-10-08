@@ -102,7 +102,7 @@ impl MainWnd
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
     // sprite for this tool, so it paints its own rounded body plus a small tail. Its round
     // corners are deliberate — the glyph depicts a shape the user draws, not chrome.
-    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, ?: PaintItemFlags)
+    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, _: PaintItemFlags)
     {
         bc.painter.setParams(.Antialiased)
         let col = btn.isChecked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
@@ -324,7 +324,7 @@ impl MainWnd
                 main.saveAppState()
             }
 
-            .sigAboutRequested += func|main = me|(?)
+            .sigAboutRequested += func|main = me|(_)
             {
                 main.postCommandEvent(ActionAbout.About)
             }
@@ -347,7 +347,7 @@ impl MainWnd
         {
             .dockStyle            = .Center
             .backgroundStyle      = .Transparent
-            .sigScrollSizeChanged += func|main = me|(?, ?, ?) { main.updateZoomDisplay() }
+            .sigScrollSizeChanged += func|main = me|(_, _, _) { main.updateZoomDisplay() }
         }
     }
 

@@ -142,7 +142,7 @@ using Swag, Core, File
     host.root.applyLayout()
     host.pump()
     var checked: bool
-    host.app.sigFrame += func|host = &host, fb, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, fb, checked = &checked|(_)
     {
         if checked[] do
             return

@@ -314,7 +314,7 @@ struct RecentWnd
 
 impl IWnd for RecentWnd
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopTimer(&.timer)
         .stopTimer(&.loadTimer)

@@ -119,7 +119,7 @@ func applyTheme()
     app.notifyThemeChanged()
 }
 
-func toggleTheme(?: *Button)
+func toggleTheme(_: *Button)
 {
     g_DarkTheme = not g_DarkTheme
     applyTheme()
@@ -180,7 +180,7 @@ func layoutCurvePage()
     g_Wall!.setPosition({PagePad, PagePad + NoteHeight + RowGap, width, Math.max(rect.height - 2 * PagePad - NoteHeight - RowGap, 1.0)})
 }
 
-func onCurvePageEvent(?: *Wnd, evt: IEvent)->bool
+func onCurvePageEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent do
         layoutCurvePage()
@@ -225,7 +225,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
     for index in WallCurves.count do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(5, false)
-    easing.sigChanged += func(?, ?)
+    easing.sigChanged += func(_, _)
     {
         playEntrance()
     }
@@ -246,7 +246,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
 
     let replay = PushButton.create(controls, "Replay", {}, null, .Strong)
     g_StageReplay     = replay
-    replay.sigPressed += func(?)
+    replay.sigPressed += func(_)
     {
         playEntrance()
     }
@@ -261,7 +261,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
     return page
 }
 
-func onStageSlider(?: *Slider)
+func onStageSlider(_: *Slider)
 {
     updateStageReadout()
     playEntrance()
@@ -313,7 +313,7 @@ func playEntrance()
     discard app.animator.start(#move group)
 }
 
-func onEntranceEnded(?: AnimationResult)
+func onEntranceEnded(_: AnimationResult)
 {
     // Presentation state is dropped once it is back at rest, so a settled tile costs the painter
     // nothing: no layer, no resample, no per-frame composition.
@@ -366,7 +366,7 @@ func layoutStagePage()
     g_StageHint!.setPosition({PagePad, stripY + cardH + 10, width, 22})
 }
 
-func onStagePageEvent(?: *Wnd, evt: IEvent)->bool
+func onStagePageEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent do
         layoutStagePage()
@@ -395,7 +395,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
     for index in WallCurves.count do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(2, false)
-    easing.sigChanged += func(?, index)
+    easing.sigChanged += func(_, index)
     {
         g_Field!.easing = WallCurves[index]
     }
@@ -421,7 +421,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 
     let clear = PushButton.create(controls, "Clear trail")
     g_FieldClear     = clear
-    clear.sigPressed += func(?)
+    clear.sigPressed += func(_)
     {
         g_Field!.clearTrail()
         g_Field!.invalidate()
@@ -470,7 +470,7 @@ func layoutFieldPage()
     g_Field!.setPosition({PagePad, fieldY, width, Math.max(rect.height - fieldY - PagePad, 80.0)})
 }
 
-func onFieldPageEvent(?: *Wnd, evt: IEvent)->bool
+func onFieldPageEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent do
         layoutFieldPage()
@@ -517,7 +517,7 @@ func startEssentialBreath()
     discard app.animator.animateF32(g_EssentialLbl!, AnimationChannel.from("Gui11.Pref.Breath"), 1, 0.35, &setCardOpacity, options)
 }
 
-func toggleExpander(?: *Button)
+func toggleExpander(_: *Button)
 {
     g_Expanded        = not g_Expanded
     g_ExpandBtn!.name = g_Expanded ? "Hide the panel" : "Show the panel"
@@ -604,7 +604,7 @@ func layoutPrefPage()
     g_DetailText!.setPosition({12, 12, Math.max(expInner.width - 24, 40.0), ExpandedDetail - 24})
 }
 
-func onPrefPageEvent(?: *Wnd, evt: IEvent)->bool
+func onPrefPageEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent do
         layoutPrefPage()
@@ -634,7 +634,7 @@ func layoutRootView()
     g_Footer!.setPosition({RootMargin, TabsY + tabsH + 8, width, 24})
 }
 
-func onRootEvent(?: *Wnd, evt: IEvent)->bool
+func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -694,7 +694,7 @@ func onRootEvent(?: *Wnd, evt: IEvent)->bool
 }
 
 // Drives the smoke run through every page and replays what each of them demonstrates.
-func onFrame(?: *Application)
+func onFrame(_: *Application)
 {
     if not Env.isSmokeRun() or not g_Tabs do
         return

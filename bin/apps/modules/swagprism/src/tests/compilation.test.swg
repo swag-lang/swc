@@ -228,7 +228,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     Swag.assert(request.moduleSource().contains("#import(\"core\""))
 
     request.kind   = .Render2D
-    request.source = "func shade(?: f32, ?: f32, ?: f32)->u32 => 0"
+    request.source = "func shade(_: f32, _: f32, _: f32)->u32 => 0"
     Swag.assert(request.needsDependency())
     Swag.assert(request.moduleSource().contains("#import(\"pixel\""))
 

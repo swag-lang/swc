@@ -42,7 +42,7 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     var distFromEnd:   [MaxTrackCells] u32
     var queue:         [MaxTrackCells] u32
 
-    for ?, rowIndex in layout
+    for _, rowIndex in layout
     {
         Swag.assert(lineWidth(layout[rowIndex]) == width)
         let row = cast(const [..] u8, layout[rowIndex])

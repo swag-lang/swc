@@ -464,7 +464,7 @@ internal impl PdfView
     {
         if offset
         {
-            let {c, ?} = Utf8.decodeLastRune(source[0 until offset])
+            let {c, _} = Utf8.decodeLastRune(source[0 until offset])
             if Unicode.isWord(c) do
                 return false
         }
@@ -472,7 +472,7 @@ internal impl PdfView
         let end = offset + length
         if end < source.count
         {
-            let {c, ?} = Utf8.decodeRune(source[end to])
+            let {c, _} = Utf8.decodeRune(source[end to])
             if Unicode.isWord(c) do
                 return false
         }
@@ -978,7 +978,7 @@ internal impl PdfView
 
 impl IWnd for PdfView
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopPrepare()
         .documentText.stop()
@@ -1250,7 +1250,7 @@ impl PdfView
         // resize that has to trigger it is the view's own: the frame reserves the room its bars
         // take before it places the view, and hooking the frame instead would lay the document
         // out against the rectangle it had before that.
-        let view = result.scroll.createView'Wnd(func|target = result|(?, evt)
+        let view = result.scroll.createView'Wnd(func|target = result|(_, evt)
         {
             if evt is ResizeEvent do
                 target.placeDocument()
@@ -1263,7 +1263,7 @@ impl PdfView
         result.canvas.owner    = result
         result.canvas.wndFlags |= .NoScroll
 
-        result.scroll.sigScrollPositionChanged += func|target = result|(?, ?, ?)
+        result.scroll.sigScrollPositionChanged += func|target = result|(_, _, _)
         {
             target.updateCurrentPage()
             target.canvas.invalidate()

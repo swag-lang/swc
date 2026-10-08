@@ -117,16 +117,16 @@ Use 'field: binding' for selection by name.
 /**
 # Ignoring Fields During Positional Destructuring
 
-Use '?' as a placeholder to ignore a field.
+Use '_' as a placeholder to ignore a field.
 */
 
 #test
 {
     let tuple1 = {x: 1.0, y: 2.0}
-    let {x, ?} = tuple1
+    let {x, _} = tuple1
     Swag.assert(x == 1.0)
 
-    let {?, y} = tuple1
+    let {_, y} = tuple1
     Swag.assert(y == 2.0)
 }
 

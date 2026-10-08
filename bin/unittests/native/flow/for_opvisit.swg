@@ -354,7 +354,7 @@ impl GenericScopedVisits
     var count: u64
     var sum    = 0
 
-    for ?, ?, index in values
+    for _, _, index in values
     {
         count += 1
         sum   += cast(s32, index)
@@ -370,7 +370,7 @@ impl GenericScopedVisits
     var code   = 0
     var order: u64
 
-    for value, ?, index in values
+    for value, _, index in values
     {
         #assert(#typeof(value) == s32)
         code  = code * 10 + value

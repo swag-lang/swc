@@ -156,7 +156,7 @@ func applyTheme()
     app.notifyThemeChanged()
 }
 
-func toggleTheme(?: *Button)
+func toggleTheme(_: *Button)
 {
     g_DarkTheme = not g_DarkTheme
     applyTheme()
@@ -219,7 +219,7 @@ func layoutRootView()
     footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(?: *Wnd, evt: IEvent)->bool
+func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {

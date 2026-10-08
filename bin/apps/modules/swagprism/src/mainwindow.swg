@@ -99,7 +99,7 @@ impl MainWindow
                 catch g_App.saveState()
             }
 
-            .sigAboutRequested += func|window = me|(?)
+            .sigAboutRequested += func|window = me|(_)
             {
                 window.showAbout()
             }
@@ -122,7 +122,7 @@ impl MainWindow
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.theme().icon(.Play, 18))
             .setIconSize(18, 18)
-            .sigPressed += func|window = me|(?) { window.compile(force: true) }
+            .sigPressed += func|window = me|(_) { window.compile(force: true) }
         }
 
         with .commandBar.formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
@@ -130,19 +130,19 @@ impl MainWindow
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.icon(.Format))
             .setIconSize(18, 18)
-            .sigPressed += func|window = me|(?) { window.format() }
+            .sigPressed += func|window = me|(_) { window.format() }
         }
 
         with .commandBar.liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
         {
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setState(.Checked)
-            .sigChanged += func|window = me|(?) { window.scheduleCompile() }
+            .sigChanged += func|window = me|(_) { window.scheduleCompile() }
         }
 
         with .commandBar.exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
         {
-            .sigChanged += func|window = me|(?, index) { window.openExample(cast(ExampleKind, index)) }
+            .sigChanged += func|window = me|(_, index) { window.openExample(cast(ExampleKind, index)) }
         }
     }
 
@@ -222,7 +222,7 @@ impl MainWindow
         .panels[0].selectViewer(.Render2D)
         .createLayoutButton()
         .refreshPaneLayout()
-        .editor.sigChanged += func|window = me|(?) { window.scheduleCompile() }
+        .editor.sigChanged += func|window = me|(_) { window.scheduleCompile() }
     }
 
     // Creates one viewer panel in the viewer split and routes its requests to the window.
@@ -230,9 +230,9 @@ impl MainWindow
     {
         with let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
         {
-            .sigChanged          += func|window = me|(?) { window.refreshStatus() }
-            .sigCompileRequested += func|window = me|(?) { window.compile() }
-            .sigOptionsChanged   += func|window = me|(?) { window.scheduleCompile() }
+            .sigChanged          += func|window = me|(_) { window.refreshStatus() }
+            .sigCompileRequested += func|window = me|(_) { window.compile() }
+            .sigOptionsChanged   += func|window = me|(_) { window.scheduleCompile() }
         }
 
         .panels.add(panel)

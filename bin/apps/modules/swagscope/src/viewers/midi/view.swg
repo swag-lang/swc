@@ -239,7 +239,7 @@ impl RollView
 
 impl IWnd for RollView
 {
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .scroll != null do
             .refreshLayout()

@@ -72,7 +72,7 @@ struct RichEditLexerSwag
 
 impl IRichEditLexer for RichEditLexerSwag
 {
-    mtd impl setup(?: *RichEditCtrl)
+    mtd impl setup(_: *RichEditCtrl)
     {
         using RichEditLexerSwag.Style
         .mapStyles[State.LineComment]       = Comment
@@ -259,6 +259,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("opIndexAssign", State.FunctionSpecOp)
 
         .mapWords.add("me", State.Type)
+        .mapWords.add("_", State.Type)
 
         .mapWords.add("any", State.Type)
         .mapWords.add("void", State.Type)

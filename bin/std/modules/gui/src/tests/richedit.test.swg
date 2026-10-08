@@ -85,7 +85,7 @@ using Swag, Core
     dlg.applyLayout()
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, ed, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, ed, checked = &checked|(_)
     {
         if checked[] do
             return
@@ -131,7 +131,7 @@ using Swag, Core
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
     var notified: bool
-    ed.sigScrollPositionChanged += func|&notified|(?, ?, newPosition)
+    ed.sigScrollPositionChanged += func|&notified|(_, _, newPosition)
     {
         notified = newPosition.y > 0
     }
@@ -307,10 +307,10 @@ struct CountingLexer
 
 impl IRichEditLexer for CountingLexer
 {
-    mtd impl setup(?: *RichEditCtrl) {}
-    mtd impl setupTheme(?: *RichEditCtrl) {}
-    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool => false
-    mtd impl compute(?: *RichEditLine?, ?: *RichEditLine, ?: *RichEditLine?) { .lexed += 1 }
+    mtd impl setup(_: *RichEditCtrl) {}
+    mtd impl setupTheme(_: *RichEditCtrl) {}
+    mtd impl insertRune(_: *RichEditCtrl, _: rune)->bool => false
+    mtd impl compute(_: *RichEditLine?, _: *RichEditLine, _: *RichEditLine?) { .lexed += 1 }
 }
 
 // A viewport change must not re-lex the document. Lexing reads the text, not the rectangle it is

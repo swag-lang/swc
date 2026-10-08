@@ -112,7 +112,7 @@ impl IWnd for IconButton
     // [[Gui.IconButton.textPosition]]: a toolbar showing captions widens with a longer
     // translation rather than crowding it. A button hiding its label
     // ([[Gui.IconButtonFlags.IconOnly]]) answers for its icon alone.
-    mtd impl measureContent(?: Math.Point)->Math.Point
+    mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
 
@@ -196,7 +196,7 @@ impl IWnd for IconButton
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .hidePopup()
     }

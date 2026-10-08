@@ -292,7 +292,7 @@ func solve(text: string, gridSize: u32, part1Drops: u32)->Result
 // cstring exercise: format blocking coordinate as "col,row"
 // ---------------------------------------------------------------------------
 
-func formatCoord(col: u32, row: u32, buf: [*] u8, ?: u32)->u32
+func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
 {
     var pos: u32
 

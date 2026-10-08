@@ -129,9 +129,8 @@ families, and the family says what it annotates.
 
 `?` is a type suffix and takes part in conversions. Write it immediately after the
 complete type; `*T?` is a nullable pointer and `*(T?)` is a pointer to a nullable slot.
-In a name position, `?` is something else: a binding left unnamed, such as a parameter
-`?: s32` or a loop position `for ?, v in` (see the chapter on unused values and names).
-The bare `null` token is a value:
+A binding left unnamed is spelled `_`, never `?`, so `_: *T?` reads as one name and one
+type (see the chapter on unused values and names). The bare `null` token is a value:
 */
 
 #test

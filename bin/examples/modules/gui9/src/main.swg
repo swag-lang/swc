@@ -20,7 +20,7 @@ var g_FileState: FileDlgState
 // Modal dialog launchers (run on button click in interactive mode).
 //
 
-func onAbout(?: *Button)
+func onAbout(_: *Button)
 {
     with var params: AboutDlgParams
     {
@@ -34,37 +34,37 @@ func onAbout(?: *Button)
     discard AboutDlg.create(g_Surface!, params).doModal()
 }
 
-func onMsgOk(?: *Button)
+func onMsgOk(_: *Button)
 {
     MessageDlg.ok(g_Surface!, "This is a simple information message.")
 }
 
-func onMsgOkCancel(?: *Button)
+func onMsgOkCancel(_: *Button)
 {
     discard MessageDlg.okCancel(g_Surface!, "Apply the pending changes?")
 }
 
-func onMsgYesNo(?: *Button)
+func onMsgYesNo(_: *Button)
 {
     discard MessageDlg.yesNo(g_Surface!, "Do you enjoy this showcase?")
 }
 
-func onMsgYesNoCancel(?: *Button)
+func onMsgYesNoCancel(_: *Button)
 {
     discard MessageDlg.yesNoCancel(g_Surface!, "Save the document before closing?")
 }
 
-func onMsgConfirm(?: *Button)
+func onMsgConfirm(_: *Button)
 {
     discard MessageDlg.confirm(g_Surface!, "This will reset everything.")
 }
 
-func onMsgError(?: *Button)
+func onMsgError(_: *Button)
 {
     MessageDlg.error(g_Surface!, "Unable to mount the virtual disk.\n\nThe password is incorrect or the container is damaged.")
 }
 
-func onEditSingle(?: *Button)
+func onEditSingle(_: *Button)
 {
     var opt: EditDlgOptions
     opt.title   = "Single line edit"
@@ -73,7 +73,7 @@ func onEditSingle(?: *Button)
     discard EditDlg.createSingleLine(g_Surface!, opt).doModal()
 }
 
-func onEditMulti(?: *Button)
+func onEditMulti(_: *Button)
 {
     var opt: EditDlgOptions
     opt.title   = "Multi line edit"
@@ -82,7 +82,7 @@ func onEditMulti(?: *Button)
     discard EditDlg.createMultiLine(g_Surface!, opt).doModal()
 }
 
-func onForm(?: *Button)
+func onForm(_: *Button)
 {
     var opt: FormDlgOptions
     opt.title = "Profile"
@@ -98,7 +98,7 @@ func onForm(?: *Button)
     discard dlg.doModal()
 }
 
-func onFileOpen(?: *Button)
+func onFileOpen(_: *Button)
 {
     var opt: FileDlgOptions
     opt.mode  = .SelectFile
@@ -108,7 +108,7 @@ func onFileOpen(?: *Button)
     discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
-func onFileSave(?: *Button)
+func onFileSave(_: *Button)
 {
     var opt: FileDlgOptions
     opt.mode  = .CreateFile
@@ -117,7 +117,7 @@ func onFileSave(?: *Button)
     discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
-func onSelectFolder(?: *Button)
+func onSelectFolder(_: *Button)
 {
     var opt: FileDlgOptions
     opt.mode  = .SelectFolder
@@ -201,7 +201,7 @@ func createRootView()
     view.applyLayout()
 }
 
-func onRootEvent(?: *Wnd, evt: IEvent)->bool
+func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is DestroyEvent
     {

@@ -852,7 +852,7 @@ impl PdfParser
         // Resolving reaches back into the object table, which may parse an object and insert
         // it, so the walk works from a snapshot rather than from the table itself.
         var scanned: Array'u32
-        for ?, nodeId in .objects
+        for _, nodeId in .objects
         {
             scanned.add(nodeId)
         }
@@ -910,7 +910,7 @@ impl PdfParser
     mtd scanTrailers()
     {
         var scanned: Array'u32
-        for ?, nodeId in .objects
+        for _, nodeId in .objects
         {
             scanned.add(nodeId)
         }
@@ -982,7 +982,7 @@ impl PdfParser
     //
     // This is what makes opening a document cost its trailer chain rather than its length: an
     // object nothing reaches is never read, and a page that is never displayed is never parsed.
-    mtd objectNode(number: u32, ?: u16)->u32
+    mtd objectNode(number: u32, _: u16)->u32
     {
         let known = .objects.tryFind(number)
         if known do

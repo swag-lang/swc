@@ -546,7 +546,7 @@ impl GlyphCache
     // Releases atlas descriptors and cached kerning data owned by this cache.
     mtd opDrop()
     {
-        for ?, v in .glyphRef do
+        for _, v in .glyphRef do
             Memory.delete(v)
         .glyphRef.free()
         .kernRef.free()

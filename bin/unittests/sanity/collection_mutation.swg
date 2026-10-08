@@ -133,11 +133,8 @@ func collMutAfterIter()
 {
     var v: CollMutVec
     v.add(1)
-    for x in v
-    {
-        var _ = x
-        discard _
-    }
+    for x in v do
+        discard x
     v.add(2)
 }
 

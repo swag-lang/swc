@@ -586,7 +586,7 @@ func __runtimeAllocator()->IAllocator
 
 func __ensureRuntimeAllocator()
 {
-    let _ = __runtimeAllocator()
+    discard __runtimeAllocator()
 }
 
 func __resetRuntimeContext()

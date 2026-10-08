@@ -3,7 +3,6 @@ using Core, Serialization
 
 #test
 {
-    let _ = #typeof(Marker)
-    discard _
+    discard #typeof(Marker)
     Swag.assert(true)
 }

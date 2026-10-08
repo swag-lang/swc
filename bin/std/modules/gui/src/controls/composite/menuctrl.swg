@@ -380,7 +380,7 @@ public impl IWnd for MenuCtrl
             .paintPopup(evt.paintContext.painter)
     }
 
-    mtd impl onTimerEvent(?: *TimerEvent)
+    mtd impl onTimerEvent(_: *TimerEvent)
     {
         .hideSubVisible()
         .removeTimer()

@@ -1,7 +1,7 @@
 #global private
 
-func takes_f32(?: f32) {}
-func takes_f64(?: f64) {}
+func takes_f32(_: f32) {}
+func takes_f64(_: f64) {}
 
 func semaTest001()
 {

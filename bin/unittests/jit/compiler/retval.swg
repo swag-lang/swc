@@ -171,7 +171,7 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
     Swag.assert(first.d == 34)
     Swag.assert(first.e == 35)
 
-    let {a, ?, c, ?, e} = makeBig(40)
+    let {a, _, c, _, e} = makeBig(40)
     Swag.assert(a == 41)
     Swag.assert(c == 43)
     Swag.assert(e == 45)
@@ -184,7 +184,7 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
     Swag.assert(g0 == 0.75)
     Swag.assert(b0 == 1.0)
 
-    let {r1, ?, b1} = makeFloat(1.5)
+    let {r1, _, b1} = makeFloat(1.5)
     Swag.assert(r1 == 1.5)
     Swag.assert(b1 == 2.0)
 }

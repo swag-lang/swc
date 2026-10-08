@@ -24,7 +24,7 @@ func createListsPage(parent: *Wnd)
     virtualList.setSelectionMode(.Single)
     virtualList.setIconSize(16)
     virtualList.setHorizontalExtent(620)
-    virtualList.onFillVirtualLine = func(?, line, idx)
+    virtualList.onFillVirtualLine = func(_, line, idx)
     {
         if line == null do
             return

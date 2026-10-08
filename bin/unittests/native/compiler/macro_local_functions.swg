@@ -34,7 +34,7 @@ func localNestedShadow(seed: s32)->s32
     // 'pick' has its own 'value' parameter: 'value' inside 'aliasBounce'
     // must resolve to that macro's own parameter, not to this local function's
     // same-named parameter at the expansion site.
-    func pick(seed: s32, ?: s32)->s32
+    func pick(seed: s32, _: s32)->s32
     {
         return aliasBounce(seed)
     }

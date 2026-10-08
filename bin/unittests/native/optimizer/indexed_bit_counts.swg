@@ -24,7 +24,7 @@ func narrowTrailing(values: const [*]u8, index: u64)->u8 => Swag.bitCountTz(valu
     let nonzeros  = [0'u64, 1, 1, 1, 8]
     let leadings  = [64'u64, 63, 0, 15, 0]
     let trailings = [64'u64, 0, 63, 48, 0]
-    for ?, index in values
+    for _, index in values
     {
         Swag.assert(nonzero(&values[0], index) == nonzeros[index])
         Swag.assert(leading(&values[0], index) == leadings[index])
@@ -35,7 +35,7 @@ func narrowTrailing(values: const [*]u8, index: u64)->u8 => Swag.bitCountTz(valu
     let narrowNonzeros  = [0'u8, 1, 1, 1, 6]
     let narrowLeadings  = [8'u8, 7, 0, 3, 0]
     let narrowTrailings = [8'u8, 0, 7, 4, 0]
-    for ?, index in narrowValues
+    for _, index in narrowValues
     {
         Swag.assert(narrowNonzero(&narrowValues[0], index) == narrowNonzeros[index])
         Swag.assert(narrowLeading(&narrowValues[0], index) == narrowLeadings[index])

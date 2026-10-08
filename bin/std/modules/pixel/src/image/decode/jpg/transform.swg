@@ -310,7 +310,7 @@ impl Decoder
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = .scanLine0.storage()
         var s   = .safeSampleBuf() + row * 8
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             cast([*] u64, d)[0] = cast(const [*] u64, s)[0]
 
@@ -324,7 +324,7 @@ impl Decoder
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = .scanLine0.storage()
         var s   = .safeSampleBuf() + row * 8
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             storeBgr(d, s, chromaBias8(s + 64, s + 128))
 
@@ -338,7 +338,7 @@ impl Decoder
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = .scanLine0.storage()
         var s   = .safeSampleBuf() + row * 8
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             // The three components already are the blue, green and red planes of the pixels, so
             // only the interleave is left to do.
@@ -368,7 +368,7 @@ impl Decoder
         let inverse   = .hasAdobeMarker and not chromatic
         var d         = .scanLine0.storage()
         var s         = .safeSampleBuf() + row * 8
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             for x in 8
             {
@@ -417,7 +417,7 @@ impl Decoder
             y = .safeSampleBuf() + 64 * 1 + (row & 7) * 8
 
         var c = .safeSampleBuf() + 64 * 2 + (row >> 1) * 8
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             // One chroma row feeds both luma rows of the minimum coded unit.
             let bias = chromaBias8(c, c + 64)
@@ -438,7 +438,7 @@ impl Decoder
         var y   = .safeSampleBuf() + row * 8
         var c   = .safeSampleBuf() + 2 * 64 + row * 8
 
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             // The two luma blocks of the unit are consecutive, and four chroma samples cover each.
             for 2
@@ -468,7 +468,7 @@ impl Decoder
             y = .safeSampleBuf() + 64 * 2 + (row & 7) * 8
 
         var c = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
-        for ? in rangeTo(1, .maxMcusPerRow).reversed()
+        for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
             // Four chroma samples cover eight pixels of two luma rows at once.
             for 2

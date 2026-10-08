@@ -6,7 +6,7 @@ using Swag, Core
 
 var ColorPickerHeadlessChangedCount: u32
 
-func colorPickerHeadlessChanged(?: *ColorPicker)
+func colorPickerHeadlessChanged(_: *ColorPicker)
 {
     ColorPickerHeadlessChangedCount += 1
 }

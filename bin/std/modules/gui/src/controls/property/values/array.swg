@@ -180,7 +180,7 @@ internal impl Properties
         item.arrayAddButton = addBtn
         if not .isGridLike() do
             item.label.wndFlags.remove(.ClipChildren)
-        addBtn.sigPressed += func|prop = me, item|(?) { prop.appendArrayValue(item) }
+        addBtn.sigPressed += func|prop = me, item|(_) { prop.appendArrayValue(item) }
 
         with let editBox = EditBox.create(item.line, "")
         {

@@ -263,7 +263,7 @@ func semaTest003()
 {
     var values = SemaHiddenAliasVisits{}
 
-    for value, ?, index in values
+    for value, _, index in values
     {
         let ordinal = index
         var x       = ordinal
@@ -277,7 +277,7 @@ func semaTest004()
 {
     var values = SemaHiddenAliasVisits{}
 
-    for ?, ?, index in values
+    for _, _, index in values
     {
         #assert(#typeof(index) == u64)
         let ordinal = index

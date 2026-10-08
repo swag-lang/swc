@@ -1155,7 +1155,7 @@ impl IWnd for GridView
         .updateDragSelection(.selectionPoint)
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .refreshLayout()
     }
@@ -1181,7 +1181,7 @@ impl IWnd for GridView
         .stopSelection()
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopSelection()
         .doc.close()
@@ -1429,7 +1429,7 @@ impl GridView
             .style.setFont(.theme().createDefaultFontFs(.fontSize), .Regular)
         }
 
-        scroll.sigScrollPositionChanged += func|view = result|(?, ?, newPosition) { view.adoptScrollPosition(newPosition.y) }
+        scroll.sigScrollPositionChanged += func|view = result|(_, _, newPosition) { view.adoptScrollPosition(newPosition.y) }
 
         result.refreshLayout()
         return result

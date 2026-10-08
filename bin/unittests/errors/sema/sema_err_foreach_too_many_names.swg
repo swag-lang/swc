@@ -33,11 +33,11 @@ impl CustomVisitTooManyNames
 #test
 {
     var arr: [2] s32 = [1, 2]
-    for ?, ?, ? in arr {}     // swc-expected-error {{sema_err_foreach_too_many_names}}
+    for _, _, _ in arr {}     // swc-expected-error {{sema_err_foreach_too_many_names}}
 }
 
 #test
 {
     var values = CustomVisitTooManyNames{}
-    for ?, ?, ? in values {}     // swc-expected-error {{sema_err_too_many_aliases}}
+    for _, _, _ in values {}     // swc-expected-error {{sema_err_too_many_aliases}}
 }

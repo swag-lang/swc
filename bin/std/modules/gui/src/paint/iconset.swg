@@ -97,7 +97,7 @@ impl IconSet
     // in the atlas, which every other set on that document goes on sharing.
     mtd free()
     {
-        for ?, value in .lists
+        for _, value in .lists
         {
             if .renderer != null do
                 value.release(.renderer)

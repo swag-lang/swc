@@ -118,7 +118,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         with let button = PushButton.create(panel, "restart")
         {
             .maxSize    = 100
-            .sigPressed += func(?) { restartPendulum() }
+            .sigPressed += func(_) { restartPendulum() }
         }
 
     case PaintEvent as paintEvt:

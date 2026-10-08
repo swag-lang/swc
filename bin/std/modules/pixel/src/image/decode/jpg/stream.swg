@@ -204,7 +204,7 @@ impl Decoder
         return Marker.M_ERROR
     }
 
-    mtd readVariableMarker(?: Marker) fail
+    mtd readVariableMarker(_: Marker) fail
     {
         var left = .getBits1(16)
         if left < 2 do

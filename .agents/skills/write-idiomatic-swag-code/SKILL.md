@@ -369,6 +369,12 @@ let renderer: IRenderer = &cpu
   repeat the same release on each exit path, and never park it at the bottom of the function.
 - Roll a multi-step mutation back with a single `defer` guarded by a success flag set last. One
   guarded block per operation; do not scatter partial rollbacks through the body.
+- In a `fail` function, put what only a failure must undo in `defer #fail`, right after the
+  change it undoes: a window hidden for a screen grab is shown again, a half-written file is
+  removed. It replaces the success flag when the success path needs no rollback at all.
+- The command that starts a user action reports its failure (`catch ... as err`, then a message
+  naming what failed). A bare `catch action()` makes a failed save, load, or capture look like
+  nothing happened.
 - Call the operation directly when its result is part of the logic — a commit whose failure must
   propagate, a close whose error the caller reports. `defer` swallows that.
 
@@ -519,6 +525,10 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   condition reads naturally as a property of the visited element. Merge consecutive guards that
   skip the same element into one condition, and hoist values that do not depend on the element
   above the loop.
+- When the arms of an event handler's `switch evt.kind` grow past a few lines, keep the handler as
+  a one-line-per-kind dispatch and give each phase its own method (`press`, `release`, `drag`),
+  each returning whether it handled the event. A table indexed by the same handle replaces a
+  `switch` that maps handle numbers to cursors or edges.
 - Write a key-shortcut handler as `switch evt.key` with `where` guards on the modifier state, one
   statement per arm, so the formatter lays the shortcuts out as a table. Name the modifier
   combinations once as locals (`control`, `controlShift`) before the switch.
@@ -535,10 +545,12 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Use expression-bodied functions when the whole declaration reads easily, not merely when it
   contains one expression. Keep blocks when reasoning, ownership, or failure deserves more space.
 - Every local, parameter, and capture is used, or the compiler rejects it. A parameter the body
-  ignores is spelled `?` (`func(?, index)`, `mtd impl onPaint(?: *PaintEvent) {}`); a loop that
+  ignores is spelled `_` (`func(_, index)`, `mtd impl onPaint(_: *PaintEvent) {}`); a loop that
   does not read its index has no name (`for 3`, `parallel for |c| 8`), and an unread position is
-  `?` (`for ?, v in`, `#code(?, b)`, `let {?, b} =`). Remove an unused local; keep a needed
-  initializer as `discard init`. There is no `_name` convention.
+  `_` (`for _, v in`, `#code(_, b)`, `let {_, b} =`). `_` is not a name: it can repeat in one
+  declaration and cannot be read. `?` only ever marks a nullable type. Remove an unused local;
+  keep a needed initializer as `discard init`. There is no `_name` convention: `_x` is an
+  ordinary name that must be used.
 - Keep a name with `discard name` only when the name itself must stay: a public parameter the
   documentation cites or callers pass by name, a parameter reflection or a generator reads, or a
   value used only in a `#static if` branch. One `discard a, b` lists them all; a list holds

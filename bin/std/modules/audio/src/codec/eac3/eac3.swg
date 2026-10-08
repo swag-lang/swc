@@ -681,7 +681,7 @@ impl IPacketCodec for Eac3Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Eac3
 
-    mtd impl initialize(?: const [..] u8, sampleRateHz, channels: u32) fail
+    mtd impl initialize(_: const [..] u8, sampleRateHz, channels: u32) fail
     {
         if not sampleRateHz or not channels or channels > MaxChannels do
             fail BadParameterError{"E-AC-3 audio needs one to six channels and a non-zero sample rate"}

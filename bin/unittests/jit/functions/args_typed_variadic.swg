@@ -23,7 +23,7 @@ alias TypedVariadicAlias = s32
 
 #test
 {
-    func variadicTyped(?: s32...)->s32 { return 78 }
+    func variadicTyped(_: s32...)->s32 { return 78 }
     const V0 = #run variadicTyped()
     const V1 = #run variadicTyped(1, 2, 3, 4)
     #assert(V0 == 78)
@@ -32,7 +32,7 @@ alias TypedVariadicAlias = s32
 
 #test
 {
-    func variadicTypedWithHead(a: s32, ?: s32...)->s32 { return a }
+    func variadicTypedWithHead(a: s32, _: s32...)->s32 { return a }
     const V0 = #run variadicTypedWithHead(79)
     const V1 = #run variadicTypedWithHead(79, 10, 20, 30)
     #assert(V0 == 79)
@@ -140,7 +140,7 @@ alias TypedVariadicAlias = s32
 
 #test
 {
-    func variadicTypedWithHead(?: rune, values: rune...)->u64 { return values.count }
+    func variadicTypedWithHead(_: rune, values: rune...)->u64 { return values.count }
     const V0 = #run variadicTypedWithHead('a', 'b', 'c')
     #assert(V0 == 2)
 }

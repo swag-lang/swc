@@ -35,9 +35,9 @@ impl Swag.IAllocator for RequestRecorder
         request.address = null
     }
 
-    mtd impl realloc(?: *Swag.AllocatorRequest) {}
-    mtd impl freeAll(?: *Swag.AllocatorRequest) {}
-    mtd impl assertAllocated(?: *Swag.AllocatorRequest) {}
+    mtd impl realloc(_: *Swag.AllocatorRequest) {}
+    mtd impl freeAll(_: *Swag.AllocatorRequest) {}
+    mtd impl assertAllocated(_: *Swag.AllocatorRequest) {}
 }
 
 // Allocation wrappers must keep the request and allocator selection intact

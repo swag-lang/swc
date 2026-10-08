@@ -58,7 +58,7 @@ private func reportEmbeddedChromeChanged(view: *Wnd)
     }
 }
 
-private func reportEmbeddedLoadingChanged(?: *Wnd) {}
+private func reportEmbeddedLoadingChanged(_: *Wnd) {}
 
 // Returns the services a viewer embedded in a document reaches its host through.
 private func embeddedHostServices()->Viewer.HostServices
@@ -287,7 +287,7 @@ private impl EmbeddedViewer
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|embedded = result|(?, index)
+            .sigChanged += func|embedded = result|(_, index)
             {
                 if index != Swag.U32.Max do
                     discard embedded.activate(index)

@@ -125,7 +125,7 @@ using Core, Gui, Pixel
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
-    viewer.compileSource("func shade(?: f32, ?: f32, ?: f32)->u32 { for {} }")
+    viewer.compileSource("func shade(_: f32, _: f32, _: f32)->u32 { for {} }")
     var watch: Time.Stopwatch
     watch.start()
     while not Atomic.get(&viewer.probe.ready) and not viewer.probe.task.isDone() and watch.elapsedMilliseconds() < 90000 do
@@ -144,7 +144,7 @@ using Core, Gui, Pixel
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
-    viewer.compileSource("using Gui\nfunc shade(?: f32, ?: f32, ?: f32)->u32 => 0")
+    viewer.compileSource("using Gui\nfunc shade(_: f32, _: f32, _: f32)->u32 => 0")
     var watch: Time.Stopwatch
     watch.start()
     while viewer.running and watch.elapsedMilliseconds() < 90000

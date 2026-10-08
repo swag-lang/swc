@@ -12,32 +12,32 @@ var AnimationTestColor:     Math.Vector4
 var AnimationTestResult:    AnimationResult
 var AnimationTestCompleted: u32
 
-func animationSetF32(?: *Wnd, value: f32)
+func animationSetF32(_: *Wnd, value: f32)
 {
     AnimationTestF32 = value
 }
 
-func animationSetF32B(?: *Wnd, value: f32)
+func animationSetF32B(_: *Wnd, value: f32)
 {
     AnimationTestF32B = value
 }
 
-func animationSetPoint(?: *Wnd, value: Math.Point)
+func animationSetPoint(_: *Wnd, value: Math.Point)
 {
     AnimationTestPoint = value
 }
 
-func animationSetVector(?: *Wnd, value: Math.Vector4)
+func animationSetVector(_: *Wnd, value: Math.Vector4)
 {
     AnimationTestVector = value
 }
 
-func animationSetRectangle(?: *Wnd, value: Math.Rectangle)
+func animationSetRectangle(_: *Wnd, value: Math.Rectangle)
 {
     AnimationTestRectangle = value
 }
 
-func animationSetColor(?: *Wnd, value: Color)
+func animationSetColor(_: *Wnd, value: Color)
 {
     AnimationTestColor = value.toVector4()
 }

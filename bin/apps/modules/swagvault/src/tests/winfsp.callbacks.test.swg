@@ -9,7 +9,7 @@ struct DirectoryCapture
     limit: u64     // Zero accepts every entry; a non-zero value models a full WinFsp buffer.
 }
 
-func captureDirectoryEntry(context: *void?, name: const [*] u8?, ?: const *WinFsp.FileInfo)->u8
+func captureDirectoryEntry(context: *void?, name: const [*] u8?, _: const *WinFsp.FileInfo)->u8
 {
     let capture = cast(*DirectoryCapture, context!)
     if capture.limit and capture.names.count >= capture.limit do
@@ -96,7 +96,7 @@ func statusForError(kind: ErrorKind)->s32
     Swag.assert(callbackStatus == WinFsp.StatusObjectNameNotFound)
 
     var source: [5000] u8
-    for ?, i in source do
+    for _, i in source do
         source[i] = cast(u8, ((i * 13 + 5) & 0xFF))
     var transferred: u32
     callbackStatus = WinFsp.callbackWrite(context, fileId, &source[0], 0, #sizeof(source), 0, 0, &transferred, &info)

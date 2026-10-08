@@ -16,12 +16,15 @@ let  mtd  namespace  private  public  readonly  struct  tls  union  using  var  
 
 'me' names the receiver inside methods.
 
+'_' is the unnamed binding: it holds the position of a parameter, a loop value, a destructured
+field, or a '#code' binder that the code does not use, and nothing can refer to it.
+
 # Control Flow and Expressions
 
 ```swag
 and  as  break  case  continue  default  defer  do  elif  else
 fallthrough  for  if  in  is  me  not  or  orelse  parallel  return
-switch  to  unreachable  until  where  while
+switch  to  unreachable  until  where  while  _
 ```
 
 # Values, Errors, and Conversion

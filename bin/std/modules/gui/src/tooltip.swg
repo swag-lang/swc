@@ -220,7 +220,7 @@ impl State
 
         // The label reports the link; the tip reports which annotation it came from, because the
         // owner is what a handler can act on and the label is gone a moment later.
-        label.sigLinkActivated += func|state = me, owner|(?, link)
+        label.sigLinkActivated += func|state = me, owner|(_, link)
         {
             state.sigLinkActivated.call(owner, link)
         }

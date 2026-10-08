@@ -4,7 +4,7 @@
 using Win32
 
 #[Swag.CallingConvention(.C)]
-private func timerEntryNative(param: *void?, ?: BOOL)
+private func timerEntryNative(param: *void?, _: BOOL)
 {
     timerEntry(param)
 }

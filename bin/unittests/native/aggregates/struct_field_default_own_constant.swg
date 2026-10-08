@@ -43,7 +43,7 @@ impl OwnConstantKeys
 
 impl OwnConstantKeys
 {
-    mtd isDown(key: u32, ?: bool)->bool => .pressed == key
+    mtd isDown(key: u32, _: bool)->bool => .pressed == key
 }
 
 func ownConstantKeyDown()->bool => OwnConstantKeys.isDown(1)

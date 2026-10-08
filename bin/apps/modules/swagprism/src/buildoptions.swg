@@ -38,7 +38,7 @@ impl BuildOptions
             .dockStyle = .Right
             .margin    = {8, 0, 0, 0}
             .setIconSize(18, 18)
-            .sigPressed += func|options = result|(?) { options.reset() }
+            .sigPressed += func|options = result|(_) { options.reset() }
         }
 
         // The entries follow the order of `Pipeline.BuildPreset`, and name the compiler's build
@@ -49,7 +49,7 @@ impl BuildOptions
             .addItem("release")
             .addItem("devmode")
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|options = result|(?, ?) { options.sigChanged.call(options) }
+            .sigChanged += func|options = result|(_, _) { options.sigChanged.call(options) }
         }
 
         with result.editor = RichEditCtrl.create(result)
@@ -57,7 +57,7 @@ impl BuildOptions
             .dockStyle = .Center
             .setLexer(&result.lexer)
             .setText(Pipeline.BuildSettings.DefaultConfiguration)
-            .sigChanged += func|options = result|(?) { options.sigChanged.call(options) }
+            .sigChanged += func|options = result|(_) { options.sigChanged.call(options) }
         }
 
         result.retranslate()

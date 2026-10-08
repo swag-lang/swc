@@ -294,7 +294,7 @@ func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32
 {
     var result: retval
 
-    let {intersects, firstFactor, ?} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
+    let {intersects, firstFactor, _} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
     if not intersects do
         return result
 

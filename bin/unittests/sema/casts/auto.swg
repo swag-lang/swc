@@ -4,10 +4,10 @@ const A: s32  = 1
 const B: bool = cast(A)
 #assert(B == true)
 
-func toto(?: *u32) {}
-func takes_s32(?: s32) {}
-func takes_u64(?: u64) {}
-func takes_f64(?: f64) {}
+func toto(_: *u32) {}
+func takes_s32(_: s32) {}
+func takes_u64(_: u64) {}
+func takes_f64(_: f64) {}
 
 func semaTest001()
 {
@@ -129,7 +129,7 @@ func semaTest014()
 
 #[Swag.Inline]
 func ret_u64_short() => cast(u64, 42)
-func a_takes_s32(?: s32) {}
+func a_takes_s32(_: s32) {}
 
 func semaTest015()
 {

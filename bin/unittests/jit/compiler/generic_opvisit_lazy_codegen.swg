@@ -103,7 +103,7 @@ namespace GenericForeachLazyCodegen
         mtd reverseIndexCode()->u64
         {
             var code = 0'u64
-            for ?, index in (.values.toSlice()).reversed() do
+            for _, index in (.values.toSlice()).reversed() do
                 code = code * 10 + index + 1
             return code
         }

@@ -77,7 +77,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     {
         const TokenRef itemRef = ref();
         parseDestructuringFieldName(fieldNames, hasNamed, hasPositional);
-        if (consumeIf(TokenId::SymQuestion).isValid())
+        if (consumeIf(TokenId::KwdUnnamed).isValid())
             tokNames.push_back(TokenRef::invalid());
         else
         {
@@ -139,9 +139,9 @@ AstNodeRef Parser::parseVarDecl()
         SmallVector<TokenRef> tokNames;
         while (true)
         {
-            // A parameter named '?' is one the body leaves unnamed.
+            // A parameter named '_' is one the body leaves unnamed.
             TokenRef tokName = TokenRef::invalid();
-            if (Token::isCompilerUniq(id()) || (hasContextFlag(ParserContextFlagsE::InFunctionParam) && is(TokenId::SymQuestion)))
+            if (Token::isCompilerUniq(id()) || (hasContextFlag(ParserContextFlagsE::InFunctionParam) && is(TokenId::KwdUnnamed)))
                 tokName = consume();
             else
                 tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);

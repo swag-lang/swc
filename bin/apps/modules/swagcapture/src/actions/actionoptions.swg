@@ -77,7 +77,7 @@ impl IActionUI for ActionOptions
 
         fillOptions(opt, main)
 
-        opt.properties.sigValueChanged += func|main, opt|(?, item)
+        opt.properties.sigValueChanged += func|main, opt|(_, item)
         {
             var fieldName: string = ""
             if item do

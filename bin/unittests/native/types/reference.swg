@@ -171,7 +171,7 @@ func writeVecRef(target: *Vec2, value: Vec2)
 struct A {}
 var gRefTitiCalls: s32
 var gRefTataCalls: s32
-func titi(?: *A) { gRefTitiCalls += 1 }
+func titi(_: *A) { gRefTitiCalls += 1 }
 #test
 {
     var a: A
@@ -180,7 +180,7 @@ func titi(?: *A) { gRefTitiCalls += 1 }
     Swag.assert(gRefTitiCalls == 1)
 }
 
-func tata(?: A) { gRefTataCalls += 1 }
+func tata(_: A) { gRefTataCalls += 1 }
 #test
 {
     var a: A

@@ -1166,6 +1166,12 @@ AstNodeRef Parser::parsePrefixExpr()
             return parsePrefixExpr();
         }
 
+        case TokenId::KwdUnnamed:
+            // '_' declares a position without a name, so there is nothing to read back.
+            raiseError(DiagnosticId::parser_err_unnamed_read, ref());
+            consume();
+            return AstNodeRef::invalid();
+
         case TokenId::SymBang:
             // In prefix position '!' is the C spelling of a logical negation, and Swag
             // writes that 'not', beside 'and' and 'or'. Keeping it out of the unary set is

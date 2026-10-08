@@ -350,32 +350,32 @@ impl ColorPickerCtrl
                 v.sigColorChanged.call(v)
             }
 
-            .radioH.sigChanged += func|v|(?)
+            .radioH.sigChanged += func|v|(_)
             {
                 v.setMode(.SaturationLightness)
             }
 
-            .radioS.sigChanged += func|v|(?)
+            .radioS.sigChanged += func|v|(_)
             {
                 v.setMode(.HueLightness)
             }
 
-            .radioL.sigChanged += func|v|(?)
+            .radioL.sigChanged += func|v|(_)
             {
                 v.setMode(.HueSaturation)
             }
 
-            .radioR.sigChanged += func|v|(?)
+            .radioR.sigChanged += func|v|(_)
             {
                 v.setMode(.GreenBlue)
             }
 
-            .radioG.sigChanged += func|v|(?)
+            .radioG.sigChanged += func|v|(_)
             {
                 v.setMode(.RedBlue)
             }
 
-            .radioB.sigChanged += func|v|(?)
+            .radioB.sigChanged += func|v|(_)
             {
                 v.setMode(.RedGreen)
             }

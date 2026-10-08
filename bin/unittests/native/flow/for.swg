@@ -92,7 +92,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    for ? in (5).reversed()
+    for _ in (5).reversed()
     {
         var x = 0
         discard x

@@ -13,7 +13,7 @@ struct PlacementObservation
 }
 
 #[Swag.CallingConvention(.C)]
-func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, ?: UINT_PTR, data: DWORD_PTR)->LRESULT
+func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: UINT_PTR, data: DWORD_PTR)->LRESULT
 {
     let observation = cast(*PlacementObservation, data)
     if msg == WM_WINDOWPOSCHANGING

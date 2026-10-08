@@ -226,7 +226,7 @@ struct Properties
 // properties.paint, the notify dispatch below refreshes via refreshItem).
 impl IWnd for Properties
 {
-    mtd impl onPaint(?: *PaintEvent)
+    mtd impl onPaint(_: *PaintEvent)
     {
         let colorBar = .cursorSet ? .themeColors().splitView_BarHot : .themeColors().prop_GridColumn
         .aniBar.apply(me, colorBar)
@@ -235,7 +235,7 @@ impl IWnd for Properties
     // Free the default-constructed instances backing the "reset to default" feature. They are
     // heap-allocated per added struct (assignDefaults), so their drop+free is not covered by the
     // struct's automatic field drop.
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .freeDefaultRoots()
     }
@@ -245,7 +245,7 @@ impl IWnd for Properties
     // like InfoBar reapplies colors on ThemeChanged) — otherwise a bar built under one theme
     // keeps stale colors under the next (e.g. dark-theme light text nearly invisible on the light
     // pastel background).
-    mtd impl onThemeEvent(?: *ThemeEvent)
+    mtd impl onThemeEvent(_: *ThemeEvent)
     {
         for itIt in .items
         {
@@ -889,7 +889,7 @@ impl Properties
             {
                 scan.line.show()
 
-                {?, mustEnable} = .itemState(scan)
+                {_, mustEnable} = .itemState(scan)
                 scan.line.enable(mustEnable)
 
                 scan = scan.parent

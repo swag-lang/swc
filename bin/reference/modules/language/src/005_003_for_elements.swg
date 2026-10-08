@@ -22,9 +22,9 @@ providing a streamlined and efficient way to process each item.
 
 /**
 # Naming Only the Index
-Use `?` for the discarded element and put the index in the second binding:
-`for ?, index in collection`. A counted loop has no element binding, so it simply uses
-`for index in 3`. `?` stands for a **position**, not for the first one: it discards
+Use `_` for the discarded element and put the index in the second binding:
+`for _, index in collection`. A counted loop has no element binding, so it simply uses
+`for index in 3`. `_` stands for a **position**, not for the first one: it discards
 whichever value sits there, and every position after it keeps its place.
 */
 
@@ -32,7 +32,7 @@ whichever value sits there, and every position after it keeps its place.
 {
     var sum = 0'u64
 
-    for ?, index in "ABC"
+    for _, index in "ABC"
     {
         #assert(#typeof(index) == u64)
         sum += index

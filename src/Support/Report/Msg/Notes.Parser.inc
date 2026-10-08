@@ -14,3 +14,7 @@ SWC_DIAG_DEF(parser_note_switch_body_ends_here)
 
 SWC_DIAG_DEF(parser_help_empty_array_dim)
 SWC_DIAG_DEF(parser_help_gen_param_type)
+SWC_DIAG_DEF(parser_note_unnamed_not_a_name)
+SWC_DIAG_DEF(parser_help_unnamed_not_a_name)
+SWC_DIAG_DEF(parser_note_question_not_a_binding)
+SWC_DIAG_DEF(parser_help_question_not_a_binding)

@@ -50,7 +50,7 @@ func day8A()
 
         var maxLeft: u8
 
-        for ?, col in l.bytes()
+        for _, col in l.bytes()
         {
             if col == 0 or col == l.length - 1 do
                 continue

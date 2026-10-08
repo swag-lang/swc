@@ -645,7 +645,7 @@ impl Slice
     }
 
     // Combines the two list predictions of one bidirectional job.
-    mtd combineBi(?: *Mb, job: *McJob, src0, src1: [*] u8, dst: [*] u8, dstStride: u64, width, height: s32, luma: bool, plane: u32)
+    mtd combineBi(_: *Mb, job: *McJob, src0, src1: [*] u8, dst: [*] u8, dstStride: u64, width, height: s32, luma: bool, plane: u32)
     {
         if .useWeights
         {

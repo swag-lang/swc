@@ -2,6 +2,17 @@
 
 using Core, Gui, Pixel
 
+// The terminal codes the parser reads: the escape that opens a control sequence, and the SGR
+// parameters that reset the color or set a 24-bit foreground, `38;2;r;g;b`.
+private
+{
+    const Escape               = 0x1B'u8
+    const SgrReset             = 0'u32
+    const SgrForeground        = 38'u32
+    const SgrDefaultForeground = 39'u32
+    const SgrRgb               = 2'u32
+}
+
 // Keeps the compiler's RGB text runs separate from terminal control sequences.
 struct CompilerOutput
 {
@@ -39,13 +50,13 @@ impl CompilerOutput
         .runs.clear()
         .colors.clear()
 
-        let bytes = cast(const [..] u8, source)
+        let bytes: const [..] u8 = source
         var index = 0'u64
         var style: RichEditStyleRef
         while index < bytes.count
         {
             let start = index
-            while index < bytes.count and bytes[index] != 27 do
+            while index < bytes.count and bytes[index] != Escape do
                 index += 1
             if index > start
             {
@@ -98,13 +109,12 @@ impl CompilerOutput
             var param = 0'u64
             while param < params.count
             {
-                let code = params[param]
-                if code == 0 or code == 39
+                switch params[param]
                 {
+                case SgrReset, SgrDefaultForeground:
                     style = 0
-                }
-                elif code == 38 and param + 4 < params.count and params[param + 1] == 2
-                {
+
+                case SgrForeground where param + 4 < params.count and params[param + 1] == SgrRgb:
                     if params[param + 2] <= 255 and params[param + 3] <= 255 and params[param + 4] <= 255 do
                         style = .colorStyle(Color.fromRgb(cast(u8, params[param + 2]), cast(u8, params[param + 3]), cast(u8, params[param + 4])))
                     param += 4
@@ -140,12 +150,12 @@ impl CompilerOutput
 
 impl IRichEditLexer for CompilerOutput
 {
-    mtd impl setup(?: *RichEditCtrl) {}
+    mtd impl setup(_: *RichEditCtrl) {}
 
     mtd impl setupTheme(ed: *RichEditCtrl) { .applyColors(ed) }
 
-    mtd impl insertRune(?: *RichEditCtrl, ?: rune)->bool => false
+    mtd impl insertRune(_: *RichEditCtrl, _: rune)->bool => false
 
     // Styles were supplied with the text and survive subsequent layout passes.
-    mtd impl compute(?: *RichEditLine?, ?: *RichEditLine, ?: *RichEditLine?) {}
+    mtd impl compute(_: *RichEditLine?, _: *RichEditLine, _: *RichEditLine?) {}
 }

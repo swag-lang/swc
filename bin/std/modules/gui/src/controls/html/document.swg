@@ -673,7 +673,7 @@ impl HtmlDocument
     mtd const childCount(node: u32)->u64
     {
         var result = 0'u64
-        for ? in .children(node) do
+        for _ in .children(node) do
             result += 1
         return result
     }

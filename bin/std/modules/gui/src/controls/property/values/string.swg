@@ -97,7 +97,7 @@ internal impl Properties
             combon.addItem(fnt.name)
 
         .refreshFontName(item)
-        combon.sigChanged += func|prop = me, item|(?, ?) { prop.validateFontName(item) }
+        combon.sigChanged += func|prop = me, item|(_, _) { prop.validateFontName(item) }
     }
 
     mtd constructDynamicString(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
@@ -143,7 +143,7 @@ internal impl Properties
             if Reflection.hasAttribute(value, Properties.FilePath) do
                 .updateFlags(.AcceptFileDrop)
 
-            .sigCommitted += func|prop = me, item|(?) { prop.validateDynamicString(item); }
+            .sigCommitted += func|prop = me, item|(_) { prop.validateDynamicString(item); }
         }
 
         me.adaptCondensedControl(edit)
@@ -157,7 +157,7 @@ internal impl Properties
             with let btn = IconButton.create(edit, .theme().icon(.More, 20), {0, 0, 20, 20})
             {
                 .dockStyle  = .Right
-                .sigPressed += func|prop = me, item, ed = edit|(?)
+                .sigPressed += func|prop = me, item, ed = edit|(_)
                 {
                     var editOptions: EditDlgOptions
                     editOptions.text = ed.text()

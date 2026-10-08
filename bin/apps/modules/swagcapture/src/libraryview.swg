@@ -332,6 +332,52 @@ impl IWnd for LibraryView
         }
     }
 
+    // Releases the thumbnail texture of `it`. SCC items retain their compressed PNG, not a decoded
+    // image plus a texture for every file in the library, so only those can give it back.
+    mtd releaseThumbnail(it: *LibraryItem, renderer: IRenderer)
+    {
+        .mutexLoaded.lock()
+        let capture = it.capture
+        .mutexLoaded.unlock()
+        if capture and not capture.previewBytes.isEmpty() do
+            renderer.removeTexture(&it.texture)
+    }
+
+    // Uploads the thumbnail of a visible capture, then releases the transient pixels. A preview
+    // that is already pixels only needs the upload; retained PNG bytes need the decoder first,
+    // which `decodeBudget` rations per frame. Returns false when the budget left it undecoded.
+    mtd uploadThumbnail(it: *LibraryItem, capture: *Capture, renderer: IRenderer, decodeBudget: *s32)->bool
+    {
+        var decoded = true
+        if not capture.preview.isValid() and not capture.previewBytes.isEmpty()
+        {
+            if decodeBudget[] == 0
+            {
+                decoded = false
+            }
+            else
+            {
+                decodeBudget[] -= 1
+                catch capture.materializePreview()
+
+                // Bytes this build cannot turn into a picture. Drop them, so the cell settles on
+                // the preview-less icon instead of paying the decoder again on every frame the
+                // capture stays on screen.
+                if not capture.preview.isValid() do
+                    capture.previewBytes.clear()
+            }
+        }
+
+        if capture.preview.isValid()
+        {
+            it.texture = renderer.addImage(capture.preview)
+            if not capture.previewBytes.isEmpty() do
+                capture.preview = {}
+        }
+
+        return decoded
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
         if not g_UpdatingLib do
@@ -381,20 +427,11 @@ impl IWnd for LibraryView
 
             if not it.visible
             {
-                // SCC items retain their compressed PNG, not a decoded image plus a texture for
-                // every file in the library, so a thumbnail that scrolled away is released. It
-                // is released a band later than it leaves the view, because a scroll that
-                // crosses the edge and comes back would otherwise decode the same PNG again on
-                // the very next frame.
-                if it.texture.isValid() and (it.rect.bottom() < keepTop or it.rect.y > keepBottom)
-                {
-                    .mutexLoaded.lock()
-                    let capture = it.capture
-                    .mutexLoaded.unlock()
-                    if capture and not capture.previewBytes.isEmpty() do
-                        evt.paintContext.renderer.removeTexture(&it.texture)
-                }
-
+                // A thumbnail is released a band later than it leaves the view, because a scroll
+                // that crosses the edge and comes back would otherwise decode the same PNG again
+                // on the very next frame.
+                if it.texture.isValid() and (it.rect.bottom() < keepTop or it.rect.y > keepBottom) do
+                    .releaseThumbnail(it, evt.paintContext.renderer)
                 continue
             }
 
@@ -405,36 +442,10 @@ impl IWnd for LibraryView
             let itemLoaded = it.loaded
             .mutexLoaded.unlock()
 
-            // Materialize only what is visible, upload it, then release the transient pixels.
             if capture and not it.texture.isValid()
             {
-                // A preview that is already pixels only needs the upload. Retained PNG bytes
-                // need the decoder first, and that is the part this frame rations.
-                if not capture.preview.isValid() and not capture.previewBytes.isEmpty()
-                {
-                    if decodeBudget == 0
-                    {
-                        decodesRemain = true
-                    }
-                    else
-                    {
-                        decodeBudget -= 1
-                        catch capture.materializePreview()
-
-                        // Bytes this build cannot turn into a picture. Drop them, so the cell
-                        // settles on the preview-less icon instead of paying the decoder again
-                        // on every frame the capture stays on screen.
-                        if not capture.preview.isValid() do
-                            capture.previewBytes.clear()
-                    }
-                }
-
-                if capture.preview.isValid()
-                {
-                    it.texture = evt.paintContext.renderer.addImage(capture.preview)
-                    if not capture.previewBytes.isEmpty() do
-                        capture.preview = {}
-                }
+                if not .uploadThumbnail(it, capture, evt.paintContext.renderer, &decodeBudget) do
+                    decodesRemain = true
             }
             elif it.kind == .Image and not it.texture.isValid() and image.isValid()
             {
@@ -495,8 +506,15 @@ impl LibraryView
         }
 
         g_UpdatingLib = true
-        if .imgSpin != null do
-            .imgSpin.show()
+        .imgSpin.show()
+
+        // Without its thread nothing loads, so the library stops announcing a load.
+        defer #fail
+        {
+            g_UpdatingLib = false
+            .imgSpin.hide()
+        }
+
         try .thread.init(func|view = me|(th: Thread) { view.loadFiles(th) })
         try .thread.start()
     }
@@ -529,7 +547,7 @@ impl LibraryView
 
     mtd const numImagesPerLine()->u32
     {
-        let {w, ?} = .getPreviewSize()
+        let {w, _} = .getPreviewSize()
         return cast(u32, (.paddedClientRect().width / (w + ItemMargin)))
     }
 

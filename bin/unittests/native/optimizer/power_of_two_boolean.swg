@@ -14,7 +14,7 @@ func direct(value: u32)->bool => value != 0 and (value & (value - 1)) == 0
 {
     let values   = [0'u64, 1, 2, 3, 4, 6, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     let expected = [0'u64, 1, 1, 0, 1, 0, 1, 0]
-    for ?, index in values do
+    for _, index in values do
         Swag.assert(indexed(&values[0], index) == expected[index])
 
     let directValues   = [0'u32, 1, 2, 3, 4, 6, 0x80000000, 0xFFFFFFFF]

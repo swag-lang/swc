@@ -337,7 +337,7 @@ impl Panel
     private mtd createZoomControl(info: *Wnd)
     {
         .zoomLabel = Viewer.createZoomButton(info, "scope.code.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
+        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 
     // Colors the editor with the Swag lexer for Swag sources, and with the generic lexer configured
@@ -363,12 +363,12 @@ impl Panel
     // keeps painting and resizing from reloading text.
     private mtd hookEvents()
     {
-        .editor.sigScrollPositionChanged += func|view = me|(?, oldPosition, newPosition)
+        .editor.sigScrollPositionChanged += func|view = me|(_, oldPosition, newPosition)
         {
             view.followScroll(oldPosition, newPosition)
         }
 
-        .hookOnChildEvent = func|view = me|(?, evt)
+        .hookOnChildEvent = func|view = me|(_, evt)
         {
             switch evt
             {
@@ -412,7 +412,7 @@ impl Panel
             }
         }
 
-        .hookOnEvent = func|view = me|(?, evt)
+        .hookOnEvent = func|view = me|(_, evt)
         {
             if evt is ResizeEvent
             {
@@ -451,7 +451,7 @@ impl Panel
 
 impl IWnd for Panel
 {
-    mtd impl onPaint(?: *PaintEvent)
+    mtd impl onPaint(_: *PaintEvent)
     {
         if .pendingSeek do
             discard .revealOffset(.pendingSeekOffset, "")
@@ -464,7 +464,7 @@ impl IWnd for Panel
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopLoading()
     }
@@ -510,7 +510,7 @@ func createViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
-        .matchBounds = func|view|(?, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
+        .matchBounds = func|view|(_, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
         .clear       = func|view|() => Viewer.clearRichEditMatch(view.editor)
     }
 

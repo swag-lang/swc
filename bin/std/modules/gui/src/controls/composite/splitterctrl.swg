@@ -118,7 +118,7 @@ impl IWnd for SplitterCtrl
             .cursor.clear()
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .computeLayout()
 

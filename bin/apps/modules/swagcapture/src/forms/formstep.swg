@@ -54,7 +54,7 @@ impl IForm for FormStep
         dstf.hs        = srcf.hs
     }
 
-    mtd impl edit(?: *MouseEvent, movingStart: Math.Point, ?: Math.Point, zoom: f32)->bool
+    mtd impl edit(_: *MouseEvent, movingStart: Math.Point, _: Math.Point, zoom: f32)->bool
     {
         var xa = cast(s32, movingStart.x / zoom)
         var ya = cast(s32, movingStart.y / zoom)
@@ -87,7 +87,7 @@ impl IForm for FormStep
         .y += newPosY
     }
 
-    mtd impl movePoint(?: u32, ?, ?: s32) {}
+    mtd impl movePoint(_: u32, _, _: s32) {}
 
     mtd impl boundRect()->Math.Rectangle => .rectFormBound()
 
@@ -102,7 +102,7 @@ impl IForm for FormStep
         }
     }
 
-    mtd impl isInside(?: Math.Point)->bool         => false
+    mtd impl isInside(_: Math.Point)->bool         => false
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

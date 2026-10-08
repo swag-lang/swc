@@ -24,7 +24,7 @@ var g_HashTypeFace: HashTable'(String, *TypeFace)
 
 #drop
 {
-    for ?, v in g_HashTypeFace
+    for _, v in g_HashTypeFace
     {
         let allocator = v.allocationAllocator
         Memory.delete(v, allocator)

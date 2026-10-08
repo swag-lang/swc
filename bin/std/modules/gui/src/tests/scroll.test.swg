@@ -59,13 +59,13 @@ var ScrollHeadlessPosCount:  u32
 var ScrollHeadlessSizeCount: u32
 
 // Counts one scroll-position notification.
-func scrollHeadlessPos(?: *ScrollWnd, ?, ?: Math.Point)
+func scrollHeadlessPos(_: *ScrollWnd, _, _: Math.Point)
 {
     ScrollHeadlessPosCount += 1
 }
 
 // Counts one scroll-size notification.
-func scrollHeadlessSize(?: *ScrollWnd, ?, ?: Math.Point)
+func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     ScrollHeadlessSizeCount += 1
 }

@@ -421,7 +421,7 @@ impl IDecoder for Decoder
 
     mtd impl syncFrameAt(index: u64)->u64 => .isCoded ? .pictures.syncRankAt(index) : index
 
-    mtd impl seekFrame(?: *ByteSource, index: u64) fail
+    mtd impl seekFrame(_: *ByteSource, index: u64) fail
     {
         // The container gave every frame position away when the stream was opened, so seeking is
         // arithmetic on the frame table and never touches the source.

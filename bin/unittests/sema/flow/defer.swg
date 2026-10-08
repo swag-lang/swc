@@ -424,7 +424,7 @@ func semaTest013()
 func semaTest014()
 {
     #[Swag.NoInline]
-    func consumeDropTracker(?: DeferDropTracker) {}
+    func consumeDropTracker(_: DeferDropTracker) {}
 
     func deferParameterDropInfo()->DeferDropInfo
     {
@@ -451,7 +451,7 @@ func semaTest014()
 func semaTest015()
 {
     #[Swag.NoInline]
-    func consumeDropHolder(?: DeferDropHolder) {}
+    func consumeDropHolder(_: DeferDropHolder) {}
 
     func deferEmbeddedParameterDropInfo()->DeferDropInfo
     {

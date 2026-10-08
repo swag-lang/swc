@@ -212,7 +212,7 @@ impl ListLine
 
 impl IWnd for ListView
 {
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .list != null do
             .list.computeLayout()
@@ -1180,7 +1180,7 @@ impl ListCtrl
             .header                  = Header.create(fwnd, {})
             .header.dockStyle        = .Top
             .header.form             = .Round
-            .header.sigLayoutChanged += func|list|(?)
+            .header.sigLayoutChanged += func|list|(_)
             {
                 list.computeLayout()
             }
@@ -1196,7 +1196,7 @@ impl ListCtrl
             .scrollWnd.dockStyle       = .Center
             .scrollWnd.backgroundStyle = .Transparent
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)
-            .scrollWnd.sigScrollPositionChanged += func|header = list.header|(?, ?, np)
+            .scrollWnd.sigScrollPositionChanged += func|header = list.header|(_, _, np)
             {
                 header.scrollPos.x = np.x
                 header.invalidate()

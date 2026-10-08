@@ -226,7 +226,7 @@ bool Parser::isCodeLiteralBinderAhead() const
     ++t;
     while (t < lastToken_ && t->id != TokenId::SymRightParen)
     {
-        if (t->id != TokenId::Identifier && t->id != TokenId::SymQuestion)
+        if (t->id != TokenId::Identifier && t->id != TokenId::KwdUnnamed)
             return false;
         ++t;
         if (t < lastToken_ && t->id == TokenId::SymComma)
@@ -248,11 +248,11 @@ SpanRef Parser::parseCodeBinderNames()
 {
     const TokenRef openRef = consumeAssert(TokenId::SymLeftParen);
 
-    // A '?' binder holds its position with no name, like a discarded 'for' name.
+    // A '_' binder holds its position with no name, like a discarded 'for' name.
     SmallVector<TokenRef> names;
     while (!atEnd() && isNot(TokenId::SymRightParen))
     {
-        if (consumeIf(TokenId::SymQuestion).isValid())
+        if (consumeIf(TokenId::KwdUnnamed).isValid())
         {
             names.push_back(TokenRef::invalid());
         }

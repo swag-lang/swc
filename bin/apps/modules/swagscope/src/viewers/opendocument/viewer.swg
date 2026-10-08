@@ -260,7 +260,7 @@ private impl Panel
         .html = HtmlView.createText(me, markup)
         .html.dockStyle = .Center
         .applyZoom()
-        .html.sigLinkActivated += func(?, url)
+        .html.sigLinkActivated += func(_, url)
         {
             Env.openUrl(url)
         }
@@ -389,7 +389,7 @@ private impl Panel
                 }
 
                 .outline.refresh()
-                .outline.sigSelected += func|view = me|(?, index) { discard view.showPage(index, true) }
+                .outline.sigSelected += func|view = me|(_, index) { discard view.showPage(index, true) }
             }
         }
 
@@ -490,7 +490,7 @@ private impl Panel
         }
 
         result.createZoomButton(host)
-        result.hookOnChildEvent = func|view = result|(?, evt)
+        result.hookOnChildEvent = func|view = result|(_, evt)
         {
             switch evt
             {
@@ -517,7 +517,7 @@ private impl Panel
         .info = host.createInfoGroup(Viewer.ZoomSlotWidth)
         .info.hide()
         .zoomLabel = Viewer.createZoomButton(me.info, "scope.opendocument.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
+        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 
     // Creates the sheet, slide, or page selector, hidden until a document offers several.
@@ -530,7 +530,7 @@ private impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_TipSheet
             .hide()
-            .sigChanged += func|view = me|(?, index) { discard view.showPage(index, true) }
+            .sigChanged += func|view = me|(_, index) { discard view.showPage(index, true) }
         }
     }
 }

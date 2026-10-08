@@ -61,6 +61,6 @@ func day8B()
         return {start + nm, sum}
     }
 
-    {?, rootNodeTotal} = read(nums, 0)
+    {_, rootNodeTotal} = read(nums, 0)
     Swag.assert(rootNodeTotal == 22989)
 }

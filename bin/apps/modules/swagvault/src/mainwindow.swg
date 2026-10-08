@@ -526,7 +526,7 @@ impl MainWindow
                 catch g_App.saveState()
             }
 
-            .sigAboutRequested += func|window = me|(?)
+            .sigAboutRequested += func|window = me|(_)
             {
                 window.showAbout()
             }
@@ -547,7 +547,7 @@ impl MainWindow
             .addItem(appStrings().ui_OpenTab, view: me.createOpenVaultCard(me.tabs))
             .addItem(appStrings().ui_MountedTab, view: me.createMountedDrivesCard(me.tabs))
             .addItem(appStrings().ui_OptionsTab, view: me.createOptionsCard(me.tabs))
-            .sigSelectionChanged += func|window = me|(?) { window.arrangeCards() }
+            .sigSelectionChanged += func|window = me|(_) { window.arrangeCards() }
         }
     }
 
@@ -656,10 +656,10 @@ impl MainWindow
     mtd watchFormState()
     {
         for edit in [.createPath, .createSize, .mountPath] do
-            edit.sigTextChanged += func|window = me|(?) { window.refreshActions() }
+            edit.sigTextChanged += func|window = me|(_) { window.refreshActions() }
         for edit in [.createPassword, .confirmPassword, .mountPassword] do
-            edit.sigChanged += func|window = me|(?) { window.refreshActions() }
-        .drive.sigChanged += func|window = me|(?, ?) { window.refreshActions() }
+            edit.sigChanged += func|window = me|(_) { window.refreshActions() }
+        .drive.sigChanged += func|window = me|(_, _) { window.refreshActions() }
         .watchSubmit()
     }
 
@@ -671,11 +671,11 @@ impl MainWindow
     mtd watchSubmit()
     {
         for edit in [.createPath, .createSize] do
-            edit.sigSubmitted += func|window = me|(?) { window.submitCreate() }
+            edit.sigSubmitted += func|window = me|(_) { window.submitCreate() }
         for edit in [.createPassword, .confirmPassword] do
-            edit.sigSubmitted += func|window = me|(?) { window.submitCreate() }
-        .mountPath.sigSubmitted     += func|window = me|(?) { window.submitMount() }
-        .mountPassword.sigSubmitted += func|window = me|(?) { window.submitMount() }
+            edit.sigSubmitted += func|window = me|(_) { window.submitCreate() }
+        .mountPath.sigSubmitted     += func|window = me|(_) { window.submitMount() }
+        .mountPassword.sigSubmitted += func|window = me|(_) { window.submitMount() }
     }
 
     // Creates the container when the create form holds everything it needs.
@@ -840,11 +840,7 @@ impl MainWindow
         .showOperation()
         .refreshStatus()
 
-        .applyLayout()
-        .createCard.endForm()
-        .mountCard.endForm()
-        .mountOptions.computeLayout()
-        .optionsCard.endForm()
+        .arrangeCards()
         .createCard.actions.computeLayout()
         .mountCard.actions.computeLayout()
         .mountedDrives.retranslate()

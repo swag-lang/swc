@@ -506,7 +506,7 @@ private impl Panel
 
 private impl IWnd for Panel
 {
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .isMarkup() and .markupFit and .htmlView
         {
@@ -665,10 +665,10 @@ impl Panel
         {
             .backgroundStyle = .View
             .dockStyle       = .Center
-            .sigZoomChanged  += func|view = result|(?) { view.refreshZoom() }
+            .sigZoomChanged  += func|view = result|(_) { view.refreshZoom() }
         }
 
-        result.hookOnChildEvent = func|view = result|(?, evt)
+        result.hookOnChildEvent = func|view = result|(_, evt)
         {
             switch evt
             {
@@ -727,7 +727,7 @@ impl Panel
             .margin.x  = 8
             .toolTip   = texts().ui_PreviousPage
             .enable(false)
-            .sigPressed += func|view = me|(?)
+            .sigPressed += func|view = me|(_)
             {
                 if view.previewIndex do
                     view.selectPreview(view.previewIndex - 1)
@@ -739,7 +739,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_NextPage
             .enable(false)
-            .sigPressed += func|view = me|(?)
+            .sigPressed += func|view = me|(_)
             {
                 if view.previewIndex + 1 < view.pageCount() do
                     view.selectPreview(view.previewIndex + 1)
@@ -754,7 +754,7 @@ impl Panel
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .sigPressed += func|view = me|(?) { view.showPageMenu() }
+            .sigPressed += func|view = me|(_) { view.showPageMenu() }
         }
     }
 
@@ -763,7 +763,7 @@ impl Panel
     {
         .info      = host.createInfoGroup(Viewer.ZoomSlotWidth)
         .zoomLabel = Viewer.createZoomButton(me.info, "scope.indesign.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
+        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 }
 

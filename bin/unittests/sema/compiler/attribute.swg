@@ -75,7 +75,7 @@ namespace AttrTypeInfoReflection
         value: s32
     }
 
-    func hasAttribute(?: typeinfo, ?: typeinfo)->bool
+    func hasAttribute(_: typeinfo, _: typeinfo)->bool
     {
         return true
     }

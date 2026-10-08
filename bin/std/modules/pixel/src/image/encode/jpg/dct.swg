@@ -69,7 +69,7 @@ impl Encoder
             dataFloat[i] = data[i]
 
         var dataptr = cast([*] f32, &dataFloat[0])
-        for ? in rangeTo(0, 7).reversed()
+        for _ in rangeTo(0, 7).reversed()
         {
             let tmp0 = dataptr[0] + dataptr[7]
             let tmp7 = dataptr[0] - dataptr[7]
@@ -114,7 +114,7 @@ impl Encoder
 
         dataptr = &dataFloat[0]
 
-        for ? in rangeTo(0, 7).reversed()
+        for _ in rangeTo(0, 7).reversed()
         {
             let tmp0 = dataptr[0] + dataptr[56]
             let tmp7 = dataptr[0] - dataptr[56]

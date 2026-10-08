@@ -115,7 +115,7 @@ namespace WinFsp
 
     // Creates the node; bit 0 of `createOptions`, `FILE_DIRECTORY_FILE`, asks for a directory.
     #[Swag.CallingConvention(.C)]
-    func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, ?, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
+    func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, _, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
     {
         let value        = stringFromWide(path)
         let mounted      = mountedVolume(fileSystem)
@@ -129,7 +129,7 @@ namespace WinFsp
     }
 
     #[Swag.CallingConvention(.C)]
-    func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, ?, ?: u32, fileContext: *(*void?), info: *FileInfo)->s32
+    func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, _, _: u32, fileContext: *(*void?), info: *FileInfo)->s32
     {
         let value  = stringFromWide(path)
         var nodeId: u64
@@ -144,14 +144,14 @@ namespace WinFsp
         => callbackOverwrite(mountedVolume(fileSystem), idFromContext(fileContext), attributes, replaceAttributes, allocationSize, info)
 
     #[Swag.CallingConvention(.C)]
-    func fspCleanup(fileSystem: *FspFileSystem, fileContext: *void?, ?: [*] u16?, flags: u32)
+    func fspCleanup(fileSystem: *FspFileSystem, fileContext: *void?, _: [*] u16?, flags: u32)
     {
         callbackCleanup(mountedVolume(fileSystem), idFromContext(fileContext), flags)
     }
 
     // Nothing to release: a file context is only a node id.
     #[Swag.CallingConvention(.C)]
-    func fspClose(?: *FspFileSystem, ?: *void?) {}
+    func fspClose(_: *FspFileSystem, _: *void?) {}
 
     #[Swag.CallingConvention(.C)]
     func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32
@@ -182,7 +182,7 @@ namespace WinFsp
         => callbackSetFileSize(mountedVolume(fileSystem), idFromContext(fileContext), newSize, setAllocationSize, info)
 
     #[Swag.CallingConvention(.C)]
-    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, ?: [*] u16?)->s32
+    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, _: [*] u16?)->s32
         => callbackCanDelete(mountedVolume(fileSystem), idFromContext(fileContext))
 
     #[Swag.CallingConvention(.C)]
@@ -248,7 +248,7 @@ namespace WinFsp
 
     // Lists a directory into `buffer`, and marks its end once every entry fit.
     #[Swag.CallingConvention(.C)]
-    func fspReadDirectory(fileSystem: *FspFileSystem, fileContext: *void?, ?, marker: [*] u16?, buffer: *void?, length: u32, transferred: *u32)->s32
+    func fspReadDirectory(fileSystem: *FspFileSystem, fileContext: *void?, _, marker: [*] u16?, buffer: *void?, length: u32, transferred: *u32)->s32
     {
         let markerValue = stringFromWide(marker)
         var context     = FspEmitContext{buffer: buffer, length: length, transferred: transferred}

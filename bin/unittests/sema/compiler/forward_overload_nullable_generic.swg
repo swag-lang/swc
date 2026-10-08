@@ -14,12 +14,12 @@ func(T) getValue(type: typeinfo, attribute: typeinfo, value: string, def: T)->T
     return def
 }
 
-func getAttr(?: typeinfo, ?: typeinfo)->const *Swag.Attribute?
+func getAttr(_: typeinfo, _: typeinfo)->const *Swag.Attribute?
 {
     return null
 }
 
-func getValue(?: const *Swag.Attribute, ?: string)->any?
+func getValue(_: const *Swag.Attribute, _: string)->any?
 {
     return null
 }

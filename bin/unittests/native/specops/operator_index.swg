@@ -164,7 +164,7 @@ struct RuntimeIndexedHolder
 
 impl RuntimeIndexedHolder
 {
-    func readSlot(?: RuntimeIndexedSlot)->bool
+    func readSlot(_: RuntimeIndexedSlot)->bool
     {
         return false
     }
@@ -174,7 +174,7 @@ impl RuntimeIndexedHolder
         return .state.values[slot]
     }
 
-    func readWideSlot(?: RuntimeWideIndexedSlot)->bool
+    func readWideSlot(_: RuntimeWideIndexedSlot)->bool
     {
         return false
     }

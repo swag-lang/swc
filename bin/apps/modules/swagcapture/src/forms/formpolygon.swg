@@ -76,7 +76,7 @@ impl IForm for FormPolygon
         return true
     }
 
-    mtd impl moveBaseForm(newPosX, newPosY, ?, ?: s32)
+    mtd impl moveBaseForm(newPosX, newPosY, _, _: s32)
     {
         offsetPoints(&.points, newPosX, newPosY)
     }

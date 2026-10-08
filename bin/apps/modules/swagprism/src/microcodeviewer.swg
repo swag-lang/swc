@@ -86,7 +86,7 @@ impl MicrocodeViewer
         {
             .dockStyle  = .Top
             .margin     = {0, 0, 0, 8}
-            .sigChanged += func|viewer = result|(?, ?) { viewer.optionsChanged() }
+            .sigChanged += func|viewer = result|(_, _) { viewer.optionsChanged() }
         }
 
         with let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
@@ -270,7 +270,7 @@ impl IViewer for MicrocodeViewer
     mtd impl compile(request: Pipeline.BuildRequest) { .compileRequest(request) }
     mtd impl inspectionStage()->string => Pipeline.Stages[.stageCombo.selectedIndex]
     mtd impl isPaused()->bool => false
-    mtd impl setPaused(?: bool) {}
+    mtd impl setPaused(_: bool) {}
     mtd impl shutdown() { .stopCompile() }
     mtd impl isRunning()->bool => .job.running
     mtd impl subscribeChanged(action: func||(*Wnd)) { .sigChanged += action }

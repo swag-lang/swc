@@ -20,13 +20,13 @@ alias LocalStrict = s32
 
 #test
 {
-    func takesArg(?: s32)->s32 { return 1 }
+    func takesArg(_: s32)->s32 { return 1 }
     const V = #run takesArg()     // swc-expected-error {{sema_err_too_few_arguments}}
 }
 
 #test
 {
-    func takesArg(?: s32)->s32 { return 1 }
+    func takesArg(_: s32)->s32 { return 1 }
     const V = #run takesArg("bad")     // swc-expected-error {{sema_err_cannot_cast}}
 }
 

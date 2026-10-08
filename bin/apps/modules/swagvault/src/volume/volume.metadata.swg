@@ -332,7 +332,7 @@ impl Volume
 
     // Reads a record written by `writeFramedRecord`. An empty result means the
     // area holds no record for this key.
-    mtd readFramedRecord(offset, ?: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array'u8 fail
+    mtd readFramedRecord(offset, _: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array'u8 fail
     {
         var result: retval
 

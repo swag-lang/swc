@@ -362,7 +362,7 @@ func visitFailureTemporary() fail
     var pair = makeOwnerPair(8, 9)
     DropCount       = 0
     DropTrace       = 0
-    {pair.first, ?} = makeOwnerPair(4, 5)
+    {pair.first, _} = makeOwnerPair(4, 5)
     Swag.assert(DropCount == 2)
     Swag.assert(DropTrace == 85)
     Swag.assert(pair.first.value == 4)

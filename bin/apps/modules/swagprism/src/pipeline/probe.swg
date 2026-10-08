@@ -182,15 +182,12 @@ private func firstFunctionOffset(source: string)->u64
 {
     const Marker = "func "
 
-    let bytes = cast(const [..] u8, source)
     var start = 0'u64
-    while start < bytes.count
+    while start < source.count
     {
-        var end = start
-        while end < bytes.count and bytes[end] != '\n' do
-            end += 1
-
-        if end - start > Marker.count and Utf8.startsWith(bytes[start until end], Marker) do
+        let newline = Utf8.indexOf(source, '\n'rune, start)
+        let end     = newline == Swag.U64.Max ? source.count : newline
+        if end - start > Marker.count and Utf8.startsWith(source[start until end], Marker) do
             return start
 
         start = end + 1

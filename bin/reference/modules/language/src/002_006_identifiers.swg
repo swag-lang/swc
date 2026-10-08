@@ -17,7 +17,8 @@ const this_1_is_2_also__3_valid = 0
 
 /**
 However, identifiers cannot start with two underscores, as this prefix is reserved
-by the compiler.
+by the compiler. A single underscore on its own is not an identifier either: '_' is the
+unnamed binding, which declares a position without naming it.
 */
 
 // const __this_is_invalid = 0

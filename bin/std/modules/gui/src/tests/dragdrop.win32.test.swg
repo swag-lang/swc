@@ -89,20 +89,20 @@ internal impl StreamOnlySource
 func streamOnlyOf(itf: *IDataObject)->*StreamOnlySource => cast(*StreamOnlySource, cast(*void, itf))
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyQueryInterface(itf: *IDataObject, ?: const *GUID, ppv: *LPVOID)->HRESULT
+func streamOnlyQueryInterface(itf: *IDataObject, _: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = cast([*] void, itf)
     return S_OK
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyAddRef(?: *IDataObject)->ULONG
+func streamOnlyAddRef(_: *IDataObject)->ULONG
 {
     return 1
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyRelease(?: *IDataObject)->ULONG
+func streamOnlyRelease(_: *IDataObject)->ULONG
 {
     return 1
 }
@@ -147,45 +147,45 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyNotImpl(?: *IDataObject, ?: const *FORMATETC, ?: *STGMEDIUM)->HRESULT
+func streamOnlyNotImpl(_: *IDataObject, _: const *FORMATETC, _: *STGMEDIUM)->HRESULT
 {
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyCanonical(?: *IDataObject, ?: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
+func streamOnlyCanonical(_: *IDataObject, _: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
 {
     fmtOut.ptd = null
     return DATA_S_SAMEFORMATETC
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlySetData(?: *IDataObject, ?: const *FORMATETC, ?: *STGMEDIUM, ?: BOOL)->HRESULT
+func streamOnlySetData(_: *IDataObject, _: const *FORMATETC, _: *STGMEDIUM, _: BOOL)->HRESULT
 {
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyEnum(?: *IDataObject, ?: DWORD, ppenum: *LPVOID)->HRESULT
+func streamOnlyEnum(_: *IDataObject, _: DWORD, ppenum: *LPVOID)->HRESULT
 {
     ppenum[] = null
     return E_NOTIMPL
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyAdvise(?: *IDataObject, ?: const *FORMATETC, ?: DWORD, ?: *void?, ?: *DWORD)->HRESULT
+func streamOnlyAdvise(_: *IDataObject, _: const *FORMATETC, _: DWORD, _: *void?, _: *DWORD)->HRESULT
 {
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyUnadvise(?: *IDataObject, ?: DWORD)->HRESULT
+func streamOnlyUnadvise(_: *IDataObject, _: DWORD)->HRESULT
 {
     return OLE_E_ADVISENOTSUPPORTED
 }
 
 #[Swag.CallingConvention(.C)]
-func streamOnlyEnumAdvise(?: *IDataObject, ppenum: *LPVOID)->HRESULT
+func streamOnlyEnumAdvise(_: *IDataObject, ppenum: *LPVOID)->HRESULT
 {
     ppenum[] = null
     return OLE_E_ADVISENOTSUPPORTED

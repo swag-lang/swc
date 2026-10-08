@@ -105,7 +105,7 @@ struct FileBrowserCtrl
 
 impl IWnd for FileBrowserCtrl
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .saveState()
     }
@@ -377,7 +377,7 @@ private impl FileBrowserCtrl
                 }
             }
 
-            .sigLeftDoubleClicked += func|fileBrowser = me|(list, ?)
+            .sigLeftDoubleClicked += func|fileBrowser = me|(list, _)
             {
                 var l = list.selectedLine()
                 if not l do
@@ -551,7 +551,7 @@ impl FileBrowserCtrl
             .dockStyle  = .Left
             .margin.z   = 4
             .toolTip    = strings().browser_TipBack
-            .sigPressed += func|fileBrowser|(?) { discard fileBrowser.goBack() }
+            .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goBack() }
         }
 
         with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), {0, 0, 30, 30})
@@ -559,7 +559,7 @@ impl FileBrowserCtrl
             .dockStyle  = .Left
             .margin.z   = 4
             .toolTip    = strings().browser_TipForward
-            .sigPressed += func|fileBrowser|(?) { discard fileBrowser.goForward() }
+            .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goForward() }
         }
 
         with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), {0, 0, 22, 30})
@@ -567,7 +567,7 @@ impl FileBrowserCtrl
             .dockStyle  = .Left
             .margin.z   = 4
             .toolTip    = strings().browser_TipRecent
-            .sigPressed += func|fileBrowser|(?) { fileBrowser.openRecentMenu() }
+            .sigPressed += func|fileBrowser|(_) { fileBrowser.openRecentMenu() }
 
             // Without reusable state there is never a history to show.
             if not fileBrowser.options.state do
@@ -579,7 +579,7 @@ impl FileBrowserCtrl
             .dockStyle  = .Left
             .margin.z   = 10
             .toolTip    = strings().browser_TipUp
-            .sigPressed += func|fileBrowser|(?) { discard fileBrowser.goUp() }
+            .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goUp() }
         }
 
         with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), {0, 0, 30, 30})
@@ -587,7 +587,7 @@ impl FileBrowserCtrl
             .dockStyle  = .Right
             .margin.x   = 4
             .toolTip    = strings().browser_TipRefresh
-            .sigPressed += func|fileBrowser|(?) { fileBrowser.refresh() }
+            .sigPressed += func|fileBrowser|(_) { fileBrowser.refresh() }
         }
 
         with fileBrowser.newFolderButton = PushButton.create(viewTop, strings().browser_NewFolder)
@@ -597,13 +597,13 @@ impl FileBrowserCtrl
             .toolTip   = strings().browser_TipNewFolder
             .setIcon(fileBrowser.theme().icon(ThemeIcons.Plus, 16))
             .fitWidthToLabel()
-            .sigPressed += func|fileBrowser|(?) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
+            .sigPressed += func|fileBrowser|(_) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
         }
 
         with fileBrowser.comboPath = ComboBox.create(viewTop)
         {
             .dockStyle  = .Center
-            .sigChanged += func|fileBrowser|(?, idx) { fileBrowser.setCurrentFolder(fileBrowser.comboPathStr[idx]) }
+            .sigChanged += func|fileBrowser|(_, idx) { fileBrowser.setCurrentFolder(fileBrowser.comboPathStr[idx]) }
         }
 
         // Bottom
@@ -635,7 +635,7 @@ impl FileBrowserCtrl
                 for f, idx in fileBrowser.options.filters do
                     .addItem(f.name, userData0: cast(*void?, idx))
             .setSelectedIndex(0)
-            .sigChanged += func|fileBrowser|(?, ?) { fileBrowser.fillFileList() }
+            .sigChanged += func|fileBrowser|(_, _) { fileBrowser.fillFileList() }
         }
 
         discard form.addField(strings().browser_Type, fileBrowser.comboType)

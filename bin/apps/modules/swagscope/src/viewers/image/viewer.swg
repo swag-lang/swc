@@ -496,7 +496,7 @@ private impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPrevious
             .enable(me.services.navigateFile != null)
-            .sigPressed += func|view = me|(?) { view.navigate(-1) }
+            .sigPressed += func|view = me|(_) { view.navigate(-1) }
         }
 
         with .nextButton = Viewer.createActionButton(.actions, .ChevronRight)
@@ -504,7 +504,7 @@ private impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_TipNext
             .enable(me.services.navigateFile != null)
-            .sigPressed += func|view = me|(?) { view.navigate(1) }
+            .sigPressed += func|view = me|(_) { view.navigate(1) }
         }
 
         with .transformButton = Viewer.createActionDropDown(.actions, .Redo)
@@ -513,7 +513,7 @@ private impl Panel
             .margin.x  = 8
             .toolTip   = texts().ui_TipTransform
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = me|(?) { view.showTransformMenu() }
+            .sigPressed += func|view = me|(_) { view.showTransformMenu() }
         }
 
         with .playModeButton = Viewer.PlaybackButton.create(.actions, me, playback, showSlideDuration: true)
@@ -532,7 +532,7 @@ private impl Panel
             .margin.x  = 10
             .toolTip   = texts().ui_TipPlay
             .hide()
-            .sigPressed += func|view = me|(?)
+            .sigPressed += func|view = me|(_)
             {
                 view.imageView.setPaused(not view.imageView.movie.isPaused)
                 view.refreshFrame()
@@ -559,7 +559,7 @@ private impl Panel
     mtd createZoomControl()
     {
         .zoomLabel = Viewer.createZoomButton(.info, "scope.image.zoom", texts().ui_ZoomMenu, InfoWidth - 2 * Viewer.ZoomButtonInset)
-        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
+        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 
     // Creates the picture view and keeps the zoom readout and the frame transport in step with it.
@@ -568,12 +568,12 @@ private impl Panel
         with .imageView = ImageView.create(me)
         {
             .dockStyle      = .Center
-            .sigZoomChanged += func|view = me|(?)
+            .sigZoomChanged += func|view = me|(_)
             {
                 view.refreshZoom()
             }
 
-            .sigFrameChanged += func|view = me|(?)
+            .sigFrameChanged += func|view = me|(_)
             {
                 view.refreshFrame()
             }

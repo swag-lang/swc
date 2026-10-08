@@ -311,7 +311,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 
     let edit    = EditBox.create(&host.root, "AC", {0, 0, 240, 26})
     var changed = 0'u32
-    edit.sigTextChanged += func|&changed|(?)
+    edit.sigTextChanged += func|&changed|(_)
     {
         changed += 1
     }

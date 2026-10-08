@@ -1259,7 +1259,7 @@ func firstRune(src: const [..] u8)->rune
     let dataof = src.buffer
     if Latin1.isAscii(dataof[0]) do
         return cast(rune, dataof[0])
-    let {c, ?} = decodeRune(src)
+    let {c, _} = decodeRune(src)
     return c
 }
 
@@ -1272,7 +1272,7 @@ func lastRune(src: const [..] u8)->rune
     let dataof = src.buffer
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune, dataof[countof - 1])
-    let {c, ?} = decodeLastRune(src)
+    let {c, _} = decodeLastRune(src)
     return c
 }
 

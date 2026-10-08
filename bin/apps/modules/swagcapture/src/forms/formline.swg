@@ -125,7 +125,7 @@ impl IForm for FormLine
         return evt.kind != .Released or evt.button != .Left
     }
 
-    mtd impl moveBaseForm(newPosX, newPosY, ?, ?: s32)
+    mtd impl moveBaseForm(newPosX, newPosY, _, _: s32)
     {
         .xa, .xb += newPosX
         .ya, .yb += newPosY
@@ -212,7 +212,7 @@ impl IForm for FormLine
         }
     }
 
-    mtd impl isInside(?: Math.Point)->bool         => false
+    mtd impl isInside(_: Math.Point)->bool         => false
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

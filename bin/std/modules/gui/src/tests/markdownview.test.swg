@@ -178,7 +178,7 @@ using Swag, Core
     view.applyLayout()
     var commands: u64
     view.wndFlags.add(.AfterChildrenPaint)
-    view.hookOnEvent = func|count = &commands|(?, evt)
+    view.hookOnEvent = func|count = &commands|(_, evt)
     {
         if evt is PaintEvent as paint where paint.kind == .After do
             count[] = paint.paintContext.painter.commandBuffer.count
@@ -1565,21 +1565,21 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let firstPosition = first.position
     let htmlPosition  = html.position
     var resizes, extents: u64
-    first.hookOnEvent = func|count = &resizes|(?, evt)
+    first.hookOnEvent = func|count = &resizes|(_, evt)
     {
         if evt is ResizeEvent do
             count[] += 1
         return false
     }
 
-    html.hookOnEvent = func|count = &resizes|(?, evt)
+    html.hookOnEvent = func|count = &resizes|(_, evt)
     {
         if evt is ResizeEvent do
             count[] += 1
         return false
     }
 
-    view.scroll.sigScrollSizeChanged += func|count = &extents|(?, ?, ?)
+    view.scroll.sigScrollSizeChanged += func|count = &extents|(_, _, _)
     {
         count[] += 1
     }
@@ -1683,7 +1683,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     var reported: String
     let view = Markdown.View.createFile(&host.root, path)
-    view.sigLoadFailed += func|&reported|(?, reason)
+    view.sigLoadFailed += func|&reported|(_, reason)
     {
         reported = reason
     }

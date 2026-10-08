@@ -91,7 +91,7 @@ var g_PropRoDynamic: bool
 
 impl IPropertyNotify for PropHeadlessRoData
 {
-    mtd impl isItemReadOnly(?: *Properties, item: *PropertiesItem)->bool
+    mtd impl isItemReadOnly(_: *Properties, item: *PropertiesItem)->bool
     {
         if item.typeValue.name == #nameof(PropHeadlessRoData.dynamic) do
             return g_PropRoDynamic
@@ -271,7 +271,7 @@ struct PropHeadlessCancelData
         Swag.assert(prop.items.count == 4)
 
         var changes: u32
-        prop.sigValueChanged += func|changes = &changes|(?, ?)
+        prop.sigValueChanged += func|changes = &changes|(_, _)
         {
             changes[] += 1
         }
@@ -1069,7 +1069,7 @@ struct ValData
 
 impl Gui.IPropertyNotify for ValData
 {
-    mtd impl validateItem(?: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
+    mtd impl validateItem(_: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
     {
         switch item.typeValue.crc
         {
@@ -1382,7 +1382,7 @@ struct PropDefaultCustom
 impl IPropertyNotify for PropDefaultCustom
 {
     // Force the modified state regardless of the actual value (the customizable test).
-    mtd impl isItemAtDefault(?: *Properties, item: *PropertiesItem)->PropDefaultState
+    mtd impl isItemAtDefault(_: *Properties, item: *PropertiesItem)->PropDefaultState
     {
         if item.typeValue.name == #nameof(PropDefaultCustom.val) do
             return g_PropDefForceModified ? .Modified : .AtDefault
@@ -1390,7 +1390,7 @@ impl IPropertyNotify for PropDefaultCustom
     }
 
     // Take over the reset itself.
-    mtd impl resetItemToDefault(?: *Properties, item: *PropertiesItem)->bool
+    mtd impl resetItemToDefault(_: *Properties, item: *PropertiesItem)->bool
     {
         if item.typeValue.name == #nameof(PropDefaultCustom.val)
         {
@@ -1944,7 +1944,7 @@ struct PropFilterHost {}
 
 impl IPropertyNotify for PropFilterHost
 {
-    mtd impl isEnumValueVisible(?: *Properties, ?: *PropertiesItem, enumValue: Swag.TypeValue)->bool => enumValue.name != "Hidden"
+    mtd impl isEnumValueVisible(_: *Properties, _: *PropertiesItem, enumValue: Swag.TypeValue)->bool => enumValue.name != "Hidden"
 }
 
 // The host notify can hide enum values (isEnumValueVisible): the combo omits them and
@@ -2289,7 +2289,7 @@ func assertPropertyViewMenuAnchor(light: bool)
     host.pump()
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, ctrl, light, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, ctrl, light, checked = &checked|(_)
     {
         if checked[] do
             return

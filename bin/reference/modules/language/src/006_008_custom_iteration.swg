@@ -17,7 +17,7 @@ There is no traversal selector or direction argument. Alternative traversals
 are ordinary borrowed views returned by functions or methods.
 
 The '#code' parameters are the values made available to loop destructuring.
-A loop may bind any prefix of them, or discard a position with '?'. Struct
+A loop may bind any prefix of them, or discard a position with '_'. Struct
 values are handed out by read-only address; scalar values are copied.
 */
 impl MyStruct
@@ -44,7 +44,7 @@ impl MyStruct
 /**
 # Destructuring Visit Values
 
-The bindings after 'for' are positional. '?' discards one position, consistently
+The bindings after 'for' are positional. '_' discards one position, consistently
 with other destructuring forms, and it can stand in any of them: a loop that wants
 only the last value discards the ones before it rather than naming them.
 */
@@ -56,10 +56,10 @@ only the last value discards the ones before it rather than naming them.
     for value, doubled, index in values do
         total += value + doubled + cast(s32, index)
 
-    for ?, doubled in values do
+    for _, doubled in values do
         total += doubled
 
-    for ?, ?, index in values do
+    for _, _, index in values do
         total += cast(s32, index)
 
     Swag.assert(total == 306)

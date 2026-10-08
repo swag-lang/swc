@@ -183,7 +183,7 @@ impl IWnd for FrameWnd
         }
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .view == null do
             return

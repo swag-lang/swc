@@ -301,7 +301,7 @@ impl IForm for FormImage
         }
     }
 
-    mtd impl movePoint(?: u32, ?, ?: s32) {}
+    mtd impl movePoint(_: u32, _, _: s32) {}
 
     mtd impl boundRect()->Math.Rectangle => .rectFormBound()
 

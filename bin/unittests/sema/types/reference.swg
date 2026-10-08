@@ -1,9 +1,9 @@
 #global private
 
 struct A {}
-func titi(?: *A) {}
+func titi(_: *A) {}
 
-func tata(?: A) {}
+func tata(_: A) {}
 func semaTest001()
 {
     var a: A

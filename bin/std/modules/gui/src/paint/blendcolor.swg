@@ -77,7 +77,7 @@ impl BlendColor
                                                        AnimationChannel.fromPointer(me),
                                                        source,
                                                        destination,
-                                                       func|blend=me|(?, value)
+                                                       func|blend=me|(_, value)
                                                        {
                                                            blend.curVec4 = value
                                                        },

@@ -557,7 +557,7 @@ impl Panel
 
 impl IWnd for Panel
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         discard .retire()
         .read.wait()
@@ -686,7 +686,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_WrapOn
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = me|(?) { view.toggleWrap() }
+            .sigCheckedChanged += func|view = me|(_) { view.toggleWrap() }
         }
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
@@ -700,7 +700,7 @@ impl Panel
                 .addItem(name)
             for candidate, index in Encodings where candidate == me.encoding do
                 .setSelectedIndex(cast(u32, index), notify: false)
-            .sigChanged += func|view = me|(?, index) { view.applyEncoding(Encodings[index]) }
+            .sigChanged += func|view = me|(_, index) { view.applyEncoding(Encodings[index]) }
         }
     }
 
@@ -710,7 +710,7 @@ impl Panel
         .info = host.createInfoGroup(Viewer.ZoomSlotWidth)
 
         .zoomLabel = Viewer.createZoomButton(.info, "scope.text.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|view = me|(?) { view.showZoomMenu() }
+        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 
     // Creates the read-only editor that shows the resident window of the file.
@@ -722,14 +722,14 @@ impl Panel
             .marginLeft  = 12
             .marginRight = 12
             .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
-            .sigScrollPositionChanged += func|view = me|(?, oldPosition, newPosition) { view.followScroll(oldPosition, newPosition) }
+            .sigScrollPositionChanged += func|view = me|(_, oldPosition, newPosition) { view.followScroll(oldPosition, newPosition) }
         }
     }
 
     // Routes the keys the text view answers for, and keeps painting and resizing from reloading text.
     private mtd hookEvents()
     {
-        .hookOnChildEvent = func|view = me|(?, evt)
+        .hookOnChildEvent = func|view = me|(_, evt)
         {
             switch evt
             {
@@ -773,7 +773,7 @@ impl Panel
             }
         }
 
-        .hookOnEvent = func|view = me|(?, evt)
+        .hookOnEvent = func|view = me|(_, evt)
         {
             if evt is ResizeEvent
             {
@@ -825,7 +825,7 @@ func createViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
-        .matchBounds = func|view|(?, bounds)->bool { return view.searchBounds(bounds) }
+        .matchBounds = func|view|(_, bounds)->bool { return view.searchBounds(bounds) }
         .clear       = func|view|() => view.clearSearch()
     }
 

@@ -50,7 +50,7 @@ impl IImageEncoder for RegistryEncoder
 {
     mtd impl format()->ImageFormat => {"Registry encoder", ".registrytest"}
 
-    mtd impl encode(result: *ConcatBuffer, ?: Image, options: any?) fail
+    mtd impl encode(result: *ConcatBuffer, _: Image, options: any?) fail
     {
         registerPaddingCodecs'31()
         if options != null do
@@ -77,7 +77,7 @@ impl IImageDecoder for RegistryDecoder
 {
     mtd impl format()->ImageFormat => {"Registry decoder", ".registrytest"}
 
-    mtd impl decode(bytes: const [..] u8, ?: DecodeOptions)->Image fail
+    mtd impl decode(bytes: const [..] u8, _: DecodeOptions)->Image fail
     {
         registerPaddingCodecs'31()
         if bytes.count == 1 do

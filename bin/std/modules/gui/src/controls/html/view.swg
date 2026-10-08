@@ -1356,7 +1356,7 @@ internal impl HtmlView
         result.canvas.owner    = result
         result.canvas.wndFlags |= .NoScroll
 
-        result.scroll.hookOnEvent = func|target = result|(?, evt)
+        result.scroll.hookOnEvent = func|target = result|(_, evt)
         {
             if evt is ResizeEvent do
                 target.placeDocument()
@@ -1373,7 +1373,7 @@ internal impl HtmlView
             return false
         }
 
-        result.scroll.sigScrollPositionChanged += func|target = result|(?, oldPosition, newPosition)
+        result.scroll.sigScrollPositionChanged += func|target = result|(_, oldPosition, newPosition)
         {
             if target.virtualRepositioning do
                 return
@@ -1550,7 +1550,7 @@ internal impl HtmlView
 
 internal impl IWnd for HtmlView
 {
-    mtd impl onPaint(?: *PaintEvent)
+    mtd impl onPaint(_: *PaintEvent)
     {
         // Publish the latest thumb destination before the canvas uses its virtual origin.
         if .virtualPendingSeek
@@ -1560,7 +1560,7 @@ internal impl IWnd for HtmlView
         }
     }
 
-    mtd impl onThemeEvent(?: *ThemeEvent)
+    mtd impl onThemeEvent(_: *ThemeEvent)
     {
         if .scroll != null do
             .rebuild()
@@ -1591,7 +1591,7 @@ internal impl IWnd for HtmlView
             evt.accepted = false
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopLoading()
         .images.clear()

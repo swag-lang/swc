@@ -435,7 +435,7 @@ impl Panel
     }
 
     // Selects the row of `match` and outlines its text, and returns whether it could be revealed.
-    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
         if match.major >= .doc.report.rows.count or match.minor > cast(u64, Column.Detail) do
             return false
@@ -952,7 +952,7 @@ impl IWnd for Panel
         .finishLoadTimer()
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .layoutPreviews()
         .layoutColumns()
@@ -981,7 +981,7 @@ impl IWnd for Panel
         }
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .retireBlocking()
     }
@@ -1099,7 +1099,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts.ui_MenuBack
             .enable(false)
-            .sigPressed += func|view = me|(?) { discard view.navigateHistory(-1) }
+            .sigPressed += func|view = me|(_) { discard view.navigateHistory(-1) }
         }
 
         with .forwardButton = Viewer.createActionButton(.commands, .ChevronRight)
@@ -1107,7 +1107,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts.ui_MenuForward
             .enable(false)
-            .sigPressed += func|view = me|(?) { discard view.navigateHistory(1) }
+            .sigPressed += func|view = me|(_) { discard view.navigateHistory(1) }
         }
     }
 
@@ -1129,7 +1129,7 @@ impl Panel
             .addColumn(texts.ui_ColValue, 200)
             .addColumn(texts.ui_ColOffset, OffsetWidth)
             .addColumn(texts.ui_ColDetail, 320)
-            .sigRightClicked     += func|view = me|(?, position) { view.showContextMenu(view.list.listView.localToSurface(position)) }
+            .sigRightClicked     += func|view = me|(_, position) { view.showContextMenu(view.list.listView.localToSurface(position)) }
             .sigSelectionChanged += func|view = me|(list) { view.recordHistory(view.reportIndexOf(list.selectedLine())) }
         }
     }

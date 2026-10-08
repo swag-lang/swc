@@ -39,7 +39,7 @@ private struct InfoControls
 
 private impl IWnd for InfoControls
 {
-    mtd impl measureContent(?: Math.Point)->Math.Point => .preferredSize
+    mtd impl measureContent(_: Math.Point)->Math.Point => .preferredSize
 }
 
 // What opening a PDF produces: the reader, its first page, its outline, and the details line.
@@ -182,7 +182,7 @@ private impl Panel
         return complete
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool => .pdfView.revealTextMatch({match.major, match.offset, match.length})
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool => .pdfView.revealTextMatch({match.major, match.offset, match.length})
 
     mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
 
@@ -282,7 +282,7 @@ private impl Panel
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = texts().ui_Previous
-            .sigPressed      += func|view = me|(?) { view.pdfView.previousPage() }
+            .sigPressed      += func|view = me|(_) { view.pdfView.previousPage() }
         }
 
         with .pageLabel = IconButton.create(.info, {}, {0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
@@ -293,7 +293,7 @@ private impl Panel
             .toolTip         = texts().ui_GoToPage
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .sigPressed += func|view = me|(?) { view.promptGoToPage() }
+            .sigPressed += func|view = me|(_) { view.promptGoToPage() }
         }
 
         with .nextButton = Viewer.createActionButton(.info, .ChevronRight)
@@ -301,7 +301,7 @@ private impl Panel
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = texts().ui_Next
-            .sigPressed      += func|view = me|(?) { view.pdfView.nextPage() }
+            .sigPressed      += func|view = me|(_) { view.pdfView.nextPage() }
         }
     }
 
@@ -313,7 +313,7 @@ private impl Panel
             .dockStyle       = .Right
             .preferredSize.x = Viewer.ZoomButtonWidth
             .margin          = {Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
-            .sigPressed      += func|view = me|(?) { view.showZoomMenu() }
+            .sigPressed      += func|view = me|(_) { view.showZoomMenu() }
         }
     }
 
@@ -323,17 +323,17 @@ private impl Panel
         with .pdfView = PdfView.create(me)
         {
             .dockStyle      = .Center
-            .sigPageChanged += func|view = me|(?)
+            .sigPageChanged += func|view = me|(_)
             {
                 view.refreshNavigation()
             }
 
-            .sigZoomChanged += func|view = me|(?)
+            .sigZoomChanged += func|view = me|(_)
             {
                 view.refreshZoom()
             }
 
-            .sigRenderError += func|view = me|(?, message)
+            .sigRenderError += func|view = me|(_, message)
             {
                 view.services.failed(view, message)
             }
@@ -357,7 +357,7 @@ func createViewer(host: Viewer.Host)
     let view = Panel.create(host.contentParent(), info, host.fileName(), services)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
-    view.outline.sigSelected += func|view|(?, index)
+    view.outline.sigSelected += func|view|(_, index)
     {
         if index < view.bookmarks.count
         {

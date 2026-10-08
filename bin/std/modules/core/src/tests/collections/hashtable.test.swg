@@ -250,7 +250,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     }
 
     Swag.assert(h.count == 201)
-    for ?, v in h do
+    for _, v in h do
         Swag.assert(v[] == "a value long enough to live outside the inline storage")
 
     var keys: HashTable'(String, s32)

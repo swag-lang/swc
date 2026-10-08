@@ -14,3 +14,7 @@ SWC_DIAG_DEF(parser_note_switch_body_ends_here, Note, "switch body ends here")
 
 SWC_DIAG_DEF(parser_help_empty_array_dim, Help, "use '[*]' for a pointer, '[..]' for a slice, '[?]' for an inferred array, or provide a numeric dimension")
 SWC_DIAG_DEF(parser_help_gen_param_type, Help, "use 'const' instead of 'var' to declare a generic value")
+SWC_DIAG_DEF(parser_note_unnamed_not_a_name, Note, "'_' is the unnamed binding, which declares no name")
+SWC_DIAG_DEF(parser_help_unnamed_not_a_name, Help, "give the value a name, or write 'discard <value>' to evaluate it without keeping it")
+SWC_DIAG_DEF(parser_note_question_not_a_binding, Note, "'?' marks a nullable type")
+SWC_DIAG_DEF(parser_help_question_not_a_binding, Help, "write '_' for a binding that has no name")

@@ -16,7 +16,7 @@ impl IRenderer for PresentProbe
 {
     mtd const impl needsNativeWindow()->bool => false
 
-    mtd impl createContext(renderHandle: const *void?, width, height: s32, ?: *RenderContext? = null)->RenderContext fail
+    mtd impl createContext(renderHandle: const *void?, width, height: s32, _: *RenderContext? = null)->RenderContext fail
     {
         Swag.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
         Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
@@ -72,7 +72,7 @@ impl IRenderer for PresentProbe
         .cpu.drawImpl(painter)
     }
 
-    mtd impl bindRenderTarget(target: *RenderTarget, ?: *Math.Rectangle? = null)
+    mtd impl bindRenderTarget(target: *RenderTarget, _: *Math.Rectangle? = null)
     {
         .cpu.bindRenderTargetImpl(target)
     }
@@ -272,7 +272,7 @@ func verifyWaitFailureProcess(tag: string)
 var waitFailureBorrowLive: Swag.AtomicValue'u32
 var waitFailureWorker:     *RenderThread?
 
-func observeWaitFailurePanic(?: string?, ?: Swag.SourceCodeLocation)
+func observeWaitFailurePanic(_: string?, _: Swag.SourceCodeLocation)
 {
     let worker = waitFailureWorker
     if waitFailureBorrowLive.load() == 0 and worker != null and worker.isReady() do

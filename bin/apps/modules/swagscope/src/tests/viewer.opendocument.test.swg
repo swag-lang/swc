@@ -26,7 +26,7 @@ func countOpenDocumentImageTags(html: string)->u64
     return result
 }
 
-func reportOpenDocumentTestDetails(?: *Wnd, details: string)
+func reportOpenDocumentTestDetails(_: *Wnd, details: string)
 {
     openDocumentReportedDetails = details
 }

@@ -37,7 +37,7 @@ using Swag, Core
     host.pump()
     let before = next.position.x
     let bounds = stack.position
-    host.root.hookOnEvent = func|count = &rootResizeCount|(?, evt)
+    host.root.hookOnEvent = func|count = &rootResizeCount|(_, evt)
     {
         if evt is ResizeEvent do
             count[] += 1

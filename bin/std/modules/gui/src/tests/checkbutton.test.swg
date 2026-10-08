@@ -7,7 +7,7 @@ const CheckButtonHeadless_Command = "CheckButtonHeadless.Command"
 
 var CheckButtonHeadlessChangedCount: u32
 
-func checkButtonHeadlessChanged(?: *CheckButton)
+func checkButtonHeadlessChanged(_: *CheckButton)
 {
     CheckButtonHeadlessChangedCount += 1
 }

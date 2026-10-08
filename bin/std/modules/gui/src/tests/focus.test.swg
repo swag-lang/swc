@@ -47,7 +47,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(400, 200)
     defer host.shutdown()
 
-    host.root.hookOnEvent = func|&pressedCount|(?, evt)
+    host.root.hookOnEvent = func|&pressedCount|(_, evt)
     {
         if evt is KeyEvent as key where key.kind == .Pressed
         {
@@ -152,7 +152,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let edit = EditBox.create(&host.root, "text", {10, 10, 180, 24})
     var lostCount: u32
-    edit.sigFocusLost += func|lostCount = &lostCount|(?)
+    edit.sigFocusLost += func|lostCount = &lostCount|(_)
     {
         lostCount[] += 1
     }
@@ -233,7 +233,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let next  = EditBox.create(&host.root, "", {220, 10, 160, 24})
 
     var lostCount: u32
-    first.sigFocusLost += func|panel, lostCount = &lostCount|(?)
+    first.sigFocusLost += func|panel, lostCount = &lostCount|(_)
     {
         lostCount[] += 1
         panel.destroy()
@@ -522,7 +522,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let no = dlg.addButton("No", Dialog.BtnNo, true)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, no, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, no, checked = &checked|(_)
     {
         if checked[] do
             return
@@ -554,7 +554,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let cancel = dlg.addButton("Cancel", Dialog.BtnCancel, true)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, caller, cancel, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, caller, cancel, checked = &checked|(_)
     {
         if checked[] do
             return
@@ -588,7 +588,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     dlg.applyLayout()
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, field, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, field, checked = &checked|(_)
     {
         if checked[] do
             return
@@ -629,7 +629,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.assert(again.wndFlags.has(.ActivatesOnKey) and toggle.wndFlags.has(.ActivatesOnKey))
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, again, toggle, no, checked = &checked|(?)
+    host.app.sigFrame += func|host = &host, again, toggle, no, checked = &checked|(_)
     {
         if checked[] do
             return

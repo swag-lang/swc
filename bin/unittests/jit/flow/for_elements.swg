@@ -367,7 +367,7 @@ enum ForeachIndexedSlot: u8
         let values = [10, 20, 30]
         var signature: u64
 
-        for ?, index in values
+        for _, index in values
         {
             #assert(#typeof(index) == u64)
             signature = signature * 10 + index
@@ -388,7 +388,7 @@ enum ForeachIndexedSlot: u8
         var byIndex: s32
         var byValue: s32
 
-        for ?, slot in values
+        for _, slot in values
         {
             #assert(#typeof(slot) == ForeachIndexedSlot)
             byIndex = byIndex * 100 + values[slot]

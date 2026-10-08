@@ -179,7 +179,7 @@ impl Guid64
 // Formats a [[Core.Guid64]] as 16 uppercase hexadecimal digits.
 impl StrConv.IConvert for Guid64
 {
-    mtd const impl convert(buf: *ConcatBuffer, ?: StrConv.ConvertFormat, ?: string?)
+    mtd const impl convert(buf: *ConcatBuffer, _: StrConv.ConvertFormat, _: string?)
     {
         buf.addBytes(.toString())
     }

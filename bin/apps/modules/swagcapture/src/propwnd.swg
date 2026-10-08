@@ -61,14 +61,14 @@ func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.R
     {
         pen.begCapStyle = cap
         pen.endCapStyle = .None
-        let {?, l0} = Painter.capStyleExtent(cap, size, pen.capBegScaleX)
+        let {_, l0} = Painter.capStyleExtent(cap, size, pen.capBegScaleX)
         rect.moveLeft(l0)
     }
     else
     {
         pen.begCapStyle = .None
         pen.endCapStyle = cap
-        let {?, l0} = Painter.capStyleExtent(cap, size, pen.capEndScaleX)
+        let {_, l0} = Painter.capStyleExtent(cap, size, pen.capEndScaleX)
         rect.moveRight(-l0)
     }
 
@@ -441,7 +441,7 @@ impl PropWnd
 // fields) and the reaction to every edit.
 impl IPropertyNotify for PropWnd
 {
-    mtd impl isItemVisible(?: *Properties, item: *PropertiesItem)->bool
+    mtd impl isItemVisible(_: *Properties, item: *PropertiesItem)->bool
     {
         let base = .getSelectedBaseForm()
 
@@ -507,7 +507,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl isEnumValueVisible(?: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    mtd impl isEnumValueVisible(_: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
         // The join combo omits JoinStyle.None: no join drawn = notched corners on any
         // thick stroke, never what a Swag Capture form wants.
@@ -517,7 +517,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl itemHasChanged(?: *Properties, item: *PropertiesItem?)
+    mtd impl itemHasChanged(_: *Properties, item: *PropertiesItem?)
     {
         let capture = .main.getCapture()
         if capture and capture.selection.count
@@ -559,7 +559,7 @@ impl IWnd for PropWnd
         .frameWnd.IWnd.onResizeEvent(evt)
     }
 
-    mtd impl onFrameEvent(?: *FrameEvent)
+    mtd impl onFrameEvent(_: *FrameEvent)
     {
         if .needRebuild
         {

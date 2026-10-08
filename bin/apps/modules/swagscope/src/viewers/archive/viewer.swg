@@ -378,7 +378,7 @@ private impl Panel
 
     // Selects the entry line of `match`, expanding the folders above it. Returns false when the
     // entry has no line in the tree.
-    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
         if match.major >= .entryLines.count do
             return false
@@ -511,17 +511,17 @@ private impl Panel
             .header.form = .Transparent
             .addColumn(texts().ui_ColName, 170)
             .addColumn(texts().ui_ColSize, 60)
-            .sigSelectionChanged += func|viewer = me|(?)
+            .sigSelectionChanged += func|viewer = me|(_)
             {
                 viewer.previewSelectedEntry()
             }
 
-            .sigLeftDoubleClicked += func|viewer = me|(?, ?)
+            .sigLeftDoubleClicked += func|viewer = me|(_, _)
             {
                 viewer.previewSelectedEntry()
             }
 
-            .sigKeyPressed += func|viewer = me|(?, event)
+            .sigKeyPressed += func|viewer = me|(_, event)
             {
                 if event.key == .Enter and event.modifiers == .None
                 {

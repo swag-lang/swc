@@ -1,8 +1,8 @@
 #global private
 
-func takes_u32(?: u32) {}
-func takes_u8(?: u8) {}
-func takes_s32(?: s32) {}
+func takes_u32(_: u32) {}
+func takes_u8(_: u8) {}
+func takes_s32(_: s32) {}
 
 func semaTest001()
 {

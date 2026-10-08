@@ -14,7 +14,7 @@
 {
     var a: s32
     var b: s32
-    a, ?, b = 1
+    a, _, b = 1
     Swag.assert(a == 1)
     Swag.assert(b == 1)
 }

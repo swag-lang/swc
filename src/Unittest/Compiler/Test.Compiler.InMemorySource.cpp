@@ -668,7 +668,7 @@ struct Buffer { value: *s32 }
 impl Buffer
 {
     #[Swag.Inline]
-    mtd const opIndexPtr(?: s32)->*s32 => .value
+    mtd const opIndexPtr(_: s32)->*s32 => .value
 }
 )";
     static constexpr std::string_view CALLER       = R"(func checkNested(value: s32)->s32 => nested(value)

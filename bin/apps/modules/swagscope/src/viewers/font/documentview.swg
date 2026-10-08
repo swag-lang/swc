@@ -202,7 +202,7 @@ private impl DocumentView
 
 impl IWnd for DocumentView
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         if .face
         {
@@ -211,7 +211,7 @@ impl IWnd for DocumentView
         }
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .scroll == null do
             return

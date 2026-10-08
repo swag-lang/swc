@@ -35,7 +35,7 @@ impl NoSoundDriverNative
 
 impl Voice
 {
-    func createNoSound(voice: *Voice, ? = VoiceCreateFlags.Default) fail
+    func createNoSound(voice: *Voice, _ = VoiceCreateFlags.Default) fail
     {
         voice.handle = cast(*void?, Memory.new'NoSoundVoice(voice.allocationAllocator))
         let file = voice.file!
@@ -61,14 +61,14 @@ impl Voice
 
         if .playFlags.has(.Loop)
         {
-            let {?, sizeBuffer} = try .readBuffer()
+            let {_, sizeBuffer} = try .readBuffer()
             handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
             return sizeBuffer != 0
         }
 
         for
         {
-            let {?, sizeBuffer} = try .readBuffer()
+            let {_, sizeBuffer} = try .readBuffer()
             if not sizeBuffer do
                 break
             handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
@@ -78,14 +78,14 @@ impl Voice
         return false
     }
 
-    mtd playNoSound(?: u32 = 0) fail
+    mtd playNoSound(_: u32 = 0) fail
     {
         let handle = cast(*NoSoundVoice?, .handle)
         if handle do
             handle.isPlaying = true
     }
 
-    mtd stopNoSound(?: u32 = 0) fail
+    mtd stopNoSound(_: u32 = 0) fail
     {
         let handle = cast(*NoSoundVoice?, .handle)
         if handle do
@@ -109,7 +109,7 @@ impl Voice
 internal impl Voice
 {
     // Sets the linear gain recorded by the no-sound backend.
-    mtd setVolumeNoSound(volume: f32, ?: u32 = 0) fail
+    mtd setVolumeNoSound(volume: f32, _: u32 = 0) fail
     {
         if not .handle do
             return
@@ -127,7 +127,7 @@ internal impl Voice
     }
 
     // Sets the frequency ratio recorded by the no-sound backend.
-    mtd setFrequencyRatioNoSound(ratio: f32, ?: u32 = 0) fail
+    mtd setFrequencyRatioNoSound(ratio: f32, _: u32 = 0) fail
     {
         if not .handle do
             return
@@ -192,7 +192,7 @@ impl Bus
 internal impl Bus
 {
     // Sets the linear bus gain recorded by the no-sound backend.
-    mtd setVolumeNoSound(volume: f32, ?: u32 = 0) fail
+    mtd setVolumeNoSound(volume: f32, _: u32 = 0) fail
     {
         if not .handle do
             return

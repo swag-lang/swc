@@ -7,7 +7,7 @@ const ToggleButtonHeadless_Command = "ToggleButtonHeadless.Command"
 
 var ToggleButtonHeadlessChangedCount: u32
 
-func toggleButtonHeadlessChanged(?: *ToggleButton)
+func toggleButtonHeadlessChanged(_: *ToggleButton)
 {
     ToggleButtonHeadlessChangedCount += 1
 }

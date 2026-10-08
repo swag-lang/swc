@@ -172,14 +172,14 @@ internal
 
     #[Swag.CallingConvention(.C)]
     {
-        func onVoiceProcessingPassStart(?: *IXAudio2VoiceCallback, ?: UINT32) {}
-        func onVoiceProcessingPassEnd(?: *IXAudio2VoiceCallback) {}
-        func onStreamEnd(?: *IXAudio2VoiceCallback) {}
-        func onBufferStart(?: *IXAudio2VoiceCallback, ?: *void?) {}
-        func onLoopEnd(?: *IXAudio2VoiceCallback, ?: *void?) {}
-        func onVoiceError(?: *IXAudio2VoiceCallback, ?: *void?, ?: HRESULT) {}
+        func onVoiceProcessingPassStart(_: *IXAudio2VoiceCallback, _: UINT32) {}
+        func onVoiceProcessingPassEnd(_: *IXAudio2VoiceCallback) {}
+        func onStreamEnd(_: *IXAudio2VoiceCallback) {}
+        func onBufferStart(_: *IXAudio2VoiceCallback, _: *void?) {}
+        func onLoopEnd(_: *IXAudio2VoiceCallback, _: *void?) {}
+        func onVoiceError(_: *IXAudio2VoiceCallback, _: *void?, _: HRESULT) {}
 
-        func onBufferEnd(?: *IXAudio2VoiceCallback, pBufferContext: *void?)
+        func onBufferEnd(_: *IXAudio2VoiceCallback, pBufferContext: *void?)
         {
             let voice = cast(*Voice?, pBufferContext)
             if not voice do

@@ -18,7 +18,7 @@ func makeDiscountRule(seats: s32)->func||(s32)->s32
     if seats >= 10 do
         perSeatCents = 150
 
-    return func|seats, perSeatCents|(?: s32)->s32
+    return func|seats, perSeatCents|(_: s32)->s32
     {
         if seats <= 4 do
             return 0

@@ -14,7 +14,7 @@ func buildWideSourceRect()->Math.Rectangle
     return {width * 0.12, height * 0.24, width * 0.68, height * 0.34}
 }
 
-func buildPainterCards(?: Image)
+func buildPainterCards(_: Image)
 {
     let faceRect = buildFaceSourceRect()
     let wideRect = buildWideSourceRect()

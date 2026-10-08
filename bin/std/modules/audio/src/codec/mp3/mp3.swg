@@ -919,7 +919,7 @@ impl IPacketCodec for Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Mp3
 
-    mtd impl initialize(?: const [..] u8, sampleRateHz, channels: u32) fail
+    mtd impl initialize(_: const [..] u8, sampleRateHz, channels: u32) fail
     {
         if channels < 1 or channels > 2 do
             fail UnsupportedFormatError{"MP3 carries one or two channels"}

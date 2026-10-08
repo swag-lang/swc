@@ -22,7 +22,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    for ? in (5).reversed()
+    for _ in (5).reversed()
     {
         var x = 0
         discard x

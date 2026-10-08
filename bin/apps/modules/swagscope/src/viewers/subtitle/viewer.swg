@@ -84,7 +84,7 @@ impl IWnd for Panel
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         if .track do
             Subtitle.Track.destroy(.track)
@@ -126,7 +126,7 @@ private impl Panel
             Viewer.collectTextMatches(.track.cueContent(index), text, options, index, 0, 0, result)
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
         if match.major >= .cueText.count do
             return false
@@ -202,7 +202,7 @@ private impl Panel
             .toolTip   = texts().ui_GoToTime
             .setText(Viewer.durationText(result.duration))
             .setForm(.Rectangle)
-            .sigPressed += func|view = result|(?) { view.promptGoToTime() }
+            .sigPressed += func|view = result|(_) { view.promptGoToTime() }
         }
 
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
@@ -211,7 +211,7 @@ private impl Panel
             .toolTip   = texts().ui_GoToCue
             .setText(cueCountText(result.track!.cueCount()))
             .setForm(.Rectangle)
-            .sigPressed += func|view = result|(?) { view.promptGoToCue() }
+            .sigPressed += func|view = result|(_) { view.promptGoToCue() }
         }
 
         with result.editor = RichEditCtrl.create(result)

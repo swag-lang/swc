@@ -81,7 +81,7 @@ private impl Panel
     mtd publishDocument(document: *Document)
     {
         .roll = RollView.create(me, #move document[])
-        .roll.sigZoomChanged += func|view = me|(?) { view.refreshZoom() }
+        .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
         .fillTracks()
         .trackCombo.setSelectedIndex(0, notify: false)
         .applyLayout()
@@ -183,11 +183,11 @@ impl Panel
         {
             .dockStyle  = .Left
             .toolTip    = texts().ui_AllTracks
-            .sigChanged += func|view = result|(?, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
+            .sigChanged += func|view = result|(_, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
         }
 
         result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)
-        result.zoomLabel.sigPressed += func|view = result|(?) { view.showZoomMenu() }
+        result.zoomLabel.sigPressed += func|view = result|(_) { view.showZoomMenu() }
 
         result.applyLayout()
         result.load.startPolled(result, host.fileName(), &loadDocument)

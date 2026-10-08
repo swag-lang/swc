@@ -76,7 +76,7 @@ public func getMonitors()->Array'Monitor
     var result: retval
 
     #[Swag.CallingConvention(.C)]
-    func proc(hMonitor: HMONITOR, ?: HDC, ?: *RECT, lParam: LPARAM)->BOOL
+    func proc(hMonitor: HMONITOR, _: HDC, _: *RECT, lParam: LPARAM)->BOOL
     {
         var mi: MONITORINFO
 

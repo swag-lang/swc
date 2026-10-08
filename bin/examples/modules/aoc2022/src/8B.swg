@@ -49,7 +49,7 @@ func day8B()
         if line == 0 or line == lines.count - 1 do
             continue
 
-        for ?, col in l.bytes()
+        for _, col in l.bytes()
         {
             if col == 0 or col == l.length - 1 do
                 continue

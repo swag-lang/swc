@@ -386,7 +386,7 @@
       "patterns": [
         {
           "name": "constant.character.escape",
-          "match": "\\b(me)\\b"
+          "match": "\\b(me|_)\\b"
         }
       ]
     },

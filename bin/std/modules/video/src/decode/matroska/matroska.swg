@@ -2249,7 +2249,7 @@ impl IDecoder for Decoder
         }
     }
 
-    mtd impl seekFrame(?: *ByteSource, index: u64) fail
+    mtd impl seekFrame(_: *ByteSource, index: u64) fail
     {
         if .fileIndex and Atomic.get(&.fileIndex.soundStatus) == SoundIndexRunning
         {

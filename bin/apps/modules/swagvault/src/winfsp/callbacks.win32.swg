@@ -134,7 +134,7 @@ namespace WinFsp
     }
 
     // Empties a file opened for overwrite, and replaces or merges its attributes.
-    func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, ?: u64, info: *FileInfo)->s32
+    func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, _: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
         volume.accessLock.lockExclusive()
@@ -365,7 +365,7 @@ namespace WinFsp
     }
 
     // Moves a node to `newPath`, over an existing target when `replace` allows it.
-    func callbackRename(context: *void?, nodeId: u64, ?, newPath: const [*] u8?, replace: u8)->s32
+    func callbackRename(context: *void?, nodeId: u64, _, newPath: const [*] u8?, replace: u8)->s32
     {
         let volume = cast(*Volume, context!)
         volume.accessLock.lockExclusive()

@@ -322,7 +322,7 @@ impl InlineView
         var runes = 0'u32
         while index < text.count
         {
-            let {?, eat} = Utf8.decodeRune(text[index to])
+            let {_, eat} = Utf8.decodeRune(text[index to])
             index += eat
             runes += 1
             if runes < 24 do
@@ -331,7 +331,7 @@ impl InlineView
             // Keep a closing mark attached even at an emergency word split.
             if index < text.count
             {
-                let {?, nextSize} = Utf8.decodeRune(text[index to])
+                let {_, nextSize} = Utf8.decodeRune(text[index to])
                 if Utf8.indexOf(".,;:!?)]}»”’…、。，；：！？）】》", text[index until index + nextSize]) != Swag.U64.Max do
                     continue
             }
@@ -1076,7 +1076,7 @@ impl InlineView
         var before = 0'f32
         while scan < source.count
         {
-            let {?, eat} = Utf8.decodeRune(source[scan to])
+            let {_, eat} = Utf8.decodeRune(source[scan to])
             let after    = Painter.measureStringSnapped(source[0 until scan + eat], font, deviceScale: .deviceScale())
             if x < (before + after) * 0.5 do
                 return scan
@@ -1313,7 +1313,7 @@ impl InlineView
 
 impl IWnd for InlineView
 {
-    mtd impl onDestroyEvent(?: *DestroyEvent)
+    mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .releaseRenderCache()
         .images.clear()

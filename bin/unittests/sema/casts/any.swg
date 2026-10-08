@@ -9,7 +9,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    func takes(?: s32) {}
+    func takes(_: s32) {}
     var a: any = 12
     takes(assume cast(a))
 }

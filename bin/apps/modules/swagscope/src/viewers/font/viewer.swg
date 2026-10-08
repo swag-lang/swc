@@ -221,7 +221,7 @@ impl Panel
             .dockStyle = .Left
             .setMaximumLength(128)
             .setPlaceholder(texts().ui_SamplePlaceholder)
-            .sigTextChanged += func|view = me|(?)
+            .sigTextChanged += func|view = me|(_)
             {
                 if not view.load.isPending() do
                     view.document.invalidate()
@@ -233,7 +233,7 @@ impl Panel
             .dockStyle  = .Left
             .margin.x   = 8
             .toolTip    = texts().ui_PreviousPage
-            .sigPressed += func|view = me|(?)
+            .sigPressed += func|view = me|(_)
             {
                 view.document.previousPage()
                 view.refreshPageCommands()
@@ -244,7 +244,7 @@ impl Panel
         {
             .dockStyle  = .Left
             .toolTip    = texts().ui_NextPage
-            .sigPressed += func|view = me|(?)
+            .sigPressed += func|view = me|(_)
             {
                 view.document.nextPage()
                 view.refreshPageCommands()
@@ -259,7 +259,7 @@ impl Panel
             .setArrowPosition(.RightUpward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().res.fontDefaultFs)
-            .sigPressed += func|view = me|(?) { view.showRangeMenu() }
+            .sigPressed += func|view = me|(_) { view.showRangeMenu() }
         }
     }
 }

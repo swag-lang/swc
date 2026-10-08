@@ -17,7 +17,7 @@ impl PropWnd
 
         let button = createStyleButton(stack, tip)
 
-        button.iconPainter = func|prop = me|(?, bc, pos, ?)
+        button.iconPainter = func|prop = me|(_, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
@@ -84,7 +84,7 @@ impl PropWnd
             return
 
         let button = createStyleButton(stack, appStrings().ui_PropOutline)
-        button.iconPainter = func|prop = me|(?, bc, pos, ?)
+        button.iconPainter = func|prop = me|(_, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             let color = prop.strokeOutlineColor()
@@ -130,7 +130,7 @@ impl PropWnd
         }
 
         let button = createStyleButton(stack, appStrings().ui_PropFill)
-        button.iconPainter = func|prop = me|(?, bc, pos, ?)
+        button.iconPainter = func|prop = me|(_, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
@@ -183,7 +183,7 @@ impl PropWnd
             return
 
         let button = createStyleButton(stack, appStrings().act_Shape)
-        button.iconPainter = func|prop = me|(button, bc, pos, ?)
+        button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormShape()
@@ -206,7 +206,7 @@ impl PropWnd
             return
 
         let button = createStyleButton(stack, appStrings().act_Shape)
-        button.iconPainter = func|prop = me|(button, bc, pos, ?)
+        button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormStep()
@@ -230,7 +230,7 @@ impl PropWnd
 
         let button = createStyleButton(stack, appStrings().ui_PropStart)
 
-        button.iconPainter = func|prop = me|(button, bc, pos, ?)
+        button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
@@ -253,7 +253,7 @@ impl PropWnd
             return
 
         let button = createStyleButton(stack, appStrings().ui_PropEnd)
-        button.iconPainter = func|prop = me|(button, bc, pos, ?)
+        button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
@@ -280,7 +280,7 @@ impl PropWnd
             return
 
         let button = createStyleButton(stack, appStrings().ui_PropDash)
-        button.iconPainter = func|prop = me|(button, bc, pos, ?)
+        button.iconPainter = func|prop = me|(button, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
@@ -312,7 +312,7 @@ impl PropWnd
             .margin.x      = 5
             .dockStyle     = .Right
             .toolTip       = appStrings().tip_ResetSteps
-            btn.sigPressed += func|prop = me|(?)
+            btn.sigPressed += func|prop = me|(_)
             {
                 // The button outlives the panel build; the capture may be gone by the
                 // time it is pressed, so guard instead of assuming it is still there.
@@ -352,7 +352,7 @@ impl PropWnd
             return
 
         let button = createStyleButton(stack, appStrings().act_Text)
-        button.iconPainter = func|prop = me|(?, bc, pos, ?)
+        button.iconPainter = func|prop = me|(_, bc, pos, _)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedForm'FormCallout()
@@ -423,7 +423,7 @@ impl PropWnd
                 edit.edit.setUnsignedIntegerRange(1, 10000)
             edit.edit.sigCommitted += func|prop, name|(ed)
             {
-                let {v, ?, ?} = catch StrConv.parseS32(ed.text())
+                let {v, _, _} = catch StrConv.parseS32(ed.text())
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
         }

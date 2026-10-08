@@ -89,7 +89,7 @@ public impl AboutDlg
             surfaceIcon: app.appIconAt(metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk),
             contentIcon: app.appIconAt(64, colors.view_Bk)})
         dlg.sourceUrl = String.from(params.sourceUrl)
-        dlg.labelMessage.sigLinkActivated += func|dlg|(?, text)
+        dlg.labelMessage.sigLinkActivated += func|dlg|(_, text)
         {
             if text == "Swag" do
                 Env.openUrl("https://www.swag-lang.org/")

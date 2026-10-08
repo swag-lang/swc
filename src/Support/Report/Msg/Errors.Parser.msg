@@ -15,6 +15,7 @@ SWC_DIAG_DEF(parser_err_empty_literal_suffix, Error, "empty literal suffix after
 SWC_DIAG_DEF(parser_err_invalid_literal_suffix, Error, "literal suffix '{tok}' is not supported; [help] use a scalar numeric type, 'bool', or 'rune'")
 SWC_DIAG_DEF(parser_err_cstyle_logical_op, Error, "C-style boolean operator '{tok}' is not part of Swag; [help] use '{value}' instead")
 SWC_DIAG_DEF(parser_err_cstyle_logical_op, Error, "C-style boolean operator '{tok}' is not part of Swag; [help] use 'and', 'or', or 'not' instead")
+SWC_DIAG_DEF(parser_err_unnamed_read, Error, "'_' is the unnamed binding and holds no value; [help] give the binding a name to read it")
 SWC_DIAG_DEF(parser_err_for_range_missing_lower_bound, Error, "range in 'for' is missing its lower bound; [help] write '0 to ...' or '0 until ...'")
 SWC_DIAG_DEF(parser_err_duplicated_modifier, Error, "modifier '{tok}' is already specified; [help] remove the repeated modifier")
 SWC_DIAG_DEF(parser_err_unexpected_do_block, Error, "'{' cannot follow 'do'; [help] use either 'do <statement>' or '{ ... }', but not both")

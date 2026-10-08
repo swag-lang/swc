@@ -1,13 +1,13 @@
 #global private
 
 func A() {}
-func A(?: s32) {}
+func A(_: s32) {}
 
 struct S {}
 impl S
 {
     mtd foo() {}
-    mtd foo(?: s32) {}
+    mtd foo(_: s32) {}
 }
 
 func semaTest001()
@@ -38,16 +38,16 @@ func semaTest003()
 }
 
 #[Swag.ConstExpr]
-func preferConcrete(x, ?: u64)->u64 => x
+func preferConcrete(x, _: u64)->u64 => x
 
 #[Swag.ConstExpr]
 func(T) preferConcrete(x, y: T)->T => y
 
 #[Swag.ConstExpr]
-func preferFloatLiteral(?, y: f32)->f32 => y
+func preferFloatLiteral(_, y: f32)->f32 => y
 
 #[Swag.ConstExpr]
-func preferFloatLiteral(?, y: f64)->f64 => y
+func preferFloatLiteral(_, y: f64)->f64 => y
 
 #[Swag.ConstExpr]
 func(T) preferFloatLiteral(x, y: T)->T => y

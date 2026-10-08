@@ -75,7 +75,7 @@ public struct ScrollWnd
 
 public impl IWnd for ScrollWnd
 {
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .computeLayout()
         if .view == null do
@@ -119,7 +119,7 @@ public impl IWnd for ScrollWnd
                                                      AnimationChannel.from("Gui.Scroll.Position"),
                                                      .view.scrollPos,
                                                      .scrollRequestPos,
-                                                     func|scrollWnd=me|(?, value)
+                                                     func|scrollWnd=me|(_, value)
                                                      {
                                                          discard scrollWnd.applyScrollPos(value.x, value.y)
                                                      },
@@ -516,7 +516,7 @@ public impl ScrollWnd
                                                       AnimationChannel.from("Gui.Scroll.Position"),
                                                       0,
                                                       1,
-                                                      func|scrollWnd=me, origin, distance, tangent, duration|(?, progress)
+                                                      func|scrollWnd=me, origin, distance, tangent, duration|(_, progress)
                                                       {
                                                           let t2    = progress * progress
                                                           let t3    = t2 * progress

@@ -421,7 +421,7 @@ impl IWnd for EditBox
     }
 
     // Blinking caret timer handler.
-    mtd impl onTimerEvent(?: *TimerEvent)
+    mtd impl onTimerEvent(_: *TimerEvent)
     {
         .visibleCaret = not .visibleCaret
 
@@ -482,7 +482,7 @@ private impl EditBox
             .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
-            .clearBtn.sigPressed += func|edit = me|(?)
+            .clearBtn.sigPressed += func|edit = me|(_)
             {
                 edit.setText(null)
                 edit.setFocus()
@@ -1068,7 +1068,7 @@ private impl EditBox
         if not sel do
             return sel
         let str      = Swag.makeString(.textStorage.buffer, sel)
-        let {?, eat} = Utf8.decodeLastRune(str)
+        let {_, eat} = Utf8.decodeLastRune(str)
         return sel - eat
     }
 
@@ -1078,7 +1078,7 @@ private impl EditBox
         if sel == .textStorage.length do
             return sel
         let str      = Swag.makeString(.textStorage.buffer + sel, .textStorage.length - sel)
-        let {?, eat} = Utf8.decodeRune(str)
+        let {_, eat} = Utf8.decodeRune(str)
         return sel + eat
     }
 

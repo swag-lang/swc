@@ -39,7 +39,7 @@ impl ImplGeneratedMember
 impl AA
 {
     mtd toto() {}
-    mtd titi(?: s32) {}
+    mtd titi(_: s32) {}
 }
 
 namespace ConvertNs
@@ -103,7 +103,7 @@ impl ImplPendingOverloadSet
 
 impl ImplPendingOverloadSet
 {
-    func setVibration(padIndex: u32, ?, ?: f32)->u32
+    func setVibration(padIndex: u32, _, _: f32)->u32
     {
         return padIndex
     }

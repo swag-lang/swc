@@ -84,7 +84,7 @@ internal impl IImageEncoder for Encoder
 {
     mtd impl format()->ImageFormat => {"QOI - Quite OK Image", ".qoi"}
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, ?: any?) fail
+    mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}

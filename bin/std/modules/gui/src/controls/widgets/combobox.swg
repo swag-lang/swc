@@ -84,7 +84,7 @@ impl IWnd for ComboBox
         }
     }
 
-    mtd impl onResizeEvent(?: *ResizeEvent)
+    mtd impl onResizeEvent(_: *ResizeEvent)
     {
         if .editBox
         {
@@ -209,7 +209,7 @@ impl IWnd for ComboBox
     // Every item has to be readable once selected, not only the one showing now, so the
     // widest decides. The theme combo width stays a floor, which keeps a field of short
     // entries the regular size of the surface.
-    mtd impl measureContent(?: Math.Point)->Math.Point
+    mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
 
@@ -384,7 +384,7 @@ private impl ComboBox
 
         popup.setSelectedIndex(.selectedIndex)
 
-        popup.sigClosed = func|combo = me|(?, idx)
+        popup.sigClosed = func|combo = me|(_, idx)
         {
             if idx != Swag.U32.Max do
                 combo.setSelectedIndex(idx)

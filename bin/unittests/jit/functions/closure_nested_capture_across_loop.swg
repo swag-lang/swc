@@ -42,7 +42,7 @@ impl Owner
     mtd build(color: *Box, item: *Box, opaque: bool, keepAlpha: bool)
     {
         let prop = me
-        g_outer = func|prop, color, item, opaque, keepAlpha|(?: u32)
+        g_outer = func|prop, color, item, opaque, keepAlpha|(_: u32)
         {
             // Early capture use.
             prop.pop = item

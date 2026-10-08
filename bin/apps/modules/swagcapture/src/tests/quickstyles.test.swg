@@ -93,7 +93,7 @@ using Swag, Core
 
         let button = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellSize, QuickCellSize})
         defer button.destroy()
-        button.iconPainter = func|itf|(?, bc, ?, ?)
+        button.iconPainter = func|itf|(_, bc, _, _)
         {
             var paint = QuickStylePaintForm.create(itf)
             defer paint.release()
@@ -166,7 +166,7 @@ using Swag, Core
     let propChildCountBefore = f.main.propWnd.topLayout.children.count
     var didDismiss           = false
 
-    f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(?)
+    f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(_)
     {
         if dismissed[] do
             return

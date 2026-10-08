@@ -90,7 +90,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host:       Testing.HeadlessHost
     host.setup(240, 120)
     defer host.shutdown()
-    host.root.hookOnEvent = func|count = &timerCount|(?, evt)
+    host.root.hookOnEvent = func|count = &timerCount|(_, evt)
     {
         if evt is TimerEvent do
             count[] += 1
@@ -120,7 +120,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     var timerCount: u32
     let view = Wnd.create'Wnd(&host.root)
-    view.hookOnEvent = func|count = &timerCount|(?, evt)
+    view.hookOnEvent = func|count = &timerCount|(_, evt)
     {
         if evt is TimerEvent do
             count[] += 1
@@ -214,7 +214,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     var frameCount: u32
     var didClick:   bool
-    let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(?)
+    let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(_)
     {
         frames[] += 1
         if not didClick[]
@@ -245,7 +245,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(160, 90)
     defer host.shutdown()
     var frameCallbacks: u32
-    host.app.sigFrame    += func|count = &frameCallbacks|(?) { count[] += 1 }
+    host.app.sigFrame    += func|count = &frameCallbacks|(_) { count[] += 1 }
     host.app.maxRunFrame = 2
 
     host.app.runFrame()

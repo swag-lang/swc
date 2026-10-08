@@ -1,40 +1,41 @@
 #global internal
+#global namespace Viewers.Hex
 
 using Core, Pixel, Gui
 
 // Air along the left and right edges of the grid, and the gap between two columns.
-const HexViewInset = 12.0
-const HexColumnGap = 14.0
+const ViewInset = 12.0
+const ColumnGap = 14.0
 
 // Bytes one group of the hexadecimal column holds. The extra gap between groups is what lets an
 // eye count columns without reading the header.
-const HexDefaultGroupSize = 8'u64
+const DefaultGroupSize = 8'u64
 
 // Rows a wheel notch moves, and the range a row is allowed to hold. Automatic fitting aligns the
 // chosen count to the active scalar, so a row can use the last available columns without ending in
 // the middle of a value.
-const HexWheelRows      = 3'u64
-const HexMinBytesPerRow = 8'u64
-const HexMaxBytesPerRow = 64'u64
+const WheelRows      = 3'u64
+const MinBytesPerRow = 8'u64
+const MaxBytesPerRow = 64'u64
 
 // Zoom range of the grid font, and the pace of the autoscroll a drag outside the rows keeps up.
-const HexMinFontSize = 8'u32
-const HexMaxFontSize = 24'u32
-const HexDragScrollRate: Time.Duration = 50'ms
+const MinFontSize = 8'u32
+const MaxFontSize = 24'u32
+const DragScrollRate: Time.Duration = 50'ms
 
 // Largest pixel span the vertical scrollbar is given.
 //
 // A scroll position is an f32, which counts whole numbers exactly only up to 2^24. Mapping the
 // bar through a fixed span and converting back through the row count keeps every row reachable
 // whatever the file size, instead of losing rows to the precision of a pixel offset.
-const HexScrollSpan = 4_194_304.0
+const ScrollSpan = 4_194_304.0
 
 // A clipboard operation is the one place bytes are materialized, so it is the one place a bound is
 // needed: the grid itself never holds more than one window.
-const HexCopyLimit = 1024 * 1024'u64
+const CopyLimit = 1024 * 1024'u64
 
 // What a copy of the current selection produces.
-enum HexCopyForm
+enum CopyForm
 {
     Bytes     // Hexadecimal byte values separated by spaces.
     Text      // Printable bytes as characters, every other byte as a dot.
@@ -42,7 +43,7 @@ enum HexCopyForm
 }
 
 // Selects the scalar each visual byte group represents.
-enum HexGrouping
+enum Grouping
 {
     Bytes          // Individual hexadecimal bytes, with a larger visual break every eight.
     Unsigned8      // Unsigned 8-bit integers.
@@ -61,7 +62,7 @@ enum HexGrouping
 }
 
 // Returns the byte width of the scalar `grouping` reads.
-func hexGroupingSize(grouping: HexGrouping)->u64
+func groupingSize(grouping: Grouping)->u64
 {
     switch grouping
     {
@@ -73,7 +74,7 @@ func hexGroupingSize(grouping: HexGrouping)->u64
 }
 
 // Returns the width reserved for one rendered scalar, in fixed-width characters.
-func hexGroupingChars(grouping: HexGrouping)->u64
+func groupingChars(grouping: Grouping)->u64
 {
     switch grouping
     {
@@ -95,7 +96,7 @@ func hexGroupingChars(grouping: HexGrouping)->u64
 }
 
 // Reinterprets an unsigned scalar as its signed type of the same byte width.
-func hexSignedScalar(raw: u64, size: u64)->s64
+func signedScalar(raw: u64, size: u64)->s64
 {
     let bits = size * 8
     if bits >= 64 do
@@ -107,11 +108,11 @@ func hexSignedScalar(raw: u64, size: u64)->s64
 }
 
 // Formats one complete scalar in the spelling selected by the value combo.
-func formatHexScalar(grouping: HexGrouping, raw: u64)->String
+func formatScalar(grouping: Grouping, raw: u64)->String
 {
     switch grouping
     {
-    case .Signed8, .Signed16, .Signed32, .Signed64: return Format.toString("%", hexSignedScalar(raw, hexGroupingSize(grouping)))
+    case .Signed8, .Signed16, .Signed32, .Signed64: return Format.toString("%", signedScalar(raw, groupingSize(grouping)))
     case .Bytes:   return Format.toString("%{X02}", raw)
     case .Hex16:   return Format.toString("0x%{X04}", raw)
     case .Hex32:   return Format.toString("0x%{X08}", raw)
@@ -123,7 +124,7 @@ func formatHexScalar(grouping: HexGrouping, raw: u64)->String
 }
 
 // Appends `value` as `digits` uppercase hexadecimal characters.
-func appendHexDigits(buffer: *Array'u8, value: u64, digits: u64)
+func appendDigits(buffer: *Array'u8, value: u64, digits: u64)
 {
     for index in digits
     {
@@ -134,15 +135,15 @@ func appendHexDigits(buffer: *Array'u8, value: u64, digits: u64)
 }
 
 // Returns `value` as `digits` uppercase hexadecimal characters.
-func formatHexDigits(value: u64, digits: u64)->String
+func formatDigits(value: u64, digits: u64)->String
 {
     var bytes: Array'u8
-    appendHexDigits(&bytes, value, digits)
+    appendDigits(&bytes, value, digits)
     return String.from(cast(string, bytes.toSlice()))
 }
 
 // Returns the value of the hexadecimal digit `value`, or 16 when `value` is not one.
-func hexDigitValue(value: u8)->u8
+func digitValue(value: u8)->u8
 {
     if value >= '0'u8 and value <= '9'u8 do
         return value - '0'u8
@@ -154,13 +155,13 @@ func hexDigitValue(value: u8)->u8
 }
 
 // Returns whether `value` is a byte the text column can show as itself.
-func isHexPrintable(value: u8)->bool => value >= 32 and value < 127
+func isPrintable(value: u8)->bool => value >= 32 and value < 127
 
 // Formats `bytes` as offset, hexadecimal byte, and text columns, `bytesPerRow` bytes per line.
 //
 // This is what a dump copy produces: at the row width and group size the view is using, what
 // leaves the viewer through the clipboard is laid out as the reader was looking at it.
-func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetDigits: u64, groupSize = HexDefaultGroupSize)->String
+func formatDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetDigits: u64, groupSize = DefaultGroupSize)->String
 {
     var result: retval
     if not bytesPerRow do
@@ -172,7 +173,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
     while row < bytes.count
     {
         line.clear()
-        appendHexDigits(&line, baseOffset + row, offsetDigits)
+        appendDigits(&line, baseOffset + row, offsetDigits)
         line.add(' 'u8)
         line.add(' 'u8)
 
@@ -181,7 +182,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
             let index = row + column
             if index < bytes.count
             {
-                appendHexDigits(&line, bytes[index], 2)
+                appendDigits(&line, bytes[index], 2)
             }
             else
             {
@@ -201,7 +202,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
             if index >= bytes.count do
                 break
             let value = bytes[index]
-            line.add(isHexPrintable(value) ? value : '.'u8)
+            line.add(isPrintable(value) ? value : '.'u8)
         }
 
         result += cast(string, line.toSlice())
@@ -217,7 +218,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
 // `text` is an absolute offset, a percentage, `caret`, `filesize` (the last byte), or an offset
 // relative to `caret` after `+` or `-`. Unprefixed numbers are hexadecimal; `0d` opts into decimal
 // explicitly. A number past the end names the last byte.
-func parseHexOffset(text: string, caret, fileSize: u64)->u64
+func parseOffset(text: string, caret, fileSize: u64)->u64
 {
     let trimmed = Latin1.trim(text)
     let count   = trimmed.count
@@ -268,7 +269,7 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
             continue
         }
 
-        let digit = hexDigitValue(c)
+        let digit = digitValue(c)
         if digit >= radix do
             return Swag.U64.Max
 
@@ -304,15 +305,15 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
 // The view holds one screen of bytes and two offsets — where the caret is, and where a selection
 // started. Every row position is computed from the caret and the file size rather than stored, so
 // reaching the end of a ten-gigabyte file costs what reaching the end of a small one costs.
-struct HexGridView
+struct GridView
 {
     using wnd: Wnd
 
     late scroll: *ScrollWnd
 
-    doc: HexDocument
+    doc: Document
 
-    sigCaretChanged: SigArray'func||(*HexGridView)     // Emitted after the caret or the selection moves.
+    sigCaretChanged: SigArray'func||(*GridView)     // Emitted after the caret or the selection moves.
 
     topRow: u64     // First row the viewport shows.
     caret:  u64     // Byte the caret stands on.
@@ -330,7 +331,7 @@ struct HexGridView
     bytesPerRow  = 16'u64
     offsetDigits = 8'u64
     autoFitRow   = true
-    grouping     = HexGrouping.Bytes
+    grouping     = Grouping.Bytes
     bigEndian: bool
 
     selecting: bool     // Whether a drag is currently extending the selection.
@@ -343,7 +344,7 @@ struct HexGridView
     charWidth:      f32
     rowHeight:      f32
     fontSize:       u32
-    sigZoomChanged: SigArray'func||(*HexGridView)     // Emitted after the font size changes.
+    sigZoomChanged: SigArray'func||(*GridView)     // Emitted after the font size changes.
 
     // Row text is rebuilt in place every frame. Bytes that carry a value and bytes that do not are
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of
@@ -356,7 +357,7 @@ struct HexGridView
     headerText:    Array'u8
 }
 
-impl HexGridView
+impl GridView
 {
     mtd lastOffset()->u64 => .doc.fileSize ? .doc.fileSize - 1 : 0
 
@@ -384,21 +385,21 @@ impl HexGridView
         return rows > visible ? rows - visible : 0
     }
 
-    mtd gutterWidth()->f32 => cast(f32, .offsetDigits) * .charWidth + HexColumnGap
+    mtd gutterWidth()->f32 => cast(f32, .offsetDigits) * .charWidth + ColumnGap
 
-    mtd valueSize()->u64 => hexGroupingSize(.grouping)
+    mtd valueSize()->u64 => groupingSize(.grouping)
 
-    mtd displayGroupSize()->u64 => .grouping == .Bytes ? HexDefaultGroupSize : .valueSize()
+    mtd displayGroupSize()->u64 => .grouping == .Bytes ? DefaultGroupSize : .valueSize()
 
-    mtd valueCellChars()->u64 => hexGroupingChars(.grouping)
+    mtd valueCellChars()->u64 => groupingChars(.grouping)
 
     mtd groupStart(offset: u64)->u64 => offset / .valueSize() * .valueSize()
 
     mtd hexCellX(column: u64)->f32
     {
         if .grouping == .Bytes do
-            return HexViewInset + .gutterWidth() + cast(f32, column * 3 + column / HexDefaultGroupSize) * .charWidth
-        return HexViewInset + .gutterWidth() + cast(f32, (column / .valueSize() * (.valueCellChars() + 1))) * .charWidth
+            return ViewInset + .gutterWidth() + cast(f32, column * 3 + column / DefaultGroupSize) * .charWidth
+        return ViewInset + .gutterWidth() + cast(f32, (column / .valueSize() * (.valueCellChars() + 1))) * .charWidth
     }
 
     mtd hexColumnWidth(bytesPerRow: u64)->f32
@@ -406,24 +407,24 @@ impl HexGridView
         if .grouping == .Bytes
         {
             let last = bytesPerRow ? bytesPerRow - 1 : 0
-            return cast(f32, last * 3 + last / HexDefaultGroupSize + 2) * .charWidth
+            return cast(f32, last * 3 + last / DefaultGroupSize + 2) * .charWidth
         }
 
         let values = bytesPerRow ? (bytesPerRow + .valueSize() - 1) / .valueSize() : 0
         return values ? cast(f32, (values * (.valueCellChars() + 1) - 1)) * .charWidth : 0
     }
 
-    mtd textColumnLeft()->f32 => HexViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + HexColumnGap
+    mtd textColumnLeft()->f32 => ViewInset + .gutterWidth() + .hexColumnWidth(.bytesPerRow) + ColumnGap
 
     mtd textCellX(column: u64)->f32 => .textColumnLeft() + cast(f32, column) * .charWidth
 
-    mtd contentWidthFor(bytesPerRow: u64)->f32 => HexViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + HexColumnGap + cast(f32, bytesPerRow) * .charWidth + HexViewInset
+    mtd contentWidthFor(bytesPerRow: u64)->f32 => ViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + ColumnGap + cast(f32, bytesPerRow) * .charWidth + ViewInset
 
     mtd contentWidth()->f32 => .contentWidthFor(.bytesPerRow)
 
     mtd setFontSize(size: u32)
     {
-        let next = Math.clamp(size, HexMinFontSize, HexMaxFontSize)
+        let next = Math.clamp(size, MinFontSize, MaxFontSize)
         if .fontSize == next do
             return
         .fontSize = next
@@ -434,7 +435,7 @@ impl HexGridView
 
     mtd adjustFontSize(delta: s32)
     {
-        let next = Math.clamp(cast(s32, .fontSize) + delta, cast(s32, HexMinFontSize), cast(s32, HexMaxFontSize))
+        let next = Math.clamp(cast(s32, .fontSize) + delta, cast(s32, MinFontSize), cast(s32, MaxFontSize))
         .setFontSize(cast(u32, next))
     }
 
@@ -514,18 +515,18 @@ impl HexGridView
     {
         let available = .clientRect().width
         if available <= 0 or .charWidth <= 0 do
-            return HexMinBytesPerRow
+            return MinBytesPerRow
 
         let unit      = .valueSize()
-        var candidate = HexMaxBytesPerRow / unit * unit
-        while candidate > HexMinBytesPerRow
+        var candidate = MaxBytesPerRow / unit * unit
+        while candidate > MinBytesPerRow
         {
             if .contentWidthFor(candidate) <= available do
                 return candidate
             candidate -= unit
         }
 
-        return Math.max(HexMinBytesPerRow / unit * unit, unit)
+        return Math.max(MinBytesPerRow / unit * unit, unit)
     }
 
     mtd computeMetrics()
@@ -576,7 +577,7 @@ impl HexGridView
         if .scroll == null do
             return
 
-        let span   = Math.min(cast(f32, .rowCount()) * .rowHeight, HexScrollSpan)
+        let span   = Math.min(cast(f32, .rowCount()) * .rowHeight, ScrollSpan)
         let usable = Math.max(span - .clientRect().height, 0)
         let maxTop = .maxTopRow()
         let y      = maxTop ? usable * cast(f32, .topRow) / cast(f32, maxTop) : 0
@@ -696,7 +697,7 @@ impl HexGridView
             let cell = Math.floor((x - .textColumnLeft()) / .charWidth)
             column = cell <= 0 ? 0 : Math.min(cast(u64, cell), .bytesPerRow - 1)
         }
-        elif x >= HexViewInset + .gutterWidth()
+        elif x >= ViewInset + .gutterWidth()
         {
             if .grouping == .Bytes
             {
@@ -709,7 +710,7 @@ impl HexGridView
             }
             else
             {
-                let left  = HexViewInset + .gutterWidth()
+                let left  = ViewInset + .gutterWidth()
                 let group = cast(u64, Math.max(Math.floor((x - left) / (cast(f32, (.valueCellChars() + 1)) * .charWidth)), 0))
                 column = Math.min(group * .valueSize(), .bytesPerRow - 1)
             }
@@ -784,14 +785,14 @@ impl HexGridView
     {
         .autoFitRow = auto
         if not auto do
-            .bytesPerRow = Math.clamp(count, HexMinBytesPerRow, HexMaxBytesPerRow)
+            .bytesPerRow = Math.clamp(count, MinBytesPerRow, MaxBytesPerRow)
         .refreshLayout()
         .ensureCaretVisible(false)
         .sigCaretChanged.call(me)
     }
 
     // Changes the scalar represented by one visual group without moving the byte-exact caret.
-    mtd setGrouping(grouping: HexGrouping)
+    mtd setGrouping(grouping: Grouping)
     {
         if .grouping == grouping do
             return
@@ -838,7 +839,7 @@ impl HexGridView
 
         if (above or below) and not .selectionTimer
         {
-            .selectionTimer = .addTimer(HexDragScrollRate)
+            .selectionTimer = .addTimer(DragScrollRate)
         }
         elif not above and not below and .selectionTimer
         {
@@ -856,23 +857,23 @@ impl HexGridView
         .sigCaretChanged.call(me)
     }
 
-    // Copies at most `HexCopyLimit` bytes of the selection to the clipboard, spelled as `form` asks.
+    // Copies at most `CopyLimit` bytes of the selection to the clipboard, spelled as `form` asks.
     //
     // The bound keeps a select-all over a large file a clipboard operation rather than a way to
     // load it.
-    mtd copySelection(form: HexCopyForm)
+    mtd copySelection(form: CopyForm)
     {
         if not .doc.fileSize do
             return
         let start = .selectionStart()
-        let bytes = .doc.read(start, Math.min(.selectionLength(), HexCopyLimit))
+        let bytes = .doc.read(start, Math.min(.selectionLength(), CopyLimit))
         if bytes.isEmpty() do
             return
 
         switch form
         {
         case .Dump:
-            Clipboard.addString(formatHexDump(bytes.toSlice(), start, .bytesPerRow, .offsetDigits, .displayGroupSize()))
+            Clipboard.addString(formatDump(bytes.toSlice(), start, .bytesPerRow, .offsetDigits, .displayGroupSize()))
 
         case .Bytes:
             var text: Array'u8
@@ -881,7 +882,7 @@ impl HexGridView
             {
                 if index do
                     text.add(' 'u8)
-                appendHexDigits(&text, value, 2)
+                appendDigits(&text, value, 2)
             }
 
             Clipboard.addString(cast(string, text.toSlice()))
@@ -890,7 +891,7 @@ impl HexGridView
             var text: Array'u8
             text.reserve(bytes.count)
             for value in bytes do
-                text.add(isHexPrintable(value) ? value : '.'u8)
+                text.add(isPrintable(value) ? value : '.'u8)
             Clipboard.addString(cast(string, text.toSlice()))
         }
     }
@@ -902,12 +903,12 @@ impl HexGridView
         if not surface or not .doc.fileSize do
             return
 
-        let current = formatHexDigits(.caret, .offsetDigits)
+        let current = formatDigits(.caret, .offsetDigits)
 
         with var options: EditDlgOptions
         {
-            .title   = hexStrings().ui_GoTo
-            .message = hexStrings().ui_GoToMessage
+            .title   = texts().ui_GoTo
+            .message = texts().ui_GoToMessage
             .text    = current.toString()
         }
 
@@ -924,7 +925,7 @@ impl HexGridView
     // The target is centered so its neighbourhood is readable.
     mtd goToTypedOffset(text: string)->bool
     {
-        let target = parseHexOffset(text, .caret, .doc.fileSize)
+        let target = parseOffset(text, .caret, .doc.fileSize)
         if target == Swag.U64.Max do
             return false
         .moveCaret(target, false, center: true)
@@ -938,12 +939,12 @@ impl HexGridView
         // be discovered from a clipboard that came back short.
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(ActionHex.CopyBytes)
-            .addItem(ActionHex.CopyText)
-            .addItem(ActionHex.CopyDump)
+            .addItem(Action.CopyBytes)
+            .addItem(Action.CopyText)
+            .addItem(Action.CopyDump)
             .addSeparator()
-            .addItem(ActionHex.SelectAll)
-            .addItem(ActionHex.GoTo)
+            .addItem(Action.SelectAll)
+            .addItem(Action.GoTo)
         }
 
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
@@ -957,9 +958,9 @@ impl HexGridView
         {
             for column in .bytesPerRow
             {
-                appendHexDigits(&.headerText, column, 2)
+                appendDigits(&.headerText, column, 2)
                 .headerText.add(' 'u8)
-                if column % HexDefaultGroupSize == HexDefaultGroupSize - 1 and column != .bytesPerRow - 1 do
+                if column % DefaultGroupSize == DefaultGroupSize - 1 and column != .bytesPerRow - 1 do
                     .headerText.add(' 'u8)
             }
         }
@@ -970,7 +971,7 @@ impl HexGridView
             {
                 let start = .headerText.count
                 .headerText.add('+'u8)
-                appendHexDigits(&.headerText, column, 2)
+                appendDigits(&.headerText, column, 2)
                 while .headerText.count - start < .valueCellChars() do
                     .headerText.add(' 'u8)
                 .headerText.add(' 'u8)
@@ -987,7 +988,7 @@ impl HexGridView
         .rowHexFaint.clear()
         .rowTextStrong.clear()
         .rowTextFaint.clear()
-        appendHexDigits(&.rowOffsetText, rowOffset, .offsetDigits)
+        appendDigits(&.rowOffsetText, rowOffset, .offsetDigits)
 
         if .grouping == .Bytes
         {
@@ -999,7 +1000,7 @@ impl HexGridView
 
                 let value = .doc.byteAt(offset)
                 let faint = value == 0
-                appendHexDigits(faint ? &.rowHexFaint : &.rowHexStrong, value, 2)
+                appendDigits(faint ? &.rowHexFaint : &.rowHexStrong, value, 2)
                 with let other = faint ? &.rowHexStrong : &.rowHexFaint
                 {
                     .add(' 'u8)
@@ -1008,7 +1009,7 @@ impl HexGridView
 
                 .rowHexStrong.add(' 'u8)
                 .rowHexFaint.add(' 'u8)
-                if column % HexDefaultGroupSize == HexDefaultGroupSize - 1
+                if column % DefaultGroupSize == DefaultGroupSize - 1
                 {
                     .rowHexStrong.add(' 'u8)
                     .rowHexFaint.add(' 'u8)
@@ -1023,7 +1024,7 @@ impl HexGridView
                 let offset   = rowOffset + column
                 let complete = offset + .valueSize() <= .doc.fileSize
                 let raw      = complete ? .scalarAt(offset) : 0
-                let text     = complete ? formatHexScalar(.grouping, raw) : String.from("--")
+                let text     = complete ? formatScalar(.grouping, raw) : String.from("--")
                 let faint    = complete and raw == 0
                 let target   = faint ? &.rowHexFaint : &.rowHexStrong
                 let other    = faint ? &.rowHexStrong : &.rowHexFaint
@@ -1053,7 +1054,7 @@ impl HexGridView
             if offset >= .doc.fileSize do
                 break
             let value     = .doc.byteAt(offset)
-            let printable = isHexPrintable(value)
+            let printable = isPrintable(value)
             .rowTextStrong.add(printable ? value : ' 'u8)
             .rowTextFaint.add(printable ? ' 'u8 : '.'u8)
         }
@@ -1081,9 +1082,9 @@ impl HexGridView
 }
 
 // Commands shared by the context menu and keyboard.
-struct ActionHex {}
+struct Action {}
 
-impl ActionHex
+impl Action
 {
     newCmdId("CopyBytes")
     newCmdId("CopyText")
@@ -1092,13 +1093,13 @@ impl ActionHex
     newCmdId("GoTo")
 }
 
-impl IActionUI for ActionHex
+impl IActionUI for Action
 {
     mtd impl accept(cxt: ActionContext)->bool
     {
         switch cxt.id
         {
-        case ActionHex.CopyBytes, ActionHex.CopyText, ActionHex.CopyDump, ActionHex.SelectAll, ActionHex.GoTo: return true
+        case Action.CopyBytes, Action.CopyText, Action.CopyDump, Action.SelectAll, Action.GoTo: return true
         }
 
         return false
@@ -1106,33 +1107,33 @@ impl IActionUI for ActionHex
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let grid    = assume cast(*HexGridView, cxt.wnd)
-        let bounded = grid.selectionLength() > HexCopyLimit
-        let limit   = StrConv.toDisplaySize(HexCopyLimit)
+        let grid    = assume cast(*GridView, cxt.wnd)
+        let bounded = grid.selectionLength() > CopyLimit
+        let limit   = StrConv.toDisplaySize(CopyLimit)
 
         switch cxt.id
         {
-        case ActionHex.CopyBytes:
+        case Action.CopyBytes:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = bounded ? Format.toString(hexStrings().ui_CopyBytesMax, limit) : String.from(hexStrings().ui_CopyBytes)
+            evt.name          = bounded ? Format.toString(texts().ui_CopyBytesMax, limit) : String.from(texts().ui_CopyBytes)
             evt.shortcut      = "Ctrl+C"
 
-        case ActionHex.CopyText:
+        case Action.CopyText:
             evt.updatedFields |= .Name
-            evt.name = bounded ? Format.toString(hexStrings().ui_CopyTextMax, limit) : String.from(hexStrings().ui_CopyText)
+            evt.name = bounded ? Format.toString(texts().ui_CopyTextMax, limit) : String.from(texts().ui_CopyText)
 
-        case ActionHex.CopyDump:
+        case Action.CopyDump:
             evt.updatedFields |= .Name
-            evt.name = bounded ? Format.toString(hexStrings().ui_CopyDumpMax, limit) : String.from(hexStrings().ui_CopyDump)
+            evt.name = bounded ? Format.toString(texts().ui_CopyDumpMax, limit) : String.from(texts().ui_CopyDump)
 
-        case ActionHex.SelectAll:
+        case Action.SelectAll:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = hexStrings().ui_SelectAll
+            evt.name          = texts().ui_SelectAll
             evt.shortcut      = "Ctrl+A"
 
-        case ActionHex.GoTo:
+        case Action.GoTo:
             evt.updatedFields |= .Name | .Shortcut
-            evt.name          = hexStrings().ui_GoTo
+            evt.name          = texts().ui_GoTo
             evt.shortcut      = "Ctrl+G"
         }
 
@@ -1141,21 +1142,21 @@ impl IActionUI for ActionHex
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let grid = assume cast(*HexGridView, cxt.wnd)
+        let grid = assume cast(*GridView, cxt.wnd)
         switch cxt.id
         {
-        case ActionHex.CopyBytes: grid.copySelection(.Bytes)
-        case ActionHex.CopyText:  grid.copySelection(.Text)
-        case ActionHex.CopyDump:  grid.copySelection(.Dump)
-        case ActionHex.SelectAll: grid.selectAll()
-        case ActionHex.GoTo:      grid.promptGoToOffset()
+        case Action.CopyBytes: grid.copySelection(.Bytes)
+        case Action.CopyText:  grid.copySelection(.Text)
+        case Action.CopyDump:  grid.copySelection(.Dump)
+        case Action.SelectAll: grid.selectAll()
+        case Action.GoTo:      grid.promptGoToOffset()
         }
 
         return true
     }
 }
 
-impl IWnd for HexGridView
+impl IWnd for GridView
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -1217,9 +1218,9 @@ impl IWnd for HexGridView
 
         case .Wheel:
             if evt.delta.y > 0 do
-                .scrollByRows(-cast(s64, HexWheelRows))
+                .scrollByRows(-cast(s64, WheelRows))
             elif evt.delta.y < 0 do
-                .scrollByRows(cast(s64, HexWheelRows))
+                .scrollByRows(cast(s64, WheelRows))
 
         case .Pressed where evt.button == .Right:
             let offset = .offsetAt(local)
@@ -1299,13 +1300,13 @@ impl IWnd for HexGridView
                 .moveCaret(Math.min(.caret - .caret % .bytesPerRow + .bytesPerRow - 1, .lastOffset()), extend)
 
         case .C where control:
-            .sendCommandEvent(ActionHex.CopyBytes)
+            .sendCommandEvent(Action.CopyBytes)
 
         case .A where control:
-            .sendCommandEvent(ActionHex.SelectAll)
+            .sendCommandEvent(Action.SelectAll)
 
         case .G where control:
-            .sendCommandEvent(ActionHex.GoTo)
+            .sendCommandEvent(Action.GoTo)
 
         case .Add, .OemPlus:
             if control do
@@ -1344,7 +1345,7 @@ impl IWnd for HexGridView
 
         if not .doc.fileSize
         {
-            painter.drawString(originX + HexViewInset, client.y + HexViewInset, hexStrings().ui_Empty, font, colors.label_TextLight)
+            painter.drawString(originX + ViewInset, client.y + ViewInset, texts().ui_Empty, font, colors.label_TextLight)
             return
         }
 
@@ -1369,8 +1370,8 @@ impl IWnd for HexGridView
         // Column header. It is the only chrome the grid carries, and one rule under it is all it
         // takes to separate it from the rows.
         let headerY = client.y + 4
-        .drawBuffer(painter, &.headerText, originX + HexViewInset + .gutterWidth(), headerY, font, headerInk)
-        painter.drawString(originX + .textColumnLeft(), headerY, hexStrings().ui_TextColumn, font, headerInk)
+        .drawBuffer(painter, &.headerText, originX + ViewInset + .gutterWidth(), headerY, font, headerInk)
+        painter.drawString(originX + .textColumnLeft(), headerY, texts().ui_TextColumn, font, headerInk)
         painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.border, 1)
 
         let selectFirst = .selectionStart()
@@ -1401,9 +1402,9 @@ impl IWnd for HexGridView
                 .fillRange(painter, Math.max(selectFirst, rowOffset), Math.min(selectLast, rowLast), originX, y, selectBk)
 
             .buildRow(rowOffset)
-            .drawBuffer(painter, &.rowOffsetText, originX + HexViewInset, y, font, headerInk)
-            .drawBuffer(painter, &.rowHexStrong, originX + HexViewInset + .gutterWidth(), y, font, strongInk)
-            .drawBuffer(painter, &.rowHexFaint, originX + HexViewInset + .gutterWidth(), y, font, faintInk)
+            .drawBuffer(painter, &.rowOffsetText, originX + ViewInset, y, font, headerInk)
+            .drawBuffer(painter, &.rowHexStrong, originX + ViewInset + .gutterWidth(), y, font, strongInk)
+            .drawBuffer(painter, &.rowHexFaint, originX + ViewInset + .gutterWidth(), y, font, faintInk)
             .drawBuffer(painter, &.rowTextStrong, originX + .textColumnLeft(), y, font, strongInk)
             .drawBuffer(painter, &.rowTextFaint, originX + .textColumnLeft(), y, font, faintInk)
 
@@ -1414,7 +1415,7 @@ impl IWnd for HexGridView
                 let valueOffset = .groupStart(.caret)
                 let column      = valueOffset % .bytesPerRow
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
-                let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
+                let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32, .valueCellChars()) * .charWidth + 2, .rowHeight, caretBk)
                 painter.drawString(originX + .hexCellX(column), y, text, font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
@@ -1423,19 +1424,19 @@ impl IWnd for HexGridView
     }
 }
 
-impl HexGridView
+impl GridView
 {
     // Creates an empty grid inside a scroll frame.
-    func create(parent: *Wnd)->*HexGridView
+    func create(parent: *Wnd)->*GridView
     {
         let scroll = Wnd.create'ScrollWnd(parent, "", {})
         scroll.dockStyle = .Center
 
-        with let result = scroll.createView'HexGridView()
+        with let result = scroll.createView'GridView()
         {
             .scroll = scroll
             .backgroundStyle = .View
-            .registerAction'ActionHex()
+            .registerAction'Action()
             .focusPolicy = .Tab
             .wndFlags    |= .NoScroll | .NoFocusRing | .ClipChildren
             .cursor      = Cursor.from(.IBeam)
@@ -1450,7 +1451,7 @@ impl HexGridView
     }
 
     // Publishes a document opened outside the GUI thread.
-    mtd exchangeDocument(document: *HexDocument)
+    mtd exchangeDocument(document: *Document)
     {
         swap(&.doc, document)
         .refreshLayout()

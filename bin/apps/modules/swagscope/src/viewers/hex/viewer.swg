@@ -1,20 +1,21 @@
 #global internal
+#global namespace Viewers.Hex
 
 using Core, Pixel, Gui
 
 // Describes the raw byte viewer to the host.
 //
 // It answers for every file, so a format nothing else reads is still openable.
-func hexViewerPlugin()->Viewer.Plugin
+func viewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "hex"
         .staticName   = "Hexadecimal"
-        .attach       = &registerHexStrings
+        .attach       = &registerTexts
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Hex)
-        .create       = &createHexViewer
+        .create       = &createViewer
         .smokeFixture = "viewer.hex"
         .addSelectors("*")
     }
@@ -22,13 +23,13 @@ func hexViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const HexCommandWidth   = 640.0
-private const HexComboWidth     = 120.0
-private const HexInspectorWidth = 420.0
-private const HexInfoWidth      = HexInspectorWidth + ViewerZoomSlotWidth
+private const CommandWidth   = 640.0
+private const ComboWidth     = 120.0
+private const InspectorWidth = 420.0
+private const InfoWidth      = InspectorWidth + ViewerZoomSlotWidth
 
 // Returns `value`, a `bits`-bit scalar, as `0b` and one binary digit per bit, as the inspector spells it.
-private func formatHexBinaryScalar(value, bits: u64)->String
+private func formatBinaryScalar(value, bits: u64)->String
 {
     var text: Array'u8
     text.reserve(bits + 2)
@@ -44,7 +45,7 @@ private func formatHexBinaryScalar(value, bits: u64)->String
 }
 
 // Returns `value`, a `bits`-bit scalar, as `0o` and its octal digits, as the inspector spells it.
-private func formatHexOctalScalar(value, bits: u64)->String
+private func formatOctalScalar(value, bits: u64)->String
 {
     let digits = (bits + 2) / 3
     var text: Array'u8
@@ -61,12 +62,12 @@ private func formatHexOctalScalar(value, bits: u64)->String
 }
 
 // Opens `fileName` and makes its first window resident, outside the GUI thread.
-private func loadHexDocument(fileName: string)->HexDocument fail
+private func loadDocument(fileName: string)->Document fail
 {
     var result: retval
     if not result.open(fileName) do
         fail InvalidFormatError{Errors.mkString(result.failureReason)}
-    if result.fileSize and not result.ensure(0, Math.min(result.fileSize, HexWindowSize)) do
+    if result.fileSize and not result.ensure(0, Math.min(result.fileSize, WindowSize)) do
         fail InvalidFormatError{Errors.mkString(result.failureReason)}
     return result
 }
@@ -76,7 +77,7 @@ private func loadHexDocument(fileName: string)->HexDocument fail
 // The view owns the grid the bytes are read in and the compact command group the host places in
 // its action bar. Everything below streams — no part of this view ever holds more than one window
 // of the file.
-struct HexViewer
+struct Panel
 {
     using wnd: Wnd
 
@@ -88,18 +89,18 @@ struct HexViewer
         widthCombo:     *ComboBox
         formatCombo:    *ComboBox
         byteOrderCombo: *ComboBox
-        analysisView:   *HexAnalysisView
-        grid:           *HexGridView
+        analysisView:   *AnalysisView
+        grid:           *GridView
     }
 
     inspectorLabel:       *Label?
     zoomLabel:            *IconButton?
-    searchPattern:        HexSearchPattern
-    analysis:             HexAnalysisOperation
+    searchPattern:        SearchPattern
+    analysis:             AnalysisOperation
     analysisTimer:        *Timer?
     fileName:             String
     details:              String
-    load:                 Viewer.BackgroundLoad'HexDocument
+    load:                 Viewer.BackgroundLoad'Document
     loadTimer:            *Timer?
     reportFailure:        Viewer.ReportFailure?
     reportDetails:        Viewer.ReportDetails?
@@ -107,7 +108,7 @@ struct HexViewer
     failureReason:        String
 }
 
-private impl IWnd for HexViewer
+private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -138,7 +139,7 @@ private impl IWnd for HexViewer
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        var document: HexDocument
+        var document: Document
         .failureReason = .load.finish(&document)
         if not .failureReason.isEmpty()
         {
@@ -172,7 +173,7 @@ private impl IWnd for HexViewer
     }
 }
 
-impl HexViewer
+impl Panel
 {
     // Stops the background load and analysis, and reports whether the view can be destroyed.
     //
@@ -198,11 +199,11 @@ impl HexViewer
         return true
     }
 
-    private mtd analysisRange()->{range: HexAnalysisRange, selection: bool}
+    private mtd analysisRange()->{range: AnalysisRange, selection: bool}
     {
         var result: retval
         result.selection = .grid.selectionLength() > 1
-        result.range     = result.selection ? HexAnalysisRange{.grid.selectionStart(), .grid.selectionLength()} : HexAnalysisRange{0, .grid.doc.fileSize}
+        result.range     = result.selection ? AnalysisRange{.grid.selectionStart(), .grid.selectionLength()} : AnalysisRange{0, .grid.doc.fileSize}
         return result
     }
 
@@ -224,7 +225,7 @@ impl HexViewer
         .startAnalysisRange(target.range, target.selection)
     }
 
-    private mtd startAnalysisRange(range: HexAnalysisRange, selection: bool)
+    private mtd startAnalysisRange(range: AnalysisRange, selection: bool)
     {
         .analysisView.show()
         .analysisView.begin(range, selection, .grid.offsetDigits)
@@ -257,7 +258,7 @@ impl HexViewer
         .grid.setFocus()
     }
 
-    mtd selectedGrouping()->HexGrouping
+    mtd selectedGrouping()->Grouping
     {
         let width  = .widthCombo.selectedIndex
         let format = .formatCombo.selectedIndex
@@ -320,11 +321,11 @@ impl HexViewer
     {
         let previous = .formatCombo.selectedIndex
         .formatCombo.clear()
-        .formatCombo.addItem(hexStrings().ui_FormatHex)
-        .formatCombo.addItem(hexStrings().ui_FormatUns)
-        .formatCombo.addItem(hexStrings().ui_FormatSigned)
+        .formatCombo.addItem(texts().ui_FormatHex)
+        .formatCombo.addItem(texts().ui_FormatUns)
+        .formatCombo.addItem(texts().ui_FormatSigned)
         if .widthCombo.selectedIndex >= 2 do
-            .formatCombo.addItem(hexStrings().ui_FormatFloat)
+            .formatCombo.addItem(texts().ui_FormatFloat)
         let next = previous < .formatCombo.items.count ? previous : 0
         .formatCombo.setSelectedIndex(cast(u32, next), notify: false)
         .applyValueMode()
@@ -334,32 +335,32 @@ impl HexViewer
     {
         let rowWidth = .rowWidthCombo.selectedIndex
         .rowWidthCombo.clear()
-        .rowWidthCombo.addItem(hexStrings().ui_RowAuto)
+        .rowWidthCombo.addItem(texts().ui_RowAuto)
         .rowWidthCombo.addItem("8")
         .rowWidthCombo.addItem("16")
         .rowWidthCombo.addItem("32")
         .rowWidthCombo.addItem("64")
         .rowWidthCombo.setSelectedIndex(rowWidth, notify: false)
-        .rowWidthCombo.toolTip = hexStrings().ui_RowWidth
+        .rowWidthCombo.toolTip = texts().ui_RowWidth
 
         let width = .widthCombo.selectedIndex
         .widthCombo.clear()
-        .widthCombo.addItem(hexStrings().ui_Width8)
-        .widthCombo.addItem(hexStrings().ui_Width16)
-        .widthCombo.addItem(hexStrings().ui_Width32)
-        .widthCombo.addItem(hexStrings().ui_Width64)
+        .widthCombo.addItem(texts().ui_Width8)
+        .widthCombo.addItem(texts().ui_Width16)
+        .widthCombo.addItem(texts().ui_Width32)
+        .widthCombo.addItem(texts().ui_Width64)
         .widthCombo.setSelectedIndex(width, notify: false)
-        .widthCombo.toolTip  = hexStrings().ui_TipWidth
-        .formatCombo.toolTip = hexStrings().ui_TipFormat
+        .widthCombo.toolTip  = texts().ui_TipWidth
+        .formatCombo.toolTip = texts().ui_TipFormat
         .rebuildFormats()
 
         let byteOrder = .byteOrderCombo.selectedIndex
         .byteOrderCombo.clear()
-        .byteOrderCombo.addItem(hexStrings().ui_EndianLittle)
-        .byteOrderCombo.addItem(hexStrings().ui_EndianBig)
+        .byteOrderCombo.addItem(texts().ui_EndianLittle)
+        .byteOrderCombo.addItem(texts().ui_EndianBig)
         .byteOrderCombo.setSelectedIndex(byteOrder, notify: false)
-        .byteOrderCombo.toolTip = hexStrings().ui_TipEndian
-        .analysisButton.toolTip = hexStrings().ui_AnalysisTip
+        .byteOrderCombo.toolTip = texts().ui_TipEndian
+        .analysisButton.toolTip = texts().ui_AnalysisTip
         .analysisView.retranslate()
         .details.clear()
         if .reportDetails do
@@ -369,7 +370,7 @@ impl HexViewer
         .refreshInspector()
     }
 
-    private mtd offsetText(offset: u64)->String => formatHexDigits(offset, .grid.offsetDigits)
+    private mtd offsetText(offset: u64)->String => formatDigits(offset, .grid.offsetDigits)
 
     private mtd refreshZoom()
     {
@@ -446,8 +447,8 @@ impl HexViewer
         let label = .inspectorLabel
         if not .grid.doc.fileSize
         {
-            label.setText(hexStrings().ui_InspectorEmpty)
-            label.toolTip = hexStrings().ui_InspectorEmpty
+            label.setText(texts().ui_InspectorEmpty)
+            label.toolTip = texts().ui_InspectorEmpty
             return
         }
 
@@ -455,38 +456,38 @@ impl HexViewer
         let bytes     = .grid.doc.read(.grid.caret, available)
         if bytes.isEmpty()
         {
-            label.setText(hexStrings().ui_InspectorEmpty)
-            label.toolTip = hexStrings().ui_InspectorEmpty
+            label.setText(texts().ui_InspectorEmpty)
+            label.toolTip = texts().ui_InspectorEmpty
             return
         }
 
         let offset  = .offsetText(.grid.caret)
         let size    = .grid.valueSize()
-        let active  = size <= bytes.count ? formatHexScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
+        let active  = size <= bytes.count ? formatScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
         let percent = .grid.doc.fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, .grid.doc.fileSize - 1) : 0
         label.setText(Format.toString("@% · %{f1}%% · % B · % %", offset, percent, .grid.selectionLength(), .activeValueTag(), active))
 
         var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%", offset, .grid.caret, percent, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
         let raw8    = .inspectorScalar(bytes.toSlice(), 1)
-        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %", raw8, hexSignedScalar(raw8, 1), raw8, formatHexBinaryScalar(raw8, 8), formatHexOctalScalar(raw8, 8), raw8 ? "true" : "false")
-        if isHexPrintable(cast(u8, raw8)) do
+        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %", raw8, signedScalar(raw8, 1), raw8, formatBinaryScalar(raw8, 8), formatOctalScalar(raw8, 8), raw8 ? "true" : "false")
+        if isPrintable(cast(u8, raw8)) do
             details += Format.toString(" · ASCII '%'", cast(u8, raw8))
         if bytes.count >= 2
         {
             let raw = .inspectorScalar(bytes.toSlice(), 2)
-            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04} · b16 % · o16 %", raw, hexSignedScalar(raw, 2), raw, formatHexBinaryScalar(raw, 16), formatHexOctalScalar(raw, 16))
+            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04} · b16 % · o16 %", raw, signedScalar(raw, 2), raw, formatBinaryScalar(raw, 16), formatOctalScalar(raw, 16))
         }
 
         if bytes.count >= 4
         {
             let raw = .inspectorScalar(bytes.toSlice(), 4)
-            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}", raw, hexSignedScalar(raw, 4), raw, formatHexBinaryScalar(raw, 32), formatHexOctalScalar(raw, 32), cast #bit (f32, cast(u32, raw)))
+            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}", raw, signedScalar(raw, 4), raw, formatBinaryScalar(raw, 32), formatOctalScalar(raw, 32), cast #bit (f32, cast(u32, raw)))
         }
 
         if bytes.count >= 8
         {
             let raw = .inspectorScalar(bytes.toSlice(), 8)
-            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}", raw, hexSignedScalar(raw, 8), raw, formatHexBinaryScalar(raw, 64), formatHexOctalScalar(raw, 64), cast #bit (f64, raw))
+            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}", raw, signedScalar(raw, 8), raw, formatBinaryScalar(raw, 64), formatOctalScalar(raw, 64), cast #bit (f64, raw))
         }
 
         label.toolTip = #move details
@@ -494,21 +495,21 @@ impl HexViewer
 
     mtd describeSearch(result: *Viewer.SearchPresentation)
     {
-        result.placeholder    = hexStrings().ui_SearchPlaceholder
-        result.toolTip        = hexStrings().ui_SearchHelp
+        result.placeholder    = texts().ui_SearchPlaceholder
+        result.toolTip        = texts().ui_SearchHelp
         result.useTextOptions = false
     }
 
     mtd prepareSearch(query: string, result: *Viewer.SearchPlan)->EditBoxCheckResult
     {
-        var parsed = parseHexSearch(query, .grid.grouping, .grid.bigEndian)
+        var parsed = parseSearch(query, .grid.grouping, .grid.bigEndian)
         switch #complete parsed.state
         {
         case .Incomplete:
             return .Incomplete
 
         case .Invalid:
-            result.error = parsed.error == .Value ? hexStrings().ui_SearchValueError : hexStrings().ui_SearchPatternError
+            result.error = parsed.error == .Value ? texts().ui_SearchValueError : texts().ui_SearchPatternError
             return .InvalidVisible
 
         case .Valid:
@@ -533,13 +534,13 @@ impl HexViewer
     }
 }
 
-impl HexViewer
+impl Panel
 {
-    func create(host: Viewer.Host)->*HexViewer
+    func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'HexViewer(host.contentParent(), "scope.hex")
+        with let result = Wnd.create'Panel(host.contentParent(), "scope.hex")
         {
             .backgroundStyle      = .View
             .reportFailure        = services.reportFailure
@@ -559,7 +560,7 @@ impl HexViewer
         result.refreshInspector()
         result.refreshZoom()
         result.setInitialFocus(result.grid)
-        result.load.start(host.fileName(), &loadHexDocument)
+        result.load.start(host.fileName(), &loadDocument)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
@@ -567,14 +568,14 @@ impl HexViewer
     // Creates the command group: the row width, value width, representation, and byte order selectors.
     private mtd createCommandBar(host: Viewer.Host)
     {
-        .commands = host.createCommandGroup(HexCommandWidth)
+        .commands = host.createCommandGroup(CommandWidth)
 
-        with .rowWidthCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
+        with .rowWidthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = hexStrings().ui_RowWidth
-            .addItem(hexStrings().ui_RowAuto)
+            .toolTip   = texts().ui_RowWidth
+            .addItem(texts().ui_RowAuto)
             .addItem("8")
             .addItem("16")
             .addItem("32")
@@ -583,38 +584,38 @@ impl HexViewer
             .sigChanged += func|view = me|(?, ?) { view.applyRowWidth() }
         }
 
-        with .widthCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
+        with .widthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = hexStrings().ui_TipWidth
-            .addItem(hexStrings().ui_Width8)
-            .addItem(hexStrings().ui_Width16)
-            .addItem(hexStrings().ui_Width32)
-            .addItem(hexStrings().ui_Width64)
+            .toolTip   = texts().ui_TipWidth
+            .addItem(texts().ui_Width8)
+            .addItem(texts().ui_Width16)
+            .addItem(texts().ui_Width32)
+            .addItem(texts().ui_Width64)
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(?, ?) { view.rebuildFormats() }
         }
 
-        with .formatCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
+        with .formatCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = hexStrings().ui_TipFormat
-            .addItem(hexStrings().ui_FormatHex)
-            .addItem(hexStrings().ui_FormatUns)
-            .addItem(hexStrings().ui_FormatSigned)
+            .toolTip   = texts().ui_TipFormat
+            .addItem(texts().ui_FormatHex)
+            .addItem(texts().ui_FormatUns)
+            .addItem(texts().ui_FormatSigned)
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(?, ?) { view.applyValueMode() }
         }
 
-        with .byteOrderCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
+        with .byteOrderCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = hexStrings().ui_TipEndian
-            .addItem(hexStrings().ui_EndianLittle)
-            .addItem(hexStrings().ui_EndianBig)
+            .toolTip   = texts().ui_TipEndian
+            .addItem(texts().ui_EndianLittle)
+            .addItem(texts().ui_EndianBig)
             .setSelectedIndex(0, notify: false)
             .sigChanged += func|view = me|(?, ?) { view.applyByteOrder() }
         }
@@ -623,7 +624,7 @@ impl HexViewer
     // Creates the analysis side panel, and wires the host toggle that opens it.
     private mtd createAnalysisPanel(host: Viewer.Host)
     {
-        let sidePanel = host.createSidePanel(HexAnalysisPanelWidth, .theme().icon(.Information, themeActionIconSize(.themeMetrics())), hexStrings().ui_AnalysisTip)
+        let sidePanel = host.createSidePanel(AnalysisPanelWidth, .theme().icon(.Information, themeActionIconSize(.themeMetrics())), texts().ui_AnalysisTip)
         with .analysisButton = sidePanel.toggle
         {
             .enable(false)
@@ -636,7 +637,7 @@ impl HexViewer
             }
         }
 
-        with .analysisView = HexAnalysisView.create(sidePanel.content)
+        with .analysisView = AnalysisView.create(sidePanel.content)
         {
             .sigAnalyze += func|view = me|(?)
             {
@@ -665,7 +666,7 @@ impl HexViewer
     // Creates the information group: the zoom menu and the caret inspector.
     private mtd createInfoGroup(host: Viewer.Host)
     {
-        let info = host.createInfoGroup(HexInfoWidth)
+        let info = host.createInfoGroup(InfoWidth)
         with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
         {
             .dockStyle = .Right
@@ -674,11 +675,11 @@ impl HexViewer
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = hexStrings().ui_ZoomMenu
+            .toolTip    = texts().ui_ZoomMenu
             .sigPressed += func|view = me|(?) { view.showZoomMenu() }
         }
 
-        with .inspectorLabel = Label.create(info, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
+        with .inspectorLabel = Label.create(info, "", {0, 0, InspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -689,7 +690,7 @@ impl HexViewer
     // Creates the byte grid, whose caret and zoom feed the information group.
     private mtd createGrid()
     {
-        with .grid = HexGridView.create(me)
+        with .grid = GridView.create(me)
         {
             .sigCaretChanged += func|view = me|(?) { view.refreshInspector() }
             .sigZoomChanged  += func|view = me|(?) { view.refreshZoom() }
@@ -698,9 +699,9 @@ impl HexViewer
 }
 
 // Creates the integrated hexadecimal view.
-func createHexViewer(host: Viewer.Host)
+func createViewer(host: Viewer.Host)
 {
-    let view = HexViewer.create(host)
+    let view = Panel.create(host)
 
     host.attachView(view)
     host.setDetails(view.details)

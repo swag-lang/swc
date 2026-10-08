@@ -1,21 +1,22 @@
 #global internal
+#global namespace Viewers.Hex
 
 using Core
 
 // Bytes the viewer keeps resident at once. One window covers many screens, so a reader moving
 // through a file crosses a read every few hundred rows rather than on every scroll notch.
-const HexWindowSize = 256 * 1024'u64
+const WindowSize = 256 * 1024'u64
 
 // Reads start on this boundary, so scrolling back by one row lands on the block that was already
 // read instead of on a window shifted by sixteen bytes.
-const HexWindowAlign = 64 * 1024'u64
+const WindowAlign = 64 * 1024'u64
 
 // File the viewer reads through, one bounded window at a time.
 //
-// Nothing here ever holds the whole file. [[HexDocument.ensure]] moves a window of at most
-// `HexWindowSize` bytes over the region being displayed, and [[HexDocument.read]] serves a bounded
+// Nothing here ever holds the whole file. [[Document.ensure]] moves a window of at most
+// `WindowSize` bytes over the region being displayed, and [[Document.read]] serves a bounded
 // copy without disturbing that window, so a ten-gigabyte file costs exactly what a small one does.
-struct HexDocument
+struct Document
 {
     stream:        File.FileStream
     fileSize:      u64
@@ -26,7 +27,7 @@ struct HexDocument
     reportFailure: (func||(string))?
 }
 
-impl HexDocument
+impl Document
 {
     // Records `reason` as the failure that stops every later read, and reports it to `reportFailure` once.
     mtd failRead(reason: string)
@@ -35,7 +36,7 @@ impl HexDocument
             return
         .failureReason = reason
         if .failureReason.isEmpty() do
-            .failureReason = hexStrings().err_Read
+            .failureReason = texts().err_Read
         .readFailed = true
         if .reportFailure do
             .reportFailure(.failureReason.toString())
@@ -79,7 +80,7 @@ impl HexDocument
 
     // Makes `[offset, offset + length)` resident, and reports whether it now is.
     //
-    // A request wider than `HexWindowSize` is served only up to the window; the viewer never asks
+    // A request wider than `WindowSize` is served only up to the window; the viewer never asks
     // for more than one screen of bytes, which is what keeps that bound invisible.
     mtd ensure(offset, length: u64)->bool
     {
@@ -88,7 +89,7 @@ impl HexDocument
         if offset >= .fileSize do
             return length == 0
         let end         = Math.min(offset + length, .fileSize)
-        let margin      = Math.min(Math.max(length * 6, HexWindowAlign), HexWindowSize / 4)
+        let margin      = Math.min(Math.max(length * 6, WindowAlign), WindowSize / 4)
         let windowEnd   = .windowStart + .window.count
         let readyBefore = not .windowStart or offset >= .windowStart + margin
         let readyAfter  = windowEnd >= .fileSize or end + margin <= windowEnd
@@ -98,8 +99,8 @@ impl HexDocument
         // Keep overlap on both sides, so reversing near a read boundary does not reread a new
         // window on every row. Paint always receives the complete requested range synchronously.
         let wantedStart = offset > margin ? offset - margin : 0
-        let start       = wantedStart / HexWindowAlign * HexWindowAlign
-        let wanted      = Math.min(HexWindowSize, .fileSize - start)
+        let start       = wantedStart / WindowAlign * WindowAlign
+        let wanted      = Math.min(WindowSize, .fileSize - start)
         .window.resize(wanted)
         catch .stream.seek(.Begin, start) as seekError
         if seekError != null
@@ -119,7 +120,7 @@ impl HexDocument
 
         if read < wanted
         {
-            .failRead(hexStrings().err_Truncated)
+            .failRead(texts().err_Truncated)
             .window.clear()
             return false
         }
@@ -132,7 +133,7 @@ impl HexDocument
     // Returns the byte at `offset`, or zero when it is outside the resident window.
     //
     // Painting calls this once per drawn byte, so it stays a bounds test and an index; the caller
-    // establishes residency once for the whole row range through [[HexDocument.ensure]].
+    // establishes residency once for the whole row range through [[Document.ensure]].
     mtd byteAt(offset: u64)->u8
     {
         if offset < .windowStart do
@@ -173,7 +174,7 @@ impl HexDocument
 
         if read < wanted
         {
-            .failRead(hexStrings().err_Truncated)
+            .failRead(texts().err_Truncated)
             result.clear()
             return result
         }

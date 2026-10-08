@@ -1,9 +1,10 @@
 #global internal
+#global namespace Viewers.Hex
 
 using Core
 
 // State of a hexadecimal search query while it is being edited.
-enum HexSearchParseState
+enum SearchParseState
 {
     Incomplete     // A prefix or half-byte can still become a valid query.
     Valid          // The query names at least one source byte.
@@ -11,7 +12,7 @@ enum HexSearchParseState
 }
 
 // Explanation attached to an invalid hexadecimal search query.
-enum HexSearchError
+enum SearchError
 {
     None        // The query is valid or merely incomplete.
     Pattern     // A hexadecimal pattern contains something other than byte pairs and wildcards.
@@ -23,13 +24,13 @@ enum HexSearchError
 // A zero mask is `??`, a half mask is one wildcard nibble, and `0xFF` is an exact byte. Keeping
 // those three forms in the same representation makes matching independent from how the query was
 // written and lets a pattern cross any streamed file-window boundary.
-struct HexSearchPattern
+struct SearchPattern
 {
     values: Array'u8
     masks:  Array'u8
 }
 
-impl HexSearchPattern
+impl SearchPattern
 {
     mtd length()->u64 => .values.count
 
@@ -57,24 +58,24 @@ impl HexSearchPattern
 
 // Parsed query with enough state for an edit box to distinguish an unfinished prefix from an
 // invalid pattern.
-struct HexSearchParse
+struct SearchParse
 {
-    pattern: HexSearchPattern
-    state:   HexSearchParseState
-    error:   HexSearchError
+    pattern: SearchPattern
+    state:   SearchParseState
+    error:   SearchError
 }
 
-private func appendHexSearchByte(pattern: *HexSearchPattern, high, low: u8)
+private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
 {
     let highWildcard = high == '?'u8
     let lowWildcard  = low == '?'u8
-    let highValue    = highWildcard ? 0'u8 : hexDigitValue(high)
-    let lowValue     = lowWildcard ? 0'u8 : hexDigitValue(low)
+    let highValue    = highWildcard ? 0'u8 : digitValue(high)
+    let lowValue     = lowWildcard ? 0'u8 : digitValue(low)
     pattern.values.add((highValue << 4) | lowValue)
     pattern.masks.add((highWildcard ? 0'u8 : 0xF0'u8) | (lowWildcard ? 0'u8 : 0x0F'u8))
 }
 
-private func parseHexBytePattern(source: string)->HexSearchParse
+private func parseBytePattern(source: string)->SearchParse
 {
     var result:  retval
     var high = 0'u8
@@ -95,7 +96,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
             continue
         }
 
-        if value != '?'u8 and hexDigitValue(value) == 16
+        if value != '?'u8 and digitValue(value) == 16
         {
             result.state = .Invalid
             result.error = .Pattern
@@ -109,7 +110,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
             continue
         }
 
-        appendHexSearchByte(&result.pattern, high, value)
+        appendSearchByte(&result.pattern, high, value)
         hasHigh = false
     }
 
@@ -123,7 +124,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
     return result
 }
 
-private func parseHexTextPattern(source: string)->HexSearchParse
+private func parseTextPattern(source: string)->SearchParse
 {
     var result: retval
     if not source.count
@@ -144,7 +145,7 @@ private func parseHexTextPattern(source: string)->HexSearchParse
     return result
 }
 
-private func appendHexScalarPattern(pattern: *HexSearchPattern, raw, size: u64, bigEndian: bool)
+private func appendScalarPattern(pattern: *SearchPattern, raw, size: u64, bigEndian: bool)
 {
     for index in size
     {
@@ -154,7 +155,7 @@ private func appendHexScalarPattern(pattern: *HexSearchPattern, raw, size: u64, 
     }
 }
 
-private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndian: bool)->HexSearchParse
+private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bool)->SearchParse
 {
     var result: retval
     if not source.count or source == "+" or source == "-" or source == "0x" or source == "0X"
@@ -163,7 +164,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
         return result
     }
 
-    let size = hexGroupingSize(grouping)
+    let size = groupingSize(grouping)
     var raw  = 0'u64
     var valid: bool
     switch grouping
@@ -222,7 +223,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
         return result
     }
 
-    appendHexScalarPattern(&result.pattern, raw, size, bigEndian)
+    appendScalarPattern(&result.pattern, raw, size, bigEndian)
     result.state = .Valid
     return result
 }
@@ -232,7 +233,7 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
 // - `4D 5A ?? ?0` or `hex: 4D 5A` for byte and nibble patterns;
 // - `text: MZ` or `"MZ"` for exact UTF-8 bytes;
 // - `value: 42` for a scalar spelled as `grouping` reads it, in the byte order `bigEndian` selects.
-func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexSearchParse
+func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchParse
 {
     let trimmed = Latin1.trim(query)
     if not trimmed.count
@@ -243,11 +244,11 @@ func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexS
     }
 
     if Utf8.startsWith(trimmed, "text:", .Latin1NoCase) do
-        return parseHexTextPattern(Latin1.trim(cast(string, trimmed[5 to])))
+        return parseTextPattern(Latin1.trim(cast(string, trimmed[5 to])))
     if Utf8.startsWith(trimmed, "value:", .Latin1NoCase) do
-        return parseHexValuePattern(Latin1.trim(cast(string, trimmed[6 to])), grouping, bigEndian)
+        return parseValuePattern(Latin1.trim(cast(string, trimmed[6 to])), grouping, bigEndian)
     if Utf8.startsWith(trimmed, "hex:", .Latin1NoCase) do
-        return parseHexBytePattern(Latin1.trim(cast(string, trimmed[4 to])))
+        return parseBytePattern(Latin1.trim(cast(string, trimmed[4 to])))
 
     if trimmed[0] == '"'u8
     {
@@ -258,8 +259,8 @@ func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexS
             return result
         }
 
-        return parseHexTextPattern(cast(string, trimmed[1 until trimmed.count - 1]))
+        return parseTextPattern(cast(string, trimmed[1 until trimmed.count - 1]))
     }
 
-    return parseHexBytePattern(trimmed)
+    return parseBytePattern(trimmed)
 }

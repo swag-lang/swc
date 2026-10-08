@@ -60,7 +60,7 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
     expect result.register(archiveViewerPlugin())
     expect result.register(textViewerPlugin())
     expect result.register(binaryViewerPlugin())
-    expect result.register(hexViewerPlugin())
+    expect result.register(Viewers.Hex.viewerPlugin())
     return result
 }
 

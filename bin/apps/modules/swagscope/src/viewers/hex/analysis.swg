@@ -1,19 +1,20 @@
 #global internal
+#global namespace Viewers.Hex
 
 using Core
 
 // One analysis pass reads this many bytes before publishing cancellation progress. The buffer is
 // large enough for sequential I/O and small enough that stopping never waits on a resident file.
-const HexAnalysisChunkSize = 256 * 1024'u64
+const AnalysisChunkSize = 256 * 1024'u64
 
 // String inference is intentionally bounded: the first findings stay useful on a damaged or
 // repetitive image without letting a synthetic file turn an inspection panel into the file.
-const HexAnalysisStringLimit       = 4096'u64
-const HexAnalysisStringPreview     = 192'u64
-const HexAnalysisMinimumStringSize = 4'u64
+const AnalysisStringLimit       = 4096'u64
+const AnalysisStringPreview     = 192'u64
+const AnalysisMinimumStringSize = 4'u64
 
 // Encoding an inferred string was read in.
-enum HexAnalysisStringKind
+enum AnalysisStringKind
 {
     Ascii           // Each character is one printable byte.
     Utf16Little     // Each character is a printable byte followed by a zero byte.
@@ -21,38 +22,38 @@ enum HexAnalysisStringKind
 }
 
 // Bytes one analysis covers.
-struct HexAnalysisRange
+struct AnalysisRange
 {
     offset: u64
     length: u64
 }
 
 // One inferred readable run and the exact bytes that produced it.
-struct HexAnalysisString
+struct AnalysisString
 {
     offset: u64     // First byte of the run in the file.
     length: u64     // Bytes the run covers, two per character in UTF-16.
-    kind:   HexAnalysisStringKind
+    kind:   AnalysisStringKind
     text:   String     // Readable preview, ending in `...` when the run is longer.
 }
 
 // Bounded findings for one explicit file range.
-struct HexAnalysisResult
+struct AnalysisResult
 {
-    range:            HexAnalysisRange
+    range:            AnalysisRange
     scanned:          u64           // Bytes read before completion, cancellation, or failure.
     histogram:        [256] u64     // Occurrences of each byte value.
     zeroCount:        u64
-    printableCount:   u64                         // Bytes the text column shows as themselves.
-    entropy:          f64                         // Shannon entropy of the scanned bytes, in bits per byte.
-    strings:          Array'HexAnalysisString     // Inferred runs in file order, at most `HexAnalysisStringLimit`.
-    stringsTruncated: bool                        // Whether more runs were found than `strings` keeps.
+    printableCount:   u64                      // Bytes the text column shows as themselves.
+    entropy:          f64                      // Shannon entropy of the scanned bytes, in bits per byte.
+    strings:          Array'AnalysisString     // Inferred runs in file order, at most `AnalysisStringLimit`.
+    stringsTruncated: bool                     // Whether more runs were found than `strings` keeps.
     cancelled:        bool
     failureReason:    String     // Empty unless the file could not be read.
 }
 
 // Readable run being accumulated in one encoding, flushed when a byte breaks it.
-private struct HexStringScanner
+private struct StringScanner
 {
     start:   u64
     length:  u64
@@ -60,7 +61,7 @@ private struct HexStringScanner
     preview: Array'u8
 }
 
-private impl HexStringScanner
+private impl StringScanner
 {
     mtd reset()
     {
@@ -76,17 +77,17 @@ private impl HexStringScanner
             .start = offset
         .length += byteLength
         .units  += 1
-        if .preview.count < HexAnalysisStringPreview do
+        if .preview.count < AnalysisStringPreview do
             .preview.add(value)
     }
 
-    mtd flush(kind: HexAnalysisStringKind, result: *HexAnalysisResult)
+    mtd flush(kind: AnalysisStringKind, result: *AnalysisResult)
     {
-        if .units >= HexAnalysisMinimumStringSize
+        if .units >= AnalysisMinimumStringSize
         {
-            if result.strings.count < HexAnalysisStringLimit
+            if result.strings.count < AnalysisStringLimit
             {
-                var entry = HexAnalysisString{offset: .start, length: .length, kind: kind}
+                var entry = AnalysisString{offset: .start, length: .length, kind: kind}
                 entry.text = String.from(cast(string, .preview.toSlice()))
                 if .units > .preview.count do
                     entry.text += "..."
@@ -102,16 +103,16 @@ private impl HexStringScanner
     }
 }
 
-private impl HexAnalysisResult
+private impl AnalysisResult
 {
     // Counts the byte at `offset` and extends or closes the ASCII run.
-    mtd scanByte(ascii: *HexStringScanner, value: u8, offset: u64)
+    mtd scanByte(ascii: *StringScanner, value: u8, offset: u64)
     {
         .histogram[value] += 1
         if value == 0 do
             .zeroCount += 1
 
-        if isHexPrintable(value)
+        if isPrintable(value)
         {
             .printableCount += 1
             ascii.append(offset, 1, value)
@@ -123,21 +124,21 @@ private impl HexAnalysisResult
     }
 
     // Extends or closes the UTF-16 runs with the byte pair `first`, `second` at `offset`.
-    mtd scanPair(little, big: *HexStringScanner, first, second: u8, offset: u64)
+    mtd scanPair(little, big: *StringScanner, first, second: u8, offset: u64)
     {
-        if isHexPrintable(first) and second == 0 do
+        if isPrintable(first) and second == 0 do
             little.append(offset, 2, first)
         else do
             little.flush(.Utf16Little, me)
 
-        if first == 0 and isHexPrintable(second) do
+        if first == 0 and isPrintable(second) do
             big.append(offset, 2, second)
         else do
             big.flush(.Utf16Big, me)
     }
 
     // Closes every open run, orders the strings by offset, and derives the entropy.
-    mtd finishScan(ascii: *HexStringScanner, little, big: *[2] HexStringScanner)
+    mtd finishScan(ascii: *StringScanner, little, big: *[2] StringScanner)
     {
         ascii.flush(.Ascii, me)
         for index in 2
@@ -160,10 +161,10 @@ private impl HexAnalysisResult
 
 // Returns the byte counts, entropy, and a bounded set of inferred ASCII and UTF-16 runs of `range` in `fileName`.
 //
-// The range is streamed in `HexAnalysisChunkSize` chunks. `cancelled` and `processed` are optional
+// The range is streamed in `AnalysisChunkSize` chunks. `cancelled` and `processed` are optional
 // atomics owned by an asynchronous caller: a non-zero `cancelled` stops the scan, and `processed`
 // follows the bytes scanned so far. A failure is reported in `failureReason`, never as an error.
-func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32? = null, processed: *u64? = null)->HexAnalysisResult
+func analyzeRange(fileName: string, range: AnalysisRange, cancelled: *u32? = null, processed: *u64? = null)->AnalysisResult
 {
     var result: retval
     result.range = range
@@ -191,9 +192,9 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
         return result
     }
 
-    var ascii:       HexStringScanner
-    var little:      [2] HexStringScanner
-    var big:         [2] HexStringScanner
+    var ascii:       StringScanner
+    var little:      [2] StringScanner
+    var big:         [2] StringScanner
     var previous:    u8
     var hasPrevious: bool
     var bytes:       Array'u8
@@ -206,7 +207,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
             break
         }
 
-        let wanted = Math.min(remaining, HexAnalysisChunkSize)
+        let wanted = Math.min(remaining, AnalysisChunkSize)
         bytes.resize(wanted)
         let count = catch stream.read(bytes.toSlice()) as readError
         if readError != null
@@ -217,7 +218,7 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
 
         if not count
         {
-            result.failureReason = hexStrings().err_AnalysisShortRead
+            result.failureReason = texts().err_AnalysisShortRead
             break
         }
 
@@ -248,24 +249,24 @@ func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32?
 }
 
 // Owns one cancellable analysis whose worker borrows this value until completion.
-struct HexAnalysisOperation
+struct AnalysisOperation
 {
     task:            Swag.Task
     fileName:        String
-    range:           HexAnalysisRange
-    result:          HexAnalysisResult
+    range:           AnalysisRange
+    result:          AnalysisResult
     cancelRequested: u32
     processed:       u64
     started:         bool
 }
 
-impl HexAnalysisOperation
+impl AnalysisOperation
 {
     // Starts analyzing `range` of `fileName` on a worker task.
     //
     // The operation must not be started already: the previous result has to be collected with
-    // [[HexAnalysisOperation.finish]] or discarded by [[HexAnalysisOperation.retire]] first.
-    mtd start(fileName: string, range: HexAnalysisRange)
+    // [[AnalysisOperation.finish]] or discarded by [[AnalysisOperation.retire]] first.
+    mtd start(fileName: string, range: AnalysisRange)
     {
         Swag.assert(not .started)
         .fileName = fileName
@@ -277,11 +278,11 @@ impl HexAnalysisOperation
 
         .task.submit(func|operation = me|()
         {
-            operation.result = analyzeHexRange(operation.fileName, operation.range, &operation.cancelRequested, &operation.processed)
+            operation.result = analyzeRange(operation.fileName, operation.range, &operation.cancelRequested, &operation.processed)
         })
     }
 
-    // Asks a running analysis to stop; the partial result is still collected by [[HexAnalysisOperation.finish]].
+    // Asks a running analysis to stop; the partial result is still collected by [[AnalysisOperation.finish]].
     mtd cancel()
     {
         if .started do
@@ -293,7 +294,7 @@ impl HexAnalysisOperation
     mtd progress()->u64 => Atomic.get(&.processed)
 
     // Returns the result of a finished analysis, and makes the operation ready to start again.
-    mtd finish()->HexAnalysisResult
+    mtd finish()->AnalysisResult
     {
         Swag.assert(.isDone())
         .task.wait()

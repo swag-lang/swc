@@ -1,11 +1,11 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // Payload every streaming test reads. It is larger than one resident window, so a test that walks
 // to its end proves the window moved instead of proving the file was small.
-const StreamedFileSize = HexWindowSize * 32 + 1234'u64
+const StreamedFileSize = Hex.WindowSize * 32 + 1234'u64
 
 // Writes readable content at exact offsets. A checked-in fixture would carry whatever line endings
 // the checkout gave it, which moves every offset an assertion names.
@@ -53,12 +53,12 @@ func writePreviewFile()->String
     return fileName
 }
 
-func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*HexViewer
+func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Hex.Panel
 {
-    registerHexStrings(&host.app)
+    Hex.registerTexts(&host.app)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
-    var viewerSession = openTestViewer(hexViewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
-    let view          = assume cast(*HexViewer, viewerSession.view)
+    var viewerSession = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
+    let view          = assume cast(*Hex.Panel, viewerSession.view)
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel!)
     view.dockStyle = .Center
@@ -96,7 +96,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
 }
 
 // Switches `window` to the hexadecimal viewer, and returns it once its document is open.
-func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*HexViewer
+func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*Hex.Panel
 {
     var hexIndex = Swag.U32.Max
     for choice, index in window.choices where choice.key == "hex" do
@@ -104,10 +104,10 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*HexVi
     Swag.assert(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(host, window)
-    return assume cast(*HexViewer, window.currentView)
+    return assume cast(*Hex.Panel, window.currentView)
 }
 
-func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
+func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 {
     var steps = 0'u32
     while view.analysisTimer and steps < 4_096
@@ -127,9 +127,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     host.setup(640, 420)
     defer host.shutdown()
 
-    var result = openTestViewer(hexViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
+    var result = openTestViewer(Hex.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = assume cast(*HexViewer, result.view)
+    let view = assume cast(*Hex.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -176,12 +176,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 // The dump copy is the view in text form: the offset, the grouped bytes, and the text column.
 #test
 {
-    let text = formatHexDump([0'u8, 1'u8, 0x20'u8, 0x41'u8, 0xFF'u8], 0x20, 16, 16)
+    let text = Hex.formatDump([0'u8, 1'u8, 0x20'u8, 0x41'u8, 0xFF'u8], 0x20, 16, 16)
     Swag.assert(Utf8.contains(text.toSlice(), "0000000000000020"))
     Swag.assert(Utf8.contains(text.toSlice(), "00 01 20 41 FF"))
     Swag.assert(Utf8.contains(text.toSlice(), ".. A."))
 
-    let narrow = formatHexDump([0xAA'u8, 0xBB'u8, 0xCC'u8], 0, 2, 8)
+    let narrow = Hex.formatDump([0xAA'u8, 0xBB'u8, 0xCC'u8], 0, 2, 8)
     Swag.assert(Utf8.contains(narrow.toSlice(), "00000000  AA BB"))
     Swag.assert(Utf8.contains(narrow.toSlice(), "00000002  CC"))
 }
@@ -190,52 +190,52 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 // caret-relative positions.
 #test
 {
-    Swag.assert(parseHexOffset("1F", 0, 1000) == 0x1F)
-    Swag.assert(parseHexOffset("  0x1f  ", 0, 1000) == 0x1F)
-    Swag.assert(parseHexOffset("00 1F", 0, 1000) == 0x1F)
-    Swag.assert(parseHexOffset("0d31", 0, 1000) == 31)
-    Swag.assert(parseHexOffset("50%", 0, 1000) == 499)
-    Swag.assert(parseHexOffset("caret", 0x20, 1000) == 0x20)
-    Swag.assert(parseHexOffset("FileSize", 0, 1000) == 999)
-    Swag.assert(parseHexOffset("+10", 0x20, 1000) == 0x30)
-    Swag.assert(parseHexOffset("-10", 0x20, 1000) == 0x10)
-    Swag.assert(parseHexOffset("-1000", 0x20, 1000) == 0)
-    Swag.assert(parseHexOffset("FFFFFF", 0, 1000) == 999)
-    Swag.assert(parseHexOffset("101%", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseHexOffset("0dG", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseHexOffset("zz", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseHexOffset("", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseHexOffset("10", 0, 0) == Swag.U64.Max)
+    Swag.assert(Hex.parseOffset("1F", 0, 1000) == 0x1F)
+    Swag.assert(Hex.parseOffset("  0x1f  ", 0, 1000) == 0x1F)
+    Swag.assert(Hex.parseOffset("00 1F", 0, 1000) == 0x1F)
+    Swag.assert(Hex.parseOffset("0d31", 0, 1000) == 31)
+    Swag.assert(Hex.parseOffset("50%", 0, 1000) == 499)
+    Swag.assert(Hex.parseOffset("caret", 0x20, 1000) == 0x20)
+    Swag.assert(Hex.parseOffset("FileSize", 0, 1000) == 999)
+    Swag.assert(Hex.parseOffset("+10", 0x20, 1000) == 0x30)
+    Swag.assert(Hex.parseOffset("-10", 0x20, 1000) == 0x10)
+    Swag.assert(Hex.parseOffset("-1000", 0x20, 1000) == 0)
+    Swag.assert(Hex.parseOffset("FFFFFF", 0, 1000) == 999)
+    Swag.assert(Hex.parseOffset("101%", 0, 1000) == Swag.U64.Max)
+    Swag.assert(Hex.parseOffset("0dG", 0, 1000) == Swag.U64.Max)
+    Swag.assert(Hex.parseOffset("zz", 0, 1000) == Swag.U64.Max)
+    Swag.assert(Hex.parseOffset("", 0, 1000) == Swag.U64.Max)
+    Swag.assert(Hex.parseOffset("10", 0, 0) == Swag.U64.Max)
 }
 
 // Binary queries preserve their exact byte span: pairs can carry nibble wildcards, text is UTF-8,
 // and an active scalar follows both the selected representation and byte order.
 #test
 {
-    let wildcard = parseHexSearch("hex: 4D 5? ?? A?", .Bytes, false)
+    let wildcard = Hex.parseSearch("hex: 4D 5? ?? A?", .Bytes, false)
     Swag.assert(wildcard.state == .Valid and wildcard.pattern.length() == 4)
     Swag.assert(wildcard.pattern.values[0] == 0x4D and wildcard.pattern.masks[0] == 0xFF)
     Swag.assert(wildcard.pattern.values[1] == 0x50 and wildcard.pattern.masks[1] == 0xF0)
     Swag.assert(wildcard.pattern.values[2] == 0 and wildcard.pattern.masks[2] == 0)
     Swag.assert(wildcard.pattern.values[3] == 0xA0 and wildcard.pattern.masks[3] == 0xF0)
 
-    let text = parseHexSearch("text: café", .Bytes, false)
+    let text = Hex.parseSearch("text: café", .Bytes, false)
     Swag.assert(text.state == .Valid and text.pattern.length() == ("café").count)
     Swag.assert(text.pattern.values[text.pattern.length() - 2] == 0xC3 and text.pattern.values[text.pattern.length() - 1] == 0xA9)
 
-    let little = parseHexSearch("value: 305419896", .Unsigned32, false)
-    let big    = parseHexSearch("value: 305419896", .Unsigned32, true)
+    let little = Hex.parseSearch("value: 305419896", .Unsigned32, false)
+    let big    = Hex.parseSearch("value: 305419896", .Unsigned32, true)
     Swag.assert(little.state == .Valid and little.pattern.values[0] == 0x78 and little.pattern.values[3] == 0x12)
     Swag.assert(big.state == .Valid and big.pattern.values[0] == 0x12 and big.pattern.values[3] == 0x78)
 
-    let signed = parseHexSearch("value: -2", .Signed16, false)
+    let signed = Hex.parseSearch("value: -2", .Signed16, false)
     Swag.assert(signed.state == .Valid and signed.pattern.values[0] == 0xFE and signed.pattern.values[1] == 0xFF)
-    let real = parseHexSearch("value: 1", .Float32, false)
+    let real = Hex.parseSearch("value: 1", .Float32, false)
     Swag.assert(real.state == .Valid and real.pattern.values[0] == 0 and real.pattern.values[2] == 0x80 and real.pattern.values[3] == 0x3F)
 
-    Swag.assert(parseHexSearch("4", .Bytes, false).state == .Incomplete)
-    Swag.assert(parseHexSearch("4G", .Bytes, false).error == .Pattern)
-    Swag.assert(parseHexSearch("value: 70000", .Unsigned16, false).error == .Value)
+    Swag.assert(Hex.parseSearch("4", .Bytes, false).state == .Incomplete)
+    Swag.assert(Hex.parseSearch("4G", .Bytes, false).error == .Pattern)
+    Swag.assert(Hex.parseSearch("value: 70000", .Unsigned16, false).error == .Value)
 }
 
 // Range analysis streams fixed byte counts and keeps inferred strings tied to their source bytes.
@@ -266,7 +266,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     payload[200] = 0xFF
     expect File.writeAllBytes(fileName, payload.toSlice())
 
-    var operation: HexAnalysisOperation
+    var operation: Hex.AnalysisOperation
     operation.start(fileName, {0, payload.count})
     operation.task.wait()
     let result = operation.finish()
@@ -291,7 +291,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(foundAscii and foundLittle and foundBig)
 
     var cancelled = 1'u32
-    let stopped   = analyzeHexRange(fileName, {0, payload.count}, &cancelled)
+    let stopped   = Hex.analyzeRange(fileName, {0, payload.count}, &cancelled)
     Swag.assert(stopped.cancelled and not stopped.scanned)
 }
 
@@ -335,7 +335,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(window.searchMatches.count == 2 and window.searchMatches[0].offset == first and window.searchMatches[1].offset == second)
     Swag.assert(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits.count == 2)
     Swag.assert(view.grid.matchStart == first and view.grid.matchLength == 4)
-    Swag.assert(window.searchBox.name.raw == hexStrings().ui_SearchPlaceholder)
+    Swag.assert(window.searchBox.name.raw == Hex.texts().ui_SearchPlaceholder)
     Swag.assert(not window.searchOptionsButton.isLocallyVisible())
 
     view.widthCombo.setSelectedIndex(2)
@@ -360,7 +360,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(window.searchComplete)
     Swag.assert(window.searchMatches.isEmpty())
     Swag.assert(window.searchCountLabel.text() == "!")
-    Swag.assert(window.searchCountLabel.toolTip == hexStrings().ui_SearchPatternError and not window.searchBox.isValid())
+    Swag.assert(window.searchCountLabel.toolTip == Hex.texts().ui_SearchPatternError and not window.searchBox.isValid())
 
     view.grid.moveCaret(first, false)
     Swag.assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel.text(), "@0003FFFE"))
@@ -450,7 +450,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let allocator = Swag.defaultAllocator()
     let baseline  = allocator.stats()
 
-    var doc: HexDocument
+    var doc: Hex.Document
     defer doc.close()
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
@@ -458,12 +458,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     Swag.assert(doc.ensure(0, 64))
     Swag.assert(doc.byteAt(5) == 5)
-    Swag.assert(doc.window.count <= HexWindowSize)
+    Swag.assert(doc.window.count <= Hex.WindowSize)
 
     // Refill before the visible screen reaches the edge, and retain enough overlap that a
     // reversal stays in the same window instead of alternating disk reads.
     let screen         = 1024'u64
-    let approachingEnd = HexWindowSize - HexWindowAlign + screen
+    let approachingEnd = Hex.WindowSize - Hex.WindowAlign + screen
     Swag.assert(doc.ensure(approachingEnd, screen))
     Swag.assert(doc.windowStart > 0)
     let prefetchedStart = doc.windowStart
@@ -474,7 +474,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let last = StreamedFileSize - 1
     Swag.assert(doc.ensure(last - 31, 32))
     Swag.assert(doc.byteAt(last) == cast(u8, last & 0xFF))
-    Swag.assert(doc.window.count <= HexWindowSize)
+    Swag.assert(doc.window.count <= Hex.WindowSize)
     Swag.assert(doc.windowStart > 0)
     Swag.assert(not doc.isResident(0))
 
@@ -504,14 +504,14 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(view.grid.doc.fileSize == StreamedFileSize)
     Swag.assert(view.grid.topRow == 0 and view.grid.caret == 0)
     discard host.render(view)
-    Swag.assert(view.grid.doc.window.count <= HexWindowSize)
+    Swag.assert(view.grid.doc.window.count <= Hex.WindowSize)
 
     host.focus(view.grid)
     host.keyPress(.End, .Control)
     Swag.assert(view.grid.caret == StreamedFileSize - 1)
     Swag.assert(view.grid.topRow == view.grid.maxTopRow())
     discard host.render(view)
-    Swag.assert(view.grid.doc.window.count <= HexWindowSize)
+    Swag.assert(view.grid.doc.window.count <= Hex.WindowSize)
     Swag.assert(view.grid.doc.byteAt(view.grid.caret) == cast(u8, ((StreamedFileSize - 1) & 0xFF)))
 
     host.keyPress(.Home, .Control)
@@ -519,7 +519,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     // The scrollbar spans the whole file and stays inside what an f32 counts exactly.
     Swag.assert(view.grid.scroll.scrollSize.y > view.grid.clientRect().height)
-    Swag.assert(view.grid.scroll.scrollSize.y <= HexScrollSpan)
+    Swag.assert(view.grid.scroll.scrollSize.y <= Hex.ScrollSpan)
 }
 
 // The bar is a proportional control: the row it names comes back through the row count, so every
@@ -561,7 +561,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     let wide = grid.bytesPerRow
-    Swag.assert(wide >= HexMinBytesPerRow and wide % grid.valueSize() == 0)
+    Swag.assert(wide >= Hex.MinBytesPerRow and wide % grid.valueSize() == 0)
 
     host.focus(grid)
     host.keyPress(.Right)
@@ -583,7 +583,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     view.applyLayout()
     grid.refreshLayout()
     Swag.assert(grid.bytesPerRow <= wide)
-    Swag.assert(grid.contentWidth() <= grid.clientRect().width or grid.bytesPerRow == HexMinBytesPerRow)
+    Swag.assert(grid.contentWidth() <= grid.clientRect().width or grid.bytesPerRow == Hex.MinBytesPerRow)
 
     grid.setBytesPerRow(32, false)
     Swag.assert(grid.bytesPerRow == 32 and not grid.autoFitRow)
@@ -630,7 +630,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(view.grid.doc.ensure(0, view.grid.doc.fileSize))
     view.grid.buildRow(0)
     Swag.assert(view.grid.scalarAt(0) == 0x12345678)
-    Swag.assert(formatHexScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
+    Swag.assert(Hex.formatScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
     Swag.assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "305419896"))
 
     view.byteOrderCombo.setSelectedIndex(1)
@@ -684,7 +684,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     grid.selectAll()
     grid.copySelection(.Text)
     Swag.assert(Clipboard.getString().length == 4096)
-    Swag.assert(grid.doc.window.count <= HexWindowSize)
+    Swag.assert(grid.doc.window.count <= Hex.WindowSize)
 }
 
 // The context menu reaches the same commands the keyboard does, and the go-to box opens and closes
@@ -701,7 +701,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
 
-    host.clickPopupMenuItemWhenShown(ActionHex.SelectAll)
+    host.clickPopupMenuItemWhenShown(Hex.Action.SelectAll)
     grid.showContextMenu({120, 120})
     host.pump()
     Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
@@ -781,12 +781,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(grid.offsetDigits == 16)
     Swag.assert(grid.doc.fileSize > Swag.U32.Max)
     Swag.assert(grid.rowCount() == (grid.doc.fileSize + grid.bytesPerRow - 1) / grid.bytesPerRow)
-    Swag.assert(grid.scroll.scrollSize.y <= HexScrollSpan)
+    Swag.assert(grid.scroll.scrollSize.y <= Hex.ScrollSpan)
     host.focus(grid)
     host.keyPress(.End, .Control)
     Swag.assert(grid.caret == 0x1_0000_1233 and grid.topRow == grid.maxTopRow())
 
-    let dump = formatHexDump([0xAB'u8], 0x1_0000_0000, 16, grid.offsetDigits)
+    let dump = Hex.formatDump([0xAB'u8], 0x1_0000_0000, 16, grid.offsetDigits)
     Swag.assert(Utf8.contains(dump.toSlice(), "0000000100000000"))
 }
 
@@ -797,14 +797,14 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let fileName = writeSampleFile()
     defer discard catch File.delete(fileName)
 
-    var doc: HexDocument
+    var doc: Hex.Document
     defer doc.close()
     let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     doc.fileSize += 4096
     Swag.assert(not doc.ensure(0, doc.fileSize))
     Swag.assert(doc.readFailed and doc.window.isEmpty())
-    Swag.assert(doc.failureReason == hexStrings().err_Truncated)
+    Swag.assert(doc.failureReason == Hex.texts().err_Truncated)
     Swag.assert(not doc.ensure(0, 1) and doc.read(0, 1).isEmpty())
 }
 
@@ -876,14 +876,14 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let view = createTestViewer(&host, fileName, 900, 560)
-    Swag.assert(hexStrings().ui_TextColumn == "text" and hexStrings().ui_Empty == "This file is empty.")
+    Swag.assert(Hex.texts().ui_TextColumn == "text" and Hex.texts().ui_Empty == "This file is empty.")
     Swag.assert(view.widthCombo.selectedItem()!.name.raw == "8-bit" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
     discard host.render(view)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(hexStrings().ui_TextColumn == "texte")
-    Swag.assert(hexStrings().ui_Empty == "Ce fichier est vide.")
+    Swag.assert(Hex.texts().ui_TextColumn == "texte")
+    Swag.assert(Hex.texts().ui_Empty == "Ce fichier est vide.")
     Swag.assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
     Swag.assert(view.widthCombo.toolTip == "Largeur des valeurs")
     Swag.assert(view.details.isEmpty())
@@ -900,7 +900,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     if not Clipboard.isFake() do
         return
 
-    let fileName = writeStreamedFile(HexCopyLimit + 37)
+    let fileName = writeStreamedFile(Hex.CopyLimit + 37)
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -911,11 +911,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let grid = view.grid
     grid.selectAll()
 
-    let state = grid.sendComputeCommandStateEvent(ActionHex.CopyText)
-    Swag.assert(state.name == Format.toString(hexStrings().ui_CopyTextMax, StrConv.toDisplaySize(HexCopyLimit)))
+    let state = grid.sendComputeCommandStateEvent(Hex.Action.CopyText)
+    Swag.assert(state.name == Format.toString(Hex.texts().ui_CopyTextMax, StrConv.toDisplaySize(Hex.CopyLimit)))
     grid.copySelection(.Text)
-    Swag.assert(Clipboard.getString().length == HexCopyLimit)
-    Swag.assert(grid.doc.window.count <= HexWindowSize)
+    Swag.assert(Clipboard.getString().length == Hex.CopyLimit)
+    Swag.assert(grid.doc.window.count <= Hex.WindowSize)
 }
 
 // The typed command group stays bounded and keeps byte order beside the representation controls.
@@ -942,7 +942,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     view.applyLayout()
     view.grid.refreshLayout()
     Swag.assert(view.grid.clientRect().width > 640 * 0.6)
-    Swag.assert(view.grid.bytesPerRow >= HexMinBytesPerRow)
+    Swag.assert(view.grid.bytesPerRow >= Hex.MinBytesPerRow)
     Swag.assert(view.grid.contentWidth() <= view.grid.clientRect().width)
     host.settleAnimations(view.commands, 4)
     var image = host.render(view.commands)

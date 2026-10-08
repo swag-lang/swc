@@ -1,4 +1,5 @@
 #global internal
+#global namespace Viewers.Hex
 
 using Core, Gui
 
@@ -7,7 +8,7 @@ using Core, Gui
 // The names of the readings a scalar is spelled in — `Hex`, `8-bit`, `Little endian` — are the
 // vocabulary of the format itself rather than sentences about it, so a language that writes them
 // the same way simply omits them and keeps the reference wording.
-struct HexStrings
+struct Texts
 {
     ui_TipWidth:               string = "Value width"                                                                                         // Tooltip of the scalar width selector.
     ui_Width8:                 string = "8-bit"                                                                                               // One byte at a time.
@@ -75,22 +76,22 @@ struct HexStrings
 private const FrenchStringsName = "lang/fr/scope.hex.tweak"
 private const FrenchStrings     = #include("../../../datas/lang/fr/scope.hex.tweak")
 
-private var g_HexStrings: HexStrings
+private var g_Texts: Texts
 
 // Returns the visible strings of the hexadecimal viewer in the active language.
-func hexStrings()->const *HexStrings => &g_HexStrings
+func texts()->const *Texts => &g_Texts
 
 // Registers this viewer's string table with the application.
 //
 // The embedded translation is published before the table is registered, so the viewer follows
 // the language of the application around it. Calling this again is a no-op.
-func registerHexStrings(app: *Application)
+func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'HexStrings(&g_HexStrings, "scope.hex")
+    Gui.registerStrings'Texts(&g_Texts, "scope.hex")
 }
 
 #run
 {
-    expect Gui.validateStrings'HexStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
 }

@@ -72,6 +72,8 @@ func captureMonitorScale(capture: *Capture)->f32
 
 impl InPlaceEditWnd
 {
+    // Builds the in-place editor of `capture` over the grabbed area, sized for the monitor it was
+    // taken on.
     func create(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
@@ -90,6 +92,8 @@ impl InPlaceEditWnd
         return frame
     }
 
+    // Builds the in-place editor over the grabbed area: a second main window in in-place mode that
+    // edits `capture` where it was taken.
     func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
         with let newMain = Wnd.create'MainWnd(main.parent, {})
@@ -126,6 +130,7 @@ impl InPlaceEditWnd
         return frame
     }
 
+    // Builds the action bar of the in-place editor: save, copy, open in the editor, and close.
     mtd createActionBar()
     {
         // The padding scales with the icon, or the buttons come out chunkier the further the
@@ -161,6 +166,8 @@ impl InPlaceEditWnd
         .createColorPicker()
     }
 
+    // Adds the color button to the in-place action bar: it shows the current color and opens the
+    // palette.
     mtd createColorPicker()
     {
         let btnColor = .editBar.addButton({}, "color", .Popup)
@@ -198,6 +205,7 @@ impl InPlaceEditWnd
         .updateEditMode()
     }
 
+    // Runs the action bar command `actionId`: copy, close, open in the editor, or save.
     mtd handleActionBarPress(actionId: string)
     {
         switch actionId
@@ -258,6 +266,8 @@ impl InPlaceEditWnd
             .editBar.buttonById(tool.id)!.setChecked(.editMode == tool.mode)
     }
 
+    // Sets the tool models of the in-place editor to sizes that read the same on the monitor that
+    // was grabbed, whatever its density.
     mtd configureMainWindowEditMode()
     {
         // Lengths in image pixels, authored against a 100% capture and scaled to the density
@@ -388,8 +398,8 @@ impl Capture
         if .backImgOriginal.isValid() do
             .backImgOriginal = .backImg
 
-        .width, .widthOrg    = cast(s32, .backImg.width)
-        .height, .heightOrg  = cast(s32, .backImg.height)
+        .width, .widthOrg    = .backImg.width
+        .height, .heightOrg  = .backImg.height
         .backImagePos        = {}
         .gizmo.sigHasChanged = null
         .inPlaceEdit         = false

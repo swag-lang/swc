@@ -93,7 +93,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     MarkdownText.g_ViewerSettings = {}
     let fileName = Testing.tempFilePath("scope-outline-", ".md")
     let source   = "# Document guide\n\nAn introduction to this document.\n\n## Getting started\n\nRead the first steps.\n\n### Installation\n\nInstall the application.\n\n### Configuration\n\nChoose your preferences.\n\n## Reference\n\nThe complete reference.\n\n### Commands\n\nThe available commands.\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
+    discard expect File.writeAllBytes(fileName, source)
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
     host.setup(880, 560)

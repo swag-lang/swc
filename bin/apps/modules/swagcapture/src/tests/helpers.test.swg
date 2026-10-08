@@ -86,7 +86,7 @@ impl HeadlessFixture
 // Swag Capture resolves it from the documents folder, which the sandbox already answers inside
 // itself, so nothing here has to redirect anything. What it does do is refuse to run when the
 // sandbox is not armed: these tests exercise capture actions that write real files through
-// 'Library.newFileName', and outside a sandbox those land in the user's own library.
+// `Library.newFileName`, and outside a sandbox those land in the user's own library.
 func testUseScratchLibrary()
 {
     Swag.assert(Env.isSandboxed())

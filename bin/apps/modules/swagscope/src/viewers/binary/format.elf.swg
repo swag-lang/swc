@@ -237,6 +237,8 @@ func reportElfImage(image: *BinaryImage, report: *Report)
     report.summary    = Format.toString("% · % · % · %", report.formatName, elfTypeName(kind), elfMachineName(machine), counted)
 }
 
+// Reports the program header table, each segment as a group spanning the bytes it loads from the
+// file. Reports nothing when the header gives no table.
 private func reportElfSegments(image: *BinaryImage, report: *Report, at, entrySize, count: u64, is64: bool)
 {
     if not at or not count do
@@ -330,6 +332,8 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
     return result
 }
 
+// Reports the section header table from the decoded `sections`, each section as a group spanning
+// the bytes it stores, or a note when the file has no section table.
 private func reportElfSections(image: *BinaryImage, report: *Report, sections: const [..] ElfSection, at, entrySize: u64, is64: bool)
 {
     let texts = texts()

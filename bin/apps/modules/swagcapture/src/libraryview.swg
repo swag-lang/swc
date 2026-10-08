@@ -95,8 +95,8 @@ struct LibraryView
     items:        Array'*LibraryItem
     mutexLoaded:  Sync.Mutex
     thread:       Thread
-    hotItem   = Swag.U32.Max
-    focusItem = Swag.U32.Max
+    hotItem:      u32 = Swag.U32.Max
+    focusItem:    u32 = Swag.U32.Max
     selModel:     SelModel
     filterYear:   u64
     filterMonth:  u64
@@ -461,7 +461,7 @@ impl LibraryView
     // Every loaded capture marks the list dirty and asks for a repaint, and the spinner repaints
     // on its own besides, so a load of a large library asks for one full rebuild per frame. The
     // list converges just as well on a fixed cadence, and the last state is never missed: the
-    // loader clears 'g_UpdatingLib' before its final repaint, and that frame rebuilds at once.
+    // loader clears `g_UpdatingLib` before its final repaint, and that frame rebuilds at once.
     mtd takeListRefresh()->bool
     {
         if g_UpdatingLib and .listRefresh.isRunning() and .listRefresh.elapsedMilliseconds() < ListRefreshDelay do
@@ -480,6 +480,8 @@ impl LibraryView
         .thread.wait()
     }
 
+    // Starts the loading thread when an item is still not loaded, and shows the spinner while it
+    // runs.
     mtd startLoading() fail
     {
         var hasPending: bool
@@ -499,6 +501,8 @@ impl LibraryView
         try .thread.start()
     }
 
+    // Opens `item` in the editor and leaves the library: an image as a new capture, a capture
+    // from the front of the recent strip.
     mtd openItem(item: *LibraryItem)
     {
         if item.kind == .Image
@@ -543,6 +547,7 @@ impl LibraryView
         return {h * 4.0 / 3.0, h}
     }
 
+    // Gives the library item of `capture` its new preview.
     mtd updateRecent(capture: *Capture)
     {
         for it in .items
@@ -617,6 +622,68 @@ impl LibraryView
         }
     }
 
+    // Whether the date of `it` falls on the year, month, and day the sidebar picked; a zero picks
+    // any.
+    mtd matchesDate(it: *LibraryItem)->bool
+    {
+        let time = it.fi.lastWriteTime
+        return (.filterYear == 0 or time.year == .filterYear) and
+               (.filterMonth == 0 or time.month == .filterMonth) and
+               (.filterDay == 0 or time.day == .filterDay)
+    }
+
+    // Whether the library shows `it`: its date, kind, linked image, favorite, rating, application,
+    // tag, and text all pass the filters. `byDate` says whether the date filter applies.
+    mtd accepts(it: *LibraryItem, capture: *Capture?, loaded: bool, search: string, byDate: bool)->bool
+    {
+        let lib = .libWnd
+        if byDate and not .matchesDate(it) do
+            return false
+
+        switch lib.contentFilter
+        {
+        case .Captures, .ScreenCaptures, .ImportedCaptures where it.kind != .Capture: return false
+        case .Images where it.kind != .Image: return false
+        }
+
+        // Nothing is known about an item until its preview loads. While a search or a filter on
+        // what it holds is active, hide it (it re-appears once loaded if it matches) so results
+        // are not padded with unloaded, possibly non-matching, captures.
+        if not loaded do
+            return search.count == 0 and lib.contentFilter != .ScreenCaptures and lib.contentFilter != .ImportedCaptures and not lib.filtersMetadata()
+
+        switch lib.contentFilter
+        {
+        case .ScreenCaptures where not capture or capture.sourceKind != .Screen: return false
+        case .ImportedCaptures where not capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): return false
+        }
+
+        if it.kind == .Image do
+            return not lib.filtersMetadata() and .matchSearch(it, null, search)
+
+        if not capture do
+            return false
+        let linked = not capture.linkedImage.isEmpty()
+        if linked and not lib.showLinkedImage do
+            return false
+        if not linked and not lib.showUnLinkedImage do
+            return false
+        if linked and capture.linkedUpToDate and not lib.showUpToDateLinkedImage do
+            return false
+        if linked and not capture.linkedUpToDate and not lib.showUnSavedLinkedImage do
+            return false
+        if lib.favoritesOnly and not capture.favorite do
+            return false
+        if capture.rating < lib.minimumRating do
+            return false
+        if not lib.applicationFilter.isEmpty() and Utf8.compare(capture.sourceApplication.toSlice(), lib.applicationFilter, .Latin1NoCase) != 0 do
+            return false
+        if not lib.tagFilter.isEmpty() and not capture.hasTag(lib.tagFilter) do
+            return false
+        return .matchSearch(it, capture, search)
+    }
+
+    // Rebuilds the shown items from every item the filters accept, keeping the selection.
     mtd filter()
     {
         let selection = .rememberSelection()
@@ -631,91 +698,22 @@ impl LibraryView
         for it in .allItems
         {
             let itn = it!
-            itn.filtered = true
-
             .mutexLoaded.lock()
             let capture    = itn.capture
             let itemLoaded = itn.loaded
             .mutexLoaded.unlock()
 
-            if dateFilterApplies and
-               ((.filterYear != 0 and itn.fi.lastWriteTime.year != .filterYear) or
-                (.filterMonth != 0 and itn.fi.lastWriteTime.month != .filterMonth) or
-                (.filterDay != 0 and itn.fi.lastWriteTime.day != .filterDay))
-            {
-                continue
-            }
-
-            if (.libWnd.contentFilter == .Captures or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures) and itn.kind != .Capture do
-                continue
-            if .libWnd.contentFilter == .Images and itn.kind != .Image do
-                continue
-
-            if not itemLoaded
-            {
-                // Nothing is known about an item until its preview loads. While a search
-                // is active hide it (it re-appears once loaded if it matches) so results
-                // are not padded with unloaded, possibly non-matching, captures.
-                if search.count != 0 or
-                   .libWnd.contentFilter == .ScreenCaptures or
-                   .libWnd.contentFilter == .ImportedCaptures or
-                   .libWnd.favoritesOnly or
-                   .libWnd.minimumRating or
-                   not .libWnd.applicationFilter.isEmpty() or
-                   not .libWnd.tagFilter.isEmpty() do
-                    continue
-                itn.filtered = false
+            itn.filtered = not .accepts(itn, capture, itemLoaded, search, dateFilterApplies)
+            if not itn.filtered do
                 .items.add(itn)
-                continue
-            }
-
-            switch .libWnd.contentFilter
-            {
-            case .ScreenCaptures where not capture or capture.sourceKind != .Screen: continue
-            case .ImportedCaptures where not capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): continue
-            }
-
-            if itn.kind == .Image
-            {
-                if .libWnd.favoritesOnly or .libWnd.minimumRating or not .libWnd.applicationFilter.isEmpty() or not .libWnd.tagFilter.isEmpty() do
-                    continue
-                if not .matchSearch(itn, null, search) do
-                    continue
-                itn.filtered = false
-                .items.add(itn)
-                continue
-            }
-
-            let loaded = capture
-            if not loaded do
-                continue
-            if not loaded.linkedImage.isEmpty() and not .libWnd.showLinkedImage do
-                continue
-            if loaded.linkedImage.isEmpty() and not .libWnd.showUnLinkedImage do
-                continue
-            if loaded.linkedUpToDate and not loaded.linkedImage.isEmpty() and not .libWnd.showUpToDateLinkedImage do
-                continue
-            if not loaded.linkedUpToDate and not loaded.linkedImage.isEmpty() and not .libWnd.showUnSavedLinkedImage do
-                continue
-            if .libWnd.favoritesOnly and not loaded.favorite do
-                continue
-            if loaded.rating < .libWnd.minimumRating do
-                continue
-            if not .libWnd.applicationFilter.isEmpty() and Utf8.compare(loaded.sourceApplication.toSlice(), .libWnd.applicationFilter, .Latin1NoCase) != 0 do
-                continue
-            if not .libWnd.tagFilter.isEmpty() and not loaded.hasTag(.libWnd.tagFilter) do
-                continue
-            if not .matchSearch(itn, loaded, search) do
-                continue
-
-            itn.filtered = false
-            .items.add(itn)
         }
 
         .restoreSelection(selection)
         .invalidate()
     }
 
+    // Loads what the grid shows for one item: the capture and its preview, or the image, with the
+    // features similarity sorting compares. Runs on the loading thread.
     mtd loadOne(it: *LibraryItem)
     {
         if it.kind == .Capture
@@ -772,9 +770,11 @@ impl LibraryView
         g_DirtyList = true
     }
 
+    // The loading thread: loads every visible item not loaded yet, until all are or `th` is asked
+    // to end.
     mtd loadFiles(th: Thread)
     {
-        // Work on a copy, as 'items' can be changed by sorting during loading
+        // Work on a copy, as `items` can be changed by sorting during loading
         var copy: Array'*LibraryItem
         for it in .allItems do
             copy.add(it!)
@@ -806,6 +806,8 @@ impl LibraryView
         .postInvalidateEvent()
     }
 
+    // Orders the items so each one is followed by the most similar of those left, comparing their
+    // preview features.
     mtd sortSimilar()
     {
         if .items.isEmpty() do
@@ -859,6 +861,7 @@ impl LibraryView
             .items[i] = it
     }
 
+    // Sorts the items by the criterion the library window selected.
     mtd sortFiles()
     {
         // Only the active criterion is read. A comparator runs O(n log n) times per re-sort and
@@ -913,6 +916,7 @@ impl LibraryView
         })
     }
 
+    // Sorts the shown items by the selected criterion, keeping the selection.
     mtd sort()
     {
         if .items.isEmpty() do
@@ -932,6 +936,8 @@ impl LibraryView
         .invalidate()
     }
 
+    // Lists the items of the folder the breadcrumb shows, applies the filters, and starts loading
+    // their previews.
     mtd fill() fail
     {
         .stopLoading()
@@ -947,7 +953,7 @@ impl LibraryView
         else do
             result = catch Library.enumerateSupportedFiles(cf)
 
-        // 'items' only borrows pointers owned by 'allItems'. Drop those borrows before their
+        // `items` only borrows pointers owned by `allItems`. Drop those borrows before their
         // owners so filter() never snapshots selection state through destroyed LibraryItems.
         .items.clear()
         .hotItem = Swag.U32.Max

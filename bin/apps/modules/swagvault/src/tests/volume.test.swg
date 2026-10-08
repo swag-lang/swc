@@ -49,9 +49,9 @@ func raiseCryptoBatchTestError(marker: u32) fail
     Swag.assert(empty == null)
 }
 
-func testPassword()->const [..] u8  => cast(const [..] u8, "correct horse battery staple")
-func wrongPassword()->const [..] u8 => cast(const [..] u8, "wrong password")
-func emptyBytes()->const [..] u8    => cast(const [..] u8, "")
+func testPassword()->const [..] u8  => "correct horse battery staple"
+func wrongPassword()->const [..] u8 => "wrong password"
+func emptyBytes()->const [..] u8    => ""
 
 func testContainerPath(tag: string)->String
 {
@@ -125,8 +125,8 @@ func flipHeaderByte(path: string, slot: u64)
     flipByteAt(path, HeaderAreaOffset + slot * HeaderSlotSize + HeaderRecordPrefixSize)
 }
 
-func secondPassword()->const [..] u8 => cast(const [..] u8, "a second way in entirely")
-func thirdPassword()->const [..] u8  => cast(const [..] u8, "yet another passphrase!!")
+func secondPassword()->const [..] u8 => "a second way in entirely"
+func thirdPassword()->const [..] u8  => "yet another passphrase!!"
 
 // A container large enough to hold more metadata than one header slot can.
 func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize

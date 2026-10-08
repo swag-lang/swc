@@ -1,5 +1,7 @@
 impl Capture
 {
+    // Shows the editor's context menu at `pos`: actions on the selection first, then the clipboard,
+    // arrangement, and canvas commands.
     mtd popupMenu(view: *EditView, pos: Math.Point)
     {
         with let menu = MenuCtrl.createPopup(view)
@@ -430,7 +432,7 @@ impl Capture
 
     mtd hitTest(localPos: Math.Point)->u64
     {
-        // Holding 'O' makes the mouse ignore every form, so a click can start a
+        // Holding `O` makes the mouse ignore every form, so a click can start a
         // lasso or create a new form on top of existing ones.
         if .editView!.app().keyboard.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
@@ -440,6 +442,8 @@ impl Capture
         return result[0]
     }
 
+    // Returns the indices of the forms under `localPos`, topmost first; only the topmost when
+    // `retFirst`.
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
     {
         var result: retval

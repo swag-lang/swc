@@ -31,6 +31,7 @@ private struct ViewerDocument
     markup: Idml.Document
 }
 
+// Loads an `.idml` file as markup, and any other InDesign file through its embedded page previews.
 private func loadViewerDocument(fileName: string)->ViewerDocument fail
 {
     var result: retval
@@ -77,26 +78,26 @@ struct Panel
 {
     using wnd: Wnd
 
-    details:             String
-    fileName:            String
-    kind:                DocumentKind
-    previews:            Array'Preview
-    markupPages:         Array'Idml.Page
-    cachedPreviews:      Array'CachedPreview
-    cachedPixels:        u64
-    previewUseSerial          = 1'u64
-    hasPreviewContent:   bool
-    previewIndex:        u64
-    markupZoom:          f32  = 1
-    markupFit:           bool = true
-    markupFitWidth:      bool
-    markupRenderedScale: f32  = 1
-    requestedPreviewIndex     = NoPreview
-    loadingPreviewIndex       = NoPreview
-    load:                Viewer.BackgroundLoad'ViewerDocument
-    previewLoad:         PreviewLoad
-    services:            Viewer.HostServices
-    failureReason:       String
+    details:               String
+    fileName:              String
+    kind:                  DocumentKind
+    previews:              Array'Preview
+    markupPages:           Array'Idml.Page
+    cachedPreviews:        Array'CachedPreview
+    cachedPixels:          u64
+    previewUseSerial:      u64  = 1
+    hasPreviewContent:     bool
+    previewIndex:          u64
+    markupZoom:            f32  = 1
+    markupFit:             bool = true
+    markupFitWidth:        bool
+    markupRenderedScale:   f32  = 1
+    requestedPreviewIndex: u64  = NoPreview
+    loadingPreviewIndex:   u64  = NoPreview
+    load:                  Viewer.BackgroundLoad'ViewerDocument
+    previewLoad:           PreviewLoad
+    services:              Viewer.HostServices
+    failureReason:         String
 
     late
     {
@@ -201,6 +202,8 @@ private impl Panel
         .selectMarkupPage(.previewIndex)
     }
 
+    // Offers the zoom presets that suit the current presentation: the markup view also fits to
+    // width, the preview image also shows actual size.
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
@@ -262,6 +265,8 @@ private impl Panel
         return false
     }
 
+    // Keeps the rendered preview of page `index`, evicting the least recently used previews until
+    // it fits within `PreviewCachePixelLimit` pixels.
     mtd cachePreview(index: u64, image: *Image)
     {
         let pixelCount = cast(u64, image.width) * cast(u64, image.height)
@@ -308,6 +313,8 @@ private impl Panel
         .services.loadingChanged(me)
     }
 
+    // Shows page `index` from the preview cache, or requests its preview and reports it as loading.
+    // The markup presentation shows the page directly.
     mtd selectPreview(index: u64)
     {
         Swag.assert(index < .pageCount())
@@ -331,6 +338,8 @@ private impl Panel
         .startRequestedPreview()
     }
 
+    // Shows markup page `index` in a new HTML view rendered at the page's current scale, in place
+    // of the preview image.
     mtd selectMarkupPage(index: u64)
     {
         Swag.assert(index < .markupPages.count)
@@ -350,6 +359,8 @@ private impl Panel
         .setInitialFocus(.htmlView)
     }
 
+    // Presents the loaded document from its first page, as markup pages fitted to the view or as
+    // the native page previews.
     mtd publishDocument(document: *ViewerDocument)
     {
         .kind = document.kind
@@ -374,6 +385,8 @@ private impl Panel
         .retranslate()
     }
 
+    // Applies the current language to the page and zoom commands and, once the document is loaded,
+    // to the details of the shown page.
     mtd retranslate()
     {
         .previousButton.toolTip = .isMarkup() ? texts().ui_PreviousDocumentPage : texts().ui_PreviousPage
@@ -422,6 +435,8 @@ private impl Panel
         discard .goToTypedPage(dialog.text())
     }
 
+    // Shows the page menu: the go-to-page prompt, then one radio entry per page that selects its
+    // preview.
     mtd showPageMenu()
     {
         let strings = texts()
@@ -631,6 +646,9 @@ private impl IWnd for Panel
 
 impl Panel
 {
+    // Builds the InDesign panel: page commands, zoom button and image view, with Ctrl+G to go to a
+    // page and the arrow, page and Home/End keys paging the markup view. Loads the document in the
+    // background.
     func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
@@ -732,10 +750,10 @@ impl Panel
         {
             .dockStyle = .Left
             .margin.x  = 8
+            .toolTip   = texts().ui_ChoosePage
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_ChoosePage
             .sigPressed += func|view = me|(?) { view.showPageMenu() }
         }
     }

@@ -97,7 +97,7 @@ struct ViewerWindow
     outgoingSidePanelButton: *IconButton?
     choices:                 Array'ViewerPluginChoice
     instances:               Array'ViewerSession
-    activeChoiceIndex             = Swag.U32.Max
+    activeChoiceIndex:       u32  = Swag.U32.Max
     startupTimer:            *Timer?
     searchTimer:             *Timer?
     searchBoundsTimer:       *Timer?
@@ -136,7 +136,7 @@ struct ViewerWindow
     folderFiles:             Array'String
     siblings:                Array'String
     siblingIndex:            u64
-    siblingsDirty                 = true
+    siblingsDirty:           bool = true
 
     // Whether next/previous and the folder list keep only the neighbours the current file's
     // viewer would open, so a reader flips through the pictures of a folder without landing on
@@ -162,7 +162,7 @@ struct ViewerWindow
     folderHistory:       Array'ViewerFolderHistory
     preferences:         Array'ViewerPreference
     panelVisible:        bool
-    recentPaneSize = RecentHeight
+    recentPaneSize:      f32 = RecentHeight
     refreshingLists:     bool
     fileDlgState:        FileDlgState
     themeIndex:          u32
@@ -777,6 +777,8 @@ impl ViewerWindow
         }
     }
 
+    // Builds the main window around the viewer registry `index`: appearance chrome, command bar,
+    // information band, viewer bar, file panel and document panel.
     func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
@@ -803,6 +805,8 @@ impl ViewerWindow
         return result
     }
 
+    // Creates the about box with the product identity and the list of supported viewers. `version`
+    // replaces the running compiler's version when given.
     mtd createAboutDialog(buildDate: Time.DateTime, version: string? = null)->*AboutDlg
     {
         let liveVersion = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
@@ -900,6 +904,9 @@ impl ViewerWindow
         return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
     }
 
+    // Offers a key the window received to the active viewer, unless the viewer already declined it,
+    // and returns whether the viewer accepted it. `takeFocus` gives the keyboard to a viewer that
+    // accepted the key.
     private mtd forwardKeyToViewer(evt: *KeyEvent, skipFocused = true, takeFocus = true)->bool
     {
         let target = .viewerFocusTarget()
@@ -924,6 +931,8 @@ impl ViewerWindow
         return copy.accepted
     }
 
+    // Applies the current language to the window's own texts and tooltips, to failure views, and to
+    // the empty state when no file is open.
     mtd retranslate()
     {
         let texts = appStrings()

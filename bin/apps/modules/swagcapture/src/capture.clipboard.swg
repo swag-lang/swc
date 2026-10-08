@@ -6,6 +6,8 @@ impl Capture
         Clipboard.addImage(.toImage())
     }
 
+    // Puts the selected forms on the clipboard as Swag Capture forms; the first plain picture
+    // among them also goes as a bitmap for other applications.
     mtd copy()
     {
         var payload: CaptureClipboardForms
@@ -57,6 +59,8 @@ impl Capture
         .selectionHasChanged()
     }
 
+    // Pastes the clipboard as one undoable step: Swag Capture forms when it holds some, otherwise
+    // an image as a new image form. The pasted forms are centered on the mouse and selected.
     mtd paste()
     {
         var result:  Array'IForm

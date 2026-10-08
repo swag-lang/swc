@@ -107,6 +107,9 @@ impl MainWnd
         capture.pushUndo(undo)
     }
 
+    // Fills every pixel selection with what surrounds it: each column blends from
+    // the pixel above the selection to the pixel below. `masks`, when given,
+    // receives the area each selection covers.
     mtd pixSelSmartFill(serial: u64 = 0, masks: *Array'Image? = null)
     {
         var forms = .getPixSels()
@@ -194,53 +197,51 @@ impl MainWnd
         {
             var p     = cast(*#decltype(params), userData!)
             let infos = p.infos!
+
+            // The pixel in capture coordinates, where the selections were drawn.
+            var pt = Math.Point{cast(f32, x), cast(f32, p.capture.backImg.height) - y}
+            pt.x += p.capture.backImagePos.x
+            pt.y += p.capture.backImagePos.y
+
             for f, idx in p.forms[]
             {
-                var pt = Math.Point{cast(f32, x), cast(f32, p.capture.backImg.height) - y}
-                pt.x += p.capture.backImagePos.x
-                pt.y += p.capture.backImagePos.y
-                if not infos[idx].boundRect.contains(pt) do
+                if not infos[idx].boundRect.contains(pt) or not f.isInside(pt) do
                     continue
 
-                if f.isInside(pt)
+                let column = infos[idx].boundCols[x]
+                if column.y2 != column.y1
                 {
-                    let p1   = infos[idx].boundCols[x]
-                    let col1 = p1.col1
-                    let col2 = p1.col2
-                    let y1   = p1.y1
-                    let y2   = p1.y2
-                    if y2 != y1
+                    // Store pixel mask
+                    if p.masks
                     {
-                        // Store pixel mask
-                        if p.masks
+                        let masks = p.masks!
+                        let xx    = cast(s32, pt.x - infos[idx].boundRect.x)
+                        var yy    = cast(s32, pt.y - infos[idx].boundRect.y)
+                        let pmask = masks.storage() + idx
+                        yy = pmask.height - yy
+                        if xx < pmask.width and yy < pmask.height
                         {
-                            let masks = p.masks!
-                            let xx    = cast(s32, pt.x - infos[idx].boundRect.x)
-                            var yy    = cast(s32, pt.y - infos[idx].boundRect.y)
-                            let pmask = masks.storage() + idx
-                            yy = pmask.height - yy
-                            if xx < pmask.width and yy < pmask.height
-                            {
-                                var pix1 = pmask.pixels.storage() + xx * pmask.bytesPerPixel
-                                pix1 += yy * pmask.width * pmask.bytesPerPixel
-                                cast(*u32, pix1)[] = 0xFFFFFFFF
-                            }
+                            var pix1 = pmask.pixels.storage() + xx * pmask.bytesPerPixel
+                            pix1 += yy * pmask.width * pmask.bytesPerPixel
+                            cast(*u32, pix1)[] = 0xFFFFFFFF
                         }
-
-                        var fVert = (y - y1) / cast(f32, y2 - y1)
-                        fVert = Math.clamp(fVert, 0, 1)
-                        let col = Color.lerp(col1, col2, fVert)
-                        cast(*u32, pix)[] = col.argb
                     }
 
-                    break
+                    var fVert = (y - column.y1) / cast(f32, column.y2 - column.y1)
+                    fVert = Math.clamp(fVert, 0, 1)
+                    let col = Color.lerp(column.col1, column.col2, fVert)
+                    cast(*u32, pix)[] = col.argb
                 }
+
+                break
             }
         }
 
         capture.pushUndo(undo, serial)
     }
 
+    // Lifts the pixels under each selection into an image form that can be moved, and fills the
+    // holes they leave with a smart fill, as one undo step.
     mtd pixSelSmartMove()
     {
         let forms = .getPixSels()

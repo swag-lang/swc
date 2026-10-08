@@ -56,7 +56,7 @@ impl MainWnd
     }
 
     // The model of a given form type: an interface over the corresponding
-    // 'mdlFormX' field, registered lazily so any way of constructing a MainWnd
+    // `mdlFormX` field, registered lazily so any way of constructing a MainWnd
     // (including the test fixtures) gets a valid mapping
     mtd modelFor(type: typeinfo)->IForm
     {
@@ -121,6 +121,7 @@ impl MainWnd
         }
     }
 
+    // Makes `f` the model of the tool that draws its kind of form, and of the favorites.
     mtd updateModel(f: IForm)
     {
         let form = assume cast(*BaseForm, f)
@@ -141,6 +142,7 @@ impl MainWnd
             .mdlPixSel = mdl
     }
 
+    // Switches to the tool that draws forms like `f`.
     mtd updateEditMode(f: IForm)
     {
         if .editMode == .Favorites
@@ -178,6 +180,8 @@ impl MainWnd
         return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
     }
 
+    // Creates a form of the kind `mode` draws, styled as its model. `clear` drops the content the
+    // model holds, such as its text, and keeps only its style.
     mtd newFormFromModel(mode: EditMode, clear = false)->IForm
     {
         // Clone the model of the given mode, whatever its concrete type

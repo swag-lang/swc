@@ -163,6 +163,8 @@ private impl IWnd for Panel
 
 impl Panel
 {
+    // Builds the MIDI panel: the track selector and the zoom button. Loads the file in the
+    // background; the piano roll is created when the document arrives.
     func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()

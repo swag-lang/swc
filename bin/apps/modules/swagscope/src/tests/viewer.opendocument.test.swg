@@ -644,3 +644,11 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.opendocument.document")
 }
+
+// Character references decode in decimal and hexadecimal; one that names no character stays as
+// written.
+#test
+{
+    Swag.assert(OpenDocument.decodeXmlText("&#65;&#x42;&#X43;") == "ABC")
+    Swag.assert(OpenDocument.decodeXmlText("&#0;&#xZZ;&#;") == "&#0;&#xZZ;&#;")
+}

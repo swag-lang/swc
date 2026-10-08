@@ -16,6 +16,9 @@ impl ViewerWindow
         wholeWord: .searchWholeWordOption,
         regularExpression: .searchRegexOption}
 
+    // Pops up the search options: search or filter mode when the active viewer can filter, then
+    // match case, whole word and regular expression. A change revalidates the query, restarts the
+    // search and saves the state.
     private mtd showSearchOptionsMenu()
     {
         const SearchModeId = "scope.search.mode.search"
@@ -71,6 +74,8 @@ impl ViewerWindow
         catch .saveState()
     }
 
+    // Validates the query in the search box: a viewer with its own query syntax judges it,
+    // otherwise the text options decide whether it is a valid pattern. An empty query is valid.
     private mtd validateSearchEdit(edit: *EditBox)->EditBoxCheckResult
     {
         if not (edit.text()).count do
@@ -88,6 +93,8 @@ impl ViewerWindow
         return Viewer.patternIsValid(edit.text(), .searchOptions()) ? .Valid : .InvalidVisible
     }
 
+    // Applies the active viewer's search wording and capabilities to the search group: placeholder,
+    // tooltip, options button and field width. Leaves filter mode when the viewer cannot filter.
     private mtd refreshSearchPresentation()
     {
         var presentation: Viewer.SearchPresentation
@@ -138,13 +145,12 @@ impl ViewerWindow
         .commandBar.centerContent()
     }
 
+    // Searches the active viewer again for the text of the search box. Filter mode hands the query
+    // to the viewer's filter; otherwise matches come from the viewer or a scan of the file, and
+    // `selectLast` selects the last one instead of the first.
     mtd restartSearch(selectLast = false)
     {
-        .stopSearch()
-        .searchMatches.clear()
-        .searchIndex      = Swag.U64.Max
-        .searchMatch      = Swag.U64.Max
-        .searchComplete   = false
+        .forgetSearch()
         .searchSelectLast = selectLast
         .searchQuery      = .searchBox.text()
         .searchSpan       = Math.max(.searchQuery.length, 1)
@@ -262,6 +268,8 @@ impl ViewerWindow
         .refreshSearchReadout()
     }
 
+    // Moves to the next or previous match, wrapping around. A query edited since the last search
+    // restarts it first, landing on the last match when moving backward.
     private mtd navigateSearch(direction: s32)
     {
         if not .searchBox.isEnabled() or not (.searchBox.text()).count do
@@ -282,6 +290,8 @@ impl ViewerWindow
         .revealCurrentSearchMatch()
     }
 
+    // Shows the search state in the count label, its tooltip and the navigation buttons: an error,
+    // an invalid pattern, a running count, no match, or the current position.
     private mtd refreshSearchReadout()
     {
         if .searchFilterMode
@@ -335,6 +345,8 @@ impl ViewerWindow
         .searchBox.toolTip = .searchError.isEmpty() ? .searchToolTip.toString() : .searchError.toString()
     }
 
+    // Scrolls the active viewer to the current match and refreshes the readout and glow, leaving
+    // the keyboard in the search box when the reveal started there.
     private mtd revealCurrentSearchMatch()
     {
         if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count do
@@ -358,6 +370,8 @@ impl ViewerWindow
         .refreshSearchHighlight()
     }
 
+    // Places the glow over the current match, clipped to the viewer, and keeps polling its bounds
+    // on a timer while it stays current. Hides the glow when the viewer cannot locate the match.
     private mtd refreshSearchHighlight()
     {
         if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count
@@ -444,6 +458,8 @@ impl ViewerWindow
         return .forwardKeyToViewer(evt, takeFocus: false)
     }
 
+    // Shows the search group only when the active viewer can reveal matches, otherwise gives its
+    // place in the command bar to the viewer's actions, and restarts the search for the new viewer.
     mtd updateSearchAvailability()
     {
         let active         = .activeChoiceIndex < .instances.count
@@ -464,6 +480,8 @@ impl ViewerWindow
             .viewerFocusTarget()?.setFocus()
     }
 
+    // Cancels the search in progress and hides its glow; `clearPresentation` also clears the
+    // matches the viewer highlights.
     mtd stopSearch(clearPresentation = true)
     {
         .stopTimer(&.searchTimer)
@@ -484,6 +502,17 @@ impl ViewerWindow
         .searchOverlay.hide()
     }
 
+    // Stops the search and forgets its query, its matches, and the match it was on.
+    mtd forgetSearch()
+    {
+        .stopSearch()
+        .searchQuery.clear()
+        .searchMatches.clear()
+        .searchIndex    = Swag.U64.Max
+        .searchMatch    = Swag.U64.Max
+        .searchComplete = false
+    }
+
     mtd beginSearch()
     {
         .searchStream = catch File.openReadLive(.currentFile) as openError
@@ -499,6 +528,9 @@ impl ViewerWindow
         .searchTimer = .addTimer(1'ms)
     }
 
+    // Advances the incremental search by one timer tick, through the viewer's collector or one
+    // chunk of the file. Matches near a chunk's end wait for the next chunk, so a match crossing
+    // the boundary is found once and whole.
     mtd searchStep()
     {
         if .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].collectMatches and .instances[.activeChoiceIndex].view

@@ -19,13 +19,8 @@ impl ViewerWindow
         // A query belongs to the document it was started against. Stop its file stream as soon as
         // another document is requested instead of letting it scan the old file while the new one
         // is being classified.
-        .stopSearch()
+        .forgetSearch()
         .searchBox.setText("", notify: false)
-        .searchQuery.clear()
-        .searchMatches.clear()
-        .searchIndex    = Swag.U64.Max
-        .searchMatch    = Swag.U64.Max
-        .searchComplete = false
         .refreshSearchReadout()
         .stopSlide()
         .stillView = null
@@ -116,6 +111,8 @@ impl ViewerWindow
             .queueFile(dialog.selectedPath())
     }
 
+    // Closes the current file and forgets its reading state, stops the slide show and the change
+    // watch, and returns to the empty window with focus on the open button.
     mtd closeFile()
     {
         .pendingFile.clear()
@@ -133,14 +130,11 @@ impl ViewerWindow
         .openButton.setFocus()
     }
 
+    // Returns the window to its empty state with `message`. While a viewer is still retiring or a
+    // classification is running, the request is kept in `pendingEmpty` and retried from a timer.
     mtd showEmpty(message: string)
     {
-        .stopSearch()
-        .searchQuery.clear()
-        .searchMatches.clear()
-        .searchIndex    = Swag.U64.Max
-        .searchMatch    = Swag.U64.Max
-        .searchComplete = false
+        .forgetSearch()
         let retired = .destroyInstances()
         if not retired or (.choiceLoad.started and not .choiceLoad.isDone())
         {
@@ -219,15 +213,8 @@ impl ViewerWindow
         }
 
         .instances.clear()
-        if not keepCurrent
-        {
-            .currentActions  = null
-            .currentInfo     = null
-            .currentCommands = null
-            .currentView     = null
-            .setCurrentSidePanel(null, null)
-            .updateViewerBar()
-        }
+        if not keepCurrent do
+            .resetCurrentViewer()
 
         return true
     }
@@ -252,6 +239,18 @@ impl ViewerWindow
         .currentInfo     = session.info
         .currentCommands = session.commands
         .setCurrentSidePanel(session.sidePanelHost, session.sidePanelButton)
+    }
+
+    // Presents `view` alone, without the actions, information, commands, or side panel of a
+    // viewer.
+    private mtd resetCurrentViewer(view: *Wnd? = null)
+    {
+        .currentView     = view
+        .currentActions  = null
+        .currentInfo     = null
+        .currentCommands = null
+        .setCurrentSidePanel(null, null)
+        .updateViewerBar()
     }
 
     // Moves the host-owned panel action with the viewer it belongs to. The action remains on the
@@ -368,12 +367,7 @@ impl ViewerWindow
             }
 
             .stopLoadingIndicator()
-            .currentView     = errorView
-            .currentActions  = null
-            .currentInfo     = null
-            .currentCommands = null
-            .setCurrentSidePanel(null, null)
-            .updateViewerBar()
+            .resetCurrentViewer(errorView)
             .updateFileInfo("")
             .updateSearchAvailability()
             .applyLayout()
@@ -395,13 +389,8 @@ impl ViewerWindow
         if not instance.retireView() do
             return false
         instance.destroyWindows()
-        instance[]       = {}
-        .currentView     = null
-        .currentActions  = null
-        .currentInfo     = null
-        .currentCommands = null
-        .setCurrentSidePanel(null, null)
-        .updateViewerBar()
+        instance[] = {}
+        .resetCurrentViewer()
         return true
     }
 
@@ -526,6 +515,9 @@ impl ViewerWindow
         .outgoingSidePanelButton?.bringToFront()
     }
 
+    // Shows the viewer of `choices[index]`, creating its session on first use; a viewer that fails
+    // becomes the standard failure surface. Returns false when no view could be shown or the
+    // loading viewer could not be retired yet.
     mtd activateChoice(index: u32)->bool
     {
         if index >= .choices.count do
@@ -688,6 +680,9 @@ impl ViewerWindow
         .queueFile(fileName, remember)
     }
 
+    // Opens a file whose classification has finished: watches it for changes, fills the viewer
+    // selector, and activates the preferred viewer, or the one of the reloaded reading state, with
+    // plain text as the fallback. `remember` records it in the recent files and folders.
     private mtd openClassifiedFile(classified: ViewerClassifiedFile, remember: bool)
     {
         .fileWatch.current       = #move classified.metadata

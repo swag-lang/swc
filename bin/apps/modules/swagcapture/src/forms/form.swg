@@ -102,6 +102,10 @@ struct BaseForm
 
 impl BaseForm
 {
+    // Whether the form is painted turned; highlighter strokes and pixel
+    // selections ignore their angle.
+    mtd const isRotated()->bool => .subKind != .Highlight and .subKind != .PixSel and not Math.isZeroEpsilon(.rotate)
+
     // The margin of a preset sample, which is drawn at a fraction of its document size.
     //
     // Everything a sample paints outside its own rectangle is scaled down with it, so the
@@ -250,13 +254,15 @@ impl BaseForm
     // the full range (a checkerboard brush behind it shows the transparency).
     mtd highlightAlpha()->u8 => cast(u8, Math.map(cast(f32, .alpha), 0, 100, 0, 255))
 
+    // Reports whether `pt` touches what the form actually paints at zoom `z`, by testing the
+    // triangles it draws rather than its bounds.
     func drawHitTest(itf: IForm, pt: Math.Point, z: f32)->bool
     {
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
         let base = assume cast(*BaseForm, itf)
         var pos  = Math.Vector2{pt.x, pt.y}
-        if base.subKind != .Highlight and base.subKind != .PixSel and not Math.isZeroEpsilon(base.rotate)
+        if base.isRotated()
         {
             let br  = itf.boundRect()
             let cx  = br.horzCenter() * z

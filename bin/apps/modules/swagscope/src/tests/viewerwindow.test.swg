@@ -113,7 +113,7 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
 func completeViewerStatistics(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     let view = assume cast(*PlainText.Panel, window.currentView)
-    while not Atomic.get(&view.statisticsState) do
+    while Atomic.get(&view.statisticsState) == PlainText.StatisticsRunning do
         host.pump()
     if view.statisticsTimer do
         host.fireTimer(view.statisticsTimer)
@@ -273,7 +273,7 @@ func createSidePanelFixture(host: Viewer.Host)
 // available in the information summary without forcing the whole document into the editor.
 #test
 {
-    let fileName = writeTempFile("statistics.txt", cast(const [..] u8, "one two\nthree\n"))
+    let fileName = writeTempFile("statistics.txt", "one two\nthree\n")
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -282,7 +282,7 @@ func createSidePanelFixture(host: Viewer.Host)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view          = assume cast(*PlainText.Panel, viewerSession.view)
-    while not Atomic.get(&view.statisticsState) do
+    while Atomic.get(&view.statisticsState) == PlainText.StatisticsRunning do
         host.pump()
     if view.statisticsTimer do
         host.fireTimer(view.statisticsTimer)
@@ -314,8 +314,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // classification has had a chance to replace the viewer.
 #test
 {
-    let first  = writeTempFile("search-first.txt", cast(const [..] u8, "needle in the first file\n"))
-    let second = writeTempFile("search-second.txt", cast(const [..] u8, "second file\n"))
+    let first  = writeTempFile("search-first.txt", "needle in the first file\n")
+    let second = writeTempFile("search-second.txt", "second file\n")
     defer discard catch File.delete(first)
     defer discard catch File.delete(second)
 
@@ -590,7 +590,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     {
         let fileName = Path.combine(folder, Format.toString("file%.txt", i))
         let content  = Format.toString("document text %\n", i)
-        discard expect File.writeAllBytes(fileName, cast(const [..] u8, content))
+        discard expect File.writeAllBytes(fileName, content)
         names.add(fileName)
     }
 
@@ -852,7 +852,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let names: [4] string = ["changelog.md", "notes.txt", "report-with-a-name-too-long-for-the-fixed-history-panel.txt", "sample.json"]
     for one in names do
-        discard expect File.writeAllBytes(Path.combine(folder, one), cast(const [..] u8, "a readable line\n"))
+        discard expect File.writeAllBytes(Path.combine(folder, one), "a readable line\n")
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -1719,7 +1719,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
 
-    let fileName = writeTempFile("html", cast(const [..] u8, "<p>ready</p>"))
+    let fileName = writeTempFile("html", "<p>ready</p>")
     defer discard catch File.delete(fileName)
 
     let index = createViewerPluginRegistry()
@@ -2167,7 +2167,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let names: [5] string = ["pic1.png", "pic2.jpg", "notes.txt", "more.txt", "readme.md"]
     for one in names do
-        discard expect File.writeAllBytes(Path.combine(folder, one), cast(const [..] u8, "a readable line\n"))
+        discard expect File.writeAllBytes(Path.combine(folder, one), "a readable line\n")
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -2217,7 +2217,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchMatchCaseOption = false
     window.searchWholeWordOption = false
     window.searchRegexOption     = false
-    loadViewerState(window, cast(const [..] u8, state))
+    loadViewerState(window, state)
     Swag.assert(window.folderSameKind and window.searchMatchCaseOption and window.searchWholeWordOption and window.searchRegexOption)
 }
 
@@ -2230,8 +2230,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
 
-    discard expect File.writeAllBytes(Path.combine(folder, "t1.txt"), cast(const [..] u8, "a readable line\n"))
-    discard expect File.writeAllBytes(Path.combine(folder, "t2.txt"), cast(const [..] u8, "a readable line\n"))
+    discard expect File.writeAllBytes(Path.combine(folder, "t1.txt"), "a readable line\n")
+    discard expect File.writeAllBytes(Path.combine(folder, "t2.txt"), "a readable line\n")
     let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
     discard expect File.writeAllBytes(Path.combine(folder, "pic1.svg"), imageBytes)
@@ -2340,7 +2340,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 {
     let folder = createPictureFolder("scope_play", ["pic1.svg", "pic2.svg", "pic3.svg"])
     defer discard catch Directory.delete(folder, recurse: true)
-    discard expect File.writeAllBytes(Path.combine(folder, "notes.txt"), cast(const [..] u8, "a readable line\n"))
+    discard expect File.writeAllBytes(Path.combine(folder, "notes.txt"), "a readable line\n")
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -2428,7 +2428,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 {
     let folder = createPictureFolder("scope_finish", ["pic1.svg", "pic2.svg"])
     defer discard catch Directory.delete(folder, recurse: true)
-    discard expect File.writeAllBytes(Path.combine(folder, "notes.txt"), cast(const [..] u8, "a readable line\n"))
+    discard expect File.writeAllBytes(Path.combine(folder, "notes.txt"), "a readable line\n")
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)

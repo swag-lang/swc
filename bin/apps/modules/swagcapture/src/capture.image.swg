@@ -20,6 +20,8 @@ impl Capture
         .preview = try Image.decode("preview.png", .previewBytes.toSlice())
     }
 
+    // Renders the capture, or only its selected forms, into an image at `zoom`. Pixel selections
+    // are working state and are left out.
     mtd toImage(zoom: f32 = 1, onlySel = false)->Image
     {
         var result: retval

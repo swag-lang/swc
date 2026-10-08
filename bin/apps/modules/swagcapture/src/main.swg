@@ -6,6 +6,10 @@ const ProductName   = "Swag Capture"
 const ApplicationId = "swagcapture"
 const SurfaceId     = "swag.capture"
 
+// The message a second instance sends to the running one: open the image path it left on the
+// clipboard.
+const OpenImageMessage = 1'u32
+
 #premain
 {
     Reflection.registerType(#typeof(FormArrow))
@@ -22,12 +26,10 @@ const SurfaceId     = "swag.capture"
 #main
 {
     let args = Env.arguments()
-    for arg in args where Path.isValidPathName(arg)
+    for arg in args where Path.isValidPathName(arg) and Image.canLoad(arg)
     {
-        if not Image.canLoad(arg) do
-            continue
         Clipboard.addString(arg)
-        if Surface.sendCustomMessage(SurfaceId, 1, 0) do
+        if Surface.sendCustomMessage(SurfaceId, OpenImageMessage, 0) do
             return
     }
 
@@ -58,10 +60,8 @@ const SurfaceId     = "swag.capture"
     Env.associateFileExtension(".png", ApplicationId, Env.executablePath())
     Env.associateFileExtension(".jpg", ApplicationId, Env.executablePath())
 
-    for arg in args where Path.isValidPathName(arg)
+    for arg in args where Path.isValidPathName(arg) and Image.canLoad(arg)
     {
-        if not Image.canLoad(arg) do
-            continue
         mainWnd.loadExternalImage(arg)
         break
     }

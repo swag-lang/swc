@@ -1,5 +1,6 @@
 impl LibraryWnd
 {
+    // Counts the loaded captures per source application, or per tag, for the sidebar groups.
     mtd collectNamedFilters(applications: bool)->Array'LibraryNamedFilter
     {
         var result: retval
@@ -48,6 +49,8 @@ impl LibraryWnd
         return result
     }
 
+    // Adds a sidebar group named `name` with one line per value and its count; adds nothing when
+    // there is no value.
     mtd addNamedFilterGroup(name: string, kind: LibrarySidebarFilter, values: *Array'LibraryNamedFilter)
     {
         if values.isEmpty() do
@@ -101,6 +104,7 @@ impl LibraryWnd
         .listCtrl.computeLayout()
     }
 
+    // Selects the sidebar line of the filter in force: the application, the tag, or the date.
     mtd selectActiveSidebarLine()
     {
         var wantedKind = LibrarySidebarFilter.Date
@@ -139,6 +143,8 @@ impl LibraryWnd
         }
     }
 
+    // Rebuilds the sidebar: all captures, the year, month, and day tree of their dates, then the
+    // application and tag groups.
     mtd rebuildSidebar()
     {
         .updatingSidebar = true
@@ -253,6 +259,8 @@ impl LibraryWnd
         .rebuildSidebar()
     }
 
+    // Filters the library by the sidebar `line` that was picked: a date, an application, or a
+    // tag.
     mtd applySidebarFilter(line: *ListLine)
     {
         if .updatingSidebar do
@@ -292,11 +300,10 @@ impl LibraryWnd
         return result
     }
 
-    mtd applyDynamicFilter(result: WndId?)
+    mtd applyDynamicFilter(id: WndId?)
     {
-        if not result do
+        if not id do
             return
-        let id = result
         if Utf8.startsWith(id, "capture.library.app:")
         {
             .applicationFilter = id[("capture.library.app:").count to]
@@ -309,6 +316,8 @@ impl LibraryWnd
         }
     }
 
+    // Shows the filter menu under `btn`: the content kinds, the link states, the rating, and one
+    // entry per known application and tag.
     mtd showFilterMenu(btn: *IconButton)
     {
         let applications = .uniqueFilterValues(true)

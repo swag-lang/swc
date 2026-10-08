@@ -39,6 +39,11 @@ private
     const WaveformInsetY      = 32.0
     const WaveformScaleHeight = 26.0
     const WaveformTickHeight  = 5.0
+
+    // What the opening worker publishes in `openState`: still running, opened, or failed.
+    const OpenRunning   = 0'u32
+    const OpenSucceeded = 1'u32
+    const OpenFailed    = 2'u32
 }
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
@@ -232,6 +237,8 @@ struct WaveformReducer
 
 impl WaveformReducer
 {
+    // Folds interleaved `samples` into the waveform points, keeping for each point the peak and
+    // mean level of its frames mixed to mono. A point is ready once the frames move past it.
     mtd consume(samples: const [..] s16)
     {
         let frames = samples.count / .channels
@@ -435,7 +442,7 @@ struct Panel
         waveform:       *WaveformView
     }
 
-    // Opening runs on a worker. `openState` is zero while opening, one on success and two on failure.
+    // Opening runs on a worker. `openState` holds one of the `Open` states.
     sound:        SoundFile
     pendingSound: SoundFile
     openFileName: String
@@ -455,7 +462,7 @@ struct Panel
     engineReady: bool
     playing:     bool
     muted:       bool
-    volume = 1'f32
+    volume:      f32 = 1
 
     retireRequested: bool
     retired:         bool
@@ -488,13 +495,13 @@ impl Panel
             return
 
         let state = Atomic.get(&.openState)
-        if not state or (.openThread.isValid() and not .openThread.isDone()) do
+        if state == OpenRunning or (.openThread.isValid() and not .openThread.isDone()) do
             return
         if .openThread.isValid() do
             .openThread.wait()
 
         .openFinished = true
-        if state == 2 do
+        if state == OpenFailed do
             fail InvalidFormatError{Errors.mkString(.openFailure)}
 
         .sound    = #move .pendingSound
@@ -539,7 +546,7 @@ impl Panel
         .volumeSlider.toolTip   = texts().ui_TipVolume
         .muteButton.toolTip     = texts().ui_TipMute
         .timeline.toolTip       = texts().ui_TipSeek
-        if not .openFinished or .openState != 1 do
+        if not .openFinished or .openState != OpenSucceeded do
             return
 
         if not .engineReady do
@@ -729,6 +736,8 @@ impl Panel
             catch .voice.setVolume(.volume)
     }
 
+    // Pauses or plays the sound, creating its voice on first use. Does nothing until the sound
+    // engine is ready, or when the device refuses.
     mtd togglePlayback()
     {
         if not .engineReady or not .ensureVoice() do
@@ -923,6 +932,8 @@ impl Panel
         }
     }
 
+    // Builds the sound panel: commands, transport bar and waveform view, then opens the file on a
+    // worker thread. Fails, destroying the panel, when that thread cannot start.
     func create(host: Viewer.Host)->*Panel fail
     {
         let services = host.services()
@@ -968,14 +979,14 @@ private func runViewerOpen(thread: Thread)
     if openError != null
     {
         view.openFailure = Errors.message(openError)
-        Atomic.exchange(&view.openState, 2)
+        Atomic.exchange(&view.openState, OpenFailed)
         return
     }
 
     if thread.requestEnd do
         return
     view.pendingSound = #move sound
-    Atomic.exchange(&view.openState, 1)
+    Atomic.exchange(&view.openState, OpenSucceeded)
 }
 
 // Creates the integrated sound playback and waveform view and connects it to the host.

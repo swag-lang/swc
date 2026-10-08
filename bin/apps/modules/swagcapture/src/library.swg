@@ -10,7 +10,7 @@ struct Library
     loaded:       bool
 
     // Resolved default folder, kept because the documents folder is a shell lookup and the
-    // library grid asks for the folder once per item. See 'getDefaultFolder'.
+    // library grid asks for the folder once per item. See `getDefaultFolder`.
     defaultFolder: String
 }
 
@@ -98,7 +98,7 @@ impl Library
         return result
     }
 
-    // Picks a destination inside 'folder' for 'name' that does not collide with an
+    // Picks a destination inside `folder` for `name` that does not collide with an
     // existing file, prefixing "<n>_" as needed. Both the trash and the restore paths
     // must stay unique so one delete/restore never overwrites another capture.
     func uniqueName(folder: String, name: String)->String
@@ -108,7 +108,7 @@ impl Library
         var n    = 1
         while File.exists(dst)
         {
-            // Build "<n>_<base>" without passing the name through a formatted 'any' arg,
+            // Build "<n>_<base>" without passing the name through a formatted `any` arg,
             // then combine (Path.combine wants a plain string, so convert the String).
             var candidate = Format.toString("%_", n)
             candidate += base
@@ -170,7 +170,7 @@ impl Library
     // onDeleteFile; it can be brought back from the trash view.
     mtd removeFile(name: String)
     {
-        // An observer can destroy the object that supplied 'name' (the recent strip does
+        // An observer can destroy the object that supplied `name` (the recent strip does
         // exactly that). Keep an owned path alive until every observer has returned.
         let stableName = String.from(name)
         if not Capture.isFile(stableName) do

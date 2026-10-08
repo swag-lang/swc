@@ -270,6 +270,8 @@ impl Panel
         return true
     }
 
+    // Moves playback to frame `index`, clamped to the last frame. While playing, the sound pauses
+    // and resumes only once the requested picture is shown, so both restart together.
     mtd seekFrame(index: u64)
     {
         let count = .video.frameCount()
@@ -350,6 +352,7 @@ impl Panel
         .decodeWake.signal()
     }
 
+    // Pauses or resumes playback; resuming at the last frame restarts from the beginning.
     mtd togglePlayback()
     {
         if not .hasFrame do

@@ -136,6 +136,8 @@ impl LibraryWnd
         .view.invalidate()
     }
 
+    // Writes the tags, favorite mark, or rating given to the capture saved in `file`, after any
+    // pending autosave of it has landed. A null value is left as it is.
     mtd updateMetadata(file: String, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
     {
         // The edited capture autosaves in the background; make sure this load reads
@@ -166,6 +168,8 @@ impl LibraryWnd
             MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, err)
     }
 
+    // Asks for the tags of the selected captures and writes them to every one. A single capture
+    // starts from its own tags.
     mtd editSelectedTags()
     {
         let files = .selectedCaptureFiles()
@@ -248,6 +252,7 @@ impl LibraryWnd
         try image.save(destination)
     }
 
+    // Asks for a folder and writes every selected capture there as an image.
     mtd exportSelected()
     {
         let files = .selectedCaptureFiles()

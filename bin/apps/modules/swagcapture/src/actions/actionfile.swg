@@ -186,7 +186,7 @@ impl IActionUI for ActionFile
 
         case .RenameCapture:
 
-            // Snapshot the values now: 'capture' may be a library preview that the modal
+            // Snapshot the values now: `capture` may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
             let file = capture.file.toString()
 
@@ -336,6 +336,7 @@ private func addImageFilters(opt: *FileDlgOptions, formats: const [..] ImageForm
 
 impl MainWnd
 {
+    // Asks for an image file and opens it as a new capture.
     mtd openImage()
     {
         with var opt: FileDlgOptions
@@ -456,6 +457,8 @@ impl MainWnd
         discard from.startDrag(&data, .Copy)
     }
 
+    // Writes `img` to `nameFile` in the format its extension names, tuning the PNG and JPEG
+    // encoders, then offers to show the file, or reports why it could not be written.
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
     {
         // Which encoder runs is the registry's decision, taken from the extension.
@@ -509,6 +512,8 @@ impl MainWnd
         .doSaveAsImage(fileName, linked)
     }
 
+    // Asks where to save the capture as an image, offering the image folders and the formats that
+    // can be written; empty when the reader cancels.
     mtd getSaveAsImageName()->String
     {
         let capture = .getCapture()!
@@ -553,6 +558,7 @@ impl MainWnd
         .doSaveImage(capture, &image, fileName)
     }
 
+    // Asks for a size and creates a blank capture of it.
     mtd newImage()
     {
         with let dialog = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)

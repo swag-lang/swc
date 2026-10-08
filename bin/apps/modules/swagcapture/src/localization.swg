@@ -79,6 +79,7 @@ struct AppStrings
     msg_FailedSaveCapture:      string = "Failed to save capture file: %"
     msg_FailedRename:           string = "Failed to rename capture"
     msg_FailedCopyImage:        string = "Failed to copy image"
+    msg_FailedCaptureScreen:    string = "Failed to capture the screen"
     msg_FailedLoadFile:         string = "Failed to load file: %"
     msg_FailedOpenLibrary:      string = "Cannot open the library folder"
     msg_FailedSaveMetadata:     string = "Cannot save capture metadata"
@@ -429,17 +430,15 @@ private func checkPropertyKeysAreDistinct()
     let type = assume cast(const *Swag.TypeInfoStruct, #typeof(AppStrings))
     let data = cast(const [*] u8, &keys)
 
-    for f in type.fields!
+    for field in type.fields!
     {
-        let field = f
-        let name  = field.name orelse ""
+        let name = field.name orelse ""
         if not Utf8.startsWith(name, PropertyKeyPrefix) do
             continue
 
         let value = cast(const *string, data + field.offset)[]
-        for g in type.fields
+        for other in type.fields
         {
-            let other = g
             if other.offset >= field.offset do
                 break
             if not Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do

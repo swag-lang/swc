@@ -81,6 +81,9 @@ impl ViewerInfoLayout
     const FileSpacing       = 8.0
     const SideButtonSpacing = 8.0
 
+    // Places the files button and the current file on the left, never past the band's center, and
+    // packs the side button, the viewer contributions and the general details against the right
+    // edge. Viewers get their measured width first; the general details take what remains.
     mtd computeLayout()
     {
         let client = .paddedClientRect()

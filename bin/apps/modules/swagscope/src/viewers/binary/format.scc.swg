@@ -61,6 +61,8 @@ func reportSccContainer(image: *BinaryImage, report: *Report, fileName: string)
     report.summary = Format.toString("SCC %.% · %", major, minor, chunks)
 }
 
+// Reports the SCC manifest: version, profile, description, dates and tags, then its properties and
+// entries.
 private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
 {
     let texts = texts()
@@ -180,6 +182,8 @@ private func reportSccEntries(report: *Report, entries: const [..] Scc.Entry)
     report.endGroup()
 }
 
+// Reports every chunk of the container with its identities, codec, sizes and checksums, each as a
+// group spanning its stored payload.
 private func reportSccChunks(report: *Report, chunks: const [..] Scc.ChunkInfo)
 {
     let texts = texts()

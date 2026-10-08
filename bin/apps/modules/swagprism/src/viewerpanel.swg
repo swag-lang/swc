@@ -100,8 +100,8 @@ impl ViewerPanel
         with .optimCombo = ComboBox.create(.header, {0, 0, 72, 36}, "prism.optimize")
         {
             .dockStyle = .Right
+            .margin    = {8, 0, 0, 0}
             .style.setStyleSheetMetrics("comboBox_Width 0")
-            .margin = {8, 0, 0, 0}
             for name in ["O0", "O1", "O2"] do
                 .addItem(name)
             .setSelectedIndex(cast(u32, me.defaultLevel), notify: false)
@@ -162,7 +162,7 @@ impl ViewerPanel
     mtd refreshPlayback()
     {
         .pauseButton.show(.viewer != null and .kind != .Microcode)
-        let paused = .viewer ? .viewer.isPaused() : false
+        let paused = .viewer != null and .viewer.isPaused()
         .pauseButton.setChecked(paused)
         .pauseButton.setIcon(.theme().icon(paused ? .Play : .Pause, 18))
         .pauseButton.toolTip = paused ? appStrings().ui_Resume : appStrings().ui_Pause

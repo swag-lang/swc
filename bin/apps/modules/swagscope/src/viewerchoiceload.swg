@@ -24,6 +24,9 @@ struct ViewerChoiceLoad
 
 impl ViewerChoiceLoad
 {
+    // Classifies `fileName` on the worker task: its absolute path, existence, viewer choices, size
+    // and metadata, the `recent` files that still exist, and the sorted files of its folder. The
+    // caller polls for completion.
     mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String)
     {
         Swag.assert(not .started)

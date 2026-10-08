@@ -7,8 +7,8 @@ func codeFixturePath(name: string)->String => Path.combine(Path.combine(Path.dir
 
 // Builds the Swag document the highlighting test lexes.
 //
-// This one fixture is written at run time instead of being stored under 'datas': the compiler
-// collects every '.swg' below 'src' with no exception for a test folder, so a file keeping the
+// This one fixture is written at run time instead of being stored under `datas`: the compiler
+// collects every '.swg' below `src` with no exception for a test folder, so a file keeping the
 // extension the lexer is selected by would be compiled into the viewer and would publish its
 // declarations as part of it.
 func swagSampleSource()->String

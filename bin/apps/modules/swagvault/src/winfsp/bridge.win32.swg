@@ -36,8 +36,7 @@ namespace WinFsp
     {
         if not value do
             return ""
-        let validValue = value
-        return Utf8.fromUtf16(Swag.makeSlice(validValue, Utf16.lengthZeroTerminated(validValue)))
+        return Utf8.fromUtf16(Swag.makeSlice(value, Utf16.lengthZeroTerminated(value)))
     }
 
     // Copies the security descriptor of a node, or the default one when it stores none, and

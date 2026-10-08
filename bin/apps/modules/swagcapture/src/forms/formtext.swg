@@ -29,8 +29,8 @@ struct FormText
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
     fontSize: f32 = 48
     #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize)]
-    boldSize: f32 = 0
-    lineSpacing   = 14.0
+    boldSize:    f32 = 0
+    lineSpacing: f32 = 14
 
     #[Serialization.NoSerialize]
     {

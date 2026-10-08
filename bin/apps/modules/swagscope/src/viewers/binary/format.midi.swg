@@ -372,6 +372,7 @@ private func midiChannelEventName(kind: u8)->string
     return "?"
 }
 
+// Names a meta-event `kind` as the Standard MIDI File specification does.
 private func midiMetaEventName(kind: u8)->string
 {
     switch kind
@@ -397,6 +398,7 @@ private func midiMetaEventName(kind: u8)->string
     return "Meta-Event"
 }
 
+// Names the major key of a key signature from its count of sharps (positive) or flats (negative).
 private func midiKeyName(value: s32)->string
 {
     switch value

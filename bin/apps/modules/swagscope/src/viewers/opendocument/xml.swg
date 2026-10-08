@@ -131,6 +131,34 @@ func attribute(attributes, wanted: string)->String
     return {}
 }
 
+// The character a numeric entity names, `#65` or `#x41`; 0 when it names none.
+private func numericEntity(entity: string)->rune
+{
+    if entity.count < 2 or entity[0] != '#' do
+        return 0
+
+    let hexadecimal = entity.count > 2 and (entity[1] == 'x' or entity[1] == 'X')
+    let digits      = hexadecimal ? entity[2 to] : entity[1 to]
+    var value       = 0'u64
+    if hexadecimal
+    {
+        let parsed = catch StrConv.parseX64(digits) as parseError
+        if parseError != null or parsed.ovf or parsed.eat != digits.count do
+            return 0
+        value = parsed.value
+    }
+    else
+    {
+        let parsed = catch StrConv.parseU64(digits) as parseError
+        if parseError != null or parsed.eat != digits.count do
+            return 0
+        value = parsed.value
+    }
+
+    let character = cast(rune, value)
+    return value != 0 and Utf8.isValidRune(character) ? character : 0
+}
+
 // Decodes the XML character references legal in document properties without accepting markup.
 func decodeXmlText(source: string)->String
 {
@@ -174,41 +202,11 @@ func decodeXmlText(source: string)->String
             result += "\""
 
         default:
-            if entity.count > 1 and entity[0] == '#'
-            {
-                let hexadecimal = entity.count > 2 and (entity[1] == 'x' or entity[1] == 'X')
-                let digits      = hexadecimal ? entity[2 to] : entity[1 to]
-                if hexadecimal
-                {
-                    let parsed = catch StrConv.parseX64(digits) as parseError
-                    if parseError == null and not parsed.ovf and parsed.eat == digits.count and parsed.value
-                    {
-                        let character = cast(rune, parsed.value)
-                        if Utf8.isValidRune(character)
-                        {
-                            result.append(character)
-                            at = close + 1
-                            continue
-                        }
-                    }
-                }
-                else
-                {
-                    let parsed = catch StrConv.parseU64(digits) as parseError
-                    if parseError == null and parsed.eat == digits.count and parsed.value
-                    {
-                        let character = cast(rune, parsed.value)
-                        if Utf8.isValidRune(character)
-                        {
-                            result.append(character)
-                            at = close + 1
-                            continue
-                        }
-                    }
-                }
-            }
-
-            result += source[at until close + 1]
+            let character = numericEntity(entity)
+            if character do
+                result.append(character)
+            else do
+                result += source[at until close + 1]
         }
 
         at = close + 1

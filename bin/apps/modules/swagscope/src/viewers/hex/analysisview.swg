@@ -14,7 +14,7 @@ struct HistogramView
     histogram: [256] u64
     total:     u64
     maximum:   u64
-    hovered = Swag.U32.Max     // Byte value under the pointer, or `Swag.U32.Max` for none.
+    hovered:   u32 = Swag.U32.Max     // Byte value under the pointer, or `Swag.U32.Max` for none.
 
     sigByteChanged: SigArray'func||(*HistogramView, u32)     // Emitted with the new hovered value.
 }
@@ -215,6 +215,8 @@ private impl AnalysisView
         }
     }
 
+    // Shows the analysis outcome: the failure, the amount scanned before a cancellation, or the
+    // entropy and the share of zero and printable bytes, then the strings count.
     mtd refreshResultText()
     {
         .scopeLabel.setText(.scopeText(.result.range))
@@ -373,6 +375,8 @@ impl AnalysisView
         }
     }
 
+    // Builds the analysis panel: header, scope and metrics lines, the byte histogram with the
+    // detail of the hovered byte, and the list of strings found.
     func create(parent: *Wnd)->*AnalysisView
     {
         with let result = Wnd.create'AnalysisView(parent)

@@ -135,6 +135,8 @@ impl Panel
         .refreshSubtitle()
     }
 
+    // Shows the subtitle for the current position shifted by the user's delay, recomputing it only
+    // when the position leaves the span over which the text stays the same.
     mtd refreshSubtitle()
     {
         let track = .subtitleTrack()
@@ -161,6 +163,8 @@ impl Panel
         catch g_App.saveState()
     }
 
+    // Applies the subtitle style or delay chosen by menu `command`, keeping the delay within a
+    // minute either way. Returns false when `command` is not a subtitle setting.
     mtd handleSubtitleSetting(command: string)->bool
     {
         switch command

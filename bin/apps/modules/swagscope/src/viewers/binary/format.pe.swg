@@ -375,6 +375,8 @@ func reportCoffObject(image: *BinaryImage, report: *Report)
     report.summary    = Format.toString("COFF · % · %", peMachineName(header.machine), sections)
 }
 
+// Reports the MS-DOS header and the message of the stub program between it and the PE signature at
+// `peOffset`.
 private func reportPeDosHeader(image: *BinaryImage, report: *Report, peOffset: u64)
 {
     let texts = texts()
@@ -510,6 +512,8 @@ private func reportPeRichHeader(image: *BinaryImage, report: *Report, peOffset: 
     report.endGroup()
 }
 
+// Reports the COFF file header and returns the fields the rest of the parse needs: machine, section
+// count, symbol table and optional header size.
 private func reportPeFileHeader(image: *BinaryImage, report: *Report, at: u64)->PeFileHeaderInfo
 {
     with var result: retval
@@ -538,6 +542,8 @@ private func reportPeFileHeader(image: *BinaryImage, report: *Report, at: u64)->
     return result
 }
 
+// Reports the PE32 or PE32+ optional header and its data directories, recording the pointer width,
+// image base and header size in `layout` for the tables reported after it.
 private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, size: u64, layout: *PeLayout)
 {
     let texts = texts()
@@ -617,6 +623,8 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, si
     report.endGroup()
 }
 
+// Reports the data directory table, at most its 16 standard entries, naming the section each
+// non-empty directory points into.
 private func reportPeDirectories(image: *BinaryImage, report: *Report, at, count: u64, layout: *PeLayout)
 {
     let texts   = texts()
@@ -637,6 +645,8 @@ private func reportPeDirectories(image: *BinaryImage, report: *Report, at, count
     report.endGroup()
 }
 
+// Reports the section table and records each section in `layout`, which the later tables need to
+// turn RVAs into file offsets.
 private func reportPeSections(image: *BinaryImage, report: *Report, at: u64, count: u16, layout: *PeLayout)
 {
     let texts    = texts()
@@ -699,6 +709,8 @@ private func peDirectory(image: *BinaryImage, layout: *PeLayout, index: u64)->{ 
     return {image.u32At(entryAt), image.u32At(entryAt + 4)}
 }
 
+// Reports the export directory: the exports reachable by name, in name-table order, then those
+// reachable only by ordinal. Reports nothing when the image exports nothing.
 private func reportPeExports(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 0)
@@ -802,6 +814,8 @@ private func peExportTarget(image: *BinaryImage, layout: *PeLayout, target, dire
     return layout.sectionNameOf(target)
 }
 
+// Reports the import directory, one group per imported module with its symbols, followed by the
+// total symbol count.
 private func reportPeImports(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 1)
@@ -909,6 +923,8 @@ private func reportPeThunks(image: *BinaryImage, report: *Report, layout: *PeLay
     return count
 }
 
+// Reports the delay-load descriptors: the modules the loader binds on their first call rather than
+// at startup.
 private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 13)
@@ -948,6 +964,7 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
     report.endGroup()
 }
 
+// Reports the resource directory: the version information first, then the resource tree.
 private func reportPeResources(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 2)
@@ -1190,6 +1207,8 @@ private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u6
     return Swag.U64.Max
 }
 
+// Reports the debug directory. A CodeView entry also shows the GUID, age and path of the PDB the
+// image was linked with.
 private func reportPeDebug(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 6)
@@ -1241,6 +1260,8 @@ private func reportPeDebug(image: *BinaryImage, report: *Report, layout: *PeLayo
     report.endGroup()
 }
 
+// Summarizes the exception directory as the number of functions it can unwind rather than listing
+// its records.
 private func reportPeExceptions(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 3)
@@ -1261,6 +1282,8 @@ private func reportPeExceptions(image: *BinaryImage, report: *Report, layout: *P
     report.endGroup()
 }
 
+// Summarizes the base relocation directory as page and fixup counts rather than listing every
+// fixup.
 private func reportPeRelocations(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 5)
@@ -1297,6 +1320,7 @@ private func reportPeRelocations(image: *BinaryImage, report: *Report, layout: *
     report.endGroup()
 }
 
+// Reports the TLS directory, whose address fields are pointer-sized and so twice as wide in PE32+.
 private func reportPeTls(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 9)
@@ -1318,6 +1342,8 @@ private func reportPeTls(image: *BinaryImage, report: *Report, layout: *PeLayout
     report.endGroup()
 }
 
+// Reports the load configuration header. The structure grew over Windows releases, so the security
+// cookie and guard flags appear only when its declared `Size` covers them.
 private func reportPeLoadConfig(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 10)
@@ -1374,6 +1400,7 @@ private func peGuardFlagsText(value: u32)->String
     return flagsText(cast(u64, value), names)
 }
 
+// Reports the CLR header of a managed image and the runtime version named by its metadata root.
 private func reportPeClr(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 14)

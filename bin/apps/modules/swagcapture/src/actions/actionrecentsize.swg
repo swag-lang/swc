@@ -89,6 +89,7 @@ impl IActionUI for ActionRecentSize
 
 impl MainWnd
 {
+    // Sets the height of the recent strip, sliding to it when `animated`.
     mtd setBottomSize(bottomSize: BottomSize, animated = true)
     {
         .bottomSize = bottomSize

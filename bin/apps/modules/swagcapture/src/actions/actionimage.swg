@@ -2,9 +2,31 @@
 // restore the original.
 struct ActionImage {}
 
+// The settings the resize and expand dialogs remember between uses. `g_ResizeMode` is the anchor
+// an expansion grows around, a cell of a 3 × 3 grid numbered 1 to 9 from the top-left, row by row.
 var g_KeepRatio:       bool = true
 var g_ResizeMode:      u64  = 5
 var g_Width, g_Height: s32
+
+// How a size change of `delta` splits between the near and the far side when the anchor sits in
+// `cell` (0 near, 1 center, 2 far) along that axis.
+func anchorSplit(delta: s32, cell: u64)->{before: s32, after: s32}
+{
+    switch cell
+    {
+    case 0:  return {0, delta}
+    case 1:  return {delta / 2, delta / 2}
+    default: return {delta, 0}
+    }
+}
+
+// Whether a capture can take the size `width` by `height`, and it differs from the current one.
+private func acceptsNewSize(width, height, currentWidth, currentHeight: s32)->bool
+{
+    if width < Capture.MinSize or width > Capture.MaxSize or height < Capture.MinSize or height > Capture.MaxSize do
+        return false
+    return width != currentWidth or height != currentHeight
+}
 
 impl ActionImage
 {
@@ -99,6 +121,9 @@ impl IActionUI for ActionImage
 
 impl MainWnd
 {
+    // Applies the image command `cmdId` to the background image, and resizes or turns
+    // the canvas with it, as one undo step. `l, t, r, b` are the margins an expansion
+    // adds; `w, h` the size of a resize.
     mtd doProcessImage(cmdId: WndId, l, t, r, b, w, h: s32 = 0)
     {
         let capture = .getCapture()!
@@ -151,6 +176,7 @@ impl MainWnd
         }
     }
 
+    // Asks for a new size and scales the background image to it, keeping the ratio when asked.
     mtd resizeImage()
     {
         let capture = .getCapture()!
@@ -195,17 +221,13 @@ impl MainWnd
             return
 
         let w = catch StrConv.toS32(edit0.edit.text())
-        if w < Capture.MinSize or w > Capture.MaxSize do
-            return
         let h = catch StrConv.toS32(edit1.edit.text())
-        if h < Capture.MinSize or h > Capture.MaxSize do
-            return
-        if w == capture.width and h == capture.height do
-            return
-
-        .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
+        if acceptsNewSize(w, h, capture.width, capture.height) do
+            .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
     }
 
+    // Adds the 3 × 3 grid of anchor buttons to an expand dialog; exactly one is checked, the anchor
+    // in `g_ResizeMode`.
     func createBtnGrid(dlg: *Wnd)
     {
         func createBtn(dlg: *Wnd, pos: Math.Rectangle, id: u64)
@@ -233,17 +255,16 @@ impl MainWnd
         const Y = 15
         const S = 20
         const O = 4
-        createBtn(dlg, {X, Y, S, S}, 1)
-        createBtn(dlg, {X + S + O, Y, S, S}, 2)
-        createBtn(dlg, {X + S + O + S + O, Y, S, S}, 3)
-        createBtn(dlg, {X, Y + S + O, S, S}, 4)
-        createBtn(dlg, {X + S + O, Y + S + O, S, S}, 5)
-        createBtn(dlg, {X + S + O + S + O, Y + S + O, S, S}, 6)
-        createBtn(dlg, {X, Y + S + O + S + O, S, S}, 7)
-        createBtn(dlg, {X + S + O, Y + S + O + S + O, S, S}, 8)
-        createBtn(dlg, {X + S + O + S + O, Y + S + O + S + O, S, S}, 9)
+        for cell in 9'u64
+        {
+            let x = X + cast(f32, cell % 3) * (S + O)
+            let y = Y + cast(f32, cell / 3) * (S + O)
+            createBtn(dlg, {x, y, S, S}, cell + 1)
+        }
     }
 
+    // Shows the expand dialog for a `w` by `h` image, and leaves the size and the anchor the reader
+    // picked in `g_Width`, `g_Height`, and `g_ResizeMode`. Returns the button that closed it.
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
         with let dialog = Dialog.create(.surface!, 350, 265, title: title)
@@ -314,48 +335,16 @@ impl MainWnd
         if result != Dialog.BtnOk do
             return
 
-        let w = g_Width
-        if w < Capture.MinSize or w > Capture.MaxSize do
-            return
-        let h = g_Height
-        if h < Capture.MinSize or h > Capture.MaxSize do
-            return
-        if w == capture.backImg.width and h == capture.backImg.height do
+        let image = &capture.backImg
+        if not acceptsNewSize(g_Width, g_Height, image.width, image.height) do
             return
 
-        var l, t, r, b: s32 = 0
-        let cw = w - cast(s32, capture.backImg.width)
-        let ch = h - cast(s32, capture.backImg.height)
-
-        switch g_ResizeMode
-        {
-        case 1, 4, 7:
-            r += cw
-
-        case 2, 5, 8:
-            l += cw / 2
-            r += cw / 2
-
-        case 3, 6, 9:
-            l += cw
-        }
-
-        switch g_ResizeMode
-        {
-        case 1, 2, 3:
-            b += ch
-
-        case 4, 5, 6:
-            t += ch / 2
-            b += ch / 2
-
-        case 7, 8, 9:
-            t += ch
-        }
-
-        .doProcessImage(ActionImage.ExpandImage, l, t, r, b)
+        let horz = anchorSplit(g_Width - image.width, (g_ResizeMode - 1) % 3)
+        let vert = anchorSplit(g_Height - image.height, (g_ResizeMode - 1) / 3)
+        .doProcessImage(ActionImage.ExpandImage, horz.before, vert.before, horz.after, vert.after)
     }
 
+    // Asks for a larger canvas and grows it around the chosen anchor, as one undo step.
     mtd expandCapture()
     {
         let capture = .getCapture()!
@@ -363,34 +352,18 @@ impl MainWnd
         if result != Dialog.BtnOk do
             return
 
-        let w = g_Width
-        if w < Capture.MinSize or w > Capture.MaxSize do
-            return
-        let h = g_Height
-        if h < Capture.MinSize or h > Capture.MaxSize do
-            return
-        if w == capture.width and h == capture.height do
+        if not acceptsNewSize(g_Width, g_Height, capture.width, capture.height) do
             return
 
-        let nw = w - capture.width
-        let nh = h - capture.height
+        let nw = g_Width - capture.width
+        let nh = g_Height - capture.height
 
         with let undo = capture.newUndo(.MoveCapture)
         {
             .newSizeX = nw
             .newSizeY = nh
-        }
-
-        switch g_ResizeMode
-        {
-        case 2, 5, 8: undo.newPosX = nw / 2
-        case 3, 6, 9: undo.newPosX = nw
-        }
-
-        switch g_ResizeMode
-        {
-        case 4, 5, 6: undo.newPosY = nh / 2
-        case 7, 8, 9: undo.newPosY = nh
+            .newPosX  = anchorSplit(nw, (g_ResizeMode - 1) % 3).before
+            .newPosY  = anchorSplit(nh, (g_ResizeMode - 1) / 3).before
         }
 
         capture.pushUndo(undo)
@@ -411,6 +384,8 @@ impl MainWnd
         return false
     }
 
+    // Shrinks the canvas to what it shows, the opaque pixels of the image and the forms, and drops
+    // the forms left outside, as one undo step.
     mtd trimCapture()
     {
         let capture = .getCapture()!

@@ -27,6 +27,11 @@ private
     const DetailMinWidth = 200.0
     const FillRows       = 128'u64
     const CommandWidth   = 80.0
+
+    // What the loading worker publishes in `loadState`: still running, loaded, or failed.
+    const LoadRunning   = 0'u32
+    const LoadSucceeded = 1'u32
+    const LoadFailed    = 2'u32
 }
 
 // Commands shared by the context menu, keyboard, and command bar.
@@ -89,15 +94,15 @@ struct Panel
     retired:                 bool
     reloadLanguageRequested: bool
     restoreExpanded:         Array'bool
-    restoreSelected    = Swag.U64.Max
+    restoreSelected:         u64 = Swag.U64.Max
     history:                 Array'u64
-    historyIndex       = Swag.U64.Max
+    historyIndex:            u64 = Swag.U64.Max
     historyNavigating:       bool
-    searchRow          = Swag.U64.Max
+    searchRow:               u64 = Swag.U64.Max
     searchColumn:            u64
     searchOffset:            u64
     searchLength:            u64
-    searchVisibleIndex = Swag.U32.Max
+    searchVisibleIndex:      u32 = Swag.U32.Max
     filterQuery:             String
     filterOptions:           Viewer.SearchOptions
     filterIncluded:          Array'bool
@@ -476,6 +481,8 @@ impl Panel
         .searchLength = 0
     }
 
+    // Reports whether report row `rowIndex` matches the filter query in its label, value, detail or
+    // hexadecimal offset.
     private mtd rowMatchesFilter(rowIndex: u64, options: Viewer.SearchOptions)->bool
     {
         let query = .filterQuery.toString()
@@ -895,7 +902,7 @@ impl IWnd for Panel
         }
 
         let state = Atomic.get(&.loadState)
-        if not state do
+        if state == LoadRunning do
             return
         if not .loadPublished
         {
@@ -911,7 +918,7 @@ impl IWnd for Panel
                 return
             }
 
-            if state == 2
+            if state == LoadFailed
             {
                 .finishLoadTimer()
                 .failureReason = #move .pendingDoc.image.failureReason
@@ -1002,6 +1009,8 @@ impl Panel
         .restoreSelected = .selectedReportIndex()
     }
 
+    // Rebuilds the report in the new language, keeping the expanded rows and the selection. A load
+    // in progress is asked to reload once it finishes.
     private mtd requestLanguageReload()
     {
         if .retireRequested do
@@ -1022,7 +1031,7 @@ impl Panel
     private mtd startLoad(notify = true) fail
     {
         .loadTexts     = texts()[]
-        .loadState     = 0
+        .loadState     = LoadRunning
         .loadPublished = false
         try .loadThread.init(&runViewerLoad, me, priority: .BelowNormal)
         try .loadThread.start()
@@ -1163,7 +1172,7 @@ private func runViewerLoad(thread: Threading.Thread)
     setTextsOverride(&view.loadTexts)
     let opened = view.pendingDoc.open(view.loadFileName)
     setTextsOverride(null)
-    Atomic.exchange(&view.loadState, opened ? 1 : 2)
+    Atomic.exchange(&view.loadState, opened ? LoadSucceeded : LoadFailed)
 }
 
 // Creates the integrated binary format view.

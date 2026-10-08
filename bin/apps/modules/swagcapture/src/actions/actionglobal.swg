@@ -85,6 +85,7 @@ impl IActionUI for ActionGlobal
 
 impl MainWnd
 {
+    // Switches between the editor and the library.
     mtd swapLibraryMode()
     {
         .libraryMode = not .libraryMode

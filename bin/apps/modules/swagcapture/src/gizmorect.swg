@@ -91,6 +91,8 @@ impl GizmoRect
             .movingRect.height = Math.max(.movingRect.height + delta.y, .minSizeY)
     }
 
+    // Moves, resizes, or rotates the box from the anchor or handle under the mouse, and returns
+    // whether the gizmo handled `evt`. Shift keeps the ratio of a corner resize.
     mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         let keepRatio = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
@@ -296,6 +298,7 @@ impl GizmoRect
         return Math.Point{cx + r.x, cy + r.y}
     }
 
+    // Paints the box, its anchors, and the rotation handle, turned with the form.
     mtd paint(painter: *Painter, hot: bool, col: Color = Argb.White)
     {
         let anchorSize2 = .anchorSize * 0.5
@@ -386,6 +389,8 @@ impl GizmoRect
             painter.popTransform()
     }
 
+    // Applies the current drag to `iform` as one undo step that replaces the previous step of the
+    // same drag unless `first`, and invalidates the area the form left and the one it covers.
     mtd apply(iform: IForm, first: bool, edges: GizmoEdges)
     {
         let form    = assume cast(*BaseForm, iform)

@@ -59,6 +59,8 @@ func waitForCapture()->bool
     return g_GrabDone
 }
 
+// Grabs the desktop and covers it with the overlay where the reader picks the area to capture.
+// Returns the grabbed image and the overlay, or a null overlay when the reader cancels.
 func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
 {
     g_App.setGlobalHotKeysEnabled(false)
@@ -204,6 +206,13 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     let wasHidden = surface.isHidden
     if main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized do
         surface.hide()
+
+    // A grab that fails gives the editor back instead of leaving it hidden for good.
+    defer #fail
+    {
+        if not wasHidden do
+            surface.show()
+    }
 
     // Force a delay
     if main.captureOptions.delay do

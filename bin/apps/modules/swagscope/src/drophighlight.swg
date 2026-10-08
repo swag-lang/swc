@@ -37,6 +37,8 @@ impl IWnd for ViewerDropHighlight
 
 impl ViewerDropHighlight
 {
+    // Builds the drop highlight: a hidden, topmost layer over the document that ignores input and
+    // shows the drop prompt while a file is dragged over the window.
     func create(parent: *Wnd)->*ViewerDropHighlight
     {
         with let result = Wnd.create'ViewerDropHighlight(parent, "scope.drop.highlight")

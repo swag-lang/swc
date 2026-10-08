@@ -36,6 +36,8 @@ func reportSfntFont(image: *BinaryImage, report: *Report)
     report.summary    = names.isEmpty() ? texts.font_Font : Format.toString("% · %", texts.font_Font, names)
 }
 
+// Reports a font collection header and each font it holds, every font collapsed under its own
+// group.
 private func reportFontCollection(image: *BinaryImage, report: *Report)
 {
     let texts = texts()

@@ -261,6 +261,10 @@ if it destroys a useful reading boundary, investigate the formatter.
   the purpose changes. Use a short group comment when the role is otherwise hard to see.
 - Let the formatter align the group. A long declaration may deliberately remain unaligned;
   never shorten a meaningful name or reorder dependent declarations to force a rectangular table.
+- In a table of typed fields, give a field with a default its type too (`wrapping: bool = true`,
+  `hovered: u32 = Swag.U32.Max`), so the column stays one table. An inferred `name = value` row
+  among `name: type` rows lines up with neither column. A group made only of inferred fields can
+  stay inferred.
 - Keep trailing comments near the code they explain. The formatter's `align-outlier-gap` also
   excludes unusually long rows from comment alignment, so one literal cannot push every
   neighbouring comment off the screen. A long explanation usually belongs above its subject;
@@ -327,13 +331,18 @@ let renderer: IRenderer = &cpu
 - Prefer enum shorthand such as `.Linear`, inferred aggregate literals, and inferred local types
   when their context is unambiguous.
 - Let `String` and `string` convert where the context names the target. Pass a `String` to a
-  `string` parameter without `.toString()`. Assign, `add`, return, or place a string value in a
-  `String` field without `String.from`, nested aggregate literals included. Keep the explicit
-  form where nothing names the target: an inferred `let`, a conditional whose branches have no
-  target type (`cond ? text : "--"` is rejected), or a call chained on the result.
-  `String.toLower(Path.extension(name))` already accepts a nullable `string`, so no `orelse ""`
-  or `String.from` is needed. Compare with the `String` on the left (`string == String` is
-  rejected), and dereference a loop binding (`path[]`), which is a pointer to the `String`.
+  `string` parameter without `.toString()`. Pass, assign, `add`, `insertAt`, return, or place a
+  string value in a `String` parameter, element, or field without `String.from`, nested aggregate
+  literals included. Keep the explicit form where nothing names the target: an inferred `let`, a
+  conditional whose branches have no target type (`cond ? text : "--"` is rejected), or a call
+  chained on the result. `String.toLower(Path.extension(name))` already accepts a nullable
+  `string`, so no `orelse ""` or `String.from` is needed. Compare with the `String` on the left
+  (`string == String` is rejected), and dereference a loop binding (`path[]`), which is a pointer
+  to the `String`.
+- A `string` converts to `const [..] u8` wherever the target names that type: a parameter
+  (`File.writeAllBytes(path, text)`, `Utf8.startsWith(argument, prefix)`), a return value, or a
+  typed declaration. Do not write `cast(const [..] u8, text)` there. A `String` gives its bytes
+  through `.toSlice()`.
 
 ## Make Ownership Scope-Bound
 
@@ -394,7 +403,12 @@ through it directly, and only a whole-value read or write opens the place with t
   replacing an asserted receiver with `?.` would silently change the contract.
 - Keep a guard and a named binding when several operations share the non-null value or absence
   needs its own behavior. Use the flow-refined value after the guard; do not add a redundant `!`
-  when the compiler already knows it is non-null. Remove an unreachable `orelse` fallback after
+  when the compiler already knows it is non-null, and do not copy it into a second name
+  (`let validNode = node`, `let it = item`) to use it after its guard. Narrowing follows a `do
+  return` guard, a `where` filter, and an `if not x { x = ... }` that fills the value. Name the
+  parameter or the loop binding for what it holds instead (`applyFilter(id: WndId?)`). When the
+  guard ends in `try failWith(...)`, which the compiler does not know never returns, put the lookup
+  and its failure in a small `fail` function that returns the non-null value. Remove an unreachable `orelse` fallback after
   that guard too: it suggests a default policy that the path cannot actually take. Keep required
   side effects outside assertions, even if inlining an action into the assertion would remove a
   temporary.
@@ -433,6 +447,10 @@ else, judge whether naming the receiver once makes the operation easier to follo
 - Keep conditional configuration in that same block when it still builds the subject, such as
   attaching a new window only when `parent` exists. A branch is not by itself a reason to split
   construction. Remove duplicate field writes only after checking intervening calls and reads.
+- Order a widget's configuration as one table: plain property writes first (`.dockStyle`,
+  `.margin`, `.toolTip`), so the formatter aligns them, then the configuring calls, then the
+  signal subscriptions. A write that a later call would overwrite, or that reads a value a call
+  produces, keeps its place. Merge two calls that add flags to the same set into one.
 
 ```swag
 with let rail = Wnd.create'Wnd(view, {0, 0, 4})
@@ -497,6 +515,21 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   structured initialization more directly than temporary variables and repeated checks.
 - Use range, value, index, and filtered iteration instead of manual counters when iteration itself
   is the intent.
+- Filter a loop with `where` instead of opening its body with `if ... do continue` when the
+  condition reads naturally as a property of the visited element. Merge consecutive guards that
+  skip the same element into one condition, and hoist values that do not depend on the element
+  above the loop.
+- Write a key-shortcut handler as `switch evt.key` with `where` guards on the modifier state, one
+  statement per arm, so the formatter lays the shortcuts out as a table. Name the modifier
+  combinations once as locals (`control`, `controlShift`) before the switch.
+- Name the states a worker publishes through an atomic (`LoadRunning`, `LoadSucceeded`,
+  `LoadFailed`) instead of comparing it with bare integers.
+- Replace a cascade of nested conditionals that maps two small indices to a value with a constant
+  table indexed by them, when the table shows the whole mapping at once.
+- Write a text template (a style sheet, generated source, a theme sheet) as one `"""` constant laid
+  out as it reads, not as a sequence of calls appending one line each. Continuation lines strip
+  their indentation up to the column that follows the opening delimiter, so align them under the
+  first character of text; deeper indentation is kept.
 - Make switches exhaustive. Do not append an unreachable dummy return solely to satisfy an old
   control-flow pattern when the current compiler proves all cases.
 - Use expression-bodied functions when the whole declaration reads easily, not merely when it

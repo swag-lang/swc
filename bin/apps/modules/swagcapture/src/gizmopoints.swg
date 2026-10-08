@@ -18,6 +18,7 @@ struct GizmoPoints
 
 impl GizmoPoints
 {
+    // Drags the anchor under the mouse, and returns whether the gizmo handled `evt`.
     mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         switch evt.kind
@@ -94,6 +95,8 @@ impl GizmoPoints
         }
     }
 
+    // Moves point `pt` of `iform` by `diff`, snapped, as one undo step that replaces the previous
+    // step of the same drag unless `first`.
     func apply(iform: IForm, diff: Math.Point, pt: u32, first: bool)
     {
         let form    = assume cast(*BaseForm, iform)

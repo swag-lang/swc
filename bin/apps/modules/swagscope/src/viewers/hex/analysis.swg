@@ -81,6 +81,8 @@ private impl StringScanner
             .preview.add(value)
     }
 
+    // Ends the current string run and records it when it is long enough; past `AnalysisStringLimit`
+    // strings only the truncation is noted. A preview shorter than its run ends in an ellipsis.
     mtd flush(kind: AnalysisStringKind, result: *AnalysisResult)
     {
         if .units >= AnalysisMinimumStringSize

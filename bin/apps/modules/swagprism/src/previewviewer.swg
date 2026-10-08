@@ -172,20 +172,21 @@ impl PreviewViewer
     // Workers reap old children off the UI thread. Their mappings remain owned until the join.
     mtd collectRetired()
     {
-        var index = 0'u64
-        while index < .retired.count
+        for index in reversed(.retired.count) where .retired[index].task.isDone()
         {
-            let probe = .retired[index]
-            if probe.task.isDone()
-            {
-                .retired.removeAtOrdered(index)
-                Memory.delete(probe)
-            }
-            else
-            {
-                index += 1
-            }
+            Memory.delete(.retired[index])
+            .retired.removeAtOrdered(index)
         }
+    }
+
+    // Replaces the frame with the diagnostics of a build that did not run.
+    mtd showDiagnostics(diagnostics: string)
+    {
+        .outputText.parse(diagnostics)
+        .outputText.show(.output)
+        .output.show()
+        .canvas.hide()
+        .applyLayout()
     }
 
     // Advances the preview at each timer tick: swaps in a replacement that has its first frame,
@@ -207,11 +208,7 @@ impl PreviewViewer
                 else
                 {
                     .queued = false
-                    .outputText.parse(candidate.diagnostics)
-                    .outputText.show(.output)
-                    .output.show()
-                    .canvas.hide()
-                    .applyLayout()
+                    .showDiagnostics(candidate.diagnostics)
                     Memory.delete(candidate)
                     .sigChanged.call(me)
                 }
@@ -241,15 +238,8 @@ impl PreviewViewer
                 return
             }
 
-            if .probe.failed
-            {
-                .outputText.parse(.probe.diagnostics)
-                .outputText.show(.output)
-                .output.show()
-                .canvas.hide()
-                .applyLayout()
-            }
-
+            if .probe.failed do
+                .showDiagnostics(.probe.diagnostics)
             .refreshStatus()
             .sigChanged.call(me)
             return

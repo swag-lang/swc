@@ -151,11 +151,11 @@ impl MainWindow
     {
         with .layoutButton = IconButton.create(.panels[0].header, .icon(.Layout), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
         {
-            .margin = {8, 0, 0, 0}
+            .dockStyle = .Right
+            .margin    = {8, 0, 0, 0}
             .setIconSize(18, 18)
             .setCheckIndicator(.Frame)
             .sendToBack()
-            .dockStyle         = .Right
             .sigCheckedChanged += func|window = me|(button) { window.setComparisonEnabled(button.isChecked) }
         }
     }
@@ -372,10 +372,7 @@ impl MainWindow
         .refreshStatus()
     }
 
-    mtd cancelEditTimer()
-    {
-        .stopTimer(&.editTimer)
-    }
+    mtd cancelEditTimer() { .stopTimer(&.editTimer) }
 
     // Recompiles shortly after the last keystroke, when live edit is on.
     mtd scheduleCompile()
@@ -385,6 +382,8 @@ impl MainWindow
             .editTimer = .addTimer(150'ms)
     }
 
+    // Loads example `kind` into the editor, shows it in the viewer it was written for, and
+    // compiles it.
     mtd openExample(kind: ExampleKind)
     {
         .selectedExample = kind

@@ -131,6 +131,7 @@ private impl DocumentView
     // the view would only duplicate `SampleSizes` in a second place.
     mtd sampleFont(size: u32)->*Font => .app().renderer.fontCache().createFont(.typeFace, size)
 
+    // Paints the font's family and metrics, then the sample text at each of `SampleSizes`.
     mtd paintSpecimen(painter: *Painter)
     {
         let colors = .themeColors()
@@ -353,6 +354,7 @@ impl DocumentView
         .invalidate()
     }
 
+    // Shows the page of mapped characters that begins at or after `start`, one cell per character.
     mtd loadPage(start: u32)
     {
         let page = characterPage(.face!, start)

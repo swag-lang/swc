@@ -1,5 +1,7 @@
 impl ViewerWindow
 {
+    // Creates the appearance button, which saves the theme and language the user picks and opens
+    // the about box, and the accent rail along the top edge.
     private mtd createAppearanceChrome()
     {
         .appearanceButton = AppearanceButton.create(.surface!, "scope.appearance")
@@ -23,6 +25,8 @@ impl ViewerWindow
         .accentRail = Separator.create(me, .Top, .Accent)
     }
 
+    // Builds the global command bar: the open, open-with-default, close and full-screen buttons,
+    // the centered search group, and the viewer selector closing its right edge.
     private mtd createCommandBar()
     {
         .commandBar = ViewerActionBar.create(me)
@@ -133,6 +137,8 @@ impl ViewerWindow
         }
     }
 
+    // Builds the information band above the document: the file panel toggle, the file icon, name
+    // and size, and the content statistics on the right.
     private mtd createInfoBar(panelGutter: f32)
     {
         // File identity and content statistics are read before the document. The information
@@ -219,6 +225,26 @@ impl ViewerWindow
         }
     }
 
+    // Creates one of the file lists of the side panel: a single-selection list of names that
+    // fills `parent` and never scrolls sideways.
+    private func createFileList(parent: *Wnd, rowIconSize: f32)->*ListCtrl
+    {
+        with let list = ListCtrl.createSimple(parent)
+        {
+            .dockStyle = .Center
+            .setIconSize(rowIconSize)
+            .setSelectionMode(.Single)
+            .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.padding.x = 0
+            .scrollWnd.padding.z = 0
+            .scrollWnd.updateFlags(.DisableHorizontal)
+        }
+
+        return list
+    }
+
+    // Builds the left file panel, hidden until toggled: a splitter holding the recent files with
+    // their clear button, and the folder files with their same-kind filter and folder history.
     private mtd createFilePanel(panelGutter: f32)
     {
         let compactSize = themeCompactButtonSize(.themeMetrics())
@@ -273,15 +299,8 @@ impl ViewerWindow
             .setTextAlignment(.Left, .Center)
         }
 
-        with .recentList = ListCtrl.createSimple(.recentPane)
+        with .recentList = createFileList(.recentPane, rowIconSize)
         {
-            .dockStyle = .Center
-            .setIconSize(rowIconSize)
-            .setSelectionMode(.Single)
-            .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.padding.x = 0
-            .scrollWnd.padding.z = 0
-            .scrollWnd.updateFlags(.DisableHorizontal)
             .sigSelectionChanged += func|window = me|(list) { window.openListSelection(list, window.recent.toSlice()) }
             .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position)) }
         }
@@ -326,15 +345,8 @@ impl ViewerWindow
             .setTextAlignment(.Left, .Center)
         }
 
-        with .folderList = ListCtrl.createSimple(.folderPane)
+        with .folderList = createFileList(.folderPane, rowIconSize)
         {
-            .dockStyle = .Center
-            .setIconSize(rowIconSize)
-            .setSelectionMode(.Single)
-            .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.padding.x = 0
-            .scrollWnd.padding.z = 0
-            .scrollWnd.updateFlags(.DisableHorizontal)
             .sigSelectionChanged += func|window = me|(list) { window.openListSelection(list, window.siblings.toSlice()) }
             .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position)) }
         }
@@ -348,6 +360,8 @@ impl ViewerWindow
         .filePanel.addPane(.folderPane).minimumSize = PaneMinSize
     }
 
+    // Builds the document panel with its empty-state prompt and the loading, search and drop
+    // overlays drawn above the active viewer.
     private mtd createDocumentPanel(panelGutter: f32)
     {
         // The document is the middle panel of the same composition. It owns the seams on both

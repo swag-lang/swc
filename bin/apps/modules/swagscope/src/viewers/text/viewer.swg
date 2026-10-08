@@ -69,6 +69,11 @@ private
     const EncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
 }
 
+// What the statistics worker publishes in `statisticsState`: still counting, counted, or failed.
+const StatisticsRunning = 0'u32
+const StatisticsCounted = 1'u32
+const StatisticsFailed  = 2'u32
+
 // What the head of a file says about how it spells its characters.
 struct Probe
 {
@@ -119,11 +124,13 @@ struct Panel
     encoding:           Text.Encoding
     displayedEncoding:  Text.Encoding
     contentStart:       u64
-    wrapping = true
-    zoomPercent:        u32 = 100
+    wrapping:           bool = true
+    zoomPercent:        u32  = 100
     services:           Viewer.HostServices
 }
 
+// Counts the text statistics on a worker thread, from `statisticsStart` to the end of the file, and
+// publishes the outcome through `statisticsState`. A cancelled run publishes nothing.
 private func runStatistics(thread: Threading.Thread)
 {
     let view    = cast(*Panel, thread.userParam!)
@@ -133,7 +140,7 @@ private func runStatistics(thread: Threading.Thread)
     var stream = catch File.openReadLive(view.fileName) as openError
     if openError != null
     {
-        Atomic.exchange(&view.statisticsState, 2)
+        Atomic.exchange(&view.statisticsState, StatisticsFailed)
         return
     }
 
@@ -146,7 +153,7 @@ private func runStatistics(thread: Threading.Thread)
         let chunk = catch stream.readTextChunk(StreamChunkSize, view.statisticsEncoding) as readError
         if readError != null
         {
-            Atomic.exchange(&view.statisticsState, 2)
+            Atomic.exchange(&view.statisticsState, StatisticsFailed)
             return
         }
 
@@ -159,7 +166,7 @@ private func runStatistics(thread: Threading.Thread)
     if thread.requestEnd do
         return
     view.statistics = counter.finish()
-    Atomic.exchange(&view.statisticsState, 1)
+    Atomic.exchange(&view.statisticsState, StatisticsCounted)
 }
 
 impl Panel
@@ -184,7 +191,7 @@ impl Panel
         // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
         // presented as facts about the newly decoded document.
-        if Atomic.get(&.statisticsState) != 1 or .statisticsEncoding != .encoding or .statisticsStart != .contentStart do
+        if Atomic.get(&.statisticsState) != StatisticsCounted or .statisticsEncoding != .encoding or .statisticsStart != .contentStart do
             return Format.toString(texts().ui_Details, encoding)
         let lines = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
@@ -206,7 +213,7 @@ impl Panel
 
     mtd startStatistics()
     {
-        .statisticsState    = 0
+        .statisticsState    = StatisticsRunning
         .statisticsEncoding = .encoding
         .statisticsStart    = .contentStart
         catch .statisticsThread.init(&runStatistics, me, priority: .BelowNormal) as initError
@@ -218,6 +225,8 @@ impl Panel
         .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
     }
 
+    // Stops loading and statistics so the viewer can be destroyed. Returns false while the
+    // statistics thread or the background read is still finishing; the caller retries.
     mtd retire()->bool
     {
         .retiring = true
@@ -303,6 +312,8 @@ impl Panel
         return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * StreamLookAhead >= .residentOffsetY + loadedHeight
     }
 
+    // Extrapolates the full document height from the bytes read so far and places the resident
+    // window within it, so the scroll bar spans the whole file while only part of it is loaded.
     mtd updateEstimatedHeight()
     {
         let consumed = .bytesRead - .residentStart
@@ -460,6 +471,9 @@ impl Panel
         .scheduleMore()
     }
 
+    // Highlights `text` at `offset` when it already lies in the resident text in the displayed
+    // encoding; otherwise cancels the read in progress and reloads there, highlighting the match
+    // once it arrives.
     mtd revealOffset(offset: u64, text: string)->bool
     {
         if text.count and
@@ -560,7 +574,7 @@ impl IWnd for Panel
             .stopTimer(&.statisticsTimer)
             if .statisticsThread.isValid() do
                 .statisticsThread.wait()
-            if .statisticsEncoding != .encoding or .statisticsStart != .contentStart or not Atomic.get(&.statisticsState) do
+            if .statisticsEncoding != .encoding or .statisticsStart != .contentStart or Atomic.get(&.statisticsState) == StatisticsRunning do
                 .startStatistics()
             .reportStatistics()
             return

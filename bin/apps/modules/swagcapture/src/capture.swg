@@ -302,11 +302,11 @@ impl CaptureSaveQueue
     }
 }
 
-// Visits the forms listed in 'selection' (an array of slots in capture.forms) that
-// match T; 'BaseForm' matches every form. The injected block sees the typed form as
-// 'form', its interface as 'itf', and a visit counter as 'idx'. 'continue' skips a
-// form without advancing 'idx' — the exact contract needed to pair 'idx' with arrays
-// built by a previous, identically-filtered pass — and 'break' stops the visit.
+// Visits the forms listed in `selection` (an array of slots in capture.forms) that
+// match T; `BaseForm` matches every form. The injected block sees the typed form as
+// `form`, its interface as `itf`, and a visit counter as `idx`. `continue` skips a
+// form without advancing `idx` — the exact contract needed to pair `idx` with arrays
+// built by a previous, identically-filtered pass — and `break` stops the visit.
 #[Swag.Macro]
 func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(form: *T, itf: IForm, idx: u64))
 {
@@ -364,6 +364,7 @@ struct CaptureClipboardForms
 
 impl CaptureClipboardForm
 {
+    // Stores a copy of `itf` in the field its kind names.
     mtd add(itf: IForm)
     {
         switch itf
@@ -409,6 +410,7 @@ impl CaptureClipboardForm
         }
     }
 
+    // Creates a new form from the stored copy, set up for `capture`.
     mtd toForm(capture: *Capture)->IForm?
     {
         var result: retval
@@ -528,6 +530,8 @@ impl Capture
         freeForms(.forms)
     }
 
+    // Attaches the capture to `view`, and makes a drag of the canvas gizmo resize the canvas as
+    // one undo step.
     mtd setup(view: *EditView)
     {
         .editView         = view

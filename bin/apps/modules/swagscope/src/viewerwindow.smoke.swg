@@ -43,6 +43,9 @@ impl ViewerWindow
         .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, SmokeStepLimit))
     }
 
+    // Advances the smoke review by one timer step: opens each plugin's fixture, selects that
+    // plugin's viewer, and keeps it exposed long enough for late failures to surface. Quits with
+    // exit code 1 on the first failure.
     private mtd reviewSmokeStep()
     {
         if .smokeSpecIndex >= .index.plugins.count

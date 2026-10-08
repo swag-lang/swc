@@ -198,6 +198,8 @@ func patternIsValid(query: string, options: SearchOptions)->bool
 // wrap has since split those lines and an authored index is not a display index.
 func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length: u64)
 {
+    // Converts a byte offset in `source` into an authored line and rune position, ignoring carriage
+    // returns.
     func cursorAt(source: string, byteOffset: u64)->RichEditCursor
     {
         var result: retval

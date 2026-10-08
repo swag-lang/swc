@@ -193,7 +193,7 @@ impl MainWindow
             return
         .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
-        .startMount(String.from(path), mountPoint, false, .readOnly.isChecked())
+        .startMount(path, mountPoint, false, .readOnly.isChecked())
     }
 
     // Starts the mount the password already staged in the operation opens.

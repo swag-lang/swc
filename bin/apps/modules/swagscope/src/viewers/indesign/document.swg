@@ -223,6 +223,8 @@ private func previewBase64(bytes: const [..] u8, start, end: u64)->String
     return result.isEmpty() ? {} : cast(string, result.toSlice())
 }
 
+// Reads the page number of the preview record between `start` and `end`. Returns zero when the
+// number is missing or malformed.
 private func previewPageNumber(bytes: const [..] u8, start, end: u64)->u32
 {
     let valueStart = findBytes(bytes, PreviewPageOpen, start, end)
@@ -358,6 +360,7 @@ private func indexPreviews(bytes: const [..] u8, start, end: u64)->Array'Preview
     return #move result
 }
 
+// Merges `source` into `result`; a preview for a page already present replaces the earlier one.
 private func appendPreviews(result: *Array'Preview, source: const *Array'Preview)
 {
     for preview in source

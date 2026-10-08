@@ -144,6 +144,8 @@ private struct MachImageInfo
     wide: bool
 }
 
+// Reports a universal Mach-O: its big-endian slice table, and each slice as a complete image under
+// its own group. `wide` selects the 64-bit `fat_arch_64` entries.
 private func reportMachFat(image: *BinaryImage, report: *Report, wide: bool)
 {
     // The wrapper itself is always big endian, whatever the slices inside it are.
@@ -224,6 +226,8 @@ private func reportMachImage(image: *BinaryImage, report: *Report, at: u64, open
     return result
 }
 
+// Reports the load commands of the image at `imageAt`, stopping at the first truncated or
+// undersized command, then lists the libraries those commands link against.
 private func reportMachCommands(image: *BinaryImage, report: *Report, imageAt, at, count, totalSize: u64, wide, open: bool)
 {
     let texts = texts()
@@ -334,6 +338,8 @@ private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt
     }
 }
 
+// Reports the sections that follow a segment command. Their file offsets are relative to the image
+// at `imageAt`, which is not the file start inside a universal binary.
 private func reportMachSections(image: *BinaryImage, report: *Report, imageAt, at, count: u64, wide: bool)
 {
     if not count do

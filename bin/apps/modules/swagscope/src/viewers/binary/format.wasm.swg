@@ -118,6 +118,8 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
     report.summary    = Format.toString("% · % · %", texts.wasm_Module, counted, traded)
 }
 
+// Reports the import section at `at` and returns its declared entry count. Stops at the first entry
+// without a module name.
 private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u64
 {
     let texts  = texts()
@@ -149,6 +151,8 @@ private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u
     return count
 }
 
+// Reports the export section at `at`, each name with its kind and index, and returns its declared
+// entry count.
 private func reportWasmExports(image: *BinaryImage, report: *Report, at: u64)->u64
 {
     let texts  = texts()

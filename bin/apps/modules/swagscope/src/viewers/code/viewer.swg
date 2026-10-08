@@ -86,6 +86,8 @@ impl Panel
         return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * StreamLookAhead >= .residentOffsetY + loadedHeight
     }
 
+    // Extrapolates the full document height from the bytes read so far and places the resident
+    // window within it, so the scroll bar spans the whole file while only part of it is loaded.
     mtd updateEstimatedHeight()
     {
         let consumed = .bytesRead - .residentStart
@@ -146,6 +148,9 @@ impl Panel
             .services.failed(me, .failureReason)
     }
 
+    // Appends the next chunk of the stream to the editor while the resident window has room,
+    // keeping the scroll position. A zero byte stops the load with an error, as the file is then
+    // not text.
     mtd loadNextChunk()
     {
         if .bytesRead - .residentStart >= ResidentWindowSize do
@@ -184,6 +189,9 @@ impl Panel
             .finishLoading()
     }
 
+    // Reloads the resident window to start shortly before `offset` and highlights `text` there. A
+    // start inside a UTF-8 sequence does not decode, so it moves forward up to three bytes to reach
+    // the next character. Returns false when the file cannot be read there.
     mtd revealOffset(offset: u64, text: string)->bool
     {
         .stopLoading()

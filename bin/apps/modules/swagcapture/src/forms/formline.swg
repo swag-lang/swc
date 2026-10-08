@@ -222,7 +222,7 @@ impl IForm for FormLine
 
         if .bezier
         {
-            // Add an anchor the first time, when transforming from 'linear' to 'bezier'
+            // Add an anchor the first time, when transforming from `linear` to `bezier`
             if .gizmo.anchors.count == 2
             {
                 var v = Math.Vector2{.xb, .yb} - Math.Vector2{.xa, .ya}

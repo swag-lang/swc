@@ -1,5 +1,8 @@
 impl Capture
 {
+    // Returns the point that snapping tests once moved by `nx, ny`: the edited polygon
+    // point or line end when one is being dragged, otherwise the corner of `bound`
+    // that `right` and `bottom` name.
     mtd getSnapPoint(bound: Math.Rectangle, right, bottom: bool, nx, ny: s32, idxPt: u32, editForm: IForm? = null)->Math.Point
     {
         var result: retval
@@ -41,6 +44,7 @@ impl Capture
         return result
     }
 
+    // Returns the box around the selected forms, or around `editForm` when it is given.
     mtd getSelectionBoundRect(editForm: IForm? = null)->Math.Rectangle
     {
         if editForm do
@@ -59,6 +63,91 @@ impl Capture
         return bound
     }
 
+    // The coordinates a moved point can snap to: the canvas edges and middle, and the edges or
+    // points of every form, except the parts of the forms being moved.
+    mtd snapLines(idxPt: u32, editForm: IForm?)->{xs: Array's32, ys: Array's32}
+    {
+        var result: retval
+
+        result.xs.add(0)
+        result.xs.add(.width)
+        result.xs.add(.width / 2)
+        result.ys.add(0)
+        result.ys.add(.height)
+        result.ys.add(.height / 2)
+
+        for f, i in .forms
+        {
+            let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
+            let form    = assume cast(*BaseForm, f)
+
+            switch f
+            {
+            case FormLine as form2:
+                if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
+                    result.xs.add(cast(s32, form2.xa))
+                if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
+                    result.ys.add(cast(s32, form2.ya))
+
+                if not autoSel or idxPt != 1
+                {
+                    result.xs.add(cast(s32, form2.xb))
+                    result.ys.add(cast(s32, form2.yb))
+                }
+
+            case FormPolygon as form2:
+                for pt, idx in form2.points
+                {
+                    if not autoSel or idx != idxPt
+                    {
+                        result.xs.add(cast(s32, pt.x))
+                        result.ys.add(cast(s32, pt.y))
+                    }
+                }
+
+            case FormDraw:
+                if autoSel do
+                    continue
+                let boundR = f.boundRect()
+                result.xs.add(cast(s32, boundR.x))
+                result.xs.add(cast(s32, boundR.right()))
+                result.ys.add(cast(s32, boundR.y))
+                result.ys.add(cast(s32, boundR.bottom()))
+
+            default:
+                if autoSel do
+                    continue
+                result.xs.add(cast(s32, form.x))
+                result.xs.add(cast(s32, form.x + form.w))
+                result.ys.add(cast(s32, form.y))
+                result.ys.add(cast(s32, form.y + form.h))
+            }
+        }
+
+        return result
+    }
+
+    // The coordinate of `candidates` nearest to `value`, and how far it is.
+    func nearestSnap(value: f32, candidates: const [..] s32)->{distance: f32, coord: f32}
+    {
+        var result: retval
+        result.distance = Swag.F32.Max
+        for candidate in candidates
+        {
+            let distance = Math.abs(value - candidate)
+            if distance < result.distance
+            {
+                result.distance = distance
+                result.coord    = candidate
+            }
+        }
+
+        return result
+    }
+
+    // Adjusts the move in `x` and `y` so the dragged point lands on the nearest edge or
+    // center of another form within reach, and records the guide lines to show. Snapping
+    // applies when it is on or while Control is held; a null axis is left alone.
     mtd snap(x, y: *s32?, right, bottom: bool, idxPt: u32 = 0, editForm: IForm? = null)
     {
         const SnapToler = 10
@@ -79,109 +168,27 @@ impl Capture
 
         let bound = .getSelectionBoundRect(editForm)
 
-        var arrX: Array's32
-        var arrY: Array's32
-
-        arrX.add(0)
-        arrX.add(.width)
-        arrX.add(.width / 2)
-        arrY.add(0)
-        arrY.add(.height)
-        arrY.add(.height / 2)
-
-        for f, i in .forms
-        {
-            let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
-            let form    = assume cast(*BaseForm, f)
-
-            switch f
-            {
-            case FormLine as form2:
-                if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
-                    arrX.add(cast(s32, form2.xa))
-                if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
-                    arrY.add(cast(s32, form2.ya))
-
-                if not autoSel or idxPt != 1
-                {
-                    arrX.add(cast(s32, form2.xb))
-                    arrY.add(cast(s32, form2.yb))
-                }
-
-            case FormPolygon as form2:
-                for pt, idx in form2.points
-                {
-                    if not autoSel or idx != idxPt
-                    {
-                        arrX.add(cast(s32, pt.x))
-                        arrY.add(cast(s32, pt.y))
-                    }
-                }
-
-            case FormDraw:
-                if autoSel do
-                    continue
-                let boundR = f.boundRect()
-                arrX.add(cast(s32, boundR.x))
-                arrX.add(cast(s32, boundR.right()))
-                arrY.add(cast(s32, boundR.y))
-                arrY.add(cast(s32, boundR.bottom()))
-
-            default:
-                if autoSel do
-                    continue
-                arrX.add(cast(s32, form.x))
-                arrX.add(cast(s32, form.x + form.w))
-                arrY.add(cast(s32, form.y))
-                arrY.add(cast(s32, form.y + form.h))
-            }
-        }
-
-        var bestX      = Swag.F32.Max
-        var bestY      = Swag.F32.Max
-        var bestCoordX = 0.0
-        var bestCoordY = 0.0
-
         let pMoved = .getSnapPoint(bound, right, bottom, nx, ny, idxPt, editForm)
-
+        let pOrg   = .getSnapPoint(bound, right, bottom, 0, 0, idxPt, editForm)
+        let lines  = .snapLines(idxPt, editForm)
         if x
         {
-            for ax in arrX
+            let near = nearestSnap(pMoved.x, lines.xs.toSlice())
+            if near.distance < SnapToler
             {
-                let nbX = Math.abs(pMoved.x - ax)
-                if nbX < bestX
-                {
-                    bestX      = nbX
-                    bestCoordX = ax
-                }
+                .snapX = near.coord
+                nx     = cast(s32, near.coord - pOrg.x)
             }
         }
 
         if y
         {
-            for ay in arrY
+            let near = nearestSnap(pMoved.y, lines.ys.toSlice())
+            if near.distance < SnapToler
             {
-                let nbY = Math.abs(pMoved.y - ay)
-                if nbY < bestY
-                {
-                    bestY      = nbY
-                    bestCoordY = ay
-                }
+                .snapY = near.coord
+                ny     = cast(s32, near.coord - pOrg.y)
             }
-        }
-
-        let pOrg = .getSnapPoint(bound, right, bottom, 0, 0, idxPt, editForm)
-
-        if x and bestX < SnapToler
-        {
-            .snapX = bestCoordX
-            nx     = cast(s32, bestCoordX - pOrg.x)
-        }
-
-        if y and bestY < SnapToler
-        {
-            .snapY = bestCoordY
-            ny     = cast(s32, bestCoordY - pOrg.y)
         }
 
         if x do

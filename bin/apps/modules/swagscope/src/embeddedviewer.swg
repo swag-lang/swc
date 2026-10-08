@@ -24,7 +24,7 @@ struct EmbeddedViewer
     title:             String
     choices:           Array'ViewerPluginChoice
     instances:         Array'ViewerSession
-    activeIndex = Swag.U32.Max
+    activeIndex:       u32 = Swag.U32.Max
     currentView:       *Wnd?
     currentActions:    *Wnd?
     currentInfo:       *Wnd?
@@ -144,6 +144,8 @@ impl Viewer.Embedded for EmbeddedViewer
 
 private impl EmbeddedViewer
 {
+    // Makes instance `index` the visible one, swapping in its view, actions, information, commands
+    // and side panel, and sizes the information lane to what that instance needs.
     mtd showInstance(index: u32)
     {
         .currentView?.hide()
@@ -188,6 +190,9 @@ private impl EmbeddedViewer
         .invalidate()
     }
 
+    // Shows the viewer of `choices[index]`, creating its instance on first use and keeping it for
+    // later switches. A viewer that fails becomes the failure surface; returns false when the index
+    // is out of range or no view could be made.
     mtd activate(index: u32)->bool
     {
         if index >= .choices.count do
@@ -240,6 +245,8 @@ private impl EmbeddedViewer
         return true
     }
 
+    // Replaces the instance showing `view` with an error view stating `reason`, showing it at once
+    // when it is the active instance. Does nothing while `view` cannot retire yet.
     mtd replaceFailure(view: *Wnd, reason: string)
     {
         for &instance, index in .instances where instance.view == view
@@ -257,6 +264,8 @@ private impl EmbeddedViewer
         }
     }
 
+    // Builds the embedded viewer: a header holding the entry title, information lane and viewer
+    // selector, a bottom command bar, and the document area where the active instance docks.
     func create(parent: *Wnd, owner: *ViewerWindow)->*EmbeddedViewer
     {
         with let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")

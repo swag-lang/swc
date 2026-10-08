@@ -39,6 +39,8 @@ impl ViewerWindow
         catch .saveState()
     }
 
+    // Shows or hides the file panel, refreshing its lists before it appears and keeping the files
+    // toggle in step.
     mtd setFilePanelVisible(visible: bool)
     {
         .panelVisible = visible
@@ -66,7 +68,7 @@ impl ViewerWindow
             break
         }
 
-        .recent.insertAt(0, String.from(fileName))
+        .recent.insertAt(0, fileName)
         while .recent.count > RecentCount do
             .recent.removeAtOrdered(.recent.count - 1)
     }
@@ -299,6 +301,8 @@ impl ViewerWindow
             .queueFile(fileName, remember: list != .recentList)
     }
 
+    // Rebuilds the list the next and previous commands walk: the folder's files, or only those
+    // sharing the current file's viewer when the same-kind filter is on.
     mtd rebuildSiblings()
     {
         .siblings.clear()
@@ -330,6 +334,7 @@ impl ViewerWindow
         catch .saveState()
     }
 
+    // Opens the file `delta` steps away in the sibling list, wrapping around at either end.
     mtd navigate(delta: s32)
     {
         if .currentFile.isEmpty() do

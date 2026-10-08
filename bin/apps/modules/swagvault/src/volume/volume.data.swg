@@ -251,6 +251,8 @@ impl Volume
         try .writeBlock(nodeId, logical, block)
     }
 
+    // Sets the size of a file: a longer file reads zeros past its old end, and a shorter one
+    // releases the blocks it no longer reaches.
     mtd resizeNode(nodeId, newSize: u64) fail
     {
         try .requireWritable()
@@ -269,20 +271,26 @@ impl Volume
         .touch(nodeId)
     }
 
-    // Reads from a file at `offset`, a run of whole blocks at a time where it can; returns the
-    // bytes read.
-    mtd readNode(nodeId: u64, offset: u64, destination: [..] u8)->u32 fail
+    // The node a file handle names; fails once the entry is gone.
+    mtd fileNode(nodeId: u64)->*Node fail
     {
         let node = .nodeById(nodeId)
         if not node do
             try failWith("File handle is no longer valid.", .NotFound)
-        let validNode = node!
-        if validNode.isDirectory() do
+        return node!
+    }
+
+    // Reads from a file at `offset`, a run of whole blocks at a time where it can; returns the
+    // bytes read.
+    mtd readNode(nodeId: u64, offset: u64, destination: [..] u8)->u32 fail
+    {
+        let node = try .fileNode(nodeId)
+        if node.isDirectory() do
             try failWith("Cannot read a directory as a file.", .IsDirectory)
-        if offset >= validNode.size or not destination.count do
+        if offset >= node.size or not destination.count do
             return 0
 
-        let count = Math.min(destination.count, validNode.size - offset)
+        let count = Math.min(destination.count, node.size - offset)
         var done  = 0'u64
         while done < count
         {
@@ -294,10 +302,10 @@ impl Volume
             if not inBlock and chunk == BlockSize
             {
                 let remainingBlocks = (count - done) / BlockSize
-                let search = validNode.blockSearch(logical)
+                let search = node.blockSearch(logical)
                 if search.found
                 {
-                    let mapping       = validNode.blocks[search.index]
+                    let mapping       = node.blocks[search.index]
                     let mappingOffset = logical - mapping.logical
                     let batchBlocks   = Math.min(remainingBlocks, mapping.count - mappingOffset, MaximumIoBatchBlocks)
                     let batchBytes    = batchBlocks * BlockSize
@@ -306,7 +314,7 @@ impl Volume
                     continue
                 }
 
-                let nextLogical = search.index < validNode.blocks.count ? validNode.blocks[search.index].logical : logical + remainingBlocks
+                let nextLogical = search.index < node.blocks.count ? node.blocks[search.index].logical : logical + remainingBlocks
                 let holeBlocks  = Math.min(remainingBlocks, nextLogical - logical)
                 let holeBytes   = holeBlocks * BlockSize
                 Swag.memset(destination.buffer + done, 0, holeBytes)
@@ -315,7 +323,7 @@ impl Volume
             }
 
             var block: [BlockSize] u8
-            try .readBlock(validNode, logical, block)
+            try .readBlock(node, logical, block)
             Swag.memcpy(destination.buffer + done, &block[inBlock], chunk)
             Core.Crypto.secureClear(block)
             done += chunk
@@ -329,24 +337,21 @@ impl Volume
     mtd writeNode(nodeId: u64, offset: u64, source: const [..] u8, writeToEnd, constrained: bool)->u32 fail
     {
         try .requireWritable()
-        let node = .nodeById(nodeId)
-        if not node do
-            try failWith("File handle is no longer valid.", .NotFound)
-        let validNode = node!
-        if validNode.isDirectory() do
+        let node = try .fileNode(nodeId)
+        if node.isDirectory() do
             try failWith("Cannot write to a directory.", .IsDirectory)
-        if (validNode.attributes & FileAttributeReadOnly) != 0 do
+        if (node.attributes & FileAttributeReadOnly) != 0 do
             try failWith("The file is read-only.", .AccessDenied)
 
         var writeOffset = offset
         if writeToEnd do
-            writeOffset = validNode.size
+            writeOffset = node.size
         var count = source.count
         if constrained
         {
-            if writeOffset >= validNode.size do
+            if writeOffset >= node.size do
                 return 0
-            count = Math.min(count, validNode.size - writeOffset)
+            count = Math.min(count, node.size - writeOffset)
         }
 
         if not count do
@@ -354,7 +359,7 @@ impl Volume
         if writeOffset > Swag.U64.Max - count do
             try failWith("File size overflow.", .InvalidInput)
 
-        let oldSize = validNode.size
+        let oldSize = node.size
         let end     = writeOffset + count
         if not constrained and end > oldSize do
             try .zeroOldTail(nodeId, oldSize, end)

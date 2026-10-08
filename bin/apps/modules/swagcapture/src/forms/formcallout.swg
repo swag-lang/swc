@@ -28,7 +28,7 @@ struct FormCallout
     roundSize:    f32   = 16
     tailX, tailY: f32
     boldSize:     f32   = 0
-    lineSpacing         = 14.0
+    lineSpacing:  f32   = 14
     textColor:    Color = Argb.White
 
     #[Serialization.NoSerialize]
@@ -38,6 +38,15 @@ struct FormCallout
         render:    FormText
         tailPath:  LinePath
     }
+}
+
+// The body edge a callout's tail leaves from.
+enum TailEdge
+{
+    Bottom
+    Top
+    Right
+    Left
 }
 
 impl FormCallout
@@ -66,11 +75,10 @@ impl FormCallout
         return result
     }
 
-    // Base of the tail on the body edge nearest the tip, returned in form space.
-    // `inN` is the inward unit normal of that edge, used to sink the tail's base into
-    // the body so its fill hides the body border that runs under it. `cornerR` is the
-    // rounded-corner radius (form space) so the base stays off the corner arcs.
-    mtd tailBase(tip: Math.Vector2, cornerR: f32)->{ p0: Math.Vector2, p1: Math.Vector2, inN: Math.Vector2 }
+    // Base of the tail on the body edge nearest the tip, returned in form space with that
+    // edge. `cornerR` is the rounded-corner radius (form space) so the base stays off the
+    // corner arcs.
+    mtd tailBase(tip: Math.Vector2, cornerR: f32)->{ p0: Math.Vector2, p1: Math.Vector2, edge: TailEdge }
     {
         var result: retval
         let b  = .rectFormBound()
@@ -87,17 +95,17 @@ impl FormCallout
         {
             let ex = dx > 0 ? b.right() : b.x
             let s  = tailSpan(tip.y, Math.abs(tip.x - ex), b.y, b.bottom(), minWH, cr)
-            result.p0  = {ex, s.c - s.hb}
-            result.p1  = {ex, s.c + s.hb}
-            result.inN = {dx > 0 ? -1'f32 : 1'f32, 0}
+            result.p0   = {ex, s.c - s.hb}
+            result.p1   = {ex, s.c + s.hb}
+            result.edge = dx > 0 ? TailEdge.Right : .Left
         }
         else
         {
             let ey = dy > 0 ? b.bottom() : b.y
             let s  = tailSpan(tip.x, Math.abs(tip.y - ey), b.x, b.right(), minWH, cr)
-            result.p0  = {s.c - s.hb, ey}
-            result.p1  = {s.c + s.hb, ey}
-            result.inN = {0, dy > 0 ? -1'f32 : 1'f32}
+            result.p0   = {s.c - s.hb, ey}
+            result.p1   = {s.c + s.hb, ey}
+            result.edge = dy > 0 ? TailEdge.Bottom : .Top
         }
 
         return result
@@ -115,53 +123,43 @@ impl FormCallout
         }
     }
 
-    // Build the whole callout outline — rounded body with the tail spliced into edge
-    // `edge` (0=bottom, 1=top, 2=right, 3=left) — as ONE closed path. Rendering body and
-    // tail from a single fill + single stroke makes the tail fuse seamlessly with the
-    // body: no overlapping fills/strokes to misalign at the corner where they meet.
-    func buildOutline(path: *LinePath, b: Math.Rectangle, r: f32, p0, p1, tip: Math.Vector2, edge: s32)
+    // Splices the tail into an outline being drawn: out from base point `a` to the tip, and
+    // back in through base point `b`.
+    func spliceTail(path: *LinePath, a, tip, b: Math.Vector2)
+    {
+        path.lineTo(a.x, a.y)
+        path.lineTo(tip.x, tip.y)
+        path.lineTo(b.x, b.y)
+    }
+
+    // Build the whole callout outline — rounded body with the tail spliced into `edge` — as
+    // ONE closed path. Rendering body and tail from a single fill + single stroke makes the
+    // tail fuse seamlessly with the body: no overlapping fills/strokes to misalign at the
+    // corner where they meet.
+    func buildOutline(path: *LinePath, b: Math.Rectangle, r: f32, p0, p1, tip: Math.Vector2, edge: TailEdge)
     {
         // Top edge, left → right.
         path.start(b.x + r, b.y)
-        if edge == 1
-        {
-            path.lineTo(p0.x, p0.y)
-            path.lineTo(tip.x, tip.y)
-            path.lineTo(p1.x, p1.y)
-        }
-
+        if edge == .Top do
+            spliceTail(path, p0, tip, p1)
         path.lineTo(b.right() - r, b.y)
         addArc(path, b.right() - r, b.y + r, r, 270, 360)
 
         // Right edge, top → bottom.
-        if edge == 2
-        {
-            path.lineTo(p0.x, p0.y)
-            path.lineTo(tip.x, tip.y)
-            path.lineTo(p1.x, p1.y)
-        }
-
+        if edge == .Right do
+            spliceTail(path, p0, tip, p1)
         path.lineTo(b.right(), b.bottom() - r)
         addArc(path, b.right() - r, b.bottom() - r, r, 0, 90)
 
         // Bottom edge, right → left (p1 is the right base point, so it comes first).
-        if edge == 0
-        {
-            path.lineTo(p1.x, p1.y)
-            path.lineTo(tip.x, tip.y)
-            path.lineTo(p0.x, p0.y)
-        }
-
+        if edge == .Bottom do
+            spliceTail(path, p1, tip, p0)
         path.lineTo(b.x + r, b.bottom())
         addArc(path, b.x + r, b.bottom() - r, r, 90, 180)
 
         // Left edge, bottom → top (p1 is the lower base point, so it comes first).
-        if edge == 3
-        {
-            path.lineTo(p1.x, p1.y)
-            path.lineTo(tip.x, tip.y)
-            path.lineTo(p0.x, p0.y)
-        }
+        if edge == .Left do
+            spliceTail(path, p1, tip, p0)
 
         path.lineTo(b.x, b.y + r)
         addArc(path, b.x + r, b.y + r, r, 180, 270)
@@ -320,8 +318,7 @@ impl IForm for FormCallout
             let p0   = Math.Vector2{base.p0.x * z, base.p0.y * z}
             let p1   = Math.Vector2{base.p1.x * z, base.p1.y * z}
             let tip  = Math.Vector2{tipF.x * z, tipF.y * z}
-            let edge = base.inN.y < 0 ? 0 : (base.inN.y > 0 ? 1 : (base.inN.x < 0 ? 2 : 3))
-            FormCallout.buildOutline(&.tailPath, body, r, p0, p1, tip, edge)
+            FormCallout.buildOutline(&.tailPath, body, r, p0, p1, tip, base.edge)
         }
         else
         {

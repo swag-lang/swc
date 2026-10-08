@@ -123,7 +123,7 @@ struct MainWnd
     bottomSize:                                BottomSize = .Medium
     pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
-    firstShow = true
+    firstShow:                                 bool       = true
     fileDlgState, fileDlgStateInPlace:         FileDlgState
     libraryFolderDlgState:                     FileDlgState
     exportFolderDlgState:                      FileDlgState
@@ -170,7 +170,7 @@ impl IWnd for MainWnd
             }
 
         case .CustomMessage:
-            if evt.messageId == 1 and Clipboard.hasString() do
+            if evt.messageId == OpenImageMessage and Clipboard.hasString() do
                 .loadExternalImage(Clipboard.getString())
         }
     }
@@ -447,6 +447,8 @@ impl MainWnd
             MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, err)
     }
 
+    // Opens the image file `arg`: the capture it was exported from when Swag Capture wrote it,
+    // otherwise a new capture linked to the file.
     mtd loadExternalImage(arg: String)
     {
         let imgToLoad = catch Image.load(arg) as err
@@ -477,6 +479,8 @@ impl MainWnd
         .surface?.bringToFront()
     }
 
+    // Returns the tool the editor acts as: the active one, or under the selection tool, the one
+    // the selected forms belong to.
     mtd getEditMode()->EditMode
     {
         switch .editMode
@@ -501,6 +505,8 @@ impl MainWnd
         return .editMode
     }
 
+    // Freezes the forms the capture holds now, so the mouse only reaches forms drawn after them,
+    // and shows a bar saying so; or thaws them again.
     mtd freezeSelection(freeze: bool)
     {
         if not freeze and .embInfoFreeze
@@ -619,6 +625,7 @@ impl MainWnd
         .toolTitle.setText(String.toUpper(name))
     }
 
+    // Registers every command family of the editor.
     mtd registerActions()
     {
         .registerAction'ActionMoveSel()
@@ -644,6 +651,7 @@ impl MainWnd
         .registerAction'ActionView()
     }
 
+    // Binds the keyboard shortcuts of the editor to their commands.
     mtd registerShortcuts()
     {
         // Standard shortcuts
@@ -746,6 +754,8 @@ impl MainWnd
         return .icons.icon(cast(s32, idx), resolvedSize, .theme().res.atlasScale)
     }
 
+    // Builds the main window: the command row, the tool rail, the editor, the recent strip,
+    // and the tool panel, with the library hidden behind them until it is asked for.
     func create(parent: *Wnd)->*MainWnd
     {
         let srf = parent.surface!

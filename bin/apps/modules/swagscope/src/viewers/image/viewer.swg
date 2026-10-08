@@ -72,6 +72,9 @@ func loadViewerDrawing(fileName: string)->Svg.Drawing fail
     return try Svg.Drawing.parse(cast(string, region.bytes()))
 }
 
+// Loads an image for the viewer: SVG as a vector drawing, anything else through the movie decoder,
+// keeping the frames only for an animation. Also fills the facts and information rows shown beside
+// it.
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: retval
@@ -173,6 +176,8 @@ struct Panel
 
 impl Panel
 {
+    // Shows the zoom in the zoom label, with the rotation and mirroring when the image is
+    // transformed.
     mtd refreshZoom()
     {
         let zoom = cast(s32, Math.round(.imageView.effectiveZoom() * 100))
@@ -192,6 +197,8 @@ impl Panel
         .services.chromeChanged(me)
     }
 
+    // Updates the frame controls of an animation, and ends the cycle the first time the movie
+    // completes a loop.
     mtd refreshFrame()
     {
         let movie = &.imageView.movie
@@ -455,6 +462,8 @@ private impl Panel
         return .load.retire()
     }
 
+    // Builds the image panel: commands, information group and media details, frame and zoom
+    // controls, and the image view. Loads the image in the background.
     func create(host: Viewer.Host)->*Panel
     {
         let services    = host.services()

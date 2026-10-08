@@ -75,7 +75,7 @@ impl Capture
         return false
     }
 
-    // Gives every distinct group id in 'forms' a fresh id, keeping the relative nesting
+    // Gives every distinct group id in `forms` a fresh id, keeping the relative nesting
     // structure. Used when pasting so copies form their own groups instead of silently
     // re-joining the originals (or colliding across capture files).
     mtd remapGroups(forms: Array'IForm)

@@ -13,7 +13,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
             view.statisticsThread.wait()
         if view.statisticsTimer do
             host.fireTimer(view.statisticsTimer)
-        if Atomic.get(&view.statisticsState) == 1 and view.statisticsEncoding == view.encoding and view.statisticsStart == view.contentStart do
+        if Atomic.get(&view.statisticsState) == PlainText.StatisticsCounted and view.statisticsEncoding == view.encoding and view.statisticsStart == view.contentStart do
             return
     }
 
@@ -115,7 +115,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     var source: String
     for 40_000 do
         source += "Plain text stays responsive while changing its encoding.\n"
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
+    discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()

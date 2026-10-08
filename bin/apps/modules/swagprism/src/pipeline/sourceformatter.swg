@@ -17,7 +17,7 @@ impl SourceFormatter
     {
         try .folder.open()
         let file = Path.combine(.folder.root, "src", "source.swg")
-        discard try File.writeAllBytes(file, cast(const [..] u8, source))
+        discard try File.writeAllBytes(file, source)
         let compiler = compilerPath()
         let workers  = Format.toString("%", compilerWorkerCount())
 

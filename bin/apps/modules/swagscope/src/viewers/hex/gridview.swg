@@ -328,10 +328,10 @@ struct GridView
     // marking a large result set never makes a scroll proportional to matches outside the screen.
     searchHits: *Array'Viewer.SearchMatch?
 
-    bytesPerRow  = 16'u64
-    offsetDigits = 8'u64
-    autoFitRow   = true
-    grouping     = Grouping.Bytes
+    bytesPerRow         = 16'u64
+    offsetDigits        = 8'u64
+    autoFitRow          = true
+    grouping:  Grouping = .Bytes
     bigEndian: bool
 
     selecting: bool     // Whether a drag is currently extending the selection.
@@ -521,15 +521,14 @@ impl GridView
 
     mtd computeMetrics()
     {
-        let resolved = .font().regular
-        if not resolved do
+        let font = .font().regular
+        if not font do
             return
 
         // The advance a glyph is *drawn* with is snapped to the device pixel grid, and every column
         // here is placed by multiplying that advance. Measuring the unsnapped one instead drifts a
         // fraction of a pixel per column, which by the last column of a row is a whole cell: the
         // caret lands beside its byte and the text column starts inside the hexadecimal one.
-        let font = resolved
         .charWidth    = Math.max(Painter.measureStringSnapped("0", font, deviceScale: .deviceScale()), 1)
         .rowHeight    = Math.max(Math.ceil(font.height), 1)
         .offsetDigits = .doc.fileSize > 0xFFFF_FFFF ? 16 : 8
@@ -612,6 +611,8 @@ impl GridView
         .setTopRow(target < 0 ? 0 : cast(u64, target))
     }
 
+    // Scrolls the grid by whole rows so the caret row is visible, or centers that row when `center`
+    // is set.
     mtd ensureCaretVisible(center: bool)
     {
         if not .bytesPerRow do
@@ -1315,12 +1316,11 @@ impl IWnd for GridView
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter  = evt.paintContext.painter
-        let resolved = .font().regular
-        if not resolved or .rowHeight <= 0 do
+        let painter = evt.paintContext.painter
+        let font    = .font().regular
+        if not font or .rowHeight <= 0 do
             return
 
-        let font    = resolved
         let colors  = .themeColors()
         let client  = .clientRect()
         let originX = -.scrollPos.x

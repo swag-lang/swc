@@ -38,24 +38,24 @@ namespace WinFsp
     func volumeSerialNumber(creationTime: u64)->u32
         => cast(u32, (creationTime & 0xFFFF_FFFF))
 
+    // Describes a node to WinFsp: its sizes, attributes, times, and index number.
     func fillInfo(volume: *Volume, nodeId: u64, output: *FileInfo)->s32
     {
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node
         with output
         {
             // Windows reports the space a file occupies, so a file always
             // rounds up to whole blocks and a directory occupies none.
-            .allocationSize = validNode.isDirectory() ? 0 : (validNode.size + BlockSize - 1) / BlockSize * BlockSize
-            .fileAttributes = validNode.attributes
-            .fileSize       = validNode.size
-            .creationTime   = validNode.creationTime
-            .lastAccessTime = validNode.lastAccessTime
-            .lastWriteTime  = validNode.lastWriteTime
-            .changeTime     = validNode.changeTime
-            .indexNumber    = validNode.id
+            .allocationSize = node.isDirectory() ? 0 : (node.size + BlockSize - 1) / BlockSize * BlockSize
+            .fileAttributes = node.attributes
+            .fileSize       = node.size
+            .creationTime   = node.creationTime
+            .lastAccessTime = node.lastAccessTime
+            .lastWriteTime  = node.lastWriteTime
+            .changeTime     = node.changeTime
+            .indexNumber    = node.id
         }
 
         return StatusSuccess
@@ -144,15 +144,14 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
-        let validNode = node
-        volume.freeNodeBlocks(validNode)
-        validNode.size = 0
+        volume.freeNodeBlocks(node)
+        node.size = 0
         if replaceAttributes do
-            validNode.attributes = attributes ? attributes : FileAttributeNormal
+            node.attributes = attributes ? attributes : FileAttributeNormal
         else do
-            validNode.attributes |= attributes
-        validNode.changeTime    = volumeTimeNow()
-        validNode.lastWriteTime = validNode.changeTime
+            node.attributes |= attributes
+        node.changeTime    = volumeTimeNow()
+        node.lastWriteTime = node.changeTime
         volume.touch(nodeId)
         discard catch volume.commit() as err
         return err == null ? fillInfo(volume, nodeId, info) : statusFromError(err)
@@ -198,6 +197,8 @@ namespace WinFsp
             discard catch volume.commit()
     }
 
+    // Reads up to `length` bytes of a file at `offset` into `buffer`, and reports how many it
+    // read.
     func callbackRead(context: *void?, nodeId: u64, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32
     {
         if not length
@@ -237,17 +238,16 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node
-        if validNode.isDirectory() do
+        if node.isDirectory() do
             return StatusFileIsDirectory
-        var writeOffset = writeToEnd ? validNode.size : offset
+        var writeOffset = writeToEnd ? node.size : offset
         var writeLength = cast(u64, length)
         if constrained
         {
-            if writeOffset >= validNode.size do
+            if writeOffset >= node.size do
                 writeLength = 0
             else do
-                writeLength = Math.min(writeLength, validNode.size - writeOffset)
+                writeLength = Math.min(writeLength, node.size - writeOffset)
         }
 
         if writeLength
@@ -257,7 +257,7 @@ namespace WinFsp
             let firstBlock = writeOffset / BlockSize
             let lastBlock  = (writeOffset + writeLength - 1) / BlockSize
             var needed     = lastBlock - firstBlock + 1
-            if not constrained and writeOffset + writeLength > validNode.size and validNode.size % BlockSize != 0 and validNode.blockSearch(validNode.size / BlockSize).found do
+            if not constrained and writeOffset + writeLength > node.size and node.size % BlockSize != 0 and node.blockSearch(node.size / BlockSize).found do
                 needed += 1
             if volume.freeBlockCount() < needed do
                 return StatusDiskFull
@@ -302,28 +302,29 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node
         if attributes != Swag.U32.Max
         {
-            validNode.attributes = attributes ? attributes : FileAttributeNormal
-            if validNode.isDirectory() do
-                validNode.attributes |= FileAttributeDirectory
+            node.attributes = attributes ? attributes : FileAttributeNormal
+            if node.isDirectory() do
+                node.attributes |= FileAttributeDirectory
             else do
-                validNode.attributes &= ~FileAttributeDirectory
+                node.attributes &= ~FileAttributeDirectory
         }
 
         if creationTime do
-            validNode.creationTime = creationTime
+            node.creationTime = creationTime
         if lastAccessTime do
-            validNode.lastAccessTime = lastAccessTime
+            node.lastAccessTime = lastAccessTime
         if lastWriteTime do
-            validNode.lastWriteTime = lastWriteTime
+            node.lastWriteTime = lastWriteTime
         if changeTime do
-            validNode.changeTime = changeTime
+            node.changeTime = changeTime
         volume.touchMetadata(nodeId)
         return fillInfo(volume, nodeId, info)
     }
 
+    // Changes the size of a file, or only trims what it holds when Windows sets its allocation
+    // size, refusing a growth the volume has no block left for.
     func callbackSetFileSize(context: *void?, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
@@ -332,13 +333,12 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node
-        if validNode.isDirectory() do
+        if node.isDirectory() do
             return StatusFileIsDirectory
 
         // Setting the allocation size can only shrink the node down to what it already holds.
-        let targetSize = setAllocationSize ? Math.min(newSize, validNode.size) : newSize
-        if targetSize > validNode.size and validNode.size % BlockSize != 0 and validNode.blockSearch(validNode.size / BlockSize).found and not volume.freeBlockCount() do
+        let targetSize = setAllocationSize ? Math.min(newSize, node.size) : newSize
+        if targetSize > node.size and node.size % BlockSize != 0 and node.blockSearch(node.size / BlockSize).found and not volume.freeBlockCount() do
             return StatusDiskFull
         discard catch volume.resizeNode(nodeId, targetSize) as err
         if err != null do
@@ -357,10 +357,9 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if nodeId == 1 do
             return StatusAccessDenied
-        let validNode = node
-        if (validNode.attributes & FileAttributeReadOnly) != 0 do
+        if (node.attributes & FileAttributeReadOnly) != 0 do
             return StatusAccessDenied
-        if validNode.isDirectory() and volume.hasChildren(nodeId) do
+        if node.isDirectory() and volume.hasChildren(nodeId) do
             return StatusDirectoryNotEmpty
         return StatusSuccess
     }
@@ -403,11 +402,10 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
-        let validNode = node
-        validNode.security.resize(securitySize)
+        node.security.resize(securitySize)
         if securitySize do
-            Swag.memcpy(validNode.security.buffer, security!, securitySize)
-        validNode.changeTime = volumeTimeNow()
+            Swag.memcpy(node.security.buffer, security!, securitySize)
+        node.changeTime = volumeTimeNow()
         volume.touch(nodeId)
         return StatusSuccess
     }

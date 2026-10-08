@@ -56,6 +56,8 @@ impl LibraryWnd
         .main.saveAppState()
     }
 
+    // Shows the folder menu under `btn`: open, browse, or choose the library folder, and the
+    // recycle bin.
     mtd showFolderMenu(btn: *IconButton)
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
@@ -99,7 +101,7 @@ impl LibraryWnd
     }
 
     // Rebuilds the breadcrumb from the current folder path: one level per path component,
-    // each carrying its full path in 'tag' so navigation can act on it.
+    // each carrying its full path in `tag` so navigation can act on it.
     mtd updateBreadcrumb()
     {
         if .breadcrumb == null do
@@ -109,7 +111,7 @@ impl LibraryWnd
         let trashFolder = Library.getTrashFolder()
 
         // Collect each ancestor's full path, leaf first, by walking up the directory chain.
-        // Keep 'folder' bound to a local so the slice 'p' (and every getDirectoryName slice
+        // Keep `folder` bound to a local so the slice `p` (and every getDirectoryName slice
         // derived from it) stays backed by live memory for the whole walk.
         //
         // The walk stops at the library folder instead of climbing to the drive: this bar

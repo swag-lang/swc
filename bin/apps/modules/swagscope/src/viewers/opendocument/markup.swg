@@ -91,6 +91,8 @@ func cellValue(attributes: string)->String
     return {}
 }
 
+// Converts the length attribute `name`, with an optional unit, into whole CSS pixels. Returns an
+// empty string when the value is missing, malformed, or outside 1 to `ImageDimensionLimit` pixels.
 func imageDimension(attributes, name: string)->String
 {
     let value = attribute(attributes, name)
@@ -289,6 +291,8 @@ private impl Reader
         return {}
     }
 
+    // Applies the text properties present in `attributes` to `style`. Properties the element does
+    // not mention keep the value the style inherited.
     mtd applyTextStyleProperties(style: *TextStyle, attributes: string)
     {
         let weight = attribute(attributes, "fo:font-weight")
@@ -331,6 +335,8 @@ private impl Reader
         }
     }
 
+    // Opens the style definition that `tag` starts, a list style or a text or paragraph style
+    // inheriting its parent, and applies the property elements nested in the open style.
     mtd startTextStyle(tag: const *Tag)
     {
         if tag.name == "text:list-style"
@@ -373,6 +379,8 @@ private impl Reader
             .applyParagraphStyleProperties(&.style, tag.attributes)
     }
 
+    // Closes the list or text style that `tag` ends and keeps it, up to `TextStyleLimit` styles of
+    // each kind.
     mtd finishTextStyle(tag: const *Tag)
     {
         if tag.name == "text:list-style" and .listStyleActive
@@ -392,6 +400,8 @@ private impl Reader
         .style       = {}
     }
 
+    // Opens the HTML tags for the text style named in `attributes` and pushes the style, so
+    // `appendTextStyleEnd` closes the same tags in reverse order.
     mtd appendTextStyleStart(attributes: string)
     {
         let style = .namedTextStyle(attribute(attributes, "text:style-name"))
@@ -419,6 +429,7 @@ private impl Reader
         }
     }
 
+    // Closes the tags of the innermost style opened by `appendTextStyleStart`, in reverse order.
     mtd appendTextStyleEnd()
     {
         if .styleStack.isEmpty() do
@@ -449,6 +460,8 @@ private impl Reader
         return style.numbered
     }
 
+    // Returns the HTML anchor of bookmark `name`, assigning the next `odf-bookmark-N` id on first
+    // use. Returns an empty string past `BookmarkLimit` bookmarks.
     mtd bookmarkTarget(name: string)->String
     {
         if not name.count do
@@ -529,6 +542,8 @@ private impl Reader
         return {}
     }
 
+    // Emits an `img` element for an embedded image, sized by the enclosing `draw:frame` when it
+    // gave a size. An image the package does not hold emits nothing.
     mtd appendImage(attributes: string)
     {
         let uri = .imageUri(attributes)
@@ -581,6 +596,8 @@ private impl Reader
             .appendHtml("&#160;")
     }
 
+    // Emits the opening HTML for an OpenDocument text, table or drawing element. Elements with no
+    // HTML counterpart emit nothing.
     mtd startHtml(tag: const *Tag)
     {
         switch tag.name.toString()
@@ -671,6 +688,8 @@ private impl Reader
         }
     }
 
+    // Emits the closing HTML matching `startHtml`, and completes the slide when its `draw:page`
+    // ends.
     mtd endHtml(tag: const *Tag)
     {
         switch tag.name.toString()
@@ -747,6 +766,8 @@ private impl Reader
         .cellRepeat = 1
     }
 
+    // Adds the completed row to the sheet, repeated as many times as it declared. Fails rather than
+    // expand a repeat past `TableRowLimit` rows or `TableCellLimit` cells.
     mtd finishRow() fail
     {
         if .row.cells.isEmpty() do
@@ -764,6 +785,8 @@ private impl Reader
         .rowRepeat      = 1
     }
 
+    // Records spreadsheet structure for the table model: a table opens the sheet, rows and cells
+    // keep their repeat counts, and paragraphs, tabs and spaces inside a cell build its text.
     mtd startSheet(tag: const *Tag)
     {
         switch tag.name.toString()
@@ -798,6 +821,7 @@ private impl Reader
         }
     }
 
+    // Completes the cell, row or table that `tag` ends while a sheet is open.
     mtd endSheet(tag: const *Tag) fail
     {
         if not .activeSheet do
@@ -818,6 +842,8 @@ private impl Reader
         }
     }
 
+    // Routes an opening tag: style definitions always, body content to the spreadsheet or HTML
+    // builder. Text documents wrap the body in an `article`.
     mtd startTag(tag: const *Tag)
     {
         .startTextStyle(tag)
@@ -839,6 +865,8 @@ private impl Reader
             .startHtml(tag)
     }
 
+    // Routes a closing tag the same way as `startTag`, closing the body's `article` for text
+    // documents.
     mtd endTag(tag: const *Tag) fail
     {
         .finishTextStyle(tag)
@@ -879,6 +907,8 @@ private impl Reader
             fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
     }
 
+    // Returns the parsed content for the document kind: slides, HTML or normalized sheets. Fails
+    // when the body or a slide or sheet was left open, or no slide, page or sheet was found.
     mtd finish()->Content fail
     {
         if not .sawBody or .inBody do
@@ -922,6 +952,8 @@ func parseContent(source: string, kind: Kind)->Content fail
     return try parseContentWithImages(source, "", kind, #move images, #move metadata)
 }
 
+// Feeds `source` to `reader` as a flat sequence of text runs and start and end tags, a self-closing
+// tag producing both. Only a tag that never closes fails; nesting is the reader's concern.
 func appendXml(reader: *Reader, source: string) fail
 {
     var textStart = 0'u64

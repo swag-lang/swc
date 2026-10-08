@@ -62,6 +62,7 @@ impl FormImage
         Swag.init(&.texture, 1)
     }
 
+    // Clears the pixels of the image that `mask` leaves out, and uploads the texture again.
     mtd backCaptureMask(mask: *Image)
     {
         let renderer = g_App.renderer
@@ -79,6 +80,8 @@ impl FormImage
         .texture = g_App.renderer.addImage(.image)
     }
 
+    // Copies the background pixels under the form into its image when it is ready to capture,
+    // and uploads the texture.
     mtd backCapture()
     {
         let renderer = g_App.renderer

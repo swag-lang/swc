@@ -349,6 +349,8 @@ private func elementContents(source, name: string)->String
     return end == Swag.U64.Max ? {} : source[body until end]
 }
 
+// Reads a text frame's inset spacing from its preference markup into `item`. IDML stores either one
+// `unit` value for all sides or a list of four; any other form leaves the insets unchanged.
 private func textFrameInsets(preference: string, item: *Item)
 {
     let insetTag = firstOpenTag(preference, "InsetSpacing")
@@ -394,6 +396,8 @@ private func textFrameInsets(preference: string, item: *Item)
     }
 }
 
+// Reads a text frame's column count, gutter, fixed column width and insets from its
+// `TextFramePreference`.
 private func textFrameLayout(content: string, item: *Item)
 {
     let preference = firstOpenTag(content, "TextFramePreference")
@@ -439,6 +443,7 @@ private func boundsFromGeometric(value: string, result: *Bounds)->bool
     return result.width > 0 and result.height > 0
 }
 
+// Reads the `ItemTransform` matrix of `tag`; a missing or malformed one gives the identity.
 private func parseTransform(tag: string)->Transform
 {
     var result: retval
@@ -469,38 +474,49 @@ private func composeTransform(parent, child: const *Transform)->Transform
     return result
 }
 
+// The anchors of the path points of `item`, placed by `transform`; empty when one is malformed.
+private func pathAnchors(item: string, transform: const *Transform)->Array'Math.Vector2
+{
+    var result: retval
+    var cursor = 0'u64
+    for
+    {
+        let pointStart = Utf8.indexOf(item, "<PathPointType", cursor)
+        if pointStart == Swag.U64.Max do
+            return result
+        let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
+        if pointEnd == Swag.U64.Max do
+            return {}
+        let values = parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"))
+        if values.count != 2 do
+            return {}
+        result.add({transform.a * values[0] + transform.c * values[1] + transform.x,
+                    transform.b * values[0] + transform.d * values[1] + transform.y})
+        cursor = pointEnd + 1
+    }
+}
+
+// Computes the bounding box of an item's path anchors after `transform`. Returns false for a
+// degenerate box unless `allowLine` is set, which gives a line at least one unit thick.
 private func boundsFromPath(item: string, transform: const *Transform, result: *Bounds, allowLine = false)->bool
 {
+    let anchors = pathAnchors(item, transform)
+    if anchors.count < 2 do
+        return false
+
     var left   = Swag.F32.Max
     var top    = Swag.F32.Max
     var right  = -Swag.F32.Max
     var bottom = -Swag.F32.Max
-    var cursor = 0'u64
-    var points: u64
-    while true
+    for anchor in anchors
     {
-        let pointStart = Utf8.indexOf(item, "<PathPointType", cursor)
-        if pointStart == Swag.U64.Max do
-            break
-        let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
-        if pointEnd == Swag.U64.Max do
-            return false
-        let tag    = item[pointStart until pointEnd + 1]
-        let anchor = attribute(tag, "Anchor")
-        let values = parseNumbers(anchor)
-        if values.count != 2 do
-            return false
-        let x = transform.a * values[0] + transform.c * values[1] + transform.x
-        let y = transform.b * values[0] + transform.d * values[1] + transform.y
-        left   = Math.min(left, x)
-        right  = Math.max(right, x)
-        top    = Math.min(top, y)
-        bottom = Math.max(bottom, y)
-        points += 1
-        cursor = pointEnd + 1
+        left   = Math.min(left, anchor.x)
+        right  = Math.max(right, anchor.x)
+        top    = Math.min(top, anchor.y)
+        bottom = Math.max(bottom, anchor.y)
     }
 
-    if points < 2 or (not allowLine and (right <= left or bottom <= top)) do
+    if not allowLine and (right <= left or bottom <= top) do
         return false
     result.left   = left
     result.top    = top
@@ -545,41 +561,29 @@ private func boundsFromGraphic(item: string, parent: const *Transform, result: *
     return result.width > 0 and result.height > 0
 }
 
+// Builds a CSS `clip-path` polygon from the item's anchors, in percentages of its bounding box.
+// Returns an empty string for fewer than three anchors or an empty box.
 private func polygonClipPath(item: string, transform: const *Transform)->String
 {
     var bounds: Bounds
     if not boundsFromPath(item, transform, &bounds) do
         return {}
+    let anchors = pathAnchors(item, transform)
+    if anchors.count < 3 do
+        return {}
 
     var result: retval
     result += "clip-path:polygon("
-    var cursor = 0'u64
-    var points: u64
-    while true
+    for anchor, index in anchors
     {
-        let pointStart = Utf8.indexOf(item, "<PathPointType", cursor)
-        if pointStart == Swag.U64.Max do
-            break
-        let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
-        if pointEnd == Swag.U64.Max do
-            return {}
-        let values = parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"))
-        if values.count != 2 do
-            return {}
-        if points do
+        if index do
             result += ","
-        let x = transform.a * values[0] + transform.c * values[1] + transform.x
-        let y = transform.b * values[0] + transform.d * values[1] + transform.y
-        result += Format.toString("%", 100 * (x - bounds.left) / bounds.width)
+        result += Format.toString("%", 100 * (anchor.x - bounds.left) / bounds.width)
         result += "% "
-        result += Format.toString("%", 100 * (y - bounds.top) / bounds.height)
+        result += Format.toString("%", 100 * (anchor.y - bounds.top) / bounds.height)
         result += "%"
-        points += 1
-        cursor = pointEnd + 1
     }
 
-    if points < 3 do
-        return {}
     result += ");"
     return result
 }
@@ -591,43 +595,17 @@ private func polygonClipPath(item: string, transform: const *Transform)->String
 // triangular InDesign arrowheads without relying on an external SVG implementation.
 private func lineClipPath(item: string, transform: const *Transform, pageLeft, pageTop: f32, bounds: const *Bounds, strokeSize: f32, startArrow, endArrow: bool)->String
 {
-    var firstX, firstY, secondX, secondY: f32
-    var pointCount = 0'u64
-    var cursor     = 0'u64
-    while pointCount < 3
-    {
-        let pointStart = Utf8.indexOf(item, "<PathPointType", cursor)
-        if pointStart == Swag.U64.Max do
-            break
-        let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
-        if pointEnd == Swag.U64.Max do
-            return {}
-        let values = parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"))
-        if values.count != 2 do
-            return {}
-        let x = transform.a * values[0] + transform.c * values[1] + transform.x - pageLeft
-        let y = transform.b * values[0] + transform.d * values[1] + transform.y - pageTop
-        if not pointCount
-        {
-            firstX = x
-            firstY = y
-        }
-        else
-        {
-            secondX = x
-            secondY = y
-        }
-
-        pointCount += 1
-        cursor     = pointEnd + 1
-    }
-
-    if pointCount != 2 or bounds.width <= 0 or bounds.height <= 0 do
+    let anchors = pathAnchors(item, transform)
+    if anchors.count != 2 or bounds.width <= 0 or bounds.height <= 0 do
         return {}
 
-    let dx     = secondX - firstX
-    let dy     = secondY - firstY
-    let length = Math.sqrt(dx * dx + dy * dy)
+    let firstX  = anchors[0].x - pageLeft
+    let firstY  = anchors[0].y - pageTop
+    let secondX = anchors[1].x - pageLeft
+    let secondY = anchors[1].y - pageTop
+    let dx      = secondX - firstX
+    let dy      = secondY - firstY
+    let length  = Math.sqrt(dx * dx + dy * dy)
     if length < 0.01 do
         return {}
 
@@ -641,28 +619,39 @@ private func lineClipPath(item: string, transform: const *Transform, pageLeft, p
     let endBaseX   = secondX - dx * endInset / length
     let endBaseY   = secondY - dy * endInset / length
 
-    var result: retval
-    result += "clip-path:polygon("
+    // The silhouette, around from the start: one side of the stroke out to the end, back along
+    // the other. An arrowhead puts its tip on the end point and its base corners on the sides.
+    var outline: Array'Math.Vector2
     if startArrow
     {
-        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (firstX - bounds.left) / bounds.width, 100 * (firstY - bounds.top) / bounds.height)
-        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (startBaseX + normalX - bounds.left) / bounds.width, 100 * (startBaseY + normalY - bounds.top) / bounds.height)
+        outline.add({firstX, firstY})
+        outline.add({startBaseX + normalX, startBaseY + normalY})
     }
     else
     {
-        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (firstX + normalX - bounds.left) / bounds.width, 100 * (firstY + normalY - bounds.top) / bounds.height)
+        outline.add({firstX + normalX, firstY + normalY})
     }
 
-    result += Format.toString("%{f3}%% %{f3}%%,", 100 * (endBaseX + normalX - bounds.left) / bounds.width, 100 * (endBaseY + normalY - bounds.top) / bounds.height)
+    outline.add({endBaseX + normalX, endBaseY + normalY})
     if endArrow do
-        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (secondX - bounds.left) / bounds.width, 100 * (secondY - bounds.top) / bounds.height)
+        outline.add({secondX, secondY})
     else do
-        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (secondX + normalX - bounds.left) / bounds.width, 100 * (secondY + normalY - bounds.top) / bounds.height)
-    result += Format.toString("%{f3}%% %{f3}%%,", 100 * (endBaseX - normalX - bounds.left) / bounds.width, 100 * (endBaseY - normalY - bounds.top) / bounds.height)
+        outline.add({secondX + normalX, secondY + normalY})
+    outline.add({endBaseX - normalX, endBaseY - normalY})
     if startArrow do
-        result += Format.toString("%{f3}%% %{f3}%%", 100 * (startBaseX - normalX - bounds.left) / bounds.width, 100 * (startBaseY - normalY - bounds.top) / bounds.height)
+        outline.add({startBaseX - normalX, startBaseY - normalY})
     else do
-        result += Format.toString("%{f3}%% %{f3}%%", 100 * (firstX - normalX - bounds.left) / bounds.width, 100 * (firstY - normalY - bounds.top) / bounds.height)
+        outline.add({firstX - normalX, firstY - normalY})
+
+    var result: retval
+    result += "clip-path:polygon("
+    for vertex, index in outline
+    {
+        if index do
+            result += ","
+        result += Format.toString("%{f3}%% %{f3}%%", 100 * (vertex.x - bounds.left) / bounds.width, 100 * (vertex.y - bounds.top) / bounds.height)
+    }
+
     result += ");"
     return result
 }
@@ -841,6 +830,8 @@ private func linkedGraphicSource(documentFileName, item: string, loaded: *u64)->
     return folder != null and name != null ? localGraphicSource(Path.combine(folder, name), loaded) : String{}
 }
 
+// Decodes the name of an XML character reference, without its `&` and `;`: the five predefined
+// entities and decimal or hexadecimal code points. Anything else decodes to U+FFFD.
 private func entity(text: string)->rune
 {
     if text == "amp" do
@@ -877,6 +868,8 @@ private func entity(text: string)->rune
     return 0xFFFD
 }
 
+// Replaces the character references in `text` by their characters. An `&` without a closing `;` is
+// kept as written.
 private func decodeEntities(text: string)->String
 {
     var result: retval
@@ -905,6 +898,8 @@ private func decodeEntities(text: string)->String
     return result
 }
 
+// Extracts the plain text of a story: `Content` runs with their entities decoded, a line break for
+// each `Br`, and one line break closing each paragraph.
 private func storyText(source: string)->String
 {
     var result: retval
@@ -959,6 +954,7 @@ private func textAlignment(value: string)->string
 private func fontStyleBold(value: string)->bool   => Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
 private func fontStyleItalic(value: string)->bool => Utf8.contains(value, "Italic") or Utf8.contains(value, "italic") or Utf8.contains(value, "Oblique") or Utf8.contains(value, "oblique")
 
+// Reports whether `text` holds a CJK, Hangul or full-width character, which needs the CJK font.
 private func containsCjk(text: string)->bool
 {
     var cursor = 0'u64
@@ -978,6 +974,8 @@ private func containsCjk(text: string)->bool
     return false
 }
 
+// Converts a paragraph style into inline CSS, with sizes and spacing in `em` relative to the
+// style's own font size, or 12 points when it has none.
 private func textStyleCss(style: const *TextStyle)->String
 {
     var result: retval
@@ -1008,6 +1006,8 @@ private func textStyleCss(style: const *TextStyle)->String
     return result
 }
 
+// Converts the attributes of a `CharacterStyleRange` tag into inline CSS, sizes relative to 12
+// points and tracking in thousandths of an em.
 private func characterStyleCss(tag: string, colors: const *HashTable'(String, String))->String
 {
     var result: retval
@@ -1038,6 +1038,8 @@ private func characterStyleCss(tag: string, colors: const *HashTable'(String, St
     return result
 }
 
+// Renders the character style ranges of a paragraph as styled `span` elements, or as escaped plain
+// text when the paragraph has none.
 private func characterRangeHtml(source: string, colors: const *HashTable'(String, String))->String
 {
     var result: retval
@@ -1062,6 +1064,8 @@ private func characterRangeHtml(source: string, colors: const *HashTable'(String
     return result.isEmpty() ? escapeHtml(storyText(source)) : result
 }
 
+// Renders a story as HTML, one `div` per paragraph style range carrying its resolved style, bullet
+// and CJK font. Falls back to escaped plain text when the story has no paragraph range.
 private func storyHtml(source: string, styles: const *HashTable'(String, TextStyle), colors: const *HashTable'(String, String))->String
 {
     var result: retval
@@ -1095,6 +1099,8 @@ private func storyHtml(source: string, styles: const *HashTable'(String, TextSty
     return result.isEmpty() ? escapeHtml(storyText(source)) : result
 }
 
+// Escapes `text` for HTML, turning the IDML line and paragraph separators U+2028 and U+2029 into
+// `<br>`.
 private func escapeHtml(text: string)->String
 {
     var result: retval
@@ -1148,6 +1154,8 @@ private func cssColor(space, value: string)->String
     return {}
 }
 
+// Reads the document swatches of `Resources/Graphic.xml` as CSS colors keyed by `Self`, the first
+// definition winning. Paper and Black are supplied when the document omits them.
 private func loadColors(fileName: string, archive: const *Archive.Zip)->HashTable'(String, String)
 {
     var result: retval
@@ -1182,6 +1190,8 @@ private func loadColors(fileName: string, archive: const *Archive.Zip)->HashTabl
     return result
 }
 
+// Applies an IDML tint percentage to an `rgb(...)` color by mixing it with white. Returns `color`
+// unchanged when the tint is missing or at least 100, or the color is not plain RGB.
 private func tintedColor(color, tint: string)->String
 {
     let percentage = parseNumber(tint)
@@ -1219,6 +1229,8 @@ private func resolveColor(colors: const *HashTable'(String, String), name: strin
     return found ? tintedColor(found.value, tint) : ""
 }
 
+// Reads the paragraph styles of `Resources/Styles.xml`, keyed by `Self`, keeping only what the HTML
+// rendering of stories uses. A missing or unreadable entry gives no styles.
 private func loadTextStyles(fileName: string, archive: const *Archive.Zip, colors: const *HashTable'(String, String))->HashTable'(String, TextStyle)
 {
     var result: retval
@@ -1276,6 +1288,8 @@ private func loadTextStyles(fileName: string, archive: const *Archive.Zip, color
     return result
 }
 
+// Collects the pages of a spread with their bounds in spread coordinates and their applied master,
+// up to `PageLimit` pages.
 private func appendPages(source: string, pages: *Array'Page)
 {
     var cursor = 0'u64
@@ -1315,6 +1329,9 @@ private func pageIndexOf(pages: const *Array'Page, bounds: const *Bounds)->u64
     return Swag.U64.Max
 }
 
+// Collects the drawable frames of a spread (text, rectangle, oval, polygon and line) into the page
+// each one falls on, in page coordinates, with the transforms of enclosing groups applied. Stops
+// after `FrameLimit` items.
 private func appendItems(fileName, source: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, pages: *Array'Page)
 {
     var cursor = 0'u64
@@ -1449,6 +1466,8 @@ private func appendItems(fileName, source: string, colors: const *HashTable'(Str
     }
 }
 
+// Adds to each page the items of the master it applies, taken from the master page at the same
+// position, or from its last page.
 private func appendMasterItems(masters: const *Array'Master, pages: *Array'Page)
 {
     for &page, pageIndex in pages where not page.master.isEmpty()
@@ -1590,6 +1609,8 @@ private func flowTextStories(pages: *Array'Page, stories: const *HashTable'(Stri
     }
 }
 
+// Loads every master spread listed in `designMap` with its pages and items, so the pages applying a
+// master can draw its items. A master that cannot be read is skipped.
 private func loadMasters(fileName: string, archive: const *Archive.Zip, designMap: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64)->Array'Master
 {
     var result: retval

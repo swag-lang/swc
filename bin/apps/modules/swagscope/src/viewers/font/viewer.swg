@@ -56,6 +56,8 @@ impl ViewerContent
     }
 }
 
+// Loads a font file for the viewer: its first face, a type face cached under the path and content
+// checksum, and the details line, which counts the faces of a collection.
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: retval
@@ -119,6 +121,8 @@ private impl Panel
             .document.invalidate()
     }
 
+    // Offers the Unicode blocks the glyph grid can jump to, and shows the first page of the one
+    // chosen.
     mtd showRangeMenu()
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
@@ -251,10 +255,10 @@ impl Panel
         {
             .dockStyle = .Left
             .margin.x  = 8
+            .toolTip   = texts().ui_CharacterRange
             .setArrowPosition(.RightUpward)
             .setForm(.Rectangle)
             .style.setFont(me.theme().res.fontDefaultFs)
-            .toolTip    = texts().ui_CharacterRange
             .sigPressed += func|view = me|(?) { view.showRangeMenu() }
         }
     }

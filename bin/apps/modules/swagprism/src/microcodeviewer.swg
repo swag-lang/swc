@@ -23,9 +23,9 @@ long enough to stop a window that waits for it. The window submits the work inst
 a timer, so it keeps drawing, keeps taking text, and keeps answering the reader while the compiler
 runs.
 
-Only one compilation per viewer runs at a time. A request that arrives while one is running replaces whatever
-was waiting rather than joining a queue: the reader wants the answer to what they last asked, not
-every stage they passed through on the way to it.
+Only one compilation per viewer runs at a time. A request that arrives while one is running
+replaces whatever was waiting rather than joining a queue: the reader wants the answer to what they
+last asked, not every stage they passed through on the way to it.
 */
 struct CompileJob
 {
@@ -66,7 +66,7 @@ struct MicrocodeViewer
     job:            CompileJob
     pendingRequest: Pipeline.BuildRequest
     statusMessage:  StatusMessage
-    outputIsHint = true
+    outputIsHint:   bool = true
 }
 
 impl MicrocodeViewer
@@ -162,7 +162,8 @@ impl MicrocodeViewer
         .job.queued    = false
         .job.running   = true
 
-        // Options remain editable while this viewer compiles; another request replaces its pending input.
+        // Options remain editable while this viewer compiles; another request replaces its pending
+        // input.
         .setStatus(.Working)
         .job.timer = .addTimer(20'ms)
         .job.task.submit(func|viewer = me|() { viewer.runCompile() })

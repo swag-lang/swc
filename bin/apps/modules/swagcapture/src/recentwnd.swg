@@ -58,6 +58,8 @@ struct RecentView
 
 impl RecentView
 {
+    // Opens `capture`, loaded for item `idx`, in the editor at the zoom the item last had, after
+    // saving the capture it replaces. A capture whose item is gone is released.
     private mtd selectLoaded(idx: u64, capture: *Capture)
     {
         if idx >= .items.count
@@ -91,6 +93,8 @@ impl RecentView
         .invalidate()
     }
 
+    // Selects recent item `idx` and opens its capture in the editor, unless it already is and
+    // `force` is false.
     mtd select(idx: u64, force = false)
     {
         if .selected == idx and not force do
@@ -382,6 +386,7 @@ impl IWnd for RecentWnd
 
 impl RecentWnd
 {
+    // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
@@ -409,6 +414,7 @@ impl RecentWnd
         .loadTimer         = .addTimer(100'ms)
     }
 
+    // Drops `file` from the recent strip once the library deleted it.
     mtd onLibraryFileDeleted(file: String)
     {
         for it, i in .recentView.items
@@ -438,6 +444,8 @@ impl RecentWnd
         }
     }
 
+    // Lists the newest captures of the library for the strip, once, and starts loading them one
+    // at a time.
     mtd loadRecent()
     {
         if .loadDone do
@@ -466,6 +474,8 @@ impl RecentWnd
         .loadTimer         = .addTimer(1'ms)
     }
 
+    // Loads the next file of the recent list into the strip, one per call so startup stays
+    // responsive; the first one also opens in the editor.
     mtd loadNextRecent()
     {
         if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
@@ -491,6 +501,8 @@ impl RecentWnd
         .scheduleLoadNextRecent()
     }
 
+    // Refreshes the selected item of the strip from the capture being edited, and restarts the
+    // timer that renews its thumbnail.
     mtd updateRecent()
     {
         if .recentView.selected >= .recentView.items.count do
@@ -537,6 +549,8 @@ impl RecentWnd
         return loaded
     }
 
+    // Adds `file` to the recent strip, or moves it to the front when it is already there, and keeps
+    // the strip within `MaxRecent` items.
     mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = "")
     {
         // Already there ?

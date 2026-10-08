@@ -153,6 +153,8 @@ private impl Panel
         return Format.toString("% · %", details, .document.metadata.title)
     }
 
+    // Publishes the details line for what is shown: the current sheet, slide or page, or else the
+    // document kind.
     mtd reportDocumentDetails()
     {
         if .document.kind == .Spreadsheet and .sheetIndex < .document.sheets.count
@@ -189,6 +191,8 @@ private impl Panel
         return Format.toString(.document.kind == .Drawing ? texts().ui_Page : texts().ui_Slide, index + 1)
     }
 
+    // Fills the selector with the sheets, slides or pages of the document, and shows it with its
+    // commands only when there is more than one.
     mtd fillPageChoices()
     {
         .pageCombo.clear()
@@ -204,15 +208,8 @@ private impl Panel
             for index in count do
                 .pageCombo.addItem(.sheetName(index))
 
-        case .Presentation:
-            .pageCombo.toolTip = texts().ui_TipSlide
-            count  = .document.slides.count
-            active = .slideIndex
-            for index in count do
-                .pageCombo.addItem(.slideName(index))
-
-        case .Drawing:
-            .pageCombo.toolTip = texts().ui_TipPage
+        case .Presentation, .Drawing:
+            .pageCombo.toolTip = .document.kind == .Drawing ? texts().ui_TipPage : texts().ui_TipSlide
             count  = .document.slides.count
             active = .slideIndex
             for index in count do
@@ -230,6 +227,8 @@ private impl Panel
         .services.chromeChanged(me)
     }
 
+    // Shows sheet `index` in the table view, handing the current sheet's table back to the document
+    // first. Returns false when `index` is out of range.
     mtd showSheet(index: u64, clearSearch: bool)->bool
     {
         if index >= .document.sheets.count or .table == null do
@@ -267,6 +266,8 @@ private impl Panel
         }
     }
 
+    // Shows slide `index` in a new HTML view, or keeps the current one when it is already shown.
+    // Returns false when `index` is out of range.
     mtd showSlide(index: u64, clearSearch: bool)->bool
     {
         if index >= .document.slides.count do
@@ -345,6 +346,8 @@ private impl Panel
             Viewer.collectTextMatches(slide.html, text, options, index, 0, 0, result)
     }
 
+    // Presents the loaded document in its view (table, slides or HTML) and fills the outline with
+    // headings for text, or with the sheet or slide names.
     mtd publishDocument()
     {
         if .document.kind == .Spreadsheet
@@ -394,6 +397,8 @@ private impl Panel
         .applyLayout()
     }
 
+    // Collects the matches of `text` in the sheets, the slides or the text of the document,
+    // according to its kind.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         if .document.kind == .Spreadsheet
@@ -413,6 +418,8 @@ private impl Panel
             Viewer.collectTextMatches(.document.html, text, options, 0, 0, 0, result)
     }
 
+    // Reveals a search match, first switching to the sheet or slide that holds it. A spreadsheet
+    // match carries the table's own match in `minor`, split into its high and low 32 bits.
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
     {
         if .document.kind == .Spreadsheet
@@ -469,6 +476,9 @@ private impl Panel
         return .load.retire()
     }
 
+    // Builds the OpenDocument panel: zoom button, page selector, and the zoom and page navigation
+    // keys. Loads the file in the background; the document view is created when the content
+    // arrives.
     func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
@@ -518,8 +528,8 @@ private impl Panel
         with .pageCombo = ComboBox.create(me.commands, {0, 0, PageComboWidth, 36})
         {
             .dockStyle = .Left
+            .toolTip   = texts().ui_TipSheet
             .hide()
-            .toolTip    = texts().ui_TipSheet
             .sigChanged += func|view = me|(?, index) { discard view.showPage(index, true) }
         }
     }

@@ -158,6 +158,9 @@ impl IActionUI for ActionCapture
 
 impl MainWnd
 {
+    // Opens `img` in the editor as a new capture, or as `from` when given, gives it a
+    // library file, saves it, and adds it to the recent strip. `linked` names the
+    // image file the capture came from.
     mtd newCapture(img: Image, linked: string = "", from: *Capture? = null, sourceKind = CaptureSourceKind.Unknown)
     {
         if not img.isValid() do
@@ -176,23 +179,22 @@ impl MainWnd
             }
         }
 
-        let validCapture = capture
-        with validCapture
+        with capture
         {
             .changed     = true
             .linkedImage = linked
             .file        = Library.newFileName()
         }
 
-        .editWnd.editView.setCapture(validCapture)
+        .editWnd.editView.setCapture(capture)
         .editWnd.editView.zoomToFit(false)
 
-        validCapture.computePreview()
-        .recentWnd.addRecent(validCapture.file, validCapture.preview, linked: linked)
+        capture.computePreview()
+        .recentWnd.addRecent(capture.file, capture.preview, linked: linked)
         .recentWnd.recentView.selected = 0
 
-        .saveCapture(validCapture)
-        g_Library.addFile(validCapture.file)
+        .saveCapture(capture)
+        g_Library.addFile(capture.file)
 
         // Force edition mode
         if .libraryMode
@@ -204,6 +206,8 @@ impl MainWnd
 
     mtd captureScreen(mode: CaptureMode, monitorIndex: u64 = 0)
     {
-        catch screenShot(me, mode, monitorIndex)
+        catch screenShot(me, mode, monitorIndex) as err
+        if err != null do
+            MessageDlg.error(.surface!, appStrings().msg_FailedCaptureScreen, err)
     }
 }

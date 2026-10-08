@@ -81,8 +81,8 @@ namespace Integration
         try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
     }
 
-    func password()->const [..] u8      => cast(const [..] u8, PasswordText)
-    func wrongPassword()->const [..] u8 => cast(const [..] u8, WrongPasswordText)
+    func password()->const [..] u8      => PasswordText
+    func wrongPassword()->const [..] u8 => WrongPasswordText
 
     func verify(condition: bool, message: string) fail
     {

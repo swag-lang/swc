@@ -95,6 +95,9 @@ func reportZipArchive(image: *BinaryImage, report: *Report)
     reportZipEntries(image, report, at, size, declared)
 }
 
+// Reports the central directory entries and summarizes the archive with its overall compression
+// ratio. Stops at the first record without the entry signature, so a damaged directory shows its
+// valid prefix.
 private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, declared: u64)
 {
     let texts = texts()

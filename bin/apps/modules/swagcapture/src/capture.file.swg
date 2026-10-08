@@ -1,5 +1,7 @@
 impl Capture
 {
+    // Marks the capture as modified and out of step with its linked image, and refreshes the
+    // editor and the recent strip, except during an interactive drag.
     mtd hasChanged()
     {
         .changed        = true
@@ -86,6 +88,7 @@ impl Capture
         return result
     }
 
+    // The part of the capture the library reads without decoding the image.
     private mtd libraryMetadata()->CaptureLibraryMetadata
     {
         var result: retval
@@ -104,6 +107,7 @@ impl Capture
         return result
     }
 
+    // The part of the capture its file stores.
     private mtd fileModel()->CaptureFileModel
     {
         var result: retval
@@ -130,6 +134,7 @@ impl Capture
         return result
     }
 
+    // Creates a capture from the metadata the library reads without decoding the image.
     private func fromLibraryMetadata(metadata: CaptureLibraryMetadata, manifest: const *Scc.Manifest)->*Capture
     {
         with let result = Memory.new'Capture()
@@ -153,6 +158,7 @@ impl Capture
         return result
     }
 
+    // Creates a capture from what its file stored, taking over the forms of `model`.
     private func fromFileModel(model: *CaptureFileModel)->*Capture
     {
         with let result = Memory.new'Capture()

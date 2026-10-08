@@ -28,8 +28,8 @@ struct RollView
     }
 
     document:       Document
-    selectedTrack        = Swag.U32.Max
-    zoom = 1'f32
+    selectedTrack:  u32  = Swag.U32.Max
+    zoom:           f32  = 1
     fit:            bool = true
     lowKey:         u8
     highKey:        u8
@@ -67,15 +67,21 @@ impl RollView
         return .document.tracks[.selectedTrack].noteCount
     }
 
+    // The number of keys the roll shows, one row each, from `highKey` at the top down to `lowKey`.
+    mtd const keyCount()->u32        => cast(u32, .highKey - .lowKey + 1)
+    mtd const keyAtRow(row: u32)->u8 => cast(u8, cast(u32, .highKey) - row)
+
     mtd summaryText()->String => Format.toString(texts().ui_Summary, .document.tracks.count, .selectedNoteCount(), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
 
+    // Recomputes the piano-roll geometry: the key range with two keys of margin, the row height,
+    // the ticks per beat and the timeline width, fitting the whole piece when `fit` is set.
     mtd refreshLayout()
     {
         let client = .clientRect()
         .lowKey    = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
         .highKey   = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
         .plotTop   = HeaderHeight + AxisHeight
-        .rowHeight = Math.max((client.height - .plotTop - ContentInset) / cast(f32, .highKey - .lowKey + 1), 3)
+        .rowHeight = Math.max((client.height - .plotTop - ContentInset) / cast(f32, .keyCount()), 3)
 
         if .document.division & 0x8000
         {
@@ -142,17 +148,19 @@ impl RollView
         painter.drawLine(left, HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, HeaderHeight - 1, colors.border, 1)
     }
 
+    // Paints the piano-roll grid: shaded black-key rows, row lines, and numbered beat lines,
+    // skipping beats by powers of two so labels stay at least 72 pixels apart.
     mtd paintGrid(painter: *Painter)
     {
         let colors     = .themeColors()
         let plotLeft   = KeyboardWidth + ContentInset
         let plotRight  = plotLeft + .timelineWidth
-        let plotBottom = .plotTop + cast(f32, .highKey - .lowKey + 1) * .rowHeight
+        let plotBottom = .plotTop + cast(f32, .keyCount()) * .rowHeight
 
-        for keyValue in cast(u32, .highKey - .lowKey + 1)
+        for row in .keyCount()
         {
-            let key = cast(u8, (cast(u32, .highKey) - keyValue))
-            let y   = .plotTop + cast(f32, keyValue) * .rowHeight
+            let key = .keyAtRow(row)
+            let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
                 painter.fillRect(plotLeft, y, .timelineWidth, .rowHeight, colors.edit_Bk)
             painter.drawLine(plotLeft, y, plotRight, y, colors.border, 1)
@@ -178,6 +186,9 @@ impl RollView
         }
     }
 
+    // Paints the visible notes of the selected track, or of every track, shading each track
+    // differently. Notes are sorted by start, so painting stops at the first one past the right
+    // edge.
     mtd paintNotes(painter: *Painter)
     {
         let colors    = .themeColors()
@@ -199,6 +210,8 @@ impl RollView
         }
     }
 
+    // Paints the keyboard column pinned to the left of the scrolled view, shading black keys and
+    // labelling each C when rows are tall enough.
     mtd paintKeyboard(painter: *Painter)
     {
         let colors = .themeColors()
@@ -206,10 +219,10 @@ impl RollView
         painter.fillRect(left, HeaderHeight, KeyboardWidth + ContentInset, .clientRect().height - HeaderHeight, colors.view_Bk)
         painter.drawString(left + ContentInset, HeaderHeight + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
 
-        for keyValue in cast(u32, .highKey - .lowKey + 1)
+        for row in .keyCount()
         {
-            let key = cast(u8, (cast(u32, .highKey) - keyValue))
-            let y   = .plotTop + cast(f32, keyValue) * .rowHeight
+            let key = .keyAtRow(row)
+            let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
                 painter.fillRect(left + ContentInset, y, KeyboardWidth, .rowHeight, colors.edit_Bk)
             painter.drawLine(left + ContentInset, y, left + ContentInset + KeyboardWidth, y, colors.border, 1)
@@ -288,6 +301,7 @@ impl IWnd for RollView
 
 impl RollView
 {
+    // Builds the piano roll inside its own scroll window, taking ownership of `document`.
     func create(parent: *Wnd, document: Document)->*RollView
     {
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})

@@ -309,6 +309,7 @@ private impl GenericLexer
             .keywords.add(word, true)
     }
 
+    // Selects the `language` to highlight and registers its keywords. XML and HTML register none.
     mtd configure(language: SourceLanguage)
     {
         .language = language

@@ -99,8 +99,14 @@ impl BlockAllocator
             try failWith("The virtual disk is full.", .DiskFull)
         Swag.assert(maximumCount != 0)
 
-        let index  = .free.count - 1
-        let count  = Math.min(maximumCount, .free[index].count)
+        let index = .free.count - 1
+        return .takeFront(index, Math.min(maximumCount, .free[index].count))
+    }
+
+    // Takes `count` blocks from the start of free extent `index`, and drops the extent once it is
+    // used up.
+    mtd takeFront(index, count: u64)->FreeExtent
+    {
         let result = FreeExtent{.free[index].first, count}
         .free[index].first += count
         .free[index].count -= count
@@ -115,24 +121,15 @@ impl BlockAllocator
     mtd allocateRunBelow(limit, maximumCount: u64)->FreeExtent fail
     {
         Swag.assert(maximumCount != 0)
-        for index in reversed(.free.count)
+        for index in reversed(.free.count) where .free[index].first < limit
         {
-            let extent = .free[index]
-            if extent.first >= limit do
-                continue
-
+            let extent       = .free[index]
             let availableEnd = Math.min(extent.first + extent.count, limit)
             let count        = Math.min(maximumCount, availableEnd - extent.first)
             if not count do
                 continue
 
-            let first = extent.first
-            .free[index].first += count
-            .free[index].count -= count
-            if not .free[index].count do
-                .free.removeAtOrdered(index)
-            .freeBlocksCount -= count
-            return {first, count}
+            return .takeFront(index, count)
         }
 
         try failWith("The smaller container has no room for every used block.", .DiskFull)

@@ -75,6 +75,8 @@ private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
     pattern.masks.add((highWildcard ? 0'u8 : 0xF0'u8) | (lowWildcard ? 0'u8 : 0x0F'u8))
 }
 
+// Parses hexadecimal bytes such as `4D 5A ?? 00`, where `?` matches any nibble. Separators may only
+// fall between bytes; an unpaired digit or an empty pattern is incomplete rather than invalid.
 private func parseBytePattern(source: string)->SearchParse
 {
     var result:  retval
@@ -124,6 +126,7 @@ private func parseBytePattern(source: string)->SearchParse
     return result
 }
 
+// Turns `source` into an exact pattern of its UTF-8 bytes; an empty text is incomplete.
 private func parseTextPattern(source: string)->SearchParse
 {
     var result: retval
@@ -155,6 +158,8 @@ private func appendScalarPattern(pattern: *SearchPattern, raw, size: u64, bigEnd
     }
 }
 
+// Parses one number in the current `grouping` into the bytes of that value in the chosen byte
+// order. A value outside the grouping's range is invalid; a lone sign or `0x` prefix is incomplete.
 private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bool)->SearchParse
 {
     var result: retval

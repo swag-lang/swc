@@ -153,9 +153,9 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     window.startupVaults.add({"C:\\private\\startup", "mount-x", true, false})
     window.fileDlgState.currentFolder = "C:\\private\\browse-private"
     var state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "unlisted")))
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "startup")))
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "browse-private")))
+    Swag.assert(not containsStateBytes(state.toSlice(), "unlisted"))
+    Swag.assert(not containsStateBytes(state.toSlice(), "startup"))
+    Swag.assert(not containsStateBytes(state.toSlice(), "browse-private"))
 
     window.clearPrivateState()
     Swag.assert(window.mountSettings.path.isEmpty())
@@ -305,7 +305,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     window.mountKeyFiles.paths.add("C:\\private\\access.key")
     state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), cast(const [..] u8, "access.key")))
+    Swag.assert(not containsStateBytes(state.toSlice(), "access.key"))
 
     window.mountSettings = {}
     window.mountPath.setText("")

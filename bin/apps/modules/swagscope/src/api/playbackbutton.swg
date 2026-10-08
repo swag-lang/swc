@@ -50,9 +50,9 @@ impl PlaybackButton
             .focusPolicy       = .Tab
             .wndFlags          |= .ActivatesOnKey
             .padding           = metrics.btnIcon_Padding
+            .toolTip           = appStrings().ui_PlayMode
             .updateFlags(.CenterContent)
             .setArrowPosition(.RightUpward)
-            .toolTip = appStrings().ui_PlayMode
             .enable(playback.isAvailable())
             .refreshIcon()
             .sigPressed += func(button) { assume cast(*PlaybackButton, button).showMenu() }

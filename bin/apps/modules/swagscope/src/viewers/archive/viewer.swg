@@ -72,6 +72,8 @@ struct ZipEntryExtract
 
 impl ZipEntryExtract
 {
+    // Extracts `entry` of the archive to `destination` on the worker task. The caller polls for
+    // completion and then reads `error`.
     mtd start(archiveFileName: string, entry: const *ZipEntry, destination: string)
     {
         Swag.assert(not .started)
@@ -128,18 +130,18 @@ struct Panel
         previewStatus: *Label
     }
 
-    late embedded: Viewer.Embedded
-    archive:       Zip
-    entryLines:    Array'(*ListLine?)
-    load:          Viewer.BackgroundLoad'Zip
-    extract:       ZipEntryExtract
-    previewTimer:  *Timer?
-    pendingPreview = Swag.U64.Max
-    activePreview  = Swag.U64.Max
-    previewFile:   String
-    sourceFile:    String
-    services:      Viewer.HostServices
-    failureReason: String
+    late embedded:  Viewer.Embedded
+    archive:        Zip
+    entryLines:     Array'(*ListLine?)
+    load:           Viewer.BackgroundLoad'Zip
+    extract:        ZipEntryExtract
+    previewTimer:   *Timer?
+    pendingPreview: u64 = Swag.U64.Max
+    activePreview:  u64 = Swag.U64.Max
+    previewFile:    String
+    sourceFile:     String
+    services:       Viewer.HostServices
+    failureReason:  String
 }
 
 private impl IWnd for Panel
@@ -204,6 +206,9 @@ private impl Panel
         return .app().fileIcon(entry.path, true)
     }
 
+    // Fills the entry tree from the archive listing, creating each folder once even when the
+    // archive records only the files inside it, then expands the top-level folders and sorts by
+    // name.
     mtd publishArchive()
     {
         .list.clear()
@@ -304,6 +309,9 @@ private impl Panel
         .activePreview = Swag.U64.Max
     }
 
+    // Advances the preview from the preview timer: opens the extracted entry once its extraction
+    // finishes, then retires the previous embedded viewer and extracts the next pending entry to a
+    // temporary file. A newer selection supersedes the extraction in flight.
     mtd continuePreview()
     {
         if .extract.started
@@ -368,6 +376,8 @@ private impl Panel
         .previewStatus.bringToFront()
     }
 
+    // Selects the entry line of `match`, expanding the folders above it. Returns false when the
+    // entry has no line in the tree.
     mtd revealMatch(match: Viewer.SearchMatch, ?: string)->bool
     {
         if match.major >= .entryLines.count do
@@ -449,6 +459,8 @@ private impl Panel
         return true
     }
 
+    // Builds the archive panel: a splitter holding the entry tree and the preview pane. Loads the
+    // archive listing in the background.
     func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()

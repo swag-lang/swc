@@ -108,6 +108,8 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
     return result
 }
 
+// Returns the top-level window under the physical point `x, y`, ignoring the overlay `srf`;
+// null when there is none.
 func findWndAtPos(srf: *Surface, x, y: f32)->HWND
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
@@ -174,6 +176,8 @@ func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->Captur
     return captureWindowInfo(window)
 }
 
+// Returns the screen rectangle and the description of the foreground window; empty when there
+// is none.
 func getBackgroundWindow()->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 {
     var result: retval

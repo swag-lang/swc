@@ -231,18 +231,15 @@ impl Panel
         .grid.setFocus()
     }
 
-    mtd selectedGrouping()->Grouping
-    {
-        let width  = .widthCombo.selectedIndex
-        let format = .formatCombo.selectedIndex
-        switch width
-        {
-        case 0:  return format == 1 ? .Unsigned8 : format == 2 ? .Signed8 : .Bytes
-        case 1:  return format == 1 ? .Unsigned16 : format == 2 ? .Signed16 : .Hex16
-        case 2:  return format == 1 ? .Unsigned32 : format == 2 ? .Signed32 : format == 3 ? .Float32 : .Hex32
-        default: return format == 1 ? .Unsigned64 : format == 2 ? .Signed64 : format == 3 ? .Float64 : .Hex64
-        }
-    }
+    // The grouping each entry of the width and format menus selects: one row per width, one column
+    // per format (hexadecimal, unsigned, signed, float). The two narrow widths offer no float, so
+    // their last column falls back to hexadecimal.
+    const Groupings: [4, 4] Grouping = [[.Bytes, .Unsigned8, .Signed8, .Bytes],
+                                        [.Hex16, .Unsigned16, .Signed16, .Hex16],
+                                        [.Hex32, .Unsigned32, .Signed32, .Float32],
+                                        [.Hex64, .Unsigned64, .Signed64, .Float64]]
+
+    mtd selectedGrouping()->Grouping => Groupings[Math.min(.widthCombo.selectedIndex, 3), Math.min(.formatCombo.selectedIndex, 3)]
 
     mtd applyValueMode()
     {
@@ -304,6 +301,8 @@ impl Panel
         .applyValueMode()
     }
 
+    // Rebuilds the localized combo items and tooltips in the current language, keeping every
+    // selection, then republishes the details.
     mtd retranslate()
     {
         let rowWidth = .rowWidthCombo.selectedIndex
@@ -353,6 +352,8 @@ impl Panel
 
     private mtd refreshZoom() => .zoomLabel?.setText(Viewer.zoomText(.zoomPercent()))
 
+    // Lets the user pick a zoom and applies it as the grid's font size relative to the theme's
+    // fixed font size; 100% restores the default.
     private mtd showZoomMenu()
     {
         if not .zoomLabel do
@@ -382,6 +383,7 @@ impl Panel
         return result
     }
 
+    // Returns the short tag of the current value grouping, such as `x16` or `s32`.
     private mtd activeValueTag()->string
     {
         switch #complete .grid.grouping
@@ -466,6 +468,8 @@ impl Panel
         result.useTextOptions = false
     }
 
+    // Parses `query` in the current grouping and byte order and keeps the pattern for the search,
+    // reporting a visible error for an invalid value or pattern.
     mtd prepareSearch(query: string, result: *Viewer.SearchPlan)->EditBoxCheckResult
     {
         var parsed = parseSearch(query, .grid.grouping, .grid.bigEndian)
@@ -502,6 +506,8 @@ impl Panel
 
 impl Panel
 {
+    // Builds the hex panel: command bar, analysis panel, information group and byte grid. Loads the
+    // file in the background.
     func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()

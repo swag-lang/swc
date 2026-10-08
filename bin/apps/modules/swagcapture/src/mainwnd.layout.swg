@@ -1,5 +1,6 @@
 impl MainWnd
 {
+    // Builds the menu bar in the caption: the File, Capture, Edit, Image, View, and Help menus.
     mtd createTopMenu()
     {
         Swag.assert(me.parent != null)

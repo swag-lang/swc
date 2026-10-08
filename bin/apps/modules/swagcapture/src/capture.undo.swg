@@ -30,7 +30,7 @@ impl Capture
             .editView?.invalidate()
     }
 
-    // Pushes a command onto the undo timeline. A non-zero 'serial' groups this command with the
+    // Pushes a command onto the undo timeline. A non-zero `serial` groups this command with the
     // others sharing that value into one undo/redo step (0 = its own fresh group); get a shared
     // id from .undoMgr.newSerial().
     mtd pushUndo(u: *Undo, serial: u64 = 0)

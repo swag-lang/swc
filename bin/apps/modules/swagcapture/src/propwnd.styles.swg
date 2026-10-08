@@ -1,5 +1,7 @@
 impl PropWnd
 {
+    // Adds the style cell for the outline color of the selection, named for what that color paints
+    // on the selected kind of form.
     mtd propBorderColor(stack: *Wnd)
     {
         let curSel = .getSelectedBaseForm()
@@ -72,6 +74,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the outline drawn around a line, an arrow, or a drawing.
     mtd propStrokeOutlineColor(stack: *Wnd)
     {
         let curSel   = .getSelectedBaseForm()
@@ -106,6 +109,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the fill color of the selection, when its kind of form has a fill.
     mtd propBackColor(stack: *Wnd)
     {
         let curSel = .getSelectedBaseForm()
@@ -168,6 +172,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the kind of a shape form.
     mtd propShape(stack: *Wnd)
     {
         let curSelType = .getSelectedFormType()
@@ -193,6 +198,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the shape of a step marker.
     mtd propStep(stack: *Wnd)
     {
         let curSelType = .getSelectedFormType()
@@ -215,6 +221,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the cap at the start of a line or an arrow.
     mtd propStartCapStyle(stack: *Wnd)
     {
         let curSelType = .getSelectedFormType()
@@ -238,6 +245,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the cap at the end of a line or an arrow.
     mtd propEndCapStyle(stack: *Wnd)
     {
         let curSelType = .getSelectedFormType()
@@ -260,6 +268,7 @@ impl PropWnd
         }
     }
 
+    // Adds the style cell for the dash pattern of an outline.
     mtd propDashStyle(stack: *Wnd)
     {
         let curSelType = .getSelectedFormType()
@@ -315,6 +324,8 @@ impl PropWnd
         }
     }
 
+    // Asks for the text of the selected forms, starting from `curText`, and sets it as one undo
+    // step. Returns the text the forms end up with.
     func editText(main: *MainWnd, curText: String)->String
     {
         var editOptions: EditDlgOptions
@@ -417,7 +428,7 @@ impl PropWnd
             }
         }
 
-        // 'name' must be a view of storage that outlives the grid (a literal): the
+        // `name` must be a view of storage that outlives the grid (a literal): the
         // TypeValue below keeps the view, and a by-value String parameter would hand
         // it a dangling pointer into this frame's small-string storage.
         func addRow(prop: *PropWnd, name: string)->*Wnd

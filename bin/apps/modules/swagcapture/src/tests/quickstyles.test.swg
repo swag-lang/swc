@@ -40,7 +40,7 @@ using Swag, Core
 // A line of text is placed by the outline it actually paints, and a form with no outline has an
 // empty border path. Measured on that path alone it answered a zero extent, so the glyph started
 // at the middle of the cell instead of being centered in it, and the plain text presets showed an
-// 'A' hanging out of the bottom right corner of their cell.
+// `A` hanging out of the bottom right corner of their cell.
 #test
 {
     func newTextStyle(border: Color)->IForm

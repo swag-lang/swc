@@ -278,6 +278,8 @@ impl IWnd for QuickWnd
 
 impl QuickWnd
 {
+    // Drops the unknown entries of every quick style set, refills the empty ones with their
+    // defaults, and makes the first entry of each set the model of its tool.
     mtd setDefault()
     {
         .qsArrow.sanitize()
@@ -330,6 +332,7 @@ impl QuickWnd
         .updateSelection()
     }
 
+    // Shows the quick style menu at `pos`: remove the style `btn` holds, or reset the set.
     mtd btnPopup(btn: *Button?, pos: Math.Point)
     {
         with let menu = MenuCtrl.createPopup(me)
@@ -349,6 +352,7 @@ impl QuickWnd
         }
     }
 
+    // Builds the quick style panel: a scrolling wrap of preset buttons.
     func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
@@ -369,6 +373,7 @@ impl QuickWnd
         return quick
     }
 
+    // Fills the arrow quick styles with the shipped set.
     mtd defaultQuickStyleArrow()
     {
         mtd add(startSize, borderSize, endSize: f32, color: Color, startCap = LineCapStyle.ArrowAnchor, dash = DashStyle.None)
@@ -408,6 +413,7 @@ impl QuickWnd
         .add(ArrowSize * 0.5, BorderSize, ArrowSize, ColorYellow, .RoundAnchor, .Dot)
     }
 
+    // Fills the line quick styles with the shipped set.
     mtd defaultQuickStyleLine()
     {
         mtd add(borderSize: f32, color: Color)
@@ -432,6 +438,7 @@ impl QuickWnd
         .add(BorderSize, Argb.Black)
     }
 
+    // Fills the shape quick styles with the shipped set.
     mtd defaultQuickStyleShape()
     {
         mtd add(borderSize: f32, kind: FormShapeKind, color: Color, backColor: Color)
@@ -471,6 +478,7 @@ impl QuickWnd
         .add(0, .Rectangle, Argb.Zero, Argb.Black)
     }
 
+    // Fills the image quick styles with the shipped set.
     mtd defaultQuickStyleImage()
     {
         mtd add(borderSize: f32, kind: FormImageKind, color: Color)
@@ -495,6 +503,7 @@ impl QuickWnd
         .add(0, .Capture, Argb.Zero)
     }
 
+    // Fills the step marker quick styles with the shipped set.
     mtd defaultQuickStyleStep()
     {
         mtd add(kind: FormShapeKind, color: Color, backColor: Color)
@@ -520,6 +529,7 @@ impl QuickWnd
         .add(.RoundRectangle, Argb.White, ColorYellow)
     }
 
+    // Fills the polygon quick styles with the shipped set, straight and curved.
     mtd defaultQuickStylePolygon()
     {
         mtd add(borderSize: f32, color: Color, bezier = false)
@@ -551,6 +561,7 @@ impl QuickWnd
         .add(BorderSize, Argb.Black)
     }
 
+    // Fills the callout quick styles with the shipped set.
     mtd defaultQuickStyleCallout()
     {
         mtd add(bdColor, bkColor, txColor: Color)
@@ -577,6 +588,7 @@ impl QuickWnd
         .add(Argb.Black, Argb.White, Argb.Black)
     }
 
+    // Fills the text quick styles with the shipped set.
     mtd defaultQuickStyleText()
     {
         mtd add(borderSize, fontSize: f32, bdColor, bkColor: Color)
@@ -612,6 +624,7 @@ impl QuickWnd
         .add(4, 72, Argb.Zero, Argb.Black)
     }
 
+    // Fills the freehand drawing quick styles with the shipped set.
     mtd defaultQuickStyleDraw()
     {
         mtd add(borderSize: f32, color: Color)
@@ -637,6 +650,8 @@ impl QuickWnd
         .add(BorderSize, Argb.Black)
     }
 
+    // Fills the highlighter quick styles with the shipped set: strokes, rectangles, ellipses, and
+    // polygons, all translucent.
     mtd defaultQuickStyleHighlight()
     {
         mtd addDraw(borderSize: f32, color: Color)
@@ -699,6 +714,7 @@ impl QuickWnd
         .addPoly(ColorYellow)
     }
 
+    // Fills the pixel selection quick styles with the shipped set.
     mtd defaultQuickStylePixSel()
     {
         mtd addDraw()
@@ -744,6 +760,7 @@ impl QuickWnd
         }
     }
 
+    // Checks the quick style button that matches the model of the active tool.
     mtd updateSelection()
     {
         if not .currentStyle do
@@ -752,7 +769,7 @@ impl QuickWnd
         let mode = .main.getEditMode()
 
         // Form buttons are always the leading children (only the trailing model
-        // button is ever hidden), so form 'i' maps directly to child 'i'.
+        // button is ever hidden), so form `i` maps directly to child `i`.
         for it, i in .currentStyle.forms
         {
             let button = assume cast(*IconButton, .layout.children[i])
@@ -781,6 +798,7 @@ impl QuickWnd
         .invalidate()
     }
 
+    // Puts back the shipped quick styles of the active tool, after the reader confirms it.
     mtd resetQuickStyles()
     {
         if not .currentStyle do
@@ -951,6 +969,8 @@ impl QuickWnd
         }
     }
 
+    // Shows the quick styles of the active tool, rebuilding the buttons when the set changed or
+    // `forceRebuild` asks for it.
     mtd updateQuickStyles(forceRebuild = false)
     {
         let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode

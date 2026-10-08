@@ -140,7 +140,7 @@ func compilerWorkerCount()->u32
 // Explicit launch options let development runs select the compiler and share a worker budget.
 private func compilerArgument(prefix: string)->string
 {
-    for argument in Env.arguments() where Utf8.startsWith(cast(const [..] u8, argument), prefix) do
+    for argument in Env.arguments() where Utf8.startsWith(argument, prefix) do
         return argument[prefix.count to]
     return ""
 }
@@ -211,7 +211,7 @@ func writeIfChanged(path: string, content: string) fail
     let existing = catch File.readAllText(path) as readError
     if readError == null and existing == content do
         return
-    discard try File.writeAllBytes(path, cast(const [..] u8, content))
+    discard try File.writeAllBytes(path, content)
 }
 
 // Starts `fileName` without a console window, with both outputs piped back to Prism. Pair it

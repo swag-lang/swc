@@ -222,6 +222,8 @@ private impl Panel
         discard .goToTypedPage(typed)
     }
 
+    // Offers the zoom presets, fit to page or width, and the continuous or single-page layout, with
+    // the current fit and layout checked.
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
@@ -288,9 +290,9 @@ private impl Panel
             .dockStyle       = .Left
             .preferredSize.x = PageWidth
             .margin.x        = 8
+            .toolTip         = texts().ui_GoToPage
             .setForm(.Rectangle)
             .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
-            .toolTip    = texts().ui_GoToPage
             .sigPressed += func|view = me|(?) { view.promptGoToPage() }
         }
 

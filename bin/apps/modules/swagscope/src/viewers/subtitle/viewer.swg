@@ -101,6 +101,8 @@ private impl Panel
         .durationButton.toolTip = texts().ui_GoToTime
     }
 
+    // Builds the transcript, each cue as its time range followed by its content, and records where
+    // each cue's content sits so it can be revealed.
     mtd buildTranscript()
     {
         for index in .track!.cueCount()
@@ -159,6 +161,7 @@ private impl Panel
             discard .revealCue(cue - 1)
     }
 
+    // Asks for a time and reveals the first cue that has not ended by then, or the last cue.
     mtd promptGoToTime()
     {
         if .cueText.isEmpty() do
@@ -179,6 +182,8 @@ private impl Panel
         discard .revealCue(.cueText.count - 1)
     }
 
+    // Builds the subtitle panel: a read-only transcript of the cues, with duration and cue count
+    // buttons that prompt for a time or a cue to reach. Fails when the track cannot be loaded.
     func create(host: Viewer.Host)->*Panel fail
     {
         with let result = Wnd.create'Panel(host.contentParent(), "scope.subtitle")
@@ -194,18 +199,18 @@ private impl Panel
         {
             .dockStyle = .Right
             .margin.x  = 8
+            .toolTip   = texts().ui_GoToTime
             .setText(Viewer.durationText(result.duration))
             .setForm(.Rectangle)
-            .toolTip    = texts().ui_GoToTime
             .sigPressed += func|view = result|(?) { view.promptGoToTime() }
         }
 
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
         {
             .dockStyle = .Right
+            .toolTip   = texts().ui_GoToCue
             .setText(cueCountText(result.track!.cueCount()))
             .setForm(.Rectangle)
-            .toolTip    = texts().ui_GoToCue
             .sigPressed += func|view = result|(?) { view.promptGoToCue() }
         }
 

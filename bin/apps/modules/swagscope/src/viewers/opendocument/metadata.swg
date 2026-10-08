@@ -62,6 +62,8 @@ struct MetadataReader
 
 private impl MetadataReader
 {
+    // Starts capturing the text of a title, subject or creator element, counting nested elements so
+    // the capture ends with the element that began it.
     mtd startTag(tag: const *Tag)
     {
         if .field != .None
@@ -90,6 +92,8 @@ private impl MetadataReader
         .text += text[0 until count]
     }
 
+    // Ends the capture at the element that began it, keeping the first title, subject and creator
+    // found.
     mtd endTag(?: const *Tag)
     {
         if .field == .None do

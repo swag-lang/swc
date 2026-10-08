@@ -105,6 +105,30 @@ impl Capture
     // retained texture, a zoom in flight draws it scaled (and [MaxFormCacheRefresh]
     // forms per repaint re-render sharp until none is stale), and only a content
     // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
+    // Turns the painter by `degrees` about the center of `around`, and
+    // moves `rect` into the turned frame, where the center is the origin.
+    func turnAbout(painter: *Painter, around: Math.Rectangle, rect: *Math.Rectangle, degrees: f32)
+    {
+        painter.translateTransform(around.horzCenter(), around.vertCenter())
+        rect.offset(-around.horzCenter(), -around.vertCenter())
+        painter.rotateTransformInPlace(Math.map(degrees, -180, 180, -Math.ConstF32.Pi, Math.ConstF32.Pi))
+    }
+
+    // Puts back the painter state a form layer leaves changed.
+    func restorePaintState(painter: *Painter)
+    {
+        with painter
+        {
+            .setColorMaskColor()
+            .setBlendingMode(.Alpha)
+            .setInterpolationMode(.Linear)
+            .setAntialiased(true)
+        }
+    }
+
+    // Paints `f` from its cached layer, rendering the layer first when the form
+    // or the zoom changed. Returns false when the form cannot use the cache, so
+    // the caller paints it directly.
     mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
         let base = assume cast(*BaseForm, f)
@@ -116,11 +140,7 @@ impl Capture
         boundRect.height = Math.max(boundRect.height, 1)
         boundRect.inflate(BaseForm.paintOverdraw(f, false))
 
-        var pos: Math.Rectangle
-        pos.x      = rect.x + (boundRect.x * zoom)
-        pos.y      = rect.y + (boundRect.y * zoom)
-        pos.width  = boundRect.width * zoom
-        pos.height = boundRect.height * zoom
+        var pos = Math.Rectangle{rect.x + boundRect.x * zoom, rect.y + boundRect.y * zoom, boundRect.width * zoom, boundRect.height * zoom}
 
         let noClipPos = pos
         pos.width  += pos.x - Math.round(pos.x)
@@ -138,24 +158,26 @@ impl Capture
         // large capture at a readable zoom. Lower the sampling until the layer fits instead, and
         // give the form up only when one sample per pixel still does not: a slightly softer glyph
         // is a better answer than repainting the whole form for every mouse move.
-        let scale = painter.contentScale()
-        var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
-        while textSuperSample > 1 and (wt2 > cast(s32, (MaxFormCacheDim / (scale * textSuperSample))) or ht2 > cast(s32, (MaxFormCacheDim / (scale * textSuperSample)))) do
-            textSuperSample -= 1
-
-        let maxDim = cast(s32, (MaxFormCacheDim / (scale * textSuperSample)))
-        if wt2 > maxDim or ht2 > maxDim do
-            return false
-
-        var found = .findFormCache(f)
-        if not found
+        func layerFits(width, height: s32, scale: f32, samples: s32)->bool
         {
-            let created = .formCaches.addNew()
-            created.form = f
-            found        = created
+            let limit = cast(s32, MaxFormCacheDim / (scale * samples))
+            return width <= limit and height <= limit
         }
 
-        let entry = found
+        let scale = painter.contentScale()
+        var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
+        while textSuperSample > 1 and not layerFits(wt2, ht2, scale, textSuperSample) do
+            textSuperSample -= 1
+        if not layerFits(wt2, ht2, scale, textSuperSample) do
+            return false
+
+        var entry = .findFormCache(f)
+        if not entry
+        {
+            entry      = .formCaches.addNew()
+            entry.form = f
+        }
+
         let fresh = not entry.dirty and
                     entry.scale == scale and
                     entry.samples == textSuperSample and
@@ -206,14 +228,8 @@ impl Capture
         var paintRect = pos
 
         painter.pushTransform()
-        if base.subKind != .Highlight and base.subKind != .PixSel and not Math.isZeroEpsilon(base.rotate)
-        {
-            painter.translateTransform(noClipPos.horzCenter(), noClipPos.vertCenter())
-            paintRect.offset(-noClipPos.horzCenter(), -noClipPos.vertCenter())
-
-            let angle = Math.map(base.rotate, -180, 180, -Math.ConstF32.Pi, Math.ConstF32.Pi)
-            painter.rotateTransformInPlace(angle)
-        }
+        if base.isRotated() do
+            turnAbout(painter, noClipPos, &paintRect, base.rotate)
 
         with var drawInfo: LayerDrawInfo
         {
@@ -229,19 +245,15 @@ impl Capture
 
         entry.layer.draw(drawInfo)
         painter.popTransform()
-
-        with painter
-        {
-            .setColorMaskColor()
-            .setBlendingMode(.Alpha)
-            .setInterpolationMode(.Linear)
-            .setAntialiased(true)
-        }
+        restorePaintState(painter)
 
         base.paintPos = pos
         return true
     }
 
+    // Paints `f` directly through a temporary layer, clipped to `clip`. `quickMode`, for previews,
+    // skips text supersampling and rotation and narrows the shadow; `snapMode`, for an export,
+    // leaves untouched the screen position the editor recorded for the form.
     func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false)
     {
         var boundRect = f.boundRect()
@@ -322,14 +334,8 @@ impl Capture
         // Rotation
         painter.pushTransform()
 
-        if base.subKind != .Highlight and base.subKind != .PixSel and not quickMode and not Math.isZeroEpsilon(base.rotate)
-        {
-            painter.translateTransform(saveNoClipPos.horzCenter(), saveNoClipPos.vertCenter())
-            paintRect.offset(-saveNoClipPos.horzCenter(), -saveNoClipPos.vertCenter())
-
-            let angle = Math.map(base.rotate, -180, 180, -Math.ConstF32.Pi, Math.ConstF32.Pi)
-            painter.rotateTransformInPlace(angle)
-        }
+        if not quickMode and base.isRotated() do
+            turnAbout(painter, saveNoClipPos, &paintRect, base.rotate)
 
         defer painter.popTransform()
 
@@ -345,19 +351,14 @@ impl Capture
         }
 
         layer.draw(drawInfo)
-
-        with painter
-        {
-            .setColorMaskColor()
-            .setBlendingMode(.Alpha)
-            .setInterpolationMode(.Linear)
-            .setAntialiased(true)
-        }
+        restorePaintState(painter)
 
         if snapMode do
             base.paintPos = savePaintPos
     }
 
+    // Paints the background image at `x, y` and zoom `z`, uploading it again first when it changed
+    // since the last frame.
     mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
         let editView = .editView!
@@ -402,7 +403,7 @@ impl Capture
         }
     }
 
-    // Invalidates only the region a just-moved/resized form occupied before ('oldRect',
+    // Invalidates only the region a just-moved/resized form occupied before (`oldRect`,
     // in capture coordinates) and now occupies, so a single-form drag re-renders just
     // that form rather than every form.
     mtd invalidateAfterMove(iform: IForm, oldRect: Math.Rectangle)
@@ -412,7 +413,7 @@ impl Capture
 
     // Region form of the above, shared with the body drag and the create drag, which
     // move a whole selection rather than one form: repaint the union of where the
-    // content stood ('oldRect') and where it stands now ('newRect'), both in capture
+    // content stood (`oldRect`) and where it stands now (`newRect`), both in capture
     // coordinates. Falls back to a full repaint while snap guides are (or just were)
     // visible, since those lines span the whole capture.
     mtd invalidateMovedRegion(oldRect, newRect: Math.Rectangle)
@@ -476,6 +477,8 @@ impl Capture
         }
     }
 
+    // Paints the whole capture into `rect`: the transparency checkerboard, the background image,
+    // then every form that meets `clip`, from its cache when it can.
     mtd paint(painter: *Painter, clip, rect: Math.Rectangle)
     {
         painter.fillRect(rect, Argb.LightGray)
@@ -509,11 +512,10 @@ impl Capture
         // Shapes
         for f in .forms
         {
-            // Cull against the form's actual painted extent. 'paintForm' inflates the
-            // bound by its rendered geometry (arrow caps and thick strokes can reach
-            // beyond the tight 'boundRect') and draws it offset by 'rect'.
-            // Testing the raw, un-offset bound wrongly hid forms whose tight bound fell
-            // just outside the clip (e.g. a thin arrow).
+            // Cull against the form's actual painted extent. `paintForm` inflates the bound by its
+            // rendered geometry (arrow caps and thick strokes can reach beyond the tight
+            // `boundRect`) and draws it offset by `rect`. Testing the raw, un-offset bound wrongly
+            // hid forms whose tight bound fell just outside the clip, such as a thin arrow.
             var cull = f.boundRect()
             cull.width  = Math.max(cull.width, 1)
             cull.height = Math.max(cull.height, 1)

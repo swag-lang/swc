@@ -127,6 +127,8 @@ impl DocumentOutline
         .list.clear()
     }
 
+    // Appends a heading with its whitespace collapsed, indented one level per enclosing heading of
+    // a lower `level`. `target` is stored plus one so that target zero is not a null user pointer.
     mtd add(title: string, level: u32, target: u64)
     {
         while .levels.count and .levels.back() >= level do
@@ -159,6 +161,8 @@ impl DocumentOutline
         .levels.add(level)
     }
 
+    // Shows `headings`, rebuilding the rows only when a title, level or offset differs from what is
+    // listed, so republishing the same outline does not reset the list.
     mtd publish(headings: const [..] DocumentHeading)
     {
         var changed = .headings.count != headings.count

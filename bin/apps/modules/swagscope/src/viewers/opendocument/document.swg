@@ -128,6 +128,9 @@ func loadImages(fileName: string, archive: const *Archive.Zip)->Array'EmbeddedIm
     return result
 }
 
+// Loads an OpenDocument file, flat XML or zipped package, into the content the viewer presents.
+// Fails when the package lacks `mimetype` or `content.xml`, or the content is too large or not
+// UTF-8; styles and metadata are optional.
 func loadContent(fileName: string)->Content fail
 {
     switch Path.lowercaseExtension(fileName).toString()

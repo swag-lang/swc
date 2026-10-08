@@ -17,6 +17,9 @@ impl ViewerFileWatch
 {
     func sameFile(a, b: File.FileInfo)->bool => a.size == b.size and a.lastWriteTime == b.lastWriteTime and a.creationTime == b.creationTime
 
+    // Reports whether `fileName` has changed on disk; each call either starts an asynchronous
+    // `File.info` or collects its result. A change counts only once two consecutive results agree
+    // on it, so a file still being written is not reloaded halfway.
     mtd poll(fileName: string)->bool
     {
         if not .load.started

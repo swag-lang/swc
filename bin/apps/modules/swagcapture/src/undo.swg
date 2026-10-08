@@ -126,8 +126,8 @@ struct Undo
     text:      String
     fontStyle: FontFamilyStyle
 
-    // Group/Ungroup: 'groupId' is the fresh id a Group prepends to each member;
-    // 'oldGroups' is the per-selection front id an Ungroup pops (0 = was ungrouped),
+    // Group/Ungroup: `groupId` is the fresh id a Group prepends to each member;
+    // `oldGroups` is the per-selection front id an Ungroup pops (0 = was ungrouped),
     // saved so undo can prepend it back.
     groupId:   u64
     oldGroups: Array'u64
@@ -209,6 +209,7 @@ impl Undo
         return mdlType == type or (mdlType == FormLine and type == FormArrow)
     }
 
+    // Saves what the command will change, before it runs for the first time.
     mtd init()
     {
         let capture = .capture!
@@ -363,6 +364,7 @@ impl Undo
         }
     }
 
+    // Applies the command to its capture; redo runs it again.
     mtd doIt()
     {
         mtd removeSelection()
@@ -637,6 +639,7 @@ impl Undo
         capture.hasChanged()
     }
 
+    // Puts back what `doIt` changed.
     mtd undoIt()
     {
         let capture = .capture!

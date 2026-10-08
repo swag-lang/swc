@@ -1,7 +1,6 @@
 #global using Core, Pixel, Gui
 
 const AppIcon = #include("../datas/appicon.png")
-const ViewerSmokeArgument = "--review-viewers="
 
 var g_App: Application
 
@@ -20,13 +19,16 @@ func viewerStartupFile(arguments: const [..] string)->String
     return {}
 }
 
+// Runs the viewer review over the fixture directory it names: `--review-viewers=<directory>`.
+const ViewerSmokeArgument = "--review-viewers="
+
 // Returns the fixture directory named by the smoke-review argument, or an empty string.
 func viewerSmokeDirectory(arguments: const [..] string)->String
 {
     if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 to] where Utf8.startsWith(cast(const [..] u8, argument), ViewerSmokeArgument) do
+    for argument in arguments[1 to] where Utf8.startsWith(argument, ViewerSmokeArgument) do
         return argument[ViewerSmokeArgument.count to]
     return {}
 }

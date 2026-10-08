@@ -148,6 +148,8 @@ private func readU32(bytes: const [..] u8, offset: u64)->u32
     return Math.make32(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
 }
 
+// Reads a MIDI variable-length quantity at `at`. The result is invalid when it runs past `end` or
+// past four bytes.
 private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
 {
     var result: retval
@@ -169,6 +171,8 @@ private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
     return result
 }
 
+// Reads a meta-event text for display: control bytes become dots, and so do bytes above 127 when
+// the text is not valid UTF-8.
 private func readText(bytes: const [..] u8, at, length: u64)->String
 {
     if not length do
@@ -198,6 +202,9 @@ private func closeNote(document: *Document, active: *u64, tick: u64)
     active[]     = 0
 }
 
+// Parses the events of one track chunk, adding its notes, tempos, and time and key signatures to
+// `document`. Fails on any malformed event; notes still sounding at the end of the track are closed
+// there.
 private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u32, at, end: u64) fail
 {
     var track:   Track
@@ -328,6 +335,8 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
     document.tracks.add(#move track)
 }
 
+// Converts `durationTicks` into seconds, from the SMPTE frame rate or by walking the tempo map from
+// the default of 120 beats per minute.
 private func computeDuration(document: *Document)
 {
     if not document.durationTicks do

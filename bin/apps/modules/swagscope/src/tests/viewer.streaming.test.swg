@@ -12,7 +12,7 @@ using Core, Pixel, Gui, Viewers
     var source: String
     for index in 12_000 do
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
+    discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
@@ -62,7 +62,7 @@ using Core, Pixel, Gui, Viewers
     var source: String
     for index in 12_000 do
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
+    discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()

@@ -77,6 +77,11 @@ private
 
     // Names the absence of a queue slot.
     const NoSlot = Swag.U32.Max
+
+    // What the opening worker publishes in `openState`: still running, opened, or failed.
+    const OpenRunning   = 0'u32
+    const OpenSucceeded = 1'u32
+    const OpenFailed    = 2'u32
 }
 
 // Returns the decoded-picture count that fits the run-ahead budget.
@@ -158,7 +163,7 @@ struct Panel
     seekOverlay: *SeekOverlay?
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
-    // thread affinity. `openState` is zero while opening, one on success and two on failure.
+    // thread affinity. `openState` holds one of the `Open` states.
     openFileName:         String
     pendingVideo:         Reader
     openFailure:          String
@@ -238,7 +243,7 @@ struct Panel
     autoPlayPending:  bool = true
     muted:            bool
     playbackRate:     f64  = 1
-    volume = 1'f32
+    volume:           f32  = 1
     details:          String
     metadataReady:    bool
     audioReady:       bool
@@ -423,6 +428,9 @@ impl Panel
         .clock.restart()
     }
 
+    // Starts the sound at the current position and takes the clock from it. Waits instead while the
+    // decoded audio does not cover that position, and reports a failure when the device cannot seek
+    // or play.
     mtd resumeAudio()
     {
         if not .voice or not .audio
@@ -477,6 +485,8 @@ impl Panel
         .refreshTime()
     }
 
+    // Updates the time label and the timeline thumb. The thumb moves only by whole pixels and never
+    // while the user drags it.
     mtd refreshTime()
     {
         let duration = cast(f64, .video.durationInSeconds())
@@ -683,9 +693,9 @@ private impl Panel
             return
 
         let state = Atomic.get(&.openState)
-        if not state do
+        if state == OpenRunning do
             return
-        if state == 2
+        if state == OpenFailed
         {
             // Failure exits the worker. Join only after termination, so reporting the error can
             // retire the view without ever turning this poll into a wait.
@@ -904,6 +914,9 @@ private impl Panel
         }
     }
 
+    // Builds the video panel: commands, media information, transport bar, picture view and subtitle
+    // overlay, then starts the decode thread and the playback timer. Fails when the decode thread
+    // cannot start.
     func create(host: Viewer.Host)->*Panel fail
     {
         let services = host.services()
@@ -950,7 +963,7 @@ private func runViewerDecode(thread: Threading.Thread)
     if openError != null
     {
         view.openFailure = Errors.message(openError)
-        Atomic.exchange(&view.openState, 2)
+        Atomic.exchange(&view.openState, OpenFailed)
         return
     }
 
@@ -961,7 +974,7 @@ private func runViewerDecode(thread: Threading.Thread)
     }
 
     view.pendingVideo = #move video
-    Atomic.exchange(&view.openState, 1)
+    Atomic.exchange(&view.openState, OpenSucceeded)
     while not thread.requestEnd
     {
         view.decodeWake.wait()

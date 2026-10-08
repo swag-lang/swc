@@ -132,6 +132,17 @@ using Swag, Core
     Swag.assert(f.capture.height == 20)
 }
 
+// An expansion grows away from a near anchor, evenly around a centered one, and toward a far one.
+#test
+{
+    let near   = anchorSplit(10, 0)
+    let center = anchorSplit(10, 1)
+    let far    = anchorSplit(10, 2)
+    Swag.assert(near.before == 0 and near.after == 10)
+    Swag.assert(center.before == 5 and center.after == 5)
+    Swag.assert(far.before == 10 and far.after == 0)
+}
+
 // Expand Image uses the same modal resize dialog but only grows the backing
 // bitmap; the capture canvas dimensions stay unchanged.
 #test

@@ -136,6 +136,9 @@ impl IWnd for LibraryWnd
 
 impl LibraryWnd
 {
+    // Whether a filter on what a capture holds is active: favorites, rating, application, or tag.
+    mtd const filtersMetadata()->bool => .favoritesOnly or .minimumRating or not .applicationFilter.isEmpty() or not .tagFilter.isEmpty()
+
     mtd applyLanguage()
     {
         if .viewBtn == null do
@@ -188,6 +191,8 @@ impl LibraryWnd
 
     mtd const hasSelected()->bool => not .view.selModel.isEmpty()
 
+    // Fills the library from the index, once per index revision, and hooks the delete notification
+    // the first time.
     mtd fill()
     {
         if not g_Library.loaded do
@@ -236,6 +241,7 @@ impl LibraryWnd
         .filledRevision = g_Library.revision
     }
 
+    // Registers the command families of the library and its keyboard navigation.
     mtd registerActions()
     {
         .registerAction'ActionLibSort()
@@ -263,6 +269,8 @@ impl LibraryWnd
         .invalidate()
     }
 
+    // Builds the library window: the sidebar and the item grid under the breadcrumb and the search
+    // bar.
     func create(parent: *MainWnd)->*LibraryWnd
     {
         let metrics = parent.themeMetrics()

@@ -362,6 +362,8 @@ private impl Panel
         .list.header.invalidate()
     }
 
+    // Creates the columns, each sized from its name and the first 128 rows, then shows the rows
+    // virtually.
     mtd publishDocument()
     {
         .refreshColumnNames()
@@ -395,6 +397,8 @@ private impl Panel
         return .load.retire()
     }
 
+    // Fills list line `index` with previews of the row's cells. The cell holding the current search
+    // hit is highlighted, with the match in bold and the preview window moved to show it.
     mtd fillLine(line: *ListLine, index: u32)
     {
         if index >= .document.rows.count do
@@ -432,6 +436,8 @@ private impl Panel
         }
     }
 
+    // Builds the panel both table entry points share: a virtual multi-column list whose lines are
+    // filled on demand from the document.
     func createBase(parent: *Wnd)->*Panel
     {
         registerTexts(parent.app())

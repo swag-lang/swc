@@ -3,7 +3,7 @@
 
 using Core
 
-func accessTestPassword()->const [..] u8 => cast(const [..] u8, "panel password")
+func accessTestPassword()->const [..] u8 => "panel password"
 func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("vault_access_%_%.bin", tag, Guid64.random()))
 
 // Password-only access uses the password bytes directly.

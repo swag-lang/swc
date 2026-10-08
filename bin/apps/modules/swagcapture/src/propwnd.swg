@@ -29,7 +29,7 @@ const PopupFrameInset   = 5.0       // Room the frame itself takes around its vi
 // list the day a style was added to an enum, and the last entry fell outside the frame.
 func popupExtent(count, size: f32)->f32 => count * size + Math.max(count - 1, 0) * PopupSpacing + 2 * PopupPadding + 2 * PopupFrameInset
 
-// The enum popup buttons stash the value they represent in the untyped 'userData'
+// The enum popup buttons stash the value they represent in the untyped `userData`
 // slot of the widget; these two helpers keep the double cast in one place.
 func(T) enumToUserData(value: T)->*void   => cast(*void, cast(u64, value))
 func(T) enumFromUserData(data: *void?)->T => cast(T, cast(u64, data))
@@ -103,7 +103,7 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 }
 
 // The tool properties panel. The exotic editors (color swatches, shape/cap/dash popup
-// buttons...) are hand-built rows in 'topLayout'; every plain field (sliders, checkboxes,
+// buttons...) are hand-built rows in `topLayout`; every plain field (sliders, checkboxes,
 // combos) is generated below them by a Properties grid from the attributes carried by the
 // form fields (see BaseForm), with the edits recorded into the capture's own undo
 // timeline. The compact x/y and w/h rows are hand-appended at the end of the grid.
@@ -173,6 +173,9 @@ impl PropWnd
         return capture.getSelectedFormType()!
     }
 
+    // Sets field `name` to `val`: on the model of the active tool when nothing is selected,
+    // otherwise on the selected forms as one undo step that replaces the previous step of the same
+    // edit unless `first`. `common` applies the value to every selected kind of form.
     mtd pushTypedValue(val: u32, type: typeinfo, name: string, first: bool, common = false)
     {
         let capture = .main.getCapture()
@@ -304,20 +307,19 @@ impl PropWnd
         var width = 0'f32
         for item in .grid.items where item!.line.isVisible()
         {
-            let it = item
             var label: *Label?
-            if it.sliderBox != null
+            if item.sliderBox != null
             {
-                label = it.sliderBox.label
+                label = item.sliderBox.label
             }
-            elif it.comboBox != null
+            elif item.comboBox != null
             {
-                if it.comboBox.parent is ComboCtrl as ctrl do
+                if item.comboBox.parent is ComboCtrl as ctrl do
                     label = ctrl.label
             }
-            elif it.editBox != null
+            elif item.editBox != null
             {
-                if it.editBox.parent is EditCtrl as ctrl do
+                if item.editBox.parent is EditCtrl as ctrl do
                     label = ctrl.label
             }
 
@@ -328,25 +330,26 @@ impl PropWnd
         width = Math.ceil(width)
         for item in .grid.items where item!.line.isVisible()
         {
-            let it = item
-            if it.sliderBox != null
+            if item.sliderBox != null
             {
-                let ctrl = it.sliderBox
+                let ctrl = item.sliderBox
                 ctrl.setLayoutMetrics(width, ctrl.valueWidth, ctrl.spacing)
             }
-            elif it.comboBox != null
+            elif item.comboBox != null
             {
-                if it.comboBox.parent is ComboCtrl as ctrl do
+                if item.comboBox.parent is ComboCtrl as ctrl do
                     ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
             }
-            elif it.editBox != null
+            elif item.editBox != null
             {
-                if it.editBox.parent is EditCtrl as ctrl do
+                if item.editBox.parent is EditCtrl as ctrl do
                     ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
             }
         }
     }
 
+    // Rebuilds the panel for the current selection, or for the model of the active tool: the style
+    // cells on top, then one row per editable field.
     mtd selectionHasChanged()
     {
         .stylePopup?.cancel()
@@ -392,6 +395,7 @@ impl PropWnd
         capture?.editView?.setFocus()
     }
 
+    // Builds the property panel: the row of style cells above the grid of fields.
     func create(parent: *Wnd, main: *MainWnd)->*PropWnd
     {
         with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})

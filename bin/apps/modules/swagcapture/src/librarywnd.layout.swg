@@ -27,16 +27,15 @@ impl LibraryWnd
     {
         with .listCtrl = ListCtrl.createMultiColumns(me.sideBar)
         {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
             .addColumn("name", SideBarWidth - LibCountWidth - LibRowIndent)
             .addColumn("count", LibCountWidth)
             .listView.style.addStyleSheetColors("listItem_SelectedBk $listItem_FocusSelectedBk")
             .setLineHeight(30)
-            .updateFlags(.PreserveSelectionOnEmptyClick)
+            .updateFlags(.PreserveSelectionOnEmptyClick | .ReserveExpandMargin)
             .scrollWnd.updateFlags(.CompactBars | .AlwaysShowVertical | .TransparentBars)
             .header.hide()
-            .backgroundStyle = .Transparent
-            .updateFlags(.ReserveExpandMargin)
-            .dockStyle = .Center
             .sigSelectionChanged += func|libWnd = me|(list)
             {
                 let sel = list.selectedLine()

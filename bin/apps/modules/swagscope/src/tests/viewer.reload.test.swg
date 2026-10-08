@@ -6,7 +6,7 @@ using Core, Gui, Viewers
 func writeReloadFile(fileName, text: string)
 {
     var file = expect File.openWrite(fileName)
-    discard expect file.write(cast(const [..] u8, text))
+    discard expect file.write(text)
 }
 
 func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)

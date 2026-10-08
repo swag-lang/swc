@@ -22,6 +22,7 @@ impl PropWnd
         return button
     }
 
+    // Opens a color picker under `btn`, set to `color` and offering the capture palette.
     func createColorPicker(btn: *IconButton, color: Color)->*ColorPickerCtrl
     {
         let frame = btn.createAnchorPopup(356, 382)
@@ -43,8 +44,8 @@ impl PropWnd
         return picker
     }
 
-    // Shared by the shape and step buttons: 'type' is the concrete form type and
-    // 'fieldName' its FormShapeKind field, read back through reflection so both
+    // Shared by the shape and step buttons: `type` is the concrete form type and `fieldName` its
+    // FormShapeKind field, read back through reflection so both
     // forms go through the same popup.
     mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: string)
     {
@@ -129,7 +130,7 @@ impl PropWnd
         return popup
     }
 
-    // One popup for both line ends: 'begin' selects the beginCap or endCap field
+    // One popup for both line ends: `begin` selects the beginCap or endCap field
     // and mirrors the sample stroke accordingly.
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {

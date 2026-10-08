@@ -5,9 +5,9 @@ struct EditView
     late main:   *MainWnd
     late scroll: *ScrollWnd
     capture:     *Capture?
-    zoom:        f32 = 1
-    viewMargin:  f32 = 32
-    firstPaint       = true
+    zoom:        f32  = 1
+    viewMargin:  f32  = 32
+    firstPaint:  bool = true
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool
@@ -101,6 +101,8 @@ impl EditView
         Memory.delete(.capture)
     }
 
+    // Returns where the capture is painted in the view at the current zoom: centered, or at the
+    // grabbed area in the in-place editor.
     mtd getCaptureRect()->Math.Rectangle
     {
         var captureRect: retval
@@ -147,6 +149,7 @@ impl EditView
         .applyZoom(z, mouseCenter)
     }
 
+    // Sets the zoom to `z`; with `mouseCenter`, scrolls so the point under the mouse stays put.
     private mtd applyZoom(z: f32, mouseCenter = false)
     {
         var mousePos, mousePos1: Math.Point
@@ -186,6 +189,7 @@ impl EditView
         .setZoom(.zoom - 0.1)
     }
 
+    // Zooms so the whole capture fits in the view, never past 100% unless `canZoom`.
     mtd zoomToFit(canZoom = true)
     {
         if .inPlaceEdit or not .capture do

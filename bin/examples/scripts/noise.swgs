@@ -74,7 +74,7 @@ func createUI(wnd: *Wnd)
         .properties.setEditorWidth(260)
         .properties.setNameColumnWidth(65)
         .properties.addStruct(g_NoiseParams)
-        .properties.sigValueChanged += func|wnd|(list, item)
+        .properties.sigValueChanged += func|wnd|(_, _)
         {
             compute()
             wnd.invalidate()

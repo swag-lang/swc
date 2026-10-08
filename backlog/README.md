@@ -35,7 +35,8 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-10-08 19:09 |
+| [compiler.language.service.md](compiler.language.service.md) | Compiler-backed editor analysis, diagnostics, semantic queries, symbol operations, and code actions | 2026-10-08 19:09 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-08 16:26 |
 | [std.core.md](std.core.md) | `std/core` | 2026-10-08 14:05 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-08 11:33 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-07 20:42 |

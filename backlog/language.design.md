@@ -31,7 +31,7 @@ The following are already available and are not new feature requests:
 
 Related work has one owner: the unsafe boundary remains compiler.safety.006 and the safe-subset
 contract compiler.safety.014 in [compiler.safety.md](compiler.safety.md). Semantic cleanup edits
-belong to compiler.core.048 in [compiler.core.md](compiler.core.md), rather than the formatter.
+belong to compiler.language.service.008 in [compiler.language.service.md](compiler.language.service.md), rather than the formatter.
 Public API consistency remains a module-by-module design requirement under
 [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md): value returns,
 options structs, slices and ownership contracts are available today. A concrete API defect belongs

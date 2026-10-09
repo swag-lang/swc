@@ -314,7 +314,10 @@ private impl Eac3Codec
             var subband = 1'u32
             while subband < block.couplingSubbands
             {
-                block.couplingBandJoin[subband] = explicitBands ? reader.read(1) != 0 : (firstStrategy[] ? isDefaultEac3CouplingJoin(block.couplingBegin + subband) : block.couplingBandJoin[subband])
+                if explicitBands do
+                    block.couplingBandJoin[subband] = reader.read(1) != 0
+                elif firstStrategy[] do
+                    block.couplingBandJoin[subband] = isDefaultEac3CouplingJoin(block.couplingBegin + subband)
                 if block.couplingBandJoin[subband] do
                     block.couplingBands -= 1
                 subband += 1

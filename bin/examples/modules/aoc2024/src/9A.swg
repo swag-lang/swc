@@ -51,8 +51,6 @@ using Core
 
 func day9A()
 {
-    // Time.Stopwatch.scopeMeasure()
-
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "9.txt")
     let line     = expect File.readAllText(dataPath)
 

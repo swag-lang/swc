@@ -297,9 +297,24 @@ func startProcess(info: StartInfo)->Process fail
     let anyRedirection = info.standardInput != .Inherit or
                          info.standardOutput != .Inherit or
                          info.standardError != .Inherit
-    let childInput  = try prepareChildStream(info.standardInput, &result.inputPipe, &ownedInput, STD_INPUT_HANDLE, anyRedirection, childWrites: false)
-    let childOutput = try prepareChildStream(info.standardOutput, &result.outputPipe, &ownedOutput, STD_OUTPUT_HANDLE, anyRedirection, childWrites: true)
-    let childError  = try prepareChildStream(info.standardError, &result.errorPipe, &ownedError, STD_ERROR_HANDLE, anyRedirection, childWrites: true)
+    let childInput = try prepareChildStream(info.standardInput,
+                                            &result.inputPipe,
+                                            &ownedInput,
+                                            STD_INPUT_HANDLE,
+                                            anyRedirection,
+                                            childWrites: false)
+    let childOutput = try prepareChildStream(info.standardOutput,
+                                             &result.outputPipe,
+                                             &ownedOutput,
+                                             STD_OUTPUT_HANDLE,
+                                             anyRedirection,
+                                             childWrites: true)
+    let childError = try prepareChildStream(info.standardError,
+                                            &result.errorPipe,
+                                            &ownedError,
+                                            STD_ERROR_HANDLE,
+                                            anyRedirection,
+                                            childWrites: true)
 
     // The executable is the first token of the command line, quoted so a path holding a space
     // stays one argument. Naming it there rather than through the application-name parameter
@@ -360,7 +375,16 @@ func startProcess(info: StartInfo)->Process fail
 
     let commandLine16 = Utf16.toZeroTerminated(commandLine.toString())
     var information: PROCESS_INFORMATION
-    try CreateProcessW(null, commandLine16.buffer, null, null, anyRedirection ? TRUE : FALSE, creationFlags, environmentPtr, directoryPtr, &startup, &information)
+    try CreateProcessW(null,
+                       commandLine16.buffer,
+                       null,
+                       null,
+                       anyRedirection ? TRUE : FALSE,
+                       creationFlags,
+                       environmentPtr,
+                       directoryPtr,
+                       &startup,
+                       &information)
 
     result.adoptStarted(information.hProcess, information.dwProcessId)
 

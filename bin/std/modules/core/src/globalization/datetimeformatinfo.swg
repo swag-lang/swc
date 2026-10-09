@@ -148,14 +148,16 @@ public impl DateTimeFormatInfo
         return result
     }
 
-    // Formats the date of `value` with `longDatePattern` when `long` is set, `shortDatePattern` otherwise.
+    // Formats the date of `value` with `longDatePattern` when `long` is set,
+    // `shortDatePattern` otherwise.
     mtd const formatDate(value: Time.DateTime, long = false)->String
     {
         Swag.assert(value.isValid(), "cannot format an invalid date")
         return .formatPattern(value, long ? .longDatePattern : .shortDatePattern)
     }
 
-    // Formats the time of `value` with `longTimePattern` when `withSeconds` is set, `shortTimePattern` otherwise.
+    // Formats the time of `value` with `longTimePattern` when `withSeconds` is set,
+    // `shortTimePattern` otherwise.
     mtd const formatTime(value: Time.DateTime, withSeconds = true)->String
     {
         Swag.assert(value.isValid(), "cannot format an invalid time")
@@ -163,5 +165,10 @@ public impl DateTimeFormatInfo
     }
 
     // Formats a date and time separated by one space.
-    mtd const formatDateTime(value: Time.DateTime, longDate = false, withSeconds = true)->String => Format.toString("% %", .formatDate(value, longDate), .formatTime(value, withSeconds))
+    mtd const formatDateTime(value: Time.DateTime, longDate = false, withSeconds = true)->String
+    {
+        return Format.toString("% %",
+                               .formatDate(value, longDate),
+                               .formatTime(value, withSeconds))
+    }
 }

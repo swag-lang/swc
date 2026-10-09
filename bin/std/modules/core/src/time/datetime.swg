@@ -283,19 +283,21 @@ impl DateTime
                Latin1.isDigit(buf[1])
             {
                 try parseSep(&buf, '.', &result.eat)
-                let start    = result.eat
-                var fraction = cast(u32, (try parseU16(&buf, &result.eat)))
-                var digits   = result.eat - start
-                while digits < 3
+                let fractionStart  = result.eat
+                var fraction       = cast(u32, (try parseU16(&buf, &result.eat)))
+                var fractionDigits = result.eat - fractionStart
+
+                // Normalize the decimal fraction to three millisecond digits.
+                while fractionDigits < 3
                 {
-                    fraction *= 10
-                    digits   += 1
+                    fraction       *= 10
+                    fractionDigits += 1
                 }
 
-                while digits > 3
+                while fractionDigits > 3
                 {
-                    fraction /= 10
-                    digits   -= 1
+                    fraction       /= 10
+                    fractionDigits -= 1
                 }
 
                 result.value.millisecond = cast(u16, fraction)

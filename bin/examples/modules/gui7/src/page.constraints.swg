@@ -1,6 +1,11 @@
 using Core, Gui, Pixel
 
-func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: Math.Point, margin: Math.Vector4 = {})->*Label
+func createDockLabel(parent: *Wnd,
+                     title,
+                     text: string,
+                     dock: DockStyle,
+                     size: Math.Point,
+                     margin: Math.Vector4 = {})->*Label
 {
     let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), {0, 0, size.x, size.y}, null, .WordWrap)
     label.backgroundStyle = .Window
@@ -14,7 +19,10 @@ func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: M
 func createConstraintsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
-    let page   = createPanel(parent, "Docking and constraints", "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.", layout.full)
+    let page   = createPanel(parent,
+                             "Docking and constraints",
+                             "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.",
+                             layout.full)
 
     let host = Wnd.create'Wnd(page, {18, 92, layout.full.width - 36, layout.full.height - 114})
     host.padding = 8
@@ -33,7 +41,12 @@ func createConstraintsPage(parent: *Wnd)
     discard createChip(topStack, "Save", .Save)
     topStack.computeLayout()
 
-    discard createDockLabel(host, "Status", "Bottom dock keeps its height; center is recomputed after it.", .Bottom, {0, 52}, {0, 10, 0, 0})
+    discard createDockLabel(host,
+                            "Status",
+                            "Bottom dock keeps its height; center is recomputed after it.",
+                            .Bottom,
+                            {0, 52},
+                            {0, 10, 0, 0})
 
     let left = createDockLabel(host, "Nav", "Left dock with min/max width.", .Left, {170, 0}, {0, 0, 10, 0})
     left.minSize.x = 130
@@ -51,7 +64,9 @@ func createConstraintsPage(parent: *Wnd)
     host.sendResizeEvent()
 
     discard createText(center, "Anchored center", {14, 12, Math.max(center.position.width - 28, 120.0), 24})
-    discard createHelpText(center, "The center pane fills the remaining rectangle. The action button keeps its distance to the bottom-right corner.", {14, 42, Math.max(center.position.width - 28, 120.0), 46})
+    discard createHelpText(center,
+                           "The center pane fills the remaining rectangle. The action button keeps its distance to the bottom-right corner.",
+                           {14, 42, Math.max(center.position.width - 28, 120.0), 46})
 
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
@@ -59,7 +74,15 @@ func createConstraintsPage(parent: *Wnd)
     action.setIcon(app.theme.icon(.Link, 18))
     action.anchorStyle = .Right | .Bottom
 
-    let stretch = Label.create(center, "Anchored width + height", {14, 100, Math.max(center.position.width - 220, 160.0), Math.max(center.position.height - 168, 40.0)}, null, .WordWrap | .SecondaryText)
+    let stretch = Label.create(center,
+                               "Anchored width + height",
+                               {
+                                   14,
+                                   100,
+                                   Math.max(center.position.width - 220, 160.0),
+                                   Math.max(center.position.height - 168, 40.0)},
+                               null,
+                               .WordWrap | .SecondaryText)
     stretch.anchorStyle = .Width | .Height
     stretch.setText("This label grows with the center pane and keeps its top-left origin.")
 

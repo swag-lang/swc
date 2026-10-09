@@ -921,7 +921,8 @@ impl Deflate
         let d = .state!
 
         var compBlockSucceeded = false
-        let useRawBlock        = ((d.compressFlags & ForceAllRawBlocks) != 0) and (d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize
+        let useRawBlock        = ((d.compressFlags & ForceAllRawBlocks) != 0) and
+                                 (d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize
 
         var outputBufStart: [*] u8?
         let result = d.result!

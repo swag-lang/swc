@@ -44,7 +44,14 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
     return result
 }
 
-func drawPolygonSamplesCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, fillColor, strokeColor: Color, points0, points1: [..] Math.Vector2)
+func drawPolygonSamplesCard(painter: *Pixel.Painter,
+                            rect: Math.Rectangle,
+                            title,
+                            subtitle: string,
+                            fillColor,
+                            strokeColor: Color,
+                            points0,
+                            points1: [..] Math.Vector2)
 {
     let body   = drawPanel(painter, rect, title, subtitle)
     let center = body.horzCenter()
@@ -74,12 +81,18 @@ func drawPolygonHoleCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.drawPath(&list, outlinePen)
 
-    drawWrappedText(painter, {body.x + 22, body.bottom() - 38, body.width - 44, 24}, "Counter-wound inner contour", g_HelpFont, Argb.Indigo)
+    drawWrappedText(painter,
+                    {body.x + 22, body.bottom() - 38, body.width - 44, 24},
+                    "Counter-wound inner contour",
+                    g_HelpFont,
+                    Argb.Indigo)
 }
 
 func drawPolygonsPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel polygon rendering", "Page 4 : convex fills, concave triangulation and polygon winding for holes.")
+    drawPageHeader(painter,
+                   "Pixel polygon rendering",
+                   "Page 4 : convex fills, concave triangulation and polygon winding for holes.")
 
     let convexRect   = Math.Rectangle{28, 110, 452, 248}
     let concaveRect  = Math.Rectangle{500, 110, 452, 248}
@@ -99,7 +112,21 @@ func drawPolygonsPage(painter: *Pixel.Painter)
     let star  = makeStarPolygon(concaveLeft.horzCenter(), concaveLeft.vertCenter(), 62, 26, 5)
     let arrow = makeArrowPolygon(concaveRight)
 
-    drawPolygonSamplesCard(painter, convexRect, "Convex polygons", "Direct fills with clean straight edges and sharp corners.", Argb.CadetBlue, Argb.MidnightBlue, diamond[to], hexagon[to])
-    drawPolygonSamplesCard(painter, concaveRect, "Concave polygons", "Non-convex fills go through polygon cleaning and triangulation.", Argb.Goldenrod, Argb.SaddleBrown, star[to], arrow[to])
+    drawPolygonSamplesCard(painter,
+                           convexRect,
+                           "Convex polygons",
+                           "Direct fills with clean straight edges and sharp corners.",
+                           Argb.CadetBlue,
+                           Argb.MidnightBlue,
+                           diamond[to],
+                           hexagon[to])
+    drawPolygonSamplesCard(painter,
+                           concaveRect,
+                           "Concave polygons",
+                           "Non-convex fills go through polygon cleaning and triangulation.",
+                           Argb.Goldenrod,
+                           Argb.SaddleBrown,
+                           star[to],
+                           arrow[to])
     drawPolygonHoleCard(painter, holeRect)
 }

@@ -30,7 +30,10 @@ func drawSpreadSample(painter: *Pixel.Painter, rect: Math.Rectangle, title: stri
 
 func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body  = drawPanel(painter, rect, "Gradient fills", "Linear, radial and sweep gradients are ordinary brushes, so every filled primitive can use them.")
+    let body = drawPanel(painter,
+                         rect,
+                         "Gradient fills",
+                         "Linear, radial and sweep gradients are ordinary brushes, so every filled primitive can use them.")
     let gap   = 16.0
     let itemW = (body.width - gap * 2) / 3
     let itemH = body.height - 36
@@ -50,7 +53,12 @@ func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     let sweepCenter = Math.Vector2{right.horzCenter(), right.vertCenter() - 2}
     let sweepRadius = Math.min(right.width, right.height) * 0.46
-    var sweep       = Brush.createSweepGradient(sweepCenter, 0.0'deg, 360.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    var sweep       = Brush.createSweepGradient(sweepCenter,
+                                                0.0'deg,
+                                                360.0'deg,
+                                                Argb.DeepSkyBlue,
+                                                Argb.Crimson,
+                                                .Repeat)
     sweep.addGradientStop(0.33, Argb.Goldenrod)
     sweep.addGradientStop(0.66, Argb.SeaGreen)
     painter.fillCircle(sweepCenter.x, sweepCenter.y, sweepRadius, sweep)
@@ -59,11 +67,19 @@ func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Gradient strokes", "The same brush can drive pens for paths, round rectangles and polygon outlines.")
+    let body = drawPanel(painter,
+                         rect,
+                         "Gradient strokes",
+                         "The same brush can drive pens for paths, round rectangles and polygon outlines.")
 
     var path = makeBlobPath(insetRect(body, 16, 18, body.width * 0.55, 24))
     var pen  = Pen.createSolid(Argb.White, 22)
-    pen.brush = Brush.createLinearGradient(body.x, body.y, body.right(), body.bottom(), Argb.DeepSkyBlue, Argb.Crimson)
+    pen.brush = Brush.createLinearGradient(body.x,
+                                           body.y,
+                                           body.right(),
+                                           body.bottom(),
+                                           Argb.DeepSkyBlue,
+                                           Argb.Crimson)
     pen.brush.addGradientStop(0.5, Argb.Goldenrod)
     pen.joinStyle = .Round
     painter.drawPath(&path, pen)
@@ -81,17 +97,32 @@ func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawGradientSpreadCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Spread modes", "Clamp, repeat and mirror define what happens outside the first gradient interval.")
-    let gap  = 14.0
-    let h    = (body.height - 2 * gap) / 3
-    drawSpreadSample(painter, {body.x + 18, body.y + 10, body.width - 36, h}, "Clamp", .Clamp)
-    drawSpreadSample(painter, {body.x + 18, body.y + 10 + h + gap, body.width - 36, h}, "Repeat", .Repeat)
-    drawSpreadSample(painter, {body.x + 18, body.y + 10 + (h + gap) * 2, body.width - 36, h}, "Mirror", .Mirror)
+    let body = drawPanel(painter,
+                         rect,
+                         "Spread modes",
+                         "Clamp, repeat and mirror define what happens outside the first gradient interval.")
+    let gap = 14.0
+    let h   = (body.height - 2 * gap) / 3
+    drawSpreadSample(painter,
+                     {body.x + 18, body.y + 10, body.width - 36, h},
+                     "Clamp",
+                     .Clamp)
+    drawSpreadSample(painter,
+                     {body.x + 18, body.y + 10 + h + gap, body.width - 36, h},
+                     "Repeat",
+                     .Repeat)
+    drawSpreadSample(painter,
+                     {body.x + 18, body.y + 10 + (h + gap) * 2, body.width - 36, h},
+                     "Mirror",
+                     .Mirror)
 }
 
 func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Gradient text", "drawString and translucent overlays use the same paint binding as shapes.")
+    let body = drawPanel(painter,
+                         rect,
+                         "Gradient text",
+                         "drawString and translucent overlays use the same paint binding as shapes.")
     let text = "GRADIENT"
     let size = Painter.measureString(text, g_TitleFont)
     let x    = body.horzCenter() - size.width * 0.5
@@ -121,12 +152,18 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     brush.addGradientStop(0.45, Argb.Goldenrod)
     brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
     painter.drawString(x, y, text, g_TitleFont, brush)
-    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityF32 + multiplyTint + drawString", g_HelpFont, Argb.DimGray)
+    painter.drawString(body.x + 22,
+                       body.bottom() - 28,
+                       "setOpacityF32 + multiplyTint + drawString",
+                       g_HelpFont,
+                       Argb.DimGray)
 }
 
 func drawGradientsPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel gradient paints", "Page 6 : linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
+    drawPageHeader(painter,
+                   "Pixel gradient paints",
+                   "Page 6 : linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
 
     drawGradientFillCard(painter, {28, 104, 452, 268})
     drawGradientStrokeCard(painter, {500, 104, 452, 268})

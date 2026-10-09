@@ -19,27 +19,31 @@ func day5B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var order: HashTable'(s32, Array's32)
-    var first = true
-    var total = 0
+    var pagesAfter: HashTable'(s32, Array's32)
+    var readingRules = true
+    var total        = 0
 
-    for f in lines
+    for line in lines
     {
-        if f.isEmpty()
+        if line.isEmpty()
         {
-            first = false
+            readingRules = false
             continue
         }
 
-        if first
+        if readingRules
         {
-            let split = Tokenize.split(f[], '|'u8)
-            Swag.assert(split.count == 2)
-            order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
+            let rulePages = Tokenize.split(line[], '|'u8)
+            Swag.assert(rulePages.count == 2)
+
+            let beforePage = expect StrConv.toS32(rulePages[0])
+            let afterPages = pagesAfter.findOrAdd(beforePage)
+            afterPages.value.add(expect StrConv.toS32(rulePages[1]))
         }
         else
         {
-            var update = Slice.map(Tokenize.split(f[], ','u8).toSlice(), func(x) => expect StrConv.toS32(x))
+            var update = Slice.map(Tokenize.split(line[], ','u8).toSlice(),
+                                   func(x) => expect StrConv.toS32(x))
             Swag.assert(not update.isEmpty())
 
             var isOrdered = true
@@ -52,7 +56,10 @@ func day5B()
                 for afterIndex in beforeIndex + 1 to update.count - 1
                 {
                     let afterPage = update[afterIndex]
-                    if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
+
+                    // The later page cannot require an earlier page to follow it.
+                    if let requiredAfter = pagesAfter.tryFind(afterPage)
+                        where requiredAfter.value.contains(beforePage)
                     {
                         isOrdered = false
                         break
@@ -79,21 +86,22 @@ func day5B()
                             continue
 
                         let candidatePage = update[candidateIndex]
-                        var hasIncoming   = false
+                        var hasUnplacedPredecessor = false
 
                         for otherIndex in update.count
                         {
                             if used[otherIndex] or otherIndex == candidateIndex do
                                 continue
-                            if let nextPages = order.tryFind(update[otherIndex])
-                                where nextPages.value.contains(candidatePage)
+                            let otherPage = update[otherIndex]
+                            if let requiredAfter = pagesAfter.tryFind(otherPage)
+                                where requiredAfter.value.contains(candidatePage)
                             {
-                                hasIncoming = true
+                                hasUnplacedPredecessor = true
                                 break
                             }
                         }
 
-                        if hasIncoming do
+                        if hasUnplacedPredecessor do
                             continue
 
                         repaired[writeIndex] = candidatePage

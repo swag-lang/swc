@@ -277,7 +277,11 @@ impl IWnd for SheetView
                     var captionX = rect.x + NameWidth
                     for i in ThemeVariantCount
                     {
-                        drawCell(painter, {captionX + 2, head.y, SwatchWidth, head.height}, variantName(cast(ThemeVariant, cast(s32, i))), .fontName!, colors.label_TextFaint)
+                        drawCell(painter,
+                                 {captionX + 2, head.y, SwatchWidth, head.height},
+                                 variantName(cast(ThemeVariant, cast(s32, i))),
+                                 .fontName!,
+                                 colors.label_TextFaint)
                         captionX += SwatchWidth + SwatchGap
                     }
                 }

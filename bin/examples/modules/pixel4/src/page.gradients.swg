@@ -2,7 +2,12 @@ using Core, Pixel
 
 func makeSunsetGradient(rect: Math.Rectangle)->Brush
 {
-    var brush = Brush.createLinearGradient(rect.x, rect.y, rect.right(), rect.bottom(), Color.fromArgb(Argb.DeepSkyBlue), Color.fromArgb(Argb.MediumPurple))
+    var brush = Brush.createLinearGradient(rect.x,
+                                           rect.y,
+                                           rect.right(),
+                                           rect.bottom(),
+                                           Color.fromArgb(Argb.DeepSkyBlue),
+                                           Color.fromArgb(Argb.MediumPurple))
     brush.addGradientStop(0.42, Argb.Goldenrod)
     brush.addGradientStop(0.72, Argb.Tomato)
     return brush
@@ -11,7 +16,13 @@ func makeSunsetGradient(rect: Math.Rectangle)->Brush
 func drawSpreadSample(painter: *Pixel.Painter, rect: Math.Rectangle, title: string, spread: GradientSpread)
 {
     let axisEnd = rect.x + rect.width * 0.28
-    let brush   = Brush.createLinearGradient(rect.x, rect.y, axisEnd, rect.y, Argb.DeepSkyBlue, Argb.Tomato, spread)
+    let brush   = Brush.createLinearGradient(rect.x,
+                                             rect.y,
+                                             axisEnd,
+                                             rect.y,
+                                             Argb.DeepSkyBlue,
+                                             Argb.Tomato,
+                                             spread)
     painter.fillRoundRect(rect, 12, 12, brush)
     painter.drawRoundRect(rect, 12, 12, Color.fromArgb(80, Argb.MidnightBlue), 1)
     painter.drawString(rect.x + 12, rect.vertCenter() - 8, title, g_HelpFont, Argb.White)
@@ -59,7 +70,11 @@ func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     let star    = makeStarPolygon(body.x + body.width * 0.73, body.vertCenter() + 2, 72, 32, 7)
     var starPen = Pen.createSolid(Argb.White, 16)
-    starPen.brush     = Brush.createRadialGradient(body.x + body.width * 0.73, body.vertCenter() + 2, 82, Argb.White, Argb.SeaGreen)
+    starPen.brush = Brush.createRadialGradient(body.x + body.width * 0.73,
+                                               body.vertCenter() + 2,
+                                               82,
+                                               Argb.White,
+                                               Argb.SeaGreen)
     starPen.joinStyle = .Round
     drawClosedOutline(painter, star[to], starPen)
 }
@@ -83,7 +98,12 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let y    = body.vertCenter() - g_TitleFont.height * 0.5
 
     let back      = Math.Rectangle{body.x + 26, body.y + 18, body.width - 52, body.height - 42}
-    var backBrush = Brush.createLinearGradient(back.x, back.y, back.right(), back.bottom(), Argb.DeepSkyBlue, Argb.Goldenrod)
+    var backBrush = Brush.createLinearGradient(back.x,
+                                               back.y,
+                                               back.right(),
+                                               back.bottom(),
+                                               Argb.DeepSkyBlue,
+                                               Argb.Goldenrod)
     backBrush.setOpacityF32(0.32)
     painter.fillRoundRect(back, 22, 22, backBrush)
 
@@ -92,7 +112,12 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     glowBrush.multiplyOpacity(0.42)
     painter.fillCircle(glowCenter.x, glowCenter.y, Math.min(body.width, body.height) * 0.42, glowBrush)
 
-    var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5}, 0.0'deg, 360.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5},
+                                          0.0'deg,
+                                          360.0'deg,
+                                          Argb.DeepSkyBlue,
+                                          Argb.Crimson,
+                                          .Repeat)
     brush.addGradientStop(0.45, Argb.Goldenrod)
     brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
     painter.drawString(x, y, text, g_TitleFont, brush)

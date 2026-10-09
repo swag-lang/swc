@@ -132,8 +132,12 @@ public func perlin(x, y: f32, seed: s32 = 1337)->f32
     let x1 = cast(s32, (x0 + PrimeX))
     let y1 = cast(s32, (y0 + PrimeY))
 
-    let xf0 = Math.lerp(gradCoord(seed, x0, y0, xd0, yd0), gradCoord(seed, x1, y0, xd1, yd0), xs)
-    let xf1 = Math.lerp(gradCoord(seed, x0, y1, xd0, yd1), gradCoord(seed, x1, y1, xd1, yd1), xs)
+    let xf0 = Math.lerp(gradCoord(seed, x0, y0, xd0, yd0),
+                        gradCoord(seed, x1, y0, xd1, yd0),
+                        xs)
+    let xf1 = Math.lerp(gradCoord(seed, x0, y1, xd0, yd1),
+                        gradCoord(seed, x1, y1, xd1, yd1),
+                        xs)
 
     return Math.clamp(Math.lerp(xf0, xf1, ys) * 1.4247691104677813, -1.0, 1.0)
 }
@@ -196,8 +200,12 @@ public func value(x, y: f32, seed: s32 = 1337)->f32
     let x1 = x0 + PrimeX
     let y1 = y0 + PrimeY
 
-    let xf0 = Math.lerp(valCoord(seed, x0, y0), valCoord(seed, x1, y0), xs)
-    let xf1 = Math.lerp(valCoord(seed, x0, y1), valCoord(seed, x1, y1), xs)
+    let xf0 = Math.lerp(valCoord(seed, x0, y0),
+                        valCoord(seed, x1, y0),
+                        xs)
+    let xf1 = Math.lerp(valCoord(seed, x0, y1),
+                        valCoord(seed, x1, y1),
+                        xs)
 
     return Math.clamp(Math.lerp(xf0, xf1, ys), -1.0, 1.0)
 }
@@ -220,10 +228,18 @@ public func value(x, y, z: f32, seed: s32 = 1337)->f32
     let y1 = y0 + PrimeY
     let z1 = z0 + PrimeZ
 
-    let xf00 = Math.lerp(valCoord(seed, x0, y0, z0), valCoord(seed, x1, y0, z0), xs)
-    let xf10 = Math.lerp(valCoord(seed, x0, y1, z0), valCoord(seed, x1, y1, z0), xs)
-    let xf01 = Math.lerp(valCoord(seed, x0, y0, z1), valCoord(seed, x1, y0, z1), xs)
-    let xf11 = Math.lerp(valCoord(seed, x0, y1, z1), valCoord(seed, x1, y1, z1), xs)
+    let xf00 = Math.lerp(valCoord(seed, x0, y0, z0),
+                         valCoord(seed, x1, y0, z0),
+                         xs)
+    let xf10 = Math.lerp(valCoord(seed, x0, y1, z0),
+                         valCoord(seed, x1, y1, z0),
+                         xs)
+    let xf01 = Math.lerp(valCoord(seed, x0, y0, z1),
+                         valCoord(seed, x1, y0, z1),
+                         xs)
+    let xf11 = Math.lerp(valCoord(seed, x0, y1, z1),
+                         valCoord(seed, x1, y1, z1),
+                         xs)
 
     let yf0 = Math.lerp(xf00, xf10, ys)
     let yf1 = Math.lerp(xf01, xf11, ys)

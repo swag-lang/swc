@@ -91,12 +91,16 @@ func drawBlendModeGrid(painter: *Pixel.Painter, samples: const [..] BlendModeSam
 
 func drawContrastBlendModesPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel contrast blend modes", "Page 9 : the same translucent magenta and green sources cross an opaque blue-to-gold backdrop in every sample.")
+    drawPageHeader(painter,
+                   "Pixel contrast blend modes",
+                   "Page 9 : the same translucent magenta and green sources cross an opaque blue-to-gold backdrop in every sample.")
     drawBlendModeGrid(painter, ContrastBlendModes[to])
 }
 
 func drawComponentBlendModesPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel component blend modes", "Page 10 : comparisons and non-separable hue, saturation, color and luminosity transfers, plus Alpha as a reference.")
+    drawPageHeader(painter,
+                   "Pixel component blend modes",
+                   "Page 10 : comparisons and non-separable hue, saturation, color and luminosity transfers, plus Alpha as a reference.")
     drawBlendModeGrid(painter, ComponentBlendModes[to])
 }

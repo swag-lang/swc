@@ -190,7 +190,13 @@ private func openNullDevice()->HANDLE fail
     attributes.bInheritHandle = TRUE
 
     let name = Utf16.toZeroTerminated("NUL")
-    return try CreateFileW(name.buffer, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &attributes, OPEN_EXISTING, 0, null)
+    return try CreateFileW(name.buffer,
+                           GENERIC_READ | GENERIC_WRITE,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE,
+                           &attributes,
+                           OPEN_EXISTING,
+                           0,
+                           null)
 }
 
 // Creates one redirection pipe and hands each end to its side.
@@ -526,7 +532,12 @@ impl Process
                 return
 
             var read: DWORD
-            if not ReadFile(handle, &buffer[0], Math.min(available, PipeReadChunk), &read, null) or not read
+            if not ReadFile(handle,
+                            &buffer[0],
+                            Math.min(available, PipeReadChunk),
+                            &read,
+                            null) or
+               not read
             {
                 releaseHandle(pipe)
                 return

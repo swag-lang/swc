@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -53,10 +54,10 @@ public:
     void          setHasNextValue() { addExtraFlag(SymbolEnumFlagsE::HasNextValue); }
     bool          computeNextValue(Sema& sema, const SourceCodeRef& codeRef);
 
-    void                     addImpl(Sema& sema, SymbolImpl& symImpl);
-    std::vector<SymbolImpl*> impls() const;
-    bool                     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
-    uint64_t                 sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
+    void           addImpl(Sema& sema, SymbolImpl& symImpl);
+    SymbolImplList impls() const;
+    bool           isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
+    uint64_t       sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 
 private:
     TypeRef underlyingTypeRef_ = TypeRef::invalid();

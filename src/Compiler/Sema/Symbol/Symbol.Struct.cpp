@@ -503,7 +503,7 @@ namespace
         return classifyTypeImplicitDefault(sema, field.typeRef());
     }
 
-    void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
+    void appendImplFunctions(std::vector<SymbolFunction*>& out, const SymbolImplList& implList)
     {
         for (const SymbolImpl* symImpl : implList)
         {
@@ -678,10 +678,12 @@ void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
     sema.compiler().notifyAlive();
 }
 
-std::vector<SymbolImpl*> SymbolStruct::impls() const
+SymbolImplList SymbolStruct::impls() const
 {
     const std::shared_lock lk(mutexImpls_);
-    return impls_;
+    SymbolImplList         result;
+    result.assign(impls_.begin(), impls_.end());
+    return result;
 }
 
 std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
@@ -795,10 +797,12 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
     return Result::Continue;
 }
 
-std::vector<SymbolImpl*> SymbolStruct::interfaces() const
+SymbolImplList SymbolStruct::interfaces() const
 {
     const std::shared_lock lk(mutexInterfaces_);
-    return interfaces_;
+    SymbolImplList         result;
+    result.assign(interfaces_.begin(), interfaces_.end());
+    return result;
 }
 
 void SymbolStruct::removeIgnoredFields()

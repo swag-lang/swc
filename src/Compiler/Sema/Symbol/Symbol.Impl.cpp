@@ -200,10 +200,12 @@ const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const TaskContext
     return resolveInterfaceMethodTargetRec(ctx, *this, interfaceMethod, visited);
 }
 
-std::vector<SymbolFunction*> SymbolImpl::specOps() const
+SmallVector<SymbolFunction*, 8> SymbolImpl::specOps() const
 {
-    const std::shared_lock lk(mutex_);
-    return specOps_;
+    const std::shared_lock          lk(mutex_);
+    SmallVector<SymbolFunction*, 8> result;
+    result.assign(specOps_.begin(), specOps_.end());
+    return result;
 }
 
 Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure) const

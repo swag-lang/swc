@@ -6,6 +6,29 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.081 — An imported generic method once lost its own parameter
+
+- Recorded: 2026-10-09 02:07
+- Evidence: on 2026-10-08 23:5x the first `tools/help.swgs dm` after the formatting commit
+  33f2aa0f3 stopped in the `brand.swgs` dependency build (gdi32, ogl, truetype, then pixel, all
+  rebuilt against a just-republished core API) with `unknown symbol 'arr'` at
+  `bin/std/.output/core/shared-library/devmode/x86_64/array.swg:135`, inside
+  `Array.opSet(arr: const [..] T) where Reflection.canCopy(T)`, noted "while checking generic
+  struct 'Array' with T = u8" from `core.swg:1410` (`ICodec.encode`). The generated file was
+  intact and the parameter is declared on the line above; the next run passed unchanged.
+- Reduction attempts, all green: 40 pixel-only rebuilds; 40 rebuilds of the same four modules
+  in one process; 60 `--randomize` seeds of that build; 30 two-process rounds (core rebuilt, then
+  its dependents); 12 replays of the exact core-then-`brand.swgs` sequence in the checkout. API
+  reads are captured under the publication lock, and the editor extension only runs `sema`, so
+  a torn file from a concurrent writer is unlikely: the race looks internal to sema of a
+  generic method instantiated from an imported API while several modules share it.
+- Next: when it reappears, keep the failing process's full log and rerun that exact command
+  under `--randomize --seed` sweeps; instrument parameter registration versus body lookup
+  for generic instance methods with a `where` clause (DevMode assertion that a body lookup
+  never runs before the instance's parameter scope is populated).
+- Complete when: the ordering is proved safe by construction or the race is reproduced and
+  fixed with a regression case in the `workspace` suite.
+
 ### compiler.core.080 — Published generic bodies call omitted helper declarations
 
 - Recorded: 2026-10-08 16:26

@@ -205,8 +205,9 @@ func layoutRootView()
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin,
+                                TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
 
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 

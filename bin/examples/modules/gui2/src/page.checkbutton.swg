@@ -3,7 +3,10 @@ using Core, Gui, Pixel
 func createCheckButtonPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left   = createPanel(parent, "States", "The same CheckButton in unchecked, checked, undefined and disabled forms.", layout.left)
+    let left   = createPanel(parent,
+                             "States",
+                             "The same CheckButton in unchecked, checked, undefined and disabled forms.",
+                             layout.left)
     {
         discard CheckButton.create(left, "Unchecked", {24, 90, 180})
 
@@ -22,7 +25,10 @@ func createCheckButtonPage(parent: *Wnd)
         check.disable()
     }
 
-    let right = createPanel(parent, "Alignment", "Right aligned boxes are useful inside property grids and inspector rows.", layout.right)
+    let right = createPanel(parent,
+                            "Alignment",
+                            "Right aligned boxes are useful inside property grids and inspector rows.",
+                            layout.right)
     {
         var check = CheckButton.create(right, "Box on the right", {24, 90, 250})
         check.updateFlags(.RightAligned)
@@ -36,7 +42,10 @@ func createCheckButtonPage(parent: *Wnd)
         check.setState(.Indeterminate)
     }
 
-    let bottom = createPanel(parent, "Interaction", "Click any option to update the feedback label and exercise signals.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Interaction",
+                             "Click any option to update the feedback label and exercise signals.",
+                             layout.bottom)
     {
         let status = createText(bottom, "No option changed yet.", {24, 180, 420, 28})
 

@@ -82,7 +82,10 @@ func createStylesPage(parent: *Wnd)
                            layout.left)
     {
         let rect = left.clientRect()
-        let ed   = createDocumentEditor(left, {18, 88, rect.width - 36, rect.height - 106}, "", .ShowFocusSel | .WordWrap)
+        let ed   = createDocumentEditor(left,
+                                        {18, 88, rect.width - 36, rect.height - 106},
+                                        "",
+                                        .ShowFocusSel | .WordWrap)
         ed.lineSpacing = 2
         fillNarrativeEditor(ed)
     }
@@ -93,7 +96,10 @@ func createStylesPage(parent: *Wnd)
                             layout.right)
     {
         let rect = right.clientRect()
-        let ed   = createDemoEditor(right, {18, 88, rect.width - 36, rect.height - 106}, .ShowFocusSel | .ReadOnly | .WordWrap, .Edit)
+        let ed   = createDemoEditor(right,
+                                    {18, 88, rect.width - 36, rect.height - 106},
+                                    .ShowFocusSel | .ReadOnly | .WordWrap,
+                                    .Edit)
         ed.marginLeft  = 18
         ed.marginRight = 18
         ed.lineSpacing = 2
@@ -106,7 +112,9 @@ func createStylesPage(parent: *Wnd)
                              layout.bottom)
     {
         let rect = bottom.clientRect()
-        let ed   = createDemoEditor(bottom, {20, 92, rect.width - 40, rect.height - 112}, .ShowFocusSel | .ReadOnly | .WordWrap)
+        let ed   = createDemoEditor(bottom,
+                                    {20, 92, rect.width - 40, rect.height - 112},
+                                    .ShowFocusSel | .ReadOnly | .WordWrap)
         ed.marginLeft  = 18
         ed.marginRight = 18
         ed.lineSpacing = 1

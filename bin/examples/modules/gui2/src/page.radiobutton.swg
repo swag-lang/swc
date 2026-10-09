@@ -15,7 +15,10 @@ func createRadioButtonPage(parent: *Wnd)
         r1.setChecked(true)
     }
 
-    let right = createPanel(parent, "Alignment", "Radio buttons can also put the marker on the right side.", layout.right)
+    let right = createPanel(parent,
+                            "Alignment",
+                            "Radio buttons can also put the marker on the right side.",
+                            layout.right)
     {
         var radio = RadioButton.create(right, "Marker right", {24, 90, 250})
         radio.updateFlags(.RightAligned)

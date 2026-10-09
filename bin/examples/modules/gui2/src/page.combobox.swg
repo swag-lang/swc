@@ -12,7 +12,10 @@ func fillFlavorCombo(combo: *ComboBox)
 func createComboBoxPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left   = createPanel(parent, "Select combos", "Regular popups with icons, separators and constrained height.", layout.left)
+    let left   = createPanel(parent,
+                             "Select combos",
+                             "Regular popups with icons, separators and constrained height.",
+                             layout.left)
     {
         var combo = ComboBox.create(left, {24, 94, 240})
         combo.maximumPopupHeight = 150
@@ -43,7 +46,10 @@ func createComboBoxPage(parent: *Wnd)
         combo.disable()
     }
 
-    let bottom = createPanel(parent, "Widths", "Narrow, normal and wide boxes exercise clipping and popup min width.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Widths",
+                             "Narrow, normal and wide boxes exercise clipping and popup min width.",
+                             layout.bottom)
     {
         var combo = ComboBox.create(bottom, {24, 98, 120})
         combo.minimumPopupWidth = 220

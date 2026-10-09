@@ -667,7 +667,7 @@ namespace
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
-    if (!implsSet_.insert(&symImpl).second)
+    if (!implsSet_.insert(&symImpl))
     {
         symImpl.setSymStruct(this);
         return;
@@ -748,7 +748,7 @@ bool SymbolStruct::exportsRuntimeMethods(const TaskContext& ctx) const
 void SymbolStruct::addInterface(SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexInterfaces_);
-    if (!interfacesSet_.insert(&symImpl).second)
+    if (!interfacesSet_.insert(&symImpl))
     {
         symImpl.setSymStruct(this);
         return;
@@ -1432,7 +1432,7 @@ SymbolFunction* SymbolStruct::selfEqualsFunction(TaskContext& ctx) const
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
     const std::unique_lock lk(mutexSpecOps_);
-    if (!specOpsSet_.insert(&symFunc).second)
+    if (!specOpsSet_.insert(&symFunc))
         return Result::Continue;
     specOps_.push_back(&symFunc);
 

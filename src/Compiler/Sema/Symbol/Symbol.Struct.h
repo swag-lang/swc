@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
@@ -187,13 +188,13 @@ private:
     std::unordered_map<const SymbolVariable*, size_t> fieldIndexMap_;
     mutable std::shared_mutex                         mutexImpls_;
     std::vector<SymbolImpl*>                          impls_;
-    std::unordered_set<SymbolImpl*>                   implsSet_;
+    PointerSet<SymbolImpl>                            implsSet_;
     mutable std::shared_mutex                         mutexInterfaces_;
     std::vector<SymbolImpl*>                          interfaces_;
-    std::unordered_set<SymbolImpl*>                   interfacesSet_;
+    PointerSet<SymbolImpl>                            interfacesSet_;
     mutable std::shared_mutex                         mutexSpecOps_;
     std::vector<SymbolFunction*>                      specOps_;
-    std::unordered_set<SymbolFunction*>               specOpsSet_;
+    PointerSet<SymbolFunction>                        specOpsSet_;
     mutable std::once_flag                            implicitDefaultFlagsOnce_;
     std::once_flag                                    defaultStructOnce_;
     std::atomic<SymbolFunction*>                      opDrop_     = nullptr;

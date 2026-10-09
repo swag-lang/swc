@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 
@@ -63,9 +64,9 @@ private:
     TypeRef underlyingTypeRef_ = TypeRef::invalid();
     ApsInt  nextValue_;
 
-    mutable std::shared_mutex       mutexImpls_;
-    std::vector<SymbolImpl*>        impls_;
-    std::unordered_set<SymbolImpl*> implsSet_;
+    mutable std::shared_mutex mutexImpls_;
+    std::vector<SymbolImpl*>  impls_;
+    PointerSet<SymbolImpl>    implsSet_;
 };
 
 SWC_END_NAMESPACE();

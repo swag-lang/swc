@@ -314,6 +314,10 @@ Use `text.startsWith("prefix")` for a literal prefix check instead of repeating 
 comparison per index. The string API already names both the operation and its boundary behavior;
 keep direct indexing for checks that are not a prefix.
 
+When a sum combines peer diagnostic counters, put one named field per line and preserve their
+order. In Swag Capture's `capture.file.swg`, the model, background, and original-image decoder
+counts each expose the same four diagnostic categories without making the reader parse a long sum.
+
 Calls use a separate `single-line-argument-column-limit` of 100 columns. It breaks an editable,
 authored single-line call when the entire source line exceeds the limit, while preserving calls
 already laid out across lines. Short calls and their argument order stay as written; literals,

@@ -329,7 +329,10 @@ impl Capture
             capture = fromFileModel(model)
 
             let diag = decoder.serializer.diag
-            capture.loadIssues = diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads
+            capture.loadIssues = diag.fieldErrors +
+                                 diag.droppedStreamFields +
+                                 diag.unknownTypes +
+                                 diag.corruptPayloads
 
             let background = reader.findRole(backgroundRole())
             if background
@@ -340,7 +343,10 @@ impl Capture
                 defer Memory.delete(image)
                 capture.backImg = #move image[]
                 let imageDiag = imageDecoder.serializer.diag
-                capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
+                capture.loadIssues += imageDiag.fieldErrors +
+                                      imageDiag.droppedStreamFields +
+                                      imageDiag.unknownTypes +
+                                      imageDiag.corruptPayloads
             }
 
             let original = reader.findRole(originalRole())
@@ -352,7 +358,10 @@ impl Capture
                 defer Memory.delete(image)
                 capture.backImgOriginal = #move image[]
                 let imageDiag = imageDecoder.serializer.diag
-                capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
+                capture.loadIssues += imageDiag.fieldErrors +
+                                      imageDiag.droppedStreamFields +
+                                      imageDiag.unknownTypes +
+                                      imageDiag.corruptPayloads
             }
         }
 

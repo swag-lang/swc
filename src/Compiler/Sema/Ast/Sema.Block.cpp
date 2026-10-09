@@ -379,7 +379,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
         SemaFrame frame = sema.frame();
         frame.clearNarrowFacts();
         frame.setDeferBody();
-        frame.setDeferOwner();
+        frame.setDeferOwner(node.modifierFlags.has(AstModifierFlagsE::NoFail));
 
         // Control flow cannot leave a body that runs while its scope is already being left: the
         // loops, switches and named scopes around the 'defer' are out of reach from inside it.

@@ -277,6 +277,14 @@ namespace
         return tokenId == TokenId::KwdCatch;
     }
 
+    Result reportErrorLeavesDefer(Sema& sema, TokenId tokenId)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_control_flow_leaves_defer, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_TOK, Token::toName(tokenId));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     bool canPropagateFallibleResult(const Sema& sema)
     {
         return isFallibleFunctionContext(sema) ||
@@ -651,6 +659,8 @@ namespace
 
         if (tokenId == TokenId::KwdTry && !canPropagateFallibleResult(sema))
             return reportTryOutsideFallibleContext(sema, sema.curNodeRef());
+        if (tokenId == TokenId::KwdTry && sema.frame().errorLeavesDefer())
+            return reportErrorLeavesDefer(sema, TokenId::KwdTry);
         if (tok.id == TokenId::KwdTry)
             reportRedundantTry(sema);
 
@@ -1879,6 +1889,8 @@ Result AstFailExpr::semaPostNode(Sema& sema) const
 
     if (!canPropagateFallibleResult(sema))
         return reportFailOutsideFallibleContext(sema, sema.curNodeRef());
+    if (sema.frame().errorLeavesDefer())
+        return reportErrorLeavesDefer(sema, TokenId::KwdFail);
 
     // A failed value needs concrete storage and runtime type information, just
     // like a constant boxed into 'any'; unsized literals have no runtime size.

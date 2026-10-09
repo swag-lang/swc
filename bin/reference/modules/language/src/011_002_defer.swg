@@ -61,6 +61,32 @@ control flow paths.
 }
 
 /**
+The deferred code runs while its scope is already being left, so it cannot
+decide where control goes next: 'return', 'fail', a 'try' that would propagate,
+and a 'break' or 'continue' that would leave the deferred body, are errors inside
+a 'defer'. A loop, or a 'catch', written entirely inside the deferred body may
+still use them. A '#nofail' defer is the exception for errors: it runs once the
+scope has succeeded, so a 'try' there makes its failure the failure of the scope.
+*/
+#test
+{
+    var drained = 0
+    {
+        defer
+        {
+            for 10
+            {
+                if drained == 4 do
+                    break     // Leaves the loop inside the defer, not the defer.
+                drained += 1
+            }
+        }
+    }
+
+    Swag.assert(drained == 4)
+}
+
+/**
 # Deferred Execution Order
 When multiple 'defer' statements exist, they execute in reverse declaration
 order. The most recent defer runs first when the scope ends.

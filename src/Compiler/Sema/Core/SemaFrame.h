@@ -237,14 +237,19 @@ public:
     bool deferBody() const { return deferBody_; }
     void setDeferBody() { deferBody_ = true; }
 
-    // The function and inline expansion a 'defer' body was entered in. A 'return' there would
-    // leave the body; one in a lambda declared inside it, or in an inlined callee, returns from
-    // that function instead.
+    // The function, inline expansion and error scope a 'defer' body was entered in. A 'return'
+    // there would leave the body; one in a lambda declared inside it, or in an inlined callee,
+    // returns from that function instead. A 'fail' or 'try' leaves it too, unless a 'catch' or
+    // 'expect' opened inside the body takes the error, or the body is a '#nofail' one: it runs
+    // once the scope has succeeded, so its own failure becomes the failure of that scope.
     bool returnLeavesDefer() const { return deferBody_ && function_ == deferFunction_ && inlinePayload_ == deferInlinePayload_; }
-    void setDeferOwner()
+    bool errorLeavesDefer() const { return !deferPropagatesErrors_ && returnLeavesDefer() && currentErrorScope_ == deferErrorScope_; }
+    void setDeferOwner(bool propagatesErrors)
     {
-        deferFunction_      = function_;
-        deferInlinePayload_ = inlinePayload_;
+        deferFunction_         = function_;
+        deferInlinePayload_    = inlinePayload_;
+        deferErrorScope_       = currentErrorScope_;
+        deferPropagatesErrors_ = propagatesErrors;
     }
 
     void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
@@ -287,6 +292,8 @@ private:
     bool                                deferBody_                     = false;
     const SymbolFunction*               deferFunction_                 = nullptr;
     const SemaInlinePayload*            deferInlinePayload_            = nullptr;
+    AstNodeRef                          deferErrorScope_               = AstNodeRef::invalid();
+    bool                                deferPropagatesErrors_         = false;
     bool                                ignoreRuntimeAccess_           = false;
     bool                                ignoreRedirectedLookupSymMaps_ = false;
     BreakContext                        breakable_;

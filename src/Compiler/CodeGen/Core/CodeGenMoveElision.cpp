@@ -118,7 +118,7 @@ namespace
             const auto& symVar = sym->cast<SymbolVariable>();
             if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar.hasGlobalStorage())
                 return;
-            codeGen.moveElisionVars()[&symVar].declBlockRef = blockRef;
+            codeGen.moveElisionVar(symVar).declBlockRef = blockRef;
         };
 
         const SemaNodeView view = codeGen.sema().viewStored(walker.currentNodeRef(), SemaNodeViewPartE::Symbol);
@@ -141,7 +141,7 @@ namespace
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar.hasGlobalStorage())
             return;
 
-        CodeGenMoveElisionVar& info = codeGen.moveElisionVars()[&symVar];
+        CodeGenMoveElisionVar& info = codeGen.moveElisionVar(symVar);
         info.lastUseRef             = walker.currentNodeRef();
         if (escapeDepth > 0)
         {
@@ -219,7 +219,7 @@ namespace
             if (result != AstVisitResult::Continue)
             {
                 // The analysis could not complete: forbid every elision in this function.
-                codeGen.moveElisionVars().clear();
+                codeGen.clearMoveElisionVars();
                 return;
             }
         }
@@ -283,12 +283,11 @@ bool CodeGenMoveElision::canElideMoveSource(CodeGen& codeGen, const SymbolVariab
     if (!codeGen.moveElisionAnalyzed())
         buildAnalysis(codeGen);
 
-    const auto& vars = codeGen.moveElisionVars();
-    const auto  it   = vars.find(&symVar);
-    if (it == vars.end())
+    const CodeGenMoveElisionVar* found = codeGen.findMoveElisionVar(symVar);
+    if (!found)
         return false;
 
-    const CodeGenMoveElisionVar& info = it->second;
+    const CodeGenMoveElisionVar& info = *found;
     if (info.escaped || info.declBlockRef.isInvalid() || info.lastUseRef != resolvedSourceRef)
         return false;
 
@@ -318,17 +317,31 @@ bool CodeGenMoveElision::canMoveOutAtReturn(CodeGen& codeGen, const SymbolVariab
     if (!codeGen.moveElisionAnalyzed())
         buildAnalysis(codeGen);
 
-    const auto& vars = codeGen.moveElisionVars();
-    const auto  it   = vars.find(&symVar);
-    if (it == vars.end())
+    const CodeGenMoveElisionVar* found = codeGen.findMoveElisionVar(symVar);
+    if (!found)
         return false;
 
     // Address escapes through calls or stored pointers do not block a return move-out:
     // after the return, such observers would have seen a dropped local anyway, and a
     // relocatable type restores its invariants through 'opPostMove'. Only defer bodies
     // and closures can still legitimately run against the local afterwards.
-    const CodeGenMoveElisionVar& info = it->second;
+    const CodeGenMoveElisionVar& info = *found;
     return !info.deferEscaped && info.declBlockRef.isValid();
+}
+
+CodeGenMoveElisionVar& CodeGen::moveElisionVar(const SymbolVariable& symVar)
+{
+    if (!moveElisionVars_)
+        moveElisionVars_.emplace();
+    return (*moveElisionVars_)[&symVar];
+}
+
+const CodeGenMoveElisionVar* CodeGen::findMoveElisionVar(const SymbolVariable& symVar) const
+{
+    if (!moveElisionVars_)
+        return nullptr;
+    const auto it = moveElisionVars_->find(&symVar);
+    return it == moveElisionVars_->end() ? nullptr : &it->second;
 }
 
 SWC_END_NAMESPACE();

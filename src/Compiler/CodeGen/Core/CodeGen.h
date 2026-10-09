@@ -442,11 +442,13 @@ public:
 
     // Move elision (see CodeGenMoveElision): per-function analysis cache and the set of
     // locals whose scope-exit drop has been elided by a consuming '#move'.
-    bool                                                              moveElisionAnalyzed() const { return moveElisionAnalyzed_; }
-    void                                                              setMoveElisionAnalyzed() { moveElisionAnalyzed_ = true; }
-    std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar>& moveElisionVars() { return moveElisionVars_; }
-    void                                                              markImplicitDropElided(const SymbolVariable& symVar) { elidedImplicitDrops_.insert(&symVar); }
-    bool                                                              isImplicitDropElided(const SymbolVariable& symVar) const { return elidedImplicitDrops_.contains(&symVar); }
+    bool                         moveElisionAnalyzed() const { return moveElisionAnalyzed_; }
+    void                         setMoveElisionAnalyzed() { moveElisionAnalyzed_ = true; }
+    CodeGenMoveElisionVar&       moveElisionVar(const SymbolVariable& symVar);
+    const CodeGenMoveElisionVar* findMoveElisionVar(const SymbolVariable& symVar) const;
+    void                         clearMoveElisionVars() { moveElisionVars_.reset(); }
+    void                         markImplicitDropElided(const SymbolVariable& symVar) { elidedImplicitDrops_.insert(&symVar); }
+    bool                         isImplicitDropElided(const SymbolVariable& symVar) const { return elidedImplicitDrops_.contains(&symVar); }
 
     // Local moved out by the return being emitted: its drop is skipped for this return's
     // deferred actions only, so drops emitted for other control paths are unaffected.
@@ -494,41 +496,42 @@ private:
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
     void   mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
 
-    Sema*                                                            sema_ = nullptr;
-    AstVisit                                                         visit_;
-    std::vector<CodeGenFrame>                                        frames_;
-    RefPointerMap<AstNodeRef>                                        nodePayloads_;
-    RefPointerMap<AstNodeRef>                                        auxNodePayloads_;
-    PointerMap<SymbolVariable, VariablePayloadState>                 variablePayloads_;
-    SmallVector<std::unique_ptr<VariablePayloadState[]>, 4>          variablePayloadChunks_;
-    uint32_t                                                         variablePayloadCount_ = 0;
-    std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar> moveElisionVars_;
-    PointerSet<const SymbolVariable>                                 elidedImplicitDrops_;
-    const SymbolVariable*                                            returnMoveOutVar_    = nullptr;
-    bool                                                             moveElisionAnalyzed_ = false;
-    SymbolFunction*                                                  function_            = nullptr;
-    MicroBuilder*                                                    builder_             = nullptr;
-    uint32_t                                                         nextVirtualRegister_ = 1;
-    uint32_t                                                         localStackFrameSize_ = 0;
-    MicroReg                                                         localStackBaseReg_;
-    MicroReg                                                         vectorZeroReg_;
-    MicroInstrRef                                                    bodyEntryRef_;
-    uint32_t                                                         currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
-    MicroReg                                                         currentFunctionIndirectReturnReg_;
-    MicroReg                                                         currentFunctionClosureContextReg_;
-    SmallVector<CodeGenDeferScope, 32>                               deferScopes_;
-    SmallVector<CodeGenDeferredEmissionCursor>                       deferredEmissionCursors_;
-    uint32_t                                                         deferredEmitDepth_                = 0;
-    uint32_t                                                         currentDeferredAddressGeneration_ = 0;
-    uint32_t                                                         nextDeferredAddressGeneration_    = 1;
-    bool                                                             hasDeferredStatements_            = false;
-    uint32_t                                                         gvtdScratchOffset_                = 0;
-    uint32_t                                                         gvtdScratchSize_                  = 0;
-    SmallVector<CodeGenGvtdEntry>                                    gvtdScratchEntries_;
-    SmallVector<CodeGenTemporaryDrop, 4>                             temporaryDrops_;
-    AstNodeRef                                                       root_      = AstNodeRef::invalid();
-    bool                                                             started_   = false;
-    bool                                                             completed_ = false;
+    Sema*                                                   sema_ = nullptr;
+    AstVisit                                                visit_;
+    std::vector<CodeGenFrame>                               frames_;
+    RefPointerMap<AstNodeRef>                               nodePayloads_;
+    RefPointerMap<AstNodeRef>                               auxNodePayloads_;
+    PointerMap<SymbolVariable, VariablePayloadState>        variablePayloads_;
+    SmallVector<std::unique_ptr<VariablePayloadState[]>, 4> variablePayloadChunks_;
+    uint32_t                                                variablePayloadCount_ = 0;
+    // Filled only when a move asks whether it can be elided; most functions never do.
+    std::optional<std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar>> moveElisionVars_;
+    PointerSet<const SymbolVariable>                                                elidedImplicitDrops_;
+    const SymbolVariable*                                                           returnMoveOutVar_    = nullptr;
+    bool                                                                            moveElisionAnalyzed_ = false;
+    SymbolFunction*                                                                 function_            = nullptr;
+    MicroBuilder*                                                                   builder_             = nullptr;
+    uint32_t                                                                        nextVirtualRegister_ = 1;
+    uint32_t                                                                        localStackFrameSize_ = 0;
+    MicroReg                                                                        localStackBaseReg_;
+    MicroReg                                                                        vectorZeroReg_;
+    MicroInstrRef                                                                   bodyEntryRef_;
+    uint32_t                                                                        currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
+    MicroReg                                                                        currentFunctionIndirectReturnReg_;
+    MicroReg                                                                        currentFunctionClosureContextReg_;
+    SmallVector<CodeGenDeferScope, 32>                                              deferScopes_;
+    SmallVector<CodeGenDeferredEmissionCursor>                                      deferredEmissionCursors_;
+    uint32_t                                                                        deferredEmitDepth_                = 0;
+    uint32_t                                                                        currentDeferredAddressGeneration_ = 0;
+    uint32_t                                                                        nextDeferredAddressGeneration_    = 1;
+    bool                                                                            hasDeferredStatements_            = false;
+    uint32_t                                                                        gvtdScratchOffset_                = 0;
+    uint32_t                                                                        gvtdScratchSize_                  = 0;
+    SmallVector<CodeGenGvtdEntry>                                                   gvtdScratchEntries_;
+    SmallVector<CodeGenTemporaryDrop, 4>                                            temporaryDrops_;
+    AstNodeRef                                                                      root_      = AstNodeRef::invalid();
+    bool                                                                            started_   = false;
+    bool                                                                            completed_ = false;
 };
 
 SWC_END_NAMESPACE();

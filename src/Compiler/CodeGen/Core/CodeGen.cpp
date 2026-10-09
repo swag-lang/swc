@@ -548,7 +548,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         variablePayloads_      = {};
         variablePayloadChunks_.clear();
         variablePayloadCount_ = 0;
-        moveElisionVars_.clear();
+        moveElisionVars_.reset();
         elidedImplicitDrops_.clear();
         temporaryDrops_.clear();
         returnMoveOutVar_    = nullptr;

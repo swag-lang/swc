@@ -481,7 +481,13 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
             // Adopt the physical rectangle the system suggests for the new monitor
             // scale; the ensuing WM_SIZE reports the new physical client size.
             let suggested = cast(const *RECT, cast #bit (u64, lParam))
-            discard catch SetWindowPos(hWnd, null, suggested.left, suggested.top, suggested.right - suggested.left, suggested.bottom - suggested.top, SWP_NOZORDER | SWP_NOACTIVATE)
+            discard catch SetWindowPos(hWnd,
+                                       null,
+                                       suggested.left,
+                                       suggested.top,
+                                       suggested.right - suggested.left,
+                                       suggested.bottom - suggested.top,
+                                       SWP_NOZORDER | SWP_NOACTIVATE)
             return 0
 
         case WM_DESTROY:
@@ -530,7 +536,18 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     if options.flags.has(.Maximizable) do
         style |= WS_MAXIMIZEBOX
 
-    let hWnd = CreateWindowExA(0, className.buffer, title.buffer, style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
+    let hWnd = CreateWindowExA(0,
+                               className.buffer,
+                               title.buffer,
+                               style,
+                               CW_USEDEFAULT,
+                               CW_USEDEFAULT,
+                               options.width,
+                               options.height,
+                               null,
+                               null,
+                               wc.hInstance,
+                               result)
     if not hWnd do
         try failWinError(GetLastError())
 
@@ -596,7 +613,12 @@ public impl Window
 
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
         let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
-        try MoveWindow(.win32Handle(), windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
+        try MoveWindow(.win32Handle(),
+                       windowRect.left,
+                       windowRect.top,
+                       width + frameWidth,
+                       height + frameHeight,
+                       FALSE)
     }
 
     internal mtd clientSizeNative()->{width, height: s32} fail
@@ -619,7 +641,13 @@ public impl Window
         const OffScreenOrigin = -32000
 
         let hWnd = .win32Handle()
-        try SetWindowPos(hWnd, HWND_BOTTOM, OffScreenOrigin, OffScreenOrigin, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+        try SetWindowPos(hWnd,
+                         HWND_BOTTOM,
+                         OffScreenOrigin,
+                         OffScreenOrigin,
+                         0,
+                         0,
+                         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
         ShowWindow(hWnd, SW_SHOWNOACTIVATE)
         try UpdateWindow(hWnd)
     }

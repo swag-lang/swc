@@ -855,6 +855,20 @@ namespace
         if (storageTypeRef == sema.typeMgr().typeVoid())
             return reportBadStorageType(sema, context, finalTypeRef);
 
+        // A generic struct is a family of types: a value needs one of its specializations. A
+        // parameter typed with the family makes its function generic instead.
+        if (!isParameter && storageType.isStruct())
+        {
+            const SymbolStruct& symStruct = storageType.payloadSymStruct();
+            if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_generic_struct_needs_args, finalTypeErrorRef(sema, context));
+                diag.addArgument(Diagnostic::ARG_SYM, symStruct.name(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
         if (!isParameter)
             SWC_RESULT(SemaCheck::noMoveRefType(sema, storageTypeRef, finalTypeErrorRef(sema, context)));
 

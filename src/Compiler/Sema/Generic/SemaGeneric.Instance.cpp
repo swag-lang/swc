@@ -467,7 +467,35 @@ namespace SemaGeneric
             outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(param.idRef).name});
         }
 
-        Result instantiateGenericExplicit(Sema& sema, Symbol& genericRoot, std::span<const AstNodeRef> genericArgNodes, Symbol*& outInstance, CastFailure* outWhereFailure = nullptr)
+        // A struct specialization written in the source that cannot be built: too many arguments,
+        // or a parameter that neither an argument, the context nor a default gives a value.
+        Result reportStructSpecializationFailure(Sema& sema, const Symbol& genericRoot, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, std::span<const AstNodeRef> genericArgNodes)
+        {
+            if (genericArgNodes.size() > params.size())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_generic_struct_too_many_args, genericArgNodes[params.size()]);
+                diag.addArgument(Diagnostic::ARG_SYM, genericRoot.name(sema.ctx()));
+                diag.addArgument(Diagnostic::ARG_WHAT, std::format("{} generic argument{}", params.size(), params.size() == 1 ? "" : "s"));
+                diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(genericArgNodes.size()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            for (size_t i = 0; i < resolvedArgs.size(); ++i)
+            {
+                if (resolvedArgs[i].present)
+                    continue;
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_generic_struct_missing_arg, sema.curNodeRef());
+                diag.addArgument(Diagnostic::ARG_SYM, genericRoot.name(sema.ctx()));
+                diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(params[i].idRef).name);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            return Result::Continue;
+        }
+
+        Result instantiateGenericExplicit(Sema& sema, Symbol& genericRoot, std::span<const AstNodeRef> genericArgNodes, Symbol*& outInstance, CastFailure* outWhereFailure = nullptr, bool reportStructFailure = false)
         {
             outInstance = nullptr;
             if (outWhereFailure)
@@ -490,7 +518,11 @@ namespace SemaGeneric
             else
                 collectGenericParams(*sourceSema, spanRef, params);
             if (genericArgNodes.size() > params.size())
+            {
+                if (reportStructFailure)
+                    return reportStructSpecializationFailure(sema, genericRoot, params.span(), {}, genericArgNodes);
                 return Result::Continue;
+            }
 
             const AstNodeRef                errorNodeRef = genericArgNodes.empty() ? sema.curNodeRef() : genericArgNodes.front();
             SmallVector<GenericResolvedArg> resolvedArgs(params.size());
@@ -506,7 +538,11 @@ namespace SemaGeneric
 
             SWC_RESULT(materializeGenericArgs(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes, errorNodeRef));
             if (hasMissingGenericArgs(resolvedArgs.span()))
+            {
+                if (reportStructFailure)
+                    return reportStructSpecializationFailure(sema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes);
                 return Result::Continue;
+            }
 
             if (const auto* function = genericRoot.safeCast<SymbolFunction>())
             {
@@ -831,10 +867,10 @@ namespace SemaGeneric
         return Result::Continue;
     }
 
-    Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance)
+    Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance, bool reportFailure)
     {
         Symbol* instance = nullptr;
-        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
+        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance, nullptr, reportFailure));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }

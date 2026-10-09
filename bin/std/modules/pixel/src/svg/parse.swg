@@ -662,7 +662,10 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         let g   = scanCssComponent(text, &pos, 255)
         let b   = scanCssComponent(text, &pos, 255)
         let a   = isRgba ? scanCssComponent(text, &pos, 1) : 1.0
-        result.color = Color.fromArgb(cast(u8, Math.round(a * 255)), cast(u8, Math.round(r)), cast(u8, Math.round(g)), cast(u8, Math.round(b)))
+        result.color = Color.fromArgb(cast(u8, Math.round(a * 255)),
+                                      cast(u8, Math.round(r)),
+                                      cast(u8, Math.round(g)),
+                                      cast(u8, Math.round(b)))
         return result
     }
 
@@ -806,8 +809,9 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
             state.isDisplayed = false
 
     case "visibility":
-        let visible = Latin1.compare(Latin1.trim(value), "hidden", ignoreCase: true) != 0 and Latin1.compare(Latin1.trim(value), "collapse", ignoreCase: true) != 0
-        state.isVisible = visible
+        let visibility = Latin1.trim(value)
+        state.isVisible = Latin1.compare(visibility, "hidden", ignoreCase: true) != 0 and
+                          Latin1.compare(visibility, "collapse", ignoreCase: true) != 0
 
     case "fill-opacity":
         state.fillOpacity = Math.saturate(parseLength(value).value)
@@ -981,7 +985,10 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
 
         case "rotate":
             let angle = Math.toRadians(arguments[0])
-            step = count > 2 ? Math.Transform2.createRotation(angle, arguments[1], arguments[2]) : Math.Transform2.createRotation(angle, 0, 0)
+            if count > 2 do
+                step = Math.Transform2.createRotation(angle, arguments[1], arguments[2])
+            else do
+                step = Math.Transform2.createRotation(angle, 0, 0)
 
         case "skewX":
             step.m21 = Math.tan(Math.toRadians(arguments[0]))
@@ -2687,7 +2694,14 @@ private impl Parser
                     rx = ry
                 if ry < 0 do
                     ry = rx
-                emitRect(.drawing, &state, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"), .geoNumber(&geo, "width"), .geoNumber(&geo, "height"), Math.max(rx, 0), Math.max(ry, 0))
+                emitRect(.drawing,
+                         &state,
+                         .geoNumber(&geo, "x"),
+                         .geoNumber(&geo, "y"),
+                         .geoNumber(&geo, "width"),
+                         .geoNumber(&geo, "height"),
+                         Math.max(rx, 0),
+                         Math.max(ry, 0))
                 if not selfClosed do
                     try .parseContent(state)
 
@@ -2698,7 +2712,12 @@ private impl Parser
                     try .parseContent(state)
 
             case "ellipse":
-                emitEllipse(.drawing, &state, .geoNumber(&geo, "cx"), .geoNumber(&geo, "cy"), .geoNumber(&geo, "rx"), .geoNumber(&geo, "ry"))
+                emitEllipse(.drawing,
+                            &state,
+                            .geoNumber(&geo, "cx"),
+                            .geoNumber(&geo, "cy"),
+                            .geoNumber(&geo, "rx"),
+                            .geoNumber(&geo, "ry"))
                 if not selfClosed do
                     try .parseContent(state)
 

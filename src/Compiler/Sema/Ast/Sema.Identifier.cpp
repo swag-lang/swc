@@ -496,7 +496,7 @@ namespace
                     continue;
 
                 SymbolStruct* instance = nullptr;
-                SWC_RESULT(SemaGeneric::instantiateStructExplicit(sema, st, genericArgs.span(), instance));
+                SWC_RESULT(SemaGeneric::instantiateStructExplicit(sema, st, genericArgs.span(), instance, true));
                 if (instance)
                 {
                     if (specializedStruct && specializedStruct != instance)

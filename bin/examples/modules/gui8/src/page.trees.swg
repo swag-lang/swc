@@ -1,13 +1,22 @@
 using Core, Gui, Pixel
 
-func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons, childCount: s32)->*ListLine
+func addSimpleTreeBranch(tree: *ListCtrl,
+                         rootName: string,
+                         rootIcon: ThemeIcons,
+                         childCount: s32)->*ListLine
 {
     let root = tree.createLine(rootName, app.theme.icon(rootIcon, 16))
     for i in childCount
     {
-        let child = tree.createLine(Format.toString("node %.%", rootName, i + 1), sampleIcon(i), parentLine: root)
-        for j in 3 do
-            discard tree.createLine(Format.toString("leaf %.%.%", rootName, i + 1, j + 1), sampleIcon(j + i), parentLine: child)
+        let child = tree.createLine(Format.toString("node %.%", rootName, i + 1),
+                                    sampleIcon(i),
+                                    parentLine: root)
+        for j in 3
+        {
+            discard tree.createLine(Format.toString("leaf %.%.%", rootName, i + 1, j + 1),
+                                    sampleIcon(j + i),
+                                    parentLine: child)
+        }
     }
 
     return root
@@ -63,7 +72,10 @@ func createTreesPage(parent: *Wnd)
     table.sort(0, false, true)
     table.computeLayout()
 
-    let bottom         = createPanel(parent, "Collapsed branch states", "Tree controls preserve expansion, selection and check state independently.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Collapsed branch states",
+                             "Tree controls preserve expansion, selection and check state independently.",
+                             layout.bottom)
     with let stateTree = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     {
         .setFrameForm(.Square)

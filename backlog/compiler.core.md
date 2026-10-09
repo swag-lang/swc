@@ -9,7 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.081 — An imported generic method once lost its own parameter
 
 - Recorded: 2026-10-09 02:07
-- Evidence: on 2026-10-08 23:5x the first `tools/help.swgs dm` after the formatting commit
+- Evidence: at 2026-10-08 23:56 the first `tools/help.swgs dm` after the formatting commit
   33f2aa0f3 stopped in the `brand.swgs` dependency build (gdi32, ogl, truetype, then pixel, all
   rebuilt against a just-republished core API) with `unknown symbol 'arr'` at
   `bin/std/.output/core/shared-library/devmode/x86_64/array.swg:135`, inside

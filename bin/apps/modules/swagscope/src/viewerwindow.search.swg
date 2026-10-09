@@ -459,7 +459,9 @@ impl ViewerWindow
         let pageKey         = evt.modifiers == .None and (evt.key == .PageUp or evt.key == .PageDown)
         let focused         = .focusedWindow()
         let inSearchField   = focused and (focused == .searchBox or .searchBox.isOwnerOf(focused))
-        let fieldNavigation = inSearchField and ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
+        let fieldNavigation = inSearchField and
+                              ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or
+                               (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
         if not pageKey and not fieldNavigation do
             return false
 

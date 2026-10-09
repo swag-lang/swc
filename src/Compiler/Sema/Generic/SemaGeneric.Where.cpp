@@ -241,6 +241,14 @@ namespace SemaGeneric
 
     namespace Internal
     {
+        // Without a constraint list the evaluation stops before reading its inputs, so callers
+        // skip building the bindings and the instantiation text too.
+        bool hasFunctionWhereConstraints(const SymbolFunction& root)
+        {
+            const auto* decl = genericFunctionDecl(root);
+            return decl && decl->spanConstraintsRef.isValid();
+        }
+
         Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef)
         {
             const GenericConstraintContext context = makeFunctionConstraintContext(sema, function, bindings, errorNodeRef, bindingText);
@@ -249,6 +257,9 @@ namespace SemaGeneric
 
         Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
         {
+            if (genericStructWhereSpan(root).isInvalid())
+                return Result::Continue;
+
             const ResolvedGenericBindingSource   source{params, resolvedArgs};
             SmallVector<SemaClone::ParamBinding> bindings;
             buildResolvedGenericContextBindings(sema, root, source, bindings);
@@ -265,9 +276,8 @@ namespace SemaGeneric
 {
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
-        outSatisfied     = true;
-        const auto* decl = genericFunctionDecl(function);
-        if (!decl || decl->spanConstraintsRef.isInvalid())
+        outSatisfied = true;
+        if (!Internal::hasFunctionWhereConstraints(function))
             return Result::Continue;
 
         std::unique_ptr<Sema> sourceSemaHolder;

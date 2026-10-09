@@ -39,6 +39,7 @@ namespace SemaGeneric
         using Internal::genericFunctionDecl;
         using Internal::genericStructDeclNode;
         using Internal::genericStructParamSpan;
+        using Internal::hasFunctionWhereConstraints;
         using Internal::instantiateGenericStructImpls;
         using Internal::loadFunctionInstanceGenericArgs;
         using Internal::loadOwnerStructGenericArgs;
@@ -544,7 +545,7 @@ namespace SemaGeneric
                 return Result::Continue;
             }
 
-            if (const auto* function = genericRoot.safeCast<SymbolFunction>())
+            if (const auto* function = genericRoot.safeCast<SymbolFunction>(); function && hasFunctionWhereConstraints(*function))
             {
                 FunctionWhereInputs whereInputs;
                 buildFunctionWhereInputs(*sourceSema, *function, source, whereInputs);
@@ -853,13 +854,16 @@ namespace SemaGeneric
         bool                               whereSatisfied = true;
         if (outFailure)
             *outFailure = {};
-        FunctionWhereInputs whereInputs;
-        buildFunctionWhereInputs(*sourceSema, genericRoot, source, whereInputs);
-        CastFailure  localFailure;
-        CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
-        SWC_RESULT(Internal::checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorNodeRef));
-        if (!whereSatisfied)
-            return Result::Continue;
+        if (decl->spanConstraintsRef.isValid())
+        {
+            FunctionWhereInputs whereInputs;
+            buildFunctionWhereInputs(*sourceSema, genericRoot, source, whereInputs);
+            CastFailure  localFailure;
+            CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
+            SWC_RESULT(Internal::checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorNodeRef));
+            if (!whereSatisfied)
+                return Result::Continue;
+        }
 
         Symbol* instance = nullptr;
         SWC_RESULT(createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), errorNodeRef));

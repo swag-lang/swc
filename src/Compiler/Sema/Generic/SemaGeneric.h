@@ -116,6 +116,7 @@ namespace SemaGeneric
         };
 
         const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
+        bool                   hasFunctionWhereConstraints(const SymbolFunction& root);
         const AstNode*         genericStructDeclNode(const SymbolStruct& root);
         SpanRef                genericStructParamSpan(const SymbolStruct& root);
         bool                   loadStructInstanceGenericArgs(Sema& sema, const SymbolStruct& instance, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);

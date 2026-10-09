@@ -374,7 +374,12 @@ impl Decoder
         }
         elif (column.predFlags & 2) != 0
         {
-            source = .noBackwardPrediction() ? list : (.header.collocatedFromL0 ? 1'u32 : 0'u32)
+            if .noBackwardPrediction() do
+                source = list
+            elif .header.collocatedFromL0 do
+                source = 1
+            else do
+                source = 0
             if (cast(u32, column.predFlags) & (1'u32 << source)) == 0 do
                 source = source ^ 1
         }

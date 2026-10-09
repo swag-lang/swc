@@ -44,7 +44,14 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
     return result
 }
 
-func drawPolygonSamplesCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, fillColor, strokeColor: Color, points0, points1: [..] Math.Vector2)
+func drawPolygonSamplesCard(painter: *Pixel.Painter,
+                            rect: Math.Rectangle,
+                            title,
+                            subtitle: string,
+                            fillColor,
+                            strokeColor: Color,
+                            points0,
+                            points1: [..] Math.Vector2)
 {
     let body   = drawPanel(painter, rect, title, subtitle)
     let center = body.horzCenter()

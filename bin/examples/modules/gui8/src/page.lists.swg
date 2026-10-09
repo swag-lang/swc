@@ -4,7 +4,10 @@ func createListsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 
-    let left        = createPanel(parent, "Simple ListCtrl", "Single-column rows with icons, hot tracking and multi-selection.", layout.left)
+    let left = createPanel(parent,
+                           "Simple ListCtrl",
+                           "Single-column rows with icons, hot tracking and multi-selection.",
+                           layout.left)
     with let simple = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
     {
         .setFrameForm(.Round)
@@ -18,7 +21,10 @@ func createListsPage(parent: *Wnd)
         discard simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
     simple.computeLayout()
 
-    let right       = createPanel(parent, "Virtual list", "A million logical rows filled on demand by onFillVirtualLine.", layout.right)
+    let right = createPanel(parent,
+                            "Virtual list",
+                            "A million logical rows filled on demand by onFillVirtualLine.",
+                            layout.right)
     let virtualList = ListCtrl.createSimple(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
     virtualList.setFrameForm(.Round)
     virtualList.setSelectionMode(.Single)
@@ -28,12 +34,17 @@ func createListsPage(parent: *Wnd)
     {
         if line == null do
             return
-        line.setItem(0, Format.toString("virtual result %     cache line %", idx, idx % 64), sampleIcon(cast(s32, idx)))
+        line.setItem(0,
+                     Format.toString("virtual result %     cache line %", idx, idx % 64),
+                     sampleIcon(cast(s32, idx)))
     }
 
     virtualList.setVirtualCount(1_000_000)
 
-    let bottom = createPanel(parent, "Checkable rows", "Rows can carry independent check state while preserving list navigation.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Checkable rows",
+                             "Rows can carry independent check state while preserving list navigation.",
+                             layout.bottom)
     let checks = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     checks.setFrameForm(.Square)
     checks.setSelectionMode(.Multi)

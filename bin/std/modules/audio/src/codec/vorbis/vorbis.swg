@@ -1021,11 +1021,15 @@ private impl Codec
         {
             let low       = floor.lowNeighbor[index]
             let high      = floor.highNeighbor[index]
-            let predicted = renderPoint(cast(s32, floor.posts[low]), cast(s32, floor.posts[high]), posts[][low], posts[][high], cast(s32, floor.posts[index]))
-            let highRoom  = cast(s32, range) - predicted
-            let lowRoom   = predicted
-            let room      = Math.min(highRoom, lowRoom) * 2
-            var value     = posts[][index]
+            let predicted = renderPoint(cast(s32, floor.posts[low]),
+                                        cast(s32, floor.posts[high]),
+                                        posts[][low],
+                                        posts[][high],
+                                        cast(s32, floor.posts[index]))
+            let highRoom = cast(s32, range) - predicted
+            let lowRoom  = predicted
+            let room     = Math.min(highRoom, lowRoom) * 2
+            var value    = posts[][index]
             if value
             {
                 if value >= room do

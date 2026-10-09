@@ -9,25 +9,22 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
+- Updated: 2026-10-09 13:46 — Code generation variable payloads and the JIT address cache are flat now.
 - Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
   and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
-  escape state, code generation payloads, value numbering, loop rotation and unrolling labels,
-  stack offsets, sanitizer counts, linker tables). These remain, each needing a design change:
-  - `CodeGen::variablePayloads_` (one node per local of every lowered function): callers keep
-    pointers to the stored payload across later insertions, so a flat table needs stable
-    payload storage that does not outlive the job.
+  escape state, code generation node and variable payloads, value numbering, loop rotation and
+  unrolling labels, stack offsets, sanitizer counts, inline binding uses, linker tables, the JIT
+  address cache). These remain, each needing a design change:
   - `resolveFunctionCandidates` rebuilds the winner's `CallArgMapping` after every candidate
     built and dropped one; keeping it in `Candidate` copies two inline vectors per attempt.
   - `SanitizerState::regs` and `stack` are copied at every stored chain head; merges and reports
     iterate them, so a flat replacement must keep the iteration order that diagnostics follow.
-  - `JITRelocationPatchContext::resolvedFunctionAddresses` is keyed by function pointer; the
-    flat tables in `PointerSet.h` are keyed by 32-bit values.
   - `formatFunctionWhereBindings` formats type names for every `where` evaluation, though only a
     failure reads them; the ambient part reads sema context at formatting time.
   - `TypeInfo::makeArrayAfterFirstDimension` allocates dimension vectors for every step of
     multi-dimensional indexing, then usually finds the type already interned.
-- Next: take the code generation payloads first (every local of every function): arena storage
-  scoped to the code generation job behind a flat pointer-keyed index.
+- Next: the sanitizer state maps, which every function with a sanity guard copies at each join;
+  the replacement must keep the order merges and reports iterate them in.
 - Complete when: each item is replaced with identical output and its owning suites green, or
   recorded here as not worth the change it needs.
 - Related: compiler.core.060.

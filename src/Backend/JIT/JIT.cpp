@@ -81,8 +81,10 @@ namespace
     {
         // One flat table, allocated when the first constant is walked; most functions name a
         // few string constants, and a node-based set paid an allocation for each of them.
-        StampedKeySet                                       visitedConstantAllocations;
-        std::unordered_map<const SymbolFunction*, uint64_t> resolvedFunctionAddresses;
+        StampedKeySet visitedConstantAllocations;
+        // Resolved addresses are never null, so a null entry reads as absent. Function
+        // relocations fill it; a node-based map allocated a node for each of them.
+        PointerMap<SymbolFunction, void> resolvedFunctionAddresses;
     };
 
     struct RuntimeExceptionDiagnosticInfo
@@ -387,10 +389,9 @@ namespace
 
         if (patchContext)
         {
-            const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
-            if (cacheIt != patchContext->resolvedFunctionAddresses.end())
+            if (void* cached = patchContext->resolvedFunctionAddresses.find(&targetFunction))
             {
-                outFunctionAddress = reinterpret_cast<void*>(cacheIt->second);
+                outFunctionAddress = cached;
                 return true;
             }
         }
@@ -443,7 +444,7 @@ namespace
             return false;
 
         if (patchContext)
-            patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, reinterpret_cast<uint64_t>(outFunctionAddress));
+            patchContext->resolvedFunctionAddresses.set(&targetFunction, outFunctionAddress);
 
         return true;
     }
@@ -726,10 +727,9 @@ namespace
         outTargetAddress = 0;
         if (patchContext)
         {
-            const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
-            if (cacheIt != patchContext->resolvedFunctionAddresses.end())
+            if (void* cached = patchContext->resolvedFunctionAddresses.find(&targetFunction))
             {
-                outTargetAddress = cacheIt->second;
+                outTargetAddress = reinterpret_cast<uint64_t>(cached);
                 return Result::Continue;
             }
         }
@@ -759,7 +759,7 @@ namespace
 
         outTargetAddress = reinterpret_cast<uint64_t>(targetAddress);
         if (patchContext)
-            patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, outTargetAddress);
+            patchContext->resolvedFunctionAddresses.set(&targetFunction, targetAddress);
 
         return outTargetAddress != 0 ? Result::Continue : Result::Error;
     }
@@ -1162,7 +1162,6 @@ namespace
         SWC_ASSERT(basePtr != nullptr);
 
         JITRelocationPatchContext patchContext;
-        patchContext.resolvedFunctionAddresses.reserve(relocations.size());
 
         for (const MicroRelocation& reloc : relocations)
         {

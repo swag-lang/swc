@@ -9,11 +9,12 @@ func addIcoCard(card: *DecoderCard, source: Image, size: s32, pixelFormat: Pixel
     try encodeCard(card, "variant.ico", title, encoding, sourceVariant(resized, pixelFormat, withAlpha))
 }
 
+#[Swag.Propagate]
 func buildIcoPage() fail
 {
-    let source = try loadSource("controller.ico")
-    try addIcoCard(&g_Cards[PageIco][0], source, 64, .RGB8, false)
-    try addIcoCard(&g_Cards[PageIco][1], source, 96, .BGR8, false)
-    try addIcoCard(&g_Cards[PageIco][2], source, 128, .RGBA8, true)
-    try addIcoCard(&g_Cards[PageIco][3], source, 256, .BGRA8, true)
+    let source = loadSource("controller.ico")
+    addIcoCard(&g_Cards[PageIco][0], source, 64, .RGB8, false)
+    addIcoCard(&g_Cards[PageIco][1], source, 96, .BGR8, false)
+    addIcoCard(&g_Cards[PageIco][2], source, 128, .RGBA8, true)
+    addIcoCard(&g_Cards[PageIco][3], source, 256, .BGRA8, true)
 }

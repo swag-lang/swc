@@ -407,24 +407,25 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 // The audio stays in the file: opening verifies every page and records where each run of pages
 // starts and how many sample frames it completes. The codec receives the header pages as its
 // configuration and the runs as its packets.
+#[Swag.Propagate]
 func openFile(path: string)->SoundFile fail
 {
     var walker: Walker
-    walker.source = try ByteSource.openFile(path)
+    walker.source = ByteSource.openFile(path)
     walker.table  = buildChecksumTable()
 
-    let info  = try findStream(&walker)
-    let start = try skipHeaders(&walker, &info)
-    let total = try indexRuns(&walker, &info)
+    let info  = findStream(&walker)
+    let start = skipHeaders(&walker, &info)
+    let total = indexRuns(&walker, &info)
     if walker.packets.isEmpty() do
         fail InvalidFormatError{"Ogg stream carries no sound page"}
 
     var config: Array'u8
     config.resize(start)
-    try walker.source.seek(0)
-    try walker.source.readExact(config.toSlice())
+    walker.source.seek(0)
+    walker.source.readExact(config.toSlice())
     walker.source.close()
 
     let encoding = info.kind == .Vorbis ? SoundFileEncoding.Vorbis : SoundFileEncoding.Opus
-    return try SoundFile.openPacketStream(path, encoding, info.sampleRate, info.channels, total, walker.packets.toSlice(), config.toSlice(), {leadingTrimFrames: info.preSkip, speakerMask: info.speakerMask})
+    return SoundFile.openPacketStream(path, encoding, info.sampleRate, info.channels, total, walker.packets.toSlice(), config.toSlice(), {leadingTrimFrames: info.preSkip, speakerMask: info.speakerMask})
 }

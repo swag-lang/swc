@@ -85,16 +85,17 @@ public func packetEncodingNeedsConfig(encoding: SoundFileEncoding)->bool
 // of the packet header rather than decoding the packet. `packet` needs to hold the header only,
 // not the whole access unit. Vorbis and Opus packets do not carry their duration in a way this
 // can read alone; a container measures them through [[Audio.PacketDurationProbe]].
+#[Swag.Propagate]
 public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)->u32 fail
 {
     switch encoding
     {
     case .AacLc:              return 1024
-    case .Ac3:                return try Dolby.ac3PacketFrameCount(packet)
-    case .Eac3:               return try Dolby.eac3PacketFrameCount(packet)
-    case .Dts:                return try Dts.packetFrameCount(packet)
-    case .Flac:               return try Flac.packetFrameCount(packet)
-    case .Mp3:                return try Mp3.packetFrameCount(packet)
+    case .Ac3:                return Dolby.ac3PacketFrameCount(packet)
+    case .Eac3:               return Dolby.eac3PacketFrameCount(packet)
+    case .Dts:                return Dts.packetFrameCount(packet)
+    case .Flac:               return Flac.packetFrameCount(packet)
+    case .Mp3:                return Mp3.packetFrameCount(packet)
     case .AdpcmMs, .AdpcmIma: fail UnsupportedFormatError{"ADPCM block durations follow from the WAVE format, not from the block"}
     case .Vorbis, .Opus:      fail UnsupportedFormatError{"Vorbis and Opus durations need the stream configuration, not the packet alone"}
     default:                  fail UnsupportedFormatError{"unsupported packetized sound encoding"}

@@ -15,24 +15,25 @@ namespace WinFsp
     }
 
     // Binds every WinFsp export the mount uses, and fails when one is missing.
+    #[Swag.Propagate]
     func resolveWinFspApi() fail
     {
-        let setSecurity = try winFspExport("FspSetSecurityDescriptor")
-        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn, try winFspExport("FspFileSystemCreate"))
-        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn, try winFspExport("FspFileSystemDelete"))
-        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn, try winFspExport("FspFileSystemSetMountPoint"))
-        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn, try winFspExport("FspFileSystemRemoveMountPoint"))
-        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn, try winFspExport("FspFileSystemStartDispatcher"))
-        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn, try winFspExport("FspFileSystemStopDispatcher"))
-        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn, try winFspExport("FspFileSystemAddDirInfo"))
-        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn, try winFspExport("FspFileSystemSetOperationGuardStrategyF"))
+        let setSecurity = winFspExport("FspSetSecurityDescriptor")
+        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn, winFspExport("FspFileSystemCreate"))
+        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn, winFspExport("FspFileSystemDelete"))
+        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn, winFspExport("FspFileSystemSetMountPoint"))
+        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn, winFspExport("FspFileSystemRemoveMountPoint"))
+        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn, winFspExport("FspFileSystemStartDispatcher"))
+        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn, winFspExport("FspFileSystemStopDispatcher"))
+        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn, winFspExport("FspFileSystemAddDirInfo"))
+        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn, winFspExport("FspFileSystemSetOperationGuardStrategyF"))
         g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn, setSecurity)
         g_WinFsp.setSecurityAddress       = setSecurity
-        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn, try winFspExport("FspDeleteSecurityDescriptor"))
-        g_WinFsp.registerServer           = cast(WinFspRegistrationFn, try winFspExport("DllRegisterServer"))
-        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn, try winFspExport("DllUnregisterServer"))
-        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn, try winFspExport("FspDebugLogSetHandle"))
-        g_WinFsp.startService             = cast(FspFsctlStartServiceFn, try winFspExport("FspFsctlStartService"))
+        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn, winFspExport("FspDeleteSecurityDescriptor"))
+        g_WinFsp.registerServer           = cast(WinFspRegistrationFn, winFspExport("DllRegisterServer"))
+        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn, winFspExport("DllUnregisterServer"))
+        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn, winFspExport("FspDebugLogSetHandle"))
+        g_WinFsp.startService             = cast(FspFsctlStartServiceFn, winFspExport("FspFsctlStartService"))
     }
 
     // A log file of the temporary directory, or of the working directory when Windows gives none.

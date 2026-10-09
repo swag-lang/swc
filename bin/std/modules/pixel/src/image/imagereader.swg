@@ -229,13 +229,14 @@ public impl ImageReader
     }
 
     // Loads a file into owned storage and indexes its images.
+    #[Swag.Propagate]
     func load(fileName: string, options: DecodeOptions = {})->ImageReader fail
     {
-        var file = try File.MappedFile.open(fileName)
-        if options.maxInputBytes and (try file.size()) > options.maxInputBytes do
+        var file = File.MappedFile.open(fileName)
+        if options.maxInputBytes and file.size() > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
-        let region = try file.mapAll()
-        return try decode(fileName, region.bytes(), options)
+        let region = file.mapAll()
+        return decode(fileName, region.bytes(), options)
     }
 
     // Decodes a zero-based image index, failing for a closed reader or an out-of-range index.

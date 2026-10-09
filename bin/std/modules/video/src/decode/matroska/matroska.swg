@@ -766,18 +766,19 @@ private impl Layout
         return result
     }
 
+    #[Swag.Propagate]
     mtd parseMetadataElement(cursor: *Cursor, offset: u64, expectedId: u32, segment: Element) fail
     {
-        try cursor.seek(offset)
-        let element = try cursor.readElement(segment.end)
+        cursor.seek(offset)
+        let element = cursor.readElement(segment.end)
         if element.id != expectedId do
             fail InvalidFormatError{"Matroska seek entry points to the wrong element"}
         if expectedId == InfoId do
-            try .parseInfo(cursor, element)
+            .parseInfo(cursor, element)
         elif expectedId == TracksId do
-            try .parseTracks(cursor, element)
+            .parseTracks(cursor, element)
         else do
-            try .parseCues(cursor, element)
+            .parseCues(cursor, element)
     }
 
     mtd parseHeader(cursor: *Cursor, header: Element) fail
@@ -867,15 +868,16 @@ private impl Layout
     }
 
     // Reads only cue timestamps and cluster offsets for the selected picture track.
+    #[Swag.Propagate]
     mtd parseCues(cursor: *Cursor, cues: Element) fail
     {
-        try cursor.seek(cues.data)
+        cursor.seek(cues.data)
         while cursor.position < cues.end
         {
-            let element = try cursor.readElement(cues.end)
+            let element = cursor.readElement(cues.end)
             if element.id == CuePointId do
-                try .parseCuePoint(cursor, element)
-            try cursor.seek(element.end)
+                .parseCuePoint(cursor, element)
+            cursor.seek(element.end)
         }
     }
 
@@ -939,31 +941,32 @@ private impl Layout
         return .segment.data + relative
     }
 
+    #[Swag.Propagate]
     mtd parseTrack(cursor: *Cursor, entry: Element, track: *Track) fail
     {
-        try cursor.seek(entry.data)
+        cursor.seek(entry.data)
         while cursor.position < entry.end
         {
-            let element = try cursor.readElement(entry.end)
+            let element = cursor.readElement(entry.end)
             switch element.id
             {
-            case TrackNumberId:              track.number = try cursor.readUnsigned(element)
-            case TrackTypeId:                track.kind = try cursor.readUnsigned(element)
-            case FlagEnabledId:              track.isEnabled = try cursor.readUnsigned(element) != 0
-            case FlagDefaultId:              track.isDefault = try cursor.readUnsigned(element) != 0
-            case DefaultDurationId:          track.defaultDuration = try cursor.readUnsigned(element)
-            case NameId:                     track.name = try cursor.readString(element)
-            case LanguageId, LanguageIetfId: track.language = try cursor.readString(element)
-            case CodecIdId:                  track.codecId = try cursor.readString(element)
-            case CodecPrivateId:             track.codecPrivate = try cursor.readBytes(element)
-            case CodecDelayId:               track.codecDelay = try cursor.readUnsigned(element)
-            case SeekPreRollId:              track.seekPreRoll = try cursor.readUnsigned(element)
-            case ContentEncodingsId:         try .parseContentEncodings(cursor, element, track)
-            case VideoId:                    try .parseVideo(cursor, element, track)
-            case AudioId:                    try .parseAudio(cursor, element, track)
+            case TrackNumberId:              track.number = cursor.readUnsigned(element)
+            case TrackTypeId:                track.kind = cursor.readUnsigned(element)
+            case FlagEnabledId:              track.isEnabled = cursor.readUnsigned(element) != 0
+            case FlagDefaultId:              track.isDefault = cursor.readUnsigned(element) != 0
+            case DefaultDurationId:          track.defaultDuration = cursor.readUnsigned(element)
+            case NameId:                     track.name = cursor.readString(element)
+            case LanguageId, LanguageIetfId: track.language = cursor.readString(element)
+            case CodecIdId:                  track.codecId = cursor.readString(element)
+            case CodecPrivateId:             track.codecPrivate = cursor.readBytes(element)
+            case CodecDelayId:               track.codecDelay = cursor.readUnsigned(element)
+            case SeekPreRollId:              track.seekPreRoll = cursor.readUnsigned(element)
+            case ContentEncodingsId:         .parseContentEncodings(cursor, element, track)
+            case VideoId:                    .parseVideo(cursor, element, track)
+            case AudioId:                    .parseAudio(cursor, element, track)
             }
 
-            try cursor.seek(element.end)
+            cursor.seek(element.end)
         }
 
         if not track.number do

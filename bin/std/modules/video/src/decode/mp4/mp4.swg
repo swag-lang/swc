@@ -293,14 +293,15 @@ private impl Layout
 impl Track
 {
     // Reads the media hierarchy of one track.
+    #[Swag.Propagate]
     mtd parse(source: *ByteSource, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = try readBox(source, end)
+            let box = readBox(source, end)
             if box.kind == MediaId do
-                try .parseMedia(source, box.end)
-            try source.seek(box.end)
+                .parseMedia(source, box.end)
+            source.seek(box.end)
         }
     }
 
@@ -355,44 +356,47 @@ impl Track
             fail InvalidFormatError{"MP4 video track has a zero timescale"}
     }
 
+    #[Swag.Propagate]
     mtd parseHandler(source: *ByteSource, end: u64) fail
     {
         if 12 > end - source.position() do
             fail InvalidFormatError{"MP4 handler box is truncated"}
-        discard try readFullBox(source)
-        try source.skip(4)
-        .handler = try source.readBigEndian'u32()
+        discard readFullBox(source)
+        source.skip(4)
+        .handler = source.readBigEndian'u32()
     }
 
+    #[Swag.Propagate]
     mtd parseMediaInfo(source: *ByteSource, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = try readBox(source, end)
+            let box = readBox(source, end)
             if box.kind == SampleTableId do
-                try .parseSampleTable(source, box.end)
-            try source.seek(box.end)
+                .parseSampleTable(source, box.end)
+            source.seek(box.end)
         }
     }
 
+    #[Swag.Propagate]
     mtd parseSampleTable(source: *ByteSource, end: u64) fail
     {
         while source.position() + BoxHeaderSize <= end
         {
-            let box = try readBox(source, end)
+            let box = readBox(source, end)
             switch box.kind
             {
-            case SampleDescriptionId: try .parseSampleDescription(source, box.end)
-            case TimeToSampleId:      try .parseTimeToSample(source, box.end)
-            case SampleToChunkId:     try .parseSampleToChunk(source, box.end)
-            case SampleSizeId:        try .parseSampleSizes(source, box.end)
-            case ChunkOffsetId:       try .parseChunkOffsets(source, box.end, false)
-            case ChunkOffset64Id:     try .parseChunkOffsets(source, box.end, true)
-            case SyncSampleId:        try .parseSyncSamples(source, box.end)
-            case CompositionId:       try .parseCompositionOffsets(source, box.end)
+            case SampleDescriptionId: .parseSampleDescription(source, box.end)
+            case TimeToSampleId:      .parseTimeToSample(source, box.end)
+            case SampleToChunkId:     .parseSampleToChunk(source, box.end)
+            case SampleSizeId:        .parseSampleSizes(source, box.end)
+            case ChunkOffsetId:       .parseChunkOffsets(source, box.end, false)
+            case ChunkOffset64Id:     .parseChunkOffsets(source, box.end, true)
+            case SyncSampleId:        .parseSyncSamples(source, box.end)
+            case CompositionId:       .parseCompositionOffsets(source, box.end)
             }
 
-            try source.seek(box.end)
+            source.seek(box.end)
         }
     }
 
@@ -477,39 +481,40 @@ impl Track
     }
 
     // Reads an MPEG-4 systems descriptor and retains an AAC AudioSpecificConfig.
+    #[Swag.Propagate]
     mtd parseAacElementaryStreamDescriptor(source: *ByteSource, end: u64)->bool fail
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
-        discard try readFullBox(source)
-        let es = try readDescriptor(source, end)
+        discard readFullBox(source)
+        let es = readDescriptor(source, end)
         if es.tag != 3 or 3 > es.end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
-        try source.skip(2)
-        let flags = try source.readByte()
+        source.skip(2)
+        let flags = source.readByte()
         if flags & 0x80 do
-            try .skipDescriptorBytes(source, es.end, 2)
+            .skipDescriptorBytes(source, es.end, 2)
         if flags & 0x40
         {
             if source.position() >= es.end do
                 fail InvalidFormatError{"MP4 elementary-stream URL length is truncated"}
-            try .skipDescriptorBytes(source, es.end, try source.readByte())
+            .skipDescriptorBytes(source, es.end, source.readByte())
         }
 
         if flags & 0x20 do
-            try .skipDescriptorBytes(source, es.end, 2)
+            .skipDescriptorBytes(source, es.end, 2)
 
-        let decoder = try readDescriptor(source, es.end)
+        let decoder = readDescriptor(source, es.end)
         if decoder.tag != 4 or 13 > decoder.end - source.position() do
             fail InvalidFormatError{"MP4 decoder-configuration descriptor is truncated"}
-        if try source.readByte() != Mpeg4AudioObjectType do
+        if source.readByte() != Mpeg4AudioObjectType do
             return false
-        try source.skip(12)
-        let specific = try readDescriptor(source, decoder.end)
+        source.skip(12)
+        let specific = readDescriptor(source, decoder.end)
         if specific.tag != 5 or specific.end <= source.position() do
             fail InvalidFormatError{"MP4 AAC track has no AudioSpecificConfig"}
         .aacConfig.resize(specific.end - source.position())
-        try source.readExact(.aacConfig.toSlice())
+        source.readExact(.aacConfig.toSlice())
         return true
     }
 
@@ -597,34 +602,35 @@ impl Track
     }
 
     // Reads enough of `esds` to identify its decoder object type.
+    #[Swag.Propagate]
     mtd parseElementaryStreamDescriptor(source: *ByteSource, end: u64)->bool fail
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
-        discard try readFullBox(source)
-        let es = try readDescriptor(source, end)
+        discard readFullBox(source)
+        let es = readDescriptor(source, end)
         if es.tag != 3 or 3 > es.end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream descriptor is truncated"}
 
-        try source.skip(2)
-        let flags = try source.readByte()
+        source.skip(2)
+        let flags = source.readByte()
         if flags & 0x80 do
-            try .skipDescriptorBytes(source, es.end, 2)
+            .skipDescriptorBytes(source, es.end, 2)
         if flags & 0x40
         {
             if source.position() >= es.end do
                 fail InvalidFormatError{"MP4 elementary-stream URL length is truncated"}
-            let urlSize = try source.readByte()
-            try .skipDescriptorBytes(source, es.end, urlSize)
+            let urlSize = source.readByte()
+            .skipDescriptorBytes(source, es.end, urlSize)
         }
 
         if flags & 0x20 do
-            try .skipDescriptorBytes(source, es.end, 2)
+            .skipDescriptorBytes(source, es.end, 2)
 
-        let decoder = try readDescriptor(source, es.end)
+        let decoder = readDescriptor(source, es.end)
         if decoder.tag != 4 or source.position() >= decoder.end do
             fail InvalidFormatError{"MP4 decoder-configuration descriptor is truncated"}
-        return try source.readByte() == JpegObjectType
+        return source.readByte() == JpegObjectType
     }
 
     // Skips bytes without leaving their descriptor.
@@ -668,18 +674,19 @@ impl Track
         }
     }
 
+    #[Swag.Propagate]
     mtd parseSampleSizes(source: *ByteSource, end: u64) fail
     {
         if 12 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size box is truncated"}
-        discard try readFullBox(source)
-        let fixedSize = try source.readBigEndian'u32()
-        let count     = try source.readBigEndian'u32()
+        discard readFullBox(source)
+        let fixedSize = source.readBigEndian'u32()
+        let count     = source.readBigEndian'u32()
         if not fixedSize and cast(u64, count) * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size table is truncated"}
         .sizes.resize(count)
         for &size in .sizes do
-            size[] = fixedSize ? fixedSize : try source.readBigEndian'u32()
+            size[] = fixedSize ? fixedSize : source.readBigEndian'u32()
     }
 
     mtd parseChunkOffsets(source: *ByteSource, end: u64, wide: bool) fail

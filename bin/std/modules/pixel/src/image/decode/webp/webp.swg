@@ -432,16 +432,17 @@ internal impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"WebP - Google WebP", ".webp"}
 
+    #[Swag.Propagate]
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        let container = try parseContainer(buffer, options)
+        let container = parseContainer(buffer, options)
         if container.animated
         {
-            var reader = try ImageReader.decode("image.webp", buffer, options)
-            return try reader.read(0)
+            var reader = ImageReader.decode("image.webp", buffer, options)
+            return reader.read(0)
         }
 
-        var result: retval = container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(container, options) : try decodeLossy(container, options)
+        var result: retval = container.image.kind == WEBP_FOURCC_VP8L ? decodeLossless(container, options) : decodeLossy(container, options)
         result.metadata = container.metadata
         return result
     }

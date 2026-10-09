@@ -33,22 +33,23 @@ func scoreNameRecord(platformID, encodingID, languageID: u16)->s32
     return score
 }
 
+#[Swag.Propagate]
 func decodeNameRecord(nameTable: const [..] u8, stringOffset, recordOffset: u64)->String fail
 {
-    let platformID = try readU16(nameTable, recordOffset + 0)
-    let length     = try readU16(nameTable, recordOffset + 8)
-    let offset     = try readU16(nameTable, recordOffset + 10)
-    let raw        = try getSlice(nameTable, stringOffset + offset, length)
+    let platformID = readU16(nameTable, recordOffset + 0)
+    let length     = readU16(nameTable, recordOffset + 8)
+    let offset     = readU16(nameTable, recordOffset + 10)
+    let raw        = getSlice(nameTable, stringOffset + offset, length)
 
     if platformID == 0 or platformID == 3
     {
         if (raw.count & 1) != 0 do
-            try fault(0x91)
+            fault(0x91)
 
         var chars: Array'u16
         chars.resize(raw.count / 2)
         for index in chars.count do
-            chars[index] = try readU16(raw, cast(u64, index) * 2)
+            chars[index] = readU16(raw, cast(u64, index) * 2)
         return Utf8.fromUtf16(chars.toSlice())
     }
 
@@ -318,25 +319,27 @@ func initFaceRecords(faceData: *FaceImpl)
 
 // Rejects an offset table this module cannot read, naming the container it found
 // instead of reporting every one of them as an unknown format.
+#[Swag.Propagate]
 func checkSfntVersion(data: const [..] u8, offset: u64) fail
 {
-    let tag = try readU32(data, offset)
+    let tag = readU32(data, offset)
     if tag == TAG_WOFF or tag == TAG_WOF2 do
-        try fault(0x0E)
+        fault(0x0E)
     if tag != TAG_SFNT and tag != TAG_TRUE and tag != TAG_OTTO do
-        try fault(0x02)
+        fault(0x02)
 }
 
 // Returns how many faces the font data holds: the face count of a `ttcf`
 // collection, and one for a bare font file.
+#[Swag.Propagate]
 func countFacesIn(data: const [..] u8)->u32 fail
 {
     if data.count < 12 do
-        try fault(0x02)
-    if try readU32(data, 0) == TAG_TTCF do
-        return try readU32(data, 8)
+        fault(0x02)
+    if readU32(data, 0) == TAG_TTCF do
+        return readU32(data, 8)
 
-    try checkSfntVersion(data, 0)
+    checkSfntVersion(data, 0)
     return 1
 }
 
@@ -345,24 +348,25 @@ func countFacesIn(data: const [..] u8)->u32 fail
 // A collection stores one such offset per face after a twelve-byte header; every
 // table record inside a member still addresses the whole file, so only the
 // directory moves.
+#[Swag.Propagate]
 func findFaceOffset(data: const [..] u8, faceIndex: u32)->u64 fail
 {
     if data.count < 12 do
-        try fault(0x02)
+        fault(0x02)
 
     var offset = 0'u64
-    if try readU32(data, 0) == TAG_TTCF
+    if readU32(data, 0) == TAG_TTCF
     {
-        if faceIndex >= try readU32(data, 8) do
-            try fault(0x0F)
-        offset = cast(u64, (try readU32(data, 12 + cast(u64, faceIndex) * 4)))
+        if faceIndex >= readU32(data, 8) do
+            fault(0x0F)
+        offset = cast(u64, readU32(data, 12 + cast(u64, faceIndex) * 4))
     }
     elif faceIndex != 0
     {
-        try fault(0x0F)
+        fault(0x0F)
     }
 
-    try checkSfntVersion(data, offset)
+    checkSfntVersion(data, offset)
     return offset
 }
 
@@ -385,16 +389,17 @@ func findTableAt(data: const [..] u8, faceOffset: u64, tag: u32)->const [..] u8?
 //
 // Only the offset table and the 'name' table are read, which is what lets a
 // collection be searched for a family without loading each of its faces in turn.
+#[Swag.Propagate]
 func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 {
-    let faceOffset = try findFaceOffset(data, faceIndex)
-    let nameTable  = try findTableAt(data, faceOffset, TAG_NAME)
+    let faceOffset = findFaceOffset(data, faceIndex)
+    let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
     if not nameTable do
-        try fault(0x91)
+        fault(0x91)
 
     // The guard above raises, but "fault" is an ordinary fallible call: nothing marks it as
     // never returning, so the proof has to be stated here.
-    let familyName = try decodeBestName(nameTable!, NAME_ID_FAMILY)
+    let familyName = decodeBestName(nameTable!, NAME_ID_FAMILY)
     if familyName.isEmpty() do
         return DEFAULT_FAMILY_NAME
     return familyName
@@ -510,74 +515,75 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     initFaceRecords(faceData)
 }
 
+#[Swag.Propagate]
 func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string = "") fail
 {
     let data       = faceData.fontData.toSlice()
-    let faceOffset = try findFaceOffset(data, faceIndex)
+    let faceOffset = findFaceOffset(data, faceIndex)
 
-    let numTables = try readU16(data, faceOffset + 4)
+    let numTables = readU16(data, faceOffset + 4)
     faceData.tables.resize(numTables)
 
     for idx in numTables
     {
         let base = faceOffset + 12 + cast(u64, idx) * 16
-        faceData.tables[idx].tag    = try readU32(data, base + 0)
-        faceData.tables[idx].offset = try readU32(data, base + 8)
-        faceData.tables[idx].length = try readU32(data, base + 12)
+        faceData.tables[idx].tag    = readU32(data, base + 0)
+        faceData.tables[idx].offset = readU32(data, base + 8)
+        faceData.tables[idx].length = readU32(data, base + 12)
     }
 
     let cffTable = findTable(faceData, TAG_CFF)
     if cffTable do
         faceData.outlineSource = .Cff
 
-    let head = try getTableSlice(faceData, TAG_HEAD, 0x8E)
+    let head = getTableSlice(faceData, TAG_HEAD, 0x8E)
     if head.count < 54 do
-        try fault(0xB9)
+        fault(0xB9)
 
-    faceData.unitsPerEm = try readU16(head, 18)
-    faceData.face.setHeader(faceData.unitsPerEm, try readS16(head, 36), try readS16(head, 38), try readS16(head, 40), try readS16(head, 42))
-    faceData.macStyle         = try readU16(head, 44)
-    faceData.indexToLocFormat = try readS16(head, 50)
+    faceData.unitsPerEm = readU16(head, 18)
+    faceData.face.setHeader(faceData.unitsPerEm, readS16(head, 36), readS16(head, 38), readS16(head, 40), readS16(head, 42))
+    faceData.macStyle         = readU16(head, 44)
+    faceData.indexToLocFormat = readS16(head, 50)
 
-    let hhea = try getTableSlice(faceData, TAG_HHEA, 0x8F)
+    let hhea = getTableSlice(faceData, TAG_HHEA, 0x8F)
     if hhea.count < 36 do
-        try fault(0x8F)
+        fault(0x8F)
 
-    let ascender  = try readS16(hhea, 4)
-    let descender = try readS16(hhea, 6)
-    faceData.lineGap = try readS16(hhea, 8)
-    faceData.face.setHorizontalMetrics(ascender, descender, faceData.lineGap, try readS16(hhea, 10))
-    faceData.numLongMetrics = try readU16(hhea, 34)
+    let ascender  = readS16(hhea, 4)
+    let descender = readS16(hhea, 6)
+    faceData.lineGap = readS16(hhea, 8)
+    faceData.face.setHorizontalMetrics(ascender, descender, faceData.lineGap, readS16(hhea, 10))
+    faceData.numLongMetrics = readU16(hhea, 34)
 
-    let maxp = try getTableSlice(faceData, TAG_MAXP, 0x8E)
+    let maxp = getTableSlice(faceData, TAG_MAXP, 0x8E)
     if maxp.count < 6 do
-        try fault(0x8E)
+        fault(0x8E)
 
-    faceData.face.setGlyphCount(try readU16(maxp, 4))
+    faceData.face.setGlyphCount(readU16(maxp, 4))
 
-    try buildGlyphMetrics(faceData)
+    buildGlyphMetrics(faceData)
 
     // A CFF-flavoured OpenType file keeps its outlines in charstrings, so it has neither
     // `glyf` nor the `loca` index into it; everything else it declares is unchanged.
     if faceData.outlineSource == .Cff
     {
         let record = cffTable!
-        faceData.cff = try parseCffFont(try getSlice(data, record.offset, record.length))
+        faceData.cff = parseCffFont(getSlice(data, record.offset, record.length))
     }
     else
     {
-        try buildGlyphLocations(faceData)
+        buildGlyphLocations(faceData)
     }
 
     let isSubset = fallbackFamilyName.count != 0
-    try parseCMap(faceData, isSubset)
+    parseCMap(faceData, isSubset)
     if not faceData.hasCMap and faceData.outlineSource == .Cff do
         buildSyntheticCMap(faceData)
-    try parseNames(faceData, fallbackFamilyName)
-    try parsePost(faceData, isSubset or faceData.outlineSource == .Cff)
-    try parseKern(faceData)
-    try parseGpos(faceData)
-    try parseOS2(faceData)
+    parseNames(faceData, fallbackFamilyName)
+    parsePost(faceData, isSubset or faceData.outlineSource == .Cff)
+    parseKern(faceData)
+    parseGpos(faceData)
+    parseOS2(faceData)
 
     var style = StyleFlag.None
     if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(string, "Bold")) do

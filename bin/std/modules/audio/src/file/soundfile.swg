@@ -302,6 +302,7 @@ impl SoundFile
     // A compressed file is always streamed — keeping it in memory would keep the wrong bytes — so
     // `preloadData` applies to PCM WAV alone; an ADPCM WAV is indexed and streamed like any other
     // compressed source. Unsupported extensions, encodings, and malformed files fail.
+    #[Swag.Propagate]
     func load(path: string, preloadData = true)->SoundFile fail
     {
         let format = findSoundFileFormat(path)
@@ -310,14 +311,14 @@ impl SoundFile
 
         switch #complete SoundFileFormats[format].loader
         {
-        case .Flac: return try Flac.openFile(path)
-        case .Mp3:  return try Mp3.openFile(path)
-        case .Aac:  return try Aac.openFile(path)
-        case .Ac3:  return try Dolby.openElementaryStream(path, .Ac3)
-        case .Eac3: return try Dolby.openElementaryStream(path, .Eac3)
-        case .Dts:  return try Dts.openElementaryStream(path)
-        case .Ogg:  return try Ogg.openFile(path)
-        case .Wav:  return try Wav.openFile(path, preloadData)
+        case .Flac: return Flac.openFile(path)
+        case .Mp3:  return Mp3.openFile(path)
+        case .Aac:  return Aac.openFile(path)
+        case .Ac3:  return Dolby.openElementaryStream(path, .Ac3)
+        case .Eac3: return Dolby.openElementaryStream(path, .Eac3)
+        case .Dts:  return Dts.openElementaryStream(path)
+        case .Ogg:  return Ogg.openFile(path)
+        case .Wav:  return Wav.openFile(path, preloadData)
         }
     }
 

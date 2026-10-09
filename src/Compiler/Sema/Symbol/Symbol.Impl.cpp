@@ -7,6 +7,8 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Symbol.Enum.h"
 #include "Symbol.Function.h"
@@ -22,6 +24,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // An interface method the block never declared, and the interface gives no default body for.
+    // A method the block did declare but that an earlier error left ignored has been reported.
+    void reportMissingInterfaceMethod(Sema& sema, const SymbolImpl& impl, const SymbolStruct& objectStruct, const SymbolInterface& itfSym, const SymbolFunction& interfaceMethod)
+    {
+        if (impl.findFirstSymbol(interfaceMethod.idRef(), true))
+            return;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_method_not_implemented, impl);
+        diag.addArgument(Diagnostic::ARG_WHAT, objectStruct.name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_SYM, interfaceMethod.name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_VALUE, itfSym.name(sema.ctx()));
+        auto&             note    = diag.addElement(DiagnosticId::sema_note_interface_method_declared_here);
+        const SourceView& srcView = sema.compiler().srcView(interfaceMethod.srcViewRef());
+        note.setSrcView(&srcView);
+        note.addSpan(srcView.tokenCodeRange(sema.ctx(), interfaceMethod.tokRef()), "");
+        diag.report(sema.ctx());
+    }
+
     TypeRef interfaceMethodTableTypeRef(TaskContext& ctx, uint32_t count)
     {
         const std::array<uint64_t, 1> dims = {count};
@@ -310,8 +330,8 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         const SymbolFunction* implMethod = resolveInterfaceMethodTarget(ctx, *interfaceMethod);
         if (!implMethod)
         {
-            // A broken impl method can be ignored after an earlier semantic error.
-            // In that case the interface table is incomplete and must fail quietly.
+            if (!missingMethodReported_.exchange(true))
+                reportMissingInterfaceMethod(sema, *this, *objectStruct, *itfSym, *interfaceMethod);
             return Result::Error;
         }
 

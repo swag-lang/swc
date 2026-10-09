@@ -337,7 +337,10 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = me|(button) { window.setFolderSameKind(button.isChecked) }
         }
 
-        with .folderHistoryButton = IconButton.create(folderHeader, .theme().icon(.History, rowIconSize), {0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize}, flags: .CenterContent)
+        with .folderHistoryButton = IconButton.create(folderHeader,
+                                                      .theme().icon(.History, rowIconSize),
+                                                      {0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize},
+                                                      flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.z  = 8

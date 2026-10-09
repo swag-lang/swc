@@ -298,7 +298,8 @@ impl Inflate
 
             if value < 256
             {
-                if count - .outputStart >= .outputLimit do
+                let outputBytes = count - .outputStart
+                if outputBytes >= .outputLimit do
                     fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
                 if count >= cap
                 {
@@ -380,7 +381,8 @@ impl Inflate
                 fail InvalidFormatError{"bad distance"}
             if not length do
                 continue
-            if count - .outputStart > .outputLimit or length > .outputLimit - (count - .outputStart) do
+            let outputBytes = count - .outputStart
+            if outputBytes > .outputLimit or length > .outputLimit - outputBytes do
                 fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
 
             // One vector of slack past the match lets the copy below run in whole
@@ -483,7 +485,8 @@ impl Inflate
                 .stream.revert()
                 if uncompressedLen > .stream.size() - .stream.curByte do
                     fail InvalidFormatError{"stored block is longer than the remaining input"}
-                if result.count - .outputStart > .outputLimit or uncompressedLen > .outputLimit - (result.count - .outputStart) do
+                let outputBytes = result.count - .outputStart
+                if outputBytes > .outputLimit or uncompressedLen > .outputLimit - outputBytes do
                     fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
                 let newSlice = Swag.makeSlice(.stream.currentPointer(), uncompressedLen)
                 .adler.update(newSlice)

@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
@@ -155,9 +156,9 @@ namespace
         ioFlags.canCopy     = ioFlags.canCopy && fieldFlags.canCopy;
     }
 
-    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting);
+    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, WalkPath<TypeRef>& visiting);
 
-    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRefRec(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRefRec(TaskContext& ctx, TypeRef typeRef, WalkPath<TypeRef>& visiting)
     {
         if (typeRef.isInvalid())
             return {};
@@ -179,7 +180,7 @@ namespace
                 return {};
         }
 
-        if (!visiting.insert(typeRef).second)
+        if (!visiting.insert(typeRef))
             return {};
 
         const TypeGen::LifecycleFlags flags = lifecycleFlagsOfTypeRec(ctx, type, visiting);
@@ -187,7 +188,7 @@ namespace
         return flags;
     }
 
-    TypeGen::LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, std::unordered_set<TypeRef>& visiting)
+    TypeGen::LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, WalkPath<TypeRef>& visiting)
     {
         TypeGen::LifecycleFlags flags;
         for (const TypeRef fieldTypeRef : fieldTypes)
@@ -195,7 +196,7 @@ namespace
         return flags;
     }
 
-    TypeRef owningDropTypeRefRec(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    TypeRef owningDropTypeRefRec(TaskContext& ctx, TypeRef typeRef, RefSet<TypeRef>& visited)
     {
         if (typeRef.isInvalid())
             return TypeRef::invalid();
@@ -212,20 +213,20 @@ namespace
             default:
                 return TypeRef::invalid();
         }
-        if (!visiting.insert(typeRef).second)
+        if (!visited.insert(typeRef))
             return TypeRef::invalid();
 
         if (type.isAlias())
-            return owningDropTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
+            return owningDropTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), visited);
 
         if (type.isArray())
-            return owningDropTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visiting);
+            return owningDropTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visited);
 
         if (type.isAggregateStruct() || type.isAggregateArray())
         {
             for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
             {
-                const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, fieldTypeRef, visiting);
+                const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, fieldTypeRef, visited);
                 if (owningTypeRef.isValid())
                     return owningTypeRef;
             }
@@ -247,7 +248,7 @@ namespace
         {
             if (!field)
                 continue;
-            const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, field->typeRef(), visiting);
+            const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, field->typeRef(), visited);
             if (owningTypeRef.isValid())
                 return owningTypeRef;
         }
@@ -255,7 +256,7 @@ namespace
         return TypeRef::invalid();
     }
 
-    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting)
+    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, WalkPath<TypeRef>& visiting)
     {
         if (type.isVoid() || type.isNull())
             return {.canCopy = false};
@@ -1082,13 +1083,13 @@ namespace
 
 TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type)
 {
-    std::unordered_set<TypeRef> visiting;
+    WalkPath<TypeRef> visiting;
     return lifecycleFlagsOfTypeRec(ctx, type, visiting);
 }
 
 TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfTypeRef(TaskContext& ctx, const TypeRef typeRef)
 {
-    std::unordered_set<TypeRef> visiting;
+    WalkPath<TypeRef> visiting;
     return lifecycleFlagsOfTypeRefRec(ctx, typeRef, visiting);
 }
 
@@ -1097,8 +1098,8 @@ TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfTypeRef(TaskContext& ctx, const
 // for another reason, or not denied at all.
 TypeRef TypeGen::owningDropTypeRef(TaskContext& ctx, const TypeRef typeRef)
 {
-    std::unordered_set<TypeRef> visiting;
-    return owningDropTypeRefRec(ctx, typeRef, visiting);
+    RefSet<TypeRef> visited;
+    return owningDropTypeRefRec(ctx, typeRef, visited);
 }
 
 void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry)

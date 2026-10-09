@@ -306,6 +306,10 @@ wraparound rule: calculate `matchIndex = (i + offset) % values.length`, then com
 next item or half the sequence length for its opposite. See the two inverse-captcha examples in
 `bin/examples/modules/aoc2017/`.
 
+When a loop counts matching records, `if matches do total += 1` shows the counting rule directly.
+Avoid converting the predicate to an integer just to add it to the total; that hides the condition
+inside a numeric conversion.
+
 Calls use a separate `single-line-argument-column-limit` of 100 columns. It breaks an editable,
 authored single-line call when the entire source line exceeds the limit, while preserving calls
 already laid out across lines. Short calls and their argument order stay as written; literals,

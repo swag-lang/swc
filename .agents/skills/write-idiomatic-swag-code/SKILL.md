@@ -536,6 +536,8 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   `LoadFailed`) instead of comparing it with bare integers.
 - Replace a cascade of nested conditionals that maps two small indices to a value with a constant
   table indexed by them, when the table shows the whole mapping at once.
+- Count a condition with `if condition do total += 1` instead of casting its boolean result to an
+  integer; the conditional states the counting rule directly.
 - In a circular scan, name a derived partner index when wrapping arithmetic obscures the relation
   being compared. Keep the offset visible as well when it defines the algorithm (for example, the
   next item versus the item halfway around); do not inline modulo arithmetic into the comparison.

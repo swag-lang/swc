@@ -66,7 +66,7 @@ bool SymbolTable::makeEntry(Entry& outEntry, const TaskContext& ctx, const Nativ
     MachineCode::ResolvedDebugSourceRange resolved;
     if (info.machineCode->tryResolveDebugSourceRangeAtOffset(ctx, resolved, 0) && resolved.source.sourceFile)
     {
-        outEntry.file = Utf8(resolved.source.sourceFile->path());
+        outEntry.file = resolved.source.sourceFile->genericPathString();
         outEntry.line = resolved.source.codeRange.line;
     }
 

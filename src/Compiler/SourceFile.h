@@ -43,6 +43,7 @@ public:
 
     const fs::path&             path() const { return path_; }
     const Utf8&                 pathString() const;
+    const Utf8&                 genericPathString() const;
     Utf8                        name() const { return path_.filename().string().c_str(); }
     const Utf8&                 formattedFileName(const TaskContext* ctx) const;
     Utf8                        formatFileLocation(const TaskContext* ctx, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0) const;
@@ -97,6 +98,8 @@ private:
 
     mutable std::once_flag       pathStringOnce_;
     mutable Utf8                 pathString_;
+    mutable std::once_flag       genericPathStringOnce_;
+    mutable Utf8                 genericPathString_;
     mutable std::mutex           formattedFileNamesMutex_;
     mutable std::array<Utf8, 3>  formattedFileNames_;
     mutable std::array<bool, 3>  formattedFileNamesComputed_ = {};

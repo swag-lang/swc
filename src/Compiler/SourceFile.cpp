@@ -38,6 +38,14 @@ const Utf8& SourceFile::pathString() const
     return pathString_;
 }
 
+// The same path with forward slashes, as the runtime symbol table names a function's file: every
+// function of a linked artifact asks for it.
+const Utf8& SourceFile::genericPathString() const
+{
+    std::call_once(genericPathStringOnce_, [this] { genericPathString_ = Utf8(path_); });
+    return genericPathString_;
+}
+
 const Utf8& SourceFile::formattedFileName(const TaskContext* ctx) const
 {
     const auto displayMode = ctx ? ctx->cmdLine().filePathDisplay : FileSystem::FilePathDisplayMode::AsIs;

@@ -156,13 +156,51 @@ bool MicroBuilder::pruneDeadRelocations()
     return removed != 0;
 }
 
+namespace
+{
+    template<typename T>
+    const T& tableOrEmpty(const std::optional<T>& table)
+    {
+        static const T EMPTY;
+        return table ? *table : EMPTY;
+    }
+
+    template<typename T>
+    T& ensureTable(std::optional<T>& table)
+    {
+        if (!table)
+            table.emplace();
+        return *table;
+    }
+}
+
+const std::unordered_map<MicroReg, SmallVector<MicroReg>>& MicroBuilder::virtualRegForbiddenPhysRegs() const
+{
+    return tableOrEmpty(virtualRegForbiddenPhysRegs_);
+}
+
+const std::unordered_set<MicroReg>& MicroBuilder::preservedVirtualCopyRegs() const
+{
+    return tableOrEmpty(preservedVirtualCopyRegs_);
+}
+
+const std::unordered_set<MicroReg>& MicroBuilder::immutableStorageBases() const
+{
+    return tableOrEmpty(immutableStorageBases_);
+}
+
+const std::unordered_set<MicroReg>& MicroBuilder::forwardableStorageBases() const
+{
+    return tableOrEmpty(forwardableStorageBases_);
+}
+
 void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg)
 {
     SWC_ASSERT(virtualReg.isVirtual());
     SWC_ASSERT(forbiddenReg.isValid());
     SWC_ASSERT(!forbiddenReg.isVirtual());
 
-    auto& forbiddenRegs = virtualRegForbiddenPhysRegs_[virtualReg];
+    auto& forbiddenRegs = ensureTable(virtualRegForbiddenPhysRegs_)[virtualReg];
     for (const auto reg : forbiddenRegs)
     {
         if (reg == forbiddenReg)
@@ -178,7 +216,7 @@ void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegS
     if (forbiddenRegs.empty())
         return;
 
-    auto& storedRegs = virtualRegForbiddenPhysRegs_[virtualReg];
+    auto& storedRegs = ensureTable(virtualRegForbiddenPhysRegs_)[virtualReg];
     for (const auto forbiddenReg : forbiddenRegs)
     {
         SWC_ASSERT(forbiddenReg.isValid());
@@ -193,8 +231,10 @@ void MicroBuilder::mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg t
     if (!fromReg.isVirtual() || !toReg.isVirtual() || fromReg == toReg)
         return;
 
-    const auto it = virtualRegForbiddenPhysRegs_.find(fromReg);
-    if (it == virtualRegForbiddenPhysRegs_.end())
+    if (!virtualRegForbiddenPhysRegs_)
+        return;
+    const auto it = virtualRegForbiddenPhysRegs_->find(fromReg);
+    if (it == virtualRegForbiddenPhysRegs_->end())
         return;
 
     addVirtualRegForbiddenPhysRegs(toReg, it->second.span());
@@ -208,8 +248,10 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg ph
     if (!physReg.isValid() || physReg.isVirtual())
         return false;
 
-    const auto it = virtualRegForbiddenPhysRegs_.find(virtualReg);
-    if (it == virtualRegForbiddenPhysRegs_.end())
+    if (!virtualRegForbiddenPhysRegs_)
+        return false;
+    const auto it = virtualRegForbiddenPhysRegs_->find(virtualReg);
+    if (it == virtualRegForbiddenPhysRegs_->end())
         return false;
 
     for (const auto forbiddenReg : it->second)
@@ -233,12 +275,12 @@ void MicroBuilder::preserveVirtualCopy(MicroReg virtualReg)
     if (!virtualReg.isVirtual())
         return;
 
-    preservedVirtualCopyRegs_.insert(virtualReg);
+    ensureTable(preservedVirtualCopyRegs_).insert(virtualReg);
 }
 
 bool MicroBuilder::shouldPreserveVirtualCopy(MicroReg virtualReg) const
 {
-    return virtualReg.isVirtual() && preservedVirtualCopyRegs_.contains(virtualReg);
+    return virtualReg.isVirtual() && preservedVirtualCopyRegs_ && preservedVirtualCopyRegs_->contains(virtualReg);
 }
 
 void MicroBuilder::markImmutableStorageBase(MicroReg virtualReg, bool forwardable)
@@ -246,15 +288,15 @@ void MicroBuilder::markImmutableStorageBase(MicroReg virtualReg, bool forwardabl
     if (!virtualReg.isVirtualInt())
         return;
 
-    immutableStorageBases_.insert(virtualReg);
+    ensureTable(immutableStorageBases_).insert(virtualReg);
     if (forwardable)
-        forwardableStorageBases_.insert(virtualReg);
+        ensureTable(forwardableStorageBases_).insert(virtualReg);
 }
 
 uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
 {
     uint32_t nextIndex = 1;
-    for (const auto key : virtualRegForbiddenPhysRegs_ | std::views::keys)
+    for (const auto key : virtualRegForbiddenPhysRegs() | std::views::keys)
     {
         if (!key.isVirtualInt())
             continue;
@@ -267,7 +309,7 @@ uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
 
     // A pass that mints a register must not reuse the index of a marked
     // base the optimizer has since removed: the mark would follow the index.
-    for (const MicroReg key : immutableStorageBases_)
+    for (const MicroReg key : immutableStorageBases())
     {
         if (key.index() < MicroReg::K_MAX_INDEX)
             nextIndex = std::max(nextIndex, key.index() + 1);
@@ -1096,15 +1138,10 @@ void MicroBuilder::releaseMemory()
     controlFlowGraphStorageRevision_ = 0;
     hasControlFlowGraph_             = false;
 
-    // These tables only grow before release, so an empty table still has its initial capacity.
-    if (!virtualRegForbiddenPhysRegs_.empty())
-        virtualRegForbiddenPhysRegs_ = decltype(virtualRegForbiddenPhysRegs_){};
-    if (!preservedVirtualCopyRegs_.empty())
-        preservedVirtualCopyRegs_ = decltype(preservedVirtualCopyRegs_){};
-    if (!immutableStorageBases_.empty())
-        immutableStorageBases_ = decltype(immutableStorageBases_){};
-    if (!forwardableStorageBases_.empty())
-        forwardableStorageBases_ = decltype(forwardableStorageBases_){};
+    virtualRegForbiddenPhysRegs_.reset();
+    preservedVirtualCopyRegs_.reset();
+    immutableStorageBases_.reset();
+    forwardableStorageBases_.reset();
 }
 
 SWC_END_NAMESPACE();

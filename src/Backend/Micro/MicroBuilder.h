@@ -80,8 +80,8 @@ public:
     bool                                                       pruneDeadRelocations();
     std::vector<MicroRelocation>&                              codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>&                        codeRelocations() const { return relocations_; }
-    const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const { return virtualRegForbiddenPhysRegs_; }
-    const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const { return preservedVirtualCopyRegs_; }
+    const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const;
+    const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const;
     void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
     void                                                       addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
     void                                                       mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg);
@@ -96,8 +96,8 @@ public:
     // may hand on to a callee as they are: a callee takes them by value too, and cannot write
     // through the address either.
     void                                markImmutableStorageBase(MicroReg virtualReg, bool forwardable = false);
-    const std::unordered_set<MicroReg>& immutableStorageBases() const { return immutableStorageBases_; }
-    const std::unordered_set<MicroReg>& forwardableStorageBases() const { return forwardableStorageBases_; }
+    const std::unordered_set<MicroReg>& immutableStorageBases() const;
+    const std::unordered_set<MicroReg>& forwardableStorageBases() const;
     uint32_t                            nextVirtualIntRegIndexHint() const;
     const MicroControlFlowGraph&        controlFlowGraph();
     void                                invalidateControlFlowGraph();
@@ -177,25 +177,27 @@ private:
     std::pair<MicroInstrRef, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);
     MicroInstr&                           addInstruction(MicroInstrOpcode op, uint8_t numOperands);
 
-    TaskContext*                                        ctx_ = nullptr;
-    MicroStorage                                        instructions_;
-    MicroOperandStorage                                 operands_;
-    MicroBuilderFlags                                   flags_ = MicroBuilderFlagsE::Zero;
-    DebugSourceInfo                                     currentDebugSourceInfo_;
-    const Symbol*                                       printSymbol_             = nullptr;
-    bool                                                usesIntReturnRegOnRet_   = true;
-    bool                                                usesFloatReturnRegOnRet_ = true;
-    std::vector<Utf8>                                   printPassOptions_;
-    Runtime::BuildCfgBackend                            backendBuildCfg_{};
-    std::vector<MicroInstrRef>                          labels_;
-    std::vector<MicroRelocation>                        relocations_;
-    std::unordered_map<MicroReg, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
-    std::unordered_set<MicroReg>                        preservedVirtualCopyRegs_;
-    std::unordered_set<MicroReg>                        immutableStorageBases_;
-    std::unordered_set<MicroReg>                        forwardableStorageBases_;
-    MicroControlFlowGraph                               controlFlowGraph_;
-    uint64_t                                            controlFlowGraphStorageRevision_ = 0;
-    bool                                                hasControlFlowGraph_             = false;
+    TaskContext*                 ctx_ = nullptr;
+    MicroStorage                 instructions_;
+    MicroOperandStorage          operands_;
+    MicroBuilderFlags            flags_ = MicroBuilderFlagsE::Zero;
+    DebugSourceInfo              currentDebugSourceInfo_;
+    const Symbol*                printSymbol_             = nullptr;
+    bool                         usesIntReturnRegOnRet_   = true;
+    bool                         usesFloatReturnRegOnRet_ = true;
+    std::vector<Utf8>            printPassOptions_;
+    Runtime::BuildCfgBackend     backendBuildCfg_{};
+    std::vector<MicroInstrRef>   labels_;
+    std::vector<MicroRelocation> relocations_;
+    // A builder is made for every function lowered, and an empty node-based table still
+    // allocates: each of these exists once something is recorded in it.
+    std::optional<std::unordered_map<MicroReg, SmallVector<MicroReg>>> virtualRegForbiddenPhysRegs_;
+    std::optional<std::unordered_set<MicroReg>>                        preservedVirtualCopyRegs_;
+    std::optional<std::unordered_set<MicroReg>>                        immutableStorageBases_;
+    std::optional<std::unordered_set<MicroReg>>                        forwardableStorageBases_;
+    MicroControlFlowGraph                                              controlFlowGraph_;
+    uint64_t                                                           controlFlowGraphStorageRevision_ = 0;
+    bool                                                               hasControlFlowGraph_             = false;
 };
 
 SWC_END_NAMESPACE();

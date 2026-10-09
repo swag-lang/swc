@@ -1003,7 +1003,13 @@ namespace
             return;
         const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
         if (!argNumber)
+        {
+            // The receiver of 'value.method()' has no position between the parentheses: the
+            // message names the function it is the receiver of instead.
+            if (!fn.name(ctx).empty() && !fn.name(ctx).starts_with("__"))
+                diagElement.addArgument(Diagnostic::ARG_RECEIVER_FN, fn.name(ctx));
             return;
+        }
 
         diagElement.addArgument(Diagnostic::ARG_INDEX, argNumber);
         if (!fn.name(ctx).empty())

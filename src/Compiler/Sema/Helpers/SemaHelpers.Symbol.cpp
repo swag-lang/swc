@@ -1054,13 +1054,21 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, leftRef, symbols.span());
     }
 
-    Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, const SymbolMap* owner = nullptr)
+    Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, const SymbolMap* owner = nullptr, TypeRef ownerTypeRef = TypeRef::invalid())
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
         auto                diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, idRef);
         if (owner)
+        {
             SemaError::addUnknownMemberArguments(sema, diag, idRef, *owner);
+        }
+        else if (ownerTypeRef.isValid())
+        {
+            // A type that has no scope of its own ('s32', a slice) still names what was searched.
+            diag.addArgument(Diagnostic::ARG_WHAT, Utf8{"type"});
+            diag.addArgument(Diagnostic::ARG_TYPE, ownerTypeRef);
+        }
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1649,7 +1657,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     SWC_RESULT(tryBindUfcsFreeFunctions(sema, memberRef, node, idRef, tokNameRef, allowOverloadSet, ufcsHandled));
     if (ufcsHandled)
         return Result::SkipChildren;
-    return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+    return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef, nullptr, nodeLeftView.typeRef());
 }
 
 SWC_END_NAMESPACE();

@@ -33,7 +33,10 @@ impl BuildArtifact
         // answers the module setup from its cache.
         try .folder.open()
         try writeIfChanged(Path.combine(.folder.root, "module.swg"), .request.moduleSource())
-        try writeIfChanged(Path.combine(.folder.root, "src", "probe.swg"), .request.stage.isEmpty() ? .request.source : inspectedSource(.request.source, .request.stage))
+        try writeIfChanged(Path.combine(.folder.root, "src", "probe.swg"),
+                           .request.stage.isEmpty()
+                           ? .request.source
+                           : inspectedSource(.request.source, .request.stage))
         let native = .request.kind != .Microcode
         if native do
             try writeIfChanged(Path.combine(.folder.root, "src", "entry.swg"), .request.kind == .Gui ? GuiEntry : ShadeEntry)
@@ -41,8 +44,11 @@ impl BuildArtifact
         // Builds the module out of process, so a snippet that crashes the compiler cannot take the
         // interface down, and gives up on a build the reader cancelled or that never ends.
         let outDir    = Path.combine(.folder.session, "out")
-        let arguments = Format.toString("build --num-cores % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview", compilerWorkerCount(), .folder.root, outDir)
-        var process   = try startPiped(compilerPath(), arguments)
+        let arguments = Format.toString("build --num-cores % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview",
+                                        compilerWorkerCount(),
+                                        .folder.root,
+                                        outDir)
+        var process = try startPiped(compilerPath(), arguments)
         defer retireProcess(&process)
 
         var watch: Time.Stopwatch

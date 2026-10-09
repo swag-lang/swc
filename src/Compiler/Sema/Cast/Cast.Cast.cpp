@@ -1756,6 +1756,14 @@ DiagnosticArguments Cast::callSiteErrorArguments(const TaskContext& ctx, const C
     // no position between the parentheses. Leaving them out lets the message fall back to its
     // form without the callee instead of printing an empty name or a number the user never wrote.
     DiagnosticArguments arguments;
+    if (callSite.initialized)
+    {
+        const std::string_view name = callSite.initialized->name(ctx);
+        if (!name.empty() && !name.starts_with("__"))
+            arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INIT_SYM, Utf8{name}});
+        return arguments;
+    }
+
     if (callSite.returnValue)
     {
         // A closure or a lambda has a generated name the reader never wrote.
@@ -1764,8 +1772,18 @@ DiagnosticArguments Cast::callSiteErrorArguments(const TaskContext& ctx, const C
         return arguments;
     }
 
-    if (!callSite.function || callSite.function->name(ctx).empty() || !callSite.argNumber)
+    if (!callSite.function || callSite.function->name(ctx).empty())
         return arguments;
+
+    // The receiver of 'value.method()' has no position between the parentheses: the message
+    // names the function it is the receiver of instead.
+    if (!callSite.argNumber)
+    {
+        if (!callSite.function->name(ctx).starts_with("__"))
+            arguments.push_back(DiagnosticArgument{Diagnostic::ARG_RECEIVER_FN, Utf8{callSite.function->name(ctx)}});
+        return arguments;
+    }
+
     arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, callSite.argNumber});
     arguments.push_back(DiagnosticArgument{Diagnostic::ARG_SYM, Utf8{callSite.function->name(ctx)}});
     return arguments;

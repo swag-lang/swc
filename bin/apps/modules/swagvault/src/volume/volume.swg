@@ -470,7 +470,12 @@ impl Volume
     // Creates one hidden volume inside a contiguous free outer extent. The outer handle is
     // consumed before returning: a writable outer and its hidden view can never coexist here.
     // Creating another hidden volume replaces the previous hidden access and may overwrite it.
-    func createHidden(path: string, outerPassword, hiddenPassword: const [..] u8, requestedSize: u64, progress: *VolumeProgress? = null, outerReserve: u64 = MinimumBlocks * BlockSize)->Volume fail
+    func createHidden(path: string,
+                      outerPassword,
+                      hiddenPassword: const [..] u8,
+                      requestedSize: u64,
+                      progress: *VolumeProgress? = null,
+                      outerReserve: u64 = MinimumBlocks * BlockSize)->Volume fail
     {
         if requestedSize < MinimumSize do
             fail volumeError(.SizeTooSmall)

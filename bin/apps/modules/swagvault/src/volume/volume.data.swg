@@ -43,7 +43,13 @@ impl Volume
             let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
             let ciphertext   = batch.records[recordOffset + Crypto.NonceSize until recordOffset + Crypto.NonceSize + BlockSize]
             let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
-            let opened       = catch Crypto.open(batch.keys, DataKind, batch.physical + index, nonce, ciphertext, tag, batch.plain[plainOffset until plainOffset + BlockSize]) as openError
+            let opened       = catch Crypto.open(batch.keys,
+                                                 DataKind,
+                                                 batch.physical + index,
+                                                 nonce,
+                                                 ciphertext,
+                                                 tag,
+                                                 batch.plain[plainOffset until plainOffset + BlockSize]) as openError
             batch.keepFirstError(openError)
             if openError == null and not opened do
                 Atomic.add(&batch.invalidTags, 1)
@@ -77,7 +83,12 @@ impl Volume
             let nonce        = batch.records[recordOffset until recordOffset + Crypto.NonceSize]
             let ciphertext   = batch.records[recordOffset + Crypto.NonceSize until recordOffset + Crypto.NonceSize + BlockSize]
             let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
-            discard catch Core.Crypto.chacha20Poly1305Seal(batch.keys.record, nonce, batch.plain[plainOffset until plainOffset + BlockSize], Crypto.associatedData(DataKind, batch.physical + index), ciphertext, tag) as sealError
+            discard catch Core.Crypto.chacha20Poly1305Seal(batch.keys.record,
+                                                           nonce,
+                                                           batch.plain[plainOffset until plainOffset + BlockSize],
+                                                           Crypto.associatedData(DataKind, batch.physical + index),
+                                                           ciphertext,
+                                                           tag) as sealError
             batch.keepFirstError(sealError)
         }
 

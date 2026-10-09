@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 struct SemaNodeView;
 class Sema;
 class Diagnostic;
+class Symbol;
 class SymbolFunction;
 
 enum class CastSpecialOpPayloadKind : uint8_t
@@ -55,12 +56,14 @@ struct UserDefinedLiteralSuffixInfo
     std::string_view suffix;
 };
 
-// Which argument of which call a parameter cast converts, or which function a returned value is
-// converted for. Only a failed cast reads it, to name the callee and the argument in its message,
-// so the message arguments are built there instead of once per argument of every call.
+// Which argument of which call a parameter cast converts, which function a returned value is
+// converted for, or which declaration an initial value is converted for. Only a failed cast reads
+// it, to name them in its message, so the message arguments are built there instead of once per
+// argument of every call.
 struct CastCallSite
 {
     const SymbolFunction* function    = nullptr;
+    const Symbol*         initialized = nullptr;
     uint32_t              argNumber   = 0;
     bool                  returnValue = false;
 };

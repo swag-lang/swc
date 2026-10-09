@@ -22,7 +22,25 @@ func viewerPlugin()->Viewer.Plugin
         .probe        = &pluginProbe
         .textual      = true
         .smokeFixture = "sample.cpp"
-        .addSelectors(".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
+        .addSelectors([
+            ".swg", ".swgs", ".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".inl",
+            ".ipp", ".cs", ".java", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts",
+            ".go", ".rs", ".py", ".pyw", ".pyi", ".rb", ".rake", ".gemspec", ".sh", ".bash", ".zsh",
+            ".fish", ".ps1", ".psm1", ".psd1", ".php", ".phtml", ".lua", ".sql", ".json", ".jsonc",
+            ".json5", ".xml", ".xsd", ".xsl", ".xslt", ".csproj", ".vcxproj", ".props", ".targets",
+            ".css", ".scss", ".sass", ".less", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
+            ".properties", ".kt", ".kts", ".swift", ".dart", ".r", ".pl", ".pm", ".vb", ".glsl",
+            ".vert", ".frag", ".geom", ".comp", ".hlsl", ".fx", ".cmake", ".bat", ".cmd", ".htm",
+            ".html", ".shtml", ".xht", ".xhtml", ".asm", ".s", ".incasm", ".zig", ".nim", ".nims",
+            ".nimble", ".hs", ".lhs", ".scala", ".sc", ".groovy", ".gvy", ".gy", ".gsh", ".ex",
+            ".exs", ".erl", ".hrl", ".clj", ".cljs", ".cljc", ".edn", ".jl", ".f", ".for", ".f77",
+            ".f90", ".f95", ".f03", ".f08", ".pas", ".pp", ".lpr", ".d", ".di", ".m", ".mm", ".tcl",
+            ".tk", ".awk", ".vim", ".tex", ".sty", ".cls", ".bib", ".proto", ".graphql", ".gql",
+            ".gradle", ".mk", ".mak", ".make", "makefile", "gnumakefile", "bsdmakefile",
+            ".dockerfile", "dockerfile", "containerfile", "cmakelists.txt", "justfile", "rakefile",
+            "gemfile", "vagrantfile", "podfile", "brewfile", "jenkinsfile", "meson.build",
+            ".gitignore", ".gitattributes", ".gitmodules", ".editorconfig", ".clang-format",
+            ".clang-tidy", ".prettierrc", ".eslintrc", ".npmrc", ".yarnrc", ".env", ".nix"])
     }
 
     return result
@@ -291,17 +309,20 @@ impl Panel
         let loadedHeight = .editor.loadedDocumentHeight()
 
         var residentHeight = 0'f32
-        if loadedHeight > 0 do
+        if loadedHeight > 0
+        {
             residentHeight = loadedHeight
+        }
         elif .fileSize
         {
             let scaledBytes = .virtualHeight * cast(f32, .bytesRead - .residentStart)
             residentHeight = scaledBytes / cast(f32, .fileSize)
         }
-        let residentEnd    = .residentOffsetY + residentHeight
-        let before         = .residentStart > 0 and
-                             newPosition.y < oldPosition.y and
-                             newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+
+        let residentEnd = .residentOffsetY + residentHeight
+        let before      = .residentStart > 0 and
+                          newPosition.y < oldPosition.y and
+                          newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
         let after = .hasMore() and
                     .bytesRead - .residentStart >= ResidentWindowSize and
                     newPosition.y > oldPosition.y and

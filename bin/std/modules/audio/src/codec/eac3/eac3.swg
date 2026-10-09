@@ -250,6 +250,7 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     return result
 }
 
+#[Swag.Inline]
 private func isDefaultEac3CouplingJoin(absoluteSubband: u32)->bool => absoluteSubband == 8 or
                                                                       absoluteSubband == 10 or
                                                                       absoluteSubband == 11 or

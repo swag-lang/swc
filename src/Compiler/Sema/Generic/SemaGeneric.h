@@ -103,10 +103,32 @@ namespace SemaGeneric
             std::span<const GenericResolvedArg> resolvedArgs;
         };
 
+        // The instantiation a where failure names. Formatting it reads type and constant names that
+        // only a failure prints, so it is put together on the first read. The enclosing generic
+        // instances it also names are taken when the inputs are built, so the text does not depend
+        // on when it is read.
+        class WhereBindingText
+        {
+        public:
+            WhereBindingText() = default;
+            explicit WhereBindingText(Utf8 text);
+
+            void        capture(const Sema& sema, const SymbolFunction& function, std::span<const GenericParamDesc> params = {}, std::span<const GenericResolvedArg> resolvedArgs = {});
+            const Utf8& get(Sema& sema) const;
+
+        private:
+            const SymbolFunction*               function_ = nullptr;
+            std::span<const GenericParamDesc>   params_;
+            std::span<const GenericResolvedArg> resolvedArgs_;
+            SmallVector<const SymbolFunction*>  ambientFunctions_;
+            mutable Utf8                        text_;
+            mutable bool                        formatted_ = false;
+        };
+
         struct FunctionWhereInputs
         {
             SmallVector<SemaClone::ParamBinding> bindings;
-            Utf8                                 bindingText;
+            WhereBindingText                     bindingText;
         };
 
         enum class GenericEvalReadyKind : uint8_t
@@ -145,7 +167,7 @@ namespace SemaGeneric
         bool bindGenericTypeParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode);
         bool bindGenericValueParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode);
 
-        Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef);
+        Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const WhereBindingText& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef);
         Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef);
     }
 }

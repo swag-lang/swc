@@ -737,15 +737,7 @@ namespace SemaGeneric
             appendOwnerStructBindingText(sema, function, seenIds, out);
         }
 
-        void appendAmbientBindingText(Sema& sema, SmallVector<IdentifierRef>& seenIds, Utf8& out)
-        {
-            SmallVector<const SymbolFunction*> functions;
-            collectAmbientGenericFunctions(sema, functions);
-            for (const SymbolFunction* function : functions)
-                appendFunctionContextBindingText(sema, *function, seenIds, out);
-        }
-
-        Utf8 formatFunctionWhereBindings(Sema& sema, const SymbolFunction& function, std::span<const GenericParamDesc> params = {}, std::span<const GenericResolvedArg> resolvedArgs = {})
+        Utf8 formatFunctionWhereBindings(Sema& sema, const SymbolFunction& function, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, std::span<const SymbolFunction* const> ambientFunctions)
         {
             Utf8                       out;
             SmallVector<IdentifierRef> seenIds;
@@ -755,7 +747,8 @@ namespace SemaGeneric
             else
                 appendFunctionInstanceBindingText(sema, function, seenIds, out);
 
-            appendAmbientBindingText(sema, seenIds, out);
+            for (const SymbolFunction* ambientFunction : ambientFunctions)
+                appendFunctionContextBindingText(sema, *ambientFunction, seenIds, out);
             return out;
         }
 
@@ -763,16 +756,43 @@ namespace SemaGeneric
 
     namespace Internal
     {
+        WhereBindingText::WhereBindingText(Utf8 text) :
+            text_(std::move(text)),
+            formatted_(true)
+        {
+        }
+
+        void WhereBindingText::capture(const Sema& sema, const SymbolFunction& function, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs)
+        {
+            function_     = &function;
+            params_       = params;
+            resolvedArgs_ = resolvedArgs;
+            formatted_    = false;
+            collectAmbientGenericFunctions(sema, ambientFunctions_);
+        }
+
+        const Utf8& WhereBindingText::get(Sema& sema) const
+        {
+            if (!formatted_)
+            {
+                if (function_)
+                    text_ = formatFunctionWhereBindings(sema, *function_, params_, resolvedArgs_, ambientFunctions_.span());
+                formatted_ = true;
+            }
+
+            return text_;
+        }
+
         void buildFunctionWhereInputs(Sema& sema, const SymbolFunction& function, FunctionWhereInputs& outInputs)
         {
             buildFunctionInstanceContextBindings(sema, function, outInputs.bindings);
-            outInputs.bindingText = formatFunctionWhereBindings(sema, function);
+            outInputs.bindingText.capture(sema, function);
         }
 
         void buildFunctionWhereInputs(Sema& sema, const SymbolFunction& function, const ResolvedGenericBindingSource& source, FunctionWhereInputs& outInputs)
         {
             buildResolvedGenericContextBindings(sema, function, source, outInputs.bindings);
-            outInputs.bindingText = formatFunctionWhereBindings(sema, function, source.params, source.resolvedArgs);
+            outInputs.bindingText.capture(sema, function, source.params, source.resolvedArgs);
         }
     }
 

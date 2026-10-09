@@ -19,6 +19,7 @@ namespace SemaGeneric
         using Internal::genericDeclNodeRef;
         using Internal::genericFunctionDecl;
         using Internal::ResolvedGenericBindingSource;
+        using Internal::WhereBindingText;
 
         SpanRef genericStructWhereSpan(const SymbolStruct& root)
         {
@@ -64,7 +65,7 @@ namespace SemaGeneric
             SpanRef                                  spanWhereRef = SpanRef::invalid();
             AstNodeRef                               mainRef      = AstNodeRef::invalid();
             std::string_view                         symbolName;
-            const Utf8*                              bindingText = nullptr;
+            const WhereBindingText*                  bindingText = nullptr;
             GenericConstraintDiagnosticIds           diagIds;
         };
 
@@ -74,7 +75,7 @@ namespace SemaGeneric
             TypeRef                      typeRef = TypeRef::invalid();
         };
 
-        GenericConstraintContext makeFunctionConstraintContext(Sema& sema, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef errorNodeRef, const Utf8& bindingText)
+        GenericConstraintContext makeFunctionConstraintContext(Sema& sema, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef errorNodeRef, const WhereBindingText& bindingText)
         {
             GenericConstraintContext context;
             context.root        = &function;
@@ -92,7 +93,7 @@ namespace SemaGeneric
             return context;
         }
 
-        GenericConstraintContext makeStructConstraintContext(Sema& sema, const SymbolStruct& root, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef errorNodeRef, const Utf8& bindingText)
+        GenericConstraintContext makeStructConstraintContext(Sema& sema, const SymbolStruct& root, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef errorNodeRef, const WhereBindingText& bindingText)
         {
             GenericConstraintContext context;
             context.root         = &root;
@@ -109,9 +110,12 @@ namespace SemaGeneric
             return context;
         }
 
-        bool hasGenericConstraintBindingText(const GenericConstraintContext& context)
+        const Utf8* genericConstraintBindingText(Sema& sema, const GenericConstraintContext& context)
         {
-            return context.bindingText && !context.bindingText->empty();
+            if (!context.bindingText)
+                return nullptr;
+            const Utf8& text = context.bindingText->get(sema);
+            return text.empty() ? nullptr : &text;
         }
 
         DiagnosticId genericConstraintDiagId(const GenericConstraintContext& context, const GenericConstraintOutcomeKind outcomeKind)
@@ -163,10 +167,10 @@ namespace SemaGeneric
             auto diag = SemaError::report(sema, diagId, context.mainRef);
             diag.addArgument(Diagnostic::ARG_SYM, context.symbolName);
 
-            if (hasGenericConstraintBindingText(context))
+            if (const Utf8* bindingText = genericConstraintBindingText(sema, context))
             {
                 diag.addNote(DiagnosticId::sema_note_generic_instantiated_with);
-                diag.last().addArgument(Diagnostic::ARG_VALUES, *context.bindingText);
+                diag.last().addArgument(Diagnostic::ARG_VALUES, *bindingText);
             }
 
             if (whereRef.isValid())
@@ -189,8 +193,8 @@ namespace SemaGeneric
                 outFailure.noteCodeRef = sema.node(whereRef).codeRef();
                 outFailure.valueStr    = genericConstraintText(sema, whereRef);
             }
-            if (hasGenericConstraintBindingText(context))
-                outFailure.addArgument(Diagnostic::ARG_VALUES, *context.bindingText);
+            if (const Utf8* bindingText = genericConstraintBindingText(sema, context))
+                outFailure.addArgument(Diagnostic::ARG_VALUES, *bindingText);
         }
 
         Result reportGenericConstraintFailure(Sema& sema, const GenericConstraintContext& context, AstNodeRef whereRef, const GenericConstraintOutcome& outcome)
@@ -249,7 +253,7 @@ namespace SemaGeneric
             return decl && decl->spanConstraintsRef.isValid();
         }
 
-        Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef)
+        Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const WhereBindingText& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef)
         {
             const GenericConstraintContext context = makeFunctionConstraintContext(sema, function, bindings, errorNodeRef, bindingText);
             return evaluateGenericWhereConstraints(sema, outSatisfied, context, outFailure);
@@ -264,9 +268,9 @@ namespace SemaGeneric
             SmallVector<SemaClone::ParamBinding> bindings;
             buildResolvedGenericContextBindings(sema, root, source, bindings);
 
-            const Utf8                     bindingText = params.empty() ? Utf8{} : formatResolvedGenericBindings(sema, source);
-            const GenericConstraintContext context     = makeStructConstraintContext(sema, root, bindings.span(), errorNodeRef, bindingText);
-            bool                           satisfied   = true;
+            const WhereBindingText         bindingText{params.empty() ? Utf8{} : formatResolvedGenericBindings(sema, source)};
+            const GenericConstraintContext context   = makeStructConstraintContext(sema, root, bindings.span(), errorNodeRef, bindingText);
+            bool                           satisfied = true;
             return evaluateGenericWhereConstraints(sema, satisfied, context, nullptr);
         }
     }

@@ -38,12 +38,29 @@ func drawBlendModeSample(painter: *Pixel.Painter, rect: Math.Rectangle, sample: 
     // preview as an alpha-bearing surface immediately before its artistic pass.
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.fillRoundRect(preview, 12, 12, Brush.createLinearGradient(preview.x, preview.y, preview.right(), preview.bottom(), Argb.RoyalBlue, Argb.Goldenrod))
+    {
+        let backdrop = Brush.createLinearGradient(preview.x,
+                                                  preview.y,
+                                                  preview.right(),
+                                                  preview.bottom(),
+                                                  Argb.RoyalBlue,
+                                                  Argb.Goldenrod)
+        painter.fillRoundRect(preview, 12, 12, backdrop)
+    }
 
     painter.setColorMaskColor()
     painter.setBlendingMode(sample.mode)
-    painter.fillCircle(preview.x + preview.width * 0.62, preview.y + preview.height * 0.47, preview.height * 0.32, Color.fromArgb(210, Argb.DeepPink))
-    painter.fillRoundRect(preview.x + preview.width * 0.16, preview.y + preview.height * 0.54, preview.width * 0.58, preview.height * 0.27, 14, 14, Color.fromArgb(176, Argb.MediumSeaGreen))
+    painter.fillCircle(preview.x + preview.width * 0.62,
+                       preview.y + preview.height * 0.47,
+                       preview.height * 0.32,
+                       Color.fromArgb(210, Argb.DeepPink))
+    painter.fillRoundRect(preview.x + preview.width * 0.16,
+                          preview.y + preview.height * 0.54,
+                          preview.width * 0.58,
+                          preview.height * 0.27,
+                          14,
+                          14,
+                          Color.fromArgb(176, Argb.MediumSeaGreen))
     painter.setBlendingMode(.Alpha)
 
     painter.drawRoundRect(preview, 12, 12, Color.fromArgb(56, Argb.MidnightBlue), 1)
@@ -63,7 +80,11 @@ func drawBlendModeGrid(painter: *Pixel.Painter, samples: const [..] BlendModeSam
     {
         let column = cast(f32, (idx % 4))
         let row    = cast(f32, (idx / 4))
-        let rect   = Math.Rectangle{Left + column * (cardWidth + Gap), Top + row * (cardHeight + Gap), cardWidth, cardHeight}
+        let rect   = Math.Rectangle{
+            Left + column * (cardWidth + Gap),
+            Top + row * (cardHeight + Gap),
+            cardWidth,
+            cardHeight}
         drawBlendModeSample(painter, rect, sample)
     }
 }

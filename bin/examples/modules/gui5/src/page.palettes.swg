@@ -3,14 +3,20 @@ using Core, Gui, Pixel
 func createPalettesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left   = createPanel(parent, "Generated ramps", "PalettePicker can fill itself from hue, luminance and saturation helpers.", layout.left)
+    let left   = createPanel(parent,
+                             "Generated ramps",
+                             "PalettePicker can fill itself from hue, luminance and saturation helpers.",
+                             layout.left)
     {
         discard createPaletteRamp(left, "Hue families", {24, 118, 360, 68}, 0, g_Color)
         discard createPaletteRamp(left, "Luminance from selected", {24, 226, 360, 68}, 1, g_Color)
         discard createPaletteRamp(left, "Saturation from selected", {24, 334, 360, 68}, 2, g_Color)
     }
 
-    let right = createPanel(parent, "Designed palettes", "Named sets and accent groups are regular palette entries with the same selection signal.", layout.right)
+    let right = createPanel(parent,
+                            "Designed palettes",
+                            "Named sets and accent groups are regular palette entries with the same selection signal.",
+                            layout.right)
     {
         let warm = PalettePicker.create(right, {24, 118, 360, 68})
         warm.setItemMetrics(30, 6)
@@ -41,7 +47,10 @@ func createPalettesPage(parent: *Wnd)
         discard createPaletteRamp(right, "Alpha set", {24, 334, 360, 68}, 3, g_Color, false)
     }
 
-    let bottom = createPanel(parent, "Palette preview", "Selected palette colors keep the current alpha unless the alpha palette is used.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Palette preview",
+                             "Selected palette colors keep the current alpha unless the alpha palette is used.",
+                             layout.bottom)
     {
         discard createPreview(bottom, {18, 86, layout.bottom.width - 36, layout.bottom.height - 104}, &onDerivedPreviewEvent)
     }

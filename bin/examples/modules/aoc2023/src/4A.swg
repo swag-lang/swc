@@ -44,21 +44,21 @@ func day4A()
     var total = 0'u64
     for l in lines
     {
-        let first = Tokenize.split(l[], ':'u8)
-        let game  = Tokenize.split(first[1], '|'u8)
-        let val0  = Tokenize.split(game[0], ' 'u8)
-        let val1  = Tokenize.split(game[1], ' 'u8)
+        let cardRecord          = Tokenize.split(l[], ':'u8)
+        let numberLists         = Tokenize.split(cardRecord[1], '|'u8)
+        let winningNumberTokens = Tokenize.split(numberLists[0], ' 'u8)
+        let drawnNumberTokens   = Tokenize.split(numberLists[1], ' 'u8)
 
-        var v0, v1: Array's32
-        for v in val0 do
-            v0.add(expect StrConv.toS32(v))
-        for v in val1 do
-            v1.add(expect StrConv.toS32(v))
+        var winningNumbers, drawnNumbers: Array's32
+        for number in winningNumberTokens do
+            winningNumbers.add(expect StrConv.toS32(number))
+        for number in drawnNumberTokens do
+            drawnNumbers.add(expect StrConv.toS32(number))
 
         var score = 1
-        for v in v1
+        for number in drawnNumbers
         {
-            if v0.contains(v) do
+            if winningNumbers.contains(number) do
                 score <<= 1
         }
 

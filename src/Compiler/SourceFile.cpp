@@ -29,6 +29,15 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
 
 SourceFile::~SourceFile() = default;
 
+// The narrow spelling of the path, as '#file' and every source location constant store it. A
+// function compiled with runtime guards stores one location per guard, so the conversion from
+// the native path is made once per file instead.
+const Utf8& SourceFile::pathString() const
+{
+    std::call_once(pathStringOnce_, [this] { pathString_ = path_.string(); });
+    return pathString_;
+}
+
 const Utf8& SourceFile::formattedFileName(const TaskContext* ctx) const
 {
     const auto displayMode = ctx ? ctx->cmdLine().filePathDisplay : FileSystem::FilePathDisplayMode::AsIs;

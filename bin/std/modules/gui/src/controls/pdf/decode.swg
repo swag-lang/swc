@@ -489,7 +489,9 @@ private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state
 
     var formState = state[]
     let matrixId  = parser.dict(formId, "Matrix")
-    if matrixId != InvalidNode and parser.nodes[matrixId].kind == .Array and parser.nodes[matrixId].values.count >= 6
+    if matrixId != InvalidNode and
+       parser.nodes[matrixId].kind == .Array and
+       parser.nodes[matrixId].values.count >= 6
     {
         let values = parser.nodes[matrixId].values
         var matrix = Transform2{nodeNumber(parser, values[0]), nodeNumber(parser, values[1]), nodeNumber(parser, values[2]), nodeNumber(parser, values[3]), nodeNumber(parser, values[4]), nodeNumber(parser, values[5])}
@@ -501,7 +503,9 @@ private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state
     // outside it, and content built to be trimmed by it would otherwise reach the page as
     // stray marks.
     let boxId = parser.dict(formId, "BBox")
-    if boxId != InvalidNode and parser.nodes[boxId].kind == .Array and parser.nodes[boxId].values.count >= 4
+    if boxId != InvalidNode and
+       parser.nodes[boxId].kind == .Array and
+       parser.nodes[boxId].values.count >= 4
     {
         let box = parser.nodes[boxId].values
         let x0  = nodeNumber(parser, box[0])
@@ -703,7 +707,9 @@ private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: 
         state.strokeWidth = nodeNumber(parser, lineWidth)
 
     let font = parser.dict(entry, "Font")
-    if font != InvalidNode and parser.nodes[font].kind == .Array and parser.nodes[font].values.count >= 2
+    if font != InvalidNode and
+       parser.nodes[font].kind == .Array and
+       parser.nodes[font].values.count >= 2
     {
         let fontId = parser.resolve(parser.nodes[font].values[0])
         for resource in page.fonts where resource.objectId == fontId
@@ -1446,7 +1452,9 @@ internal func pageBox(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCr
 {
     let mediaId = parser.dict(pageId, "MediaBox")
     let media   = mediaId != InvalidNode ? mediaId : inheritedMediaBox
-    if media == InvalidNode or parser.nodes[media].kind != .Array or parser.nodes[media].values.count < 4 do
+    if media == InvalidNode or
+       parser.nodes[media].kind != .Array or
+       parser.nodes[media].values.count < 4 do
         fail InvalidFormatError{"PDF page has no valid MediaBox"}
 
     var result: retval
@@ -1454,11 +1462,16 @@ internal func pageBox(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCr
 
     let cropId = parser.dict(pageId, "CropBox")
     let crop   = cropId != InvalidNode ? cropId : inheritedCropBox
-    if crop != InvalidNode and parser.nodes[crop].kind == .Array and parser.nodes[crop].values.count >= 4
+    if crop != InvalidNode and
+       parser.nodes[crop].kind == .Array and
+       parser.nodes[crop].values.count >= 4
     {
         var cropped = boxRectangle(parser, crop)
         cropped.intersect(result.box)
-        if cropped.width > 0 and cropped.height > 0 and Math.isFinite(cropped.width) and Math.isFinite(cropped.height) do
+        if cropped.width > 0 and
+           cropped.height > 0 and
+           Math.isFinite(cropped.width) and
+           Math.isFinite(cropped.height) do
             result.box = cropped
     }
 
@@ -1609,7 +1622,9 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
 
     // An absent Info entry is valid and must not turn a lazy open into a repair scan.
     // A scan already needed for a damaged index still searches for unnamed dictionaries.
-    if parser.hasScanned or catalog == InvalidNode or (parser.trailerInfo != InvalidNode and info == InvalidNode)
+    if parser.hasScanned or
+       catalog == InvalidNode or
+       (parser.trailerInfo != InvalidNode and info == InvalidNode)
     {
         // The search needs every object, which is exactly what the scan produces.
         parser.ensureScanned()

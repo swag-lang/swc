@@ -398,7 +398,9 @@ impl HtmlParser
         // rows stays where the source put it — unless a fostered run already sits in front of
         // the table, where a chunk edge may have isolated one of the run's own spaces.
         var anchor = .fosterAnchor()
-        if anchor != HtmlNoNode and not Latin1.trim(content).count and not .document.precededByText(anchor) do
+        if anchor != HtmlNoNode and
+           not Latin1.trim(content).count and
+           not .document.precededByText(anchor) do
             anchor = HtmlNoNode
         let decoded = .internText(content, hasReference)
         if anchor != HtmlNoNode
@@ -590,7 +592,11 @@ impl HtmlParser
     mtd const fosterAnchor()->u32
     {
         let parent = .stack.back().tag
-        let inTableStructure = parent == .Table or parent == .TBody or parent == .THead or parent == .TFoot or parent == .Tr
+        let inTableStructure = parent == .Table or
+                               parent == .TBody or
+                               parent == .THead or
+                               parent == .TFoot or
+                               parent == .Tr
         if not inTableStructure do
             return HtmlNoNode
 

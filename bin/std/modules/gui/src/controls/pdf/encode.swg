@@ -419,7 +419,10 @@ func encodeDocument(document: const *Document)->Array'u8 fail
     var layout: Array'PageObjects
     for page in document.pages
     {
-        if page.width <= 0 or page.height <= 0 or not Math.isFinite(page.width) or not Math.isFinite(page.height) do
+        if page.width <= 0 or
+           page.height <= 0 or
+           not Math.isFinite(page.width) or
+           not Math.isFinite(page.height) do
             fail BadParameterError{}
         var objects: PageObjects
         objects.page    = nextObject

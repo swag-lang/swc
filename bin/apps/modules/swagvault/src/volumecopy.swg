@@ -119,7 +119,10 @@ impl VolumeCopy
         var hiddenPassword = Env.variable("SWAG_VAULT_COPY_HIDDEN_PASSWORD")
         defer Core.Crypto.secureClear(outerPassword.toSlice())
         defer Core.Crypto.secureClear(hiddenPassword.toSlice())
-        if sourcePath.isEmpty() or targetPath.isEmpty() or outerPassword.isEmpty() or hiddenPassword.isEmpty() do
+        if sourcePath.isEmpty() or
+           targetPath.isEmpty() or
+           outerPassword.isEmpty() or
+           hiddenPassword.isEmpty() do
             fail volumeError(.InvalidInput)
 
         Console.println("Opening source read only...")

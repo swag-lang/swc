@@ -132,7 +132,11 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
             count += 4
         }
 
-        let value = count == 8 ? (sum + 4) >> 3 : (count == 4 ? (sum + 2) >> 2 : 128)
+        var value = 128's32
+        if count == 8 do
+            value = (sum + 4) >> 3
+        elif count == 4 do
+            value = (sum + 2) >> 2
         for row in 4'u64
         {
             for column in 4'u64 do
@@ -338,7 +342,12 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
             count += 8
         }
 
-        let value = Simd.splat(cast(u8, (count == 16 ? (sum + 8) >> 4 : (count == 8 ? (sum + 4) >> 3 : 128))))
+        var average = 128's32
+        if count == 16 do
+            average = (sum + 8) >> 4
+        elif count == 8 do
+            average = (sum + 4) >> 3
+        let value = Simd.splat(cast(u8, average))
         for row in 8'u64 do
             Simd.storeLow8(dst + row * stride, value)
 
@@ -477,7 +486,11 @@ func intraPredict16x16(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: boo
             count += 16
         }
 
-        let value = count == 32 ? (sum + 16) >> 5 : (count == 16 ? (sum + 8) >> 4 : 128)
+        var value = 128's32
+        if count == 32 do
+            value = (sum + 16) >> 5
+        elif count == 16 do
+            value = (sum + 8) >> 4
         fillIntra16x16(dst, stride, cast(u8, value))
 
     case Intra16Plane:

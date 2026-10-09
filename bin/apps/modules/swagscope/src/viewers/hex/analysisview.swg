@@ -368,7 +368,10 @@ impl AnalysisView
         .stringsList.header.itemAt(1).name = texts().ui_AnalysisEncoding
         .stringsList.header.itemAt(2).name = texts().ui_AnalysisText
         .stringsList.header.invalidate()
-        if .result.range.length or .result.scanned or .result.cancelled or not .result.failureReason.isEmpty()
+        if .result.range.length or
+           .result.scanned or
+           .result.cancelled or
+           not .result.failureReason.isEmpty()
         {
             .refreshResultText()
             .updateByteDetail(.histogram.hovered)

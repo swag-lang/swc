@@ -252,12 +252,23 @@ impl Slice
         let gw  = dec.sps!.mbWidth * 4
 
         var neighbor: const *MbNeighbor?
-        if ry < 0 do
-            neighbor = rx < 0 ? &.neighbors.d : (rx >= 4 ? &.neighbors.c : &.neighbors.b)
-        elif rx < 0 do
+        if ry < 0
+        {
+            if rx < 0 do
+                neighbor = &.neighbors.d
+            elif rx >= 4 do
+                neighbor = &.neighbors.c
+            else do
+                neighbor = &.neighbors.b
+        }
+        elif rx < 0
+        {
             neighbor = &.neighbors.a
-        elif rx >= 4 do
+        }
+        elif rx >= 4
+        {
             return result
+        }
 
         var index: u64
         if neighbor == null
@@ -612,9 +623,15 @@ impl Slice
             var minimum = -1's32
             if a.available and not a.intra and a.refIdx >= 0 do
                 minimum = cast(s32, a.refIdx)
-            if b.available and not b.intra and b.refIdx >= 0 and (minimum < 0 or cast(s32, b.refIdx) < minimum) do
+            if b.available and
+               not b.intra and
+               b.refIdx >= 0 and
+               (minimum < 0 or cast(s32, b.refIdx) < minimum) do
                 minimum = cast(s32, b.refIdx)
-            if c.available and not c.intra and c.refIdx >= 0 and (minimum < 0 or cast(s32, c.refIdx) < minimum) do
+            if c.available and
+               not c.intra and
+               c.refIdx >= 0 and
+               (minimum < 0 or cast(s32, c.refIdx) < minimum) do
                 minimum = cast(s32, c.refIdx)
             if list == 0 do
                 refL0 = minimum

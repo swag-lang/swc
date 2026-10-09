@@ -651,7 +651,7 @@ Ast& Sema::ast()
 
 Utf8 Sema::fileName() const
 {
-    return ast().srcView().file()->path().string();
+    return ast().srcView().file()->pathString();
 }
 
 const SourceFile* Sema::file() const

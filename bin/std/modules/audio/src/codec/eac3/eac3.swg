@@ -250,7 +250,12 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     return result
 }
 
-private func isDefaultEac3CouplingJoin(absoluteSubband: u32)->bool => absoluteSubband == 8 or absoluteSubband == 10 or absoluteSubband == 11 or absoluteSubband == 13 or absoluteSubband >= 14
+#[Swag.Inline]
+private func isDefaultEac3CouplingJoin(absoluteSubband: u32)->bool => absoluteSubband == 8 or
+                                                                      absoluteSubband == 10 or
+                                                                      absoluteSubband == 11 or
+                                                                      absoluteSubband == 13 or
+                                                                      absoluteSubband >= 14
 
 private impl Eac3Codec
 {
@@ -310,7 +315,10 @@ private impl Eac3Codec
             var subband = 1'u32
             while subband < block.couplingSubbands
             {
-                block.couplingBandJoin[subband] = explicitBands ? reader.read(1) != 0 : (firstStrategy[] ? isDefaultEac3CouplingJoin(block.couplingBegin + subband) : block.couplingBandJoin[subband])
+                if explicitBands do
+                    block.couplingBandJoin[subband] = reader.read(1) != 0
+                elif firstStrategy[] do
+                    block.couplingBandJoin[subband] = isDefaultEac3CouplingJoin(block.couplingBegin + subband)
                 if block.couplingBandJoin[subband] do
                     block.couplingBands -= 1
                 subband += 1
@@ -648,7 +656,18 @@ private impl Eac3Codec
                 let rematrixNew = not blockIndex or reader.read(1) != 0
                 if rematrixNew
                 {
-                    .block.rematrixCount = .block.coupling ? (.block.couplingBegin > 2 ? 4 : .block.couplingBegin > 0 ? 3 : 2) : 4
+                    var rematrixCount = 4'u32
+                    if .block.coupling
+                    {
+                        if .block.couplingBegin > 2 do
+                            rematrixCount = 4
+                        elif .block.couplingBegin > 0 do
+                            rematrixCount = 3
+                        else do
+                            rematrixCount = 2
+                    }
+
+                    .block.rematrixCount = rematrixCount
                     for band in .block.rematrixCount do
                         .block.rematrix[band] = reader.read(1) != 0
                 }

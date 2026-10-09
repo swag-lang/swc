@@ -157,7 +157,12 @@ private impl Panel
     {
         if .isMarkup()
         {
-            .zoomLabel.setText(.markupFit ? (.markupFitWidth ? texts().ui_FitWidth : texts().ui_Fit) : Format.toString("% %", cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), "%"))
+            var zoomText: String
+            if .markupFit do
+                zoomText = .markupFitWidth ? texts().ui_FitWidth : texts().ui_Fit
+            else do
+                zoomText = Format.toString("% %", cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), "%")
+            .zoomLabel.setText(zoomText)
             .services.chromeChanged(me)
             return
         }
@@ -415,7 +420,11 @@ private impl Panel
     mtd goToTypedPage(text: string)->bool
     {
         let parsed = catch StrConv.parseU64(text) as parseError
-        if parseError != null or parsed.eat != text.count or parsed.ovf or not parsed.value or parsed.value > .pageCount() do
+        if parseError != null or
+           parsed.eat != text.count or
+           parsed.ovf or
+           not parsed.value or
+           parsed.value > .pageCount() do
             return false
         .selectPreview(parsed.value - 1)
         return true

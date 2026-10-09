@@ -162,7 +162,7 @@ impl Panel
         let chunk       = catch .stream.readUtf8Chunk(StreamChunkSize) as readError
         if readError != null
         {
-            .showReadError(Errors.message(readError))
+            .showReadError(Viewer.failureText(readError))
             return
         }
 
@@ -290,7 +290,14 @@ impl Panel
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
+        var residentHeight = 0'f32
+        if loadedHeight > 0 do
+            residentHeight = loadedHeight
+        elif .fileSize
+        {
+            let scaledBytes = .virtualHeight * cast(f32, .bytesRead - .residentStart)
+            residentHeight = scaledBytes / cast(f32, .fileSize)
+        }
         let residentEnd    = .residentOffsetY + residentHeight
         let before         = .residentStart > 0 and
                              newPosition.y < oldPosition.y and
@@ -439,14 +446,14 @@ impl Panel
         .stream = catch File.openReadLive(.fileName) as openError
         if openError != null
         {
-            .showReadError(Errors.message(openError))
+            .showReadError(Viewer.failureText(openError))
             return
         }
 
         let size = catch .stream.size() as sizeError
         if sizeError != null
         {
-            .showReadError(Errors.message(sizeError))
+            .showReadError(Viewer.failureText(sizeError))
             return
         }
 

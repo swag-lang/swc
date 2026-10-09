@@ -349,7 +349,11 @@ impl IWnd for IconButton
         // A checked button says so with a mark of its own, unless it was told to draw none:
         // `None` then reads as pressed and `Ink` keeps the checked ink, and both leave the box
         // exactly as the state colors above left it.
-        let marked = not flat and not overlay and .isChecked and .checkIndicator != .None and .checkIndicator != .Ink
+        let marked = not flat and
+                     not overlay and
+                     .isChecked and
+                     .checkIndicator != .None and
+                     .checkIndicator != .Ink
         if marked and .checkIndicator == .Frame
         {
             var frame = clientRect

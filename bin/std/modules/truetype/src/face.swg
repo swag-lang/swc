@@ -270,7 +270,9 @@ public impl Face
     // zero or either exceeds 65535. Scaled metrics are exposed through [[TrueType.Face.size]].
     mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
-        if (not pixelWidth and not pixelHeight) or pixelWidth > Swag.U16.Max or pixelHeight > Swag.U16.Max do
+        if (not pixelWidth and not pixelHeight) or
+           pixelWidth > Swag.U16.Max or
+           pixelHeight > Swag.U16.Max do
             try fault(0x17)
 
         var width  = pixelWidth

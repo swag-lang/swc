@@ -3,7 +3,9 @@ impl ViewerWindow
     // Reloads the current path while retaining the active reading session.
     mtd reloadCurrentFile()
     {
-        if .currentFile.isEmpty() or not .pendingFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if .currentFile.isEmpty() or
+           not .pendingFile.isEmpty() or
+           .activeChoiceIndex >= .instances.count do
             return
         .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key, .searchBox.text())
         .queueFile(.currentFile, remember: false, preserveReading: true)
@@ -553,7 +555,7 @@ impl ViewerWindow
         catch next.create(plugin, host) as viewerError
         if viewerError != null
         {
-            next.failureReason = Errors.message(viewerError)
+            next.failureReason = Viewer.failureText(viewerError)
             if next.failureReason.isEmpty() do
                 next.failureReason = appStrings().ui_OpenStopped
         }

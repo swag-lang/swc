@@ -396,15 +396,25 @@ private impl GenericLexer
                                      .language == .Pascal or
                                      .language == .Matlab or
                                      .language == .Dockerfile
-    mtd hasBlockComment()->bool   => .isSlashComment() or .language == .Sql or .language == .Css or .language == .Nix
-    mtd hasBacktickString()->bool => .language == .JavaScript or .language == .TypeScript or .language == .Shell or .language == .PowerShell
-    mtd hasPreprocessor()->bool   => .language == .C or .language == .Cpp or .language == .CSharp or .language == .Shader or .language == .ObjectiveC
-    mtd hasDataKeys()->bool       => .language == .Json or
-                                     .language == .Yaml or
-                                     .language == .Toml or
-                                     .language == .Config or
-                                     .language == .Css or
-                                     .language == .GraphQl
+    mtd hasBlockComment()->bool => .isSlashComment() or .language == .Sql or .language == .Css or .language == .Nix
+    #[Swag.Inline]
+    mtd hasBacktickString()->bool => .language == .JavaScript or
+                                     .language == .TypeScript or
+                                     .language == .Shell or
+                                     .language == .PowerShell
+    #[Swag.Inline]
+    mtd hasPreprocessor()->bool => .language == .C or
+                                   .language == .Cpp or
+                                   .language == .CSharp or
+                                   .language == .Shader or
+                                   .language == .ObjectiveC
+    #[Swag.Inline]
+    mtd hasDataKeys()->bool => .language == .Json or
+                               .language == .Yaml or
+                               .language == .Toml or
+                               .language == .Config or
+                               .language == .Css or
+                               .language == .GraphQl
 }
 
 private func paintRange(line: *RichEditLine, first, last: u64, style: GenericLexer.Style)
@@ -607,7 +617,10 @@ private impl GenericLexer
             {
                 let first = seek
                 seek += 1
-                while seek < length and (Unicode.isLetterOrDigit(line.runeAt(seek)) or line.runeAt(seek) == '.' or line.runeAt(seek) == '_') do
+                while seek < length and
+                      (Unicode.isLetterOrDigit(line.runeAt(seek)) or
+                       line.runeAt(seek) == '.' or
+                       line.runeAt(seek) == '_') do
                     seek += 1
                 paintRange(line, first, seek, .Number)
                 continue

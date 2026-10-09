@@ -192,7 +192,11 @@ impl Decoder
             switch cast(u8, .colorType)
             {
             case 0:
-                if .bitDepth != 1 and .bitDepth != 2 and .bitDepth != 4 and .bitDepth != 8 and .bitDepth != 16 do
+                if .bitDepth != 1 and
+                   .bitDepth != 2 and
+                   .bitDepth != 4 and
+                   .bitDepth != 8 and
+                   .bitDepth != 16 do
                     fail UnsupportedFormatError{"unsupported bit depth"}
 
             case 2:

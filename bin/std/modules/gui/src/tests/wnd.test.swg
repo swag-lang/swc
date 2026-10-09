@@ -42,7 +42,10 @@ impl IWnd for AncestorTestWnd {}
     Swag.assert(state.updatedFields == .None)
     Swag.assert(state.renderingHint == .None)
     Swag.assert(not state.disabled and not state.checked and not state.hidden)
-    Swag.assert(state.name.isEmpty() and state.longName.isEmpty() and state.shortcut.isEmpty() and state.toolTip.isEmpty())
+    Swag.assert(state.name.isEmpty() and
+                state.longName.isEmpty() and
+                state.shortcut.isEmpty() and
+                state.toolTip.isEmpty())
 }
 
 // Parenting, child enumeration and lookup by id.

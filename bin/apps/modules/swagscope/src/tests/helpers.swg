@@ -255,3 +255,6 @@ func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
     appendZipU16(&result, 0)
     return result
 }
+
+// The failure text a viewer shows: the plain statement, then the technical detail.
+func failureShape(statement, detail: string)->String => Format.toString("%\n\n%", statement, detail)

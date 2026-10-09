@@ -82,8 +82,10 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     else
         unwindInfo.clear();
 
-    codeRelocations   = builder.codeRelocations();
-    debugSourceRanges = encoder.debugSourceRanges();
+    // Both producers end here: the encoder is local, and every builder handed to this function is
+    // discarded once its code is lowered.
+    codeRelocations   = std::move(builder.codeRelocations());
+    debugSourceRanges = encoder.releaseDebugSourceRanges();
 
     return Result::Continue;
 }

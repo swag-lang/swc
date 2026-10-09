@@ -489,7 +489,13 @@ impl GridView
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let maxTop = .maxTopRow()
-        let row    = position <= 0 ? 0 : position >= usable ? maxTop : Math.min(cast(u64, Math.round(position / usable * cast(f32, maxTop))), maxTop)
+        var row: u64
+        if position <= 0 do
+            row = 0
+        elif position >= usable do
+            row = maxTop
+        else do
+            row = Math.min(cast(u64, Math.round(position / usable * cast(f32, maxTop))), maxTop)
         if row == .topRow do
             return
         .topRow = row
@@ -1301,7 +1307,13 @@ impl IWnd for GridView
                 let valueOffset = .groupStart(.caret)
                 let column      = valueOffset % .bytesPerRow
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
-                let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
+                var text: String
+                if .grouping == .Bytes do
+                    text = Format.toString("%{X02}", .doc.byteAt(.caret))
+                elif complete do
+                    text = formatScalar(.grouping, .scalarAt(valueOffset))
+                else do
+                    text = String.from("--")
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32, .valueCellChars()) * .charWidth + 2, .rowHeight, caretBk)
                 painter.drawString(originX + .hexCellX(column), y, text, font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)

@@ -69,11 +69,11 @@ public:
     void                                                       setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg);
     bool                                                       usesIntReturnRegOnRet() const { return usesIntReturnRegOnRet_; }
     bool                                                       usesFloatReturnRegOnRet() const { return usesFloatReturnRegOnRet_; }
-    void                                                       setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
+    void                                                       setPrintSymbol(const Symbol* symbol) { printSymbol_ = symbol; }
     void                                                       releaseMemory();
-    const Utf8&                                                printSymbolName() const { return printSymbolName_; }
-    const Utf8&                                                printFilePath() const { return printFilePath_; }
-    uint32_t                                                   printSourceLine() const { return printSourceLine_; }
+    Utf8                                                       printSymbolName() const;
+    Utf8                                                       printFilePath() const;
+    uint32_t                                                   printSourceLine() const;
     void                                                       clearRelocations() { relocations_.clear(); }
     void                                                       addRelocation(const MicroRelocation& relocation);
     bool                                                       invalidateRelocationForInstruction(MicroInstrRef instructionRef);
@@ -182,9 +182,7 @@ private:
     MicroOperandStorage                                 operands_;
     MicroBuilderFlags                                   flags_ = MicroBuilderFlagsE::Zero;
     DebugSourceInfo                                     currentDebugSourceInfo_;
-    Utf8                                                printSymbolName_;
-    Utf8                                                printFilePath_;
-    uint32_t                                            printSourceLine_         = 0;
+    const Symbol*                                       printSymbol_             = nullptr;
     bool                                                usesIntReturnRegOnRet_   = true;
     bool                                                usesFloatReturnRegOnRet_ = true;
     std::vector<Utf8>                                   printPassOptions_;

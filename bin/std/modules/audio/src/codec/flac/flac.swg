@@ -188,7 +188,9 @@ private impl Codec
         // A metadata block header may precede the payload: skip its type and length. Its type
         // alone does not identify it — a stream information block whose smallest block is under
         // 256 samples starts with a zero byte too — so the length it states has to agree.
-        let headerLength = (cast(u64, config[offset + 1]) << 16) | (cast(u64, config[offset + 2]) << 8) | cast(u64, config[offset + 3])
+        let headerLength = (cast(u64, config[offset + 1]) << 16) |
+                           (cast(u64, config[offset + 2]) << 8) |
+                           cast(u64, config[offset + 3])
         if (config[offset] & 0x7F) == 0 and headerLength == StreamInfoSize do
             offset += 4
 

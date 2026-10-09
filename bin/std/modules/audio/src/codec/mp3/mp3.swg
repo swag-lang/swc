@@ -75,11 +75,20 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
     result.hasCrc   = (bytes[1] & 1) == 0
 
     // Version 2.5 halves version 2, which halves version 1.
-    let versionRow = result.isMpeg1 ? 2'u64 : (result.isMpeg25 ? 0'u64 : 1'u64)
+    var versionRow = 1'u64
+    if result.isMpeg1 do
+        versionRow = 2
+    elif result.isMpeg25 do
+        versionRow = 0
     result.sampleRate = SampleRates[versionRow, cast(u64, rate)]
 
     // The band tables are indexed by one widened number covering all three versions.
-    result.rateIndex = result.isMpeg1 ? 5 + rate : (result.isMpeg25 ? (rate == 2 ? 1 : 0) : 2 + rate)
+    if result.isMpeg1 do
+        result.rateIndex = 5 + rate
+    elif result.isMpeg25 do
+        result.rateIndex = rate == 2 ? 1 : 0
+    else do
+        result.rateIndex = 2 + rate
 
     result.mode          = cast(u32, (bytes[3] >> 6)) & 3
     result.modeExtension = cast(u32, (bytes[3] >> 4)) & 3
@@ -321,8 +330,12 @@ impl Codec
 
         // Long blocks, mixed blocks, and short blocks each partition their scalefactors
         // differently, and the row that says how is the same for both versions.
-        let partitionRow = cast(u64, (info.shortBands != 0 ? 1'u32 : 0'u32)) + cast(u64, (info.longBands == 0 ? 1'u32 : 0'u32))
-        var partitionAt  = 0'u64
+        var partitionRow = 0'u64
+        if info.shortBands do
+            partitionRow += 1
+        if not info.longBands do
+            partitionRow += 1
+        var partitionAt = 0'u64
         if header.isMpeg1
         {
             let packed = cast(u32, ScfCompress[cast(u64, info.scalefacCompress)])
@@ -790,19 +803,40 @@ impl Codec
 
         // Only long blocks were aliased. A mixed block aliased its long part alone.
         var aliased = 32'u32
-        if info.blockType == 2 do
-            aliased = info.mixedBlock ? (header.rateIndex == 1 ? 4'u32 : 2'u32) : 1'u32
+        if info.blockType == 2
+        {
+            if info.mixedBlock do
+                aliased = header.rateIndex == 1 ? 4 : 2
+            else do
+                aliased = 1
+        }
+
         reduceAlias(lines, aliased)
 
         var longSubbands = 0'u32
-        if info.blockType == 2 and info.mixedBlock do
-            longSubbands = header.rateIndex == 1 ? 4 : 2
-        elif info.blockType != 2 do
+        if info.blockType == 2 and info.mixedBlock
+        {
+            if header.rateIndex == 1 do
+                longSubbands = 4
+            else do
+                longSubbands = 2
+        }
+        elif info.blockType != 2
+        {
             longSubbands = 32
+        }
 
         for subband in 32'u32
         {
-            let kind = subband < longSubbands ? (info.blockType == 2 ? 0'u32 : info.blockType) : 2'u32
+            var kind = 2'u32
+            if subband < longSubbands
+            {
+                if info.blockType == 2 do
+                    kind = 0
+                else do
+                    kind = info.blockType
+            }
+
             inverseTransform(lines, &.state[cast(u64, channel)].overlap, subband, kind)
         }
 

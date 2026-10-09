@@ -51,11 +51,15 @@ func parseFileOffset(text: string, current, fileSize: u64)->u64
         return Swag.U64.Max
 
     var radix = percentage ? 10'u64 : 16'u64
-    if index + 1 < end and trimmed[index] == '0'u8 and (trimmed[index + 1] == 'x'u8 or trimmed[index + 1] == 'X'u8)
+    if index + 1 < end and
+       trimmed[index] == '0'u8 and
+       (trimmed[index + 1] == 'x'u8 or trimmed[index + 1] == 'X'u8)
     {
         index += 2
     }
-    elif index + 1 < end and trimmed[index] == '0'u8 and (trimmed[index + 1] == 'd'u8 or trimmed[index + 1] == 'D'u8)
+    elif index + 1 < end and
+         trimmed[index] == '0'u8 and
+         (trimmed[index + 1] == 'd'u8 or trimmed[index + 1] == 'D'u8)
     {
         radix = 10
         index += 2

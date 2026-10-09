@@ -162,7 +162,7 @@ impl MediaInfoData
                 let properties = catch Exif.decode(payload) as error
                 if error != null
                 {
-                    .add(.Unavailable, Errors.message(error))
+                    .add(.Unavailable, Viewer.failureText(error))
                     continue
                 }
 

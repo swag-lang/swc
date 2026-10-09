@@ -393,14 +393,20 @@ void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
 
     // Add the symbol itself
     scopeChain.push_back(this);
+    size_t length = name(ctx).size() + 1;
 
     // Walk owner scopes
     const SymbolMap* map = ownerSymMap_;
     while (map)
     {
         scopeChain.push_back(map);
+        length += map->name(ctx).size() + 1;
         map = map->ownerSymMap();
     }
+
+    // A scoped name rarely fits the inline buffer, and growing it part by part reallocates it
+    // as often; one reservation covers every part and separator.
+    out.reserve(out.size() + length);
 
     // Emit in reverse (outer to inner)
     for (const auto& it : std::ranges::reverse_view(scopeChain))

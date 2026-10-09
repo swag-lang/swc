@@ -175,7 +175,9 @@ impl Namespaces
                 continue
 
             var nameEnd = at
-            while nameEnd < attributes.count and not xmlSpace(attributes[nameEnd]) and attributes[nameEnd] != '=' do
+            while nameEnd < attributes.count and
+                  not xmlSpace(attributes[nameEnd]) and
+                  attributes[nameEnd] != '=' do
                 nameEnd += 1
             let name = attributes[start until nameEnd]
             if name != "xmlns" and not Utf8.startsWith(name, "xmlns:") do
@@ -247,7 +249,10 @@ impl Namespaces
             }
 
             let nameStart = at
-            while at < attributes.count and not xmlSpace(attributes[at]) and attributes[at] != '=' and attributes[at] != '/' do
+            while at < attributes.count and
+                  not xmlSpace(attributes[at]) and
+                  attributes[at] != '=' and
+                  attributes[at] != '/' do
                 at += 1
             result += .rename(attributes[nameStart until at], false)
         }
@@ -271,7 +276,10 @@ func attribute(attributes, wanted: string)->String
             break
 
         let nameStart = at
-        while at < attributes.count and not xmlSpace(attributes[at]) and attributes[at] != '=' and attributes[at] != '/' do
+        while at < attributes.count and
+              not xmlSpace(attributes[at]) and
+              attributes[at] != '=' and
+              attributes[at] != '/' do
             at += 1
         let nameEnd = at
         while at < attributes.count and xmlSpace(attributes[at]) do

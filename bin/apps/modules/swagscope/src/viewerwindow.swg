@@ -702,7 +702,10 @@ impl ViewerWindow
         else
         {
             .fullScreen = false
-            surface.updateFlags(add: .fullScreenRestoreFlags & (FullScreenRemovedFlags | FullScreenAddedFlags), remove: (FullScreenRemovedFlags | FullScreenAddedFlags) & ~.fullScreenRestoreFlags)
+            let transitionFlags = FullScreenRemovedFlags | FullScreenAddedFlags
+            let flagsToAdd      = .fullScreenRestoreFlags & transitionFlags
+            let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
+            surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             let gutter = .themeMetrics().panel_GutterSize
             .documentHost.padding = {gutter, 0, gutter, 0}
             .documentPanel.backgroundStyle = .Panel

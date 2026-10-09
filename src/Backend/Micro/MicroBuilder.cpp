@@ -4,10 +4,13 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
@@ -1053,11 +1056,28 @@ void MicroBuilder::setRetUsesAbiRegs(const bool usesIntReturnReg, const bool use
     usesFloatReturnRegOnRet_ = usesFloatReturnReg;
 }
 
-void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine)
+// The function is named only when a listing or a report asks: formatting the scoped name and
+// the file of every function lowered is work that no build reads.
+Utf8 MicroBuilder::printSymbolName() const
 {
-    printSymbolName_ = std::move(symbolName);
-    printFilePath_   = std::move(filePath);
-    printSourceLine_ = sourceLine;
+    if (!printSymbol_ || !ctx_)
+        return {};
+    return printSymbol_->getFullScopedName(*ctx_);
+}
+
+Utf8 MicroBuilder::printFilePath() const
+{
+    if (!printSymbol_ || !ctx_ || !ctx_->hasCompiler())
+        return {};
+    const SourceFile* file = ctx_->compiler().srcView(printSymbol_->srcViewRef()).file();
+    return file ? file->formattedFileName(ctx_) : Utf8{};
+}
+
+uint32_t MicroBuilder::printSourceLine() const
+{
+    if (!printSymbol_ || !ctx_)
+        return 0;
+    return printSymbol_->codeRange(*ctx_).line;
 }
 
 void MicroBuilder::releaseMemory()
@@ -1066,9 +1086,7 @@ void MicroBuilder::releaseMemory()
     instructions_                    = {};
     operands_                        = {};
     currentDebugSourceInfo_          = {};
-    printSymbolName_                 = Utf8();
-    printFilePath_                   = Utf8();
-    printSourceLine_                 = 0;
+    printSymbol_                     = nullptr;
     usesIntReturnRegOnRet_           = true;
     usesFloatReturnRegOnRet_         = true;
     printPassOptions_                = std::vector<Utf8>{};

@@ -397,7 +397,10 @@ impl HtmlStyleSheet
             return false
 
         case .DashMatch:
-            return value == expected or (Utf8.startsWith(value, expected) and value.count > expected.count and value[expected.count] == '-')
+            return value == expected or
+                   (Utf8.startsWith(value, expected) and
+                    value.count > expected.count and
+                    value[expected.count] == '-')
 
         case .Prefix:
             return expected.count and Utf8.startsWith(value, expected)
@@ -430,7 +433,13 @@ impl HtmlStyleSheet
         if pseudo.has(.Empty) and document.constNode(element).firstChild != HtmlNoNode do
             return false
 
-        let structural = HtmlPseudoClass.FirstChild | .LastChild | .OnlyChild | .FirstOfType | .LastOfType | .Nth | .NthOfType
+        let structural = HtmlPseudoClass.FirstChild |
+                         .LastChild |
+                         .OnlyChild |
+                         .FirstOfType |
+                         .LastOfType |
+                         .Nth |
+                         .NthOfType
         if (pseudo & structural) == .None do
             return true
 
@@ -985,7 +994,10 @@ impl HtmlStyleSheet
         while index[] < selector.count
         {
             let character = selector[index[]]
-            if not Latin1.isLetterOrDigit(character) and character != '-' and character != '_' and character != '\\' do
+            if not Latin1.isLetterOrDigit(character) and
+               character != '-' and
+               character != '_' and
+               character != '\\' do
                 break
             index[] += 1
         }
@@ -1043,7 +1055,9 @@ impl HtmlStyleSheet
         // still selects the same element in practice.
         if value.count >= 2 and (Utf8.endsWith(value, " i") or Utf8.endsWith(value, " I")) do
             value = Latin1.trim(value[0 until value.count - 2])
-        if value.count >= 2 and (value[0] == '"' or value[0] == '\'') and value[value.count - 1] == value[0] do
+        if value.count >= 2 and
+           (value[0] == '"' or value[0] == '\'') and
+           value[value.count - 1] == value[0] do
             value = value[1 until value.count - 1]
 
         attribute.value = value

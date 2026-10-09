@@ -355,8 +355,14 @@ func reportPeImage(image: *BinaryImage, report: *Report)
     reportPeClr(image, report, &layout)
     reportPeCertificates(image, report, &layout)
 
-    let texts    = texts()
-    let kind     = header.characteristics & 0x2000 ? "DLL" : (header.characteristics & 0x1000 ? "SYS" : "EXE")
+    let texts = texts()
+    var kind: string
+    if header.characteristics & 0x2000 do
+        kind = "DLL"
+    elif header.characteristics & 0x1000 do
+        kind = "SYS"
+    else do
+        kind = "EXE"
     let sections = countText(cast(u64, header.sectionCount), texts.word_Section, texts.word_Sections)
     report.formatName = layout.is64 ? "PE32+" : "PE32"
     report.summary    = Format.toString("% · % · % · %", report.formatName, kind, peMachineName(header.machine), sections)
@@ -562,7 +568,14 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, si
     layout.is64 = magic == 0x20B
 
     report.beginGroup(texts.pe_Optional, layout.is64 ? "PE32+" : "PE32", "", offset: at, length: size, open: true)
-    report.hexField(at, 2, "Magic", cast(u64, magic), magic == 0x20B ? texts.pe_Image64 : (magic == 0x10B ? texts.pe_Image32 : texts.pe_ImageRom))
+    var imageTypeText: string
+    if magic == 0x20B do
+        imageTypeText = texts.pe_Image64
+    elif magic == 0x10B do
+        imageTypeText = texts.pe_Image32
+    else do
+        imageTypeText = texts.pe_ImageRom
+    report.hexField(at, 2, "Magic", cast(u64, magic), imageTypeText)
 
     let linker = Format.toString("%.%", image.u8At(at + 2), image.u8At(at + 3))
     report.field(at + 2, 2, "LinkerVersion", linker)
@@ -953,9 +966,11 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
         // relative to the image, and its attributes say which.
         let relative = image.u32At(entryAt) & 1
         let stored   = cast(u64, image.u32At(entryAt + 4))
-        let nameRva  = relative ? stored : (stored > layout.imageBase ? stored - layout.imageBase : stored)
-        let name     = peStringAt(image, layout, cast(u32, nameRva))
-        let stamp    = epochText(cast(u64, image.u32At(entryAt + 28)))
+        var nameRva  = stored
+        if not relative and stored > layout.imageBase do
+            nameRva = stored - layout.imageBase
+        let name  = peStringAt(image, layout, cast(u32, nameRva))
+        let stamp = epochText(cast(u64, image.u32At(entryAt + 28)))
 
         report.beginGroup(name, "", "", offset: entryAt, length: 32)
         report.hexField(entryAt, 4, "Attributes", cast(u64, image.u32At(entryAt)), relative ? texts.pe_DelayRelative : texts.pe_DelayAbsolute)
@@ -1017,13 +1032,21 @@ private func reportPeResourceLevel(image: *BinaryImage, report: *Report, layout:
 
         // A leaf names its bytes rather than holding them, and those bytes are addressed the way
         // everything else in the image is.
-        let leafAt  = base + cast(u64, child)
-        let dataRva = image.u32At(leafAt)
-        let dataAt  = layout.offsetOf(dataRva)
-        let dataLen = cast(u64, image.u32At(leafAt + 4))
-        let value   = StrConv.toDisplaySize(dataLen)
-        let detail  = Format.toString(texts.pe_ResourceWhere, image.u32At(leafAt + 8), hexText(cast(u64, dataRva), 8))
-        report.field(dataAt == Swag.U64.Max ? leafAt : dataAt, dataAt == Swag.U64.Max ? 16 : dataLen, label, value, detail)
+        let leafAt      = base + cast(u64, child)
+        let dataRva     = image.u32At(leafAt)
+        let dataAt      = layout.offsetOf(dataRva)
+        let dataLen     = cast(u64, image.u32At(leafAt + 4))
+        let value       = StrConv.toDisplaySize(dataLen)
+        let detail      = Format.toString(texts.pe_ResourceWhere, image.u32At(leafAt + 8), hexText(cast(u64, dataRva), 8))
+        var fieldAt     = leafAt
+        var fieldLength = 16'u64
+        if dataAt != Swag.U64.Max
+        {
+            fieldAt     = dataAt
+            fieldLength = dataLen
+        }
+
+        report.field(fieldAt, fieldLength, label, value, detail)
     }
 
     report.listCut(total, declared)

@@ -730,10 +730,10 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     TypeRef            typeRef = TypeRef::invalid();
     SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, SourceCodeRef::invalid()));
 
-    const SourceView* srcView  = codeRange.srcView;
-    const SourceFile* file     = srcView ? srcView->file() : nullptr;
-    const Utf8        fileName = file ? Utf8(file->path().string()) : Utf8{};
-    const Utf8        funcName = function ? function->getFullScopedName(ctx) : Utf8{};
+    const SourceView*      srcView  = codeRange.srcView;
+    const SourceFile*      file     = srcView ? srcView->file() : nullptr;
+    const std::string_view fileName = file ? std::string_view{file->pathString()} : std::string_view{""};
+    const Utf8             funcName = function ? function->getFullScopedName(ctx) : Utf8{};
 
     const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, fileName, funcName);
     DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);

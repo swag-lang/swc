@@ -39,7 +39,13 @@ impl ViewerActionBar
         let client         = .paddedClientRect()
         let group          = .centerGroup
         let preferredWidth = group.preferredSize.x
-        let width          = preferredWidth > 0 ? Math.min(preferredWidth, client.width) : (.fillCenterGroup ? client.width : group.position.width)
+        var width: f32
+        if preferredWidth > 0 do
+            width = Math.min(preferredWidth, client.width)
+        elif .fillCenterGroup do
+            width = client.width
+        else do
+            width = group.position.width
         group.setPosition({client.horzCenter() - width * 0.5, client.vertCenter() - group.position.height * 0.5, width, group.position.height}, computeLayout: false)
         group.applyLayout()
     }

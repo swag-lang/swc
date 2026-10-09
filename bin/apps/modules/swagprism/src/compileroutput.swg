@@ -115,7 +115,9 @@ impl CompilerOutput
                     style = 0
 
                 case SgrForeground where param + 4 < params.count and params[param + 1] == SgrRgb:
-                    if params[param + 2] <= 255 and params[param + 3] <= 255 and params[param + 4] <= 255 do
+                    if params[param + 2] <= 255 and
+                       params[param + 3] <= 255 and
+                       params[param + 4] <= 255 do
                         style = .colorStyle(Color.fromRgb(cast(u8, params[param + 2]), cast(u8, params[param + 3]), cast(u8, params[param + 4])))
                     param += 4
                 }

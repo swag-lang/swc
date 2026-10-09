@@ -61,9 +61,11 @@ namespace
         if (!context.builder)
             return {};
 
-        const std::string_view symbolName = context.builder->printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{context.builder->printSymbolName()};
-        const std::string_view filePath   = context.builder->printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{context.builder->printFilePath()};
-        const uint32_t         sourceLine = context.builder->printSourceLine();
+        const Utf8             symbolStorage = context.builder->printSymbolName();
+        const Utf8             fileStorage   = context.builder->printFilePath();
+        const std::string_view symbolName    = symbolStorage.empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{symbolStorage};
+        const std::string_view filePath      = fileStorage.empty() ? std::string_view{"<unknown-file>"} : std::string_view{fileStorage};
+        const uint32_t         sourceLine    = context.builder->printSourceLine();
         return std::format(" [{} @ {}:{}]", symbolName, filePath, sourceLine);
     }
 

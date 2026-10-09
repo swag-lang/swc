@@ -65,6 +65,7 @@ public:
     void                                        clearDebugSourceRanges() { debugSourceRanges_.clear(); }
     void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const DebugSourceInfo& debugSourceInfo);
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
+    std::vector<EncoderDebugSourceRange>        releaseDebugSourceRanges() { return std::move(debugSourceRanges_); }
     // Whether the target can compute `dst = src1 op src2` for floats without
     // writing into one of its inputs. Where it cannot, the post-RA peephole
     // leaves the copy-then-operate pair alone.

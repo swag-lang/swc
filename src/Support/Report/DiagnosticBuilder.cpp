@@ -21,7 +21,8 @@ namespace
 {
     struct DiagnosticArgumentToStringVisitor
     {
-        const TaskContext* ctx = nullptr;
+        const TaskContext* ctx       = nullptr;
+        bool               qualified = false;
 
         template<typename T0>
         Utf8 operator()(const T0& v) const
@@ -39,7 +40,8 @@ namespace
             {
                 if (v.isInvalid())
                     return Utf8{"<type unavailable>"};
-                return ctx->compiler().typeMgr().get(v).toName(*ctx);
+                const TypeInfo& type = ctx->compiler().typeMgr().get(v);
+                return qualified ? type.toFullName(*ctx) : type.toName(*ctx);
             }
             else if constexpr (std::same_as<T, ConstantRef>)
                 return ctx->compiler().cstMgr().get(v).toString(*ctx);
@@ -873,11 +875,43 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     out_ += partStyle(DiagPart::Reset);
 }
 
-void DiagnosticBuilder::replaceArgsInString(Utf8& result, const DiagnosticArguments& arguments) const
+// Two different types that print the same short name ('Foo' declared in two namespaces) would make
+// a message such as "has type 'Foo', but needs 'Foo'" read as nonsense: those are printed qualified.
+void DiagnosticBuilder::collectQualifiedTypes(SmallVector<TypeRef>& qualifiedTypes, const DiagnosticElement* el) const
+{
+    SmallVector<TypeRef> types;
+    const auto           collect = [&](const DiagnosticArguments& arguments) {
+        for (const auto& arg : arguments)
+        {
+            if (const TypeRef* typeRef = std::get_if<TypeRef>(&arg.val); typeRef && !typeRef->isInvalid())
+                types.push_back(*typeRef);
+        }
+    };
+
+    if (el)
+        collect(el->arguments());
+    collect(diag_->arguments());
+
+    for (size_t i = 0; i < types.size(); ++i)
+    {
+        const Utf8 name = ctx_->compiler().typeMgr().get(types[i]).toName(*ctx_);
+        for (size_t j = i + 1; j < types.size(); ++j)
+        {
+            if (types[j] == types[i] || ctx_->compiler().typeMgr().get(types[j]).toName(*ctx_) != name)
+                continue;
+            qualifiedTypes.push_back(types[i]);
+            qualifiedTypes.push_back(types[j]);
+        }
+    }
+}
+
+void DiagnosticBuilder::replaceArgsInString(Utf8& result, const DiagnosticArguments& arguments, const SmallVector<TypeRef>& qualifiedTypes) const
 {
     for (const auto& arg : arguments)
     {
-        const Utf8 raw = argumentToString(arg);
+        const TypeRef* typeRef   = std::get_if<TypeRef>(&arg.val);
+        const bool     qualified = typeRef && std::ranges::find(qualifiedTypes, *typeRef) != qualifiedTypes.end();
+        const Utf8     raw       = argumentToString(arg, qualified);
         size_t     pos = 0;
         while ((pos = result.find(arg.name, pos)) != Utf8::npos)
         {
@@ -893,12 +927,15 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
 {
     Utf8 result = msg;
 
+    SmallVector<TypeRef> qualifiedTypes;
+    collectQualifiedTypes(qualifiedTypes, el);
+
     // Replace placeholders from the element first
     if (el)
-        replaceArgsInString(result, el->arguments());
+        replaceArgsInString(result, el->arguments(), qualifiedTypes);
 
     // Then from the diagnostic
-    replaceArgsInString(result, diag_->arguments());
+    replaceArgsInString(result, diag_->arguments(), qualifiedTypes);
 
     // Clean some stuff
     removeUnexpandedPlaceholders(result);
@@ -998,9 +1035,9 @@ std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, cons
 }
 
 // Helper function to convert variant argument to string
-Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
+Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg, bool qualified) const
 {
-    return std::visit(DiagnosticArgumentToStringVisitor{ctx_}, arg.val);
+    return std::visit(DiagnosticArgumentToStringVisitor{ctx_, qualified}, arg.val);
 }
 
 Utf8 DiagnosticBuilder::formatMessage(const DiagnosticElement& element) const

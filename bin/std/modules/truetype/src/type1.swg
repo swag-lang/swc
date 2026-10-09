@@ -82,9 +82,18 @@ func findBytes(data: const [..] u8, from: u64, needle: string)->u64
     return total
 }
 
+#[Swag.Inline]
 private func isPostScriptSpace(c: u8)->bool => c == ' ' or c == '\t' or c == '\r' or c == '\n' or c == '\f' or c == 0
 
-private func isPostScriptDelimiter(c: u8)->bool => isPostScriptSpace(c) or c == '/' or c == '[' or c == ']' or c == '{' or c == '}' or c == '(' or c == ')'
+#[Swag.Inline]
+private func isPostScriptDelimiter(c: u8)->bool => isPostScriptSpace(c) or
+                                                   c == '/' or
+                                                   c == '[' or
+                                                   c == ']' or
+                                                   c == '{' or
+                                                   c == '}' or
+                                                   c == '(' or
+                                                   c == ')'
 
 private func skipPostScriptSpaces(data: const [..] u8, from: u64)->u64
 {

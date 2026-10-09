@@ -358,8 +358,10 @@ private func reportElfSections(image: *BinaryImage, report: *Report, sections: c
 
         // A `SHT_NOBITS` section is reserved in memory and stored nowhere, so it is given no range:
         // a search hit can never be inside bytes the file does not carry.
-        let holds = section.kind != 8
-        report.beginGroup(label, elfSectionKindName(section.kind), stored, offset: holds ? section.offset : Swag.U64.Max, length: holds ? section.size : 0)
+        let holds         = section.kind != 8
+        let sectionOffset = holds ? section.offset : Swag.U64.Max
+        let sectionLength = holds ? section.size : 0
+        report.beginGroup(label, elfSectionKindName(section.kind), stored, offset: sectionOffset, length: sectionLength)
         report.hexField(entryAt + 4, 4, "sh_type", cast(u64, section.kind), elfSectionKindName(section.kind))
         report.hexField(entryAt + 8, wide, "sh_flags", section.flags, names)
         report.hexField(entryAt + 8 + wide, wide, "sh_addr", section.address)

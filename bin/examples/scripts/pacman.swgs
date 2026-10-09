@@ -397,7 +397,9 @@ impl Ghost
     mtd aiSpawn()
     {
         .setSpeed(50)
-        if cast(s32, (.y * 10.0)) % 10 == 5 and cast(s32, (.x * 10.0)) % 10 == 5 and isImpassible(.getNextTile(.dir))
+        if cast(s32, (.y * 10.0)) % 10 == 5 and
+           cast(s32, (.x * 10.0)) % 10 == 5 and
+           isImpassible(.getNextTile(.dir))
         {
             // Switch direction upon hitting a WALL
             switch .dir
@@ -606,7 +608,8 @@ impl Ghost
 
         // Check UP exit
         // UP exits have an additional condition such that, at 4 specific intersections, the ghost cannot opt to travel UP
-        if not (.getY() == 19 and (.getX() == 12 or .getX() == 15)) and not (.getY() == 7 and (.getX() == 12 or .getX() == 15))
+        let blocksUpExit = (.getY() == 19 or .getY() == 7) and (.getX() == 12 or .getX() == 15)
+        if not blocksUpExit
         {
             // Prevent direction reversing and ensure exit is traversible
             if .dir != .DOWN and not isImpassible(.getNextTile(.UP))

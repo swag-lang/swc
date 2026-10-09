@@ -278,7 +278,9 @@ impl Decoder
 
             let firstPoc  = .refList.poc[0, cast(u32, first.refIdx[0])]
             let secondPoc = .refList.poc[1, cast(u32, second.refIdx[1])]
-            if firstPoc == secondPoc and first.mv[0, 0] == second.mv[1, 0] and first.mv[0, 1] == second.mv[1, 1] do
+            if firstPoc == secondPoc and
+               first.mv[0, 0] == second.mv[1, 0] and
+               first.mv[0, 1] == second.mv[1, 1] do
                 continue
 
             with var combined: PuMotion
@@ -372,7 +374,12 @@ impl Decoder
         }
         elif (column.predFlags & 2) != 0
         {
-            source = .noBackwardPrediction() ? list : (.header.collocatedFromL0 ? 1'u32 : 0'u32)
+            if .noBackwardPrediction() do
+                source = list
+            elif .header.collocatedFromL0 do
+                source = 1
+            else do
+                source = 0
             if (cast(u32, column.predFlags) & (1'u32 << source)) == 0 do
                 source = source ^ 1
         }

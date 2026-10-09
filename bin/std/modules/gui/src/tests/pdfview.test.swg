@@ -521,7 +521,9 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     var expression: PdfTextSearchOptions
     expression.regularExpression = true
     let expressionMatches = view.findTextMatches(#raw "Sec.nd", expression)
-    Swag.assert(expressionMatches.count == 1 and expressionMatches[0].pageIndex == 1 and expressionMatches[0].byteLength == 6)
+    Swag.assert(expressionMatches.count == 1 and
+                expressionMatches[0].pageIndex == 1 and
+                expressionMatches[0].byteLength == 6)
     Swag.assert(view.findTextMatches("(", expression).isEmpty())
 
     // The progressive form answers the same matches a page at a time and never waits for one;

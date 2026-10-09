@@ -270,7 +270,9 @@ private impl Layout
                 .main    = try source.readNative'MainHeader()
                 .hasMain = true
             }
-            elif chunk.id == ListId and chunk.size >= FourCcSize and (try source.readLittleEndian'u32()) == StreamListId
+            elif chunk.id == ListId and
+                 chunk.size >= FourCcSize and
+                 (try source.readLittleEndian'u32()) == StreamListId
             {
                 try .parseStreamList(source, chunk.next, index)
                 index += 1
@@ -295,7 +297,10 @@ private impl Layout
                 header    = try source.readNative'StreamHeader()
                 hasHeader = true
             }
-            elif chunk.id == StreamFormatId and hasHeader and not .hasStream and header.kind == VideoStreamId
+            elif chunk.id == StreamFormatId and
+                 hasHeader and
+                 not .hasStream and
+                 header.kind == VideoStreamId
             {
                 if chunk.size < #sizeof(Bmp.Header) do
                     fail UnsupportedFormatError{"AVI video stream is not described by a bitmap header"}
@@ -344,7 +349,10 @@ private impl AudioFormat
     {
         if .formatTag != PcmFormatTag or not .channels or not .sampleRate do
             return false
-        if .bitsPerSample != 8 and .bitsPerSample != 16 and .bitsPerSample != 24 and .bitsPerSample != 32 do
+        if .bitsPerSample != 8 and
+           .bitsPerSample != 16 and
+           .bitsPerSample != 24 and
+           .bitsPerSample != 32 do
             return false
 
         let bytesPerFrame = cast(u32, .channels) * cast(u32, (.bitsPerSample / 8))
@@ -547,7 +555,9 @@ private impl Decoder
                 continue
             }
 
-            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and (try source.readLittleEndian'u32()) == RecordListId
+            let isGroup = chunk.id == ListId and
+                          chunk.size >= FourCcSize and
+                          (try source.readLittleEndian'u32()) == RecordListId
             position = isGroup ? chunk.data + FourCcSize : chunk.next
         }
     }
@@ -674,7 +684,9 @@ private impl Decoder
             // An OpenDML file groups its frames into `rec ` lists, one level below the frame
             // list; descending into one reaches the frames it holds without a second walk. Any
             // other list is skipped rather than entered, since its content is not chunks.
-            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and (try source.readLittleEndian'u32()) == RecordListId
+            let isGroup = chunk.id == ListId and
+                          chunk.size >= FourCcSize and
+                          (try source.readLittleEndian'u32()) == RecordListId
             position = isGroup ? chunk.data + FourCcSize : chunk.next
         }
     }

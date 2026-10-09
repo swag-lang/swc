@@ -390,7 +390,9 @@ impl Surface
 
     private mtd createRT()
     {
-        if not .rt.colorBuffer.isValid() or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
+        if not .rt.colorBuffer.isValid() or
+           .rt.colorBuffer.width < .rc.width or
+           .rt.colorBuffer.height < .rc.height
         {
             // Grow each axis independently. Recomputing both from the current client size would
             // shrink one axis while growing the other, then allocate again when the drag reverses.

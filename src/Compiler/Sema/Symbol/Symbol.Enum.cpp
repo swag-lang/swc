@@ -21,10 +21,12 @@ void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
     sema.compiler().notifyAlive();
 }
 
-std::vector<SymbolImpl*> SymbolEnum::impls() const
+SymbolImplList SymbolEnum::impls() const
 {
     const std::shared_lock lk(mutexImpls_);
-    return impls_;
+    SymbolImplList         result;
+    result.assign(impls_.begin(), impls_.end());
+    return result;
 }
 
 bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)

@@ -113,7 +113,9 @@ impl RichEditCtrl
         // Wrapping moves runes between display lines without adding or dropping any, so the
         // authored line is exactly its display lines end to end.
         var remaining = charPosInLine
-        while remaining > .lines[index]!.length() and index + 1 < .lines.count and .lines[index + 1]!.wordWrap
+        while remaining > .lines[index]!.length() and
+              index + 1 < .lines.count and
+              .lines[index + 1]!.wordWrap
         {
             remaining -= .lines[index]!.length()
             index     += 1

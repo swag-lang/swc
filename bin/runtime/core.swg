@@ -180,7 +180,9 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
     var acceptsNullObject = allowNullObject
 
     // A boxed null literal has no object address, but is a valid nullable pointer value.
-    if matchedNull != null and requestedType.kind == .Pointer and Swag.typeCmp(sourceType, #typeof(null), .Strict)
+    if matchedNull != null and
+       requestedType.kind == .Pointer and
+       Swag.typeCmp(sourceType, #typeof(null), .Strict)
     {
         matchedNull[] = true
         return null
@@ -286,7 +288,9 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
     let source = __concreteAlias(fromType)
     if source.flags & .Nullable and not (target.flags & .Nullable) do
         return false
-    if (source.kind == .Pointer or source.kind == .Interface) and source.flags & .Const and not (target.flags & .Const) do
+    if (source.kind == .Pointer or source.kind == .Interface) and
+       source.flags & .Const and
+       not (target.flags & .Const) do
         return false
     let plainTarget = target.unqualified!
     let plainSource = source.unqualified!

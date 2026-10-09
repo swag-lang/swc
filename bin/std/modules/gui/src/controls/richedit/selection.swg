@@ -380,7 +380,10 @@ impl RichEditCtrl
         let c  = .selBeg.charPosInLine == len ? 0'rune : line.chars[.selBeg.charPosInLine]
         let cn = .cursorPos.charPosInLine != len - 1 ? line.chars[.selBeg.charPosInLine + 1] : 0'rune
 
-        if Unicode.isSpace(c) and not Unicode.isSpace(cp) and not Unicode.isSpace(cn) and .cursorPos.charPosInLine do
+        if Unicode.isSpace(c) and
+           not Unicode.isSpace(cp) and
+           not Unicode.isSpace(cn) and
+           .cursorPos.charPosInLine do
             .cursorPos.charPosInLine -= 1
 
         .selBeg = .cursorPos

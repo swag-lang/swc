@@ -22,7 +22,9 @@ private
 func isZipArchive(image: *BinaryImage)->bool
 {
     image.bigEndian = false
-    if image.matches(0, "PK\x03\x04") or image.matches(0, "PK\x05\x06") or image.matches(0, "PK\x07\x08") do
+    if image.matches(0, "PK\x03\x04") or
+       image.matches(0, "PK\x05\x06") or
+       image.matches(0, "PK\x07\x08") do
         return true
     return zipEndAt(image) != Swag.U64.Max
 }
@@ -134,8 +136,11 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
 
         // A name that ends in a separator is a folder the archive recorded rather than a payload,
         // and it has no bytes anywhere to point at.
-        let folder = nameLen and (name.toString()[nameLen - 1] == '/'u8 or name.toString()[nameLen - 1] == '\\'u8)
-        report.beginGroup(name, folder ? texts.zip_Folder : stored, zipMethodName(method), offset: folder ? Swag.U64.Max : localAt, length: folder ? 0 : compressed + 30 + nameLen)
+        let folder      = nameLen and (name.toString()[nameLen - 1] == '/'u8 or name.toString()[nameLen - 1] == '\\'u8)
+        let groupValue  = folder ? texts.zip_Folder : stored
+        let groupOffset = folder ? Swag.U64.Max : localAt
+        let groupLength = folder ? 0 : compressed + 30 + nameLen
+        report.beginGroup(name, groupValue, zipMethodName(method), offset: groupOffset, length: groupLength)
 
         report.field(scan + 12, 4, texts.fld_Modified, stamp)
         report.numField(scan + 10, 2, texts.zip_Method, cast(u64, method), zipMethodName(method))

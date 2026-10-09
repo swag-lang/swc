@@ -36,7 +36,9 @@ impl Decoder
         let size = 1's32 << log2CbSize
 
         var split = log2CbSize > sps.minCbLog2Size
-        if x0 + size <= cast(s32, sps.width) and y0 + size <= cast(s32, sps.height) and log2CbSize > sps.minCbLog2Size
+        if x0 + size <= cast(s32, sps.width) and
+           y0 + size <= cast(s32, sps.height) and
+           log2CbSize > sps.minCbLog2Size
         {
             var context = 0'u32
             if .isAvailable(x0, y0, x0 - 1, y0) and cast(u32, .ctDepth[.blockIndex(x0 - 1, y0)]) > depth do

@@ -576,7 +576,10 @@ private impl Reader
             return {}
 
         let bytes = catch Base64.decode(payload) as decodeError
-        if decodeError != null or bytes.isEmpty() or bytes.count > ImageLimit or bytes.count > ImageLimit - .imageByteCount do
+        if decodeError != null or
+           bytes.isEmpty() or
+           bytes.count > ImageLimit or
+           bytes.count > ImageLimit - .imageByteCount do
             return {}
 
         .imageCount     += 1

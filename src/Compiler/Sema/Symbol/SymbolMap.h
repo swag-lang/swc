@@ -1,10 +1,16 @@
 #pragma once
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class MatchContext;
+class SymbolImpl;
+
+// A snapshot of the impl blocks of a struct or an enum. Every lookup that reaches a struct asks
+// for one, and few types have more impl blocks than this holds inline.
+using SymbolImplList = SmallVector<SymbolImpl*, 8>;
 
 class SymbolMap : public Symbol
 {

@@ -9,7 +9,10 @@ private func loadPdfFixture(name: string, pageCount: u64)->Document
     let result = expect Document.load(pdfFixturePath(name))
     Swag.assert(result.pages.count == pageCount)
     for page in result.pages do
-        Swag.assert(page.width > 0 and page.height > 0 and Math.isFinite(page.width) and Math.isFinite(page.height))
+        Swag.assert(page.width > 0 and
+                    page.height > 0 and
+                    Math.isFinite(page.width) and
+                    Math.isFinite(page.height))
     return result
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/StringMap.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -48,10 +49,12 @@ public:
     void            setSourcePath(fs::path path) { sourcePath_ = std::move(path); }
 
 private:
-    // Symbol names borrow the immutable byte buffer, which moves together with the index.
-    ByteArray                                      bytes_;
-    std::unordered_map<std::string_view, uint32_t> symbolToMember_;
-    fs::path                                       sourcePath_;
+    // Symbol names borrow the immutable byte buffer, which moves together with the index. A
+    // system import library names thousands of symbols and every link reads a few of them: one
+    // flat table holds them all where a node-based map allocated one node per symbol.
+    ByteArray           bytes_;
+    StringMap<uint32_t> symbolToMember_;
+    fs::path            sourcePath_;
 };
 
 // Builds a COFF static library (`!<arch>`) from prepared object members: both linker directories,

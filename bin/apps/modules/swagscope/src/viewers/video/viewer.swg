@@ -455,7 +455,7 @@ impl Panel
                 .playing = false
                 .audioRangePending    = false
                 catch .voice.pause()
-                .services.failed(me, Errors.message(seekError))
+                .services.failed(me, Viewer.failureText(seekError))
                 return
             }
         }
@@ -467,7 +467,7 @@ impl Panel
         {
             .playing = false
             .refreshTransport()
-            .services.failed(me, Errors.message(playError))
+            .services.failed(me, Viewer.failureText(playError))
             return
         }
 
@@ -970,7 +970,7 @@ private func runViewerDecode(thread: Threading.Thread)
     var video = catch Reader.open(view.openFileName) as openError
     if openError != null
     {
-        view.openFailure = Errors.message(openError)
+        view.openFailure = Viewer.failureText(openError)
         Atomic.exchange(&view.openState, OpenFailed)
         return
     }
@@ -1019,5 +1019,5 @@ func createViewer(host: Viewer.Host)
         host.setLifecycle(lifecycle)
     } as createError
     if createError != null do
-        host.reject(Errors.message(createError))
+        host.reject(Viewer.failureText(createError))
 }

@@ -87,7 +87,7 @@ impl ZipEntryExtract
         .task.submit(func|operation|()
         {
             catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
-            operation.error = Errors.message(extractError)
+            operation.error = Viewer.failureText(extractError)
         })
     }
 
@@ -336,7 +336,7 @@ private impl Panel
                 catch .embedded.open(.previewFile, entry.path) as openError
                 if openError != null
                 {
-                    .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, Errors.message(openError)))
+                    .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, Viewer.failureText(openError)))
                     return
                 }
 

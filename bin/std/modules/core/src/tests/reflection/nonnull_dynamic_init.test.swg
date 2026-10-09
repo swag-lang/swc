@@ -42,7 +42,10 @@ func testCoreNonNullDynamicInitialization()->bool
 
     var rejectedArray: Array'(*CoreNonNullDynamicItem)
     let rejectedAppend = Swag.catchPanic(func|&rejectedArray, requiredType|() { discard Reflection.appendDynamicArrayElement(&rejectedArray, requiredType) }).raised
-    let preservedArray = rejectedAppend and rejectedArray.buffer == null and not rejectedArray.count and not rejectedArray.capacity
+    let preservedArray = rejectedAppend and
+                         rejectedArray.buffer == null and
+                         not rejectedArray.count and
+                         not rejectedArray.capacity
 
     let zeroType       = #typeof(CoreNonNullZeroUnion)
     let zeroStructType = assume cast(const *Swag.TypeInfoStruct, zeroType)

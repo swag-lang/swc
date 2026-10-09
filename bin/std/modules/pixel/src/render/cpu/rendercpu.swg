@@ -970,7 +970,9 @@ private impl RenderCpu
             if not image do
                 return Color.fromArgb(Argb.Zero)
 
-            if p.uvMode == .FillSubRect and .program != CpuProgram_Blur and .program != CpuProgram_Resolve do
+            if p.uvMode == .FillSubRect and
+               .program != CpuProgram_Blur and
+               .program != CpuProgram_Resolve do
                 return sampleSubRect(image, paintPos, &.paintCommand, .contentScale)
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
@@ -1433,7 +1435,9 @@ private impl RenderCpu
 
         // A triangle whose vertices agree on color and coverage shades one constant fragment
         // under a solid paint, and the frequent blend states then collapse per pixel.
-        var constShade = constantColor and batch.solidPaint and (.program == CpuProgram_Simple or .program == CpuProgram_Default)
+        var constShade = constantColor and
+                         batch.solidPaint and
+                         (.program == CpuProgram_Simple or .program == CpuProgram_Default)
         var constColor = c0
         if constShade and .program == CpuProgram_Default
         {
@@ -1515,7 +1519,10 @@ private impl RenderCpu
 
                         // Translucent alpha uses the exact byte blend; the other full spans
                         // collapse to one packed load/store pair.
-                        if laneCount == 4 and coverage == 0xF and not stencilTest and (not fastAlpha or constColor.a == 255)
+                        if laneCount == 4 and
+                           coverage == 0xF and
+                           not stencilTest and
+                           (not fastAlpha or constColor.a == 255)
                         {
                             if copyAll do
                                 Math.Simd.store(pixel, fill)
@@ -1713,7 +1720,9 @@ private impl RenderCpu
                 let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
                 let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
                 let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
-                if not insideEdge(e0, edge0TopLeft) or not insideEdge(e1, edge1TopLeft) or not insideEdge(e2, edge2TopLeft) do
+                if not insideEdge(e0, edge0TopLeft) or
+                   not insideEdge(e1, edge1TopLeft) or
+                   not insideEdge(e2, edge2TopLeft) do
                     continue
 
                 var clip = 255'u8
@@ -1807,7 +1816,9 @@ private impl RenderCpu
     // rasterized image is therefore identical to the serial one, band split or not.
     mtd rasterizeRange(batch: *RasterBatch, bounds: PixelBounds)
     {
-        if bounds.area() < CpuBandPixelThreshold or bounds.rows() <= CpuBandRows or Swag.workerCount() <= 1
+        if bounds.area() < CpuBandPixelThreshold or
+           bounds.rows() <= CpuBandRows or
+           Swag.workerCount() <= 1
         {
             .drawTriangleRange(batch, bounds.minY, bounds.maxY)
             return
@@ -1882,18 +1893,28 @@ private impl RenderCpu
             return false
         if .contentScale != 1 or not batch.transform.isTranslationOnly() do
             return false
-        if .blendingMode != .Copy or not .colorMask.r or not .colorMask.g or not .colorMask.b or not .colorMask.a do
+        if .blendingMode != .Copy or
+           not .colorMask.r or
+           not .colorMask.g or
+           not .colorMask.b or
+           not .colorMask.a do
             return false
         if .stencilOn or .stencilWrite or .scissorOn or .overlapMode or .alphaResolve do
             return false
 
         let source = batch.paintImage
         let target = batch.image
-        if not source or not target or source == target or source.pixelFormat != .BGRA8 or target.pixelFormat != .BGRA8 do
+        if not source or
+           not target or
+           source == target or
+           source.pixelFormat != .BGRA8 or
+           target.pixelFormat != .BGRA8 do
             return false
 
         let params = &.paintCommand.texture0
-        if params.type != .Texture or params.uvMode != .FillSubRect or params.interpolationMode != .Pixel do
+        if params.type != .Texture or
+           params.uvMode != .FillSubRect or
+           params.interpolationMode != .Pixel do
             return false
 
         let vertices    = batch.painter!.vertexBuffer.storage() + batch.start

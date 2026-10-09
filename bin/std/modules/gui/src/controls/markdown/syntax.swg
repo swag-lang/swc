@@ -555,7 +555,12 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
             }
         }
 
-        if index + 2 < text.count and ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or (text[index] == '_' and text[index + 1] == '_' and text[index + 2] == '_' and canOpenUnderscore(text, index)))
+        if index + 2 < text.count and
+           ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or
+            (text[index] == '_' and
+             text[index + 1] == '_' and
+             text[index + 2] == '_' and
+             canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 3]
             let end    = findClosing(text, marker, index + 3, wordBoundaryClose: text[index] == '_')

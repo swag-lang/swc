@@ -52,7 +52,7 @@ impl Read
                 return
             }
 
-            .error = Errors.message(readError)
+            .error = Viewer.failureText(readError)
             if not (readError is Errors.InvalidFormatError)
             {
                 .failed = true
@@ -95,7 +95,7 @@ impl Read
             if readError != null
             {
                 request.failed = true
-                request.error  = Errors.message(readError)
+                request.error  = Viewer.failureText(readError)
             }
         })
     }

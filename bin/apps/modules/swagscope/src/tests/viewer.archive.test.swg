@@ -14,15 +14,15 @@ using Core, Pixel, Gui, Viewers
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let failure = operation.finish()
-    Swag.assert(failure == Format.toString(Archive.texts().err_Method, 99))
+    Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
     Swag.assert(not File.exists(destination))
 
     entry.method = 100
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let replacement = operation.finish()
-    Swag.assert(replacement == Format.toString(Archive.texts().err_Method, 100))
-    Swag.assert(failure == Format.toString(Archive.texts().err_Method, 99))
+    Swag.assert(replacement == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 100)))
+    Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
 }
 
 func archiveViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")

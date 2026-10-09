@@ -70,20 +70,20 @@ public:
     const SymbolVariable*               findFieldByName(IdentifierRef name) const noexcept;
 
     void                         addImpl(Sema& sema, SymbolImpl& symImpl);
-    std::vector<SymbolImpl*>     impls() const;
+    SymbolImplList               impls() const;
     std::vector<SymbolFunction*> declaredMethods() const;
     Result                       waitPendingImplMembers(Sema& sema, const SourceCodeRef& codeRef) const;
     std::vector<SymbolFunction*> methods() const;
 
-    void                     addInterface(SymbolImpl& symImpl);
-    Result                   addInterface(Sema& sema, SymbolImpl& symImpl);
-    std::vector<SymbolImpl*> interfaces() const;
-    const SymbolImpl*        findInterfaceImpl(IdentifierRef interfaceIdRef) const;
-    const SymbolImpl*        findInterfaceImplOrUsingFields(const TaskContext& ctx, const SymbolInterface& itf) const;
-    bool                     implementsInterface(const SymbolInterface& itf) const;
-    bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
-    bool                     resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
-    static bool              usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
+    void              addInterface(SymbolImpl& symImpl);
+    Result            addInterface(Sema& sema, SymbolImpl& symImpl);
+    SymbolImplList    interfaces() const;
+    const SymbolImpl* findInterfaceImpl(IdentifierRef interfaceIdRef) const;
+    const SymbolImpl* findInterfaceImplOrUsingFields(const TaskContext& ctx, const SymbolInterface& itf) const;
+    bool              implementsInterface(const SymbolInterface& itf) const;
+    bool              implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
+    bool              resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
+    static bool       usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
     {
         for (const auto& step : usingPath)
         {

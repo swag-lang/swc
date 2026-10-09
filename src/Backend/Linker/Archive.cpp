@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -103,8 +104,9 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
             ++nameLen;
 
-        const uint32_t memberOffset = bytes_.readBe32(offsetsAt + static_cast<size_t>(i) * 4);
-        symbolToMember_.emplace(std::string_view{nameStart, nameLen}, memberOffset);
+        const uint32_t         memberOffset = bytes_.readBe32(offsetsAt + static_cast<size_t>(i) * 4);
+        const std::string_view name{nameStart, nameLen};
+        symbolToMember_.try_emplace(name, Math::hash(name), memberOffset);
         nameCursor += nameLen + 1;
     }
 
@@ -113,8 +115,8 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
 
 uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
 {
-    const auto it = symbolToMember_.find(symbol.view());
-    return it == symbolToMember_.end() ? 0 : it->second;
+    const uint32_t* memberOffset = symbolToMember_.find(symbol.view(), Math::hash(symbol.view()));
+    return memberOffset ? *memberOffset : 0;
 }
 
 std::span<const std::byte> Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const

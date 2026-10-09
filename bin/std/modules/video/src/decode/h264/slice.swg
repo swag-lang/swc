@@ -445,7 +445,10 @@ impl Slice
                     entry.cbOffset = .bits.se()
                     entry.crWeight = .bits.se()
                     entry.crOffset = .bits.se()
-                    if entry.cbWeight < -128 or entry.cbWeight > 127 or entry.crWeight < -128 or entry.crWeight > 127 do
+                    if entry.cbWeight < -128 or
+                       entry.cbWeight > 127 or
+                       entry.crWeight < -128 or
+                       entry.crWeight > 127 do
                         fail InvalidFormatError{"H.264 slice declares an out-of-range chroma weight"}
                 }
             }

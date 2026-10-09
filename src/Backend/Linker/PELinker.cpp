@@ -86,13 +86,26 @@ namespace
         outBytes.append(bytes);
     }
 
-    void collectDefined(std::unordered_set<Utf8>& outDefined, const LinkImage& image)
+    // Every name the link defines. A module defines thousands of symbols and every relocation is
+    // checked against them, so the names are borrowed from their owners into one flat table
+    // instead of being copied into a node each. An owner must outlive the table.
+    class DefinedNames
+    {
+    public:
+        void insert(const std::string_view name) { names_.try_emplace(name, Math::hash(name), true); }
+        bool contains(const std::string_view name) const { return names_.contains(name, Math::hash(name)); }
+
+    private:
+        StringMap<bool> names_;
+    };
+
+    void collectDefined(DefinedNames& outDefined, const LinkImage& image)
     {
         for (const LinkSymbol& symbol : image.symbols)
             outDefined.insert(symbol.name);
     }
 
-    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const std::unordered_set<Utf8>& defined)
+    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const DefinedNames& defined)
     {
         for (const CoffInputSection& section : object.sections)
         {
@@ -454,7 +467,7 @@ namespace
         }
     }
 
-    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const std::unordered_set<Utf8>& defined)
+    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const DefinedNames& defined)
     {
         for (const LinkSection& section : image.sections)
         {
@@ -1013,7 +1026,10 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     if (debugInfo.enabled)
         debugMerger.emplace(debugInfo);
 
-    std::unordered_set<Utf8> defined;
+    // The image's own symbols stay put until the pulled objects merge into it, after the last
+    // lookup. A pulled object can be dropped as a duplicate, so the names it defines are kept here.
+    DefinedNames     defined;
+    std::deque<Utf8> pulledDefinedNames;
     collectDefined(defined, image);
 
     std::unordered_set<Utf8> undefined;
@@ -1064,7 +1080,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 continue;
 
             for (const CoffInputSymbol& sym : pulled.definedSymbols)
-                defined.insert(sym.name);
+                defined.insert(pulledDefinedNames.emplace_back(sym.name));
             std::unordered_set<Utf8> newUndefined;
             collectUndefined(newUndefined, pulled, defined);
             for (const Utf8& u : newUndefined)

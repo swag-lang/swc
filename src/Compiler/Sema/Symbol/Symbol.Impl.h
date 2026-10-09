@@ -3,6 +3,7 @@
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -52,13 +53,13 @@ public:
     SymbolInterface* symInterface() const noexcept { return interfaceSym_; }
     void             setSymInterface(SymbolInterface* sym) noexcept { interfaceSym_ = sym; }
 
-    void                         addFunction(const TaskContext& ctx, SymbolFunction* sym);
-    const SymbolFunction*        findFunction(IdentifierRef functionIdRef) const;
-    const SymbolFunction*        findFunctionForInterfaceMethod(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
-    const SymbolFunction*        resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
-    std::vector<SymbolFunction*> specOps() const;
-    Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
-    Result                       validateInterfaceConstraints(Sema& sema, CastFailure& failure) const;
+    void                            addFunction(const TaskContext& ctx, SymbolFunction* sym);
+    const SymbolFunction*           findFunction(IdentifierRef functionIdRef) const;
+    const SymbolFunction*           findFunctionForInterfaceMethod(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
+    const SymbolFunction*           resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
+    SmallVector<SymbolFunction*, 8> specOps() const;
+    Result                          ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
+    Result                          validateInterfaceConstraints(Sema& sema, CastFailure& failure) const;
 
 private:
     std::vector<SymbolFunction*>  specOps_;

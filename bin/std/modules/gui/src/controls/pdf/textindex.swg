@@ -218,7 +218,9 @@ impl TextIndex
     private func itemLocalWidth(page: const *Page, item: const *Item, codes: *Array'TextCode)->f32
     {
         var x = 0.0'f32
-        if item.textCodes.count and item.textCodes.count == item.textAdvances.count and item.fontIndex < page.fonts.count
+        if item.textCodes.count and
+           item.textCodes.count == item.textAdvances.count and
+           item.fontIndex < page.fonts.count
         {
             let font      = &page.fonts[item.fontIndex]
             var byteStart = 0'u64

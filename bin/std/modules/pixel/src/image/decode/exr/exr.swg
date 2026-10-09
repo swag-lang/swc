@@ -268,7 +268,30 @@ impl Part
         if not (hasY or (hasR and hasG and hasB)) do
             fail UnsupportedFormatError{"OpenEXR image has neither Y nor RGB color channels"}
         let grayscale = hasY and not (hasR and hasG and hasB)
-        let format: PixelFormat = hasFloat ? (grayscale ? (hasAlpha ? .GrayAlphaF32 : .GrayF32) : (hasAlpha ? .RGBAF32 : .RGBF32)) : (grayscale ? (hasAlpha ? .GrayAlphaF16 : .GrayF16) : (hasAlpha ? .RGBAF16 : .RGBF16))
+        var format: PixelFormat
+        if hasFloat
+        {
+            if grayscale
+            {
+                format = hasAlpha ? .GrayAlphaF32 : .GrayF32
+            }
+            else
+            {
+                format = hasAlpha ? .RGBAF32 : .RGBF32
+            }
+        }
+        else
+        {
+            if grayscale
+            {
+                format = hasAlpha ? .GrayAlphaF16 : .GrayF16
+            }
+            else
+            {
+                format = hasAlpha ? .RGBAF16 : .RGBF16
+            }
+        }
+
         result.info.kind        = multipart ? .Page : .Still
         result.info.width       = cast(s32, width)
         result.info.height      = cast(s32, height)

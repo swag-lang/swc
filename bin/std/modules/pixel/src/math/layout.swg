@@ -288,7 +288,9 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
     var limitsMode = node.limitsMode
     if limitsMode == .Automatic do
         limitsMode = base.limitsMode
-    let useLimits = base.atomClass == .Op and limitsMode != .NoLimits and (limitsMode == .Limits or style == .Display)
+    let useLimits = base.atomClass == .Op and
+                    limitsMode != .NoLimits and
+                    (limitsMode == .Limits or style == .Display)
 
     if useLimits
     {

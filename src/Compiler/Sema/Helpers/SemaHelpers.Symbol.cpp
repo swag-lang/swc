@@ -202,7 +202,7 @@ void SemaHelpers::pushConstExprRequirement(Sema& sema, AstNodeRef childRef)
     SWC_ASSERT(childRef.isValid());
     auto frame = sema.frame();
     frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
-    sema.pushFramePopOnPostChild(frame, childRef);
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
 }
 
 Result SemaHelpers::appendConstantText(Sema& sema, std::span<const AstNodeRef> parts, Utf8& outText)

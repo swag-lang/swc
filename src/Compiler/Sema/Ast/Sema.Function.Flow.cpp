@@ -564,7 +564,7 @@ namespace
             return Result::Continue;
 
         frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
         return Result::Continue;
     }
 
@@ -1331,7 +1331,7 @@ namespace
         {
             auto frame = sema.frame();
             frame.pushBindingType(bindingTypeRef);
-            sema.pushFramePopOnPostChild(frame, childRef);
+            sema.pushFramePopOnPostChild(std::move(frame), childRef);
         }
 
         return Result::Continue;
@@ -1392,7 +1392,7 @@ namespace
 
         SemaFrame frame = sema.frame();
         SemaHelpers::addNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
-        sema.pushFramePopOnPostNode(frame, parentRef);
+        sema.pushFramePopOnPostNode(std::move(frame), parentRef);
     }
 
     bool intrinsicNeedsMathRuntimeSafety(const TokenId tokenId)

@@ -36,7 +36,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     SemaFrame frame = sema.frame();
     frame.setCurrentInterface(&symItf);
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
     sema.curScope().setSymMap(&symItf);
 

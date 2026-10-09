@@ -319,7 +319,7 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 
             auto frame = sema.frame();
             frame.setUpLookupScope(hiddenScope);
-            sema.pushFramePopOnPostNode(frame);
+            sema.pushFramePopOnPostNode(std::move(frame));
             return Result::Continue;
         }
     }
@@ -343,7 +343,7 @@ Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         SemaFrame frame = sema.frame();
         frame.clearNarrowFacts();
-        sema.pushFramePopOnPostNode(frame, sema.curNodeRef());
+        sema.pushFramePopOnPostNode(std::move(frame), sema.curNodeRef());
     }
 
     SemaHelpers::scopeBindingsForStatement(sema);
@@ -379,7 +379,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
         SemaFrame frame = sema.frame();
         frame.clearNarrowFacts();
         frame.setDeferBody();
-        sema.pushFramePopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(std::move(frame));
     }
 
     return Result::Continue;

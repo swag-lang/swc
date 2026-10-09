@@ -758,7 +758,7 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
     if (isMember)
         newFrame.setCurrentMemberAccess(spec, symMap);
     newFrame.setCurrentAccess(access);
-    sema.pushFramePopOnPostNode(newFrame);
+    sema.pushFramePopOnPostNode(std::move(newFrame));
 
     return Result::Continue;
 }
@@ -830,7 +830,7 @@ Result AstAttributeList::semaPreNode(Sema& sema)
     }
 
     const SemaFrame newFrame = sema.frame();
-    sema.pushFramePopOnPostNode(newFrame);
+    sema.pushFramePopOnPostNode(std::move(newFrame));
 
     const auto&  node            = sema.curNode().cast<AstAttributeList>();
     const size_t attributesCount = sema.ast().spanSize(node.spanChildrenRef);

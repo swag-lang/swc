@@ -234,7 +234,7 @@ namespace
         // in the body (Array.add / remove / ...) invalidates the snapshot the loop reads.
         if (iterationRoot)
             frame.pushIterationBorrow({iterationRoot, iterationSourceRef, iterationBodyRef});
-        sema.pushFramePopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(std::move(frame));
     }
 
     Result ensureLoopLocalStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
@@ -526,7 +526,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
             {
                 SemaFrame frame = sema.frame();
                 frame.pushIterationBorrow({iterationRoot, nodeExprRef, nodeBodyRef});
-                sema.pushFramePopOnPostNode(frame);
+                sema.pushFramePopOnPostNode(std::move(frame));
             }
             return Result::Continue;
         }
@@ -708,7 +708,7 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
         SemaHelpers::collectNarrowGuards(sema, nodeExprRef, guards);
         SemaHelpers::addNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
 
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
         sema.pushEscapeBranch();
     }
@@ -724,7 +724,7 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         SemaHelpers::killNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
         sema.pushEscapeBranch();
     }

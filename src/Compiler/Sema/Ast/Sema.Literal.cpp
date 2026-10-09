@@ -233,7 +233,7 @@ namespace
 
             auto frame = sema.frame();
             frame.pushBindingType(bindingTypeRef);
-            sema.pushFramePopOnPostChild(frame, childRef);
+            sema.pushFramePopOnPostChild(std::move(frame), childRef);
             if (outPushed)
                 *outPushed = true;
             break;
@@ -262,7 +262,7 @@ namespace
 
             auto frame = sema.frame();
             frame.pushBindingType(siblingTypeRef);
-            sema.pushFramePopOnPostChild(frame, childRef);
+            sema.pushFramePopOnPostChild(std::move(frame), childRef);
             break;
         }
 

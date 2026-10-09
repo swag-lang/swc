@@ -462,7 +462,7 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     SemaFrame frame = sema.frame();
     frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
 
     auto* payload       = sema.compiler().allocate<SwitchPayload>();
     payload->isComplete = isComplete;
@@ -560,7 +560,7 @@ Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentSwitchCase(childRef);
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
         // Every case is a borrow-flow alternative starting from the switch entry state.
@@ -631,7 +631,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
                 SemaFrame                          frame = sema.frame();
                 const std::array<const Symbol*, 1> path  = {symbol};
                 frame.addNarrowFact(path, SemaNarrowFactKind::NonNull);
-                sema.pushFramePopOnPostChild(frame, childRef);
+                sema.pushFramePopOnPostChild(std::move(frame), childRef);
             }
         }
         return Result::Continue;

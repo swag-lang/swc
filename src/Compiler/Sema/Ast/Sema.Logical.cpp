@@ -70,7 +70,7 @@ Result AstLogicalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
         {
             SemaFrame frame = sema.frame();
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
-            sema.pushFramePopOnPostChild(frame, nodeRightRef);
+            sema.pushFramePopOnPostChild(std::move(frame), nodeRightRef);
         }
     }
 

@@ -166,7 +166,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 
         auto frame = sema.frame();
         frame.setCurrentImpl(&symImpl);
-        sema.pushFramePopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(std::move(frame));
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(symImpl.asSymMap());
     }

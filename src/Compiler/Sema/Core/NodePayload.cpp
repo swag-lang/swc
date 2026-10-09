@@ -627,8 +627,11 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     if (args.empty())
     {
+        // A call without arguments is the common case, and this node can only have an entry
+        // to erase if the shard holds any: the count says so without taking the lock, as it
+        // does for every reader.
         Shard* shard = tryGetShard(shardIdx);
-        if (!shard)
+        if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire))
             return;
 
         const std::unique_lock lock(shard->resolvedCallArgsMutex);

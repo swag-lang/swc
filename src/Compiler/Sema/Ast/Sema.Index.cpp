@@ -397,7 +397,7 @@ namespace
         auto frame = sema.frame();
         frame.pushBindingType(indexTypeRef);
         SemaHelpers::preferContextualAutoMemberBindingType(sema, argumentRef);
-        sema.pushFramePopOnPostChild(frame, argumentRef);
+        sema.pushFramePopOnPostChild(std::move(frame), argumentRef);
     }
 
     TypeRef typeAfterSequentialIndex(Sema& sema, TypeRef indexedTypeRef, AstNodeRef argumentRef)

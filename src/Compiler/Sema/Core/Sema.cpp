@@ -836,6 +836,11 @@ void Sema::pushFrame(const SemaFrame& frame)
     frames_.push_back(frame);
 }
 
+void Sema::pushFrame(SemaFrame&& frame)
+{
+    frames_.push_back(std::move(frame));
+}
+
 void Sema::addNarrowKillAllFrames(std::span<const Symbol* const> path)
 {
     // A narrowing kill must survive the pop of every enclosing region that had proven the
@@ -1029,6 +1034,17 @@ bool Sema::isConstAssignTargetStored(AstNodeRef ref) const
 void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef)
 {
     pushFrame(frame);
+    deferFramePopOnPostChild(popAfterChildRef);
+}
+
+void Sema::pushFramePopOnPostChild(SemaFrame&& frame, AstNodeRef popAfterChildRef)
+{
+    pushFrame(std::move(frame));
+    deferFramePopOnPostChild(popAfterChildRef);
+}
+
+void Sema::deferFramePopOnPostChild(AstNodeRef popAfterChildRef)
+{
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
     auto& entry                    = deferredPopFrames_.emplace_back();
@@ -1042,6 +1058,17 @@ void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterCh
 void Sema::pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef)
 {
     pushFrame(frame);
+    deferFramePopOnPostNode(popNodeRef);
+}
+
+void Sema::pushFramePopOnPostNode(SemaFrame&& frame, AstNodeRef popNodeRef)
+{
+    pushFrame(std::move(frame));
+    deferFramePopOnPostNode(popNodeRef);
+}
+
+void Sema::deferFramePopOnPostNode(AstNodeRef popNodeRef)
+{
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
     auto& entry                    = deferredPopFrames_.emplace_back();

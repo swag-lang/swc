@@ -39,10 +39,10 @@ namespace
         bool                  isPointer = false;
     };
 
-    bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, std::unordered_set<const SymbolStruct*>& visited)
+    bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, PointerSet<const SymbolStruct>& visited)
     {
         SWC_ASSERT(&currentStruct != &targetStruct);
-        if (!visited.insert(&currentStruct).second)
+        if (!visited.insert(&currentStruct))
             return false;
 
         for (const SymbolVariable* field : currentStruct.fields())
@@ -81,7 +81,7 @@ namespace
         if (baseStruct == ownerStruct)
             return true;
 
-        std::unordered_set<const SymbolStruct*> visited;
+        PointerSet<const SymbolStruct> visited;
         return resolveUsingMemberPathRec(codeGen, *baseStruct, *ownerStruct, outSteps, visited);
     }
 

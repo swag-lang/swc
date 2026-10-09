@@ -593,8 +593,12 @@ public:
     void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayload(nodeDst, node(srcRef)); }
     void copyResolvedCallArguments(AstNodeRef dstRef, AstNodeRef srcRef) { nodePayloadContext().copyResolvedCallArguments(dstRef, srcRef); }
 
+    // A frame carries the attributes of the function it is in: a caller done with its local copy
+    // hands it over instead of having it copied a second time.
     void       pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
+    void       pushFramePopOnPostChild(SemaFrame&& frame, AstNodeRef popAfterChildRef);
     void       pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
+    void       pushFramePopOnPostNode(SemaFrame&& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
     SemaScope* pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
     SemaScope* pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     void       deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
@@ -658,6 +662,9 @@ private:
     SemaScope*         pushScope(SemaScopeFlags flags);
     void               popScope();
     void               pushFrame(const SemaFrame& frame);
+    void               pushFrame(SemaFrame&& frame);
+    void               deferFramePopOnPostChild(AstNodeRef popAfterChildRef);
+    void               deferFramePopOnPostNode(AstNodeRef popNodeRef);
     void               popFrame();
     NodePayload&       nodePayloadContext() { return *(nodePayloadContext_); }
     const NodePayload& nodePayloadContext() const { return *(nodePayloadContext_); }

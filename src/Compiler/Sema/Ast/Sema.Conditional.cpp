@@ -277,7 +277,7 @@ Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
             SemaFrame frame = sema.frame();
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
             frame.pushBindingType(enumTypeRef);
-            sema.pushFramePopOnPostChild(frame, childRef);
+            sema.pushFramePopOnPostChild(std::move(frame), childRef);
         }
     }
 

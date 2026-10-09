@@ -614,7 +614,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     // A nested function body must not inherit the enclosing body's flow-narrowing facts.
     frame.clearNarrowFacts();
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
     return Result::Continue;
 }
 
@@ -652,7 +652,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     // A nested function body must not inherit the enclosing body's flow-narrowing facts.
     frame.clearNarrowFacts();
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
     return inherited ? Result::SkipChildren : Result::Continue;
 }
 
@@ -690,7 +690,7 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     // A nested function body must not inherit the enclosing body's flow-narrowing facts.
     frame.clearNarrowFacts();
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
     return Result::Continue;
 }
 
@@ -1727,7 +1727,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
         // The return type binds a short body; a block body clears it at its first statement.
         frame.pushBindingType(sym.returnTypeRef());
-        sema.pushFramePopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(std::move(frame));
 
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&sym);
@@ -1752,7 +1752,7 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
         frame.pushBindingVar(receiver);
     frame.pushBindingType(sym.returnTypeRef());
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);
@@ -1778,7 +1778,7 @@ Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
         frame.pushBindingVar(receiver);
     frame.pushBindingType(sym.returnTypeRef());
-    sema.pushFramePopOnPostNode(frame);
+    sema.pushFramePopOnPostNode(std::move(frame));
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);
@@ -2108,7 +2108,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     auto frame = sema.frame();
     frame.pushBindingType(returnTypeRef);
     SWC_RESULT(bindReturnSlotRuntimeStorage(frame, sema, childRef));
-    sema.pushFramePopOnPostChild(frame, childRef);
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
     return Result::Continue;
 }
 

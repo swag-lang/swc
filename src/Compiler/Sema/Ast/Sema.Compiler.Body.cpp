@@ -447,7 +447,7 @@ namespace
         frame.setEnclosingFunction(sema.currentFunction());
         frame.setCurrentFunction(&symFn);
 
-        sema.pushFramePopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(std::move(frame));
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&symFn);
         return Result::Continue;
@@ -497,7 +497,7 @@ namespace
         frame.setEnclosingFunction(sema.currentFunction());
         frame.setCurrentFunction(&symFn);
         frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);
-        sema.pushFramePopOnPostNode(frame);
+        sema.pushFramePopOnPostNode(std::move(frame));
         return Result::Continue;
     }
 }

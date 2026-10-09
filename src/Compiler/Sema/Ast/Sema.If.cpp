@@ -349,7 +349,7 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
             if (factsAtThen != UINT32_MAX)
                 frame.truncateNarrowFacts(factsAtThen);
             SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
-            sema.pushFramePopOnPostChild(frame, childRef);
+            sema.pushFramePopOnPostChild(std::move(frame), childRef);
         }
 
         // What this branch proves at its end is one half of what holds after the 'if'. A braced
@@ -472,7 +472,7 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
                 const std::array<const Symbol*, 1> path  = {conditionSym};
                 SemaFrame                          frame = sema.frame();
                 frame.addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
-                sema.pushFramePopOnPostChild(frame, childRef);
+                sema.pushFramePopOnPostChild(std::move(frame), childRef);
             }
         }
     }
@@ -546,7 +546,7 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     auto       scopedFrame = sema.frame();
     SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     SWC_RESULT(configureWithBindings(sema, nodeExprRef, exprView.sym(), exprView.typeRef(), baseExprRef, scopedFrame, *bodyScope));
-    sema.pushFramePopOnPostChild(scopedFrame, childRef);
+    sema.pushFramePopOnPostChild(std::move(scopedFrame), childRef);
     return Result::Continue;
 }
 
@@ -562,7 +562,7 @@ Result AstWithVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     auto       scopedFrame = sema.frame();
     SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     SWC_RESULT(configureWithBindings(sema, nodeVarRef, symVar, symVar->typeRef(), AstNodeRef::invalid(), scopedFrame, *bodyScope));
-    sema.pushFramePopOnPostChild(scopedFrame, childRef);
+    sema.pushFramePopOnPostChild(std::move(scopedFrame), childRef);
     return Result::Continue;
 }
 

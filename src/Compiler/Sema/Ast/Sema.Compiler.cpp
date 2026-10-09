@@ -401,7 +401,7 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
         namedScope->parent   = sema.frame().currentNamedCompilerScope();
         frame.setCurrentNamedCompilerScope(namedScope);
     }
-    sema.pushFramePopOnPostChild(frame, childRef);
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
     return Result::Continue;
 }
 
@@ -485,7 +485,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
         }
 
         frame.setCurrentCompilerIf(payload.ifData);
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
         return Result::Continue;
     }
 
@@ -501,7 +501,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
         }
 
         frame.setCurrentCompilerIf(payload.elseData);
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
     }
 
     return Result::Continue;
@@ -537,7 +537,7 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         }
 
         frame.setCurrentCompilerIf(branch);
-        sema.pushFramePopOnPostChild(frame, childRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
     }
 
     return Result::Continue;
@@ -590,7 +590,7 @@ Result AstCompilerSwitch::semaPreDeclChild(Sema& sema, const AstNodeRef& childRe
     }
 
     frame.setCurrentCompilerIf(caseData.branch);
-    sema.pushFramePopOnPostChild(frame, childRef);
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
     return Result::Continue;
 }
 
@@ -614,7 +614,7 @@ Result AstCompilerSwitch::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     }
 
     frame.setCurrentCompilerIf(caseData.branch);
-    sema.pushFramePopOnPostChild(frame, childRef);
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
     return Result::Continue;
 }
 

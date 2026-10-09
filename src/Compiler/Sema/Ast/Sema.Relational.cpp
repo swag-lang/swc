@@ -780,7 +780,7 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef());
         SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeRightRef);
-        sema.pushFramePopOnPostChild(frame, nodeRightRef);
+        sema.pushFramePopOnPostChild(std::move(frame), nodeRightRef);
     }
 
     return Result::Continue;

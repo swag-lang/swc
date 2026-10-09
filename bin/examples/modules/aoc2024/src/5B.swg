@@ -85,7 +85,8 @@ func day5B()
                         {
                             if used[otherIndex] or otherIndex == candidateIndex do
                                 continue
-                            if let nextPages = order.tryFind(update[otherIndex]) where nextPages.value.contains(candidatePage)
+                            if let nextPages = order.tryFind(update[otherIndex])
+                                where nextPages.value.contains(candidatePage)
                             {
                                 hasIncoming = true
                                 break

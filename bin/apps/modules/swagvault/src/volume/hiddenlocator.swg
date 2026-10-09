@@ -93,7 +93,12 @@ impl HiddenLocator
         writer.writeLittleEndian(region.count)
         var key = try Crypto.deriveSlotKey(password, record[until Crypto.SaltSize])
         defer Core.Crypto.secureClear(key)
-        try Core.Crypto.chacha20Poly1305Seal(key, record[HiddenNonceOffset until HiddenGeometryOffset], plain.toSlice(), Crypto.associatedData(HiddenLocatorKind, index), record[HiddenGeometryOffset until HiddenTagOffset], record[HiddenTagOffset until HiddenPayloadEnd])
+        try Core.Crypto.chacha20Poly1305Seal(key,
+                                             record[HiddenNonceOffset until HiddenGeometryOffset],
+                                             plain.toSlice(),
+                                             Crypto.associatedData(HiddenLocatorKind, index),
+                                             record[HiddenGeometryOffset until HiddenTagOffset],
+                                             record[HiddenTagOffset until HiddenPayloadEnd])
         try stream.writeAllAt(offset(index), record)
         try stream.flush()
     }

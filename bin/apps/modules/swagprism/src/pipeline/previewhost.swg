@@ -64,7 +64,9 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
             parallel for |pixels, shader, time| y in cast(u64, FrameChannel.Height)
             {
                 for x in FrameChannel.Width do
-                    pixels[y * FrameChannel.Width + x] = shader((cast(f32, x) - HalfWidth) / HalfHeight, (cast(f32, y) - HalfHeight) / HalfHeight, time)
+                    pixels[y * FrameChannel.Width + x] = shader((cast(f32, x) - HalfWidth) / HalfHeight,
+                                                                (cast(f32, y) - HalfHeight) / HalfHeight,
+                                                                time)
             }
         }
 

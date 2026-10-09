@@ -303,21 +303,34 @@ impl PreviewViewer
     // Shows the build and render times of the running preview, or why it is not running.
     mtd refreshStatus()
     {
-        if .running and .frameCount do
-            .status.setText(.probe.reused ? Format.toString(appStrings().ui_ReusedStats, .renderUs) : Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs))
-        elif .running do
+        if .running and .frameCount
+        {
+            if .probe.reused do
+                .status.setText(Format.toString(appStrings().ui_ReusedStats, .renderUs))
+            else do
+                .status.setText(Format.toString(appStrings().ui_LiveStats, .probe.compileMs, .renderUs))
+        }
+        elif .running
+        {
             .status.setText("")
-        elif .probe.failed do
+        }
+        elif .probe.failed
+        {
             .status.setText(appStrings().ui_Stopped)
-        else do
+        }
+        else
+        {
             .status.setText(appStrings().ui_Ready)
+        }
     }
 
     // Writes the hint shown before the first run, and the status, in the active language.
     mtd retranslate()
     {
         if not .running and not .probe.failed and not .frameCount do
-            .output.setText(Format.toString("%\n\n%", .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint, appStrings().ui_ChooseExample))
+            .output.setText(Format.toString("%\n\n%",
+                                            .gui ? appStrings().ui_GuiHint : appStrings().ui_RenderHint,
+                                            appStrings().ui_ChooseExample))
         .refreshStatus()
         .applyLayout()
     }

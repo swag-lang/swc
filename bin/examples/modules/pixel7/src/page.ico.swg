@@ -5,7 +5,9 @@ func addIcoCard(card: *DecoderCard, source: Image, size: s32, pixelFormat: Pixel
     let resized    = source.resized(size, size, .Quadratic)
     let alphaTitle = withAlpha ? " with alpha" : ""
     let title      = Format.toString("% x % icon%", size, size, alphaTitle)
-    let encoding   = withAlpha ? Format.toString("32-bit DIB from %, soft alpha border", pixelFormat) : Format.toString("32-bit DIB from %", pixelFormat)
+    let encoding   = withAlpha ?
+                     Format.toString("32-bit DIB from %, soft alpha border", pixelFormat) :
+                     Format.toString("32-bit DIB from %", pixelFormat)
     try encodeCard(card, "variant.ico", title, encoding, sourceVariant(resized, pixelFormat, withAlpha))
 }
 

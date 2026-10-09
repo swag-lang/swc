@@ -41,12 +41,17 @@ func createModesPage(parent: *Wnd)
         let editorHeight = rect.height - editorY - 22
 
         createCaption(bottom, "Draw blanks", gutter, top, columnWidth)
-        let ed0 = createDemoEditor(bottom, {gutter, editorY, columnWidth, editorHeight}, .ShowFocusSel | .DrawBlanks | .TabToSpaces, .Edit)
+        let ed0 = createDemoEditor(bottom,
+                                   {gutter, editorY, columnWidth, editorHeight},
+                                   .ShowFocusSel | .DrawBlanks | .TabToSpaces,
+                                   .Edit)
         ed0.setText("tabs:\tname\tvalue\nspaces: alpha    beta    gamma\n\nVisible blanks are useful when alignment matters.")
 
         let x1 = gutter * 2 + columnWidth
         createCaption(bottom, "Read only", x1, top, columnWidth)
-        let ed1 = createDemoEditor(bottom, {x1, editorY, columnWidth, editorHeight}, .ShowFocusSel | .ReadOnly | .WordWrap)
+        let ed1 = createDemoEditor(bottom,
+                                   {x1, editorY, columnWidth, editorHeight},
+                                   .ShowFocusSel | .ReadOnly | .WordWrap)
         ed1.marginLeft  = 16
         ed1.marginRight = 16
         ed1.setText("This panel is read only.\n\nIt still supports selection, copy, theming and the same rendering pipeline as editable instances.")

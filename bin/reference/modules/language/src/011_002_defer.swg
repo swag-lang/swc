@@ -62,11 +62,10 @@ control flow paths.
 
 /**
 The deferred code runs while its scope is already being left, so it cannot
-decide where control goes next: 'return', 'fail', a 'try' that would propagate,
-and a 'break' or 'continue' that would leave the deferred body, are errors inside
-a 'defer'. A loop, or a 'catch', written entirely inside the deferred body may
-still use them. A '#nofail' defer is the exception for errors: it runs once the
-scope has succeeded, so a 'try' there makes its failure the failure of the scope.
+decide where control goes next: 'return', and a 'break' or 'continue' that would
+leave the deferred body, are errors inside a 'defer'. A loop written entirely
+inside the deferred body may still use them. Raising an error is not control
+flow: a deferred 'fail' makes the scope fail, or replaces its error.
 */
 #test
 {

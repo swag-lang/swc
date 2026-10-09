@@ -80,6 +80,16 @@ func deferredHandledCatchOwner()
     return
 }
 
+#[Swag.NoInline]
+func deferredFailingCatchOwner() fail
+{
+    defer catch failCatchOwner(208) else
+    {
+        fail CatchOwnerError{generation: 224}
+    }
+    return
+}
+
 // Count destruction without dereferencing a payload after it might have been released.
 #test
 {
@@ -175,8 +185,8 @@ func deferredHandledCatchOwner()
     Swag.assert(catchOwnerDrops[160 + firstGeneration].load() == 1)
 
     // Explicit returns unwind through a live deferred-action cursor. Captures created inside
-    // that action still leave first, including when its handler runs. A handler cannot return
-    // or raise from the deferred body: control flow cannot leave a 'defer'.
+    // that action still leave first, including when its handler runs or raises a new error. A
+    // handler cannot return from the deferred body: control flow cannot leave a 'defer'.
     let previousOwners = Swag.getContext().errorCaptures
     deferredDirectCatchOwner()
     Swag.assert(Swag.getContext().errorCaptures == previousOwners)
@@ -189,4 +199,9 @@ func deferredHandledCatchOwner()
     Swag.assert(catchOwnerDrops[192 + firstGeneration].load() == 1)
     Swag.assert(catchOwnerNoFailDefers == previousNoFail + 1)
     Swag.assert(catchOwnerHandlerRuns == previousHandler + 1)
+
+    catch deferredFailingCatchOwner()
+    Swag.assert(Swag.getContext().errorCaptures == previousOwners)
+    Swag.assert(catchOwnerDrops[208 + firstGeneration].load() == 1)
+    Swag.assert(catchOwnerDrops[224 + firstGeneration].load() == 1)
 }

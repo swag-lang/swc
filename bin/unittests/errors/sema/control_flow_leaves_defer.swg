@@ -1,14 +1,8 @@
 #global private
 
-// Code deferred to scope exit runs while that scope is already being left: it cannot return, raise
-// or propagate an error, nor break or continue a loop outside the deferred body. A loop of its own,
-// a lambda's own 'return', a 'catch' opened inside the body, and a 'try' in a '#nofail' body (which
-// runs once the scope has succeeded) remain allowed.
-
-struct DeferFlowError
-{
-    using base: Swag.BaseError
-}
+// Code deferred to scope exit runs while that scope is already being left: it cannot return, nor
+// break or continue a loop outside the deferred body. A loop of its own, a lambda's own 'return',
+// and a deferred 'fail' (which has its own meaning) remain allowed.
 
 func deferMayFail() fail {}
 
@@ -32,16 +26,6 @@ func deferContinue()
     {
         defer { continue }     // swc-expected-error {{sema_err_control_flow_leaves_defer}}
     }
-}
-
-func deferFail() fail
-{
-    defer fail DeferFlowError{}     // swc-expected-error {{sema_err_control_flow_leaves_defer}}
-}
-
-func deferTry() fail
-{
-    defer try deferMayFail()     // swc-expected-error {{sema_err_control_flow_leaves_defer}}
 }
 
 func deferHandlerReturn()
@@ -77,20 +61,4 @@ func deferLambda()->s32
     }
 
     return result
-}
-
-func deferLocalCatch()
-{
-    defer
-    {
-        catch
-        {
-            try deferMayFail()
-        }
-    }
-}
-
-func deferNoFailTry() fail
-{
-    defer #nofail try deferMayFail()
 }

@@ -377,8 +377,16 @@ impl Decoder
         // Grayscale without alpha channel, but transparency
         elif .inChannels == 1 and .seenTRSN
         {
-            var key   = .safeTRNSData()[1]
-            let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : .header.bitDepth == 4 ? 17'u8 : 1'u8
+            var key = .safeTRNSData()[1]
+            var scale: u8
+            switch .header.bitDepth
+            {
+            case 1:  scale = 255
+            case 2:  scale = 85
+            case 4:  scale = 17
+            default: scale = 1
+            }
+
             key *= scale
             .convertGrayscaleTransparencyRgba(result, key)
         }

@@ -66,6 +66,7 @@ private:
     mutable std::shared_mutex     interfaceMethodTableMutex_;
     mutable ConstantRef           interfaceMethodTableRef_          = ConstantRef::invalid();
     mutable std::atomic<uint32_t> interfaceMethodTablePublishedRef_ = ConstantRef::invalid().get();
+    mutable std::atomic<bool>     missingMethodReported_            = false;
 
     union
     {

@@ -76,11 +76,30 @@ internal impl IImageEncoder for Encoder
                         image.pixelFormat == .GrayAlphaF32 or
                         image.pixelFormat == .RGBF32 or
                         image.pixelFormat == .RGBAF32
-        let target = fullFloat ?
-                     (grayscale ? (image.pixelFormat.hasAlpha() ? PixelFormat.GrayAlphaF32 : PixelFormat.GrayF32) :
-                      (image.pixelFormat.hasAlpha() ? PixelFormat.RGBAF32 : PixelFormat.RGBF32)) :
-                     (grayscale ? (image.pixelFormat.hasAlpha() ? PixelFormat.GrayAlphaF16 : PixelFormat.GrayF16) :
-                      (image.pixelFormat.hasAlpha() ? PixelFormat.RGBAF16 : PixelFormat.RGBF16))
+        var target: PixelFormat
+        if fullFloat
+        {
+            if grayscale
+            {
+                target = image.pixelFormat.hasAlpha() ? PixelFormat.GrayAlphaF32 : PixelFormat.GrayF32
+            }
+            else
+            {
+                target = image.pixelFormat.hasAlpha() ? PixelFormat.RGBAF32 : PixelFormat.RGBF32
+            }
+        }
+        else
+        {
+            if grayscale
+            {
+                target = image.pixelFormat.hasAlpha() ? PixelFormat.GrayAlphaF16 : PixelFormat.GrayF16
+            }
+            else
+            {
+                target = image.pixelFormat.hasAlpha() ? PixelFormat.RGBAF16 : PixelFormat.RGBF16
+            }
+        }
+
         var converted: Image
         var source:    const *Image = &image
         if image.pixelFormat != target

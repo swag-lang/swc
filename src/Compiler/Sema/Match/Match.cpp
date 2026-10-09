@@ -477,7 +477,10 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
         {
             if (lookUpCxt.noWaitOnEmpty)
                 return Result::Continue;
-            return sema.waitIdentifier(idRef, lookUpCxt.codeRef);
+            const Result result = sema.waitIdentifier(idRef, lookUpCxt.codeRef);
+            if (result == Result::Pause)
+                sema.ctx().state().memberScope = lookUpCxt.symMapHint;
+            return result;
         }
 
         SWC_RESULT(reportUsingCurrentModuleNamespace(sema, lookUpCxt));

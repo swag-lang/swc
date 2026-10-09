@@ -262,7 +262,16 @@ impl Decoder
             if cast(u64, channels) * 6 + 16 > buffer.count - offset do
                 fail InvalidFormatError{"PSD layer channels are truncated"}
             var layer:  Layer
-            let format: PixelFormat = .colorMode == 1 ? (.depth == 16 ? .GrayAlpha16 : .GrayAlpha8) : (.depth == 16 ? .RGBA16 : .RGBA8)
+            var format: PixelFormat
+            if .colorMode == 1
+            {
+                format = .depth == 16 ? .GrayAlpha16 : .GrayAlpha8
+            }
+            else
+            {
+                format = .depth == 16 ? .RGBA16 : .RGBA8
+            }
+
             layer.info = {kind: .Layer, width: cast(s32, width), height: cast(s32, height), x: left, y: top, pixelFormat: format, layer: index}
             if width and height do
                 try options.checkImage(layer.info.width, layer.info.height, format)

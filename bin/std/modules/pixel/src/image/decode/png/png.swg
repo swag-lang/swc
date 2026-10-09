@@ -324,7 +324,27 @@ impl Decoder
                     fail InvalidFormatError{"PNG animation frame rectangle or operation is invalid"}
                 if not seenIDAT and (x or y or width != .header.width or height != .header.height) do
                     fail InvalidFormatError{"PNG default animation frame does not fill the canvas"}
-                let frame: ImageFrameInfo = {kind: .Animation, width: cast(s32, width), height: cast(s32, height), x: cast(s32, x), y: cast(s32, y), durationSeconds: cast(f64, numerator) / (denominator ? denominator : 100), disposal: data[24] == 2 ? (currentFrame == 0 ? .Background : .Previous) : (data[24] == 1 ? .Background : .Keep), blend: data[25] ? .Over : .Replace}
+                let durationSeconds = cast(f64, numerator) / (denominator ? denominator : 100)
+                var disposal: ImageDisposal
+                if data[24] == 2
+                {
+                    disposal = currentFrame == 0 ? .Background : .Previous
+                }
+                else
+                {
+                    disposal = data[24] == 1 ? .Background : .Keep
+                }
+
+                let blend = data[25] ? ImageBlend.Over : .Replace
+                let frame: ImageFrameInfo = {
+                    kind: .Animation,
+                    width: cast(s32, width),
+                    height: cast(s32, height),
+                    x: cast(s32, x),
+                    y: cast(s32, y),
+                    durationSeconds: durationSeconds,
+                    disposal: disposal,
+                    blend: blend}
                 .animation.frames.add(frame)
 
             case .FDAT:
@@ -473,14 +493,30 @@ impl Decoder
         // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
         var metadata  = #move result.metadata
         let colorType = cast(u8, .header.colorType)
+        let is16Bit   = .header.bitDepth == 16
         var outputFormat: PixelFormat
         switch colorType
         {
-        case 0: outputFormat = .header.bitDepth == 16 ? (.seenTRSN ? .GrayAlpha16 : .Gray16) : (.seenTRSN ? .GrayAlpha8 : .Gray8)
-        case 2: outputFormat = .header.bitDepth == 16 ? (.seenTRSN ? .RGBA16 : .RGB16) : (.seenTRSN ? .RGBA8 : .RGB8)
-        case 3: outputFormat = .seenTRSN ? .RGBA8 : .RGB8
-        case 4: outputFormat = .header.bitDepth == 16 ? .GrayAlpha16 : .GrayAlpha8
-        case 6: outputFormat = .header.bitDepth == 16 ? .RGBA16 : .RGBA8
+        case 0:
+            if is16Bit do
+                outputFormat = .seenTRSN ? .GrayAlpha16 : .Gray16
+            else do
+                outputFormat = .seenTRSN ? .GrayAlpha8 : .Gray8
+
+        case 2:
+            if is16Bit do
+                outputFormat = .seenTRSN ? .RGBA16 : .RGB16
+            else do
+                outputFormat = .seenTRSN ? .RGBA8 : .RGB8
+
+        case 3:
+            outputFormat = .seenTRSN ? .RGBA8 : .RGB8
+
+        case 4:
+            outputFormat = is16Bit ? .GrayAlpha16 : .GrayAlpha8
+
+        case 6:
+            outputFormat = is16Bit ? .RGBA16 : .RGBA8
         }
 
         .outChannels = outputFormat.channels()

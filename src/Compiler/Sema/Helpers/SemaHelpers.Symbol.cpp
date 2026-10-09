@@ -1054,11 +1054,13 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, leftRef, symbols.span());
     }
 
-    Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef)
+    Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, const SymbolMap* owner = nullptr)
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
         auto                diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, idRef);
+        if (owner)
+            SemaError::addUnknownMemberArguments(sema, diag, idRef, *owner);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1135,7 +1137,7 @@ namespace
         SmallVector<const Symbol*> matchedSymbols;
         SWC_RESULT(matchScopedMemberSymbols(sema, matchedSymbols, node, symMap, idRef, tokNameRef, false));
         if (matchedSymbols.empty())
-            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef, &symMap);
 
         if (sema.node(node.nodeRightRef).is(AstNodeId::QuotedExpr) || sema.node(node.nodeRightRef).is(AstNodeId::QuotedListExpr))
         {
@@ -1180,7 +1182,7 @@ namespace
             SWC_RESULT(lowerProjectionByName(sema, node, idRef, handled));
             if (handled)
                 return Result::SkipChildren;
-            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef, &enumSym);
         }
 
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
@@ -1207,7 +1209,7 @@ namespace
 
             SWC_RESULT(matchScopedMemberSymbols(sema, matchedSymbols, node, symInterface, idRef, tokNameRef, true));
             if (matchedSymbols.empty())
-                return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+                return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef, &symInterface);
 
             SmallVector<const Symbol*> resolvedSymbols;
             resolvedSymbols.reserve(matchedSymbols.size());
@@ -1279,7 +1281,7 @@ namespace
             SWC_RESULT(lowerProjectionByName(sema, node, idRef, handled));
             if (handled)
                 return Result::SkipChildren;
-            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef, &symStruct);
         }
 
         // Bind member-access node (curNodeRef) and RHS identifier.

@@ -1325,7 +1325,16 @@ impl HtmlLayout
             }
 
             let childTop = .collapsedTop(child, contentWidth)
-            let gap      = first ? (sealsTop ? childTop : 0) : Math.max(previousEdge, childTop)
+            var gap      = 0.0'f32
+            if first
+            {
+                if sealsTop do
+                    gap = childTop
+            }
+            else
+            {
+                gap = Math.max(previousEdge, childTop)
+            }
 
             // Clearance puts the box below the floats its `clear` names, whatever the margin
             // collapsing would have produced.

@@ -400,13 +400,22 @@ public func claimFileExtension(extension, progId, description, appPath: string)-
     var native = String.from(appPath)
     native.replace("/", "\\")
 
-    if not writeUserClassString(Format.toString("Software\\Classes\\%", progId), "", description) do
+    let progIdKey = Format.toString("Software\\Classes\\%", progId)
+    if not writeUserClassString(progIdKey, "", description) do
         return false
-    if not writeUserClassString(Format.toString("Software\\Classes\\%\\DefaultIcon", progId), "", Format.toString("%,0", native)) do
+
+    let iconKey  = Format.toString("Software\\Classes\\%\\DefaultIcon", progId)
+    let iconPath = Format.toString("%,0", native)
+    if not writeUserClassString(iconKey, "", iconPath) do
         return false
-    if not writeUserClassString(Format.toString("Software\\Classes\\%\\shell\\open\\command", progId), "", Format.toString("\"%\" \"%%1\" %%*", native)) do
+
+    let commandKey = Format.toString("Software\\Classes\\%\\shell\\open\\command", progId)
+    let command    = Format.toString("\"%\" \"%%1\" %%*", native)
+    if not writeUserClassString(commandKey, "", command) do
         return false
-    if not writeUserClassString(Format.toString("Software\\Classes\\%", extension), "", progId) do
+
+    let extensionKey = Format.toString("Software\\Classes\\%", extension)
+    if not writeUserClassString(extensionKey, "", progId) do
         return false
 
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, null, null)
@@ -423,7 +432,15 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     let nativeKey = Utf16.toZeroTerminated(keyPath)
 
     var hKey: HKEY
-    if RegCreateKeyExW(HKEY_CURRENT_USER, nativeKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
+    if RegCreateKeyExW(HKEY_CURRENT_USER,
+                       nativeKey.buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) != ERROR_SUCCESS do
         return false
     defer RegCloseKey(hKey)
 

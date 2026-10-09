@@ -45,7 +45,11 @@ func drawRenderTargetPreviewCard(painter: *Pixel.Painter, rect: Math.Rectangle, 
     painter.drawTexture(midDst, texture)
     painter.popTransform()
 
-    let srcRect = Math.Rectangle{cast(f32, texture.width) * 0.50, cast(f32, texture.height) * 0.10, cast(f32, texture.width) * 0.36, cast(f32, texture.height) * 0.52}
+    let srcRect = Math.Rectangle{
+        cast(f32, texture.width) * 0.50,
+        cast(f32, texture.height) * 0.10,
+        cast(f32, texture.width) * 0.36,
+        cast(f32, texture.height) * 0.52}
     painter.drawString(rightRect.x + 14, rightRect.y + 12, "Source-rect zoom", g_HelpFont, Argb.DarkSlateGray)
     painter.drawTexture(insetRect(rightRect, 14, 34, 14, 14), srcRect, texture)
 }
@@ -92,11 +96,14 @@ func drawRenderTargetPage(painter: *Pixel.Painter)
     // whole-texture previews below sample its full extent, so the content is drawn
     // over the complete texel surface: its logical size is the texel size unscaled.
     let scale = painter.contentScale()
-    let tgt   = g_Render.acquireRenderTarget(cast(s32, Math.ceil(360 * scale)), cast(s32, Math.ceil(220 * scale)))
+    let tgt   = g_Render.acquireRenderTarget(cast(s32, Math.ceil(360 * scale)),
+                                             cast(s32, Math.ceil(220 * scale)))
     defer g_Render.releaseRenderTarget(tgt)
 
     painter.bindRenderTarget(tgt, true)
-    drawRenderTargetContent(painter, cast(s32, Math.ceil(tgt.colorBuffer.width / scale)), cast(s32, Math.ceil(tgt.colorBuffer.height / scale)))
+    drawRenderTargetContent(painter,
+                            cast(s32, Math.ceil(tgt.colorBuffer.width / scale)),
+                            cast(s32, Math.ceil(tgt.colorBuffer.height / scale)))
     painter.unbindRenderTarget()
 
     drawRenderTargetPreviewCard(painter, {28, 104, 924, 304}, tgt.colorBuffer)

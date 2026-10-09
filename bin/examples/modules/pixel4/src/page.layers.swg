@@ -31,12 +31,23 @@ func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string
     painter.drawString(textX, textY, label, g_SubTitleFont, Argb.White)
 }
 
-func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, renderScale: s32, shadow: bool, angle: Math.Angle, accent: Color)
+func drawLayerCard(painter: *Pixel.Painter,
+                   rect: Math.Rectangle,
+                   title,
+                   subtitle: string,
+                   renderScale: s32,
+                   shadow: bool,
+                   angle: Math.Angle,
+                   accent: Color)
 {
     let body        = drawPanel(painter, rect, title, subtitle)
     let layerWidth  = 310
     let layerHeight = 170
-    let dstRect     = Math.Rectangle{body.horzCenter() - layerWidth * 0.5, body.vertCenter() - layerHeight * 0.5 + 8, layerWidth, layerHeight}
+    let dstRect     = Math.Rectangle{
+        body.horzCenter() - layerWidth * 0.5,
+        body.vertCenter() - layerHeight * 0.5 + 8,
+        layerWidth,
+        layerHeight}
 
     painter.fillRoundRect(insetRect(body, 18, 14, 18, 14), 18, 18, Brush.createTiled(g_TileTexture))
 

@@ -136,6 +136,9 @@ msg_ErrSparse            Le conteneur est sparse. Convertissez-le en fichier ent
 msg_ErrDiskFull          Il n'y a plus de place dans le conteneur.
 msg_ErrIo                Le conteneur n'a pas pu être lu ou écrit.
 msg_ErrInvalidRequest    Le conteneur ne peut pas répondre à cette demande.
+msg_ErrElevated          Swag Vault a été lancé en tant qu'administrateur : l'Explorateur Windows ne peut pas afficher son lecteur. Fermez-le et relancez-le normalement.
+msg_ErrDriverUnavailable Le lecteur virtuel n'a pas pu démarrer.
+msg_ErrorCode            Code d'erreur : 0x%{X}
 
 ui_CreateHidden    Créer un volume caché…
 ui_ProtectHidden    Protéger le volume caché en écriture

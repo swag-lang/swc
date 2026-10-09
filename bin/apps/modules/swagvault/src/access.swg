@@ -105,7 +105,7 @@ impl VaultAccess
                 let wanted = Math.min(remaining, #sizeof(buffer))
                 let count  = try stream.read(buffer[until wanted])
                 if not count do
-                    fail Swag.SystemError{"key file ended before its declared size"}
+                    fail volumeError(.Io)
                 hash.update(buffer[until count])
                 remaining -= count
             }

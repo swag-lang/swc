@@ -330,16 +330,12 @@ struct MainWindow
     themeIndex: u32
 }
 
-// The sentence a reader sees for `err`, in the active language.
+// The sentence a reader sees for `err`, in the active language, with the native code of the
+// failure under it when one came with it. Where it was raised goes to the debugger output.
 //
-// The volume and filesystem layers report an [[ErrorKind]] and an English diagnostic; the
-// kind is what the shell can say something about, and the diagnostic goes to the debugger
-// output for whoever reads a report. A kind that means nothing to a reader — a metadata
-// record declaring an implausible entry count — reads as the generic damaged-container
-// wording, because the detail is for a report and not for someone trying to mount a drive.
-// Returns an owned string, not a view: one kind formats its sentence, and a view into
-// that temporary would dangle as soon as the statement building it ends. The constant
-// sentences are copied out of the string table for the same contract.
+// Returns an owned string, not a view: one kind formats its sentence, and a view into that
+// temporary would dangle as soon as the statement building it ends. The constant sentences are
+// copied out of the string table for the same contract.
 func caughtMessage(err: any?)->String
 {
     let texts = appStrings()
@@ -347,36 +343,56 @@ func caughtMessage(err: any?)->String
     switch err
     {
     case Error as volumeError:
-        logDiagnostic(volumeError.message)
-
-        // The last three kinds name a shape the filesystem layer refuses, never a container a
-        // reader chose, so a reader can only be told the container is damaged.
-        switch #complete volumeError.kind
-        {
-        case .PasswordRequired:  return texts.msg_PasswordRequired
-        case .SizeTooSmall:      return minimumSizeMessage()
-        case .PasswordOrDamaged: return texts.msg_ErrPasswordOrDamaged
-        case .Corrupted:         return texts.msg_ErrDamaged
-        case .NotFound:          return texts.msg_ErrNotFound
-        case .AlreadyExists:     return texts.msg_ErrAlreadyExists
-        case .AccessDenied:      return texts.msg_ErrAccessDenied
-        case .HiddenProtected:   return texts.msg_HiddenProtected
-        case .WriteProtected:    return texts.msg_ErrReadOnly
-        case .SparseContainer:   return texts.msg_ErrSparse
-        case .DiskFull:          return texts.msg_ErrDiskFull
-        case .Io:                return texts.msg_ErrIo
-        case .Canceled:          return texts.msg_OperationStopped
-        case .InvalidInput:      return texts.msg_ErrInvalidRequest
-        case .General:           return texts.msg_SystemError
-        case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return texts.msg_ErrDamaged
-        }
+        logDiagnostic(volumeError)
+        return withErrorCode(kindMessage(volumeError.kind), volumeError.code)
 
     case Swag.SystemError as systemError:
-        logDiagnostic(systemError.message)
-        return texts.msg_SystemError
+        return withErrorCode(texts.msg_SystemError, systemError.errorID)
     }
 
     return texts.msg_OperationStopped
+}
+
+// The sentence that tells a reader what a failure of `kind` means for them. A kind that means
+// nothing to a reader, such as a metadata record declaring an implausible entry count, reads as
+// the generic damaged-container wording: the detail is for a report, not for someone trying to
+// mount a drive.
+func kindMessage(kind: ErrorKind)->String
+{
+    let texts = appStrings()
+
+    // The last three kinds name a shape the filesystem layer refuses, never a container a reader
+    // chose, so a reader can only be told the container is damaged.
+    switch #complete kind
+    {
+    case .PasswordRequired:  return texts.msg_PasswordRequired
+    case .SizeTooSmall:      return minimumSizeMessage()
+    case .PasswordOrDamaged: return texts.msg_ErrPasswordOrDamaged
+    case .Corrupted:         return texts.msg_ErrDamaged
+    case .NotFound:          return texts.msg_ErrNotFound
+    case .AlreadyExists:     return texts.msg_ErrAlreadyExists
+    case .AccessDenied:      return texts.msg_ErrAccessDenied
+    case .HiddenProtected:   return texts.msg_HiddenProtected
+    case .WriteProtected:    return texts.msg_ErrReadOnly
+    case .SparseContainer:   return texts.msg_ErrSparse
+    case .DiskFull:          return texts.msg_ErrDiskFull
+    case .Io:                return texts.msg_ErrIo
+    case .Elevated:          return texts.msg_ErrElevated
+    case .DriverUnavailable: return texts.msg_ErrDriverUnavailable
+    case .Canceled:          return texts.msg_OperationStopped
+    case .InvalidInput:      return texts.msg_ErrInvalidRequest
+    case .General:           return texts.msg_SystemError
+    case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return texts.msg_ErrDamaged
+    }
+}
+
+// Adds the native code of a failure under its sentence, for whoever reports it; a failure
+// without one keeps the sentence alone.
+func withErrorCode(message: String, code: u64)->String
+{
+    if not code do
+        return message
+    return Format.toString("%\n\n%", message, Format.toString(appStrings().msg_ErrorCode, code))
 }
 
 // Says the smallest capacity a container can have, in whole mebibytes.
@@ -386,18 +402,16 @@ func minimumSizeMessage()->String
     return Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + Mebibyte - 1) / Mebibyte)
 }
 
-// Sends the English diagnostic of a failure to the debugger output.
+// Sends where a failure was raised to the debugger output.
 //
 // It is deliberately not shown: the reader gets the sentence for the kind, and this is the
 // line whoever reads a report needs to tell two failures of the same kind apart.
-private func logDiagnostic(message: string?)
+private func logDiagnostic(err: const *Error)
 {
-    if not message do
-        return
-
     // Built as one owned string: it carries its terminator, which is what the debugger
     // output expects, and a view over a longer buffer would not.
-    Debugger.log(Format.toString("Swag Vault: %\n", message))
+    let fileName = Path.fileName(err.location.fileName orelse "") orelse ""
+    Debugger.log(Format.toString("Swag Vault: % %:% 0x%{X}\n", err.kind, fileName, err.location.lineStart + 1, err.code))
 }
 
 // Whether an operation stopped because the user asked it to, rather than because something

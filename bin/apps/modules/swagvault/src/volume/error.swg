@@ -25,27 +25,30 @@ enum ErrorKind
     DiskFull              // No room is left: for blocks, for metadata, or for key slots.
     Corrupted             // An open container no longer reads back what it stored.
     Io                    // The underlying file could not be read or written.
+    Elevated              // The application runs as administrator, so Windows Explorer cannot see its drives.
+    DriverUnavailable     // The virtual drive component could not be loaded, started, or reached.
     Canceled              // The caller stopped the operation.
 }
 
-// One failure raised by the volume layer.
+// One failure raised by the volume layer: what kind of failure it is, the native status that came
+// with it, and where it was raised.
 //
-// `message` is the diagnostic sentence, in English, for whoever reads a report. It is not
-// what a reader of the application sees: the shell says the sentence for [[ErrorKind]] in
-// the active language and keeps this one behind it.
+// It holds no sentence. The shell says the sentence for [[ErrorKind]] in the active language,
+// shows `code` under it when there is one, and sends `location` to the debugger output for
+// whoever reads a report.
 struct Error
 {
     using base: Swag.BaseError
     kind:       ErrorKind
+    code:       u64     // A native status (NTSTATUS or HRESULT), or 0.
+    location:   Swag.SourceCodeLocation     // Where the volume layer raised it.
 }
 
-// Reports a failure with its diagnostic sentence and the kind the caller acts on.
+// The error a volume operation fails with. Raise it with `fail volumeError(...)`, so the guard it
+// ends is visibly a way out.
 //
 // > NOTE:
 // > Every way a container can refuse to open reports [[ErrorKind.PasswordOrDamaged]] —
 // > a wrong password, a damaged container, and an older format version are deliberately
-// > indistinguishable, and `message` must not tell them apart either.
-func failWith(message: string, kind = ErrorKind.General) fail
-{
-    fail Error{base: {Errors.mkString(message)}, kind: kind}
-}
+// > indistinguishable, and nothing the error carries may tell them apart either.
+func volumeError(kind = ErrorKind.General, code = 0'u64, location = #callerlocation)->Error => {kind: kind, code: code, location: location}

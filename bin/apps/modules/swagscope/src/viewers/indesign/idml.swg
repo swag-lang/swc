@@ -596,10 +596,7 @@ private func polygonClipPath(item: string, transform: const *Transform)->String
     {
         if index do
             result += ","
-        result += Format.toString("%", 100 * (anchor.x - bounds.left) / bounds.width)
-        result += "% "
-        result += Format.toString("%", 100 * (anchor.y - bounds.top) / bounds.height)
-        result += "%"
+        result += Format.toString("%{}%% %{}%%", 100 * (anchor.x - bounds.left) / bounds.width, 100 * (anchor.y - bounds.top) / bounds.height)
     }
 
     result += ");"

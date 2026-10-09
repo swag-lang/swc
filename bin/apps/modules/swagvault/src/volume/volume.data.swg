@@ -3,7 +3,7 @@ impl Volume
     // Reads the data block stored at block `physical`.
     mtd readPhysical(physical: u64, destination: [..] u8) fail
     {
-        try .readRecord(physical, DataKind, destination, "An encrypted data block is damaged.")
+        try .readRecord(physical, DataKind, destination)
     }
 
     // Reads the logical block `logical` of a node; a block never written reads as zeros.
@@ -30,7 +30,7 @@ impl Volume
         {
             Sync.scopedLock(&.ioLock)
             if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice())) do
-                try failWith("The container is truncated or unreadable.", .Io)
+                fail volumeError(.Io)
         }
 
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
@@ -51,7 +51,7 @@ impl Volume
 
         try batch.error.raise()
         if batch.invalidTags do
-            try failWith("An encrypted data block is damaged.", .Corrupted)
+            fail volumeError(.Corrupted)
     }
 
     // Encrypts consecutive data blocks in parallel, each under a fresh nonce, and writes them from
@@ -258,7 +258,7 @@ impl Volume
         try .requireWritable()
         let node = .nodeById(nodeId)!
         if node.isDirectory() do
-            try failWith("Cannot resize a directory.", .IsDirectory)
+            fail volumeError(.IsDirectory)
         let oldSize = node.size
         if newSize > oldSize do
             try .zeroOldTail(nodeId, oldSize, newSize)
@@ -276,8 +276,8 @@ impl Volume
     {
         let node = .nodeById(nodeId)
         if not node do
-            try failWith("File handle is no longer valid.", .NotFound)
-        return node!
+            fail volumeError(.NotFound)
+        return node
     }
 
     // Reads from a file at `offset`, a run of whole blocks at a time where it can; returns the
@@ -286,7 +286,7 @@ impl Volume
     {
         let node = try .fileNode(nodeId)
         if node.isDirectory() do
-            try failWith("Cannot read a directory as a file.", .IsDirectory)
+            fail volumeError(.IsDirectory)
         if offset >= node.size or not destination.count do
             return 0
 
@@ -339,9 +339,9 @@ impl Volume
         try .requireWritable()
         let node = try .fileNode(nodeId)
         if node.isDirectory() do
-            try failWith("Cannot write to a directory.", .IsDirectory)
+            fail volumeError(.IsDirectory)
         if (node.attributes & FileAttributeReadOnly) != 0 do
-            try failWith("The file is read-only.", .AccessDenied)
+            fail volumeError(.AccessDenied)
 
         var writeOffset = offset
         if writeToEnd do
@@ -357,7 +357,7 @@ impl Volume
         if not count do
             return 0
         if writeOffset > Swag.U64.Max - count do
-            try failWith("File size overflow.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         let oldSize = node.size
         let end     = writeOffset + count

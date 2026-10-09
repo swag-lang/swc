@@ -45,9 +45,9 @@ impl VolumeCopy
                 {
                     let count = Math.min(buffer.count, node.size - offset)
                     if (try .source.readNode(node.id, offset, buffer[until count])) != count do
-                        try failWith("The source file ended before its declared size.", .Io)
+                        fail volumeError(.Io)
                     if (try .target.writeNode(id, offset, buffer[until count], false, false)) != count do
-                        try failWith("The destination did not accept the complete transfer.", .Io)
+                        fail volumeError(.Io)
                     offset += count
                     .bytes += count
                 }
@@ -77,10 +77,9 @@ impl VolumeCopy
             let path  = Format.toString("%\\%", prefix, node.name)
             let found = .target.resolve(path)
             if not found do
-                try failWith("A copied entry is missing.", .Io)
-            let copied = found!
-            if not sameMetadata(copied, node) do
-                try failWith("Copied metadata differs from the source.", .Io)
+                fail volumeError(.Io)
+            if not sameMetadata(found, node) do
+                fail volumeError(.Io)
 
             if node.isDirectory()
             {
@@ -98,9 +97,9 @@ impl VolumeCopy
                 {
                     let count = Math.min(original.count, node.size - offset)
                     if (try .source.readNode(node.id, offset, original[until count])) != count or
-                       (try .target.readNode(copied.id, offset, restored[until count])) != count or
+                       (try .target.readNode(found.id, offset, restored[until count])) != count or
                        not Core.Crypto.constantTimeEqual(original[until count], restored[until count]) do
-                        try failWith("Copied bytes differ from the source.", .Io)
+                        fail volumeError(.Io)
                     offset += count
                 }
             }
@@ -121,7 +120,7 @@ impl VolumeCopy
         defer Core.Crypto.secureClear(outerPassword.toSlice())
         defer Core.Crypto.secureClear(hiddenPassword.toSlice())
         if sourcePath.isEmpty() or targetPath.isEmpty() or outerPassword.isEmpty() or hiddenPassword.isEmpty() do
-            try failWith("The copy harness needs source, target, and both access variables.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         Console.println("Opening source read only...")
         var source = try Volume.open(sourcePath, outerPassword.toSlice(), true)
@@ -146,7 +145,7 @@ impl VolumeCopy
         var verified = try Volume.open(targetPath, hiddenPassword.toSlice(), true)
         copier.target = &verified
         if verified.nodes.count != source.nodes.count do
-            try failWith("The copied namespace has a different number of entries.", .Io)
+            fail volumeError(.Io)
         try copier.verifyDirectory(RootNodeId, "")
         verified.close()
 

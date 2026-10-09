@@ -109,11 +109,11 @@ func readHeaderPrefix(reader: *ByteStream)->u64 fail
     var magic: [#sizeof(HeaderMagic)] u8
     try reader.readBytes(&magic[0], #sizeof(magic))
     if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
-        try failWith("The container does not start with a Swag Vault header.", .Corrupted)
+        fail volumeError(.Corrupted)
 
     let version = try reader.readLittleEndian'u32()
     if version != FormatVersion do
-        try failWith("The container format version is not supported.", .Corrupted)
+        fail volumeError(.Corrupted)
 
     return try reader.readLittleEndian'u64()
 }

@@ -87,14 +87,14 @@ impl JournalRecord
 
         let removedCount = try reader.readLittleEndian'u64()
         if removedCount > MaximumNodeCount do
-            try failWith("A journal record declares an implausible number of deletions.", .Corrupted)
+            fail volumeError(.Corrupted)
         result.removed.reserve(removedCount)
         for removedCount do
             result.removed.add(try reader.readLittleEndian'u64())
 
         let upsertCount = try reader.readLittleEndian'u64()
         if upsertCount > MaximumNodeCount do
-            try failWith("A journal record declares an implausible number of entries.", .Corrupted)
+            fail volumeError(.Corrupted)
         result.upserted.reserve(upsertCount)
         for upsertCount
         {
@@ -108,7 +108,7 @@ impl JournalRecord
         {
             let metadataCount = try reader.readLittleEndian'u64()
             if metadataCount > MaximumNodeCount do
-                try failWith("A journal record declares an implausible number of metadata changes.", .Corrupted)
+                fail volumeError(.Corrupted)
             result.metadata.reserve(metadataCount)
             for metadataCount
             {
@@ -129,7 +129,7 @@ impl JournalRecord
         }
 
         if reader.isEof() do
-            try failWith("A journal record ends early.", .Corrupted)
+            fail volumeError(.Corrupted)
         return result
     }
 }

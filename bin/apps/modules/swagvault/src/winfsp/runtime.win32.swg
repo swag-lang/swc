@@ -10,8 +10,8 @@ namespace WinFsp
     {
         let address = GetProcAddress(g_WinFsp.module, name.buffer)
         if not address do
-            try failWith("The bundled WinFsp runtime does not expose the expected ABI.")
-        return address!
+            fail volumeError(.DriverUnavailable)
+        return address
     }
 
     // Binds every WinFsp export the mount uses, and fails when one is missing.
@@ -150,7 +150,7 @@ namespace WinFsp
         {
             discardStagedRuntime()
 
-            try failWith("Windows could not load the signed WinFsp runtime.")
+            fail volumeError(.DriverUnavailable, GetLastError())
         }
 
         traceWinFspStage("resolving WinFsp exports")

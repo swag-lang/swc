@@ -27,7 +27,7 @@ impl HiddenLocator
     {
         var area: [KeySlotAreaSize] u8
         if not (try stream.readExactAt(0, area)) do
-            try failWith("The container is truncated or unreadable.", .Io)
+            fail volumeError(.Io)
         var key = try Crypto.deriveSlotKey(password, area[until Crypto.SaltSize])
         defer Core.Crypto.secureClear(key)
         var master: [Crypto.MasterKeySize] u8
@@ -73,8 +73,7 @@ impl HiddenLocator
             return {first, count}
         }
 
-        try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
-        unreachable
+        fail volumeError(.PasswordOrDamaged)
     }
 
     // Seals `region` into the locator of the key slot at `index`, under a key `password` derives.

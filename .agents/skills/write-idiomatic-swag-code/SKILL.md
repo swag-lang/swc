@@ -412,9 +412,10 @@ through it directly, and only a whole-value read or write opens the place with t
   when the compiler already knows it is non-null, and do not copy it into a second name
   (`let validNode = node`, `let it = item`) to use it after its guard. Narrowing follows a `do
   return` guard, a `where` filter, and an `if not x { x = ... }` that fills the value. Name the
-  parameter or the loop binding for what it holds instead (`applyFilter(id: WndId?)`). When the
-  guard ends in `try failWith(...)`, which the compiler does not know never returns, put the lookup
-  and its failure in a small `fail` function that returns the non-null value. Remove an unreachable `orelse` fallback after
+  parameter or the loop binding for what it holds instead (`applyFilter(id: WndId?)`). End such a
+  guard with the `fail` statement itself, not with `try` on a helper that always fails: give the
+  helper the error to build (`fail volumeError("...", .NotFound)`), so both the reader and the
+  narrowing see that the branch leaves, and no `!` or `unreachable` is needed after it. Remove an unreachable `orelse` fallback after
   that guard too: it suggests a default policy that the path cannot actually take. Keep required
   side effects outside assertions, even if inlining an action into the assertion would remove a
   temporary.

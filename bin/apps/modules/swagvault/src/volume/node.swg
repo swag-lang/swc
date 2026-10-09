@@ -111,13 +111,13 @@ impl Node
 
         let securitySize = try reader.readLittleEndian'u32()
         if securitySize > MaximumSecuritySize do
-            try failWith("An entry declares an implausible security descriptor.", .Corrupted)
+            fail volumeError(.Corrupted)
         result.security.resize(securitySize)
         try reader.readBytes(result.security.buffer, securitySize)
 
         let runCount = try reader.readLittleEndian'u64()
         if runCount > blockCount do
-            try failWith("An entry declares more block runs than the container holds.", .Corrupted)
+            fail volumeError(.Corrupted)
 
         var mapped = 0'u64
         var previousLogical = 0'u64
@@ -132,7 +132,7 @@ impl Node
                count > blockCount - mapped or
                logical > Swag.U64.Max - count or
                (not result.blocks.isEmpty() and logical < previousLogical) do
-                try failWith("A block run falls outside the container.", .Corrupted)
+                fail volumeError(.Corrupted)
 
             result.appendMapping({logical, physical, count})
             previousLogical = logical + count
@@ -140,7 +140,7 @@ impl Node
         }
 
         if reader.isEof() do
-            try failWith("The metadata ends inside an entry.", .Corrupted)
+            fail volumeError(.Corrupted)
         return result
     }
 }

@@ -25,7 +25,7 @@ impl VolumeStorage
     mtd resize(size: u64) fail
     {
         if .base or .protectedEnd do
-            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            fail volumeError(.HiddenProtected)
         try .stream.resize(size)
     }
 
@@ -44,16 +44,16 @@ impl VolumeStorage
     {
         let size = try .size()
         if offset > size or bytes.count > size - offset do
-            try failWith("The transfer exceeds the volume boundary.", .Io)
+            fail volumeError(.Io)
         if .protectionTriggered do
-            try failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)
+            fail volumeError(.HiddenProtected)
         if .protectedEnd and
            bytes.count and
            offset < .protectedEnd and
            bytes.count > .protectedFirst - Math.min(offset, .protectedFirst)
         {
             .protectionTriggered = true
-            try failWith("Hidden-volume protection has stopped writes until unmount.", .HiddenProtected)
+            fail volumeError(.HiddenProtected)
         }
 
         try .stream.writeAllAt(.base + offset, bytes)

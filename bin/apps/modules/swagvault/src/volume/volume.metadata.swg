@@ -60,7 +60,7 @@ impl Volume
         writer.writeLittleEndian(.physicalSize)
 
         if result.count > HeaderPlainSize do
-            try failWith("The metadata page index no longer fits in the header.", .DiskFull)
+            fail volumeError(.DiskFull)
         return result
     }
 
@@ -82,7 +82,7 @@ impl Volume
         .sequence     = try readHeaderPrefix(&reader)
         .checkpointAt = .sequence
         if .sequence == Swag.U64.Max do
-            try failWith("The container sequence can no longer advance.", .Corrupted)
+            fail volumeError(.Corrupted)
         let actualSize = .physicalSize
         let storedSize = try reader.readLittleEndian'u64()
         .blockCount   = try reader.readLittleEndian'u64()
@@ -93,16 +93,16 @@ impl Volume
         if storedSize < MinimumSize or
            storedSize > actualSize or
            .blockCount != (storedSize - DataOffset) / BlockRecordSize do
-            try failWith("The container geometry does not match its size.", .Corrupted)
+            fail volumeError(.Corrupted)
         .containerSize = storedSize
 
         let expectedPages = (.metadataSize + BlockSize - 1) / BlockSize
         if expectedPages > .blockCount do
-            try failWith("The metadata index is larger than the container.", .Corrupted)
+            fail volumeError(.Corrupted)
 
         let runCount = try reader.readLittleEndian'u64()
         if runCount > expectedPages do
-            try failWith("The metadata index declares an implausible number of runs.", .Corrupted)
+            fail volumeError(.Corrupted)
 
         .metadataPages.reserve(expectedPages)
         for runCount
@@ -113,17 +113,17 @@ impl Volume
                first >= .blockCount or
                count > .blockCount - first or
                count > expectedPages - .metadataPages.count do
-                try failWith("A metadata page falls outside the container.", .Corrupted)
+                fail volumeError(.Corrupted)
             for i in count do
                 .metadataPages.add(first + i)
         }
 
         if .metadataPages.count != expectedPages do
-            try failWith("The metadata index is incomplete.", .Corrupted)
+            fail volumeError(.Corrupted)
 
         let storedPhysicalSize = try reader.readLittleEndian'u64()
         if storedPhysicalSize < storedSize or storedPhysicalSize > actualSize do
-            try failWith("The container geometry does not match its size.", .Corrupted)
+            fail volumeError(.Corrupted)
         .physicalSize = storedPhysicalSize
 
         var image: Array'u8
@@ -143,7 +143,7 @@ impl Volume
         try .replayJournal()
 
         if .nodeById(RootNodeId) == null do
-            try failWith("The container has no root directory.", .Corrupted)
+            fail volumeError(.Corrupted)
         try .rebuildFreeList()
     }
 
@@ -153,7 +153,7 @@ impl Volume
         var reader    = ByteStream.openRead(image)
         let nodeCount = try reader.readLittleEndian'u64()
         if not nodeCount or nodeCount > MaximumNodeCount do
-            try failWith("The container declares an implausible number of entries.", .Corrupted)
+            fail volumeError(.Corrupted)
 
         .nodes.reserve(nodeCount)
         for nodeCount
@@ -162,7 +162,7 @@ impl Volume
             let nodeIndex = .nodes.count
             .nodes.add(#move node)
             if not .nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
-                try failWith("The container contains a duplicate entry.", .Corrupted)
+                fail volumeError(.Corrupted)
         }
     }
 
@@ -179,7 +179,7 @@ impl Volume
         for page in .metadataPages
         {
             if page >= .blockCount do
-                try failWith("A metadata page falls outside the container.", .Corrupted)
+                fail volumeError(.Corrupted)
             used.set(page, true)
         }
 
@@ -188,7 +188,7 @@ impl Volume
             for mapping in node.blocks
             {
                 if mapping.physical >= .blockCount or not mapping.count or mapping.count > .blockCount - mapping.physical do
-                    try failWith("A block mapping falls outside the container.", .Corrupted)
+                    fail volumeError(.Corrupted)
                 for physical in mapping.physical until mapping.physical + mapping.count do
                     used.set(physical, true)
             }
@@ -197,29 +197,29 @@ impl Volume
         .blocks.rebuild(&used, .blockCount)
     }
 
-    // Reads the record of block `physical` and decrypts it into `destination`, failing with
-    // `damaged` when it was not sealed as a record of `kind` at that block.
-    mtd readRecord(physical: u64, kind: u32, destination: [..] u8, damaged: string) fail
+    // Reads the record of block `physical` and decrypts it into `destination`, failing as
+    // corrupted when it was not sealed as a record of `kind` at that block.
+    mtd readRecord(physical: u64, kind: u32, destination: [..] u8) fail
     {
         Swag.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
             if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record)) do
-                try failWith("The container is truncated or unreadable.", .Io)
+                fail volumeError(.Io)
         }
 
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
         if not (try Crypto.open(&.keys, kind, physical, nonce, ciphertext, tag, destination)) do
-            try failWith(damaged, .Corrupted)
+            fail volumeError(.Corrupted)
     }
 
     // Reads the metadata page stored at block `physical`.
     mtd readMetadataPage(physical: u64, destination: [..] u8) fail
     {
-        try .readRecord(physical, MetadataPageKind, destination, "An encrypted metadata page is damaged.")
+        try .readRecord(physical, MetadataPageKind, destination)
     }
 
     // Encrypts a metadata page under a fresh nonce and stores it at block `physical`.
@@ -312,7 +312,7 @@ impl Volume
     {
         let used = HeaderRecordPrefixSize + plain.count + Crypto.TagSize
         if used > area do
-            try failWith("A metadata record no longer fits its area.", .DiskFull)
+            fail volumeError(.DiskFull)
 
         // Only the bytes the record occupies are written. The rest of the area
         // still holds the noise the container was created with, or an older
@@ -553,7 +553,7 @@ impl Volume
             if decodeError != null or record.sequence != expected do
                 break
             if record.sequence == Swag.U64.Max do
-                try failWith("The container sequence can no longer advance.", .Corrupted)
+                fail volumeError(.Corrupted)
             try .applyJournal(record)
             .sequence = record.sequence
             expected  += 1
@@ -582,29 +582,28 @@ impl Volume
             let target = .nodes.count
             .nodes.add(#move copy)
             if not .nodeLookup.add(&.nodes[target], target) do
-                try failWith("A journal record contains a duplicate entry.", .Corrupted)
+                fail volumeError(.Corrupted)
         }
 
         for patch in record.metadata
         {
             let node = .nodeById(patch.id)
             if not node do
-                try failWith("A journal metadata change names an entry that does not exist.", .Corrupted)
-            let validNode = node!
+                fail volumeError(.Corrupted)
             if patch.id != RootNodeId
             {
                 let parent = .nodeById(patch.parentId)
                 if not parent or
                    not parent.isDirectory() or
-                   not .nodeLookup.changeParent(validNode, patch.parentId, patch.name) do
-                    try failWith("A journal metadata change has an invalid destination.", .Corrupted)
+                   not .nodeLookup.changeParent(node, patch.parentId, patch.name) do
+                    fail volumeError(.Corrupted)
             }
 
-            validNode.attributes     = patch.attributes
-            validNode.creationTime   = patch.creationTime
-            validNode.lastAccessTime = patch.lastAccessTime
-            validNode.lastWriteTime  = patch.lastWriteTime
-            validNode.changeTime     = patch.changeTime
+            node.attributes     = patch.attributes
+            node.creationTime   = patch.creationTime
+            node.lastAccessTime = patch.lastAccessTime
+            node.lastWriteTime  = patch.lastWriteTime
+            node.changeTime     = patch.changeTime
         }
 
         .nextNodeId = record.nextNodeId

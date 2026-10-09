@@ -8,6 +8,10 @@ using Swag
     Swag.assert(Math.Rectangle.Zero == Math.Rectangle{0, 0, 0, 0})
     Swag.assert((Math.Rectangle{1, 2, 3, 4} * 2.0) == Math.Rectangle{2, 4, 6, 8})
 
+    var scaled = Math.Rectangle{1, 2, 3, 4}
+    scaled *= 2.0
+    Swag.assert(scaled == Math.Rectangle{2, 4, 6, 8})
+
     var rect = Math.Rectangle{10, 20, 30, 40}
     Swag.assert(rect.right() == 40)
     Swag.assert(rect.bottom() == 60)

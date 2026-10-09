@@ -27,7 +27,7 @@ func captured(capture: const *DirectoryCapture, name: string)->bool
 
 func statusForError(kind: ErrorKind)->s32
 {
-    catch failWith("test error", kind) as err
+    catch raiseVolumeError(kind) as err
     return WinFsp.statusFromError(err)
 }
 

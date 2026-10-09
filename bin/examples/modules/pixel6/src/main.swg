@@ -161,7 +161,12 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
 
     var bitmap:   *GpBitmap?
     var graphics: *GpGraphics?
-    gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
+    gdipCheck(GdipCreateBitmapFromScan0(localW,
+                                        localH,
+                                        localW * 4,
+                                        GdipPixelFormat32bppPARGB,
+                                        image.pixels.buffer,
+                                        &bitmap))
     Swag.assert(bitmap != null)
     gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage, bitmap), &graphics))
     Swag.assert(graphics != null)
@@ -173,7 +178,14 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     var path: *GpPath?
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
     Swag.assert(path != null)
-    addGdiPathText(path, text16.storage(), count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
+    addGdiPathText(path,
+                   text16.storage(),
+                   count16,
+                   family,
+                   format,
+                   emSize,
+                   margin + border - bounds.x,
+                   margin + border - bounds.y)
 
     var pen:   *GpPen?
     var brush: *GpSolidFill?
@@ -363,7 +375,11 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
         .unbindRenderTarget()
     }
 
-    let dst = Math.Rectangle{area.horzCenter() - localW * 0.5, area.vertCenter() - localH * 0.5, cast(f32, localW), cast(f32, localH)}
+    let dst = Math.Rectangle{
+        area.horzCenter() - localW * 0.5,
+        area.vertCenter() - localH * 0.5,
+        cast(f32, localW),
+        cast(f32, localH)}
 
     painter.setAntialiased(false)
     painter.drawTexture(Math.Rectangle{dst.x + 5, dst.y + 5, dst.width, dst.height}, srcRect, rtShadow.colorBuffer)
@@ -423,7 +439,11 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
         .unbindRenderTarget()
     }
 
-    let dst = Math.Rectangle{area.horzCenter() - logicalW * 0.5, area.vertCenter() - logicalH * 0.5, logicalW, logicalH}
+    let dst = Math.Rectangle{
+        area.horzCenter() - logicalW * 0.5,
+        area.vertCenter() - logicalH * 0.5,
+        logicalW,
+        logicalH}
 
     painter.setAntialiased(false)
     painter.drawTexture(Math.Rectangle{dst.x + 5, dst.y + 5, dst.width, dst.height}, src, rtText.colorBuffer)
@@ -480,8 +500,14 @@ func drawScene(painter: *Pixel.Painter)
     drawHeader(painter)
 
     drawGdiGrid(painter, {Margin, 108, W - Margin * 2, 246})
-    drawSampleGrid(painter, {Margin, 374, W - Margin * 2, 246}, "Pixel supersampled path-stroke outline", .PathStroke)
-    drawSampleGrid(painter, {Margin, 640, W - Margin * 2, 246}, "Legacy offset-fill outline", .OffsetFill)
+    drawSampleGrid(painter,
+                   {Margin, 374, W - Margin * 2, 246},
+                   "Pixel supersampled path-stroke outline",
+                   .PathStroke)
+    drawSampleGrid(painter,
+                   {Margin, 640, W - Margin * 2, 246},
+                   "Legacy offset-fill outline",
+                   .OffsetFill)
 }
 
 func display()

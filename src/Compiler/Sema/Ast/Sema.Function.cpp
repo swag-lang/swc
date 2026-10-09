@@ -1065,7 +1065,8 @@ namespace
             SemaNodeView view = sema.viewNodeTypeConstant(exprRef);
             if (returnType.isAnyTypeInfo(sema.ctx()))
                 SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, view));
-            SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
+            const CastCallSite returnSite{.function = sema.currentFunction(), .returnValue = true};
+            SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit, CastFlagsE::Zero, &returnSite));
             if (!returnValueIsCompilerMaterialized(sema))
             {
                 SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, view.nodeRef(), returnTypeRef, AstModifierFlagsE::Zero, true));

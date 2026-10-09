@@ -12,6 +12,7 @@ SWC_DIAG_DEF(sema_err_cannot_cast, Error, "cannot cast from '{type}' to '{reques
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "value for field '{value}' of '{decl-sym}' has type '{type}', but the field needs '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' has type '{type}', but parameter '{param}' needs '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' {what}")
+SWC_DIAG_DEF(sema_err_cannot_cast, Error, "return value has type '{type}', but function '{return-fn}' returns '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cast_unrelated_structs, Error, "cannot cast from '{type}' to '{requested-type}'; neither struct composes the other with 'using'; [help] cast through '*void' when the reinterpretation is intended")
 SWC_DIAG_DEF(sema_err_downcast_dynamic, Error, "cannot downcast a pointer to '{type}' because it has no dynamic identity; [help] mark that struct or a by-value 'using' parent with '#[Swag.DynCast]'")
 SWC_DIAG_DEF(sema_err_dynamic_cast_modifier, Error, "a dynamic cast does not accept '#bit', '#wrap', or '#unconst'; [help] use 'try cast', 'expect cast', or 'assume cast' to specify how to handle conversion errors")

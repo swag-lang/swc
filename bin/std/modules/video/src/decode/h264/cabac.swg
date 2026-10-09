@@ -8,6 +8,9 @@
 
 using Core, Core.Errors
 
+// A zero bit in a coded block pattern contributes one to its CABAC context index.
+private func missingCbpContextBit(pattern, mask: u32)->u64 => pattern & mask ? 0 : 1
+
 // The CABAC arithmetic decoding engine of section 9.3, in the register layout of FFmpeg's
 // `cabac_functions.h`.
 //
@@ -533,16 +536,16 @@ impl Slice
         var binState: s64
         let states = .cabac.contexts.buffer + 73
         var cbp    = 0'u32
-        var ctx    = (leftCbp & 0x02 ? 0'u64 : 1) + 2 * (topCbp & 0x04 ? 0'u64 : 1)
+        var ctx    = missingCbpContextBit(leftCbp, 0x02) + 2 * missingCbpContextBit(topCbp, 0x04)
         .binDecisionAt(states + ctx)
         cbp += cast(u32, (binState & 1))
-        ctx = (cbp & 0x01 ? 0'u64 : 1) + 2 * (topCbp & 0x08 ? 0'u64 : 1)
+        ctx = missingCbpContextBit(cbp, 0x01) + 2 * missingCbpContextBit(topCbp, 0x08)
         .binDecisionAt(states + ctx)
         cbp += cast(u32, (binState & 1)) << 1
-        ctx = (leftCbp & 0x08 ? 0'u64 : 1) + 2 * (cbp & 0x01 ? 0'u64 : 1)
+        ctx = missingCbpContextBit(leftCbp, 0x08) + 2 * missingCbpContextBit(cbp, 0x01)
         .binDecisionAt(states + ctx)
         cbp += cast(u32, (binState & 1)) << 2
-        ctx = (cbp & 0x04 ? 0'u64 : 1) + 2 * (cbp & 0x02 ? 0'u64 : 1)
+        ctx = missingCbpContextBit(cbp, 0x04) + 2 * missingCbpContextBit(cbp, 0x02)
         .binDecisionAt(states + ctx)
         cbp          += cast(u32, (binState & 1)) << 3
         .cabac.range = range

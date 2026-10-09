@@ -104,7 +104,9 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawBrushesPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel brush rendering", "Page 5 : drawing and filling forms with texture, tiled and hatch brushes.")
+    drawPageHeader(painter,
+                   "Pixel brush rendering",
+                   "Page 5 : drawing and filling forms with texture, tiled and hatch brushes.")
 
     let fillBody = drawPanel(painter,
                              {28, 104, 924, 272},

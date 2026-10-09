@@ -35,16 +35,17 @@ func day2A()
     {
         discard r.match(l[])
 
-        let min    = expect StrConv.toS32(r.getCapture(1))
-        let max    = expect StrConv.toS32(r.getCapture(2))
-        let letter = r.getCapture(3)[0] - 'a'
-        let pwd    = r.getCapture(4)
+        let minimumOccurrences = expect StrConv.toS32(r.getCapture(1))
+        let maximumOccurrences = expect StrConv.toS32(r.getCapture(2))
+        let requiredLetter     = r.getCapture(3)[0] - 'a'
+        let password           = r.getCapture(4)
 
-        var count: [26] s32
+        var occurrencesByLetter: [26] s32
 
-        for c in pwd do
-            count[c - 'a'] += 1
-        if count[letter] >= min and count[letter] <= max do
+        for letter in password do
+            occurrencesByLetter[letter - 'a'] += 1
+        if occurrencesByLetter[requiredLetter] >= minimumOccurrences and
+           occurrencesByLetter[requiredLetter] <= maximumOccurrences do
             total += 1
     }
 

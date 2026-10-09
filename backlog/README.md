@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-09 17:16 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-09 16:52 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-09 03:04 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-10-08 23:15 |
@@ -45,7 +46,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-10-08 21:30 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-10-08 21:29 |
 | [compiler.language.service.md](compiler.language.service.md) | Compiler-backed editor analysis, diagnostics, semantic queries, symbol operations, and code actions | 2026-10-08 19:09 |
-| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-08 11:33 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-07 20:42 |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-07 19:55 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-06 21:14 |

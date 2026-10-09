@@ -51,24 +51,24 @@ func day4A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var total, pass: u32
-    for l, index in lines
+    var validPassportCount, presentFields: u32
+    for line, lineIndex in lines
     {
-        let res = Tokenize.split(l[], ' 'u8)
-        for r in res
+        let fields = Tokenize.split(line[], ' 'u8)
+        for field in fields
         {
-            let res1 = Tokenize.split(r, ':'u8)
-            let idx  = Slice.findLinear(["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"], res1[0])
-            pass |= 1 << cast(u32, idx)
+            let fieldParts = Tokenize.split(field, ':'u8)
+            let fieldIndex = Slice.findLinear(["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"], fieldParts[0])
+            presentFields |= 1 << cast(u32, fieldIndex)
         }
 
-        if index == lines.count - 1 or lines[index + 1].isEmpty()
+        if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()
         {
-            if pass & 0b1111111 == 0b1111111 do
-                total += 1
-            pass = 0
+            if presentFields & 0b1111111 == 0b1111111 do
+                validPassportCount += 1
+            presentFields = 0
         }
     }
 
-    Swag.assert(total == 264)
+    Swag.assert(validPassportCount == 264)
 }

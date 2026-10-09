@@ -29,20 +29,22 @@ using Core
 
 func day1A()
 {
+    const TargetSum = 2020
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var arr: Array's32
-    for v in lines do
-        arr.add(expect StrConv.toS32(v[]))
+    var expenseEntries: Array's32
+    for line in lines do
+        expenseEntries.add(expect StrConv.toS32(line[]))
 
-    arr.sort()
+    expenseEntries.sort()
 
-    for v in arr
+    for firstValue in expenseEntries
     {
-        if Slice.findSorted(arr[to], 2020 - v) != Swag.U64.Max
+        let matchingValue = TargetSum - firstValue
+        if Slice.findSorted(expenseEntries[to], matchingValue) != Swag.U64.Max
         {
-            Swag.assert(v * (2020 - v) == 158916)
+            Swag.assert(firstValue * matchingValue == 158916)
             break
         }
     }

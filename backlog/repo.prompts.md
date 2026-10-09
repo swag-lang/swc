@@ -1104,6 +1104,23 @@ follow load admission and the six-worker cap before every build or test. Keep SW
 unchanged. Keep review inventories, logs, and probes outside every checkout. Leave the result
 in the campaign worktree for review unless integration has been requested separately.
 
+RESUME A PREVIOUS PASS
+
+Keep the durable campaign state in a session directory outside every checkout, named
+`$env:TEMP/swc-readability-YYYYMMDD`. Store `coverage.json`,
+`excluded-unittest-files.txt`, and `validation-summary.json` there. If a later run starts after
+the campaign worktree or branch has been removed, find the newest `swc-readability-*` session
+directory and load those files before creating a new worktree. Continue each file from its saved
+status; do not reset reviewed counts or treat old commits and formatter runs as proof of review.
+Check `current_commit` and the file's current contents against the new `master`: retain a saved
+status only when its evidence still applies, and return changed or uncertain files to `pending`.
+If the session directory contains `pending.patch`, compare its recorded base with the new `master`,
+inspect the patch, and restore those edits into the new worktree as pending work; never treat them as
+validated merely because they were present in the previous worktree.
+Append each exact validation command and result to `validation-summary.json`, then update
+`coverage.json` after every validated batch. If no prior session state exists, create a fresh
+inventory and record that this is a new pass.
+
 GLOBAL GAINS, THEN HIGH-VALUE DEEP REVIEWS
 
 First inspect the formatter's existing rules and the source patterns that cause the most repeated

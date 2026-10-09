@@ -29,13 +29,15 @@ func day2B()
     {
         discard r.match(l[])
 
-        let min    = expect StrConv.toS32(r.getCapture(1)) - 1
-        let max    = expect StrConv.toS32(r.getCapture(2)) - 1
-        let letter = r.getCapture(3)[0]
-        let pwd    = r.getCapture(4)
+        let firstPosition  = expect StrConv.toS32(r.getCapture(1)) - 1
+        let secondPosition = expect StrConv.toS32(r.getCapture(2)) - 1
+        let requiredLetter = r.getCapture(3)[0]
+        let password       = r.getCapture(4)
 
-        let t = cast(s32, (pwd[min] == letter)) + cast(s32, (pwd[max] == letter))
-        total += t == 1 ? 1 : 0
+        let firstMatch  = password[firstPosition] == requiredLetter
+        let secondMatch = password[secondPosition] == requiredLetter
+        let matchCount  = cast(s32, firstMatch) + cast(s32, secondMatch)
+        total += matchCount == 1 ? 1 : 0
     }
 
     Swag.assert(total == 485)

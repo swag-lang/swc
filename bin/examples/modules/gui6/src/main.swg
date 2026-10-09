@@ -343,7 +343,10 @@ func createMainMenuBar(parent: *Wnd, rect: Math.Rectangle)->*MenuCtrl
 
 func createStatusPanel(parent: *Wnd, rect: Math.Rectangle)
 {
-    let panel = createPanel(parent, "Command feedback", "The last selected menu item is reflected here while checked and disabled rows update from shared state.", rect)
+    let panel = createPanel(parent,
+                            "Command feedback",
+                            "The last selected menu item is reflected here while checked and disabled rows update from shared state.",
+                            rect)
     g_StatusLabel = createHelpText(panel, g_StatusText, {20, 92, rect.width - 40, rect.height - 112})
 }
 

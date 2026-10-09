@@ -694,12 +694,59 @@ void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
     diag.report(*ctx_);
 }
 
+// A '{' left open is usually not the one the end of file reports: an inner block that lost its
+// '}' takes the one meant for its parent, so the outermost brace is the one found unclosed. The
+// inner brace shows itself by a '}' that does not line up with the line that opened it.
+TokenRef Parser::findMisalignedInnerOpening(TokenRef openRef) const
+{
+    const SourceView&             srcView = ast_->srcView();
+    const uint32_t                count   = static_cast<uint32_t>(srcView.tokens().size());
+    SmallVector<TokenRef>         opens;
+    SmallVector<uint32_t>         indents;
+    uint32_t                      indent  = 0;
+    for (uint32_t i = openRef.get() + 1; i < count; ++i)
+    {
+        const TokenRef tokRef{i};
+        const Token&   tok = srcView.token(tokRef);
+        if (tok.startsLine())
+            indent = tok.codeRange(*ctx_, srcView).column;
+
+        if (tok.id == TokenId::SymLeftCurly)
+        {
+            opens.push_back(tokRef);
+            indents.push_back(indent);
+        }
+        else if (tok.id == TokenId::SymRightCurly && !opens.empty())
+        {
+            const TokenRef innerRef    = opens.back();
+            const uint32_t innerIndent = indents.back();
+            opens.pop_back();
+            indents.pop_back();
+            if (tok.startsLine() && tok.codeRange(*ctx_, srcView).column != innerIndent)
+                return innerRef;
+        }
+    }
+
+    return TokenRef::invalid();
+}
+
 void Parser::raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected)
 {
     Diagnostic diag = reportError(id, tknRef);
     setReportExpected(diag, tknExpected);
     if (id == DiagnosticId::parser_err_expected_closing && diag.last().hasSpans())
+    {
         diag.last().span(0).messageId = DiagnosticId::parser_note_opening;
+        if (tknExpected == TokenId::SymRightCurly && is(TokenId::EndOfFile))
+        {
+            if (const TokenRef innerRef = findMisalignedInnerOpening(tknRef); innerRef.isValid())
+            {
+                diag.addNote(DiagnosticId::parser_note_unclosed_candidate);
+                diag.last().setSrcView(&ast_->srcView());
+                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, innerRef), "");
+            }
+        }
+    }
     diag.report(*ctx_);
 }
 

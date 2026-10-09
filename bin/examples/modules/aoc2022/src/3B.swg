@@ -33,35 +33,36 @@ func day3B()
     let lines    = expect File.readAllLines(dataPath)
 
     var total: u64
-    var idx:   s32
-    while idx < lines.count
+    var firstLineIndex: s32
+    while firstLineIndex < lines.count
     {
-        var stack: [3] Array's32
-        for ii in 3
+        var rucksackPriorities: [3] Array's32
+        for groupIndex in 3
         {
-            let l = lines[idx]
-            for i in l.count
+            let rucksack = lines[firstLineIndex]
+            for itemIndex in rucksack.count
             {
-                var s: s32
-                if Latin1.isLower(l[i]) do
-                    s = l[i] - 'a'
+                let itemType = rucksack[itemIndex]
+                var priority: s32
+                if Latin1.isLower(itemType) do
+                    priority = itemType - 'a'
                 else do
-                    s = 26 + (l[i] - 'A')
-                stack[ii].add(s + 1)
+                    priority = 26 + (itemType - 'A')
+                rucksackPriorities[groupIndex].add(priority + 1)
             }
 
-            idx += 1
+            firstLineIndex += 1
         }
 
-        for c in stack[0]
+        for priority in rucksackPriorities[0]
         {
-            let f1 = Slice.findLinear(stack[1].toSlice(), c)
-            if f1 != Swag.U64.Max
+            let secondRucksackMatch = Slice.findLinear(rucksackPriorities[1].toSlice(), priority)
+            if secondRucksackMatch != Swag.U64.Max
             {
-                let f2 = Slice.findLinear(stack[2].toSlice(), c)
-                if f2 != Swag.U64.Max
+                let thirdRucksackMatch = Slice.findLinear(rucksackPriorities[2].toSlice(), priority)
+                if thirdRucksackMatch != Swag.U64.Max
                 {
-                    total += c
+                    total += priority
                     break
                 }
             }

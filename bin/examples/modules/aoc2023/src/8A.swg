@@ -38,11 +38,11 @@ func day8A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var instructions: string = ""
-    var nodes:        Array'{ left, right: u64 }
-    var nameToNode:   HashTable'(string, u64)
+    var instructions:    string = ""
+    var nodes:           Array'{ left, right: u64 }
+    var nodeIndexByName: HashTable'(string, u64)
 
-    var startNode, endNode: u64
+    var startNodeIndex, endNodeIndex: u64
 
     for l, i in lines
     {
@@ -53,11 +53,11 @@ func day8A()
         elif i > 1
         {
             let name = l[0 to 2]
-            nameToNode.add(name, i - 2)
+            nodeIndexByName.add(name, i - 2)
             if name == "AAA" do
-                startNode = i - 2
+                startNodeIndex = i - 2
             elif name == "ZZZ" do
-                endNode = i - 2
+                endNodeIndex = i - 2
         }
     }
 
@@ -66,28 +66,28 @@ func day8A()
     {
         if i <= 1 do
             continue
-        let left   = l[7 to 9]
-        let right  = l[12 to 14]
-        let leftV  = nameToNode.find(left).value
-        let rightV = nameToNode.find(right).value
-        nodes[i - 2] = {leftV, rightV}
+        let left           = l[7 to 9]
+        let right          = l[12 to 14]
+        let leftNodeIndex  = nodeIndexByName.find(left).value
+        let rightNodeIndex = nodeIndexByName.find(right).value
+        nodes[i - 2] = {leftNodeIndex, rightNodeIndex}
     }
 
-    var total:   u64
-    var curNode: u64 = startNode
-    while curNode != endNode
+    var steps: u64
+    var currentNodeIndex: u64 = startNodeIndex
+    while currentNodeIndex != endNodeIndex
     {
-        for inst in instructions
+        for instruction in instructions
         {
-            if inst == 'L' do
-                curNode = nodes[curNode].left
+            if instruction == 'L' do
+                currentNodeIndex = nodes[currentNodeIndex].left
             else do
-                curNode = nodes[curNode].right
-            total += 1
-            if curNode == endNode do
+                currentNodeIndex = nodes[currentNodeIndex].right
+            steps += 1
+            if currentNodeIndex == endNodeIndex do
                 break
         }
     }
 
-    Swag.assert(total == 14257)
+    Swag.assert(steps == 14257)
 }

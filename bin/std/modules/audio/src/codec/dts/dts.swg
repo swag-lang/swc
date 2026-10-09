@@ -79,7 +79,9 @@ private impl BitReader
                 {
                     let wordIndex = .bitPosition / 14
                     let byteIndex = wordIndex * 2
-                    let word      = .littleEndianWords ? cast(u32, .data[byteIndex]) | (cast(u32, .data[byteIndex + 1]) << 8) : (cast(u32, .data[byteIndex]) << 8) | cast(u32, .data[byteIndex + 1])
+                    let word      = .littleEndianWords ?
+                                    cast(u32, .data[byteIndex]) | (cast(u32, .data[byteIndex + 1]) << 8) :
+                                    (cast(u32, .data[byteIndex]) << 8) | cast(u32, .data[byteIndex + 1])
                     result |= (word >> cast(u32, (13 - .bitPosition % 14))) & 1
                 }
                 else

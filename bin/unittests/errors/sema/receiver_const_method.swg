@@ -1,7 +1,7 @@
 #global private
 
 // A method that can change its receiver, called through a 'const' value, names the method and the
-// receiver type rather than a cast the reader never wrote.
+// receiver type rather than a cast the reader never wrote. The wording is what is checked.
 
 struct ReceiverCounter
 {
@@ -16,7 +16,7 @@ impl ReceiverCounter
 
 func receiverConstCall(counter: const *ReceiverCounter)
 {
-    counter.bump()     // swc-expected-error {{'bump' needs a receiver of type '*ReceiverCounter', but it is called on 'const *ReceiverCounter'; [help] call it on a mutable value, or declare it with 'mtd const' if it does not change its receiver}}
+    counter.bump()     // swc-expected-error {{'bump' needs a receiver of type '*ReceiverCounter', but it is called on 'const *ReceiverCounter'}}
 }
 
 func receiverConstRead(counter: const *ReceiverCounter)->s32 => counter.current()

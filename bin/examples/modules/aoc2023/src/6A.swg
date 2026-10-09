@@ -49,31 +49,31 @@ func day6A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    let first  = Tokenize.split(lines[0], ':'u8)
-    let second = Tokenize.split(lines[1], ':'u8)
-    let val0   = Tokenize.split(first[1], ' 'u8)
-    let val1   = Tokenize.split(second[1], ' 'u8)
+    let timeField      = Tokenize.split(lines[0], ':'u8)
+    let distanceField  = Tokenize.split(lines[1], ':'u8)
+    let timeTokens     = Tokenize.split(timeField[1], ' 'u8)
+    let distanceTokens = Tokenize.split(distanceField[1], ' 'u8)
 
-    var times: Array's32
-    var dists: Array's32
+    var raceTimes:       Array's32
+    var recordDistances: Array's32
 
-    for v in val0 do
-        times.add(expect StrConv.toS32(v))
-    for v in val1 do
-        dists.add(expect StrConv.toS32(v))
+    for token in timeTokens do
+        raceTimes.add(expect StrConv.toS32(token))
+    for token in distanceTokens do
+        recordDistances.add(expect StrConv.toS32(token))
 
     var total: u64 = 1
-    for t, idx in times
+    for raceTime, raceIndex in raceTimes
     {
-        var cpt = 0
-        for i in t
+        var winningCount = 0
+        for holdTime in raceTime
         {
-            let travel = (t - i) * i
-            if travel > dists[idx] do
-                cpt += 1
+            let travelDistance = (raceTime - holdTime) * holdTime
+            if travelDistance > recordDistances[raceIndex] do
+                winningCount += 1
         }
 
-        total *= cpt
+        total *= winningCount
     }
 
     Swag.assert(total == 281600)

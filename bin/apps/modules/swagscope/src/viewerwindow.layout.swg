@@ -301,8 +301,17 @@ impl ViewerWindow
 
         with .recentList = createFileList(.recentPane, rowIconSize)
         {
-            .sigSelectionChanged += func|window = me|(list) { window.openListSelection(list, window.recent.toSlice()) }
-            .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position)) }
+            .sigSelectionChanged += func|window = me|(list)
+            {
+                window.openListSelection(list, window.recent.toSlice())
+            }
+
+            .sigRightClicked += func|window = me|(list, position)
+            {
+                window.showFileMenu(list,
+                                    window.recent.toSlice(),
+                                    list.listView.localToSurface(position))
+            }
         }
 
         with .folderPane = Wnd.create'Wnd(.filePanel)
@@ -328,7 +337,10 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = me|(button) { window.setFolderSameKind(button.isChecked) }
         }
 
-        with .folderHistoryButton = IconButton.create(folderHeader, .theme().icon(.History, rowIconSize), {0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize}, flags: .CenterContent)
+        with .folderHistoryButton = IconButton.create(folderHeader,
+                                                      .theme().icon(.History, rowIconSize),
+                                                      {0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize},
+                                                      flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.z  = 8
@@ -347,8 +359,17 @@ impl ViewerWindow
 
         with .folderList = createFileList(.folderPane, rowIconSize)
         {
-            .sigSelectionChanged += func|window = me|(list) { window.openListSelection(list, window.siblings.toSlice()) }
-            .sigRightClicked     += func|window = me|(list, position) { window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position)) }
+            .sigSelectionChanged += func|window = me|(list)
+            {
+                window.openListSelection(list, window.siblings.toSlice())
+            }
+
+            .sigRightClicked += func|window = me|(list, position)
+            {
+                window.showFileMenu(list,
+                                    window.siblings.toSlice(),
+                                    list.listView.localToSurface(position))
+            }
         }
 
         with let recentItem = .filePanel.addPane(.recentPane, RecentHeight)

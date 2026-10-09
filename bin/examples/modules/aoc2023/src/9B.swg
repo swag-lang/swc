@@ -27,43 +27,42 @@ func day9B()
 
     var total: s64
 
-    for l in lines
+    for line in lines
     {
-        let vals = Tokenize.split(l[], ' 'u8)
+        let valueTokens = Tokenize.split(line[], ' 'u8)
 
-        var values: Array's64
-        for v in vals do
-            values.add(expect StrConv.toS64(v))
+        var differences: Array's64
+        for token in valueTokens do
+            differences.add(expect StrConv.toS64(token))
 
-        var column: Array's64
-        column.add(values[0])
+        var firstValues: Array's64
+        firstValues.add(differences[0])
 
-        var recom = true
-        while recom
+        var hasNonzeroDifference = true
+        while hasNonzeroDifference
         {
-            recom = false
-            var newValues: Array's64
-            for i in 0 until values.count - 1
+            hasNonzeroDifference = false
+            var nextDifferences: Array's64
+            for index in 0 until differences.count - 1
             {
-                let v = values[i + 1] - values[i]
-                recom = v or recom
-                newValues.add(v)
+                let difference = differences[index + 1] - differences[index]
+                hasNonzeroDifference = difference or hasNonzeroDifference
+                nextDifferences.add(difference)
 
-                if i == 0 do
-                    column.add(v)
+                if index == 0 do
+                    firstValues.add(difference)
             }
 
-            values = newValues
+            differences = nextDifferences
         }
 
-        var prev: s64
-        for c in column.reversed()
+        var previousValue: s64
+        for firstValue in firstValues.reversed()
         {
-            let c1 = c - prev
-            prev = c1
+            previousValue = firstValue - previousValue
         }
 
-        total += prev
+        total += previousValue
     }
 
     Swag.assert(total == 1019)

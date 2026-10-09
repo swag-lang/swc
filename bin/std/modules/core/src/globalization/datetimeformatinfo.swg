@@ -52,7 +52,9 @@ public impl DateTimeFormatInfo
     {
         if index + token.count > pattern.count do
             return false
-        return Utf8.compare(cast(const [..] u8, pattern[index until index + token.count]), cast(const [..] u8, token), .Latin1) == 0
+        let patternToken  = cast(const [..] u8, pattern[index until index + token.count])
+        let expectedToken = cast(const [..] u8, token)
+        return Utf8.compare(patternToken, expectedToken, .Latin1) == 0
     }
 
     internal mtd const formatPattern(value: Time.DateTime, pattern: string)->String

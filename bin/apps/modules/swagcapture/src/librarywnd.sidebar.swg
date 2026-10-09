@@ -217,7 +217,8 @@ impl LibraryWnd
             if not hasLastDateTime or fi.lastWriteTime.month != lastDateTime.month
             {
                 fillLastMonth()
-                lastLine           = .listCtrl.createLine(Format.toString("%", DateTime.monthName(fi.lastWriteTime.month)), icon1, lastLineYear)
+                let monthLabel = Format.toString("%", DateTime.monthName(fi.lastWriteTime.month))
+                lastLine           = .listCtrl.createLine(monthLabel, icon1, lastLineYear)
                 lastLine.userData0 = cast(cast(u64, fi.lastWriteTime.year))
                 lastLine.userData1 = cast(cast(u64, fi.lastWriteTime.month))
                 lastLineMonth      = lastLine
@@ -226,7 +227,10 @@ impl LibraryWnd
             if not hasLastDateTime or fi.lastWriteTime.day != lastDateTime.day
             {
                 fillLastDay()
-                lastLine           = .listCtrl.createLine(Format.toString("%, %", DateTime.dayOfWeekName(fi.lastWriteTime.dayOfWeek()), fi.lastWriteTime.day), icon1, lastLineMonth)
+                let dayLabel = Format.toString("%, %",
+                                               DateTime.dayOfWeekName(fi.lastWriteTime.dayOfWeek()),
+                                               fi.lastWriteTime.day)
+                lastLine           = .listCtrl.createLine(dayLabel, icon1, lastLineMonth)
                 lastLine.userData0 = cast(cast(u64, fi.lastWriteTime.year))
                 lastLine.userData1 = cast(cast(u64, fi.lastWriteTime.month))
                 lastLine.userData2 = cast(cast(u64, fi.lastWriteTime.day))

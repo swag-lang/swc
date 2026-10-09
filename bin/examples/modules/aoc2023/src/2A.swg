@@ -37,26 +37,26 @@ func day2A()
 
     for l, gameIdx in lines
     {
-        let first = Tokenize.split(l[], ':'u8)
-        let sets  = Tokenize.split(first[1], ';'u8)
+        let gameRecord = Tokenize.split(l[], ':'u8)
+        let reveals    = Tokenize.split(gameRecord[1], ';'u8)
 
-        var game: { r, g, b: s32 }
-        for s in sets
+        var maxCubes: { red, green, blue: s32 }
+        for reveal in reveals
         {
-            let values = Tokenize.split(s, ','u8)
-            for v in values
+            let revealedCubes = Tokenize.split(reveal, ','u8)
+            for cubeDescription in revealedCubes
             {
-                let one = Tokenize.split(v, ' 'u8)
-                switch one[1]
+                let cube = Tokenize.split(cubeDescription, ' 'u8)
+                switch cube[1]
                 {
-                case "red":   game.r = Math.max(game.r, expect StrConv.toS32(one[0]))
-                case "green": game.g = Math.max(game.g, expect StrConv.toS32(one[0]))
-                case "blue":  game.b = Math.max(game.b, expect StrConv.toS32(one[0]))
+                case "red":   maxCubes.red = Math.max(maxCubes.red, expect StrConv.toS32(cube[0]))
+                case "green": maxCubes.green = Math.max(maxCubes.green, expect StrConv.toS32(cube[0]))
+                case "blue":  maxCubes.blue = Math.max(maxCubes.blue, expect StrConv.toS32(cube[0]))
                 }
             }
         }
 
-        if game.r <= 12 and game.g <= 13 and game.b <= 14 do
+        if maxCubes.red <= 12 and maxCubes.green <= 13 and maxCubes.blue <= 14 do
             total += gameIdx + 1
     }
 

@@ -441,7 +441,9 @@ private impl Ac3Codec
             for bin in cast(u64, block.channelEnd[channel])
             {
                 let exponent = block.channelExponents[channel, bin]
-                let value    = block.channelBap[channel, bin] or not block.dither[channel] ? mantissas.get(block.channelBap[channel, bin]) : .ditherValue()
+                let value    = block.channelBap[channel, bin] or not block.dither[channel] ?
+                               mantissas.get(block.channelBap[channel, bin]) :
+                               .ditherValue()
                 .coefficients[channel, bin] = value * Math.pow(2.0, -cast(f64, exponent))
             }
 

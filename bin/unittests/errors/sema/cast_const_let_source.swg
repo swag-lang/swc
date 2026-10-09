@@ -1,7 +1,7 @@
 #global private
 
 // A 'let' binding is read-only without its type saying so: a cast that would let the target
-// change it shows the source as the 'const' type it is read as.
+// change it shows the source as the 'const' type it is read as. The wording is what is checked.
 
 interface ILetArea
 {

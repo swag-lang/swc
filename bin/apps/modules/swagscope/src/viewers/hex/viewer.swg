@@ -176,7 +176,9 @@ impl Panel
     {
         var result: retval
         result.selection = .grid.selectionLength() > 1
-        result.range     = result.selection ? AnalysisRange{.grid.selectionStart(), .grid.selectionLength()} : AnalysisRange{0, .grid.doc.fileSize}
+        result.range     = result.selection ?
+                           AnalysisRange{.grid.selectionStart(), .grid.selectionLength()} :
+                           AnalysisRange{0, .grid.doc.fileSize}
         return result
     }
 
@@ -239,7 +241,12 @@ impl Panel
                                         [.Hex32, .Unsigned32, .Signed32, .Float32],
                                         [.Hex64, .Unsigned64, .Signed64, .Float64]]
 
-    mtd selectedGrouping()->Grouping => Groupings[Math.min(.widthCombo.selectedIndex, 3), Math.min(.formatCombo.selectedIndex, 3)]
+    mtd selectedGrouping()->Grouping
+    {
+        let widthIndex  = Math.min(.widthCombo.selectedIndex, 3)
+        let formatIndex = Math.min(.formatCombo.selectedIndex, 3)
+        return Groupings[widthIndex, formatIndex]
+    }
 
     mtd applyValueMode()
     {
@@ -281,7 +288,9 @@ impl Panel
         .formatCombo.resize(format, 36)
         .byteOrderCombo.resize(byteOrder, 36)
 
-        let width = rowWidth + value + format + byteOrder + .rowWidthCombo.margin.x + .widthCombo.margin.x + .formatCombo.margin.x + .byteOrderCombo.margin.x
+        let width = rowWidth + value + format + byteOrder +
+                    .rowWidthCombo.margin.x + .widthCombo.margin.x +
+                    .formatCombo.margin.x + .byteOrderCombo.margin.x
         .commands.preferredSize.x = width
         .commands.resize(width, 36)
         .commands.applyLayout()
@@ -429,33 +438,72 @@ impl Panel
             return
         }
 
-        let offset  = .offsetText(.grid.caret)
-        let size    = .grid.valueSize()
-        let active  = size <= bytes.count ? formatScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
-        let percent = .grid.doc.fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, .grid.doc.fileSize - 1) : 0
-        label.setText(Format.toString("@% · %{f1}%% · % B · % %", offset, percent, .grid.selectionLength(), .activeValueTag(), active))
+        let offset = .offsetText(.grid.caret)
+        let size   = .grid.valueSize()
+        let active = size <= bytes.count ?
+                     formatScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) :
+                     String.from("--")
+        let percent = .grid.doc.fileSize > 1 ?
+                      cast(f64, .grid.caret) * 100 / cast(f64, .grid.doc.fileSize - 1) :
+                      0
+        label.setText(Format.toString("@% · %{f1}%% · % B · % %",
+                                      offset,
+                                      percent,
+                                      .grid.selectionLength(),
+                                      .activeValueTag(),
+                                      active))
 
-        var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%", offset, .grid.caret, percent, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
-        let raw8    = .inspectorScalar(bytes.toSlice(), 1)
-        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %", raw8, signedScalar(raw8, 1), raw8, formatBinaryScalar(raw8, 8), formatOctalScalar(raw8, 8), raw8 ? "true" : "false")
+        var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%",
+                                      offset,
+                                      .grid.caret,
+                                      percent,
+                                      .offsetText(.grid.selectionStart()),
+                                      .offsetText(.grid.selectionEnd()),
+                                      .grid.selectionLength(),
+                                      .grid.bigEndian ? "BE" : "LE")
+        let raw8 = .inspectorScalar(bytes.toSlice(), 1)
+        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %",
+                                   raw8,
+                                   signedScalar(raw8, 1),
+                                   raw8,
+                                   formatBinaryScalar(raw8, 8),
+                                   formatOctalScalar(raw8, 8),
+                                   raw8 ? "true" : "false")
         if isPrintable(cast(u8, raw8)) do
             details += Format.toString(" · ASCII '%'", cast(u8, raw8))
         if bytes.count >= 2
         {
             let raw = .inspectorScalar(bytes.toSlice(), 2)
-            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04} · b16 % · o16 %", raw, signedScalar(raw, 2), raw, formatBinaryScalar(raw, 16), formatOctalScalar(raw, 16))
+            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04} · b16 % · o16 %",
+                                       raw,
+                                       signedScalar(raw, 2),
+                                       raw,
+                                       formatBinaryScalar(raw, 16),
+                                       formatOctalScalar(raw, 16))
         }
 
         if bytes.count >= 4
         {
             let raw = .inspectorScalar(bytes.toSlice(), 4)
-            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}", raw, signedScalar(raw, 4), raw, formatBinaryScalar(raw, 32), formatOctalScalar(raw, 32), cast #bit (f32, cast(u32, raw)))
+            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}",
+                                       raw,
+                                       signedScalar(raw, 4),
+                                       raw,
+                                       formatBinaryScalar(raw, 32),
+                                       formatOctalScalar(raw, 32),
+                                       cast #bit (f32, cast(u32, raw)))
         }
 
         if bytes.count >= 8
         {
             let raw = .inspectorScalar(bytes.toSlice(), 8)
-            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}", raw, signedScalar(raw, 8), raw, formatBinaryScalar(raw, 64), formatOctalScalar(raw, 64), cast #bit (f64, raw))
+            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}",
+                                       raw,
+                                       signedScalar(raw, 8),
+                                       raw,
+                                       formatBinaryScalar(raw, 64),
+                                       formatOctalScalar(raw, 64),
+                                       cast #bit (f64, raw))
         }
 
         label.toolTip = #move details

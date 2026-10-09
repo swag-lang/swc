@@ -49,6 +49,10 @@ impl IWnd for PanelWnd
         if not (.title).count do
             return
         let font = .theme().createDefaultFont(13, .Bold)
-        painter.drawString(rect.x + PanelPadding, font.opticalTop(rect.y + PanelPadding + 9, 13), .title, font, colors.label_Text)
+        painter.drawString(rect.x + PanelPadding,
+                           font.opticalTop(rect.y + PanelPadding + 9, 13),
+                           .title,
+                           font,
+                           colors.label_Text)
     }
 }

@@ -17,28 +17,28 @@ func day1B()
     let lines    = expect File.readAllLines(dataPath)
 
     // A blank line separates two elves; it carries no number, and parsing one is an error.
-    var count: [3] u64
-    var one:   u64
+    var topThreeCalories: [3] u64
+    var currentCalories:  u64
     for l, index in lines
     {
         if not l.isEmpty() do
-            one += expect StrConv.toU64(l[])
+            currentCalories += expect StrConv.toU64(l[])
 
         if l.isEmpty() or index == lines.count - 1
         {
             switch
             {
-            case one > count[0]: count[0] = one
-            case one > count[1]: count[1] = one
-            case one > count[2]: count[2] = one
+            case currentCalories > topThreeCalories[0]: topThreeCalories[0] = currentCalories
+            case currentCalories > topThreeCalories[1]: topThreeCalories[1] = currentCalories
+            case currentCalories > topThreeCalories[2]: topThreeCalories[2] = currentCalories
             }
 
-            Slice.sort(count[to])
-            one = 0
+            Slice.sort(topThreeCalories[to])
+            currentCalories = 0
         }
     }
 
-    let total = count[0] + count[1] + count[2]
+    let total = topThreeCalories[0] + topThreeCalories[1] + topThreeCalories[2]
 
     Swag.assert(total == 203002)
 }

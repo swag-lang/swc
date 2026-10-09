@@ -3,6 +3,7 @@
 var catchOwnerDrops:        [256] Swag.AtomicValue'u32
 var catchOwnerFailDefers:   u32
 var catchOwnerNoFailDefers: u32
+var catchOwnerHandlerRuns:  u32
 
 struct CatchOwnerError
 {
@@ -69,12 +70,12 @@ func deferredDirectCatchOwner()
 }
 
 #[Swag.NoInline]
-func deferredReturningCatchOwner()
+func deferredHandledCatchOwner()
 {
     defer #nofail catchOwnerNoFailDefers += 1
     defer catch failCatchOwner(192) else
     {
-        return
+        catchOwnerHandlerRuns += 1
     }
     return
 }
@@ -184,17 +185,20 @@ func deferredFailingCatchOwner() fail
     Swag.assert(catchOwnerDrops[160 + firstGeneration].load() == 1)
 
     // Explicit returns unwind through a live deferred-action cursor. Captures created inside
-    // that action still leave first, including when its handler returns or raises a new error.
+    // that action still leave first, including when its handler runs or raises a new error. A
+    // handler cannot return from the deferred body: control flow cannot leave a 'defer'.
     let previousOwners = Swag.getContext().errorCaptures
     deferredDirectCatchOwner()
     Swag.assert(Swag.getContext().errorCaptures == previousOwners)
     Swag.assert(catchOwnerDrops[176 + firstGeneration].load() == 1)
 
-    let previousNoFail = catchOwnerNoFailDefers
-    deferredReturningCatchOwner()
+    let previousNoFail  = catchOwnerNoFailDefers
+    let previousHandler = catchOwnerHandlerRuns
+    deferredHandledCatchOwner()
     Swag.assert(Swag.getContext().errorCaptures == previousOwners)
     Swag.assert(catchOwnerDrops[192 + firstGeneration].load() == 1)
     Swag.assert(catchOwnerNoFailDefers == previousNoFail + 1)
+    Swag.assert(catchOwnerHandlerRuns == previousHandler + 1)
 
     catch deferredFailingCatchOwner()
     Swag.assert(Swag.getContext().errorCaptures == previousOwners)

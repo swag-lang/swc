@@ -23,15 +23,15 @@ func day4B()
     var total: u64
     for l in lines
     {
-        let pair  = Tokenize.split(l[], ','u8)
-        let pair0 = Tokenize.split(pair[0], '-'u8)
-        let pair1 = Tokenize.split(pair[1], '-'u8)
-        let v0a   = expect StrConv.toS32(pair0[0])
-        let v0b   = expect StrConv.toS32(pair0[1])
-        let v1a   = expect StrConv.toS32(pair1[0])
-        let v1b   = expect StrConv.toS32(pair1[1])
+        let assignmentRanges = Tokenize.split(l[], ','u8)
+        let firstRange       = Tokenize.split(assignmentRanges[0], '-'u8)
+        let secondRange      = Tokenize.split(assignmentRanges[1], '-'u8)
+        let firstStart       = expect StrConv.toS32(firstRange[0])
+        let firstEnd         = expect StrConv.toS32(firstRange[1])
+        let secondStart      = expect StrConv.toS32(secondRange[0])
+        let secondEnd        = expect StrConv.toS32(secondRange[1])
 
-        if not (v0b < v1a or v0a > v1b) do
+        if not (firstEnd < secondStart or firstStart > secondEnd) do
             total += 1
     }
 

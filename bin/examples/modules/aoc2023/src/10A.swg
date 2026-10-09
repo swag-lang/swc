@@ -117,84 +117,84 @@ func day10A()
     maze.resize(width * height)
 
     #[Swag.Mixin]
-    func mp(x0, y0: s64)->*Dir => maze.storage() + ((x0 + 1) + (y0 + 1) * width)
+    func pipeAt(x, y: s64)->*Dir => maze.storage() + ((x + 1) + (y + 1) * width)
 
     var startX, startY: s64
-    for l, line in lines
+    for sourceLine, lineIndex in lines
     {
-        for c, col in l.bytes()
+        for pipeSymbol, column in sourceLine.bytes()
         {
-            let one = mp(cast(s64, col), cast(s64, line))
-            switch c
+            let pipeConnections = pipeAt(cast(s64, column), cast(s64, lineIndex))
+            switch pipeSymbol
             {
             case '-':
-                one[] = .West | .East
+                pipeConnections[] = .West | .East
 
             case '|':
-                one[] = .North | .South
+                pipeConnections[] = .North | .South
 
             case 'L':
-                one[] = .North | .East
+                pipeConnections[] = .North | .East
 
             case 'J':
-                one[] = .North | .West
+                pipeConnections[] = .North | .West
 
             case '7':
-                one[] = .South | .West
+                pipeConnections[] = .South | .West
 
             case 'F':
-                one[] = .South | .East
+                pipeConnections[] = .South | .East
 
             case 'S':
-                startX = col
-                startY = line
+                startX = column
+                startY = lineIndex
             }
         }
     }
 
-    // Determin the shape of the start 'S'
-    let start = mp(startX, startY)
-    if mp(startX - 1, startY)[] & .East do
-        start[] |= .West
-    if mp(startX + 1, startY)[] & .West do
-        start[] |= .East
-    if mp(startX, startY - 1)[] & .South do
-        start[] |= .North
-    if mp(startX, startY + 1)[] & .North do
-        start[] |= .South
-    var visitX = startX
+    // Determine the shape of the start 'S'.
+    let startConnections = pipeAt(startX, startY)
+    if pipeAt(startX - 1, startY)[] & .East do
+        startConnections[] |= .West
+    if pipeAt(startX + 1, startY)[] & .West do
+        startConnections[] |= .East
+    if pipeAt(startX, startY - 1)[] & .South do
+        startConnections[] |= .North
+    if pipeAt(startX, startY + 1)[] & .North do
+        startConnections[] |= .South
+    var currentX = startX
 
     // Visit the maze
-    var visitY = startY
-    var total  = 0
+    var currentY  = startY
+    var loopSteps = 0
     for
     {
-        let one = mp(visitX, visitY)[]
+        let connections = pipeAt(currentX, currentY)[]
         switch
         {
-        case one & .East:
-            visitX += 1
-            mp(visitX, visitY)[] &= ~.West
+        case connections & .East:
+            currentX += 1
+            pipeAt(currentX, currentY)[] &= ~.West
 
-        case one & .West:
-            visitX -= 1
-            mp(visitX, visitY)[] &= ~.East
+        case connections & .West:
+            currentX -= 1
+            pipeAt(currentX, currentY)[] &= ~.East
 
-        case one & .North:
-            visitY -= 1
-            mp(visitX, visitY)[] &= ~.South
+        case connections & .North:
+            currentY -= 1
+            pipeAt(currentX, currentY)[] &= ~.South
 
-        case one & .South:
-            visitY += 1
-            mp(visitX, visitY)[] &= ~.North
+        case connections & .South:
+            currentY += 1
+            pipeAt(currentX, currentY)[] &= ~.North
         }
 
-        total += 1
-        if visitX == startX and visitY == startY do
+        loopSteps += 1
+        if currentX == startX and currentY == startY do
             break
     }
 
-    total /= 2
+    loopSteps /= 2
 
-    Swag.assert(total == 6870)
+    Swag.assert(loopSteps == 6870)
 }

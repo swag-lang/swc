@@ -568,13 +568,13 @@ impl HashSet
             let table = .tablePtr()
             for i in .capacity
             {
-                let hashval = table[i].hash
-                if hashval >= HashSet.HASH_DELETED do
+                let hashVal = table[i].hash
+                if hashVal >= HashSet.HASH_DELETED do
                     Swag.drop(&table[i].key)
 
-                if hashval == HashSet.HASH_DELETED do
+                if hashVal == HashSet.HASH_DELETED do
                     .deleted -= 1
-                elif hashval >= HashSet.HASH_FIRST do
+                elif hashVal >= HashSet.HASH_FIRST do
                     .count -= 1
                 table[i].hash = HashSet.HASH_FREE
 

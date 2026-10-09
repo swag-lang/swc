@@ -1497,7 +1497,7 @@ impl View
         let text = .selectedText()
         if text.isEmpty() do
             return false
-        Clipboard.addString(text.toString())
+        Clipboard.setString(text.toString())
         return true
     }
 

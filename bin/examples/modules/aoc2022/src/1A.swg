@@ -46,18 +46,18 @@ func day1A()
     let lines    = expect File.readAllLines(dataPath)
 
     // A blank line separates two elves; it carries no number, and parsing one is an error.
-    var total, one: u64
+    var highestCalories, currentCalories: u64
     for l in lines
     {
         if l.isEmpty()
         {
-            total = Math.max(total, one)
-            one   = 0
+            highestCalories = Math.max(highestCalories, currentCalories)
+            currentCalories = 0
             continue
         }
 
-        one += expect StrConv.toU64(l[])
+        currentCalories += expect StrConv.toU64(l[])
     }
 
-    Swag.assert(total == 70369)
+    Swag.assert(highestCalories == 70369)
 }

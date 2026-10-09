@@ -94,21 +94,21 @@ public impl Json
 
     internal mtd readUnicodeEscape()->u32 fail
     {
-        let first = try .readHexQuad()
-        if first >= 0xDC00 and first <= 0xDFFF do
+        let firstCodeUnit = try .readHexQuad()
+        if firstCodeUnit >= 0xDC00 and firstCodeUnit <= 0xDFFF do
             fail .getError("JSON Unicode escape contains an unpaired low surrogate")
-        if first < 0xD800 or first > 0xDBFF do
-            return first
+        if firstCodeUnit < 0xD800 or firstCodeUnit > 0xDBFF do
+            return firstCodeUnit
 
         // A high surrogate must be followed by a second Unicode escape.
         if .stream.readU8() != '\\' or .stream.readU8() != 'u' do
             fail .getError("JSON Unicode escape is missing the low surrogate")
 
-        let second = try .readHexQuad()
-        if second < 0xDC00 or second > 0xDFFF do
+        let lowSurrogate = try .readHexQuad()
+        if lowSurrogate < 0xDC00 or lowSurrogate > 0xDFFF do
             fail .getError("JSON Unicode escape contains an invalid low surrogate")
 
-        return 0x10000 + ((first - 0xD800) << 10) + second - 0xDC00
+        return 0x10000 + ((firstCodeUnit - 0xD800) << 10) + lowSurrogate - 0xDC00
     }
 
     internal mtd readString(result: *String) fail

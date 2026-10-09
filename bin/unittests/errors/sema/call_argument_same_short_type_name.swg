@@ -1,7 +1,8 @@
 #global private
 
 // Two different types that share a short name are printed qualified in a call diagnostic:
-// "has type '*Foo', but parameter needs '*Foo'" would read as nonsense.
+// "has type '*Foo', but parameter needs '*Foo'" would read as nonsense. The wording is what is
+// checked.
 
 namespace SameNameLeft  { struct Foo { x: u32 } }
 namespace SameNameRight { struct Foo { y: u32 } }

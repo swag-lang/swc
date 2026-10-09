@@ -1082,8 +1082,16 @@ namespace
                 if (exprTypeView.type() && exprTypeView.type()->isVoid())
                     return Result::Continue;
 
+                // A '#run' statement block is compiled as a generated function: its name means nothing
+                // to the reader, and its declaration is the block itself. A '#run' block used as an
+                // expression returns its value instead, and never reaches here.
+                const auto*    currentFn = sema.currentFunction();
+                const AstNode* declNode  = currentFn ? currentFn->decl() : nullptr;
+                if (declNode && declNode->is(AstNodeId::CompilerFunc) && sema.token(declNode->codeRef()).id == TokenId::CompilerRun)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_run_block, exprRef);
+
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
-                if (const auto* currentFn = sema.currentFunction())
+                if (currentFn && !currentFn->name(sema.ctx()).starts_with("__"))
                 {
                     diag.addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
                     diag.addNote(DiagnosticId::sema_note_function_declared_here);
@@ -2100,6 +2108,14 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
     if (inParallelForBody(sema))
         return SemaError::raise(sema, DiagnosticId::sema_err_return_leaves_parallel_for, sema.curNodeRef());
+
+    if (sema.frame().returnLeavesDefer())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_control_flow_leaves_defer, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_TOK, Token::toName(TokenId::KwdReturn));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 
     // A callee inlined here keeps its own 'return', which goes back to this body.
     const SymbolFunction* currentFn = sema.currentFunction();

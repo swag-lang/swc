@@ -21,24 +21,24 @@ struct(var T = s32) GenericFamilyDefault
 
 struct GenericFamilyHolder
 {
-    box: GenericFamilyBox     // swc-expected-error {{generic struct 'GenericFamilyBox' needs generic arguments to be the type of a value}}
+    box: GenericFamilyBox     // swc-expected-error {{sema_err_generic_struct_needs_args}}
 }
 
 func genericFamilyBare()
 {
-    var box: GenericFamilyBox     // swc-expected-error {{generic struct 'GenericFamilyBox' needs generic arguments to be the type of a value}}
+    var box: GenericFamilyBox     // swc-expected-error {{sema_err_generic_struct_needs_args}}
     discard box
 }
 
 func genericFamilyMissing()
 {
-    var pair: GenericFamilyPair'(s32)     // swc-expected-error {{generic struct 'GenericFamilyPair' needs a generic argument for 'U'}}
+    var pair: GenericFamilyPair'(s32)     // swc-expected-error {{sema_err_generic_struct_missing_arg}}
     discard pair
 }
 
 func genericFamilyTooMany()
 {
-    var box: GenericFamilyBox'(s32, bool)     // swc-expected-error {{generic struct 'GenericFamilyBox' accepts 1 generic argument, found 2}}
+    var box: GenericFamilyBox'(s32, bool)     // swc-expected-error {{sema_err_generic_struct_too_many_args}}
     discard box
 }
 

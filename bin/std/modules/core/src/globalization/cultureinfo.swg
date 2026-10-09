@@ -25,7 +25,9 @@ public impl CultureInfo
         let name = .name.toString()
         if name.count < language.count do
             return false
-        if Utf8.compare(cast(const [..] u8, name[until language.count]), cast(const [..] u8, language), .Latin1NoCase) != 0 do
+        let languagePrefix    = cast(const [..] u8, name[until language.count])
+        let requestedLanguage = cast(const [..] u8, language)
+        if Utf8.compare(languagePrefix, requestedLanguage, .Latin1NoCase) != 0 do
             return false
         return name.count == language.count or name[language.count] == '-'
     }

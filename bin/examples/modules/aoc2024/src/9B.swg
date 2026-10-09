@@ -64,7 +64,10 @@ func day9BA()
             last -= 1
 
         var i = 0'u64
-        while i < last and (map[i].what != -1 or map[i].num < map[last].num) do
+
+        // Move left-to-right until a free span can hold this file.
+        while i < last and
+              (map[i].what != -1 or map[i].num < map[last].num) do
             i += 1
 
         if i >= last do

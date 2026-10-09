@@ -61,11 +61,16 @@ func monotonicMilliseconds()->u64 => scaleMonotonic(1000)
 func monotonicMicroseconds()->u64 => scaleMonotonic(1_000_000)
 
 // Converts the monotonic counter to `unitsPerSecond` units without losing the fraction of the frequency.
+#[Swag.Inline]
 private func scaleMonotonic(unitsPerSecond: u64)->u64
 {
-    let ticks     = monotonicTicks()
-    let frequency = monotonicFrequency()
-    return (ticks / frequency) * unitsPerSecond + ((ticks % frequency) * unitsPerSecond) / frequency
+    let ticks           = monotonicTicks()
+    let frequency       = monotonicFrequency()
+    let elapsedSeconds  = ticks / frequency
+    let remainingTicks  = ticks % frequency
+    let wholeUnits      = elapsedSeconds * unitsPerSecond
+    let fractionalUnits = (remainingTicks * unitsPerSecond) / frequency
+    return wholeUnits + fractionalUnits
 }
 
 // Counts 100-nanosecond intervals.

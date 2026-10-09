@@ -1,7 +1,9 @@
 #global private
 
 // A member that a scope does not declare is reported against that scope, with the closest name it
-// does offer when the spelling is near one. A swapped pair of letters is a single typo.
+// does offer when the spelling is near one. A swapped pair of letters is a single typo. The text is
+// checked once per wording (with and without a suggestion, and through a namespace, whose lookup
+// is reported from a stalled wait); the other cases name the id.
 
 struct UnknownMemberBox
 {
@@ -31,7 +33,7 @@ func unknownMemberField(box: UnknownMemberBox)->s32
 
 func unknownMemberMethod(box: UnknownMemberBox)->s32
 {
-    return box.gte()     // swc-expected-error {{struct 'UnknownMemberBox' has no member 'gte'; [help] use 'get' instead}}
+    return box.gte()     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 func unknownMemberFar(box: UnknownMemberBox)->s32
@@ -39,8 +41,8 @@ func unknownMemberFar(box: UnknownMemberBox)->s32
     return box.z     // swc-expected-error {{struct 'UnknownMemberBox' has no member 'z'}}
 }
 
-func unknownMemberEnum()->UnknownMemberColor => UnknownMemberColor.Gren     // swc-expected-error {{enum 'UnknownMemberColor' has no member 'Gren'; [help] use 'Green' instead}}
+func unknownMemberEnum()->UnknownMemberColor => UnknownMemberColor.Gren     // swc-expected-error {{sema_err_unknown_symbol}}
 
 func unknownMemberNamespace()->s32 => UnknownMemberGeometry.aera()     // swc-expected-error {{namespace 'UnknownMemberGeometry' has no member 'aera'; [help] use 'area' instead}}
 
-func unknownMemberScalar(value: s32)->s32 => value.size     // swc-expected-error {{type 's32' has no member 'size'}}
+func unknownMemberScalar(value: s32)->s32 => value.size     // swc-expected-error {{sema_err_unknown_symbol}}

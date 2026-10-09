@@ -51,7 +51,10 @@ func createAnchoredPopupPage(parent: *Wnd)
 
     discard createActionButton(left, "Switch to columns", {246, 178, 200}, MenuCmd.ModeColumns, .Sort)
 
-    let right = createPanel(parent, "Current selection", "Anchored popups reuse the same commands as the menu bar and state page.", layout.right)
+    let right = createPanel(parent,
+                            "Current selection",
+                            "Anchored popups reuse the same commands as the menu bar and state page.",
+                            layout.right)
     g_Preview = createPreview(right, {18, 86, layout.right.width - 36, layout.right.height - 104})
 
     createStatusPanel(parent, layout.bottom)

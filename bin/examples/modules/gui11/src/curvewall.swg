@@ -75,7 +75,12 @@ impl CurveWall
     }
 
     // Returns the ordinate of `value` inside `plot`.
-    func plotY(plot: Math.Rectangle, value: f32)->f32 => plot.bottom() - (value - PlotLow) / (PlotHigh - PlotLow) * plot.height
+    #[Swag.Inline]
+    func plotY(plot: Math.Rectangle, value: f32)->f32
+    {
+        let normalizedValue = (value - PlotLow) / (PlotHigh - PlotLow)
+        return plot.bottom() - normalizedValue * plot.height
+    }
 
     mtd paintCard(painter: *Painter, card: Math.Rectangle, easing: AnimationEasing)
     {
@@ -124,7 +129,11 @@ impl CurveWall
 
         // The rail turns the ordinate back into travel, which is what a reader is actually
         // choosing a curve for.
-        var rail = Math.Rectangle{card.x + CardPadding, card.bottom() - CardPadding - RailHeight, card.width - 2 * CardPadding, RailHeight}
+        var rail = Math.Rectangle{
+            x: card.x + CardPadding,
+            y: card.bottom() - CardPadding - RailHeight,
+            width: card.width - 2 * CardPadding,
+            height: RailHeight}
         let midY = rail.y + rail.height * 0.5
         painter.fillRoundRect({rail.x, midY - 2, rail.width, 4}, 2, 2, colors.border)
 

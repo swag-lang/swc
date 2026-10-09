@@ -470,6 +470,59 @@ Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct
     return result;
 }
 
+namespace
+{
+    std::string_view memberOwnerKind(const SymbolMap& owner)
+    {
+        if (owner.isStruct())
+            return "struct";
+        if (owner.isEnum())
+            return "enum";
+        if (owner.isInterface())
+            return "interface";
+        if (owner.isNamespace())
+            return "namespace";
+        return {};
+    }
+
+    void appendMemberNames(std::vector<Utf8>& out, const Sema& sema, const SymbolMap& scope)
+    {
+        std::vector<const Symbol*> symbols;
+        scope.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            const std::string_view name = symbol->name(sema.ctx());
+            if (!name.empty() && !name.starts_with("__"))
+                out.emplace_back(name);
+        }
+    }
+}
+
+// A member lookup that finds nothing names the scope it searched, and the closest name that scope
+// offers: "struct 'Point' has no member 'z'" says what "unknown symbol 'z'" leaves out.
+void SemaError::addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner)
+{
+    const std::string_view ownerKind = memberOwnerKind(owner);
+    if (ownerKind.empty())
+        return;
+
+    diag.addArgument(Diagnostic::ARG_WHAT, ownerKind);
+    diag.addArgument(Diagnostic::ARG_TYPE, owner.name(sema.ctx()));
+
+    std::vector<Utf8> names;
+    appendMemberNames(names, sema, owner);
+    SymbolImplList impls;
+    if (owner.isStruct())
+        impls = owner.cast<SymbolStruct>().impls();
+    else if (owner.isEnum())
+        impls = owner.cast<SymbolEnum>().impls();
+    for (const SymbolImpl* impl : impls)
+        appendMemberNames(names, sema, *impl);
+
+    if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(sema.idMgr().get(idRef).name, names))
+        diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
+}
+
 Utf8 SemaError::formatStructMemberList(Sema& sema, TypeRef typeRef)
 {
     if (!typeRef.isValid())

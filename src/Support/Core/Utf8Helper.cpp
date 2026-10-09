@@ -679,6 +679,9 @@ size_t Utf8Helper::levenshtein(std::string_view a, std::string_view b)
     if (n == 0)
         return m;
 
+    // Optimal string alignment: a swapped pair of adjacent letters ('gte' for 'get') counts as one
+    // edit, the commonest typo there is.
+    std::vector<size_t> prev2(n + 1);
     std::vector<size_t> prev(n + 1);
     std::vector<size_t> curr(n + 1);
     for (size_t j = 0; j <= n; j++)
@@ -691,7 +694,10 @@ size_t Utf8Helper::levenshtein(std::string_view a, std::string_view b)
         {
             const size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
             curr[j]           = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
+            if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
+                curr[j] = std::min(curr[j], prev2[j - 2] + 1);
         }
+        std::swap(prev2, prev);
         std::swap(prev, curr);
     }
     return prev[n];

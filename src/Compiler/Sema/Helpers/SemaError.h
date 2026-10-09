@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class Symbol;
 class SymbolEnum;
+class SymbolMap;
 class SymbolStruct;
 class TaskContext;
 class TypeInfo;
@@ -39,6 +40,7 @@ namespace SemaError
     Utf8                   formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
     Utf8                   formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
     Utf8                   formatStructMemberList(Sema& sema, TypeRef typeRef);
+    void                   addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
     SymbolDiagnosticOrigin symbolDiagnosticOrigin(const Sema& sema, const Symbol& symbol);
     bool                   isCurrentModuleSymbol(const Sema& sema, const Symbol& symbol);
     DiagnosticElement*     addCurrentModuleHelp(Sema& sema, Diagnostic& diag, const Symbol& symbol, DiagnosticId id);

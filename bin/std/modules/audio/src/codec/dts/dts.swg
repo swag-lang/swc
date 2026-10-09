@@ -665,7 +665,17 @@ private impl Codec
                         for tap in 4
                         {
                             let source = cast(s32, position) - 1 - cast(s32, tap)
-                            let value  = source < 0 ? (header.predictorHistory ? .predictionHistory[channel, band, 4 + source] : 0.0) : subbands[channel, band, source]
+                            var value  = 0.0'f64
+                            if source < 0
+                            {
+                                if header.predictorHistory do
+                                    value = .predictionHistory[channel, band, 4 + source]
+                            }
+                            else
+                            {
+                                value = subbands[channel, band, source]
+                            }
+
                             predicted += value * cast(f64, AdpcmCoefficients[vector, tap])
                         }
 

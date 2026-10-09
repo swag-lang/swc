@@ -272,7 +272,7 @@ func parseWorkload(name: string)->Workload fail
 {
     let args     = Swag.args()
     let workload = catch parseWorkload(args.count > 1 ? args[1] : "") as badWorkload
-    let threads  = args.count > 2 ? catch StrConv.toU32(args[2]) as badThreads : 1
+    let threads  = args.count > 2 ? catch StrConv.toU32(args[2]) : 1
     if badWorkload != null or threads < 1 or threads > 16
     {
         Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads 1-16]")

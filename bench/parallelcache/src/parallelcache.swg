@@ -31,7 +31,7 @@ func(First: u64, Count: u64) visitBodies(values: *[512][3] u64)
             visitBodies'(0, 512)(&values)
             var watch: Time.Stopwatch
             watch.start()
-            for repeat in 32 do
+            for 32 do
                 visitBodies'(0, 512)(&values)
             watch.stop()
             for leaf in 512

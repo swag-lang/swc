@@ -24,7 +24,7 @@ func measure(sleeping: bool, repeats: u32)
         var watch: Time.Stopwatch
         let before = cpuMicroseconds()
         watch.start()
-        for repeat in repeats
+        for repeats
         {
             started.reset()
             task.submit(func|&completed, &started, sleeping|()

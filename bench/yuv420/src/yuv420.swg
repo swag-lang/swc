@@ -14,13 +14,13 @@ func measure(width, height: s32, repeats: u32)
     var expected = Image.create(width, height, .RGB8)
     view.convertRowsToRgb(&expected, 0, height)
     var image = Image.create(width, height, .RGB8)
-    for warmup in 32 do
+    for 32 do
         view.convertToRgb(&image)
     for sample in 3
     {
         var watch: Time.Stopwatch
         watch.start()
-        for repeat in repeats do
+        for repeats do
             view.convertToRgb(&image)
         watch.stop()
         for index in image.byteCount do

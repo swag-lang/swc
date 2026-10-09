@@ -23,7 +23,7 @@ using Core, Pixel
             {
                 var watch: Time.Stopwatch
                 watch.start()
-                for iteration in iterations
+                for iterations
                 {
                     let output = source.resized(size, size, .Bicubic)
                     Swag.assert(output.byteCount == reference.byteCount)

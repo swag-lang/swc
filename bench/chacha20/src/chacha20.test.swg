@@ -38,7 +38,7 @@ using Core
             {
                 var watch: Time.Stopwatch
                 watch.start()
-                for iteration in iterations do
+                for iterations do
                     expect Crypto.chacha20Xor(key, nonce, input, destination, 7)
                 watch.stop()
                 Swag.assert(Crypto.constantTimeEqual(destination, reference))

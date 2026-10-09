@@ -175,7 +175,7 @@ func measureSpawn(name: string, values: [..] u64, grouped: bool)
 func stirred(slot, rounds: u64)->u64
 {
     var value = slot
-    for round in rounds do
+    for rounds do
         value = value * 6364136223846793005 + 1442695040888963407
     return value
 }

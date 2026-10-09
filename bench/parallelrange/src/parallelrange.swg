@@ -3,7 +3,7 @@ using Core
 func compute(index, rounds: u64)->u64
 {
     var value = index + 1
-    for round in rounds
+    for rounds
     {
         value ^= value << 13
         value ^= value >> 7
@@ -24,13 +24,13 @@ func measure(name: string, count, rounds, heavyBegin, heavyEnd, heavyRounds, rep
 {
     var values: [2048] u64
     let target = values[0 until count]
-    for warmup in 32 do
+    for 32 do
         fill(target, rounds, heavyBegin, heavyEnd, heavyRounds)
     for sample in 3
     {
         var watch: Time.Stopwatch
         watch.start()
-        for repeat in repeats do
+        for repeats do
             fill(target, rounds, heavyBegin, heavyEnd, heavyRounds)
         watch.stop()
         for index in count do

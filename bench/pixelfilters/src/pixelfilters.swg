@@ -22,7 +22,7 @@ using Core, Pixel
             {
                 var watch: Time.Stopwatch
                 watch.start()
-                for iteration in iterations do
+                for iterations do
                     image.invert()
                 watch.stop()
                 for index in image.byteCount do

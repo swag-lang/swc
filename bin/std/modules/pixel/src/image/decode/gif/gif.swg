@@ -250,7 +250,24 @@ impl IImageSetDecoder for SetDecoder
             try options.checkFrameCount(.frames.count + 1)
             .frames.add({.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
             let control = .decoder.gce
-            let frame: ImageFrameInfo = {kind: .Animation, width: .decoder.fw, height: .decoder.fh, x: .decoder.fx, y: .decoder.fy, pixelFormat: control.transparency ? .RGBA8 : .RGB8, durationSeconds: cast(f64, control.delay) / 100, disposal: control.disposal == 3 ? .Previous : (control.disposal == 2 ? .Background : .Keep), blend: .Over}
+            var disposal: ImageDisposal
+            if control.disposal == 3 do
+                disposal = .Previous
+            elif control.disposal == 2 do
+                disposal = .Background
+            else do
+                disposal = .Keep
+
+            let frame: ImageFrameInfo = {
+                kind: .Animation,
+                width: .decoder.fw,
+                height: .decoder.fh,
+                x: .decoder.fx,
+                y: .decoder.fy,
+                pixelFormat: control.transparency ? .RGBA8 : .RGB8,
+                durationSeconds: cast(f64, control.delay) / 100,
+                disposal: disposal,
+                blend: .Over}
             result.frames.add(frame)
             if result.frames.count == 1 and control.transparency do
                 result.background = {a: 0}

@@ -966,9 +966,11 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
         // relative to the image, and its attributes say which.
         let relative = image.u32At(entryAt) & 1
         let stored   = cast(u64, image.u32At(entryAt + 4))
-        let nameRva  = relative ? stored : (stored > layout.imageBase ? stored - layout.imageBase : stored)
-        let name     = peStringAt(image, layout, cast(u32, nameRva))
-        let stamp    = epochText(cast(u64, image.u32At(entryAt + 28)))
+        var nameRva  = stored
+        if not relative and stored > layout.imageBase do
+            nameRva = stored - layout.imageBase
+        let name  = peStringAt(image, layout, cast(u32, nameRva))
+        let stamp = epochText(cast(u64, image.u32At(entryAt + 28)))
 
         report.beginGroup(name, "", "", offset: entryAt, length: 32)
         report.hexField(entryAt, 4, "Attributes", cast(u64, image.u32At(entryAt)), relative ? texts.pe_DelayRelative : texts.pe_DelayAbsolute)
@@ -1030,13 +1032,21 @@ private func reportPeResourceLevel(image: *BinaryImage, report: *Report, layout:
 
         // A leaf names its bytes rather than holding them, and those bytes are addressed the way
         // everything else in the image is.
-        let leafAt  = base + cast(u64, child)
-        let dataRva = image.u32At(leafAt)
-        let dataAt  = layout.offsetOf(dataRva)
-        let dataLen = cast(u64, image.u32At(leafAt + 4))
-        let value   = StrConv.toDisplaySize(dataLen)
-        let detail  = Format.toString(texts.pe_ResourceWhere, image.u32At(leafAt + 8), hexText(cast(u64, dataRva), 8))
-        report.field(dataAt == Swag.U64.Max ? leafAt : dataAt, dataAt == Swag.U64.Max ? 16 : dataLen, label, value, detail)
+        let leafAt      = base + cast(u64, child)
+        let dataRva     = image.u32At(leafAt)
+        let dataAt      = layout.offsetOf(dataRva)
+        let dataLen     = cast(u64, image.u32At(leafAt + 4))
+        let value       = StrConv.toDisplaySize(dataLen)
+        let detail      = Format.toString(texts.pe_ResourceWhere, image.u32At(leafAt + 8), hexText(cast(u64, dataRva), 8))
+        var fieldAt     = leafAt
+        var fieldLength = 16'u64
+        if dataAt != Swag.U64.Max
+        {
+            fieldAt     = dataAt
+            fieldLength = dataLen
+        }
+
+        report.field(fieldAt, fieldLength, label, value, detail)
     }
 
     report.listCut(total, declared)

@@ -286,7 +286,8 @@ func display()
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
     let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)), cast(s32, Math.round(g_RC.height / scale)))
+    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)),
+                                    cast(s32, Math.round(g_RC.height / scale)))
 
     g_Render.begin(g_RC)
     g_Painter.begin()
@@ -339,7 +340,11 @@ func updateTestMode()
 
 #main
 {
-    g_Window = try Env.createWindow({identifier: "pixel7", title: "Pixel image codec showcase", width: W, height: H, flags: .Minimizable})
+    g_Window = try Env.createWindow({identifier: "pixel7",
+                                     title: "Pixel image codec showcase",
+                                     width: W,
+                                     height: H,
+                                     flags: .Minimizable})
     defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer

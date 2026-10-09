@@ -183,7 +183,11 @@ private func buildButtons(flow: *Flow)
     let offPlain = IconButton.create(flow.view, app.theme.icon(.Save, 18), flow.next(40))
     offPlain.disable()
 
-    let offChecked = IconButton.create(flow.view, app.theme.icon(.Filter, 18), flow.next(40), null, .Toggle)
+    let offChecked = IconButton.create(flow.view,
+                                       app.theme.icon(.Filter, 18),
+                                       flow.next(40),
+                                       null,
+                                       .Toggle)
     offChecked.setChecked(true)
     offChecked.disable()
 }

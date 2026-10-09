@@ -874,7 +874,9 @@ impl Tessellate
                 while link
                 {
                     let other = .dupPoint[link - 1]
-                    if other and Math.abs(x - other.x) < CoincidentDistance and Math.abs(y - other.y) < CoincidentDistance do
+                    if other and
+                       Math.abs(x - other.x) < CoincidentDistance and
+                       Math.abs(y - other.y) < CoincidentDistance do
                         return true
                     link = .dupNext[link - 1]
                 }

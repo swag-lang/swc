@@ -170,7 +170,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = onlyItem(document.pages[0], .Image).imageValue()!
-    Swag.assert(image.pixelColor(0, 0).r == 10 and image.pixelColor(0, 0).g == 20 and image.pixelColor(0, 0).b == 30)
+    Swag.assert(image.pixelColor(0, 0).r == 10 and
+                image.pixelColor(0, 0).g == 20 and
+                image.pixelColor(0, 0).b == 30)
 }
 
 // A stencil mask paints the fill color where its samples are zero, and nothing elsewhere.

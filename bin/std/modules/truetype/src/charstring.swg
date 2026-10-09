@@ -645,7 +645,11 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
 
     // A composed glyph is drawn as its base plus its accent, placed by the offsets the
     // charstring ended with. Both parts are named through StandardEncoding, never by index.
-    if builder and state.seacBase >= 0 and state.seacBase < 256 and state.seacAccent >= 0 and state.seacAccent < 256
+    if builder and
+       state.seacBase >= 0 and
+       state.seacBase < 256 and
+       state.seacAccent >= 0 and
+       state.seacAccent < 256
     {
         let baseGid   = cffGlyphForStandardCode(font, cast(u8, state.seacBase))
         let accentGid = cffGlyphForStandardCode(font, cast(u8, state.seacAccent))
@@ -1074,7 +1078,11 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
     try execType1(&state, font.charstrings[gid].toSlice(), 0)
     builder?.closeContour()
 
-    if builder and state.seacBase >= 0 and state.seacBase < 256 and state.seacAccent >= 0 and state.seacAccent < 256
+    if builder and
+       state.seacBase >= 0 and
+       state.seacBase < 256 and
+       state.seacAccent >= 0 and
+       state.seacAccent < 256
     {
         let baseGid   = type1GlyphForStandardCode(font, cast(u8, state.seacBase))
         let accentGid = type1GlyphForStandardCode(font, cast(u8, state.seacAccent))

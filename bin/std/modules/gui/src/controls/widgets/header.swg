@@ -307,7 +307,10 @@ private impl Header
             if pos.x >= x and pos.x < x + item.width do
                 return {cast(u32, idx), false}
             x += item.width
-            if .flags.has(.Separators) and pos.x >= x and pos.x <= x + metrics.header_Separator and item.isResizable do
+            if .flags.has(.Separators) and
+               pos.x >= x and
+               pos.x <= x + metrics.header_Separator and
+               item.isResizable do
                 return {cast(u32, idx), true}
             x += metrics.header_Separator
         }

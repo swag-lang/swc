@@ -525,7 +525,10 @@ impl ColorPicker
         let newSaturation = Math.clamp(saturation, 0, 1)
         let newLightness  = Math.clamp(lightness, 0, 1)
         let newAlpha      = Math.clamp(alpha, 0, 1)
-        if .hue == newHue and .saturation == newSaturation and .lightness == newLightness and .alpha == newAlpha do
+        if .hue == newHue and
+           .saturation == newSaturation and
+           .lightness == newLightness and
+           .alpha == newAlpha do
             return
 
         .hue        = newHue

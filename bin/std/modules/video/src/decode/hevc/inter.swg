@@ -278,7 +278,9 @@ impl Decoder
 
             let firstPoc  = .refList.poc[0, cast(u32, first.refIdx[0])]
             let secondPoc = .refList.poc[1, cast(u32, second.refIdx[1])]
-            if firstPoc == secondPoc and first.mv[0, 0] == second.mv[1, 0] and first.mv[0, 1] == second.mv[1, 1] do
+            if firstPoc == secondPoc and
+               first.mv[0, 0] == second.mv[1, 0] and
+               first.mv[0, 1] == second.mv[1, 1] do
                 continue
 
             with var combined: PuMotion

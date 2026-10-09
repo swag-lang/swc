@@ -162,7 +162,11 @@ private impl Decoder
     mtd readConfig(config: const [..] u8) fail
     {
         var head: Array'u8
-        if config.count >= 4 and config[0] == 'O' and config[1] == 'g' and config[2] == 'g' and config[3] == 'S'
+        if config.count >= 4 and
+           config[0] == 'O' and
+           config[1] == 'g' and
+           config[2] == 'g' and
+           config[3] == 'S'
         {
             var hasSerial = false
             var completed = 0'u32
@@ -578,7 +582,11 @@ impl IPacketCodec for Decoder
     {
         .output.clear()
         var frames: u64
-        if packet.count >= 4 and packet[0] == 'O' and packet[1] == 'g' and packet[2] == 'g' and packet[3] == 'S' do
+        if packet.count >= 4 and
+           packet[0] == 'O' and
+           packet[1] == 'g' and
+           packet[2] == 'g' and
+           packet[3] == 'S' do
             frames = try .decodeRun(packet)
         else do
             frames = try .decodePacketFrames(packet)

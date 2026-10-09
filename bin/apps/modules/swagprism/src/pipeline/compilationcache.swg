@@ -67,7 +67,9 @@ impl CompilationCache
         defer .mutex.unlock()
         for entry in .entries
         {
-            if entry.generation == .generation and not Atomic.get(&entry.cancelled) and entry.request.satisfies(request)
+            if entry.generation == .generation and
+               not Atomic.get(&entry.cancelled) and
+               entry.request.satisfies(request)
             {
                 entry.users += 1
                 return {cache: me, artifact: entry, reused: true}

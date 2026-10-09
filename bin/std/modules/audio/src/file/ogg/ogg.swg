@@ -52,7 +52,10 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
 {
     if offset > bytes.count or bytes.count - offset < PageHeaderSize do
         fail InvalidFormatError{"Ogg page header is truncated"}
-    if bytes[offset] != 'O' or bytes[offset + 1] != 'g' or bytes[offset + 2] != 'g' or bytes[offset + 3] != 'S' do
+    if bytes[offset] != 'O' or
+       bytes[offset + 1] != 'g' or
+       bytes[offset + 2] != 'g' or
+       bytes[offset + 3] != 'S' do
         fail InvalidFormatError{"Ogg page has no capture pattern"}
     if bytes[offset + 4] != 0 do
         fail UnsupportedFormatError{"Ogg page uses an unknown stream structure version"}

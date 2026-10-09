@@ -163,7 +163,10 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 
     let first  = coreTupleLifecycleProbeAt(cast([*] u8, (value)), tupleStruct, 0)
     let second = coreTupleLifecycleProbeAt(cast([*] u8, (value)), tupleStruct, 1)
-    if first.id != 7 or second.id != 7 or first.value != "tuple-default" or second.value != "tuple-default" do
+    if first.id != 7 or
+       second.id != 7 or
+       first.value != "tuple-default" or
+       second.value != "tuple-default" do
         return false
 
     first.id  = 1

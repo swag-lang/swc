@@ -68,7 +68,10 @@ impl HiddenLocator
             var reader = ByteStream.openRead(plain)
             let first  = try reader.readLittleEndian'u64()
             let count  = try reader.readLittleEndian'u64()
-            if first < DataOffset or first > hostSize or count < MinimumSize or count > hostSize - first do
+            if first < DataOffset or
+               first > hostSize or
+               count < MinimumSize or
+               count > hostSize - first do
                 break
             return {first, count}
         }

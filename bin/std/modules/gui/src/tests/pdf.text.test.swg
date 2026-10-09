@@ -277,8 +277,12 @@ endcmap
     Swag.assert(page.items[0].textValue() == "Hi")
     Swag.assert(page.items[1].textValue() == "H")
     Swag.assert(page.fonts[0].identityGlyphs)
-    Swag.assert(page.items[0].textCodes.count == 2 and page.items[0].textCodes[0] == 3 and page.items[0].textCodes[1] == 4)
-    Swag.assert(page.items[0].textAdvances.count == 2 and page.items[0].textAdvances[0] == 10 and page.items[0].textAdvances[1] == 5)
+    Swag.assert(page.items[0].textCodes.count == 2 and
+                page.items[0].textCodes[0] == 3 and
+                page.items[0].textCodes[1] == 4)
+    Swag.assert(page.items[0].textAdvances.count == 2 and
+                page.items[0].textAdvances[0] == 10 and
+                page.items[0].textAdvances[1] == 5)
     Swag.assert(page.fonts[0].glyphIndex(4) == {4, true})
 
     // The two glyphs are 500 and 250 thousandths wide at size twenty.

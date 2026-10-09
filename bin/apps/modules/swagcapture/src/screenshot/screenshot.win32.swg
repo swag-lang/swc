@@ -170,7 +170,10 @@ func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->Captur
 
     var r: RECT
     GetWindowRect(window, &r)
-    if captureRect.x < r.left or captureRect.y < r.top or captureRect.right() > r.right or captureRect.bottom() > r.bottom do
+    if captureRect.x < r.left or
+       captureRect.y < r.top or
+       captureRect.right() > r.right or
+       captureRect.bottom() > r.bottom do
         return {}
 
     return captureWindowInfo(window)

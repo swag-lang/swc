@@ -9,7 +9,10 @@ private func sameAttributeType(left: typeinfo?, right: typeinfo?)->bool
 {
     if left == null or right == null do
         return false
-    if left.fullname != null and right.fullname != null and left.fullname != "" and right.fullname != "" do
+    if left.fullname != null and
+       right.fullname != null and
+       left.fullname != "" and
+       right.fullname != "" do
         return left.fullname == right.fullname
     if left.name != null and right.name != null and left.name != "" and right.name != "" do
         return left.name == right.name

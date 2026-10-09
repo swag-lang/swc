@@ -322,7 +322,11 @@ internal impl Properties
             // A filter is a request to find a field, so a collapsed ancestor must not hide a
             // match. Keep its expansion bit untouched and reveal the matching branch only for
             // as long as the filter is active.
-            if scan and .isGridLike() and not .hasActiveFilter() and scan.numChilds and not scan.flags.has(.Expanded) do
+            if scan and
+               .isGridLike() and
+               not .hasActiveFilter() and
+               scan.numChilds and
+               not scan.flags.has(.Expanded) do
                 result.visible = false
         }
 

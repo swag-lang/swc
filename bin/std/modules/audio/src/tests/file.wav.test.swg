@@ -58,7 +58,10 @@ using Swag, Core
         return true
     })
     Swag.assert(decoded.count == 4)
-    Swag.assert(decoded[0] == Swag.S16.Min and decoded[1] == -1 and decoded[2] == 0 and decoded[3] == Swag.S16.Max)
+    Swag.assert(decoded[0] == Swag.S16.Min and
+                decoded[1] == -1 and
+                decoded[2] == 0 and
+                decoded[3] == Swag.S16.Max)
 
     let first = expect file.readPayload(0, 3)
     Swag.assert(Slice.equals(first.toSlice(), [0x00, 0x80, 0xFF]))

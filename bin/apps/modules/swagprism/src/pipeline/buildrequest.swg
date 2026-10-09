@@ -49,7 +49,9 @@ impl BuildSettings
             """
     }
 
-    mtd matches(other: BuildSettings)->bool => .preset == other.preset and .optimization == other.optimization and .configuration == other.configuration
+    mtd matches(other: BuildSettings)->bool => .preset == other.preset and
+                                               .optimization == other.optimization and
+                                               .configuration == other.configuration
 }
 
 // An execution build can also print a microcode stage for another panel.

@@ -268,7 +268,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 // A closing fence carries no info and is at least as long as its opener, so a
                 // longer fence can display a shorter one as content.
                 let close = parseFence(lines[index])
-                if close.found and close.marker == fence.marker and close.length >= fence.length and not close.info.count
+                if close.found and
+                   close.marker == fence.marker and
+                   close.length >= fence.length and
+                   not close.info.count
                 {
                     index += 1
                     break
@@ -396,7 +399,9 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
 
                     var markdown: String
                     let markdownOffset = cast(u64, (lines[index].buffer - source.buffer))
-                    while index < lines.count and Latin1.trim(lines[index]).count and not isHtmlBlockStart(lines[index])
+                    while index < lines.count and
+                          Latin1.trim(lines[index]).count and
+                          not isHtmlBlockStart(lines[index])
                     {
                         markdown += lines[index]
                         markdown += "\n"
@@ -418,7 +423,9 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 }
 
                 // A paired container owns its blank lines; comments may span them too.
-                if not (Latin1.trim(lines[index])).count and parser.stack.count == 1 and not parser.hasPendingSource() do
+                if not (Latin1.trim(lines[index])).count and
+                   parser.stack.count == 1 and
+                   not parser.hasPendingSource() do
                     break
                 if not html.isEmpty() do
                     html += "\n"
@@ -466,7 +473,9 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 table += "\n"
                 table += lines[index + 1]
                 index += 2
-                while index < lines.count and Utf8.contains(lines[index], '|'rune) and (Latin1.trim(lines[index])).count
+                while index < lines.count and
+                      Utf8.contains(lines[index], '|'rune) and
+                      (Latin1.trim(lines[index])).count
                 {
                     table += "\n"
                     table += lines[index]

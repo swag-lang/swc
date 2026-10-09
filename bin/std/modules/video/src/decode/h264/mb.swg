@@ -612,9 +612,15 @@ impl Slice
             var minimum = -1's32
             if a.available and not a.intra and a.refIdx >= 0 do
                 minimum = cast(s32, a.refIdx)
-            if b.available and not b.intra and b.refIdx >= 0 and (minimum < 0 or cast(s32, b.refIdx) < minimum) do
+            if b.available and
+               not b.intra and
+               b.refIdx >= 0 and
+               (minimum < 0 or cast(s32, b.refIdx) < minimum) do
                 minimum = cast(s32, b.refIdx)
-            if c.available and not c.intra and c.refIdx >= 0 and (minimum < 0 or cast(s32, c.refIdx) < minimum) do
+            if c.available and
+               not c.intra and
+               c.refIdx >= 0 and
+               (minimum < 0 or cast(s32, c.refIdx) < minimum) do
                 minimum = cast(s32, c.refIdx)
             if list == 0 do
                 refL0 = minimum

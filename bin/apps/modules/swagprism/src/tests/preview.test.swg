@@ -128,7 +128,9 @@ using Core, Gui, Pixel
     viewer.compileSource("func shade(_: f32, _: f32, _: f32)->u32 { for {} }")
     var watch: Time.Stopwatch
     watch.start()
-    while not Atomic.get(&viewer.probe.ready) and not viewer.probe.task.isDone() and watch.elapsedMilliseconds() < 90000 do
+    while not Atomic.get(&viewer.probe.ready) and
+          not viewer.probe.task.isDone() and
+          watch.elapsedMilliseconds() < 90000 do
         Threading.Thread.sleep(10'ms)
     Swag.assert(Atomic.get(&viewer.probe.ready) != 0)
     watch.restart()
@@ -228,7 +230,9 @@ func assertPreviewSurface(gui: bool)
                 not panel.pauseButton.isChecked)
 
     panel.selectViewer(.Render2D)
-    Swag.assert(panel.viewer.window() == &render.wnd and panel.pauseButton.isChecked and panel.pauseButton.isVisible())
+    Swag.assert(panel.viewer.window() == &render.wnd and
+                panel.pauseButton.isChecked and
+                panel.pauseButton.isVisible())
 
     panel.selectViewer(.Microcode)
     Swag.assert(panel.viewer.window() == &micro.wnd and micro.stageCombo.selectedIndex == 3)

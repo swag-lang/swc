@@ -84,7 +84,14 @@ func findBytes(data: const [..] u8, from: u64, needle: string)->u64
 
 private func isPostScriptSpace(c: u8)->bool => c == ' ' or c == '\t' or c == '\r' or c == '\n' or c == '\f' or c == 0
 
-private func isPostScriptDelimiter(c: u8)->bool => isPostScriptSpace(c) or c == '/' or c == '[' or c == ']' or c == '{' or c == '}' or c == '(' or c == ')'
+private func isPostScriptDelimiter(c: u8)->bool => isPostScriptSpace(c) or
+                                                   c == '/' or
+                                                   c == '[' or
+                                                   c == ']' or
+                                                   c == '{' or
+                                                   c == '}' or
+                                                   c == '(' or
+                                                   c == ')'
 
 private func skipPostScriptSpaces(data: const [..] u8, from: u64)->u64
 {

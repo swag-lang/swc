@@ -231,9 +231,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
   owns an operation. Check existing unqualified calls when extending the visible namespaces.
 
 The default formatter keeps `column-limit = 0`: general wrapping remains an author decision.
-Its narrow `bitwise-chain-column-limit = 120` rule splits an unbroken chain of at least three
+Its narrow `bitwise-chain-column-limit = 100` rule splits an unbroken chain of at least three
 `&`, `|`, or `^` operands when the chain plus line indentation exceeds that width. The analogous
-`logical-chain-column-limit = 120` rule splits chains of at least three conditions joined by the same `and` or `or`. Mixed operators
+`logical-chain-column-limit = 100` rule splits chains of at least three conditions joined by the same `and` or `or`. Mixed operators
 at the same parenthesis depth remain an author decision. Call prefixes and trailing comments do
 not make a compact chain expand. Both rules preserve authored multiline chains and do not simplify
 logic. The formatter normalizes authored break placement (for example, bringing a call's first argument back beside its opening parenthesis), and preserves

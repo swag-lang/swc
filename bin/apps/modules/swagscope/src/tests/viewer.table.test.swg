@@ -30,7 +30,9 @@ using Core, Pixel, Gui, Viewers
 
     let document = expect Table.parseDocument(";second\n1;2;3\n", ';')
     Swag.assert(document.columns.count == 3 and document.rows.count == 1)
-    Swag.assert(document.columns[0] == "Column 1" and document.columns[1] == "second" and document.columns[2] == "Column 3")
+    Swag.assert(document.columns[0] == "Column 1" and
+                document.columns[1] == "second" and
+                document.columns[2] == "Column 3")
 
     discard catch Table.parseDocument("name,value\n\"unfinished", ',') as quoteError
     Swag.assert(quoteError != null)
@@ -63,7 +65,10 @@ using Core, Pixel, Gui, Viewers
     collectViewerMatches(result.collectMatches, "humid", &matches)
     let revealed = matches.count == 1 and result.revealMatch(matches[0], "humid")
     Swag.assert(revealed)
-    Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
+    Swag.assert(view.searchRow == 2 and
+                view.searchColumn == 2 and
+                view.searchOffset == 0 and
+                view.searchLength == 5)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds(matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch()

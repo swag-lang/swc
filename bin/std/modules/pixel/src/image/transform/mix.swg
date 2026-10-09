@@ -40,7 +40,9 @@ impl Image
             let dstRow = dst.pixels.storage() + cast(u64, (context.dstY + row)) * dst.rowStride + cast(u64, context.dstX) * dst.bytesPerPixel
             let srcRow = src.pixels.storage() + cast(u64, (context.srcY + row)) * src.rowStride + cast(u64, context.srcX) * src.bytesPerPixel
 
-            if context.mode == .Copy and dst.pixelFormat == src.pixelFormat and dst.alphaMode == src.alphaMode
+            if context.mode == .Copy and
+               dst.pixelFormat == src.pixelFormat and
+               dst.alphaMode == src.alphaMode
             {
                 Memory.copy(dstRow, srcRow, cast(u64, context.width) * dst.bytesPerPixel)
             }

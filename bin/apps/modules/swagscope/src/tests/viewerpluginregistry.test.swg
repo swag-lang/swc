@@ -40,7 +40,9 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     let registry = createViewerPluginRegistry()
     Swag.assert(registry.plugins.count == 17)
     for plugin in registry.plugins do
-        Swag.assert(plugin.apiVersion == Viewer.ApiVersion and plugin.create != null and plugin.iconAtlas != null)
+        Swag.assert(plugin.apiVersion == Viewer.ApiVersion and
+                    plugin.create != null and
+                    plugin.iconAtlas != null)
 
     let picture = registry.choices(binaryFile)
     Swag.assert(picture.count == 3)
@@ -120,9 +122,13 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(registry.choices("bundle.zip")[0].key == "archive")
 
     let indesignChoices = registry.choices("layout.indd")
-    Swag.assert(indesignChoices[0].key == "indesign" and indesignChoices[1].key == "binary" and indesignChoices[2].key == "hex")
+    Swag.assert(indesignChoices[0].key == "indesign" and
+                indesignChoices[1].key == "binary" and
+                indesignChoices[2].key == "hex")
     let idmlChoices = registry.choices("layout.idml")
-    Swag.assert(idmlChoices[0].key == "indesign" and idmlChoices[1].key == "binary" and idmlChoices[2].key == "hex")
+    Swag.assert(idmlChoices[0].key == "indesign" and
+                idmlChoices[1].key == "binary" and
+                idmlChoices[2].key == "hex")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do

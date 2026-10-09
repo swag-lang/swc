@@ -286,7 +286,9 @@ impl Encoder
             if index and data[index] == data[index - 1]
             {
                 var length = 1'u32
-                while length < 4096 and index + length < pixels.count and data[index + length] == data[index - 1] do
+                while length < 4096 and
+                      index + length < pixels.count and
+                      data[index + length] == data[index - 1] do
                     length += 1
                 writeLength(writer, length)
                 index += length

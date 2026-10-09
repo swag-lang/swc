@@ -258,7 +258,7 @@ breaks. It cannot reliably discover business phases, invent names, extract helpe
 which comment would relieve a reader. Preserve those author decisions.
 
 For example, a long unbroken bitwise chain can be laid out by operand automatically. The
-default `bitwise-chain-column-limit = 120` applies to chains of at least three `&`, `|`, or `^`
+default `bitwise-chain-column-limit = 100` applies to chains of at least three `&`, `|`, or `^`
 operands, measuring the chain plus line indentation, without call prefixes or trailing comments.
 It leaves short masks, compact flag arguments, authored multiline chains, and literal table rows alone. This
 is a readability fallback, not a reason to keep a low-level expression that an existing API
@@ -293,7 +293,7 @@ Adding or adopting such helpers is a semantic refactoring with focused tests, ou
 strictly visual campaign in `backlog/repo.prompts.md`.
 
 The same mechanical fallback applies to a long chain of conditions: the default
-`logical-chain-column-limit = 120` splits at least three operands joined by the same `and` or
+`logical-chain-column-limit = 100` splits at least three operands joined by the same `and` or
 `or`, with the same width measurement and preservation rules. It keeps a parenthesized operand
 whole and leaves mixed operators at the same depth for an author to review. Do not invent named
 Boolean locals merely to shorten such a chain: eager evaluation can lose its short-circuit guards.

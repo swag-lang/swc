@@ -168,7 +168,9 @@ impl IWnd for LibraryView
             .openItem(.items[.focusItem])
         }
 
-        if evt.kind == .Pressed and evt.button == .Right and (.hotItem < .items.count or .focusItem < .items.count) do
+        if evt.kind == .Pressed and
+           evt.button == .Right and
+           (.hotItem < .items.count or .focusItem < .items.count) do
             .showItemMenu(evt.surfacePos)
     }
 
@@ -475,7 +477,9 @@ impl LibraryView
     // loader clears `g_UpdatingLib` before its final repaint, and that frame rebuilds at once.
     mtd takeListRefresh()->bool
     {
-        if g_UpdatingLib and .listRefresh.isRunning() and .listRefresh.elapsedMilliseconds() < ListRefreshDelay do
+        if g_UpdatingLib and
+           .listRefresh.isRunning() and
+           .listRefresh.elapsedMilliseconds() < ListRefreshDelay do
             return false
 
         g_DirtyList = false

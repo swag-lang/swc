@@ -173,7 +173,9 @@ impl Capture
 
         // Double-click on a grouped form enters the group: select just that
         // child so it can be moved/edited on its own (standard "enter group").
-        if evt.kind == .DoubleClick and .hotForm != Swag.U64.Max and formOuterGroup(.forms[.hotForm]) != 0
+        if evt.kind == .DoubleClick and
+           .hotForm != Swag.U64.Max and
+           formOuterGroup(.forms[.hotForm]) != 0
         {
             .selection.clear()
             .selection.add(.hotForm)

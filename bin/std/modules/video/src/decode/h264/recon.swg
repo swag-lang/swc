@@ -225,7 +225,10 @@ impl Slice
                 // CAVLC codes an 8x8 block as four interleaved 4x4 ones, so the quadrant
                 // holds coefficients when any of its four cells counted one.
                 let anchor = cast(u64, (qy * 2 * 4 + qx * 2))
-                if (storage.nz[anchor] | storage.nz[anchor + 1] | storage.nz[anchor + 4] | storage.nz[anchor + 5]) != 0 do
+                if (storage.nz[anchor] |
+                    storage.nz[anchor + 1] |
+                    storage.nz[anchor + 4] |
+                    storage.nz[anchor + 5]) != 0 do
                     addIdct8x8(dst, stride, storage.t8 + cast(u64, quad) * 64)
             }
 

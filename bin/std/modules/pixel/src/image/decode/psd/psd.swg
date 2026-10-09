@@ -136,7 +136,10 @@ internal impl IImageDecoder for Decoder
         let width     = readU32(source + 18)
         let depth     = readU16(source + 22)
         let colorMode = readU16(source + 24)
-        if width == 0 or height == 0 or width > cast(u32, Swag.S32.Max) or height > cast(u32, Swag.S32.Max) do
+        if width == 0 or
+           height == 0 or
+           width > cast(u32, Swag.S32.Max) or
+           height > cast(u32, Swag.S32.Max) do
             fail UnsupportedFormatError{"PSD dimensions exceed the image limits"}
         if depth != 8 and depth != 16 do
             fail UnsupportedFormatError{"PSD composite depth must be 8 or 16 bits"}

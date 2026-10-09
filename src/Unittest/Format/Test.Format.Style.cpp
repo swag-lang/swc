@@ -318,6 +318,8 @@ SWC_TEST_BEGIN(FormatStyle_DescribeRendersEveryOption)
         dump.find("\nblank-line-before-access-block = always\n") == std::string::npos ||
         dump.find("\nblank-line-after-access-block = always\n") == std::string::npos ||
         dump.find("\nend-of-line-style = preserve\n") == std::string::npos ||
+        dump.find("\nbitwise-chain-column-limit = 100\n") == std::string::npos ||
+        dump.find("\nlogical-chain-column-limit = 100\n") == std::string::npos ||
         dump.find("\nsingle-line-argument-column-limit = 100\n") == std::string::npos ||
         dump.find("\nformat-off-comment = \"swc-format off\"\n") == std::string::npos ||
         dump.find("# Possible values: preserve, attach, allman, stroustrup\n") == std::string::npos)

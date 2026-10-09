@@ -184,7 +184,10 @@ impl IWnd for Slider
                 var colorStep: Color
                 if x <= .lowerRatio and .flags.has(.HilightBar) do
                     colorStep = .upperStepAnimation.cur()
-                elif x >= .lowerRatio and x <= .upperRatio and .flags.has(.HilightBar) and .flags.has(.Range) do
+                elif x >= .lowerRatio and
+                     x <= .upperRatio and
+                     .flags.has(.HilightBar) and
+                     .flags.has(.Range) do
                     colorStep = .upperStepAnimation.cur()
                 else do
                     colorStep = .lowerStepAnimation.cur()
@@ -627,7 +630,10 @@ impl Slider
         let newUpper = .clamp((upper - .min) / diff)
         Swag.assert(newLower <= newUpper)
 
-        let changed = not .hasLowerValue or not .hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
+        let changed = not .hasLowerValue or
+                      not .hasUpperValue or
+                      newLower != .lowerRatio or
+                      newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
         .lowerRatio = newLower
         .upperRatio = newUpper

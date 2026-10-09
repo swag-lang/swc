@@ -144,7 +144,10 @@ func expand2Row(source: const [*] u8, destination: [*] u8, sampleCount: u64, mul
     var remaining = sampleCount
     while remaining >= 16
     {
-        let packed   = cast(u32, src[0]) | (cast(u32, src[1]) << 8) | (cast(u32, src[2]) << 16) | (cast(u32, src[3]) << 24)
+        let packed = cast(u32, src[0]) |
+                     (cast(u32, src[1]) << 8) |
+                     (cast(u32, src[2]) << 16) |
+                     (cast(u32, src[3]) << 24)
         let bytes    = cast #bit(Math.Simd.U8x16, Math.Simd.splat(packed))
         let words    = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(bytes, Expand2Bytes))
         var expanded = ((words >> 6) & 0x0000_0003'u32) |

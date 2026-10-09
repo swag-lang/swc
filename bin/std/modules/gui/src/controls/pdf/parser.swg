@@ -139,7 +139,10 @@ impl PdfParser
         node.kind = .Name
         while .pos < .bytes.count and not isDelimiter(.bytes[.pos])
         {
-            if .bytes[.pos] == '#' and .pos + 2 < .bytes.count and isHex(.bytes[.pos + 1]) and isHex(.bytes[.pos + 2])
+            if .bytes[.pos] == '#' and
+               .pos + 2 < .bytes.count and
+               isHex(.bytes[.pos + 1]) and
+               isHex(.bytes[.pos + 2])
             {
                 node.text += hexValue(.bytes[.pos + 1]) * 16 + hexValue(.bytes[.pos + 2])
                 .pos      += 3
@@ -504,7 +507,9 @@ impl PdfParser
             let start        = .pos
             var objectNumber = 0'u64
             var generation   = 0'u64
-            if not .parseUnsigned(&objectNumber) or not .parseUnsigned(&generation) or not .consumeWord("obj")
+            if not .parseUnsigned(&objectNumber) or
+               not .parseUnsigned(&generation) or
+               not .consumeWord("obj")
             {
                 .pos = start + 1
                 continue
@@ -703,7 +708,9 @@ impl PdfParser
         // The three field widths are what the entries are written in; a zero width means the
         // field is not stored and takes its default.
         let widthsId = .resolve(.dictRaw(nodeId, "W"))
-        if widthsId == InvalidNode or .nodes[widthsId].kind != .Array or .nodes[widthsId].values.count < 3 do
+        if widthsId == InvalidNode or
+           .nodes[widthsId].kind != .Array or
+           .nodes[widthsId].values.count < 3 do
             return result
         var widths: [3] u64
         for i in 3
@@ -798,7 +805,9 @@ impl PdfParser
     {
         var result: retval = section
         let previous       = .dictRaw(dictId, "Prev")
-        if previous != InvalidNode and .nodes[previous].kind == .Integer and .nodes[previous].integer >= 0
+        if previous != InvalidNode and
+           .nodes[previous].kind == .Integer and
+           .nodes[previous].integer >= 0
         {
             result.hasPrev = true
             result.prev    = cast(u64, .nodes[previous].integer)
@@ -885,7 +894,9 @@ impl PdfParser
             {
                 var number = 0'u64
                 var offset = 0'u64
-                if not embedded.parseUnsigned(&number) or not embedded.parseUnsigned(&offset) or number > Swag.U32.Max do
+                if not embedded.parseUnsigned(&number) or
+                   not embedded.parseUnsigned(&offset) or
+                   number > Swag.U32.Max do
                     fail InvalidFormatError{"PDF object stream header is malformed"}
                 numbers.add(cast(u32, number))
                 offsets.add(offset)

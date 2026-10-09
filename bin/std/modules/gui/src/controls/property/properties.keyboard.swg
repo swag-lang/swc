@@ -134,7 +134,10 @@ internal impl Properties
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(1)
             }
-            elif .isGridLike() and .selItem and .selItem.numChilds > 0 and not .selItem.flags.has(.Expanded)
+            elif .isGridLike() and
+                 .selItem and
+                 .selItem.numChilds > 0 and
+                 not .selItem.flags.has(.Expanded)
             {
                 .selItem.flags.add(.Expanded)
                 .updateStates()
@@ -275,7 +278,10 @@ private impl Properties
         return false
     }
 
-    mtd itemHasEditor(item: *PropertiesItem)->bool => item.editBox != null or item.comboBox != null or item.sliderBox != null or (item.checkBox != null)
+    mtd itemHasEditor(item: *PropertiesItem)->bool => item.editBox != null or
+                                                      item.comboBox != null or
+                                                      item.sliderBox != null or
+                                                      (item.checkBox != null)
 
     mtd firstNavigable(forward: bool)->*PropertiesItem?
     {

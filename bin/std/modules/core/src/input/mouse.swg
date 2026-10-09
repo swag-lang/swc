@@ -61,7 +61,9 @@ impl Mouse
         for v in MouseButton
         {
             .doubleClicked[v] = false
-            if .currentState.pressed[v] and not .previousState.pressed[v] and .previousState.pressedTime[v]
+            if .currentState.pressed[v] and
+               not .previousState.pressed[v] and
+               .previousState.pressedTime[v]
             {
                 if .currentState.pressedTime[v] - .previousState.pressedTime[v] < .doubleClickTimeMs
                 {

@@ -177,7 +177,9 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.commandBar.liveEdit.setState(.Unchecked)
     let panel = window.panels[0]
     host.click(panel.optionsButton.localToSurface(Math.Point{18, 18}))
-    Swag.assert(panel.options.isVisible() and panel.optionsButton.isChecked and not panel.viewer!.window().isVisible())
+    Swag.assert(panel.options.isVisible() and
+                panel.optionsButton.isChecked and
+                not panel.viewer!.window().isVisible())
     panel.options.presetCombo.setSelectedIndex(1, notify: false)
     panel.options.editor.setText("#run { Swag.compiler().getBuildCfg()!.backend.vectorize = false }")
     panel.optimCombo.setSelectedIndex(2, notify: false)

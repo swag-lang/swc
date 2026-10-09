@@ -406,7 +406,9 @@ impl ScrollWnd
         if .needH or .flags.has(.AlwaysShowHorizontal) do
             .showBarH = true
 
-        if not .flags.has(.DisableHorizontal) and .showBarV and .scrollSize.x > clientRect.width - barSize do
+        if not .flags.has(.DisableHorizontal) and
+           .showBarV and
+           .scrollSize.x > clientRect.width - barSize do
             .needH = true
         if .needH or .flags.has(.AlwaysShowHorizontal) do
             .showBarH = true
@@ -585,7 +587,9 @@ public impl ScrollWnd
         // Only a size that clips the current position or destination interrupts it.
         let position = .clampedScrollPos(.view.scrollPos.x, .view.scrollPos.y)
         let target   = .clampedScrollPos(.scrollRequestPos.x, .scrollRequestPos.y)
-        if not .app().animator.isActive(.scrollAnimation) or position != .view.scrollPos or target != .scrollRequestPos do
+        if not .app().animator.isActive(.scrollAnimation) or
+           position != .view.scrollPos or
+           target != .scrollRequestPos do
             .setScrollPos(position)
         .sigScrollSizeChanged.call(me, oldScrollSize, .scrollSize)
         .sendResizeEvent()

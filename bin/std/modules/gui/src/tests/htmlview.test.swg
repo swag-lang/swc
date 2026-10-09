@@ -126,7 +126,9 @@ using Core, Pixel
 
     // A full-screen figure can use the physical width of a 4K display without upscaling.
     let fullScreen = view.images.texture(host.app.renderer, fileName.toString(), 3840, 1920)
-    Swag.assert(fullScreen != null and view.images.entries[0].image.width == 3840 and view.images.entries[0].image.height == 1920)
+    Swag.assert(fullScreen != null and
+                view.images.entries[0].image.width == 3840 and
+                view.images.entries[0].image.height == 1920)
     let fullScreenPixels = cast(u64, view.images.entries[0].image.pixels.buffer)
     let windowed         = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
     Swag.assert(windowed != null and cast(u64, view.images.entries[0].image.pixels.buffer) == fullScreenPixels)

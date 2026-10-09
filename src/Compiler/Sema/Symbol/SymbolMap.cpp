@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -440,6 +441,20 @@ uint64_t SymbolMap::countSymbols(SymbolKind kind) const
         {
             if (!symbol->isIgnored() && symbol->kind() == kind)
                 ++result;
+        }
+    });
+    return result;
+}
+
+// Ignored symbols included, as 'getAllSymbols(out, true)' lists them.
+bool SymbolMap::hasClosureCapture() const
+{
+    bool result = false;
+    forEachPublishedHead([&](const Symbol* head) {
+        for (const Symbol* symbol = head; symbol && !result; symbol = symbol->nextHomonym())
+        {
+            const auto* variable = symbol->safeCast<SymbolVariable>();
+            result               = variable && variable->isClosureCapture();
         }
     });
     return result;

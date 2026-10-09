@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
@@ -13,8 +14,28 @@ struct AstSwitchStmt;
 struct SemaNodeView;
 
 // Case constant -> the node that introduced it. Shared by the runtime 'switch' and the
-// compile-time '#static switch', which both check exhaustiveness the same way.
-using SwitchSeenCases = std::unordered_map<ConstantRef, AstNodeRef>;
+// compile-time '#static switch', which both check exhaustiveness the same way. A switch records a
+// handful of keys, so they sit in one flat table that owns nothing until the first case.
+template<typename K>
+class SwitchCaseOrigins
+{
+public:
+    // The node that already introduced the key, or null once 'nodeRef' is recorded for it.
+    const AstNodeRef* tryAdd(K key, AstNodeRef nodeRef)
+    {
+        if (const AstNodeRef* previous = origins_.find(key.get()))
+            return previous;
+        origins_.emplace(key.get(), nodeRef);
+        return nullptr;
+    }
+
+    bool contains(K key) const { return origins_.find(key.get()) != nullptr; }
+
+private:
+    FlatKeyMap<AstNodeRef> origins_;
+};
+
+using SwitchSeenCases = SwitchCaseOrigins<ConstantRef>;
 
 namespace SemaSwitch
 {
@@ -33,8 +54,8 @@ namespace SemaSwitch
 
 struct SwitchPayload
 {
-    SwitchSeenCases                         seen;
-    std::unordered_map<TypeRef, AstNodeRef> seenDynamicTypes;
+    SwitchSeenCases            seen;
+    SwitchCaseOrigins<TypeRef> seenDynamicTypes;
 
     TypeRef         exprTypeRef            = TypeRef::invalid();
     AstNodeRef      firstDefaultRef        = AstNodeRef::invalid();

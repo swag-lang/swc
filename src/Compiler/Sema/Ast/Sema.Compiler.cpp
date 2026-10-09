@@ -647,14 +647,14 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     CompilerSwitchSemaPayload& payload    = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
     const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
-    const auto [it, inserted]             = payload.seen.try_emplace(caseCstRef, childRef);
-    if (inserted)
+    const AstNodeRef*          previous   = payload.seen.tryAdd(caseCstRef, childRef);
+    if (!previous)
         return Result::Continue;
 
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_case_duplicate, childRef);
     diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(caseCstRef).toString(sema.ctx()));
     diag.addNote(DiagnosticId::sema_note_previous_case_value);
-    diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
+    diag.last().addSpan(sema.node(*previous).codeRangeWithChildren(sema.ctx(), sema.ast()));
     diag.report(sema.ctx());
     return Result::Error;
 }

@@ -274,10 +274,8 @@ namespace
         auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
-        const auto [it, inserted] = seenSet->seenDynamicTypes.try_emplace(targetStructTypeRef, caseExprRef);
-        if (inserted)
-            return Result::Continue;
-        if (it->second == caseExprRef)
+        const AstNodeRef* previous = seenSet->seenDynamicTypes.tryAdd(targetStructTypeRef, caseExprRef);
+        if (!previous || *previous == caseExprRef)
             return Result::Continue;
 
         const auto*      binding = sema.node(caseExprRef).safeCast<AstAsCastExpr>();
@@ -285,7 +283,7 @@ namespace
         auto             diag    = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, typeRef);
         diag.addArgument(Diagnostic::ARG_VALUE, sema.typeMgr().get(targetStructTypeRef).toName(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
-        diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
+        diag.last().addSpan(sema.node(*previous).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -749,14 +747,14 @@ namespace
 
         const SemaNodeView exprView = sema.viewConstant(caseExprRef);
 
-        const auto [it, inserted] = seenSet->seen.try_emplace(exprView.cstRef(), caseExprRef);
-        if (inserted)
+        const AstNodeRef* previous = seenSet->seen.tryAdd(exprView.cstRef(), caseExprRef);
+        if (!previous)
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
         diag.addArgument(Diagnostic::ARG_VALUE, exprView.cst()->toString(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
-        diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
+        diag.last().addSpan(sema.node(*previous).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }

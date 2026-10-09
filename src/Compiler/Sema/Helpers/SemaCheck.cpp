@@ -1208,15 +1208,20 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
         reported = true;
     }
 
-    std::vector<const Symbol*> symbols;
-    sym.getAllSymbols(symbols, true);
-    for (const Symbol* symbol : symbols)
+    // Captures are reported in declaration order, which takes a sorted copy of the whole map;
+    // most bodies capture nothing and skip it.
+    if (sym.hasClosureCapture())
     {
-        const auto* capture = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
-        if (capture && capture->isClosureCapture() && isReportedUnused(sema, *capture))
+        std::vector<const Symbol*> symbols;
+        sym.getAllSymbols(symbols, true);
+        for (const Symbol* symbol : symbols)
         {
-            SemaError::report(sema, DiagnosticId::sema_err_unused_capture, *capture).report(sema.ctx());
-            reported = true;
+            const auto* capture = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+            if (capture && capture->isClosureCapture() && isReportedUnused(sema, *capture))
+            {
+                SemaError::report(sema, DiagnosticId::sema_err_unused_capture, *capture).report(sema.ctx());
+                reported = true;
+            }
         }
     }
 

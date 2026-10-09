@@ -29,6 +29,7 @@ public:
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     uint64_t      countSymbols(SymbolKind kind) const;
+    bool          hasClosureCapture() const;
     bool          empty() const noexcept;
     uint32_t      count() const noexcept { return count_.load(std::memory_order_relaxed); }
 

@@ -9,30 +9,38 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
-- Updated: 2026-10-09 15:40 — The where instantiation text is formatted only when a constraint fails; the winner mapping is recorded as not worth reusing.
+- Updated: 2026-10-09 16:52 — Sema scopes come from a per-Sema arena; per-object hash tables that
+  most objects never fill are built on first use.
 - Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
   and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
   escape state, code generation node and variable payloads, value numbering, loop rotation and
   unrolling labels, stack offsets, sanitizer counts, inline binding uses, linker tables, the JIT
   address cache, the sanitizer register and stack facts, branch-simplify label and register
   counts, the per-function call and relocation sets, loop-invariant code motion's relocation
-  chains), and the `where` instantiation text is now formatted only when a constraint fails, from
-  the enclosing generic instances taken when the inputs are built. Optimizer listings of
-  `bin/unittests/native` compare equal before and after, in devmode and release. The sanitizer
-  facts turned out not to need an ordered replacement: every pass over them keeps or drops each
-  entry on its own. `resolveFunctionCandidates` rebuilding the
-  winner's `CallArgMapping` is not worth changing: the rebuild is one pass over the arguments into
-  inline vectors, and reusing an attempt's mapping would have to prove that the attempted function
-  and the selected one (possibly a generic instance) agree. These remain, each needing a design
-  change:
-  - `TypeInfo::makeArrayAfterFirstDimension` allocates dimension vectors for every step of
-    multi-dimensional indexing, then usually finds the type already interned; avoiding it needs
-    an intern lookup keyed by a view rather than by a built `TypeInfo`.
+  chains, lifecycle type walks, switch case tables). It also stopped building tables most
+  objects never fill (struct and enum impl guards, node payload side tables, generic instance
+  indices, move-elision facts), formats the `where` instantiation text only when a constraint
+  fails, sorts a function's symbols for unused captures only when it has a capture, and takes
+  sema scopes from a per-Sema arena whose slots are never reused, because an inline payload keeps
+  the address of the scope it was expanded from. Optimizer listings of `bin/unittests/native`
+  compare equal before and after, in devmode and release. The sanitizer facts did not need an
+  ordered replacement: every pass over them keeps or drops each entry on its own.
+- Not worth the change: rebuilding the winner's `CallArgMapping` in `resolveFunctionCandidates`
+  is one pass over the arguments into inline vectors, and reusing an attempt's mapping would have
+  to prove that the attempted function and the selected one (possibly a generic instance) agree.
+  `TypeGen::processTypeInfo` keeps its `stackSet`: the stack it mirrors can be deep, so a scan of
+  it is not provably cheaper than the set.
+- These remain, each needing a design change:
+  - `TypeInfo::makeArray`, `makeArrayAfterFirstDimension` and the aggregate constructors build
+    vectors for every array type, literal and multi-dimensional index step, then usually find
+    the type already interned; avoiding it needs an intern lookup keyed by a view rather than by
+    a built `TypeInfo`.
   - The sanitizer's sparse fact maps (`movedFrom`, `aliasPtrSlots`, ...) and branch
     simplification's `DiamondScan` counts: the first are read in table order by alias classes
     and moved-range reports, the second key labels by 64-bit values.
-- Next: an intern lookup for array types keyed by a dimension view, so multi-dimensional indexing
-  stops building a `TypeInfo` it then finds already interned.
+  - `SemaJIT` allocates a shared payload and a shared pending entry for each compile-time run,
+    and the entry always owns the payload.
+- Next: the view-keyed intern lookup for array and aggregate types.
 - Complete when: each item is replaced with identical output and its owning suites green, or
   recorded here as not worth the change it needs.
 - Related: compiler.core.060.

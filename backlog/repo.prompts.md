@@ -1087,8 +1087,9 @@ final coverage table and any remaining blockers so the whole-tree review can be 
 ## 8. Swag visual readability
 
 ```
-Review every project-owned Swag source under bin/ and improve its visual readability without
-changing its logic. This is a periodic presentation pass, with the separate protocol below;
+Review project-owned Swag source under bin/ and improve its visual readability without changing
+its logic. Exclude `bin/unittests/` from readability review; its tests may still serve as
+validation. This is a periodic presentation pass, with the separate protocol below;
 the shared protocol for campaigns 2-7 does not apply.
 
 Read AGENTS.md, modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code, and its
@@ -1103,13 +1104,32 @@ follow load admission and the six-worker cap before every build or test. Keep SW
 unchanged. Keep review inventories, logs, and probes outside every checkout. Leave the result
 in the campaign worktree for review unless integration has been requested separately.
 
-INVENTORY, THEN REVIEW THE WHOLE TREE
+GLOBAL GAINS, THEN HIGH-VALUE DEEP REVIEWS
 
-Inventory tracked .swg and .swgs files under bin/, including runtime, std, apps, examples,
-standalone scripts, module descriptors, reference sources, compiler suites, and module tests.
-Discover additional areas from the tree. Keep a coverage table with one row per file: pending,
-reviewed unchanged, changed and validated, or excluded with a precise reason. Include the
-module, outstanding concerns, and validation evidence. A search or formatter run is not review.
+First inspect the formatter's existing rules and the source patterns that cause the most repeated
+reading friction. Consider a global formatter rule only when it can decide from syntax and layout,
+preserves authored intent, and fixes a recurring pattern across many in-scope files. Before
+implementing one, measure candidate counts and inspect representative positive and negative cases;
+afterward inspect every changed file, confirm idempotence, and retain only expected rewrites.
+Prefer a few broad, low-noise improvements over a large number of isolated cosmetic edits.
+Do not add a formatter rule for choices that require knowing a code block's purpose, inventing a
+name, or judging whether a comment helps.
+
+After global improvements, review modules and their entry points in this order: public `bin/std`
+and `bin/runtime` APIs, `bin/apps/`, then `bin/examples/`; continue with reference sources,
+standalone project scripts, and other owned Swag sources. Within each area, start with public or
+widely used entry points, then follow their important internal paths. Review complete functions
+and related operations rather than spending a pass on scattered line-length outliers.
+
+INVENTORY, THEN REVIEW THE PRIORITY AREAS
+
+Inventory tracked `.swg` and `.swgs` files under `bin/`, excluding the entire `bin/unittests/`
+subtree. Include runtime, std, apps, examples, standalone scripts, module descriptors, and
+reference sources. Discover additional in-scope areas from the tree. Keep a coverage table with
+one row per in-scope file: pending, reviewed unchanged, changed and validated, or excluded with
+a precise reason. Include the module, outstanding concerns, and validation evidence. Record the
+excluded unittest file count separately so it cannot inflate reviewed coverage. A search or
+formatter run is not review.
 
 Classify generated files, vendored files, intentional fixtures, and artifacts explicitly.
 Do not hand-edit bin/help or other generated output. Inspect its owning source where relevant.
@@ -1172,7 +1192,7 @@ WORK IN COHERENT BATCHES
   5. Read the formatted function again without relying on the diff. Check surrounding functions
      and update coverage. Return to the difficult functions after a later batch to test whether
      the new layout still reads naturally. Keep only improvements that survive that reread.
-  6. Continue through every file in the inventory. Send regular before/after examples explaining
+  6. Continue through every in-scope file in the inventory. Send regular before/after examples explaining
      the reading benefit and why logic is preserved. Report remaining coverage honestly.
   7. Commit each coherent validated batch. When integration into master has been requested,
      integrate those batches regularly instead of keeping all completed work until the end.
@@ -1181,7 +1201,7 @@ WORK IN COHERENT BATCHES
 
 STOPPING CONDITION
 
-The pass is complete when every inventoried project-owned source has been reviewed or explicitly
+The pass is complete when every inventoried in-scope project-owned source has been reviewed or explicitly
 excluded for a concrete reason, every retained change is within the visual-only boundary,
 formatting is stable, selected checks pass, and a final reread finds no further justified visual
 improvement in scope. Do not oscillate between equally readable layouts. If a time limit is

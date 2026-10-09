@@ -15,11 +15,15 @@ impl PreviewCanvas
     // The largest rectangle with the aspect of a frame, centered in the canvas.
     mtd frameRect()->Math.Rectangle
     {
-        let client = .paddedClientRect()
-        let scale  = Math.min(client.width / Pipeline.FrameChannel.Width, client.height / Pipeline.FrameChannel.Height)
-        let width  = Pipeline.FrameChannel.Width * scale
-        let height = Pipeline.FrameChannel.Height * scale
-        return {client.horzCenter() - width / 2, client.vertCenter() - height / 2, width, height}
+        let client      = .paddedClientRect()
+        let widthScale  = client.width / Pipeline.FrameChannel.Width
+        let heightScale = client.height / Pipeline.FrameChannel.Height
+        let scale       = Math.min(widthScale, heightScale)
+        let width       = Pipeline.FrameChannel.Width * scale
+        let height      = Pipeline.FrameChannel.Height * scale
+        let x           = client.horzCenter() - width / 2
+        let y           = client.vertCenter() - height / 2
+        return {x, y, width, height}
     }
 
     mtd update(image: *Image)
@@ -37,7 +41,9 @@ impl IWnd for PreviewCanvas
     mtd impl onPaint(evt: *PaintEvent)
     {
         if .texture.isValid() do
-            evt.paintContext.painter.drawTexture(.frameRect(), .texture, .themeColors().imageRect_Fg)
+            evt.paintContext.painter.drawTexture(.frameRect(),
+                                                 .texture,
+                                                 .themeColors().imageRect_Fg)
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

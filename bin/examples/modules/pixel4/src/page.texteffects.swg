@@ -2,7 +2,12 @@ using Core, Pixel
 
 // Center a string (with optional MSDF text effects) inside 'area', mirroring the
 // baseline math of drawStringCenter.
-func drawEffectSample(painter: *Pixel.Painter, area: Math.Rectangle, text: string, font: *Pixel.Font, color: Color, fx: TextEffect)
+func drawEffectSample(painter: *Pixel.Painter,
+                      area: Math.Rectangle,
+                      text: string,
+                      font: *Pixel.Font,
+                      color: Color,
+                      fx: TextEffect)
 {
     let ms   = Painter.measureString(text, font)
     let top  = area.vertCenter() - ms.height * 0.5 - (font.ascent - ms.ascent)

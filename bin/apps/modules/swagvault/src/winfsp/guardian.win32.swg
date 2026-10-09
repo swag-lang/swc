@@ -11,16 +11,25 @@ namespace WinFsp
         return args.count >= 2 and args[1] == WinFspGuardianArgument
     }
 
-    func guardianErrorText(err: any?)->string
+    // The kind the guardian reports for a start that failed: what the volume layer said, or the
+    // driver being unavailable for any other failure.
+    func guardianErrorKind(err: any?)->ErrorKind
     {
-        switch err
-        {
-        case Error as error: return error.message orelse "The portable WinFsp runtime failed."
-        case Swag.SystemError as error: return error.message orelse "Windows rejected the WinFsp helper."
-        }
-
-        return "The portable WinFsp helper failed."
+        if err is Error as error do
+            return error.kind
+        return .DriverUnavailable
     }
+
+    // The Windows error a helper launch that failed reported, or 0.
+    func guardianLaunchCode(err: any?)->u64
+    {
+        if err is Swag.SystemError as error do
+            return error.errorID
+        return 0
+    }
+
+    // The status line that tells the waiting application why the guardian stopped.
+    func guardianErrorStatus(kind: ErrorKind)->String => Format.toString("ERROR\n%", cast(u32, kind))
 
     // Tells the waiting application how the guardian started, through the status file.
     func writeGuardianStatus(path, status: string) fail
@@ -53,14 +62,14 @@ namespace WinFsp
         let parent = OpenProcess(ProcessSynchronize, 0, parsed.value)
         if not parent
         {
-            discard catch writeGuardianStatus(statusPath, "ERROR\nThe WinFsp helper could not monitor the Swag Vault process.")
+            discard catch writeGuardianStatus(statusPath, guardianErrorStatus(.DriverUnavailable))
             return 1
         }
 
         discard catch startPortableGuardian(statusPath) as startError
         if startError != null
         {
-            discard catch writeGuardianStatus(statusPath, Format.toString("ERROR\n%", guardianErrorText(startError)))
+            discard catch writeGuardianStatus(statusPath, guardianErrorStatus(guardianErrorKind(startError)))
             unloadWinFsp()
             CloseHandle(parent)
             return 1
@@ -94,16 +103,16 @@ namespace WinFsp
     {
         // Checked before anything else, so no test run can reach ShellExecute.
         if not canRequestElevation() do
-            try failWith("This build must not request elevation. Mounting belongs to the privileged integration harness.")
+            fail volumeError(.DriverUnavailable)
 
         if g_WinFsp.guardianManaged do
             return
         if isElevated() do
-            try failWith("Launch Swag Vault normally, not with 'Run as administrator', so Windows Explorer can see the mounted drive.")
+            fail volumeError(.Elevated)
 
         let temp = Env.getSpecialDirectory(.Temp)
         if temp.isEmpty() do
-            try failWith("Windows did not provide a usable temporary directory.")
+            fail volumeError(.DriverUnavailable)
 
         let communicationRoot = Path.combine(temp, Format.toString("vault-Guardian-%-%", Env.Process.currentProcessId(), Guid64.random()))
         try Directory.create(communicationRoot)
@@ -118,7 +127,7 @@ namespace WinFsp
         if launchError != null
         {
             removeRuntimeTree(communicationRoot)
-            try failWith(Format.toString("Windows could not start the portable WinFsp helper: %.", Errors.message(launchError)))
+            fail volumeError(.DriverUnavailable, guardianLaunchCode(launchError))
         }
 
         for 1200
@@ -137,15 +146,16 @@ namespace WinFsp
                 if status.startsWith("ERROR\n")
                 {
                     let prefixCount = ("ERROR\n").count
-                    let detail      = status.count > prefixCount ? Swag.makeString(status.buffer + prefixCount, status.count - prefixCount) : "The portable WinFsp helper failed."
-                    try failWith(detail)
+                    let reported    = catch StrConv.parseU32(Swag.makeString(status.buffer + prefixCount, status.count - prefixCount)) as parseError
+                    let known       = parseError == null and reported.value <= cast(u32, ErrorKind.DriverUnavailable)
+                    fail volumeError(known ? cast(ErrorKind, reported.value) : .DriverUnavailable)
                 }
             }
 
             Threading.Thread.sleep(50'ms)
         }
 
-        try failWith("The portable WinFsp helper did not become ready in time.")
+        fail volumeError(.DriverUnavailable)
     }
 
     // Deletes a staged runtime directory and everything below it; what Windows still holds is
@@ -192,11 +202,11 @@ namespace WinFsp
         let sourceDll           = Path.combine(executableDirectory, WinFspDllName)
         let sourceDriver        = Path.combine(executableDirectory, WinFspDriverName)
         if not File.exists(sourceDll) or not File.exists(sourceDriver) do
-            try failWith("The signed portable WinFsp runtime is incomplete.")
+            fail volumeError(.DriverUnavailable)
 
         let temp = Env.getSpecialDirectory(.Temp)
         if temp.isEmpty() do
-            try failWith("Windows did not provide a usable temporary directory.")
+            fail volumeError(.DriverUnavailable)
 
         // A guardian owns one driver registration. Sharing an identity across processes lets
         // one guardian unregister another's driver, and a pending deletion blocks every restart.
@@ -214,7 +224,7 @@ namespace WinFsp
         if dllError != null or driverError != null or not File.exists(dll) or not File.exists(driver)
         {
             removeRuntimeTree(root)
-            try failWith("The portable WinFsp runtime could not be staged.")
+            fail volumeError(.DriverUnavailable)
         }
 
         let identity = Path.combine(bin, "winfsp.sxs")
@@ -236,7 +246,8 @@ namespace WinFsp
         if result < 0
         {
             endWinFspLog(logHandle)
-            try failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%", Format.toString("%{X}", statusBits(result)), winFspLogDetail()))
+            traceWinFspStage(winFspLogDetail())
+            fail volumeError(.DriverUnavailable, statusBits(result))
         }
 
         g_WinFsp.registered = true
@@ -245,8 +256,11 @@ namespace WinFsp
         let startStatus = (g_WinFsp.startService)()
         traceWinFspStage("FspFsctlStartService returned")
         endWinFspLog(logHandle)
-        if startStatus < 0 do
-            try failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", statusBits(startStatus), winFspLogDetail()))
+        if startStatus < 0
+        {
+            traceWinFspStage(winFspLogDetail())
+            fail volumeError(.DriverUnavailable, statusBits(startStatus))
+        }
     }
 }
 

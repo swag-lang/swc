@@ -96,7 +96,7 @@ impl BlockAllocator
     mtd allocateRun(maximumCount: u64)->FreeExtent fail
     {
         if .free.isEmpty() do
-            try failWith("The virtual disk is full.", .DiskFull)
+            fail volumeError(.DiskFull)
         Swag.assert(maximumCount != 0)
 
         let index = .free.count - 1
@@ -132,8 +132,7 @@ impl BlockAllocator
             return .takeFront(index, count)
         }
 
-        try failWith("The smaller container has no room for every used block.", .DiskFull)
-        unreachable
+        fail volumeError(.DiskFull)
     }
 
     // Discards free extents outside a new, smaller geometry.

@@ -180,9 +180,10 @@ struct SvgText
 #[Swag.Opaque, Swag.NoDoc]
 struct SvgImage
 {
-    image:   Image
-    rect:    Rectangle
-    opacity: f32 = 1
+    image:     Image
+    rect:      Rectangle           // Destination in the user units of the element.
+    transform: Math.Transform2     // User units to drawing space.
+    opacity:   f32 = 1
 }
 
 #[Swag.Opaque, Swag.NoDoc]
@@ -1081,11 +1082,14 @@ private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform
 private func transformScale(transform: Math.Transform2)->f32
     => Math.sqrt(Math.abs(transform.m11 * transform.m22 - transform.m12 * transform.m21))
 
-// Reports whether a transform keeps the axes, so a shape can be built from its raw
-// axis-aligned primitive instead of from curves.
+// Reports whether a transform keeps the axes and their directions, so a shape can be built
+// from its raw axis-aligned primitive instead of from curves.
+//
+// A mirror keeps the axes but reverses one: the mapped origin becomes the far corner and an
+// arc runs the other way, which a primitive measured with positive extents cannot state.
 #[Swag.Inline]
 private func isAxisAligned(transform: Math.Transform2)->bool
-    => Math.isZeroEpsilon(transform.m12) and Math.isZeroEpsilon(transform.m21)
+    => Math.isZeroEpsilon(transform.m12) and Math.isZeroEpsilon(transform.m21) and transform.m11 > 0 and transform.m22 > 0
 
 // The angle a transform turns the horizontal axis by, which is the direction text runs in.
 #[Swag.Inline]
@@ -2301,12 +2305,12 @@ private impl Parser
         let item  = .drawing.images.emplaceInitAddress()
         item.image = try .loadImage(href.value.toString())
 
-        // A raster rectangle has no rotated form here: the origin is transformed and the extents
-        // take the axis scales, which is exact for every transform that keeps the axes.
-        let origin = mapPoint(state, .geoNumber(geo, "x"), .geoNumber(geo, "y"))
-        let scale  = state.transform.axisScale()
-        item.rect    = {origin.x, origin.y, width * scale.x, height * scale.y}
-        item.opacity = state.opacity
+        // The rectangle stays in user units and carries its transform, so a mirrored or turned
+        // picture is painted through the same matrix as its siblings instead of being
+        // flattened into an upright rectangle.
+        item.rect      = {.geoNumber(geo, "x"), .geoNumber(geo, "y"), width, height}
+        item.transform = state.transform
+        item.opacity   = state.opacity
         if not state.inDefs do
             .drawing.items.add(DrawingItem{.Image, index})
     }
@@ -3594,7 +3598,8 @@ impl Drawing
                 item.hasBounds = true
 
             case .Image:
-                item.bounds    = .images[item.index].rect
+                let image      = &.images[item.index]
+                item.bounds    = image.transform.transformBounds(image.rect)
                 item.hasBounds = true
 
             case .Text:
@@ -3831,6 +3836,12 @@ impl Drawing
         painter.setInterpolationMode(.Linear)
         defer painter.setInterpolationMode(interpolation)
         var alpha = image.opacity
+
+        let drawingToSurface = painter.transform()
+        var placed           = image.transform
+        placed.multiply(drawingToSurface)
+        painter.setTransform(placed)
+        defer painter.setTransform(drawingToSurface)
 
         let texture = painter.renderer().addImage(image.image)
         painter.drawTexture(image.rect, texture, Color.fromArgb(Argb.White).withAlphaF32(alpha))

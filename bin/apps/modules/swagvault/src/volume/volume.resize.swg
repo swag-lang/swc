@@ -16,15 +16,15 @@ impl Volume
     {
         try .requireWritable()
         if .file.base or .file.protectedEnd do
-            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            fail volumeError(.HiddenProtected)
         if progress and progress.isCanceled() do
-            try failWith("Growing the container was canceled.", .Canceled)
+            fail volumeError(.Canceled)
         if requestedSize <= .containerSize do
-            try failWith("A container can only grow.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
         if newBlockCount <= .blockCount do
-            try failWith("The requested size does not add a single block.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         // Everything below is undone by putting the file back to the length the durable header
         // already claims. `committed` is set on the last line, so every failure — including the
@@ -54,7 +54,7 @@ impl Volume
         if targetPhysical > previousPhysical
         {
             try .file.resize(targetPhysical)
-            try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Growing the container was canceled.")
+            try .randomizeRange(previousPhysical, targetPhysical, progress, 0)
         }
 
         try .file.flush()
@@ -81,7 +81,7 @@ impl Volume
     {
         try .requireWritable()
         if .file.base or .file.protectedEnd do
-            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            fail volumeError(.HiddenProtected)
         let previousPhysical = .physicalSize
         let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
         let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
@@ -100,12 +100,12 @@ impl Volume
         if targetPhysical > previousPhysical
         {
             try .file.resize(targetPhysical)
-            try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Camouflage refresh was canceled.")
+            try .randomizeRange(previousPhysical, targetPhysical, progress, 0)
             try .file.flush()
         }
         elif progress and progress.isCanceled()
         {
-            try failWith("Camouflage refresh was canceled.", .Canceled)
+            fail volumeError(.Canceled)
         }
 
         .physicalSize = targetPhysical
@@ -176,7 +176,7 @@ impl Volume
             while count
             {
                 if progress and progress.isCanceled() do
-                    try failWith("Resizing the container was canceled.", .Canceled)
+                    fail volumeError(.Canceled)
 
                 let destination = try .blocks.allocateRunBelow(limit, Math.min(count, MaximumIoBatchBlocks))
                 let bytes       = destination.count * BlockSize
@@ -206,17 +206,17 @@ impl Volume
     {
         try .requireWritable()
         if .file.base or .file.protectedEnd do
-            try failWith("Capacity changes are disabled for hidden or protected volumes.", .HiddenProtected)
+            fail volumeError(.HiddenProtected)
         if progress and progress.isCanceled() do
-            try failWith("Resizing the container was canceled.", .Canceled)
+            fail volumeError(.Canceled)
         if requestedSize < MinimumSize do
-            try failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
+            fail volumeError(.SizeTooSmall)
         if requestedSize >= .containerSize do
-            try failWith("Shrinking needs a smaller container size.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
         if newBlockCount >= .blockCount do
-            try failWith("The requested size does not remove a single block.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         // Start from one durable image. The relocation itself writes only into free blocks and
         // therefore changes nothing the active header can reach until the final checkpoint.
@@ -263,7 +263,7 @@ impl Volume
         if targetPhysical > previousPhysical
         {
             try .file.resize(targetPhysical)
-            try .randomizeRange(previousPhysical, targetPhysical, progress, 0, "Resizing the container was canceled.")
+            try .randomizeRange(previousPhysical, targetPhysical, progress, 0)
             try .file.flush()
         }
 

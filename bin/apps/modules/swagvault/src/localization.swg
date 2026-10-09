@@ -162,6 +162,9 @@ struct AppStrings
     msg_ErrDiskFull:          string = "There is no room left in the container."         // No room is left for blocks, metadata, or key slots.
     msg_ErrIo:                string = "The container could not be read or written."     // The underlying file could not be reached.
     msg_ErrInvalidRequest:    string = "The container cannot answer that request."       // The operation asked for something the container refuses outright.
+    msg_ErrElevated:          string = "Swag Vault was started as administrator, so Windows Explorer cannot show its drive. Close it and start it normally."
+    msg_ErrDriverUnavailable: string = "The virtual drive could not be started."     // The driver that shows a vault as a drive did not load or start.
+    msg_ErrorCode:            string = "Error code: 0x%{X}"     // Under the sentence of a failure, the native code for whoever reports it.
 }
 
 private const FrenchStringsName = "lang/fr/vault.tweak"

@@ -564,7 +564,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     func messageFor(kind: ErrorKind)->String
     {
-        catch failWith("an English diagnostic nobody reads", kind) as err
+        catch raiseVolumeError(kind) as err
         return caughtMessage(err)
     }
 

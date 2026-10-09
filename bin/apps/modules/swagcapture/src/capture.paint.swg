@@ -140,7 +140,8 @@ impl Capture
         boundRect.height = Math.max(boundRect.height, 1)
         boundRect.inflate(BaseForm.paintOverdraw(f, false))
 
-        var pos = Math.Rectangle{rect.x + boundRect.x * zoom, rect.y + boundRect.y * zoom, boundRect.width * zoom, boundRect.height * zoom}
+        var pos = boundRect * zoom
+        pos.offset(rect.x, rect.y)
 
         let noClipPos = pos
         pos.width  += pos.x - Math.round(pos.x)
@@ -520,7 +521,7 @@ impl Capture
             cull.width  = Math.max(cull.width, 1)
             cull.height = Math.max(cull.height, 1)
             cull.inflate(BaseForm.paintOverdraw(f, false))
-            cull = cull * zoom
+            cull *= zoom
             cull.offset(rect.x, rect.y)
             if not cull.intersects(cullClip) do
                 continue

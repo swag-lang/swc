@@ -97,17 +97,16 @@ impl Volume
         try .requireWritable()
         let {parent, name} = .resolveParent(path)
         if parent == null or not parent.isDirectory() do
-            try failWith("Parent directory does not exist.", .NotFound)
-        let validParent = parent!
+            fail volumeError(.NotFound)
         if not name.count or name == "." or name == ".." do
-            try failWith("Invalid file name.", .InvalidInput)
-        if .findChild(validParent.id, name) do
-            try failWith("A file with this name already exists.", .AlreadyExists)
+            fail volumeError(.InvalidInput)
+        if .findChild(parent.id, name) do
+            fail volumeError(.AlreadyExists)
 
         let now = volumeTimeNow()
         var node: Node
         node.id         = .nextNodeId
-        node.parentId   = validParent.id
+        node.parentId   = parent.id
         node.name       = name
         node.attributes = attributes
         if directory do
@@ -155,12 +154,12 @@ impl Volume
     {
         try .requireWritable()
         if id == RootNodeId do
-            try failWith("Cannot delete the root directory.", .AccessDenied)
+            fail volumeError(.AccessDenied)
         let index = .nodeIndex(id)
         if index == Swag.U64.Max do
             return
         if .nodes[index].isDirectory() and .hasChildren(id) do
-            try failWith("The directory is not empty.", .DirectoryNotEmpty)
+            fail volumeError(.DirectoryNotEmpty)
         .freeNodeBlocks(&.nodes[index])
         .removeNodeAt(index)
 
@@ -176,22 +175,21 @@ impl Volume
     {
         try .requireWritable()
         if id == RootNodeId do
-            try failWith("Cannot rename the root directory.", .AccessDenied)
+            fail volumeError(.AccessDenied)
         let {parent, name} = .resolveParent(newPath)
         if parent == null or not parent.isDirectory() or not name.count do
-            try failWith("The destination directory does not exist.", .NotFound)
-        let validParent         = parent!
-        let destinationParentId = validParent.id
+            fail volumeError(.NotFound)
+        let destinationParentId = parent.id
         let sourceIsDirectory   = .nodeById(id)!.isDirectory()
-        let existing            = .findChild(validParent.id, name)
+        let existing = .findChild(parent.id, name)
         if existing and existing.id != id
         {
             if not replace do
-                try failWith("The destination already exists.", .AlreadyExists)
+                fail volumeError(.AlreadyExists)
             if existing.isDirectory() != sourceIsDirectory do
-                try failWith("A file cannot replace a directory, or conversely.", .InvalidInput)
+                fail volumeError(.InvalidInput)
             if existing.isDirectory() and .hasChildren(existing.id) do
-                try failWith("The destination directory is not empty.", .DirectoryNotEmpty)
+                fail volumeError(.DirectoryNotEmpty)
             let existingId    = existing.id
             let existingIndex = .nodeIndex(existingId)
             .freeNodeBlocks(&.nodes[existingIndex])
@@ -206,7 +204,7 @@ impl Volume
             while ancestor != RootNodeId
             {
                 if ancestor == id do
-                    try failWith("Cannot move a directory into itself.", .InvalidInput)
+                    fail volumeError(.InvalidInput)
                 ancestor = .nodeById(ancestor)!.parentId
             }
         }

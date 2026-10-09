@@ -12,12 +12,15 @@ class MatchContext
 {
 public:
     // How a symbol became visible at a given point.
+    // At the same scope depth, what a namespace declares itself shadows what its `using`
+    // directives bring in, as in a lexical scope: a module's own `Error` beats `Swag.Error`
+    // reaching it through a persisted `using Swag`.
     enum class VisibilityTier : uint8_t
     {
         LocalScope      = 0, // directly declared in the scope
-        UsingDirective  = 1, // brought in via "using" / import
-        FileNamespace   = 2, // file-level namespace
-        ModuleNamespace = 3, // module-level namespace
+        FileNamespace   = 1, // file-level namespace
+        ModuleNamespace = 2, // module-level namespace
+        UsingDirective  = 3, // brought in via "using" / import
     };
 
     // Priority key for a symbol / symMap. Lower is better in each dimension.

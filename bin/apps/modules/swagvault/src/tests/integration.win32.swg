@@ -87,7 +87,7 @@ namespace Integration
     func verify(condition: bool, message: string) fail
     {
         if not condition do
-            try failWith(Format.toString("Integration check failed: %", message))
+            fail volumeError(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
     }
 
@@ -118,8 +118,7 @@ namespace Integration
                 return Format.toString("%:", cast(rune, ('A' + index)))
         }
 
-        try failWith("No unused drive letter is available for the integration sandbox.")
-        unreachable
+        fail volumeError("No unused drive letter is available for the integration sandbox.")
     }
 
     func movePath(existing, replacement: string, replace = false) fail
@@ -128,14 +127,14 @@ namespace Integration
         let replacement16 = Utf16.toZeroTerminated(replacement)
         catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error
         if error != null do
-            try failWith(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
+            fail volumeError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
         if not SetFileAttributesW(path16.buffer, attributes) do
-            try failWith(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
+            fail volumeError(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
     func attributes(path: string)->u32
@@ -169,7 +168,7 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
         catch RemoveDirectoryW(path16.buffer) as error
         if error != null do
-            try failWith(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
+            fail volumeError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -214,7 +213,7 @@ namespace Integration
             var result: retval
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
-                try failWith("Windows did not provide a temporary directory for the sandbox.")
+                fail volumeError("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp, Format.toString("vault-integration-%", Guid64.random()))
             try Directory.create(result.root)
             result.container  = Path.combine(result.root, "integration")
@@ -227,7 +226,7 @@ namespace Integration
         mtd mountVolume(passwordBytes: const [..] u8, protectionPassword: const [..] u8 = "") fail
         {
             if .mountedActive do
-                try failWith("The integration volume is already mounted.")
+                fail volumeError("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
             discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError
             if mountError != null
@@ -274,7 +273,7 @@ namespace Integration
                 try .unmountVolume()
             WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
-                try failWith(Format.toString("The integration sandbox could not be removed: %", .root))
+                fail volumeError(Format.toString("The integration sandbox could not be removed: %", .root))
             .root.clear()
         }
 

@@ -9,7 +9,7 @@ impl Volume
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
         if not (try .file.readExactAt(KeySlotAreaOffset, area)) do
-            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+            fail volumeError(.PasswordOrDamaged)
 
         Swag.memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
@@ -30,7 +30,7 @@ impl Volume
         }
 
         if not found do
-            try failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
+            fail volumeError(.PasswordOrDamaged)
         .keys = try Crypto.deriveKeys(.master)
     }
 
@@ -50,7 +50,7 @@ impl Volume
             try HiddenLocator.write(&.file.stream, index, password, {.file.base, .file.limit})
             let verified = try HiddenLocator.find(&.file.stream, password)
             if verified.first != .file.base or verified.count != .file.limit do
-                try failWith("The replacement hidden locator could not be verified.", .Io)
+                fail volumeError(.Io)
         }
     }
 
@@ -105,11 +105,11 @@ impl Volume
     {
         try .requireWritable()
         if .file.base and (not replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
-            try failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         let currentIndex = try .findKeySlot(current)
         if currentIndex == Swag.U64.Max do
-            try failWith("The current password is incorrect.", .AccessDenied)
+            fail volumeError(.AccessDenied)
 
         let existingReplacement = try .findKeySlot(replacement)
         if existingReplacement == currentIndex do
@@ -125,7 +125,7 @@ impl Volume
             }
 
             if replacementIndex == Swag.U64.Max do
-                try failWith("Every key slot is already in use.", .DiskFull)
+                fail volumeError(.DiskFull)
 
             // Reserve before writing. A stopped write may waste this slot, but it cannot expose
             // the current one to reuse or make the vault lose its existing access.
@@ -136,7 +136,7 @@ impl Volume
             try .writeKeySlot(replacementIndex, replacement)
 
             if (try .findKeySlot(replacement)) != replacementIndex do
-                try failWith("The replacement key slot could not be verified.", .Io)
+                fail volumeError(.Io)
         }
 
         // An already occupied hidden slot can have lost its locator independently. Repair and
@@ -165,12 +165,12 @@ impl Volume
     {
         try .requireWritable()
         if .file.base and (not additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
-            try failWith("Hidden access needs nonempty credentials distinct from outer access.", .InvalidInput)
+            fail volumeError(.InvalidInput)
 
         if not additional.count do
-            try failWith("A password is required.", .PasswordRequired)
+            fail volumeError(.PasswordRequired)
         if (try .findKeySlot(additional)) != Swag.U64.Max do
-            try failWith("That password already opens this container.", .AlreadyExists)
+            fail volumeError(.AlreadyExists)
 
         for index in KeySlotCount where (.keySlotMask & keySlotBit(index)) == 0
         {
@@ -185,8 +185,7 @@ impl Volume
             return index
         }
 
-        try failWith("Every key slot is already in use.", .DiskFull)
-        unreachable
+        fail volumeError(.DiskFull)
     }
 
     // Removes the password that opens a slot.
@@ -198,9 +197,9 @@ impl Volume
         try .requireWritable()
         let index = try .findKeySlot(password)
         if index == Swag.U64.Max do
-            try failWith("That password does not open this container.", .NotFound)
+            fail volumeError(.NotFound)
         if .keySlotCount() <= 1 do
-            try failWith("The last password cannot be removed.", .AccessDenied)
+            fail volumeError(.AccessDenied)
 
         try .eraseKeySlot(index)
         .keySlotMask  &= ~keySlotBit(index)

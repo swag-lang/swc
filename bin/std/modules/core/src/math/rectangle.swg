@@ -31,6 +31,16 @@ impl Rectangle
         return {.x * value, .y * value, .width * value, .height * value}
     }
 
+    // Multiplies the position and size of this rectangle by `value`, as `*` does.
+    mtd(op: Swag.Operator) opAssign(value: f32)
+        where op == .MulAssign
+    {
+        .x      *= value
+        .y      *= value
+        .width  *= value
+        .height *= value
+    }
+
     // Sets this rectangle to the one spanned by two opposite corners.
     //
     // The corners may come in any order: the result is always normalized.

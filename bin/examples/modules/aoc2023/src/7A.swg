@@ -56,29 +56,29 @@ using Core
 
 private struct Card
 {
-    val:    string = ""
-    bid:    u64
-    count:  [13] s32
-    countV: [6] s32
-    value:  s32
+    labels:              string = ""
+    bid:                 u64
+    countByRank:         [13] s32
+    ranksByMultiplicity: [6] s32
+    handType:            s32
 }
 
-private var map:   HashTable'(u8, u8)
-private var cards: Array'Card
+private var strengthByLabel: HashTable'(u8, u8)
+private var hands: Array'Card
 
 private func sort()
 {
-    cards.sort(func(a, b)
+    hands.sort(func(leftHand, rightHand)
     {
-        if a.value != b.value do
-            return a.value <=> b.value
+        if leftHand.handType != rightHand.handType do
+            return leftHand.handType <=> rightHand.handType
 
-        for i in a.val.count
+        for i in leftHand.labels.count
         {
-            let it0 = map.find(a.val[i])
-            let it1 = map.find(b.val[i])
-            if it0.value != it1.value do
-                return it0.value <=> it1.value
+            let leftStrength  = strengthByLabel.find(leftHand.labels[i])
+            let rightStrength = strengthByLabel.find(rightHand.labels[i])
+            if leftStrength.value != rightStrength.value do
+                return leftStrength.value <=> rightStrength.value
         }
 
         return 0
@@ -90,56 +90,56 @@ func day7A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    map.add('A', 12)
-    map.add('K', 11)
-    map.add('Q', 10)
-    map.add('J', 9)
-    map.add('T', 8)
-    map.add('9', 7)
-    map.add('8', 6)
-    map.add('7', 5)
-    map.add('6', 4)
-    map.add('5', 3)
-    map.add('4', 2)
-    map.add('3', 1)
-    map.add('2', 0)
+    strengthByLabel.add('A', 12)
+    strengthByLabel.add('K', 11)
+    strengthByLabel.add('Q', 10)
+    strengthByLabel.add('J', 9)
+    strengthByLabel.add('T', 8)
+    strengthByLabel.add('9', 7)
+    strengthByLabel.add('8', 6)
+    strengthByLabel.add('7', 5)
+    strengthByLabel.add('6', 4)
+    strengthByLabel.add('5', 3)
+    strengthByLabel.add('4', 2)
+    strengthByLabel.add('3', 1)
+    strengthByLabel.add('2', 0)
 
-    for l in lines
+    for line in lines
     {
-        let first = Tokenize.split(l[], ' 'u8)
+        let handAndBid = Tokenize.split(line[], ' 'u8)
 
-        var card: Card
-        for c in first[0]
+        var hand: Card
+        for label in handAndBid[0]
         {
-            let it = map.find(c)
-            card.count[it.value] += 1
+            let rank = strengthByLabel.find(label)
+            hand.countByRank[rank.value] += 1
         }
 
-        for c in card.count
+        for rankCount in hand.countByRank
         {
-            card.countV[c] += 1
+            hand.ranksByMultiplicity[rankCount] += 1
         }
 
         switch
         {
-        case card.countV[5]:      card.value = 6
-        case card.countV[4]:      card.value = 5
-        case card.countV[3] and card.countV[2]: card.value = 4
-        case card.countV[3]:      card.value = 3
-        case card.countV[2] == 2: card.value = 2
-        case card.countV[2]:      card.value = 1
+        case hand.ranksByMultiplicity[5]:      hand.handType = 6
+        case hand.ranksByMultiplicity[4]:      hand.handType = 5
+        case hand.ranksByMultiplicity[3] and hand.ranksByMultiplicity[2]: hand.handType = 4
+        case hand.ranksByMultiplicity[3]:      hand.handType = 3
+        case hand.ranksByMultiplicity[2] == 2: hand.handType = 2
+        case hand.ranksByMultiplicity[2]:      hand.handType = 1
         }
 
-        card.val = first[0]
-        card.bid = expect StrConv.toU64(first[1])
-        cards.add(card)
+        hand.labels = handAndBid[0]
+        hand.bid    = expect StrConv.toU64(handAndBid[1])
+        hands.add(hand)
     }
 
     sort()
 
     var total: u64
-    for c, idx in cards do
-        total += (idx + 1) * c.bid
+    for hand, rank in hands do
+        total += (rank + 1) * hand.bid
 
     Swag.assert(total == 249748283)
 }

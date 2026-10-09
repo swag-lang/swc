@@ -345,6 +345,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
             auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
             diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
+            if (state.memberScope)
+                SemaError::addUnknownMemberArguments(*sema, diag, state.idRef, *state.memberScope);
             diag.report(ctx);
         }
     }

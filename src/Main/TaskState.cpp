@@ -131,6 +131,7 @@ void TaskState::setNone()
     waiterSymbol             = nullptr;
     jitEmissionError         = false;
     autoScopeTypeRef         = TypeRef::invalid();
+    memberScope              = nullptr;
     typeInfoOwner            = nullptr;
     typeInfoGeneration       = 0;
 }

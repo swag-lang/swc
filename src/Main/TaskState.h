@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Symbol;
 class SymbolFunction;
+class SymbolMap;
 
 enum class TaskStateKind : uint8_t
 {
@@ -52,6 +53,10 @@ struct TaskState
     // auto-scope resolution. It survives the pause so a stalled wait can still name the type
     // and list what it does offer, instead of degrading to a bare unknown-symbol report.
     TypeRef autoScopeTypeRef = TypeRef::invalid();
+
+    // Scope a qualified 'Scope.member' lookup waited on, so a stalled wait can still name that
+    // scope and the closest name it offers.
+    const SymbolMap* memberScope = nullptr;
 
     static const char* kindName(TaskStateKind kind);
     bool               hasPauseReason() const;

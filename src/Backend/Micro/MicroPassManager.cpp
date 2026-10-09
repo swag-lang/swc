@@ -736,7 +736,15 @@ Result MicroPassManager::run(MicroPassContext& context) const
         for (uint32_t iteration = 0; iteration < 2; ++iteration)
         {
             SWC_RESULT(runPass(context, *postRaPeepholePass_, verifyCache));
+            bool changed = context.passChanged;
             SWC_RESULT(runPass(context, *prePrologueDcePass_, verifyCache));
+            changed |= context.passChanged;
+
+            // Both passes read only the instructions and a context this loop leaves alone: a
+            // sweep that changes neither hands the next one the same input, which it would
+            // leave unchanged too.
+            if (!changed)
+                break;
         }
     }
 

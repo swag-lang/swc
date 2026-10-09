@@ -148,7 +148,13 @@ func nextPage()
     g_Page = (g_Page + 1) % MaxPages
 }
 
-func isAnchorCap(cap: LineCapStyle)->bool => cap == .ArrowAnchor or cap == .ArrowAnchor2 or cap == .SquareAnchor or cap == .RoundAnchor
+func isAnchorCap(cap: LineCapStyle)->bool
+{
+    return cap == .ArrowAnchor or
+           cap == .ArrowAnchor2 or
+           cap == .SquareAnchor or
+           cap == .RoundAnchor
+}
 
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
@@ -171,7 +177,11 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
     return insetRect(rect, 18, PanelHeaderHeight, 18, 18)
 }
 
-func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
+func drawWrappedText(painter: *Pixel.Painter,
+                     rect: Math.Rectangle,
+                     text: string,
+                     font: *Pixel.Font,
+                     color: Color)
 {
     var richText: RichString = text
     var format:   RichStringFormat
@@ -288,10 +298,30 @@ func makeBlobPath(rect: Math.Rectangle)->LinePath
     let height = rect.height
 
     path.start(left + width * 0.311, top + height * 0.464)
-    path.bezierTo(left + width * 0.450, top + height * 0.100, left + width * 0.320, top + height * 0.180, left + width * 0.385, top + height * 0.057)
-    path.bezierTo(left + width * 0.676, top + height * 0.446, left + width * 0.534, top + height * 0.162, left + width * 0.671, top + height * 0.218)
-    path.bezierTo(left + width * 0.545, top + height * 0.933, left + width * 0.689, top + height * 0.680, left + width * 0.624, top + height * 0.995)
-    path.bezierTo(left + width * 0.311, top + height * 0.464, left + width * 0.468, top + height * 0.971, left + width * 0.320, top + height * 0.810)
+    path.bezierTo(left + width * 0.450,
+                  top + height * 0.100,
+                  left + width * 0.320,
+                  top + height * 0.180,
+                  left + width * 0.385,
+                  top + height * 0.057)
+    path.bezierTo(left + width * 0.676,
+                  top + height * 0.446,
+                  left + width * 0.534,
+                  top + height * 0.162,
+                  left + width * 0.671,
+                  top + height * 0.218)
+    path.bezierTo(left + width * 0.545,
+                  top + height * 0.933,
+                  left + width * 0.689,
+                  top + height * 0.680,
+                  left + width * 0.624,
+                  top + height * 0.995)
+    path.bezierTo(left + width * 0.311,
+                  top + height * 0.464,
+                  left + width * 0.468,
+                  top + height * 0.971,
+                  left + width * 0.320,
+                  top + height * 0.810)
     path.close()
     return path
 }

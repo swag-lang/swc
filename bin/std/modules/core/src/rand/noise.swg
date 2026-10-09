@@ -163,10 +163,18 @@ public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
     let y1 = cast(s32, (y0 + PrimeY))
     let z1 = cast(s32, (z0 + PrimeZ))
 
-    let xf00 = Math.lerp(gradCoord(seed, x0, y0, z0, xd0, yd0, zd0), gradCoord(seed, x1, y0, z0, xd1, yd0, zd0), xs)
-    let xf10 = Math.lerp(gradCoord(seed, x0, y1, z0, xd0, yd1, zd0), gradCoord(seed, x1, y1, z0, xd1, yd1, zd0), xs)
-    let xf01 = Math.lerp(gradCoord(seed, x0, y0, z1, xd0, yd0, zd1), gradCoord(seed, x1, y0, z1, xd1, yd0, zd1), xs)
-    let xf11 = Math.lerp(gradCoord(seed, x0, y1, z1, xd0, yd1, zd1), gradCoord(seed, x1, y1, z1, xd1, yd1, zd1), xs)
+    let xf00 = Math.lerp(gradCoord(seed, x0, y0, z0, xd0, yd0, zd0),
+                         gradCoord(seed, x1, y0, z0, xd1, yd0, zd0),
+                         xs)
+    let xf10 = Math.lerp(gradCoord(seed, x0, y1, z0, xd0, yd1, zd0),
+                         gradCoord(seed, x1, y1, z0, xd1, yd1, zd0),
+                         xs)
+    let xf01 = Math.lerp(gradCoord(seed, x0, y0, z1, xd0, yd0, zd1),
+                         gradCoord(seed, x1, y0, z1, xd1, yd0, zd1),
+                         xs)
+    let xf11 = Math.lerp(gradCoord(seed, x0, y1, z1, xd0, yd1, zd1),
+                         gradCoord(seed, x1, y1, z1, xd1, yd1, zd1),
+                         xs)
 
     let yf0 = Math.lerp(xf00, xf10, ys)
     let yf1 = Math.lerp(xf01, xf11, ys)

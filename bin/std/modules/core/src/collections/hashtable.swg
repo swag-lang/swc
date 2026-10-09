@@ -722,17 +722,17 @@ impl HashTable
             let table = .tablePtr()
             for i in .capacity
             {
-                let hashval = table[i].hash
+                let hashVal = table[i].hash
 
-                if hashval >= HashTable.HASH_DELETED
+                if hashVal >= HashTable.HASH_DELETED
                 {
                     Swag.drop(&table[i].key)
                     Swag.drop(&table[i].value)
                 }
 
-                if hashval == HashTable.HASH_DELETED do
+                if hashVal == HashTable.HASH_DELETED do
                     .deleted -= 1
-                elif hashval >= HashTable.HASH_FIRST do
+                elif hashVal >= HashTable.HASH_FIRST do
                     .count -= 1
                 table[i].hash = HashTable.HASH_FREE
 

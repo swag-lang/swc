@@ -26,8 +26,12 @@ func createTreesPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 
-    let left = createPanel(parent, "Simple tree", "A ListCtrl with child lines becomes a compact tree view.", layout.left)
-    let tree = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
+    let left = createPanel(parent,
+                           "Simple tree",
+                           "A ListCtrl with child lines becomes a compact tree view.",
+                           layout.left)
+    let tree = ListCtrl.createSimple(left,
+                                     {18, 92, layout.left.width - 36, layout.left.height - 112})
     tree.setFrameForm(.Round)
     tree.frameFlags.add(.FocusBorder)
     tree.setSelectionMode(.Single)
@@ -39,8 +43,12 @@ func createTreesPage(parent: *Wnd)
     tree.expand(assets)
     tree.computeLayout()
 
-    let right = createPanel(parent, "Tree table", "Nested rows can still carry column data and sortable headers.", layout.right)
-    let table = ListCtrl.createMultiColumns(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    let right = createPanel(parent,
+                            "Tree table",
+                            "Nested rows can still carry column data and sortable headers.",
+                            layout.right)
+    let table = ListCtrl.createMultiColumns(right,
+                                            {18, 92, layout.right.width - 36, layout.right.height - 112})
     table.setFrameForm(.Round)
     table.setSelectionMode(.Multi)
     table.setIconSize(16)
@@ -58,7 +66,9 @@ func createTreesPage(parent: *Wnd)
         root.setItem(3, i % 2 == 0 ? "core" : "tools")
         for j in 4
         {
-            let child = table.createLine(Format.toString("file %.%", i + 1, j + 1), sampleIcon(i + j), parentLine: root)
+            let child = table.createLine(Format.toString("file %.%", i + 1, j + 1),
+                                         sampleIcon(i + j),
+                                         parentLine: root)
             child.setItem(1, j % 2 == 0 ? "ready" : "dirty")
             child.setItem(2, Format.toString("% KB", 12 + j * 3))
             child.setItem(3, j % 2 == 0 ? "api" : "ui")

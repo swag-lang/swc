@@ -349,10 +349,30 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
 
             let y     = card.bottom() + 28
             let width = Math.max((rect.width - 96) / 4, 70.0)
-            drawSwatch(painter, {24, y, width, 40}, "lighter", Color.lighter(g_Color, 0.34), font, colors)
-            drawSwatch(painter, {24 + width + 16, y, width, 40}, "darker", Color.darker(g_Color, 0.34), font, colors)
-            drawSwatch(painter, {24 + (width + 16) * 2, y, width, 40}, "complement", g_Color.complementary(), font, colors)
-            drawSwatch(painter, {24 + (width + 16) * 3, y, width, 40}, "muted", g_Color.adjustSaturation(-0.55), font, colors)
+            drawSwatch(painter,
+                       {24, y, width, 40},
+                       "lighter",
+                       Color.lighter(g_Color, 0.34),
+                       font,
+                       colors)
+            drawSwatch(painter,
+                       {24 + width + 16, y, width, 40},
+                       "darker",
+                       Color.darker(g_Color, 0.34),
+                       font,
+                       colors)
+            drawSwatch(painter,
+                       {24 + (width + 16) * 2, y, width, 40},
+                       "complement",
+                       g_Color.complementary(),
+                       font,
+                       colors)
+            drawSwatch(painter,
+                       {24 + (width + 16) * 3, y, width, 40},
+                       "muted",
+                       g_Color.adjustSaturation(-0.55),
+                       font,
+                       colors)
         }
         else
         {
@@ -440,7 +460,11 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
         painter.fillRect(rect, colors.view_Bk)
 
-        let left  = Math.Rectangle{24, 28, Math.max((rect.width - 72) * 0.5, 120.0), Math.max(rect.height - 56, 80.0)}
+        let left = Math.Rectangle{
+            24,
+            28,
+            Math.max((rect.width - 72) * 0.5, 120.0),
+            Math.max(rect.height - 56, 80.0)}
         let right = Math.Rectangle{left.right() + 24, 28, left.width, left.height}
         let text  = g_Color.contrasting()
 
@@ -517,9 +541,10 @@ func layoutRootView()
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
-    let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin,
+                                TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let footerY    = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title2      = g_Title!
     let themeButton = g_ThemeButton!

@@ -10,8 +10,26 @@ func buildTiffPage() fail
     var lzw: Tiff.EncodeOptions
     lzw.compression = .Lzw
 
-    try encodeCard(&g_Cards[PageTiff][0], "variant.tiff", "RGB input", "little-endian RGB, uncompressed", sourceVariant(source, .RGB8))
-    try encodeCard(&g_Cards[PageTiff][1], "variant.tiff", "BGR input with PackBits", "little-endian RGB, PackBits", sourceVariant(source, .BGR8), packBits)
-    try encodeCard(&g_Cards[PageTiff][2], "variant.tiff", "RGBA with alpha", "little-endian RGBA, soft alpha border", sourceVariant(source, .RGBA8, true))
-    try encodeCard(&g_Cards[PageTiff][3], "variant.tiff", "BGRA with alpha and LZW", "little-endian RGBA, LZW with horizontal differencing", sourceVariant(source, .BGRA8, true), lzw)
+    try encodeCard(&g_Cards[PageTiff][0],
+                   "variant.tiff",
+                   "RGB input",
+                   "little-endian RGB, uncompressed",
+                   sourceVariant(source, .RGB8))
+    try encodeCard(&g_Cards[PageTiff][1],
+                   "variant.tiff",
+                   "BGR input with PackBits",
+                   "little-endian RGB, PackBits",
+                   sourceVariant(source, .BGR8),
+                   packBits)
+    try encodeCard(&g_Cards[PageTiff][2],
+                   "variant.tiff",
+                   "RGBA with alpha",
+                   "little-endian RGBA, soft alpha border",
+                   sourceVariant(source, .RGBA8, true))
+    try encodeCard(&g_Cards[PageTiff][3],
+                   "variant.tiff",
+                   "BGRA with alpha and LZW",
+                   "little-endian RGBA, LZW with horizontal differencing",
+                   sourceVariant(source, .BGRA8, true),
+                   lzw)
 }

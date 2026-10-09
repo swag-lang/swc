@@ -48,12 +48,24 @@ impl IWnd for MotionCard
         painter.fillRoundRect({badgeX, badgeY, BadgeSize, BadgeSize}, 6, 6, colors.hilight)
 
         let badgeFont = theme.createDefaultFont(12, .Bold)
-        painter.drawStringCenter(badgeX + BadgeSize * 0.5, badgeY + BadgeSize * 0.5, Format.toString("%", .rank), badgeFont, colors.hilightLightContrast)
+        painter.drawStringCenter(badgeX + BadgeSize * 0.5,
+                                 badgeY + BadgeSize * 0.5,
+                                 Format.toString("%", .rank),
+                                 badgeFont,
+                                 colors.hilightLightContrast)
 
         let titleFont = theme.createDefaultFont(14, .Bold)
-        painter.drawString(rect.x + 18, titleFont.opticalTop(badgeY + BadgeSize + 20, 14), .title, titleFont, colors.label_Text)
+        painter.drawString(rect.x + 18,
+                           titleFont.opticalTop(badgeY + BadgeSize + 20, 14),
+                           .title,
+                           titleFont,
+                           colors.label_Text)
 
         let detailFont = theme.createDefaultFont(12)
-        painter.drawString(rect.x + 18, detailFont.opticalTop(badgeY + BadgeSize + 42, 12), .detail, detailFont, colors.label_TextLight)
+        painter.drawString(rect.x + 18,
+                           detailFont.opticalTop(badgeY + BadgeSize + 42, 12),
+                           .detail,
+                           detailFont,
+                           colors.label_TextLight)
     }
 }

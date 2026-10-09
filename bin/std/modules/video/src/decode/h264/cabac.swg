@@ -9,6 +9,7 @@
 using Core, Core.Errors
 
 // A zero bit in a coded block pattern contributes one to its CABAC context index.
+#[Swag.Inline]
 private func missingCbpContextBit(pattern, mask: u32)->u64 => pattern & mask ? 0 : 1
 
 // The CABAC arithmetic decoding engine of section 9.3, in the register layout of FFmpeg's

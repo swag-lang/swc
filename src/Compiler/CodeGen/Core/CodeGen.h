@@ -302,19 +302,9 @@ public:
             return nullptr;
 
         if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
-        {
-            const auto it = nodePayloads_.find(nodeRef);
-            if (it == nodePayloads_.end())
-                return nullptr;
-            return static_cast<T*>(it->second);
-        }
+            return static_cast<T*>(nodePayloads_.find(nodeRef));
         else
-        {
-            const auto it = auxNodePayloads_.find(nodeRef);
-            if (it == auxNodePayloads_.end())
-                return nullptr;
-            return static_cast<T*>(it->second);
-        }
+            return static_cast<T*>(auxNodePayloads_.find(nodeRef));
     }
 
     template<typename T>
@@ -325,19 +315,9 @@ public:
             return nullptr;
 
         if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
-        {
-            const auto it = nodePayloads_.find(nodeRef);
-            if (it == nodePayloads_.end())
-                return nullptr;
-            return static_cast<const T*>(it->second);
-        }
+            return static_cast<const T*>(nodePayloads_.find(nodeRef));
         else
-        {
-            const auto it = auxNodePayloads_.find(nodeRef);
-            if (it == auxNodePayloads_.end())
-                return nullptr;
-            return static_cast<const T*>(it->second);
-        }
+            return static_cast<const T*>(auxNodePayloads_.find(nodeRef));
     }
 
     template<typename T>
@@ -347,15 +327,15 @@ public:
         nodeRef                       = resolvedNodeRef(nodeRef);
         SWC_ASSERT(nodeRef.isValid());
 
-        void*& slot    = std::is_base_of_v<CodeGenNodePayload, T> ? nodePayloads_[nodeRef] : auxNodePayloads_[nodeRef];
-        T*     payload = static_cast<T*>(slot);
+        RefPointerMap<AstNodeRef>& payloads = std::is_base_of_v<CodeGenNodePayload, T> ? nodePayloads_ : auxNodePayloads_;
+        T*                         payload  = static_cast<T*>(payloads.find(nodeRef));
         if (!payload)
         {
             payload  = ctx().allocate<T>();
             *payload = {};
             if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
                 mergeLoweringNodePayloadMetadata(*payload, queryNodeRef, nodeRef);
-            slot = payload;
+            payloads.set(nodeRef, payload);
         }
 
         return *payload;
@@ -511,8 +491,8 @@ private:
     Sema*                                                            sema_ = nullptr;
     AstVisit                                                         visit_;
     std::vector<CodeGenFrame>                                        frames_;
-    std::unordered_map<AstNodeRef, void*>                            nodePayloads_;
-    std::unordered_map<AstNodeRef, void*>                            auxNodePayloads_;
+    RefPointerMap<AstNodeRef>                                        nodePayloads_;
+    RefPointerMap<AstNodeRef>                                        auxNodePayloads_;
     std::unordered_map<const SymbolVariable*, VariablePayloadState>  variablePayloads_;
     std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar> moveElisionVars_;
     PointerSet<const SymbolVariable>                                 elidedImplicitDrops_;

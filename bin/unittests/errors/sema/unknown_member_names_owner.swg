@@ -42,3 +42,5 @@ func unknownMemberFar(box: UnknownMemberBox)->s32
 func unknownMemberEnum()->UnknownMemberColor => UnknownMemberColor.Gren     // swc-expected-error {{enum 'UnknownMemberColor' has no member 'Gren'; [help] use 'Green' instead}}
 
 func unknownMemberNamespace()->s32 => UnknownMemberGeometry.aera()     // swc-expected-error {{namespace 'UnknownMemberGeometry' has no member 'aera'; [help] use 'area' instead}}
+
+func unknownMemberScalar(value: s32)->s32 => value.size     // swc-expected-error {{type 's32' has no member 'size'}}

@@ -60,6 +60,7 @@ public:
     constexpr static std::string_view ARG_GENERIC_VALUES       = "{generic-values}";
     constexpr static std::string_view ARG_DECL_SYM             = "{decl-sym}";
     constexpr static std::string_view ARG_RETURN_FN            = "{return-fn}";
+    constexpr static std::string_view ARG_RECEIVER_FN          = "{receiver-fn}";
     constexpr static std::string_view ARG_SPEC_OP              = "{spec-op}";
     constexpr static std::string_view ARG_SPEC_OP_SIGNATURE    = "{spec-op-signature}";
     constexpr static std::string_view ARG_TARGET               = "{target}";

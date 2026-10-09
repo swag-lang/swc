@@ -50,6 +50,7 @@ SWC_DIAG_DEF(sema_err_cannot_cast_pointer_narrowing, Error, "cannot cast from '{
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "cannot cast from '{type}' to '{requested-type}', because it would remove the 'const' qualifier")
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "cannot cast from '{type}' to '{requested-type}'; cannot remove 'const' qualifier")
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "argument {index} for call to '{sym}' cannot cast from '{type}' to '{requested-type}', because it would remove the 'const' qualifier")
+SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "'{receiver-fn}' needs a receiver of type '{requested-type}', but it is called on '{type}'; [help] call it on a mutable value, or declare it with 'mtd const' if it does not change its receiver")
 SWC_DIAG_DEF(sema_err_cannot_cast_to_interface, Error, "cannot cast from '{type}' to interface '{requested-type}', because the struct does not implement it; [help] implement '{requested-type}' for '{type}', or use a different type")
 SWC_DIAG_DEF(sema_err_cannot_cast_to_interface, Error, "cannot cast from '{type}' to interface '{requested-type}'; struct does not implement it; [help] implement '{requested-type}' for '{type}', or use a different type")
 SWC_DIAG_DEF(sema_err_cannot_cast_to_interface, Error, "argument {index} for call to '{sym}' cannot cast from '{type}' to interface '{requested-type}', because the struct does not implement it; [help] implement '{requested-type}' for '{type}', or use a different type")

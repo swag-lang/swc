@@ -25,6 +25,7 @@ public:
     void          addUsingSymMap(TaskContext& ctx, SymbolMap* symMap);
     void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
+    const Symbol* findFirstNamespace(IdentifierRef idRef) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     uint64_t      countSymbols(SymbolKind kind) const;

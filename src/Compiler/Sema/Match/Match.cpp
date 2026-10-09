@@ -166,24 +166,13 @@ namespace
         if (!root)
             return nullptr;
 
+        // Every unqualified lookup walks this path two or three times. A lookup in one map at one
+        // priority keeps its homonyms in chain order, so the namespace it would report first is
+        // the first one in the chain.
         const SymbolMap* current = root;
         for (const IdentifierRef idRef : nsPath)
         {
-            MatchContext            matchCxt;
-            constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::LocalScope};
-            matchCxt.beginSymMapLookup(priority);
-            current->lookupAppend(idRef, matchCxt);
-
-            const Symbol* nextNamespace = nullptr;
-            for (const Symbol* symbol : matchCxt.symbols())
-            {
-                if (symbol && symbol->isNamespace())
-                {
-                    nextNamespace = symbol;
-                    break;
-                }
-            }
-
+            const Symbol* nextNamespace = current->findFirstNamespace(idRef);
             if (!nextNamespace)
                 return nullptr;
 

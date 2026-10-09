@@ -385,6 +385,19 @@ const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnore
     return firstVisibleSymbol(findHead(idRef), includeIgnored);
 }
 
+// The first homonym that is a namespace and is not ignored: what a lookup of the name in this map
+// reports first among its namespaces, without collecting every homonym to find it.
+const Symbol* SymbolMap::findFirstNamespace(IdentifierRef idRef) const
+{
+    for (const Symbol* cur = findHead(idRef); cur; cur = cur->nextHomonym())
+    {
+        if (!cur->isIgnored() && cur->isNamespace())
+            return cur;
+    }
+
+    return nullptr;
+}
+
 template<typename F>
 void SymbolMap::forEachPublishedHead(const F& fn) const
 {

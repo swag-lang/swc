@@ -15,7 +15,16 @@ func viewerPlugin()->Viewer.Plugin
         .iconIndex    = cast(s32, ViewerIcons.Binary)
         .create       = &createViewer
         .smokeFixture = "appicon.ico"
-        .addSelectors(".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.mid;.midi;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
+        .addSelectors([
+            ".exe", ".dll", ".sys", ".ocx", ".cpl", ".scr", ".efi", ".drv", ".mui", ".mun",
+            ".winmd", ".node", ".pyd", ".obj", ".o", ".lib", ".a", ".so", ".elf", ".ko", ".axf",
+            ".dylib", ".bundle", ".wasm", ".scc", ".zip", ".jar", ".war", ".apk", ".aar", ".epub",
+            ".whl", ".nupkg", ".vsix", ".crx", ".xpi", ".docx", ".xlsx", ".pptx", ".odt", ".ods",
+            ".odp", ".otf", ".woff", ".woff2", ".ico", ".cur", ".gz", ".tgz", ".bz2", ".tbz2",
+            ".xz", ".txz", ".zst", ".tzst", ".7z", ".rar", ".cab", ".msi", ".doc", ".xls", ".ppt",
+            ".ps", ".eps", ".class", ".dex", ".sqlite", ".db", ".pdb", ".mid", ".midi", ".wav",
+            ".avi", ".webp", ".mp3", ".flac", ".ogg", ".oga", ".ogv", ".mp4", ".m4a", ".m4v",
+            ".mov", ".3gp", ".3g2", ".mkv", ".webm", "*"])
     }
 
     return result

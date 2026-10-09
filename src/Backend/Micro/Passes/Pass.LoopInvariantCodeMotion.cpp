@@ -277,10 +277,10 @@ namespace
             }
         }
 
-        auto&                                             relocations   = context.builder->codeRelocations();
-        const size_t                                      relocationEnd = relocations.size();
-        thread_local std::unordered_map<uint32_t, size_t> firstRelocation;
-        thread_local std::vector<size_t>                  nextRelocation;
+        auto&                            relocations   = context.builder->codeRelocations();
+        const size_t                     relocationEnd = relocations.size();
+        thread_local FlatKeyMap<size_t>  firstRelocation;
+        thread_local std::vector<size_t> nextRelocation;
         firstRelocation.clear();
         nextRelocation.assign(relocationEnd, relocationEnd);
         // One compact chain per instruction, preserving relocation order and
@@ -291,21 +291,22 @@ namespace
             const MicroInstrRef ref = relocations[index].instructionRef;
             if (ref.isInvalid())
                 continue;
-            const auto [it, inserted] = firstRelocation.try_emplace(ref.get(), index);
-            if (!inserted)
+            if (size_t* first = firstRelocation.find(ref.get()))
             {
-                nextRelocation[index] = it->second;
-                it->second            = index;
+                nextRelocation[index] = *first;
+                *first                = index;
             }
+            else
+                firstRelocation.emplace(ref.get(), index);
         }
 
         const auto callDoesNotWrite = [&](const MicroInstrRef ref, const MicroInstrOpcode op) {
             if (op != MicroInstrOpcode::CallLocal && op != MicroInstrOpcode::CallExtern)
                 return false;
-            const auto it = firstRelocation.find(ref.get());
-            if (it == firstRelocation.end())
+            const size_t* first = firstRelocation.find(ref.get());
+            if (!first)
                 return false;
-            const Symbol* target = relocations[it->second].targetSymbol;
+            const Symbol* target = relocations[*first].targetSymbol;
             return target && target->isFunction() && target->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
         };
 
@@ -368,12 +369,12 @@ namespace
         thread_local std::unordered_set<MicroReg> immutableBases;
         MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
 
-        thread_local std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
-        thread_local std::vector<HoistPlan>       plans;
-        thread_local std::vector<uint32_t>        bodyIndices;
-        thread_local std::vector<MicroReg>        slotDefReg;
-        thread_local std::vector<uint8_t>         slotIsFullDef;
-        thread_local std::vector<uint8_t>         slotIsCompute;
+        thread_local FlatKeySet             claimed; // instruction slot ids planned this round
+        thread_local std::vector<HoistPlan> plans;
+        thread_local std::vector<uint32_t>  bodyIndices;
+        thread_local std::vector<MicroReg>  slotDefReg;
+        thread_local std::vector<uint8_t>   slotIsFullDef;
+        thread_local std::vector<uint8_t>   slotIsCompute;
         claimed.clear();
         plans.clear();
 
@@ -435,9 +436,9 @@ namespace
                 if (!MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory))
                     continue;
                 // A writer carrying a relocation addresses its target directly.
-                if (const auto relocationIt = firstRelocation.find(instrRefs[i].get()); relocationIt != firstRelocation.end())
+                if (const size_t* firstIndex = firstRelocation.find(instrRefs[i].get()))
                 {
-                    for (size_t index = relocationIt->second; index < relocationEnd; index = nextRelocation[index])
+                    for (size_t index = *firstIndex; index < relocationEnd; index = nextRelocation[index])
                         directStoreTargets.insert(relocationKey(relocations[index]));
                 }
                 // So does one writing through a register that holds a private global's address.
@@ -739,8 +740,8 @@ namespace
                         // clone of a relocated load or address materialization
                         // takes the relocation over when it is emitted; any
                         // other relocated instruction stays where it is.
-                        const auto relocationIt = firstRelocation.find(ref.get());
-                        if (relocationIt != firstRelocation.end() && !isRelocatableHoist(inst->op))
+                        const size_t* firstIndex = firstRelocation.find(ref.get());
+                        if (firstIndex && !isRelocatableHoist(inst->op))
                             continue;
 
                         if (slotIsCompute[i])
@@ -806,8 +807,8 @@ namespace
                             const bool constantPoolVector = inst->op == MicroInstrOpcode::LoadRegMem &&
                                                             loadOps[1].reg.isInstructionPointer() &&
                                                             loadOps[2].opBits == MicroOpBits::B128 &&
-                                                            relocationIt != firstRelocation.end() &&
-                                                            relocations[relocationIt->second].kind == MicroRelocation::Kind::ConstantAddress;
+                                                            firstIndex &&
+                                                            relocations[*firstIndex].kind == MicroRelocation::Kind::ConstantAddress;
 
                             const bool immutableLoad = loadOps[1].reg.isVirtualInt() && immutableBases.contains(loadOps[1].reg);
 
@@ -817,9 +818,9 @@ namespace
                             // value, and once the allocator spills it, the hoist trades a load of the
                             // global for a load of the stack slot plus the spill's own traffic.
                             bool privateGlobalLoad = false;
-                            if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() && relocationIt != firstRelocation.end())
+                            if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() && firstIndex)
                             {
-                                const MicroRelocation& relocation = relocations[relocationIt->second];
+                                const MicroRelocation& relocation = relocations[*firstIndex];
                                 const uint64_t         key        = relocationKey(relocation);
                                 privateGlobalLoad                 = relocation.privateGlobal && !loopHasNestedLoop && !materializedPrivateGlobals.contains(key);
                                 if (privateGlobalLoad && directStoreTargets.contains(key))
@@ -839,9 +840,9 @@ namespace
                                 if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() &&
                                     loadOps[2].opBits == MicroOpBits::B64)
                                 {
-                                    if (relocationIt != firstRelocation.end())
+                                    if (firstIndex)
                                     {
-                                        const auto kind = relocations[relocationIt->second].kind;
+                                        const auto kind = relocations[*firstIndex].kind;
                                         directGlobal    = kind == MicroRelocation::Kind::GlobalInitAddress ||
                                                        kind == MicroRelocation::Kind::GlobalZeroAddress;
                                     }
@@ -1168,13 +1169,13 @@ namespace
         {
             for (const Clone& clone : plan.clones)
             {
-                const MicroInstrRef hoistedRef   = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
-                const auto          relocationIt = firstRelocation.find(clone.original.get());
-                if (relocationIt == firstRelocation.end())
+                const MicroInstrRef hoistedRef = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
+                const size_t*       firstIndex = firstRelocation.find(clone.original.get());
+                if (!firstIndex)
                     continue;
                 // Cloning only changes MicroStorage; the relocation array and
                 // its index chains remain fixed until all retargeting is done.
-                for (size_t index = relocationIt->second; index != relocationEnd; index = nextRelocation[index])
+                for (size_t index = *firstIndex; index != relocationEnd; index = nextRelocation[index])
                     relocations[index].instructionRef = hoistedRef;
             }
         }

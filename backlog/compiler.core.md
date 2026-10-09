@@ -9,22 +9,28 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
-- Updated: 2026-10-09 13:46 — Code generation variable payloads and the JIT address cache are flat now.
+- Updated: 2026-10-09 15:00 — Sanitizer state, branch-simplify counts and per-function instruction sets are flat; where inputs are skipped without a where clause.
 - Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
   and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
   escape state, code generation node and variable payloads, value numbering, loop rotation and
   unrolling labels, stack offsets, sanitizer counts, inline binding uses, linker tables, the JIT
-  address cache). These remain, each needing a design change:
+  address cache, the sanitizer register and stack facts, branch-simplify label and register
+  counts, the per-function call and relocation sets, loop-invariant code motion's relocation
+  chains). Optimizer listings of `bin/unittests/native` compare equal before and after, in
+  devmode and release. The sanitizer facts turned out not to need an ordered replacement: every
+  pass over them keeps or drops each entry on its own. These remain, each needing a design change:
   - `resolveFunctionCandidates` rebuilds the winner's `CallArgMapping` after every candidate
     built and dropped one; keeping it in `Candidate` copies two inline vectors per attempt.
-  - `SanitizerState::regs` and `stack` are copied at every stored chain head; merges and reports
-    iterate them, so a flat replacement must keep the iteration order that diagnostics follow.
-  - `formatFunctionWhereBindings` formats type names for every `where` evaluation, though only a
-    failure reads them; the ambient part reads sema context at formatting time.
+  - `formatFunctionWhereBindings` still formats type names for every evaluation of a generic
+    that has a `where` clause, though only a failure reads them; the ambient part reads sema
+    context at formatting time, so a lazy text has to capture that context first.
   - `TypeInfo::makeArrayAfterFirstDimension` allocates dimension vectors for every step of
-    multi-dimensional indexing, then usually finds the type already interned.
-- Next: the sanitizer state maps, which every function with a sanity guard copies at each join;
-  the replacement must keep the order merges and reports iterate them in.
+    multi-dimensional indexing, then usually finds the type already interned; avoiding it needs
+    an intern lookup keyed by a view rather than by a built `TypeInfo`.
+  - The sanitizer's sparse fact maps (`movedFrom`, `aliasPtrSlots`, ...) and branch
+    simplification's `DiamondScan` counts: the first are read in table order by alias classes
+    and moved-range reports, the second key labels by 64-bit values.
+- Next: the lazy `where` text, capturing the ambient generic functions when the inputs are built.
 - Complete when: each item is replaced with identical output and its owning suites green, or
   recorded here as not worth the change it needs.
 - Related: compiler.core.060.

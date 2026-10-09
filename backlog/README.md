@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-09 13:46 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-09 15:00 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-09 03:04 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-10-08 23:15 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-10-08 22:00 |

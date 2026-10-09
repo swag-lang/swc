@@ -471,8 +471,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
         stackPointerTracksFrame = !spMoved;
     }
-    std::optional<std::unordered_map<uint32_t, uint64_t>> stackPointerOffsets;
-    const auto                                            frameRegisterOffsetAt = [&](uint64_t& outOffset, MicroReg reg, MicroInstrRef ref) {
+    std::optional<FlatKeyMap<uint64_t>> stackPointerOffsets;
+    const auto                          frameRegisterOffsetAt = [&](uint64_t& outOffset, MicroReg reg, MicroInstrRef ref) {
         if (reg == frameBase)
         {
             outOffset = 0;
@@ -487,10 +487,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
         if (!stackPointerOffsets)
             stackPointerOffsets = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseDefRef, frameBaseSpOffset);
-        const auto found = stackPointerOffsets->find(ref.get());
-        if (found == stackPointerOffsets->end())
+        const uint64_t* found = stackPointerOffsets->find(ref.get());
+        if (!found)
             return false;
-        outOffset = found->second;
+        outOffset = *found;
         return true;
     };
     const auto isFrameRegister = [&](const MicroReg reg) {

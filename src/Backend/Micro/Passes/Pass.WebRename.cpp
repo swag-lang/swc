@@ -56,12 +56,18 @@ namespace
     // registers hold the unchanged bits without extending XMM interference;
     // value numbering can then share the load before the scalar copies. Only
     // a straight line without stores or address changes supplies candidates.
-    bool preserveRepeatedLoads(MicroPassContext& context)
+    // Also tells whether the function names a virtual float register at all: the renaming that
+    // follows only ever splits float webs, so a function without one is left as it is.
+    bool preserveRepeatedLoads(MicroPassContext& context, bool& outHasVirtualFloat)
     {
-        auto&                        storage  = *context.instructions;
-        auto&                        operands = *context.operands;
-        std::unordered_set<MicroReg> destructive;
-        std::unordered_set<MicroReg> excluded;
+        auto& storage  = *context.instructions;
+        auto& operands = *context.operands;
+        // Membership only, so their order is never read; the worker keeps their buckets.
+        thread_local std::unordered_set<MicroReg> destructive;
+        thread_local std::unordered_set<MicroReg> excluded;
+        destructive.clear();
+        excluded.clear();
+        outHasVirtualFloat = false;
         for (const MicroInstr& inst : storage.view())
         {
             const auto* ops = inst.ops(operands);
@@ -75,6 +81,7 @@ namespace
                 const MicroReg reg = ops[i].reg;
                 if (!reg.isVirtualFloat())
                     continue;
+                outHasVirtualFloat = true;
                 if (!hasScalarDoubleWidth(inst, ops) || context.builder->virtualRegForbiddenPhysRegs().contains(reg) ||
                     context.builder->shouldPreserveVirtualCopy(reg))
                     excluded.insert(reg);
@@ -155,11 +162,17 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
     if (!context.builder || !context.instructions || !context.operands)
         return Result::Continue;
 
-    if (preserveRepeatedLoads(context))
+    bool hasVirtualFloat = false;
+    if (preserveRepeatedLoads(context, hasVirtualFloat))
     {
         context.passChanged = true;
         return Result::Continue;
     }
+
+    // A candidate is the stored source of a float store, so without a virtual float register
+    // there is none: the SSA state and the scan below would find nothing.
+    if (!hasVirtualFloat)
+        return Result::Continue;
 
     std::optional<MicroSsaState> local;
     MicroSsaState&               scratch = context.ssaState ? *context.ssaState : local.emplace();

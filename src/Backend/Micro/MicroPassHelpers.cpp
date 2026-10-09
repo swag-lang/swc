@@ -86,11 +86,13 @@ MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const Micro
     return result;
 }
 
-std::unordered_map<uint32_t, uint64_t> MicroPassHelpers::collectStackPointerOffsets(const MicroPassContext& context, MicroInstrRef frameBaseRef, uint64_t frameBaseOffset)
+// One entry per instruction the walk reaches with a known displacement, which is most of the
+// function: a flat table holds them where a node-based map allocated one node each.
+FlatKeyMap<uint64_t> MicroPassHelpers::collectStackPointerOffsets(const MicroPassContext& context, MicroInstrRef frameBaseRef, uint64_t frameBaseOffset)
 {
-    std::unordered_map<uint32_t, uint64_t> result;
-    const auto&                            cfg   = context.builder->controlFlowGraph();
-    const uint32_t                         entry = cfg.indexOf(frameBaseRef);
+    FlatKeyMap<uint64_t> result;
+    const auto&          cfg   = context.builder->controlFlowGraph();
+    const uint32_t       entry = cfg.indexOf(frameBaseRef);
     if (entry == MicroControlFlowGraph::K_NO_INDEX || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.addressTakenLabelIndices().empty())
         return result;
     const auto&    callConv     = CallConv::get(context.callConvKind);

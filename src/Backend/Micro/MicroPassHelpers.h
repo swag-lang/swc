@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Math/Fold.h"
 #include <unordered_set>
@@ -38,7 +39,7 @@ namespace MicroPassHelpers
 
     // SP displacement from a captured frame base at each reachable instruction.
     // Conflicting paths and unmodelled SP definitions leave the offset unknown.
-    std::unordered_map<uint32_t, uint64_t> collectStackPointerOffsets(const MicroPassContext& context, MicroInstrRef frameBaseRef, uint64_t frameBaseOffset);
+    FlatKeyMap<uint64_t> collectStackPointerOffsets(const MicroPassContext& context, MicroInstrRef frameBaseRef, uint64_t frameBaseOffset);
 
     // The integer comparison conditions accepted by branch layout rewrites.
     inline bool invertLayoutBranchCondition(MicroCond& outInverted, MicroCond cond)

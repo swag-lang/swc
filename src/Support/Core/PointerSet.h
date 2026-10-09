@@ -277,6 +277,92 @@ private:
     size_t            count_ = 0;
 };
 
+// A map from 32-bit keys to small trivially copyable values, held in one flat table. The all-ones
+// key marks a free slot, so it is never a key. A found value is read before the next insertion,
+// which can move it.
+template<typename V>
+class FlatKeyMap
+{
+    static_assert(std::is_trivially_copyable_v<V>, "FlatKeyMap holds trivially copyable values");
+
+public:
+    const V* find(uint32_t key) const noexcept
+    {
+        if (slots_.empty())
+            return nullptr;
+
+        size_t index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key != K_FREE)
+        {
+            if (slots_[index].key == key)
+                return &slots_[index].value;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        return nullptr;
+    }
+
+    // Inserts the key with the value, or keeps the value already there, like 'emplace'.
+    void emplace(uint32_t key, const V& value)
+    {
+        SWC_ASSERT(key != K_FREE);
+        if (slots_.empty())
+            rehash(INITIAL_CAPACITY);
+
+        size_t index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key != K_FREE)
+        {
+            if (slots_[index].key == key)
+                return;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        slots_[index] = {.key = key, .value = value};
+        ++count_;
+
+        // Linear probing degrades sharply near a full table; keep it below three quarters.
+        if (count_ * 4 > slots_.size() * 3)
+            rehash(slots_.size() * 2);
+    }
+
+    size_t size() const noexcept { return count_; }
+
+private:
+    struct Slot
+    {
+        uint32_t key = K_FREE;
+        V        value{};
+    };
+
+    static constexpr size_t   INITIAL_CAPACITY = 64;
+    static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
+
+    static size_t slotIndex(uint32_t key, size_t mask) noexcept
+    {
+        return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+    }
+
+    void rehash(size_t capacity)
+    {
+        std::vector<Slot> previous(capacity);
+        previous.swap(slots_);
+
+        const size_t mask = slots_.size() - 1;
+        for (const Slot& slot : previous)
+        {
+            if (slot.key == K_FREE)
+                continue;
+            size_t index = slotIndex(slot.key, mask);
+            while (slots_[index].key != K_FREE)
+                index = (index + 1) & mask;
+            slots_[index] = slot;
+        }
+    }
+
+    std::vector<Slot> slots_;
+    size_t            count_ = 0;
+};
+
 // The nodes on the current path of a recursive walk that must not re-enter itself. Each node
 // leaves the path before its frame returns, so the path is never deeper than the recursion and a
 // scan of it costs no more than the frames already on the stack. A node-based set pays two heap

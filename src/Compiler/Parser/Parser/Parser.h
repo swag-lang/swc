@@ -219,6 +219,7 @@ private:
     AstNodeRef parseErrorManagementStmt();
     AstNodeRef parseExpression();
     bool       isForeignFunctionKeyword() const;
+    TokenRef   findMisalignedInnerOpening(TokenRef openRef) const;
     AstNodeRef parseRangeExpression();
     AstNodeRef parseFail();
     AstNodeRef parseFallThrough();

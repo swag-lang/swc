@@ -1,6 +1,7 @@
 SWC_DIAG_DEF(parser_note_reserved_identifier)
 SWC_DIAG_DEF(parser_note_other_def)
 SWC_DIAG_DEF(parser_note_opening)
+SWC_DIAG_DEF(parser_note_unclosed_candidate)
 SWC_DIAG_DEF(parser_note_gen_param_type)
 SWC_DIAG_DEF(parser_note_insert_missing_closing)
 SWC_DIAG_DEF(parser_note_controlled_statement)

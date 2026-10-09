@@ -1082,8 +1082,14 @@ namespace
                 if (exprTypeView.type() && exprTypeView.type()->isVoid())
                     return Result::Continue;
 
+                // A '#run' block is compiled as a generated function: its name means nothing to the
+                // reader, and its declaration is the block itself.
+                const auto* currentFn = sema.currentFunction();
+                if (currentFn && currentFn->decl() && currentFn->decl()->is(AstNodeId::CompilerRunBlock))
+                    return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_run_block, exprRef);
+
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
-                if (const auto* currentFn = sema.currentFunction())
+                if (currentFn && !currentFn->name(sema.ctx()).starts_with("__"))
                 {
                     diag.addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
                     diag.addNote(DiagnosticId::sema_note_function_declared_here);

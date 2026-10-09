@@ -279,6 +279,7 @@ SWC_DIAG_DEF(sema_err_switch_binding_has_expr, Error, "a case binding needs a sw
 SWC_DIAG_DEF(sema_err_run_expr_void, Error, "a '#run' expression cannot have type 'void'; [help] use '#run' as a statement, or make it return a value")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from void function '{sym}'; [help] remove the value, or give the function a return type")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from a void function; [help] remove the value, or give the function a return type")
+SWC_DIAG_DEF(sema_err_return_value_in_run_block, Error, "a '#run' block cannot return a value; [help] remove the value, or compute it with a '#run' expression instead")
 SWC_DIAG_DEF(sema_err_return_missing_value, Error, "return statement is missing a value for function returning '{requested-type}'; [help] return a value of type '{requested-type}', or change the function return type to 'void'")
 SWC_DIAG_DEF(sema_err_return_value_must_be_used, Error, "unused return value from call to '{sym}'; [help] use 'discard' to ignore, or mark the function '#[Swag.Discardable]'")
 SWC_DIAG_DEF(sema_err_return_value_must_be_used, Error, "unused return value; [help] use 'discard' to ignore, or mark the function '#[Swag.Discardable]'")

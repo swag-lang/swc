@@ -1,6 +1,7 @@
 SWC_DIAG_DEF(parser_note_reserved_identifier, Note, "{a-tok-fam} cannot be used as an identifier")
 SWC_DIAG_DEF(parser_note_other_def, Note, "previous occurrence is here")
 SWC_DIAG_DEF(parser_note_opening, Note, "this opening delimiter needs a closing '{expect-tok}'")
+SWC_DIAG_DEF(parser_note_unclosed_candidate, Note, "this block may be the one left open: the closing brace that ends it is not aligned with it")
 SWC_DIAG_DEF(parser_note_gen_param_type, Note, "declared with 'var', this parameter is a type parameter")
 SWC_DIAG_DEF(parser_note_insert_missing_closing, Note, "insert '{expect-tok}' before this {tok-fam}")
 SWC_DIAG_DEF(parser_note_controlled_statement, Note, "the controlled statement starts here")

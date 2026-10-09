@@ -133,7 +133,10 @@ impl ViewerWindow
             .searchBox.setIcon(.theme().icon(.Search, themeActionIconSize(.themeMetrics())))
         }
 
-        .searchOptionsButton.toolTip = presentation.canFilter ? (.searchFilterMode ? appStrings().ui_FilterMode : appStrings().ui_SearchMode) : appStrings().ui_SearchOptions
+        var searchToolTip = appStrings().ui_SearchOptions
+        if presentation.canFilter do
+            searchToolTip = .searchFilterMode ? appStrings().ui_FilterMode : appStrings().ui_SearchMode
+        .searchOptionsButton.toolTip = searchToolTip
 
         // With no options button, let the enlarged field meet navigation directly. Keeping the
         // usual inter-group gap as well would leave an empty button-sized visual group.
@@ -478,7 +481,12 @@ impl ViewerWindow
         .searchGroup.show(available)
         let actionsBesideSearch = .currentActions and .currentActions.dockStyle != .None
         .currentActions?.show(not available or actionsBesideSearch)
-        .commandBar.centerGroup = available ? .searchGroup : (actionsBesideSearch ? null : .currentActions)
+        if available do
+            .commandBar.centerGroup = .searchGroup
+        elif actionsBesideSearch do
+            .commandBar.centerGroup = null
+        else do
+            .commandBar.centerGroup = .currentActions
         .commandBar.centerContent()
         .restartSearch()
         if not available and searchHadFocus do
@@ -576,7 +584,11 @@ impl ViewerWindow
         }
 
         let deferSize = .searchSpan + SearchCarryMargin
-        let stableEnd = eof ? .searchCarry.length : (.searchCarry.length > deferSize ? .searchCarry.length - deferSize : 0)
+        var stableEnd = 0'u64
+        if eof do
+            stableEnd = .searchCarry.length
+        elif .searchCarry.length > deferSize do
+            stableEnd = .searchCarry.length - deferSize
 
         var candidates: Array'Viewer.SearchMatch
         if instance.collectFileMatches and instance.view do

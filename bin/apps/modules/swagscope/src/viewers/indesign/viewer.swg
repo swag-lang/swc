@@ -157,7 +157,12 @@ private impl Panel
     {
         if .isMarkup()
         {
-            .zoomLabel.setText(.markupFit ? (.markupFitWidth ? texts().ui_FitWidth : texts().ui_Fit) : Format.toString("% %", cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), "%"))
+            var zoomText: String
+            if .markupFit do
+                zoomText = .markupFitWidth ? texts().ui_FitWidth : texts().ui_Fit
+            else do
+                zoomText = Format.toString("% %", cast(u32, Math.round(.markupPageScale(.previewIndex) * 100)), "%")
+            .zoomLabel.setText(zoomText)
             .services.chromeChanged(me)
             return
         }

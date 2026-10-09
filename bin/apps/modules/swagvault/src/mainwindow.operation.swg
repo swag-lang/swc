@@ -398,14 +398,22 @@ impl MainWindow
         case .Create:
             if .operation.createHidden
             {
-                var volume = catch Volume.createHidden(.operation.path, current.toSlice(), hiddenCredential.toSlice(), .operation.size, &.operation.progress, .operation.outerReserve) as createError
+                var volume = catch Volume.createHidden(.operation.path,
+                                                       current.toSlice(),
+                                                       hiddenCredential.toSlice(),
+                                                       .operation.size,
+                                                       &.operation.progress,
+                                                       .operation.outerReserve) as createError
                 .operation.error.capture(createError)
                 if createError == null do
                     volume.close()
             }
             else
             {
-                var volume = catch Volume.create(.operation.path, current.toSlice(), .operation.size, &.operation.progress) as createError
+                var volume = catch Volume.create(.operation.path,
+                                                 current.toSlice(),
+                                                 .operation.size,
+                                                 &.operation.progress) as createError
                 .operation.error.capture(createError)
                 if createError == null do
                     volume.close()
@@ -413,7 +421,11 @@ impl MainWindow
 
         case .Mount:
             let mounted = Memory.new'MountedVault()
-            discard catch mounted.open(.operation.path, current.toSlice(), .operation.mount, .operation.readOnly, hiddenCredential.toSlice()) as mountError
+            discard catch mounted.open(.operation.path,
+                                       current.toSlice(),
+                                       .operation.mount,
+                                       .operation.readOnly,
+                                       hiddenCredential.toSlice()) as mountError
             .operation.error.capture(mountError)
             if mountError != null
             {

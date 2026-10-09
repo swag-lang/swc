@@ -162,7 +162,7 @@ impl Panel
         let chunk       = catch .stream.readUtf8Chunk(StreamChunkSize) as readError
         if readError != null
         {
-            .showReadError(Errors.message(readError))
+            .showReadError(Viewer.failureText(readError))
             return
         }
 
@@ -439,14 +439,14 @@ impl Panel
         .stream = catch File.openReadLive(.fileName) as openError
         if openError != null
         {
-            .showReadError(Errors.message(openError))
+            .showReadError(Viewer.failureText(openError))
             return
         }
 
         let size = catch .stream.size() as sizeError
         if sizeError != null
         {
-            .showReadError(Errors.message(sizeError))
+            .showReadError(Viewer.failureText(sizeError))
             return
         }
 

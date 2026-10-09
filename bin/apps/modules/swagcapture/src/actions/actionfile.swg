@@ -507,7 +507,7 @@ impl MainWnd
         if .recentWnd != null do
             .recentWnd.updateRecent()
 
-        let text = Format.toString("Image <url>%</url> has been saved", nameFile)
+        let text = Format.toString(appStrings().msg_ImageSaved, nameFile)
         let emb  = InfoBar.create(.editWnd.view, text, .Information, flags: .Bottom | .AutoDismiss)
         emb.label.sigLinkActivated += func(_, msg) { Env.showInFileExplorer(msg) }
     }

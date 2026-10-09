@@ -14,7 +14,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
         view.freeSlots.add(0)
         let produced = view.produceOne()
         Swag.assert(not produced and view.hasFailure)
-        Swag.assert(view.failureText == "video reader has no open stream")
+        Swag.assert(view.failureText == failureShape(appStrings().ui_FailureUnreadable, "video reader has no open stream"))
         Swag.assert(view.inFlight == 0 and view.ready.isEmpty() and view.freeSlots.count == 1)
     }
 }

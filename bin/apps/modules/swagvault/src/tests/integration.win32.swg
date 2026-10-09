@@ -7,6 +7,14 @@ namespace Integration
     #[Swag.CallingConvention(.C)]
     alias FspSxsIdentFn = func()->const [*] u16
 
+    // A harness step that did not go as planned, with the sentence its report prints.
+    struct HarnessError
+    {
+        using base: Swag.BaseError
+    }
+
+    func harnessError(message: string)->HarnessError => {base: {Errors.mkString(message)}}
+
     const PasswordText            = "integration horse battery staple"
     const WrongPasswordText       = "definitely not the password"
     const VisibilityProbeArgument = "--integration-drive-probe"
@@ -87,7 +95,7 @@ namespace Integration
     func verify(condition: bool, message: string) fail
     {
         if not condition do
-            fail volumeError(Format.toString("Integration check failed: %", message))
+            fail harnessError(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
     }
 
@@ -118,7 +126,7 @@ namespace Integration
                 return Format.toString("%:", cast(rune, ('A' + index)))
         }
 
-        fail volumeError("No unused drive letter is available for the integration sandbox.")
+        fail harnessError("No unused drive letter is available for the integration sandbox.")
     }
 
     func movePath(existing, replacement: string, replace = false) fail
@@ -127,14 +135,14 @@ namespace Integration
         let replacement16 = Utf16.toZeroTerminated(replacement)
         catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error
         if error != null do
-            fail volumeError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
+            fail harnessError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
         if not SetFileAttributesW(path16.buffer, attributes) do
-            fail volumeError(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
+            fail harnessError(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
     func attributes(path: string)->u32
@@ -168,7 +176,7 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
         catch RemoveDirectoryW(path16.buffer) as error
         if error != null do
-            fail volumeError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
+            fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -213,7 +221,7 @@ namespace Integration
             var result: retval
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
-                fail volumeError("Windows did not provide a temporary directory for the sandbox.")
+                fail harnessError("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp, Format.toString("vault-integration-%", Guid64.random()))
             try Directory.create(result.root)
             result.container  = Path.combine(result.root, "integration")
@@ -226,7 +234,7 @@ namespace Integration
         mtd mountVolume(passwordBytes: const [..] u8, protectionPassword: const [..] u8 = "") fail
         {
             if .mountedActive do
-                fail volumeError("The integration volume is already mounted.")
+                fail harnessError("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
             discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError
             if mountError != null
@@ -273,7 +281,7 @@ namespace Integration
                 try .unmountVolume()
             WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
-                fail volumeError(Format.toString("The integration sandbox could not be removed: %", .root))
+                fail harnessError(Format.toString("The integration sandbox could not be removed: %", .root))
             .root.clear()
         }
 
@@ -676,11 +684,12 @@ namespace Integration
         return true
     }
 
-    func errorMessage(err: any?)->string
+    func errorMessage(err: any?)->String
     {
         switch err
         {
-        case Error as error: return error.message orelse "Swag Vault integration error."
+        case HarnessError as error: return error.message orelse "Swag Vault integration error."
+        case Error as error: return Format.toString("Swag Vault error %", cast(u32, error.kind))
         case Swag.SystemError as error: return error.message orelse "Windows integration error."
         }
 

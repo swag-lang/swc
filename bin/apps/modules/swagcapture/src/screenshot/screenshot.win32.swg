@@ -271,7 +271,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     var bits: *u8?
     let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast(DIB_RGB_COLORS), &bits, null, 0)
     if not memBMP or not bits do
-        fail Swag.SystemError{"CreateDIBSection failed"}
+        try failWinError(GetLastError())
     defer catch DeleteObject(cast(memBMP))
 
     // Keep the DC's original bitmap so we can re-select it before deleting memBMP:

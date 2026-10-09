@@ -35,11 +35,11 @@ impl ViewerSession
     {
         plugin.create(host)
         if .view and not .failureReason.isEmpty() do
-            fail Errors.InvalidFormatError{"viewer plugin returned both a document view and a rejection reason"}
+            fail Errors.InvalidFormatError{}
         if not .view and .failureReason.isEmpty() do
-            fail Errors.InvalidFormatError{"viewer plugin returned neither a document view nor a rejection reason"}
+            fail Errors.InvalidFormatError{}
         if not .view and (.actions or .info or .commands) do
-            fail Errors.InvalidFormatError{"viewer plugin returned chrome without a document view"}
+            fail Errors.InvalidFormatError{}
     }
 
     // Requests resource release and reports whether GUI destruction may proceed.

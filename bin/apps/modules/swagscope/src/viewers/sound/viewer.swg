@@ -814,7 +814,7 @@ impl IWnd for Panel
         {
             catch .completeOpen() as openError
             if openError != null do
-                .services.failed(me, Errors.message(openError))
+                .services.failed(me, Viewer.failureText(openError))
             return
         }
 
@@ -983,7 +983,7 @@ private func runViewerOpen(thread: Thread)
     var sound = catch SoundFile.load(view.openFileName, preloadData: false) as openError
     if openError != null
     {
-        view.openFailure = Errors.message(openError)
+        view.openFailure = Viewer.failureText(openError)
         Atomic.exchange(&view.openState, OpenFailed)
         return
     }
@@ -1013,5 +1013,5 @@ func createViewer(host: Viewer.Host)
         host.setLifecycle(lifecycle)
     } as createError
     if createError != null do
-        host.reject(Errors.message(createError))
+        host.reject(Viewer.failureText(createError))
 }

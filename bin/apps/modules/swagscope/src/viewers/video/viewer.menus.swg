@@ -88,7 +88,7 @@ impl Panel
         {
             catch .selectAudioTrack(index) as trackError
             if trackError != null do
-                .services.failed(me, Errors.message(trackError))
+                .services.failed(me, Viewer.failureText(trackError))
             return
         }
     }

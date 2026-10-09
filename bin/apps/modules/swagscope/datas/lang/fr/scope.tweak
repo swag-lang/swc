@@ -43,6 +43,9 @@ ui_DropHint     ou ouvrez-en un avec Ctrl+O
 ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.
 ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.
+ui_FailureNotFound    Le fichier est introuvable.
+ui_FailureUnreadable  Le fichier n'a pas pu être lu.
+ui_FailureFormat      Le fichier est endommagé, ou son format n'est pas pris en charge.
 ui_AboutViewers Visionneuses prises en charge
 dlg_TitleOpen   Ouvrir un fichier
 dlg_ButtonOpen  Ouvrir

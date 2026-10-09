@@ -24,7 +24,7 @@ const SurfaceId   = "swag.vault"
     {
         discard catch runHiddenCopy() as copyError
         if copyError != null do
-            Console.println("Copy stopped: ", Errors.message(copyError))
+            Console.println(caughtMessage(copyError))
         Env.exit(copyError == null ? 0 : 1)
     }
 

@@ -25,7 +25,7 @@ using Core, Pixel, Gui, Viewers
     let viewer = assume cast(*InDesign.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad)
-    Swag.assert(viewer.failureReason == InDesign.texts().err_Preview)
+    Swag.assert(viewer.failureReason == failureShape(appStrings().ui_FailureFormat, InDesign.texts().err_Preview))
     Swag.assert(not viewer.hasPreviewContent)
 }
 

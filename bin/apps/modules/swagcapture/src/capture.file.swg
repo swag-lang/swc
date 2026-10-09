@@ -303,7 +303,7 @@ impl Capture
         var reader: Scc.Reader
         try reader.initialize(file)
         if reader.kind() != containerKind() do
-            fail Core.Errors.InvalidFormatError{"capture file has a different SCC profile"}
+            fail Core.Errors.InvalidFormatError{}
         if reader.manifest().profileVersion > CaptureProfileVersion do
             fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
 
@@ -320,7 +320,7 @@ impl Capture
         {
             let info = reader.findRole(modelRole())
             if not info do
-                fail Core.Errors.InvalidFormatError{"capture SCC has no document model chunk"}
+                fail Core.Errors.InvalidFormatError{}
             var bytes = try reader.readChunk(info.id)
             var decoder: Decoder'Read.TagBin
             decoder.flags |= .IgnoreStructFieldError

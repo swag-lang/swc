@@ -555,7 +555,7 @@ impl ViewerWindow
         catch next.create(plugin, host) as viewerError
         if viewerError != null
         {
-            next.failureReason = Errors.message(viewerError)
+            next.failureReason = Viewer.failureText(viewerError)
             if next.failureReason.isEmpty() do
                 next.failureReason = appStrings().ui_OpenStopped
         }

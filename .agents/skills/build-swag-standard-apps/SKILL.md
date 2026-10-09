@@ -314,6 +314,28 @@ size, which is the width the text has least room in.
   `datas/lang/<tag>/*.tweak` silently falls back to English, so the feature ships half translated
   and nothing reports it. The `#run` validation catches a mistyped key, never a missing one.
 
+## Tell A Reader What Went Wrong, Not How
+
+A message a reader sees is a plain sentence in their language, never a technical one. "The
+capture file is damaged." is a message; "capture SCC has no document model chunk", "CreateDIBSection
+failed", or an NTSTATUS is not. This is a golden rule of the showcase applications.
+
+- **No English prose in application sources outside the string tables.** Every sentence a surface
+  can show comes from the application's reference table and its `datas/lang/<tag>/*.tweak`
+  translations. Product names, the author, legal notices, format identifiers that a specification
+  spells (`DT_NEEDED`, `Note On`), and protocol constants are not prose and stay as written.
+- **Errors carry an identity, not a sentence.** An error the application raises is a type or an
+  error kind plus data — a native code, `#callerlocation` — and no message text. The presenter maps
+  that identity to a friendly sentence from the table (Swag Vault's `ErrorKind` and `kindMessage`,
+  Swag Scope's `Viewer.failureText`). Raise with `fail volumeError(.Corrupted)`, not with a
+  sentence.
+- **The technical part is a second line, at most.** When it helps a report, show it under the
+  sentence: an error code (`Error code: 0x%{X}`, itself a table entry) or the detail the system or a
+  decoder gave. It never replaces the sentence, and an error without a detail adds nothing.
+- **Developer diagnostics stay out of the reader's way.** Debugger logs, integration-harness
+  reports, and traces written only under a test tag are for whoever reads a report; they never
+  reach a surface, so they need no translation.
+
 ## Look At The Surface, Not Only At Its Assertions
 
 An application's tests read its window — what a button says, whether a form can act, whether the

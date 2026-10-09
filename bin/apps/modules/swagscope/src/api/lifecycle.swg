@@ -140,7 +140,7 @@ impl BackgroundLoad
         .task.submit(func|operation|()
         {
             operation.value = catch operation.load(operation.fileName) as loadError
-            operation.error = Errors.message(loadError)
+            operation.error = Viewer.failureText(loadError)
         })
     }
 

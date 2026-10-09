@@ -503,7 +503,7 @@ private impl PreviewLoad
         .task.submit(func|operation|()
         {
             operation.value = catch loadPreview(operation.fileName, &operation.preview) as loadError
-            operation.error = Errors.message(loadError)
+            operation.error = Viewer.failureText(loadError)
         })
     }
 

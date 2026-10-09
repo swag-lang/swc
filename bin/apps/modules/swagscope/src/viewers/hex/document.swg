@@ -50,14 +50,14 @@ impl Document
         .stream = catch File.openReadLive(fileName) as openError
         if openError != null
         {
-            .failRead(Errors.message(openError))
+            .failRead(Viewer.failureText(openError))
             return false
         }
 
         let size = catch .stream.size() as sizeError
         if sizeError != null
         {
-            .failRead(Errors.message(sizeError))
+            .failRead(Viewer.failureText(sizeError))
             .stream.close()
             return false
         }
@@ -105,7 +105,7 @@ impl Document
         catch .stream.seek(.Begin, start) as seekError
         if seekError != null
         {
-            .failRead(Errors.message(seekError))
+            .failRead(Viewer.failureText(seekError))
             .window.clear()
             return false
         }
@@ -113,7 +113,7 @@ impl Document
         let read = catch .stream.read(.window.toSlice()) as readError
         if readError != null
         {
-            .failRead(Errors.message(readError))
+            .failRead(Viewer.failureText(readError))
             .window.clear()
             return false
         }
@@ -159,7 +159,7 @@ impl Document
         catch .stream.seek(.Begin, offset) as seekError
         if seekError != null
         {
-            .failRead(Errors.message(seekError))
+            .failRead(Viewer.failureText(seekError))
             result.clear()
             return result
         }
@@ -167,7 +167,7 @@ impl Document
         let read = catch .stream.read(result.toSlice()) as readError
         if readError != null
         {
-            .failRead(Errors.message(readError))
+            .failRead(Viewer.failureText(readError))
             result.clear()
             return result
         }

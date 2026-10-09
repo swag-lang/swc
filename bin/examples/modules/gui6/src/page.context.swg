@@ -74,7 +74,10 @@ func createContextMenuPage(parent: *Wnd)
     let canvas = Wnd.create'Wnd(left, {18, 86, layout.left.width - 36, layout.left.height - 104})
     canvas.hookOnEvent = &onContextCanvasEvent
 
-    let right   = createPanel(parent, "Launch points", "The same menu can be shown at raw mouse coordinates or anchored near controls.", layout.right)
+    let right = createPanel(parent,
+                            "Launch points",
+                            "The same menu can be shown at raw mouse coordinates or anchored near controls.",
+                            layout.right)
     let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
     openBtn.setIcon(app.theme.icon(.More, 18))
     openBtn.sigPressed += func(btn)

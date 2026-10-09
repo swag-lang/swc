@@ -30,8 +30,8 @@ private enum Mode
 
 private struct Range
 {
-    src, srcE: u64
-    dst:       u64
+    sourceStart, sourceEnd: u64
+    destinationStart:       u64
 }
 
 private struct SeedRange
@@ -90,27 +90,29 @@ func day5B()
 
         if mode == .Invalid
         {
-            let tokens = Tokenize.split(l[], ':'u8)
-            let values = Tokenize.split(tokens[1], ' 'u8)
-            for v in values do
-                seeds.add(expect StrConv.toU64(v))
+            let seedField  = Tokenize.split(l[], ':'u8)
+            let seedTokens = Tokenize.split(seedField[1], ' 'u8)
+            for seed in seedTokens do
+                seeds.add(expect StrConv.toU64(seed))
             continue
         }
 
-        let values = Tokenize.split(l[], ' 'u8)
-        var range: Range
-        let rangeV = expect StrConv.toU64(values[2])
-        range.dst  = expect StrConv.toU64(values[0])
-        range.src  = expect StrConv.toU64(values[1])
-        range.srcE = range.src + rangeV - 1
-        convert[cast(s32, mode)].add(range)
+        let mappingValues = Tokenize.split(l[], ' 'u8)
+        var mapping: Range
+        let sourceLength  = expect StrConv.toU64(mappingValues[2])
+        mapping.destinationStart = expect StrConv.toU64(mappingValues[0])
+        mapping.sourceStart      = expect StrConv.toU64(mappingValues[1])
+        mapping.sourceEnd        = mapping.sourceStart + sourceLength - 1
+        convert[cast(s32, mode)].add(mapping)
     }
 
     var ranges: Array'SeedRange
-    for pair in seeds.count / 2
+    for pairIndex in seeds.count / 2
     {
-        let x = pair * 2
-        ranges.add({seeds[x], seeds[x] + seeds[x + 1] - 1})
+        let seedIndex  = pairIndex * 2
+        let rangeStart = seeds[seedIndex]
+        let rangeEnd   = rangeStart + seeds[seedIndex + 1] - 1
+        ranges.add({rangeStart, rangeEnd})
     }
 
     for i in 7
@@ -118,26 +120,29 @@ func day5B()
         var newRanges: Array'SeedRange
         for var idx = 0; idx < ranges.count; idx += 1
         {
-            let range = ranges[idx]
+            let seedRange = ranges[idx]
             #scope(Done)
             {
-                for conv in convert[i]
+                for mapping in convert[i]
                 {
-                    if range.start > conv.srcE or range.end < conv.src do
+                    if seedRange.start > mapping.sourceEnd or seedRange.end < mapping.sourceStart do
                         continue
 
-                    if range.start < conv.src do
-                        ranges.add({range.start, conv.src - 1})
-                    if range.end > conv.srcE do
-                        ranges.add({conv.srcE + 1, range.end})
+                    // Keep the portions outside the mapped source range for the remaining rules.
+                    if seedRange.start < mapping.sourceStart do
+                        ranges.add({seedRange.start, mapping.sourceStart - 1})
+                    if seedRange.end > mapping.sourceEnd do
+                        ranges.add({mapping.sourceEnd + 1, seedRange.end})
 
-                    let v0 = Math.max(range.start, conv.src)
-                    let v1 = Math.min(range.end, conv.srcE)
-                    newRanges.add({v0 - conv.src + conv.dst, v1 - conv.src + conv.dst})
+                    let overlapStart     = Math.max(seedRange.start, mapping.sourceStart)
+                    let overlapEnd       = Math.min(seedRange.end, mapping.sourceEnd)
+                    let destinationStart = overlapStart - mapping.sourceStart + mapping.destinationStart
+                    let destinationEnd   = overlapEnd - mapping.sourceStart + mapping.destinationStart
+                    newRanges.add({destinationStart, destinationEnd})
                     break to Done
                 }
 
-                newRanges.add(range)
+                newRanges.add(seedRange)
             }
         }
 
@@ -145,8 +150,8 @@ func day5B()
     }
 
     var total = Swag.U64.Max
-    for r in ranges do
-        total = Math.min(total, r.start)
+    for seedRange in ranges do
+        total = Math.min(total, seedRange.start)
 
     Swag.assert(total == 69323688)
 }

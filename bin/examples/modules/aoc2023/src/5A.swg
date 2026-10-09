@@ -111,8 +111,7 @@ private enum Mode
 
 private struct Range
 {
-    src, dst: u64
-    range:    u64
+    sourceStart, destinationStart, length: u64
 }
 
 private var seeds:   Array'u64
@@ -166,39 +165,39 @@ func day5A()
 
         if mode == .Invalid
         {
-            let tokens = Tokenize.split(l[], ':'u8)
-            let values = Tokenize.split(tokens[1], ' 'u8)
-            for v in values do
-                seeds.add(expect StrConv.toU64(v))
+            let seedField  = Tokenize.split(l[], ':'u8)
+            let seedTokens = Tokenize.split(seedField[1], ' 'u8)
+            for seed in seedTokens do
+                seeds.add(expect StrConv.toU64(seed))
             continue
         }
 
-        let values = Tokenize.split(l[], ' 'u8)
-        var range: Range
-        range.dst   = expect StrConv.toU64(values[0])
-        range.src   = expect StrConv.toU64(values[1])
-        range.range = expect StrConv.toU64(values[2])
-        convert[cast(s32, mode)].add(range)
+        let mappingValues = Tokenize.split(l[], ' 'u8)
+        var mapping: Range
+        mapping.destinationStart = expect StrConv.toU64(mappingValues[0])
+        mapping.sourceStart      = expect StrConv.toU64(mappingValues[1])
+        mapping.length           = expect StrConv.toU64(mappingValues[2])
+        convert[cast(s32, mode)].add(mapping)
     }
 
     var total = Swag.U64.Max
-    for s in seeds
+    for seed in seeds
     {
-        var seed = s
+        var location = seed
 
-        for i in 7
+        for mapIndex in 7
         {
-            for r in convert[i]
+            for mapping in convert[mapIndex]
             {
-                if seed >= r.src and seed < r.src + r.range
+                if location >= mapping.sourceStart and location < mapping.sourceStart + mapping.length
                 {
-                    seed = r.dst + (seed - r.src)
+                    location = mapping.destinationStart + (location - mapping.sourceStart)
                     break
                 }
             }
         }
 
-        total = Math.min(total, seed)
+        total = Math.min(total, location)
     }
 
     Swag.assert(total == 111627841)

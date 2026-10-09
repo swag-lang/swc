@@ -65,16 +65,28 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let headlineY       = sample.y + 24
     let headlineBoundsY = headlineY + g_TitleFont.height - headlineSize.height
 
-    var headlineBrush = Brush.createLinearGradient(headlineX, headlineY, headlineX + headlineSize.width, headlineY + headlineSize.height, Argb.DeepSkyBlue, Argb.Crimson)
+    var headlineBrush = Brush.createLinearGradient(headlineX,
+                                                   headlineY,
+                                                   headlineX + headlineSize.width,
+                                                   headlineY + headlineSize.height,
+                                                   Argb.DeepSkyBlue,
+                                                   Argb.Crimson)
     headlineBrush.addGradientStop(0.48, Argb.Goldenrod)
-    painter.fillRect(headlineX, headlineBoundsY, headlineSize.width, headlineSize.height, Color.fromArgb(22, Argb.DeepSkyBlue))
+    painter.fillRect(headlineX,
+                     headlineBoundsY,
+                     headlineSize.width,
+                     headlineSize.height,
+                     Color.fromArgb(22, Argb.DeepSkyBlue))
     painter.drawString(headlineX, headlineY, headline, g_TitleFont, headlineBrush)
 
     let sweepText  = "subpixel MSDF"
     let sweepSize  = Painter.measureString(sweepText, g_LabelFont)
     let sweepX     = sample.horzCenter() - sweepSize.width * 0.5
     let sweepY     = headlineY + g_TitleFont.height + 12
-    var sweepBrush = Brush.createSweepGradient(Math.Vector2{sweepX + sweepSize.width * 0.5, sweepY + sweepSize.height * 0.5}, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    var sweepBrush = Brush.createSweepGradient(Math.Vector2{sweepX + sweepSize.width * 0.5, sweepY + sweepSize.height * 0.5},
+                                               Argb.DeepSkyBlue,
+                                               Argb.Crimson,
+                                               .Repeat)
     sweepBrush.addGradientStop(0.4, Argb.SeaGreen)
     painter.drawString(sweepX, sweepY, sweepText, g_LabelFont, sweepBrush)
 
@@ -82,7 +94,12 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let textureSize = Painter.measureString(textureText, g_HelpFont)
     let textureX    = sample.horzCenter() - textureSize.width * 0.5
     let textureY    = sample.bottom() - g_HelpFont.height - 12
-    painter.drawString(textureX, textureY, textureText, g_HelpFont, Brush.createTiled(g_TileTexture), UnderlineStyle.Underline)
+    painter.drawString(textureX,
+                       textureY,
+                       textureText,
+                       g_HelpFont,
+                       Brush.createTiled(g_TileTexture),
+                       UnderlineStyle.Underline)
 }
 
 func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -136,7 +153,12 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.pushTransform()
     painter.translateTransform(outlineX, outlineY)
 
-    var fill = Brush.createLinearGradient(preview.x, preview.y, preview.right(), preview.bottom(), Argb.DeepSkyBlue, Argb.Goldenrod)
+    var fill = Brush.createLinearGradient(preview.x,
+                                          preview.y,
+                                          preview.right(),
+                                          preview.bottom(),
+                                          Argb.DeepSkyBlue,
+                                          Argb.Goldenrod)
     fill.addGradientStop(0.56, Argb.Crimson)
     painter.fillPath(&g_OutlineText, fill)
 

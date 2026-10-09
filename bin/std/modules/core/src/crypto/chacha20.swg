@@ -206,7 +206,9 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         var i   = 0'u64
         while i + 8 <= count
         {
-            cast(*u64, (dst + i))[] = cast(const *u64, (src + i))[] ^ cast(const *u64, (&block[i]))[]
+            let sourceWord = cast(const *u64, (src + i))[]
+            let streamWord = cast(const *u64, (&block[i]))[]
+            cast(*u64, (dst + i))[] = sourceWord ^ streamWord
             i += 8
         }
 

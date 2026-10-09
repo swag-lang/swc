@@ -513,7 +513,18 @@ private impl Ac3Codec
         try .readCoupling(reader, bsi)
         if bsi.acmod == 2 and reader.read(1)
         {
-            block.rematrixCount = block.coupling ? (block.couplingBegin > 2 ? 4 : block.couplingBegin > 0 ? 3 : 2) : 4
+            var rematrixCount = 4'u32
+            if block.coupling
+            {
+                if block.couplingBegin > 2 do
+                    rematrixCount = 4
+                elif block.couplingBegin > 0 do
+                    rematrixCount = 3
+                else do
+                    rematrixCount = 2
+            }
+
+            block.rematrixCount = rematrixCount
             for band in block.rematrixCount do
                 block.rematrix[band] = reader.read(1) != 0
         }

@@ -177,7 +177,9 @@ private func reportMachFat(image: *BinaryImage, report: *Report, wide: bool)
         report.hexField(entryAt, 4, "cputype", cast(u64, cpu), machCpuName(cpu))
         report.hexField(entryAt + 4, 4, "cpusubtype", cast(u64, image.u32At(entryAt + 4)))
         report.hexField(entryAt + 8, wide ? 8 : 4, "offset", sliceAt)
-        report.sizeField(wide ? entryAt + 16 : entryAt + 12, wide ? 8 : 4, "size", size)
+        let sizeOffset = wide ? entryAt + 16 : entryAt + 12
+        let sizeWidth  = wide ? 8 : 4
+        report.sizeField(sizeOffset, sizeWidth, "size", size)
 
         // Each slice is a complete image, so it is read exactly as a lone one would be — including
         // its own byte order, which the wrapper says nothing about.
@@ -311,9 +313,17 @@ private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt
             libraries.add(path)
 
     case 0x0E, 0x0F, 0x1C:
-        let offset = cast(u64, image.u32At(at + 8))
-        let path   = image.cstringAt(at + offset, size > offset ? size - offset : 0)
-        report.field(at + offset, path.length, kind == 0x1C ? "path" : "name", path, kind == 0x1C ? "" : texts.shr_Interpreter)
+        let offset    = cast(u64, image.u32At(at + 8))
+        let path      = image.cstringAt(at + offset, size > offset ? size - offset : 0)
+        var fieldName = "name"
+        var detail    = texts.shr_Interpreter
+        if kind == 0x1C
+        {
+            fieldName = "path"
+            detail    = ""
+        }
+
+        report.field(at + offset, path.length, fieldName, path, detail)
 
     case 0x1B:
         let identity = image.uuidTextAt(at + 8)

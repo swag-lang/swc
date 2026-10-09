@@ -1307,7 +1307,13 @@ impl IWnd for GridView
                 let valueOffset = .groupStart(.caret)
                 let column      = valueOffset % .bytesPerRow
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
-                let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
+                var text: String
+                if .grouping == .Bytes do
+                    text = Format.toString("%{X02}", .doc.byteAt(.caret))
+                elif complete do
+                    text = formatScalar(.grouping, .scalarAt(valueOffset))
+                else do
+                    text = String.from("--")
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32, .valueCellChars()) * .charWidth + 2, .rowHeight, caretBk)
                 painter.drawString(originX + .hexCellX(column), y, text, font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)

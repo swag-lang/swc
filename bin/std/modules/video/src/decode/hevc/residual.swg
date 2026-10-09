@@ -280,8 +280,15 @@ impl Decoder
                 if position == lastGreater1ScanPos and greater2 do
                     baseLevel += 1
 
-                let threshold = numSigCoeff < 8 ? (position == lastGreater1ScanPos ? 3'u32 : 2'u32) : 1'u32
-                var level     = baseLevel
+                var threshold = 1'u32
+                if numSigCoeff < 8
+                {
+                    threshold = 2
+                    if position == lastGreater1ScanPos do
+                        threshold = 3
+                }
+
+                var level = baseLevel
                 if baseLevel == threshold
                 {
                     if not firstRemaining
@@ -420,7 +427,17 @@ impl Decoder
         {
             if xS + yS > 0 do
                 base += 3
-            base += log2TrafoSize == 3 ? (scanIdx == ScanDiagonal ? 9'u32 : 15'u32) : 21'u32
+            if log2TrafoSize == 3
+            {
+                if scanIdx == ScanDiagonal do
+                    base += 9
+                else do
+                    base += 15
+            }
+            else
+            {
+                base += 21
+            }
         }
         else
         {

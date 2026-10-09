@@ -474,8 +474,12 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
 {
     let planeWidth  = reference.mbWidth * 16
     let planeHeight = reference.mbHeight * 16
-    let planeBase   = plane == 0 ? reference.luma.storage() : (plane == 1 ? reference.cb.storage() : reference.cr.storage())
-    let planePitch  = reference.planeStride(plane)
+    var planeBase   = reference.cr.storage()
+    if plane == 0 do
+        planeBase = reference.luma.storage()
+    elif plane == 1 do
+        planeBase = reference.cb.storage()
+    let planePitch = reference.planeStride(plane)
 
     // A window outside the replicated padding goes through a clamped copy first. The
     // right bound uses the sixteen-byte span of the packed row loads whatever the

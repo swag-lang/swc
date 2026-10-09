@@ -396,16 +396,19 @@ private impl GenericLexer
                                      .language == .Pascal or
                                      .language == .Matlab or
                                      .language == .Dockerfile
-    mtd hasBlockComment()->bool   => .isSlashComment() or .language == .Sql or .language == .Css or .language == .Nix
+    mtd hasBlockComment()->bool => .isSlashComment() or .language == .Sql or .language == .Css or .language == .Nix
+    #[Swag.Inline]
     mtd hasBacktickString()->bool => .language == .JavaScript or
                                      .language == .TypeScript or
                                      .language == .Shell or
                                      .language == .PowerShell
+    #[Swag.Inline]
     mtd hasPreprocessor()->bool => .language == .C or
                                    .language == .Cpp or
                                    .language == .CSharp or
                                    .language == .Shader or
                                    .language == .ObjectiveC
+    #[Swag.Inline]
     mtd hasDataKeys()->bool => .language == .Json or
                                .language == .Yaml or
                                .language == .Toml or

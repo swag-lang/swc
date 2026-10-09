@@ -252,12 +252,23 @@ impl Slice
         let gw  = dec.sps!.mbWidth * 4
 
         var neighbor: const *MbNeighbor?
-        if ry < 0 do
-            neighbor = rx < 0 ? &.neighbors.d : (rx >= 4 ? &.neighbors.c : &.neighbors.b)
-        elif rx < 0 do
+        if ry < 0
+        {
+            if rx < 0 do
+                neighbor = &.neighbors.d
+            elif rx >= 4 do
+                neighbor = &.neighbors.c
+            else do
+                neighbor = &.neighbors.b
+        }
+        elif rx < 0
+        {
             neighbor = &.neighbors.a
-        elif rx >= 4 do
+        }
+        elif rx >= 4
+        {
             return result
+        }
 
         var index: u64
         if neighbor == null

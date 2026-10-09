@@ -228,6 +228,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
   coherent operations. Extract a phase when its detail hides the caller's story, even if used
   once. Keep the helper with its owner and count the extra navigation it introduces. Do not
   replace clear local steps with chains of tiny wrappers, switches on modes, or boolean controls.
+  Before extracting a helper from a hot loop or per-item decode path, inspect its call frequency
+  and enclosing loops. Mark a small helper `#[Swag.Inline]` when that analysis puts it on a hot
+  path. Do not benchmark a readability-only change; make the performance decision by inspection.
 - Remove repeated namespace prefixes when an appropriate `using` keeps resolution unambiguous.
   For example, `using Math` lets vector-heavy code use `Simd.load` instead of `Math.Simd.load`.
   Retain a useful domain label such as `Simd`; do not invent cryptic aliases or hide which API

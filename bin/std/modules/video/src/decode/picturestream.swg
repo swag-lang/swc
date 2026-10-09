@@ -81,13 +81,34 @@ impl PictureStream
     }
 
     // Frame width, in pixels, after the stream's own cropping.
-    mtd const width()->s32 => .kind == PictureHevc ? .hevc.width : (.kind == PictureMpeg4 ? .mpeg4.width : .avc.width)
+    mtd const width()->s32
+    {
+        if .kind == PictureHevc do
+            return .hevc.width
+        if .kind == PictureMpeg4 do
+            return .mpeg4.width
+        return .avc.width
+    }
 
     // Frame height, in pixels, after the stream's own cropping.
-    mtd const height()->s32 => .kind == PictureHevc ? .hevc.height : (.kind == PictureMpeg4 ? .mpeg4.height : .avc.height)
+    mtd const height()->s32
+    {
+        if .kind == PictureHevc do
+            return .hevc.height
+        if .kind == PictureMpeg4 do
+            return .mpeg4.height
+        return .avc.height
+    }
 
     // Number of access units the stream currently holds.
-    mtd const frameCount()->u64 => .kind == PictureHevc ? .hevc.frames.count : (.kind == PictureMpeg4 ? .mpeg4.sampleAtRank.count : .avc.frames.count)
+    mtd const frameCount()->u64
+    {
+        if .kind == PictureHevc do
+            return .hevc.frames.count
+        if .kind == PictureMpeg4 do
+            return .mpeg4.sampleAtRank.count
+        return .avc.frames.count
+    }
 
     // Returns the container presentation timestamp of one display-order picture.
     mtd const presentationTimeAtRank(rank: u64)->s64

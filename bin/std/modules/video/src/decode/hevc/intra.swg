@@ -281,7 +281,16 @@ impl Decoder
 
         for index in size + 1
         {
-            main[origin + index] = index == 0 ? reference.corner() : (vertical ? reference.top(index - 1) : reference.left(index - 1))
+            var sample = reference.corner()
+            if index
+            {
+                if vertical do
+                    sample = reference.top(index - 1)
+                else do
+                    sample = reference.left(index - 1)
+            }
+
+            main[origin + index] = sample
         }
 
         if angle < 0

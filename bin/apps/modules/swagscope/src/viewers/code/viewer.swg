@@ -290,7 +290,14 @@ impl Panel
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32, .bytesRead - .residentStart) / cast(f32, .fileSize) : 0)
+        var residentHeight = 0'f32
+        if loadedHeight > 0 do
+            residentHeight = loadedHeight
+        elif .fileSize
+        {
+            let scaledBytes = .virtualHeight * cast(f32, .bytesRead - .residentStart)
+            residentHeight = scaledBytes / cast(f32, .fileSize)
+        }
         let residentEnd    = .residentOffsetY + residentHeight
         let before         = .residentStart > 0 and
                              newPosition.y < oldPosition.y and

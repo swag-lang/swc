@@ -74,27 +74,27 @@ func day9A()
 
     var total: s64
 
-    for l in lines
+    for line in lines
     {
-        let vals = Tokenize.split(l[], ' 'u8)
+        let valueTokens = Tokenize.split(line[], ' 'u8)
 
-        var values: Array's64
-        for v in vals do
-            values.add(expect StrConv.toS64(v))
-        total += values.back()
+        var differences: Array's64
+        for token in valueTokens do
+            differences.add(expect StrConv.toS64(token))
+        total += differences.back()
 
-        var hasNoZero = true
-        while hasNoZero
+        var hasNonzeroDifference = true
+        while hasNonzeroDifference
         {
-            hasNoZero = false
-            for i in 0 until values.count - 1
+            hasNonzeroDifference = false
+            for index in 0 until differences.count - 1
             {
-                values[i] = values[i + 1] - values[i]
-                hasNoZero = values[i] or hasNoZero
+                differences[index]   = differences[index + 1] - differences[index]
+                hasNonzeroDifference = differences[index] or hasNonzeroDifference
             }
 
-            values.count -= 1
-            total        += values.back()
+            differences.count -= 1
+            total += differences.back()
         }
     }
 

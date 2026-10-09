@@ -120,78 +120,78 @@ func day10B()
     maze.resize(width * height)
 
     #[Swag.Mixin]
-    func mp(x0, y0: s64)->*Dir => maze.storage() + ((x0 + 1) + (y0 + 1) * width)
+    func pipeAt(x, y: s64)->*Dir => maze.storage() + ((x + 1) + (y + 1) * width)
 
     var startX, startY: s64
-    for l, line in lines
+    for sourceLine, lineIndex in lines
     {
-        for c, col in l.bytes()
+        for pipeSymbol, column in sourceLine.bytes()
         {
-            let one = mp(cast(s64, col), cast(s64, line))
-            switch c
+            let pipeConnections = pipeAt(cast(s64, column), cast(s64, lineIndex))
+            switch pipeSymbol
             {
             case '-':
-                one[] = .West | .East
+                pipeConnections[] = .West | .East
 
             case '|':
-                one[] = .North | .South
+                pipeConnections[] = .North | .South
 
             case 'L':
-                one[] = .North | .East
+                pipeConnections[] = .North | .East
 
             case 'J':
-                one[] = .North | .West
+                pipeConnections[] = .North | .West
 
             case '7':
-                one[] = .South | .West
+                pipeConnections[] = .South | .West
 
             case 'F':
-                one[] = .South | .East
+                pipeConnections[] = .South | .East
 
             case 'S':
-                startX = col
-                startY = line
+                startX = column
+                startY = lineIndex
             }
         }
     }
 
-    // Determin the shape of the start 'S'
-    let start = mp(startX, startY)
-    if mp(startX - 1, startY)[] & .East do
-        start[] |= .West
-    if mp(startX + 1, startY)[] & .West do
-        start[] |= .East
-    if mp(startX, startY - 1)[] & .South do
-        start[] |= .North
-    if mp(startX, startY + 1)[] & .North do
-        start[] |= .South
-    var visitX = startX
+    // Determine the shape of the start 'S'.
+    let startConnections = pipeAt(startX, startY)
+    if pipeAt(startX - 1, startY)[] & .East do
+        startConnections[] |= .West
+    if pipeAt(startX + 1, startY)[] & .West do
+        startConnections[] |= .East
+    if pipeAt(startX, startY - 1)[] & .South do
+        startConnections[] |= .North
+    if pipeAt(startX, startY + 1)[] & .North do
+        startConnections[] |= .South
+    var currentX = startX
 
     // Visit the maze
-    var visitY = startY
+    var currentY = startY
     for
     {
-        let one = mp(visitX, visitY)
-        one[] |= .Edge
+        let pipeConnections = pipeAt(currentX, currentY)
+        pipeConnections[] |= .Edge
         var moved = false
 
         switch
         {
-        case one[] & .East and not (mp(visitX + 1, visitY)[] & .Edge):
-            visitX += 1
-            moved  = true
+        case pipeConnections[] & .East and not (pipeAt(currentX + 1, currentY)[] & .Edge):
+            currentX += 1
+            moved    = true
 
-        case one[] & .West and not (mp(visitX - 1, visitY)[] & .Edge):
-            visitX -= 1
-            moved  = true
+        case pipeConnections[] & .West and not (pipeAt(currentX - 1, currentY)[] & .Edge):
+            currentX -= 1
+            moved    = true
 
-        case one[] & .North and not (mp(visitX, visitY - 1)[] & .Edge):
-            visitY -= 1
-            moved  = true
+        case pipeConnections[] & .North and not (pipeAt(currentX, currentY - 1)[] & .Edge):
+            currentY -= 1
+            moved    = true
 
-        case one[] & .South and not (mp(visitX, visitY + 1)[] & .Edge):
-            visitY += 1
-            moved  = true
+        case pipeConnections[] & .South and not (pipeAt(currentX, currentY + 1)[] & .Edge):
+            currentY += 1
+            moved    = true
         }
 
         if moved do
@@ -199,26 +199,26 @@ func day10B()
         break
     }
 
-    var total: u64
-    for l, line in lines
+    var enclosedTileCount: u64
+    for sourceLine, lineIndex in lines
     {
-        for _, col in l.bytes()
+        for _, column in sourceLine.bytes()
         {
-            let one = mp(cast(s64, col), cast(s64, line))[]
-            if one & .Edge do
+            let pipeConnections = pipeAt(cast(s64, column), cast(s64, lineIndex))[]
+            if pipeConnections & .Edge do
                 continue
 
             var inside = false
-            for x in col
+            for crossingColumn in column
             {
-                let one1 = mp(cast(s64, x), cast(s64, line))[]
-                if one1 & .Edge and one1 & .North do
+                let crossingPipe = pipeAt(cast(s64, crossingColumn), cast(s64, lineIndex))[]
+                if crossingPipe & .Edge and crossingPipe & .North do
                     inside = not inside
             }
 
-            total += inside ? 1 : 0
+            enclosedTileCount += inside ? 1 : 0
         }
     }
 
-    Swag.assert(total == 287)
+    Swag.assert(enclosedTileCount == 287)
 }

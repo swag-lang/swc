@@ -608,7 +608,8 @@ impl Ghost
 
         // Check UP exit
         // UP exits have an additional condition such that, at 4 specific intersections, the ghost cannot opt to travel UP
-        if not (.getY() == 19 and (.getX() == 12 or .getX() == 15)) and not (.getY() == 7 and (.getX() == 12 or .getX() == 15))
+        let blocksUpExit = (.getY() == 19 or .getY() == 7) and (.getX() == 12 or .getX() == 15)
+        if not blocksUpExit
         {
             // Prevent direction reversing and ensure exit is traversible
             if .dir != .DOWN and not isImpassible(.getNextTile(.UP))

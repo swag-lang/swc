@@ -216,6 +216,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
 - Use a conditional expression only when the condition and both values read at a glance.
   Expand nested choices or branches with substantial work into control flow. Preserve lazy
   evaluation: do not hoist a guarded access, fallible call, or side effect out of its branch.
+  When several nested choices map to a small set of named states, use explicit branches or a
+  helper that names the decision. Keep short-circuit guards inside that helper when moving them
+  out would eagerly evaluate work that the original expression skipped.
 - Keep `=>` and single-line bodies for short, obvious accessors, predicates, and delegations.
   A single statement is not necessarily simple: a long signature plus a long expression, nested
   calls, or mixed operators merits a block. Never compress a function solely to match a neighbour.

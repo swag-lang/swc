@@ -8,7 +8,8 @@ func createListsPage(parent: *Wnd)
                            "Simple ListCtrl",
                            "Single-column rows with icons, hot tracking and multi-selection.",
                            layout.left)
-    with let simple = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
+    with let simple = ListCtrl.createSimple(left,
+                                            {18, 92, layout.left.width - 36, layout.left.height - 112})
     {
         .setFrameForm(.Round)
         .frameFlags.add(.FocusBorder)
@@ -25,7 +26,8 @@ func createListsPage(parent: *Wnd)
                             "Virtual list",
                             "A million logical rows filled on demand by onFillVirtualLine.",
                             layout.right)
-    let virtualList = ListCtrl.createSimple(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    let virtualList = ListCtrl.createSimple(right,
+                                            {18, 92, layout.right.width - 36, layout.right.height - 112})
     virtualList.setFrameForm(.Round)
     virtualList.setSelectionMode(.Single)
     virtualList.setIconSize(16)
@@ -45,7 +47,8 @@ func createListsPage(parent: *Wnd)
                              "Checkable rows",
                              "Rows can carry independent check state while preserving list navigation.",
                              layout.bottom)
-    let checks = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    let checks = ListCtrl.createSimple(bottom,
+                                       {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     checks.setFrameForm(.Square)
     checks.setSelectionMode(.Multi)
     checks.setIconSize(16)

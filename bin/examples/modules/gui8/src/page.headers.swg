@@ -2,7 +2,10 @@ using Core, Gui, Pixel
 
 func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: bool, disabledClick: bool)
 {
-    let panel  = createPanel(parent, title, "Standalone Header items can be resized, clamped, decorated and marked as sorted.", rect)
+    let panel = createPanel(parent,
+                            title,
+                            "Standalone Header items can be resized, clamped, decorated and marked as sorted.",
+                            rect)
     let header = Header.create(panel, {18, 94, rect.width - 36, 34})
     header.form = round ? .Round : .Flat
     if disabledClick do
@@ -40,7 +43,8 @@ func createHeadersPage(parent: *Wnd)
                              "List-backed header",
                              "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.",
                              layout.bottom)
-    let list = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    let list = ListCtrl.createMultiColumns(bottom,
+                                           {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     list.setFrameForm(.Round)
     list.setSelectionMode(.Single)
     list.setIconSize(16)

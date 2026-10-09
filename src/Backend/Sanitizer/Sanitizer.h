@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Sanitizer/SanitizerState.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -208,12 +209,14 @@ private:
 
     const LocalSlotExtent* findLocalSlot(int64_t offset) const;
 
-    MicroPassContext&                     context_;
-    MicroReg                              stackBaseReg_;
-    std::unordered_map<uint32_t, uint8_t> definitionCounts_;
-    std::vector<LocalSlotExtent>          localSlots_;
-    bool                                  needsReleaseProvenance_ = false;
-    bool                                  stackBaseStable_        = true;
+    MicroPassContext& context_;
+    MicroReg          stackBaseReg_;
+    // One entry per virtual register the function defines: a flat table, where a node-based map
+    // allocated one node per register of every function analysed.
+    FlatKeyMap<uint8_t>          definitionCounts_;
+    std::vector<LocalSlotExtent> localSlots_;
+    bool                         needsReleaseProvenance_ = false;
+    bool                         stackBaseStable_        = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
     const Symbol*                               transferCallTarget_ = nullptr;
@@ -231,7 +234,7 @@ private:
     std::vector<char>                           inWorklist_;
     std::optional<std::unordered_set<uint64_t>> reportedLocations_;
 
-    std::optional<std::unordered_map<uint32_t, const Symbol*>> callTargets_;
+    RefPointerMap<MicroInstrRef, const Symbol> callTargets_;
 };
 
 SWC_END_NAMESPACE();

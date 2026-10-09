@@ -106,7 +106,7 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
 
 void Sanitizer::computeFunctionProperties()
 {
-    definitionCounts_.clear();
+    definitionCounts_       = {};
     stackBaseStable_        = true;
     needsReleaseProvenance_ = false;
 
@@ -133,9 +133,9 @@ void Sanitizer::computeFunctionProperties()
             // Only virtual-register counts are queried by the provenance checks.
             if ((modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef) && ops[r].reg.isVirtual())
             {
-                auto [it, inserted] = definitionCounts_.try_emplace(ops[r].reg.packed, 1);
-                if (!inserted && it->second < 2)
-                    ++it->second;
+                uint8_t& count = definitionCounts_.getOrInsert(ops[r].reg.packed);
+                if (count < 2)
+                    ++count;
             }
         }
     }
@@ -143,8 +143,8 @@ void Sanitizer::computeFunctionProperties()
 
 bool Sanitizer::hasSingleDefinition(const MicroReg reg) const
 {
-    const auto it = definitionCounts_.find(reg.packed);
-    return it != definitionCounts_.end() && it->second == 1;
+    const uint8_t* count = definitionCounts_.find(reg.packed);
+    return count && *count == 1;
 }
 
 bool Sanitizer::frameObjectReachable(const SanitizerState& state, const int64_t slot) const
@@ -238,16 +238,12 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 
     // Resolve call targets up front: checks identify what a call invokes, and the
     // fixpoint needs to know which calls never return.
-    callTargets_.reset();
+    callTargets_ = {};
     for (const MicroRelocation& rel : context_.builder->codeRelocations())
     {
         if (rel.targetSymbol &&
             (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
-        {
-            if (!callTargets_)
-                callTargets_.emplace();
-            (*callTargets_)[rel.instructionRef.get()] = rel.targetSymbol;
-        }
+            callTargets_.set(rel.instructionRef, rel.targetSymbol);
     }
 
     // Chain heads are the only points where states are stored and joined: the entry,
@@ -505,12 +501,8 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
 
         transferCallTarget_ = nullptr;
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction) && callTargets_)
-        {
-            const auto itTarget = callTargets_->find(instRef.get());
-            if (itTarget != callTargets_->end())
-                transferCallTarget_ = itTarget->second;
-        }
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            transferCallTarget_ = callTargets_.find(instRef);
         currentCallTarget_ = transferCallTarget_;
 
         if (!checks.empty())

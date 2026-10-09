@@ -6,6 +6,75 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.082 — Hot-path node containers that need more than a container swap
+
+- Recorded: 2026-10-09 12:37
+- Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
+  and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
+  escape state, code generation payloads, value numbering, loop rotation and unrolling labels,
+  stack offsets, sanitizer counts, linker tables). These remain, each needing a design change:
+  - `CodeGen::variablePayloads_` (one node per local of every lowered function): callers keep
+    pointers to the stored payload across later insertions, so a flat table needs stable
+    payload storage that does not outlive the job.
+  - `resolveFunctionCandidates` rebuilds the winner's `CallArgMapping` after every candidate
+    built and dropped one; keeping it in `Candidate` copies two inline vectors per attempt.
+  - `SanitizerState::regs` and `stack` are copied at every stored chain head; merges and reports
+    iterate them, so a flat replacement must keep the iteration order that diagnostics follow.
+  - `JITRelocationPatchContext::resolvedFunctionAddresses` is keyed by function pointer; the
+    flat tables in `PointerSet.h` are keyed by 32-bit values.
+  - `formatFunctionWhereBindings` formats type names for every `where` evaluation, though only a
+    failure reads them; the ambient part reads sema context at formatting time.
+  - `TypeInfo::makeArrayAfterFirstDimension` allocates dimension vectors for every step of
+    multi-dimensional indexing, then usually finds the type already interned.
+- Next: take the code generation payloads first (every local of every function): arena storage
+  scoped to the code generation job behind a flat pointer-keyed index.
+- Complete when: each item is replaced with identical output and its owning suites green, or
+  recorded here as not worth the change it needs.
+- Related: compiler.core.060.
+
+### compiler.core.074 — Repeated native rebuilds choose different prologues
+
+- Recorded: 2026-10-01 17:08
+- Updated: 2026-10-09 12:37 — Two single-core rebuilds of release core.dll still differ in .rdata and .reloc only.
+- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
+  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
+  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
+  records without addresses finds eleven changed groups, including one removed leaf record,
+  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
+  Both commands cap the outer script and inner compiler at six workers and use isolated
+  temporary caches. No compiler rebuild occurs between them.
+- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
+  That routine serializes already generated prologue operations; the record differences also
+  occur between runs of the same changed binary. This does not establish when the variation
+  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
+- October 3: three causes found and fixed. A by-value aggregate argument that folds to a
+  constant (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached
+  by the folding cast and registered again on every sema rerun, each copy keeping a frame
+  slot: `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one
+  build of the same benchmark to the next. `.rdata` was laid out by constant shard and
+  creation offset, which follow job scheduling; it now follows the order the code reaches
+  each constant. And a source-location constant chose its shard from the function's address
+  and the source view's load index, so two locations in one file shared their file-name
+  string in some builds and not in others, shifting the whole section; the shard now comes
+  from the file and function names. Over five pairs each of `sort`, `wordfreq` and `nbody`
+  builds, the code (ignoring addresses), `.pdata` and `.xdata` no longer vary, and `.rdata`
+  differed in one pair only, by 41 bytes, next to a `.data` difference.
+- October 9: two consecutive `std.swgs build core -bc release --rebuild --num-cores 1` runs of the
+  same Release compiler (prompt-4 branch at `f3a0c10b3`) give `core.dll` files whose `.text`,
+  `.pdata`, `.xdata`, `.swagdbg`, `.edata` and `.data` sections are byte-identical, while `.rdata`
+  is 259,583 against 259,543 bytes (103,866 differing bytes from offset `0xb60`, the shifted
+  addresses of data-only references) and `.reloc` differs accordingly. Six-core rebuilds also
+  change the file size by 512 bytes. The code itself is stable; one `.rdata` allocation still
+  changes size or order between runs, even without parallel workers.
+- What still varies: the offsets of globals in `.data` and `.bss`. They are assigned while
+  sema runs in parallel, so the addresses that code and relocations use differ from one
+  build to the next (48 to 5,800 bytes per pair).
+- Next: give globals a layout decided at emission from a stable key (module, file, declaration
+  order) instead of first-come offsets, keeping the JIT's addresses valid; then repeat the
+  unwind record comparison to see whether another prologue cause remains.
+- Complete when: the source of the different prologues is explained and corrected at its
+  owning boundary, with stable normalized output and the affected native tests green.
+
 ### compiler.core.081 — An imported generic method once lost its own parameter
 
 - Recorded: 2026-10-09 02:07
@@ -404,42 +473,6 @@ its cost.
 - Complete when: each item is either removed with compile-time execution and safety tests, or
   recorded as measured and not worth its risk.
 - Related: compiler.core.030.
-
-### compiler.core.074 — Repeated native rebuilds choose different prologues
-
-- Recorded: 2026-10-01 17:08
-- Updated: 2026-10-03 18:10 — Fixed a third cause, location constants sharded by pointer; global layout still varies.
-- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
-  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
-  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
-  records without addresses finds eleven changed groups, including one removed leaf record,
-  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
-  Both commands cap the outer script and inner compiler at six workers and use isolated
-  temporary caches. No compiler rebuild occurs between them.
-- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
-  That routine serializes already generated prologue operations; the record differences also
-  occur between runs of the same changed binary. This does not establish when the variation
-  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
-- October 3: three causes found and fixed. A by-value aggregate argument that folds to a
-  constant (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached
-  by the folding cast and registered again on every sema rerun, each copy keeping a frame
-  slot: `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one
-  build of the same benchmark to the next. `.rdata` was laid out by constant shard and
-  creation offset, which follow job scheduling; it now follows the order the code reaches
-  each constant. And a source-location constant chose its shard from the function's address
-  and the source view's load index, so two locations in one file shared their file-name
-  string in some builds and not in others, shifting the whole section; the shard now comes
-  from the file and function names. Over five pairs each of `sort`, `wordfreq` and `nbody`
-  builds, the code (ignoring addresses), `.pdata` and `.xdata` no longer vary, and `.rdata`
-  differed in one pair only, by 41 bytes, next to a `.data` difference.
-- What still varies: the offsets of globals in `.data` and `.bss`. They are assigned while
-  sema runs in parallel, so the addresses that code and relocations use differ from one
-  build to the next (48 to 5,800 bytes per pair).
-- Next: give globals a layout decided at emission from a stable key (module, file, declaration
-  order) instead of first-come offsets, keeping the JIT's addresses valid; then repeat the
-  unwind record comparison to see whether another prologue cause remains.
-- Complete when: the source of the different prologues is explained and corrected at its
-  owning boundary, with stable normalized output and the affected native tests green.
 
 ### compiler.core.075 — Aligned node references collapse semantic metadata partitions
 

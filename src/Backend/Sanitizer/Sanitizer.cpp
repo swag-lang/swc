@@ -483,7 +483,7 @@ void Sanitizer::pruneDeadRegs(SanitizerState& state, const uint64_t* live) const
         return dense == MicroDenseRegIndex::K_INVALID_INDEX || !(live[dense / 64] & (1ull << (dense % 64)));
     };
 
-    std::erase_if(state.regs, [&](const auto& entry) { return isDead(entry.first); });
+    state.regs.eraseIf([&](uint32_t reg, const SanitizerRegInfo&) { return isDead(reg); });
     state.upperRegValues.eraseIf([&](const auto& entry) { return isDead(entry.first); });
 }
 
@@ -582,14 +582,13 @@ SanitizerValue Sanitizer::getReg(const SanitizerState& state, MicroReg reg) cons
 {
     if (stackBaseReg_.isValid() && reg == stackBaseReg_)
         return SanitizerValue::makeStackAddr(0);
-    const auto it = state.regs.find(reg.packed);
-    return it == state.regs.end() ? SanitizerValue{} : it->second.value;
+    const SanitizerRegInfo* info = state.regs.find(reg.packed);
+    return info ? info->value : SanitizerValue{};
 }
 
 const SanitizerRegInfo* Sanitizer::findReg(const SanitizerState& state, MicroReg reg)
 {
-    const auto it = state.regs.find(reg.packed);
-    return it == state.regs.end() ? nullptr : &it->second;
+    return state.regs.find(reg.packed);
 }
 
 void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info)
@@ -604,7 +603,7 @@ void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegIn
     if (info == SanitizerRegInfo{})
         state.regs.erase(reg.packed);
     else
-        state.regs.insert_or_assign(reg.packed, info);
+        state.regs.insertOrAssign(reg.packed, info);
 }
 
 SanitizerValue Sanitizer::getUpperReg(const SanitizerState& state, MicroReg reg)
@@ -625,10 +624,10 @@ void Sanitizer::setUpperReg(SanitizerState& state, MicroReg reg, const Sanitizer
 
 SanitizerValue Sanitizer::getStackLane(const SanitizerState& state, int64_t slot)
 {
-    const auto it = state.stack.find(slot);
-    if (it == state.stack.end() || it->second.storedBytes != 8)
+    const SanitizerValue* stored = state.stack.find(slot);
+    if (!stored || stored->storedBytes != 8)
         return {};
-    SanitizerValue value = it->second;
+    SanitizerValue value = *stored;
     value.storedBytes    = 0;
     return value;
 }
@@ -648,7 +647,7 @@ void Sanitizer::setStackValue(SanitizerState& state, int64_t slot, SanitizerValu
     else
     {
         value.storedBytes = size;
-        state.stack.insert_or_assign(slot, value);
+        state.stack.insertOrAssign(slot, value);
     }
 }
 
@@ -672,7 +671,7 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
     if (reg.isAnyFloat())
         state.upperRegValues.erase(reg.packed);
 
-    SanitizerRegInfo& info = state.regs[reg.packed];
+    SanitizerRegInfo& info = state.regs.getOrInsert(reg.packed);
     if (origin.hasSlot)
     {
         info.hasPointerOriginSlot = true;
@@ -871,29 +870,17 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
-    for (auto it = into.stack.begin(); it != into.stack.end();)
-    {
-        const auto f = from.stack.find(it->first);
-        if (f == from.stack.end() || f->second != it->second)
-        {
-            it      = into.stack.erase(it);
-            changed = true;
-        }
-        else
-            ++it;
-    }
+    if (into.stack.eraseIf([&](int64_t slot, const SanitizerValue& value) {
+            const SanitizerValue* other = from.stack.find(slot);
+            return !other || *other != value;
+        }))
+        changed = true;
 
-    for (auto it = into.regs.begin(); it != into.regs.end();)
-    {
-        const auto f = from.regs.find(it->first);
-        if (f == from.regs.end() || f->second != it->second)
-        {
-            it      = into.regs.erase(it);
-            changed = true;
-        }
-        else
-            ++it;
-    }
+    if (into.regs.eraseIf([&](uint32_t reg, const SanitizerRegInfo& info) {
+            const SanitizerRegInfo* other = from.regs.find(reg);
+            return !other || *other != info;
+        }))
+        changed = true;
 
     for (auto it = into.movedFrom.begin(); it != into.movedFrom.end();)
     {
@@ -1178,24 +1165,24 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         if (resolveAccessStackSlot(slot, state, inst, def, ops))
         {
             const uint64_t size     = memoryWriteSize(inst, ops);
-            const auto     overlaps = [slot, size](const auto& entry) {
-                const uint64_t storedSize = entry.second.storedBytes ? entry.second.storedBytes : 8;
-                if (entry.first <= slot)
-                    return static_cast<uint64_t>(slot) - static_cast<uint64_t>(entry.first) < storedSize;
-                return static_cast<uint64_t>(entry.first) - static_cast<uint64_t>(slot) < size;
+            const auto     overlaps = [slot, size](int64_t stored, const SanitizerValue& value) {
+                const uint64_t storedSize = value.storedBytes ? value.storedBytes : 8;
+                if (stored <= slot)
+                    return static_cast<uint64_t>(slot) - static_cast<uint64_t>(stored) < storedSize;
+                return static_cast<uint64_t>(stored) - static_cast<uint64_t>(slot) < size;
             };
             // A fact covers at most eight bytes. Large frames need only a bounded
             // number of hash probes, not a scan of every local on every store.
             if (state.stack.size() <= size + 7)
-                std::erase_if(state.stack, overlaps);
+                state.stack.eraseIf(overlaps);
             else
             {
                 for (uint64_t offset = 0; offset < size + 7; ++offset)
                 {
-                    const int64_t candidate = std::bit_cast<int64_t>(static_cast<uint64_t>(slot) - 7 + offset);
-                    const auto    it        = state.stack.find(candidate);
-                    if (it != state.stack.end() && overlaps(*it))
-                        state.stack.erase(it);
+                    const int64_t         candidate = std::bit_cast<int64_t>(static_cast<uint64_t>(slot) - 7 + offset);
+                    const SanitizerValue* value     = state.stack.find(candidate);
+                    if (value && overlaps(candidate, *value))
+                        state.stack.erase(candidate);
                 }
             }
         }
@@ -1283,8 +1270,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, ops[1].valueU64, slot))
             {
-                const auto value = state.stack.find(slot);
-                if (value != state.stack.end() && value->second.isZero())
+                const SanitizerValue* value = state.stack.find(slot);
+                if (value && value->isZero())
                     return;
                 SmallVector<int64_t> released;
                 appendAliasClass(released, state, slot);
@@ -1481,8 +1468,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     info.value = getStackLane(state, slot);
                 else
                 {
-                    const auto it = state.stack.find(slot);
-                    info.value    = it != state.stack.end() ? it->second : SanitizerValue{};
+                    const SanitizerValue* stored = state.stack.find(slot);
+                    info.value                   = stored ? *stored : SanitizerValue{};
                     if (info.value.storedBytes && info.value.storedBytes * 8 < loadBits)
                         info.value = {};
                     else if (loadBits < 64)
@@ -1820,10 +1807,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // separated by an ordinary call. Everything else goes: a physical register is
         // clobbered, and what a register said about the CONTENT of a slot no longer holds
         // once the callee may have written it.
-        std::erase_if(state.regs, [](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || (!entry.second.value.isStackAddr() && !entry.second.releasedPointer); });
+        state.regs.eraseIf([](uint32_t reg, const SanitizerRegInfo& info) { return !MicroReg::fromPacked(reg).isVirtual() || (!info.value.isStackAddr() && !info.releasedPointer); });
         state.upperRegValues.eraseIf([](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.isStackAddr(); });
-        for (auto& [reg, info] : state.regs)
+        state.regs.forEach([](uint32_t, SanitizerRegInfo& info) {
             info = SanitizerRegInfo{.value = info.value, .releasedPointer = info.releasedPointer, .releasedOrigin = info.releasedOrigin};
+        });
 
         for (const MicroReg reg : newlyFreedRegs)
         {
@@ -1979,8 +1967,8 @@ bool Sanitizer::resolveGuardSlot(GuardSlot& out, const SanitizerRegInfo& subject
 
 void Sanitizer::queueRefined(SanitizerState state, uint32_t index, const GuardSlot& guard, bool slotIsZero, SmallVector<uint32_t, 32>& worklist)
 {
-    const auto           it      = state.stack.find(guard.offset);
-    const SanitizerValue current = it != state.stack.end() ? it->second : SanitizerValue{};
+    const SanitizerValue* stored  = state.stack.find(guard.offset);
+    const SanitizerValue  current = stored ? *stored : SanitizerValue{};
 
     bool currentIsZero = false;
     if ((!current.storedBytes || current.storedBytes * 8 >= guard.bits) && current.tryZeroTest(currentIsZero, guard.bits) && slotIsZero != currentIsZero)
@@ -1992,7 +1980,7 @@ void Sanitizer::queueRefined(SanitizerState state, uint32_t index, const GuardSl
     {
         auto refined        = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
         refined.storedBytes = guard.bits / 8;
-        state.stack.insert_or_assign(guard.offset, refined);
+        state.stack.insertOrAssign(guard.offset, refined);
     }
     state.flagsSubject = MicroReg::invalid();
     propagate(std::move(state), index, worklist);
@@ -2000,16 +1988,12 @@ void Sanitizer::queueRefined(SanitizerState state, uint32_t index, const GuardSl
 
 void Sanitizer::dropZeros(SanitizerState& state)
 {
-    for (auto it = state.regs.begin(); it != state.regs.end();)
-    {
-        if (it->second.value.isZero())
-            it->second.value = {};
-        if (it->second == SanitizerRegInfo{})
-            it = state.regs.erase(it);
-        else
-            ++it;
-    }
-    std::erase_if(state.stack, [](const auto& entry) { return entry.second.isZero(); });
+    state.regs.eraseIf([](uint32_t, SanitizerRegInfo& info) {
+        if (info.value.isZero())
+            info.value = {};
+        return info == SanitizerRegInfo{};
+    });
+    state.stack.eraseIf([](int64_t, const SanitizerValue& value) { return value.isZero(); });
     state.upperRegValues.eraseIf([](const auto& entry) { return entry.second.isZero(); });
 }
 

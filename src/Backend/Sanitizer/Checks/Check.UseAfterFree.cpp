@@ -67,8 +67,8 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         int64_t slot = 0;
         if (!sanitizer.resolveStackSlot(state, ops[0].reg, ops[1].valueU64, slot))
             return;
-        const auto value = state.stack.find(slot);
-        if (value != state.stack.end() && value->second.isZero())
+        const SanitizerValue* value = state.stack.find(slot);
+        if (value && value->isZero())
             return;
         const auto freed = state.freedPtrSlots.find(slot);
         if (freed != state.freedPtrSlots.end())

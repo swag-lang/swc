@@ -183,13 +183,173 @@ private:
     std::unique_ptr<Map> map_;
 };
 
+// The register and stack facts of a state, held in one open-addressed table. A state is copied
+// at every chain head, walk and successor, and a node-based map pays one allocation per fact for
+// each copy; this one copies a single array. Nothing reads these facts in table order: every
+// pass over them keeps or drops each entry on its own merits.
+template<typename K, typename V>
+class SanitizerFlatMap
+{
+    static_assert(std::is_trivially_copyable_v<K> && std::is_trivially_copyable_v<V>, "SanitizerFlatMap holds trivially copyable entries");
+
+public:
+    bool   empty() const noexcept { return count_ == 0; }
+    size_t size() const noexcept { return count_; }
+
+    const V* find(const K& key) const noexcept
+    {
+        const size_t index = findIndex(key);
+        return index == K_NOT_FOUND ? nullptr : &slots_[index].value;
+    }
+
+    V* find(const K& key) noexcept { return const_cast<V*>(std::as_const(*this).find(key)); }
+
+    void insertOrAssign(const K& key, const V& value) { getOrInsert(key) = value; }
+
+    // The value of the key, value-initialized when the key is new, like 'operator[]'. The table
+    // grows before an insertion, so the returned value stays where it is until the next one.
+    V& getOrInsert(const K& key)
+    {
+        const size_t found = findIndex(key);
+        if (found != K_NOT_FOUND)
+            return slots_[found].value;
+
+        if (slots_.empty())
+            rehash(K_INITIAL_CAPACITY);
+        else if ((count_ + tombstones_ + 1) * 4 > slots_.size() * 3)
+            rehash((count_ + 1) * 4 > slots_.size() * 2 ? slots_.size() * 2 : slots_.size());
+
+        const size_t mask  = slots_.size() - 1;
+        size_t       index = slotIndex(key, mask);
+        while (slots_[index].state == SlotState::Used)
+            index = (index + 1) & mask;
+        if (slots_[index].state == SlotState::Erased)
+            --tombstones_;
+        slots_[index] = {.key = key, .state = SlotState::Used, .value = V{}};
+        ++count_;
+        return slots_[index].value;
+    }
+
+    size_t erase(const K& key) noexcept
+    {
+        const size_t index = findIndex(key);
+        if (index == K_NOT_FOUND)
+            return 0;
+        eraseAt(index);
+        return 1;
+    }
+
+    void clear() noexcept
+    {
+        if (!count_ && !tombstones_)
+            return;
+        for (Slot& slot : slots_)
+            slot.state = SlotState::Free;
+        count_      = 0;
+        tombstones_ = 0;
+    }
+
+    // Drops every entry the predicate holds for, and says how many went. The predicate sees the
+    // value mutably, so a pass that rewrites what it keeps runs once.
+    template<typename Pred>
+    size_t eraseIf(Pred pred)
+    {
+        const size_t before = count_;
+        for (size_t index = 0; index < slots_.size() && count_; ++index)
+        {
+            if (slots_[index].state == SlotState::Used && pred(std::as_const(slots_[index].key), slots_[index].value))
+                eraseAt(index);
+        }
+        return before - count_;
+    }
+
+    template<typename Fn>
+    void forEach(Fn fn)
+    {
+        for (Slot& slot : slots_)
+        {
+            if (slot.state == SlotState::Used)
+                fn(std::as_const(slot.key), slot.value);
+        }
+    }
+
+private:
+    enum class SlotState : uint8_t
+    {
+        Free,
+        Used,
+        Erased,
+    };
+
+    struct Slot
+    {
+        K         key{};
+        SlotState state = SlotState::Free;
+        V         value{};
+    };
+
+    static constexpr size_t K_INITIAL_CAPACITY = 8;
+    static constexpr size_t K_NOT_FOUND        = std::numeric_limits<size_t>::max();
+
+    static size_t slotIndex(const K& key, size_t mask) noexcept
+    {
+        return static_cast<size_t>(static_cast<uint64_t>(key) * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+    }
+
+    size_t findIndex(const K& key) const noexcept
+    {
+        if (!count_)
+            return K_NOT_FOUND;
+
+        const size_t mask  = slots_.size() - 1;
+        size_t       index = slotIndex(key, mask);
+        while (slots_[index].state != SlotState::Free)
+        {
+            if (slots_[index].state == SlotState::Used && slots_[index].key == key)
+                return index;
+            index = (index + 1) & mask;
+        }
+
+        return K_NOT_FOUND;
+    }
+
+    void eraseAt(size_t index) noexcept
+    {
+        slots_[index].state = SlotState::Erased;
+        --count_;
+        ++tombstones_;
+    }
+
+    void rehash(size_t capacity)
+    {
+        std::vector<Slot> previous(capacity);
+        previous.swap(slots_);
+        tombstones_ = 0;
+
+        const size_t mask = slots_.size() - 1;
+        for (const Slot& slot : previous)
+        {
+            if (slot.state != SlotState::Used)
+                continue;
+            size_t index = slotIndex(slot.key, mask);
+            while (slots_[index].state != SlotState::Free)
+                index = (index + 1) & mask;
+            slots_[index] = slot;
+        }
+    }
+
+    std::vector<Slot> slots_;
+    size_t            count_      = 0;
+    size_t            tombstones_ = 0;
+};
+
 // Abstract machine state at one program point: the tracked value of every virtual
 // register and simulated local stack slot, plus which register the CPU flags encode a
 // comparison of against zero.
 struct SanitizerState
 {
-    std::unordered_map<uint32_t, SanitizerRegInfo> regs;  // key: MicroReg.packed
-    std::unordered_map<int64_t, SanitizerValue>    stack; // key: stack slot offset
+    SanitizerFlatMap<uint32_t, SanitizerRegInfo> regs;  // key: MicroReg.packed
+    SanitizerFlatMap<int64_t, SanitizerValue>    stack; // key: stack slot offset
 
     // The upper eight bytes of a 128-bit register copy. Keep this sparse instead of
     // widening every scalar register's information. Loads snapshot both lanes before

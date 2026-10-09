@@ -57,6 +57,16 @@ private func run(op: *Array's64, input: s64)->s64
     #[Swag.Mixin]
     func addr(offset: u64)->s64 => addrp(offset)[]
 
+    #[Swag.Mixin]
+    func readParameter(offset, mode: s64)->s64
+    {
+        if mode == 1 do
+            return addr(ip + offset)
+        if mode == 2 do
+            return addr(op[ip + offset] + base)
+        return addr(op[ip + offset])
+    }
+
     while op[ip] != 99
     {
         let mode0 = (op[ip] / 100) % 10
@@ -66,9 +76,9 @@ private func run(op: *Array's64, input: s64)->s64
 
         var param0, param1 = 0's64
         if inst != 3 do
-            param0 = mode0 == 1 ? addr(ip + 1) : mode0 == 2 ? addr(op[ip + 1] + base) : addr(op[ip + 1])
+            param0 = readParameter(1, mode0)
         if inst != 3 and inst != 4 and inst != 9 do
-            param1 = mode1 == 1 ? addr(ip + 2) : mode1 == 2 ? addr(op[ip + 2] + base) : addr(op[ip + 2])
+            param1 = readParameter(2, mode1)
 
         /*
         switch inst

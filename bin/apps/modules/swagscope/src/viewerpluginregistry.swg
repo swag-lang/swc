@@ -30,7 +30,13 @@ private impl NameKey
     {
         for selector in plugin.selectors
         {
-            let wanted: string = wildcard ? "*" : selector[][0] == '.' ? .extension : .name
+            var wanted: string
+            if wildcard do
+                wanted = "*"
+            elif selector[][0] == '.' do
+                wanted = .extension
+            else do
+                wanted = .name
             if selector[] == wanted do
                 return true
         }

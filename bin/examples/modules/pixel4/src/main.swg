@@ -173,7 +173,11 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
     painter.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Argb.White)
     painter.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Color.fromArgb(96, Argb.SlateGray), 2)
     painter.drawString(rect.x + 18, rect.y + 12, title, g_SubTitleFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40}, subtitle, g_HelpFont, Argb.Gray)
+    drawWrappedText(painter,
+                    {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40},
+                    subtitle,
+                    g_HelpFont,
+                    Argb.Gray)
     return insetRect(rect, 18, PanelHeaderHeight, 18, 18)
 }
 
@@ -400,7 +404,11 @@ func updateTestMode()
 
 #main
 {
-    g_Window = try Env.createWindow({identifier: "pixel4", title: "Pixel path and brush drawing showcase", width: W, height: H, flags: .Minimizable})
+    g_Window = try Env.createWindow({identifier: "pixel4",
+                                     title: "Pixel path and brush drawing showcase",
+                                     width: W,
+                                     height: H,
+                                     flags: .Minimizable})
     defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer

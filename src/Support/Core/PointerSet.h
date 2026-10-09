@@ -305,24 +305,17 @@ public:
     // Inserts the key with the value, or keeps the value already there, like 'emplace'.
     void emplace(uint32_t key, const V& value)
     {
-        SWC_ASSERT(key != K_FREE);
-        if (slots_.empty())
-            rehash(INITIAL_CAPACITY);
+        bool inserted = false;
+        V&   slot     = slotFor(key, inserted);
+        if (inserted)
+            slot = value;
+    }
 
-        size_t index = slotIndex(key, slots_.size() - 1);
-        while (slots_[index].key != K_FREE)
-        {
-            if (slots_[index].key == key)
-                return;
-            index = (index + 1) & (slots_.size() - 1);
-        }
-
-        slots_[index] = {.key = key, .value = value};
-        ++count_;
-
-        // Linear probing degrades sharply near a full table; keep it below three quarters.
-        if (count_ * 4 > slots_.size() * 3)
-            rehash(slots_.size() * 2);
+    // The value of the key, value-initialized when the key is new, like 'operator[]'.
+    V& getOrInsert(uint32_t key)
+    {
+        bool inserted = false;
+        return slotFor(key, inserted);
     }
 
     size_t size() const noexcept { return count_; }
@@ -340,6 +333,33 @@ private:
     static size_t slotIndex(uint32_t key, size_t mask) noexcept
     {
         return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+    }
+
+    // The table grows before an insertion rather than after it, so the returned value stays
+    // where it is until the next one.
+    V& slotFor(uint32_t key, bool& outInserted)
+    {
+        SWC_ASSERT(key != K_FREE);
+        if (slots_.empty())
+            rehash(INITIAL_CAPACITY);
+        else if ((count_ + 1) * 4 > slots_.size() * 3)
+            rehash(slots_.size() * 2);
+
+        size_t index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key != K_FREE)
+        {
+            if (slots_[index].key == key)
+            {
+                outInserted = false;
+                return slots_[index].value;
+            }
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        slots_[index] = {.key = key, .value = V{}};
+        ++count_;
+        outInserted = true;
+        return slots_[index].value;
     }
 
     void rehash(size_t capacity)

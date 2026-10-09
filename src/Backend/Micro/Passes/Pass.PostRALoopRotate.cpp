@@ -648,9 +648,11 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         uint32_t count   = 0;
         uint32_t ordinal = 0;
     };
-    std::unordered_map<uint32_t, JumpTarget> jumpsByTarget;
-    std::vector<MicroInstrRef>               order;
-    bool                                     hasJumpCond = false;
+    // One flat table: this runs in every post-RA sweep of every function, and a node-based
+    // map allocated for each jump target.
+    FlatKeyMap<JumpTarget>     jumpsByTarget;
+    std::vector<MicroInstrRef> order;
+    bool                       hasJumpCond = false;
     order.reserve(storage.count());
     for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
@@ -662,7 +664,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         uint32_t target = 0;
         if (!tryGetJumpTargetLabelId(target, *it, it->ops(operands)))
             continue;
-        auto& incoming = jumpsByTarget[target];
+        JumpTarget& incoming = jumpsByTarget.getOrInsert(target);
         ++incoming.count;
         incoming.ordinal = ordinal;
     }
@@ -680,7 +682,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         return Result::Continue;
 
     // Every rotation needs an incoming jump to its header.
-    if (jumpsByTarget.empty())
+    if (!jumpsByTarget.size())
         return Result::Continue;
 
     SmallVector<Rotation> rotations;
@@ -696,8 +698,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 
         // A header without one incoming jump cannot rotate, regardless of
         // its test run. The incoming-jump index stays fixed during recognition.
-        const auto incoming = jumpsByTarget.find(labelId);
-        if (incoming == jumpsByTarget.end() || incoming->second.count != 1)
+        const JumpTarget* incoming = jumpsByTarget.find(labelId);
+        if (!incoming || incoming->count != 1)
             continue;
 
         // The test run: one duplicable compare, possibly surrounded by
@@ -745,7 +747,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         // The back edge must be the only jump aimed at this label, and
         // unconditional. A second one would keep re-entering above the test
         // this rotation stops re-running.
-        const uint32_t backOrdinal = incoming->second.ordinal;
+        const uint32_t backOrdinal = incoming->ordinal;
         if (backOrdinal <= testEnd)
             continue;
         const MicroInstrRef      backRef  = order[backOrdinal];

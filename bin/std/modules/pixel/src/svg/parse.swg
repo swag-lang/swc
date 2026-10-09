@@ -808,8 +808,9 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
             state.isDisplayed = false
 
     case "visibility":
-        let visible = Latin1.compare(Latin1.trim(value), "hidden", ignoreCase: true) != 0 and Latin1.compare(Latin1.trim(value), "collapse", ignoreCase: true) != 0
-        state.isVisible = visible
+        let visibility = Latin1.trim(value)
+        state.isVisible = Latin1.compare(visibility, "hidden", ignoreCase: true) != 0 and
+                          Latin1.compare(visibility, "collapse", ignoreCase: true) != 0
 
     case "fill-opacity":
         state.fillOpacity = Math.saturate(parseLength(value).value)

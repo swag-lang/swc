@@ -138,6 +138,8 @@ when they explain how a value is used. Retain conventional coefficients when exp
 symbol would bury the algorithm; describe the parameter domain and the exceptional cases once.
 Keep the original arithmetic order, widths, and wrapping operators. A named crossing coordinate
 belongs inside the height guard that makes its division valid, not before that guard.
+When comparisons intentionally leave NaN unchanged, keep those guards explicit; replacing them
+with a min/max clamp can change how special values propagate.
 
 For SIMD code, keep a short domain qualifier such as `Simd` while removing repeated outer
 namespace prefixes. Name a loaded block before a shuffle when nested loads and bit casts hide

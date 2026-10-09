@@ -355,8 +355,14 @@ func reportPeImage(image: *BinaryImage, report: *Report)
     reportPeClr(image, report, &layout)
     reportPeCertificates(image, report, &layout)
 
-    let texts    = texts()
-    let kind     = header.characteristics & 0x2000 ? "DLL" : (header.characteristics & 0x1000 ? "SYS" : "EXE")
+    let texts = texts()
+    var kind: string
+    if header.characteristics & 0x2000 do
+        kind = "DLL"
+    elif header.characteristics & 0x1000 do
+        kind = "SYS"
+    else do
+        kind = "EXE"
     let sections = countText(cast(u64, header.sectionCount), texts.word_Section, texts.word_Sections)
     report.formatName = layout.is64 ? "PE32+" : "PE32"
     report.summary    = Format.toString("% · % · % · %", report.formatName, kind, peMachineName(header.machine), sections)
@@ -562,7 +568,14 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, si
     layout.is64 = magic == 0x20B
 
     report.beginGroup(texts.pe_Optional, layout.is64 ? "PE32+" : "PE32", "", offset: at, length: size, open: true)
-    report.hexField(at, 2, "Magic", cast(u64, magic), magic == 0x20B ? texts.pe_Image64 : (magic == 0x10B ? texts.pe_Image32 : texts.pe_ImageRom))
+    var imageTypeText: string
+    if magic == 0x20B do
+        imageTypeText = texts.pe_Image64
+    elif magic == 0x10B do
+        imageTypeText = texts.pe_Image32
+    else do
+        imageTypeText = texts.pe_ImageRom
+    report.hexField(at, 2, "Magic", cast(u64, magic), imageTypeText)
 
     let linker = Format.toString("%.%", image.u8At(at + 2), image.u8At(at + 3))
     report.field(at + 2, 2, "LinkerVersion", linker)

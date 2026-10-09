@@ -342,7 +342,11 @@ impl Vector3
         // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
         // outside the domain of acos. The comparisons leave a NaN untouched.
         let cosine = .dot(other) / (.length() * other.length())
-        return cosine > 1 ? 1 : (cosine < -1 ? -1 : cosine)
+        if cosine > 1 do
+            return 1
+        if cosine < -1 do
+            return -1
+        return cosine
     }
 
     // Returns the unsigned angle between this vector and `other`, in radians within [0, π].

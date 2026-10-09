@@ -245,7 +245,15 @@ public func registerApplication(appName, appFriendly: string)
     var hKey: HKEY
 
     let commandKey = Format.toString("Software\\Classes\\Applications\\%", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
+    if RegCreateKeyExA(HKEY_CURRENT_USER,
+                       commandKey.buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) == ERROR_SUCCESS
     {
         RegSetValueExA(hKey, null, 0, REG_SZ, friendly.buffer, cast(u32, (friendly.length + 1)))
         RegSetValueExA(hKey, ("FriendlyAppName").buffer, 0, REG_SZ, friendly.buffer, cast(u32, (friendly.length + 1)))
@@ -253,7 +261,15 @@ public func registerApplication(appName, appFriendly: string)
     }
 
     // Register the application properly
-    if RegCreateKeyExA(HKEY_CURRENT_USER, ("Software\\RegisteredApplications").buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
+    if RegCreateKeyExA(HKEY_CURRENT_USER,
+                       ("Software\\RegisteredApplications").buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) == ERROR_SUCCESS
     {
         let capabilitiesPath = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
         RegSetValueExA(hKey, friendly.buffer, 0, REG_SZ, capabilitiesPath.buffer, cast(u32, (capabilitiesPath.length + 1)))
@@ -262,7 +278,15 @@ public func registerApplication(appName, appFriendly: string)
 
     // Create capabilities key
     let capKey = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, capKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
+    if RegCreateKeyExA(HKEY_CURRENT_USER,
+                       capKey.buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) == ERROR_SUCCESS
     {
         RegSetValueExA(hKey, ("ApplicationName").buffer, 0, REG_SZ, friendly.buffer, cast(u32, (friendly.length + 1)))
         RegCloseKey(hKey)
@@ -284,7 +308,15 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
     var hKey: HKEY
 
     let extKey = Format.toString("Software\\Classes\\%\\OpenWithProgids", extension)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, extKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
+    if RegCreateKeyExA(HKEY_CURRENT_USER,
+                       extKey.buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) != ERROR_SUCCESS do
         return false
 
     let valApp = Format.toString("%", appName)
@@ -297,7 +329,15 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
     RegCloseKey(hKey)
 
     let supportedTypes = Format.toString("Software\\Classes\\Applications\\%\\SupportedTypes", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, supportedTypes.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
+    if RegCreateKeyExA(HKEY_CURRENT_USER,
+                       supportedTypes.buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) != ERROR_SUCCESS do
         return false
 
     let extensionName = String.from(extension)
@@ -310,7 +350,15 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
     RegCloseKey(hKey)
 
     let commandKey = Format.toString("Software\\Classes\\Applications\\%\\shell\\open\\command", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
+    if RegCreateKeyExA(HKEY_CURRENT_USER,
+                       commandKey.buffer,
+                       0,
+                       null,
+                       0,
+                       KEY_SET_VALUE,
+                       null,
+                       &hKey,
+                       null) != ERROR_SUCCESS do
         return false
 
     var command = Format.toString("\"%\" \"%%1\"", appPath)

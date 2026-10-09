@@ -19,7 +19,8 @@ func fillNarrativeEditor(ed: *RichEditCtrl)
     ed.addText(" and small ", 0)
     ed.addText("underlined cues", 4)
     ed.addText(" without changing widgets.\n\n", 0)
-    ed.addText("This is especially useful for inspectors, changelogs and embedded documentation where code and prose live side by side.", 0)
+    ed.addText("This is especially useful for inspectors, changelogs and embedded documentation where code and prose live side by side.",
+               0)
 }
 
 func fillPaletteEditor(ed: *RichEditCtrl)

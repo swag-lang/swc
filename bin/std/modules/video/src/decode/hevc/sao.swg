@@ -10,7 +10,14 @@ using Core
 
 // Returns the sign of a difference, which is what an edge offset class is derived from.
 #[Swag.Inline]
-private func signOf(value: s32)->s32 => value > 0 ? 1 : (value < 0 ? -1 : 0)
+private func signOf(value: s32)->s32
+{
+    if value > 0 do
+        return 1
+    if value < 0 do
+        return -1
+    return 0
+}
 
 // Returns the same sign for eight samples at once, as the lane values 1, 0 and -1.
 //

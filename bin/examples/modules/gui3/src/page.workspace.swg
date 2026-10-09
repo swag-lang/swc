@@ -2,8 +2,11 @@ using Core, Gui, Pixel
 
 func createWorkspacePage(parent: *Wnd)
 {
-    let panel = createPanel(parent, "Workspace composition", "A fuller gui3-only composition: one code pane, one note pane and one read-only preview pane.", getFullPageRect(parent))
-    let rect  = panel.clientRect()
+    let panel = createPanel(parent,
+                            "Workspace composition",
+                            "A fuller gui3-only composition: one code pane, one note pane and one read-only preview pane.",
+                            getFullPageRect(parent))
+    let rect = panel.clientRect()
 
     // This page keeps only the enclosing panel and the splitter bars: every
     // richedit/splitter frame border is removed so the panes read as a single
@@ -22,7 +25,10 @@ func createWorkspacePage(parent: *Wnd)
     let sideItem = split.addPane(side, 420)
     sideItem.preserveSize = true
 
-    let notes = createDocumentEditor(side, {}, "Design note\n\nUse the left editor for source exploration, keep short conclusions here, and reserve the lower pane for a read-only reference.\n\nThis kind of composition is where RichEditCtrl becomes really practical: one implementation, several roles.", .ShowFocusSel | .WordWrap)
+    let notes = createDocumentEditor(side,
+                                     {},
+                                     "Design note\n\nUse the left editor for source exploration, keep short conclusions here, and reserve the lower pane for a read-only reference.\n\nThis kind of composition is where RichEditCtrl becomes really practical: one implementation, several roles.",
+                                     .ShowFocusSel | .WordWrap)
     notes.setFrameFlags(.None, .Borders | .FocusBorder)
     notes.lineSpacing = 2
     let noteItem = side.addPane(notes, 230)

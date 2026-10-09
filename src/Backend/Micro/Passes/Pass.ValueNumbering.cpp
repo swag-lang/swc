@@ -535,8 +535,11 @@ namespace
         return result;
     }
 
+    constexpr uint32_t K_NO_ENTRY = std::numeric_limits<uint32_t>::max();
+
     struct NumberingEntry
     {
+        uint32_t                 next       = K_NO_ENTRY;
         uint32_t                 index      = 0;
         MicroReg                 defReg     = MicroReg::invalid();
         uint32_t                 defValueId = MicroSsaState::K_INVALID_VALUE;
@@ -557,15 +560,95 @@ namespace
         MicroOpBits      srcBits = MicroOpBits::B64;
     };
 
+    // The values one run has numbered, chained per key hash in the order they were numbered.
+    // Every numberable instruction of every sweep lands here, and a node-based map paid an
+    // allocation for each new hash and freed them all again at the next run. This table keeps
+    // its arrays on the worker, and clearing it moves a stamp.
+    class NumberingTable
+    {
+    public:
+        struct Bucket
+        {
+            uint64_t hash  = 0;
+            uint64_t stamp = 0;
+            uint32_t head  = K_NO_ENTRY;
+            uint32_t tail  = K_NO_ENTRY;
+        };
+
+        std::vector<NumberingEntry> entries;
+
+        void clear()
+        {
+            ++stamp_;
+            used_ = 0;
+            entries.clear();
+        }
+
+        Bucket& bucket(const uint64_t hash)
+        {
+            if (buckets_.empty())
+                buckets_.resize(INITIAL_CAPACITY);
+            else if ((used_ + 1) * 4 > buckets_.size() * 3)
+                grow();
+
+            size_t index = slotIndex(hash);
+            while (buckets_[index].stamp == stamp_)
+            {
+                if (buckets_[index].hash == hash)
+                    return buckets_[index];
+                index = (index + 1) & (buckets_.size() - 1);
+            }
+
+            ++used_;
+            buckets_[index] = {.hash = hash, .stamp = stamp_};
+            return buckets_[index];
+        }
+
+        void append(Bucket& bucket, NumberingEntry&& entry)
+        {
+            const auto entryIndex = static_cast<uint32_t>(entries.size());
+            entries.push_back(std::move(entry));
+            if (bucket.head == K_NO_ENTRY)
+                bucket.head = entryIndex;
+            else
+                entries[bucket.tail].next = entryIndex;
+            bucket.tail = entryIndex;
+        }
+
+    private:
+        static constexpr size_t INITIAL_CAPACITY = 64;
+
+        size_t slotIndex(const uint64_t hash) const { return static_cast<size_t>(hash * 0x9E3779B97F4A7C15ULL >> 32) & (buckets_.size() - 1); }
+
+        void grow()
+        {
+            std::vector<Bucket> previous(buckets_.size() * 2);
+            previous.swap(buckets_);
+            for (const Bucket& bucket : previous)
+            {
+                if (bucket.stamp != stamp_)
+                    continue;
+                size_t index = slotIndex(bucket.hash);
+                while (buckets_[index].stamp == stamp_)
+                    index = (index + 1) & (buckets_.size() - 1);
+                buckets_[index] = bucket;
+            }
+        }
+
+        std::vector<Bucket> buckets_;
+        uint64_t            stamp_ = 1;
+        size_t              used_  = 0;
+    };
+
     struct NumberingScratch
     {
-        std::unordered_map<MicroInstrRef, const MicroRelocation*>    relocationByInstruction;
-        std::unordered_set<MicroReg>                                 frameDerivedRegs;
-        std::unordered_set<MicroReg>                                 immutableBases;
-        std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
-        std::vector<PlannedRewrite>                                  rewrites;
-        ValueAliases                                                 valueAliases;
-        std::vector<uint32_t>                                        epochAt;
+        std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstruction;
+        std::unordered_set<MicroReg>                              frameDerivedRegs;
+        std::unordered_set<MicroReg>                              immutableBases;
+        NumberingTable                                            table;
+        std::vector<PlannedRewrite>                               rewrites;
+        ValueAliases                                              valueAliases;
+        std::vector<uint32_t>                                     epochAt;
 
         void reset(const uint32_t instructionCount)
         {
@@ -851,13 +934,14 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (!ssaState->defValue(dstReg, instRef, myValueId))
             continue;
 
-        auto& bucket = table[hashKey(key)];
+        NumberingTable::Bucket& bucket = table.bucket(hashKey(key));
 
         bool replaced           = false;
         bool immutableLoad      = false;
         bool immutableLoadReady = false;
-        for (const NumberingEntry& cand : bucket)
+        for (uint32_t candIndex = bucket.head; candIndex != K_NO_ENTRY; candIndex = table.entries[candIndex].next)
         {
+            const NumberingEntry& cand = table.entries[candIndex];
             if (cand.key.size() != key.size() || !std::equal(cand.key.begin(), cand.key.end(), key.begin()))
                 continue;
             if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch)
@@ -961,15 +1045,16 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         if (!replaced)
         {
-            NumberingEntry& numbered = bucket.emplace_back();
-            numbered.index           = i;
-            numbered.defReg          = dstReg;
-            numbered.defValueId      = myValueId;
-            numbered.epoch           = memoryEpoch;
-            numbered.callCount       = callCount;
-            numbered.op              = inst->op;
-            numbered.movBits         = movBits;
-            numbered.key             = std::move(key);
+            NumberingEntry numbered;
+            numbered.index      = i;
+            numbered.defReg     = dstReg;
+            numbered.defValueId = myValueId;
+            numbered.epoch      = memoryEpoch;
+            numbered.callCount  = callCount;
+            numbered.op         = inst->op;
+            numbered.movBits    = movBits;
+            numbered.key        = std::move(key);
+            table.append(bucket, std::move(numbered));
         }
     }
 

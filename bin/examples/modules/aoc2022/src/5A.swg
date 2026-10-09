@@ -71,16 +71,16 @@ func day5A()
             let res = r.grepAll(l[])
             if res.isEmpty() do
                 continue
-            var count   = expect StrConv.toU64(res[0])
-            let colFrom = expect StrConv.toS32(res[1]) - 1
-            let colTo   = expect StrConv.toS32(res[2]) - 1
+            var crateCount       = expect StrConv.toU64(res[0])
+            let sourceStack      = expect StrConv.toS32(res[1]) - 1
+            let destinationStack = expect StrConv.toS32(res[2]) - 1
 
-            while count
+            while crateCount
             {
-                let crate = stacks[colFrom][0]
-                stacks[colTo].insert(0, crate)
-                stacks[colFrom].remove(0, 1)
-                count -= 1
+                let crate = stacks[sourceStack][0]
+                stacks[destinationStack].insert(0, crate)
+                stacks[sourceStack].remove(0, 1)
+                crateCount -= 1
             }
         }
 
@@ -90,20 +90,20 @@ func day5A()
         }
         else
         {
-            for stack in (l.length + 3) / 4
+            for stackIndex in (l.length + 3) / 4
             {
-                let i = stack * 4
-                if stack >= stacks.count do
+                let column = stackIndex * 4
+                if stackIndex >= stacks.count do
                     stacks.add("")
-                if l[i] == '[' do
-                    stacks[stack].append(l[i + 1])
+                if l[column] == '[' do
+                    stacks[stackIndex].append(l[column + 1])
             }
         }
     }
 
     var total: String
-    for s in stacks do
-        total += s[0]
+    for stack in stacks do
+        total += stack[0]
 
     Swag.assert(total == "HNSNMTLHQ")
 }

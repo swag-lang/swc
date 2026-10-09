@@ -19,12 +19,12 @@ func day2B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    const Score: [3, 3] s32 = [
+    const scoreByMoves: [3, 3] s32 = [
         [1 + 3, 2 + 6, 3 + 0],
         [1 + 0, 2 + 3, 3 + 6],
         [1 + 6, 2 + 0, 3 + 3]]
 
-    const Swap: [3, 3] u8 = [
+    const playerMoveByOpponentAndOutcome: [3, 3] u8 = [
         [2, 0, 1],
         [0, 1, 2],
         [1, 2, 0]]
@@ -32,10 +32,10 @@ func day2B()
     var total: u64
     for l in lines
     {
-        let val1 = l[0] - 'A'
-        var val2 = l[2] - 'X'
-        val2  = Swap[val1, val2]
-        total += Score[val1, val2]
+        let opponentMove   = l[0] - 'A'
+        let desiredOutcome = l[2] - 'X'
+        let playerMove     = playerMoveByOpponentAndOutcome[opponentMove, desiredOutcome]
+        total += scoreByMoves[opponentMove, playerMove]
     }
 
     Swag.assert(total == 12091)

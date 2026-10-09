@@ -60,13 +60,13 @@ func day5B()
         {
             if not expect r.match(#raw "move (\d+) from (\d+) to (\d+)", l[]) do
                 continue
-            let count   = expect StrConv.toU64(r.getCapture(1))
-            let colFrom = expect StrConv.toS32(r.getCapture(2)) - 1
-            let colTo   = expect StrConv.toS32(r.getCapture(3)) - 1
+            let crateCount       = expect StrConv.toU64(r.getCapture(1))
+            let sourceStack      = expect StrConv.toS32(r.getCapture(2)) - 1
+            let destinationStack = expect StrConv.toS32(r.getCapture(3)) - 1
 
-            let crates = String.from(stacks[colFrom][0 until count])
-            stacks[colTo].insert(0, crates.toString())
-            stacks[colFrom].remove(0, count)
+            let movedCrates = String.from(stacks[sourceStack][0 until crateCount])
+            stacks[destinationStack].insert(0, movedCrates.toString())
+            stacks[sourceStack].remove(0, crateCount)
         }
         elif l[1] == '1'
         {
@@ -74,20 +74,20 @@ func day5B()
         }
         else
         {
-            for stack in (l.length + 3) / 4
+            for stackIndex in (l.length + 3) / 4
             {
-                let i = stack * 4
-                if stack >= stacks.count do
+                let column = stackIndex * 4
+                if stackIndex >= stacks.count do
                     stacks.add("")
-                if l[i] == '[' do
-                    stacks[stack].append(l[i + 1])
+                if l[column] == '[' do
+                    stacks[stackIndex].append(l[column + 1])
             }
         }
     }
 
     var total: String
-    for s in stacks do
-        total += s[0]
+    for stack in stacks do
+        total += stack[0]
 
     Swag.assert(total == "RNLFDJMCT")
 }

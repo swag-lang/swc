@@ -34,7 +34,8 @@ func day2A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    const Score: [3, 3] s32 = [
+    // Rows are the opponent's move; columns are our move (rock, paper, scissors).
+    const scoreByMoves: [3, 3] s32 = [
         [1 + 3, 2 + 6, 3 + 0],
         [1 + 0, 2 + 3, 3 + 6],
         [1 + 6, 2 + 0, 3 + 3]]
@@ -42,7 +43,7 @@ func day2A()
     var total: u64
     for l in lines
     {
-        total += Score[l[0] - 'A', l[2] - 'X']
+        total += scoreByMoves[l[0] - 'A', l[2] - 'X']
     }
 
     Swag.assert(total == 14163)

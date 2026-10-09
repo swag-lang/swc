@@ -53,22 +53,14 @@ func day4A()
     for l in lines
     {
         discard expect r.match(#raw "(\d+)-(\d+),(\d+)-(\d+)", l[])
-        let v0a = expect StrConv.toS32(r.getCapture(1))
-        let v0b = expect StrConv.toS32(r.getCapture(2))
-        let v1a = expect StrConv.toS32(r.getCapture(3))
-        let v1b = expect StrConv.toS32(r.getCapture(4))
+        let firstStart  = expect StrConv.toS32(r.getCapture(1))
+        let firstEnd    = expect StrConv.toS32(r.getCapture(2))
+        let secondStart = expect StrConv.toS32(r.getCapture(3))
+        let secondEnd   = expect StrConv.toS32(r.getCapture(4))
 
-        /*let pair  = Tokenize.split(l, ',')
-        let pair0 = Tokenize.split(pair[0], '-')
-        let pair1 = Tokenize.split(pair[1], '-')
-        let v0a   = assume StrConv.toS32(pair0[0])
-        let v0b   = assume StrConv.toS32(pair0[1])
-        let v1a   = assume StrConv.toS32(pair1[0])
-        let v1b   = assume StrConv.toS32(pair1[1])*/
-
-        if v0a >= v1a and v0b <= v1b do
+        if firstStart >= secondStart and firstEnd <= secondEnd do
             total += 1
-        elif v1a >= v0a and v1b <= v0b do
+        elif secondStart >= firstStart and secondEnd <= firstEnd do
             total += 1
     }
 

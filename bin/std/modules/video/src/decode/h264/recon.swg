@@ -147,8 +147,15 @@ impl Slice
         // 16x16 macroblock always carries; the chroma planes have their own pattern.
         if (mb.class == MbClassInter and mb.cbpLuma != 0) or mb.class == MbClassIntra16x16
         {
-            for plane in planes do
-                .addPlaneResidual(mb, frame, plane, plane == 0 ? mb.qp : (plane == 1 ? qpCb : qpCr))
+            for plane in planes
+            {
+                var planeQp = qpCr
+                if plane == 0 do
+                    planeQp = mb.qp
+                elif plane == 1 do
+                    planeQp = qpCb
+                .addPlaneResidual(mb, frame, plane, planeQp)
+            }
         }
 
         if is444 do

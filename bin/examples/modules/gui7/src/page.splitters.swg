@@ -14,7 +14,10 @@ func createSplitterPane(parent: *Wnd, title, text: string)->*FrameWnd
 func createSplitterPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
-    let page   = createPanel(parent, "Nested splitters", "Drag the vertical and horizontal bars; side panes keep useful minimum sizes while the editor area absorbs most resize changes.", layout.full)
+    let page   = createPanel(parent,
+                             "Nested splitters",
+                             "Drag the vertical and horizontal bars; side panes keep useful minimum sizes while the editor area absorbs most resize changes.",
+                             layout.full)
 
     let splitRect = Math.Rectangle{18, 90, layout.full.width - 36, layout.full.height - 112}
     let rootSplit = SplitterCtrl.create(page, splitRect)

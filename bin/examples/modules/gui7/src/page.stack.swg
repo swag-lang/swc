@@ -8,7 +8,10 @@ func addStackButton(parent: *Wnd, text: string, icon: ThemeIcons)
 
 func createVerticalStack(parent: *Wnd, rect: Math.Rectangle)
 {
-    let panel = createPanel(parent, "Top stack", "Children keep their own height and are stacked with spacing.", rect)
+    let panel = createPanel(parent,
+                            "Top stack",
+                            "Children keep their own height and are stacked with spacing.",
+                            rect)
     let stack = StackLayoutCtrl.create(panel, .Top, {18, 92, rect.width - 36, rect.height - 112})
     stack.spacing = 10
     stack.padding = 4
@@ -24,7 +27,10 @@ func createVerticalStack(parent: *Wnd, rect: Math.Rectangle)
 
 func createFitStack(parent: *Wnd, rect: Math.Rectangle)
 {
-    let panel = createPanel(parent, "Horizontal fit", "HorzFit divides the available width between visible children.", rect)
+    let panel = createPanel(parent,
+                            "Horizontal fit",
+                            "HorzFit divides the available width between visible children.",
+                            rect)
     let stack = StackLayoutCtrl.create(panel, .HorizontalFit, {18, 96, rect.width - 36, 52})
     stack.spacing = 10
     stack.padding = 2
@@ -44,7 +50,10 @@ func createFitStack(parent: *Wnd, rect: Math.Rectangle)
 
 func createSliderStack(parent: *Wnd, rect: Math.Rectangle)
 {
-    let panel = createPanel(parent, "Form rows", "A vertical stack hosting composite controls with fixed row heights.", rect)
+    let panel = createPanel(parent,
+                            "Form rows",
+                            "A vertical stack hosting composite controls with fixed row heights.",
+                            rect)
     let stack = StackLayoutCtrl.create(panel, .Top, {18, 94, rect.width - 36, rect.height - 114})
     stack.spacing = 12
 

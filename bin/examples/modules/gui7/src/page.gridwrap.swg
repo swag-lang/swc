@@ -26,8 +26,15 @@ func createGridWrapPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 
-    let left = createPanel(parent, "GridLayoutCtrl", "Cells can span columns and rows while the grid recomputes direct child windows.", layout.left)
-    let grid = GridLayoutCtrl.create(left, 4, 3, {18, 92, Math.max(layout.left.width - 36, 320.0), Math.max(layout.left.height - 112, 180.0)})
+    let left = createPanel(parent,
+                           "GridLayoutCtrl",
+                           "Cells can span columns and rows while the grid recomputes direct child windows.",
+                           layout.left)
+    let grid = GridLayoutCtrl.create(left, 4, 3, {
+        18,
+        92,
+        Math.max(layout.left.width - 36, 320.0),
+        Math.max(layout.left.height - 112, 180.0)})
     grid.backgroundStyle = .Dialog
     grid.flags.add(.EqualColumnWidths)
     grid.flags.add(.EqualRowHeights)
@@ -47,8 +54,11 @@ func createGridWrapPage(parent: *Wnd)
     grid.setCell(logs, 1, 2, 3, 1)
     grid.computeLayout()
 
-    let right = createPanel(parent, "WrapLayoutCtrl", "Tiles wrap to the next row as the pane narrows.", layout.right)
-    let wrap  = WrapLayoutCtrl.create(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    let right = createPanel(parent,
+                            "WrapLayoutCtrl",
+                            "Tiles wrap to the next row as the pane narrows.",
+                            layout.right)
+    let wrap = WrapLayoutCtrl.create(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
     wrap.itemWidth  = 128
     wrap.itemHeight = 38
     wrap.spacing    = 10
@@ -65,7 +75,10 @@ func createGridWrapPage(parent: *Wnd)
     createWrapTile(wrap, "Remove", .Remove)
     wrap.computeLayout()
 
-    let bottom = createPanel(parent, "Combined layouts", "A grid is useful for stable dashboards; wrap is better for tool groups whose count or width changes.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Combined layouts",
+                             "A grid is useful for stable dashboards; wrap is better for tool groups whose count or width changes.",
+                             layout.bottom)
     let center = StackLayoutCtrl.create(bottom, .Center, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     center.spacing = 14
     discard createChip(center, "Grid", .Sort)

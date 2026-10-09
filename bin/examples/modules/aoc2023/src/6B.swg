@@ -22,36 +22,36 @@ func day6B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    let first  = Tokenize.split(lines[0], ':'u8)
-    let second = Tokenize.split(lines[1], ':'u8)
-    let val0   = Tokenize.split(first[1], ' 'u8)
-    let val1   = Tokenize.split(second[1], ' 'u8)
+    let timeField      = Tokenize.split(lines[0], ':'u8)
+    let distanceField  = Tokenize.split(lines[1], ':'u8)
+    let timeTokens     = Tokenize.split(timeField[1], ' 'u8)
+    let distanceTokens = Tokenize.split(distanceField[1], ' 'u8)
 
-    var times: Array'u64
-    var dists: Array'u64
+    var raceTimes:       Array'u64
+    var recordDistances: Array'u64
 
-    var str0, str1: String = ""
-    for v in val0 do
-        str0 += v
-    for v in val1 do
-        str1 += v
+    var timeDigits, distanceDigits: String = ""
+    for token in timeTokens do
+        timeDigits += token
+    for token in distanceTokens do
+        distanceDigits += token
 
-    times.add(expect StrConv.toU64(str0))
-    dists.add(expect StrConv.toU64(str1))
+    raceTimes.add(expect StrConv.toU64(timeDigits))
+    recordDistances.add(expect StrConv.toU64(distanceDigits))
 
     var total: u64 = 1
-    for t, idx in times
+    for raceTime, raceIndex in raceTimes
     {
-        var cpt = 0
-        let dx  = dists[idx]
-        for i in t
+        var winningCount   = 0
+        let recordDistance = recordDistances[raceIndex]
+        for holdTime in raceTime
         {
-            let travel = (t - i) * i
-            if travel > dx do
-                cpt += 1
+            let travelDistance = (raceTime - holdTime) * holdTime
+            if travelDistance > recordDistance do
+                winningCount += 1
         }
 
-        total *= cpt
+        total *= winningCount
     }
 
     Swag.assert(total == 33875953)

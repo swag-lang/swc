@@ -476,6 +476,12 @@ private:
         uint32_t           addressGeneration = 0;
     };
 
+    // The states live in chunks that never move, so a payload handed out stays valid while
+    // later variables are recorded; a flat index replaces a map node per variable.
+    static constexpr uint32_t K_VARIABLE_PAYLOAD_CHUNK = 16;
+
+    VariablePayloadState& ensureVariablePayloadState(const SymbolVariable& sym);
+
     void   setVisitors();
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
@@ -493,7 +499,9 @@ private:
     std::vector<CodeGenFrame>                                        frames_;
     RefPointerMap<AstNodeRef>                                        nodePayloads_;
     RefPointerMap<AstNodeRef>                                        auxNodePayloads_;
-    std::unordered_map<const SymbolVariable*, VariablePayloadState>  variablePayloads_;
+    PointerMap<SymbolVariable, VariablePayloadState>                 variablePayloads_;
+    SmallVector<std::unique_ptr<VariablePayloadState[]>, 4>          variablePayloadChunks_;
+    uint32_t                                                         variablePayloadCount_ = 0;
     std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar> moveElisionVars_;
     PointerSet<const SymbolVariable>                                 elidedImplicitDrops_;
     const SymbolVariable*                                            returnMoveOutVar_    = nullptr;

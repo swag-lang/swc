@@ -279,6 +279,90 @@ private:
     size_t            count_ = 0;
 };
 
+// A map from pointers to pointers, held in one flat table. The null key marks a free slot, so it is
+// never a key; a null value reads as absent.
+template<typename K, typename V>
+class PointerMap
+{
+public:
+    V* find(const K* key) const noexcept
+    {
+        if (slots_.empty() || !key)
+            return nullptr;
+
+        size_t index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key)
+        {
+            if (slots_[index].key == key)
+                return slots_[index].value;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        return nullptr;
+    }
+
+    void set(const K* key, V* value)
+    {
+        SWC_ASSERT(key != nullptr);
+        if (slots_.empty())
+            rehash(INITIAL_CAPACITY);
+
+        size_t index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key)
+        {
+            if (slots_[index].key == key)
+            {
+                slots_[index].value = value;
+                return;
+            }
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        slots_[index] = {.key = key, .value = value};
+        ++count_;
+
+        // Linear probing degrades sharply near a full table; keep it below three quarters.
+        if (count_ * 4 > slots_.size() * 3)
+            rehash(slots_.size() * 2);
+    }
+
+private:
+    struct Slot
+    {
+        const K* key   = nullptr;
+        V*       value = nullptr;
+    };
+
+    static constexpr size_t INITIAL_CAPACITY = 32;
+
+    // Pointers from one allocator share their low bits; the multiply spreads them over the table.
+    static size_t slotIndex(const K* key, size_t mask) noexcept
+    {
+        const auto bits = reinterpret_cast<uintptr_t>(key);
+        return static_cast<size_t>((bits >> 4) * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+    }
+
+    void rehash(size_t capacity)
+    {
+        std::vector<Slot> previous(capacity);
+        previous.swap(slots_);
+
+        const size_t mask = slots_.size() - 1;
+        for (const Slot& slot : previous)
+        {
+            if (!slot.key)
+                continue;
+            size_t index = slotIndex(slot.key, mask);
+            while (slots_[index].key)
+                index = (index + 1) & mask;
+            slots_[index] = slot;
+        }
+    }
+
+    std::vector<Slot> slots_;
+    size_t            count_ = 0;
+};
+
 // A map from 32-bit keys to small trivially copyable values, held in one flat table. The all-ones
 // key marks a free slot, so it is never a key. A found value is read before the next insertion,
 // which can move it.

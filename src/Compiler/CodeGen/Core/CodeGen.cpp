@@ -545,7 +545,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         nextDeferredAddressGeneration_    = 1;
         // The drop test reads the function's variables; the other one walks its whole body.
         hasDeferredStatements_ = functionHasImplicitDrops(*this, symbolFunc) || containsDeferredActions(root);
-        variablePayloads_.clear();
+        variablePayloads_      = {};
+        variablePayloadChunks_.clear();
+        variablePayloadCount_ = 0;
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
         temporaryDrops_.clear();
@@ -857,6 +859,22 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
     return payload;
 }
 
+CodeGen::VariablePayloadState& CodeGen::ensureVariablePayloadState(const SymbolVariable& sym)
+{
+    if (VariablePayloadState* state = variablePayloads_.find(&sym))
+        return *state;
+
+    const uint32_t slot = variablePayloadCount_ % K_VARIABLE_PAYLOAD_CHUNK;
+    if (!slot)
+        variablePayloadChunks_.push_back(std::make_unique<VariablePayloadState[]>(K_VARIABLE_PAYLOAD_CHUNK));
+    ++variablePayloadCount_;
+
+    VariablePayloadState& state = variablePayloadChunks_.back()[slot];
+    state                       = {};
+    variablePayloads_.set(&sym, &state);
+    return state;
+}
+
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
     if (sym.hasGlobalStorage())
@@ -866,7 +884,7 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     if (inDeferredEmission() && isStackAddress)
         return;
 
-    VariablePayloadState& symbolPayload = variablePayloads_[&sym];
+    VariablePayloadState& symbolPayload = ensureVariablePayloadState(sym);
     symbolPayload.payload               = payload;
     symbolPayload.hasPayload            = true;
     symbolPayload.addressGeneration     = isStackAddress ? currentDeferredAddressGeneration_ : 0;
@@ -877,10 +895,10 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
     if (sym.hasGlobalStorage())
         return nullptr;
 
-    const auto it = variablePayloads_.find(&sym);
-    if (it == variablePayloads_.end() || !it->second.hasPayload)
+    const VariablePayloadState* state = variablePayloads_.find(&sym);
+    if (!state || !state->hasPayload)
         return nullptr;
-    const VariablePayloadState& symbolPayload = it->second;
+    const VariablePayloadState& symbolPayload = *state;
     if (isStackAddressPayload(*this, sym, symbolPayload.payload) &&
         symbolPayload.addressGeneration != currentDeferredAddressGeneration_)
         return nullptr;

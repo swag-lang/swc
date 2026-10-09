@@ -8,7 +8,8 @@ func createColumnsPage(parent: *Wnd)
                            "File table",
                            "Resizable columns, icon margins, alternating rows and stable first-column sizing.",
                            layout.left)
-    let files = ListCtrl.createMultiColumns(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
+    let files = ListCtrl.createMultiColumns(left,
+                                            {18, 92, layout.left.width - 36, layout.left.height - 112})
     files.setFrameForm(.Round)
     files.frameFlags.add(.FocusBorder)
     files.setSelectionMode(.Multi)
@@ -37,7 +38,8 @@ func createColumnsPage(parent: *Wnd)
                             "Sorted work queue",
                             "Clicking headers changes sort order; the example opens on the priority column.",
                             layout.right)
-    with let queue = ListCtrl.createMultiColumns(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    with let queue = ListCtrl.createMultiColumns(right,
+                                                 {18, 92, layout.right.width - 36, layout.right.height - 112})
     {
         .setFrameForm(.Round)
         .setSelectionMode(.Single)
@@ -66,7 +68,8 @@ func createColumnsPage(parent: *Wnd)
                              "Wide columns",
                              "Horizontal scrolling keeps the header and list content aligned.",
                              layout.bottom)
-    with let wide = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    with let wide = ListCtrl.createMultiColumns(bottom,
+                                                {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     {
         .setFrameForm(.Square)
         .setSelectionMode(.Multi)

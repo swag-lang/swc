@@ -64,6 +64,7 @@ namespace
         o.forceSingleLineArgumentLists         = false;
         o.forceSingleLineParameterLists        = false;
         o.sourceSelectsArgumentLayout          = true;
+        o.singleLineArgumentColumnLimit        = 100;
         o.sourceSelectsParameterLayout         = true;
         o.argumentListLayout                   = FormatListLayout::HangingAlign;
         o.parameterListLayout                  = FormatListLayout::HangingAlign;

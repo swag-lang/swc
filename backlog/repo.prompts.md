@@ -1114,6 +1114,9 @@ afterward inspect every changed file, confirm idempotence, and retain only expec
 Prefer a few broad, low-noise improvements over a large number of isolated cosmetic edits.
 Do not add a formatter rule for choices that require knowing a code block's purpose, inventing a
 name, or judging whether a comment helps.
+The Swag style's `single-line-argument-column-limit` wraps authored one-line calls above 100
+columns while leaving authored multiline calls and non-call expressions alone. Keep its focused
+formatter regression and inspect the complete diff from any broad pass that applies it.
 
 After global improvements, review modules and their entry points in this order: public `bin/std`
 and `bin/runtime` APIs, `bin/apps/`, then `bin/examples/`; continue with reference sources,

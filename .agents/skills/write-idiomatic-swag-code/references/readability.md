@@ -300,6 +300,29 @@ Boolean locals merely to shorten such a chain: eager evaluation can lose its sho
 Explicit single-line policies still take precedence. A long condition with only two operands may
 need authored wrapping or a meaningful predicate; this narrow rule does not decide that.
 
+Calls use a separate `single-line-argument-column-limit` of 100 columns. It breaks an editable,
+authored single-line call when the entire source line exceeds the limit, while preserving calls
+already laid out across lines. Short calls and their argument order stay as written; literals,
+parameter lists, comments, and long expressions outside the argument list are not wrapped by this
+rule. Set the option to `0` to disable it. A single argument that is itself too long still needs
+an author's judgement about a meaningful break.
+
+```swag
+// Before: the call runs far past the ordinary reading width.
+let clip = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
+```
+
+```swag
+// After: one argument per line makes the controls and values easy to scan.
+let clip = EditCtrl.create(
+    dialog,
+    appStrings().ui_Width,
+    Format.toString("%", capture.width),
+    {80, 15},
+    flags: .RightAligned
+)
+```
+
 The default style preserves the authored shape of named functions, including a multiline body
 beside an accessor. Explicit `uniform-function-bodies` configuration can still request sibling
 compaction. Do not force every accessor to expand or every single statement to collapse.

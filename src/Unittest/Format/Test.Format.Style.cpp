@@ -294,7 +294,8 @@ SWC_TEST_BEGIN(FormatStyle_SwagLeavesLineEndingsAndColumnsAlone)
     // becomes a whole-file diff on the other operating system.
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
-    if (options.endOfLineStyle != FormatEndOfLineStyle::Preserve || options.columnLimit != 0)
+    if (options.endOfLineStyle != FormatEndOfLineStyle::Preserve || options.columnLimit != 0 ||
+        options.singleLineArgumentColumnLimit != 100)
         return Result::Error;
 
     static constexpr std::string_view SOURCE   = "func foo()\r\n{\r\n    return\r\n}\r\n";
@@ -317,6 +318,7 @@ SWC_TEST_BEGIN(FormatStyle_DescribeRendersEveryOption)
         dump.find("\nblank-line-before-access-block = always\n") == std::string::npos ||
         dump.find("\nblank-line-after-access-block = always\n") == std::string::npos ||
         dump.find("\nend-of-line-style = preserve\n") == std::string::npos ||
+        dump.find("\nsingle-line-argument-column-limit = 100\n") == std::string::npos ||
         dump.find("\nformat-off-comment = \"swc-format off\"\n") == std::string::npos ||
         dump.find("# Possible values: preserve, attach, allman, stroustrup\n") == std::string::npos)
         return Result::Error;

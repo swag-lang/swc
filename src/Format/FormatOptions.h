@@ -212,6 +212,7 @@ struct FormatOptions
     std::optional<bool>     forceSingleLineArgumentLists;                                   // Place editable call argument lists on one line, regardless of the column limit
     std::optional<bool>     forceSingleLineParameterLists;                                  // Place editable declaration parameter lists on one line, regardless of the column limit
     std::optional<bool>     sourceSelectsArgumentLayout;                                    // Let the first two call arguments select single-line or multiline layout
+    uint32_t                singleLineArgumentColumnLimit = 0;                               // Break an authored single-line call when its full line exceeds this width
     std::optional<bool>     sourceSelectsParameterLayout;                                   // Let the first two declaration parameters select single-line or multiline layout
     FormatListLayout        argumentListLayout  = FormatListLayout::Preserve;               // Layout of multiline call argument lists
     FormatListLayout        parameterListLayout = FormatListLayout::Preserve;               // Layout of multiline declaration parameter lists

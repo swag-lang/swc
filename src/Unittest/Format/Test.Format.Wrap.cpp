@@ -456,6 +456,51 @@ SWC_TEST_BEGIN(FormatWrap_SourceSelectsSingleLineLists)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_BreakLongAuthoredCallAndKeepShortOrMultilineCalls)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32, second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1, 2, 3)\n"
+        "    target(11111111, 22222222, 33333333)\n"
+        "    let value = target(11111111, 22222222, 33333333)\n"
+        "    target(11111111,\n"
+        "           22222222,\n"
+        "           33333333)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32, second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1, 2, 3)\n"
+        "    target(\n"
+        "        11111111,\n"
+        "        22222222,\n"
+        "        33333333\n"
+        "    )\n"
+        "    let value = target(\n"
+        "        11111111,\n"
+        "        22222222,\n"
+        "        33333333\n"
+        "    )\n"
+        "    target(\n"
+        "        11111111,\n"
+        "        22222222,\n"
+        "        33333333\n"
+        "    )\n"
+        "}\n";
+
+    FormatOptions options;
+    options.sourceSelectsArgumentLayout   = true;
+    options.singleLineArgumentColumnLimit = 30;
+    options.argumentListLayout            = FormatListLayout::Block;
+    options.binPackArguments              = FormatBinPackStyle::OnePerLine;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_SourceSelectsNestedSingleLineLists)
 {
     static constexpr std::string_view SOURCE =

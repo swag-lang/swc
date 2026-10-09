@@ -48,11 +48,13 @@ namespace
         std::optional<bool> hugTrailingBlock;
         FormatListLayout    layout  = FormatListLayout::Preserve;
         FormatBinPackStyle  binPack = FormatBinPackStyle::Preserve;
+        uint32_t            singleLineColumnLimit = 0;
 
         bool active() const
         {
             return forceSingleLine.value_or(false) || sourceSelectsLayout.has_value() || hugTrailingBlock.value_or(false) ||
-                   layout != FormatListLayout::Preserve || binPack != FormatBinPackStyle::Preserve;
+                   layout != FormatListLayout::Preserve || binPack != FormatBinPackStyle::Preserve ||
+                   singleLineColumnLimit != 0;
         }
     };
 
@@ -66,6 +68,7 @@ namespace
         std::optional<bool>   hugTrailingBlock;
         FormatListLayout      layout     = FormatListLayout::Preserve;
         FormatBinPackStyle    binPack    = FormatBinPackStyle::Preserve;
+        uint32_t              singleLineColumnLimit = 0;
         ListLineMode          lineMode   = ListLineMode::Unchanged;
         bool                  editable   = false;
         bool                  hasComment = false;
@@ -167,8 +170,9 @@ namespace
                     .forceSingleLine     = options_->forceSingleLineArgumentLists,
                     .sourceSelectsLayout = options_->sourceSelectsArgumentLayout,
                     .hugTrailingBlock    = options_->hugTrailingBlockArgument,
-                    .layout              = options_->argumentListLayout,
-                    .binPack             = options_->binPackArguments,
+                    .layout                = options_->argumentListLayout,
+                    .binPack               = options_->binPackArguments,
+                    .singleLineColumnLimit = options_->singleLineArgumentColumnLimit,
                 };
             }
 
@@ -207,13 +211,14 @@ namespace
                     continue;
 
                 ListState state;
-                state.openPiece           = i;
-                state.closePiece          = open.match;
-                state.forceSingleLine     = policy.forceSingleLine;
-                state.sourceSelectsLayout = policy.sourceSelectsLayout;
-                state.hugTrailingBlock    = policy.hugTrailingBlock;
-                state.layout              = policy.layout;
-                state.binPack             = policy.binPack;
+                state.openPiece             = i;
+                state.closePiece            = open.match;
+                state.forceSingleLine       = policy.forceSingleLine;
+                state.sourceSelectsLayout   = policy.sourceSelectsLayout;
+                state.hugTrailingBlock      = policy.hugTrailingBlock;
+                state.layout                = policy.layout;
+                state.binPack               = policy.binPack;
+                state.singleLineColumnLimit = policy.singleLineColumnLimit;
                 state.literal             = open.hasRole(FormatRoleE::LiteralOpen);
                 collectItems(state);
                 lists_.push_back(std::move(state));
@@ -520,10 +525,12 @@ namespace
 
         bool joinedListFits(const ListState& state) const
         {
-            if (options_->columnLimit == 0)
+            const uint32_t columnLimit =
+                state.singleLineColumnLimit != 0 ? state.singleLineColumnLimit : options_->columnLimit;
+            if (columnLimit == 0)
                 return true;
             const uint32_t lineStart = model_->lineStartOf(state.openPiece);
-            return FormatPassUtil::lineWidth(*model_, lineStart) <= options_->columnLimit;
+            return FormatPassUtil::lineWidth(*model_, lineStart) <= columnLimit;
         }
 
         void chooseLineMode(ListState& state) const
@@ -550,7 +557,8 @@ namespace
 
             if (*state.sourceSelectsLayout)
             {
-                if (firstItemsShareSourceLine(state) && joinList(state))
+                const bool withinSourceLimit = state.singleLineColumnLimit == 0 || joinedListFits(state);
+                if (firstItemsShareSourceLine(state) && withinSourceLimit && joinList(state))
                     state.lineMode = ListLineMode::SingleLine;
                 else
                     state.lineMode = ListLineMode::MultiLine;

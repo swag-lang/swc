@@ -248,9 +248,13 @@ func fitTextureRect(bounds: Math.Rectangle, texture: Texture)->Math.Rectangle
 
 func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: DecoderCard)
 {
-    let headerRect  = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
-    let detailsRect = Math.Rectangle{rect.x + 14, rect.y + 38, rect.width - 28, CardHeaderHeight - 42}
-    let previewRect = Math.Rectangle{rect.x + 14, rect.y + CardHeaderHeight + 14, rect.width - 28, rect.height - CardHeaderHeight - 28}
+    let headerRect    = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
+    let detailsRect   = Math.Rectangle{rect.x + 14, rect.y + 38, rect.width - 28, CardHeaderHeight - 42}
+    let previewLeft   = rect.x + 14
+    let previewTop    = rect.y + CardHeaderHeight + 14
+    let previewWidth  = rect.width - 28
+    let previewHeight = rect.height - CardHeaderHeight - 28
+    let previewRect   = Math.Rectangle{previewLeft, previewTop, previewWidth, previewHeight}
 
     painter.fillRoundRect(rect, 18, 18, Argb.White)
     painter.drawRoundRect(rect, 18, 18, Color.fromArgb(72, Argb.SlateGray), 2)

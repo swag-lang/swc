@@ -290,15 +290,15 @@ namespace
 
     struct RelocationRefCache
     {
-        std::unordered_set<uint32_t> refs;
-        bool                         built = false;
+        FlatKeySet refs;
+        bool       built = false;
 
         void invalidate()
         {
             built = false;
         }
 
-        const std::unordered_set<uint32_t>& get(const MicroPassContext& context)
+        const FlatKeySet& get(const MicroPassContext& context)
         {
             if (!built)
             {
@@ -5341,7 +5341,7 @@ namespace
         const MicroStorage*                    storage  = nullptr;
         const MicroOperandStorage*             operands = nullptr;
         std::unordered_map<uint64_t, uint32_t> labelReferences;
-        const std::unordered_set<uint32_t>*    relocated = nullptr;
+        const FlatKeySet*                      relocated = nullptr;
     };
 
     // Collect up to K_MAX_IF_CONVERT_ARM_INSTR speculatable instructions after

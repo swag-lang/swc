@@ -496,6 +496,30 @@ private:
     bool              hasFreeKey_ = false;
 };
 
+// A set of 32-bit keys held in one flat table, for the instruction sets a pass collects once per
+// function and then only asks about. An empty set owns nothing; a filled one is one allocation.
+class FlatKeySet
+{
+public:
+    // True when the key was not already present.
+    bool insert(uint32_t key)
+    {
+        bool& present = map_.getOrInsert(key);
+        if (present)
+            return false;
+        present = true;
+        return true;
+    }
+
+    bool   contains(uint32_t key) const noexcept { return map_.find(key) != nullptr; }
+    bool   empty() const noexcept { return map_.size() == 0; }
+    size_t size() const noexcept { return map_.size(); }
+    void   clear() noexcept { map_.clear(); }
+
+private:
+    FlatKeyMap<bool> map_;
+};
+
 // The nodes on the current path of a recursive walk that must not re-enter itself. Each node
 // leaves the path before its frame returns, so the path is never deeper than the recursion and a
 // scan of it costs no more than the frames already on the stack. A node-based set pays two heap

@@ -108,12 +108,12 @@ namespace InstructionCombine
         // on the first question: only a rule that already found a guard asks.
         bool isReportCall(MicroInstrRef ref);
 
-        bool                         reportCallsReady = false;
-        std::unordered_set<uint32_t> reportCalls;
+        bool       reportCallsReady = false;
+        FlatKeySet reportCalls;
 
-        bool                         loopSlotsReady = false;
-        bool                         loopSlotsAll   = false;
-        std::unordered_set<uint32_t> loopSlots;
+        bool       loopSlotsReady = false;
+        bool       loopSlotsAll   = false;
+        FlatKeySet loopSlots;
 
         // Claim every ref atomically: returns false without side-effects if
         // any was already claimed, or if one carries a relocation the caller

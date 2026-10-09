@@ -64,7 +64,7 @@ namespace
     // one of the calls and ends either by falling into a label or with a jump of
     // its own. `skipTarget` is the label a guard jumps to; the block then has to
     // end exactly there.
-    bool matchColdBlock(ColdBlock& outBlock, const MicroPassContext& context, const std::unordered_set<uint32_t>& reportCalls, MicroInstrRef firstRef, const uint32_t* skipTarget)
+    bool matchColdBlock(ColdBlock& outBlock, const MicroPassContext& context, const FlatKeySet& reportCalls, MicroInstrRef firstRef, const uint32_t* skipTarget)
     {
         const MicroStorage&        storage  = *context.instructions;
         const MicroOperandStorage& operands = *context.operands;
@@ -120,7 +120,7 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
     if (!context.builder)
         return Result::Continue;
 
-    const std::unordered_set<uint32_t> reportCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
+    const FlatKeySet reportCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
     if (reportCalls.empty())
         return Result::Continue;
 

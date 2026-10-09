@@ -75,8 +75,8 @@ namespace PostRaPeephole
         const CallConv& conv    = CallConv::get(ctx.passContext->callConvKind);
         bool            changed = false;
 
-        std::optional<std::unordered_set<uint32_t>> readOnlyCallRefs;
-        const auto                                  isReadOnlyCall = [&](const MicroInstrRef ref) {
+        std::optional<FlatKeySet> readOnlyCallRefs;
+        const auto                isReadOnlyCall = [&](const MicroInstrRef ref) {
             if (!readOnlyCallRefs)
                 readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*ctx.builder);
             return readOnlyCallRefs->contains(ref.get());

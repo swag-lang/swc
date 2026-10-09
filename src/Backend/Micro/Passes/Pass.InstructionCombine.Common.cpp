@@ -363,7 +363,7 @@ namespace InstructionCombine
     {
         if (!reportCallsReady)
         {
-            reportCalls      = builder ? MicroPassHelpers::collectReportCallRefs(*builder) : std::unordered_set<uint32_t>{};
+            reportCalls      = builder ? MicroPassHelpers::collectReportCallRefs(*builder) : FlatKeySet{};
             reportCallsReady = true;
         }
         return reportCalls.contains(ref.get());

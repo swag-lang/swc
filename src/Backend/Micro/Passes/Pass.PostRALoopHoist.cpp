@@ -1224,13 +1224,13 @@ namespace
         uint64_t unavailableCacheRegs = 0;
         bool     cacheRegsComputed    = false;
 
-        thread_local std::vector<CachedReload>    cachedReloads;
-        thread_local std::vector<Hoist>           hoists;
-        thread_local std::vector<MicroInstrRef>   erasures;
-        thread_local std::vector<Rewrite>         rewrites;
-        thread_local std::vector<Carried>         carried;
-        thread_local std::vector<SunkStore>       sunkStores;
-        thread_local std::unordered_set<uint32_t> claimed;
+        thread_local std::vector<CachedReload>  cachedReloads;
+        thread_local std::vector<Hoist>         hoists;
+        thread_local std::vector<MicroInstrRef> erasures;
+        thread_local std::vector<Rewrite>       rewrites;
+        thread_local std::vector<Carried>       carried;
+        thread_local std::vector<SunkStore>     sunkStores;
+        thread_local FlatKeySet                 claimed;
         cachedReloads.clear();
         hoists.clear();
         erasures.clear();
@@ -1625,8 +1625,8 @@ namespace
         if (savedRegs.empty())
             return false;
 
-        const auto                   readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
-        std::unordered_set<uint32_t> relocatedRefs;
+        const auto readOnlyCallRefs = MicroPassHelpers::collectReadOnlyCallRefs(*context.builder);
+        FlatKeySet relocatedRefs;
         for (const MicroRelocation& relocation : context.builder->codeRelocations())
         {
             if (relocation.instructionRef.isValid())

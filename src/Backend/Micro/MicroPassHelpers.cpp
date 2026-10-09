@@ -156,9 +156,9 @@ FlatKeyMap<uint64_t> MicroPassHelpers::collectStackPointerOffsets(const MicroPas
     return result;
 }
 
-std::unordered_set<uint32_t> MicroPassHelpers::collectReadOnlyCallRefs(const MicroBuilder& builder)
+FlatKeySet MicroPassHelpers::collectReadOnlyCallRefs(const MicroBuilder& builder)
 {
-    std::unordered_set<uint32_t> refs;
+    FlatKeySet refs;
     for (const MicroRelocation& relocation : builder.codeRelocations())
     {
         if (relocation.instructionRef.isValid() && relocation.targetSymbol && relocation.targetSymbol->isFunction() &&
@@ -168,7 +168,7 @@ std::unordered_set<uint32_t> MicroPassHelpers::collectReadOnlyCallRefs(const Mic
     return refs;
 }
 
-std::unordered_set<uint32_t> MicroPassHelpers::collectReportCallRefs(const MicroBuilder& builder)
+FlatKeySet MicroPassHelpers::collectReportCallRefs(const MicroBuilder& builder)
 {
     const IdentifierManager& idMgr = builder.ctx().idMgr();
     const std::array         names = {
@@ -177,7 +177,7 @@ std::unordered_set<uint32_t> MicroPassHelpers::collectReportCallRefs(const Micro
         idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::FailedExpect),
     };
 
-    std::unordered_set<uint32_t> refs;
+    FlatKeySet refs;
     for (const MicroRelocation& relocation : builder.codeRelocations())
     {
         if (relocation.instructionRef.isInvalid() || !relocation.targetSymbol)

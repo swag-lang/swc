@@ -538,6 +538,7 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   table indexed by them, when the table shows the whole mapping at once.
 - Count a condition with `if condition do total += 1` instead of casting its boolean result to an
   integer; the conditional states the counting rule directly.
+- Use `startsWith` to test a literal prefix instead of indexing and comparing each prefix character.
 - In a circular scan, name a derived partner index when wrapping arithmetic obscures the relation
   being compared. Keep the offset visible as well when it defines the algorithm (for example, the
   next item versus the item halfway around); do not inline modulo arithmetic into the comparison.

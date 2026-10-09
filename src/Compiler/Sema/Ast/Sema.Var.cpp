@@ -687,7 +687,7 @@ namespace
     bool canLeadAggregateArrayElementDriveConcretization(Sema& sema, TypeRef elemTypeRef, ConstantRef elemCstRef);
     bool shouldDeferAggregateArrayConcretization(Sema& sema, const SemaNodeView& nodeInitView);
 
-    Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView)
+    Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView, const Symbol* initialized)
     {
         SWC_UNUSED(context);
 
@@ -695,7 +695,10 @@ namespace
             return Result::Continue;
 
         if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
-            return Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization);
+        {
+            const CastCallSite initSite{.initialized = initialized};
+            return Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization, CastFlagsE::Zero, &initSite);
+        }
 
         if (nodeInitView.cstRef().isValid())
         {
@@ -937,7 +940,10 @@ namespace
                 SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeInitView.nodeRef(), nodeInitView.typeRef(), declTypeRef, initModifiers, true));
                 SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, nodeInitView.nodeRef(), declTypeRef, initModifiers));
             }
-            SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
+            // A single declaration is named when its initial value does not convert. A parameter's
+            // value is a default, which the plain conversion message already describes.
+            const Symbol* initialized = symbols.size() == 1 && !isParameter ? symbols.front() : nullptr;
+            SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView, initialized));
         }
 
         if (context.nodeInitRef.isValid() && !setInitInfo.handled)
